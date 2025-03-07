@@ -5,6 +5,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+/**
+ * ContextWrapper struct
+ *
+ * @author Dev. Bengi (Backend Team)
+ */
+
 type ContextWrapper struct {
 	Ctx       *fiber.Ctx
 	Validator *validator.Validate

@@ -2,6 +2,12 @@ package response
 
 import "github.com/gofiber/fiber/v2"
 
+/**
+ * Response struct
+ *
+ * @author Dev. Bengi (Backend Team)
+ */
+
 type Response struct {
 	Status  bool        `json:"status"`
 	Message string      `json:"message,omitempty"`
