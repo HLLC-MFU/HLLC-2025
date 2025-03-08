@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native";
-import { YStack,Text, Image, Card } from "tamagui";
+
 
 interface QRCodePageProps {
     name: string;
@@ -10,7 +10,7 @@ interface QRCodePageProps {
 export default function QRCodePage(props: QRCodePageProps) {
     return (
         <SafeAreaView>
-            <Card style={{padding: 10, alignItems: 'center', gap: 12}}>
+            {/* <Card style={{padding: 10, alignItems: 'center', gap: 12}}>
                 <YStack style={{alignItems: 'center', gap: 4}}>
                     <Text style={{fontSize: 22, fontWeight: "bold"}}>Nattawat Nattachanasit</Text>
                     <Text>Scan the QR code to check in</Text>
@@ -20,7 +20,7 @@ export default function QRCodePage(props: QRCodePageProps) {
                 alt="QR Code"
                 style={{width: 150, height: 150}}
                 />
-            </Card>
+            </Card> */}
         </SafeAreaView>
 
     );

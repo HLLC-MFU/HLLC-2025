@@ -1,11 +1,10 @@
-import ActivityCard from "@/components/activities/ActivityCard";
+
 import { SafeAreaView } from "react-native";
-import { ScrollView, Text, YStack } from "tamagui";
 
 export default function ActivitiesPage() {
   return (
     <SafeAreaView>
-      <ScrollView>
+      {/* <ScrollView>
         <YStack style={{ gap: 16, padding: 16 }}>
           <ActivityCard
             activity={{
@@ -17,7 +16,7 @@ export default function ActivitiesPage() {
             }}
           ></ActivityCard>
         </YStack>
-      </ScrollView>
+      </ScrollView> */}
     </SafeAreaView>
   );
 }

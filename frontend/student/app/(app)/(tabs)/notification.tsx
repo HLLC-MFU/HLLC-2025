@@ -1,5 +1,5 @@
-import { SafeAreaView } from "react-native";
-import { Text } from "tamagui";
+import { SafeAreaView,Text
+ } from "react-native";
 export default function NotificationPage() {
     return (
         <SafeAreaView>

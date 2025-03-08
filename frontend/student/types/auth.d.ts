@@ -5,3 +5,7 @@ type AuthContextType = {
     signOut: () => Promise<void>;
   };
   
+type TokenResponse = {
+  accessToken: string;
+  refreshToken: string;
+}

@@ -1,39 +1,32 @@
-import { Tabs } from "expo-router";
-import React from "react";
-import { ImageBackground, StyleSheet, View } from "react-native";
+import { Tabs } from 'expo-router';
+import React from 'react';
+import { Platform } from 'react-native';
 
-import { HapticTab } from "@/components/HapticTab";
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import { Colors } from "@/constants/Colors";
-import { useColorScheme } from "@/hooks/useColorScheme";
+import { HapticTab } from '@/components/HapticTab';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import TabBarBackground from '@/components/ui/TabBarBackground';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <View style={{ flex: 1 }}> 
-      <ImageBackground
-        source={{
-          uri: "https://hllc.mfu.ac.th/api/uploads/109faa6b2b629ae15c35f5ae0ca6444d4.jpg",
-        }}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        {/* Wrap Tabs in a full-height View */}
-        <View style={styles.overlay}>
-          <Tabs
-            screenOptions={{
-              tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-              headerShown: false,
-              tabBarButton: HapticTab,
-              tabBarStyle: {
-                backgroundColor: "transparent", // ✅ Ensure tab bar is transparent
-                position: "absolute",
-                borderTopWidth: 0,
-              },
-            }}
-          >
-            <Tabs.Screen
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        headerShown: false,
+        tabBarButton: HapticTab,
+        tabBarBackground: TabBarBackground,
+        tabBarStyle: Platform.select({
+          ios: {
+            // Use a transparent background on iOS to show the blur effect
+            position: 'absolute',
+          },
+          default: {},
+        }),
+      }}>
+      <Tabs.Screen
               name="index"
               options={{
                 title: "Home",
@@ -78,19 +71,6 @@ export default function TabLayout() {
                 ),
               }}
             />
-          </Tabs>
-        </View>
-      </ImageBackground>
-    </View>
+    </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  background: {
-    flex: 1, 
-  },
-  overlay: {
-    flex: 1, 
-    backgroundColor: "transparent", // ✅ Ensure transparency
-  },
-});
