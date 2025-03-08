@@ -11,20 +11,23 @@ A modern, clean-architecture based backend service for the HLLC-2025 project.
 - Clean Architecture
 
 ## Project Structure
-
-```
+```go
 backend/
-├── module/                 # Business modules
-│   └── user/              # User module
-│       ├── controller/    # HTTP handlers
-│       ├── entity/        # Domain entities
-│       ├── model/         # DTOs
-│       ├── proto/         # Protocol Buffers definitions
-│       ├── repository/    # Data access layer
-│       └── service/       # Business logic layer
-├── pkg/                   # Shared packages
-├── server/                # Server configuration
-└── config/                # Application configuration
+├── config/         # Configuration management
+├── module/         # Business domain modules
+│   ├── user/      # User management module
+│   │   ├── dto/       # Data Transfer Objects
+│   │   ├── entity/    # Domain entities
+│   │   ├── repository/# Data access layer
+│   │   ├── service/   # Business logic
+│   │   └── controller/# HTTP handlers
+│   └── auth/      # Authentication module
+│       ├── dto/
+│       ├── entity/
+│       ├── repository/
+│       ├── service/
+│       └── controller/
+└── pkg/           # Shared utilities
 ```
 
 ## Features

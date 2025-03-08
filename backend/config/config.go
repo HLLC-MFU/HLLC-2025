@@ -20,6 +20,7 @@ type (
 		Db Db
 		Grpc Grpc
 		Jwt Jwt
+		Redis Redis
 	}
 
 	App struct {
@@ -45,6 +46,13 @@ type (
 	Grpc struct {
 		UserUrl string
 		AuthUrl string
+	}
+
+	Redis struct {
+		Host string
+		Port string
+		Password string
+		DB int
 	}
 )
 
