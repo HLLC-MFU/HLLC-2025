@@ -15,21 +15,21 @@ import (
  */
 
 type (
-
 	User struct {
 		ID           primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
-		Name         Name                `bson:"name" json:"name"`
-		Roles        []primitive.ObjectID `bson:"roles" json:"roles"`
-		Permissions  []primitive.ObjectID `bson:"permissions" json:"permissions"`
 		Username     string              `bson:"username" json:"username"`
-		PasswordHash string              `bson:"passwordHash" json:"passwordHash"`
-		CreatedAt    time.Time           `bson:"createdAt" json:"createdAt"`
-		UpdatedAt    time.Time           `bson:"updatedAt" json:"updatedAt"`
+		Password     string              `bson:"password" json:"-"`
+		Name         Name                `bson:"name" json:"name"`
+		Role         []Role              `bson:"role" json:"role"`
+		CreatedAt    time.Time           `bson:"created_at" json:"created_at"`
+		UpdatedAt    time.Time           `bson:"updated_at" json:"updated_at"`
 	}
 
 	Name struct {
-		FirstName  string `bson:"firstName" json:"firstName" validate:"required"`
-		MiddleName string `bson:"middleName" json:"middleName"`
-		LastName   string `bson:"lastName" json:"lastName" validate:"required"`
+		FirstName  string `bson:"first_name" json:"first_name"`
+		MiddleName string `bson:"middle_name" json:"middle_name"`
+		LastName   string `bson:"last_name" json:"last_name"`
 	}
+
+
 )
