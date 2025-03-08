@@ -20,7 +20,7 @@ type (
 		ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 		UserId       string             `bson:"user_id" json:"user_id"`
 		RefreshToken string             `bson:"refresh_token" json:"refresh_token"`
-		ExpiresAt    time.Time         `bson:"expiresAt" json:"expiresAt"`
-    	LastLoginAt  time.Time         `bson:"lastLoginAt" json:"lastLoginAt"`
+		ExpiresAt    time.Time          `bson:"expires_at" json:"expires_at"`
+		LastLoginAt  time.Time          `bson:"last_login_at" json:"last_login_at"`
 	}
 )
