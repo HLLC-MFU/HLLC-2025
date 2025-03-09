@@ -5,186 +5,177 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"sync"
 	"time"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc/metadata"
 )
 
 var (
-    ErrInvalidToken        = errors.New("invalid token")
-    ErrTokenExpired       = errors.New("token has expired")
-    ErrTokenBlacklisted   = errors.New("token has been blacklisted")
-    ErrInvalidSigningMethod = errors.New("invalid signing method")
+	ErrInvalidToken        = errors.New("invalid token")
+	ErrTokenExpired       = errors.New("token has expired")
+	ErrTokenBlacklisted   = errors.New("token has been blacklisted")
+	ErrInvalidSigningMethod = errors.New("invalid signing method")
 )
 
 type (
-    TokenType string
+	AuthFactory interface {
+		SignToken() string
+	}
 
-    Claims struct {
-        UserID   string   `json:"user_id"`
-        Username string   `json:"username"`
-        Roles    []string `json:"roles"`
-        jwt.RegisteredClaims
-    }
+	Claims struct {
+		UserID   string   `json:"user_id"`
+		Username string   `json:"username"`
+		RoleCode int      `json:"role_code"`
+		jwt.RegisteredClaims
+	}
 
-    TokenService interface {
-        GenerateAccessToken(claims Claims) (string, error)
-        GenerateRefreshToken(claims Claims) (string, time.Time, error)
-        ValidateToken(token string) (*Claims, error)
-        ValidateRefreshToken(token string) (*Claims, error)
-        BlacklistToken(token string) error
-        IsTokenBlacklisted(token string) bool
-    }
+	authConcrete struct {
+		Secret []byte
+		Claims *Claims
+	}
 
-    jwtService struct {
-        accessSecret  []byte
-        refreshSecret []byte
-        issuer       string
-        accessTTL    time.Duration
-        refreshTTL   time.Duration
-        blacklist    *redis.Client
-    }
+	accessToken  struct{ *authConcrete }
+	refreshToken struct{ *authConcrete }
+	apiKey      struct{ *authConcrete }
 )
 
-// NewJWTService creates a new JWT service instance
-func NewJWTService(config *config.Config, redis *redis.Client) TokenService {
-    return &jwtService{
-        accessSecret:  []byte(config.Jwt.AccessSecretKey),
-        refreshSecret: []byte(config.Jwt.RefreshSecretKey),
-        issuer:       "hllc-2025",
-        accessTTL:    time.Duration(config.Jwt.AccessDuration) * time.Second,
-        refreshTTL:   time.Duration(config.Jwt.RefreshDuration) * time.Second,
-        blacklist:    redis,
-    }
+func now() time.Time {
+	loc, _ := time.LoadLocation("Asia/Bangkok")
+	return time.Now().In(loc)
 }
 
-// GenerateAccessToken generates a new access token
-func (s *jwtService) GenerateAccessToken(claims Claims) (string, error) {
-    now := time.Now()
-    claims.RegisteredClaims = jwt.RegisteredClaims{
-        ExpiresAt: jwt.NewNumericDate(now.Add(s.accessTTL)),
-        IssuedAt:  jwt.NewNumericDate(now),
-        NotBefore: jwt.NewNumericDate(now),
-        Issuer:    s.issuer,
-    }
-
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    return token.SignedString(s.accessSecret)
+func jwtTimeDurationCal(t int64) *jwt.NumericDate {
+	return jwt.NewNumericDate(now().Add(time.Duration(t * int64(math.Pow10(9)))))
 }
 
-// GenerateRefreshToken generates a new refresh token
-func (s *jwtService) GenerateRefreshToken(claims Claims) (string, time.Time, error) {
-    now := time.Now()
-    expiresAt := now.Add(s.refreshTTL)
-    
-    claims.RegisteredClaims = jwt.RegisteredClaims{
-        ExpiresAt: jwt.NewNumericDate(expiresAt),
-        IssuedAt:  jwt.NewNumericDate(now),
-        NotBefore: jwt.NewNumericDate(now),
-        Issuer:    s.issuer,
-    }
-
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    tokenString, err := token.SignedString(s.refreshSecret)
-    if err != nil {
-        return "", time.Time{}, err
-    }
-
-    return tokenString, expiresAt, nil
+func jwtTimeRepeatAdapter(t int64) *jwt.NumericDate {
+	return jwt.NewNumericDate(time.Unix(t, 0))
 }
 
-// ValidateToken validates an access token
-func (s *jwtService) ValidateToken(tokenString string) (*Claims, error) {
-    // Check if token is blacklisted
-    if s.IsTokenBlacklisted(tokenString) {
-        return nil, ErrTokenBlacklisted
-    }
-
-    token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-        // Validate signing method
-        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-            return nil, ErrInvalidSigningMethod
-        }
-        return s.accessSecret, nil
-    })
-
-    if err != nil {
-        if errors.Is(err, jwt.ErrTokenExpired) {
-            return nil, ErrTokenExpired
-        }
-        return nil, fmt.Errorf("failed to parse token: %w", err)
-    }
-
-    claims, ok := token.Claims.(*Claims)
-    if !ok || !token.Valid {
-        return nil, ErrInvalidToken
-    }
-
-    return claims, nil
+func (a *authConcrete) SignToken() string {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, a.Claims)
+	ss, _ := token.SignedString(a.Secret)
+	return ss
 }
 
-// ValidateRefreshToken validates a refresh token
-func (s *jwtService) ValidateRefreshToken(tokenString string) (*Claims, error) {
-    token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-            return nil, ErrInvalidSigningMethod
-        }
-        return s.refreshSecret, nil
-    })
-
-    if err != nil {
-        if errors.Is(err, jwt.ErrTokenExpired) {
-            return nil, ErrTokenExpired
-        }
-        return nil, fmt.Errorf("failed to parse refresh token: %w", err)
-    }
-
-    claims, ok := token.Claims.(*Claims)
-    if !ok || !token.Valid {
-        return nil, ErrInvalidToken
-    }
-
-    return claims, nil
+func NewAccessToken(secret string, expiredAt int64, claims *Claims) AuthFactory {
+	claims.RegisteredClaims = jwt.RegisteredClaims{
+		Issuer:    "hllc-2025.com",
+		Subject:   "access-token",
+		Audience:  []string{"hllc-2025.com"},
+		ExpiresAt: jwtTimeDurationCal(expiredAt),
+		NotBefore: jwt.NewNumericDate(now()),
+		IssuedAt:  jwt.NewNumericDate(now()),
+	}
+	
+	return &accessToken{
+		authConcrete: &authConcrete{
+			Secret: []byte(secret),
+			Claims: claims,
+		},
+	}
 }
 
-// BlacklistToken adds a token to the blacklist
-func (s *jwtService) BlacklistToken(tokenString string) error {
-    claims, err := s.ValidateToken(tokenString)
-    if err != nil && !errors.Is(err, ErrTokenExpired) {
-        return err
-    }
-
-    var expiration time.Duration
-    if claims != nil && claims.ExpiresAt != nil {
-        expiration = time.Until(claims.ExpiresAt.Time)
-        if expiration < 0 {
-            expiration = s.accessTTL
-        }
-    } else {
-        expiration = s.accessTTL
-    }
-
-    // Store in Redis with the remaining TTL
-    key := fmt.Sprintf("blacklist:%s", tokenString)
-    return s.blacklist.Set(context.Background(), key, true, expiration).Err()
+func NewRefreshToken(secret string, expiredAt int64, claims *Claims) AuthFactory {
+	claims.RegisteredClaims = jwt.RegisteredClaims{
+		Issuer:    "hllc-2025.com",
+		Subject:   "refresh-token",
+		Audience:  []string{"hllc-2025.com"},
+		ExpiresAt: jwtTimeDurationCal(expiredAt),
+		NotBefore: jwt.NewNumericDate(now()),
+		IssuedAt:  jwt.NewNumericDate(now()),
+	}
+	
+	return &refreshToken{
+		authConcrete: &authConcrete{
+			Secret: []byte(secret),
+			Claims: claims,
+		},
+	}
 }
 
-// IsTokenBlacklisted checks if a token is in the blacklist
-func (s *jwtService) IsTokenBlacklisted(tokenString string) bool {
-    key := fmt.Sprintf("blacklist:%s", tokenString)
-    exists, err := s.blacklist.Exists(context.Background(), key).Result()
-    if err != nil {
-        return false // Fail open if Redis is down
-    }
-    return exists > 0
+func ReloadToken(secret string, expiredAt int64, claims *Claims) string {
+	claims.RegisteredClaims = jwt.RegisteredClaims{
+		Issuer:    "hllc-2025.com",
+		Subject:   "refresh-token",
+		Audience:  []string{"hllc-2025.com"},
+		ExpiresAt: jwtTimeRepeatAdapter(expiredAt),
+		NotBefore: jwt.NewNumericDate(now()),
+		IssuedAt:  jwt.NewNumericDate(now()),
+	}
+	
+	obj := &refreshToken{
+		authConcrete: &authConcrete{
+			Secret: []byte(secret),
+			Claims: claims,
+		},
+	}
+
+	return obj.SignToken()
 }
 
-// Helper function to extract bearer token from Authorization header
+func ParseToken(secret string, tokenString string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, ErrInvalidSigningMethod
+		}
+		return []byte(secret), nil
+	})
+
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenMalformed) {
+			return nil, fmt.Errorf("token format is invalid: %w", err)
+		} else if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, ErrTokenExpired
+		}
+		return nil, fmt.Errorf("token is invalid: %w", err)
+	}
+
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims, nil
+	}
+	return nil, ErrInvalidToken
+}
+
+// API Key management
+var (
+	apiKeyInstance string
+	apiKeyOnce sync.Once
+)
+
+func SetApiKey(secret string) {
+	apiKeyOnce.Do(func() {
+		claims := &Claims{}
+		claims.RegisteredClaims = jwt.RegisteredClaims{
+			Issuer:    "hllc-2025.com",
+			Subject:   "api-key",
+			Audience:  []string{"hllc-2025.com"},
+			ExpiresAt: jwtTimeDurationCal(31560000), // 1 year
+			NotBefore: jwt.NewNumericDate(now()),
+			IssuedAt:  jwt.NewNumericDate(now()),
+		}
+		
+		apiKey := &apiKey{
+			authConcrete: &authConcrete{
+				Secret: []byte(secret),
+				Claims: claims,
+			},
+		}
+		apiKeyInstance = apiKey.SignToken()
+	})
+}
+
+func SetApiKeyInContext(pctx *context.Context) {
+	*pctx = metadata.NewOutgoingContext(*pctx, metadata.Pairs("auth", apiKeyInstance))
+}
+
+// ExtractBearerToken extracts the token from Authorization header
 func ExtractBearerToken(authHeader string) (string, error) {
-    if len(authHeader) < 7 || authHeader[:7] != "Bearer " {
-        return "", errors.New("invalid authorization header format")
-    }
-    return authHeader[7:], nil
+	if len(authHeader) < 7 || authHeader[:7] != "Bearer " {
+		return "", errors.New("invalid authorization header format")
+	}
+	return authHeader[7:], nil
 }

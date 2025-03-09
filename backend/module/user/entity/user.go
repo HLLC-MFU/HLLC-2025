@@ -20,7 +20,7 @@ type (
 		Username     string              `bson:"username" json:"username"`
 		Password     string              `bson:"password" json:"-"`
 		Name         Name                `bson:"name" json:"name"`
-		Role         []Role              `bson:"role" json:"role"`
+		Roles        []Role         `bson:"roles" json:"roles"`
 		CreatedAt    time.Time           `bson:"created_at" json:"created_at"`
 		UpdatedAt    time.Time           `bson:"updated_at" json:"updated_at"`
 	}
@@ -30,6 +30,4 @@ type (
 		MiddleName string `bson:"middle_name" json:"middle_name"`
 		LastName   string `bson:"last_name" json:"last_name"`
 	}
-
-
 )

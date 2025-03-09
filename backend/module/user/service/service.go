@@ -68,7 +68,6 @@ func (s *userService) CreateUser(ctx context.Context, req *userDto.CreateUserReq
 		ID: user.ID.Hex(),
 		Name: req.Name,
 		Username: user.Username,
-		Roles: user.Role,
 	}, nil
 }
 
@@ -86,7 +85,6 @@ func (s *userService) GetUserByUsername(ctx context.Context, username string) (*
 			LastName: user.Name.LastName,
 		},
 		Username: user.Username,
-		Roles: user.Role,
 	}, nil
 }
 

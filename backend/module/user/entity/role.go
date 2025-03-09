@@ -13,8 +13,10 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 type (
 
 	Role struct {
-		ID   primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-		Name string             `bson:"name" json:"name" validate:"required"`
+		ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+		RoleTitle   string            `bson:"role_title" json:"role_title"`
+		RoleCode    int               `bson:"role_code" json:"role_code"`
+		Description string            `bson:"description" json:"description"`
 	}
 
 )

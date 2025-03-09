@@ -13,7 +13,9 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 type (
 
 	Permission struct {
-		ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-		PermissionName string             `bson:"permissionName" json:"permissionName" validate:"required"`
+		ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+		Name        string            `bson:"name" json:"name"`
+		Code        string            `bson:"code" json:"code"`
+		Description string            `bson:"description" json:"description"`
 	}
 )
