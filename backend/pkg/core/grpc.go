@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	authPb "github.com/HLLC-MFU/HLLC-2025/backend/proto/auth"
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/proto/user"
+	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/auth"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/user"
 	"github.com/golang-jwt/jwt/v5"
 )
 
