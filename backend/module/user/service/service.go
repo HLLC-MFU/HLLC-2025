@@ -3,23 +3,47 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	userDto "github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
-	userEntity "github.com/HLLC-MFU/HLLC-2025/backend/module/user/entity"
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/user"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 )
 
-var ErrNotFound = errors.New("user not found")
+var (
+	ErrNotFound = errors.New("user not found")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrUserExists = errors.New("user already exists")
+)
 
 type UserService interface {
-	// HTTP Service methods
-	CreateUser(ctx context.Context, req *userDto.CreateUserRequest) (*userDto.UserResponse, error)
-	GetUserByUsername(ctx context.Context, username string) (*userDto.UserResponse, error)
+	// User management
+	CreateUser(ctx context.Context, req *dto.CreateUserRequest) (*dto.UserResponse, error)
+	GetUserByID(ctx context.Context, id string) (*dto.UserResponse, error)
+	GetUserByUsername(ctx context.Context, username string) (*dto.UserResponse, error)
+	GetAllUsers(ctx context.Context) ([]*dto.UserResponse, error)
+	UpdateUser(ctx context.Context, id string, req *dto.UpdateUserRequest) (*dto.UserResponse, error)
+	DeleteUser(ctx context.Context, id string) error
 	ValidatePassword(ctx context.Context, username, password string) (bool, error)
+	
+	// Role management
+	CreateRole(ctx context.Context, req *dto.CreateRoleRequest) (*dto.RoleResponse, error)
+	GetRoleByID(ctx context.Context, id string) (*dto.RoleResponse, error)
+	GetAllRoles(ctx context.Context) ([]*dto.RoleResponse, error)
+	UpdateRole(ctx context.Context, id string, req *dto.UpdateRoleRequest) (*dto.RoleResponse, error)
+	DeleteRole(ctx context.Context, id string) error
+
+	// Permission management
+	CreatePermission(ctx context.Context, req *dto.CreatePermissionRequest) (*dto.PermissionResponse, error)
+	GetPermissionByID(ctx context.Context, id string) (*dto.PermissionResponse, error)
+	GetAllPermissions(ctx context.Context) ([]*dto.PermissionResponse, error)
+	UpdatePermission(ctx context.Context, id string, req *dto.UpdatePermissionRequest) (*dto.PermissionResponse, error)
+	DeletePermission(ctx context.Context, id string) error
 	
 	// gRPC Service methods
 	CreateUserGRPC(ctx context.Context, req *userPb.CreateUserRequest) (*userPb.User, error)
@@ -28,143 +52,323 @@ type UserService interface {
 }
 
 type userService struct {
-	cfg  *config.Config
-	repo repository.UserRepository
+	cfg         *config.Config
+	userRepo    repository.UserRepositoryService
+	roleRepo    repository.RoleRepositoryService
+	permRepo    repository.PermissionRepositoryService
 }
 
-func NewUserService(cfg *config.Config, repo repository.UserRepository) UserService {
+func NewUserService(
+	cfg *config.Config,
+	userRepo repository.UserRepositoryService,
+	roleRepo repository.RoleRepositoryService,
+	permRepo repository.PermissionRepositoryService,
+) UserService {
 	return &userService{
-		cfg:  cfg,
-		repo: repo,
+		cfg:      cfg,
+		userRepo: userRepo,
+		roleRepo: roleRepo,
+		permRepo: permRepo,
 	}
 }
 
-// HTTP Service implementations
-func (s *userService) CreateUser(ctx context.Context, req *userDto.CreateUserRequest) (*userDto.UserResponse, error) {
-	// Check if user already exists
-	existingUser, err := s.repo.FindByUsername(ctx, req.Username)
-	if err != nil && !errors.Is(err, ErrNotFound) {
-		return nil, err
-	}
-	if existingUser != nil {
-		return nil, errors.New("username already exists")
-	}
+// HTTP Service implementations with decorator pattern
+func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest) (*dto.UserResponse, error) {
+	return decorator.WithTimeout[*dto.UserResponse](10*time.Second)(func(ctx context.Context) (*dto.UserResponse, error) {
+		// Check if user exists
+		existingUser, err := s.userRepo.FindByUsername(ctx, req.Username)
+		if err != nil && !errors.Is(err, repository.ErrNotFound) {
+			return nil, err
+		}
+		if existingUser != nil {
+			return nil, ErrUserExists
+		}
 
-	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
+		// Hash password
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
 
-	// Create user entity
-	user := &userEntity.User{
-		Username: req.Username,
-		Password: string(hashedPassword),
-		Name: userEntity.Name{
-			FirstName: req.Name.FirstName,
-			MiddleName: req.Name.MiddleName,
-			LastName: req.Name.LastName,
-		},
-	}
+		// Create user entity
+		newUser := &userPb.User{
+			Id:        primitive.NewObjectID().Hex(),
+			Username:  req.Username,
+			Password:  string(hashedPassword),
+			RoleIds:   req.RoleIDs,
+			Name: &userPb.Name{
+				FirstName:  req.Name.FirstName,
+				MiddleName: req.Name.MiddleName,
+				LastName:   req.Name.LastName,
+			},
+			CreatedAt: time.Now().Format(time.RFC3339),
+			UpdatedAt: time.Now().Format(time.RFC3339),
+		}
 
-	// Save user
-	if err := s.repo.CreateUser(ctx, user); err != nil {
-		return nil, err
-	}
+		// Save user
+		if err := s.userRepo.CreateUser(ctx, newUser); err != nil {
+			return nil, err
+		}
 
-	// Return response
-	return &userDto.UserResponse{
-		ID: user.ID.Hex(),
-		Name: req.Name,
-		Username: user.Username,
-	}, nil
+		// Get roles for response
+		var roles []*userPb.Role
+		for _, roleID := range req.RoleIDs {
+			objectID, err := primitive.ObjectIDFromHex(roleID)
+			if err != nil {
+				continue
+			}
+			role, err := s.roleRepo.FindRoleByID(ctx, objectID)
+			if err != nil {
+				continue
+			}
+			roles = append(roles, role)
+		}
+
+		return &dto.UserResponse{
+			ID:       newUser.Id,
+			Name:     req.Name,
+			Username: newUser.Username,
+			Roles:    roles,
+		}, nil
+	})(ctx)
 }
 
-func (s *userService) GetUserByUsername(ctx context.Context, username string) (*userDto.UserResponse, error) {
-	user, err := s.repo.FindByUsername(ctx, username)
-	if err != nil {
-		return nil, err
-	}
+func (s *userService) GetUserByID(ctx context.Context, id string) (*dto.UserResponse, error) {
+	return decorator.WithTimeout[*dto.UserResponse](5*time.Second)(func(ctx context.Context) (*dto.UserResponse, error) {
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return nil, err
+		}
 
-	return &userDto.UserResponse{
-		ID: user.ID.Hex(),
-		Name: userDto.Name{
-			FirstName: user.Name.FirstName,
-			MiddleName: user.Name.MiddleName,
-			LastName: user.Name.LastName,
-		},
-		Username: user.Username,
-	}, nil
+		user, err := s.userRepo.FindByID(ctx, objectID)
+		if err != nil {
+			return nil, err
+		}
+
+		// Get roles for response
+		var roles []*userPb.Role
+		for _, roleID := range user.RoleIds {
+			objectID, err := primitive.ObjectIDFromHex(roleID)
+			if err != nil {
+				continue
+			}
+			role, err := s.roleRepo.FindRoleByID(ctx, objectID)
+			if err != nil {
+				continue
+			}
+			roles = append(roles, role)
+		}
+
+		return &dto.UserResponse{
+			ID:       user.Id,
+			Username: user.Username,
+			Name: dto.Name{
+				FirstName:  user.Name.FirstName,
+				MiddleName: user.Name.MiddleName,
+				LastName:   user.Name.LastName,
+			},
+			Roles: roles,
+		}, nil
+	})(ctx)
+}
+
+func (s *userService) GetUserByUsername(ctx context.Context, username string) (*dto.UserResponse, error) {
+	return decorator.WithTimeout[*dto.UserResponse](5*time.Second)(func(ctx context.Context) (*dto.UserResponse, error) {
+		user, err := s.userRepo.FindByUsername(ctx, username)
+		if err != nil {
+			return nil, err
+		}
+
+		// Get roles for response
+		var roles []*userPb.Role
+		for _, roleID := range user.RoleIds {
+			objectID, err := primitive.ObjectIDFromHex(roleID)
+			if err != nil {
+				continue
+			}
+			role, err := s.roleRepo.FindRoleByID(ctx, objectID)
+			if err != nil {
+				continue
+			}
+			roles = append(roles, role)
+		}
+
+		return &dto.UserResponse{
+			ID:       user.Id,
+			Username: user.Username,
+			Roles:    roles,
+		}, nil
+	})(ctx)
+}
+
+func (s *userService) GetAllUsers(ctx context.Context) ([]*dto.UserResponse, error) {
+	return decorator.WithTimeout[[]*dto.UserResponse](10*time.Second)(func(ctx context.Context) ([]*dto.UserResponse, error) {
+		users, err := s.userRepo.FindAll(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		var response []*dto.UserResponse
+		for _, user := range users {
+			// Get roles for response
+			var roles []*userPb.Role
+			for _, roleID := range user.RoleIds {
+				objectID, err := primitive.ObjectIDFromHex(roleID)
+				if err != nil {
+					continue
+				}
+				role, err := s.roleRepo.FindRoleByID(ctx, objectID)
+				if err != nil {
+					continue
+				}
+				roles = append(roles, role)
+			}
+
+			response = append(response, &dto.UserResponse{
+				ID:       user.Id,
+				Username: user.Username,
+				Roles:    roles,
+			})
+		}
+
+		return response, nil
+	})(ctx)
+}
+
+func (s *userService) UpdateUser(ctx context.Context, id string, req *dto.UpdateUserRequest) (*dto.UserResponse, error) {
+	return decorator.WithTimeout[*dto.UserResponse](10*time.Second)(func(ctx context.Context) (*dto.UserResponse, error) {
+		// Hash password if provided
+		var hashedPassword string
+		if req.Password != "" {
+			hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+			if err != nil {
+				return nil, err
+			}
+			hashedPassword = string(hashed)
+		}
+
+		updatedUser := &userPb.User{
+			Id:        id,
+			Username:  req.Username,
+			Password:  hashedPassword,
+			RoleIds:   req.RoleIDs,
+			UpdatedAt: time.Now().Format(time.RFC3339),
+		}
+
+		if err := s.userRepo.UpdateUser(ctx, updatedUser); err != nil {
+			return nil, err
+		}
+
+		// Get roles for response
+		var roles []*userPb.Role
+		for _, roleID := range req.RoleIDs {
+			objectID, err := primitive.ObjectIDFromHex(roleID)
+			if err != nil {
+				continue
+			}
+			role, err := s.roleRepo.FindRoleByID(ctx, objectID)
+			if err != nil {
+				continue
+			}
+			roles = append(roles, role)
+		}
+
+		return &dto.UserResponse{
+			ID:       updatedUser.Id,
+			Name:     req.Name,
+			Username: updatedUser.Username,
+			Roles:    roles,
+		}, nil
+	})(ctx)
+}
+
+func (s *userService) DeleteUser(ctx context.Context, id string) error {
+	_, err := decorator.WithTimeout[struct{}](5*time.Second)(func(ctx context.Context) (struct{}, error) {
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return struct{}{}, err
+		}
+		if err := s.userRepo.DeleteUser(ctx, objectID); err != nil {
+			return struct{}{}, err
+		}
+		return struct{}{}, nil
+	})(ctx)
+	return err
 }
 
 func (s *userService) ValidatePassword(ctx context.Context, username, password string) (bool, error) {
-	user, err := s.repo.FindByUsername(ctx, username)
-	if err != nil {
-		return false, err
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	if err != nil {
-		if err == bcrypt.ErrMismatchedHashAndPassword {
-			return false, nil
+	return decorator.WithTimeout[bool](5*time.Second)(func(ctx context.Context) (bool, error) {
+		user, err := s.userRepo.FindByUsername(ctx, username)
+		if err != nil {
+			return false, err
 		}
-		return false, err
-	}
 
-	return true, nil
+		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+		if err != nil {
+			if err == bcrypt.ErrMismatchedHashAndPassword {
+				return false, nil
+			}
+			return false, err
+		}
+
+		return true, nil
+	})(ctx)
 }
 
 // gRPC Service implementations
 func (s *userService) CreateUserGRPC(ctx context.Context, req *userPb.CreateUserRequest) (*userPb.User, error) {
-	// Convert gRPC request to internal DTO
-	dtoReq := &userDto.CreateUserRequest{
+	dtoReq := &dto.CreateUserRequest{
 		Username: req.Username,
 		Password: req.Password,
-		Name: userDto.Name{
-			FirstName:  req.FirstName,
-			MiddleName: req.MiddleName,
-			LastName:   req.LastName,
+		Name: dto.Name{
+			FirstName:  req.Name.FirstName,
+			MiddleName: req.Name.MiddleName,
+			LastName:   req.Name.LastName,
 		},
 		RoleIDs: req.RoleIds,
 	}
 
-	// Use the same core logic as HTTP endpoint
 	user, err := s.CreateUser(ctx, dtoReq)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert response to gRPC format
 	return &userPb.User{
-		Id:         user.ID,
-		Username:   user.Username,
-		FirstName:  user.Name.FirstName,
-		MiddleName: user.Name.MiddleName,
-		LastName:   user.Name.LastName,
-		Roles:      user.Roles,
+		Id:       user.ID,
+		Username: user.Username,
+		Name: &userPb.Name{
+			FirstName:  user.Name.FirstName,
+			MiddleName: user.Name.MiddleName,
+			LastName:   user.Name.LastName,
+		},
+		RoleIds: req.RoleIds,
 	}, nil
 }
 
 func (s *userService) GetUserGRPC(ctx context.Context, req *userPb.GetUserRequest) (*userPb.User, error) {
-	// Use the same core logic as HTTP endpoint
 	user, err := s.GetUserByUsername(ctx, req.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert response to gRPC format
+	var roleIDs []string
+	for _, role := range user.Roles {
+		roleIDs = append(roleIDs, role.Id)
+	}
+
 	return &userPb.User{
-		Id:         user.ID,
-		Username:   user.Username,
-		FirstName:  user.Name.FirstName,
-		MiddleName: user.Name.MiddleName,
-		LastName:   user.Name.LastName,
-		Roles:      user.Roles,
+		Id:       user.ID,
+		Username: user.Username,
+		Name: &userPb.Name{
+			FirstName:  user.Name.FirstName,
+			MiddleName: user.Name.MiddleName,
+			LastName:   user.Name.LastName,
+		},
+		RoleIds: roleIDs,
 	}, nil
 }
 
 func (s *userService) ValidateCredentialsGRPC(ctx context.Context, req *userPb.ValidateCredentialsRequest) (*userPb.ValidateCredentialsResponse, error) {
-	// Use the same core logic as HTTP endpoint
 	isValid, err := s.ValidatePassword(ctx, req.Username, req.Password)
 	if err != nil {
 		return nil, err
@@ -176,21 +380,268 @@ func (s *userService) ValidateCredentialsGRPC(ctx context.Context, req *userPb.V
 		}, nil
 	}
 
-	// If credentials are valid, get user details
 	user, err := s.GetUserByUsername(ctx, req.Username)
 	if err != nil {
 		return nil, err
 	}
 
+	var roleIDs []string
+	for _, role := range user.Roles {
+		roleIDs = append(roleIDs, role.Id)
+	}
+
 	return &userPb.ValidateCredentialsResponse{
 		Valid: true,
 		User: &userPb.User{
-			Id:         user.ID,
-			Username:   user.Username,
-			FirstName:  user.Name.FirstName,
-			MiddleName: user.Name.MiddleName,
-			LastName:   user.Name.LastName,
-			Roles:      user.Roles,
+			Id:       user.ID,
+			Username: user.Username,
+			Name: &userPb.Name{
+				FirstName:  user.Name.FirstName,
+				MiddleName: user.Name.MiddleName,
+				LastName:   user.Name.LastName,
+			},
+			RoleIds: roleIDs,
 		},
 	}, nil
+}
+
+// Role management methods
+func (s *userService) CreateRole(ctx context.Context, req *dto.CreateRoleRequest) (*dto.RoleResponse, error) {
+	return decorator.WithTimeout[*dto.RoleResponse](10*time.Second)(func(ctx context.Context) (*dto.RoleResponse, error) {
+		role := &userPb.Role{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        req.Name,
+			Code:        req.Code,
+			Description: req.Description,
+			PermissionIds: req.Permissions,
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		}
+
+		if err := s.roleRepo.CreateRole(ctx, role); err != nil {
+			return nil, err
+		}
+
+		// Get permissions for response
+		var permissions []*userPb.Permission
+		for _, permID := range req.Permissions {
+			objectID, err := primitive.ObjectIDFromHex(permID)
+			if err != nil {
+				continue
+			}
+			perm, err := s.permRepo.FindPermissionByID(ctx, objectID)
+			if err != nil {
+				continue
+			}
+			permissions = append(permissions, perm)
+		}
+
+		return &dto.RoleResponse{
+			ID:          role.Id,
+			Name:        role.Name,
+			Code:        role.Code,
+			Description: role.Description,
+			Permissions: permissions,
+		}, nil
+	})(ctx)
+}
+
+func (s *userService) GetRoleByID(ctx context.Context, id string) (*dto.RoleResponse, error) {
+	return decorator.WithTimeout[*dto.RoleResponse](5*time.Second)(func(ctx context.Context) (*dto.RoleResponse, error) {
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return nil, err
+		}
+
+		role, err := s.roleRepo.FindRoleByID(ctx, objectID)
+		if err != nil {
+			return nil, err
+		}
+
+		return &dto.RoleResponse{
+			ID:          role.Id,
+			Name:        role.Name,
+			Code:        role.Code,
+			Description: role.Description,
+		}, nil
+	})(ctx)
+}
+
+func (s *userService) GetAllRoles(ctx context.Context) ([]*dto.RoleResponse, error) {
+	return decorator.WithTimeout[[]*dto.RoleResponse](10*time.Second)(func(ctx context.Context) ([]*dto.RoleResponse, error) {
+		roles, err := s.roleRepo.FindAllRoles(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		var response []*dto.RoleResponse
+		for _, role := range roles {
+			response = append(response, &dto.RoleResponse{
+				ID:          role.Id,
+				Name:        role.Name,
+				Code:        role.Code,
+				Description: role.Description,
+			})
+		}
+
+		return response, nil
+	})(ctx)
+}
+
+func (s *userService) UpdateRole(ctx context.Context, id string, req *dto.UpdateRoleRequest) (*dto.RoleResponse, error) {
+	return decorator.WithTimeout[*dto.RoleResponse](10*time.Second)(func(ctx context.Context) (*dto.RoleResponse, error) {
+		// Validate ID format
+		if _, err := primitive.ObjectIDFromHex(id); err != nil {
+			return nil, err
+		}
+
+		role := &userPb.Role{
+			Id:            id,
+			Name:          req.Name,
+			Code:         req.Code,
+			Description:   req.Description,
+			PermissionIds: req.Permissions,
+			UpdatedAt:     time.Now().Format(time.RFC3339),
+		}
+
+		if err := s.roleRepo.UpdateRole(ctx, role); err != nil {
+			return nil, err
+		}
+
+		return &dto.RoleResponse{
+			ID:          role.Id,
+			Name:        role.Name,
+			Code:        role.Code,
+			Description: role.Description,
+		}, nil
+	})(ctx)
+}
+
+func (s *userService) DeleteRole(ctx context.Context, id string) error {
+	_, err := decorator.WithTimeout[struct{}](5*time.Second)(func(ctx context.Context) (struct{}, error) {
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return struct{}{}, err
+		}
+		if err := s.roleRepo.DeleteRole(ctx, objectID); err != nil {
+			return struct{}{}, err
+		}
+		return struct{}{}, nil
+	})(ctx)
+	return err
+}
+
+// Permission management methods
+func (s *userService) CreatePermission(ctx context.Context, req *dto.CreatePermissionRequest) (*dto.PermissionResponse, error) {
+	return decorator.WithTimeout[*dto.PermissionResponse](10*time.Second)(func(ctx context.Context) (*dto.PermissionResponse, error) {
+		permission := &userPb.Permission{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        req.Name,
+			Code:        req.Code,
+			Description: req.Description,
+			Module:      req.Module,
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		}
+
+		if err := s.permRepo.CreatePermission(ctx, permission); err != nil {
+			return nil, err
+		}
+
+		return &dto.PermissionResponse{
+			ID:          permission.Id,
+			Name:        permission.Name,
+			Code:        permission.Code,
+			Description: permission.Description,
+			Module:      permission.Module,
+		}, nil
+	})(ctx)
+}
+
+func (s *userService) GetPermissionByID(ctx context.Context, id string) (*dto.PermissionResponse, error) {
+	return decorator.WithTimeout[*dto.PermissionResponse](5*time.Second)(func(ctx context.Context) (*dto.PermissionResponse, error) {
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return nil, err
+		}
+
+		permission, err := s.permRepo.FindPermissionByID(ctx, objectID)
+		if err != nil {
+			return nil, err
+		}
+
+		return &dto.PermissionResponse{
+			ID:          permission.Id,
+			Name:        permission.Name,
+			Code:        permission.Code,
+			Description: permission.Description,
+			Module:      permission.Module,
+		}, nil
+	})(ctx)
+}
+
+func (s *userService) GetAllPermissions(ctx context.Context) ([]*dto.PermissionResponse, error) {
+	return decorator.WithTimeout[[]*dto.PermissionResponse](10*time.Second)(func(ctx context.Context) ([]*dto.PermissionResponse, error) {
+		permissions, err := s.permRepo.FindAllPermissions(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		var response []*dto.PermissionResponse
+		for _, permission := range permissions {
+			response = append(response, &dto.PermissionResponse{
+				ID:          permission.Id,
+				Name:        permission.Name,
+				Code:        permission.Code,
+				Description: permission.Description,
+				Module:      permission.Module,
+			})
+		}
+
+		return response, nil
+	})(ctx)
+}
+
+func (s *userService) UpdatePermission(ctx context.Context, id string, req *dto.UpdatePermissionRequest) (*dto.PermissionResponse, error) {
+	return decorator.WithTimeout[*dto.PermissionResponse](10*time.Second)(func(ctx context.Context) (*dto.PermissionResponse, error) {
+		// Validate ID format
+		if _, err := primitive.ObjectIDFromHex(id); err != nil {
+			return nil, err
+		}
+
+		permission := &userPb.Permission{
+			Id:          id,
+			Name:        req.Name,
+			Code:        req.Code,
+			Description: req.Description,
+			Module:      req.Module,
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		}
+
+		if err := s.permRepo.UpdatePermission(ctx, permission); err != nil {
+			return nil, err
+		}
+
+		return &dto.PermissionResponse{
+			ID:          permission.Id,
+			Name:        permission.Name,
+			Code:        permission.Code,
+			Description: permission.Description,
+			Module:      permission.Module,
+		}, nil
+	})(ctx)
+}
+
+func (s *userService) DeletePermission(ctx context.Context, id string) error {
+	_, err := decorator.WithTimeout[struct{}](5*time.Second)(func(ctx context.Context) (struct{}, error) {
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return struct{}{}, err
+		}
+		if err := s.permRepo.DeletePermission(ctx, objectID); err != nil {
+			return struct{}{}, err
+		}
+		return struct{}{}, nil
+	})(ctx)
+	return err
 }

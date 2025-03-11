@@ -1,20 +1,15 @@
 package handler
 
 import (
-	"net/http"
-
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	userDto "github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/request"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/response"
 	"github.com/gofiber/fiber/v2"
 )
 
+// HTTPHandler handles HTTP requests for user service
 type HTTPHandler interface {
-	CreateUser(c *fiber.Ctx) error
-	GetUser(c *fiber.Ctx) error
-	ValidateCredentials(c *fiber.Ctx) error
+	RegisterRoutes(router fiber.Router)
 }
 
 type httpHandler struct {
@@ -22,6 +17,7 @@ type httpHandler struct {
 	userService service.UserService
 }
 
+// NewHTTPHandler creates a new HTTP handler with decorators
 func NewHTTPHandler(cfg *config.Config, userService service.UserService) HTTPHandler {
 	return &httpHandler{
 		cfg:         cfg,
@@ -29,68 +25,323 @@ func NewHTTPHandler(cfg *config.Config, userService service.UserService) HTTPHan
 	}
 }
 
-// CreateUser handles HTTP request for user creation
-func (h *httpHandler) CreateUser(ctx *fiber.Ctx) error {
-	wrapper := request.NewContextWrapper(ctx)
-	
+// RegisterRoutes registers all HTTP routes for user service
+func (h *httpHandler) RegisterRoutes(router fiber.Router) {
+	// User routes
+	userRouter := router.Group("/users")
+	userRouter.Post("/", h.CreateUser)
+	userRouter.Get("/:id", h.GetUser)
+	userRouter.Get("/", h.GetAllUsers)
+	userRouter.Put("/:id", h.UpdateUser)
+	userRouter.Delete("/:id", h.DeleteUser)
+	userRouter.Post("/validate", h.ValidateCredentials)
+
+	// Role routes
+	roleRouter := router.Group("/roles")
+	roleRouter.Post("/", h.CreateRole)
+	roleRouter.Get("/:id", h.GetRole)
+	roleRouter.Get("/", h.GetAllRoles)
+	roleRouter.Put("/:id", h.UpdateRole)
+	roleRouter.Delete("/:id", h.DeleteRole)
+
+	// Permission routes
+	permRouter := router.Group("/permissions")
+	permRouter.Post("/", h.CreatePermission)
+	permRouter.Get("/:id", h.GetPermission)
+	permRouter.Get("/", h.GetAllPermissions)
+	permRouter.Put("/:id", h.UpdatePermission)
+	permRouter.Delete("/:id", h.DeletePermission)
+}
+
+// User handlers
+func (h *httpHandler) CreateUser(c *fiber.Ctx) error {
 	var req userDto.CreateUserRequest
-	if err := wrapper.Bind(&req); err != nil {
-		return response.Error(ctx, http.StatusBadRequest, "Invalid request format: "+err.Error())
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
 	}
 
-	// Validate request
-	if req.Username == "" || req.Password == "" {
-		return response.Error(ctx, http.StatusBadRequest, "Username and password are required")
-	}
-
-	result, err := h.userService.CreateUser(ctx.Context(), &req)
+	user, err := h.userService.CreateUser(c.Context(), &req)
 	if err != nil {
-		return response.Error(ctx, http.StatusInternalServerError, "Failed to create user: "+err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
-	return response.Success(ctx, http.StatusCreated, result)
+	return c.Status(fiber.StatusCreated).JSON(user)
 }
 
-// GetUser handles HTTP request for retrieving user information
-func (h *httpHandler) GetUser(ctx *fiber.Ctx) error {
-	username := ctx.Params("username")
-	if username == "" {
-		return response.Error(ctx, http.StatusBadRequest, "Username is required")
+func (h *httpHandler) GetUser(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "User ID is required",
+		})
 	}
 
-	result, err := h.userService.GetUserByUsername(ctx.Context(), username)
+	user, err := h.userService.GetUserByID(c.Context(), id)
 	if err != nil {
-		return response.Error(ctx, http.StatusInternalServerError, "Failed to get user: "+err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
-	return response.Success(ctx, http.StatusOK, result)
+	return c.JSON(user)
 }
 
-// ValidateCredentials handles HTTP request for validating user credentials
-func (h *httpHandler) ValidateCredentials(ctx *fiber.Ctx) error {
-	wrapper := request.NewContextWrapper(ctx)
-	
-	var req struct {
-		Username string `json:"username" validate:"required"`
-		Password string `json:"password" validate:"required"`
-	}
-	if err := wrapper.Bind(&req); err != nil {
-		return response.Error(ctx, http.StatusBadRequest, "Invalid request format: "+err.Error())
-	}
-
-	// Validate request
-	if req.Username == "" || req.Password == "" {
-		return response.Error(ctx, http.StatusBadRequest, "Username and password are required")
-	}
-
-	isValid, err := h.userService.ValidatePassword(ctx.Context(), req.Username, req.Password)
+func (h *httpHandler) GetAllUsers(c *fiber.Ctx) error {
+	users, err := h.userService.GetAllUsers(c.Context())
 	if err != nil {
-		return response.Error(ctx, http.StatusInternalServerError, "Failed to validate credentials: "+err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
-	if !isValid {
-		return response.Error(ctx, http.StatusUnauthorized, "Invalid credentials")
+	return c.JSON(users)
+}
+
+func (h *httpHandler) UpdateUser(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "User ID is required",
+		})
 	}
 
-	return response.Success(ctx, http.StatusOK, map[string]bool{"valid": true})
+	var req userDto.UpdateUserRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	user, err := h.userService.UpdateUser(c.Context(), id, &req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(user)
+}
+
+func (h *httpHandler) DeleteUser(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "User ID is required",
+		})
+	}
+
+	err := h.userService.DeleteUser(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *httpHandler) ValidateCredentials(c *fiber.Ctx) error {
+	var req userDto.ValidateCredentialsRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	valid, err := h.userService.ValidatePassword(c.Context(), req.Username, req.Password)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"valid": valid,
+	})
+}
+
+// Role handlers
+func (h *httpHandler) CreateRole(c *fiber.Ctx) error {
+	var req userDto.CreateRoleRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	role, err := h.userService.CreateRole(c.Context(), &req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(role)
+}
+
+func (h *httpHandler) GetRole(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Role ID is required",
+		})
+	}
+
+	role, err := h.userService.GetRoleByID(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(role)
+}
+
+func (h *httpHandler) GetAllRoles(c *fiber.Ctx) error {
+	roles, err := h.userService.GetAllRoles(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(roles)
+}
+
+func (h *httpHandler) UpdateRole(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Role ID is required",
+		})
+	}
+
+	var req userDto.UpdateRoleRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	role, err := h.userService.UpdateRole(c.Context(), id, &req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(role)
+}
+
+func (h *httpHandler) DeleteRole(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Role ID is required",
+		})
+	}
+
+	err := h.userService.DeleteRole(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// Permission handlers
+func (h *httpHandler) CreatePermission(c *fiber.Ctx) error {
+	var req userDto.CreatePermissionRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	permission, err := h.userService.CreatePermission(c.Context(), &req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(permission)
+}
+
+func (h *httpHandler) GetPermission(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Permission ID is required",
+		})
+	}
+
+	permission, err := h.userService.GetPermissionByID(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(permission)
+}
+
+func (h *httpHandler) GetAllPermissions(c *fiber.Ctx) error {
+	permissions, err := h.userService.GetAllPermissions(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(permissions)
+}
+
+func (h *httpHandler) UpdatePermission(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Permission ID is required",
+		})
+	}
+
+	var req userDto.UpdatePermissionRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	permission, err := h.userService.UpdatePermission(c.Context(), id, &req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(permission)
+}
+
+func (h *httpHandler) DeletePermission(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Permission ID is required",
+		})
+	}
+
+	err := h.userService.DeletePermission(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
 } 

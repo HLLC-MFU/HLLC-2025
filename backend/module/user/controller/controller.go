@@ -6,7 +6,7 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	userDto "github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/user"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/request"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/response"
@@ -15,9 +15,27 @@ import (
 
 type (
     UserController interface {
+        // User management
         CreateUser(c *fiber.Ctx) error
         GetUser(c *fiber.Ctx) error
+        GetAllUsers(c *fiber.Ctx) error
+        UpdateUser(c *fiber.Ctx) error
+        DeleteUser(c *fiber.Ctx) error
         ValidateCredentials(c *fiber.Ctx) error
+
+        // Role management
+        CreateRole(c *fiber.Ctx) error
+        GetRole(c *fiber.Ctx) error
+        GetAllRoles(c *fiber.Ctx) error
+        UpdateRole(c *fiber.Ctx) error
+        DeleteRole(c *fiber.Ctx) error
+
+        // Permission management
+        CreatePermission(c *fiber.Ctx) error
+        GetPermission(c *fiber.Ctx) error
+        GetAllPermissions(c *fiber.Ctx) error
+        UpdatePermission(c *fiber.Ctx) error
+        DeletePermission(c *fiber.Ctx) error
     }
 
     userController struct {
@@ -32,6 +50,7 @@ type (
     grpcController struct {
         cfg *config.Config
         userService service.UserService
+        userPb.UnimplementedUserServiceServer
     }
 )
 
@@ -50,6 +69,7 @@ func NewGrpcController(cfg *config.Config, userService service.UserService) Grpc
 }
 
 // HTTP Handlers
+// User management
 func (c *userController) CreateUser(ctx *fiber.Ctx) error {
     wrapper := request.NewContextWrapper(ctx)
     
@@ -67,17 +87,61 @@ func (c *userController) CreateUser(ctx *fiber.Ctx) error {
 }
 
 func (c *userController) GetUser(ctx *fiber.Ctx) error {
-    username := ctx.Params("username")
-    if username == "" {
-        return response.Error(ctx, http.StatusBadRequest, "username is required")
+    id := ctx.Params("id")
+    if id == "" {
+        return response.Error(ctx, http.StatusBadRequest, "id is required")
     }
 
-    result, err := c.userService.GetUserByUsername(ctx.Context(), username)
+    result, err := c.userService.GetUserByID(ctx.Context(), id)
     if err != nil {
         return response.Error(ctx, http.StatusInternalServerError, err.Error())
     }
 
     return response.Success(ctx, http.StatusOK, result)
+}
+
+func (c *userController) GetAllUsers(ctx *fiber.Ctx) error {
+    result, err := c.userService.GetAllUsers(ctx.Context())
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusOK, result)
+}
+
+func (c *userController) UpdateUser(ctx *fiber.Ctx) error {
+    id := ctx.Params("id")
+    if id == "" {
+        return response.Error(ctx, http.StatusBadRequest, "id is required")
+    }
+
+    wrapper := request.NewContextWrapper(ctx)
+    
+    var req userDto.UpdateUserRequest
+    if err := wrapper.Bind(&req); err != nil {
+        return response.Error(ctx, http.StatusBadRequest, err.Error())
+    }
+
+    result, err := c.userService.UpdateUser(ctx.Context(), id, &req)
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusOK, result)
+}
+
+func (c *userController) DeleteUser(ctx *fiber.Ctx) error {
+    id := ctx.Params("id")
+    if id == "" {
+        return response.Error(ctx, http.StatusBadRequest, "id is required")
+    }
+
+    err := c.userService.DeleteUser(ctx.Context(), id)
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusNoContent, nil)
 }
 
 func (c *userController) ValidateCredentials(ctx *fiber.Ctx) error {
@@ -103,75 +167,180 @@ func (c *userController) ValidateCredentials(ctx *fiber.Ctx) error {
     return response.Success(ctx, http.StatusOK, map[string]bool{"valid": true})
 }
 
+// Role management
+func (c *userController) CreateRole(ctx *fiber.Ctx) error {
+    wrapper := request.NewContextWrapper(ctx)
+    
+    var req userDto.CreateRoleRequest
+    if err := wrapper.Bind(&req); err != nil {
+        return response.Error(ctx, http.StatusBadRequest, err.Error())
+    }
+
+    result, err := c.userService.CreateRole(ctx.Context(), &req)
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusCreated, result)
+}
+
+func (c *userController) GetRole(ctx *fiber.Ctx) error {
+    id := ctx.Params("id")
+    if id == "" {
+        return response.Error(ctx, http.StatusBadRequest, "id is required")
+    }
+
+    result, err := c.userService.GetRoleByID(ctx.Context(), id)
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusOK, result)
+}
+
+func (c *userController) GetAllRoles(ctx *fiber.Ctx) error {
+    result, err := c.userService.GetAllRoles(ctx.Context())
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusOK, result)
+}
+
+func (c *userController) UpdateRole(ctx *fiber.Ctx) error {
+    id := ctx.Params("id")
+    if id == "" {
+        return response.Error(ctx, http.StatusBadRequest, "id is required")
+    }
+
+    wrapper := request.NewContextWrapper(ctx)
+    
+    var req userDto.UpdateRoleRequest
+    if err := wrapper.Bind(&req); err != nil {
+        return response.Error(ctx, http.StatusBadRequest, err.Error())
+    }
+
+    result, err := c.userService.UpdateRole(ctx.Context(), id, &req)
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusOK, result)
+}
+
+func (c *userController) DeleteRole(ctx *fiber.Ctx) error {
+    id := ctx.Params("id")
+    if id == "" {
+        return response.Error(ctx, http.StatusBadRequest, "id is required")
+    }
+
+    err := c.userService.DeleteRole(ctx.Context(), id)
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusNoContent, nil)
+}
+
+// Permission management
+func (c *userController) CreatePermission(ctx *fiber.Ctx) error {
+    wrapper := request.NewContextWrapper(ctx)
+    
+    var req userDto.CreatePermissionRequest
+    if err := wrapper.Bind(&req); err != nil {
+        return response.Error(ctx, http.StatusBadRequest, err.Error())
+    }
+
+    result, err := c.userService.CreatePermission(ctx.Context(), &req)
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusCreated, result)
+}
+
+func (c *userController) GetPermission(ctx *fiber.Ctx) error {
+    id := ctx.Params("id")
+    if id == "" {
+        return response.Error(ctx, http.StatusBadRequest, "id is required")
+    }
+
+    result, err := c.userService.GetPermissionByID(ctx.Context(), id)
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusOK, result)
+}
+
+func (c *userController) GetAllPermissions(ctx *fiber.Ctx) error {
+    result, err := c.userService.GetAllPermissions(ctx.Context())
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusOK, result)
+}
+
+func (c *userController) UpdatePermission(ctx *fiber.Ctx) error {
+    id := ctx.Params("id")
+    if id == "" {
+        return response.Error(ctx, http.StatusBadRequest, "id is required")
+    }
+
+    wrapper := request.NewContextWrapper(ctx)
+    
+    var req userDto.UpdatePermissionRequest
+    if err := wrapper.Bind(&req); err != nil {
+        return response.Error(ctx, http.StatusBadRequest, err.Error())
+    }
+
+    result, err := c.userService.UpdatePermission(ctx.Context(), id, &req)
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusOK, result)
+}
+
+func (c *userController) DeletePermission(ctx *fiber.Ctx) error {
+    id := ctx.Params("id")
+    if id == "" {
+        return response.Error(ctx, http.StatusBadRequest, "id is required")
+    }
+
+    err := c.userService.DeletePermission(ctx.Context(), id)
+    if err != nil {
+        return response.Error(ctx, http.StatusInternalServerError, err.Error())
+    }
+
+    return response.Success(ctx, http.StatusNoContent, nil)
+}
+
 // gRPC Handlers
 func (c *grpcController) CreateUser(ctx context.Context, req *userPb.CreateUserRequest) (*userPb.User, error) {
-    result, err := c.userService.CreateUser(ctx, &userDto.CreateUserRequest{
-        Username: req.Username,
-        Password: req.Password,
-        Name: userDto.Name{
-            FirstName: req.FirstName,
-            MiddleName: req.MiddleName,
-            LastName: req.LastName,
-        },
-        RoleIDs: req.RoleIds,
-    })
+    result, err := c.userService.CreateUserGRPC(ctx, req)
     if err != nil {
         return nil, err
     }
-
-    return &userPb.User{
-        Id: result.ID,
-        Username: result.Username,
-        FirstName: result.Name.FirstName,
-        MiddleName: result.Name.MiddleName,
-        LastName: result.Name.LastName,
-        Roles: result.Roles,
-    }, nil
+    return result, nil
 }
 
 func (c *grpcController) GetUser(ctx context.Context, req *userPb.GetUserRequest) (*userPb.User, error) {
-    result, err := c.userService.GetUserByUsername(ctx, req.Username)
+    result, err := c.userService.GetUserGRPC(ctx, req)
     if err != nil {
         return nil, err
     }
-
-    return &userPb.User{
-        Id: result.ID,
-        Username: result.Username,
-        FirstName: result.Name.FirstName,
-        MiddleName: result.Name.MiddleName,
-        LastName: result.Name.LastName,
-        Roles: result.Roles,
-    }, nil
+    return result, nil
 }
 
 func (c *grpcController) ValidateCredentials(ctx context.Context, req *userPb.ValidateCredentialsRequest) (*userPb.ValidateCredentialsResponse, error) {
-    isValid, err := c.userService.ValidatePassword(ctx, req.Username, req.Password)
+    result, err := c.userService.ValidateCredentialsGRPC(ctx, req)
     if err != nil {
         return nil, err
     }
-
-    if !isValid {
-        return &userPb.ValidateCredentialsResponse{
-            Valid: false,
-        }, nil
-    }
-
-    user, err := c.userService.GetUserByUsername(ctx, req.Username)
-    if err != nil {
-        return nil, err
-    }
-
-    return &userPb.ValidateCredentialsResponse{
-        Valid: true,
-        User: &userPb.User{
-            Id: user.ID,
-            Username: user.Username,
-            FirstName: user.Name.FirstName,
-            MiddleName: user.Name.MiddleName,
-            LastName: user.Name.LastName,
-            Roles: user.Roles,
-        },
-    }, nil
+    return result, nil
 }
+
+func (c *grpcController) mustEmbedUnimplementedUserServiceServer() {}
 

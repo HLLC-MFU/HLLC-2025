@@ -4,11 +4,11 @@ import (
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/handler"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
 
-	pb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/userpb"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -16,12 +16,15 @@ import (
 )
 
 func (s *server) userService() {
-	// Initialize repositories
-	userRepository := repository.NewUserRepository(s.db)
-	
+	// Initialize repositories using factory
+	repoFactory := repository.NewFactory(s.db)
+	userRepo := repoFactory.NewUserRepository()
+	roleRepo := repoFactory.NewRoleRepository()
+	permRepo := repoFactory.NewPermissionRepository()
+
 	// Initialize services
-	userService := service.NewUserService(userRepository)
-	
+	userService := service.NewUserService(s.cfg, userRepo, roleRepo, permRepo)
+
 	// Initialize handlers
 	httpHandler := handler.NewHTTPHandler(s.cfg, userService)
 	grpcHandler := handler.NewGRPCHandler(s.cfg, userService)
@@ -33,16 +36,12 @@ func (s *server) userService() {
 
 	// Set up HTTP routes
 	api := s.app.Group("/api/v1")
-	
-	users := api.Group("/users")
-	users.Post("/", httpHandler.CreateUser)
-	users.Get("/:username", httpHandler.GetUser)
-	users.Post("/validate", httpHandler.ValidateCredentials)
+	httpHandler.RegisterRoutes(api)
 
 	// Set up gRPC server
 	go func() {
 		grpcServer, lis := core.NewGrpcServer(&s.cfg.Jwt, s.cfg.Grpc.UserUrl)
-		pb.RegisterUserServiceServer(grpcServer, grpcHandler)
+		userPb.RegisterUserServiceServer(grpcServer, grpcHandler)
 		
 		log.Printf("User gRPC server listening on %s", s.cfg.Grpc.UserUrl)
 		if err := grpcServer.Serve(lis); err != nil {
