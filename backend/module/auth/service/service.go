@@ -13,6 +13,10 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/security"
 )
 
+var (
+	ErrInvalidCredentials = errors.New("invalid credentials")
+)
+
 type (
 	AuthService interface {
 		Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error)
@@ -48,7 +52,7 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 		return nil, err
 	}
 	if !isValid {
-		return nil, errors.New("invalid credentials")
+		return nil, ErrInvalidCredentials
 	}
 
 	// Get highest role code
