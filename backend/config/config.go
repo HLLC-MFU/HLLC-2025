@@ -71,8 +71,20 @@ func LoadConfig(path string) Config {
 			Url: os.Getenv("DB_URL"),
 		},
 		Grpc: Grpc {
-			UserUrl: os.Getenv("USER_GRPC_URL"),
-			AuthUrl: os.Getenv("AUTH_GRPC_URL"),
+			UserUrl: os.Getenv("GRPC_USER_URL"),
+			AuthUrl: os.Getenv("GRPC_AUTH_URL"),
+		},
+		Redis: Redis {
+			Host: os.Getenv("REDIS_HOST"),
+			Port: os.Getenv("REDIS_PORT"),
+			Password: os.Getenv("REDIS_PASSWORD"),
+			DB: func() int {
+				result, err := strconv.Atoi(os.Getenv("REDIS_DB"))
+				if err != nil {
+					return 0
+				}
+				return result
+			}(),
 		},
 		Jwt: Jwt {
 			AccessSecretKey: os.Getenv("JWT_ACCESS_SECRET_KEY"),

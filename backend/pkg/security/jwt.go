@@ -18,17 +18,22 @@ var (
 	ErrTokenExpired       = errors.New("token has expired")
 	ErrTokenBlacklisted   = errors.New("token has been blacklisted")
 	ErrInvalidSigningMethod = errors.New("invalid signing method")
+	ErrInvalidTokenType    = errors.New("invalid token type")
 )
 
 type (
+	TokenType string
+
 	AuthFactory interface {
 		SignToken() string
 	}
 
 	Claims struct {
-		UserID   string   `json:"user_id"`
-		Username string   `json:"username"`
-		RoleCode int      `json:"role_code"`
+		UserID    string   `json:"user_id"`
+		Username  string   `json:"username"`
+		RoleCode  int      `json:"role_code"`
+		TokenType TokenType `json:"token_type"`
+		SessionID string   `json:"session_id,omitempty"`
 		jwt.RegisteredClaims
 	}
 
@@ -40,6 +45,22 @@ type (
 	accessToken  struct{ *authConcrete }
 	refreshToken struct{ *authConcrete }
 	apiKey      struct{ *authConcrete }
+
+	CookieConfig struct {
+		Name     string
+		Domain   string
+		Path     string
+		MaxAge   int
+		Secure   bool
+		HttpOnly bool
+		SameSite string
+	}
+)
+
+const (
+	TokenTypeAccess  TokenType = "access"
+	TokenTypeRefresh TokenType = "refresh"
+	TokenTypeAPI     TokenType = "api"
 )
 
 func now() time.Time {
@@ -62,6 +83,7 @@ func (a *authConcrete) SignToken() string {
 }
 
 func NewAccessToken(secret string, expiredAt int64, claims *Claims) AuthFactory {
+	claims.TokenType = TokenTypeAccess
 	claims.RegisteredClaims = jwt.RegisteredClaims{
 		Issuer:    "hllc-2025.com",
 		Subject:   "access-token",
@@ -80,6 +102,7 @@ func NewAccessToken(secret string, expiredAt int64, claims *Claims) AuthFactory 
 }
 
 func NewRefreshToken(secret string, expiredAt int64, claims *Claims) AuthFactory {
+	claims.TokenType = TokenTypeRefresh
 	claims.RegisteredClaims = jwt.RegisteredClaims{
 		Issuer:    "hllc-2025.com",
 		Subject:   "refresh-token",
@@ -98,6 +121,7 @@ func NewRefreshToken(secret string, expiredAt int64, claims *Claims) AuthFactory
 }
 
 func ReloadToken(secret string, expiredAt int64, claims *Claims) string {
+	claims.TokenType = TokenTypeRefresh
 	claims.RegisteredClaims = jwt.RegisteredClaims{
 		Issuer:    "hllc-2025.com",
 		Subject:   "refresh-token",
@@ -148,7 +172,9 @@ var (
 
 func SetApiKey(secret string) {
 	apiKeyOnce.Do(func() {
-		claims := &Claims{}
+		claims := &Claims{
+			TokenType: TokenTypeAPI,
+		}
 		claims.RegisteredClaims = jwt.RegisteredClaims{
 			Issuer:    "hllc-2025.com",
 			Subject:   "api-key",
@@ -178,4 +204,30 @@ func ExtractBearerToken(authHeader string) (string, error) {
 		return "", errors.New("invalid authorization header format")
 	}
 	return authHeader[7:], nil
+}
+
+// GetCookieConfig returns the cookie configuration for the given token type
+func GetCookieConfig(tokenType TokenType, secure bool) *CookieConfig {
+	switch tokenType {
+	case TokenTypeAccess:
+		return &CookieConfig{
+			Name:     "access_token",
+			Path:     "/",
+			MaxAge:   3600, // 1 hour
+			Secure:   secure,
+			HttpOnly: true,
+			SameSite: "Lax",
+		}
+	case TokenTypeRefresh:
+		return &CookieConfig{
+			Name:     "refresh_token",
+			Path:     "/",
+			MaxAge:   604800, // 7 days
+			Secure:   secure,
+			HttpOnly: true,
+			SameSite: "Strict",
+		}
+	default:
+		return nil
+	}
 }

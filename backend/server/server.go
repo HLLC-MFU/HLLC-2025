@@ -10,6 +10,7 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/migration"
 	"github.com/gofiber/fiber/v2"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -41,7 +42,7 @@ func (s *server) httpListening() {
 }
 
 // Shutdown HTTP server
-func (s *server) shutdown(ctx context.Context, quit chan os.Signal) {
+func (s *server) shutdown(quit chan os.Signal) {
     signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
     <-quit
 
@@ -53,22 +54,39 @@ func (s *server) shutdown(ctx context.Context, quit chan os.Signal) {
 
 // Start server
 func Start(ctx context.Context, cfg *config.Config, db *mongo.Client, redis *redis.Client) {
-
 	s := &server{
-		app: fiber.New(),
+		app: fiber.New(fiber.Config{
+			DisableStartupMessage: true,
+			AppName:              cfg.App.Name,
+			EnablePrintRoutes:    true,
+		}),
 		db: db,
 		cfg: cfg,
 		redis: core.RedisConnect(ctx, cfg),
+	}
+
+	// Run migrations
+	migrationService := migration.NewMigrationService(db)
+	migrations := []migration.Migration{
+		migration.NewInitialSetupMigration(db),
+	}
+	if err := migrationService.Run(ctx, migrations); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	// Route service based on App Name
 	switch s.cfg.App.Name {
 	case "user":
 		s.userService()
+	case "auth":
+		s.authService()
 	}
 	// Add more here .... =>
 
+	// Set up graceful shutdown
+	quit := make(chan os.Signal, 1)
+	go s.shutdown(quit)
+
 	//Start HTTP server
 	s.httpListening()
-
 }

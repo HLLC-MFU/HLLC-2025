@@ -22,9 +22,9 @@ type (
 )
 
 // WithTimeout adds timeout to context operations
-func WithTimeout(timeout time.Duration) ContextDecoratorFunc {
-	return func(next func(ctx context.Context) error) func(ctx context.Context) error {
-		return func(ctx context.Context) error {
+func WithTimeout[T any](timeout time.Duration) func(func(context.Context) (T, error)) func(context.Context) (T, error) {
+	return func(next func(ctx context.Context) (T, error)) func(context.Context) (T, error) {
+		return func(ctx context.Context) (T, error) {
 			ctx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
 			return next(ctx)

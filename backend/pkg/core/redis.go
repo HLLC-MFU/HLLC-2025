@@ -27,7 +27,7 @@ type (
 // NewRedisCache creates a new Redis cache instance
 func NewRedisCache(config *RedisConfig) (*RedisCache, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:         fmt.Sprintf("%s:%d", config.Host, config.Port),
+		Addr:         fmt.Sprintf("%s:%s", config.Host, config.Port),
 		Password:     config.Password,
 		DB:           config.DB,
 		DialTimeout:  5 * time.Second,
@@ -55,7 +55,7 @@ func RedisConnect(ctx context.Context, cfg *config.Config) *RedisCache {
 		Host:     cfg.Redis.Host,
 		Port:     cfg.Redis.Port,
 		Password: cfg.Redis.Password,
-		DB:       0,
+		DB:       cfg.Redis.DB,
 	}
 
 	cache, err := NewRedisCache(redisConfig)

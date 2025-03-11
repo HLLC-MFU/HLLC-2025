@@ -2,6 +2,7 @@ package decorator
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -35,5 +36,19 @@ func (m *MongoWrapper) WithTransaction(ctx context.Context, fn func(ctx context.
 
 func (m *MongoWrapper) getCollection(name string) *mongo.Collection {
 	return m.Client.Database(m.Database).Collection(name)
+}
+
+// WithMongoTimeout adds a timeout to MongoDB operations
+func WithMongoTimeout(timeout time.Duration, operation func(ctx context.Context) error) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return operation(ctx)
+}
+
+// WithMongoTimeoutResult adds a timeout to MongoDB operations that return a result
+func WithMongoTimeoutResult[T any](timeout time.Duration, operation func(ctx context.Context) (T, error)) (T, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return operation(ctx)
 }
 

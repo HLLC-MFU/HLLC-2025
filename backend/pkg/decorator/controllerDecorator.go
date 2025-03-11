@@ -1,34 +1,115 @@
 package decorator
 
 import (
-	"github.com/gofiber/fiber"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/gofiber/fiber/v2"
 )
 
 /**
- * BaseController is a base controller for all controllers
+ * Controller decorators for HTTP and gRPC handlers
+ * Implements clean architecture patterns with middleware support
  *
  * @author Dev. Bengi (Backend Team)
  */
 
-type BaseController struct {
-	Router *fiber.Router
-}
+type (
+	// HTTPHandlerFunc is the standard HTTP handler function
+	HTTPHandlerFunc func(*fiber.Ctx) error
 
-// RegisterRoute is a function that registers a route
-func (b *BaseController) RegisterRoute(method string, path string, handler middleware.HTTPHandlerFunc, middlewares ...middleware.HTTPHandlerFunc) {
-	finalHandler := composeMiddlewares(append(middlewares, handler))
-	(*b.Router).Add(method, path, finalHandler)
-}
+	// ControllerDecorator wraps controller methods with additional functionality
+	ControllerDecorator func(HTTPHandlerFunc) HTTPHandlerFunc
 
-// composeMiddlewares is a function that composes middlewares
-func composeMiddlewares(middlewares []middleware.HTTPHandlerFunc) middleware.HTTPHandlerFunc {
+	// BaseController provides common controller functionality
+	BaseController struct {
+		Router fiber.Router
+	}
+)
+
+// WithLogging adds logging to the handler
+func WithLogging(handler HTTPHandlerFunc) HTTPHandlerFunc {
 	return func(c *fiber.Ctx) error {
-		for _, middleware := range middlewares {
-			if err := middleware(c); err != nil {
-				return err
-			}
+		// Pre-request logging
+		method := c.Method()
+		path := c.Path()
+		c.Context().Logger().Printf("Request: %s %s", method, path)
+
+		err := handler(c)
+
+		// Post-request logging
+		if err != nil {
+			c.Context().Logger().Printf("Error: %s %s - %v", method, path, err)
+		} else {
+			c.Context().Logger().Printf("Success: %s %s", method, path)
+		}
+
+		return err
+	}
+}
+
+// WithError adds error handling to the handler
+func WithError(handler HTTPHandlerFunc) HTTPHandlerFunc {
+	return func(c *fiber.Ctx) error {
+		err := handler(c)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+			})
 		}
 		return nil
+	}
+}
+
+// WithValidation adds request validation to the handler
+func WithValidation(handler HTTPHandlerFunc) HTTPHandlerFunc {
+	return func(c *fiber.Ctx) error {
+		// Add validation logic here
+		return handler(c)
+	}
+}
+
+// WithTransaction adds transaction support to the handler
+func WithTransaction(handler HTTPHandlerFunc) HTTPHandlerFunc {
+	return func(c *fiber.Ctx) error {
+		// Start transaction
+		// Implement your transaction logic here
+		err := handler(c)
+		if err != nil {
+			// Rollback transaction
+			return err
+		}
+		// Commit transaction
+		return nil
+	}
+}
+
+// ComposeDecorators combines multiple decorators into one
+func ComposeDecorators(decorators ...ControllerDecorator) ControllerDecorator {
+	return func(handler HTTPHandlerFunc) HTTPHandlerFunc {
+		for i := len(decorators) - 1; i >= 0; i-- {
+			handler = decorators[i](handler)
+		}
+		return handler
+	}
+}
+
+// RegisterRoute registers a route with decorators
+func (b *BaseController) RegisterRoute(method string, path string, handler HTTPHandlerFunc, decorators ...ControllerDecorator) {
+	// Apply all decorators
+	decorated := handler
+	for _, decorator := range decorators {
+		decorated = decorator(decorated)
+	}
+
+	// Register the route
+	switch method {
+	case "GET":
+		b.Router.Get(path, decorated)
+	case "POST":
+		b.Router.Post(path, decorated)
+	case "PUT":
+		b.Router.Put(path, decorated)
+	case "DELETE":
+		b.Router.Delete(path, decorated)
+	case "PATCH":
+		b.Router.Patch(path, decorated)
 	}
 }

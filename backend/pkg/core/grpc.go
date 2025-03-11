@@ -3,65 +3,71 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"strings"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/auth"
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/user"
-	"github.com/golang-jwt/jwt/v5"
+	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/security"
 )
 
 type (
-
 	GrpcClientFactoryController interface {
-		User() userPb.UserGrpcServiceClient
-		Auth() authPb.AuthGrpcServiceClient
+		User(ctx context.Context) (userPb.UserServiceClient, error)
+		Auth(ctx context.Context) (authPb.AuthServiceClient, error)
 	}
 
 	grpcClientFactory struct {
-		client *grpc.ClientConn
-	}
-
-	grpcAuth struct {
-		secretKey string
-		conn *grpc.ClientConn
-	}
-
-	Claims struct {
-		UserID string `json:"user_id"`
-		Username string `json:"username"`
-		Email string `json:"email"`
-		Role string `json:"role"`
-		jwt.RegisteredClaims
+		target string
+		opts   []grpc.DialOption
 	}
 )
 
-/*
- * Grpc Module Add here ......
- */
-
-func (g *grpcClientFactory) User() userPb.UserGrpcServiceClient {
-	return userPb.NewUserGrpcServiceClient(g.client)
-}
-
-func (g *grpcClientFactory) Auth() authPb.AuthGrpcServiceClient {
-	return authPb.NewAuthGrpcServiceClient(g.client)
-}
-
-func NewGrpcServer(cfg *config.Jwt, host string) (*grpc.Server, net.Listener) {
-	opts := make([]grpc.ServerOption, 0)
-
-	grpcAuth := &grpcAuth{
-		secretKey: cfg.AccessSecretKey,
+// NewGrpcClientFactory creates a new gRPC client factory
+func NewGrpcClientFactory(target string) GrpcClientFactoryController {
+	return &grpcClientFactory{
+		target: target,
+		opts: []grpc.DialOption{
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		},
 	}
+}
 
-	opts = append(opts, grpc.UnaryInterceptor(grpcAuth.UnaryServerInterceptor))
+// User returns a new user service client
+func (g *grpcClientFactory) User(ctx context.Context) (userPb.UserServiceClient, error) {
+	conn, err := grpc.DialContext(ctx, g.target, g.opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user client: %w", err)
+	}
+	return userPb.NewUserServiceClient(conn), nil
+}
+
+// Auth returns a new auth service client
+func (g *grpcClientFactory) Auth(ctx context.Context) (authPb.AuthServiceClient, error) {
+	conn, err := grpc.DialContext(ctx, g.target, g.opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create auth client: %w", err)
+	}
+	return authPb.NewAuthServiceClient(conn), nil
+}
+
+// NewGrpcServer creates a new gRPC server with authentication middleware
+func NewGrpcServer(cfg *config.Jwt, host string) (*grpc.Server, net.Listener) {
+	opts := []grpc.ServerOption{
+		grpc.ChainUnaryInterceptor(
+			newAuthInterceptor(cfg.AccessSecretKey).unaryInterceptor,
+		),
+	}
 
 	lis, err := net.Listen("tcp", host)
 	if err != nil {
@@ -72,42 +78,88 @@ func NewGrpcServer(cfg *config.Jwt, host string) (*grpc.Server, net.Listener) {
 	return server, lis
 }
 
-func (g *grpcAuth) UnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+type authInterceptor struct {
+	secretKey string
+}
+
+func newAuthInterceptor(secretKey string) *authInterceptor {
+	return &authInterceptor{secretKey: secretKey}
+}
+
+// unaryInterceptor is a middleware that checks if the request is authenticated
+func (a *authInterceptor) unaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	// Skip authentication for internal methods
+	if isInternalMethod(info.FullMethod) {
+		return handler(ctx, req)
+	}
+
+	// Get metadata from context
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, errors.New("missing metadata")
+		return nil, status.Error(codes.Unauthenticated, "missing metadata")
 	}
 
+	// Get authorization header
 	authHeader := md.Get("authorization")
 	if len(authHeader) == 0 {
-		return nil, errors.New("missing authorization header")
+		return nil, status.Error(codes.Unauthenticated, "missing authorization header")
 	}
 
+	// Extract token
 	tokenString := strings.TrimPrefix(authHeader[0], "Bearer ")
-	claims, err := ParseToken(g.secretKey, tokenString)
+	claims, err := security.ParseToken(a.secretKey, tokenString)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, security.ErrTokenExpired) {
+			return nil, status.Error(codes.PermissionDenied, "token expired")
+		}
+		return nil, status.Error(codes.Unauthenticated, "invalid token")
 	}
 
-	if claims.ExpiresAt.Time.Before(time.Now()) {
-		return nil, errors.New("token expired")
+	// Check token type
+	if claims.TokenType != security.TokenTypeAccess {
+		return nil, status.Error(codes.PermissionDenied, "invalid token type")
 	}
 
+	// Add claims to context
+	ctx = context.WithValue(ctx, "claims", claims)
 	return handler(ctx, req)
 }
 
-func ParseToken(secretKey string, tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secretKey), nil
-	})
-	
-	if err != nil {
-		return nil, err
+// isInternalMethod checks if the method is internal
+func isInternalMethod(method string) bool {
+	return strings.HasPrefix(method, "/auth.AuthService/Internal") ||
+		strings.HasPrefix(method, "/user.UserService/Internal")
+}
+
+// GetClaimsFromContext extracts claims from context
+func GetClaimsFromContext(ctx context.Context) (*security.Claims, error) {
+	claims, ok := ctx.Value("claims").(*security.Claims)
+	if !ok {
+		return nil, errors.New("no claims in context")
 	}
-	
-	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
-		return claims, nil
+	return claims, nil
+}
+
+// NewGrpcConnection creates a new gRPC connection with retry
+func NewGrpcConnection(ctx context.Context, target string, maxRetries int) (*grpc.ClientConn, error) {
+	var conn *grpc.ClientConn
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		connCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		conn, err = grpc.DialContext(connCtx, target,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithBlock(),
+		)
+		cancel()
+		
+		if err == nil {
+			return conn, nil
+		}
+
+		log.Printf("Failed to connect to gRPC server: %v, retrying in 5 seconds...", err)
+		time.Sleep(5 * time.Second)
 	}
-	
-	return nil, errors.New("error: invalid token")
+
+	return nil, fmt.Errorf("failed to connect after %d retries: %v", maxRetries, err)
 }
