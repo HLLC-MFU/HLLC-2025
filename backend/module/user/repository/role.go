@@ -41,9 +41,15 @@ func (r *roleRepository) FindRoleByID(ctx context.Context, id primitive.ObjectID
 	var role userPb.Role
 	_, err := decorator.WithTimeout[struct{}](5*time.Second)(func(ctx context.Context) (struct{}, error) {
 		collection := r.dbConnect(ctx).Collection("roles")
+		// Try to find by _id first
 		err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&role)
 		if err == mongo.ErrNoDocuments {
-			return struct{}{}, ErrNotFound
+			// If not found, try to find by id field
+			err = collection.FindOne(ctx, bson.M{"id": id.Hex()}).Decode(&role)
+			if err == mongo.ErrNoDocuments {
+				return struct{}{}, ErrNotFound
+			}
+			return struct{}{}, err
 		}
 		return struct{}{}, err
 	})(ctx)

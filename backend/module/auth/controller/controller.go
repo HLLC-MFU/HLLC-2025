@@ -65,7 +65,7 @@ func (c *authController) Login(ctx *fiber.Ctx) error {
 
 	ctx.Cookie(&fiber.Cookie{
 		Name:     accessCookie.Name,
-		Value:    result.AccessToken,
+		Value:    result.Data.AccessToken,
 		Path:     accessCookie.Path,
 		MaxAge:   accessCookie.MaxAge,
 		Secure:   accessCookie.Secure,
@@ -75,7 +75,7 @@ func (c *authController) Login(ctx *fiber.Ctx) error {
 
 	ctx.Cookie(&fiber.Cookie{
 		Name:     refreshCookie.Name,
-		Value:    result.RefreshToken,
+		Value:    result.Data.RefreshToken,
 		Path:     refreshCookie.Path,
 		MaxAge:   refreshCookie.MaxAge,
 		Secure:   refreshCookie.Secure,
@@ -83,7 +83,8 @@ func (c *authController) Login(ctx *fiber.Ctx) error {
 		SameSite: fiber.CookieSameSiteStrictMode,
 	})
 
-	return response.Success(ctx, http.StatusOK, result)
+	// Return only the data part of the response to avoid double nesting
+	return response.Success(ctx, http.StatusOK, result.Data)
 }
 
 // RefreshToken handles token refresh requests

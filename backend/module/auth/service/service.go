@@ -10,6 +10,8 @@ import (
 	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto"
 	authRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/repository"
 	userRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
+	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/security"
 )
 
@@ -35,45 +37,103 @@ type (
 		cfg *config.Config
 		userRepo userRepo.UserRepositoryService
 		authRepo authRepo.AuthRepositoryService
+		userService userService.UserService
 	}
 )
 
-func NewAuthService(cfg *config.Config, userRepo userRepo.UserRepositoryService, authRepo authRepo.AuthRepositoryService) AuthService {
+func NewAuthService(
+	cfg *config.Config, 
+	userRepo userRepo.UserRepositoryService, 
+	authRepo authRepo.AuthRepositoryService,
+	userService userService.UserService,
+) AuthService {
 	return &authService{
 		cfg: cfg,
 		userRepo: userRepo,
 		authRepo: authRepo,
+		userService: userService,
 	}
 }
 
 func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error) {
-	// Use internal login
-	internalReq := &authPb.InternalLoginRequest{
-		Username: req.Username,
-		Password: req.Password,
-	}
+	return decorator.WithTimeout[*dto.LoginResponse](5*time.Second)(func(ctx context.Context) (*dto.LoginResponse, error) {
+		// Get user by username from user service
+		user, err := s.userService.GetUserByUsername(ctx, req.Username)
+		if err != nil {
+			return nil, err
+		}
 
-	internalResp, err := s.InternalLogin(ctx, internalReq)
-	if err != nil {
-		return nil, err
-	}
+		// Validate password
+		isValid, err := s.userService.ValidatePassword(ctx, req.Username, req.Password)
+		if err != nil {
+			return nil, err
+		}
+		if !isValid {
+			return nil, ErrInvalidCredentials
+		}
 
-	// Convert to DTO response
-	return &dto.LoginResponse{
-		User: dto.UserResponse{
-			ID:         internalResp.User.Id,
-			Username:   internalResp.User.Username,
-			FirstName:  internalResp.User.FirstName,
-			MiddleName: internalResp.User.MiddleName,
-			LastName:   internalResp.User.LastName,
-			Roles:      internalResp.User.Roles,
-		},
-		TokenResponse: dto.TokenResponse{
-			AccessToken:  internalResp.AccessToken,
-			RefreshToken: internalResp.RefreshToken,
-			ExpiresAt:    time.Unix(internalResp.ExpiresAt, 0),
-		},
-	}, nil
+		// Initialize empty arrays to avoid null in response
+		roleIDs := make([]string, 0)
+		roles := make([]dto.Role, 0)
+
+		// Get role IDs and objects for response
+		for _, role := range user.Roles {
+			roleIDs = append(roleIDs, role.Id)
+			roles = append(roles, dto.Role{
+				ID:          role.Id,
+				Name:        role.Name,
+				Code:        role.Code,
+				Description: role.Description,
+			})
+		}
+
+		// Generate tokens
+		claims := &security.Claims{
+			UserID:   user.ID,
+			Username: user.Username,
+			RoleIds:  roleIDs,
+		}
+
+		accessToken := security.NewAccessToken(
+			s.cfg.Jwt.AccessSecretKey,
+			s.cfg.Jwt.AccessDuration,
+			claims,
+		).SignToken()
+
+		refreshToken := security.NewRefreshToken(
+			s.cfg.Jwt.RefreshSecretKey,
+			s.cfg.Jwt.RefreshDuration,
+			claims,
+		).SignToken()
+
+		expiresAt := time.Now().Add(time.Duration(s.cfg.Jwt.AccessDuration) * time.Second)
+
+		// Store refresh token
+		err = s.authRepo.StoreRefreshToken(ctx, refreshToken, user.ID, expiresAt)
+		if err != nil {
+			return nil, err
+		}
+
+		// Convert user response
+		authUser := &dto.UserResponse{
+			ID:         user.ID,
+			Username:   user.Username,
+			FirstName:  user.Name.FirstName,
+			MiddleName: user.Name.MiddleName,
+			LastName:   user.Name.LastName,
+			Roles:      roles,
+		}
+
+		return &dto.LoginResponse{
+			Status: true,
+			Data: dto.LoginResponseData{
+				User:         authUser,
+				AccessToken:  accessToken,
+				RefreshToken: refreshToken,
+				ExpiresAt:    expiresAt.Format(time.RFC3339),
+			},
+		}, nil
+	})(ctx)
 }
 
 func (s *authService) InternalLogin(ctx context.Context, req *authPb.InternalLoginRequest) (*authPb.InternalLoginResponse, error) {
@@ -207,13 +267,30 @@ func (s *authService) ValidateToken(ctx context.Context, token string) (*dto.Use
 		return nil, errors.New(grpcResp.Error)
 	}
 
+	// Get user with roles
+	user, err := s.userService.GetUserByUsername(ctx, grpcResp.User.Username)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map roles to auth DTO format
+	roles := make([]dto.Role, 0)
+	for _, role := range user.Roles {
+		roles = append(roles, dto.Role{
+			ID:          role.Id,
+			Name:        role.Name,
+			Code:        role.Code,
+			Description: role.Description,
+		})
+	}
+
 	return &dto.UserResponse{
 		ID:         grpcResp.User.Id,
 		Username:   grpcResp.User.Username,
 		FirstName:  grpcResp.User.FirstName,
 		MiddleName: grpcResp.User.MiddleName,
 		LastName:   grpcResp.User.LastName,
-		Roles:      grpcResp.User.Roles,
+		Roles:      roles,
 	}, nil
 }
 

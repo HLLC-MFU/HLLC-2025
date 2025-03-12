@@ -16,8 +16,15 @@ type (
 	}
 
 	LoginResponse struct {
-		User UserResponse `json:"user"`
-		TokenResponse
+		Status bool             `json:"status"`
+		Data   LoginResponseData `json:"data"`
+	}
+
+	LoginResponseData struct {
+		User         *UserResponse `json:"user"`
+		AccessToken  string        `json:"accessToken"`
+		RefreshToken string        `json:"refreshToken"`
+		ExpiresAt    string        `json:"expiresAt"`
 	}
 
 	RefreshTokenRequest struct {
@@ -36,6 +43,13 @@ type (
 		FirstName  string   `json:"firstName"`
 		MiddleName string   `json:"middleName"`
 		LastName   string   `json:"lastName"`
-		Roles      []string `json:"roles"`
-}
+		Roles      []Role   `json:"roles,omitempty"`
+	}
+
+	Role struct {
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		Code        string `json:"code"`
+		Description string `json:"description"`
+	}
 )
