@@ -179,16 +179,23 @@ func (s *userService) GetUserByUsername(ctx context.Context, username string) (*
 			return nil, err
 		}
 
-		// Get roles for response
-		var roles []*userPb.Role
+		// Initialize empty arrays to avoid null in response
+		roles := make([]*userPb.Role, 0)
+
+		// Get roles for response by fetching each role by ID
 		for _, roleID := range user.RoleIds {
-			objectID, err := primitive.ObjectIDFromHex(roleID)
+			// Try both the roleID as is and as ObjectID
+			role, err := s.roleRepo.FindRoleByID(ctx, primitive.ObjectID{})
 			if err != nil {
-				continue
-			}
-			role, err := s.roleRepo.FindRoleByID(ctx, objectID)
-			if err != nil {
-				continue
+				// If not found, try converting the string ID
+				objectID, err := primitive.ObjectIDFromHex(roleID)
+				if err != nil {
+					continue
+				}
+				role, err = s.roleRepo.FindRoleByID(ctx, objectID)
+				if err != nil {
+					continue
+				}
 			}
 			roles = append(roles, role)
 		}
@@ -196,7 +203,12 @@ func (s *userService) GetUserByUsername(ctx context.Context, username string) (*
 		return &dto.UserResponse{
 			ID:       user.Id,
 			Username: user.Username,
-			Roles:    roles,
+			Name: dto.Name{
+				FirstName:  user.Name.FirstName,
+				MiddleName: user.Name.MiddleName,
+				LastName:   user.Name.LastName,
+			},
+			Roles: roles,
 		}, nil
 	})(ctx)
 }
@@ -227,7 +239,12 @@ func (s *userService) GetAllUsers(ctx context.Context) ([]*dto.UserResponse, err
 			response = append(response, &dto.UserResponse{
 				ID:       user.Id,
 				Username: user.Username,
-				Roles:    roles,
+				Name: dto.Name{
+					FirstName:  user.Name.FirstName,
+					MiddleName: user.Name.MiddleName,
+					LastName:   user.Name.LastName,
+				},
+				Roles: roles,
 			})
 		}
 

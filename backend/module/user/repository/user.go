@@ -82,9 +82,22 @@ func (r *userRepository) FindAll(ctx context.Context) ([]*userPb.User, error) {
 		}
 		defer cursor.Close(ctx)
 
+		// Ensure we decode the full user object including nested fields
 		if err := cursor.All(ctx, &users); err != nil {
 			return struct{}{}, err
 		}
+
+		// Initialize empty name object if it's nil
+		for _, user := range users {
+			if user.Name == nil {
+				user.Name = &userPb.Name{
+					FirstName:  "",
+					MiddleName: "",
+					LastName:   "",
+				}
+			}
+		}
+
 		return struct{}{}, nil
 	})(ctx)
 	if err != nil {

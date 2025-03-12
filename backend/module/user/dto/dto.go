@@ -15,59 +15,58 @@ type (
 
 	// Embedded DTOs
 	Name struct {
-		FirstName  string `json:"firstName" validate:"required"`
+		FirstName  string `json:"firstName"`
 		MiddleName string `json:"middleName"`
-		LastName   string `json:"lastName" validate:"required"`
+		LastName   string `json:"lastName"`
 	}
 
 	CreateUserRequest struct {
-		Name     Name     `json:"name" validate:"required"`
-		RoleIDs  []string `json:"roleIds" validate:"required"`
-		Username string   `json:"username" validate:"required"`
-		Password string   `json:"password" validate:"required"`
+		Username string `json:"username" validate:"required"`
+		Password string `json:"password" validate:"required"`
+		Name     Name   `json:"name" validate:"required"`
+		RoleIDs  []string `json:"roleIds"`
 	}
 
 	UpdateUserRequest struct {
-		Name     Name     `json:"name" validate:"required"`
-		RoleIDs  []string `json:"roleIds" validate:"required"`
-		Username string   `json:"username" validate:"required"`
-		Password string   `json:"password" validate:"required"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Name     Name   `json:"name"`
+		RoleIDs  []string `json:"roleIds"`
 	}
 
 	CreateRoleRequest struct {
 		Name        string   `json:"name" validate:"required"`
 		Code        string   `json:"code" validate:"required"`
-		Description string   `json:"description" validate:"required"`
-		Permissions []string `json:"permissions" validate:"required"`
+		Description string   `json:"description"`
+		Permissions []string `json:"permissions"`
 	}
 
 	UpdateRoleRequest struct {
-		Name        string   `json:"name" validate:"required"`
-		Code        string   `json:"code" validate:"required"`
-		Description string   `json:"description" validate:"required"`
-		Permissions []string `json:"permissions" validate:"required"`
+		Name        string   `json:"name"`
+		Code        string   `json:"code"`
+		Description string   `json:"description"`
+		Permissions []string `json:"permissions"`
 	}
 
 	CreatePermissionRequest struct {
 		Name        string `json:"name" validate:"required"`
 		Code        string `json:"code" validate:"required"`
-		Description string `json:"description" validate:"required"`
+		Description string `json:"description"`
 		Module      string `json:"module" validate:"required"`
 	}
 
 	UpdatePermissionRequest struct {
-		Name        string `json:"name" validate:"required"`
-		Code        string `json:"code" validate:"required"`
-		Description string `json:"description" validate:"required"`
-		Module      string `json:"module" validate:"required"`
+		Name        string `json:"name"`
+		Code        string `json:"code"`
+		Description string `json:"description"`
+		Module      string `json:"module"`
 	}
 
 	UserResponse struct {
-		ID          string              `json:"id"`
-		Name        Name                `json:"name"`
-		Roles       []*userPb.Role      `json:"roles"`
-		Permissions []*userPb.Permission `json:"permissions"`
-		Username    string              `json:"username"`
+		ID       string        `json:"id"`
+		Username string        `json:"username"`
+		Name     Name         `json:"name"`
+		Roles    []*userPb.Role `json:"roles,omitempty"`
 	}
 
 	RoleResponse struct {
@@ -75,7 +74,7 @@ type (
 		Name        string              `json:"name"`
 		Code        string              `json:"code"`
 		Description string              `json:"description"`
-		Permissions []*userPb.Permission `json:"permissions"`
+		Permissions []*userPb.Permission `json:"permissions,omitempty"`
 	}
 
 	PermissionResponse struct {
