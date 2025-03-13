@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package school;
+
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto";
+
+import "google/protobuf/timestamp.proto";
+
+// School service definition
+service SchoolService {
+  rpc CreateSchool(CreateSchoolRequest) returns (SchoolResponse);
+  rpc GetSchool(GetSchoolRequest) returns (SchoolResponse);
+  rpc ListSchools(ListSchoolsRequest) returns (ListSchoolsResponse);
+  rpc UpdateSchool(UpdateSchoolRequest) returns (SchoolResponse);
+  rpc DeleteSchool(DeleteSchoolRequest) returns (DeleteSchoolResponse);
+}
+
+// Common messages for localization
+message LocalizedName {
+  string th_name = 1;  // Thai name
+  string en_name = 2;  // English name
+}
+
+message LocalizedDetails {
+  string th_details = 1;  // Thai details
+  string en_details = 2;  // English details
+}
+
+// School photos
+message SchoolPhotos {
+  string cover_photo = 1;      // Main cover photo
+  string banner_photo = 2;     // Banner/header photo
+  string thumbnail_photo = 3;  // Thumbnail for listings
+  string logo_photo = 4;       // School logo
+}
+
+// School message
+message School {
+  string id = 1;
+  LocalizedName name = 2;
+  string acronym = 3;
+  LocalizedDetails details = 4;
+  SchoolPhotos photos = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+// Request messages
+message CreateSchoolRequest {
+  LocalizedName name = 1;
+  string acronym = 2;
+  LocalizedDetails details = 3;
+  SchoolPhotos photos = 4;
+}
+
+message GetSchoolRequest {
+  string id = 1;
+}
+
+message ListSchoolsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message UpdateSchoolRequest {
+  string id = 1;
+  LocalizedName name = 2;
+  string acronym = 3;
+  LocalizedDetails details = 4;
+  SchoolPhotos photos = 5;
+}
+
+message DeleteSchoolRequest {
+  string id = 1;
+}
+
+// Response messages
+message SchoolResponse {
+  School school = 1;
+}
+
+message ListSchoolsResponse {
+  repeated School schools = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message DeleteSchoolResponse {
+  bool success = 1;
+} 
