@@ -2,8 +2,9 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"net/http"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,7 +13,6 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/migration"
 	"github.com/gofiber/fiber/v2"
-	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -22,71 +22,87 @@ import (
  * @author Dev. Bengi (Backend Team)
  */
 
-type (
+type server struct {
+	app    *fiber.App
+	config *config.Config
+	db     *mongo.Client
+	redis  *core.RedisCache
+}
 
-	server struct {
-		app *fiber.App
-		db *mongo.Client
-		cfg *config.Config
-		redis *core.RedisCache
-	}
-)
+func NewServer(cfg *config.Config, db *mongo.Client) *server {
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+		AppName:              cfg.App.Name,
+		EnablePrintRoutes:    true,
+	})
 
-// Start HTTP server
-func (s *server) httpListening() {
-	log.Printf("Starting HTTP server on %s", s.cfg.App.Url)
-	err := s.app.Listen(s.cfg.App.Url)
-	if err != nil && err != http.ErrServerClosed {
-		log.Fatalf("HTTP server error: %v", err)
+	redis := core.RedisConnect(context.Background(), cfg)
+
+	return &server{
+		app:    app,
+		config: cfg,
+		db:     db,
+		redis:  redis,
 	}
 }
 
-// Shutdown HTTP server
-func (s *server) shutdown(quit chan os.Signal) {
-    signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-    <-quit
-
-    log.Println("Shutting down HTTP server...")
-    if err := s.app.Shutdown(); err != nil {
-        log.Fatalf("HTTP server shutdown error: %v", err)
-    }
+func (s *server) grpcListener(addr string) (net.Listener, error) {
+	return net.Listen("tcp", addr)
 }
 
-// Start server
-func Start(ctx context.Context, cfg *config.Config, db *mongo.Client, redis *redis.Client) {
-	s := &server{
-		app: fiber.New(fiber.Config{
-			DisableStartupMessage: true,
-			AppName:              cfg.App.Name,
-			EnablePrintRoutes:    true,
-		}),
-		db: db,
-		cfg: cfg,
-		redis: core.RedisConnect(ctx, cfg),
-	}
-
+func (s *server) Start() error {
 	// Run migrations
-	migrationService := migration.NewMigrationService(db)
+	migrationService := migration.NewMigrationService(s.db)
 	migrations := []migration.Migration{
-		migration.NewInitialSetupMigration(db),
+		migration.NewInitialSetupMigration(s.db),
 	}
-	if err := migrationService.Run(ctx, migrations); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+	if err := migrationService.Run(context.Background(), migrations); err != nil {
+		return fmt.Errorf("failed to run migrations: %v", err)
 	}
 
 	// Route service based on App Name
-	switch s.cfg.App.Name {
+	switch s.config.App.Name {
 	case "user":
 		s.userService()
 	case "auth":
 		s.authService()
+	case "major":
+		s.majorService()
+	case "school":
+		s.schoolService()
+	default:
+		return fmt.Errorf("unknown service name: %s", s.config.App.Name)
 	}
-	// Add more here .... =>
 
-	// Set up graceful shutdown
+	// Start HTTP server
+	go func() {
+		log.Printf("Starting HTTP server on %s", s.config.App.Url)
+		if err := s.app.Listen(s.config.App.Url); err != nil {
+			log.Fatalf("Failed to start HTTP server: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shut down the server
 	quit := make(chan os.Signal, 1)
-	go s.shutdown(quit)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
 
-	//Start HTTP server
-	s.httpListening()
+	log.Println("Shutting down server...")
+	
+	// Shutdown HTTP server
+	if err := s.app.Shutdown(); err != nil {
+		log.Printf("Error shutting down HTTP server: %v", err)
+	}
+
+	// Disconnect from Redis
+	if err := s.redis.Close(); err != nil {
+		log.Printf("Error disconnecting from Redis: %v", err)
+	}
+
+	// Disconnect from MongoDB
+	if err := s.db.Disconnect(context.Background()); err != nil {
+		log.Printf("Error disconnecting from MongoDB: %v", err)
+	}
+
+	return nil
 }
