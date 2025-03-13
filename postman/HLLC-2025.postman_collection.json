@@ -1,0 +1,807 @@
+{
+	"info": {
+		"_postman_id": "1234567-89ab-cdef-0123-456789abcdef",
+		"name": "HLLC-2025",
+		"description": "API collection for HLLC-2025 backend services",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Test response status",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// Parse response body",
+									"const responseBody = pm.response.json();",
+									"",
+									"// Test response structure",
+									"pm.test(\"Response has correct structure\", function () {",
+									"    pm.expect(responseBody).to.have.property('status');",
+									"    pm.expect(responseBody).to.have.property('data');",
+									"    pm.expect(responseBody.data).to.have.property('user');",
+									"    pm.expect(responseBody.data).to.have.property('accessToken');",
+									"    pm.expect(responseBody.data).to.have.property('refreshToken');",
+									"});",
+									"",
+									"// Set environment variables from response body",
+									"if (responseBody.data) {",
+									"    pm.environment.set('access_token', responseBody.data.accessToken);",
+									"    pm.environment.set('refresh_token', responseBody.data.refreshToken);",
+									"    if (responseBody.data.user && responseBody.data.user.id) {",
+									"        pm.environment.set('user_id', responseBody.data.user.id);",
+									"    }",
+									"}",
+									"",
+									"// Test cookies",
+									"pm.test(\"Access token cookie is present\", function () {",
+									"    pm.expect(pm.cookies.has('access_token')).to.be.true;",
+									"    const accessTokenCookie = pm.cookies.get('access_token');",
+									"    pm.expect(accessTokenCookie).to.not.be.empty;",
+									"});",
+									"",
+									"pm.test(\"Refresh token cookie is present\", function () {",
+									"    pm.expect(pm.cookies.has('refresh_token')).to.be.true;",
+									"    const refreshTokenCookie = pm.cookies.get('refresh_token');",
+									"    pm.expect(refreshTokenCookie).to.not.be.empty;",
+									"});",
+									"",
+									"// Test cookie attributes",
+									"pm.test(\"Cookies have correct attributes\", function () {",
+									"    const cookieJar = pm.cookies.jar();",
+									"    cookieJar.getAll(pm.request.url, function (error, cookies) {",
+									"        cookies.forEach(function(cookie) {",
+									"            if (cookie.name === 'access_token' || cookie.name === 'refresh_token') {",
+									"                pm.expect(cookie.httpOnly).to.be.true;",
+									"                pm.expect(cookie.secure).to.be.true;",
+									"                pm.expect(cookie.path).to.equal('/');",
+									"            }",
+									"        });",
+									"    });",
+									"});",
+									"",
+									"// Log cookie information for debugging",
+									"console.log('Cookies after login:', pm.cookies.getAll());"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{auth_url}}/api/v1/auth/login",
+							"host": ["{{auth_url}}"],
+							"path": ["api", "v1", "auth", "login"]
+						},
+						"description": "Login endpoint that returns access and refresh tokens"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}"
+								},
+								"url": {
+									"raw": "{{auth_url}}/api/v1/auth/login",
+									"host": ["{{auth_url}}"],
+									"path": ["api", "v1", "auth", "login"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Set-Cookie",
+									"value": "access_token=<token>; Path=/; HttpOnly; Secure; SameSite=Lax"
+								},
+								{
+									"key": "Set-Cookie",
+									"value": "refresh_token=<token>; Path=/; HttpOnly; Secure; SameSite=Strict"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": {\n        \"user\": {\n            \"id\": \"\",\n            \"username\": \"admin\",\n            \"firstName\": \"\",\n            \"middleName\": \"\",\n            \"lastName\": \"\",\n            \"roles\": null\n        },\n        \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiIiwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGVfaWRzIjpudWxsLCJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiaXNzIjoiaGxsYy0yMDI1LmNvbSIsInN1YiI6ImFjY2Vzcy10b2tlbiIsImF1ZCI6WyJobGxjLTIwMjUuY29tIl0sImV4cCI6MTc0MTg0NTA4NywibmJmIjoxNzQxNzU4Njg3LCJpYXQiOjE3NDE3NTg2ODd9.YpyAJBn8cWzqjZEtgOoBAaLZHDCHaUC-y2ztRtE6irI\",\n        \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiIiwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGVfaWRzIjpudWxsLCJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImlzcyI6ImhsbGMtMjAyNS5jb20iLCJzdWIiOiJyZWZyZXNoLXRva2VuIiwiYXVkIjpbImhsbGMtMjAyNS5jb20iXSwiZXhwIjoxNzQyMzYzNDg3LCJuYmYiOjE3NDE3NTg2ODcsImlhdCI6MTc0MTc1ODY4N30.tt8Fq7tqDdQ8QU2ogtiA466DClST1v2dxcojSGdqa-g\",\n        \"expiresAt\": \"2025-03-19T12:51:27+07:00\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/refresh",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "refresh"]
+						},
+						"description": "Refresh access token using refresh token"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "logout"]
+						},
+						"description": "Logout and invalidate tokens"
+					},
+					"response": []
+				},
+				{
+					"name": "Validate Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/validate",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "validate"]
+						},
+						"description": "Validate access token"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Create User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Test response status",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// Parse response body",
+									"const responseBody = pm.response.json();",
+									"",
+									"// Test response structure",
+									"pm.test(\"Response has correct structure\", function () {",
+									"    pm.expect(responseBody).to.have.property('id');",
+									"    pm.expect(responseBody).to.have.property('username');",
+									"    pm.expect(responseBody).to.have.property('name');",
+									"    pm.expect(responseBody.name.firstName).to.not.be.empty;",
+									"    pm.expect(responseBody.name.lastName).to.not.be.empty;",
+									"    pm.expect(responseBody).to.have.property('roles');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"newuser\",\n    \"password\": \"password123\",\n    \"name\": {\n        \"firstName\": \"John\",\n        \"middleName\": \"William\",\n        \"lastName\": \"Doe\"\n    },\n    \"roleIds\": [\"{{role_id}}\"],\n    \"permissions\": []\n}"
+						},
+						"url": {
+							"raw": "{{user_url}}/api/v1/users",
+							"host": ["{{user_url}}"],
+							"path": ["api", "v1", "users"]
+						},
+						"description": "Create a new user with complete information"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"newuser\",\n    \"password\": \"password123\",\n    \"name\": {\n        \"firstName\": \"John\",\n        \"middleName\": \"William\",\n        \"lastName\": \"Doe\"\n    },\n    \"roleIds\": [\"{{role_id}}\"],\n    \"permissions\": []\n}"
+								},
+								"url": {
+									"raw": "{{user_url}}/api/v1/users",
+									"host": ["{{user_url}}"],
+									"path": ["api", "v1", "users"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"67d1216da3385ce66d76a7c8\",\n    \"username\": \"newuser\",\n    \"name\": {\n        \"firstName\": \"John\",\n        \"middleName\": \"William\",\n        \"lastName\": \"Doe\"\n    },\n    \"roles\": [\"admin\"],\n    \"permissions\": []\n}"
+						}
+					]
+				},
+				{
+					"name": "Get User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/{{username}}",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{username}}"]
+						},
+						"description": "Get user by username"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Test response status",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// Parse response body",
+									"const responseBody = pm.response.json();",
+									"",
+									"// Test that response is an array",
+									"pm.test(\"Response is an array\", function () {",
+									"    pm.expect(Array.isArray(responseBody)).to.be.true;",
+									"});",
+									"",
+									"// Test user object structure if array is not empty",
+									"if (responseBody.length > 0) {",
+									"    pm.test(\"User object has correct structure\", function () {",
+									"        const user = responseBody[0];",
+									"        pm.expect(user).to.have.property('id');",
+									"        pm.expect(user).to.have.property('username');",
+									"        pm.expect(user).to.have.property('name');",
+									"        pm.expect(user.name).to.have.property('firstName');",
+									"        pm.expect(user.name).to.have.property('middleName');",
+									"        pm.expect(user.name).to.have.property('lastName');",
+									"        pm.expect(user).to.have.property('roles');",
+									"        pm.expect(user).to.have.property('permissions');",
+									"    });",
+									"}",
+									"",
+									"// Log response for debugging",
+									"console.log('Users:', responseBody);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{user_url}}/api/v1/users",
+							"host": ["{{user_url}}"],
+							"path": ["api", "v1", "users"]
+						},
+						"description": "Get all users with their basic information"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{user_url}}/api/v1/users",
+									"host": ["{{user_url}}"],
+									"path": ["api", "v1", "users"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": \"67d1216da3385ce66d76a7c7\",\n        \"name\": {\n            \"firstName\": \"\",\n            \"middleName\": \"\",\n            \"lastName\": \"\"\n        },\n        \"roles\": null,\n        \"permissions\": null,\n        \"username\": \"admin\"\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Update User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Test response status",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// Parse response body",
+									"const responseBody = pm.response.json();",
+									"",
+									"// Test response structure",
+									"pm.test(\"Response has correct structure\", function () {",
+									"    pm.expect(responseBody).to.have.property('id');",
+									"    pm.expect(responseBody).to.have.property('username');",
+									"    pm.expect(responseBody).to.have.property('name');",
+									"    pm.expect(responseBody.name.firstName).to.not.be.empty;",
+									"    pm.expect(responseBody.name.lastName).to.not.be.empty;",
+									"    pm.expect(responseBody).to.have.property('roles');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"name\": {\n        \"firstName\": \"Admin\",\n        \"middleName\": \"Super\",\n        \"lastName\": \"User\"\n    },\n    \"roleIds\": [\"{{role_id}}\"],\n    \"permissions\": []\n}"
+						},
+						"url": {
+							"raw": "{{user_url}}/api/v1/users/{{user_id}}",
+							"host": ["{{user_url}}"],
+							"path": ["api", "v1", "users", "{{user_id}}"]
+						},
+						"description": "Update user with complete information"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"admin\",\n    \"name\": {\n        \"firstName\": \"Admin\",\n        \"middleName\": \"Super\",\n        \"lastName\": \"User\"\n    },\n    \"roleIds\": [\"{{role_id}}\"],\n    \"permissions\": []\n}"
+								},
+								"url": {
+									"raw": "{{user_url}}/api/v1/users/{{user_id}}",
+									"host": ["{{user_url}}"],
+									"path": ["api", "v1", "users", "{{user_id}}"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"67d1216da3385ce66d76a7c7\",\n    \"username\": \"admin\",\n    \"name\": {\n        \"firstName\": \"Admin\",\n        \"middleName\": \"Super\",\n        \"lastName\": \"User\"\n    },\n    \"roles\": [\"admin\"],\n    \"permissions\": []\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}"]
+						},
+						"description": "Delete user"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Roles",
+			"item": [
+				{
+					"name": "Create Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"New Role\",\n    \"code\": \"NEW_ROLE\",\n    \"description\": \"New role description\",\n    \"permissionIds\": [\"{{permission_id}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/roles",
+							"host": ["{{base_url}}"],
+							"path": ["roles"]
+						},
+						"description": "Create a new role"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Role",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/roles/{{role_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["roles", "{{role_id}}"]
+						},
+						"description": "Get role by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Roles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/roles",
+							"host": ["{{base_url}}"],
+							"path": ["roles"]
+						},
+						"description": "Get all roles"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Role",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Role\",\n    \"code\": \"UPDATED_ROLE\",\n    \"description\": \"Updated role description\",\n    \"permissionIds\": [\"{{permission_id}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/roles/{{role_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["roles", "{{role_id}}"]
+						},
+						"description": "Update role"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Role",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/roles/{{role_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["roles", "{{role_id}}"]
+						},
+						"description": "Delete role"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Permissions",
+			"item": [
+				{
+					"name": "Create Permission",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"New Permission\",\n    \"code\": \"NEW_PERMISSION\",\n    \"description\": \"New permission description\",\n    \"module\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/permissions",
+							"host": ["{{base_url}}"],
+							"path": ["permissions"]
+						},
+						"description": "Create a new permission"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Permission",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/permissions/{{permission_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["permissions", "{{permission_id}}"]
+						},
+						"description": "Get permission by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Permissions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/permissions",
+							"host": ["{{base_url}}"],
+							"path": ["permissions"]
+						},
+						"description": "Get all permissions"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Permission",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Permission\",\n    \"code\": \"UPDATED_PERMISSION\",\n    \"description\": \"Updated permission description\",\n    \"module\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/permissions/{{permission_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["permissions", "{{permission_id}}"]
+						},
+						"description": "Update permission"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Permission",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/permissions/{{permission_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["permissions", "{{permission_id}}"]
+						},
+						"description": "Delete permission"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "auth_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "role_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "permission_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+} 
