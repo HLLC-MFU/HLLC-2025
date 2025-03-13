@@ -9,7 +9,9 @@ import (
 
 // HTTPHandler handles HTTP requests for user service
 type HTTPHandler interface {
-	RegisterRoutes(router fiber.Router)
+	RegisterPublicRoutes(router fiber.Router)
+	RegisterProtectedRoutes(router fiber.Router)
+	RegisterAdminRoutes(router fiber.Router)
 }
 
 type httpHandler struct {
@@ -25,32 +27,43 @@ func NewHTTPHandler(cfg *config.Config, userService service.UserService) HTTPHan
 	}
 }
 
-// RegisterRoutes registers all HTTP routes for user service
-func (h *httpHandler) RegisterRoutes(router fiber.Router) {
-	// User routes
-	userRouter := router.Group("/users")
-	userRouter.Post("/", h.CreateUser)
-	userRouter.Get("/:id", h.GetUser)
-	userRouter.Get("/", h.GetAllUsers)
-	userRouter.Put("/:id", h.UpdateUser)
-	userRouter.Delete("/:id", h.DeleteUser)
-	userRouter.Post("/validate", h.ValidateCredentials)
+// RegisterPublicRoutes registers routes that don't require authentication
+func (h *httpHandler) RegisterPublicRoutes(router fiber.Router) {
+	// Public user-related endpoints (if any)
+	router.Post("/validate-credentials", h.ValidateCredentials)
+}
 
-	// Role routes
-	roleRouter := router.Group("/roles")
-	roleRouter.Post("/", h.CreateRole)
-	roleRouter.Get("/:id", h.GetRole)
-	roleRouter.Get("/", h.GetAllRoles)
-	roleRouter.Put("/:id", h.UpdateRole)
-	roleRouter.Delete("/:id", h.DeleteRole)
+// RegisterProtectedRoutes registers routes that require authentication
+func (h *httpHandler) RegisterProtectedRoutes(router fiber.Router) {
+	// User profile management
+	router.Get("/profile", h.GetUser)
+	router.Put("/profile", h.UpdateUser)
+	
+	// Basic role and permission viewing
+	router.Get("/roles", h.GetAllRoles)
+	router.Get("/permissions", h.GetAllPermissions)
+}
 
-	// Permission routes
-	permRouter := router.Group("/permissions")
-	permRouter.Post("/", h.CreatePermission)
-	permRouter.Get("/:id", h.GetPermission)
-	permRouter.Get("/", h.GetAllPermissions)
-	permRouter.Put("/:id", h.UpdatePermission)
-	permRouter.Delete("/:id", h.DeletePermission)
+// RegisterAdminRoutes registers routes that require admin role
+func (h *httpHandler) RegisterAdminRoutes(router fiber.Router) {
+	// User management
+	router.Post("/users", h.CreateUser)
+	router.Get("/users", h.GetAllUsers)
+	router.Get("/users/:id", h.GetUser)
+	router.Put("/users/:id", h.UpdateUser)
+	router.Delete("/users/:id", h.DeleteUser)
+
+	// Role management
+	router.Post("/roles", h.CreateRole)
+	router.Get("/roles/:id", h.GetRole)
+	router.Put("/roles/:id", h.UpdateRole)
+	router.Delete("/roles/:id", h.DeleteRole)
+
+	// Permission management
+	router.Post("/permissions", h.CreatePermission)
+	router.Get("/permissions/:id", h.GetPermission)
+	router.Put("/permissions/:id", h.UpdatePermission)
+	router.Delete("/permissions/:id", h.DeletePermission)
 }
 
 // User handlers
@@ -75,9 +88,8 @@ func (h *httpHandler) CreateUser(c *fiber.Ctx) error {
 func (h *httpHandler) GetUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "User ID is required",
-		})
+		// If no ID provided, get current user's profile
+		id = c.Locals("user_id").(string)
 	}
 
 	user, err := h.userService.GetUserByID(c.Context(), id)
@@ -104,9 +116,8 @@ func (h *httpHandler) GetAllUsers(c *fiber.Ctx) error {
 func (h *httpHandler) UpdateUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "User ID is required",
-		})
+		// If no ID provided, update current user's profile
+		id = c.Locals("user_id").(string)
 	}
 
 	var req userDto.UpdateUserRequest

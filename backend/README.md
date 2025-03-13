@@ -10,6 +10,26 @@ A modern, clean-architecture based backend service for the HLLC-2025 project.
 - Protocol Buffers (gRPC)
 - Clean Architecture
 
+## Middle structure
+Service Routes Structure:
+├── Global Middleware (applied to all requests)
+│   ├── CORS
+│   ├── Request ID
+│   ├── Logging
+│   └── Recovery
+│
+├── Public Routes (no additional middleware)
+│   └── /api/v1/public/*
+│
+├── Protected Routes
+│   ├── Authentication Middleware
+│   └── /api/v1/protected/*
+│
+└── Admin Routes
+    ├── Authentication Middleware
+    ├── Role Middleware
+    └── /api/v1/admin/*
+
 ## Project Structure
 ```go
 backend/

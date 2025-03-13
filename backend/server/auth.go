@@ -11,10 +11,9 @@ import (
 	userRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
 	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
 func (s *server) authService() {
@@ -36,15 +35,34 @@ func (s *server) authService() {
 	grpcHandler := handler.NewGRPCHandler(s.cfg, authSvc)
 
 	// Set up HTTP middleware
-	s.app.Use(cors.New())
-	s.app.Use(logger.New())
-	s.app.Use(recover.New())
+	s.app.Use(cors.New(cors.Config{
+		AllowCredentials: true,
+		AllowOrigins:     "http://localhost:3000",  // Frontend development URL
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST, PUT, DELETE",
+	}))
+	s.app.Use(middleware.RequestIDMiddleware())
+	s.app.Use(middleware.LoggingMiddleware())
+	s.app.Use(middleware.RecoveryMiddleware())
 
 	// Set up HTTP routes
 	api := s.app.Group("/api/v1")
-	authController.RegisterRoutes(api)
+	
+	// Public routes (no auth required)
+	authController.RegisterPublicRoutes(api)
 
-	// Set up gRPC server
+	// Protected routes (auth required)
+	protected := api.Group("/protected")
+	protected.Use(middleware.AuthMiddleware(s.cfg.Jwt.AccessSecretKey))
+	authController.RegisterProtectedRoutes(protected)
+
+	// Admin routes (auth + admin role required)
+	admin := api.Group("/admin")
+	admin.Use(middleware.AuthMiddleware(s.cfg.Jwt.AccessSecretKey))
+	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
+	authController.RegisterAdminRoutes(admin)
+
+	// Set up gRPC server for internal service communication
 	go func() {
 		grpcServer, lis := core.NewGrpcServer(&s.cfg.Jwt, s.cfg.Grpc.AuthUrl)
 		authPb.RegisterAuthServiceServer(grpcServer, grpcHandler)

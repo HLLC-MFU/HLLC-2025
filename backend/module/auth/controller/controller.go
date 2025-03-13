@@ -14,10 +14,14 @@ import (
 
 type (
 	AuthController interface {
-		RegisterRoutes(router fiber.Router)
+		RegisterPublicRoutes(router fiber.Router)
+		RegisterProtectedRoutes(router fiber.Router)
+		RegisterAdminRoutes(router fiber.Router)
 		Login(c *fiber.Ctx) error
 		RefreshToken(c *fiber.Ctx) error
 		Logout(c *fiber.Ctx) error
+		ValidateToken(c *fiber.Ctx) error
+		RevokeUserSessions(c *fiber.Ctx) error
 	}
 
 	authController struct {
@@ -33,11 +37,21 @@ func NewAuthController(cfg *config.Config, authService service.AuthService) Auth
 	}
 }
 
-// RegisterRoutes registers all HTTP routes for auth service
-func (c *authController) RegisterRoutes(router fiber.Router) {
+// RegisterPublicRoutes registers public routes that don't require authentication
+func (c *authController) RegisterPublicRoutes(router fiber.Router) {
 	router.Post("/auth/login", c.Login)
 	router.Post("/auth/refresh", c.RefreshToken)
+}
+
+// RegisterProtectedRoutes registers routes that require authentication
+func (c *authController) RegisterProtectedRoutes(router fiber.Router) {
 	router.Post("/auth/logout", c.Logout)
+	router.Get("/auth/validate", c.ValidateToken)
+}
+
+// RegisterAdminRoutes registers routes that require admin role
+func (c *authController) RegisterAdminRoutes(router fiber.Router) {
+	router.Post("/auth/revoke/:userId", c.RevokeUserSessions)
 }
 
 // Login handles user authentication and returns tokens
@@ -83,7 +97,6 @@ func (c *authController) Login(ctx *fiber.Ctx) error {
 		SameSite: fiber.CookieSameSiteStrictMode,
 	})
 
-	// Return only the data part of the response to avoid double nesting
 	return response.Success(ctx, http.StatusOK, result.Data)
 }
 
@@ -170,6 +183,37 @@ func (c *authController) Logout(ctx *fiber.Ctx) error {
 		Secure:   true,
 		HTTPOnly: true,
 	})
+
+	return response.Success(ctx, http.StatusOK, nil)
+}
+
+// ValidateToken validates the current token
+func (c *authController) ValidateToken(ctx *fiber.Ctx) error {
+	userID := ctx.Locals("user_id").(string)
+	username := ctx.Locals("username").(string)
+
+	user, err := c.authService.ValidateToken(ctx.Context(), ctx.Get("Authorization"))
+	if err != nil {
+		return response.Error(ctx, http.StatusUnauthorized, err.Error())
+	}
+
+	if user.ID != userID || user.Username != username {
+		return response.Error(ctx, http.StatusUnauthorized, "invalid token")
+	}
+
+	return response.Success(ctx, http.StatusOK, user)
+}
+
+// RevokeUserSessions revokes all sessions for a user (admin only)
+func (c *authController) RevokeUserSessions(ctx *fiber.Ctx) error {
+	userID := ctx.Params("userId")
+	if userID == "" {
+		return response.Error(ctx, http.StatusBadRequest, "user ID is required")
+	}
+
+	if err := c.authService.Logout(ctx.Context(), userID); err != nil {
+		return response.Error(ctx, http.StatusInternalServerError, err.Error())
+	}
 
 	return response.Success(ctx, http.StatusOK, nil)
 }
