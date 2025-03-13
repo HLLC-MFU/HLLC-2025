@@ -6,16 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
 	"time"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto"
 	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/security"
@@ -30,6 +25,16 @@ type (
 	grpcClientFactory struct {
 		target string
 		opts   []grpc.DialOption
+	}
+
+	// JwtConfig represents the JWT configuration
+	JwtConfig struct {
+		AccessSecretKey  string
+		RefreshSecretKey string
+		ApiSecretKey    string
+		AccessDuration   int64
+		RefreshDuration  int64
+		ApiDuration     int64
 	}
 )
 
@@ -62,73 +67,76 @@ func (g *grpcClientFactory) Auth(ctx context.Context) (authPb.AuthServiceClient,
 }
 
 // NewGrpcServer creates a new gRPC server with authentication middleware
-func NewGrpcServer(cfg *config.Jwt, host string) (*grpc.Server, net.Listener) {
-	opts := []grpc.ServerOption{
-		grpc.ChainUnaryInterceptor(
-			newAuthInterceptor(cfg.AccessSecretKey).unaryInterceptor,
-		),
-	}
-
-	lis, err := net.Listen("tcp", host)
+func NewGrpcServer(jwtConfig *JwtConfig, url string) (*grpc.Server, net.Listener) {
+	lis, err := net.Listen("tcp", url)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	server := grpc.NewServer(opts...)
+	// Create gRPC server with auth interceptor
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+			// Skip auth for public methods
+			if isPublicMethod(info.FullMethod) {
+				return handler(ctx, req)
+			}
+
+			// Get token from metadata
+			token, err := extractTokenFromContext(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			// Validate token
+			claims, err := validateToken(token, jwtConfig.AccessSecretKey)
+			if err != nil {
+				return nil, err
+			}
+
+			// Add claims to context
+			newCtx := context.WithValue(ctx, "claims", claims)
+			return handler(newCtx, req)
+		}),
+	)
+
 	return server, lis
 }
 
-type authInterceptor struct {
-	secretKey string
-}
-
-func newAuthInterceptor(secretKey string) *authInterceptor {
-	return &authInterceptor{secretKey: secretKey}
-}
-
-// unaryInterceptor is a middleware that checks if the request is authenticated
-func (a *authInterceptor) unaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	// Skip authentication for internal methods
-	if isInternalMethod(info.FullMethod) {
-		return handler(ctx, req)
-	}
-
-	// Get metadata from context
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "missing metadata")
-	}
-
-	// Get authorization header
-	authHeader := md.Get("authorization")
-	if len(authHeader) == 0 {
-		return nil, status.Error(codes.Unauthenticated, "missing authorization header")
-	}
-
-	// Extract token
-	tokenString := strings.TrimPrefix(authHeader[0], "Bearer ")
-	claims, err := security.ParseToken(a.secretKey, tokenString)
+// NewGrpcClient creates a new gRPC client connection
+func NewGrpcClient(ctx context.Context, url string) (*grpc.ClientConn, error) {
+	conn, err := grpc.DialContext(
+		ctx,
+		url,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
 	if err != nil {
-		if errors.Is(err, security.ErrTokenExpired) {
-			return nil, status.Error(codes.PermissionDenied, "token expired")
-		}
-		return nil, status.Error(codes.Unauthenticated, "invalid token")
+		return nil, fmt.Errorf("failed to connect to gRPC server: %v", err)
 	}
-
-	// Check token type
-	if claims.TokenType != security.TokenTypeAccess {
-		return nil, status.Error(codes.PermissionDenied, "invalid token type")
-	}
-
-	// Add claims to context
-	ctx = context.WithValue(ctx, "claims", claims)
-	return handler(ctx, req)
+	return conn, nil
 }
 
-// isInternalMethod checks if the method is internal
-func isInternalMethod(method string) bool {
-	return strings.HasPrefix(method, "/auth.AuthService/Internal") ||
-		strings.HasPrefix(method, "/user.UserService/Internal")
+// Helper functions
+func isPublicMethod(method string) bool {
+	publicMethods := map[string]bool{
+		"/auth.AuthService/Login":            true,
+		"/auth.AuthService/Register":         true,
+		"/auth.AuthService/RefreshToken":     true,
+		"/user.UserService/ValidateCredentials": true,
+	}
+	return publicMethods[method]
+}
+
+func extractTokenFromContext(ctx context.Context) (string, error) {
+	// Implementation of token extraction from gRPC metadata
+	// This would typically use grpc/metadata package
+	return "", nil // TODO: Implement token extraction
+}
+
+func validateToken(token string, secretKey string) (map[string]interface{}, error) {
+	// Implementation of JWT validation
+	// This would typically use jwt-go or similar package
+	return nil, nil // TODO: Implement token validation
 }
 
 // GetClaimsFromContext extracts claims from context

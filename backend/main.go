@@ -17,8 +17,7 @@ import (
  */
 
 func main() {
-
-	// 1.Initialize context
+	// Initialize context
 	ctx := context.Background()
 
 	// Load configuration from .env file
@@ -30,14 +29,19 @@ func main() {
 	}())
 
 	// Connect to the database
-	db := core.DbConnect(ctx, &cfg)
+	db := core.DbConnect(ctx, cfg)
 	defer core.DbDisconnect(ctx, db)
 
-	//Connect to Redis
-	redis := core.RedisConnect(ctx, &cfg)
+	// Connect to Redis
+	redis := core.RedisConnect(ctx, cfg)
 	defer core.RedisDisconnect(ctx, redis)
-	
-	//Start the server
-	server.Start(ctx, &cfg, db, redis.Client)
+
+	// Create server instance
+	srv := server.NewServer(cfg, db)
+
+	// Start the server
+	if err := srv.Start(); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }
 

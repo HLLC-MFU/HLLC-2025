@@ -29,9 +29,10 @@ type (
 	}
 
 	Claims struct {
-		UserID   string   `json:"user_id"`
-		Username string   `json:"username"`
-		RoleIds  []string `json:"role_ids"`
+		UserID    string   `json:"user_id"`
+		Username  string   `json:"username"`
+		RoleIds   []string `json:"role_ids"`
+		RoleCodes []string `json:"role_codes"`
 		TokenType TokenType `json:"token_type"`
 		SessionID string   `json:"session_id,omitempty"`
 		jwt.RegisteredClaims

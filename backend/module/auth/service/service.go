@@ -74,11 +74,13 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 
 		// Initialize empty arrays to avoid null in response
 		roleIDs := make([]string, 0)
+		roleCodes := make([]string, 0)
 		roles := make([]dto.Role, 0)
 
-		// Get role IDs and objects for response
+		// Get role IDs, codes and objects for response
 		for _, role := range user.Roles {
 			roleIDs = append(roleIDs, role.Id)
+			roleCodes = append(roleCodes, role.Code)
 			roles = append(roles, dto.Role{
 				ID:          role.Id,
 				Name:        role.Name,
@@ -89,9 +91,10 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 
 		// Generate tokens
 		claims := &security.Claims{
-			UserID:   user.ID,
-			Username: user.Username,
-			RoleIds:  roleIDs,
+			UserID:    user.ID,
+			Username:  user.Username,
+			RoleIds:   roleIDs,
+			RoleCodes: roleCodes,
 		}
 
 		accessToken := security.NewAccessToken(
@@ -151,11 +154,28 @@ func (s *authService) InternalLogin(ctx context.Context, req *authPb.InternalLog
 		return nil, ErrInvalidCredentials
 	}
 
+	// Get user roles to extract role codes
+	userWithRoles, err := s.userService.GetUserByUsername(ctx, req.Username)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize empty arrays to avoid null in response
+	roleIDs := make([]string, 0)
+	roleCodes := make([]string, 0)
+
+	// Get role IDs and codes
+	for _, role := range userWithRoles.Roles {
+		roleIDs = append(roleIDs, role.Id)
+		roleCodes = append(roleCodes, role.Code)
+	}
+
 	// Generate tokens
 	claims := &security.Claims{
-		UserID:   user.Id,
-		Username: user.Username,
-		RoleIds:  user.RoleIds,
+		UserID:    user.Id,
+		Username:  user.Username,
+		RoleIds:   roleIDs,
+		RoleCodes: roleCodes,
 	}
 
 	// Generate access token
@@ -189,7 +209,7 @@ func (s *authService) InternalLogin(ctx context.Context, req *authPb.InternalLog
 			FirstName:  user.Name.FirstName,
 			MiddleName: user.Name.MiddleName,
 			LastName:   user.Name.LastName,
-			Roles:      user.RoleIds,
+			Roles:      roleIDs,
 		},
 	}, nil
 }
@@ -224,6 +244,24 @@ func (s *authService) RefreshTokenGRPC(ctx context.Context, req *authPb.RefreshT
 	if err != nil {
 		return nil, err
 	}
+
+	// Get user to ensure roles are up to date
+	user, err := s.userService.GetUserByUsername(ctx, claims.Username)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update role IDs and codes from current user data
+	roleIDs := make([]string, 0)
+	roleCodes := make([]string, 0)
+	for _, role := range user.Roles {
+		roleIDs = append(roleIDs, role.Id)
+		roleCodes = append(roleCodes, role.Code)
+	}
+
+	// Update claims with current role information
+	claims.RoleIds = roleIDs
+	claims.RoleCodes = roleCodes
 
 	// Generate new tokens
 	accessToken := security.NewAccessToken(

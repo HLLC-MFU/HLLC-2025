@@ -14,103 +14,130 @@ import (
  * @author Dev. Bengi (Backend Team)
  */
 
-type (
-	Config struct {
-		App App
-		Db Db
-		Grpc Grpc
-		Jwt Jwt
-		Redis Redis
-	}
-
+type Config struct {
 	App struct {
 		Name string
-		Url string
-		Stage string
+		Url  string
 	}
-
+	Jwt struct {
+		AccessSecretKey  string
+		RefreshSecretKey string
+		ApiSecretKey     string
+		AccessDuration   int64
+		RefreshDuration  int64
+		ApiDuration     int64
+	}
+	User struct {
+		GRPCAddr string
+	}
+	Auth struct {
+		GRPCAddr string
+	}
+	School struct {
+		GRPCAddr string
+	}
+	Major struct {
+		GRPCAddr string
+	}
 	Db struct {
-		Url string
+		Url      string
 		Database string
 	}
-
-	Jwt struct {
-		AccessSecretKey string
-		RefreshSecretKey string
-		ApiSecretKey string
-		AccessDuration int64
-		RefreshDuration int64
-		ApiDuration int64
-	}
-
-	Grpc struct {
-		UserUrl string
-		AuthUrl string
-	}
-
 	Redis struct {
-		Host string
-		Port string
+		Host     string
+		Port     string
 		Password string
-		DB int
+		DB       int
 	}
-)
+}
 
-func LoadConfig(path string) Config {
+func LoadConfig(path string) *Config {
 	if err := godotenv.Load(path); err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
 
-	return Config {
-		App: App {
-			Name: os.Getenv("APP_NAME"),
-			Url: os.Getenv("APP_URL"),
-			Stage: os.Getenv("APP_STAGE"),
-		},
-		Db: Db {
-			Url: os.Getenv("DB_URL"),
-		},
-		Grpc: Grpc {
-			UserUrl: os.Getenv("GRPC_USER_URL"),
-			AuthUrl: os.Getenv("GRPC_AUTH_URL"),
-		},
-		Redis: Redis {
-			Host: os.Getenv("REDIS_HOST"),
-			Port: os.Getenv("REDIS_PORT"),
-			Password: os.Getenv("REDIS_PASSWORD"),
-			DB: func() int {
-				result, err := strconv.Atoi(os.Getenv("REDIS_DB"))
-				if err != nil {
-					return 0
-				}
-				return result
-			}(),
-		},
-		Jwt: Jwt {
-			AccessSecretKey: os.Getenv("JWT_ACCESS_SECRET_KEY"),
-			RefreshSecretKey: os.Getenv("JWT_REFRESH_SECRET_KEY"),
-			ApiSecretKey: os.Getenv("JWT_API_SECRET_KEY"),
-			AccessDuration: func() int64 {
-				result, err := strconv.ParseInt(os.Getenv("JWT_ACCESS_DURATION"), 10, 64)
-				if err != nil {
-					log.Fatalf("Error parsing JWT_ACCESS_DURATION: %v", err)
-				}
-				return result
-			}(),
-			RefreshDuration: func() int64 {
-				result, err := strconv.ParseInt(os.Getenv("JWT_REFRESH_DURATION"), 10, 64)
-				if err != nil {
-					log.Fatalf("Error parsing JWT_REFRESH_DURATION: %v", err)
-				}
-				return result
-			}(),
-			ApiDuration: func() int64 {
-				result, err := strconv.ParseInt(os.Getenv("JWT_API_DURATION"), 10, 64)
-				if err != nil {
-					log.Fatalf("Error parsing JWT_API_DURATION: %v", err)
-				}
-				return result
-			}(),
-		},
+	cfg := &Config{}
+
+	// App configuration
+	cfg.App.Name = getEnvOrFatal("APP_NAME")
+	cfg.App.Url = getEnvOrFatal("APP_URL")
+
+	// JWT configuration
+	cfg.Jwt.AccessSecretKey = getEnvOrFatal("JWT_ACCESS_SECRET_KEY")
+	cfg.Jwt.RefreshSecretKey = getEnvOrFatal("JWT_REFRESH_SECRET_KEY")
+	cfg.Jwt.ApiSecretKey = getEnvOrFatal("JWT_API_SECRET_KEY")
+	cfg.Jwt.AccessDuration = getEnvAsInt64OrDefault("JWT_ACCESS_DURATION", 86400)
+	cfg.Jwt.RefreshDuration = getEnvAsInt64OrDefault("JWT_REFRESH_DURATION", 604800)
+	cfg.Jwt.ApiDuration = getEnvAsInt64OrDefault("JWT_API_DURATION", 31536000)
+
+	// Service gRPC addresses - only load what's needed based on service
+	switch cfg.App.Name {
+	case "user":
+		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
+		// User service needs auth service for validation
+		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
+	case "auth":
+		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
+		// Auth service needs user service for user management
+		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
+	case "school":
+		cfg.School.GRPCAddr = getEnvOrFatal("GRPC_SCHOOL_URL")
+		// School service might need auth for validation
+		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
+	case "major":
+		cfg.Major.GRPCAddr = getEnvOrFatal("GRPC_MAJOR_URL")
+		// Major service needs school service for school validation
+		cfg.School.GRPCAddr = getEnvOrFatal("GRPC_SCHOOL_URL")
+		// Major service might need auth for validation
+		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
+	default:
+		log.Fatalf("Unknown service name: %s", cfg.App.Name)
 	}
+
+	// Database configuration
+	cfg.Db.Url = getEnvOrFatal("DB_URL")
+	cfg.Db.Database = getEnvOrDefault("DB_NAME", "hllc")
+
+	// Redis configuration
+	cfg.Redis.Host = getEnvOrFatal("REDIS_HOST")
+	cfg.Redis.Port = getEnvOrFatal("REDIS_PORT")
+	cfg.Redis.Password = getEnvOrDefault("REDIS_PASSWORD", "")
+	cfg.Redis.DB = getEnvAsIntOrDefault("REDIS_DB", 0)
+
+	return cfg
+}
+
+func getEnvOrFatal(key string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	log.Fatalf("Environment variable %s is required", key)
+	return ""
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func getEnvAsInt64OrDefault(key string, defaultValue int64) int64 {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.ParseInt(value, 10, 64); err == nil {
+			return intValue
+		}
+		log.Printf("Warning: Invalid value for %s, using default: %d", key, defaultValue)
+	}
+	return defaultValue
+}
+
+func getEnvAsIntOrDefault(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+		log.Printf("Warning: Invalid value for %s, using default: %d", key, defaultValue)
+	}
+	return defaultValue
 }

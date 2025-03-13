@@ -1,10 +1,15 @@
 package middleware
 
 import (
+	"context"
 	"strings"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/security"
 	"github.com/gofiber/fiber/v2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 // AuthMiddleware handles authentication for HTTP requests
@@ -51,7 +56,7 @@ func AuthMiddleware(secretKey string) fiber.Handler {
 		// Store claims in context
 		c.Locals("user_id", claims.UserID)
 		c.Locals("username", claims.Username)
-		c.Locals("role_ids", claims.RoleIds)
+		c.Locals("role_codes", claims.RoleCodes)
 
 		return c.Next()
 	}
@@ -60,13 +65,17 @@ func AuthMiddleware(secretKey string) fiber.Handler {
 // RoleMiddleware checks if user has required roles
 func RoleMiddleware(requiredRoles []string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		userRoles := c.Locals("role_ids").([]string)
+		// Get role codes from context
+		roleCodes, ok := c.Locals("role_codes").([]string)
+		if !ok {
+			roleCodes = []string{} // Initialize empty array if not found
+		}
 		
 		// Check if user has any of the required roles
 		hasRole := false
 		for _, required := range requiredRoles {
-			for _, userRole := range userRoles {
-				if required == userRole {
+			for _, roleCode := range roleCodes {
+				if required == roleCode {
 					hasRole = true
 					break
 				}
@@ -84,4 +93,50 @@ func RoleMiddleware(requiredRoles []string) fiber.Handler {
 
 		return c.Next()
 	}
+}
+
+// AuthInterceptor is a gRPC interceptor for authentication
+func AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	// Skip authentication for certain methods
+	if isPublicMethod(info.FullMethod) {
+		return handler(ctx, req)
+	}
+
+	// Get metadata from context
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing metadata")
+	}
+
+	// Get authorization token
+	authHeader := md.Get("authorization")
+	if len(authHeader) == 0 {
+		return nil, status.Error(codes.Unauthenticated, "missing authorization header")
+	}
+
+	// Extract token from Bearer scheme
+	token := strings.TrimPrefix(authHeader[0], "Bearer ")
+	if token == authHeader[0] {
+		return nil, status.Error(codes.Unauthenticated, "invalid authorization format")
+	}
+
+	// TODO: Validate token with auth service
+	// For now, we'll just check if the token is not empty
+	if token == "" {
+		return nil, status.Error(codes.Unauthenticated, "invalid token")
+	}
+
+	// Call the handler
+	return handler(ctx, req)
+}
+
+// isPublicMethod checks if the method is public (doesn't require authentication)
+func isPublicMethod(method string) bool {
+	publicMethods := map[string]bool{
+		"/school.SchoolService/ListSchools": true,
+		"/school.SchoolService/GetSchool":   true,
+		"/major.MajorService/ListMajors":    true,
+		"/major.MajorService/GetMajor":      true,
+	}
+	return publicMethods[method]
 } 

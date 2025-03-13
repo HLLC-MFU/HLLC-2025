@@ -27,20 +27,23 @@ func (s *server) authService() {
 	authRepo := authRepository.NewAuthRepository(s.db)
 
 	// Initialize services
-	userSvc := userService.NewUserService(s.cfg, userRepo, roleRepo, permRepo)
-	authSvc := authService.NewAuthService(s.cfg, userRepo, authRepo, userSvc)
+	userSvc := userService.NewUserService(s.config, userRepo, roleRepo, permRepo)
+	authSvc := authService.NewAuthService(s.config, userRepo, authRepo, userSvc)
 
 	// Initialize controllers
-	authController := controller.NewAuthController(s.cfg, authSvc)
-	grpcHandler := handler.NewGRPCHandler(s.cfg, authSvc)
+	authController := controller.NewAuthController(s.config, authSvc)
+	grpcHandler := handler.NewGRPCHandler(s.config, authSvc)
 
 	// Set up HTTP middleware
 	s.app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:3000",
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
 		AllowCredentials: true,
-		AllowOrigins:     "http://localhost:3000",  // Frontend development URL
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowMethods:     "GET, POST, PUT, DELETE",
+		MaxAge:           300,
 	}))
+
+	// Add request ID, logging and recovery middleware
 	s.app.Use(middleware.RequestIDMiddleware())
 	s.app.Use(middleware.LoggingMiddleware())
 	s.app.Use(middleware.RecoveryMiddleware())
@@ -53,21 +56,29 @@ func (s *server) authService() {
 
 	// Protected routes (auth required)
 	protected := api.Group("/protected")
-	protected.Use(middleware.AuthMiddleware(s.cfg.Jwt.AccessSecretKey))
+	protected.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
 	authController.RegisterProtectedRoutes(protected)
 
 	// Admin routes (auth + admin role required)
 	admin := api.Group("/admin")
-	admin.Use(middleware.AuthMiddleware(s.cfg.Jwt.AccessSecretKey))
+	admin.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
 	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
 	authController.RegisterAdminRoutes(admin)
 
 	// Set up gRPC server for internal service communication
 	go func() {
-		grpcServer, lis := core.NewGrpcServer(&s.cfg.Jwt, s.cfg.Grpc.AuthUrl)
+		jwtConfig := &core.JwtConfig{
+			AccessSecretKey:  s.config.Jwt.AccessSecretKey,
+			RefreshSecretKey: s.config.Jwt.RefreshSecretKey,
+			ApiSecretKey:    s.config.Jwt.ApiSecretKey,
+			AccessDuration:   s.config.Jwt.AccessDuration,
+			RefreshDuration:  s.config.Jwt.RefreshDuration,
+			ApiDuration:     s.config.Jwt.ApiDuration,
+		}
+		grpcServer, lis := core.NewGrpcServer(jwtConfig, s.config.Auth.GRPCAddr)
 		authPb.RegisterAuthServiceServer(grpcServer, grpcHandler)
 		
-		log.Printf("Auth gRPC server listening on %s", s.cfg.Grpc.AuthUrl)
+		log.Printf("Auth gRPC server listening on %s", s.config.Auth.GRPCAddr)
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("gRPC server error: %v", err)
 		}
