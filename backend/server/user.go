@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/adapter"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/handler"
 	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
@@ -20,8 +21,11 @@ func (s *server) userService() {
 	roleRepo := repoFactory.NewRoleRepository()
 	permRepo := repoFactory.NewPermissionRepository()
 
+	// Create major service adapter
+	majorAdapter := adapter.NewMajorServiceAdapter(s.config.Major.GRPCAddr)
+
 	// Initialize services
-	userService := service.NewUserService(s.config, userRepo, roleRepo, permRepo)
+	userService := service.NewUserService(s.config, userRepo, roleRepo, permRepo, majorAdapter)
 
 	// Initialize handlers
 	httpHandler := handler.NewHTTPHandler(s.config, userService)

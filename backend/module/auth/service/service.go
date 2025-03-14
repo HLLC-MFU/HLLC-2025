@@ -126,6 +126,16 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 			LastName:   user.Name.LastName,
 			Roles:      roles,
 		}
+		
+		// Add major ID and major if available
+		if user.MajorID != "" {
+			authUser.MajorID = user.MajorID
+			
+			// Try to get major details
+			if user.Major != nil {
+				authUser.Major = user.Major
+			}
+		}
 
 		return &dto.LoginResponse{
 			Status: true,
@@ -199,18 +209,26 @@ func (s *authService) InternalLogin(ctx context.Context, req *authPb.InternalLog
 		return nil, err
 	}
 
+	// Create user response for gRPC
+	pbUser := &authPb.UserInfo{
+		Id:         user.Id,
+		Username:   user.Username,
+		FirstName:  user.Name.FirstName,
+		MiddleName: user.Name.MiddleName,
+		LastName:   user.Name.LastName,
+		Roles:      roleIDs,
+	}
+	
+	// Add major ID if available
+	if userWithRoles.MajorID != "" {
+		pbUser.MajorId = userWithRoles.MajorID
+	}
+
 	return &authPb.InternalLoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresAt:    expiresAt.Unix(),
-		User: &authPb.UserInfo{
-			Id:         user.Id,
-			Username:   user.Username,
-			FirstName:  user.Name.FirstName,
-			MiddleName: user.Name.MiddleName,
-			LastName:   user.Name.LastName,
-			Roles:      roleIDs,
-		},
+		User:         pbUser,
 	}, nil
 }
 
@@ -322,14 +340,27 @@ func (s *authService) ValidateToken(ctx context.Context, token string) (*dto.Use
 		})
 	}
 
-	return &dto.UserResponse{
+	// Create user response
+	userResponse := &dto.UserResponse{
 		ID:         grpcResp.User.Id,
 		Username:   grpcResp.User.Username,
 		FirstName:  grpcResp.User.FirstName,
 		MiddleName: grpcResp.User.MiddleName,
 		LastName:   grpcResp.User.LastName,
 		Roles:      roles,
-	}, nil
+	}
+
+	// Add major ID and major if available
+	if user.MajorID != "" {
+		userResponse.MajorID = user.MajorID
+		
+		// Try to get major details
+		if user.Major != nil {
+			userResponse.Major = user.Major
+		}
+	}
+
+	return userResponse, nil
 }
 
 func (s *authService) ValidateTokenGRPC(ctx context.Context, req *authPb.ValidateTokenRequest) (*authPb.ValidateTokenResponse, error) {
@@ -351,6 +382,28 @@ func (s *authService) ValidateTokenGRPC(ctx context.Context, req *authPb.Validat
 		}, nil
 	}
 
+	// Get user with roles and major information
+	userWithDetails, err := s.userService.GetUserByUsername(ctx, claims.Username)
+	if err == nil && userWithDetails != nil {
+		// If we successfully got additional user details, use the major ID
+		if userWithDetails.MajorID != "" {
+			// Update user response with major ID
+			return &authPb.ValidateTokenResponse{
+				Valid: true,
+				User: &authPb.UserInfo{
+					Id:         user.Id,
+					Username:   user.Username,
+					FirstName:  user.Name.FirstName,
+					MiddleName: user.Name.MiddleName,
+					LastName:   user.Name.LastName,
+					Roles:      user.RoleIds,
+					MajorId:    userWithDetails.MajorID,
+				},
+			}, nil
+		}
+	}
+
+	// Default response without major ID
 	return &authPb.ValidateTokenResponse{
 		Valid: true,
 		User: &authPb.UserInfo{

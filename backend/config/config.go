@@ -76,6 +76,8 @@ func LoadConfig(path string) *Config {
 		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
 		// User service needs auth service for validation
 		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
+		// User service needs major service for user-major relationship
+		cfg.Major.GRPCAddr = getEnvOrFatal("GRPC_MAJOR_URL")
 	case "auth":
 		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
 		// Auth service needs user service for user management

@@ -3,17 +3,24 @@ package service
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
+	majorPb "github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
 	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 )
+
+// MajorService defines the interface for major service operations needed by user service
+type MajorService interface {
+	GetMajorByID(ctx context.Context, id string) (*majorPb.Major, error)
+}
 
 var (
 	ErrNotFound = errors.New("user not found")
@@ -56,6 +63,7 @@ type userService struct {
 	userRepo    repository.UserRepositoryService
 	roleRepo    repository.RoleRepositoryService
 	permRepo    repository.PermissionRepositoryService
+	majorService MajorService
 }
 
 func NewUserService(
@@ -63,12 +71,14 @@ func NewUserService(
 	userRepo repository.UserRepositoryService,
 	roleRepo repository.RoleRepositoryService,
 	permRepo repository.PermissionRepositoryService,
+	majorSvc MajorService,
 ) UserService {
 	return &userService{
 		cfg:      cfg,
 		userRepo: userRepo,
 		roleRepo: roleRepo,
 		permRepo: permRepo,
+		majorService: majorSvc,
 	}
 }
 
@@ -96,6 +106,7 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 			Username:  req.Username,
 			Password:  string(hashedPassword),
 			RoleIds:   req.RoleIDs,
+			MajorId:   req.MajorID,
 			Name: &userPb.Name{
 				FirstName:  req.Name.FirstName,
 				MiddleName: req.Name.MiddleName,
@@ -124,6 +135,20 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 			roles = append(roles, role)
 		}
 
+		// Get major information if provided
+		var major *majorPb.Major
+		var majorID string
+		if req.MajorID != "" {
+			var majorErr error
+			major, majorErr = s.majorService.GetMajorByID(ctx, req.MajorID)
+			if majorErr != nil {
+				// Log error but continue - major is optional
+				log.Printf("Warning: Failed to get major with ID %s: %v", req.MajorID, majorErr)
+			} else if major != nil {
+				majorID = req.MajorID
+			}
+		}
+
 		return &dto.UserResponse{
 			ID:       newUser.Id,
 			Username: newUser.Username,
@@ -132,7 +157,9 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 				MiddleName: req.Name.MiddleName,
 				LastName:   req.Name.LastName,
 			},
-			Roles: roles,
+			Roles:   roles,
+			MajorID: majorID,
+			Major:   major,
 		}, nil
 	})(ctx)
 }
@@ -163,6 +190,22 @@ func (s *userService) GetUserByID(ctx context.Context, id string) (*dto.UserResp
 			roles = append(roles, role)
 		}
 
+		// Get major information if provided
+		var major *majorPb.Major
+		if user.MajorId != "" {
+			major, err = s.majorService.GetMajorByID(ctx, user.MajorId)
+			if err != nil {
+				// Log error but continue - major is optional
+				log.Printf("Warning: Failed to get major with ID %s: %v", user.MajorId, err)
+			}
+		}
+
+		// Only include major in response if it was successfully retrieved
+		var majorID string
+		if major != nil {
+			majorID = user.MajorId
+		}
+
 		return &dto.UserResponse{
 			ID:       user.Id,
 			Username: user.Username,
@@ -171,7 +214,9 @@ func (s *userService) GetUserByID(ctx context.Context, id string) (*dto.UserResp
 				MiddleName: user.Name.MiddleName,
 				LastName:   user.Name.LastName,
 			},
-			Roles: roles,
+			Roles:   roles,
+			MajorID: majorID,
+			Major:   major,
 		}, nil
 	})(ctx)
 }
@@ -204,6 +249,22 @@ func (s *userService) GetUserByUsername(ctx context.Context, username string) (*
 			roles = append(roles, role)
 		}
 
+		// Get major information if provided
+		var major *majorPb.Major
+		if user.MajorId != "" {
+			major, err = s.majorService.GetMajorByID(ctx, user.MajorId)
+			if err != nil {
+				// Log error but continue - major is optional
+				log.Printf("Warning: Failed to get major with ID %s: %v", user.MajorId, err)
+			}
+		}
+
+		// Only include major in response if it was successfully retrieved
+		var majorID string
+		if major != nil {
+			majorID = user.MajorId
+		}
+
 		return &dto.UserResponse{
 			ID:       user.Id,
 			Username: user.Username,
@@ -212,7 +273,9 @@ func (s *userService) GetUserByUsername(ctx context.Context, username string) (*
 				MiddleName: user.Name.MiddleName,
 				LastName:   user.Name.LastName,
 			},
-			Roles: roles,
+			Roles:   roles,
+			MajorID: majorID,
+			Major:   major,
 		}, nil
 	})(ctx)
 }
@@ -221,6 +284,7 @@ func (s *userService) GetAllUsers(ctx context.Context) ([]*dto.UserResponse, err
 	return decorator.WithTimeout[[]*dto.UserResponse](10*time.Second)(func(ctx context.Context) ([]*dto.UserResponse, error) {
 		users, err := s.userRepo.FindAll(ctx)
 		if err != nil {
+			log.Printf("Error finding all users: %v", err)
 			return nil, err
 		}
 
@@ -231,16 +295,37 @@ func (s *userService) GetAllUsers(ctx context.Context) ([]*dto.UserResponse, err
 			for _, roleID := range user.RoleIds {
 				objectID, err := primitive.ObjectIDFromHex(roleID)
 				if err != nil {
+					log.Printf("Warning: Invalid role ID format %s: %v", roleID, err)
 					continue
 				}
 				role, err := s.roleRepo.FindRoleByID(ctx, objectID)
 				if err != nil {
+					log.Printf("Warning: Failed to get role with ID %s: %v", roleID, err)
 					continue
 				}
 				roles = append(roles, role)
 			}
 
-			response = append(response, &dto.UserResponse{
+			// Get major information if provided
+			var major *majorPb.Major
+			var majorID string
+			if user.MajorId != "" {
+				log.Printf("Attempting to get major with ID: %s", user.MajorId)
+				major, err = s.majorService.GetMajorByID(ctx, user.MajorId)
+				if err != nil {
+					log.Printf("Warning: Failed to get major with ID %s: %v", user.MajorId, err)
+				} else if major != nil {
+					log.Printf("Successfully retrieved major: %+v", major)
+					majorID = user.MajorId
+				} else {
+					log.Printf("Major service returned nil for ID: %s", user.MajorId)
+				}
+			} else {
+				log.Printf("User %s has no major ID", user.Username)
+			}
+
+			// Create user response with major information
+			userResponse := &dto.UserResponse{
 				ID:       user.Id,
 				Username: user.Username,
 				Name: dto.Name{
@@ -248,8 +333,16 @@ func (s *userService) GetAllUsers(ctx context.Context) ([]*dto.UserResponse, err
 					MiddleName: user.Name.MiddleName,
 					LastName:   user.Name.LastName,
 				},
-				Roles: roles,
-			})
+				Roles:   roles,
+				MajorID: majorID,
+			}
+
+			// Only include major if it was successfully retrieved
+			if major != nil {
+				userResponse.Major = major
+			}
+
+			response = append(response, userResponse)
 		}
 
 		return response, nil
@@ -273,6 +366,7 @@ func (s *userService) UpdateUser(ctx context.Context, id string, req *dto.Update
 			Username:  req.Username,
 			Password:  hashedPassword,
 			RoleIds:   req.RoleIDs,
+			MajorId:   req.MajorID,
 			UpdatedAt: time.Now().Format(time.RFC3339),
 		}
 
@@ -294,11 +388,27 @@ func (s *userService) UpdateUser(ctx context.Context, id string, req *dto.Update
 			roles = append(roles, role)
 		}
 
+		// Get major information if provided
+		var major *majorPb.Major
+		var majorID string
+		if req.MajorID != "" {
+			var majorErr error
+			major, majorErr = s.majorService.GetMajorByID(ctx, req.MajorID)
+			if majorErr != nil {
+				// Log error but continue - major is optional
+				log.Printf("Warning: Failed to get major with ID %s: %v", req.MajorID, majorErr)
+			} else if major != nil {
+				majorID = req.MajorID
+			}
+		}
+
 		return &dto.UserResponse{
 			ID:       updatedUser.Id,
-			Name:     req.Name,
 			Username: updatedUser.Username,
+			Name:     req.Name,
 			Roles:    roles,
+			MajorID:  majorID,
+			Major:    major,
 		}, nil
 	})(ctx)
 }
@@ -347,6 +457,7 @@ func (s *userService) CreateUserGRPC(ctx context.Context, req *userPb.CreateUser
 			LastName:   req.Name.LastName,
 		},
 		RoleIDs: req.RoleIds,
+		MajorID: req.MajorId,
 	}
 
 	user, err := s.CreateUser(ctx, dtoReq)
@@ -363,6 +474,7 @@ func (s *userService) CreateUserGRPC(ctx context.Context, req *userPb.CreateUser
 			LastName:   user.Name.LastName,
 		},
 		RoleIds: req.RoleIds,
+		MajorId: req.MajorId,
 	}, nil
 }
 
@@ -386,6 +498,7 @@ func (s *userService) GetUserGRPC(ctx context.Context, req *userPb.GetUserReques
 			LastName:   user.Name.LastName,
 		},
 		RoleIds: roleIDs,
+		MajorId: user.MajorID,
 	}, nil
 }
 
@@ -422,6 +535,7 @@ func (s *userService) ValidateCredentialsGRPC(ctx context.Context, req *userPb.V
 				LastName:   user.Name.LastName,
 			},
 			RoleIds: roleIDs,
+			MajorId: user.MajorID,
 		},
 	}, nil
 }

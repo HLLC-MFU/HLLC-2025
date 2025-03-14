@@ -15,12 +15,12 @@ import (
 
 func (s *server) schoolService() {
 	// Initialize repository
-	repo := repository.NewRepository(s.db.Database("hllc"))
+	repo := repository.NewRepository(s.db)
 
 	// Initialize service
 	schoolService := service.NewService(repo)
 
-	// Initialize handlers and controller
+	// Initialize handlers
 	httpHandler := handler.NewHTTPHandler(schoolService)
 	grpcHandler := handler.NewGrpcHandler(schoolService)
 
@@ -48,6 +48,9 @@ func (s *server) schoolService() {
 	protected.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
 	protected.Get("/", httpHandler.ListSchools)
 	protected.Get("/:id", httpHandler.GetSchool)
+	protected.Post("/", httpHandler.CreateSchool)
+	protected.Put("/:id", httpHandler.UpdateSchool)
+	protected.Delete("/:id", httpHandler.DeleteSchool)
 
 	// Admin routes (auth + admin role required)
 	admin := api.Group("/admin/schools")

@@ -15,8 +15,8 @@ import (
 )
 
 func (s *server) majorService() {
-	// Initialize repository, service, and handlers
-	repo := repository.NewRepository(s.db.Database("hllc"))
+	// Initialize repository
+	repo := repository.NewRepository(s.db)
 
 	// Create gRPC client factory
 	clientFactory := core.NewGrpcClientFactory(s.config.School.GRPCAddr)

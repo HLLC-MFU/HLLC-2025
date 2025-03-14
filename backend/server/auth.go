@@ -8,6 +8,7 @@ import (
 	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated"
 	authRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/repository"
 	authService "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/service"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/adapter"
 	userRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
 	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
@@ -26,8 +27,11 @@ func (s *server) authService() {
 	permRepo := repoFactory.NewPermissionRepository()
 	authRepo := authRepository.NewAuthRepository(s.db)
 
+	// Create major service adapter
+	majorAdapter := adapter.NewMajorServiceAdapter(s.config.Major.GRPCAddr)
+
 	// Initialize services
-	userSvc := userService.NewUserService(s.config, userRepo, roleRepo, permRepo)
+	userSvc := userService.NewUserService(s.config, userRepo, roleRepo, permRepo, majorAdapter)
 	authSvc := authService.NewAuthService(s.config, userRepo, authRepo, userSvc)
 
 	// Initialize controllers

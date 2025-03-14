@@ -3,6 +3,8 @@ syntax = "proto3";
 package user;
 option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated";
 
+import "module/major/proto/majorPb.proto";
+
 // Common messages
 message Empty {}
 
@@ -12,8 +14,10 @@ message User {
     string password = 3;  
     Name name = 4;
     repeated string role_ids = 5;
-    string created_at = 6;
-    string updated_at = 7;
+    string major_id = 6;
+    major.Major major = 7;  // Embedded major information
+    string created_at = 8;
+    string updated_at = 9;
 }
 
 message Name {
@@ -48,6 +52,7 @@ message CreateUserRequest {
     string password = 2;
     Name name = 3;
     repeated string role_ids = 4;
+    string major_id = 5;
 }
 
 message GetUserRequest {
@@ -66,6 +71,7 @@ message UpdateUserRequest {
     string password = 3;
     Name name = 4;
     repeated string role_ids = 5;
+    string major_id = 6;
 }
 
 message DeleteUserRequest {

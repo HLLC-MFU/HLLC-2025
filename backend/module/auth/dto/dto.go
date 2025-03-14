@@ -1,6 +1,10 @@
 package dto
 
-import "time"
+import (
+	"time"
+
+	majorPb "github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto/generated"
+)
 
 /**
  * Auth DTOs
@@ -38,12 +42,14 @@ type (
 	}
 
 	UserResponse struct {
-		ID         string   `json:"id"`
-		Username   string   `json:"username"`
-		FirstName  string   `json:"firstName"`
-		MiddleName string   `json:"middleName"`
-		LastName   string   `json:"lastName"`
-		Roles      []Role   `json:"roles,omitempty"`
+		ID         string        `json:"id"`
+		Username   string        `json:"username"`
+		FirstName  string        `json:"firstName"`
+		MiddleName string        `json:"middleName"`
+		LastName   string        `json:"lastName"`
+		Roles      []Role        `json:"roles,omitempty"`
+		MajorID    string        `json:"majorId,omitempty"`
+		Major      *majorPb.Major `json:"major,omitempty"`
 	}
 
 	Role struct {

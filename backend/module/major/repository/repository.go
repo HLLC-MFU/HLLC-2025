@@ -45,28 +45,25 @@ type Repository interface {
 }
 
 type repository struct {
-	db *mongo.Database
+	db *mongo.Client
 }
 
-// NewRepository creates a new instance of the repository
-func NewRepository(db *mongo.Database) Repository {
-	return &repository{
-		db: db,
-	}
+func NewRepository(db *mongo.Client) Repository {
+	return &repository{db: db}
 }
 
-func (r *repository) collection() *mongo.Collection {
-	return r.db.Collection("majors")
+func (r *repository) dbConnect(ctx context.Context) *mongo.Database {
+	return r.db.Database("hllc-2025")
 }
 
 func (r *repository) Create(ctx context.Context, major *model.Major) error {
-	_, err := r.collection().InsertOne(ctx, major)
+	_, err := r.dbConnect(ctx).Collection("majors").InsertOne(ctx, major)
 	return err
 }
 
 func (r *repository) GetByID(ctx context.Context, id primitive.ObjectID) (*model.Major, error) {
 	var major model.Major
-	err := r.collection().FindOne(ctx, bson.M{"_id": id}).Decode(&major)
+	err := r.dbConnect(ctx).Collection("majors").FindOne(ctx, bson.M{"_id": id}).Decode(&major)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	}
@@ -80,14 +77,14 @@ func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Majo
 	skip := (page - 1) * limit
 
 	// Get total count
-	total, err := r.collection().CountDocuments(ctx, bson.M{})
+	total, err := r.dbConnect(ctx).Collection("majors").CountDocuments(ctx, bson.M{})
 	if err != nil {
 		return nil, 0, err
 	}
 
 	// Get paginated results
 	opts := options.Find().SetSkip(skip).SetLimit(limit)
-	cursor, err := r.collection().Find(ctx, bson.M{}, opts)
+	cursor, err := r.dbConnect(ctx).Collection("majors").Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -103,7 +100,7 @@ func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Majo
 
 func (r *repository) ListBySchool(ctx context.Context, schoolID primitive.ObjectID, skip, limit int64) ([]*model.Major, error) {
 	opts := options.Find().SetSkip(skip).SetLimit(limit)
-	cursor, err := r.collection().Find(ctx, bson.M{"school_id": schoolID}, opts)
+	cursor, err := r.dbConnect(ctx).Collection("majors").Find(ctx, bson.M{"school_id": schoolID}, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -118,21 +115,21 @@ func (r *repository) ListBySchool(ctx context.Context, schoolID primitive.Object
 }
 
 func (r *repository) CountBySchool(ctx context.Context, schoolID primitive.ObjectID) (int64, error) {
-	return r.collection().CountDocuments(ctx, bson.M{"school_id": schoolID})
+	return r.dbConnect(ctx).Collection("majors").CountDocuments(ctx, bson.M{"school_id": schoolID})
 }
 
 func (r *repository) Update(ctx context.Context, major *model.Major) error {
-	_, err := r.collection().ReplaceOne(ctx, bson.M{"_id": major.ID}, major)
+	_, err := r.dbConnect(ctx).Collection("majors").ReplaceOne(ctx, bson.M{"_id": major.ID}, major)
 	return err
 }
 
 func (r *repository) Delete(ctx context.Context, id primitive.ObjectID) error {
-	_, err := r.collection().DeleteOne(ctx, bson.M{"_id": id})
+	_, err := r.dbConnect(ctx).Collection("majors").DeleteOne(ctx, bson.M{"_id": id})
 	return err
 }
 
 func (r *repository) ExistsByID(ctx context.Context, id primitive.ObjectID) (bool, error) {
-	count, err := r.collection().CountDocuments(ctx, bson.M{"_id": id})
+	count, err := r.dbConnect(ctx).Collection("majors").CountDocuments(ctx, bson.M{"_id": id})
 	if err != nil {
 		return false, err
 	}
@@ -140,7 +137,7 @@ func (r *repository) ExistsByID(ctx context.Context, id primitive.ObjectID) (boo
 }
 
 func (r *repository) ExistsByNameOrAcronym(ctx context.Context, name coreModel.LocalizedName, acronym string) (bool, error) {
-	count, err := r.collection().CountDocuments(ctx, bson.M{
+	count, err := r.dbConnect(ctx).Collection("majors").CountDocuments(ctx, bson.M{
 		"$or": []bson.M{
 			{"name.th_name": name.ThName},
 			{"name.en_name": name.EnName},
@@ -154,7 +151,7 @@ func (r *repository) ExistsByNameOrAcronym(ctx context.Context, name coreModel.L
 }
 
 func (r *repository) ExistsByNameOrAcronymExceptID(ctx context.Context, name coreModel.LocalizedName, acronym string, id primitive.ObjectID) (bool, error) {
-	count, err := r.collection().CountDocuments(ctx, bson.M{
+	count, err := r.dbConnect(ctx).Collection("majors").CountDocuments(ctx, bson.M{
 		"$and": []bson.M{
 			{
 				"$or": []bson.M{

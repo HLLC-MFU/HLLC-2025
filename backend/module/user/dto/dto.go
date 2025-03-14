@@ -1,6 +1,7 @@
 package dto
 
 import (
+	majorPb "github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto/generated"
 	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 )
 
@@ -25,6 +26,7 @@ type (
 		Password string `json:"password" validate:"required"`
 		Name     Name   `json:"name" validate:"required"`
 		RoleIDs  []string `json:"roleIds"`
+		MajorID  string `json:"majorId"`
 	}
 
 	UpdateUserRequest struct {
@@ -32,6 +34,7 @@ type (
 		Password string `json:"password"`
 		Name     Name   `json:"name"`
 		RoleIDs  []string `json:"roleIds"`
+		MajorID  string `json:"majorId"`
 	}
 
 	CreateRoleRequest struct {
@@ -67,6 +70,8 @@ type (
 		Username string        `json:"username"`
 		Name     Name         `json:"name"`
 		Roles    []*userPb.Role `json:"roles,omitempty"`
+		MajorID  string        `json:"majorId,omitempty"`
+		Major    *majorPb.Major `json:"major,omitempty"`
 	}
 
 	RoleResponse struct {

@@ -33,14 +33,15 @@ type Repository interface {
 }
 
 type repository struct {
-	collection *mongo.Collection
+	db *mongo.Client
 }
 
-// NewRepository creates a new instance of the repository
-func NewRepository(db *mongo.Database) Repository {
-	return &repository{
-		collection: db.Collection("schools"),
-	}
+func NewRepository(db *mongo.Client) Repository {
+	return &repository{db: db}
+}
+
+func (r *repository) dbConnect(ctx context.Context) *mongo.Database {
+	return r.db.Database("hllc-2025")
 }
 
 func (r *repository) Create(ctx context.Context, school *model.School) error {
@@ -48,13 +49,13 @@ func (r *repository) Create(ctx context.Context, school *model.School) error {
 	school.CreatedAt = time.Now()
 	school.UpdatedAt = time.Now()
 	
-	_, err := r.collection.InsertOne(ctx, school)
+	_, err := r.dbConnect(ctx).Collection("schools").InsertOne(ctx, school)
 	return err
 }
 
 func (r *repository) GetByID(ctx context.Context, id primitive.ObjectID) (*model.School, error) {
 	var school model.School
-	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&school)
+	err := r.dbConnect(ctx).Collection("schools").FindOne(ctx, bson.M{"_id": id}).Decode(&school)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -66,7 +67,7 @@ func (r *repository) GetByID(ctx context.Context, id primitive.ObjectID) (*model
 
 func (r *repository) GetByAcronym(ctx context.Context, acronym string) (*model.School, error) {
 	var school model.School
-	err := r.collection.FindOne(ctx, bson.M{"acronym": acronym}).Decode(&school)
+	err := r.dbConnect(ctx).Collection("schools").FindOne(ctx, bson.M{"acronym": acronym}).Decode(&school)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -83,7 +84,7 @@ func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Scho
 	skip := (page - 1) * limit
 
 	// Get total count
-	total, err := r.collection.CountDocuments(ctx, bson.M{})
+	total, err := r.dbConnect(ctx).Collection("schools").CountDocuments(ctx, bson.M{})
 	if err != nil {
 		return nil, 0, err
 	}
@@ -94,7 +95,7 @@ func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Scho
 		SetLimit(limit).
 		SetSort(bson.D{{Key: "name.en_name", Value: 1}})
 
-	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
+	cursor, err := r.dbConnect(ctx).Collection("schools").Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -109,11 +110,11 @@ func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Scho
 
 func (r *repository) Update(ctx context.Context, school *model.School) error {
 	school.UpdatedAt = time.Now()
-	_, err := r.collection.ReplaceOne(ctx, bson.M{"_id": school.ID}, school)
+	_, err := r.dbConnect(ctx).Collection("schools").ReplaceOne(ctx, bson.M{"_id": school.ID}, school)
 	return err
 }
 
 func (r *repository) Delete(ctx context.Context, id primitive.ObjectID) error {
-	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
+	_, err := r.dbConnect(ctx).Collection("schools").DeleteOne(ctx, bson.M{"_id": id})
 	return err
 } 
