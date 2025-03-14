@@ -23,10 +23,11 @@ type (
 
 	CreateUserRequest struct {
 		Username string `json:"username" validate:"required"`
-		Password string `json:"password" validate:"required"`
+		Password string `json:"password"`  // Optional for admin creation
 		Name     Name   `json:"name" validate:"required"`
 		RoleIDs  []string `json:"roleIds"`
 		MajorID  string `json:"majorId"`
+		IsActivated bool `json:"isActivated"` // Whether user can login
 	}
 
 	UpdateUserRequest struct {
@@ -35,6 +36,7 @@ type (
 		Name     Name   `json:"name"`
 		RoleIDs  []string `json:"roleIds"`
 		MajorID  string `json:"majorId"`
+		IsActivated bool `json:"isActivated"`
 	}
 
 	CreateRoleRequest struct {
@@ -65,6 +67,34 @@ type (
 		Module      string `json:"module"`
 	}
 
+	CheckUsernameRequest struct {
+		Username string `json:"username" validate:"required"`
+	}
+
+	CheckUsernameResponse struct {
+		Exists bool `json:"exists"`
+		User   *UserInfo `json:"user,omitempty"`
+	}
+
+	UserInfo struct {
+		ID       string `json:"id"`
+		Username string `json:"username"`
+		Name     Name   `json:"name"`
+		MajorID  string `json:"majorId,omitempty"`
+		Major    *majorPb.Major `json:"major,omitempty"`
+		IsActivated bool `json:"isActivated"`
+	}
+
+	SetPasswordRequest struct {
+		Username string `json:"username" validate:"required"`
+		Password string `json:"password" validate:"required,min=8"`
+	}
+
+	SetPasswordResponse struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+
 	UserResponse struct {
 		ID       string        `json:"id"`
 		Username string        `json:"username"`
@@ -72,6 +102,7 @@ type (
 		Roles    []*userPb.Role `json:"roles,omitempty"`
 		MajorID  string        `json:"majorId,omitempty"`
 		Major    *majorPb.Major `json:"major,omitempty"`
+		IsActivated bool       `json:"isActivated"`
 	}
 
 	RoleResponse struct {

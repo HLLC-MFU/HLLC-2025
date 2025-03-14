@@ -31,6 +31,8 @@ func NewHTTPHandler(cfg *config.Config, userService service.UserService) HTTPHan
 func (h *httpHandler) RegisterPublicRoutes(router fiber.Router) {
 	// Public user-related endpoints (if any)
 	router.Post("/validate-credentials", h.ValidateCredentials)
+	router.Post("/check-username", h.CheckUsername)
+	router.Post("/set-password", h.SetPassword)
 }
 
 // RegisterProtectedRoutes registers routes that require authentication
@@ -355,4 +357,40 @@ func (h *httpHandler) DeletePermission(c *fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *httpHandler) CheckUsername(c *fiber.Ctx) error {
+	var req userDto.CheckUsernameRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	resp, err := h.userService.CheckUsername(c.Context(), &req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(resp)
+}
+
+func (h *httpHandler) SetPassword(c *fiber.Ctx) error {
+	var req userDto.SetPasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	resp, err := h.userService.SetPassword(c.Context(), &req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(resp)
 } 

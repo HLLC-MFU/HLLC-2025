@@ -56,6 +56,10 @@ type UserService interface {
 	CreateUserGRPC(ctx context.Context, req *userPb.CreateUserRequest) (*userPb.User, error)
 	GetUserGRPC(ctx context.Context, req *userPb.GetUserRequest) (*userPb.User, error)
 	ValidateCredentialsGRPC(ctx context.Context, req *userPb.ValidateCredentialsRequest) (*userPb.ValidateCredentialsResponse, error)
+
+	// Registration methods
+	CheckUsername(ctx context.Context, req *dto.CheckUsernameRequest) (*dto.CheckUsernameResponse, error)
+	SetPassword(ctx context.Context, req *dto.SetPasswordRequest) (*dto.SetPasswordResponse, error)
 }
 
 type userService struct {
@@ -94,17 +98,23 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 			return nil, ErrUserExists
 		}
 
-		// Hash password
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-		if err != nil {
-			return nil, err
+		var hashedPassword string
+		isActivated := req.IsActivated
+
+		// If password is provided and user should be activated
+		if req.Password != "" && isActivated {
+			hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+			if err != nil {
+				return nil, err
+			}
+			hashedPassword = string(hashed)
 		}
 
 		// Create user entity
 		newUser := &userPb.User{
 			Id:        primitive.NewObjectID().Hex(),
 			Username:  req.Username,
-			Password:  string(hashedPassword),
+			Password:  hashedPassword,
 			RoleIds:   req.RoleIDs,
 			MajorId:   req.MajorID,
 			Name: &userPb.Name{
@@ -112,6 +122,7 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 				MiddleName: req.Name.MiddleName,
 				LastName:   req.Name.LastName,
 			},
+			IsActivated: isActivated,
 			CreatedAt: time.Now().Format(time.RFC3339),
 			UpdatedAt: time.Now().Format(time.RFC3339),
 		}
@@ -779,4 +790,89 @@ func (s *userService) DeletePermission(ctx context.Context, id string) error {
 		return struct{}{}, nil
 	})(ctx)
 	return err
+}
+
+// Registration methods
+func (s *userService) CheckUsername(ctx context.Context, req *dto.CheckUsernameRequest) (*dto.CheckUsernameResponse, error) {
+	return decorator.WithTimeout[*dto.CheckUsernameResponse](5*time.Second)(func(ctx context.Context) (*dto.CheckUsernameResponse, error) {
+		// Find user by username
+		user, err := s.userRepo.FindByUsername(ctx, req.Username)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return &dto.CheckUsernameResponse{
+					Exists: false,
+				}, nil
+			}
+			return nil, err
+		}
+
+		// Get major information if available
+		var major *majorPb.Major
+		if user.MajorId != "" {
+			major, err = s.majorService.GetMajorByID(ctx, user.MajorId)
+			if err != nil {
+				log.Printf("Warning: Failed to get major with ID %s: %v", user.MajorId, err)
+			}
+		}
+
+		return &dto.CheckUsernameResponse{
+			Exists: true,
+			User: &dto.UserInfo{
+				ID:       user.Id,
+				Username: user.Username,
+				Name: dto.Name{
+					FirstName:  user.Name.FirstName,
+					MiddleName: user.Name.MiddleName,
+					LastName:   user.Name.LastName,
+				},
+				MajorID:     user.MajorId,
+				Major:       major,
+				IsActivated: user.IsActivated,
+			},
+		}, nil
+	})(ctx)
+}
+
+func (s *userService) SetPassword(ctx context.Context, req *dto.SetPasswordRequest) (*dto.SetPasswordResponse, error) {
+	return decorator.WithTimeout[*dto.SetPasswordResponse](5*time.Second)(func(ctx context.Context) (*dto.SetPasswordResponse, error) {
+		// Find user by username
+		user, err := s.userRepo.FindByUsername(ctx, req.Username)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return &dto.SetPasswordResponse{
+					Success: false,
+					Message: "User not found",
+				}, nil
+			}
+			return nil, err
+		}
+
+		// Check if user is already activated
+		if user.IsActivated {
+			return &dto.SetPasswordResponse{
+				Success: false,
+				Message: "User is already activated",
+			}, nil
+		}
+
+		// Hash password
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update user with password and activate
+		user.Password = string(hashedPassword)
+		user.IsActivated = true
+		user.UpdatedAt = time.Now().Format(time.RFC3339)
+
+		if err := s.userRepo.UpdateUser(ctx, user); err != nil {
+			return nil, err
+		}
+
+		return &dto.SetPasswordResponse{
+			Success: true,
+			Message: "Password set successfully. You can now login.",
+		}, nil
+	})(ctx)
 }
