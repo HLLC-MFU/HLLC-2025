@@ -3,7 +3,6 @@ package model
 import (
 	"time"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/model"
 	coreModel "github.com/HLLC-MFU/HLLC-2025/backend/pkg/core/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -17,7 +16,7 @@ type Major struct {
 	Acronym        string                `bson:"acronym" json:"acronym" validate:"required"`
 	Details        coreModel.LocalizedDetails `bson:"details" json:"details" validate:"required"`
 	Photos         coreModel.Photos          `bson:"photos" json:"photos"`
-	School         *model.School         `bson:"-" json:"school,omitempty"`
+	School         *coreModel.School         `bson:"-" json:"school,omitempty"`
 	CreatedAt      time.Time             `bson:"created_at" json:"created_at"`
 	UpdatedAt      time.Time             `bson:"updated_at" json:"updated_at"`
 }

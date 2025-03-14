@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package user;
-option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/userpb";
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated";
 
 // Common messages
 message Empty {}

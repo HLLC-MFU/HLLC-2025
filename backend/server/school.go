@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/handler"
-	schoolPb "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto"
+	schoolPb "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"

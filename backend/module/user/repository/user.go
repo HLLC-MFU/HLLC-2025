@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 )
 

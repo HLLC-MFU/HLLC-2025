@@ -4,7 +4,7 @@
 // - protoc             v5.29.2
 // source: module/school/proto/schoolPb.proto
 
-package proto
+package generated
 
 import (
 	context "context"

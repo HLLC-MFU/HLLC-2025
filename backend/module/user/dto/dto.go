@@ -1,7 +1,7 @@
 package dto
 
 import (
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 )
 
 /**

@@ -11,8 +11,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto"
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
+	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated"
+	majorPb "github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto/generated"
+	schoolPb "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/security"
 )
 
@@ -20,6 +22,8 @@ type (
 	GrpcClientFactoryController interface {
 		User(ctx context.Context) (userPb.UserServiceClient, error)
 		Auth(ctx context.Context) (authPb.AuthServiceClient, error)
+		School(ctx context.Context) (schoolPb.SchoolServiceClient, error)
+		Major(ctx context.Context) (majorPb.MajorServiceClient, error)
 	}
 
 	grpcClientFactory struct {
@@ -64,6 +68,24 @@ func (g *grpcClientFactory) Auth(ctx context.Context) (authPb.AuthServiceClient,
 		return nil, fmt.Errorf("failed to create auth client: %w", err)
 	}
 	return authPb.NewAuthServiceClient(conn), nil
+}
+
+// School returns a new school service client
+func (g *grpcClientFactory) School(ctx context.Context) (schoolPb.SchoolServiceClient, error) {
+	conn, err := grpc.DialContext(ctx, g.target, g.opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create school client: %w", err)
+	}
+	return schoolPb.NewSchoolServiceClient(conn), nil
+}
+
+// Major returns a new major service client
+func (g *grpcClientFactory) Major(ctx context.Context) (majorPb.MajorServiceClient, error) {
+	conn, err := grpc.DialContext(ctx, g.target, g.opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create major client: %w", err)
+	}
+	return majorPb.NewMajorServiceClient(conn), nil
 }
 
 // NewGrpcServer creates a new gRPC server with authentication middleware

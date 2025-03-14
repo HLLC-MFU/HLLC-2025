@@ -5,7 +5,7 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/controller"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/handler"
-	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto"
+	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated"
 	authRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/repository"
 	authService "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/service"
 	userRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"

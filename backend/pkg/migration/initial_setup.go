@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"

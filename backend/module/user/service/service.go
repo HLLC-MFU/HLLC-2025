@@ -10,7 +10,7 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 )
@@ -126,9 +126,13 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 
 		return &dto.UserResponse{
 			ID:       newUser.Id,
-			Name:     req.Name,
 			Username: newUser.Username,
-			Roles:    roles,
+			Name: dto.Name{
+				FirstName:  req.Name.FirstName,
+				MiddleName: req.Name.MiddleName,
+				LastName:   req.Name.LastName,
+			},
+			Roles: roles,
 		}, nil
 	})(ctx)
 }

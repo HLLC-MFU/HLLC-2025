@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/model"
-	majorPb "github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto"
+	majorPb "github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/service"
-	schoolPb "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto"
+	schoolPb "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated"
 	coreModel "github.com/HLLC-MFU/HLLC-2025/backend/pkg/core/model"
+	corePb "github.com/HLLC-MFU/HLLC-2025/backend/pkg/proto/generated"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -79,7 +80,15 @@ func (h *GrpcHandler) GetMajor(ctx context.Context, req *majorPb.GetMajorRequest
 }
 
 func (h *GrpcHandler) ListMajors(ctx context.Context, req *majorPb.ListMajorsRequest) (*majorPb.ListMajorsResponse, error) {
-	majors, total, err := h.service.ListMajors(ctx, int64(req.Page), int64(req.Limit))
+	page := int64(1)
+	limit := int64(10)
+	
+	if req.Pagination != nil {
+		page = int64(req.Pagination.Page)
+		limit = int64(req.Pagination.Limit)
+	}
+	
+	majors, total, err := h.service.ListMajors(ctx, page, limit)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list majors: %v", err)
 	}
@@ -91,9 +100,11 @@ func (h *GrpcHandler) ListMajors(ctx context.Context, req *majorPb.ListMajorsReq
 
 	return &majorPb.ListMajorsResponse{
 		Majors: protoMajors,
-		Total:  int32(total),
-		Page:   req.Page,
-		Limit:  req.Limit,
+		Pagination: &corePb.PaginationResponse{
+			Total: int32(total),
+			Page:  int32(page),
+			Limit: int32(limit),
+		},
 	}, nil
 }
 
@@ -103,7 +114,15 @@ func (h *GrpcHandler) ListMajorsBySchool(ctx context.Context, req *majorPb.ListM
 		return nil, status.Errorf(codes.InvalidArgument, "invalid school ID: %v", err)
 	}
 
-	majors, total, err := h.service.ListMajorsBySchool(ctx, schoolID, int64(req.Page), int64(req.Limit))
+	page := int64(1)
+	limit := int64(10)
+	
+	if req.Pagination != nil {
+		page = int64(req.Pagination.Page)
+		limit = int64(req.Pagination.Limit)
+	}
+
+	majors, total, err := h.service.ListMajorsBySchool(ctx, schoolID, page, limit)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list majors by school: %v", err)
 	}
@@ -115,9 +134,11 @@ func (h *GrpcHandler) ListMajorsBySchool(ctx context.Context, req *majorPb.ListM
 
 	return &majorPb.ListMajorsResponse{
 		Majors: protoMajors,
-		Total:  int32(total),
-		Page:   req.Page,
-		Limit:  req.Limit,
+		Pagination: &corePb.PaginationResponse{
+			Total: int32(total),
+			Page:  int32(page),
+			Limit: int32(limit),
+		},
 	}, nil
 }
 
@@ -175,12 +196,12 @@ func convertMajorToProto(major *model.Major) *majorPb.Major {
 	protoMajor := &majorPb.Major{
 		Id:       major.ID.Hex(),
 		SchoolId: major.SchoolID.Hex(),
-		Name: &schoolPb.LocalizedName{
+		Name: &corePb.LocalizedName{
 			ThName: major.Name.ThName,
 			EnName: major.Name.EnName,
 		},
 		Acronym: major.Acronym,
-		Details: &schoolPb.LocalizedDetails{
+		Details: &corePb.LocalizedDetails{
 			ThDetails: major.Details.ThDetails,
 			EnDetails: major.Details.EnDetails,
 		},

@@ -5,7 +5,7 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

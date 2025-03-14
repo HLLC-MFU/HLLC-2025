@@ -6,7 +6,7 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	userDto "github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/request"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/response"

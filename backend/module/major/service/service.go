@@ -7,32 +7,39 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/model"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/repository"
+	schoolPb "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated"
+	coreModel "github.com/HLLC-MFU/HLLC-2025/backend/pkg/core/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var (
 	ErrMajorNotFound      = errors.New("major not found")
 	ErrMajorAlreadyExists = errors.New("major already exists")
+	ErrSchoolNotFound     = errors.New("school not found")
 )
 
 // Service defines the interface for major business logic
 type Service interface {
 	CreateMajor(ctx context.Context, major *model.Major) error
 	GetMajor(ctx context.Context, id primitive.ObjectID) (*model.Major, error)
+	GetMajorWithSchool(ctx context.Context, id primitive.ObjectID) (*model.Major, error)
 	ListMajors(ctx context.Context, page, limit int64) ([]*model.Major, int64, error)
+	ListMajorsWithSchool(ctx context.Context, page, limit int64) ([]*model.Major, int64, error)
 	ListMajorsBySchool(ctx context.Context, schoolID primitive.ObjectID, page, limit int64) ([]*model.Major, int64, error)
 	UpdateMajor(ctx context.Context, major *model.Major) error
 	DeleteMajor(ctx context.Context, id primitive.ObjectID) error
 }
 
 type service struct {
-	repo repository.Repository
+	repo         repository.Repository
+	schoolClient schoolPb.SchoolServiceClient
 }
 
 // NewService creates a new instance of the major service
-func NewService(repo repository.Repository) Service {
+func NewService(repo repository.Repository, schoolClient schoolPb.SchoolServiceClient) Service {
 	return &service{
-		repo: repo,
+		repo:         repo,
+		schoolClient: schoolClient,
 	}
 }
 
@@ -123,4 +130,82 @@ func (s *service) DeleteMajor(ctx context.Context, id primitive.ObjectID) error 
 	}
 
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *service) GetMajorWithSchool(ctx context.Context, id primitive.ObjectID) (*model.Major, error) {
+	major, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if major == nil {
+		return nil, ErrMajorNotFound
+	}
+
+	// Fetch school data
+	schoolResp, err := s.schoolClient.GetSchool(ctx, &schoolPb.GetSchoolRequest{
+		Id: major.SchoolID.Hex(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert school proto to model
+	major.School = &coreModel.School{
+		ID:      major.SchoolID,
+		Name:    coreModel.LocalizedName{
+			ThName: schoolResp.School.Name.ThName,
+			EnName: schoolResp.School.Name.EnName,
+		},
+		Acronym: schoolResp.School.Acronym,
+		Details: coreModel.LocalizedDetails{
+			ThDetails: schoolResp.School.Details.ThDetails,
+			EnDetails: schoolResp.School.Details.EnDetails,
+		},
+		Photos: coreModel.Photos{
+			CoverPhoto:     schoolResp.School.Photos.CoverPhoto,
+			BannerPhoto:    schoolResp.School.Photos.BannerPhoto,
+			ThumbnailPhoto: schoolResp.School.Photos.ThumbnailPhoto,
+			LogoPhoto:      schoolResp.School.Photos.LogoPhoto,
+		},
+	}
+
+	return major, nil
+}
+
+func (s *service) ListMajorsWithSchool(ctx context.Context, page, limit int64) ([]*model.Major, int64, error) {
+	majors, total, err := s.repo.List(ctx, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Fetch school data for each major
+	for _, major := range majors {
+		schoolResp, err := s.schoolClient.GetSchool(ctx, &schoolPb.GetSchoolRequest{
+			Id: major.SchoolID.Hex(),
+		})
+		if err != nil {
+			continue // Skip if school not found
+		}
+
+		major.School = &coreModel.School{
+			ID:      major.SchoolID,
+			Name:    coreModel.LocalizedName{
+				ThName: schoolResp.School.Name.ThName,
+				EnName: schoolResp.School.Name.EnName,
+			},
+			Acronym: schoolResp.School.Acronym,
+			Details: coreModel.LocalizedDetails{
+				ThDetails: schoolResp.School.Details.ThDetails,
+				EnDetails: schoolResp.School.Details.EnDetails,
+			},
+			Photos: coreModel.Photos{
+				CoverPhoto:     schoolResp.School.Photos.CoverPhoto,
+				BannerPhoto:    schoolResp.School.Photos.BannerPhoto,
+				ThumbnailPhoto: schoolResp.School.Photos.ThumbnailPhoto,
+				LogoPhoto:      schoolResp.School.Photos.LogoPhoto,
+			},
+		}
+	}
+
+	return majors, total, nil
 } 

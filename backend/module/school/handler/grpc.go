@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/model"
-	schoolPb "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto"
+	schoolPb "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/service"
 	coreModel "github.com/HLLC-MFU/HLLC-2025/backend/pkg/core/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"

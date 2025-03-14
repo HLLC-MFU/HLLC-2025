@@ -4,7 +4,7 @@
 // - protoc             v5.29.2
 // source: module/major/proto/majorPb.proto
 
-package proto
+package generated
 
 import (
 	context "context"

@@ -96,7 +96,7 @@ func (h *HTTPHandler) GetMajor(c *fiber.Ctx) error {
 		})
 	}
 
-	major, err := h.service.GetMajor(c.Context(), id)
+	major, err := h.service.GetMajorWithSchool(c.Context(), id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -115,7 +115,7 @@ func (h *HTTPHandler) ListMajors(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
 
-	majors, total, err := h.service.ListMajors(c.Context(), page, limit)
+	majors, total, err := h.service.ListMajorsWithSchool(c.Context(), page, limit)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),

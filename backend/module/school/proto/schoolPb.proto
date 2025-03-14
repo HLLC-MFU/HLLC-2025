@@ -2,18 +2,9 @@ syntax = "proto3";
 
 package school;
 
-option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto";
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated";
 
 import "google/protobuf/timestamp.proto";
-
-// School service definition
-service SchoolService {
-  rpc CreateSchool(CreateSchoolRequest) returns (SchoolResponse);
-  rpc GetSchool(GetSchoolRequest) returns (SchoolResponse);
-  rpc ListSchools(ListSchoolsRequest) returns (ListSchoolsResponse);
-  rpc UpdateSchool(UpdateSchoolRequest) returns (SchoolResponse);
-  rpc DeleteSchool(DeleteSchoolRequest) returns (DeleteSchoolResponse);
-}
 
 // Common messages for localization
 message LocalizedName {
@@ -43,6 +34,15 @@ message School {
   SchoolPhotos photos = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
+}
+
+// School service definition
+service SchoolService {
+  rpc CreateSchool(CreateSchoolRequest) returns (SchoolResponse);
+  rpc GetSchool(GetSchoolRequest) returns (SchoolResponse);
+  rpc ListSchools(ListSchoolsRequest) returns (ListSchoolsResponse);
+  rpc UpdateSchool(UpdateSchoolRequest) returns (SchoolResponse);
+  rpc DeleteSchool(DeleteSchoolRequest) returns (DeleteSchoolResponse);
 }
 
 // Request messages

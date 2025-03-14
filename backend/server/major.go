@@ -1,10 +1,11 @@
 package server
 
 import (
+	"context"
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/handler"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto"
+	majorPb "github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
@@ -16,7 +17,18 @@ import (
 func (s *server) majorService() {
 	// Initialize repository, service, and handlers
 	repo := repository.NewRepository(s.db.Database("hllc"))
-	svc := service.NewService(repo)
+
+	// Create gRPC client factory
+	clientFactory := core.NewGrpcClientFactory(s.config.School.GRPCAddr)
+	
+	// Get school client
+	schoolClient, err := clientFactory.School(context.Background())
+	if err != nil {
+		log.Fatalf("Failed to create school client: %v", err)
+	}
+
+	// Initialize service with school client
+	svc := service.NewService(repo, schoolClient)
 	httpHandler := handler.NewHTTPHandler(svc)
 	grpcHandler := handler.NewGrpcHandler(svc)
 
@@ -69,7 +81,7 @@ func (s *server) majorService() {
 			ApiDuration:     s.config.Jwt.ApiDuration,
 		}
 		grpcServer, lis := core.NewGrpcServer(jwtConfig, s.config.Major.GRPCAddr)
-		proto.RegisterMajorServiceServer(grpcServer, grpcHandler)
+		majorPb.RegisterMajorServiceServer(grpcServer, grpcHandler)
 		
 		log.Printf("Major gRPC server listening on %s", s.config.Major.GRPCAddr)
 		if err := grpcServer.Serve(lis); err != nil {

@@ -2,9 +2,10 @@ syntax = "proto3";
 
 package major;
 
-option go_package = "backend/module/major/proto";
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto/generated";
 
 import "google/protobuf/timestamp.proto";
+import "pkg/proto/core/shared.proto";
 import "module/school/proto/schoolPb.proto";
 
 
@@ -30,9 +31,9 @@ message MajorPhotos {
 message Major {
   string id = 1;
   string school_id = 2;
-  school.LocalizedName name = 3;
+  core.LocalizedName name = 3;
   string acronym = 4;
-  school.LocalizedDetails details = 5;
+  core.LocalizedDetails details = 5;
   MajorPhotos photos = 6;
   school.School school = 7;    // Embedded school information
   google.protobuf.Timestamp created_at = 8;
@@ -42,9 +43,9 @@ message Major {
 // Request messages
 message CreateMajorRequest {
   string school_id = 1;
-  school.LocalizedName name = 2;
+  core.LocalizedName name = 2;
   string acronym = 3;
-  school.LocalizedDetails details = 4;
+  core.LocalizedDetails details = 4;
   MajorPhotos photos = 5;
 }
 
@@ -53,21 +54,19 @@ message GetMajorRequest {
 }
 
 message ListMajorsRequest {
-  int32 page = 1;
-  int32 limit = 2;
+  core.PaginationRequest pagination = 1;
 }
 
 message ListMajorsBySchoolRequest {
   string school_id = 1;
-  int32 page = 2;
-  int32 limit = 3;
+  core.PaginationRequest pagination = 2;
 }
 
 message UpdateMajorRequest {
   string id = 1;
-  school.LocalizedName name = 2;
+  core.LocalizedName name = 2;
   string acronym = 3;
-  school.LocalizedDetails details = 4;
+  core.LocalizedDetails details = 4;
   MajorPhotos photos = 5;
 }
 
@@ -82,9 +81,7 @@ message MajorResponse {
 
 message ListMajorsResponse {
   repeated Major majors = 1;
-  int32 total = 2;
-  int32 page = 3;
-  int32 limit = 4;
+  core.PaginationResponse pagination = 2;
 }
 
 message DeleteMajorResponse {

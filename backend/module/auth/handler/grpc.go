@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto"
+	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/security"
 	"google.golang.org/grpc/codes"
