@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 // Base model with common fields
 type Base struct {
@@ -26,6 +30,17 @@ type Photos struct {
 	BannerPhoto    string `bson:"banner_photo" json:"banner_photo"`
 	ThumbnailPhoto string `bson:"thumbnail_photo" json:"thumbnail_photo"`
 	LogoPhoto      string `bson:"logo_photo" json:"logo_photo"`
+}
+
+// School represents a school entity
+type School struct {
+	ID        primitive.ObjectID `bson:"_id" json:"id"`
+	Name      LocalizedName      `bson:"name" json:"name"`
+	Acronym   string             `bson:"acronym" json:"acronym"`
+	Details   LocalizedDetails   `bson:"details" json:"details"`
+	Photos    Photos             `bson:"photos" json:"photos"`
+	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
 // Decorator for MongoDB collection name
