@@ -1,15 +1,49 @@
-import { Redirect, Stack } from "expo-router";
-import { useAuth } from "@/context/ctx";
+// app/(app)/_layout.tsx
+import {
+  View,
+  Dimensions,
+  StyleSheet,
+} from "react-native";
+import { Stack } from "expo-router";
 
-export default function AppLayout() {
-  const { user } = useAuth();
+import { Redirect } from "expo-router";
+import { BlurView } from "expo-blur";
+import { ImageBackground } from "expo-image";
+import useProfile from "@/hooks/useProfile";
+
+export default function Layout() {
+  const { user } = useProfile();
+
 
   if (!user) {
     return <Redirect href="/(auth)/login" />;
   }
+
   return (
-    <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
+    <View style={{ flex: 1 }}>
+      {/* 🔴 Background Layer */}
+      <ImageBackground
+        source={{ uri: user.theme?.assets?.background }}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+      >
+        <BlurView
+          intensity={100}
+          tint="dark"
+          style={StyleSheet.absoluteFill}
+        />
+      </ImageBackground>
+
+      {/* 🟢 Foreground Layer (Stack + Screen content) */}
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          presentation: "card", // ✅ ให้ animation สวย
+          contentStyle: {
+            backgroundColor: "transparent", // ✅ ให้ Stack โปร่งใส
+          },
+        }}
+      />
+    </View>
   );
 }

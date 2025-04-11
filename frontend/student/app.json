@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "user",
-    "slug": "user",
+    "name": "HLLC",
+    "slug": "HLLC",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,13 +9,18 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jemiezler.HLLC",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.jemiezler.HLLC"
     },
     "web": {
       "bundler": "metro",
@@ -32,10 +37,20 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "0831a786-3b1e-4716-a7a4-44219c63b8e8"
+      }
+    },
+    "owner": "jemiezler"
   }
 }

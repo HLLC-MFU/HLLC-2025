@@ -1,6 +1,9 @@
 type User = {
     id: string;
-    name: ILanguage;
+    name: {
+        first: ILanguage;
+        last: ILanguage;
+    };
     username: string;
     major: Major;
     type: string;

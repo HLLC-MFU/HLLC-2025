@@ -1,9 +1,11 @@
 
 import Input from "@/components/global/Input";
 import Button from "@/components/global/Button";
-import { useAuth } from "@/context/ctx";
+
 import React, { useState } from "react";
-import { ImageBackground, SafeAreaView, StyleSheet, Text } from "react-native";
+import { SafeAreaView, StyleSheet, Text } from "react-native";
+import useAuth from "@/hooks/useAuth";
+import { ImageBackground } from "expo-image";
 
 export default function LoginScreen() {
     const [username, setUsername] = useState("");
@@ -15,7 +17,7 @@ export default function LoginScreen() {
       };
       
     return (
-        <ImageBackground src="https://hllc.mfu.ac.th/_nuxt/background.QT0jUNm1.jpg" style={styles.background}>
+        <ImageBackground source={{uri: "https://hllc.mfu.ac.th/_nuxt/background.QT0jUNm1.jpg"}} style={styles.background}>
             <SafeAreaView style={styles.container}>
                 <Text style={styles.header}>Let's start your journey</Text>
                 <Text style={styles.subHeader}>Login to Continue</Text>
