@@ -4,7 +4,6 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Activity } from "@/types/activities";
 import { apiRequest } from "@/utils/api";
-import i18n from "@/context/i18n";
 import useProfile from "./useProfile";
 
 // 💡 Helper: compare activities
@@ -109,7 +108,6 @@ export function useActivities() {
     activities,
     loading,
     error,
-    lang: i18n.language as "th" | "en",
   };
 }
 

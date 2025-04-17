@@ -1,0 +1,10 @@
+{
+    "nav": {
+        "welcome": "Welcome Back",
+        "progress": "Progress"
+    },
+    "home": {
+        "activities": "Activities",
+        "seeAll": "See all"
+    }
+}

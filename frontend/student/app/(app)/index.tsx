@@ -16,12 +16,16 @@ import HomeActivityCard from "@/components/home/ActivityCard";
 import { useActivities } from "@/hooks/useActivities";
 import SectionHeader from "@/components/home/SectionHeader";
 import useProfile from "@/hooks/useProfile";
+import { useLanguage } from "@/context/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 export default function HomeScreen() {
   const { user } = useProfile();
   const router = useRouter();
   const { width } = Dimensions.get("window");
-  const { activities, loading, error, lang } = useActivities();
+  const { t } = useTranslation();
+  const { language } = useLanguage();
+  const { activities, loading, error } = useActivities();
   if (loading) {
     return (
       <SafeAreaView
@@ -39,11 +43,10 @@ export default function HomeScreen() {
           <HomeHero style={{ paddingHorizontal: 16 }} />
           <View style={{ top: -60, width: "100%", gap: 16 }}>
             <SectionHeader
-              title="Activities"
-              rightText="See all"
+              title={t("home.activities")}
+              rightText={t("home.seeAll")}
               onPressRight={() => console.log("Pressed See All")}
             />
-
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -60,9 +63,9 @@ export default function HomeScreen() {
                   <HomeActivityCard
                     key={activity.id}
                     activity={activity}
-                    lang={lang}
+                    lang={language}
                     onPress={() => router.push({
-                      pathname:`/activities/[id]`,
+                      pathname: `/activities/[id]`,
                       params: { id: activity.id },
                     })}
                     style={{ width: width * 0.85, marginRight: 16 }}
@@ -72,12 +75,13 @@ export default function HomeScreen() {
           </View>
         </ScrollView>
 
-        <FAB
+
+      </SafeAreaView>
+      <FAB
           icon={QrCode}
           onPress={() => router.push("/qrcode")}
-          style={{ backgroundColor: user?.theme.colors.primary }}
+          style={{ backgroundColor: user?.theme.colors.secondary }}
         />
-      </SafeAreaView>
     </View>
   );
 }

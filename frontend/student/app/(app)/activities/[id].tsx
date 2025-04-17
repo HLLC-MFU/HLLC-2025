@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  Dimensions,
   StyleSheet,
 } from "react-native";
 import { Image, ImageBackground } from "expo-image";
@@ -16,9 +15,10 @@ import { BlurView } from "expo-blur";
 
 import useProfile from "@/hooks/useProfile";
 import { useActivities } from "@/hooks/useActivities";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function ActivityDetailScreen() {
-  const { width } = Dimensions.get("window");
+  const { language } = useLanguage();
   const { user } = useProfile();
   const router = useRouter();
 
@@ -107,7 +107,7 @@ export default function ActivityDetailScreen() {
       </SafeAreaView>
 
       <SafeAreaView
-        style={{ flex: 1, paddingHorizontal: 16, marginTop: -48, gap: 16 }}
+        style={{ flex: 1, paddingHorizontal: 16, marginTop: 0, gap: 16 }}
       >
         <Image
           source={{ uri: activity.banner }}
@@ -132,10 +132,10 @@ export default function ActivityDetailScreen() {
           }}
         >
           <Text style={{ fontSize: 24, fontWeight: "bold" }}>
-            {activity.name.en}
+            {activity.name[language]}
           </Text>
           <Text style={{ fontSize: 16, marginTop: 8 }}>
-            {activity.description.en}
+            {activity.description[language]}
           </Text>
         </BlurView>
       </SafeAreaView>
