@@ -122,7 +122,6 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 				MiddleName: req.Name.MiddleName,
 				LastName:   req.Name.LastName,
 			},
-			IsActivated: isActivated,
 			CreatedAt: time.Now().Format(time.RFC3339),
 			UpdatedAt: time.Now().Format(time.RFC3339),
 		}
@@ -825,9 +824,8 @@ func (s *userService) CheckUsername(ctx context.Context, req *dto.CheckUsernameR
 					MiddleName: user.Name.MiddleName,
 					LastName:   user.Name.LastName,
 				},
-				MajorID:     user.MajorId,
-				Major:       major,
-				IsActivated: user.IsActivated,
+				MajorID: user.MajorId,
+				Major:   major,
 			},
 		}, nil
 	})(ctx)
@@ -847,14 +845,6 @@ func (s *userService) SetPassword(ctx context.Context, req *dto.SetPasswordReque
 			return nil, err
 		}
 
-		// Check if user is already activated
-		if user.IsActivated {
-			return &dto.SetPasswordResponse{
-				Success: false,
-				Message: "User is already activated",
-			}, nil
-		}
-
 		// Hash password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
@@ -863,7 +853,6 @@ func (s *userService) SetPassword(ctx context.Context, req *dto.SetPasswordReque
 
 		// Update user with password and activate
 		user.Password = string(hashedPassword)
-		user.IsActivated = true
 		user.UpdatedAt = time.Now().Format(time.RFC3339)
 
 		if err := s.userRepo.UpdateUser(ctx, user); err != nil {
