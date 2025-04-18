@@ -1,0 +1,208 @@
+syntax = "proto3";
+
+package user;
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated";
+
+import "module/major/proto/majorPb.proto";
+
+// Common messages
+message Empty {}
+
+message User {
+    string id = 1;
+    string username = 2;
+    string password = 3;  
+    Name name = 4;
+    repeated string role_ids = 5;
+    string major_id = 6;
+    major.Major major = 7;  // Embedded major information
+    string created_at = 8;
+    string updated_at = 9;
+    bool is_activated = 10;  // Whether user has set their password and can login
+}
+
+message Name {
+    string first_name = 1;
+    string middle_name = 2;
+    string last_name = 3;
+}
+
+message Role {
+    string id = 1;
+    string name = 2;
+    string code = 3;
+    string description = 4;
+    repeated string permission_ids = 5;
+    string created_at = 6;
+    string updated_at = 7;
+}
+
+message Permission {
+    string id = 1;
+    string name = 2;
+    string code = 3;
+    string description = 4;
+    string module = 5;
+    string created_at = 6;
+    string updated_at = 7;
+}
+
+// User related messages
+message CreateUserRequest {
+    string username = 1;
+    string password = 2;
+    Name name = 3;
+    repeated string role_ids = 4;
+    string major_id = 5;
+}
+
+message GetUserRequest {
+    string username = 1;
+}
+
+message GetAllUsersRequest {}
+
+message GetAllUsersResponse {
+    repeated User users = 1;
+}
+
+message UpdateUserRequest {
+    string id = 1;
+    string username = 2;
+    string password = 3;
+    Name name = 4;
+    repeated string role_ids = 5;
+    string major_id = 6;
+}
+
+message DeleteUserRequest {
+    string id = 1;
+}
+
+message ValidateCredentialsRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message ValidateCredentialsResponse {
+    bool valid = 1;
+    User user = 2;
+}
+
+// Role related messages
+message CreateRoleRequest {
+    string name = 1;
+    string code = 2;
+    string description = 3;
+    repeated string permission_ids = 4;
+}
+
+message GetRoleRequest {
+    string id = 1;
+}
+
+message GetAllRolesRequest {}
+
+message GetAllRolesResponse {
+    repeated Role roles = 1;
+}
+
+message UpdateRoleRequest {
+    string id = 1;
+    string name = 2;
+    string code = 3;
+    string description = 4;
+    repeated string permission_ids = 5;
+}
+
+message DeleteRoleRequest {
+    string id = 1;
+}
+
+// Permission related messages
+message CreatePermissionRequest {
+    string name = 1;
+    string code = 2;
+    string description = 3;
+    string module = 4;
+}
+
+message GetPermissionRequest {
+    string id = 1;
+}
+
+message GetAllPermissionsRequest {}
+
+message GetAllPermissionsResponse {
+    repeated Permission permissions = 1;
+}
+
+message UpdatePermissionRequest {
+    string id = 1;
+    string name = 2;
+    string code = 3;
+    string description = 4;
+    string module = 5;
+}
+
+message DeletePermissionRequest {
+    string id = 1;
+}
+
+// Add new messages for registration
+message CheckUsernameRequest {
+    string username = 1;
+}
+
+message CheckUsernameResponse {
+    bool exists = 1;
+    UserInfo user_info = 2;  // Only returned if exists is true
+}
+
+message UserInfo {
+    string id = 1;
+    string username = 2;
+    Name name = 3;
+    string major_id = 4;
+    major.Major major = 5;
+    bool is_activated = 6;
+}
+
+message SetPasswordRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message SetPasswordResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// Service definition
+service UserService {
+    // User management
+    rpc CreateUser(CreateUserRequest) returns (User);
+    rpc GetUser(GetUserRequest) returns (User);
+    rpc GetAllUsers(GetAllUsersRequest) returns (GetAllUsersResponse);
+    rpc UpdateUser(UpdateUserRequest) returns (User);
+    rpc DeleteUser(DeleteUserRequest) returns (Empty);
+    rpc ValidateCredentials(ValidateCredentialsRequest) returns (ValidateCredentialsResponse);
+
+    // Role management
+    rpc CreateRole(CreateRoleRequest) returns (Role);
+    rpc GetRole(GetRoleRequest) returns (Role);
+    rpc GetAllRoles(GetAllRolesRequest) returns (GetAllRolesResponse);
+    rpc UpdateRole(UpdateRoleRequest) returns (Role);
+    rpc DeleteRole(DeleteRoleRequest) returns (Empty);
+
+    // Permission management
+    rpc CreatePermission(CreatePermissionRequest) returns (Permission);
+    rpc GetPermission(GetPermissionRequest) returns (Permission);
+    rpc GetAllPermissions(GetAllPermissionsRequest) returns (GetAllPermissionsResponse);
+    rpc UpdatePermission(UpdatePermissionRequest) returns (Permission);
+    rpc DeletePermission(DeletePermissionRequest) returns (Empty);
+
+    // Registration methods
+    rpc CheckUsername(CheckUsernameRequest) returns (CheckUsernameResponse);
+    rpc SetPassword(SetPasswordRequest) returns (SetPasswordResponse);
+}

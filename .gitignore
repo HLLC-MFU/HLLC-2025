@@ -56,3 +56,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /backend/pkg/user/proto/generated
+backend/backend/module/auth/proto/generated/authPb_grpc.pb.go
+backend/backend/module/auth/proto/generated/authPb.pb.go
+backend/backend/module/major/proto/generated/majorPb_grpc.pb.go
+backend/backend/module/major/proto/generated/majorPb.pb.go
+backend/backend/module/school/proto/generated/schoolPb_grpc.pb.go
+backend/backend/module/school/proto/generated/schoolPb.pb.go
+backend/backend/module/user/proto/generated/userPb_grpc.pb.go
+backend/backend/module/user/proto/generated/userPb.pb.go

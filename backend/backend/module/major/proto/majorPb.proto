@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package major;
+
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto/generated";
+
+import "google/protobuf/timestamp.proto";
+import "pkg/proto/core/shared.proto";
+import "module/school/proto/schoolPb.proto";
+
+
+// Major service definition
+service MajorService {
+  rpc CreateMajor(CreateMajorRequest) returns (MajorResponse);
+  rpc GetMajor(GetMajorRequest) returns (MajorResponse);
+  rpc ListMajors(ListMajorsRequest) returns (ListMajorsResponse);
+  rpc ListMajorsBySchool(ListMajorsBySchoolRequest) returns (ListMajorsResponse);
+  rpc UpdateMajor(UpdateMajorRequest) returns (MajorResponse);
+  rpc DeleteMajor(DeleteMajorRequest) returns (DeleteMajorResponse);
+}
+
+// Major photos
+message MajorPhotos {
+  string cover_photo = 1;      // Main cover photo
+  string banner_photo = 2;     // Banner/header photo
+  string thumbnail_photo = 3;  // Thumbnail for listings
+  string logo_photo = 4;       // Major logo
+}
+
+// Major message
+message Major {
+  string id = 1;
+  string school_id = 2;
+  core.LocalizedName name = 3;
+  string acronym = 4;
+  core.LocalizedDetails details = 5;
+  MajorPhotos photos = 6;
+  school.School school = 7;    // Embedded school information
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+// Request messages
+message CreateMajorRequest {
+  string school_id = 1;
+  core.LocalizedName name = 2;
+  string acronym = 3;
+  core.LocalizedDetails details = 4;
+  MajorPhotos photos = 5;
+}
+
+message GetMajorRequest {
+  string id = 1;
+}
+
+message ListMajorsRequest {
+  core.PaginationRequest pagination = 1;
+}
+
+message ListMajorsBySchoolRequest {
+  string school_id = 1;
+  core.PaginationRequest pagination = 2;
+}
+
+message UpdateMajorRequest {
+  string id = 1;
+  core.LocalizedName name = 2;
+  string acronym = 3;
+  core.LocalizedDetails details = 4;
+  MajorPhotos photos = 5;
+}
+
+message DeleteMajorRequest {
+  string id = 1;
+}
+
+// Response messages
+message MajorResponse {
+  Major major = 1;
+}
+
+message ListMajorsResponse {
+  repeated Major majors = 1;
+  core.PaginationResponse pagination = 2;
+}
+
+message DeleteMajorResponse {
+  bool success = 1;
+} 
