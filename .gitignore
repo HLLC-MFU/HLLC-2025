@@ -43,7 +43,7 @@ app-example
 !.yarn/releases
 !.yarn/versions
 /coverage
-/.next/
+.next/
 /out/
 /build
 .DS_Store
