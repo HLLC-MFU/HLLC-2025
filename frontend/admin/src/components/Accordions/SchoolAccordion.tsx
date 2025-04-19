@@ -1,48 +1,127 @@
+"use client";
+
+import {
+    Accordion,
+    AccordionItem,
+    getKeyValue,
+    Table,
+    TableBody,
+    TableCell,
+    TableColumn,
+    TableHeader,
+    TableRow,
+    Chip,
+    Button
+} from "@heroui/react";
+
 import { Schools } from "@/types/schools";
-import { Accordion, AccordionItem } from "@heroui/react";
+import { ChevronRightIcon } from "@heroicons/react/16/solid";
 
 interface SchoolAccordionProps {
     school: Schools;
     onDetail: (schoolId: number) => void;
 }
 
+const majorColumns = [
+    { key: "name", label: "Name" },
+    { key: "acronym", label: "Acronym" },
+    { key: "details", label: "Details" },
+];
+
 export default function SchoolAccordion({ school, onDetail }: SchoolAccordionProps) {
     return (
-            <Accordion className="min-w-screen flex px-2 py-4 border border-gray-300 rounded-lg shadow-md bg-white dark:bg-gray-800 dark:border-gray-700">
-                <AccordionItem
-                    key={school.id}
-                    aria-label={`Accordion-${school.id}`}
-                    title={school.name}
-                >
-                    <div className="flex flex-col gap-2 text-sm text-gray-800 dark:text-gray-200">
-                        <p>
-                            <strong>Acronym:</strong> {school.acronym || "N/A"}
-                        </p>
-                        <div>
-                            <strong>Majors:</strong>
-                            {school.majors && school.majors.length > 0 ? (
-                                <ul className="list-disc ml-5 mt-1">
-                                    {school.majors.map((m) => (
-                                        <li key={m.id}>
-                                            {m.name} ({m.acronym})
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="ml-2 text-gray-500">No majors assigned</p>
-                            )}
+        <Accordion
+            className="w-full rounded-lg shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700"
+            variant="splitted"
+        >
+            <AccordionItem
+                key={school.id}
+                aria-label={`Accordion-${school.id}`}
+                title={
+                    <span className="flex items-center gap-2">
+                        {school.acronym && (
+                            <Chip size="sm" variant="flat" color="primary">
+                                {school.acronym}
+                            </Chip>
+                        )}
+                        <span className="font-medium text-gray-800 dark:text-gray-200">
+                            {school.name}
+                        </span>
+                    </span>
+                }
 
+                className="px-2 py-2"
+            >
+                <div className="flex flex-col gap-4">
+                    {/* Main content: Info on the left, majors on the right */}
+                    <div className="flex flex-col md:flex-row gap-6 border-t border-gray-200 pb-4 py-4">
+                        {/* Left: School Info */}
+                        <div className="w-full md:w-1/2 flex flex-col gap-3 text-sm text-gray-800 dark:text-gray-200 border-r border-gray-200 pr-4">
+                            <div className="flex items-start gap-2">
+                                <strong>Details:</strong>
+                                <span>{school.details || "No details available"}</span>
+                            </div>
                         </div>
 
-                        <button
+                        {/* Right: Majors Table */}
+                        <div className="w-full md:w-1/2">
+                            <strong className="text-sm text-gray-800 dark:text-gray-200">Majors:</strong>
+                            {school.majors && school.majors.length > 0 ? (
+                                <Table
+                                    aria-label={`Majors table for ${school.name}`}
+                                    className="mt-2"
+                                    removeWrapper
+                                    shadow="sm"
+                                    isStriped
+                                    color="primary"
+                                >
+                                    <TableHeader columns={majorColumns}>
+                                        {(column) => (
+                                            <TableColumn key={column.key} className="bg-gray-50 dark:bg-gray-900 rounded-tl-lg rounded-tr-lg">
+                                                {column.label}
+                                            </TableColumn>
+                                        )}
+                                    </TableHeader>
+                                    <TableBody items={school.majors}>
+                                        {(item) => (
+                                            <TableRow key={item.id}>
+                                                {(columnKey) => (
+                                                    <TableCell>
+                                                        {columnKey === "acronym" && item[columnKey] ? (
+                                                            <Chip size="sm" variant="flat">
+                                                                {getKeyValue(item, columnKey)}
+                                                            </Chip>
+                                                        ) : (
+                                                            getKeyValue(item, columnKey)
+                                                        )}
+                                                    </TableCell>
+                                                )}
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                <p className="ml-2 text-gray-500 mt-1">No majors assigned</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* View Detail Button */}
+                    <div className="flex justify-end">
+                        <Button
+                            size="md"
+                            onPress={() => onDetail(school.id)}
                             aria-label={`View details for ${school.name}`}
-                            onClick={() => onDetail(school.id)}
-                            className="mt-2 px-3 py-1 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors w-max"
+                            className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg"
+                            radius="full"
+                            variant="solid"
                         >
                             View Detail
-                        </button>
+                            <ChevronRightIcon className="w-4 h-4" />
+                        </Button>
                     </div>
-                </AccordionItem>
-            </Accordion>
+                </div>
+            </AccordionItem>
+        </Accordion>
     );
 }

@@ -3,13 +3,16 @@
 import { getSchools } from "@/api/schoolApi";
 import SchoolAccordion from "@/components/Accordions/SchoolAccordion";
 import { Schools } from "@/types/schools";
-import { Card } from "@heroui/react";
+import { Button, Card } from "@heroui/react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SchoolsPage() {
     const [schools, setSchools] = useState<Schools[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const router = useRouter();
 
     useEffect(() => {
         const fetchSchools = async () => {
@@ -27,24 +30,33 @@ export default function SchoolsPage() {
         fetchSchools();
     }, []);
 
-    const handleClickCard = (schoolId: number) => {
-        console.log("Card clicked:", schoolId);
+    const handleDetail = (schoolId: number) => {
+        router.push(`/schools/${schoolId}`);
     };
 
     return (
-        <div className="flex flex-col items-start justify-center min-h-screen py-4">
-            <h1 className="text-2xl font-bold mb-4 p-4">All Schools</h1>
+        <div className="container mx-auto px-4 py-6">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Schools</h1>
+                <Button color="primary">Add School</Button>
+            </div>
+
             {loading ? (
-                <p>Loading...</p>
+                <div className="w-full flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                </div>
             ) : error ? (
-                <p className="text-red-500">{error}</p>
+                <div className="w-full p-4 bg-red-50 text-red-500 rounded-lg">
+                    {error}
+                </div>
             ) : (
-        
-                    <Card className="flex max-w-screen p-2 bg-white shadow-md rounded-lg gap-1 border border-gray-300">
+                <Card className="w-full p-4 bg-white shadow-md rounded-lg border border-gray-200">
+                    <div className="flex flex-col gap-4">
                         {schools.map((school) => (
-                            <SchoolAccordion key={school.id} school={school} onDetail={handleClickCard} />
+                            <SchoolAccordion key={school.id} school={school} onDetail={handleDetail} />
                         ))}
-                    </Card>
+                    </div>
+                </Card>
             )}
         </div>
     );
