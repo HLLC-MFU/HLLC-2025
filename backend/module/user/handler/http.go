@@ -4,6 +4,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	userDto "github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -361,36 +362,58 @@ func (h *httpHandler) DeletePermission(c *fiber.Ctx) error {
 
 func (h *httpHandler) CheckUsername(c *fiber.Ctx) error {
 	var req userDto.CheckUsernameRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
+	
+	// Use decorator to handle request validation
+	if err := decorator.WithRequestValidation(&req)(c); err != nil {
+		return err
 	}
-
+	
+	// Use WithTimeout from context in service layer, not here
 	resp, err := h.userService.CheckUsername(c.Context(), &req)
 	if err != nil {
+		// Return detailed error response
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status": false,
 			"error": err.Error(),
+			"code": "internal_error",
 		})
 	}
 
-	return c.JSON(resp)
+	// Return standardized response
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status": true,
+		"data": resp,
+	})
 }
 
 func (h *httpHandler) SetPassword(c *fiber.Ctx) error {
 	var req userDto.SetPasswordRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
+	
+	// Use decorator to handle request validation
+	if err := decorator.WithRequestValidation(&req)(c); err != nil {
+		return err
 	}
 
+	// Use WithTimeout from context in service layer, not here
 	resp, err := h.userService.SetPassword(c.Context(), &req)
 	if err != nil {
+		// Return detailed error response
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status": false,
 			"error": err.Error(),
+			"code": "internal_error",
 		})
 	}
 
-	return c.JSON(resp)
+	// Set SUCCESS status code depending on the result
+	statusCode := fiber.StatusOK
+	if !resp.Success {
+		statusCode = fiber.StatusBadRequest
+	}
+
+	// Return standardized response
+	return c.Status(statusCode).JSON(fiber.Map{
+		"status": resp.Success,
+		"message": resp.Message,
+	})
 } 

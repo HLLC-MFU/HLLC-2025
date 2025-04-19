@@ -21,13 +21,23 @@ func AuthMiddleware(secretKey string) fiber.Handler {
 
 		if authHeader != "" {
 			// Extract token from Bearer scheme
-			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+			tokenParts := strings.Split(authHeader, " ")
+			if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"status": false,
+					"error": "invalid authorization format, use Bearer token",
+					"code": "invalid_auth_format",
+				})
+			}
+			tokenString = tokenParts[1]
 		} else {
 			// If not in header, try to get from cookies
 			cookie := c.Cookies("access_token")
 			if cookie == "" {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"status": false,
 					"error": "missing authentication token",
+					"code": "missing_token",
 				})
 			}
 			tokenString = cookie
@@ -36,20 +46,28 @@ func AuthMiddleware(secretKey string) fiber.Handler {
 		// Validate token
 		claims, err := security.ParseToken(secretKey, tokenString)
 		if err != nil {
+			statusCode := fiber.StatusUnauthorized
+			errorCode := "invalid_token"
+			errorMsg := "invalid token"
+			
 			if err == security.ErrTokenExpired {
-				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-					"error": "token expired",
-				})
+				errorMsg = "token expired"
+				errorCode = "token_expired"
 			}
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "invalid token",
+			
+			return c.Status(statusCode).JSON(fiber.Map{
+				"status": false,
+				"error": errorMsg,
+				"code": errorCode,
 			})
 		}
 
 		// Check token type
 		if claims.TokenType != security.TokenTypeAccess {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"status": false,
 				"error": "invalid token type",
+				"code": "invalid_token_type",
 			})
 		}
 
@@ -57,6 +75,7 @@ func AuthMiddleware(secretKey string) fiber.Handler {
 		c.Locals("user_id", claims.UserID)
 		c.Locals("username", claims.Username)
 		c.Locals("role_codes", claims.RoleCodes)
+		c.Locals("session_id", claims.SessionID)
 
 		return c.Next()
 	}
@@ -68,7 +87,11 @@ func RoleMiddleware(requiredRoles []string) fiber.Handler {
 		// Get role codes from context
 		roleCodes, ok := c.Locals("role_codes").([]string)
 		if !ok {
-			roleCodes = []string{} // Initialize empty array if not found
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"status": false,
+				"error": "missing user roles",
+				"code": "missing_roles",
+			})
 		}
 		
 		// Check if user has any of the required roles
@@ -87,7 +110,10 @@ func RoleMiddleware(requiredRoles []string) fiber.Handler {
 
 		if !hasRole {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"status": false,
 				"error": "insufficient permissions",
+				"code": "insufficient_permissions",
+				"required_roles": requiredRoles,
 			})
 		}
 
