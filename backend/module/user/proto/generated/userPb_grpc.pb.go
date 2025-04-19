@@ -35,6 +35,8 @@ const (
 	UserService_GetAllPermissions_FullMethodName   = "/user.UserService/GetAllPermissions"
 	UserService_UpdatePermission_FullMethodName    = "/user.UserService/UpdatePermission"
 	UserService_DeletePermission_FullMethodName    = "/user.UserService/DeletePermission"
+	UserService_CheckUsername_FullMethodName       = "/user.UserService/CheckUsername"
+	UserService_SetPassword_FullMethodName         = "/user.UserService/SetPassword"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -62,6 +64,9 @@ type UserServiceClient interface {
 	GetAllPermissions(ctx context.Context, in *GetAllPermissionsRequest, opts ...grpc.CallOption) (*GetAllPermissionsResponse, error)
 	UpdatePermission(ctx context.Context, in *UpdatePermissionRequest, opts ...grpc.CallOption) (*Permission, error)
 	DeletePermission(ctx context.Context, in *DeletePermissionRequest, opts ...grpc.CallOption) (*Empty, error)
+	// Registration methods
+	CheckUsername(ctx context.Context, in *CheckUsernameRequest, opts ...grpc.CallOption) (*CheckUsernameResponse, error)
+	SetPassword(ctx context.Context, in *SetPasswordRequest, opts ...grpc.CallOption) (*SetPasswordResponse, error)
 }
 
 type userServiceClient struct {
@@ -232,6 +237,26 @@ func (c *userServiceClient) DeletePermission(ctx context.Context, in *DeletePerm
 	return out, nil
 }
 
+func (c *userServiceClient) CheckUsername(ctx context.Context, in *CheckUsernameRequest, opts ...grpc.CallOption) (*CheckUsernameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckUsernameResponse)
+	err := c.cc.Invoke(ctx, UserService_CheckUsername_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) SetPassword(ctx context.Context, in *SetPasswordRequest, opts ...grpc.CallOption) (*SetPasswordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetPasswordResponse)
+	err := c.cc.Invoke(ctx, UserService_SetPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -257,6 +282,9 @@ type UserServiceServer interface {
 	GetAllPermissions(context.Context, *GetAllPermissionsRequest) (*GetAllPermissionsResponse, error)
 	UpdatePermission(context.Context, *UpdatePermissionRequest) (*Permission, error)
 	DeletePermission(context.Context, *DeletePermissionRequest) (*Empty, error)
+	// Registration methods
+	CheckUsername(context.Context, *CheckUsernameRequest) (*CheckUsernameResponse, error)
+	SetPassword(context.Context, *SetPasswordRequest) (*SetPasswordResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -314,6 +342,12 @@ func (UnimplementedUserServiceServer) UpdatePermission(context.Context, *UpdateP
 }
 func (UnimplementedUserServiceServer) DeletePermission(context.Context, *DeletePermissionRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeletePermission not implemented")
+}
+func (UnimplementedUserServiceServer) CheckUsername(context.Context, *CheckUsernameRequest) (*CheckUsernameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckUsername not implemented")
+}
+func (UnimplementedUserServiceServer) SetPassword(context.Context, *SetPasswordRequest) (*SetPasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetPassword not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -624,6 +658,42 @@ func _UserService_DeletePermission_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_CheckUsername_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckUsernameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).CheckUsername(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_CheckUsername_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).CheckUsername(ctx, req.(*CheckUsernameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_SetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).SetPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_SetPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).SetPassword(ctx, req.(*SetPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -694,6 +764,14 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeletePermission",
 			Handler:    _UserService_DeletePermission_Handler,
+		},
+		{
+			MethodName: "CheckUsername",
+			Handler:    _UserService_CheckUsername_Handler,
+		},
+		{
+			MethodName: "SetPassword",
+			Handler:    _UserService_SetPassword_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
