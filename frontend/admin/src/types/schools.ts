@@ -1,10 +1,10 @@
 import { Majors } from "./majors";
 
 export interface Schools {
-    id: string;
+    id: number;
     name: string;
     details: string;
     acronym: string;
-    major: Majors;
+    majors: Majors[];
     createdAt: string;
 }

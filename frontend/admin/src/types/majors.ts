@@ -1,5 +1,5 @@
 export interface Majors{
-    id: string;
+    id: number;
     name: string;
     details: string;
     acronym: string;
