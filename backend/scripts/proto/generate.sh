@@ -20,7 +20,7 @@ echo "Using ROOT_DIR: $ROOT_DIR"
 clean_generated() {
     echo "Cleaning old generated files..."
     rm -rf "$ROOT_DIR/pkg/proto/generated"/*
-    for module in auth user school major; do
+    for module in auth user school major activity checkin; do
         if [ -d "$ROOT_DIR/module/$module/proto/generated" ]; then
             rm -rf "$ROOT_DIR/module/$module/proto/generated"/*
         fi
@@ -34,7 +34,7 @@ create_dirs() {
     mkdir -p "$ROOT_DIR/pkg/proto/generated"
     chmod 755 "$ROOT_DIR/pkg/proto/generated"
 
-    for module in auth user school major; do
+    for module in auth user school major activity checkin; do
         if [ -d "$ROOT_DIR/module/$module/proto" ]; then
             mkdir -p "$ROOT_DIR/module/$module/proto/generated"
             chmod 755 "$ROOT_DIR/module/$module/proto/generated"
@@ -87,5 +87,7 @@ generate_module_proto "school"
 generate_module_proto "auth"
 generate_module_proto "user"
 generate_module_proto "major"
+generate_module_proto "activity"
+generate_module_proto "checkin"
 
 echo "Proto generation completed!"

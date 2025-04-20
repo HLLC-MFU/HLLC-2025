@@ -1,4 +1,4 @@
-  #!/bin/bash
+#!/bin/bash
 
 # Exit on error
 set -e
@@ -18,7 +18,7 @@ if [ -d "$ROOT_DIR/pkg/proto/generated/github.com" ]; then
 fi
 
 # Fix module proto files
-for module in auth user school major; do
+for module in auth user school major activity checkin; do
     if [ -d "$ROOT_DIR/module/$module/proto/generated/github.com" ]; then
         echo "Fixing $module proto files..."
         find "$ROOT_DIR/module/$module/proto/generated/github.com" -name "*.pb.go" -exec cp {} "$ROOT_DIR/module/$module/proto/generated/" \;

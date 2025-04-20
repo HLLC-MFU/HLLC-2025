@@ -1,6 +1,9 @@
 package decorator
 
 import (
+	"context"
+	"log"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -42,6 +45,29 @@ func WithLogging(handler HTTPHandlerFunc) HTTPHandlerFunc {
 		}
 
 		return err
+	}
+}
+
+// WithGenericLogging adds logging to generic controller methods
+// T is the return type of the controller method
+func WithGenericLogging[T any](fn func(context.Context) (T, error), operationName string) func(context.Context) (T, error) {
+	return func(ctx context.Context) (T, error) {
+		var result T
+		
+		// Pre-operation logging
+		log.Printf("Starting operation: %s", operationName)
+		
+		// Execute the function
+		result, err := fn(ctx)
+		
+		// Post-operation logging
+		if err != nil {
+			log.Printf("Error in operation %s: %v", operationName, err)
+		} else {
+			log.Printf("Successfully completed operation: %s", operationName)
+		}
+		
+		return result, err
 	}
 }
 
