@@ -75,18 +75,11 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 		// Initialize empty arrays to avoid null in response
 		roleIDs := make([]string, 0)
 		roleCodes := make([]string, 0)
-		roles := make([]dto.Role, 0)
 
-		// Get role IDs, codes and objects for response
+		// Get role IDs and codes for JWT claims
 		for _, role := range user.Roles {
 			roleIDs = append(roleIDs, role.Id)
 			roleCodes = append(roleCodes, role.Code)
-			roles = append(roles, dto.Role{
-				ID:          role.Id,
-				Name:        role.Name,
-				Code:        role.Code,
-				Description: role.Description,
-			})
 		}
 
 		// Generate tokens
@@ -117,30 +110,10 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 			return nil, err
 		}
 
-		// Convert user response
-		authUser := &dto.UserResponse{
-			ID:         user.ID,
-			Username:   user.Username,
-			FirstName:  user.Name.FirstName,
-			MiddleName: user.Name.MiddleName,
-			LastName:   user.Name.LastName,
-			Roles:      roles,
-		}
-		
-		// Add major ID and major if available
-		if user.MajorID != "" {
-			authUser.MajorID = user.MajorID
-			
-			// Try to get major details
-			if user.Major != nil {
-				authUser.Major = user.Major
-			}
-		}
-
+		// Return login response with tokens only
 		return &dto.LoginResponse{
 			Status: true,
 			Data: dto.LoginResponseData{
-				User:         authUser,
 				AccessToken:  accessToken,
 				RefreshToken: refreshToken,
 				ExpiresAt:    expiresAt.Format(time.RFC3339),

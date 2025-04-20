@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/model"
@@ -16,6 +17,7 @@ var (
 	ErrMajorNotFound      = errors.New("major not found")
 	ErrMajorAlreadyExists = errors.New("major already exists")
 	ErrSchoolNotFound     = errors.New("school not found")
+	ErrSchoolServiceUnavailable = errors.New("school service unavailable")
 )
 
 // Service defines the interface for major business logic
@@ -141,12 +143,22 @@ func (s *service) GetMajorWithSchool(ctx context.Context, id primitive.ObjectID)
 		return nil, ErrMajorNotFound
 	}
 
-	// Fetch school data
-	schoolResp, err := s.schoolClient.GetSchool(ctx, &schoolPb.GetSchoolRequest{
+	// Check if school client is available
+	if s.schoolClient == nil {
+		log.Printf("Warning: School client is unavailable when getting major with ID: %s", id.Hex())
+		return major, ErrSchoolServiceUnavailable
+	}
+
+	// Fetch school data with timeout
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	
+	schoolResp, err := s.schoolClient.GetSchool(ctxWithTimeout, &schoolPb.GetSchoolRequest{
 		Id: major.SchoolID.Hex(),
 	})
 	if err != nil {
-		return nil, err
+		log.Printf("Error fetching school data for major %s: %v", id.Hex(), err)
+		return major, nil // Return just the major without school data
 	}
 
 	// Convert school proto to model
@@ -178,12 +190,23 @@ func (s *service) ListMajorsWithSchool(ctx context.Context, page, limit int64) (
 		return nil, 0, err
 	}
 
+	// If school client is unavailable, return majors without school data
+	if s.schoolClient == nil {
+		log.Println("Warning: School client is unavailable when listing majors with schools")
+		return majors, total, nil
+	}
+
 	// Fetch school data for each major
 	for _, major := range majors {
-		schoolResp, err := s.schoolClient.GetSchool(ctx, &schoolPb.GetSchoolRequest{
+		// Use timeout for each school request
+		ctxWithTimeout, cancel := context.WithTimeout(ctx, 2*time.Second)
+		schoolResp, err := s.schoolClient.GetSchool(ctxWithTimeout, &schoolPb.GetSchoolRequest{
 			Id: major.SchoolID.Hex(),
 		})
+		cancel() // Cancel immediately after the call
+		
 		if err != nil {
+			log.Printf("Warning: Error fetching school data for major %s: %v", major.ID.Hex(), err)
 			continue // Skip if school not found
 		}
 

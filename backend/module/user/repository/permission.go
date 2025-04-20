@@ -33,19 +33,40 @@ func (r *permissionRepository) CreatePermission(ctx context.Context, permission 
 
 // FindPermissionByID finds a permission by ID with timeout handling
 func (r *permissionRepository) FindPermissionByID(ctx context.Context, id primitive.ObjectID) (*userPb.Permission, error) {
-	var permission userPb.Permission
+	var permission *userPb.Permission
 	_, err := decorator.WithTimeout[struct{}](5*time.Second)(func(ctx context.Context) (struct{}, error) {
 		collection := r.dbConnect(ctx).Collection("permissions")
-		err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&permission)
-		if err == mongo.ErrNoDocuments {
-			return struct{}{}, ErrNotFound
+		
+		// Try finding by _id field first
+		result := collection.FindOne(ctx, bson.M{"_id": id})
+		if result.Err() != nil {
+			if result.Err() == mongo.ErrNoDocuments {
+				// If not found by _id, try by id string field
+				idStr := id.Hex()
+				result = collection.FindOne(ctx, bson.M{"id": idStr})
+				if result.Err() != nil {
+					if result.Err() == mongo.ErrNoDocuments {
+						return struct{}{}, ErrNotFound
+					}
+					return struct{}{}, result.Err()
+				}
+			} else {
+				return struct{}{}, result.Err()
+			}
 		}
-		return struct{}{}, err
+		
+		// Decode the permission document
+		permission = &userPb.Permission{}
+		if err := result.Decode(permission); err != nil {
+			return struct{}{}, err
+		}
+		
+		return struct{}{}, nil
 	})(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &permission, nil
+	return permission, nil
 }
 
 // FindAllPermissions retrieves all permissions with timeout and cursor handling

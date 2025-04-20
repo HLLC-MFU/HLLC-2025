@@ -33,6 +33,7 @@ func (h *GrpcHandler) CreateMajor(ctx context.Context, req *majorPb.CreateMajorR
 	}
 
 	major := &model.Major{
+		ID:      primitive.NewObjectID(),
 		SchoolID: schoolID,
 		Name: coreModel.LocalizedName{
 			ThName: req.Name.ThName,

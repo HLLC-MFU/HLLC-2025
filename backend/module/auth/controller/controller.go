@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/dto"
@@ -18,6 +19,7 @@ type (
 		RegisterProtectedRoutes(router fiber.Router)
 		RegisterAdminRoutes(router fiber.Router)
 		Login(c *fiber.Ctx) error
+		GetProfile(c *fiber.Ctx) error
 		RefreshToken(c *fiber.Ctx) error
 		Logout(c *fiber.Ctx) error
 		ValidateToken(c *fiber.Ctx) error
@@ -47,6 +49,7 @@ func (c *authController) RegisterPublicRoutes(router fiber.Router) {
 func (c *authController) RegisterProtectedRoutes(router fiber.Router) {
 	router.Post("/auth/logout", c.Logout)
 	router.Get("/auth/validate", c.ValidateToken)
+	router.Get("/auth/me", c.GetProfile)
 }
 
 // RegisterAdminRoutes registers routes that require admin role
@@ -97,7 +100,40 @@ func (c *authController) Login(ctx *fiber.Ctx) error {
 		SameSite: fiber.CookieSameSiteStrictMode,
 	})
 
-	return response.Success(ctx, http.StatusOK, result.Data)
+	// Return only tokens, not user data, for better security
+	tokenResponse := map[string]interface{}{
+		"access_token":  result.Data.AccessToken,
+		"refresh_token": result.Data.RefreshToken,
+		"expires_at":    result.Data.ExpiresAt,
+	}
+
+	return response.Success(ctx, http.StatusOK, tokenResponse)
+}
+
+// GetProfile retrieves the current user's profile data
+func (c *authController) GetProfile(ctx *fiber.Ctx) error {
+	// Get token from Authorization header or cookie
+	token := ctx.Get("Authorization")
+	if token == "" {
+		token = ctx.Cookies("access_token")
+	}
+	
+	// Remove "Bearer " prefix if present
+	if len(token) > 7 && token[:7] == "Bearer " {
+		token = token[7:]
+	}
+
+	if token == "" {
+		return response.Error(ctx, http.StatusUnauthorized, "no authentication token provided")
+	}
+
+	// Validate token and get user data
+	userData, err := c.authService.ValidateToken(ctx.Context(), token)
+	if err != nil {
+		return response.Error(ctx, http.StatusUnauthorized, err.Error())
+	}
+
+	return response.Success(ctx, http.StatusOK, userData)
 }
 
 // RefreshToken handles token refresh requests
@@ -189,18 +225,31 @@ func (c *authController) Logout(ctx *fiber.Ctx) error {
 
 // ValidateToken validates the current token
 func (c *authController) ValidateToken(ctx *fiber.Ctx) error {
-	userID := ctx.Locals("user_id").(string)
-	username := ctx.Locals("username").(string)
+	// Extract token from Authorization header
+	authHeader := ctx.Get("Authorization")
+	if authHeader == "" {
+		return response.Error(ctx, http.StatusUnauthorized, "no authorization header provided")
+	}
 
-	user, err := c.authService.ValidateToken(ctx.Context(), ctx.Get("Authorization"))
+	// Extract token from Bearer scheme
+	var token string
+	if len(authHeader) > 7 && strings.HasPrefix(authHeader, "Bearer ") {
+		token = authHeader[7:]
+	} else {
+		token = authHeader // Allow raw token for compatibility
+	}
+
+	if token == "" {
+		return response.Error(ctx, http.StatusUnauthorized, "no token provided")
+	}
+
+	// Validate token through service
+	user, err := c.authService.ValidateToken(ctx.Context(), token)
 	if err != nil {
 		return response.Error(ctx, http.StatusUnauthorized, err.Error())
 	}
 
-	if user.ID != userID || user.Username != username {
-		return response.Error(ctx, http.StatusUnauthorized, "invalid token")
-	}
-
+	// Token is valid, return user data
 	return response.Success(ctx, http.StatusOK, user)
 }
 

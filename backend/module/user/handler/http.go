@@ -1,8 +1,14 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
+	"log"
+	"time"
+
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	userDto "github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
+	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 	"github.com/gofiber/fiber/v2"
@@ -106,13 +112,33 @@ func (h *httpHandler) GetUser(c *fiber.Ctx) error {
 }
 
 func (h *httpHandler) GetAllUsers(c *fiber.Ctx) error {
-	users, err := h.userService.GetAllUsers(c.Context())
+	log.Printf("HTTP GetAllUsers: Requesting all users")
+	
+	ctx, cancel := context.WithTimeout(c.Context(), 15*time.Second)
+	defer cancel()
+	
+	users, err := h.userService.GetAllUsers(ctx)
 	if err != nil {
+		log.Printf("HTTP GetAllUsers error: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
+			"error": "Failed to retrieve users: " + err.Error(),
 		})
 	}
-
+	
+	// Ensure we return valid JSON even if some values are nil
+	for i := range users {
+		if users[i].Roles == nil {
+			users[i].Roles = []*userPb.Role{}
+		}
+		
+		// Major can be nil - that's okay, JSON will show it as null
+		if users[i].Major == nil && users[i].MajorID != "" {
+			log.Printf("HTTP GetAllUsers: User %s has majorID %s but major data is nil", 
+				users[i].Username, users[i].MajorID)
+		}
+	}
+	
+	log.Printf("HTTP GetAllUsers: Successfully returning %d users", len(users))
 	return c.JSON(users)
 }
 
@@ -216,14 +242,119 @@ func (h *httpHandler) GetRole(c *fiber.Ctx) error {
 }
 
 func (h *httpHandler) GetAllRoles(c *fiber.Ctx) error {
-	roles, err := h.userService.GetAllRoles(c.Context())
+	log.Printf("HTTP GetAllRoles: Requesting all roles")
+	
+	ctx, cancel := context.WithTimeout(c.Context(), 15*time.Second)
+	defer cancel()
+	
+	// First fetch all permissions to have them available
+	permissionsResponse, err := h.userService.GetAllPermissions(ctx)
 	if err != nil {
+		log.Printf("HTTP GetAllRoles error getting permissions: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
+			"error": "Failed to retrieve permissions: " + err.Error(),
 		})
 	}
-
-	return c.JSON(roles)
+	
+	// Log available permissions
+	log.Printf("HTTP GetAllRoles: Found %d permissions", len(permissionsResponse))
+	
+	// Create a map of all permissions for easy lookup and ensure each has the correct format
+	allPermissions := make(map[string]map[string]interface{})
+	allPermissionsArray := make([]map[string]interface{}, 0, len(permissionsResponse))
+	
+	for _, perm := range permissionsResponse {
+		permData := map[string]interface{}{
+			"id":          perm.ID,
+			"name":        perm.Name,
+			"code":        perm.Code,
+			"description": perm.Description,
+			"module":      perm.Module,
+		}
+		allPermissions[perm.ID] = permData
+		allPermissionsArray = append(allPermissionsArray, permData)
+		
+		log.Printf("HTTP GetAllRoles: Available permission: %s (ID: %s, Code: %s)", 
+			perm.Name, perm.ID, perm.Code)
+	}
+	
+	// Get all roles
+	roles, err := h.userService.GetAllRoles(ctx)
+	if err != nil {
+		log.Printf("HTTP GetAllRoles error: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to retrieve roles: " + err.Error(),
+		})
+	}
+	
+	// Return roles with embedded permissions
+	formattedRoles := make([]map[string]interface{}, 0, len(roles))
+	
+	for _, role := range roles {
+		// Debug log the role information
+		log.Printf("HTTP GetAllRoles: Processing role %s (ID: %s)", role.Name, role.ID)
+		
+		// For ADMIN role, always add all permissions
+		if role.Code == "ADMIN" {
+			log.Printf("HTTP GetAllRoles: Special handling for ADMIN role with code %s", role.Code)
+			
+			// Create formatted role with all permissions
+			formattedRole := map[string]interface{}{
+				"id":          role.ID,
+				"name":        role.Name,
+				"code":        role.Code,
+				"description": role.Description,
+				"permissions": allPermissionsArray, // Add ALL permissions for ADMIN
+			}
+			
+			log.Printf("HTTP GetAllRoles: Added all %d permissions to ADMIN role", len(allPermissionsArray))
+			formattedRoles = append(formattedRoles, formattedRole)
+			continue
+		}
+		
+		// For non-ADMIN roles, use the assigned permissions
+		permissions := make([]map[string]interface{}, 0)
+		if role.Permissions != nil {
+			log.Printf("Role %s has %d permissions to format", role.Name, len(role.Permissions))
+			for i, perm := range role.Permissions {
+				if perm == nil {
+					log.Printf("Warning: Nil permission found at index %d in role %s", i, role.Name)
+					continue
+				}
+				
+				log.Printf("Adding permission: %s (ID: %s, Code: %s)", perm.Name, perm.Id, perm.Code)
+				permissions = append(permissions, map[string]interface{}{
+					"id":          perm.Id,
+					"name":        perm.Name,
+					"code":        perm.Code,
+					"description": perm.Description,
+					"module":      perm.Module,
+				})
+			}
+		} else {
+			log.Printf("Role %s has nil Permissions field", role.Name)
+		}
+		
+		log.Printf("Formatted %d permissions for role %s", len(permissions), role.Name)
+		
+		// Create formatted role
+		formattedRole := map[string]interface{}{
+			"id":          role.ID,
+			"name":        role.Name,
+			"code":        role.Code,
+			"description": role.Description,
+			"permissions": permissions,
+		}
+		
+		formattedRoles = append(formattedRoles, formattedRole)
+	}
+	
+	// Log the final JSON output for debugging
+	jsonData, _ := json.MarshalIndent(formattedRoles, "", "  ")
+	log.Printf("HTTP GetAllRoles: Final JSON response: %s", string(jsonData))
+	
+	log.Printf("HTTP GetAllRoles: Successfully returning %d roles", len(formattedRoles))
+	return c.JSON(formattedRoles)
 }
 
 func (h *httpHandler) UpdateRole(c *fiber.Ctx) error {
