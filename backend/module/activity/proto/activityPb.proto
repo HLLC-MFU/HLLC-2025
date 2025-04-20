@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package activity;
+
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/activity/proto/generated";
+
+import "google/protobuf/timestamp.proto";
+import "pkg/proto/core/shared.proto";
+
+// Activity service definition
+service ActivityService {
+  rpc CreateActivity(CreateActivityRequest) returns (ActivityResponse);
+  rpc GetActivity(GetActivityRequest) returns (ActivityResponse);
+  rpc GetActivityByCode(GetActivityByCodeRequest) returns (ActivityResponse);
+  rpc ListActivities(ListActivitiesRequest) returns (ListActivitiesResponse);
+  rpc UpdateActivity(UpdateActivityRequest) returns (ActivityResponse);
+  rpc DeleteActivity(DeleteActivityRequest) returns (DeleteActivityResponse);
+}
+
+// ActivityType enum
+enum ActivityType {
+  HOW_TO_LIVE = 0;
+  HOW_TO_LEARN = 1;
+}
+
+// Activity message
+message Activity {
+  string id = 1;
+  core.LocalizedName name = 2;
+  core.LocalizedName short_name = 3;
+  string code = 4;
+  ActivityType type = 5;
+  core.LocalizedDetails description = 6;
+  core.LocalizedDetails short_desc = 7;
+  bool open = 8;
+  bool progress = 9;
+  bool show = 10;
+  string icon = 11;
+  string banner = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+// Request messages
+message CreateActivityRequest {
+  core.LocalizedName name = 1;
+  core.LocalizedName short_name = 2;
+  string code = 3;
+  ActivityType type = 4;
+  core.LocalizedDetails description = 5;
+  core.LocalizedDetails short_desc = 6;
+  bool open = 7;
+  bool progress = 8;
+  bool show = 9;
+  string icon = 10;
+  string banner = 11;
+}
+
+message GetActivityRequest {
+  string id = 1;
+}
+
+message GetActivityByCodeRequest {
+  string code = 1;
+}
+
+message ListActivitiesRequest {
+  core.PaginationRequest pagination = 1;
+  ActivityType type = 2;
+  bool show_only = 3;
+}
+
+message UpdateActivityRequest {
+  string id = 1;
+  core.LocalizedName name = 2;
+  core.LocalizedName short_name = 3;
+  string code = 4;
+  ActivityType type = 5;
+  core.LocalizedDetails description = 6;
+  core.LocalizedDetails short_desc = 7;
+  bool open = 8;
+  bool progress = 9;
+  bool show = 10;
+  string icon = 11;
+  string banner = 12;
+}
+
+message DeleteActivityRequest {
+  string id = 1;
+}
+
+// Response messages
+message ActivityResponse {
+  Activity activity = 1;
+}
+
+message ListActivitiesResponse {
+  repeated Activity activities = 1;
+  core.PaginationResponse pagination = 2;
+}
+
+message DeleteActivityResponse {
+  bool success = 1;
+} 
