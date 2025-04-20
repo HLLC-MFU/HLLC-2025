@@ -9,6 +9,11 @@
   --font-geist-mono: 'Geist Mono', monospace;
 }
 
+.dark {
+  --background: #111111;
+  --foreground: #ffffff;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
