@@ -39,6 +39,12 @@ type Config struct {
 	Major struct {
 		GRPCAddr string
 	}
+	Activity struct {
+		GRPCAddr string
+	}
+	Checkin struct {
+		GRPCAddr string
+	}
 	Db struct {
 		Url      string
 		Database string
@@ -91,6 +97,20 @@ func LoadConfig(path string) *Config {
 		// Major service needs school service for school validation
 		cfg.School.GRPCAddr = getEnvOrFatal("GRPC_SCHOOL_URL")
 		// Major service might need auth for validation
+		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
+	case "activity":
+		cfg.Activity.GRPCAddr = getEnvOrFatal("GRPC_ACTIVITY_URL")
+		// Activity service might need auth for validation
+		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
+		// Activity service might need user service for activity-user relationship
+		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
+	case "checkin":
+		cfg.Checkin.GRPCAddr = getEnvOrFatal("GRPC_CHECKIN_URL")
+		// Checkin service needs activity service
+		cfg.Activity.GRPCAddr = getEnvOrFatal("GRPC_ACTIVITY_URL")
+		// Checkin service needs user service
+		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
+		// Checkin service might need auth for validation
 		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
 	default:
 		log.Fatalf("Unknown service name: %s", cfg.App.Name)
