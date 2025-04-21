@@ -9,7 +9,7 @@ import (
 )
 
 /**
- * Config struct
+ * Config struct for monolithic application
  *
  * @author Dev. Bengi (Backend Team)
  */
@@ -25,25 +25,7 @@ type Config struct {
 		ApiSecretKey     string
 		AccessDuration   int64
 		RefreshDuration  int64
-		ApiDuration     int64
-	}
-	User struct {
-		GRPCAddr string
-	}
-	Auth struct {
-		GRPCAddr string
-	}
-	School struct {
-		GRPCAddr string
-	}
-	Major struct {
-		GRPCAddr string
-	}
-	Activity struct {
-		GRPCAddr string
-	}
-	Checkin struct {
-		GRPCAddr string
+		ApiDuration      int64
 	}
 	Db struct {
 		Url      string
@@ -65,7 +47,7 @@ func LoadConfig(path string) *Config {
 	cfg := &Config{}
 
 	// App configuration
-	cfg.App.Name = getEnvOrFatal("APP_NAME")
+	cfg.App.Name = getEnvOrDefault("APP_NAME", "monolith")
 	cfg.App.Url = getEnvOrFatal("APP_URL")
 
 	// JWT configuration
@@ -75,46 +57,6 @@ func LoadConfig(path string) *Config {
 	cfg.Jwt.AccessDuration = getEnvAsInt64OrDefault("JWT_ACCESS_DURATION", 86400)
 	cfg.Jwt.RefreshDuration = getEnvAsInt64OrDefault("JWT_REFRESH_DURATION", 604800)
 	cfg.Jwt.ApiDuration = getEnvAsInt64OrDefault("JWT_API_DURATION", 31536000)
-
-	// Service gRPC addresses - only load what's needed based on service
-	switch cfg.App.Name {
-	case "user":
-		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
-		// User service needs auth service for validation
-		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
-		// User service needs major service for user-major relationship
-		cfg.Major.GRPCAddr = getEnvOrFatal("GRPC_MAJOR_URL")
-	case "auth":
-		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
-		// Auth service needs user service for user management
-		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
-	case "school":
-		cfg.School.GRPCAddr = getEnvOrFatal("GRPC_SCHOOL_URL")
-		// School service might need auth for validation
-		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
-	case "major":
-		cfg.Major.GRPCAddr = getEnvOrFatal("GRPC_MAJOR_URL")
-		// Major service needs school service for school validation
-		cfg.School.GRPCAddr = getEnvOrFatal("GRPC_SCHOOL_URL")
-		// Major service might need auth for validation
-		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
-	case "activity":
-		cfg.Activity.GRPCAddr = getEnvOrFatal("GRPC_ACTIVITY_URL")
-		// Activity service might need auth for validation
-		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
-		// Activity service might need user service for activity-user relationship
-		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
-	case "checkin":
-		cfg.Checkin.GRPCAddr = getEnvOrFatal("GRPC_CHECKIN_URL")
-		// Checkin service needs activity service
-		cfg.Activity.GRPCAddr = getEnvOrFatal("GRPC_ACTIVITY_URL")
-		// Checkin service needs user service
-		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
-		// Checkin service might need auth for validation
-		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
-	default:
-		log.Fatalf("Unknown service name: %s", cfg.App.Name)
-	}
 
 	// Database configuration
 	cfg.Db.Url = getEnvOrFatal("DB_URL")
