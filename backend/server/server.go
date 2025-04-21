@@ -4,15 +4,18 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/migration"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -28,6 +31,13 @@ type server struct {
 	db     *mongo.Client
 	redis  *core.RedisCache
 }
+
+// UserService is a global variable to be accessed by other modules directly
+var (
+	UserSvc  service.UserService
+	RoleSvc  service.RoleService
+	PermSvc  service.PermissionService
+)
 
 func NewServer(cfg *config.Config, db *mongo.Client) *server {
 	app := fiber.New(fiber.Config{
@@ -46,8 +56,33 @@ func NewServer(cfg *config.Config, db *mongo.Client) *server {
 	}
 }
 
-func (s *server) grpcListener(addr string) (net.Listener, error) {
-	return net.Listen("tcp", addr)
+func (s *server) verifyGRPCServices() {
+	// Wait a bit for services to fully start
+	time.Sleep(2 * time.Second)
+
+	// Get all registered gRPC services
+	ports := core.GetGRPCPorts()
+	if len(ports) == 0 {
+		log.Println("Warning: No gRPC services registered!")
+		return
+	}
+
+	log.Println("\n=== gRPC Services Status ===")
+	for service, port := range ports {
+		// Try to establish a connection to verify the service is running
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		conn, err := core.GetGRPCConnection(ctx, service)
+		if err != nil {
+			log.Printf("❌ %s service (port %d): Not responding - %v", service, port, err)
+			continue
+		}
+		defer conn.Close()
+
+		log.Printf("✅ %s service running on port %d", service, port)
+	}
+	log.Println("===========================\n")
 }
 
 func (s *server) Start() error {
@@ -60,27 +95,33 @@ func (s *server) Start() error {
 		return fmt.Errorf("failed to run migrations: %v", err)
 	}
 
-	// Route service based on App Name
-	switch s.config.App.Name {
-	case "user":
-		s.userService()
-	case "auth":
-		s.authService()
-	case "major":
-		s.majorService()
-	case "school":
-		s.schoolService()
-	case "activity":
-		s.activityService()
-	case "checkin":
-		s.checkinService()
-	default:
-		return fmt.Errorf("unknown service name: %s", s.config.App.Name)
-	}
+	// Set up global middleware
+	s.app.Use(cors.New(cors.Config{
+		AllowCredentials: true,
+		AllowOrigins:     "http://localhost:3000",  // Frontend development URL 
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST, PUT, DELETE",
+	}))
+	s.app.Use(middleware.RequestIDMiddleware())
+	s.app.Use(middleware.LoggingMiddleware())
+	s.app.Use(middleware.RecoveryMiddleware())
+
+	// Initialize all services
+	log.Println("Starting service initialization...")
+	s.initializeAllServices()
+	log.Println("Service initialization completed")
+
+	// Verify gRPC services in a separate goroutine
+	go s.verifyGRPCServices()
+
+	// Set up health check
+	s.app.Get("/health", func(c *fiber.Ctx) error {
+		return c.SendString("OK")
+	})
 
 	// Start HTTP server
 	go func() {
-		log.Printf("Starting HTTP server on %s", s.config.App.Url)
+		log.Printf("Starting monolithic server on %s", s.config.App.Url)
 		if err := s.app.Listen(s.config.App.Url); err != nil {
 			log.Fatalf("Failed to start HTTP server: %v", err)
 		}
@@ -109,4 +150,36 @@ func (s *server) Start() error {
 	}
 
 	return nil
+}
+
+// initializeAllServices initializes all services for the monolithic application
+func (s *server) initializeAllServices() {
+	log.Println("Initializing all services...")
+
+	// Initialize services in order of dependencies
+	if err := InitSchoolService(s.app, s.config, s.db); err != nil {
+		log.Printf("Error initializing school service: %v", err)
+	}
+
+	if err := InitMajorService(s.app, s.config, s.db); err != nil {
+		log.Printf("Error initializing major service: %v", err)
+	}
+
+	if err := InitUserService(s.app, s.config, s.db); err != nil {
+		log.Printf("Error initializing user service: %v", err)
+	}
+
+	if err := InitAuthService(s.app, s.config, s.db); err != nil {
+		log.Printf("Error initializing auth service: %v", err)
+	}
+
+	if err := InitActivityService(s.app, s.config, s.db); err != nil {
+		log.Printf("Error initializing activity service: %v", err)
+	}
+
+	if err := InitCheckinService(s.app, s.config, s.db); err != nil {
+		log.Printf("Error initializing checkin service: %v", err)
+	}
+	
+	log.Println("All services initialized successfully in monolithic mode")
 }

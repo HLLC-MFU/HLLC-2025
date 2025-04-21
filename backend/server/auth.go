@@ -1,98 +1,63 @@
 package server
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/controller"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/handler"
-	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated"
-	authRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/repository"
-	authService "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/service"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/adapter"
-	userRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
-	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/repository"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/service"
+	userRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
+	"go.mongodb.org/mongo-driver/mongo"
+	"google.golang.org/grpc"
 )
 
-func (s *server) authService() {
-	// Initialize repository factory
-	repoFactory := userRepository.NewFactory(s.db)
+// AuthService is a global variable to be accessed by other modules directly
+var (
+	AuthSvc service.AuthService
+)
+
+// InitAuthService initializes the auth service and its dependencies
+func InitAuthService(app *fiber.App, cfg *config.Config, db *mongo.Client) error {
+	log.Println("Initializing auth service...")
 
 	// Initialize repositories
-	userRepo := repoFactory.NewUserRepository()
-	roleRepo := repoFactory.NewRoleRepository()
-	permRepo := repoFactory.NewPermissionRepository()
-	authRepo := authRepository.NewAuthRepository(s.db)
+	userRepo := userRepo.NewUserRepository(db)
+	authRepo := repository.NewAuthRepository(db)
 
-	// Create major service adapter
-	majorAdapter := adapter.NewMajorServiceAdapter(s.config.Major.GRPCAddr)
+	// Initialize service
+	AuthSvc = service.NewAuthService(cfg, userRepo, authRepo, UserSvc)
 
-	// Initialize services
-	userSvc := userService.NewUserService(s.config, userRepo, roleRepo, permRepo, majorAdapter)
-	authSvc := authService.NewAuthService(s.config, userRepo, authRepo, userSvc)
+	// Initialize controller
+	authController := controller.NewAuthController(cfg, AuthSvc)
 
-	// Initialize controllers
-	authController := controller.NewAuthController(s.config, authSvc)
-	grpcHandler := handler.NewGRPCHandler(s.config, authSvc)
+	// Register gRPC service
+	log.Println("Registering auth gRPC service...")
+	grpcHandler := handler.NewGRPCHandler(cfg, AuthSvc)
+	if err := core.RegisterGRPCService("auth", func(server *grpc.Server) {
+		generated.RegisterAuthServiceServer(server, grpcHandler)
+	}); err != nil {
+		return fmt.Errorf("failed to register auth gRPC service: %v", err)
+	}
+	log.Printf("Successfully registered auth gRPC service")
 
-	// Set up HTTP middleware
-	s.app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000",
-		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
-		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
+	// Initialize HTTP server
+	api := app.Group("/api/v1")
 
-	// Add request ID, logging and recovery middleware
-	s.app.Use(middleware.RequestIDMiddleware())
-	s.app.Use(middleware.LoggingMiddleware())
-	s.app.Use(middleware.RecoveryMiddleware())
-
-	// Set up HTTP routes
-	api := s.app.Group("/api/v1")
-	
 	// Public routes (no auth required)
-	authController.RegisterPublicRoutes(api)
+	public := api.Group("/public/auth")
+	authController.RegisterPublicRoutes(public)
 
 	// Protected routes (auth required)
-	protected := api.Group("/protected")
-	protected.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
+	protected := api.Group("/auth")
 	authController.RegisterProtectedRoutes(protected)
 
-	// Admin routes (auth + admin role required)
-	admin := api.Group("/admin")
-	admin.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
-	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
-	authController.RegisterAdminRoutes(admin)
-
-	// Set up gRPC server for internal service communication
-	go func() {
-		jwtConfig := &core.JwtConfig{
-			AccessSecretKey:  s.config.Jwt.AccessSecretKey,
-			RefreshSecretKey: s.config.Jwt.RefreshSecretKey,
-			ApiSecretKey:    s.config.Jwt.ApiSecretKey,
-			AccessDuration:   s.config.Jwt.AccessDuration,
-			RefreshDuration:  s.config.Jwt.RefreshDuration,
-			ApiDuration:     s.config.Jwt.ApiDuration,
-		}
-		grpcServer, lis := core.NewGrpcServer(jwtConfig, s.config.Auth.GRPCAddr)
-		authPb.RegisterAuthServiceServer(grpcServer, grpcHandler)
-		
-		log.Printf("Auth gRPC server listening on %s", s.config.Auth.GRPCAddr)
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("gRPC server error: %v", err)
-		}
-	}()
-
-	// Set up health check
-	s.app.Get("/health", func(c *fiber.Ctx) error {
-		return c.SendString("OK")
-	})
-
-	log.Printf("Auth service initialized")
+	log.Printf("Auth service initialized in monolithic mode")
+	return nil
 }
 
