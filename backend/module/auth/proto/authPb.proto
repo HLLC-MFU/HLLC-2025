@@ -15,6 +15,28 @@ message UserInfo {
     string major_id = 7;
 }
 
+// Session model for auth repository
+message Session {
+    string id = 1;
+    string user_id = 2;
+    string token = 3;
+    int64 expires_at = 4;  // Unix timestamp
+    int64 created_at = 5;  // Unix timestamp
+    int64 updated_at = 6;  // Unix timestamp
+    string user_agent = 7;
+    string ip = 8;
+    bool is_active = 9;
+}
+
+// RefreshToken model for auth repository
+message RefreshToken {
+    string id = 1;
+    string user_id = 2;
+    string token = 3;
+    int64 expires_at = 4;  // Unix timestamp
+    int64 last_login_at = 5;  // Unix timestamp
+}
+
 message InternalLoginRequest {
     string username = 1;
     string password = 2;
@@ -56,6 +78,39 @@ message RevokeSessionResponse {
     string error = 2;
 }
 
+// Session management messages
+message CreateSessionRequest {
+    string user_id = 1;
+    string token = 2;
+    int64 expires_at = 3;
+    string user_agent = 4;
+    string ip = 5;
+}
+
+message CreateSessionResponse {
+    bool success = 1;
+    string error = 2;
+}
+
+message FindSessionRequest {
+    string token = 1;
+}
+
+message FindSessionResponse {
+    bool found = 1;
+    string user_id = 2;
+    string error = 3;
+}
+
+message DeactivateSessionRequest {
+    string token = 1;
+}
+
+message DeactivateSessionResponse {
+    bool success = 1;
+    string error = 2;
+}
+
 // Internal AuthService for service-to-service communication
 service AuthService {
     // Internal authentication methods
@@ -63,4 +118,10 @@ service AuthService {
     rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
     rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
     rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+    
+    // Session management methods
+    rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+    rpc FindSessionByToken(FindSessionRequest) returns (FindSessionResponse);
+    rpc DeactivateSession(DeactivateSessionRequest) returns (DeactivateSessionResponse);
+    rpc DeactivateAllUserSessions(RevokeSessionRequest) returns (RevokeSessionResponse);
 }

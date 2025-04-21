@@ -10,8 +10,6 @@ import (
  * Auth represents the auth domain entity
  * Implements: MongoDB document for auth collection
  * Used by: AuthRepository, AuthService
- *
- * @author Dev. Bengi (Backend Team)
  */
 
 type (
@@ -33,6 +31,14 @@ type (
 		UserAgent string            `bson:"user_agent" json:"user_agent"`
 		IP        string            `bson:"ip" json:"ip"`
 		IsActive  bool              `bson:"is_active" json:"is_active"`
+	}
+
+	RefreshToken struct {
+		ID           primitive.ObjectID `bson:"_id,omitempty"`
+		UserID       string            `bson:"user_id"`
+		Token        string            `bson:"token"`
+		ExpiresAt    time.Time         `bson:"expires_at"`
+		LastLoginAt  time.Time         `bson:"last_login_at"`
 	}
 
 	SessionCookie struct {
