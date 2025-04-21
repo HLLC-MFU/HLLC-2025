@@ -1,0 +1,921 @@
+[
+    {
+        "id": "668797867b6dca626ce7c106",
+        "name": {
+            "th": "เทคโนโลยีสารสนเทศ",
+            "en": "Information Technology"
+        },
+        "acronym": "IT",
+        "detail": {
+            "th": "คณะวิชามุ่งเน้นไปที่การวิจัยในการใช้งาน ICT ที่หลากหลาย รวมถึง: การเรียนรู้, ธุรกิจ, เกษตรกรรม, สุขภาพและการแพทย์ ด้วยความสนใจเป็นพิเศษในการวิจัยที่มีผลกระทบสูงและเชิงปฏิบัติ หัวข้อการวิจัยที่สำคัญ ได้แก่: PBL, วิศวกรรมสารสนเทศ, AI, เทคโนโลยีช่วยเหลือสำหรับผู้สูงอายุและผู้พิการ, บริการคลาวด์, ความฉลาดโดยรอบ, ระบบฝังตัว และการบูรณาการเครือข่ายโซเชียล",
+            "en": "The School focuses on research in a broad range of ICT applications including: learning, business, agriculture, health and medicine. With particular interest in high impact and practical research, major research topics include: PBL, information engineering, AI, assistive technology for the elderly and the disabled, cloud services, ambient intelligence, embedded systems, and social network integration."
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/8f17a8749e964d062b3ed0aa79af3fd2.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/10e2d6737102987f33ce5b34f392fcb4e9.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/4c8e000a6f5b9f5b92e8cb19104110a4d6.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/1098b659b772822eb9bed9244eb89f9f10.png"
+        },
+        "majors": [
+            {
+                "id": "668799aa7b6dca626ce7c14f",
+                "name": {
+                    "th": "วิศวกรรมคอมพิวเตอร์",
+                    "en": "Computer Engineering"
+                },
+                "acronym": "CE",
+                "detail": {
+                    "th": "สาขาวิศวกรรมคอมพิวเตอร์มุ่งสร้างบัณฑิตที่มีคุณธรรมจริยธรรม มีความรู้ และทักษะความสามารถด้านวิศวกรรมคอมพิวเตอร์ โดยเน้นระบบฝังตัว และระบบควบคุมอัจฉริยะ สามารถสร้างสรรค์งานนวัตกรรม มึพร้อมสำหรับการทำงานและการเป็นผู้ประกอบการ มุ่งผลิตบัณฑิตที่มีคุณลักษณะดังนี้",
+                    "en": "The field of Computer Engineering aims to create graduates with the necessary morality, knowledge and skills in computer engineering, emphasizing embedded systems and intelligent control systems that create innovative work. You are ready to work and become an entrepreneur, aiming to produce mathematics that is possible.\n"
+                },
+                "school": "668797867b6dca626ce7c106"
+            },
+            {
+                "id": "668ad47cae82c0fc46a1f5f5",
+                "name": {
+                    "th": "วิศวกรรมดิจิทัลและการสื่อสาร",
+                    "en": "Digital and Communication Engineering"
+                },
+                "acronym": "DCE",
+                "detail": {
+                    "th": "สาขาวิชาวิศวกรรมดิจิทัลและการสื่อสาร สำนักวิชาเทคโนโลยีสารสนเทศ มหาวิทยาลัยแม่ฟ้าหลวง ได้มองเห็นความต้องการของภาคธุรกิจและความสำคัญขององค์ความรู้ดังกล่าวนี้ จึงได้ปรับปรุงหลักสูตรโดยมุ่งเน้นผลิตบัณฑิตทางด้านวิศวกรรมดิจิทัลและการสื่อสารที่เป็นผู้รู้จริง สามารถปฏิบัติงานได้จริงในระดับสากล ",
+                    "en": "The Department of Digital Engineering and Communication Technology, Faculty of Information Technology, Mae Fah Luang University, has recognized the business sector's needs and the importance of this knowledge area. Therefore, the curriculum has been revised to focus on producing graduates in digital engineering and communication who are real experts and capable of practical work at the international level."
+                },
+                "school": "668797867b6dca626ce7c106"
+            },
+            {
+                "id": "668ad4f3ae82c0fc46a1f608",
+                "name": {
+                    "th": "วิศวกรรมซอฟต์แวร์",
+                    "en": "Software Engineering"
+                },
+                "acronym": "SE",
+                "detail": {
+                    "th": "วิศวกรรมซอฟต์แวร์เพื่อมุ่งผลิตบัณฑิตที่มีความรู้ ความสามารถ และประสบการณ์ จากสถานการณ์จริงที่สามารถสร้างซอฟต์แวร์หรือระบบสารสนเทศที่สามารถนำไปใช้ประโยชน์เชิงพาณิชย์หรือพัฒนาสังคม มีจริยธรรมและยึดมั่นในจรรยาบรรณ สามารถทำงานร่วมในสังคมพหุวัฒนธรรม มีทักษะศตวรรษที่ 21 ก้าวทันเทคโนโลยีที่พลิกผัน สามารถพัฒนาและต่อยอดองค์ความรู้ด้วยตนเอง บูรณาการกับศาสตร์อื่น ๆ ที่เกี่ยวข้อง",
+                    "en": "Software Engineering aims to produce graduates with knowledge, skills, and real-world experience, capable of creating software or information systems that can be commercially utilized or contribute to social development. Graduates are expected to uphold ethics and adhere to professional codes of conduct, work collaboratively in a multicultural society, possess 21st-century skills, stay abreast of disruptive technologies, continuously develop and expand their knowledge independently, and integrate with other related disciplines."
+                },
+                "school": "668797867b6dca626ce7c106"
+            },
+            {
+                "id": "668adbdbae82c0fc46a1f8b4",
+                "name": {
+                    "th": "เทคโนโลยีดิจิทัลเพื่อนวัตกรรมทางธุรกิจ",
+                    "en": "Digital Technology for Business Innovation"
+                },
+                "acronym": "DTBI",
+                "detail": {
+                    "th": "หลักสูตรมุ่งผลิตบัณฑิตที่ใช้เทคโนโลยีดิจิทัลเป็นเครื่องมือในการประกอบหรือสร้างธุรกิจดิจิทัลในระดับสากลที่มีความรู้ ความคิดริเริ่มสร้างสรรค์ มีศักยภาพในการศึกษาค้นคว้า และสามารถประยุกต์ใช้ความรู้ในการวิเคราะห์แก้ไขปัญหาโดยคิดอย่างเป็นระบบ มีความรอบรู้ครอบคลุมตั้งแต่การใช้เครื่องมือดิจิทัลเพื่อส่งเสริมผู้ประกอบการ นักการตลาด นักขาย รวมถึงมีความเชี่ยวชาญในด้านวิทยาการข้อมูล ทั้งยังเป็นผู้มีคุณธรรม จริยธรรม และจรรยาบรรณวิชาชีพ เพื่อปฏิบัติงานในองค์กรต่างๆ ทั้งในประเทศและระดับสากล อันจะก่อให้เกิดการพัฒนาประเทศในส่วนรวมอย่างยั่งยืน",
+                    "en": "The curriculum aims to produce graduates who utilize digital technology as a tool for entrepreneurship or creating digital businesses at an international level. They possess knowledge, innovative thinking, research capabilities, and the ability to apply their knowledge systematically to analyze and solve problems. They have comprehensive knowledge ranging from using digital tools to promote entrepreneurship, marketing, and sales, to expertise in data science. Additionally, they uphold professional ethics and morals, enabling them to work in various organizations both domestically and internationally, contributing sustainably to national development."
+                },
+                "school": "668797867b6dca626ce7c106"
+            },
+            {
+                "id": "668adc2bae82c0fc46a1f8eb",
+                "name": {
+                    "th": "เทคโนโลยีมัลติมีเดียและการสร้างภาพเคลื่อนไหว",
+                    "en": "Multimedia Technology and Animation"
+                },
+                "acronym": "MTA",
+                "detail": {
+                    "th": "ผลิตบัณฑิตให้มีคุณภาพในระดับสากล มีความรอบรู้ด้านเทคโนโลยีมัลติมีเดีย และ การสร้างภาพเคลื่อนไหวอย่างเพียงพอ เกี่ยวข้องกับสร้างสื่อสมัยใหม่ การออกแบบ สร้างสรรค์สื่อออนไลน์ วิดีโอ ภาพยนตร์ และภาพเคลื่อนไหวทั้งสองมิติ และสามมิติ ",
+                    "en": "Produce graduates with global standards, equipped with knowledge in multimedia technology and sufficient skills in creating motion graphics. They are involved in creating modern media, designing, and crafting online media, videos, films, and both two-dimensional and three-dimensional motion graphics."
+                },
+                "school": "668797867b6dca626ce7c106"
+            }
+        ]
+    },
+    {
+        "id": "6687a9cd7b6dca626ce7c177",
+        "name": {
+            "th": "ศิลปศาสตร์",
+            "en": "Liberal Arts"
+        },
+        "acronym": "LA",
+        "detail": {
+            "th": "สำนักวิชาศิลปศาสตร์มีการผลิตบัณฑิตในสาขาวิชาที่หลากหลายหลักสูตรมาโดยตลอดการก่อตั้ง โดยมีเป้าหมายของสำนักวิชาเพื่อคุณภาพของการสอน งานวิจัย การบริการวิชาการ และการทำนุบำรุงศิลปวัฒนธรรม รวมถึงการพัฒนาบัณฑิตให้มีความเป็นเลิศ นอกจากนี้ยังมีเป้าหมายเพื่อกำกับติดตามและรักษามาตรฐานระดับสูงของการสอนภาษาอังกฤษ ภาษาไทย ภาษาญี่ปุ่น ภาษาฝรั่งเศส และภาษาต่างประเทศอีกหลายภาษา ",
+            "en": "Since it was founded, the School of Liberal Arts has produced graduates through its various academic programmes, in fulfillment of its principal goals of high-quality teaching, research, academic services, conservation of arts and cultures, and production of graduates with well-rounded excellence.  In addition, the school aims to constantly monitor and maintain high standards in its courses in English, Thai, Japanese, French, and several other foreign languages."
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/d83c15f9ffb9575a73af3b5e527feed10.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/ea5f910d5e623192d6aed532c17f890df.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/48f2b6ea471d4289c3becc3548ca9445.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/cde147130979ccb7f5585c7b62d406e5.png"
+        },
+        "majors": [
+            {
+                "id": "6687ab037b6dca626ce7c180",
+                "name": {
+                    "th": "ภาษาอังกฤษ",
+                    "en": "English"
+                },
+                "acronym": "ENG",
+                "detail": {
+                    "th": "สาขาวิชาภาษาอังกฤษ มุ่งผลิตบัณฑิตที่มีความสามารถด้านภาษาอังกฤษทั้งเชิงทักษะการใช้ภาษา การประยุกต์ใช้ความรู้ทางภาษาศาสตร์ภาษาอังกฤษและวรรณคดีอังกฤษ ความเข้าใจด้านสังคมพหุวัฒนธรรม การประยุกต์ใช้ภาษาอังกฤษในทางวิชาการ ธุรกิจ และการพัฒนาสังคม รวมถึงทักษะในการจัดการเทคโนโลยีสารสนเทศ สามารถประยุกต์ทฤษฎีไปสู่การปฏิบัติได้ มีทักษะในการแก้ปัญหาอย่างมีประสิทธิภาพ มีคุณธรรมในวิชาชีพ เพื่อเป็นพลเมืองที่เข้มแข็ง เป็นพลังในการขับเคลื่อนประเทศสู่การพัฒนาอย่างยั่งยืนและเป็นสากล",
+                    "en": "English major Aiming to produce graduates who are proficient in English both in terms of language skills. Application of knowledge in English linguistics and English literature. Understanding of multicultural society Application of English in academics, business and social development Including skills in information technology management Able to apply theory to practice Have effective problem solving skills Have morality in the profession To be a strong citizen It is a power to drive the country towards sustainable and international development."
+                },
+                "school": "6687a9cd7b6dca626ce7c177"
+            },
+            {
+                "id": "668adc90ae82c0fc46a1f903",
+                "name": {
+                    "th": "ภาษาและวัฒนธรรมไทยสำหรับชาวต่างประเทศ",
+                    "en": "Thai Language and Culture for Foreigners"
+                },
+                "acronym": "THLCF",
+                "detail": {
+                    "th": "ภาษาไทยเป็นเครื่องมือสำคัญในการติดต่อสื่อสารทั้งภายในและภายนอกประเทศ หากชาวต่างประเทศต้องการเข้ามาใช้ชีวิตในประเทศไทย ประกอบการธุรกิจหรือทำกิจกรรมที่เกี่ยวข้องกับองค์กรของรัฐบาลและเอกชนที่มีการติดต่อกันระหว่างประเทศไทยกับต่างประเทศ จึงมีความจำเป็นต้องเรียนรู้ภาษาควบคู่กับวัฒนธรรมไทย เพื่อให้สามารถติดต่อสื่อสารและประกอบกิจการต่าง ๆ ได้อย่างมีประสิทธิภาพ ",
+                    "en": "Thai language is a crucial tool for communication both within Thailand and internationally. If foreigners wish to live in Thailand, conduct business, or engage in activities related to government and private organizations that involve international communication with Thailand, it is essential to learn the language alongside Thai culture. This enables effective communication and business operations across various domains."
+                },
+                "school": "6687a9cd7b6dca626ce7c177"
+            }
+        ]
+    },
+    {
+        "id": "6687af3d7b6dca626ce7c1f8",
+        "name": {
+            "th": "การจัดการ",
+            "en": "Management"
+        },
+        "acronym": "SOM",
+        "detail": {
+            "th": "สำนักวิชาการจัดการ มหาวิทยาลัยแม่ฟ้าหลวง ได้รับการยอมรับว่าเป็นหนึ่งในสำนักวิชาที่จัดการศึกษาด้านการบริหารธุรกิจในระดับสากล ที่มีการพัฒนาอย่างรวดเร็ว มีการจัดการเรียนการสอนอย่างมีประสิทธิภาพ และสามารถผลิตบัณฑิตที่มีคุณภาพป้อนสู่อุตสาหกรรมอย่างต่อเนื่อง หลักสูตรการเรียนการสอนทุกหลักสูตรของสำนักวิชาการจัดการได้รับการออกแบบมาเป็นอย่างดีและมีความเหมาะสมสำหรับนักศึกษาทั้งชาวไทยและชาวต่างชาติ แต่ละหลักสูตรมีกระบวนวิชาที่ครอบคลุมและหลากหลาย ผ่านวิธีการสอนที่ทันสมัย พร้อมด้วยเทคโนโลยีและระบบปฏิบัติการสนับสนุนการเรียนรู้เพื่อให้เกิดประโยชน์สูงสุดแก่นักศึกษา นอกจากนี้ สำนักวิชาการจัดการมีระบบการประกันคุณภาพการศึกษาที่รับรองคุณภาพการจัดการเรียนการสอนเพื่อผลิตบัณฑิตที่เพียบพร้อมด้วยความรู้ ความเชี่ยวชาญในแต่ละสาขาวิชา ทั้งภาคทฤษฎี และสามารถนำไปประยุกต์ใช้ในทางปฏิบัติได้",
+            "en": "The School of Management, Mae Fah Luang University is recognised as one of Thailand's fastest growing and effective international business schools, constantly producing high quality graduates. All of the School's academic programmes are well-constructed and suitable for both Thai and international students. The School of Management offers extensive and diverse courses, using modern teaching approaches with support from computerised systems, to ensure the utmost benefit to the students. Moreover, the School's quality assurance system certifies the quality of education in crafting proficient graduates in each field of study."
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/893391edc10e173d1024e5ee762d710c212.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/a1d7b6a10103671858bea6e13ae5b3ad9.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/0ae651376e4b13b78c444ddb902ae1048.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/b84a1f9b0fdc6c342aca6610d20f59be.png"
+        },
+        "majors": [
+            {
+                "id": "668ad5acae82c0fc46a1f677",
+                "name": {
+                    "th": "บริหารธุรกิจ",
+                    "en": "Business Administration"
+                },
+                "acronym": "BA",
+                "detail": {
+                    "th": "หลักสูตรนี้ดำเนินตามปรัชญาการศึกษา “Progressivism” ซึ่งมุ่งผลิตนักธุรกิจในอนาคตที่:\n\nมีทฤษฎีและการปฏิบัติที่ได้รับการสร้างสรรค์อย่างดี\nมุ่งมั่นในการเรียนรู้ตลอดชีวิต\nมีความสามารถในการปรับตัวความรู้และทักษะในบริบทโลกและโลกดิจิทัล\nปฏิบัติตามจรรยาบรรณวิชาชีพและกฎระเบียบที่เกี่ยวข้อง\nหลักสูตรนี้มีสาขาวิชาให้เลือก 5 สาขา ได้แก่ การบริหารธุรกิจ การจัดการธุรกิจการท่องเที่ยวและอีเว้นท์ การจัดการอุตสาหกรรมการบริการ การจัดการโลจิสติกส์และโซ่อุปทาน และการจัดการธุรกิจการบิน",
+                    "en": "This curriculum pursues a “Progressivism” education philosophy which aims to produce future business professionals who:\n\nPossess well-constructed theories and practices\nAre committed to life-long learning\nAre equipped with the capabilities to adapt knowledge and skills in the global context and digital world\nComply with a professional code of ethics and governing regulations.\nThis curriculum offers five different majors including business administration, tourism business and events, hospitality industry management, logistics and supply chain management, and aviation business management."
+                },
+                "school": "6687af3d7b6dca626ce7c1f8"
+            },
+            {
+                "id": "668add1cae82c0fc46a1f953",
+                "name": {
+                    "th": "เศรษฐศาสตรบัณฑิต",
+                    "en": "Economics"
+                },
+                "acronym": "ECON",
+                "detail": {
+                    "th": "เพื่อมุ่งผลิตนักเศรษฐศาสตร์ที่เป็นนวัตกรที่มีความรู้ ความสามารถและสมรรถนะตามกรอบมาตรฐานคุณวุฒิระดับอุดมศึกษา สามารถประยุกต์ใช้ความรู้และสร้างความเชี่ยวชาญโดยใช้เครื่องมือทางเศรษฐศาสตร์ในการตั้งคำถาม วิเคราะห์ วางแผนและแก้ปัญหาทางเศรษฐกิจในยุคโลกปั่นป่วน (Disruptive world) ร่วมสร้างสรรค์รูปแบบทางเศรษฐกิจแห่งวิถีโลกอนาคต สามารถประเมินสถานการณ์ปัจจุบัน การเปลี่ยนแปลงเศรษฐกิจในภูมิภาคและโลก เข้าใจพลวัตเศรษฐกิจชายแดนอย่างเป็นระบบโดยใช้องค์ความรู้ทางเศรษฐศาสตร์ที่ทันสมัย มีทักษะในการบริหารจัดการข้อมูล วิเคราะห์ สังเคราะห์และประมวลผลทางเศรษฐศาสตร์ที่ใช้เทคโนโลยีสารสนเทศอย่างรู้เท่าทันและสื่อสารในรูปแบบต่าง ๆ ในสังคมดิจิทัลที่มีประสิทธิภาพและประสิทธิผล ตลอดจนมีทักษะการทำงานในสังคมพหุวัฒนธรรมและใฝ่เรียนรู้อย่างต่อเนื่องและมีความซื่อสัตย์ คำนึงถึงส่วนรวม ยึดมั่นในความถูกต้องและกล้าแสดงออกเชิงจริยธรรม",
+                    "en": "To produce economists as innovators equipped with knowledge, abilities, and competencies aligned with the standards of advanced education, capable of applying their knowledge and expertise using economic tools to pose questions, analyze, plan, and solve economic problems in a disruptive world. They collaborate to create economic models for the future global economy, assess current situations, understand regional and global economic transformations comprehensively using contemporary economic knowledge. They possess skills in data management, analysis, synthesis, and processing using cutting-edge information technology. They effectively communicate in various formats in the efficient and productive digital society. Moreover, they have social skills, a commitment to continuous learning, honesty, a focus on the collective good, a commitment to correctness, and the courage to demonstrate ethical behavior."
+                },
+                "school": "6687af3d7b6dca626ce7c1f8"
+            },
+            {
+                "id": "668add73ae82c0fc46a1f9a7",
+                "name": {
+                    "th": "บัญชีบัณฑิต",
+                    "en": "Accounting"
+                },
+                "acronym": "ACC",
+                "detail": {
+                    "th": "มุ่งสร้างบัณฑิตที่ตระหนักความมีจรรยาบรรณ มีทัศนคติที่ดีต่อวิชาชีพ และมีองค์ความรู้ด้านมาตรฐานการรายงานทางการเงินในการประกอบวิชาชีพบัญชี มีทักษะด้านวิทยาการวิเคราะห์ข้อมูลในงานบัญชี ประยุกต์ใช้เทคโนโลยีสารสนเทศในงานบัญชีได้อย่างเหมาะสม สามารถใช้ภาษาอังกฤษในการปฏิบัติงานและเป็นนักบัญชีที่มีการเรียนรู้ตลอดชีวิต",
+                    "en": "To cultivate graduates who embody integrity, possess a positive professional attitude, and have knowledge in standard financial reporting practices for accounting professions. They are skilled in data analysis within accounting, proficiently apply information technology in accounting tasks, and effectively use English in their professional endeavors. They are lifelong learners committed to continuous improvement and ethical conduct in their roles as accountants."
+                },
+                "school": "6687af3d7b6dca626ce7c1f8"
+            },
+            {
+                "id": "668b047bae82c0fc46a1ff08",
+                "name": {
+                    "th": "การจัดการโลจิสติกส์และห่วงโซ่อุปทาน",
+                    "en": "Logistics and Supply Chain Management"
+                },
+                "acronym": "LSC",
+                "detail": {
+                    "th": ".",
+                    "en": "."
+                },
+                "school": "6687af3d7b6dca626ce7c1f8"
+            },
+            {
+                "id": "668b04f9ae82c0fc46a1ff18",
+                "name": {
+                    "th": "การจัดการธุรกิจการบริการ",
+                    "en": "Hospitality Business Management"
+                },
+                "acronym": "HBM",
+                "detail": {
+                    "th": ".",
+                    "en": "."
+                },
+                "school": "6687af3d7b6dca626ce7c1f8"
+            },
+            {
+                "id": "668b5964b905edbeb9c6e14a",
+                "name": {
+                    "th": "ธุรกิจท่องเที่ยวและอีเว้นท์ ",
+                    "en": "Tourism Business and Events"
+                },
+                "acronym": "TBE",
+                "detail": {
+                    "th": "หลักสูตรนี้ดำเนินตามปรัชญาการศึกษา “Progressivism” ซึ่งมุ่งผลิตนักธุรกิจในอนาคตที่: มีทฤษฎีและการปฏิบัติที่ได้รับการสร้างสรรค์อย่างดี มุ่งมั่นในการเรียนรู้ตลอดชีวิต มีความสามารถในการปรับตัวความรู้และทักษะในบริบทโลกและโลกดิจิทัล ปฏิบัติตามจรรยาบรรณวิชาชีพและกฎระเบียบที่เกี่ยวข้อง หลักสูตรนี้มีสาขาวิชาให้เลือก 5 สาขา ได้แก่ การบริหารธุรกิจ การจัดการธุรกิจการท่องเที่ยวและอีเว้นท์ การจัดการอุตสาหกรรมการบริการ การจัดการโลจิสติกส์และโซ่อุปทาน และการจัดการธุรกิจการบิน",
+                    "en": "This curriculum pursues “Progressivism” education philosophy which aims to produce future business professionals who:\n\nPossess well-constructed theories and practices\nAre committed to life-long learning\nAre equipped with the capabilities to adapt knowledge and skills in the global context and digital world\nComply with a professional code of ethics and governing regulations.\nThis curriculum offers five different majors including business administration, tourism business and events, hospitality industry management, logistics and supply chain management, and aviation business management."
+                },
+                "school": "6687af3d7b6dca626ce7c1f8"
+            },
+            {
+                "id": "668b5a10b905edbeb9c6e204",
+                "name": {
+                    "th": "ธุรกิจการบิน",
+                    "en": "Aviation Business Management"
+                },
+                "acronym": "ABM",
+                "detail": {
+                    "th": "หลักสูตรนี้ดำเนินตามปรัชญาการศึกษา “Progressivism” ซึ่งมุ่งผลิตนักธุรกิจในอนาคตที่: มีทฤษฎีและการปฏิบัติที่ได้รับการสร้างสรรค์อย่างดี มุ่งมั่นในการเรียนรู้ตลอดชีวิต มีความสามารถในการปรับตัวความรู้และทักษะในบริบทโลกและโลกดิจิทัล ปฏิบัติตามจรรยาบรรณวิชาชีพและกฎระเบียบที่เกี่ยวข้อง หลักสูตรนี้มีสาขาวิชาให้เลือก 5 สาขา ได้แก่ การบริหารธุรกิจ การจัดการธุรกิจการท่องเที่ยวและอีเว้นท์ การจัดการอุตสาหกรรมการบริการ การจัดการโลจิสติกส์และโซ่อุปทาน และการจัดการธุรกิจการบิน",
+                    "en": "This curriculum pursues a “Progressivism” education philosophy which aims to produce future business professionals who: Possess well-constructed theories and practices Are committed to life-long learning Are equipped with the capabilities to adapt knowledge and skills in the global context and digital world Comply with a professional code of ethics and governing regulations. This curriculum offers five different majors including business administration, tourism business and events, hospitality industry management, logistics and supply chain management, and aviation business management."
+                },
+                "school": "6687af3d7b6dca626ce7c1f8"
+            }
+        ]
+    },
+    {
+        "id": "6687b2aa7b6dca626ce7c217",
+        "name": {
+            "th": "นิติศาสตร์",
+            "en": "LAW"
+        },
+        "acronym": "LAW",
+        "detail": {
+            "th": "หลักสูตรนิติศาสตรมหาบัณฑิตหลักสูตรนี้จึงมุ่งเน้นพัฒนาผู้เรียนให้เป็นนักกฎหมายที่สามารถเปลี่ยนปัญหาอันเกิดจากความเปลี่ยนแปลงให้กลายเป็นโอกาสในการพัฒนาของประเทศ โดยบัณฑิตที่สำเร็จการศึกษาของหลักสูตรจะเป็นนักกฎหมายที่มีความรู้ทางทฤษฎีกฎหมายอย่างลึกซึ้งในสาขาหลัก อันได้แก่กฎหมายแพ่ง อาญา มหาชนและระหว่างประเทศ รวมไปถึงความรู้กฎหมายที่เกี่ยวข้องกับเทคโนโลยีดิจิทัล มีความสามารถในการวิเคราะห์สภาพปัญหาที่เกิดขึ้นในสังคมและประเด็นทางกฎหมายที่เกี่ยวข้องและนำมาดำเนินกระบวนการวิจัยในทางกฎหมายเพื่อสร้างข้อเสนอหรือมาตรการทางกฎหมายที่สามารถพัฒนาหรือแก้ไขปัญหาในสังคมได้อย่างสร้างสรรค์ อีกทั้งยังเป็นผู้มีจริยธรรมการทางวิชาการและการวิจัย ยึดมั่นในการเป็นนักกฎหมายที่มีความรับผิดชอบต่อสังคม มีทักษะในการบริหารจัดการและทำงานร่วมกับผู้อื่นได้อย่างเกื้อกูลในสังคมพหุวัฒนธรรม",
+            "en": "This Master of Laws program therefore focuses on developing students into lawyers who can turn problems arising from change into opportunities for the country's development. Graduates of the program will be lawyers with deep knowledge of legal theory in their main fields. These include civil, criminal, public and international law. including knowledge of laws related to digital technology Have the ability to analyze problems occurring in society and related legal issues and bring them into legal research to create proposals or legal measures that can creatively develop or solve problems in society. He also has academic and research ethics. Adhere to being a lawyer with social responsibility. Have management skills and work together with others in a multicultural society."
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/3f55cc4e56fa680ea714f5374005bf7c.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/5df32e74e8ad10ccd2dc92a8cb7fde7d9.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/3deb706922f907271264f65a8bfacd12.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/708fda106a96c36f7322abd2ed23af108f.png"
+        },
+        "majors": [
+            {
+                "id": "668ad61cae82c0fc46a1f6b4",
+                "name": {
+                    "th": "นิติศาสตร์",
+                    "en": "LAWS"
+                },
+                "acronym": "LAWS",
+                "detail": {
+                    "th": " มุ่งผลิตบัณฑิตที่มีความรู้ทางนิติศาสตร์ ซึ่งตอบสนองความต้องการของวิชาชีพกฎหมายและเข้าใจหลักนิติธรรม รวมถึงสามารถตอบสนองความต้องการของสังคมทั้งในภาครัฐและเอกชนโดยการให้บริการทางกฎหมายได้อย่างมีประสิทธิภาพและถูกต้องตามนิติวิธี",
+                    "en": "It aims to produce graduates with legal knowledge that meets the needs of the legal profession and understands the principles of the rule of law. Graduates should be able to meet the needs of society in both the public and private sectors by providing legal services efficiently and in accordance with legal methods."
+                },
+                "school": "6687b2aa7b6dca626ce7c217"
+            },
+            {
+                "id": "668addc7ae82c0fc46a1f9f5",
+                "name": {
+                    "th": "กฎหมายธุรกิจและการสื่อสารด้วยภาษาจีน",
+                    "en": "Business Law and Chinese Communication"
+                },
+                "acronym": "BLC",
+                "detail": {
+                    "th": "เพื่อมุ่งผลิตบัณฑิตที่มีคุณธรรมและจริยธรรมของนักกฎหมาย มีความรู้ความเข้าใจทฤษฎี บทบัญญัติและการบังคับใช้กฎหมายธุรกิจและกฎหมายอื่น ๆ และสามารถวิเคราะห์ สังเคราะห์และวิพากษ์วิจารณ์กฎหมายเหล่านั้นได้ ตลอดจนมีทักษะการใช้ภาษาไทย ภาษาจีนและภาษาอังกฤษที่จำเป็นเพื่อการปฏิบัติงานทางกฎหมาย มีทักษะการใช้เทคโนโลยีในการปฏิบัติงานด้านกฎหมาย ตลอดจนสามารถทำงานร่วมกับผู้อื่นภายใต้พหุวัฒนธรรมได้",
+                    "en": "To produce graduates who embody the ethics and morality of legal professionals, with knowledge and understanding of legal theories, statutes, and enforcement of business and other laws. They are capable of analyzing, synthesizing, and critiquing these laws. Additionally, they possess essential language skills in Thai, Chinese, and English for legal practice, along with proficiency in using technology in legal work. They are adept at collaborating with others in diverse cultural settings."
+                },
+                "school": "6687b2aa7b6dca626ce7c217"
+            }
+        ]
+    },
+    {
+        "id": "6687b4097b6dca626ce7c22a",
+        "name": {
+            "th": "วิทยาศาสตร์เครื่องสำอาง",
+            "en": "Cosmetic Science"
+        },
+        "acronym": "CSC",
+        "detail": {
+            "th": "คณะวิทยาศาสตร์เครื่องสำอาง มหาวิทยาลัยแม่ฟ้าหลวง เพื่อผลิตบัณฑิตให้มีความโดดเด่นในอุตสาหกรรมเครื่องสำอางไทยที่กำลังเติบโต ด้วยหลักสูตรที่ครอบคลุม การสอนภาษาอังกฤษ และหลักสูตรทุกระดับ เราจึงเป็นประตูสู่ความเชี่ยวชาญด้านการให้คำปรึกษาด้านความงามและโลกของเครื่องสำอางที่มีชีวิตชีวา",
+            "en": "Mae Fah Luang University's School of Cosmetic Science prepares graduates to excel in Thailand's growing cosmetic industry. With comprehensive curricula, English instruction, and degrees at all levels, we offer a gateway to expertise in beauty advisory and the dynamic world of cosmetics"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/2fd2155d2e81c9398f9ce8ceb205109fc.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/bf169dd72a210b9277e56b8c83221010a64.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/f3821029b85cf51d6edc7de9d162bbed2.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/1d078eb306b199150c6b464be435f814.png"
+        },
+        "majors": [
+            {
+                "id": "668ad6acae82c0fc46a1f6f6",
+                "name": {
+                    "th": "วิทยาศาสตร์เครื่องสำอาง",
+                    "en": "Cosmetic Science"
+                },
+                "acronym": "CSC",
+                "detail": {
+                    "th": "หลักสูตรนี้มุ่งเน้นผลิตบัณฑิตที่มีคุณธรรม จริยธรรม มีความรับผิดชอบต่อสังคม และมีความรู้ ความสามารถ ทักษะด้านวิทยาศาสตร์เครื่องสำอางมีความเข้าใจในการประกอบอาชีพ มีความสามารถในด้านการวิจัยและพัฒนา การผลิต การควบคุมคุณภาพเครื่องสำอางรูปแบบต่างๆ ที่บูรณาการองค์ความรู้ด้านการตลาดและกฎหมายที่เกี่ยวข้อง รวมทั้งสามารถให้คำปรึกษาและแก้ปัญหาเกี่ยวกับเครื่องสำอางได้อย่างเหมาะสม ตลอดจนมีกรอบความคิดการบริหารจัดการและการเป็นผู้ประกอบการ ",
+                    "en": "This curriculum aims to produce graduates with moral integrity, ethics, social responsibility, and knowledge and skills in cosmetic science. Graduates will understand their profession, possess capabilities in research and development, production, and quality control of various cosmetic products. They will integrate knowledge of marketing and relevant laws, provide appropriate advice and solutions related to cosmetics, and have a mindset for management and entrepreneurship."
+                },
+                "school": "6687b4097b6dca626ce7c22a"
+            },
+            {
+                "id": "668ade4cae82c0fc46a1fa28",
+                "name": {
+                    "th": "เทคโนโลยีความงาม",
+                    "en": "Beauty Technology"
+                },
+                "acronym": "BTT",
+                "detail": {
+                    "th": "หลักสูตรนี้มุ่งเน้นผลิตบัณฑิตที่มีระเบียบวินัยและซื่อสัตย์สุจริตในการประกอบอาชีพ มีความรู้ความเข้าใจเกี่ยวกับศาสตร์ทางด้านความงามและเทคโนโลยีที่เกี่ยวข้อง มีทักษะในการปฏิบัติการด้านความงามอย่างถูกต้องตามหลักการและปลอดภัย มีความสามารถบูรณาการองค์ความรู้เพื่อการบริการและพัฒนางานวิจัย มีทักษะการค้นคว้าและการวิเคราะห์ข้อมูล มีทักษะการสื่อสารและการใช้เทคโนโลยีในการนำเสนอ รวมทั้งมีสามารถทำงานร่วมกับผู้อื่นและปรับตัวให้เข้ากับสังคมพหุวัฒนธรรม ตลอดจนการแสดงออกถึงผู้มีบุคลิกภาพที่พร้อมให้บริการและทักษะการบริหารจัดการธุรกิจความงาม",
+                    "en": "This curriculum aims to produce graduates who exhibit discipline and integrity in their professions, with knowledge and understanding of beauty sciences and related technologies. They possess skills in practicing beauty procedures safely and according to principles. They are capable of integrating knowledge for service and research development, skilled in research and data analysis, proficient in communication and technology for presentations. Furthermore, they can collaborate with others, adapt to multicultural environments, and demonstrate professionalism suitable for beauty business management."
+                },
+                "school": "6687b4097b6dca626ce7c22a"
+            }
+        ]
+    },
+    {
+        "id": "6687b5777b6dca626ce7c230",
+        "name": {
+            "th": "วิทยาศาสตร์สุขภาพ",
+            "en": "Health-Science"
+        },
+        "acronym": "HS",
+        "detail": {
+            "th": "โรงเรียนมีความมุ่งมั่นที่จะผลิตบัณฑิตด้านวิทยาศาสตร์สุขภาพที่มีทักษะและจริยธรรมสูง มีความมุ่งมั่นที่จะก้าวข้ามมาตรฐานสากล ด้วยการผสมผสานองค์ความรู้ดั้งเดิม ภูมิปัญญาท้องถิ่น และเทคโนโลยีทางเลือกสมัยใหม่ ในการเรียนการสอนและการวิจัย",
+            "en": "The School strives to produce highly skilled and ethical health science graduates. It maintains a commitment to surpass international standards by integrating traditional knowledge, local wisdom, and modern alternative techniques in its teaching and research"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/b15e97da910406cd3d2342c1872ef7ac3.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/bd0e1b1010694ebb523c285c5bc685a4c.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/d22f15cfa9c6628c211d4a47f36ad19b.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/d10fe7dc69097b4b2cc61f289103fb63cc.png"
+        },
+        "majors": [
+            {
+                "id": "668ad809ae82c0fc46a1f76d",
+                "name": {
+                    "th": "สาธารณสุขศาสตร์บัณฑิต",
+                    "en": "Public Health"
+                },
+                "acronym": "PH",
+                "detail": {
+                    "th": "หลักสููตรสาธารณสุขศาสตรบัณฑิตได้กำหนดปรัชญาการจัดการศึกษาไว้ว่า \"การเรียนรู้จากการปฏิบัติ\"  ซึ่งจะเน้นให้นักศึกษาได้เรียนรู้จากประสบการณ์จริงผ่านกระบวนการจัดการเรียนการสอนที่เข้าไปศึกษาในชุมชนโดยมุ่งส่งเสริมทักษะการเรียนรู้ในศตวรรษที่ 21 ทำให้นักศึกษาได้มีทักษะความเป็นผู้นำทางด้านความรอบรู้ทางด้านสุขภาพโดยใช้เทคโนโลยีที่ทันสมัยสำหรับการสื่อสารให้กับทุกกลุ่มในชุมชน",
+                    "en": "The Bachelor of Public Health program has established its educational philosophy as \"learning through practice,\" emphasizing that students gain knowledge from real experiences. Through the teaching process, students will engage with the community, promoting 21st-century learning skills. This approach will develop students' leadership skills in health literacy, utilizing modern technology for communication with all community groups."
+                },
+                "school": "6687b5777b6dca626ce7c230"
+            },
+            {
+                "id": "668ade98ae82c0fc46a1fa41",
+                "name": {
+                    "th": "วิทยาศาสตร์การกีฬาและสุขภาพ",
+                    "en": "Sports and Health Science"
+                },
+                "acronym": "SHS",
+                "detail": {
+                    "th": "องค์ความรู้ด้านวิทยาศาสตร์การกีฬาและสุขภาพมีความสำคัญในการพัฒนาการกีฬาของชาติ ทั้งในด้านกีฬาพื้นฐาน กีฬาเพื่อมวลชน กีฬาเพื่อความเป็นเลิศ และกีฬาอาชีพ ตลอดจนมีความสำคัญในการส่งเสริมสุขภาพของประชาชน โดยการใช้กิจกรรมกีฬาและการออกกำลังกาย หลักสูตรจึงมุ่งเน้นการผลิตบัณฑิตที่มีสมรรถนะเป็นนักวิทยาศาสตร์การกีฬาและสุขภาพตามมาตรฐานสากล มีคุณธรรมจริยธรรมและยึดมั่นในความถูกต้องและจรรยาบรรณการประกอบอาชีพ โดยมีทักษะโดดเด่นด้านการฝึกสอนการออกกำลังกายส่วนบุคคลทุกช่วงวัย มีทักษะการเป็นผู้นำการเปลี่ยนแปลงด้านสมรรถภาพร่างกาย ร่วมสร้างสรรค์นวัตกรรมทางวิทยาศาสตร์การกีฬาและสุขภาพที่บูรณาการเทคโนโลยีดิจิทัลและศาสตร์ที่เกี่ยวข้อง และสามารถใช้ภาษาที่สามสำหรับการประกอบอาชีพ ทั้งภาครัฐ ภาคเอกชน และประกอบการอิสระในสังคมพหุวัฒนธรรมที่ทันต่อการเปลี่ยนแปลงของสังคมของโลกที่รองรับสังคมสูงวัย",
+                    "en": "Knowledge in sports science and health is crucial for the development of national sports across various levels: grassroots sports, mass sports, elite sports, and professional sports. Additionally, it plays a significant role in promoting public health through sports and physical activities. Therefore, this curriculum focuses on producing graduates with competencies as sports scientists and health professionals according to international standards. They uphold ethical values and integrity in their professional practice, excel in personal training across all age groups, possess leadership skills in fitness transformation, contribute to innovative advancements in sports science and health integrated with digital technologies and related sciences. Moreover, they are proficient in using multiple languages for professional purposes, whether in governmental, private sector, or independent entrepreneurial settings within multicultural societies that are adaptive to global societal changes, including aging societies."
+                },
+                "school": "6687b5777b6dca626ce7c230"
+            },
+            {
+                "id": "668adeceae82c0fc46a1fa5b",
+                "name": {
+                    "th": "อนามัยสิ่งแวดล้อม",
+                    "en": "Environmental Health"
+                },
+                "acronym": "ENVI",
+                "detail": {
+                    "th": "วิชาชีพอนามัยสิ่งแวดล้อมเป็นวิชาชีพที่มีความสำคัญอย่างยิ่งยวดต่อการจัดการปัจจัยสิ่งแวดล้อมเพื่อคุณภาพ ชีวิตที่ดีของประชาชน โดยนักอนามัยสิ่งแวดล้อมที่มีศักยภาพนั้น ต้องผ่านกระบวนการเรียนรู้ร่วมกับการฝึกปฏิบัติ ดังนั้น หลักสูตรฯจึงนำปรัชญาการศึกษาพิพัฒนนิยม (Progressivism) ซึ่งเป็นปรัชญาการศึกษาที่เน้นให้ผู้เรียนเป็นศูนย์กลางของการเรียนการสอน เพื่อให้ผู้เรียนได้มีประสบการณ์ตรง โดยผู้สอนจะต้องจัดสภาพการเรียนรู้ให้เอื้อต่อการศึกษาของผู้เรียน ให้อิสระ เสรีภาพในการเรียน การค้นคว้า การทดลอง คำนึงถึงความสนใจ ความถนัด และความต้องการของผู้เรียนในการนำองค์ความรู้จากหลักสูตรฯ ไปประยุกต์ใช้ในชีวิตและในการทำงานที่เกี่ยวข้อง เพื่อการพัฒนาประสบการณ์และความรู้โดยไม่หยุดนิ่ง เท่าทันต่อการเปลี่ยนแปลงของสังคม โดยจัดการเรียนการสอนที่เน้นให้นักศึกษาสามารถแก้ไขปัญหาทางด้านสิ่งแวดล้อมและสุขภาพได้ด้วยตนเอง ผ่านรูปแบบการจัดการเรียนการสอนที่เน้นผู้เรียนเป็นศูนย์กลาง อาทิ Project Based Learning และ Research Based  Learning ซึ่งจะนำไปสู่บัณฑิตที่มีความสามารถในการเลือกวิธีการที่เหมาะสมในการแก้ไขปัญหาสิ่งแวดล้อมและสุขภาพ ตลอดจนประเมินปัจจัยทางด้านสิ่งแวดล้อมที่ส่งผลกระทบต่อสุขภาพ",
+                    "en": "The profession of environmental health is crucial for managing environmental factors to enhance the quality of life for people. Competent environmental health professionals undergo a process of learning and practical training. Therefore, this curriculum adopts the philosophy of Progressivism in education, which places learners at the center of the learning-teaching process. Educators create conducive learning environments that foster student autonomy, freedom in learning, exploration, experimentation, and consideration of students' interests, abilities, and needs. This approach aims to empower students to apply knowledge gained from the curriculum in their lives and relevant work, continuously developing their experiences and knowledge to keep pace with societal changes.\n\nThe teaching methods focus on enabling students to independently address environmental and health issues, emphasizing learner-centered approaches such as Project Based Learning and Research Based Learning. These methods aim to produce graduates capable of selecting appropriate methods to solve environmental and health-related problems, while also evaluating environmental factors that impact health."
+                },
+                "school": "6687b5777b6dca626ce7c230"
+            },
+            {
+                "id": "668adf0bae82c0fc46a1fa6c",
+                "name": {
+                    "th": "อาชีวอนามัยและความปลอดภัย\t",
+                    "en": "Occupational Health and Safety"
+                },
+                "acronym": "OCC",
+                "detail": {
+                    "th": "หลักสูตรอาชีวอนามัยและความปลอดภัยนำแนวคิดสิทธิขั้นพื้นฐานของมนุษย์ ตามหลักการขององค์กรแรงงานระหว่างประเทศ (International Labor Organization) ที่สนับสนุนให้แรงงานมีสิทธิเสรีภาพ ความเสมอภาคในการประกอบอาชีพ มีสภาพแวดล้อมที่ปลอดภัยในการทำงาน เพื่อสร้างความปลอดภัยและประสิทธิภาพในการทำงาน ธำรงไว้ซึ่งความสมบูรณ์ทั้งสุขภาพกาย สุขภาพใจ และจิตสังคม โดยบุคลากรที่ต้องทำหน้าที่สนับสนุนให้เกิดสิทธิของแรงงานต้องมีความรู้ความสามารถในการปฏิบัติงานสอดคล้องกับหลักการดังกล่าว มาออกแบบหลักสูตรเพื่อผลิตบัณฑิตให้มีองค์ความรู้ด้านอาชีวอนามัยและความปลอดภัยสามารถแก้ไขปัญหาหรือจัดหาแนวทางการจัดการปัญหาอาชีวอนามัยอย่างเป็นมืออาชีพ เข้าใจบริบทของการประกอบธุรกิจ มีความคิดสร้างสรรค์ มีทักษะการเรียนรู้ในศตวรรษที่ 21 มีทักษะการเรียนรู้ตลอดชีวิต มีทักษะในการสื่อสารสามารถใช้เทคโนโลยีที่เหมาะสมและสอดคล้องกับสถานการณ์ของปัญหาและบริบทขององค์กรทั้งในประเทศและต่างประเทศ",
+                    "en": "The curriculum for Occupational Health and Safety is based on fundamental human rights principles advocated by the International Labor Organization (ILO), promoting freedom of labor, equal opportunities in occupations, and safe working environments. It aims to ensure safety and efficiency in workplaces while maintaining holistic well-being encompassing physical, mental, and social health. Personnel supporting labor rights must possess the knowledge and skills aligned with these principles to design a curriculum that produces graduates capable of addressing occupational health issues professionally.\n\nThe curriculum emphasizes equipping students with expertise in occupational health and safety to resolve and manage occupational health issues effectively. It includes understanding business contexts, fostering creativity, promoting 21st-century learning skills, fostering lifelong learning abilities, and enhancing communication skills. Graduates are proficient in utilizing appropriate technologies that align with problem scenarios and organizational contexts, both locally and internationally."
+                },
+                "school": "6687b5777b6dca626ce7c230"
+            }
+        ]
+    },
+    {
+        "id": "6687b5d47b6dca626ce7c236",
+        "name": {
+            "th": "พยาบาลศาสตร์",
+            "en": "Nursing"
+        },
+        "acronym": "NS",
+        "detail": {
+            "th": "สำนักวิชาพยาบาลศาสตร์ มหาวิทยาลัยแม่ฟ้าหลวง มีความเชื่อที่สอดคล้องกับมโนมติหลักทางการพยาบาล (nursing meta-paradigm) ได้แก่ บุคคล (person) สุขภาพ (health) สิ่งแวดล้อม (environment) และการพยาบาล (nursing)  สุขภาพเป็นมิติที่มีความสำคัญต่อคุณภาพชีวิตของบุคคล/ประชาชน บุคลากรทางสุขภาพโดยเฉพาะอย่างยิ่งผู้ประกอบวิชาชีพการพยาบาลและการผดุงครรภ์ มีบทบาทสำคัญในการดูแลสุขภาพและจัดการกับสิ่งแวดล้อมเพื่อพัฒนาสุขภาพแบบองค์รวมและคุณภาพชีวิตตามความศักยภาพสูงสุดของแต่ละบุคคล \\n\\nหลักสูตรพยาบาลศาสตรบัณฑิต สำนักวิชาพยาบาลศาสตร์ มหาวิทยาลัยแม่ฟ้าหลวง ยึดมั่นสืบสานพระราชปณิธานของสมเด็จพระศรีนครินทราบรมราชชนนีในการ \\\"ปลูกป่า สร้างคน\\\" โดยมุ่ง \\\"สร้างคน  สร้างความรู้ สร้างคุณภาพ สร้างคุณธรรม และอนุรักษ์ธรรมชาติ\\\" ซึ่งสอดคล้องกับปณิธานของมหาวิทยาลัยแม่ฟ้าหลวงที่มุ่งหวังให้มหาวิทยาลัยเป็นที่พึ่งทางปัญญาของสังคม สามารถผลิตบัณฑิตที่มีคุณภาพ เพื่อเป็นกำลังสำคัญในการพัฒนาประเทศได้อย่างยั่งยืน สำนักวิชาพยาบาลศาสตร์ จึงมุ่งผลิตบัณฑิตที่มีสมรรถนะเชิงวิชาการ สมรรถนะเชิงวิชาชีพ และสมรรถนะด้านคุณธรรมจริยธรรมเพื่อพัฒนาสุขภาพของประชาชนให้ดีที่สุดภายใต้สภาวะแวดล้อมของผู้รับบริการในทุกช่วงวัยและทุกภาวะสุขภาพตั้งแต่เกิด เจ็บป่วย พิการ หรืออยู่ในระยะสุดท้ายของชีวิต\\n\\nหลักสูตรพยาบาลศาสตรบัณฑิต สำนักวิชาพยาบาลศาสตร์ จัดการศึกษาใช้แนวคิดพื้นฐานของทฤษฎีการสร้างความรู้ด้วยตนเองเชิงปัญญา (cognitive constructivism) และปรัชญาการอุดมศึกษาไทยและระบบอุดมศึกษาใหม่ด้านการสร้างบัณฑิตและพัฒนากำลังคน ด้วยการสร้างเสริมการเรียนรู้ภายใต้สิ่งแวดล้อมที่เอื้อให้ผู้เรียนสามารถพัฒนาความคิดอย่างมีวิจารณญาณ สามารถพัฒนาทักษะในการเรียนรู้ด้วยตนเองตลอดชีวิต เป็นผู้ที่มีคุณธรรมจริยธรรมในการทำงานในสังคม ทั้งภายในระบบบริการสุขภาพและการเป็นผู้ประกอบการอิสระในบทบาทของตนเองและร่วมกับสหวิชาชีพและข้ามศาสตร์ มีความยืดหยุ่น สามารถปรับตัวต่อความเปลี่ยนแปลงของเทคโนโลยีที่เปลี่ยนไปอย่างฉับพลันและความหลากหลายทางวัฒนธรรม และจัดการศึกษามุ่งเน้นผลลัพธ์การเรียนรู้ของผู้เรียนโดยใช้การเรียนรู้เป็นศูนย์กลางที่บ่มเพาะให้ผู้เรียนมีค่านิยมและเจตคติที่ดีต่อตนเองและวิชาชีพ สามารถประยุกต์ความรู้เพื่อแก้ปัญหา สามารถเชื่อมโยงความสัมพันธ์ระหว่างความรู้ใหม่กับความรู้ที่มีในตน สามารถสังเคราะห์ความรู้ใหม่ และสื่อสารความรู้ให้แก่ผู้อื่น อันจะเป็นการเสริมสร้างพลังอำนาจให้ผู้เรียนตัดสินใจและดำเนินการที่จำเป็นต่อการสร้างอนาคตและพัฒนาวิชาชีพอย่างต่อเนื่องตามอัตลักษณ์ “บัณฑิตที่มีภาษาดี มีความรู้ด้านเทคโนโลยีดิจิทัลในการดูแลสุขภาพ สามารถวางแผนบริหารจัดการความเสี่ยงและปัญหาสุขภาพที่เกิดจากสาธารณภัยที่พบบ่อย และปฏิบัติงานพยาบาลและผดุงครรภ์ที่เน้นคุณภาพและความปลอดภัย",
+            "en": "Mae Fah Luang University School of Nursing People, health, environment, and care. Health is crucial for people's quality of life. Health personnel, especially nursing and midwifery professionals Play an important role in healthcare and environmental management, developing overall health and quality of life based on individual potential.\\nMae Fah Luang Bachelor of Nursing School The goal of \\\"afforestation, creating people\\\" is to \\\"create people, create knowledge, create quality, create morality, and protect nature\\\". The goal of Mae Fah Luang's undergraduate program is to make it a social intellectual refuge and cultivate high-quality graduates. In order to become an important force for the sustainable development of the country, the Nursing College aims to train graduates with academic and professional abilities. Moral and ethical performance"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/0d8a26a6ff9fcf13dd1a8db4b107322d9.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/45701b26eafce94b66ce1796558b1075a.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/ca1cd09834f043a1054af2cd23c4518b10.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/30503c3cbc82db8a151010db0be6771ce7.png"
+        },
+        "majors": [
+            {
+                "id": "668ad8a3ae82c0fc46a1f7c9",
+                "name": {
+                    "th": "พยาบาลศาสตรบัณฑิต",
+                    "en": "Nursing Science"
+                },
+                "acronym": "NS",
+                "detail": {
+                    "th": "สำนักวิชาพยาบาลศาสตร์ มหาวิทยาลัยแม่ฟ้าหลวง มีความเชื่อที่สอดคล้องกับมโนมติหลักทางการพยาบาล (nursing meta-paradigm) ได้แก่ บุคคล (person) สุขภาพ (health) สิ่งแวดล้อม (environment) และการพยาบาล (nursing)  สุขภาพเป็นมิติที่มีความสำคัญต่อคุณภาพชีวิตของบุคคล/ประชาชน บุคลากรทางสุขภาพโดยเฉพาะอย่างยิ่งผู้ประกอบวิชาชีพการพยาบาลและการผดุงครรภ์ มีบทบาทสำคัญในการดูแลสุขภาพและจัดการกับสิ่งแวดล้อมเพื่อพัฒนาสุขภาพแบบองค์รวมและคุณภาพชีวิตตามความศักยภาพสูงสุดของแต่ละบุคคล ",
+                    "en": "The School of Nursing at Mae Fah Luang University adheres to the nursing meta-paradigm, which includes the concepts of person, health, environment, and nursing. Health is a critical dimension of the quality of life for individuals and the public. Healthcare professionals, particularly those in nursing and midwifery, play a crucial role in health care and environmental management to holistically improve health and quality of life to each individual's fullest potential."
+                },
+                "school": "6687b5d47b6dca626ce7c236"
+            }
+        ]
+    },
+    {
+        "id": "6687b6bc7b6dca626ce7c23c",
+        "name": {
+            "th": "แพทยศาสตร์",
+            "en": "Medicine"
+        },
+        "acronym": "Med",
+        "detail": {
+            "th": "แพทยศาสตรบัณฑิตมีวัตถุประสงค์เพื่อผลิตบัณฑิตแพทย์ที่มีคุณธรรม จริยธรรม และประพฤติตนเหมาะสมกับความเป็นแพทย์ มีความรู้และมีพหุศักยภาพ สามารถปฏิบัติงานในระบบสุขภาพของประเทศไทย มีเจตคติที่ดีต่อการทำงานในชุมชนที่มีความแตกต่างของสังคม วัฒนธรรมและทรัพยากร รู้เท่าทันพลวัตของสุขภาพโลก มีทักษะการเรียนรู้ตลอดชีวิต และร่วมสร้างสรรค์นวัตกรรม เพื่อการพัฒนา สอดคล้องกับปณิธานของมหาวิทยาลัยแม่ฟ้าหลวงที่มุ่งสร้างบัณฑิตที่มีคุณภาพ เพื่อเป็นกำลังสำคัญในการพัฒนาประเทศได้อย่างยั่งยืน",
+            "en": "The goal of a medical PhD is to cultivate medical graduates with moral, ethical, and behavioral qualities that are suitable for doctors, knowledgeable, and versatile. Able to work in Thailand's health system and have a positive attitude towards working in Community practice with different societies, cultures and resources. Understand the dynamics of global health, Lifelong learning skills, and create innovation for development. Meets Mae Fah Luang's determination to cultivate high-quality graduates for undergraduate studies and become an important force for sustainable development in the country"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/6e3521476db7b9fad55115aff61965e0.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/04219b672ff9387e10d4dacb8bc952351.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/c6a2338ef83b2daff1e1c5da2107d4d101.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/50e10c65162b6cd89e6d23a3443aab65c.png"
+        },
+        "majors": [
+            {
+                "id": "668ad921ae82c0fc46a1f820",
+                "name": {
+                    "th": "แพทยศาสตรบัณฑิต",
+                    "en": "Medicine"
+                },
+                "acronym": "MED",
+                "detail": {
+                    "th": "หลักสูตรแพทยศาสตรบัณฑิต มุ่งเน้นเสริมสร้างบัณฑิตแพทย์ให้มีคุณธรรมและจริยธรรมแห่งวิชาชีพ สามารถประกอบเวชปฏิบัติตามเกณฑ์มาตรฐานวิชาชีพเวชกรรม ใฝ่รู้ และพัฒนาความรู้ความสามารถของตนเองอย่างต่อเนื่อง  มีคุณลักษณะของผู้นำ อุทิศตนเพื่อสังคม โดยเห็นประโยชน์ส่วนรวมเป็นสำคัญ สามารถดำรงตนและเป็นที่พึ่งของชุมชน",
+                    "en": "The Doctor of Medicine program aims to cultivate medical graduates with professional ethics and morality. They are trained to practice medicine according to professional standards, continuously seek and develop their knowledge and skills, exhibit leadership qualities, and dedicate themselves to society, prioritizing the common good. Graduates are also prepared to conduct themselves appropriately and serve as reliable resources for their communities."
+                },
+                "school": "6687b6bc7b6dca626ce7c23c"
+            }
+        ]
+    },
+    {
+        "id": "6687b8207b6dca626ce7c242",
+        "name": {
+            "th": "ทันตแพทยศาสตร์",
+            "en": "Dentistry"
+        },
+        "acronym": "DENT",
+        "detail": {
+            "th": "หลักสูตรได้ยึดปรัชญาปฏิบัตินิยม(Pragmatism) นั่นคือการที่ผู้เรียนสำเร็จการศึกษาเป็นทันตแพทย์ได้นั้นต้องมาจากการมีความรู้และฝึกฝนปฏิบัติทั้งในห้องปฏิบัติการ ในคลินิกและในชุมชนเพื่อให้เกิดประสบการณ์การเรียนรู้ที่ไม่ตายตัวสามารถปรับเปลี่ยนไปตามการเปลี่ยนแปลงของสังคมได้ โดยวิธีการจัดการหลักสูตรจะอิงอยู่บนหลักการของการศึกษาแบบอิงผลลัพธ์การเรียนรู้ (Outcome-based education) และการเรียนรู้แบบอิงหลักฐานเชิงประจักษ์ (Evidence-based learning) โดยมุ่งเน้นให้ผู้เรียนเป็นศูนย์กลาง (Student-centred)\\r\\n\\r\\nดังนั้นหลักสูตรทันตแพทยศาสตรบัณฑิต จึงมุ่งผลิตบัณฑิตทันตแพทย์ให้มีความรู้ ความสามารถและมีทักษะในด้านวิทยาศาสตร์การแพทย์และทันตแพทย์ และให้มีสมรรถนะตามเกณฑ์มาตรฐานวิชาชีพ มีการบูรณาการศาสตร์ต่างๆเพื่อการดูแลผู้ป่วยแบบองค์รวม และมีศักยภาพรอบด้านเพื่อรองรับการเปลี่ยนแปลงต่างๆและสามารถปรับตัวในเข้ากับการเปลี่ยนแปลงทางสังคม รวมทั้งมีคุณธรรม จริยธรรมแห่งวิชาชีพ เห็นแก่ประโยชน์ส่วนรวมเป็นสำคัญ และเป็นผู้นำในการดูแลสุขภาพช่องปากของชุมชนได้",
+            "en": "The School aims to produce educated dentists with social morality and a commitment to volunteer work, aligned with Princess Srinagarindra's wish to \\\"provide good teeth to the people.\\\""
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/1910c1a614c243823f1dcb0446600e4da.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/2c1f2bc73644df1a7257552c63fe7104b.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/5dca3171480521ac26ceedebbae51066d.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/630b383b3ab73def00106ec761d772b42.png"
+        },
+        "majors": [
+            {
+                "id": "668ada84ae82c0fc46a1f88c",
+                "name": {
+                    "th": "ทันตแพทยศาสตรบัณฑิต",
+                    "en": "Doctor of Dental Surgery Program"
+                },
+                "acronym": "DDS",
+                "detail": {
+                    "th": "ทันตแพทยศาสตร์ เป็นศาสตร์ที่เกี่ยวข้องในการตรวจ วินิจฉัย รักษาผู้ป่วยที่เกี่ยวข้องกับสุขภาพช่องปาก ขากรรไกรและใบหน้า การส่งเสริมสุขภาพ การป้องกันโรคและการฟื้นฟูสภาพ จึงมีบทบาทสำคัญในระบบสุขภาพของประชาชนไทย ",
+                    "en": "Dentistry involves the examination, diagnosis, and treatment of patients related to oral health, jaws, and the face. It plays a crucial role in promoting health, disease prevention, and rehabilitation within the healthcare system for the Thai population."
+                },
+                "school": "6687b8207b6dca626ce7c242"
+            }
+        ]
+    },
+    {
+        "id": "6687ba147b6dca626ce7c251",
+        "name": {
+            "th": "วัตกรรมสังคม",
+            "en": "Social-Innovation"
+        },
+        "acronym": "SOCIN",
+        "detail": {
+            "th": "ปรัชญาหลักสูตร : หลักสูตร ศศ.บ.(การพัฒนาระหว่างประเทศ) สำนักวิชานวัตกรรมสังคม มหาวิทยาลัยแม่ฟ้าหลวง ตระหนักในความสำคัญของการมีบุคลากรที่มีความรู้รอบ และรู้จริง ตลอดจนมีความสามารถและความตั้งใจจริงที่มุ่งแก้ปัญหาความเป็นอยู่ (livelihood) ของมนุษยชาติอย่างยั่งยืน ในองค์การและโครงการพัฒนาต่าง ๆ ตามแนวทางของเป้าหมายการพัฒนาที่ยั่งยืนขององค์การสหประชาชาติ (Sustainable Developments Goals-SDGs) ทั้งในระดับนานาชาติ ระดับชาติ และระดับท้องถิ่น จึงมีความมุ่งหมายในการผลิตบัณฑิตที่สามารถตอบสนองต่อความต้องการดังกล่าว ทั้งนี้ หลักสูตรคำนึงถึง MFU-ID ได้แก่ การสร้างความรู้ความชำนาญ (Mastering) การพัฒนาให้เติบโต (Fostering) อรรถประโยชน์ของแนวทางการพัฒนาอย่างยั่งยืน (Utility of sustainable development) การไม่ทอดทิ้งผู้ใดไว้ข้างหลังในกระบวนการพัฒนา (Inclusiveness) และ ความหลากหลายที่ปรากฏอยู่ในกระบวนการพัฒนา (Diversity) เพื่อนำไปสู่การบ่มเพาะบุคลิกของนักปฏิบัติด้านการพัฒนาที่ยั่งยืนที่น่าเชื่อถือซึ่งประกอบด้วยลักษณะของ “ผู้ปฏิบัติงานด้านการพัฒนาระหว่างประเทศที่อ่านปัญหาออก บอกวิธีแก้ได้ ใช้เครื่องมือเป็น มองเห็นโอกาสเสมอ”\\r\\n\\r\\nวัตถุประสงค์ของหลักสูตร :\\r\\n1.มีความรู้ในทางทฤษฎี หลักการ และความสามารถในทางปฏิบัติการในสาขาการพัฒนาระหว่างประเทศเพื่อตอบสนองความต้องการของตลาดแรงงานในประเทศ ระดับภูมิภาค และนานาชาติ\\r\\n2.มีความสามารถในการแสวงหาและประยุกต์ใช้องค์ความรู้ด้านการพัฒนาระหว่างประเทศได้เท่าทันการเปลี่ยนแปลงของสถานการณ์\\r\\n3.ความสามารถในการคิดเป็น ทำเป็น และแก้ปัญหาเป็นผ่านการวิจัยอย่างเป็นระบบด้วยตนเอง\\r\\n4.มีทักษะในการดำเนินชีวิตและตระหนักถึงคุณธรรมจริยธรรมที่เหมาะสมตามบทบาทของตน",
+            "en": "School of Social Innovation's B.A. Program in International Development's educational philosophy Mae Fah Luang College Recognizes the significance of having skilled staff who are able to sustainably address human survival and who are sincere in their efforts. at international, national, and local levels in organizations and development projects in compliance with the Sustainable Development Goals (SDGs) principles In order to meet the aforementioned demands, the goal is to generate graduates. The MFU-ID program takes into consideration the following factors: mastering, fostering, and utility of sustainable development (Utility of sustainable development), leaving no one behind in the development process (Inclusiveness), and the diversity that appears in the development process (Diversity). This results in the cultivation of the personality of a reliable sustainable development practitioner, which consists of the following traits.\\r\\nTo fulfill the demands of the domestic, regional, and global labor markets, students should be able to: \\r\\n1. Apply theory, principles, and practical competence in the field of international development.\\r\\n2. Possess the capacity to quickly seek out and apply knowledge of international development to situations that may change.\\r\\n3. The capacity to reason, act, and resolve issues through independent, methodical inquiry.\\r\\n4. Possess life skills and have an understanding of morals and ethics that are appropriate to their roles.\r\n"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/e9e4cb9de108c14ec72567fc71825b2010.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/8f66c15760ac528efc4e64c388ed54e7.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/109c8bad10ce3a3ca6ef486fb13b109b9f.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/ae90ecc6817101f7aaaaab951b31ed2a6.png"
+        },
+        "majors": [
+            {
+                "id": "668ad992ae82c0fc46a1f830",
+                "name": {
+                    "th": "การพัฒนาระหว่างประเทศ",
+                    "en": "International Development"
+                },
+                "acronym": "SOC-IN",
+                "detail": {
+                    "th": "สำนักวิชานวัตกรรมสังคม ได้กำหนดวัตถุประสงค์ของการจัดหลักสูตร ศศ.บ.(การพัฒนาระหว่างประเทศ) เพื่อบ่มเพาะและฝึกฝนให้บัณฑิตมีคุณสมบัติดังต่อไปนี้",
+                    "en": "The School of Social Innovation has set the objectives of the Bachelor of Arts (International Development) program to cultivate and train graduates with the following qualities:"
+                },
+                "school": "6687ba147b6dca626ce7c251"
+            }
+        ]
+    },
+    {
+        "id": "6687ba407b6dca626ce7c257",
+        "name": {
+            "th": "จีนวิทยา",
+            "en": "Sinology"
+        },
+        "acronym": "SINO",
+        "detail": {
+            "th": "สำนักวิชาจีนวิทยาจัดตั้งเพื่อสร้างความเป็นเลิศด้านการเรียนการสอน การผลิตงานวิชาการ การสร้างสรรค์งานวิจัย และการให้บริการวิชาการในเรื่องต่างๆ อันเกี่ยวข้องกับประเทศจีน เพื่อผลิตบัณฑิตให้รอบรู้เรื่องจีน ไม่ว่าจะเป็นด้านการเมืองการปกครอง เศรษฐกิจ สังคม ความสัมพันธ์ระหว่างประเทศ ตลอดจนมีความเข้าใจในแนวคิดวิถีจีนเป็นอย่างดี นอกเหนือไปจากความรู้ ความสามารถ และทักษะด้านภาษาจีน เพื่อสร้างพื้นฐานให้แก่นักศึกษาต่างสาขาของมหาวิทยาลัยในด้านความรู้เกี่ยวกับจีน และความเข้าใจในแนวคิดวิถีจีน นอกเหนือไปจากพื้นฐานทักษะภาษาจีน เพื่อเป็นแหล่งข้อมูลในด้านต่างๆ เกี่ยวกับจีน และเป็นศูนย์กลางการติดต่อระหว่างชาวไทยกับชาวจีน เพื่อเป็นแหล่งข้อมูลในด้านต่างๆ เกี่ยวกับจีน และเป็นศูนย์กลางการติดต่อระหว่างชาวไทยกับชาวจีน เพื่อแสวงหาความร่วมมือกับองค์กรภาครัฐและภาคเอกชนทั้งในประเทศและต่างประเทศในการพัฒนาภารกิจทั้ง 5 คือ การเรียนการสอน งานวิชาการ งานวิจัย การให้บริการวิชาการ และการทำนุบำรุงศิลปวัฒนธรรมด้านต่างๆ เกี่ยวกับจีน",
+            "en": "Department of Sinology. Create excellence in teaching, academic production, research creation, and various academic services. Related to China. Cultivate graduates with a deep understanding of Chinese politics, government, economy, society, and international relations. In addition to Chinese knowledge, abilities, and skills, I also have a good understanding of Chinese concepts. Provide students in different fields with a foundation of Chinese knowledge and understanding of Chinese lifestyles. In addition to basic Chinese language skills\\r\\n4. Become a source of information for various aspects of China and a liaison center between Thai and Chinese people. Become a source of information for various aspects of China and a liaison center between Thai and Chinese people. Seek cooperation with both domestic and foreign public and private sectors to develop five teaching and academic tasks. Research, academic services, and cultural protection"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/b2b9fba178b10dfc30dbb626df454646d.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/6105710172fcf13dc0c1dedee692957d6b.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/841ad023af9b5c210324df4bcb6e7f433.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/f4e3a17a2b121b4d2d1b5090034c310f3.png"
+        },
+        "majors": [
+            {
+                "id": "668ad9ccae82c0fc46a1f83a",
+                "name": {
+                    "th": "ภาษาและวัฒนธรรมจีน",
+                    "en": "Chinese Language and Culture"
+                },
+                "acronym": "CLC",
+                "detail": {
+                    "th": "หลักสูตรศิลปศาสตรบัณฑิต สาขาวิชาภาษาและวัฒนธรรมจีน มุ่งผลิตบัณฑิตให้มีความรู้ความสามารถทางภาษาและวัฒนธรรมจีน โดยบัณฑิตจะมีทักษะภาษาจีนทั้งการฟัง การพูด การอ่าน และการเขียน รวมทั้งมีความสามารถด้านการแปลและการล่ามระหว่างภาษาจีนและภาษาไทย มีความรู้ด้านภาษาศาสตร์และความรู้เกี่ยวกับวัฒนธรรมจีนร่วมสมัย หลักสูตรศิลปศาสตรบัณฑิต สาขาวิชาภาษาและวัฒนธรรมจีน มุ่งหวังว่าบัณฑิตซึ่งเป็นผลผลิตของหลักสูตร จักสามารถประยุกต์ทักษะภาษาและความรู้เกี่ยวกับวัฒนธรรมจีน ในการศึกษาต่อหรือประกอบอาชีพ ให้เกิดประโยชน์แก่ตนเอง สังคม และประเทศชาติต่อไป",
+                    "en": "The Bachelor of Arts program in Chinese Language and Culture aims to produce graduates with proficiency in the Chinese language and culture. Graduates will have skills in listening, speaking, reading, and writing in Chinese, as well as abilities in translation and interpretation between Chinese and Thai. They will possess knowledge in linguistics and contemporary Chinese culture. The program aspires for its graduates to apply their language skills and cultural knowledge in further studies or careers, benefiting themselves, society, and the nation."
+                },
+                "school": "6687ba407b6dca626ce7c257"
+            },
+            {
+                "id": "668adf73ae82c0fc46a1fa8b",
+                "name": {
+                    "th": "จีนศึกษา",
+                    "en": "Chinese Studies"
+                },
+                "acronym": "CNS",
+                "detail": {
+                    "th": "หลักสูตรศิลปศาสตรบัณฑิต สาขาวิชาจีนศึกษา มุ่งสร้างบุคลากรด้านจีนศึกษาที่มีความรอบรู้เรื่องจีนในด้านภาษา ประวัติศาสตร์ การเมืองการปกครอง เศรษฐกิจ สังคม วัฒนธรรม และความสัมพันธ์ระหว่างประเทศอย่างลึกซึ้งและทันต่อการเปลี่ยนแปลงของสังคมโลกที่มีความพลิกผัน หลักสูตรฯจึงได้นําปรัชญาการศึกษาของสถาบัน ที่มุ่งเน้นการจัดการศึกษาตามแนวทางปรัชญาพิพัฒนาการนิยม (Progressivism)  ซึ่งเป็นปรัชญาการศึกษาที่เน้นให้ผู้เรียนเป็นศูนย์กลางของการเรียนการสอน เพื่อให้ผู้เรียนมีทักษะการเรียนรู้ตลอดชีวิต (Lifelong Learning) โดยผู้สอนมีการจัดสภาพการเรียนรู้ให้เอื้อต่อการศึกษาของผู้เรียน ให้อิสระ เสรีภาพในการเรียน การค้นคว้า การวิจัย คํานึงถึงความสนใจ ความถนัด และความต้องการของผู้เรียนในการนําองค์ความรู้จากหลักสูตรฯ สู่การปฏิบัติจริงเพื่อแก้ไขปัญหาและจัดการองค์กรได้อย่างสร้างสรรค์ สามารถติดต่อประสานงานระหว่างบุคคล หรือองค์กร ในบริบทพหุวัฒนธรรมได้อย่างมีประสิทธิภาพ\n\n",
+                    "en": "The Bachelor of Arts program in Chinese Studies aims to cultivate professionals in the field of Chinese education who possess deep knowledge of Chinese language, history, politics, governance, economics, society, culture, and international relations. The curriculum is designed to equip students with a profound understanding of China in the context of global societal changes.\n\nDrawing on the educational philosophy of progressivism, the curriculum places learners at the center of teaching and learning. It promotes lifelong learning skills, encouraging educators to create learning environments that foster independence, freedom in learning, research, and exploration. Emphasis is placed on understanding students' interests, aptitudes, and needs, enabling them to apply their knowledge effectively to solve problems and innovate within organizational contexts. Graduates are proficient in interpersonal communication and effective collaboration within diverse cultural contexts."
+                },
+                "school": "6687ba407b6dca626ce7c257"
+            },
+            {
+                "id": "668adfb0ae82c0fc46a1fa90",
+                "name": {
+                    "th": "จีนธุรกิจ",
+                    "en": "Business Chinese"
+                },
+                "acronym": "BC",
+                "detail": {
+                    "th": "หลักสูตรศิลปศาสตรบัณฑิต สาขาวิชาภาษาจีนธุรกิจมุ่งผลิตบัณฑิตที่มีความรู้ความสามารถด้านภาษาจีนทั้งในเชิงทักษะการใช้ภาษา ความรู้และความเข้าใจที่มีต่อสังคมและวัฒนธรรมจีนการประยุกต์ใช้ภาษาจีนในการประกอบอาชีพในสายงานธุรกิจ รวมถึงมีทักษะในการจัดการเทคโนโลยีสารสนเทศ สามารถประยุกต์ทฤษฎีไปสู่การปฏิบัติได้ มีทักษะในการแก้ปัญหาอย่างมีประสิทธิภาพ มีคุณธรรมในวิชาชีพเพื่อเป็นพลังในการขับเคลื่อนประเทศสู่การพัฒนาอย่างยั่งยืนและเป็นสากล มุ่งผลิตบัณฑิตที่มีคุณลักษณะ",
+                    "en": "The Bachelor of Arts program in Chinese Language for Business aims to produce graduates who possess comprehensive knowledge and skills in Chinese language proficiency, understanding of Chinese society and culture, and the application of Chinese language in business professions. The curriculum emphasizes the ability to apply theoretical knowledge to practical scenarios, including proficiency in information technology management and effective problem-solving skills. Graduates are equipped with professional ethics to contribute to sustainable national and global development efforts. The program focuses on cultivating graduates with the following characteristics."
+                },
+                "school": "6687ba407b6dca626ce7c257"
+            },
+            {
+                "id": "668adfe5ae82c0fc46a1fa9b",
+                "name": {
+                    "th": "การสอนภาษาจีน",
+                    "en": "Teaching Chinese Language"
+                },
+                "acronym": "TCL",
+                "detail": {
+                    "th": "หลักสูตรศึกษาศาสตรบัณฑิต สาขาวิชาการสอนภาษาจีน มุ่งเน้นการผลิตครูสอนภาษาจีนมืออาชีพยุคใหม่ ที่สามารถถ่ายทอดความรู้และทักษะภาษาจีนให้แก่ผู้เรียนในศตวรรษที่ 21 ได้อย่างมีประสิทธิภาพ มีความคิดสร้างสรรค์และมีเจตคติที่ดีต่อวิชาชีพ มีวุฒิภาวะทางอารมณ์และยึดมั่นในจรรยาบรรณวิชาชีพ มีความรอบรู้ด้านภาษาจีน เรื่องเกี่ยวกับประเทศจีน วัฒนธรรมจีน เทคโนโลยี นวัตกรรม และศาสตร์แห่งความเป็นครู สามารถพัฒนาการเรียนการสอนได้อย่างต่อเนื่อง ทันสมัย สร้างหลักสูตรและห้องเรียนภาษาจีนที่มีความสุขให้แก่ผู้เรียนที่หลากหลาย",
+                    "en": "The Bachelor of Education program in Chinese Language Teaching aims to produce professional Chinese language educators for the new era who can effectively impart knowledge and Chinese language skills to learners in the 21st century. Graduates are expected to be creative, have a positive attitude towards the profession, possess emotional intelligence, and adhere to professional ethics. They should have extensive knowledge in Chinese language, Chinese culture, technology, innovation, and pedagogical sciences, enabling them to continuously develop their teaching methods and create modern and enjoyable Chinese language courses and classrooms for diverse learners."
+                },
+                "school": "6687ba407b6dca626ce7c257"
+            }
+        ]
+    },
+    {
+        "id": "6687ba897b6dca626ce7c25d",
+        "name": {
+            "th": "การแพทย์บูรณาการ",
+            "en": "Integrative-Medicine"
+        },
+        "acronym": "IM",
+        "detail": {
+            "th": "สำนักวิชาการแพทย์บูรณาการ มหาวิทยาลัยแม่ฟ้าหลวง (School of Integrative Medicine, Mae Fah Luang University) จัดตั้งขึ้นในวันที่ 1 มิถุนายน พ.ศ. 2562 นับเป็นสำนักวิชาลำดับที่ 15 ของมหาวิทยาลัยแม่ฟ้าหลวง เป็นสถาบันการศึกษาด้านการแพทย์บูรณาการ ในสังกัดของมหาวิทยาลัยแม่ฟ้าหลวงได้จัดการเรียนการสอนในหลักสูตรระดับระดับปริญญาตรี\\r\\nมหาวิทยาลัยแม่ฟ้าหลวงจัดตั้งสำนักวิชาการแพทย์บูรณาการเป็นสำนักวิชาใหม่ ที่แยกตัวออกมาจากสำนักวิชาวิทยาศาสตร์สุขภาพ\\r\\nสำนักวิชาการแพทย์บูรณาการ เป็นสำนักวิชาที่จัดตั้งขึ้นใหม่ แต่สาขาวิชาหรือหลักสูตรที่เปิดสอนนั้น ได้เปิดให้มีการเรียนการสอนมาต่อเนื่องยาวนานในสำนักวิชาวิทยาศาสตร์สุขภาพ พร้อมมีความร่วมมือทางวิชาการกับมหาวิทยาลัยในต่างประเทศเพื่อแลกเปลี่ยนวิชาการ งานวิจัย และบุคลากร-นักศึกษา ไม่ว่าจะเป็น Xiamen University, Yunnan University, Guangzhou University หรือ School of Natural Product Studies, Jadavpur University เป็นต้น",
+            "en": " Mae Fah Luang University School of Comprehensive Medicine On June 1, 2019, Mae Fah Luang's 15th undergraduate college was a comprehensive medical education institution. Mae Fah Luang University\\r\\nMae Fah Luang has established a new comprehensive medical office for his undergraduate studies, separate from the Health Science Office.\\r\\nThe Office of Comprehensive Medicine is a newly established institution that provides disciplines or courses School of Health Sciences And engage in academic cooperation with foreign universities, exchange academic, research, and personnel students, including Xiamen. University, Yunnan University, Guangzhou University or Natural Product Research Institute, Jadafpur University, etc\r\n"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/8472bc1a1c32a362dd3bc83f47fce9cf.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/3e3ffd2f61cefa5de32fb9fa3532c4ce.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/87acab0622978be2516fa47c28e1e148.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/aba9fbdc9e68a8e6effeebc8afaaba12.png"
+        },
+        "majors": [
+            {
+                "id": "668ada06ae82c0fc46a1f868",
+                "name": {
+                    "th": "กายภาพบำบัด",
+                    "en": "Physical Therapy"
+                },
+                "acronym": "PT",
+                "detail": {
+                    "th": "หลักสูตรกายภาพบำบัดบัณฑิตมุ่งเน้นการผลิตบัณฑิตสาขากายภาพบำบัดที่มีความรู้และทักษะในการตรวจประเมิน วินิจฉัยและบำบัดความบกพร่องของร่างกายซึ่งเกิดเนื่องจากภาวะของโรคหรือการเคลื่อนไหวที่ไม่ปกติ สามารถบูรณาการร่วมกับศาสตร์อื่นๆ ที่เกี่ยวข้องเพื่อป้องกัน แก้ไขและฟื้นฟูความเสื่อมสภาพ ความพิการของร่างกาย การส่งเสริมสุขภาพร่างกายและจิตใจของบุคคลทุกช่วงวัยและชุมชนในสังคมพหุวัฒนธรรม มีคุณธรรม จริยธรรมและจรรยาบรรณตามหลักวิชาการและวิชาชีพ รู้เท่าทันสถานการณ์ของโลกและสังคมที่เปลี่ยนแปลงตลอดเวลา  ",
+                    "en": "The Bachelor of Physical Therapy program focuses on producing graduates specialized in physical therapy who have knowledge and skills in assessment, diagnosis, and treatment of physical impairments resulting from disease or abnormal movement. They are capable of integrating with other relevant disciplines to prevent, correct, and rehabilitate physical disabilities, promoting the physical and mental health of individuals of all ages and communities in multicultural societies. Graduates uphold ethics and professional standards, stay updated with global and societal changes, and possess moral integrity and ethical conduct."
+                },
+                "school": "6687ba897b6dca626ce7c25d"
+            },
+            {
+                "id": "668ae051ae82c0fc46a1face",
+                "name": {
+                    "th": "การแพทย์แผนไทยประยุกต์บัณฑิต",
+                    "en": "Applied Thai Traditional Medicine"
+                },
+                "acronym": "ATM",
+                "detail": {
+                    "th": "การจัดการศึกษาสาขาการแพทย์แผนไทยประยุกต์ มุ่งเน้นอนุรักษ์และพัฒนาการแพทย์แผนไทยซึ่งเป็นภูมิปัญญาของชาติให้คงอยู่อย่างยั่งยืนและเจริญก้าวหน้า โดยพัฒนาบัณฑิตให้เป็นผู้ปฏิบัติงานเวชปฏิบัติสาขาการแพทย์แผนไทยประยุกต์ ที่มีความรู้ ความสามารถในการพัฒนาตนเองและวิชาชีพ โดยใช้องค์ความรู้ทางวิทยาศาสตร์และวิทยาศาสตร์การแพทย์เป็นฐานในการวิจัยและพัฒนาศาสตร์การแพทย์แผนไทยให้เป็นที่ยอมรับในระดับชาติและ/หรือนานาชาติ มุ่งผลิตบัณฑิตที่มีความรู้ ความสามารถ ",
+                    "en": "The applied Thai traditional medicine management education program aims to conserve and advance Thai traditional medicine, which is the national heritage, ensuring its sustainable development and progress. The program focuses on developing graduates who can practice in the field of applied Thai traditional medicine with knowledge and skills to continually improve themselves professionally. It utilizes scientific knowledge and medical sciences as the foundation for research and development in Thai traditional medicine, aiming to achieve national and international recognition. The goal is to produce graduates with comprehensive knowledge and capabilities in this field."
+                },
+                "school": "6687ba897b6dca626ce7c25d"
+            },
+            {
+                "id": "668ae081ae82c0fc46a1faeb",
+                "name": {
+                    "th": "แผนจีนบัณฑิต",
+                    "en": "Traditional Chinese Medicine"
+                },
+                "acronym": "TCM",
+                "detail": {
+                    "th": "หลักสูตรการแพทย์แผนจีนบัณฑิต มุ่งเน้นผลิตบัณฑิตแพทย์แผนจีนที่มีความรู้ ความสามารถตามประกาศคณะกรรมการวิชาชีพสาขาการแพทย์แผนจีน และขึ้นทะเบียนเป็นผู้ประกอบโรคศิลปะสาขาการแพทย์แผนจีน รวมถึงมีทักษะด้านการผลิตและแปรรูปสมุนไพรที่โดดเด่น สามารถบูรณาการความรู้กับการแพทย์แผนปัจจุบัน ซึ่งตอบสนองความต้องการการดูแลสุขภาพแบบองค์รวม ที่สามารถเติมเต็มการแพทย์กระแสหลักได้อย่างมีประสิทธิภาพ  ",
+                    "en": "The Bachelor of Chinese Medicine program aims to produce graduates who have the knowledge and skills specified by the Professional Committee of Chinese Medicine and are registered as Chinese Medicine practitioners. The program emphasizes producing graduates who excel in the processing and transformation of herbal medicines, integrating traditional Chinese medicine knowledge with contemporary medical practices. This equips them to meet the comprehensive healthcare needs efficiently and effectively, complementing mainstream medical practices."
+                },
+                "school": "6687ba897b6dca626ce7c25d"
+            }
+        ]
+    },
+    {
+        "id": "6687bb287b6dca626ce7c26c",
+        "name": {
+            "th": "อุตสาหกรรมเกษตร",
+            "en": "Agro-Industry"
+        },
+        "acronym": "AI",
+        "detail": {
+            "th": "โรงเรียนมุ่งเน้นการสอนและการวิจัยที่มีคุณภาพสูงในด้านวิทยาศาสตร์การอาหาร เทคโนโลยี และเทคโนโลยีหลังการเก็บเกี่ยว เน้นจรรยาบรรณวิชาชีพ ความรับผิดชอบ และการพัฒนาความรู้ความสามารถอย่างต่อเนื่อง",
+            "en": "The school focuses on high-quality teaching and research in food science, technology, and postharvest technology. It emphasizes professional ethics, responsibility, and continuous improvement in knowledge and proficiency.\r\n"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/7ad5d53f5aa1a4f79d47e52f3fbf57a3.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/92aaa1f5699f6c6837dade64fdb67a96.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/1c104d848e41748bdb98dd6875c99c76c.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/d3c808a9eb9bba4b7a474aee8101091839.png"
+        },
+        "majors": [
+            {
+                "id": "668adaf6ae82c0fc46a1f896",
+                "name": {
+                    "th": "นวัตกรรมวิทยาศาสตร์และเทคโนโลยีอาหาร",
+                    "en": "Innovative Food Science and Technology"
+                },
+                "acronym": "FST",
+                "detail": {
+                    "th": "หลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชานวัตกรรมวิทยาศาสตร์และเทคโนโลยีอาหาร มุ่งเน้นการประยุกต์ใช้ความรู้พื้นฐานทางวิทยาศาสตร์ในการเสริมสร้างความเข้มแข็งของอุตสาหกรรมเกษตรและอาหารของประเทศ ผ่านการพัฒนาและสร้างสรรค์นวัตกรรม  หลักสูตรจึงได้ออกแบบและพัฒนาหลักสูตรตามแนวการศึกษาแบบคอนสตรัคติวิสต์  (Constructivist Theory) ซึ่งเป็นแนวคิดที่มุ่งเน้นให้ผู้เรียนได้รับองค์ความรู้รวมถึงการพัฒนาทักษะต่างๆ ผ่านการปฏิบัติจริง โดยผู้เรียนสามารถนำเอาองค์ความรู้ที่ได้รับมาใช้ในการแก้ปัญหาและการสร้างนวัตกรรรม อีกทั้งยังส่งเสริมให้เกิดการทำงานร่วมกับผู้อื่นเพื่อพัฒนาอุตสาหกรรมเกษตรและอาหารของประเทศ",
+                    "en": "The Bachelor of Science program in Food Science and Technology Innovation focuses on applying fundamental scientific knowledge to strengthen Thailand's agricultural and food industries through innovation and development. The curriculum is designed based on Constructivist Theory in education, which emphasizes that learners acquire knowledge and develop various skills through practical experience. Students are encouraged to apply their knowledge in problem-solving and innovation, fostering collaboration with others to advance the agricultural and food industries of the country."
+                },
+                "school": "6687bb287b6dca626ce7c26c"
+            },
+            {
+                "id": "668ae0d6ae82c0fc46a1fb0b",
+                "name": {
+                    "th": "โลจิสติกส์เกษตรและอาหาร",
+                    "en": "Postharvest Technology and Logistics"
+                },
+                "acronym": "PHT",
+                "detail": {
+                    "th": "หลักสูตรวิทยาศาสตรบัณฑิต สาขาวิชาโลจิสติกส์เกษตรและอาหาร มุ่งสร้างบัณฑิตตามปรัชญาการศึกษา การเรียนรู้จากการปฏิบัติจริง (Learning by doing) ให้บัณฑิตมีความรู้ความสามารถในด้านเทคโนโลยีการจัดการผลิตผลเกษตร และอาหาร ร่วมกับการจัดการโลจิสติกส์ เพื่อแก้ปัญหาและเพิ่มมูลค่าในโซ่อุปทานเกษตรและอาหารอย่างยั่งยืน ตลอดจนสามารถประยุกต์ความรู้และทักษะการทำงานได้เหมาะสม สอดคล้องกับกฎระเบียบและมาตรฐานสากล",
+                    "en": "The Bachelor of Science program in Agricultural and Food Logistics aims to produce graduates based on the philosophy of experiential learning (Learning by doing). The program seeks to equip graduates with knowledge and skills in agricultural production technology and food management, combined with logistics management. This prepares them to solve problems and add value sustainably within the agricultural and food supply chains. Graduates are also capable of applying their knowledge and skills appropriately, aligning with international regulations and standards."
+                },
+                "school": "6687bb287b6dca626ce7c26c"
+            }
+        ]
+    },
+    {
+        "id": "6687bbcd7b6dca626ce7c27b",
+        "name": {
+            "th": "วิทยาศาสตร์",
+            "en": "Science"
+        },
+        "acronym": "SCI",
+        "detail": {
+            "th": "สำนักวิชาวิทยาศาสตร์” เป็นหนึ่งในสามสำนักวิชาในมหาวิทยาลัยแม่ฟ้าหลวงที่ก่อตั้งขึ้นพร้อมกับมหาวิทยาลัยเมื่อ พ.ศ.2541 โดยเปิดสอนทั้งระดับปริญญาตรี โทและเอกในหลากหลายสาขาวิชา สำนักวิชาวิทยาศาสตร์มีความพร้อมในการเปิดสอนระดับปริญญาโทและเอกเป็นสำนักวิชาแรกในมหาวิทยาลัย เมื่อ พ.ศ.2546\\r\\n\\r\\nสำนักวิชาวิทยาศาสตร์มีคณาจารย์รุ่นใหม่ที่มีความพร้อมในการสอนโดยใช้ภาษาอังกฤษเป็นสื่อและมีประสบการณ์ในการทำงานวิจัย เราจึงพร้อมที่จะทำงานวิจัยที่ค้นคว้าเพื่อตอบสนองต่อความต้องการทั้งในระดับภูมิภาค ชาติและนานาชาติ นอกจากนี้สำนักวิชาวิทยาศาสตร์ยังให้บริการวิชาการแก่สังคมและไม่ลืมที่จะอนุรักษ์วัฒนธรรมและสิ่งแวดล้อมอีกด้วย",
+            "en": "The \\\"School of Science\\\" is one of the three colleges established by Mae Fah Luang for undergraduate studies in 1998. Undergraduate, Master's, and Doctoral Degrees The School of Science was preparing to offer master's and doctoral degrees in 2003.\\r\\nThe School of Science has a new generation of teachers who are prepared to teach in English and have research experience. We are preparing to conduct research to meet regional, national, and international needs. In addition, the Science Office also provides academic services to society, and do not forget to protect culture and the environment.\r\n"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/b21a641b6e0f73eb4d76d3e5ae1135410.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/102436544ef016062149b38f11b165357.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/105240c8b2110f6bdcab71928972426a49.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/9dbd74125ae6d2bd12b24e105799ab865.png"
+        },
+        "majors": [
+            {
+                "id": "668adb6cae82c0fc46a1f8a0",
+                "name": {
+                    "th": "วิทยาศาสตร์ชีวภาพ",
+                    "en": "Biotechnology"
+                },
+                "acronym": "BIO",
+                "detail": {
+                    "th": "มุ่งผลิตนักวิทยาศาสตร์ชีวภาพที่มีคุณธรรมจริยธรรม รับผิดชอบต่อสังคม มีความรู้ทั้งภาคทฤษฎีและภาคปฏิบัติในด้านวิทยาศาสตร์ชีวภาพอย่างครอบคลุม สามารถต่อยอดไปสู่การใช้ประโยชน์จากความหลากหลายของทรัพยากรชีวภาพ ตลอดจนสามารถทำงานร่วมกับผู้อื่นในสังคมพหุวัฒนธรรม เพื่อร่วมสร้างสรรค์ผลงานทางวิชาการ หรือผลิตภัณฑ์ หรือนวัตกรรม และสามารถประยุกต์ใช้สถิติและเทคโนโลยีสารสนเทศในการจัดการและนำเสนอข้อมูล ตลอดจนสื่อสารทางวิชาการและวิชาชีพได้",
+                    "en": "The aim is to produce biologists with ethical integrity, social responsibility, comprehensive knowledge in both theoretical and practical aspects of biological sciences. They should be capable of utilizing the diversity of biological resources, collaborating within multicultural societies to innovate and create academic works, products, or innovations. Additionally, they should be proficient in applying statistics and information technology for management, data presentation, and academic and professional communication."
+                },
+                "school": "6687bbcd7b6dca626ce7c27b"
+            },
+            {
+                "id": "668ae139ae82c0fc46a1fb22",
+                "name": {
+                    "th": "เคมีประยุกต์",
+                    "en": "Applied Chemistry"
+                },
+                "acronym": "APC",
+                "detail": {
+                    "th": "เคมีประยุกต์เป็นสหวิทยาการที่มีการบูรณาการองค์ความรู้ด้านเคมีและศาสตร์ต่างแขนง ซึ่งเป็นฐานของการพัฒนาเทคโนโลยีและนวัตกรรมและมีผลต่อเศรษฐกิจ สังคม การดำรงชีพของคนในชาติ ",
+                    "en": "Chemical engineering is an interdisciplinary field that integrates knowledge of chemistry and various branches of science. It serves as the foundation for developing technologies and innovations that impact the economy, society, and people's livelihoods within the nation."
+                },
+                "school": "6687bbcd7b6dca626ce7c27b"
+            },
+            {
+                "id": "668ae16cae82c0fc46a1fb27",
+                "name": {
+                    "th": "วิศวกรรมวัสดุ",
+                    "en": "Materials Engineering"
+                },
+                "acronym": "ME",
+                "detail": {
+                    "th": "หลักสูตรวิศวกรรมศาสตรบัณฑิต สาขาวิชาวิศวกรรมวัสดุ เป็นหลักสูตรที่ผสมผสานจุดแข็ง\nของสาขาวิชาวัสดุศาสตร์และวิศวกรรมศาสตร์เข้าด้วยกัน มีจุดมุ่งหมายที่จะผลิตวิศวกรด้านวัสดุที่มีคุณภาพ บัณฑิตหลักสูตรนี้จะมีความสามารถในการคิดวิเคราะห์และค้นคว้าวิจัยแบบนักวัสดุศาสตร์ อีกทั้งสามารถออกแบบ วางแผน และดำเนินกระบวนการผลิตได้แบบวิศวกรวัสดุ และด้วยแนวคิดของหลักสูตรที่มุ่งเน้นการจัดกระบวนการเรียนรู้แบบใช้ปัญหาเป็นฐานและการส่งเสริมให้มีการค้นคว้าเรียนรู้ด้วยตนเอง บัณฑิตจะได้รับการพัฒนาและฝึกฝนให้มีทักษะการคิดอย่างสร้างสรรค์ รวมไปถึงการเสริมสร้างวินัย คุณธรรม จริยธรรม ความรับผิดชอบทั้งต่อตนเองและสังคมตลอดจนสามารถทำงานกับภาคอุตสาหกรรมได้อย่างมีคุณภาพ มุ่งผลิตบัณฑิตที่มีคุณสมบัติ",
+                    "en": "The Bachelor of Engineering in Materials Engineering program is an interdisciplinary curriculum that blends the strengths of materials science and engineering. Its primary goal is to produce high-quality materials engineers. Graduates of this program possess the ability to analyze and conduct research like materials scientists. Additionally, they can design, plan, and manage manufacturing processes as materials engineers. The curriculum emphasizes problem-based learning and encourages independent inquiry and research. Graduates are developed and trained to have creative thinking skills, as well as to cultivate discipline, ethics, and responsibility towards themselves and society. They are equipped to work effectively in the industrial sector, aiming to produce competent professionals."
+                },
+                "school": "6687bbcd7b6dca626ce7c27b"
+            }
+        ]
+    },
+    {
+        "id": "66a177e3ab6052361ec747b7",
+        "name": {
+            "th": "How to live",
+            "en": "How to live"
+        },
+        "acronym": "Staff",
+        "detail": {
+            "th": "How to live",
+            "en": "How to live"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/d753b25cc80fe33444cd671710592532c.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/a14610b0732e2dcf33daeecc2f304a8c5.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/2101cda7aa61bd60618ef69a028220277.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/6632578a45da4ad63e1074b85b1d7ad72.png"
+        },
+        "majors": [
+            {
+                "id": "66a17831feec7737fa173b4e",
+                "name": {
+                    "th": "SMO",
+                    "en": "SMO"
+                },
+                "acronym": "SMO",
+                "detail": {
+                    "th": "SMO",
+                    "en": "SMO"
+                },
+                "school": "66a177e3ab6052361ec747b7"
+            },
+            {
+                "id": "66a87ac76fe919986ed34033",
+                "name": {
+                    "th": "STAFF",
+                    "en": "STAFF"
+                },
+                "acronym": "STAFF",
+                "detail": {
+                    "th": "STAFF",
+                    "en": "STAFF"
+                },
+                "school": "66a177e3ab6052361ec747b7"
+            }
+        ]
+    },
+    {
+        "id": "66a4c9ebe91d865287e8b905",
+        "name": {
+            "th": "HLLC_1",
+            "en": "HLLC_1"
+        },
+        "acronym": "HLLC_1",
+        "detail": {
+            "th": "สำนักวิชาพยาบาลศาสตร์ มหาวิทยาลัยแม่ฟ้าหลวง มีความเชื่อที่สอดคล้องกับมโนมติหลักทางการพยาบาล (nursing meta-paradigm) ได้แก่ บุคคล (person) สุขภาพ (health) สิ่งแวดล้อม (environment) และการพยาบาล (nursing)  สุขภาพเป็นมิติที่มีความสำคัญต่อคุณภาพชีวิตของบุคคล/ประชาชน บุคลากรทางสุขภาพโดยเฉพาะอย่างยิ่งผู้ประกอบวิชาชีพการพยาบาลและการผดุงครรภ์ มีบทบาทสำคัญในการดูแลสุขภาพและจัดการกับสิ่งแวดล้อมเพื่อพัฒนาสุขภาพแบบองค์รวมและคุณภาพชีวิตตามความศักยภาพสูงสุดของแต่ละบุคคล \\n\\nหลักสูตรพยาบาลศาสตรบัณฑิต สำนักวิชาพยาบาลศาสตร์ มหาวิทยาลัยแม่ฟ้าหลวง ยึดมั่นสืบสานพระราชปณิธานของสมเด็จพระศรีนครินทราบรมราชชนนีในการ \\\"ปลูกป่า สร้างคน\\\" โดยมุ่ง \\\"สร้างคน  สร้างความรู้ สร้างคุณภาพ สร้างคุณธรรม และอนุรักษ์ธรรมชาติ\\\" ซึ่งสอดคล้องกับปณิธานของมหาวิทยาลัยแม่ฟ้าหลวงที่มุ่งหวังให้มหาวิทยาลัยเป็นที่พึ่งทางปัญญาของสังคม สามารถผลิตบัณฑิตที่มีคุณภาพ เพื่อเป็นกำลังสำคัญในการพัฒนาประเทศได้อย่างยั่งยืน สำนักวิชาพยาบาลศาสตร์ จึงมุ่งผลิตบัณฑิตที่มีสมรรถนะเชิงวิชาการ สมรรถนะเชิงวิชาชีพ และสมรรถนะด้านคุณธรรมจริยธรรมเพื่อพัฒนาสุขภาพของประชาชนให้ดีที่สุดภายใต้สภาวะแวดล้อมของผู้รับบริการในทุกช่วงวัยและทุกภาวะสุขภาพตั้งแต่เกิด เจ็บป่วย พิการ หรืออยู่ในระยะสุดท้ายของชีวิต\\n\\nหลักสูตรพยาบาลศาสตรบัณฑิต สำนักวิชาพยาบาลศาสตร์ จัดการศึกษาใช้แนวคิดพื้นฐานของทฤษฎีการสร้างความรู้ด้วยตนเองเชิงปัญญา (cognitive constructivism) และปรัชญาการอุดมศึกษาไทยและระบบอุดมศึกษาใหม่ด้านการสร้างบัณฑิตและพัฒนากำลังคน ด้วยการสร้างเสริมการเรียนรู้ภายใต้สิ่งแวดล้อมที่เอื้อให้ผู้เรียนสามารถพัฒนาความคิดอย่างมีวิจารณญาณ สามารถพัฒนาทักษะในการเรียนรู้ด้วยตนเองตลอดชีวิต เป็นผู้ที่มีคุณธรรมจริยธรรมในการทำงานในสังคม ทั้งภายในระบบบริการสุขภาพและการเป็นผู้ประกอบการอิสระในบทบาทของตนเองและร่วมกับสหวิชาชีพและข้ามศาสตร์ มีความยืดหยุ่น สามารถปรับตัวต่อความเปลี่ยนแปลงของเทคโนโลยีที่เปลี่ยนไปอย่างฉับพลันและความหลากหลายทางวัฒนธรรม และจัดการศึกษามุ่งเน้นผลลัพธ์การเรียนรู้ของผู้เรียนโดยใช้การเรียนรู้เป็นศูนย์กลางที่บ่มเพาะให้ผู้เรียนมีค่านิยมและเจตคติที่ดีต่อตนเองและวิชาชีพ สามารถประยุกต์ความรู้เพื่อแก้ปัญหา สามารถเชื่อมโยงความสัมพันธ์ระหว่างความรู้ใหม่กับความรู้ที่มีในตน สามารถสังเคราะห์ความรู้ใหม่ และสื่อสารความรู้ให้แก่ผู้อื่น อันจะเป็นการเสริมสร้างพลังอำนาจให้ผู้เรียนตัดสินใจและดำเนินการที่จำเป็นต่อการสร้างอนาคตและพัฒนาวิชาชีพอย่างต่อเนื่องตามอัตลักษณ์ “บัณฑิตที่มีภาษาดี มีความรู้ด้านเทคโนโลยีดิจิทัลในการดูแลสุขภาพ สามารถวางแผนบริหารจัดการความเสี่ยงและปัญหาสุขภาพที่เกิดจากสาธารณภัยที่พบบ่อย และปฏิบัติงานพยาบาลและผดุงครรภ์ที่เน้นคุณภาพและความปลอดภัย",
+            "en": "Mae Fah Luang University School of Nursing People, health, environment, and care. Health is crucial for people's quality of life. Health personnel, especially nursing and midwifery professionals Play an important role in healthcare and environmental management, developing overall health and quality of life based on individual potential.\\nMae Fah Luang Bachelor of Nursing School The goal of \\\"afforestation, creating people\\\" is to \\\"create people, create knowledge, create quality, create morality, and protect nature\\\". The goal of Mae Fah Luang's undergraduate program is to make it a social intellectual refuge and cultivate high-quality graduates. In order to become an important force for the sustainable development of the country, the Nursing College aims to train graduates with academic and professional abilities. Moral and ethical performance"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/0d8a26a6ff9fcf13dd1a8db4b107322d9.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/45701b26eafce94b66ce1796558b1075a.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/be823183667c5d9cd1368ea993aedf0f.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/245618eaaad7352feb28c29a81282263.jpg"
+        },
+        "majors": [
+            {
+                "id": "66a4cb048f84db121be4e949",
+                "name": {
+                    "th": "How to live and learn",
+                    "en": "How to live and learn"
+                },
+                "acronym": "How to live and learn",
+                "detail": {
+                    "th": "How to live and learn",
+                    "en": "How to live and learn"
+                },
+                "school": "66a4c9ebe91d865287e8b905"
+            }
+        ]
+    },
+    {
+        "id": "66a4ca0ae91d865287e8b907",
+        "name": {
+            "th": "HLLC_2",
+            "en": "HLLC_2"
+        },
+        "acronym": "HLLC_2",
+        "detail": {
+            "th": "ปรัชญาหลักสูตร : หลักสูตร ศศ.บ.(การพัฒนาระหว่างประเทศ) สำนักวิชานวัตกรรมสังคม มหาวิทยาลัยแม่ฟ้าหลวง ตระหนักในความสำคัญของการมีบุคลากรที่มีความรู้รอบ และรู้จริง ตลอดจนมีความสามารถและความตั้งใจจริงที่มุ่งแก้ปัญหาความเป็นอยู่ (livelihood) ของมนุษยชาติอย่างยั่งยืน ในองค์การและโครงการพัฒนาต่าง ๆ ตามแนวทางของเป้าหมายการพัฒนาที่ยั่งยืนขององค์การสหประชาชาติ (Sustainable Developments Goals-SDGs) ทั้งในระดับนานาชาติ ระดับชาติ และระดับท้องถิ่น จึงมีความมุ่งหมายในการผลิตบัณฑิตที่สามารถตอบสนองต่อความต้องการดังกล่าว ทั้งนี้ หลักสูตรคำนึงถึง MFU-ID ได้แก่ การสร้างความรู้ความชำนาญ (Mastering) การพัฒนาให้เติบโต (Fostering) อรรถประโยชน์ของแนวทางการพัฒนาอย่างยั่งยืน (Utility of sustainable development) การไม่ทอดทิ้งผู้ใดไว้ข้างหลังในกระบวนการพัฒนา (Inclusiveness) และ ความหลากหลายที่ปรากฏอยู่ในกระบวนการพัฒนา (Diversity) เพื่อนำไปสู่การบ่มเพาะบุคลิกของนักปฏิบัติด้านการพัฒนาที่ยั่งยืนที่น่าเชื่อถือซึ่งประกอบด้วยลักษณะของ “ผู้ปฏิบัติงานด้านการพัฒนาระหว่างประเทศที่อ่านปัญหาออก บอกวิธีแก้ได้ ใช้เครื่องมือเป็น มองเห็นโอกาสเสมอ”\\r\\n\\r\\nวัตถุประสงค์ของหลักสูตร :\\r\\n1.มีความรู้ในทางทฤษฎี หลักการ และความสามารถในทางปฏิบัติการในสาขาการพัฒนาระหว่างประเทศเพื่อตอบสนองความต้องการของตลาดแรงงานในประเทศ ระดับภูมิภาค และนานาชาติ\\r\\n2.มีความสามารถในการแสวงหาและประยุกต์ใช้องค์ความรู้ด้านการพัฒนาระหว่างประเทศได้เท่าทันการเปลี่ยนแปลงของสถานการณ์\\r\\n3.ความสามารถในการคิดเป็น ทำเป็น และแก้ปัญหาเป็นผ่านการวิจัยอย่างเป็นระบบด้วยตนเอง\\r\\n4.มีทักษะในการดำเนินชีวิตและตระหนักถึงคุณธรรมจริยธรรมที่เหมาะสมตามบทบาทของตน",
+            "en": "School of Social Innovation's B.A. Program in International Development's educational philosophy Mae Fah Luang College Recognizes the significance of having skilled staff who are able to sustainably address human survival and who are sincere in their efforts. at international, national, and local levels in organizations and development projects in compliance with the Sustainable Development Goals (SDGs) principles In order to meet the aforementioned demands, the goal is to generate graduates. The MFU-ID program takes into consideration the following factors: mastering, fostering, and utility of sustainable development (Utility of sustainable development), leaving no one behind in the development process (Inclusiveness), and the diversity that appears in the development process (Diversity). This results in the cultivation of the personality of a reliable sustainable development practitioner, which consists of the following traits.\\r\\nTo fulfill the demands of the domestic, regional, and global labor markets, students should be able to: \\r\\n1. Apply theory, principles, and practical competence in the field of international development.\\r\\n2. Possess the capacity to quickly seek out and apply knowledge of international development to situations that may change.\\r\\n3. The capacity to reason, act, and resolve issues through independent, methodical inquiry.\\r\\n4. Possess life skills and have an understanding of morals and ethics that are appropriate to their roles.\r\n"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/e9e4cb9de108c14ec72567fc71825b2010.png",
+            "second": "https://hllc.mfu.ac.th/api/uploads/5c26bab656ae95c13147a46aa25d3d8d.png",
+            "third": "https://hllc.mfu.ac.th/api/uploads/471a5104fc898c65b1433c7fd9e612126.png",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/a47b2fb2a82bd0041f5a89ab2ddd35b7.jpg"
+        },
+        "majors": [
+            {
+                "id": "66a4caaab47262932eaef844",
+                "name": {
+                    "th": "How to live and learn2",
+                    "en": "How to live and learn2"
+                },
+                "acronym": "How to live and learn2",
+                "detail": {
+                    "th": "How to live and learn2",
+                    "en": "How to live and learn2"
+                },
+                "school": "66a4ca0ae91d865287e8b907"
+            }
+        ]
+    },
+    {
+        "id": "66aa074b50c58c65160c88bf",
+        "name": {
+            "th": "Avatar",
+            "en": "Avatar"
+        },
+        "acronym": "Avatar",
+        "detail": {
+            "th": "Avatar",
+            "en": "Avatar"
+        },
+        "photos": {
+            "first": "https://hllc.mfu.ac.th/api/uploads/8dd87ba538c55de24d25deaeed321335.jpeg",
+            "second": "https://hllc.mfu.ac.th/api/uploads/cbea9011fa373aa1049f585bcb33fef1f.jpeg",
+            "third": "https://hllc.mfu.ac.th/api/uploads/c0cfcabee237e3f26aa0ff145251ec66.jpeg",
+            "fourth": "https://hllc.mfu.ac.th/api/uploads/7d1041ba9b7a1d77c9cd7928835062b25.jpeg"
+        },
+        "majors": [
+            {
+                "id": "66aa076730cd6479e764a06a",
+                "name": {
+                    "th": "a",
+                    "en": "a"
+                },
+                "acronym": "a",
+                "detail": {
+                    "th": "a",
+                    "en": "a"
+                },
+                "school": "66aa074b50c58c65160c88bf"
+            }
+        ]
+    }
+]
