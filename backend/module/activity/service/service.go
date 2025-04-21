@@ -8,7 +8,7 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/activity/dto"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/activity/entity"
+	entity "github.com/HLLC-MFU/HLLC-2025/backend/module/activity/model"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/activity/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 	"go.mongodb.org/mongo-driver/bson/primitive"
