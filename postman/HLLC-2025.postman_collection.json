@@ -1,9 +1,10 @@
 {
 	"info": {
-		"_postman_id": "1234567-89ab-cdef-0123-456789abcdef",
+		"_postman_id": "77cc56da-a88d-476d-8468-d57aa733936c",
 		"name": "HLLC-2025",
 		"description": "API collection for HLLC-2025 backend services",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29106659"
 	},
 	"item": [
 		{
@@ -18,7 +19,6 @@
 								{
 									"listen": "test",
 									"script": {
-										"type": "text/javascript",
 										"exec": [
 											"if (pm.response.code === 200) {",
 											"    if (pm.response.json().data && pm.response.json().data.accessToken) {",
@@ -28,7 +28,16 @@
 											"        pm.environment.set('refresh_token', pm.response.json().data.refreshToken);",
 											"    }",
 											"}"
-										]
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [],
+										"type": "text/javascript"
 									}
 								}
 							],
@@ -45,11 +54,19 @@
 									"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}"
 								},
 								"url": {
-									"raw": "{{base_url}}/api/v1/auth/login",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "auth", "login"]
+									"raw": "{{auth_url}}/api/v1/auth/login",
+									"host": [
+										"{{auth_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"login"
+									]
 								}
-							}
+							},
+							"response": []
 						},
 						{
 							"name": "Refresh Token",
@@ -63,14 +80,22 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}"
+									"raw": "{\n    \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjgwNTAyNzU3NWVmZWQzMTc0NTRhYTczIiwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGVfaWRzIjpbIjY4MDUwMjc1NzVlZmVkMzE3NDU0YWE3MSJdLCJyb2xlX2NvZGVzIjpbIkFETUlOIl0sInRva2VuX3R5cGUiOiJyZWZyZXNoIiwiaXNzIjoiaGxsYy0yMDI1LmNvbSIsInN1YiI6InJlZnJlc2gtdG9rZW4iLCJhdWQiOlsiaGxsYy0yMDI1LmNvbSJdLCJleHAiOjE3NDU3NjQyNzYsIm5iZiI6MTc0NTE1OTQ3NiwiaWF0IjoxNzQ1MTU5NDc2fQ.cdX6yiMfric5lxlQzHE46dXPLD6uTV2kgNca0EhOWlM\"\n}"
 								},
 								"url": {
-									"raw": "{{base_url}}/api/v1/auth/refresh",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "auth", "refresh"]
+									"raw": "{{auth_url}}/api/v1/auth/refresh",
+									"host": [
+										"{{auth_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"refresh"
+									]
 								}
-							}
+							},
+							"response": []
 						}
 					]
 				},
@@ -88,11 +113,20 @@
 									}
 								],
 								"url": {
-									"raw": "{{base_url}}/api/v1/protected/auth/logout",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "protected", "auth", "logout"]
+									"raw": "{{auth_url}}/api/v1/protected/auth/logout",
+									"host": [
+										"{{auth_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"protected",
+										"auth",
+										"logout"
+									]
 								}
-							}
+							},
+							"response": []
 						},
 						{
 							"name": "Validate Token",
@@ -105,11 +139,63 @@
 									}
 								],
 								"url": {
-									"raw": "{{base_url}}/api/v1/protected/auth/validate",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "protected", "auth", "validate"]
+									"raw": "{{auth_url}}/api/v1/protected/auth/validate",
+									"host": [
+										"{{auth_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"protected",
+										"auth",
+										"validate"
+									]
 								}
-							}
+							},
+							"response": []
+						},
+						{
+							"name": "Profile Me",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}"
+								},
+								"url": {
+									"raw": "{{auth_url}}/api/v1/protected/auth/me",
+									"host": [
+										"{{auth_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"protected",
+										"auth",
+										"me"
+									]
+								}
+							},
+							"response": []
 						}
 					]
 				},
@@ -127,427 +213,21 @@
 									}
 								],
 								"url": {
-									"raw": "{{base_url}}/api/v1/admin/auth/revoke/{{user_id}}",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "auth", "revoke", "{{user_id}}"]
+									"raw": "{{auth_url}}/api/v1/admin/auth/revoke/{{user_id}}",
+									"host": [
+										"{{auth_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"admin",
+										"auth",
+										"revoke",
+										"{{user_id}}"
+									]
 								}
-							}
-						}
-					]
-				}
-			]
-		},
-		{
-			"name": "User Management",
-			"item": [
-				{
-					"name": "Public Routes",
-					"item": [
-						{
-							"name": "Validate Credentials",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/public/validate-credentials",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "public", "validate-credentials"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Protected Routes",
-					"item": [
-						{
-							"name": "Get User Profile",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/users/profile",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "users", "profile"]
-								}
-							}
-						},
-						{
-							"name": "Update User Profile",
-							"request": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"name\": {\n        \"firstName\": \"John\",\n        \"middleName\": \"\",\n        \"lastName\": \"Doe\"\n    }\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/users/profile",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "users", "profile"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Admin Routes",
-					"item": [
-						{
-							"name": "Create User",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"username\": \"newuser\",\n    \"password\": \"password123\",\n    \"name\": {\n        \"firstName\": \"New\",\n        \"middleName\": \"\",\n        \"lastName\": \"User\"\n    },\n    \"roleIds\": [\"{{role_id}}\"]\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/users",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "users"]
-								}
-							}
-						},
-						{
-							"name": "Get All Users",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/users",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "users"]
-								}
-							}
-						},
-						{
-							"name": "Get User by ID",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "users", "{{user_id}}"]
-								}
-							}
-						},
-						{
-							"name": "Update User",
-							"request": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"username\": \"updateduser\",\n    \"name\": {\n        \"firstName\": \"Updated\",\n        \"middleName\": \"\",\n        \"lastName\": \"User\"\n    },\n    \"roleIds\": [\"{{role_id}}\"]\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "users", "{{user_id}}"]
-								}
-							}
-						},
-						{
-							"name": "Delete User",
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/users/{{user_id}}",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "users", "{{user_id}}"]
-								}
-							}
-						}
-					]
-				}
-			]
-		},
-		{
-			"name": "Role Management",
-			"item": [
-				{
-					"name": "Protected Routes",
-					"item": [
-						{
-							"name": "Get All Roles",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/users/roles",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "users", "roles"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Admin Routes",
-					"item": [
-						{
-							"name": "Create Role",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"name\": \"New Role\",\n    \"code\": \"NEW_ROLE\",\n    \"description\": \"A new role\",\n    \"permissions\": [\"{{permission_id}}\"]\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/roles",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "roles"]
-								}
-							}
-						},
-						{
-							"name": "Get Role by ID",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/roles/{{role_id}}",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "roles", "{{role_id}}"]
-								}
-							}
-						},
-						{
-							"name": "Update Role",
-							"request": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"name\": \"Updated Role\",\n    \"code\": \"UPDATED_ROLE\",\n    \"description\": \"An updated role\",\n    \"permissions\": [\"{{permission_id}}\"]\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/roles/{{role_id}}",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "roles", "{{role_id}}"]
-								}
-							}
-						},
-						{
-							"name": "Delete Role",
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/roles/{{role_id}}",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "roles", "{{role_id}}"]
-								}
-							}
-						}
-					]
-				}
-			]
-		},
-		{
-			"name": "Permission Management",
-			"item": [
-				{
-					"name": "Protected Routes",
-					"item": [
-						{
-							"name": "Get All Permissions",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/users/permissions",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "users", "permissions"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Admin Routes",
-					"item": [
-						{
-							"name": "Create Permission",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"name\": \"New Permission\",\n    \"code\": \"NEW_PERMISSION\",\n    \"description\": \"A new permission\",\n    \"module\": \"user\"\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/permissions",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "permissions"]
-								}
-							}
-						},
-						{
-							"name": "Get Permission by ID",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/permissions/{{permission_id}}",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "permissions", "{{permission_id}}"]
-								}
-							}
-						},
-						{
-							"name": "Update Permission",
-							"request": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"name\": \"Updated Permission\",\n    \"code\": \"UPDATED_PERMISSION\",\n    \"description\": \"An updated permission\",\n    \"module\": \"user\"\n}"
-								},
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/permissions/{{permission_id}}",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "permissions", "{{permission_id}}"]
-								}
-							}
-						},
-						{
-							"name": "Delete Permission",
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}"
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/v1/admin/permissions/{{permission_id}}",
-									"host": ["{{base_url}}"],
-									"path": ["api", "v1", "admin", "permissions", "{{permission_id}}"]
-								}
-							}
+							},
+							"response": []
 						}
 					]
 				}
@@ -560,12 +240,1516 @@
 					"name": "Auth Service Health",
 					"request": {
 						"method": "GET",
+						"header": [],
 						"url": {
 							"raw": "{{base_url}}/health",
-							"host": ["{{base_url}}"],
-							"path": ["health"]
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
 						}
-					}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "User Management",
+					"item": [
+						{
+							"name": "Public Routes",
+							"item": [
+								{
+									"name": "Validate Credentials",
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}"
+										},
+										"url": {
+											"raw": "{{user_url}}/api/v1/public/validate-credentials",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"public",
+												"validate-credentials"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Protected Routes",
+							"item": [
+								{
+									"name": "Get User Profile",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{access_token}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}",
+												"disabled": true
+											}
+										],
+										"url": {
+											"raw": "{{user_url}}/api/v1/users/profile",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"users",
+												"profile"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Update User Profile",
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": {\n        \"firstName\": \"John\",\n        \"middleName\": \"\",\n        \"lastName\": \"Doe\"\n    }\n}"
+										},
+										"url": {
+											"raw": "{{user_url}}/api/v1/users/profile",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"users",
+												"profile"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Admin Routes",
+							"item": [
+								{
+									"name": "Create User",
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"username\": \"newuser\",\n    \"password\": \"password123\",\n    \"name\": {\n        \"firstName\": \"New\",\n        \"middleName\": \"\",\n        \"lastName\": \"User\"\n    },\n    \"roleIds\": [\"{{role_id}}\"]\n}"
+										},
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/users",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"users"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get All Users",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											}
+										],
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/users",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"users"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get User by ID",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											}
+										],
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/users/{{user_id}}",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"users",
+												"{{user_id}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Update User",
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"username\": \"updateduser\",\n    \"name\": {\n        \"firstName\": \"Updated\",\n        \"middleName\": \"\",\n        \"lastName\": \"User\"\n    },\n    \"roleIds\": [\"{{role_id}}\"]\n}"
+										},
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/users/{{user_id}}",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"users",
+												"{{user_id}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Delete User",
+									"request": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											}
+										],
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/users/{{user_id}}",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"users",
+												"{{user_id}}"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Role Management",
+					"item": [
+						{
+							"name": "Protected Routes",
+							"item": [
+								{
+									"name": "Get All Roles",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											}
+										],
+										"url": {
+											"raw": "{{user_url}}/api/v1/users/roles",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"users",
+												"roles"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Admin Routes",
+							"item": [
+								{
+									"name": "Create Role",
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"New Role\",\n    \"code\": \"NEW_ROLE\",\n    \"description\": \"A new role\",\n    \"permissions\": [\"{{permission_id}}\"]\n}"
+										},
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/roles",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"roles"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get Role by ID",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											}
+										],
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/roles/{{role_id}}",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"roles",
+												"{{role_id}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Update Role",
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"Updated Role\",\n    \"code\": \"UPDATED_ROLE\",\n    \"description\": \"An updated role\",\n    \"permissions\": [\"{{permission_id}}\"]\n}"
+										},
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/roles/{{role_id}}",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"roles",
+												"{{role_id}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Delete Role",
+									"request": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											}
+										],
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/roles/{{role_id}}",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"roles",
+												"{{role_id}}"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Permission Management",
+					"item": [
+						{
+							"name": "Protected Routes",
+							"item": [
+								{
+									"name": "Get All Permissions",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											}
+										],
+										"url": {
+											"raw": "{{user_url}}/api/v1/users/permissions",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"users",
+												"permissions"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Admin Routes",
+							"item": [
+								{
+									"name": "Create Permission",
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"New Permission\",\n    \"code\": \"NEW_PERMISSION\",\n    \"description\": \"A new permission\",\n    \"module\": \"user\"\n}"
+										},
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/permissions",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"permissions"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Get Permission by ID",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											}
+										],
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/permissions/{{permission_id}}",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"permissions",
+												"{{permission_id}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Update Permission",
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"Updated Permission\",\n    \"code\": \"UPDATED_PERMISSION\",\n    \"description\": \"An updated permission\",\n    \"module\": \"user\"\n}"
+										},
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/permissions/{{permission_id}}",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"permissions",
+												"{{permission_id}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Delete Permission",
+									"request": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{access_token}}"
+											}
+										],
+										"url": {
+											"raw": "{{user_url}}/api/v1/admin/permissions/{{permission_id}}",
+											"host": [
+												"{{user_url}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"admin",
+												"permissions",
+												"{{permission_id}}"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "School Management",
+					"item": [
+						{
+							"name": "Create School",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text",
+										"disabled": true
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": {\n    \"th\": \"มหาวิทยาลัยแม่ฟ้าหลวง\",\n    \"en\": \"Mae Fah Luang University\"\n  },\n  \"acronym\": \"MFU\",\n  \"details\": {\n    \"th\": \"รายละเอียดมหาวิทยาลัย\",\n    \"en\": \"University details\"\n  },\n  \"photos\": {\n    \"cover_photo\": \"https://example.com/cover.jpg\",\n    \"banner_photo\": \"https://example.com/banner.jpg\",\n    \"thumbnail_photo\": \"https://example.com/thumbnail.jpg\",\n    \"logo_photo\": \"https://example.com/logo.jpg\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{school_url}}/api/v1/schools",
+									"host": [
+										"{{school_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"schools"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get School",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{school_url}}/api/v1/schools/:id",
+									"host": [
+										"{{school_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"schools",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "school-id"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Schools",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{school_url}}/api/v1/schools",
+									"host": [
+										"{{school_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"schools"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update School",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": {\n    \"th\": \"มหาวิทยาลัยแม่ฟ้าหลวง\",\n    \"en\": \"Mae Fah Luang University\"\n  },\n  \"acronym\": \"MFU\",\n  \"details\": {\n    \"th\": \"รายละเอียดมหาวิทยาลัยที่อัปเดต\",\n    \"en\": \"Updated university details\"\n  },\n  \"photos\": {\n    \"cover_photo\": \"https://example.com/new-cover.jpg\",\n    \"banner_photo\": \"https://example.com/new-banner.jpg\",\n    \"thumbnail_photo\": \"https://example.com/new-thumbnail.jpg\",\n    \"logo_photo\": \"https://example.com/new-logo.jpg\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{school_url}}/api/v1/schools/:id",
+									"host": [
+										"{{school_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"schools",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "school-id"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete School",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{school_url}}/api/v1/schools/67d3023ef30b67a56ffc10f8",
+									"host": [
+										"{{school_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"schools",
+										"67d3023ef30b67a56ffc10f8"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"description": "Endpoints for managing schools"
+				},
+				{
+					"name": "Majors Management",
+					"item": [
+						{
+							"name": "Get All Majors",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{major_url}}/api/v1/public/majors/",
+									"host": [
+										"{{major_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"public",
+										"majors",
+										""
+									]
+								},
+								"description": "Get a paginated list of all majors"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Major by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{major_url}}/majors/{{major_id}}",
+									"host": [
+										"{{major_url}}"
+									],
+									"path": [
+										"majors",
+										"{{major_id}}"
+									]
+								},
+								"description": "Get details for a specific major by ID"
+							},
+							"response": []
+						},
+						{
+							"name": "Create Major",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "     {\n       \"school_id\": \"655e47b3f3e9f1a8e5d5b3b1\",\n       \"name\": {\n         \"th\": \"คณะวิศวกรรมศาสตร์\",\n         \"en\": \"Faculty of Engineering\"\n       },\n       \"acronym\": \"ENG\",\n       \"details\": {\n         \"th\": \"รายละเอียดคณะวิศวกรรมศาสตร์\",\n         \"en\": \"Details of Faculty of Engineering\"\n       },\n       \"photos\": {\n         \"cover_photo\": \"https://example.com/engineering/cover.jpg\",\n         \"banner_photo\": \"https://example.com/engineering/banner.jpg\",\n         \"thumbnail_photo\": \"https://example.com/engineering/thumbnail.jpg\",\n         \"logo_photo\": \"https://example.com/engineering/logo.jpg\"\n       }\n     }"
+								},
+								"url": {
+									"raw": "{{major_url}}/api/v1/majors/",
+									"host": [
+										"{{major_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"majors",
+										""
+									]
+								},
+								"description": "Create a new major"
+							},
+							"response": []
+						},
+						{
+							"name": "Update Major",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Updated Computer Science\",\n    \"acronym\": \"CS\",\n    \"description\": \"The updated Computer Science program focuses on programming, algorithms, and computation.\"\n}"
+								},
+								"url": {
+									"raw": "{{major_url}}/majors/{{major_id}}",
+									"host": [
+										"{{major_url}}"
+									],
+									"path": [
+										"majors",
+										"{{major_id}}"
+									]
+								},
+								"description": "Update an existing major"
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Major",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{major_url}}/majors/{{major_id}}",
+									"host": [
+										"{{major_url}}"
+									],
+									"path": [
+										"majors",
+										"{{major_id}}"
+									]
+								},
+								"description": "Soft delete a major"
+							},
+							"response": []
+						},
+						{
+							"name": "Search Majors",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{major_url}}/majors/search?query=computer&page=1&page_size=10",
+									"host": [
+										"{{major_url}}"
+									],
+									"path": [
+										"majors",
+										"search"
+									],
+									"query": [
+										{
+											"key": "query",
+											"value": "computer"
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "page_size",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Search for majors by name or acronym"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Majors by School",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{major_url}}/majors?school_id={{school_id}}&page=1&page_size=10",
+									"host": [
+										"{{major_url}}"
+									],
+									"path": [
+										"majors"
+									],
+									"query": [
+										{
+											"key": "school_id",
+											"value": "{{school_id}}"
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "page_size",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Get majors filtered by school ID"
+							},
+							"response": []
+						}
+					],
+					"description": "Major-related API endpoints"
+				},
+				{
+					"name": "Activity Management",
+					"item": [
+						{
+							"name": "Create Activity",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": {\n        \"thName\": \"กิจกรรมทดสอบ\",\n        \"enName\": \"Test Activity\"\n    },\n    \"shortName\": {\n        \"thName\": \"ทดสอบ\",\n        \"enName\": \"Test\"\n    },\n    \"code\": \"ACT001\",\n    \"Type\": 0,\n    \"description\": {\n        \"thDetails\": \"รายละเอียดกิจกรรมทดสอบ\",\n        \"enDetails\": \"Test activity description\"\n    },\n    \"shortDesc\": {\n        \"thDetails\": \"รายละเอียดสั้น\",\n        \"enDetails\": \"Short description\"\n    },\n    \"open\": true,\n    \"progress\": false,\n    \"show\": true,\n    \"icon\": \"activity-icon.png\",\n    \"banner\": \"activity-banner.jpg\"\n}"
+								},
+								"url": {
+									"raw": "{{activity_url}}/api/v1/admin/activities",
+									"host": [
+										"{{activity_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"admin",
+										"activities"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Activity by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{activity_url}}/api/v1/activities/:id",
+									"host": [
+										"{{activity_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"activities",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "{{activity_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Activity by Code",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{activity_url}}/api/v1/activities/code/:code",
+									"host": [
+										"{{activity_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"activities",
+										"code",
+										":code"
+									],
+									"variable": [
+										{
+											"key": "code",
+											"value": "ACT001"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List All Activities",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{activity_url}}/api/v1/public/activities/",
+									"host": [
+										"{{activity_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"public",
+										"activities",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Activity",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": {\n        \"thName\": \"กิจกรรมทดสอบอัปเดต\",\n        \"enName\": \"Updated Test Activity\"\n    },\n    \"open\": false,\n    \"progress\": true,\n    \"description\": {\n        \"thDetails\": \"รายละเอียดอัปเดต\",\n        \"enDetails\": \"Updated description\"\n    }\n}"
+								},
+								"url": {
+									"raw": "{{activity_url}}/api/v1/admin/activities/:id",
+									"host": [
+										"{{activity_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"admin",
+										"activities",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "{{activity_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Activity",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{activity_url}}/api/v1/admin/activities/:id",
+									"host": [
+										"{{activity_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"admin",
+										"activities",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "{{activity_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "CheckIn Management",
+					"item": [
+						{
+							"name": "Create CheckIn",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"activity_id\": \"{{activity_id}}\",\n    \"staff_id\": \"{{staff_id}}\"\n}"
+								},
+								"url": {
+									"raw": "{{checkin_url}}/api/v1/admin/checkins",
+									"host": [
+										"{{checkin_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"admin",
+										"checkins"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get CheckIn by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{checkin_url}}/api/v1/checkins/:id",
+									"host": [
+										"{{checkin_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"checkins",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "{{checkin_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get CheckIns by User",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/checkins/by-user/:userID",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"checkins",
+										"by-user",
+										":userID"
+									],
+									"variable": [
+										{
+											"key": "userID",
+											"value": "{{user_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get CheckIns by Activity",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{checkin_url}}/api/v1/checkins/by-activity/:activityID",
+									"host": [
+										"{{checkin_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"checkins",
+										"by-activity",
+										":activityID"
+									],
+									"variable": [
+										{
+											"key": "activityID",
+											"value": "{{activity_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get All CheckIns",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{checkin_url}}/api/v1/admin/checkins",
+									"host": [
+										"{{checkin_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"admin",
+										"checkins"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Activity Stats",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/admin/activity/:activityID/stats",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"admin",
+										"activity",
+										":activityID",
+										"stats"
+									],
+									"variable": [
+										{
+											"key": "activityID",
+											"value": "{{activity_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get User Activity Status",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{checkin_url}}/api/v1/activity/:activityID/user/:userID/status",
+									"host": [
+										"{{checkin_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"activity",
+										":activityID",
+										"user",
+										":userID",
+										"status"
+									],
+									"variable": [
+										{
+											"key": "activityID",
+											"value": "{{activity_id}}"
+										},
+										{
+											"key": "userID",
+											"value": "{{user_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Bulk CheckIn",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_ids\": [\"{{user_id1}}\", \"{{user_id2}}\", \"{{user_id3}}\"],\n    \"activity_id\": \"{{activity_id}}\",\n    \"staff_id\": \"{{staff_id}}\"\n}"
+								},
+								"url": {
+									"raw": "{{checkin_url}}/api/v1/admin/checkins/bulk",
+									"host": [
+										"{{checkin_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"admin",
+										"checkins",
+										"bulk"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete CheckIn",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{checkin_url}}/api/v1/admin/checkins/:id",
+									"host": [
+										"{{checkin_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"admin",
+										"checkins",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "{{checkin_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
 				}
 			]
 		}
@@ -603,4 +1787,4 @@
 			"value": "http://localhost:8080"
 		}
 	]
-} 
+}
