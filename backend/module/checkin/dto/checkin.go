@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/entity"
+	entity "github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/model"
 )
 
 // CreateCheckInRequest represents the request to create a new check-in
