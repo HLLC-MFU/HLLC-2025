@@ -64,3 +64,8 @@ backend/backend/module/school/proto/generated/schoolPb_grpc.pb.go
 backend/backend/module/school/proto/generated/schoolPb.pb.go
 backend/backend/module/user/proto/generated/userPb_grpc.pb.go
 backend/backend/module/user/proto/generated/userPb.pb.go
+.cursor/rules/structure.mdc
+.cursor/rules/checklists.mdc
+.cursor/rules/main.mdc
+backend/module/user/proto/generated/userPb_grpc.pb.go
+backend/module/user/proto/generated/userPb.pb.go

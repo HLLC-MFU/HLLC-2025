@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"log"
+	"time"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/controller"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/handler"
 	majorPb "github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/repository"
@@ -12,6 +14,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"google.golang.org/grpc"
 )
 
 func (s *server) majorService() {
@@ -21,15 +24,20 @@ func (s *server) majorService() {
 	// Create gRPC client factory
 	clientFactory := core.NewGrpcClientFactory(s.config.School.GRPCAddr)
 	
-	// Get school client
-	schoolClient, err := clientFactory.School(context.Background())
+	// Get school client with timeout context
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	schoolClient, err := clientFactory.School(ctx)
 	if err != nil {
-		log.Fatalf("Failed to create school client: %v", err)
+		log.Printf("Warning: Failed to create school client: %v. Service will continue but school data may be unavailable.", err)
+		// Continue without school client - we'll handle the nil client in the service
 	}
 
-	// Initialize service with school client
+	// Initialize service with school client (which might be nil)
 	svc := service.NewService(repo, schoolClient)
-	httpHandler := handler.NewHTTPHandler(svc)
+	
+	// Create gRPC handler
 	grpcHandler := handler.NewGrpcHandler(svc)
 
 	// Set up HTTP middleware
@@ -43,32 +51,44 @@ func (s *server) majorService() {
 	s.app.Use(middleware.LoggingMiddleware())
 	s.app.Use(middleware.RecoveryMiddleware())
 
+	// Create gRPC connection to self for controller with timeout and no blocking
+	dialCtx, dialCancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer dialCancel()
+	
+	majorConn, err := grpc.DialContext(dialCtx, s.config.Major.GRPCAddr, 
+		grpc.WithInsecure(),
+		// Remove the WithBlock() option to prevent blocking
+	)
+	if err != nil {
+		log.Printf("Warning: Failed to connect to major gRPC server: %v. Using direct service instead.", err)
+		// Continue without majorConn - we'll handle this in the controller
+	}
+	
+	var majorClient majorPb.MajorServiceClient
+	if majorConn != nil {
+		majorClient = majorPb.NewMajorServiceClient(majorConn)
+	}
+
+	// Initialize controller with major client
+	ctrl := controller.NewController(s.config, svc, majorClient)
+
 	// Set up HTTP routes
 	api := s.app.Group("/api/v1")
 
 	// Public routes (no auth required)
-	public := api.Group("/public/majors")
-	public.Get("/", httpHandler.ListMajors)
-	public.Get("/:id", httpHandler.GetMajor)
-	public.Get("/school/:schoolId", httpHandler.ListMajorsBySchool)
+	public := api.Group("/public")
+	ctrl.RegisterPublicRoutes(public)
 
 	// Protected routes (auth required)
-	protected := api.Group("/majors")
+	protected := api.Group("")
 	protected.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
-	protected.Get("/", httpHandler.ListMajors)
-	protected.Get("/:id", httpHandler.GetMajor)
-	protected.Get("/school/:schoolId", httpHandler.ListMajorsBySchool)
-	protected.Post("/", httpHandler.CreateMajor)
-	protected.Put("/:id", httpHandler.UpdateMajor)
-	protected.Delete("/:id", httpHandler.DeleteMajor)
+	ctrl.RegisterProtectedRoutes(protected)
 
 	// Admin routes (auth + admin role required)
-	admin := api.Group("/admin/majors")
+	admin := api.Group("/admin")
 	admin.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
 	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
-	admin.Post("/", httpHandler.CreateMajor)
-	admin.Put("/:id", httpHandler.UpdateMajor)
-	admin.Delete("/:id", httpHandler.DeleteMajor)
+	ctrl.RegisterAdminRoutes(admin)
 
 	// Set up gRPC server for internal service communication
 	go func() {

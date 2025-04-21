@@ -70,6 +70,10 @@ func (s *server) Start() error {
 		s.majorService()
 	case "school":
 		s.schoolService()
+	case "activity":
+		s.activityService()
+	case "checkin":
+		s.checkinService()
 	default:
 		return fmt.Errorf("unknown service name: %s", s.config.App.Name)
 	}

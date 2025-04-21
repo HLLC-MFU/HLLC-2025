@@ -68,7 +68,7 @@ type (
 	}
 
 	CheckUsernameRequest struct {
-		Username string `json:"username" validate:"required"`
+		Username string `json:"username" validate:"required,min=3,max=50,alphanum"`
 	}
 
 	CheckUsernameResponse struct {
@@ -86,8 +86,8 @@ type (
 	}
 
 	SetPasswordRequest struct {
-		Username string `json:"username" validate:"required"`
-		Password string `json:"password" validate:"required,min=8"`
+		Username string `json:"username" validate:"required,min=3,max=50,alphanum"`
+		Password string `json:"password" validate:"required,min=8,max=100"`
 	}
 
 	SetPasswordResponse struct {

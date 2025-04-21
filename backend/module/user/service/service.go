@@ -89,12 +89,16 @@ func NewUserService(
 // HTTP Service implementations with decorator pattern
 func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest) (*dto.UserResponse, error) {
 	return decorator.WithTimeout[*dto.UserResponse](10*time.Second)(func(ctx context.Context) (*dto.UserResponse, error) {
+		log.Printf("CreateUser: Creating new user with username %s", req.Username)
+		
 		// Check if user exists
 		existingUser, err := s.userRepo.FindByUsername(ctx, req.Username)
 		if err != nil && !errors.Is(err, repository.ErrNotFound) {
+			log.Printf("CreateUser: Error checking for existing user: %v", err)
 			return nil, err
 		}
 		if existingUser != nil {
+			log.Printf("CreateUser: User with username %s already exists", req.Username)
 			return nil, ErrUserExists
 		}
 
@@ -105,6 +109,7 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 		if req.Password != "" && isActivated {
 			hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 			if err != nil {
+				log.Printf("CreateUser: Error hashing password: %v", err)
 				return nil, err
 			}
 			hashedPassword = string(hashed)
@@ -128,18 +133,23 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 
 		// Save user
 		if err := s.userRepo.CreateUser(ctx, newUser); err != nil {
+			log.Printf("CreateUser: Error saving user to database: %v", err)
 			return nil, err
 		}
 
+		log.Printf("CreateUser: User %s created successfully with ID %s", newUser.Username, newUser.Id)
+
 		// Get roles for response
-		var roles []*userPb.Role
+		roles := make([]*userPb.Role, 0)
 		for _, roleID := range req.RoleIDs {
 			objectID, err := primitive.ObjectIDFromHex(roleID)
 			if err != nil {
+				log.Printf("CreateUser: Invalid role ID format %s: %v", roleID, err)
 				continue
 			}
 			role, err := s.roleRepo.FindRoleByID(ctx, objectID)
 			if err != nil {
+				log.Printf("CreateUser: Failed to get role with ID %s: %v", roleID, err)
 				continue
 			}
 			roles = append(roles, role)
@@ -149,17 +159,26 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 		var major *majorPb.Major
 		var majorID string
 		if req.MajorID != "" {
-			var majorErr error
-			major, majorErr = s.majorService.GetMajorByID(ctx, req.MajorID)
-			if majorErr != nil {
+			log.Printf("CreateUser: User %s has majorID %s, retrieving major data", newUser.Username, req.MajorID)
+			
+			// Create a separate context with timeout just for this major call
+			majorCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			major, err = s.majorService.GetMajorByID(majorCtx, req.MajorID)
+			cancel()
+			
+			if err != nil {
 				// Log error but continue - major is optional
-				log.Printf("Warning: Failed to get major with ID %s: %v", req.MajorID, majorErr)
+				log.Printf("CreateUser: Failed to get major with ID %s: %v", req.MajorID, err)
+				// Continue without major info
 			} else if major != nil {
+				log.Printf("CreateUser: Successfully retrieved major data for new user %s", newUser.Username)
 				majorID = req.MajorID
+			} else {
+				log.Printf("CreateUser: Major service returned nil for ID: %s", req.MajorID)
 			}
 		}
 
-		return &dto.UserResponse{
+		response := &dto.UserResponse{
 			ID:       newUser.Id,
 			Username: newUser.Username,
 			Name: dto.Name{
@@ -170,31 +189,39 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 			Roles:   roles,
 			MajorID: majorID,
 			Major:   major,
-		}, nil
+		}
+		
+		log.Printf("CreateUser: Successfully created and retrieved user %s", newUser.Username)
+		return response, nil
 	})(ctx)
 }
 
 func (s *userService) GetUserByID(ctx context.Context, id string) (*dto.UserResponse, error) {
 	return decorator.WithTimeout[*dto.UserResponse](5*time.Second)(func(ctx context.Context) (*dto.UserResponse, error) {
+		log.Printf("GetUserByID: Fetching user with ID %s", id)
 		objectID, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
+			log.Printf("GetUserByID: Invalid ID format %s: %v", id, err)
 			return nil, err
 		}
 
 		user, err := s.userRepo.FindByID(ctx, objectID)
 		if err != nil {
+			log.Printf("GetUserByID: Error finding user: %v", err)
 			return nil, err
 		}
 
 		// Get roles for response
-		var roles []*userPb.Role
+		roles := make([]*userPb.Role, 0)
 		for _, roleID := range user.RoleIds {
 			objectID, err := primitive.ObjectIDFromHex(roleID)
 			if err != nil {
+				log.Printf("GetUserByID: Invalid role ID format %s: %v", roleID, err)
 				continue
 			}
 			role, err := s.roleRepo.FindRoleByID(ctx, objectID)
 			if err != nil {
+				log.Printf("GetUserByID: Failed to get role with ID %s: %v", roleID, err)
 				continue
 			}
 			roles = append(roles, role)
@@ -202,21 +229,28 @@ func (s *userService) GetUserByID(ctx context.Context, id string) (*dto.UserResp
 
 		// Get major information if provided
 		var major *majorPb.Major
+		var majorID string
 		if user.MajorId != "" {
-			major, err = s.majorService.GetMajorByID(ctx, user.MajorId)
+			log.Printf("GetUserByID: User %s has majorID %s, retrieving major data", user.Username, user.MajorId)
+			
+			// Create a separate context with timeout just for this major call
+			majorCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			major, err = s.majorService.GetMajorByID(majorCtx, user.MajorId)
+			cancel()
+			
 			if err != nil {
 				// Log error but continue - major is optional
-				log.Printf("Warning: Failed to get major with ID %s: %v", user.MajorId, err)
+				log.Printf("GetUserByID: Failed to get major with ID %s: %v", user.MajorId, err)
+				// Continue without major info
+			} else if major != nil {
+				log.Printf("GetUserByID: Successfully retrieved major data for user %s", user.Username)
+				majorID = user.MajorId
+			} else {
+				log.Printf("GetUserByID: Major service returned nil for ID: %s", user.MajorId)
 			}
 		}
 
-		// Only include major in response if it was successfully retrieved
-		var majorID string
-		if major != nil {
-			majorID = user.MajorId
-		}
-
-		return &dto.UserResponse{
+		response := &dto.UserResponse{
 			ID:       user.Id,
 			Username: user.Username,
 			Name: dto.Name{
@@ -227,14 +261,19 @@ func (s *userService) GetUserByID(ctx context.Context, id string) (*dto.UserResp
 			Roles:   roles,
 			MajorID: majorID,
 			Major:   major,
-		}, nil
+		}
+		
+		log.Printf("GetUserByID: Successfully retrieved user %s", user.Username)
+		return response, nil
 	})(ctx)
 }
 
 func (s *userService) GetUserByUsername(ctx context.Context, username string) (*dto.UserResponse, error) {
 	return decorator.WithTimeout[*dto.UserResponse](5*time.Second)(func(ctx context.Context) (*dto.UserResponse, error) {
+		log.Printf("GetUserByUsername: Fetching user with username %s", username)
 		user, err := s.userRepo.FindByUsername(ctx, username)
 		if err != nil {
+			log.Printf("GetUserByUsername: Error finding user: %v", err)
 			return nil, err
 		}
 
@@ -243,39 +282,44 @@ func (s *userService) GetUserByUsername(ctx context.Context, username string) (*
 
 		// Get roles for response by fetching each role by ID
 		for _, roleID := range user.RoleIds {
-			// Try both the roleID as is and as ObjectID
-			role, err := s.roleRepo.FindRoleByID(ctx, primitive.ObjectID{})
+			// Try converting the string ID
+			objectID, err := primitive.ObjectIDFromHex(roleID)
 			if err != nil {
-				// If not found, try converting the string ID
-				objectID, err := primitive.ObjectIDFromHex(roleID)
-				if err != nil {
-					continue
-				}
-				role, err = s.roleRepo.FindRoleByID(ctx, objectID)
-				if err != nil {
-					continue
-				}
+				log.Printf("GetUserByUsername: Invalid role ID format %s: %v", roleID, err)
+				continue
+			}
+			role, err := s.roleRepo.FindRoleByID(ctx, objectID)
+			if err != nil {
+				log.Printf("GetUserByUsername: Failed to get role with ID %s: %v", roleID, err)
+				continue
 			}
 			roles = append(roles, role)
 		}
 
 		// Get major information if provided
 		var major *majorPb.Major
+		var majorID string
 		if user.MajorId != "" {
-			major, err = s.majorService.GetMajorByID(ctx, user.MajorId)
+			log.Printf("GetUserByUsername: User %s has majorID %s, retrieving major data", user.Username, user.MajorId)
+			
+			// Create a separate context with timeout just for this major call
+			majorCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			major, err = s.majorService.GetMajorByID(majorCtx, user.MajorId)
+			cancel()
+			
 			if err != nil {
 				// Log error but continue - major is optional
-				log.Printf("Warning: Failed to get major with ID %s: %v", user.MajorId, err)
+				log.Printf("GetUserByUsername: Failed to get major with ID %s: %v", user.MajorId, err)
+				// Continue without major info
+			} else if major != nil {
+				log.Printf("GetUserByUsername: Successfully retrieved major data for user %s", user.Username)
+				majorID = user.MajorId
+			} else {
+				log.Printf("GetUserByUsername: Major service returned nil for ID: %s", user.MajorId)
 			}
 		}
 
-		// Only include major in response if it was successfully retrieved
-		var majorID string
-		if major != nil {
-			majorID = user.MajorId
-		}
-
-		return &dto.UserResponse{
+		response := &dto.UserResponse{
 			ID:       user.Id,
 			Username: user.Username,
 			Name: dto.Name{
@@ -286,22 +330,27 @@ func (s *userService) GetUserByUsername(ctx context.Context, username string) (*
 			Roles:   roles,
 			MajorID: majorID,
 			Major:   major,
-		}, nil
+		}
+		
+		log.Printf("GetUserByUsername: Successfully retrieved user %s", user.Username)
+		return response, nil
 	})(ctx)
 }
 
 func (s *userService) GetAllUsers(ctx context.Context) ([]*dto.UserResponse, error) {
 	return decorator.WithTimeout[[]*dto.UserResponse](10*time.Second)(func(ctx context.Context) ([]*dto.UserResponse, error) {
+		log.Printf("GetAllUsers: Starting to fetch all users")
 		users, err := s.userRepo.FindAll(ctx)
 		if err != nil {
 			log.Printf("Error finding all users: %v", err)
 			return nil, err
 		}
 
+		log.Printf("GetAllUsers: Found %d users, processing details", len(users))
 		var response []*dto.UserResponse
 		for _, user := range users {
 			// Get roles for response
-			var roles []*userPb.Role
+			roles := make([]*userPb.Role, 0)
 			for _, roleID := range user.RoleIds {
 				objectID, err := primitive.ObjectIDFromHex(roleID)
 				if err != nil {
@@ -320,15 +369,22 @@ func (s *userService) GetAllUsers(ctx context.Context) ([]*dto.UserResponse, err
 			var major *majorPb.Major
 			var majorID string
 			if user.MajorId != "" {
-				log.Printf("Attempting to get major with ID: %s", user.MajorId)
-				major, err = s.majorService.GetMajorByID(ctx, user.MajorId)
+				log.Printf("User %s: Attempting to get major with ID: %s", user.Username, user.MajorId)
+				
+				// Create a separate context with timeout just for this major call
+				majorCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+				major, err = s.majorService.GetMajorByID(majorCtx, user.MajorId)
+				cancel()
+				
 				if err != nil {
-					log.Printf("Warning: Failed to get major with ID %s: %v", user.MajorId, err)
+					log.Printf("Warning: Failed to get major with ID %s for user %s: %v", 
+						user.MajorId, user.Username, err)
+					// We continue without the major info
 				} else if major != nil {
-					log.Printf("Successfully retrieved major: %+v", major)
+					log.Printf("Successfully retrieved major for user %s: %+v", user.Username, major)
 					majorID = user.MajorId
 				} else {
-					log.Printf("Major service returned nil for ID: %s", user.MajorId)
+					log.Printf("Major service returned nil for ID: %s (user: %s)", user.MajorId, user.Username)
 				}
 			} else {
 				log.Printf("User %s has no major ID", user.Username)
@@ -345,16 +401,13 @@ func (s *userService) GetAllUsers(ctx context.Context) ([]*dto.UserResponse, err
 				},
 				Roles:   roles,
 				MajorID: majorID,
-			}
-
-			// Only include major if it was successfully retrieved
-			if major != nil {
-				userResponse.Major = major
+				Major:   major,
 			}
 
 			response = append(response, userResponse)
 		}
 
+		log.Printf("GetAllUsers: Successfully processed %d users", len(response))
 		return response, nil
 	})(ctx)
 }
@@ -553,33 +606,74 @@ func (s *userService) ValidateCredentialsGRPC(ctx context.Context, req *userPb.V
 // Role management methods
 func (s *userService) CreateRole(ctx context.Context, req *dto.CreateRoleRequest) (*dto.RoleResponse, error) {
 	return decorator.WithTimeout[*dto.RoleResponse](10*time.Second)(func(ctx context.Context) (*dto.RoleResponse, error) {
+		log.Printf("CreateRole: Creating new role with name %s and code %s", req.Name, req.Code)
+		
+		// Initialize permissions array if nil
+		if req.Permissions == nil {
+			req.Permissions = []string{}
+			log.Printf("CreateRole: Permissions array was nil, initialized to empty array")
+		}
+		
+		// Validate all permission IDs before creating the role
+		validPermissionIds := make([]string, 0, len(req.Permissions))
+		for _, permID := range req.Permissions {
+			if permID == "" {
+				log.Printf("CreateRole: Empty permission ID provided, skipping")
+				continue
+			}
+			
+			objectID, err := primitive.ObjectIDFromHex(permID)
+			if err != nil {
+				log.Printf("CreateRole: Invalid permission ID format %s: %v", permID, err)
+				continue
+			}
+			
+			// Verify the permission exists
+			permCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			_, err = s.permRepo.FindPermissionByID(permCtx, objectID)
+			cancel()
+			
+			if err != nil {
+				log.Printf("CreateRole: Permission with ID %s not found: %v", permID, err)
+				continue
+			}
+			
+			log.Printf("CreateRole: Validated permission ID: %s", permID)
+			validPermissionIds = append(validPermissionIds, permID)
+		}
+		
+		log.Printf("CreateRole: Validated %d out of %d permission IDs", 
+			len(validPermissionIds), len(req.Permissions))
+		
+		// Create role with validated permissions
 		role := &userPb.Role{
-			Id:          primitive.NewObjectID().Hex(),
-			Name:        req.Name,
-			Code:        req.Code,
-			Description: req.Description,
-			PermissionIds: req.Permissions,
-			CreatedAt:   time.Now().Format(time.RFC3339),
-			UpdatedAt:   time.Now().Format(time.RFC3339),
+			Id:            primitive.NewObjectID().Hex(),
+			Name:          req.Name,
+			Code:          req.Code,
+			Description:   req.Description,
+			PermissionIds: validPermissionIds,
+			CreatedAt:     time.Now().Format(time.RFC3339),
+			UpdatedAt:     time.Now().Format(time.RFC3339),
 		}
 
+		log.Printf("CreateRole: Saving role with ID %s and %d permissions", 
+			role.Id, len(role.PermissionIds))
+		
 		if err := s.roleRepo.CreateRole(ctx, role); err != nil {
+			log.Printf("CreateRole: Error saving role: %v", err)
 			return nil, err
 		}
 
-		// Get permissions for response
-		var permissions []*userPb.Permission
-		for _, permID := range req.Permissions {
-			objectID, err := primitive.ObjectIDFromHex(permID)
-			if err != nil {
-				continue
-			}
-			perm, err := s.permRepo.FindPermissionByID(ctx, objectID)
-			if err != nil {
-				continue
-			}
-			permissions = append(permissions, perm)
+		// Load permissions using our helper function
+		permissions, err := s.loadPermissionsForRole(ctx, role)
+		if err != nil {
+			log.Printf("CreateRole: Error loading permissions: %v", err)
+			// Continue with empty permissions rather than failing
+			permissions = []*userPb.Permission{}
 		}
+
+		log.Printf("CreateRole: Successfully created role %s with %d permissions", 
+			role.Name, len(permissions))
 
 		return &dto.RoleResponse{
 			ID:          role.Id,
@@ -593,71 +687,168 @@ func (s *userService) CreateRole(ctx context.Context, req *dto.CreateRoleRequest
 
 func (s *userService) GetRoleByID(ctx context.Context, id string) (*dto.RoleResponse, error) {
 	return decorator.WithTimeout[*dto.RoleResponse](5*time.Second)(func(ctx context.Context) (*dto.RoleResponse, error) {
+		log.Printf("GetRoleByID: Fetching role with ID %s", id)
+		
 		objectID, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
+			log.Printf("GetRoleByID: Invalid ID format: %v", err)
 			return nil, err
 		}
 
 		role, err := s.roleRepo.FindRoleByID(ctx, objectID)
 		if err != nil {
+			log.Printf("GetRoleByID: Error finding role: %v", err)
 			return nil, err
 		}
+		
+		log.Printf("GetRoleByID: Found role %s (ID: %s) with %d permissionIds", 
+			role.Name, role.Id, len(role.PermissionIds))
+
+		// Load permissions using our helper function
+		permissions, err := s.loadPermissionsForRole(ctx, role)
+		if err != nil {
+			log.Printf("GetRoleByID: Error loading permissions: %v", err)
+			// Continue with empty permissions rather than failing
+			permissions = []*userPb.Permission{}
+		}
+
+		log.Printf("GetRoleByID: Loaded %d permissions for role %s", len(permissions), role.Name)
 
 		return &dto.RoleResponse{
 			ID:          role.Id,
 			Name:        role.Name,
 			Code:        role.Code,
 			Description: role.Description,
+			Permissions: permissions,
 		}, nil
 	})(ctx)
 }
 
 func (s *userService) GetAllRoles(ctx context.Context) ([]*dto.RoleResponse, error) {
 	return decorator.WithTimeout[[]*dto.RoleResponse](10*time.Second)(func(ctx context.Context) ([]*dto.RoleResponse, error) {
+		log.Printf("GetAllRoles: Starting to fetch all roles")
 		roles, err := s.roleRepo.FindAllRoles(ctx)
 		if err != nil {
+			log.Printf("GetAllRoles: Error finding roles: %v", err)
 			return nil, err
 		}
 
+		log.Printf("GetAllRoles: Found %d roles, processing details", len(roles))
+		
 		var response []*dto.RoleResponse
 		for _, role := range roles {
-			response = append(response, &dto.RoleResponse{
+			// Log role details for debugging
+			log.Printf("Processing role: %s (ID: %s) with %d permissionIds: %v", 
+				role.Name, role.Id, len(role.PermissionIds), role.PermissionIds)
+			
+			// Load permissions using our helper function
+			permissions, err := s.loadPermissionsForRole(ctx, role)
+			if err != nil {
+				log.Printf("Error loading permissions for role %s: %v", role.Name, err)
+				// Continue with empty permissions rather than failing the entire request
+				permissions = []*userPb.Permission{}
+			}
+			
+			log.Printf("Role %s has %d permissions loaded", role.Name, len(permissions))
+			
+			// Create response object
+			roleResponse := &dto.RoleResponse{
 				ID:          role.Id,
 				Name:        role.Name,
 				Code:        role.Code,
 				Description: role.Description,
-			})
+				Permissions: permissions,
+			}
+			
+			response = append(response, roleResponse)
 		}
 
+		log.Printf("GetAllRoles: Successfully processed %d roles", len(response))
 		return response, nil
 	})(ctx)
 }
 
 func (s *userService) UpdateRole(ctx context.Context, id string, req *dto.UpdateRoleRequest) (*dto.RoleResponse, error) {
 	return decorator.WithTimeout[*dto.RoleResponse](10*time.Second)(func(ctx context.Context) (*dto.RoleResponse, error) {
+		log.Printf("UpdateRole: Updating role with ID %s", id)
+		
 		// Validate ID format
 		if _, err := primitive.ObjectIDFromHex(id); err != nil {
+			log.Printf("UpdateRole: Invalid ID format: %v", err)
 			return nil, err
 		}
+		
+		// Initialize permissions array if nil
+		if req.Permissions == nil {
+			req.Permissions = []string{}
+			log.Printf("UpdateRole: Permissions array was nil, initialized to empty array")
+		}
+		
+		// Validate all permission IDs before updating the role
+		validPermissionIds := make([]string, 0, len(req.Permissions))
+		for _, permID := range req.Permissions {
+			if permID == "" {
+				log.Printf("UpdateRole: Empty permission ID provided, skipping")
+				continue
+			}
+			
+			objectID, err := primitive.ObjectIDFromHex(permID)
+			if err != nil {
+				log.Printf("UpdateRole: Invalid permission ID format %s: %v", permID, err)
+				continue
+			}
+			
+			// Verify the permission exists
+			permCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			_, err = s.permRepo.FindPermissionByID(permCtx, objectID)
+			cancel()
+			
+			if err != nil {
+				log.Printf("UpdateRole: Permission with ID %s not found: %v", permID, err)
+				continue
+			}
+			
+			log.Printf("UpdateRole: Validated permission ID: %s", permID)
+			validPermissionIds = append(validPermissionIds, permID)
+		}
+		
+		log.Printf("UpdateRole: Validated %d out of %d permission IDs", 
+			len(validPermissionIds), len(req.Permissions))
 
 		role := &userPb.Role{
 			Id:            id,
 			Name:          req.Name,
-			Code:         req.Code,
+			Code:          req.Code,
 			Description:   req.Description,
-			PermissionIds: req.Permissions,
+			PermissionIds: validPermissionIds,
 			UpdatedAt:     time.Now().Format(time.RFC3339),
 		}
+		
+		log.Printf("UpdateRole: Saving role with ID %s and %d permissions", 
+			role.Id, len(role.PermissionIds))
 
 		if err := s.roleRepo.UpdateRole(ctx, role); err != nil {
+			log.Printf("UpdateRole: Error updating role: %v", err)
 			return nil, err
 		}
+
+		// Load permissions using our helper function
+		permissions, err := s.loadPermissionsForRole(ctx, role)
+		if err != nil {
+			log.Printf("UpdateRole: Error loading permissions: %v", err)
+			// Continue with empty permissions rather than failing
+			permissions = []*userPb.Permission{}
+		}
+
+		log.Printf("UpdateRole: Successfully updated role %s with %d permissions", 
+			role.Name, len(permissions))
 
 		return &dto.RoleResponse{
 			ID:          role.Id,
 			Name:        role.Name,
 			Code:        role.Code,
 			Description: role.Description,
+			Permissions: permissions,
 		}, nil
 	})(ctx)
 }
@@ -864,4 +1055,65 @@ func (s *userService) SetPassword(ctx context.Context, req *dto.SetPasswordReque
 			Message: "Password set successfully. You can now login.",
 		}, nil
 	})(ctx)
+}
+
+// Helper function to ensure all permissions from DB are properly loaded
+func (s *userService) loadPermissionsForRole(ctx context.Context, role *userPb.Role) ([]*userPb.Permission, error) {
+	if role == nil {
+		return nil, errors.New("role is nil")
+	}
+	
+	log.Printf("Loading permissions for role: %s (ID: %s) with permissionIds: %v", 
+		role.Name, role.Id, role.PermissionIds)
+	
+	// Ensure permissionIds is initialized
+	if role.PermissionIds == nil {
+		role.PermissionIds = []string{}
+		log.Printf("Role had nil permissionIds, initialized to empty array")
+	}
+	
+	// Load each permission by ID
+	permissions := make([]*userPb.Permission, 0, len(role.PermissionIds))
+	for _, permID := range role.PermissionIds {
+		if permID == "" {
+			log.Printf("Warning: Empty permission ID in role %s, skipping", role.Name)
+			continue
+		}
+		
+		log.Printf("Loading permission with ID: %s", permID)
+		
+		// Convert ID to ObjectID
+		objectID, err := primitive.ObjectIDFromHex(permID)
+		if err != nil {
+			log.Printf("Error: Invalid permission ID format %s: %v", permID, err)
+			continue
+		}
+		
+		// Create context with timeout for this specific operation
+		permCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		perm, err := s.permRepo.FindPermissionByID(permCtx, objectID)
+		cancel()
+		
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				log.Printf("Permission not found with ID: %s", permID)
+			} else {
+				log.Printf("Error loading permission %s: %v", permID, err)
+			}
+			continue
+		}
+		
+		if perm == nil {
+			log.Printf("Warning: nil permission returned for ID: %s", permID)
+			continue
+		}
+		
+		log.Printf("Successfully loaded permission: %s (ID: %s)", perm.Name, perm.Id)
+		permissions = append(permissions, perm)
+	}
+	
+	log.Printf("Loaded %d/%d permissions for role: %s", 
+		len(permissions), len(role.PermissionIds), role.Name)
+	
+	return permissions, nil
 }

@@ -363,5 +363,59 @@ func (h *grpcHandler) DeletePermission(ctx context.Context, req *userPb.DeletePe
 	return &userPb.Empty{}, nil
 }
 
+// Add functions for CheckUsername and SetPassword
+func (h *grpcHandler) CheckUsername(ctx context.Context, req *userPb.CheckUsernameRequest) (*userPb.CheckUsernameResponse, error) {
+	dtoReq := &dto.CheckUsernameRequest{
+		Username: req.Username,
+	}
+
+	resp, err := h.userService.CheckUsername(ctx, dtoReq)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	pbResp := &userPb.CheckUsernameResponse{
+		Exists: resp.Exists,
+	}
+
+	if resp.User != nil {
+		pbResp.UserInfo = &userPb.UserInfo{
+			Id:       resp.User.ID,
+			Username: resp.User.Username,
+			Name: &userPb.Name{
+				FirstName:  resp.User.Name.FirstName,
+				MiddleName: resp.User.Name.MiddleName,
+				LastName:   resp.User.Name.LastName,
+			},
+			MajorId:     resp.User.MajorID,
+			IsActivated: resp.User.IsActivated,
+		}
+
+		// Add major if available
+		if resp.User.Major != nil {
+			pbResp.UserInfo.Major = resp.User.Major
+		}
+	}
+
+	return pbResp, nil
+}
+
+func (h *grpcHandler) SetPassword(ctx context.Context, req *userPb.SetPasswordRequest) (*userPb.SetPasswordResponse, error) {
+	dtoReq := &dto.SetPasswordRequest{
+		Username: req.Username,
+		Password: req.Password,
+	}
+
+	resp, err := h.userService.SetPassword(ctx, dtoReq)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &userPb.SetPasswordResponse{
+		Success: resp.Success,
+		Message: resp.Message,
+	}, nil
+}
+
 // Required by gRPC generated code just empty implementation
 func (h *grpcHandler) mustEmbedUnimplementedUserServiceServer() {} 

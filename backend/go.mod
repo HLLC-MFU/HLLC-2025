@@ -50,13 +50,33 @@ require (
 // Use replace directives to point to local packages
 replace (
 	github.com/HLLC-MFU/HLLC-2025/backend => ./
+
+	//Activity
+	github.com/HLLC-MFU/HLLC-2025/backend/module/activity/proto => ./module/activity/proto
+	github.com/HLLC-MFU/HLLC-2025/backend/module/activity/proto/generated => ./module/activity/proto/generated
+
+	//Auth
 	github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto => ./module/auth/proto
 	github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated => ./module/auth/proto/generated
+
+	//Checkins
+	github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/proto => ./module/checkin/proto
+	github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/proto/generated => ./module/checkin/proto/generated
+
+	//Major
 	github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto => ./module/major/proto
 	github.com/HLLC-MFU/HLLC-2025/backend/module/major/proto/generated => ./module/major/proto/generated
+
+	//School
 	github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto => ./module/school/proto
 	github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated => ./module/school/proto/generated
+
+	//Module
+
+	//User
 	github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto => ./module/user/proto
 	github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated => ./module/user/proto/generated
+
+	//Pkg
 	github.com/HLLC-MFU/HLLC-2025/backend/pkg/proto/generated => ./pkg/proto/generated
 )
