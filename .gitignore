@@ -8,7 +8,7 @@
 *.out
 go.work
 go.work.sum
-.env
+
 
 ## ======================================== EXPO ======================================== ##
 node_modules/
@@ -69,3 +69,9 @@ backend/backend/module/user/proto/generated/userPb.pb.go
 .cursor/rules/main.mdc
 backend/module/user/proto/generated/userPb_grpc.pb.go
 backend/module/user/proto/generated/userPb.pb.go
+
+/old-code
+backend/module/activity/proto/generated/activityPb.pb.go
+backend/module/activity/proto/generated/activityPb_grpc.pb.go
+backend/module/checkin/proto/generated/checkinPb_grpc.pb.go
+backend/module/checkin/proto/generated/checkinPb.pb.go
