@@ -2,344 +2,210 @@ package controller
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	userDto "github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/handler"
 	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/request"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/response"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 	"github.com/gofiber/fiber/v2"
 )
 
-type (
-    UserController interface {
-        // User management
-        CreateUser(c *fiber.Ctx) error
-        GetUser(c *fiber.Ctx) error
-        GetAllUsers(c *fiber.Ctx) error
-        UpdateUser(c *fiber.Ctx) error
-        DeleteUser(c *fiber.Ctx) error
-        ValidateCredentials(c *fiber.Ctx) error
-
-        // Role management
-        CreateRole(c *fiber.Ctx) error
-        GetRole(c *fiber.Ctx) error
-        GetAllRoles(c *fiber.Ctx) error
-        UpdateRole(c *fiber.Ctx) error
-        DeleteRole(c *fiber.Ctx) error
-
-        // Permission management
-        CreatePermission(c *fiber.Ctx) error
-        GetPermission(c *fiber.Ctx) error
-        GetAllPermissions(c *fiber.Ctx) error
-        UpdatePermission(c *fiber.Ctx) error
-        DeletePermission(c *fiber.Ctx) error
-    }
-
-    userController struct {
-        cfg *config.Config
-        userService service.UserService
-    }
-
-    GrpcController interface {
-        userPb.UserServiceServer
-    }
-
-    grpcController struct {
-        cfg *config.Config
-        userService service.UserService
-        userPb.UnimplementedUserServiceServer
-    }
-)
-
-func NewUserController(cfg *config.Config, userService service.UserService) UserController {
-    return &userController{
-        cfg: cfg,
-        userService: userService,
-    }
+// UserController is responsible for registering routes for the user module
+type UserController interface {
+	RegisterPublicRoutes(router fiber.Router)
+	RegisterProtectedRoutes(router fiber.Router)
+	RegisterAdminRoutes(router fiber.Router)
 }
 
-func NewGrpcController(cfg *config.Config, userService service.UserService) GrpcController {
-    return &grpcController{
-        cfg: cfg,
-        userService: userService,
-    }
+// userController implements UserController
+type userController struct {
+	cfg         *config.Config
+	httpHandler handler.HTTPHandler
+	baseController decorator.BaseController
 }
 
-// HTTP Handlers
-// User management
-func (c *userController) CreateUser(ctx *fiber.Ctx) error {
-    wrapper := request.NewContextWrapper(ctx)
-    
-    var req userDto.CreateUserRequest
-    if err := wrapper.Bind(&req); err != nil {
-        return response.Error(ctx, http.StatusBadRequest, err.Error())
-    }
-
-    result, err := c.userService.CreateUser(ctx.Context(), &req)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusCreated, result)
+// NewUserController creates a new user controller
+func NewUserController(
+	cfg *config.Config, 
+	userService service.UserService, 
+	roleService service.RoleService, 
+	permService service.PermissionService,
+) UserController {
+	httpHandler := handler.NewHTTPHandler(cfg, userService, roleService, permService)
+	
+	return &userController{
+		cfg: cfg,
+		httpHandler: httpHandler,
+		baseController: decorator.BaseController{},
+	}
 }
 
-func (c *userController) GetUser(ctx *fiber.Ctx) error {
-    id := ctx.Params("id")
-    if id == "" {
-        return response.Error(ctx, http.StatusBadRequest, "id is required")
-    }
-
-    result, err := c.userService.GetUserByID(ctx.Context(), id)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusOK, result)
+// RegisterPublicRoutes registers routes that don't require authentication
+func (c *userController) RegisterPublicRoutes(router fiber.Router) {
+	c.baseController.Router = router
+	
+	// Apply common decorators
+	commonDecorators := []decorator.ControllerDecorator{
+		decorator.WithLogging,
+	}
+	
+	// Public user-related endpoints
+	c.baseController.RegisterRoute("POST", "/validate-credentials", c.httpHandler.ValidateCredentials, commonDecorators...)
+	c.baseController.RegisterRoute("POST", "/check-username", c.httpHandler.CheckUsername, commonDecorators...)
+	c.baseController.RegisterRoute("POST", "/set-password", c.httpHandler.SetPassword, commonDecorators...)
 }
 
-func (c *userController) GetAllUsers(ctx *fiber.Ctx) error {
-    result, err := c.userService.GetAllUsers(ctx.Context())
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusOK, result)
+// RegisterProtectedRoutes registers routes that require authentication
+func (c *userController) RegisterProtectedRoutes(router fiber.Router) {
+	c.baseController.Router = router
+	
+	// Apply common decorators
+	commonDecorators := []decorator.ControllerDecorator{
+		decorator.WithLogging,
+	}
+	
+	// User profile management
+	c.baseController.RegisterRoute("GET", "/profile", c.httpHandler.GetUser, commonDecorators...)
+	c.baseController.RegisterRoute("PUT", "/profile", c.httpHandler.UpdateUser, commonDecorators...)
+	
+	// Basic role and permission viewing
+	c.baseController.RegisterRoute("GET", "/roles", c.httpHandler.GetAllRoles, commonDecorators...)
+	c.baseController.RegisterRoute("GET", "/permissions", c.httpHandler.GetAllPermissions, commonDecorators...)
 }
 
-func (c *userController) UpdateUser(ctx *fiber.Ctx) error {
-    id := ctx.Params("id")
-    if id == "" {
-        return response.Error(ctx, http.StatusBadRequest, "id is required")
-    }
+// RegisterAdminRoutes registers routes that require admin role
+func (c *userController) RegisterAdminRoutes(router fiber.Router) {
+	c.baseController.Router = router
+	
+	// Apply common decorators
+	commonDecorators := []decorator.ControllerDecorator{
+		decorator.WithLogging,
+	}
+	
+	// User management
+	c.baseController.RegisterRoute("POST", "/users", c.httpHandler.CreateUser, commonDecorators...)
+	c.baseController.RegisterRoute("GET", "/users", c.httpHandler.GetAllUsers, commonDecorators...)
+	c.baseController.RegisterRoute("GET", "/users/:id", c.httpHandler.GetUser, commonDecorators...)
+	c.baseController.RegisterRoute("PUT", "/users/:id", c.httpHandler.UpdateUser, commonDecorators...)
+	c.baseController.RegisterRoute("DELETE", "/users/:id", c.httpHandler.DeleteUser, commonDecorators...)
 
-    wrapper := request.NewContextWrapper(ctx)
-    
-    var req userDto.UpdateUserRequest
-    if err := wrapper.Bind(&req); err != nil {
-        return response.Error(ctx, http.StatusBadRequest, err.Error())
-    }
+	// Role management
+	c.baseController.RegisterRoute("POST", "/roles", c.httpHandler.CreateRole, commonDecorators...)
+	c.baseController.RegisterRoute("GET", "/roles/:id", c.httpHandler.GetRole, commonDecorators...)
+	c.baseController.RegisterRoute("PUT", "/roles/:id", c.httpHandler.UpdateRole, commonDecorators...)
+	c.baseController.RegisterRoute("DELETE", "/roles/:id", c.httpHandler.DeleteRole, commonDecorators...)
 
-    result, err := c.userService.UpdateUser(ctx.Context(), id, &req)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusOK, result)
+	// Permission management
+	c.baseController.RegisterRoute("POST", "/permissions", c.httpHandler.CreatePermission, commonDecorators...)
+	c.baseController.RegisterRoute("GET", "/permissions/:id", c.httpHandler.GetPermission, commonDecorators...)
+	c.baseController.RegisterRoute("PUT", "/permissions/:id", c.httpHandler.UpdatePermission, commonDecorators...)
+	c.baseController.RegisterRoute("DELETE", "/permissions/:id", c.httpHandler.DeletePermission, commonDecorators...)
 }
 
-func (c *userController) DeleteUser(ctx *fiber.Ctx) error {
-    id := ctx.Params("id")
-    if id == "" {
-        return response.Error(ctx, http.StatusBadRequest, "id is required")
-    }
-
-    err := c.userService.DeleteUser(ctx.Context(), id)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusNoContent, nil)
+// GrpcController interface for gRPC service
+type GrpcController interface {
+	userPb.UserServiceServer
 }
 
-func (c *userController) ValidateCredentials(ctx *fiber.Ctx) error {
-    wrapper := request.NewContextWrapper(ctx)
-    
-    var req struct {
-        Username string `json:"username" validate:"required"`
-        Password string `json:"password" validate:"required"`
-    }
-    if err := wrapper.Bind(&req); err != nil {
-        return response.Error(ctx, http.StatusBadRequest, err.Error())
-    }
-
-    isValid, err := c.userService.ValidatePassword(ctx.Context(), req.Username, req.Password)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    if !isValid {
-        return response.Error(ctx, http.StatusUnauthorized, "invalid credentials")
-    }
-
-    return response.Success(ctx, http.StatusOK, map[string]bool{"valid": true})
+// grpcController implements GrpcController
+type grpcController struct {
+	cfg *config.Config
+	userService service.UserService
+	roleService service.RoleService
+	permService service.PermissionService
+	userPb.UnimplementedUserServiceServer
 }
 
-// Role management
-func (c *userController) CreateRole(ctx *fiber.Ctx) error {
-    wrapper := request.NewContextWrapper(ctx)
-    
-    var req userDto.CreateRoleRequest
-    if err := wrapper.Bind(&req); err != nil {
-        return response.Error(ctx, http.StatusBadRequest, err.Error())
-    }
-
-    result, err := c.userService.CreateRole(ctx.Context(), &req)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusCreated, result)
+// NewGrpcController creates a new gRPC controller
+func NewGrpcController(
+	cfg *config.Config, 
+	userService service.UserService,
+	roleService service.RoleService,
+	permService service.PermissionService,
+) GrpcController {
+	return &grpcController{
+		cfg:          cfg,
+		userService:  userService,
+		roleService:  roleService,
+		permService:  permService,
+	}
 }
 
-func (c *userController) GetRole(ctx *fiber.Ctx) error {
-    id := ctx.Params("id")
-    if id == "" {
-        return response.Error(ctx, http.StatusBadRequest, "id is required")
-    }
-
-    result, err := c.userService.GetRoleByID(ctx.Context(), id)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusOK, result)
-}
-
-func (c *userController) GetAllRoles(ctx *fiber.Ctx) error {
-    result, err := c.userService.GetAllRoles(ctx.Context())
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusOK, result)
-}
-
-func (c *userController) UpdateRole(ctx *fiber.Ctx) error {
-    id := ctx.Params("id")
-    if id == "" {
-        return response.Error(ctx, http.StatusBadRequest, "id is required")
-    }
-
-    wrapper := request.NewContextWrapper(ctx)
-    
-    var req userDto.UpdateRoleRequest
-    if err := wrapper.Bind(&req); err != nil {
-        return response.Error(ctx, http.StatusBadRequest, err.Error())
-    }
-
-    result, err := c.userService.UpdateRole(ctx.Context(), id, &req)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusOK, result)
-}
-
-func (c *userController) DeleteRole(ctx *fiber.Ctx) error {
-    id := ctx.Params("id")
-    if id == "" {
-        return response.Error(ctx, http.StatusBadRequest, "id is required")
-    }
-
-    err := c.userService.DeleteRole(ctx.Context(), id)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusNoContent, nil)
-}
-
-// Permission management
-func (c *userController) CreatePermission(ctx *fiber.Ctx) error {
-    wrapper := request.NewContextWrapper(ctx)
-    
-    var req userDto.CreatePermissionRequest
-    if err := wrapper.Bind(&req); err != nil {
-        return response.Error(ctx, http.StatusBadRequest, err.Error())
-    }
-
-    result, err := c.userService.CreatePermission(ctx.Context(), &req)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusCreated, result)
-}
-
-func (c *userController) GetPermission(ctx *fiber.Ctx) error {
-    id := ctx.Params("id")
-    if id == "" {
-        return response.Error(ctx, http.StatusBadRequest, "id is required")
-    }
-
-    result, err := c.userService.GetPermissionByID(ctx.Context(), id)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusOK, result)
-}
-
-func (c *userController) GetAllPermissions(ctx *fiber.Ctx) error {
-    result, err := c.userService.GetAllPermissions(ctx.Context())
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusOK, result)
-}
-
-func (c *userController) UpdatePermission(ctx *fiber.Ctx) error {
-    id := ctx.Params("id")
-    if id == "" {
-        return response.Error(ctx, http.StatusBadRequest, "id is required")
-    }
-
-    wrapper := request.NewContextWrapper(ctx)
-    
-    var req userDto.UpdatePermissionRequest
-    if err := wrapper.Bind(&req); err != nil {
-        return response.Error(ctx, http.StatusBadRequest, err.Error())
-    }
-
-    result, err := c.userService.UpdatePermission(ctx.Context(), id, &req)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusOK, result)
-}
-
-func (c *userController) DeletePermission(ctx *fiber.Ctx) error {
-    id := ctx.Params("id")
-    if id == "" {
-        return response.Error(ctx, http.StatusBadRequest, "id is required")
-    }
-
-    err := c.userService.DeletePermission(ctx.Context(), id)
-    if err != nil {
-        return response.Error(ctx, http.StatusInternalServerError, err.Error())
-    }
-
-    return response.Success(ctx, http.StatusNoContent, nil)
-}
-
-// gRPC Handlers
+// gRPC handler implementations
 func (c *grpcController) CreateUser(ctx context.Context, req *userPb.CreateUserRequest) (*userPb.User, error) {
-    result, err := c.userService.CreateUserGRPC(ctx, req)
-    if err != nil {
-        return nil, err
-    }
-    return result, nil
+	return c.userService.CreateUserGRPC(ctx, req)
 }
 
 func (c *grpcController) GetUser(ctx context.Context, req *userPb.GetUserRequest) (*userPb.User, error) {
-    result, err := c.userService.GetUserGRPC(ctx, req)
-    if err != nil {
-        return nil, err
-    }
-    return result, nil
+	return c.userService.GetUserGRPC(ctx, req)
+}
+
+func (c *grpcController) GetAllUsers(ctx context.Context, req *userPb.GetAllUsersRequest) (*userPb.GetAllUsersResponse, error) {
+	return c.userService.GetAllUsersGRPC(ctx, req)
+}
+
+func (c *grpcController) UpdateUser(ctx context.Context, req *userPb.UpdateUserRequest) (*userPb.User, error) {
+	return c.userService.UpdateUserGRPC(ctx, req)
+}
+
+func (c *grpcController) DeleteUser(ctx context.Context, req *userPb.DeleteUserRequest) (*userPb.Empty, error) {
+	return c.userService.DeleteUserGRPC(ctx, req)
 }
 
 func (c *grpcController) ValidateCredentials(ctx context.Context, req *userPb.ValidateCredentialsRequest) (*userPb.ValidateCredentialsResponse, error) {
-    result, err := c.userService.ValidateCredentialsGRPC(ctx, req)
-    if err != nil {
-        return nil, err
-    }
-    return result, nil
+	return c.userService.ValidateCredentialsGRPC(ctx, req)
+}
+
+// Role methods
+func (c *grpcController) CreateRole(ctx context.Context, req *userPb.CreateRoleRequest) (*userPb.Role, error) {
+	return c.roleService.CreateRoleGRPC(ctx, req)
+}
+
+func (c *grpcController) GetRole(ctx context.Context, req *userPb.GetRoleRequest) (*userPb.Role, error) {
+	return c.roleService.GetRoleGRPC(ctx, req)
+}
+
+func (c *grpcController) GetAllRoles(ctx context.Context, req *userPb.GetAllRolesRequest) (*userPb.GetAllRolesResponse, error) {
+	return c.roleService.GetAllRolesGRPC(ctx, req)
+}
+
+func (c *grpcController) UpdateRole(ctx context.Context, req *userPb.UpdateRoleRequest) (*userPb.Role, error) {
+	return c.roleService.UpdateRoleGRPC(ctx, req)
+}
+
+func (c *grpcController) DeleteRole(ctx context.Context, req *userPb.DeleteRoleRequest) (*userPb.Empty, error) {
+	return c.roleService.DeleteRoleGRPC(ctx, req)
+}
+
+// Permission methods
+func (c *grpcController) CreatePermission(ctx context.Context, req *userPb.CreatePermissionRequest) (*userPb.Permission, error) {
+	return c.permService.CreatePermissionGRPC(ctx, req)
+}
+
+func (c *grpcController) GetPermission(ctx context.Context, req *userPb.GetPermissionRequest) (*userPb.Permission, error) {
+	return c.permService.GetPermissionGRPC(ctx, req)
+}
+
+func (c *grpcController) GetAllPermissions(ctx context.Context, req *userPb.GetAllPermissionsRequest) (*userPb.GetAllPermissionsResponse, error) {
+	return c.permService.GetAllPermissionsGRPC(ctx, req)
+}
+
+func (c *grpcController) UpdatePermission(ctx context.Context, req *userPb.UpdatePermissionRequest) (*userPb.Permission, error) {
+	return c.permService.UpdatePermissionGRPC(ctx, req)
+}
+
+func (c *grpcController) DeletePermission(ctx context.Context, req *userPb.DeletePermissionRequest) (*userPb.Empty, error) {
+	return c.permService.DeletePermissionGRPC(ctx, req)
+}
+
+// Registration methods
+func (c *grpcController) CheckUsername(ctx context.Context, req *userPb.CheckUsernameRequest) (*userPb.CheckUsernameResponse, error) {
+	return c.userService.CheckUsernameGRPC(ctx, req)
+}
+
+func (c *grpcController) SetPassword(ctx context.Context, req *userPb.SetPasswordRequest) (*userPb.SetPasswordResponse, error) {
+	return c.userService.SetPasswordGRPC(ctx, req)
 }
 
 func (c *grpcController) mustEmbedUnimplementedUserServiceServer() {}

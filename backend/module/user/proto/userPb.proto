@@ -3,8 +3,6 @@ syntax = "proto3";
 package user;
 option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated";
 
-import "module/major/proto/majorPb.proto";
-
 // Common messages
 message Empty {}
 
@@ -15,7 +13,7 @@ message User {
     Name name = 4;
     repeated string role_ids = 5;
     string major_id = 6;
-    major.Major major = 7;  // Embedded major information
+    string major_json = 7;  // Major data serialized as JSON (for embedding major info)
     string created_at = 8;
     string updated_at = 9;
     bool is_activated = 10;  // Whether user has set their password and can login
@@ -60,10 +58,17 @@ message GetUserRequest {
     string username = 1;
 }
 
-message GetAllUsersRequest {}
+message GetAllUsersRequest {
+    int32 page = 1;     // Page number (1-based), default = 1
+    int32 limit = 2;    // Items per page, default = 10
+}
 
 message GetAllUsersResponse {
     repeated User users = 1;
+    int32 total_count = 2;   // Total number of users
+    int32 page = 3;          // Current page
+    int32 limit = 4;         // Items per page
+    int32 total_pages = 5;   // Total number of pages
 }
 
 message UpdateUserRequest {
@@ -164,7 +169,7 @@ message UserInfo {
     string username = 2;
     Name name = 3;
     string major_id = 4;
-    major.Major major = 5;
+    string major_json = 5;  // Major data serialized as JSON
     bool is_activated = 6;
 }
 

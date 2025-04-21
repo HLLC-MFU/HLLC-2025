@@ -12,9 +12,23 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 )
 
+// PermissionRepositoryService defines permission-specific operations
+type PermissionRepositoryService interface {
+	CreatePermission(ctx context.Context, permission *userPb.Permission) error
+	FindPermissionByID(ctx context.Context, id primitive.ObjectID) (*userPb.Permission, error)
+	FindAllPermissions(ctx context.Context) ([]*userPb.Permission, error)
+	UpdatePermission(ctx context.Context, permission *userPb.Permission) error
+	DeletePermission(ctx context.Context, id primitive.ObjectID) error
+}
+
 // permissionRepository implements permission-specific operations
 type permissionRepository struct {
 	db *mongo.Client
+}
+
+// NewPermissionRepository creates a new permission repository instance
+func NewPermissionRepository(db *mongo.Client) PermissionRepositoryService {
+	return &permissionRepository{db: db}
 }
 
 func (r *permissionRepository) dbConnect(ctx context.Context) *mongo.Database {
