@@ -25,7 +25,7 @@ type Config struct {
 		ApiSecretKey     string
 		AccessDuration   int64
 		RefreshDuration  int64
-		ApiDuration     int64
+		ApiDuration      int64
 	}
 	User struct {
 		GRPCAddr string
@@ -43,6 +43,9 @@ type Config struct {
 		GRPCAddr string
 	}
 	Checkin struct {
+		GRPCAddr string
+	}
+	Chat struct {
 		GRPCAddr string
 	}
 	Db struct {
@@ -112,6 +115,13 @@ func LoadConfig(path string) *Config {
 		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
 		// Checkin service might need auth for validation
 		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
+	case "chat":
+		// Chat service gRPC address
+		cfg.Chat.GRPCAddr = getEnvOrFatal("GRPC_CHAT_URL")
+		// Chat service might need auth for validation
+		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
+		// Chat service might need user service for user validation
+		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
 	default:
 		log.Fatalf("Unknown service name: %s", cfg.App.Name)
 	}

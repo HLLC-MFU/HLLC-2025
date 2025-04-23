@@ -375,7 +375,7 @@ export default function DetailSchoolModal({
                                             <div className="p-2 rounded-full bg-purple-50 dark:bg-purple-900">
                                                 <UserGroupIcon className="w-5 h-5 text-purple-500" />
                                             </div>
-                                            <div>
+        <div>
                                                 <p className="text-sm text-gray-500">Students</p>
                                                 <p className="text-2xl font-bold">-</p>
                                             </div>

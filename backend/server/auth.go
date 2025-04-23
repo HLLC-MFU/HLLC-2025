@@ -54,7 +54,7 @@ func (s *server) authService() {
 
 	// Set up HTTP routes
 	api := s.app.Group("/api/v1")
-	
+
 	// Public routes (no auth required)
 	authController.RegisterPublicRoutes(api)
 
@@ -74,14 +74,14 @@ func (s *server) authService() {
 		jwtConfig := &core.JwtConfig{
 			AccessSecretKey:  s.config.Jwt.AccessSecretKey,
 			RefreshSecretKey: s.config.Jwt.RefreshSecretKey,
-			ApiSecretKey:    s.config.Jwt.ApiSecretKey,
+			ApiSecretKey:     s.config.Jwt.ApiSecretKey,
 			AccessDuration:   s.config.Jwt.AccessDuration,
 			RefreshDuration:  s.config.Jwt.RefreshDuration,
-			ApiDuration:     s.config.Jwt.ApiDuration,
+			ApiDuration:      s.config.Jwt.ApiDuration,
 		}
 		grpcServer, lis := core.NewGrpcServer(jwtConfig, s.config.Auth.GRPCAddr)
 		authPb.RegisterAuthServiceServer(grpcServer, grpcHandler)
-		
+
 		log.Printf("Auth gRPC server listening on %s", s.config.Auth.GRPCAddr)
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("gRPC server error: %v", err)
@@ -95,4 +95,3 @@ func (s *server) authService() {
 
 	log.Printf("Auth service initialized")
 }
-

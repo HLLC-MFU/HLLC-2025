@@ -32,8 +32,8 @@ type server struct {
 func NewServer(cfg *config.Config, db *mongo.Client) *server {
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
-		AppName:              cfg.App.Name,
-		EnablePrintRoutes:    true,
+		AppName:               cfg.App.Name,
+		EnablePrintRoutes:     true,
 	})
 
 	redis := core.RedisConnect(context.Background(), cfg)
@@ -74,6 +74,8 @@ func (s *server) Start() error {
 		s.activityService()
 	case "checkin":
 		s.checkinService()
+	case "chat":
+		s.chatService()
 	default:
 		return fmt.Errorf("unknown service name: %s", s.config.App.Name)
 	}
@@ -92,7 +94,7 @@ func (s *server) Start() error {
 	<-quit
 
 	log.Println("Shutting down server...")
-	
+
 	// Shutdown HTTP server
 	if err := s.app.Shutdown(); err != nil {
 		log.Printf("Error shutting down HTTP server: %v", err)

@@ -13,15 +13,18 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/fasthttp/websocket v1.5.3 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/gofiber/websocket/v2 v2.2.1
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -70,6 +73,10 @@ replace (
 	//School
 	github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto => ./module/school/proto
 	github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated => ./module/school/proto/generated
+
+	//Chat
+	github.com/HLLC-MFU/HLLC-2025/backend/module/chat/proto => ./module/chat/proto
+	github.com/HLLC-MFU/HLLC-2025/backend/module/chat/proto/generated => ./module/chat/proto/generated
 
 	//Module
 

@@ -89,5 +89,6 @@ generate_module_proto "user"
 generate_module_proto "major"
 generate_module_proto "activity"
 generate_module_proto "checkin"
+generate_module_proto "chats"
 
 echo "Proto generation completed!"
