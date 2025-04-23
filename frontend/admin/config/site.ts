@@ -14,24 +14,18 @@ import {
 export const siteConfig = {
   name: "HLLC Admin",
   description: "",
-  // navItems: [
-  //   {
-  //     label: "Home",
-  //     href: "/",
-  //     icon: HomeIcon,
-  //   },
-  //   {
-  //     label: "Schools & Majors",
-  //     href: "/schools",
-  //     icon: SchoolIcon,
-  //   },
-  // ],
   navMenuItems: [
     {
-      section: "Main",
+      section: "Dashboard",
       items: [
         { label: "Home", href: "/", icon: HomeIcon },
+      ],
+    },
+    {
+      section: "User Management",
+      items: [
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
+        { label: "Admin", href: "/admin", icon: UserIcon },
       ],
     },
     {
