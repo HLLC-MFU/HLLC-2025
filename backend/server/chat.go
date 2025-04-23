@@ -40,7 +40,7 @@ func (s *server) chatService() {
 
 	public := api.Group("/public/rooms")
 	public.Get("/", httpHandler.ListRooms)
-	public.Get("/", httpHandler.GetRoom)
+	public.Get("/:id", httpHandler.GetRoom)
 
 	// Protected routes (auth required)
 	protected := api.Group("/rooms")
@@ -86,7 +86,7 @@ func (s *server) chatService() {
 	log.Printf("Room service initialized")
 
 	// HTTP WebSocket route
-	s.app.Get("/ws/:roomId/:userId", websocket.New(handler.HandleWebSocket))
+	s.app.Get("/ws/:roomId/:userId", websocket.New(handler.HandleWebSocket(roomService)))
 
 	// Simple ping route (optional)
 	s.app.Get("/ping", func(c *fiber.Ctx) error {

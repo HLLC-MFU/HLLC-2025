@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"log"
 	"strconv"
 
@@ -12,33 +13,58 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func HandleWebSocket(c *websocket.Conn) {
-	// Extract GROUP and USER from query params or headers
-	room := c.Params("roomId") // e.g., /ws/:group/:user
-	userId := c.Params("userId")
+func HandleWebSocket(chatService service.Service) func(c *websocket.Conn) {
+	return func(c *websocket.Conn) {
+		roomIdStr := c.Params("roomId")
+		userId := c.Params("userId")
 
-	client := model.ClientObject{
-		RoomID: room,
-		UserID: userId,
-		Conn:   c,
-	}
-
-	model.RegisterClient(client)
-	defer model.UnregisterClient(client)
-
-	for {
-		// Read message from client
-		_, msg, err := c.ReadMessage()
+		roomId, err := primitive.ObjectIDFromHex(roomIdStr)
 		if err != nil {
-			log.Println("read error:", err)
-			break
+			log.Println("[WS] Invalid roomId:", roomIdStr)
+			_ = c.WriteMessage(websocket.TextMessage, []byte("Invalid room ID"))
+			c.Close()
+			return
 		}
 
-		// Broadcast message to group
-		model.BroadcastMessage(model.BroadcastObject{
-			MSG:  string(msg),
-			FROM: client,
-		})
+		// ✅ Check if room exists via gRPC or direct service call
+		ctx := context.Background()
+		room, err := chatService.GetRoom(ctx, roomId)
+		if err != nil || room == nil {
+			log.Printf("[WS] Room %s not found", roomId.Hex())
+			_ = c.WriteMessage(websocket.TextMessage, []byte("Room not found"))
+			c.Close()
+			return
+		}
+
+		roomClients := model.Clients[roomId.Hex()]
+		if roomClients != nil && len(roomClients) >= room.Capacity {
+			log.Printf("[WS] Room %s is full. Capacity: %d", roomId.Hex(), room.Capacity)
+			_ = c.WriteMessage(websocket.TextMessage, []byte("Room is full"))
+			c.Close()
+			return
+		}
+
+		client := model.ClientObject{
+			RoomID: roomId.Hex(),
+			UserID: userId,
+			Conn:   c,
+		}
+
+		model.RegisterClient(client)
+		defer model.UnregisterClient(client)
+
+		for {
+			_, msg, err := c.ReadMessage()
+			if err != nil {
+				log.Println("[WS] read error:", err)
+				break
+			}
+
+			model.BroadcastMessage(model.BroadcastObject{
+				MSG:  string(msg),
+				FROM: client,
+			})
+		}
 	}
 }
 
