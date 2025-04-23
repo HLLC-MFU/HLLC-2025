@@ -2,12 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import {
-    Accordion,
-    AccordionItem,
     Button,
     Card,
-    Image,
-    Chip,
     Skeleton,
     Input,
     Dropdown,
@@ -19,10 +15,9 @@ import {
     CardHeader,
     CardFooter,
     Divider,
-    Avatar
 } from "@heroui/react";
 import type { School } from "@/types/school";
-import { Award, ChevronDownIcon, EllipsisVertical, PlusIcon, SearchIcon, AArrowUpIcon, AArrowDownIcon, Building2, GraduationCap, Users } from "lucide-react";
+import { EllipsisVertical, PlusIcon, SearchIcon, AArrowUpIcon, AArrowDownIcon, Building2, GraduationCap } from "lucide-react";
 import mockSchools from "@/public/mock/schools.json";
 
 const sortOptions = [
