@@ -1,0 +1,68 @@
+{
+    "problems": [
+        {
+            "id": "prob-1",
+            "title": {
+                "en": "Internet Connectivity Issues",
+                "th": "ปัญหาการเชื่อมต่ออินเทอร์เน็ต"
+            },
+            "description": {
+                "en": "Frequent disconnections and slow internet speed in the computer lab",
+                "th": "การเชื่อมต่อหลุดบ่อยและความเร็วอินเทอร์เน็ตช้าในห้องปฏิบัติการคอมพิวเตอร์"
+            },
+            "categoryId": "cat-1",
+            "severity": "high",
+            "status": "open",
+            "createdAt": "2024-04-24T00:00:00.000Z",
+            "updatedAt": "2024-04-24T00:00:00.000Z"
+        },
+        {
+            "id": "prob-2",
+            "title": {
+                "en": "Air Conditioning Malfunction",
+                "th": "เครื่องปรับอากาศทำงานผิดปกติ"
+            },
+            "description": {
+                "en": "Air conditioning system not cooling properly in Building A",
+                "th": "ระบบเครื่องปรับอากาศไม่เย็นตามปกติในอาคาร A"
+            },
+            "categoryId": "cat-1",
+            "severity": "medium",
+            "status": "in-progress",
+            "createdAt": "2024-04-24T00:00:00.000Z",
+            "updatedAt": "2024-04-24T00:00:00.000Z"
+        },
+        {
+            "id": "prob-3",
+            "title": {
+                "en": "Course Registration System",
+                "th": "ระบบลงทะเบียนเรียน"
+            },
+            "description": {
+                "en": "System crashes during peak registration periods",
+                "th": "ระบบล่มในช่วงเวลาลงทะเบียนที่มีผู้ใช้จำนวนมาก"
+            },
+            "categoryId": "cat-2",
+            "severity": "critical",
+            "status": "open",
+            "createdAt": "2024-04-24T00:00:00.000Z",
+            "updatedAt": "2024-04-24T00:00:00.000Z"
+        },
+        {
+            "id": "prob-4",
+            "title": {
+                "en": "Scholarship Application Process",
+                "th": "กระบวนการสมัครทุนการศึกษา"
+            },
+            "description": {
+                "en": "Complex and unclear scholarship application requirements",
+                "th": "ข้อกำหนดการสมัครทุนการศึกษาซับซ้อนและไม่ชัดเจน"
+            },
+            "categoryId": "cat-3",
+            "severity": "medium",
+            "status": "resolved",
+            "createdAt": "2024-04-24T00:00:00.000Z",
+            "updatedAt": "2024-04-24T00:00:00.000Z"
+        }
+    ]
+} 
