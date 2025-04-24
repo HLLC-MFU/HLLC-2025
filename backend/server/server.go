@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/controller"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
+	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/migration"
@@ -34,9 +36,9 @@ type server struct {
 
 // UserService is a global variable to be accessed by other modules directly
 var (
-	UserSvc  service.UserService
-	RoleSvc  service.RoleService
-	PermSvc  service.PermissionService
+	UserSvc  serviceHttp.UserService
+	RoleSvc  serviceHttp.RoleService
+	PermSvc  serviceHttp.PermissionService
 )
 
 func NewServer(cfg *config.Config, db *mongo.Client) *server {
@@ -157,29 +159,61 @@ func (s *server) initializeAllServices() {
 	log.Println("Initializing all services...")
 
 	// Initialize services in order of dependencies
-	if err := InitSchoolService(s.app, s.config, s.db); err != nil {
-		log.Printf("Error initializing school service: %v", err)
-	}
-
-	if err := InitMajorService(s.app, s.config, s.db); err != nil {
-		log.Printf("Error initializing major service: %v", err)
-	}
-
-	if err := InitUserService(s.app, s.config, s.db); err != nil {
+	if err := s.initializeUserService(); err != nil {
 		log.Printf("Error initializing user service: %v", err)
 	}
 
-	if err := InitAuthService(s.app, s.config, s.db); err != nil {
+	if err := s.initializeAuthService(); err != nil {
 		log.Printf("Error initializing auth service: %v", err)
 	}
 
-	if err := InitActivityService(s.app, s.config, s.db); err != nil {
-		log.Printf("Error initializing activity service: %v", err)
-	}
+	// Add other services as needed
 
-	if err := InitCheckinService(s.app, s.config, s.db); err != nil {
-		log.Printf("Error initializing checkin service: %v", err)
-	}
-	
 	log.Println("All services initialized successfully in monolithic mode")
+}
+
+// initializeUserService initializes the user service and its dependencies
+func (s *server) initializeUserService() error {
+	log.Println("Initializing user service...")
+
+	// Initialize repositories
+	userRepo := repository.NewUserRepository(s.db)
+	roleRepo := repository.NewRoleRepository(s.db)
+	permRepo := repository.NewPermissionRepository(s.db)
+
+	// Initialize services
+	UserSvc = serviceHttp.NewUserService(userRepo, roleRepo, permRepo)
+	RoleSvc = serviceHttp.NewRoleService(roleRepo, permRepo)
+	PermSvc = serviceHttp.NewPermissionService(permRepo)
+
+	// Initialize controller
+	userController := controller.NewUserController(s.config, UserSvc, RoleSvc, PermSvc)
+
+	// Register routes
+	apiV1 := s.app.Group("/api/v1")
+	userController.RegisterPublicRoutes(apiV1.Group("/public"))
+	
+	// JWT secret key from config
+	secretKey := s.config.Jwt.AccessSecretKey
+	
+	// Protected routes (require authentication)
+	protected := apiV1.Group("/protected")
+	protected.Use(middleware.AuthMiddleware(secretKey))
+	userController.RegisterProtectedRoutes(protected)
+	
+	// Admin routes (require admin role)
+	admin := apiV1.Group("/admin")
+	admin.Use(middleware.AuthMiddleware(secretKey))
+	admin.Use(middleware.RoleMiddleware([]string{"admin"}))
+	userController.RegisterAdminRoutes(admin)
+
+	log.Println("User service initialized successfully")
+	return nil
+}
+
+// initializeAuthService initializes the auth service
+func (s *server) initializeAuthService() error {
+	// Auth service implementation goes here
+	log.Println("Auth service initialized successfully")
+	return nil
 }

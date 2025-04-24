@@ -1,13 +1,11 @@
 package controller
 
 import (
-	"context"
-
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/handler"
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
+	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/logging"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -20,24 +18,26 @@ type UserController interface {
 
 // userController implements UserController
 type userController struct {
-	cfg         *config.Config
-	httpHandler handler.HTTPHandler
+	cfg           *config.Config
+	httpHandler   handler.HTTPHandler
 	baseController decorator.BaseController
+	logger        *logging.Logger
 }
 
 // NewUserController creates a new user controller
 func NewUserController(
 	cfg *config.Config, 
-	userService service.UserService, 
-	roleService service.RoleService, 
-	permService service.PermissionService,
+	userService serviceHttp.UserService, 
+	roleService serviceHttp.RoleService, 
+	permService serviceHttp.PermissionService,
 ) UserController {
-	httpHandler := handler.NewHTTPHandler(cfg, userService, roleService, permService)
+	httpHandler := handler.NewHTTPHandler(userService, roleService, permService)
 	
 	return &userController{
 		cfg: cfg,
 		httpHandler: httpHandler,
 		baseController: decorator.BaseController{},
+		logger: logging.DefaultLogger,
 	}
 }
 
@@ -45,8 +45,14 @@ func NewUserController(
 func (c *userController) RegisterPublicRoutes(router fiber.Router) {
 	c.baseController.Router = router
 	
+	c.logger.Info("Registering public routes for user module",
+		logging.FieldModule, "user",
+		logging.FieldOperation, "register_routes",
+	)
+	
 	// Apply common decorators
 	commonDecorators := []decorator.ControllerDecorator{
+		decorator.WithRecovery(),
 		decorator.WithLogging,
 	}
 	
@@ -54,14 +60,25 @@ func (c *userController) RegisterPublicRoutes(router fiber.Router) {
 	c.baseController.RegisterRoute("POST", "/validate-credentials", c.httpHandler.ValidateCredentials, commonDecorators...)
 	c.baseController.RegisterRoute("POST", "/check-username", c.httpHandler.CheckUsername, commonDecorators...)
 	c.baseController.RegisterRoute("POST", "/set-password", c.httpHandler.SetPassword, commonDecorators...)
+	
+	c.logger.Info("Successfully registered public routes for user module",
+		logging.FieldModule, "user",
+		logging.FieldOperation, "register_routes",
+	)
 }
 
 // RegisterProtectedRoutes registers routes that require authentication
 func (c *userController) RegisterProtectedRoutes(router fiber.Router) {
 	c.baseController.Router = router
 	
+	c.logger.Info("Registering protected routes for user module",
+		logging.FieldModule, "user",
+		logging.FieldOperation, "register_routes",
+	)
+	
 	// Apply common decorators
 	commonDecorators := []decorator.ControllerDecorator{
+		decorator.WithRecovery(),
 		decorator.WithLogging,
 	}
 	
@@ -72,14 +89,25 @@ func (c *userController) RegisterProtectedRoutes(router fiber.Router) {
 	// Basic role and permission viewing
 	c.baseController.RegisterRoute("GET", "/roles", c.httpHandler.GetAllRoles, commonDecorators...)
 	c.baseController.RegisterRoute("GET", "/permissions", c.httpHandler.GetAllPermissions, commonDecorators...)
+	
+	c.logger.Info("Successfully registered protected routes for user module",
+		logging.FieldModule, "user",
+		logging.FieldOperation, "register_routes",
+	)
 }
 
 // RegisterAdminRoutes registers routes that require admin role
 func (c *userController) RegisterAdminRoutes(router fiber.Router) {
 	c.baseController.Router = router
 	
+	c.logger.Info("Registering admin routes for user module",
+		logging.FieldModule, "user",
+		logging.FieldOperation, "register_routes",
+	)
+	
 	// Apply common decorators
 	commonDecorators := []decorator.ControllerDecorator{
+		decorator.WithRecovery(),
 		decorator.WithLogging,
 	}
 	
@@ -101,8 +129,16 @@ func (c *userController) RegisterAdminRoutes(router fiber.Router) {
 	c.baseController.RegisterRoute("GET", "/permissions/:id", c.httpHandler.GetPermission, commonDecorators...)
 	c.baseController.RegisterRoute("PUT", "/permissions/:id", c.httpHandler.UpdatePermission, commonDecorators...)
 	c.baseController.RegisterRoute("DELETE", "/permissions/:id", c.httpHandler.DeletePermission, commonDecorators...)
+	
+	c.logger.Info("Successfully registered admin routes for user module",
+		logging.FieldModule, "user",
+		logging.FieldOperation, "register_routes",
+		"endpoint_count", 13,
+	)
 }
 
+// gRPC implementation is commented out to focus on HTTP implementation
+/*
 // GrpcController interface for gRPC service
 type GrpcController interface {
 	userPb.UserServiceServer
@@ -111,18 +147,18 @@ type GrpcController interface {
 // grpcController implements GrpcController
 type grpcController struct {
 	cfg *config.Config
-	userService service.UserService
-	roleService service.RoleService
-	permService service.PermissionService
+	userService serviceHttp.UserService
+	roleService serviceHttp.RoleService
+	permService serviceHttp.PermissionService
 	userPb.UnimplementedUserServiceServer
 }
 
 // NewGrpcController creates a new gRPC controller
 func NewGrpcController(
 	cfg *config.Config, 
-	userService service.UserService,
-	roleService service.RoleService,
-	permService service.PermissionService,
+	userService serviceHttp.UserService,
+	roleService serviceHttp.RoleService,
+	permService serviceHttp.PermissionService,
 ) GrpcController {
 	return &grpcController{
 		cfg:          cfg,
@@ -209,4 +245,5 @@ func (c *grpcController) SetPassword(ctx context.Context, req *userPb.SetPasswor
 }
 
 func (c *grpcController) mustEmbedUnimplementedUserServiceServer() {}
+*/
 

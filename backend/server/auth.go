@@ -17,9 +17,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-// AuthService is a global variable to be accessed by other modules directly
 var (
 	AuthSvc service.AuthService
+	HttpSvc service.AuthService
 )
 
 // InitAuthService initializes the auth service and its dependencies
@@ -32,9 +32,11 @@ func InitAuthService(app *fiber.App, cfg *config.Config, db *mongo.Client) error
 
 	// Initialize service
 	AuthSvc = service.NewAuthService(cfg, userRepo, authRepo, UserSvc)
+	// Initialize HTTP handler
+	httpHandler := handler.NewAuthHttpHandler(cfg, AuthSvc)
 
 	// Initialize controller
-	authController := controller.NewAuthController(cfg, AuthSvc)
+	authController := controller.NewAuthController(cfg, AuthSvc, httpHandler)
 
 	// Register gRPC service
 	log.Println("Registering auth gRPC service...")
