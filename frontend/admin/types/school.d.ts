@@ -14,6 +14,7 @@ export type Major = {
     name: Lang;
     detail: Lang;
     acronym: string;
+    school: string;
 }
 
 export type Photo = {

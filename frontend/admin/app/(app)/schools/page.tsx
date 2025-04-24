@@ -1,35 +1,21 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import {
-    Button,
-    Card,
-    Skeleton,
-    Input,
-    Dropdown,
-    DropdownItem,
-    DropdownMenu,
-    DropdownTrigger,
-    ButtonGroup,
-    CardBody,
-    CardHeader,
-    CardFooter,
-    Divider,
-} from "@heroui/react";
 import type { School } from "@/types/school";
-import { EllipsisVertical, PlusIcon, SearchIcon, AArrowUpIcon, AArrowDownIcon, Building2, GraduationCap } from "lucide-react";
 import mockSchools from "@/public/mock/schools.json";
-
-const sortOptions = [
-    { name: "name", label: "Name" },
-    { name: "acronym", label: "Acronym" },
-    { name: "majors", label: "Number of Majors" }
-];
+import { SchoolList } from "./_components/SchoolList";
+import { SchoolFilters } from "./_components/SchoolFilters";
+import { SchoolModal } from "./_components/SchoolModal";
+import { DeleteConfirmationModal } from "./_components/DeleteConfirmationModal";
 
 export default function SchoolsPage() {
     const [schools, setSchools] = useState<School[]>();
     const [sortBy, setSortBy] = useState<string>("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedSchool, setSelectedSchool] = useState<School | undefined>();
+    const [modalMode, setModalMode] = useState<"add" | "edit">("add");
 
     useEffect(() => {
         const fetchSchools = async () => {
@@ -64,124 +50,92 @@ export default function SchoolsPage() {
         setSortDirection(prev => prev === "asc" ? "desc" : "asc");
     };
 
-    return (
-        <div className="flex flex-col max-w-screen min-h-screen">
-            <div className="container mx-auto space-y-6">
-                <div className="flex flex-col gap-4">
-                    <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
-                        <div className="flex gap-3 w-full justify-between">
-                            <Input
-                                isClearable
-                                className="w-full md:w-80"
-                                placeholder="Search schools..."
-                                startContent={<SearchIcon className="text-default-400" />}
-                            />
-                            <div className="flex gap-3">
-                                <ButtonGroup>
-                                    <Dropdown>
-                                        <DropdownTrigger>
-                                            <Button variant="flat">
-                                                Sort by: {sortOptions.find(opt => opt.name === sortBy)?.label}
-                                            </Button>
-                                        </DropdownTrigger>
-                                        <DropdownMenu
-                                            aria-label="Sort Options"
-                                            onAction={(key) => setSortBy(key as string)}
-                                        >
-                                            {sortOptions.map((option) => (
-                                                <DropdownItem key={option.name} className="capitalize">
-                                                    {option.label}
-                                                </DropdownItem>
-                                            ))}
-                                        </DropdownMenu>
-                                    </Dropdown>
-                                    <Button
-                                        variant="flat"
-                                        isIconOnly
-                                        onPress={toggleSortDirection}
-                                    >
-                                        {sortDirection === "asc" ? <AArrowUpIcon /> : <AArrowDownIcon />}
-                                    </Button>
-                                </ButtonGroup>
-                                <Button color="primary" endContent={<PlusIcon />}>
-                                    Add School
-                                </Button>
-                            </div>
+    const handleAddSchool = () => {
+        setModalMode("add");
+        setSelectedSchool(undefined);
+        setIsModalOpen(true);
+    };
 
+    const handleEditSchool = (school: School) => {
+        setModalMode("edit");
+        setSelectedSchool(school);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteSchool = (school: School) => {
+        setSelectedSchool(school);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (selectedSchool) {
+            setSchools(prev => prev?.filter(school => school.id !== selectedSchool.id));
+            setIsDeleteModalOpen(false);
+            setSelectedSchool(undefined);
+        }
+    };
+
+    const handleSubmitSchool = (schoolData: Partial<School>) => {
+        if (modalMode === "add") {
+            // Generate a temporary ID for the new school
+            const newSchool: School = {
+                ...schoolData as School,
+                id: `temp-${Date.now()}`,
+                majors: []
+            };
+            setSchools(prev => [...(prev || []), newSchool]);
+        } else {
+            setSchools(prev => prev?.map(school =>
+                school.id === selectedSchool?.id
+                    ? { ...school, ...schoolData }
+                    : school
+            ));
+        }
+    };
+
+    return (
+        <div className="flex flex-col min-h-screen">
+            <div className="container mx-auto px-4 py-6">
+                <div className="flex items-center justify-between mb-8">
+                    <h1 className="text-3xl font-bold">Schools & Majors Management</h1>
+                </div>
+                <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-4">
+                        <SchoolFilters
+                            sortBy={sortBy}
+                            sortDirection={sortDirection}
+                            onSortByChange={setSortBy}
+                            onSortDirectionToggle={toggleSortDirection}
+                            onAddSchool={handleAddSchool}
+                        />
+                        <div className="flex justify-between items-center">
+                            <span className="text-default-400 text-sm">Total {schools?.length} schools</span>
                         </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-default-400 text-sm">Total {schools?.length} schools</span>
-                    </div>
-                </div>
 
-                {!schools ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {Array.from({ length: 6 }).map((_, i) => (
-                            <Card key={i} className="p-4">
-                                <div className="flex items-center space-x-4">
-                                    <Skeleton className="w-12 h-12 rounded-lg" />
-                                    <div className="flex-1">
-                                        <Skeleton className="h-6 w-3/4 rounded-lg mb-2" />
-                                        <Skeleton className="h-4 w-1/2 rounded-lg" />
-                                    </div>
-                                </div>
-                            </Card>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {sortedSchools.map((school) => (
-                            <Card key={school.id} isHoverable>
-                                <CardHeader className="flex gap-3">
-                                    <Card
-                                        radius="md"
-                                        className="w-12 h-12 text-large items-center justify-center"
-                                    >
-                                        {school.acronym}
-                                    </Card>
-                                    <div className="flex flex-col items-start">
-                                        <p className="text-lg font-semibold">{school.name.en}</p>
-                                        <p className="text-small text-default-500">{school.name.th}</p>
-                                    </div>
-                                </CardHeader>
-                                <Divider />
-                                <CardBody className="gap-4">
-                                    <div className="flex items-center gap-2">
-                                        <Building2 className="text-default-500" size={16} />
-                                        <span className="text-sm text-default-500">{school.acronym}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <GraduationCap className="text-default-500" size={16} />
-                                        <span className="text-sm text-default-500">{school.majors.length} Programs</span>
-                                    </div>
-                                    <p className="text-sm text-default-500 line-clamp-2">
-                                        {school.detail.en}
-                                    </p>
-                                </CardBody>
-                                <Divider />
-                                <CardFooter className="flex justify-between">
-                                    <Button
-                                        variant="light"
-                                        color="primary"
-                                        size="sm"
-                                    >
-                                        View Details
-                                    </Button>
-                                    <Button
-                                        variant="light"
-                                        color="primary"
-                                        isIconOnly
-                                        size="sm"
-                                    >
-                                        <EllipsisVertical size={16} />
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        ))}
-                    </div>
-                )}
+                    <SchoolList
+                        schools={sortedSchools}
+                        isLoading={!schools}
+                        onEditSchool={handleEditSchool}
+                        onDeleteSchool={handleDeleteSchool}
+                    />
+                </div>
             </div>
+
+            <SchoolModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleSubmitSchool}
+                school={selectedSchool}
+                mode={modalMode}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                school={selectedSchool}
+            />
         </div>
     );
 }

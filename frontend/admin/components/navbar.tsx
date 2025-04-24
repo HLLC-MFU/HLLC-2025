@@ -15,7 +15,6 @@ import NextLink from "next/link";
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
 import {
-  GithubIcon,
   SearchIcon,
   Logo,
 } from "@/components/icons";
@@ -64,34 +63,38 @@ export const Navbar = () => {
       </NavbarContent>
 
       <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
-        <Link isExternal aria-label="Github" href={siteConfig.links.github}>
-          <GithubIcon className="text-default-500" />
-        </Link>
         <ThemeSwitch />
         <NavbarMenuToggle />
       </NavbarContent>
 
       <NavbarMenu>
-        {searchInput}
-        {/* <div className="mx-4 mt-2 flex flex-col gap-2">
-          {siteConfig.navMenuItems.map((item, index) => (
-            <NavbarMenuItem key={`${item}-${index}`}>
-              <Link
-                color={
-                  index === 2
-                    ? "primary"
-                    : index === siteConfig.navMenuItems.length - 1
-                      ? "danger"
-                      : "foreground"
-                }
-                href="#"
-                size="lg"
-              >
-                {item.label}
-              </Link>
-            </NavbarMenuItem>
+        <div className="mx-4 mt-2 flex flex-col gap-2">
+          <NavbarMenuItem>
+            {searchInput}
+          </NavbarMenuItem>
+          {siteConfig.navMenuItems.map((section) => (
+            <div key={section.section} className="space-y-2">
+              <p className="text-xs font-semibold text-default-500 uppercase tracking-wider">
+                {section.section}
+              </p>
+              {section.items.map((item, index) => (
+                <NavbarMenuItem key={`${item.href}-${index}`}>
+                  <Link
+                    color="foreground"
+                    href={item.href}
+                    size="lg"
+                    className="w-full"
+                  >
+                    <div className="flex items-center gap-2">
+                      <item.icon className="w-5 h-5" />
+                      {item.label}
+                    </div>
+                  </Link>
+                </NavbarMenuItem>
+              ))}
+            </div>
           ))}
-        </div> */}
+        </div>
       </NavbarMenu>
     </HeroUINavbar>
   );
