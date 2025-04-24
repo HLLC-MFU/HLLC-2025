@@ -110,10 +110,12 @@ vim env/dev/.env.user
 4. Generate Protocol Buffers code:
 ```bash
 # Make the script executable
-chmod +x scripts/generate_proto.sh
+chmod +x scripts/proto/*.sh
 
 # Generate the code
-./scripts/generate_proto.sh
+./scripts/proto/generate.sh
+
+./scripts/proto/fix_generated.sh
 ```
 
 ## Running the Services
