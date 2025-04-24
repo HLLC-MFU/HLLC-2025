@@ -65,6 +65,8 @@ type Service interface {
 	UpdateRoom(ctx context.Context, room *model.Room) error
 	DeleteRoom(ctx context.Context, id primitive.ObjectID) error
 	InitChatHub()
+	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.MessageEntry, error)
+
 }
 
 type service struct {
@@ -124,4 +126,8 @@ func (s *service) DeleteRoom(ctx context.Context, id primitive.ObjectID) error {
 		return NewError("room not found")
 	}
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.MessageEntry, error) {
+	return s.repo.GetChatHistoryByRoom(ctx, roomID, limit)
 }

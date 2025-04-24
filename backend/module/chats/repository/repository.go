@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
 	"go.mongodb.org/mongo-driver/bson"
@@ -26,6 +27,8 @@ type Repository interface {
 	ExistsByID(ctx context.Context, id primitive.ObjectID) (bool, error)
 
 	SaveChatMessages(ctx context.Context, roomID string, messages []model.MessageEntry) error
+
+	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.MessageEntry, error)
 }
 
 type repository struct {
@@ -118,11 +121,38 @@ func (r *repository) CreateChatHistories(ctx context.Context, chatHistory *model
 }
 
 func (r *repository) SaveChatMessages(ctx context.Context, roomID string, messages []model.MessageEntry) error {
-	chatHistory := model.ChatHistories{
-		ID:       primitive.NewObjectID(),
-		RoomID:   roomID,
-		Messages: messages,
+	update := bson.M{
+		"$push": bson.M{
+			"messages": bson.M{
+				"$each": messages,
+			},
+		},
+		"$setOnInsert": bson.M{
+			"created_at": time.Now(),
+		},
 	}
-	_, err := r.dbConnect(ctx).Collection("chat_histories").InsertOne(ctx, chatHistory)
+
+	opts := options.Update().SetUpsert(true)
+
+	_, err := r.dbConnect(ctx).Collection("chat_histories").UpdateOne(
+		ctx,
+		bson.M{"room_id": roomID},
+		update,
+		opts,
+	)
 	return err
+}
+
+func (r *repository) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.MessageEntry, error) {
+	var chat model.ChatHistories
+	err := r.dbConnect(ctx).Collection("chat_histories").FindOne(ctx, bson.M{"room_id": roomID}).Decode(&chat)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return only latest `limit` messages
+	if int64(len(chat.Messages)) > limit {
+		return chat.Messages[len(chat.Messages)-int(limit):], nil
+	}
+	return chat.Messages, nil
 }

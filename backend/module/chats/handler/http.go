@@ -50,6 +50,13 @@ func HandleWebSocket(chatService service.Service) func(c *websocket.Conn) {
 			Conn:   c,
 		}
 
+		history, err := chatService.GetChatHistoryByRoom(context.Background(), roomId.Hex(), 10)
+		if err == nil && len(history) > 0 {
+			for _, msg := range history {
+				_ = c.WriteMessage(websocket.TextMessage, []byte(msg.UserID+": "+msg.Text))
+			}
+		}
+
 		model.RegisterClient(client)
 		defer model.UnregisterClient(client)
 

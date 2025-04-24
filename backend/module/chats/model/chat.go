@@ -47,6 +47,7 @@ var _ = []interface{}{
 // In-memory WebSocket client management
 
 var Clients = make(mappedConns)
+
 type mappedConns map[string]map[string]*websocket.Conn
 
 var Register = make(chan ClientObject)
@@ -111,7 +112,7 @@ func AppendMessageToBuffer(roomID string, msg MessageEntry) {
 // FlushChatBufferToDatabase should be run in background goroutine
 func FlushChatBufferToDatabase(saveFunc func(ctx context.Context, roomID string, messages []MessageEntry) error) {
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
+		ticker := time.NewTicker(15 * time.Second)
 		defer ticker.Stop()
 
 		for range ticker.C {
