@@ -1,12 +1,11 @@
 "use client";
 
-import { Card, CardBody, CardHeader, Button, Chip } from "@heroui/react";
-import { useParams } from "next/navigation";
+import { Card, CardBody, CardHeader, Button, Chip, Skeleton } from "@heroui/react";
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import type { Problem, Category } from "@/types/report";
 import { ProblemCharts } from "../_components/ProblemCharts";
 import { ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 interface MockupData {
     categories: Category[];
@@ -53,8 +52,60 @@ export default function CategoryReportsPage() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-screen">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <div className="space-y-6">
+                <Card className="bg-white">
+                    <CardHeader className="flex justify-between items-center">
+                        <div className="text-start flex gap-4 items-center">
+                            <Skeleton className="w-20 h-10 rounded-lg" />
+                            <div className="flex flex-col gap-2">
+                                <Skeleton className="w-48 h-6 rounded-lg" />
+                                <Skeleton className="w-32 h-4 rounded-lg" />
+                            </div>
+                        </div>
+                        <Skeleton className="w-24 h-8 rounded-full" />
+                    </CardHeader>
+                    <CardBody>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="space-y-4">
+                                <Skeleton className="w-32 h-6 rounded-lg" />
+                                <Skeleton className="w-full h-[250px] rounded-lg" />
+                            </div>
+                            <div className="space-y-4">
+                                <Skeleton className="w-32 h-6 rounded-lg" />
+                                <Skeleton className="w-full h-[250px] rounded-lg" />
+                            </div>
+                            <div className="space-y-4">
+                                <Skeleton className="w-32 h-6 rounded-lg" />
+                                <Skeleton className="w-full h-[250px] rounded-lg" />
+                            </div>
+                        </div>
+                    </CardBody>
+                </Card>
+
+                <Card className="bg-white">
+                    <CardHeader>
+                        <Skeleton className="w-32 h-6 rounded-lg" />
+                    </CardHeader>
+                    <CardBody>
+                        <div className="space-y-4">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="p-4 rounded-lg border border-gray-200">
+                                    <div className="flex justify-between items-start">
+                                        <div className="space-y-2">
+                                            <Skeleton className="w-48 h-5 rounded-lg" />
+                                            <Skeleton className="w-32 h-4 rounded-lg" />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Skeleton className="w-16 h-6 rounded-full" />
+                                            <Skeleton className="w-16 h-6 rounded-full" />
+                                        </div>
+                                    </div>
+                                    <Skeleton className="w-full h-4 mt-2 rounded-lg" />
+                                </div>
+                            ))}
+                        </div>
+                    </CardBody>
+                </Card>
             </div>
         );
     }
@@ -94,6 +145,9 @@ export default function CategoryReportsPage() {
                         {problems.length} Problems
                     </Chip>
                 </CardHeader>
+                <CardBody>
+                    <ProblemCharts problems={problems} categories={[selectedCategory]} />
+                </CardBody>
             </Card>
 
             <Card className="bg-white">

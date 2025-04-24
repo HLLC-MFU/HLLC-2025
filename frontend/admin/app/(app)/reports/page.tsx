@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, Card, CardBody, CardHeader, Chip, Divider, Spinner } from "@heroui/react";
+import { Button, Card, CardBody, CardHeader, Chip, Divider, Spinner, Skeleton } from "@heroui/react";
 import { CategoryModal } from "./_components/CategoryModal";
 import { ProblemModal } from "./_components/ProblemModal";
 import { ProblemCharts } from "./_components/ProblemCharts";
 import type { Category, Problem } from "@/types/report";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 interface MockupData {
     categories: Category[];
     problems: Problem[];
@@ -98,8 +99,62 @@ export default function ReportsPage() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-screen">
-                <Spinner size="lg" />
+            <div className="flex flex-col min-h-screen">
+                <div className="container mx-auto flex justify-between items-center px-4 py-6">
+                    <div className="flex items-center justify-between mb-8">
+                        <Skeleton className="w-32 h-10 rounded-lg" />
+                    </div>
+                    <div className="flex gap-2">
+                        <Skeleton className="w-32 h-10 rounded-lg" />
+                    </div>
+                </div>
+
+                {/* Problem Statistics Charts Skeleton */}
+                <div className="container mx-auto px-4 py-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <Skeleton className="w-full h-[300px] rounded-lg" />
+                        <Skeleton className="w-full h-[300px] rounded-lg" />
+                        <Skeleton className="w-full h-[300px] rounded-lg" />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                    {[1, 2, 3].map((i) => (
+                        <Card key={i} className="border-2">
+                            <CardHeader className="flex justify-between items-center">
+                                <div className="text-start">
+                                    <Skeleton className="w-32 h-6 rounded-lg" />
+                                    <Skeleton className="w-24 h-4 rounded-lg mt-2" />
+                                </div>
+                                <div className="flex gap-2">
+                                    <Skeleton className="w-16 h-8 rounded-lg" />
+                                    <Skeleton className="w-16 h-8 rounded-lg" />
+                                </div>
+                            </CardHeader>
+                            <Divider />
+                            <CardBody>
+                                <div className="space-y-4">
+                                    {[1, 2].map((j) => (
+                                        <div key={j} className="p-3 rounded-lg border border-gray-200">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <Skeleton className="w-40 h-5 rounded-lg" />
+                                                    <Skeleton className="w-32 h-4 rounded-lg mt-2" />
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Skeleton className="w-16 h-6 rounded-full" />
+                                                    <Skeleton className="w-16 h-6 rounded-full" />
+                                                </div>
+                                            </div>
+                                            <Skeleton className="w-full h-4 rounded-lg mt-2" />
+                                            <Skeleton className="w-3/4 h-4 rounded-lg mt-2" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardBody>
+                        </Card>
+                    ))}
+                </div>
             </div>
         );
     }
@@ -107,10 +162,8 @@ export default function ReportsPage() {
     return (
         <div className="flex flex-col min-h-screen">
             <div className="container mx-auto flex justify-between items-center px-4 py-6">
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex w-full items-center justify-between">
                     <h1 className="text-3xl font-bold">Reports</h1>
-                </div>
-                <div className="flex gap-2">
                     <Button
                         color="primary"
                         onPress={() => {
