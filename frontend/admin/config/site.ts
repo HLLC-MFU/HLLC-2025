@@ -9,6 +9,9 @@ import {
   SettingsIcon,
   HelpCircleIcon,
   LogOutIcon,
+  FlowerIcon,
+  NotebookPenIcon,
+  SpellCheckIcon,
 } from "lucide-react";
 
 export const siteConfig = {
@@ -26,6 +29,14 @@ export const siteConfig = {
       items: [
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Admin", href: "/admin", icon: UserIcon },
+      ],
+    },
+    {
+      section: "Activity Management",
+      items: [
+        { label: "Activity", href: "/activities", icon: SpellCheckIcon },
+        { label: "Assessments", href: "/assessments", icon: NotebookPenIcon },
+        { label: "Lamduan Flowers", href: "/lamduans", icon: FlowerIcon},
       ],
     },
     {
