@@ -97,7 +97,6 @@ export function MajorModal({ isOpen, onClose, onSubmit, major, mode }: MajorModa
                             placeholder="Enter major acronym"
                             value={acronym}
                             onValueChange={setAcronym}
-                            description="Leave empty to auto-generate from English name"
                         />
                     </div>
                 </ModalBody>

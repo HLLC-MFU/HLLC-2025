@@ -25,7 +25,7 @@ export function SchoolCard({ school, onEdit, onDelete }: SchoolCardProps) {
                 >
                     {school.acronym}
                 </Card>
-                <div className="flex flex-col items-start min-w-0">
+                <div className="flex flex-col items-start min-w-0 text-start">
                     <p className="text-lg font-semibold truncate w-full">{school.name.en}</p>
                     <p className="text-small text-default-500 truncate w-full">{school.name.th}</p>
                 </div>
