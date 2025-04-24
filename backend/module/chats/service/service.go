@@ -18,7 +18,7 @@ func NewError(text string) error {
 	return Error(text)
 }
 
-func InitChatHub() {
+func (s *service) InitChatHub() {
 	go func() {
 		for {
 			select {
@@ -31,9 +31,14 @@ func InitChatHub() {
 			case message := <-model.Broadcast:
 				log.Printf("[BROADCAST] Message from %s in room %s: %s\n", message.FROM.UserID, message.FROM.RoomID, message.MSG)
 
-				// Broadcast the message to other users in the same room
+				// ✅ ✅ ✅ ใส่ตรงนี้เพื่อเก็บข้อความลง buffer ก่อนจะ broadcast
+				model.AppendMessageToBuffer(message.FROM.RoomID, model.MessageEntry{
+					UserID:    message.FROM.UserID,
+					Text:      message.MSG,
+					Timestamp: time.Now(),
+				})
+
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
-					// Skip the sender
 					if userID != message.FROM.UserID {
 						err := conn.WriteMessage(1, []byte(message.FROM.UserID+": "+message.MSG))
 						if err != nil {
@@ -46,6 +51,11 @@ func InitChatHub() {
 			}
 		}
 	}()
+
+	// ✅ Now s.repo is valid
+	model.FlushChatBufferToDatabase(func(ctx context.Context, roomID string, messages []model.MessageEntry) error {
+		return s.repo.SaveChatMessages(ctx, roomID, messages)
+	})
 }
 
 type Service interface {
@@ -54,6 +64,7 @@ type Service interface {
 	ListRooms(ctx context.Context, page, limit int64) ([]*model.Room, int64, error)
 	UpdateRoom(ctx context.Context, room *model.Room) error
 	DeleteRoom(ctx context.Context, id primitive.ObjectID) error
+	InitChatHub()
 }
 
 type service struct {

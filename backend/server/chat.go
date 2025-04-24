@@ -16,11 +16,10 @@ import (
 
 func (s *server) chatService() {
 	// Start chat hub loop
-	service.InitChatHub()
 
 	repo := repository.NewRepository(s.db)
-
 	roomService := service.NewService(repo)
+	roomService.InitChatHub()
 
 	httpHandler := handler.NewHTTPHandler(roomService)
 	grpcHandler := handler.NewGrpcHandler(roomService)

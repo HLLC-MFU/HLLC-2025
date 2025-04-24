@@ -24,6 +24,8 @@ type Repository interface {
 	Delete(ctx context.Context, id primitive.ObjectID) error
 
 	ExistsByID(ctx context.Context, id primitive.ObjectID) (bool, error)
+
+	SaveChatMessages(ctx context.Context, roomID string, messages []model.MessageEntry) error
 }
 
 type repository struct {
@@ -108,4 +110,19 @@ func (r *repository) ExistsByID(ctx context.Context, id primitive.ObjectID) (boo
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (r *repository) CreateChatHistories(ctx context.Context, chatHistory *model.ChatHistories) error {
+	_, err := r.dbConnect(ctx).Collection("chat_histories").InsertOne(ctx, chatHistory)
+	return err
+}
+
+func (r *repository) SaveChatMessages(ctx context.Context, roomID string, messages []model.MessageEntry) error {
+	chatHistory := model.ChatHistories{
+		ID:       primitive.NewObjectID(),
+		RoomID:   roomID,
+		Messages: messages,
+	}
+	_, err := r.dbConnect(ctx).Collection("chat_histories").InsertOne(ctx, chatHistory)
+	return err
 }
