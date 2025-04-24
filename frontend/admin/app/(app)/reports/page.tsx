@@ -6,7 +6,8 @@ import { CategoryModal } from "./_components/CategoryModal";
 import { ProblemModal } from "./_components/ProblemModal";
 import { ProblemCharts } from "./_components/ProblemCharts";
 import type { Category, Problem } from "@/types/report";
-
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 interface MockupData {
     categories: Category[];
     problems: Problem[];
@@ -20,6 +21,7 @@ export default function ReportsPage() {
     const [selectedCategory, setSelectedCategory] = useState<Category | undefined>();
     const [selectedProblem, setSelectedProblem] = useState<Problem | undefined>();
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         const fetchMockupData = async () => {
@@ -103,9 +105,11 @@ export default function ReportsPage() {
     }
 
     return (
-        <div className="container mx-auto p-4">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Reports</h1>
+        <div className="flex flex-col min-h-screen">
+            <div className="container mx-auto flex justify-between items-center px-4 py-6">
+                <div className="flex items-center justify-between mb-8">
+                    <h1 className="text-3xl font-bold">Reports</h1>
+                </div>
                 <div className="flex gap-2">
                     <Button
                         color="primary"
@@ -116,16 +120,6 @@ export default function ReportsPage() {
                     >
                         Add Category
                     </Button>
-                    <Button
-                        color="secondary"
-                        onPress={() => {
-                            setSelectedProblem(undefined);
-                            setIsProblemModalOpen(true);
-                        }}
-                        isDisabled={categories.length === 0}
-                    >
-                        Add Problem
-                    </Button>
                 </div>
             </div>
 
@@ -134,11 +128,15 @@ export default function ReportsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {categories.map((category) => (
-                    <Card key={category.id} className="border-2" style={{ borderColor: category.color }}>
+                    <Card key={category.id} className="border-2" style={{ borderColor: category.color }} isHoverable isPressable onPress={() => {
+                        router.push(`/reports/${category.id}`);
+                    }}>
                         <CardHeader className="flex justify-between items-center">
-                            <div>
-                                <h3 className="text-lg font-semibold">{category.name.en}</h3>
-                                <p className="text-sm text-gray-500">{category.name.th}</p>
+                            <div className="text-start">
+                                <Link href={`/reports/${category.id}`} className="hover:underline">
+                                    <h3 className="text-lg font-semibold">{category.name.en}</h3>
+                                    <p className="text-sm text-gray-500">{category.name.th}</p>
+                                </Link>
                             </div>
                             <div className="flex gap-2">
                                 <Button

@@ -83,12 +83,6 @@ export function ProblemCharts({ problems, categories }: ProblemChartsProps) {
 
     return (
         <Card className="bg-white mb-6">
-            <CardHeader className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl font-semibold">Problem Statistics Dashboard</h2>
-                    <p className="text-sm text-gray-500">Real-time problem tracking and analysis</p>
-                </div>
-            </CardHeader>
             <CardBody>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Category Distribution Chart */}
