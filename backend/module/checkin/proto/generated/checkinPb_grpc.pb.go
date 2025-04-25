@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.3
-// source: module/checkin/proto/checkinPb.proto
+// source: checkinPb.proto
 
 package generated
 
@@ -425,5 +425,5 @@ var CheckInService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "module/checkin/proto/checkinPb.proto",
+	Metadata: "checkinPb.proto",
 }

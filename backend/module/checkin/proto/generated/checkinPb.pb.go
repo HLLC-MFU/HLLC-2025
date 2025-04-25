@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v5.29.3
-// source: module/checkin/proto/checkinPb.proto
+// source: checkinPb.proto
 
 package generated
 
@@ -40,7 +40,7 @@ type CheckIn struct {
 
 func (x *CheckIn) Reset() {
 	*x = CheckIn{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[0]
+	mi := &file_checkinPb_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -52,7 +52,7 @@ func (x *CheckIn) String() string {
 func (*CheckIn) ProtoMessage() {}
 
 func (x *CheckIn) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[0]
+	mi := &file_checkinPb_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -65,7 +65,7 @@ func (x *CheckIn) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckIn.ProtoReflect.Descriptor instead.
 func (*CheckIn) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{0}
+	return file_checkinPb_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *CheckIn) GetId() string {
@@ -128,7 +128,7 @@ type ActivityProgress struct {
 
 func (x *ActivityProgress) Reset() {
 	*x = ActivityProgress{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[1]
+	mi := &file_checkinPb_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -140,7 +140,7 @@ func (x *ActivityProgress) String() string {
 func (*ActivityProgress) ProtoMessage() {}
 
 func (x *ActivityProgress) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[1]
+	mi := &file_checkinPb_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -153,7 +153,7 @@ func (x *ActivityProgress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ActivityProgress.ProtoReflect.Descriptor instead.
 func (*ActivityProgress) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{1}
+	return file_checkinPb_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ActivityProgress) GetStep() int32 {
@@ -182,7 +182,7 @@ type CreateCheckInRequest struct {
 
 func (x *CreateCheckInRequest) Reset() {
 	*x = CreateCheckInRequest{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[2]
+	mi := &file_checkinPb_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -194,7 +194,7 @@ func (x *CreateCheckInRequest) String() string {
 func (*CreateCheckInRequest) ProtoMessage() {}
 
 func (x *CreateCheckInRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[2]
+	mi := &file_checkinPb_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -207,7 +207,7 @@ func (x *CreateCheckInRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCheckInRequest.ProtoReflect.Descriptor instead.
 func (*CreateCheckInRequest) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{2}
+	return file_checkinPb_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateCheckInRequest) GetUserId() string {
@@ -240,7 +240,7 @@ type GetCheckInRequest struct {
 
 func (x *GetCheckInRequest) Reset() {
 	*x = GetCheckInRequest{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[3]
+	mi := &file_checkinPb_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -252,7 +252,7 @@ func (x *GetCheckInRequest) String() string {
 func (*GetCheckInRequest) ProtoMessage() {}
 
 func (x *GetCheckInRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[3]
+	mi := &file_checkinPb_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -265,7 +265,7 @@ func (x *GetCheckInRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCheckInRequest.ProtoReflect.Descriptor instead.
 func (*GetCheckInRequest) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{3}
+	return file_checkinPb_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetCheckInRequest) GetId() string {
@@ -285,7 +285,7 @@ type GetCheckInsByUserRequest struct {
 
 func (x *GetCheckInsByUserRequest) Reset() {
 	*x = GetCheckInsByUserRequest{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[4]
+	mi := &file_checkinPb_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -297,7 +297,7 @@ func (x *GetCheckInsByUserRequest) String() string {
 func (*GetCheckInsByUserRequest) ProtoMessage() {}
 
 func (x *GetCheckInsByUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[4]
+	mi := &file_checkinPb_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -310,7 +310,7 @@ func (x *GetCheckInsByUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCheckInsByUserRequest.ProtoReflect.Descriptor instead.
 func (*GetCheckInsByUserRequest) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{4}
+	return file_checkinPb_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetCheckInsByUserRequest) GetUserId() string {
@@ -337,7 +337,7 @@ type GetCheckInsByActivityRequest struct {
 
 func (x *GetCheckInsByActivityRequest) Reset() {
 	*x = GetCheckInsByActivityRequest{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[5]
+	mi := &file_checkinPb_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -349,7 +349,7 @@ func (x *GetCheckInsByActivityRequest) String() string {
 func (*GetCheckInsByActivityRequest) ProtoMessage() {}
 
 func (x *GetCheckInsByActivityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[5]
+	mi := &file_checkinPb_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -362,7 +362,7 @@ func (x *GetCheckInsByActivityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCheckInsByActivityRequest.ProtoReflect.Descriptor instead.
 func (*GetCheckInsByActivityRequest) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{5}
+	return file_checkinPb_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetCheckInsByActivityRequest) GetActivityId() string {
@@ -388,7 +388,7 @@ type GetActivityStatsRequest struct {
 
 func (x *GetActivityStatsRequest) Reset() {
 	*x = GetActivityStatsRequest{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[6]
+	mi := &file_checkinPb_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -400,7 +400,7 @@ func (x *GetActivityStatsRequest) String() string {
 func (*GetActivityStatsRequest) ProtoMessage() {}
 
 func (x *GetActivityStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[6]
+	mi := &file_checkinPb_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -413,7 +413,7 @@ func (x *GetActivityStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetActivityStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetActivityStatsRequest) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{6}
+	return file_checkinPb_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetActivityStatsRequest) GetActivityId() string {
@@ -432,7 +432,7 @@ type GetAllCheckInsRequest struct {
 
 func (x *GetAllCheckInsRequest) Reset() {
 	*x = GetAllCheckInsRequest{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[7]
+	mi := &file_checkinPb_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -444,7 +444,7 @@ func (x *GetAllCheckInsRequest) String() string {
 func (*GetAllCheckInsRequest) ProtoMessage() {}
 
 func (x *GetAllCheckInsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[7]
+	mi := &file_checkinPb_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -457,7 +457,7 @@ func (x *GetAllCheckInsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllCheckInsRequest.ProtoReflect.Descriptor instead.
 func (*GetAllCheckInsRequest) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{7}
+	return file_checkinPb_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetAllCheckInsRequest) GetPagination() *generated.PaginationRequest {
@@ -476,7 +476,7 @@ type DeleteCheckInRequest struct {
 
 func (x *DeleteCheckInRequest) Reset() {
 	*x = DeleteCheckInRequest{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[8]
+	mi := &file_checkinPb_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -488,7 +488,7 @@ func (x *DeleteCheckInRequest) String() string {
 func (*DeleteCheckInRequest) ProtoMessage() {}
 
 func (x *DeleteCheckInRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[8]
+	mi := &file_checkinPb_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -501,7 +501,7 @@ func (x *DeleteCheckInRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCheckInRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCheckInRequest) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{8}
+	return file_checkinPb_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DeleteCheckInRequest) GetId() string {
@@ -522,7 +522,7 @@ type BulkCheckInRequest struct {
 
 func (x *BulkCheckInRequest) Reset() {
 	*x = BulkCheckInRequest{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[9]
+	mi := &file_checkinPb_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -534,7 +534,7 @@ func (x *BulkCheckInRequest) String() string {
 func (*BulkCheckInRequest) ProtoMessage() {}
 
 func (x *BulkCheckInRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[9]
+	mi := &file_checkinPb_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -547,7 +547,7 @@ func (x *BulkCheckInRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BulkCheckInRequest.ProtoReflect.Descriptor instead.
 func (*BulkCheckInRequest) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{9}
+	return file_checkinPb_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *BulkCheckInRequest) GetUserIds() []string {
@@ -581,7 +581,7 @@ type GetUserActivityStatusRequest struct {
 
 func (x *GetUserActivityStatusRequest) Reset() {
 	*x = GetUserActivityStatusRequest{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[10]
+	mi := &file_checkinPb_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -593,7 +593,7 @@ func (x *GetUserActivityStatusRequest) String() string {
 func (*GetUserActivityStatusRequest) ProtoMessage() {}
 
 func (x *GetUserActivityStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[10]
+	mi := &file_checkinPb_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -606,7 +606,7 @@ func (x *GetUserActivityStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserActivityStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetUserActivityStatusRequest) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{10}
+	return file_checkinPb_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetUserActivityStatusRequest) GetUserId() string {
@@ -633,7 +633,7 @@ type CheckInResponse struct {
 
 func (x *CheckInResponse) Reset() {
 	*x = CheckInResponse{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[11]
+	mi := &file_checkinPb_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -645,7 +645,7 @@ func (x *CheckInResponse) String() string {
 func (*CheckInResponse) ProtoMessage() {}
 
 func (x *CheckInResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[11]
+	mi := &file_checkinPb_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -658,7 +658,7 @@ func (x *CheckInResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckInResponse.ProtoReflect.Descriptor instead.
 func (*CheckInResponse) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{11}
+	return file_checkinPb_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CheckInResponse) GetCheckIn() *CheckIn {
@@ -678,7 +678,7 @@ type CheckInsListResponse struct {
 
 func (x *CheckInsListResponse) Reset() {
 	*x = CheckInsListResponse{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[12]
+	mi := &file_checkinPb_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -690,7 +690,7 @@ func (x *CheckInsListResponse) String() string {
 func (*CheckInsListResponse) ProtoMessage() {}
 
 func (x *CheckInsListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[12]
+	mi := &file_checkinPb_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -703,7 +703,7 @@ func (x *CheckInsListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckInsListResponse.ProtoReflect.Descriptor instead.
 func (*CheckInsListResponse) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{12}
+	return file_checkinPb_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CheckInsListResponse) GetCheckIns() []*CheckIn {
@@ -732,7 +732,7 @@ type ActivityStatsResponse struct {
 
 func (x *ActivityStatsResponse) Reset() {
 	*x = ActivityStatsResponse{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[13]
+	mi := &file_checkinPb_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -744,7 +744,7 @@ func (x *ActivityStatsResponse) String() string {
 func (*ActivityStatsResponse) ProtoMessage() {}
 
 func (x *ActivityStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[13]
+	mi := &file_checkinPb_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -757,7 +757,7 @@ func (x *ActivityStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ActivityStatsResponse.ProtoReflect.Descriptor instead.
 func (*ActivityStatsResponse) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{13}
+	return file_checkinPb_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ActivityStatsResponse) GetActivityId() string {
@@ -798,7 +798,7 @@ type FailedCheckIn struct {
 
 func (x *FailedCheckIn) Reset() {
 	*x = FailedCheckIn{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[14]
+	mi := &file_checkinPb_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -810,7 +810,7 @@ func (x *FailedCheckIn) String() string {
 func (*FailedCheckIn) ProtoMessage() {}
 
 func (x *FailedCheckIn) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[14]
+	mi := &file_checkinPb_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -823,7 +823,7 @@ func (x *FailedCheckIn) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FailedCheckIn.ProtoReflect.Descriptor instead.
 func (*FailedCheckIn) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{14}
+	return file_checkinPb_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *FailedCheckIn) GetUserId() string {
@@ -850,7 +850,7 @@ type BulkCheckInResponse struct {
 
 func (x *BulkCheckInResponse) Reset() {
 	*x = BulkCheckInResponse{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[15]
+	mi := &file_checkinPb_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -862,7 +862,7 @@ func (x *BulkCheckInResponse) String() string {
 func (*BulkCheckInResponse) ProtoMessage() {}
 
 func (x *BulkCheckInResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[15]
+	mi := &file_checkinPb_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -875,7 +875,7 @@ func (x *BulkCheckInResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BulkCheckInResponse.ProtoReflect.Descriptor instead.
 func (*BulkCheckInResponse) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{15}
+	return file_checkinPb_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *BulkCheckInResponse) GetSuccessful() []string {
@@ -901,7 +901,7 @@ type DeleteCheckInResponse struct {
 
 func (x *DeleteCheckInResponse) Reset() {
 	*x = DeleteCheckInResponse{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[16]
+	mi := &file_checkinPb_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -913,7 +913,7 @@ func (x *DeleteCheckInResponse) String() string {
 func (*DeleteCheckInResponse) ProtoMessage() {}
 
 func (x *DeleteCheckInResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[16]
+	mi := &file_checkinPb_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -926,7 +926,7 @@ func (x *DeleteCheckInResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCheckInResponse.ProtoReflect.Descriptor instead.
 func (*DeleteCheckInResponse) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{16}
+	return file_checkinPb_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DeleteCheckInResponse) GetSuccess() bool {
@@ -950,7 +950,7 @@ type UserActivityStatusResponse struct {
 
 func (x *UserActivityStatusResponse) Reset() {
 	*x = UserActivityStatusResponse{}
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[17]
+	mi := &file_checkinPb_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -962,7 +962,7 @@ func (x *UserActivityStatusResponse) String() string {
 func (*UserActivityStatusResponse) ProtoMessage() {}
 
 func (x *UserActivityStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_module_checkin_proto_checkinPb_proto_msgTypes[17]
+	mi := &file_checkinPb_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -975,7 +975,7 @@ func (x *UserActivityStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserActivityStatusResponse.ProtoReflect.Descriptor instead.
 func (*UserActivityStatusResponse) Descriptor() ([]byte, []int) {
-	return file_module_checkin_proto_checkinPb_proto_rawDescGZIP(), []int{17}
+	return file_checkinPb_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *UserActivityStatusResponse) GetUserId() string {
@@ -1020,11 +1020,11 @@ func (x *UserActivityStatusResponse) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
-var File_module_checkin_proto_checkinPb_proto protoreflect.FileDescriptor
+var File_checkinPb_proto protoreflect.FileDescriptor
 
-const file_module_checkin_proto_checkinPb_proto_rawDesc = "" +
+const file_checkinPb_proto_rawDesc = "" +
 	"\n" +
-	"$module/checkin/proto/checkinPb.proto\x12\acheckin\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bpkg/proto/core/shared.proto\x1a&module/activity/proto/activityPb.proto\"\x9e\x02\n" +
+	"\x0fcheckinPb.proto\x12\acheckin\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bpkg/proto/core/shared.proto\x1a&module/activity/proto/activityPb.proto\"\x9e\x02\n" +
 	"\aCheckIn\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1f\n" +
@@ -1121,22 +1121,22 @@ const file_module_checkin_proto_checkinPb_proto_rawDesc = "" +
 	"\x0eGetAllCheckIns\x12\x1e.checkin.GetAllCheckInsRequest\x1a\x1d.checkin.CheckInsListResponse\x12N\n" +
 	"\rDeleteCheckIn\x12\x1d.checkin.DeleteCheckInRequest\x1a\x1e.checkin.DeleteCheckInResponse\x12H\n" +
 	"\vBulkCheckIn\x12\x1b.checkin.BulkCheckInRequest\x1a\x1c.checkin.BulkCheckInResponse\x12c\n" +
-	"\x15GetUserActivityStatus\x12%.checkin.GetUserActivityStatusRequest\x1a#.checkin.UserActivityStatusResponseBFZDgithub.com/HLLC-MFU/HLLC-2025/backend/module/checkin/proto/generatedb\x06proto3"
+	"\x15GetUserActivityStatus\x12%.checkin.GetUserActivityStatusRequest\x1a#.checkin.UserActivityStatusResponseBPZNgithub.com/HLLC-MFU/HLLC-2025/backend/module/checkin/proto/generated;generatedb\x06proto3"
 
 var (
-	file_module_checkin_proto_checkinPb_proto_rawDescOnce sync.Once
-	file_module_checkin_proto_checkinPb_proto_rawDescData []byte
+	file_checkinPb_proto_rawDescOnce sync.Once
+	file_checkinPb_proto_rawDescData []byte
 )
 
-func file_module_checkin_proto_checkinPb_proto_rawDescGZIP() []byte {
-	file_module_checkin_proto_checkinPb_proto_rawDescOnce.Do(func() {
-		file_module_checkin_proto_checkinPb_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_module_checkin_proto_checkinPb_proto_rawDesc), len(file_module_checkin_proto_checkinPb_proto_rawDesc)))
+func file_checkinPb_proto_rawDescGZIP() []byte {
+	file_checkinPb_proto_rawDescOnce.Do(func() {
+		file_checkinPb_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_checkinPb_proto_rawDesc), len(file_checkinPb_proto_rawDesc)))
 	})
-	return file_module_checkin_proto_checkinPb_proto_rawDescData
+	return file_checkinPb_proto_rawDescData
 }
 
-var file_module_checkin_proto_checkinPb_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
-var file_module_checkin_proto_checkinPb_proto_goTypes = []any{
+var file_checkinPb_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_checkinPb_proto_goTypes = []any{
 	(*CheckIn)(nil),                      // 0: checkin.CheckIn
 	(*ActivityProgress)(nil),             // 1: checkin.ActivityProgress
 	(*CreateCheckInRequest)(nil),         // 2: checkin.CreateCheckInRequest
@@ -1159,7 +1159,7 @@ var file_module_checkin_proto_checkinPb_proto_goTypes = []any{
 	(*generated.PaginationRequest)(nil),  // 19: core.PaginationRequest
 	(*generated.PaginationResponse)(nil), // 20: core.PaginationResponse
 }
-var file_module_checkin_proto_checkinPb_proto_depIdxs = []int32{
+var file_checkinPb_proto_depIdxs = []int32{
 	18, // 0: checkin.CheckIn.timestamp:type_name -> google.protobuf.Timestamp
 	18, // 1: checkin.CheckIn.created_at:type_name -> google.protobuf.Timestamp
 	18, // 2: checkin.CheckIn.updated_at:type_name -> google.protobuf.Timestamp
@@ -1197,26 +1197,26 @@ var file_module_checkin_proto_checkinPb_proto_depIdxs = []int32{
 	0,  // [0:12] is the sub-list for field type_name
 }
 
-func init() { file_module_checkin_proto_checkinPb_proto_init() }
-func file_module_checkin_proto_checkinPb_proto_init() {
-	if File_module_checkin_proto_checkinPb_proto != nil {
+func init() { file_checkinPb_proto_init() }
+func file_checkinPb_proto_init() {
+	if File_checkinPb_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_module_checkin_proto_checkinPb_proto_rawDesc), len(file_module_checkin_proto_checkinPb_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_checkinPb_proto_rawDesc), len(file_checkinPb_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_module_checkin_proto_checkinPb_proto_goTypes,
-		DependencyIndexes: file_module_checkin_proto_checkinPb_proto_depIdxs,
-		MessageInfos:      file_module_checkin_proto_checkinPb_proto_msgTypes,
+		GoTypes:           file_checkinPb_proto_goTypes,
+		DependencyIndexes: file_checkinPb_proto_depIdxs,
+		MessageInfos:      file_checkinPb_proto_msgTypes,
 	}.Build()
-	File_module_checkin_proto_checkinPb_proto = out.File
-	file_module_checkin_proto_checkinPb_proto_goTypes = nil
-	file_module_checkin_proto_checkinPb_proto_depIdxs = nil
+	File_checkinPb_proto = out.File
+	file_checkinPb_proto_goTypes = nil
+	file_checkinPb_proto_depIdxs = nil
 }

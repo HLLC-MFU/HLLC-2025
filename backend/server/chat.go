@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/websocket/v2"
+	"google.golang.org/grpc"
 )
 
 func (s *server) chatService() {
@@ -60,20 +61,10 @@ func (s *server) chatService() {
 
 	// Set up gRPC server for internal service communication
 	go func() {
-		jwtConfig := &core.JwtConfig{
-			AccessSecretKey:  s.config.Jwt.AccessSecretKey,
-			RefreshSecretKey: s.config.Jwt.RefreshSecretKey,
-			ApiSecretKey:     s.config.Jwt.ApiSecretKey,
-			AccessDuration:   s.config.Jwt.AccessDuration,
-			RefreshDuration:  s.config.Jwt.RefreshDuration,
-			ApiDuration:      s.config.Jwt.ApiDuration,
-		}
-		grpcServer, lis := core.NewGrpcServer(jwtConfig, s.config.Chat.GRPCAddr)
-		chatPb.RegisterRoomServiceServer(grpcServer, grpcHandler)
-
-		log.Printf("Room gRPC server listening on %s", s.config.Chat.GRPCAddr)
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("gRPC server error: %v", err)
+		if err := core.RegisterGRPCService("chat", func(server *grpc.Server) {
+			chatPb.RegisterRoomServiceServer(server, grpcHandler)
+		}); err != nil {
+			log.Fatalf("Failed to register chat gRPC service: %v", err)
 		}
 	}()
 

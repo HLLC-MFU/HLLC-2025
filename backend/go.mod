@@ -63,6 +63,10 @@ replace (
 	github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto => ./module/auth/proto
 	github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated => ./module/auth/proto/generated
 
+	//Chat
+	github.com/HLLC-MFU/HLLC-2025/backend/module/chat/proto => ./module/chat/proto
+	github.com/HLLC-MFU/HLLC-2025/backend/module/chat/proto/generated => ./module/chat/proto/generated
+
 	//Checkins
 	github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/proto => ./module/checkin/proto
 	github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/proto/generated => ./module/checkin/proto/generated
@@ -74,10 +78,6 @@ replace (
 	//School
 	github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto => ./module/school/proto
 	github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated => ./module/school/proto/generated
-
-	//Chat
-	github.com/HLLC-MFU/HLLC-2025/backend/module/chat/proto => ./module/chat/proto
-	github.com/HLLC-MFU/HLLC-2025/backend/module/chat/proto/generated => ./module/chat/proto/generated
 
 	//Module
 
