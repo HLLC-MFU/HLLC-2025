@@ -5,7 +5,7 @@ set -e
 
 # Ensure we are in the backend root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/../../../" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../../" && pwd)"
 
 
 # Validate correct ROOT_DIR
