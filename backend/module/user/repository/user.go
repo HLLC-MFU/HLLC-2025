@@ -16,6 +16,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	collectionUsers = "users"
+)
+
 // UserRepositoryService defines user-specific operations
 type (
 	UserRepositoryService interface {
@@ -44,6 +48,10 @@ func (r *userRepository) dbConnect(ctx context.Context) *mongo.Database {
 	return r.db.Database("hllc-2025")
 }
 
+func (r *userRepository) usersColl(ctx context.Context) *mongo.Collection {
+	return r.dbConnect(ctx).Collection(collectionUsers)
+}
+
 // CreateUser creates a new user with proper error handling and structured logging
 func (r *userRepository) CreateUser(ctx context.Context, user *userPb.User) error {
 	_, err := decorator.WithTimeout[struct{}](10*time.Second)(func(ctx context.Context) (struct{}, error) {
@@ -54,11 +62,11 @@ func (r *userRepository) CreateUser(ctx context.Context, user *userPb.User) erro
 			"username", user.Username,
 		)
 		
-		collection := r.dbConnect(ctx).Collection("users")
+		usersColl := r.usersColl(ctx)
 		
 		// Check if user already exists by username
 		var existingUser userPb.User
-		err := collection.FindOne(ctx, bson.M{"username": user.Username}).Decode(&existingUser)
+		err := usersColl.FindOne(ctx, bson.M{"username": user.Username}).Decode(&existingUser)
 		if err == nil {
 			logger.Warn("User already exists",
 				logging.FieldOperation, "create_user",
@@ -125,7 +133,7 @@ func (r *userRepository) CreateUser(ctx context.Context, user *userPb.User) erro
 		}
 		
 		// Insert user
-		_, err = collection.InsertOne(ctx, doc)
+		_, err = usersColl.InsertOne(ctx, doc)
 		if err != nil {
 			if mongo.IsDuplicateKeyError(err) {
 				logger.Warn("Duplicate key error when creating user", 
@@ -167,7 +175,7 @@ func (r *userRepository) FindByID(ctx context.Context, id primitive.ObjectID) (*
 			logging.FieldEntityID, id.Hex(),
 		)
 		
-		collection := r.dbConnect(ctx).Collection("users")
+		usersColl := r.usersColl(ctx)
 		
 		// Create filter that can match either _id or id field
 		filter := bson.M{
@@ -178,7 +186,7 @@ func (r *userRepository) FindByID(ctx context.Context, id primitive.ObjectID) (*
 		}
 		
 		var user userPb.User
-		err := collection.FindOne(ctx, filter).Decode(&user)
+		err := usersColl.FindOne(ctx, filter).Decode(&user)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				logger.Warn("User not found",
@@ -221,10 +229,10 @@ func (r *userRepository) FindByUsername(ctx context.Context, username string) (*
 			"username", username,
 		)
 		
-		collection := r.dbConnect(ctx).Collection("users")
+		usersColl := r.usersColl(ctx)
 		
 		var user userPb.User
-		err := collection.FindOne(ctx, bson.M{"username": username}).Decode(&user)
+		err := usersColl.FindOne(ctx, bson.M{"username": username}).Decode(&user)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				logger.Warn("User not found by username",
@@ -269,10 +277,10 @@ func (r *userRepository) FindAll(ctx context.Context) ([]*userPb.User, error) {
 			logging.FieldEntity, "user",
 		)
 		
-		collection := r.dbConnect(ctx).Collection("users")
+		usersColl := r.usersColl(ctx)
 		
 		// Find all users
-		cursor, err := collection.Find(ctx, bson.M{})
+		cursor, err := usersColl.Find(ctx, bson.M{})
 		if err != nil {
 			logger.Error("Error finding all users", err,
 				logging.FieldOperation, "find_all_users",
@@ -335,10 +343,10 @@ func (r *userRepository) FindAllPaginated(ctx context.Context, page, limit int32
 			limit = 10
 		}
 		
-		collection := r.dbConnect(ctx).Collection("users")
+		usersColl := r.usersColl(ctx)
 		
 		// Calculate total count
-		totalCount, err := collection.CountDocuments(ctx, bson.M{})
+		totalCount, err := usersColl.CountDocuments(ctx, bson.M{})
 		if err != nil {
 			logger.Error("Error counting users", err,
 				logging.FieldOperation, "find_paginated_users",
@@ -353,7 +361,7 @@ func (r *userRepository) FindAllPaginated(ctx context.Context, page, limit int32
 			SetSkip(int64(skip)).
 			SetLimit(int64(limit))
 		
-		cursor, err := collection.Find(ctx, bson.M{}, findOptions)
+		cursor, err := usersColl.Find(ctx, bson.M{}, findOptions)
 		if err != nil {
 			logger.Error("Error finding paginated users", err,
 				logging.FieldOperation, "find_paginated_users",
@@ -414,7 +422,7 @@ func (r *userRepository) UpdateUser(ctx context.Context, user *userPb.User) erro
 			"username", user.Username,
 		)
 		
-		collection := r.dbConnect(ctx).Collection("users")
+		usersColl := r.usersColl(ctx)
 		
 		// Convert string ID to ObjectID
 		objectID, err := primitive.ObjectIDFromHex(user.Id)
@@ -436,7 +444,7 @@ func (r *userRepository) UpdateUser(ctx context.Context, user *userPb.User) erro
 		}
 		
 		var existingUser userPb.User
-		err = collection.FindOne(ctx, filter).Decode(&existingUser)
+		err = usersColl.FindOne(ctx, filter).Decode(&existingUser)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				logger.Warn("User not found for update",
@@ -471,7 +479,7 @@ func (r *userRepository) UpdateUser(ctx context.Context, user *userPb.User) erro
 		if user.Username != existingUser.Username {
 			// Check if the new username already exists for another user
 			var duplicateUser userPb.User
-			err = collection.FindOne(ctx, bson.M{
+			err = usersColl.FindOne(ctx, bson.M{
 				"username": user.Username,
 				"_id": bson.M{"$ne": objectID},
 			}).Decode(&duplicateUser)
@@ -494,7 +502,7 @@ func (r *userRepository) UpdateUser(ctx context.Context, user *userPb.User) erro
 		}
 		
 		// Update user
-		result, err := collection.UpdateOne(ctx, filter, update)
+		result, err := usersColl.UpdateOne(ctx, filter, update)
 		if err != nil {
 			logger.Error("Error updating user", err,
 				logging.FieldOperation, "update_user",
@@ -547,7 +555,7 @@ func (r *userRepository) UpdatePassword(ctx context.Context, userID primitive.Ob
 			return struct{}{}, exceptions.Internal("error hashing password", err)
 		}
 		
-		collection := r.dbConnect(ctx).Collection("users")
+		usersColl := r.usersColl(ctx)
 		
 		// Update password
 		filter := bson.M{
@@ -564,7 +572,7 @@ func (r *userRepository) UpdatePassword(ctx context.Context, userID primitive.Ob
 			},
 		}
 		
-		result, err := collection.UpdateOne(ctx, filter, update)
+		result, err := usersColl.UpdateOne(ctx, filter, update)
 		if err != nil {
 			logger.Error("Error updating password", err,
 				logging.FieldOperation, "update_password",
@@ -605,7 +613,7 @@ func (r *userRepository) DeleteUser(ctx context.Context, id primitive.ObjectID) 
 			logging.FieldEntityID, id.Hex(),
 		)
 		
-		collection := r.dbConnect(ctx).Collection("users")
+		usersColl := r.usersColl(ctx)
 		
 		// Find user first for better logging and error reporting
 		filter := bson.M{
@@ -616,7 +624,7 @@ func (r *userRepository) DeleteUser(ctx context.Context, id primitive.ObjectID) 
 		}
 		
 		var user userPb.User
-		err := collection.FindOne(ctx, filter).Decode(&user)
+		err := usersColl.FindOne(ctx, filter).Decode(&user)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				logger.Warn("User not found for deletion",
@@ -636,7 +644,7 @@ func (r *userRepository) DeleteUser(ctx context.Context, id primitive.ObjectID) 
 		}
 		
 		// Delete user
-		result, err := collection.DeleteOne(ctx, filter)
+		result, err := usersColl.DeleteOne(ctx, filter)
 		if err != nil {
 			logger.Error("Error deleting user", err,
 				logging.FieldOperation, "delete_user",
@@ -680,11 +688,11 @@ func (r *userRepository) ValidatePassword(ctx context.Context, username, passwor
 			"username", username,
 		)
 		
-		collection := r.dbConnect(ctx).Collection("users")
+		usersColl := r.usersColl(ctx)
 		
 		// Find user by username (including password hash)
 		var user userPb.User
-		err := collection.FindOne(ctx, bson.M{"username": username}).Decode(&user)
+		err := usersColl.FindOne(ctx, bson.M{"username": username}).Decode(&user)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				logger.Warn("User not found for password validation",

@@ -14,6 +14,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+const (
+	collectionRoles = "roles"
+)
+
 // RoleRepositoryService defines role-specific operations
 type (
 	RoleRepositoryService interface {
@@ -39,6 +43,10 @@ func (r *roleRepository) dbConnect(ctx context.Context) *mongo.Database {
 	return r.db.Database("hllc-2025")
 }
 
+func (r *roleRepository) rolesColl(ctx context.Context) *mongo.Collection {
+	return r.dbConnect(ctx).Collection(collectionRoles)
+}
+
 // CreateRole creates a new role with proper error handling and structured logging
 func (r *roleRepository) CreateRole(ctx context.Context, role *userPb.Role) error {
 	_, err := decorator.WithTimeout[struct{}](10*time.Second)(func(ctx context.Context) (struct{}, error) {
@@ -50,11 +58,11 @@ func (r *roleRepository) CreateRole(ctx context.Context, role *userPb.Role) erro
 			"name", role.Name,
 		)
 		
-		collection := r.dbConnect(ctx).Collection("roles")
+		rolesColl := r.rolesColl(ctx)
 		
 		// Check if role already exists by code
 		var existingRole userPb.Role
-		err := collection.FindOne(ctx, bson.M{"code": role.Code}).Decode(&existingRole)
+		err := rolesColl.FindOne(ctx, bson.M{"code": role.Code}).Decode(&existingRole)
 		if err == nil {
 			logger.Warn("Role already exists",
 				logging.FieldOperation, "create_role",
@@ -105,7 +113,7 @@ func (r *roleRepository) CreateRole(ctx context.Context, role *userPb.Role) erro
 		}
 		
 		// Insert role
-		_, err = collection.InsertOne(ctx, doc)
+		_, err = rolesColl.InsertOne(ctx, doc)
 		if err != nil {
 			if mongo.IsDuplicateKeyError(err) {
 				logger.Warn("Duplicate key error when creating role", 
@@ -147,7 +155,7 @@ func (r *roleRepository) FindRoleByID(ctx context.Context, id primitive.ObjectID
 			logging.FieldEntityID, id.Hex(),
 		)
 		
-		collection := r.dbConnect(ctx).Collection("roles")
+		rolesColl := r.rolesColl(ctx)
 		
 		// Try finding by both ID formats (_id and id string)
 		filter := bson.M{
@@ -158,7 +166,7 @@ func (r *roleRepository) FindRoleByID(ctx context.Context, id primitive.ObjectID
 		}
 		
 		var role userPb.Role
-		err := collection.FindOne(ctx, filter).Decode(&role)
+		err := rolesColl.FindOne(ctx, filter).Decode(&role)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				logger.Warn("Role not found",
@@ -198,10 +206,10 @@ func (r *roleRepository) FindRoleByCode(ctx context.Context, code string) (*user
 			"code", code,
 		)
 		
-		collection := r.dbConnect(ctx).Collection("roles")
+		rolesColl := r.rolesColl(ctx)
 		
 		var role userPb.Role
-		err := collection.FindOne(ctx, bson.M{"code": code}).Decode(&role)
+		err := rolesColl.FindOne(ctx, bson.M{"code": code}).Decode(&role)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				logger.Warn("Role not found by code",
@@ -240,10 +248,10 @@ func (r *roleRepository) FindAllRoles(ctx context.Context) ([]*userPb.Role, erro
 			logging.FieldEntity, "role",
 		)
 		
-		collection := r.dbConnect(ctx).Collection("roles")
+		rolesColl := r.rolesColl(ctx)
 		
 		// Find all roles
-		cursor, err := collection.Find(ctx, bson.M{})
+		cursor, err := rolesColl.Find(ctx, bson.M{})
 		if err != nil {
 			logger.Error("Error finding all roles", err,
 				logging.FieldOperation, "find_all_roles",
@@ -288,7 +296,7 @@ func (r *roleRepository) UpdateRole(ctx context.Context, role *userPb.Role) erro
 			"code", role.Code,
 		)
 		
-		collection := r.dbConnect(ctx).Collection("roles")
+		roleColl := r.rolesColl(ctx)
 		
 		// Convert string ID to ObjectID
 		objectID, err := primitive.ObjectIDFromHex(role.Id)
@@ -310,7 +318,7 @@ func (r *roleRepository) UpdateRole(ctx context.Context, role *userPb.Role) erro
 		}
 		
 		var existingRole userPb.Role
-		err = collection.FindOne(ctx, filter).Decode(&existingRole)
+		err = roleColl.FindOne(ctx, filter).Decode(&existingRole)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				logger.Warn("Role not found for update",
@@ -344,7 +352,7 @@ func (r *roleRepository) UpdateRole(ctx context.Context, role *userPb.Role) erro
 		if role.Code != existingRole.Code {
 			// Check if the new code already exists for another role
 			var duplicateRole userPb.Role
-			err = collection.FindOne(ctx, bson.M{
+			err = roleColl.FindOne(ctx, bson.M{
 				"code": role.Code,
 				"_id": bson.M{"$ne": objectID},
 			}).Decode(&duplicateRole)
@@ -367,7 +375,7 @@ func (r *roleRepository) UpdateRole(ctx context.Context, role *userPb.Role) erro
 		}
 		
 		// Update role
-		result, err := collection.UpdateOne(ctx, filter, update)
+		result, err := roleColl.UpdateOne(ctx, filter, update)
 		if err != nil {
 			logger.Error("Error updating role", err,
 				logging.FieldOperation, "update_role",
