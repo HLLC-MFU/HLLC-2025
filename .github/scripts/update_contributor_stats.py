@@ -14,7 +14,6 @@ import re
 import subprocess
 import requests
 import json
-import matplotlib.pyplot as plt
 from datetime import datetime
 
 # Configuration
@@ -66,33 +65,74 @@ def get_total_commits():
 
 def update_readme(stats):
     """Update the README.md file with the new statistics"""
+    print(f"Reading README from: {README_PATH}")
     with open(README_PATH, 'r', encoding='utf-8') as file:
         content = file.read()
     
     # Update the badges and percentages for each contributor
     for username, data in stats.items():
-        # Update commit badge
-        commit_pattern = re.compile(f'<img src="https://img\\.shields\\.io/badge/Commits-\\d+-blue\\?style=for-the-badge"/>.*?{username}')
-        content = re.sub(commit_pattern, f'<img src="https://img.shields.io/badge/Commits-{data["commits"]}-blue?style=for-the-badge"/>', content)
+        if username == "total_commits":
+            continue
+            
+        # Find the section for this user
+        username_pattern = f'<a href="https://github.com/{username}">{username}</a>'
+        if username_pattern in content:
+            print(f"Updating stats for user: {username}")
+            # Get the section of content containing this user
+            user_section_start = content.find(username_pattern)
+            next_section_start = content.find("<tr>", user_section_start + len(username_pattern))
+            if next_section_start == -1:
+                next_section_start = len(content)
+            user_section = content[user_section_start:next_section_start]
+            
+            # Update commit badge
+            commit_badge = f'<img src="https://img.shields.io/badge/Commits-{data["commits"]}-blue?style=for-the-badge"/>'
+            user_section = re.sub(r'<img src="https://img\.shields\.io/badge/Commits-\d+-blue\?style=for-the-badge"/>', 
+                                commit_badge, user_section)
+            
+            # Update PR badge
+            pr_badge = f'<img src="https://img.shields.io/badge/PRs-{data["prs"]}-green?style=for-the-badge"/>'
+            user_section = re.sub(r'<img src="https://img\.shields\.io/badge/PRs-\d+-green\?style=for-the-badge"/>', 
+                                pr_badge, user_section)
+            
+            # Update percentage
+            percentage_text = f'<b>{data["percentage"]}% of total contributions</b>'
+            user_section = re.sub(r'<b>\d+(\.\d+)?% of total contributions</b>', 
+                                percentage_text, user_section)
+            
+            # Replace the section in the full content
+            content = content[:user_section_start] + user_section + content[next_section_start:]
+        else:
+            print(f"Warning: User {username} not found in README")
+    
+    # Find the mermaid chart section
+    mermaid_start = content.find("```mermaid")
+    mermaid_end = content.find("```", mermaid_start + 10)
+    if mermaid_start != -1 and mermaid_end != -1:
+        mermaid_content = content[mermaid_start:mermaid_end + 3]
+        print(f"Found mermaid chart: {mermaid_content[:50]}...")
         
-        # Update PR badge
-        pr_pattern = re.compile(f'<img src="https://img\\.shields\\.io/badge/PRs-\\d+-green\\?style=for-the-badge"/>.*?{username}')
-        content = re.sub(pr_pattern, f'<img src="https://img.shields.io/badge/PRs-{data["prs"]}-green?style=for-the-badge"/>', content)
+        # Update the total commits in the mermaid chart
+        mermaid_content = re.sub(r'title Total Commits: \d+', 
+                              f'title Total Commits: {stats["total_commits"]}', 
+                              mermaid_content)
         
-        # Update percentage
-        percentage_pattern = re.compile(f'<b>\\d+(\\.\\d+)?% of total contributions</b>.*?{username}')
-        content = re.sub(percentage_pattern, f'<b>{data["percentage"]}% of total contributions</b>', content)
+        # Update each contributor's commits in the mermaid chart
+        for username, name in CONTRIBUTORS.items():
+            if username in stats and username != "total_commits":
+                # Escape special characters in name for regex
+                escaped_name = re.escape(name)
+                # Create a pattern that matches the line with this contributor's name
+                pattern = rf'"{escaped_name}" : \d+'
+                replacement = f'"{name}" : {stats[username]["commits"]}'
+                mermaid_content = re.sub(pattern, replacement, mermaid_content)
+        
+        # Replace the mermaid section in the content
+        content = content[:mermaid_start] + mermaid_content + content[mermaid_end + 3:]
+    else:
+        print("Warning: Mermaid chart not found in README")
     
-    # Update the total commits in the mermaid chart
-    total_pattern = re.compile('title Total Commits: \\d+')
-    content = re.sub(total_pattern, f'title Total Commits: {stats["total_commits"]}', content)
-    
-    # Update the mermaid chart values
-    for username, name in CONTRIBUTORS.items():
-        if username in stats:
-            pattern = re.compile(f'"{name}" : \\d+')
-            content = re.sub(pattern, f'"{name}" : {stats[username]["commits"]}', content)
-    
+    print("Writing updated README...")
     with open(README_PATH, 'w', encoding='utf-8') as file:
         file.write(content)
 
@@ -102,6 +142,7 @@ def main():
     
     # Get total commits
     total_commits = get_total_commits()
+    print(f"Total commits in repository: {total_commits}")
     
     # Initialize stats dictionary
     stats = {"total_commits": total_commits}

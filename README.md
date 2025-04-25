@@ -75,10 +75,10 @@ HLLC-2025/
         </ul>
     </td>
     <td align="center">
-        <img src="https://img.shields.io/badge/Commits-0-blue?style=for-the-badge"/>
+        <img src="https://img.shields.io/badge/Commits-1-blue?style=for-the-badge"/>
         <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
         <br/>
-        <b>0% of total contributions</b>
+        <b>0.97% of total contributions</b>
     </td>
 </tr>
 
@@ -96,10 +96,10 @@ HLLC-2025/
         </ul>
     </td>
     <td align="center">
-        <img src="https://img.shields.io/badge/Commits-0-blue?style=for-the-badge"/>
+        <img src="https://img.shields.io/badge/Commits-75-blue?style=for-the-badge"/>
         <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
         <br/>
-        <b>0% of total contributions</b>
+        <b>72.82% of total contributions</b>
     </td>
 </tr>
 
@@ -117,10 +117,10 @@ HLLC-2025/
         </ul>
     </td>
     <td align="center">
-        <img src="https://img.shields.io/badge/Commits-0-blue?style=for-the-badge"/>
+        <img src="https://img.shields.io/badge/Commits-6-blue?style=for-the-badge"/>
         <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
         <br/>
-        <b>0% of total contributions</b>
+        <b>5.83% of total contributions</b>
     </td>
 </tr>
 
@@ -141,7 +141,7 @@ HLLC-2025/
         <img src="https://img.shields.io/badge/Commits-0-blue?style=for-the-badge"/>
         <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
         <br/>
-        <b>0% of total contributions</b>
+        <b>0.0% of total contributions</b>
     </td>
 </tr>
 
@@ -160,7 +160,7 @@ HLLC-2025/
         <img src="https://img.shields.io/badge/Commits-0-blue?style=for-the-badge"/>
         <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
         <br/>
-        <b>0% of total contributions</b>
+        <b>0.0% of total contributions</b>
     </td>
 </tr>
 
@@ -169,10 +169,10 @@ HLLC-2025/
 ### Contribution Distribution
 ```mermaid
 pie
-    title Total Commits: 100
-    "Nattawat Nattachanasit" : 0
-    "Nimit Tanboontor" : 0
-    "Poonyawat Khomlek" : 0
+    title Total Commits: 103
+    "Nattawat Nattachanasit" : 1
+    "Nimit Tanboontor" : 75
+    "Poonyawat Khomlek" : 6
     "Klavivach" : 0
     "ABOUTBLANK" : 0
 ```

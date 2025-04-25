@@ -24,7 +24,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Full history for accurate stats
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -33,19 +33,49 @@ jobs:
           
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install requests matplotlib
+          python3 -m pip install --upgrade pip
+          pip3 install requests
+
+      - name: Debug repository info
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          git log -n 5 --oneline
+          git branch -a
 
       - name: Update contributor statistics
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python .github/scripts/update_contributor_stats.py
+          # Make sure README.md exists
+          if [ ! -f "README.md" ]; then
+            echo "ERROR: README.md not found"
+            exit 1
+          fi
+          
+          # Print current content for debugging
+          echo "Current README content summary:"
+          wc -l README.md
+          grep -n "Total Commits" README.md || echo "No 'Total Commits' found in README"
+          
+          # Run the stats script
+          python3 .github/scripts/update_contributor_stats.py
+          
+          # Verify changes
+          echo "After update:"
+          grep -n "Total Commits" README.md || echo "No 'Total Commits' found in README after update"
           
       - name: Commit and push if changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
           git add README.md
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update contributor statistics"
-          git push
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            echo "Changes detected, committing..."
+            git commit -m "docs: Update contributor statistics [skip ci]"
+            git push
+          fi
