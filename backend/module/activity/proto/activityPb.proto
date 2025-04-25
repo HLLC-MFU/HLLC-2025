@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package activity;
 
-option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/activity/proto/generated";
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/activity/proto/generated;generated";
 
 import "google/protobuf/timestamp.proto";
 import "pkg/proto/core/shared.proto";

@@ -9,6 +9,7 @@
 go.work
 go.work.sum
 .env.production
+*.pb.go
 
 ## ======================================== EXPO ======================================== ##
 node_modules/
@@ -55,23 +56,3 @@ yarn-error.log*
 .vercel
 *.tsbuildinfo
 next-env.d.ts
-/backend/pkg/user/proto/generated
-backend/backend/module/auth/proto/generated/authPb_grpc.pb.go
-backend/backend/module/auth/proto/generated/authPb.pb.go
-backend/backend/module/major/proto/generated/majorPb_grpc.pb.go
-backend/backend/module/major/proto/generated/majorPb.pb.go
-backend/backend/module/school/proto/generated/schoolPb_grpc.pb.go
-backend/backend/module/school/proto/generated/schoolPb.pb.go
-backend/backend/module/user/proto/generated/userPb_grpc.pb.go
-backend/backend/module/user/proto/generated/userPb.pb.go
-.cursor/rules/structure.mdc
-.cursor/rules/checklists.mdc
-.cursor/rules/main.mdc
-backend/module/user/proto/generated/userPb_grpc.pb.go
-backend/module/user/proto/generated/userPb.pb.go
-
-/old-code
-backend/module/activity/proto/generated/activityPb.pb.go
-backend/module/activity/proto/generated/activityPb_grpc.pb.go
-backend/module/checkin/proto/generated/checkinPb_grpc.pb.go
-backend/module/checkin/proto/generated/checkinPb.pb.go

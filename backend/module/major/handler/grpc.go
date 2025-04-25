@@ -33,7 +33,7 @@ func (h *GrpcHandler) CreateMajor(ctx context.Context, req *majorPb.CreateMajorR
 	}
 
 	major := &model.Major{
-		ID:      primitive.NewObjectID(),
+		ID:       primitive.NewObjectID(),
 		SchoolID: schoolID,
 		Name: coreModel.LocalizedName{
 			ThName: req.Name.ThName,
@@ -83,12 +83,12 @@ func (h *GrpcHandler) GetMajor(ctx context.Context, req *majorPb.GetMajorRequest
 func (h *GrpcHandler) ListMajors(ctx context.Context, req *majorPb.ListMajorsRequest) (*majorPb.ListMajorsResponse, error) {
 	page := int64(1)
 	limit := int64(10)
-	
+
 	if req.Pagination != nil {
 		page = int64(req.Pagination.Page)
 		limit = int64(req.Pagination.Limit)
 	}
-	
+
 	majors, total, err := h.service.ListMajors(ctx, page, limit)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list majors: %v", err)
@@ -117,7 +117,7 @@ func (h *GrpcHandler) ListMajorsBySchool(ctx context.Context, req *majorPb.ListM
 
 	page := int64(1)
 	limit := int64(10)
-	
+
 	if req.Pagination != nil {
 		page = int64(req.Pagination.Page)
 		limit = int64(req.Pagination.Limit)
@@ -241,4 +241,4 @@ func convertMajorToProto(major *model.Major) *majorPb.Major {
 	}
 
 	return protoMajor
-} 
+}

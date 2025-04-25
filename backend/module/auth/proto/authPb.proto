@@ -2,7 +2,7 @@
 syntax = "proto3";
 
 package auth;
-option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated";
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated;generated";
 
 // Internal service messages for authentication
 message UserInfo {

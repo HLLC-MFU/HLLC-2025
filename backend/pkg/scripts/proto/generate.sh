@@ -5,7 +5,8 @@ set -e
 
 # Ensure we are in the backend root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../../../" && pwd)"
+
 
 # Validate correct ROOT_DIR
 if [ ! -d "$ROOT_DIR/pkg/proto/core" ]; then
@@ -47,12 +48,23 @@ create_dirs() {
 # Function to generate core proto files
 generate_core_proto() {
     echo "Generating core proto files..."
-    cd "$ROOT_DIR"
-    protoc \
-        --proto_path="." \
-        --go_out="pkg/proto/generated" \
-        --go-grpc_out="pkg/proto/generated" \
-        "pkg/proto/core/"*.proto
+
+    local proto_dir="$ROOT_DIR/pkg/proto/core"
+    local out_dir="$ROOT_DIR/pkg/proto/generated"
+
+    if [ -d "$proto_dir" ]; then
+        cd "$proto_dir"
+        mkdir -p "$out_dir"
+
+        protoc \
+            --proto_path="." \
+            --proto_path="$ROOT_DIR" \
+            --go_out="$out_dir" \
+            --go_opt=paths=source_relative \
+            --go-grpc_out="$out_dir" \
+            --go-grpc_opt=paths=source_relative \
+            *.proto
+    fi
 }
 
 # Function to generate module proto files
@@ -60,13 +72,22 @@ generate_module_proto() {
     local module=$1
     echo "Generating ${module} proto files..."
 
-    if [ -d "$ROOT_DIR/module/$module/proto" ]; then
-        cd "$ROOT_DIR"
+    local proto_dir="$ROOT_DIR/module/$module/proto"
+
+    if [ -d "$proto_dir" ]; then
+        cd "$proto_dir"
+
+        # สร้าง generated dir
+        mkdir -p "generated"
+
         protoc \
             --proto_path="." \
-            --go_out="module/$module/proto/generated" \
-            --go-grpc_out="module/$module/proto/generated" \
-            "module/$module/proto"/*.proto
+            --proto_path="$ROOT_DIR" \
+            --go_out="generated" \
+            --go_opt=paths=source_relative \
+            --go-grpc_out="generated" \
+            --go-grpc_opt=paths=source_relative \
+            *.proto
     fi
 }
 

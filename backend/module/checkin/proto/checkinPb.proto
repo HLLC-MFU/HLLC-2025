@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package checkin;
 
-option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/proto/generated";
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/proto/generated;generated";
 
 import "google/protobuf/timestamp.proto";
 import "pkg/proto/core/shared.proto";

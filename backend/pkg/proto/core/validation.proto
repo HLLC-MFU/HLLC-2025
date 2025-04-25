@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package core;
 
-option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/pkg/proto/generated";
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/pkg/proto/generated;generated";
 
 import "google/protobuf/descriptor.proto";
 
