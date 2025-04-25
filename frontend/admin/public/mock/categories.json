@@ -1,0 +1,46 @@
+{
+    "categories": [
+        {
+            "id": "cat-1",
+            "name": {
+                "en": "Infrastructure",
+                "th": "โครงสร้างพื้นฐาน"
+            },
+            "description": {
+                "en": "Issues related to physical and digital infrastructure",
+                "th": "ปัญหาที่เกี่ยวข้องกับโครงสร้างพื้นฐานทางกายภาพและดิจิทัล"
+            },
+            "color": "#FF6B6B",
+            "createdAt": "2024-04-24T00:00:00.000Z",
+            "updatedAt": "2024-04-24T00:00:00.000Z"
+        },
+        {
+            "id": "cat-2",
+            "name": {
+                "en": "Academic",
+                "th": "วิชาการ"
+            },
+            "description": {
+                "en": "Issues related to academic programs and curriculum",
+                "th": "ปัญหาที่เกี่ยวข้องกับหลักสูตรและการเรียนการสอน"
+            },
+            "color": "#4ECDC4",
+            "createdAt": "2024-04-24T00:00:00.000Z",
+            "updatedAt": "2024-04-24T00:00:00.000Z"
+        },
+        {
+            "id": "cat-3",
+            "name": {
+                "en": "Student Services",
+                "th": "บริการนักศึกษา"
+            },
+            "description": {
+                "en": "Issues related to student support and services",
+                "th": "ปัญหาที่เกี่ยวข้องกับการสนับสนุนและบริการนักศึกษา"
+            },
+            "color": "#45B7D1",
+            "createdAt": "2024-04-24T00:00:00.000Z",
+            "updatedAt": "2024-04-24T00:00:00.000Z"
+        }
+    ]
+} 

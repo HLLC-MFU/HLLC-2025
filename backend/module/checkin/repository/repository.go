@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/entity"
+	entity "github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/model"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

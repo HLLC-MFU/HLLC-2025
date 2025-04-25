@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package school;
 
-option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated";
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated;generated";
 
 import "google/protobuf/timestamp.proto";
 

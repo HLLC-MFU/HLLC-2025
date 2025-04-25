@@ -10,7 +10,7 @@ import (
 	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated"
 	authRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/repository"
 	userRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
-	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
+	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/security"
 )
@@ -37,7 +37,7 @@ type (
 		cfg *config.Config
 		userRepo userRepo.UserRepositoryService
 		authRepo authRepo.AuthRepositoryService
-		userService userService.UserService
+		userService serviceHttp.UserService
 	}
 )
 
@@ -45,7 +45,7 @@ func NewAuthService(
 	cfg *config.Config, 
 	userRepo userRepo.UserRepositoryService, 
 	authRepo authRepo.AuthRepositoryService,
-	userService userService.UserService,
+	userService serviceHttp.UserService,
 ) AuthService {
 	return &authService{
 		cfg: cfg,

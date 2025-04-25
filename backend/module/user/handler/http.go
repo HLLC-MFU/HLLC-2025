@@ -2,549 +2,607 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
-	"log"
+	"strconv"
 	"time"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	userDto "github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
 	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
+	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/response"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/exceptions"
 	"github.com/gofiber/fiber/v2"
 )
 
-// HTTPHandler handles HTTP requests for user service
+// HTTPHandler defines the HTTP handler methods for user functionality
 type HTTPHandler interface {
-	RegisterPublicRoutes(router fiber.Router)
-	RegisterProtectedRoutes(router fiber.Router)
-	RegisterAdminRoutes(router fiber.Router)
-}
-
-type httpHandler struct {
-	cfg         *config.Config
-	userService service.UserService
-}
-
-// NewHTTPHandler creates a new HTTP handler with decorators
-func NewHTTPHandler(cfg *config.Config, userService service.UserService) HTTPHandler {
-	return &httpHandler{
-		cfg:         cfg,
-		userService: userService,
-	}
-}
-
-// RegisterPublicRoutes registers routes that don't require authentication
-func (h *httpHandler) RegisterPublicRoutes(router fiber.Router) {
-	// Public user-related endpoints (if any)
-	router.Post("/validate-credentials", h.ValidateCredentials)
-	router.Post("/check-username", h.CheckUsername)
-	router.Post("/set-password", h.SetPassword)
-}
-
-// RegisterProtectedRoutes registers routes that require authentication
-func (h *httpHandler) RegisterProtectedRoutes(router fiber.Router) {
-	// User profile management
-	router.Get("/profile", h.GetUser)
-	router.Put("/profile", h.UpdateUser)
-	
-	// Basic role and permission viewing
-	router.Get("/roles", h.GetAllRoles)
-	router.Get("/permissions", h.GetAllPermissions)
-}
-
-// RegisterAdminRoutes registers routes that require admin role
-func (h *httpHandler) RegisterAdminRoutes(router fiber.Router) {
 	// User management
-	router.Post("/users", h.CreateUser)
-	router.Get("/users", h.GetAllUsers)
-	router.Get("/users/:id", h.GetUser)
-	router.Put("/users/:id", h.UpdateUser)
-	router.Delete("/users/:id", h.DeleteUser)
+	CreateUser(c *fiber.Ctx) error
+	GetUser(c *fiber.Ctx) error
+	GetAllUsers(c *fiber.Ctx) error
+	UpdateUser(c *fiber.Ctx) error
+	DeleteUser(c *fiber.Ctx) error
+	ValidateCredentials(c *fiber.Ctx) error
 
 	// Role management
-	router.Post("/roles", h.CreateRole)
-	router.Get("/roles/:id", h.GetRole)
-	router.Put("/roles/:id", h.UpdateRole)
-	router.Delete("/roles/:id", h.DeleteRole)
+	CreateRole(c *fiber.Ctx) error
+	GetRole(c *fiber.Ctx) error
+	GetAllRoles(c *fiber.Ctx) error
+	UpdateRole(c *fiber.Ctx) error
+	DeleteRole(c *fiber.Ctx) error
 
 	// Permission management
-	router.Post("/permissions", h.CreatePermission)
-	router.Get("/permissions/:id", h.GetPermission)
-	router.Put("/permissions/:id", h.UpdatePermission)
-	router.Delete("/permissions/:id", h.DeletePermission)
+	CreatePermission(c *fiber.Ctx) error
+	GetPermission(c *fiber.Ctx) error
+	GetAllPermissions(c *fiber.Ctx) error
+	UpdatePermission(c *fiber.Ctx) error
+	DeletePermission(c *fiber.Ctx) error
+
+	// Registration methods
+	CheckUsername(c *fiber.Ctx) error
+	SetPassword(c *fiber.Ctx) error
 }
 
-// User handlers
+// httpHandler implements HTTPHandler
+type httpHandler struct {
+	userService       serviceHttp.UserService
+	roleService       serviceHttp.RoleService
+	permService       serviceHttp.PermissionService
+}
+
+// NewHTTPHandler creates a new HTTP handler
+func NewHTTPHandler(
+	userService serviceHttp.UserService,
+	roleService serviceHttp.RoleService,
+	permissionService serviceHttp.PermissionService,
+) HTTPHandler {
+	return &httpHandler{
+		userService:       userService,
+		roleService:       roleService,
+		permService:       permissionService,
+	}
+}
+
+// User management handlers
 func (h *httpHandler) CreateUser(c *fiber.Ctx) error {
-	var req userDto.CreateUserRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.CreateUserRequest](func(c *fiber.Ctx, req *dto.CreateUserRequest) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
 
-	user, err := h.userService.CreateUser(c.Context(), &req)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		user, err := h.userService.CreateUser(ctx, req)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
 
-	return c.Status(fiber.StatusCreated).JSON(user)
+		return response.Success(c, fiber.StatusCreated, user)
+	}))
+
+	return handler(c)
 }
 
 func (h *httpHandler) GetUser(c *fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		// If no ID provided, get current user's profile
-		id = c.Locals("user_id").(string)
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		if id == "" {
+			// If no ID provided, get current user's profile if available
+			userID, ok := c.Locals("user_id").(string)
+			if !ok {
+				return exceptions.HandleError(c, exceptions.InvalidInput("User ID parameter is required", nil))
+			}
+			id = userID
+		}
 
-	user, err := h.userService.GetUserByID(c.Context(), id)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
 
-	return c.JSON(user)
+		user, err := h.userService.GetUserByID(ctx, id)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return response.Success(c, fiber.StatusOK, user)
+	})
+
+	return handler(c)
 }
 
+// GetAllUsers retrieves all users
 func (h *httpHandler) GetAllUsers(c *fiber.Ctx) error {
-	log.Printf("HTTP GetAllUsers: Requesting all users")
-	
-	ctx, cancel := context.WithTimeout(c.Context(), 15*time.Second)
-	defer cancel()
-	
-	users, err := h.userService.GetAllUsers(ctx)
-	if err != nil {
-		log.Printf("HTTP GetAllUsers error: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to retrieve users: " + err.Error(),
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		// Parse pagination parameters from query string
+		page, err := strconv.Atoi(c.Query("page", "1"))
+		if err != nil || page < 1 {
+			page = 1
+		}
+
+		limit, err := strconv.Atoi(c.Query("limit", "10"))
+		if err != nil || limit < 1 || limit > 100 {
+			limit = 10 // Default and max limit
+		}
+
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
+
+		// Get all users
+		users, err := h.userService.GetAllUsers(ctx)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return response.Success(c, fiber.StatusOK, fiber.Map{
+			"users": users,
+			"pagination": fiber.Map{
+				"page":  page,
+				"limit": limit,
+				"total": len(users),
+			},
 		})
-	}
-	
-	// Ensure we return valid JSON even if some values are nil
-	for i := range users {
-		if users[i].Roles == nil {
-			users[i].Roles = []*userPb.Role{}
-		}
-		
-		// Major can be nil - that's okay, JSON will show it as null
-		if users[i].Major == nil && users[i].MajorID != "" {
-			log.Printf("HTTP GetAllUsers: User %s has majorID %s but major data is nil", 
-				users[i].Username, users[i].MajorID)
-		}
-	}
-	
-	log.Printf("HTTP GetAllUsers: Successfully returning %d users", len(users))
-	return c.JSON(users)
+	})
+
+	return handler(c)
 }
 
 func (h *httpHandler) UpdateUser(c *fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		// If no ID provided, update current user's profile
-		id = c.Locals("user_id").(string)
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.UpdateUserRequest](func(c *fiber.Ctx, req *dto.UpdateUserRequest) error {
+		id := c.Params("id")
+		if id == "" {
+			// If no ID provided, update current user's profile if available
+			userID, ok := c.Locals("user_id").(string)
+			if !ok {
+				return exceptions.HandleError(c, exceptions.InvalidInput("User ID parameter is required", nil))
+			}
+			id = userID
+		}
 
-	var req userDto.UpdateUserRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
-	}
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
 
-	user, err := h.userService.UpdateUser(c.Context(), id, &req)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		user, err := h.userService.UpdateUser(ctx, id, req)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
 
-	return c.JSON(user)
+		return response.Success(c, fiber.StatusOK, user)
+	}))
+
+	return handler(c)
 }
 
 func (h *httpHandler) DeleteUser(c *fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "User ID is required",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		if id == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("User ID parameter is required", nil))
+		}
 
-	err := h.userService.DeleteUser(c.Context(), id)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
 
-	return c.SendStatus(fiber.StatusNoContent)
+		err := h.userService.DeleteUser(ctx, id)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return response.Success(c, fiber.StatusOK, fiber.Map{
+			"message": "User deleted successfully",
+			"user_id": id,
+		})
+	})
+
+	return handler(c)
 }
 
 func (h *httpHandler) ValidateCredentials(c *fiber.Ctx) error {
-	var req userDto.ValidateCredentialsRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.ValidateCredentialsRequest](func(c *fiber.Ctx, req *dto.ValidateCredentialsRequest) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
 
-	valid, err := h.userService.ValidatePassword(c.Context(), req.Username, req.Password)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		valid, err := h.userService.ValidatePassword(ctx, req.Username, req.Password)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
 
-	return c.JSON(fiber.Map{
-		"valid": valid,
-	})
+		if !valid {
+			return exceptions.HandleError(c, exceptions.Unauthorized("Invalid credentials", nil))
+		}
+
+		return response.Success(c, fiber.StatusOK, fiber.Map{"valid": valid})
+	}))
+
+	return handler(c)
 }
 
-// Role handlers
+// Role management handlers
 func (h *httpHandler) CreateRole(c *fiber.Ctx) error {
-	var req userDto.CreateRoleRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.CreateRoleRequest](func(c *fiber.Ctx, req *dto.CreateRoleRequest) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
 
-	role, err := h.userService.CreateRole(c.Context(), &req)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		// Convert DTO to proto request
+		pbReq := &userPb.CreateRoleRequest{
+			Name:        req.Name,
+			Code:        req.Code,
+			Description: req.Description,
+			PermissionIds: req.Permissions,
+		}
 
-	return c.Status(fiber.StatusCreated).JSON(role)
+		role, err := h.roleService.CreateRole(ctx, pbReq)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		// Convert proto response to DTO
+		response := &dto.RoleResponse{
+			ID:          role.GetId(),
+			Name:        role.GetName(),
+			Code:        role.GetCode(),
+			Description: role.GetDescription(),
+			Permissions: role.GetPermissionIds(),
+		}
+
+		return c.Status(fiber.StatusCreated).JSON(response)
+	}))
+
+	return handler(c)
 }
 
 func (h *httpHandler) GetRole(c *fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Role ID is required",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		if id == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("Role ID parameter is required", nil))
+		}
 
-	role, err := h.userService.GetRoleByID(c.Context(), id)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
 
-	return c.JSON(role)
+		role, err := h.roleService.GetRoleByID(ctx, id)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		// Convert proto response to DTO
+		response := &dto.RoleResponse{
+			ID:          role.GetId(),
+			Name:        role.GetName(),
+			Code:        role.GetCode(),
+			Description: role.GetDescription(),
+			Permissions: role.GetPermissionIds(),
+		}
+
+		return c.Status(fiber.StatusOK).JSON(response)
+	})
+
+	return handler(c)
 }
 
 func (h *httpHandler) GetAllRoles(c *fiber.Ctx) error {
-	log.Printf("HTTP GetAllRoles: Requesting all roles")
-	
-	ctx, cancel := context.WithTimeout(c.Context(), 15*time.Second)
-	defer cancel()
-	
-	// First fetch all permissions to have them available
-	permissionsResponse, err := h.userService.GetAllPermissions(ctx)
-	if err != nil {
-		log.Printf("HTTP GetAllRoles error getting permissions: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to retrieve permissions: " + err.Error(),
-		})
-	}
-	
-	// Log available permissions
-	log.Printf("HTTP GetAllRoles: Found %d permissions", len(permissionsResponse))
-	
-	// Create a map of all permissions for easy lookup and ensure each has the correct format
-	allPermissions := make(map[string]map[string]interface{})
-	allPermissionsArray := make([]map[string]interface{}, 0, len(permissionsResponse))
-	
-	for _, perm := range permissionsResponse {
-		permData := map[string]interface{}{
-			"id":          perm.ID,
-			"name":        perm.Name,
-			"code":        perm.Code,
-			"description": perm.Description,
-			"module":      perm.Module,
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
+
+		roles, err := h.roleService.GetAllRoles(ctx)
+		if err != nil {
+			return exceptions.HandleError(c, err)
 		}
-		allPermissions[perm.ID] = permData
-		allPermissionsArray = append(allPermissionsArray, permData)
-		
-		log.Printf("HTTP GetAllRoles: Available permission: %s (ID: %s, Code: %s)", 
-			perm.Name, perm.ID, perm.Code)
-	}
-	
-	// Get all roles
-	roles, err := h.userService.GetAllRoles(ctx)
-	if err != nil {
-		log.Printf("HTTP GetAllRoles error: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to retrieve roles: " + err.Error(),
-		})
-	}
-	
-	// Return roles with embedded permissions
-	formattedRoles := make([]map[string]interface{}, 0, len(roles))
-	
-	for _, role := range roles {
-		// Debug log the role information
-		log.Printf("HTTP GetAllRoles: Processing role %s (ID: %s)", role.Name, role.ID)
-		
-		// For ADMIN role, always add all permissions
-		if role.Code == "ADMIN" {
-			log.Printf("HTTP GetAllRoles: Special handling for ADMIN role with code %s", role.Code)
-			
-			// Create formatted role with all permissions
-			formattedRole := map[string]interface{}{
-				"id":          role.ID,
-				"name":        role.Name,
-				"code":        role.Code,
-				"description": role.Description,
-				"permissions": allPermissionsArray, // Add ALL permissions for ADMIN
-			}
-			
-			log.Printf("HTTP GetAllRoles: Added all %d permissions to ADMIN role", len(allPermissionsArray))
-			formattedRoles = append(formattedRoles, formattedRole)
-			continue
+
+		// Convert proto responses to DTOs
+		response := make([]*dto.RoleResponse, 0, len(roles))
+		for _, role := range roles {
+			response = append(response, &dto.RoleResponse{
+				ID:          role.GetId(),
+				Name:        role.GetName(),
+				Code:        role.GetCode(),
+				Description: role.GetDescription(),
+				Permissions: role.GetPermissionIds(),
+			})
 		}
-		
-		// For non-ADMIN roles, use the assigned permissions
-		permissions := make([]map[string]interface{}, 0)
-		if role.Permissions != nil {
-			log.Printf("Role %s has %d permissions to format", role.Name, len(role.Permissions))
-			for i, perm := range role.Permissions {
-				if perm == nil {
-					log.Printf("Warning: Nil permission found at index %d in role %s", i, role.Name)
-					continue
-				}
-				
-				log.Printf("Adding permission: %s (ID: %s, Code: %s)", perm.Name, perm.Id, perm.Code)
-				permissions = append(permissions, map[string]interface{}{
-					"id":          perm.Id,
-					"name":        perm.Name,
-					"code":        perm.Code,
-					"description": perm.Description,
-					"module":      perm.Module,
-				})
-			}
-		} else {
-			log.Printf("Role %s has nil Permissions field", role.Name)
-		}
-		
-		log.Printf("Formatted %d permissions for role %s", len(permissions), role.Name)
-		
-		// Create formatted role
-		formattedRole := map[string]interface{}{
-			"id":          role.ID,
-			"name":        role.Name,
-			"code":        role.Code,
-			"description": role.Description,
-			"permissions": permissions,
-		}
-		
-		formattedRoles = append(formattedRoles, formattedRole)
-	}
-	
-	// Log the final JSON output for debugging
-	jsonData, _ := json.MarshalIndent(formattedRoles, "", "  ")
-	log.Printf("HTTP GetAllRoles: Final JSON response: %s", string(jsonData))
-	
-	log.Printf("HTTP GetAllRoles: Successfully returning %d roles", len(formattedRoles))
-	return c.JSON(formattedRoles)
+
+		return c.Status(fiber.StatusOK).JSON(response)
+	})
+
+	return handler(c)
 }
 
 func (h *httpHandler) UpdateRole(c *fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Role ID is required",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.UpdateRoleRequest](func(c *fiber.Ctx, req *dto.UpdateRoleRequest) error {
+		id := c.Params("id")
+		if id == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("Role ID parameter is required", nil))
+		}
 
-	var req userDto.UpdateRoleRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
-	}
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
 
-	role, err := h.userService.UpdateRole(c.Context(), id, &req)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		// Convert DTO to proto request
+		pbReq := &userPb.UpdateRoleRequest{
+			Name:        req.Name,
+			Code:        req.Code,
+			Description: req.Description,
+			PermissionIds: req.Permissions,
+		}
 
-	return c.JSON(role)
+		role, err := h.roleService.UpdateRole(ctx, id, pbReq)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		// Convert proto response to DTO
+		response := &dto.RoleResponse{
+			ID:          role.GetId(),
+			Name:        role.GetName(),
+			Code:        role.GetCode(),
+			Description: role.GetDescription(),
+			Permissions: role.GetPermissionIds(),
+		}
+
+		return c.Status(fiber.StatusOK).JSON(response)
+	}))
+
+	return handler(c)
 }
 
 func (h *httpHandler) DeleteRole(c *fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Role ID is required",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		if id == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("Role ID parameter is required", nil))
+		}
 
-	err := h.userService.DeleteRole(c.Context(), id)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
 
-	return c.SendStatus(fiber.StatusNoContent)
+		err := h.roleService.DeleteRole(ctx, id)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "Role deleted successfully",
+			"role_id": id,
+		})
+	})
+
+	return handler(c)
 }
 
-// Permission handlers
+// Permission management handlers
 func (h *httpHandler) CreatePermission(c *fiber.Ctx) error {
-	var req userDto.CreatePermissionRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.CreatePermissionRequest](func(c *fiber.Ctx, req *dto.CreatePermissionRequest) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
 
-	permission, err := h.userService.CreatePermission(c.Context(), &req)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		// Convert DTO to proto request
+		pbReq := &userPb.CreatePermissionRequest{
+			Name:        req.Name,
+			Code:        req.Code,
+			Description: req.Description,
+			Module:      req.Module,
+		}
 
-	return c.Status(fiber.StatusCreated).JSON(permission)
+		permission, err := h.permService.CreatePermission(ctx, pbReq)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		// Convert proto response to DTO
+		response := &dto.PermissionResponse{
+			ID:          permission.GetId(),
+			Name:        permission.GetName(),
+			Code:        permission.GetCode(),
+			Description: permission.GetDescription(),
+			Module:      permission.GetModule(),
+		}
+
+		return c.Status(fiber.StatusCreated).JSON(response)
+	}))
+
+	return handler(c)
 }
 
 func (h *httpHandler) GetPermission(c *fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Permission ID is required",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		if id == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("Permission ID parameter is required", nil))
+		}
 
-	permission, err := h.userService.GetPermissionByID(c.Context(), id)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
 
-	return c.JSON(permission)
+		permission, err := h.permService.GetPermissionByID(ctx, id)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		// Convert proto response to DTO
+		response := &dto.PermissionResponse{
+			ID:          permission.GetId(),
+			Name:        permission.GetName(),
+			Code:        permission.GetCode(),
+			Description: permission.GetDescription(),
+			Module:      permission.GetModule(),
+		}
+
+		return c.Status(fiber.StatusOK).JSON(response)
+	})
+
+	return handler(c)
 }
 
 func (h *httpHandler) GetAllPermissions(c *fiber.Ctx) error {
-	permissions, err := h.userService.GetAllPermissions(c.Context())
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
 
-	return c.JSON(permissions)
+		permissions, err := h.permService.GetAllPermissions(ctx)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		// Convert proto responses to DTOs
+		response := make([]*dto.PermissionResponse, 0, len(permissions))
+		for _, permission := range permissions {
+			response = append(response, &dto.PermissionResponse{
+				ID:          permission.GetId(),
+				Name:        permission.GetName(),
+				Code:        permission.GetCode(),
+				Description: permission.GetDescription(),
+				Module:      permission.GetModule(),
+			})
+		}
+
+		return c.Status(fiber.StatusOK).JSON(response)
+	})
+
+	return handler(c)
 }
 
 func (h *httpHandler) UpdatePermission(c *fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Permission ID is required",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.UpdatePermissionRequest](func(c *fiber.Ctx, req *dto.UpdatePermissionRequest) error {
+		id := c.Params("id")
+		if id == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("Permission ID parameter is required", nil))
+		}
 
-	var req userDto.UpdatePermissionRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
-	}
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
 
-	permission, err := h.userService.UpdatePermission(c.Context(), id, &req)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		// Convert DTO to proto request
+		pbReq := &userPb.UpdatePermissionRequest{
+			Name:        req.Name,
+			Code:        req.Code,
+			Description: req.Description,
+			Module:      req.Module,
+		}
 
-	return c.JSON(permission)
+		permission, err := h.permService.UpdatePermission(ctx, id, pbReq)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		// Convert proto response to DTO
+		response := &dto.PermissionResponse{
+			ID:          permission.GetId(),
+			Name:        permission.GetName(),
+			Code:        permission.GetCode(),
+			Description: permission.GetDescription(),
+			Module:      permission.GetModule(),
+		}
+
+		return c.Status(fiber.StatusOK).JSON(response)
+	}))
+
+	return handler(c)
 }
 
 func (h *httpHandler) DeletePermission(c *fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Permission ID is required",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		if id == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("Permission ID parameter is required", nil))
+		}
 
-	err := h.userService.DeletePermission(c.Context(), id)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
 
-	return c.SendStatus(fiber.StatusNoContent)
+		err := h.permService.DeletePermission(ctx, id)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "Permission deleted successfully",
+			"permission_id": id,
+		})
+	})
+
+	return handler(c)
 }
 
+// Registration methods
 func (h *httpHandler) CheckUsername(c *fiber.Ctx) error {
-	var req userDto.CheckUsernameRequest
-	
-	// Use decorator to handle request validation
-	if err := decorator.WithRequestValidation(&req)(c); err != nil {
-		return err
-	}
-	
-	// Use WithTimeout from context in service layer, not here
-	resp, err := h.userService.CheckUsername(c.Context(), &req)
-	if err != nil {
-		// Return detailed error response
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status": false,
-			"error": err.Error(),
-			"code": "internal_error",
-		})
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.CheckUsernameRequest](func(c *fiber.Ctx, req *dto.CheckUsernameRequest) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
 
-	// Return standardized response
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status": true,
-		"data": resp,
-	})
+		result, err := h.userService.CheckUsername(ctx, req)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return response.Success(c, fiber.StatusOK, result)
+	}))
+
+	return handler(c)
 }
 
 func (h *httpHandler) SetPassword(c *fiber.Ctx) error {
-	var req userDto.SetPasswordRequest
-	
-	// Use decorator to handle request validation
-	if err := decorator.WithRequestValidation(&req)(c); err != nil {
-		return err
-	}
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.SetPasswordRequest](func(c *fiber.Ctx, req *dto.SetPasswordRequest) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
 
-	// Use WithTimeout from context in service layer, not here
-	resp, err := h.userService.SetPassword(c.Context(), &req)
-	if err != nil {
-		// Return detailed error response
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status": false,
-			"error": err.Error(),
-			"code": "internal_error",
-		})
-	}
+		result, err := h.userService.SetPassword(ctx, req)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
 
-	// Set SUCCESS status code depending on the result
-	statusCode := fiber.StatusOK
-	if !resp.Success {
-		statusCode = fiber.StatusBadRequest
-	}
+		return response.Success(c, fiber.StatusOK, result)
+	}))
 
-	// Return standardized response
-	return c.Status(statusCode).JSON(fiber.Map{
-		"status": resp.Success,
-		"message": resp.Message,
-	})
-} 
+	return handler(c)
+}

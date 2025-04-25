@@ -1,48 +1,54 @@
 package server
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/activity/controller"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/activity/handler"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/activity/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/activity/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/activity/service"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"go.mongodb.org/mongo-driver/mongo"
+	"google.golang.org/grpc"
 )
 
-func (s *server) activityService() {
+// ActivityService is a global variable to be accessed by other modules directly
+var (
+	ActivitySvc service.ActivityService
+)
+
+// InitActivityService initializes the activity service and its dependencies
+func InitActivityService(app *fiber.App, cfg *config.Config, db *mongo.Client) error {
 	log.Println("Initializing activity service...")
 
-	// Initialize MongoDB repositories
-	activityRepo := repository.NewActivityRepository(s.db)
+	// Initialize repository
+	activityRepo := repository.NewActivityRepository(db)
 
-	// Initialize services
-	activityService := service.NewActivityService(s.config, activityRepo)
+	// Initialize service
+	ActivitySvc = service.NewActivityService(cfg, activityRepo)
 
-	// Initialize controllers
-	activityController := controller.NewActivityController(activityService)
+	// Initialize controller
+	activityController := controller.NewActivityController(ActivitySvc)
 
-	// Initialize HTTP handlers
-	httpHandler := handler.NewHTTPHandler(s.config, activityController)
+	// Initialize HTTP handler
+	httpHandler := handler.NewHTTPHandler(cfg, activityController)
 
-	// Set up HTTP middleware
-	s.app.Use(cors.New(cors.Config{
-		AllowCredentials: true,
-		AllowOrigins:     "http://localhost:3000",  // Frontend development URL
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowMethods:     "GET, POST, PUT, DELETE",
-	}))
-	s.app.Use(logger.New())
-	s.app.Use(recover.New())
-	s.app.Use(middleware.RequestIDMiddleware())
-	s.app.Use(middleware.LoggingMiddleware())
-	
-	// Set up HTTP routes
-	api := s.app.Group("/api/v1")
+	// Register gRPC service
+	log.Println("Registering activity gRPC service...")
+	grpcHandler := handler.NewGRPCHandler(cfg, ActivitySvc)
+	if err := core.RegisterGRPCService("activity", func(server *grpc.Server) {
+		generated.RegisterActivityServiceServer(server, grpcHandler)
+	}); err != nil {
+		return fmt.Errorf("failed to register activity gRPC service: %v", err)
+	}
+	log.Printf("Successfully registered activity gRPC service")
+
+	// Initialize HTTP server
+	api := app.Group("/api/v1")
 
 	// Public routes (no auth required)
 	public := api.Group("/public/activities")
@@ -50,19 +56,12 @@ func (s *server) activityService() {
 
 	// Protected routes (auth required)
 	protected := api.Group("/activities")
-	protected.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
 	httpHandler.RegisterProtectedRoutes(protected)
 
 	// Admin routes (auth + admin role required)
 	admin := api.Group("/admin/activities")
-	admin.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
-	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
 	httpHandler.RegisterAdminRoutes(admin)
 
-	// Set up health check
-	s.app.Get("/health", func(c *fiber.Ctx) error {
-		return c.SendString("OK")
-	})
-
-	log.Printf("Activity service initialized")
-} 
+	log.Printf("Activity service initialized in monolithic mode")
+	return nil
+}

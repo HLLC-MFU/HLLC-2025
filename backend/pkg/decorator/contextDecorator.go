@@ -55,12 +55,13 @@ func WithLogger(logger *log.Logger) ContextDecoratorFunc {
 	}
 }
 
-// WithMetrics is a decorator that adds metrics to the service
-// func WithMetrics(metrics *Metrics) ServiceDecoratorFunc {
-// 	return func(next func(ctx context.Context) error) func(ctx context.Context) error {
-// 		return func(ctx context.Context) error {
-// 			metrics.Increment("service_calls")
-// 			return next(ctx)
-// 		}
-// 	}
-// }
+// ComposeContextDecorators chains multiple ContextDecoratorFunc into one
+func ComposeContextDecorators(decorators ...ContextDecoratorFunc) ContextDecoratorFunc {
+	return func(finalHandler func(ctx context.Context) error) func(ctx context.Context) error {
+		// Apply decorators from last to first
+		for i := len(decorators) - 1; i >= 0; i-- {
+			finalHandler = decorators[i](finalHandler)
+		}
+		return finalHandler
+	}
+}

@@ -1,421 +1,255 @@
 package handler
 
-import (
-	"context"
+// import (
+// 	"context"
+// 	"time"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
-	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-)
+// 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
+// 	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
+// 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/service"
+// 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
+// 	"google.golang.org/grpc/codes"
+// 	"google.golang.org/grpc/status"
+// )
 
-type grpcHandler struct {
-	cfg *config.Config
-	userService service.UserService
-	userPb.UnimplementedUserServiceServer
-}
+// type grpcHandler struct {
+// 	cfg          *config.Config
+// 	userService  service.UserService
+// 	roleService  service.RoleService
+// 	permService  service.PermissionService
+// 	userPb.UnimplementedUserServiceServer
+// }
 
-func NewGRPCHandler(cfg *config.Config, userService service.UserService) userPb.UserServiceServer {
-	return &grpcHandler{
-		cfg: cfg,
-		userService: userService,
-	}
-}
+// func NewGRPCHandler(
+// 	cfg *config.Config,
+// 	userService service.UserService,
+// 	roleService service.RoleService,
+// 	permService service.PermissionService,
+// ) userPb.UserServiceServer {
+// 	return &grpcHandler{
+// 		cfg:         cfg,
+// 		userService: userService,
+// 		roleService: roleService,
+// 		permService: permService,
+// 	}
+// }
 
-func (h *grpcHandler) CreateUser(ctx context.Context, req *userPb.CreateUserRequest) (*userPb.User, error) {
-	dtoReq := &dto.CreateUserRequest{
-		Username: req.Username,
-		Password: req.Password,
-		Name: dto.Name{
-			FirstName:  req.Name.FirstName,
-			MiddleName: req.Name.MiddleName,
-			LastName:   req.Name.LastName,
-		},
-		RoleIDs: req.RoleIds,
-	}
+// func (h *grpcHandler) CreateUser(ctx context.Context, req *userPb.CreateUserRequest) (*userPb.User, error) {
+// 	result, err := decorator.WithTimeout[*userPb.User](10*time.Second)(func(ctx context.Context) (*userPb.User, error) {
+// 		return h.userService.CreateUserGRPC(ctx, req)
+// 	})(ctx)
 
-	user, err := h.userService.CreateUser(ctx, dtoReq)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-	var roleIds []string
-	for _, role := range user.Roles {
-		roleIds = append(roleIds, role.Id)
-	}
+// 	return result, nil
+// }
 
-	return &userPb.User{
-		Id:       user.ID,
-		Username: user.Username,
-		Name: &userPb.Name{
-			FirstName:  user.Name.FirstName,
-			MiddleName: user.Name.MiddleName,
-			LastName:   user.Name.LastName,
-		},
-		RoleIds: roleIds,
-	}, nil
-}
+// func (h *grpcHandler) GetUser(ctx context.Context, req *userPb.GetUserRequest) (*userPb.User, error) {
+// 	result, err := decorator.WithTimeout[*userPb.User](5*time.Second)(func(ctx context.Context) (*userPb.User, error) {
+// 		return h.userService.GetUserGRPC(ctx, req)
+// 	})(ctx)
 
-func (h *grpcHandler) GetUser(ctx context.Context, req *userPb.GetUserRequest) (*userPb.User, error) {
-	user, err := h.userService.GetUserByUsername(ctx, req.Username)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-	var roleIds []string
-	for _, role := range user.Roles {
-		roleIds = append(roleIds, role.Id)
-	}
+// 	return result, nil
+// }
 
-	return &userPb.User{
-		Id:       user.ID,
-		Username: user.Username,
-		Name: &userPb.Name{
-			FirstName:  user.Name.FirstName,
-			MiddleName: user.Name.MiddleName,
-			LastName:   user.Name.LastName,
-		},
-		RoleIds: roleIds,
-	}, nil
-}
+// func (h *grpcHandler) GetAllUsers(ctx context.Context, req *userPb.GetAllUsersRequest) (*userPb.GetAllUsersResponse, error) {
+// 	result, err := decorator.WithTimeout[*userPb.GetAllUsersResponse](15*time.Second)(func(ctx context.Context) (*userPb.GetAllUsersResponse, error) {
+// 		return h.userService.GetAllUsersGRPC(ctx, req)
+// 	})(ctx)
 
-func (h *grpcHandler) GetAllUsers(ctx context.Context, _ *userPb.GetAllUsersRequest) (*userPb.GetAllUsersResponse, error) {
-	users, err := h.userService.GetAllUsers(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-	pbUsers := make([]*userPb.User, len(users))
-	for i, user := range users {
-		var roleIds []string
-		for _, role := range user.Roles {
-			roleIds = append(roleIds, role.Id)
-		}
+// 	return result, nil
+// }
 
-		pbUsers[i] = &userPb.User{
-			Id:       user.ID,
-			Username: user.Username,
-			Name: &userPb.Name{
-				FirstName:  user.Name.FirstName,
-				MiddleName: user.Name.MiddleName,
-				LastName:   user.Name.LastName,
-			},
-			RoleIds: roleIds,
-		}
-	}
+// func (h *grpcHandler) UpdateUser(ctx context.Context, req *userPb.UpdateUserRequest) (*userPb.User, error) {
+// 	result, err := decorator.WithTimeout[*userPb.User](10*time.Second)(func(ctx context.Context) (*userPb.User, error) {
+// 		return h.userService.UpdateUserGRPC(ctx, req)
+// 	})(ctx)
 
-	return &userPb.GetAllUsersResponse{
-		Users: pbUsers,
-	}, nil
-}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-func (h *grpcHandler) UpdateUser(ctx context.Context, req *userPb.UpdateUserRequest) (*userPb.User, error) {
-	dtoReq := &dto.UpdateUserRequest{
-		Username: req.Username,
-		Password: req.Password,
-		Name: dto.Name{
-			FirstName:  req.Name.FirstName,
-			MiddleName: req.Name.MiddleName,
-			LastName:   req.Name.LastName,
-		},
-		RoleIDs: req.RoleIds,
-	}
+// 	return result, nil
+// }
 
-	user, err := h.userService.UpdateUser(ctx, req.Id, dtoReq)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// func (h *grpcHandler) DeleteUser(ctx context.Context, req *userPb.DeleteUserRequest) (*userPb.Empty, error) {
+// 	result, err := decorator.WithTimeout[*userPb.Empty](5*time.Second)(func(ctx context.Context) (*userPb.Empty, error) {
+// 		return h.userService.DeleteUserGRPC(ctx, req)
+// 	})(ctx)
 
-	var roleIds []string
-	for _, role := range user.Roles {
-		roleIds = append(roleIds, role.Id)
-	}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-	return &userPb.User{
-		Id:       user.ID,
-		Username: user.Username,
-		Name: &userPb.Name{
-			FirstName:  user.Name.FirstName,
-			MiddleName: user.Name.MiddleName,
-			LastName:   user.Name.LastName,
-		},
-		RoleIds: roleIds,
-	}, nil
-}
+// 	return result, nil
+// }
 
-func (h *grpcHandler) DeleteUser(ctx context.Context, req *userPb.DeleteUserRequest) (*userPb.Empty, error) {
-	err := h.userService.DeleteUser(ctx, req.Id)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// func (h *grpcHandler) ValidateCredentials(ctx context.Context, req *userPb.ValidateCredentialsRequest) (*userPb.ValidateCredentialsResponse, error) {
+// 	result, err := decorator.WithTimeout[*userPb.ValidateCredentialsResponse](5*time.Second)(func(ctx context.Context) (*userPb.ValidateCredentialsResponse, error) {
+// 		return h.userService.ValidateCredentialsGRPC(ctx, req)
+// 	})(ctx)
 
-	return &userPb.Empty{}, nil
-}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-func (h *grpcHandler) ValidateCredentials(ctx context.Context, req *userPb.ValidateCredentialsRequest) (*userPb.ValidateCredentialsResponse, error) {
-	resp, err := h.userService.ValidateCredentialsGRPC(ctx, req)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	return result, nil
+// }
 
-	return resp, nil
-}
+// func (h *grpcHandler) CreateRole(ctx context.Context, req *userPb.CreateRoleRequest) (*userPb.Role, error) {
+// 	result, err := decorator.WithTimeout[*userPb.Role](10*time.Second)(func(ctx context.Context) (*userPb.Role, error) {
+// 		return h.roleService.CreateRoleGRPC(ctx, req)
+// 	})(ctx)
 
-func (h *grpcHandler) CreateRole(ctx context.Context, req *userPb.CreateRoleRequest) (*userPb.Role, error) {
-	createReq := &dto.CreateRoleRequest{
-		Name:        req.Name,
-		Code:        req.Code,
-		Description: req.Description,
-		Permissions: req.PermissionIds,
-	}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-	role, err := h.userService.CreateRole(ctx, createReq)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	return result, nil
+// }
 
-	var permissionIds []string
-	for _, perm := range role.Permissions {
-		permissionIds = append(permissionIds, perm.Id)
-	}
+// func (h *grpcHandler) GetRole(ctx context.Context, req *userPb.GetRoleRequest) (*userPb.Role, error) {
+// 	result, err := decorator.WithTimeout[*userPb.Role](5*time.Second)(func(ctx context.Context) (*userPb.Role, error) {
+// 		return h.roleService.GetRoleGRPC(ctx, req)
+// 	})(ctx)
 
-	return &userPb.Role{
-		Id:            role.ID,
-		Name:          role.Name,
-		Code:          role.Code,
-		Description:   role.Description,
-		PermissionIds: permissionIds,
-	}, nil
-}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-func (h *grpcHandler) GetRole(ctx context.Context, req *userPb.GetRoleRequest) (*userPb.Role, error) {
-	role, err := h.userService.GetRoleByID(ctx, req.Id)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	return result, nil
+// }
 
-	var permissionIds []string
-	for _, perm := range role.Permissions {
-		permissionIds = append(permissionIds, perm.Id)
-	}
+// func (h *grpcHandler) GetAllRoles(ctx context.Context, req *userPb.GetAllRolesRequest) (*userPb.GetAllRolesResponse, error) {
+// 	result, err := decorator.WithTimeout[*userPb.GetAllRolesResponse](15*time.Second)(func(ctx context.Context) (*userPb.GetAllRolesResponse, error) {
+// 		return h.roleService.GetAllRolesGRPC(ctx, req)
+// 	})(ctx)
 
-	return &userPb.Role{
-		Id:            role.ID,
-		Name:          role.Name,
-		Code:          role.Code,
-		Description:   role.Description,
-		PermissionIds: permissionIds,
-	}, nil
-}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-func (h *grpcHandler) GetAllRoles(ctx context.Context, _ *userPb.GetAllRolesRequest) (*userPb.GetAllRolesResponse, error) {
-	roles, err := h.userService.GetAllRoles(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	return result, nil
+// }
 
-	pbRoles := make([]*userPb.Role, len(roles))
-	for i, role := range roles {
-		var permissionIds []string
-		for _, perm := range role.Permissions {
-			permissionIds = append(permissionIds, perm.Id)
-		}
+// func (h *grpcHandler) UpdateRole(ctx context.Context, req *userPb.UpdateRoleRequest) (*userPb.Role, error) {
+// 	result, err := decorator.WithTimeout[*userPb.Role](10*time.Second)(func(ctx context.Context) (*userPb.Role, error) {
+// 		return h.roleService.UpdateRoleGRPC(ctx, req)
+// 	})(ctx)
 
-		pbRoles[i] = &userPb.Role{
-			Id:            role.ID,
-			Name:          role.Name,
-			Code:          role.Code,
-			Description:   role.Description,
-			PermissionIds: permissionIds,
-		}
-	}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-	return &userPb.GetAllRolesResponse{
-		Roles: pbRoles,
-	}, nil
-}
+// 	return result, nil
+// }
 
-func (h *grpcHandler) UpdateRole(ctx context.Context, req *userPb.UpdateRoleRequest) (*userPb.Role, error) {
-	updateReq := &dto.UpdateRoleRequest{
-		Name:        req.Name,
-		Code:        req.Code,
-		Description: req.Description,
-		Permissions: req.PermissionIds,
-	}
+// func (h *grpcHandler) DeleteRole(ctx context.Context, req *userPb.DeleteRoleRequest) (*userPb.Empty, error) {
+// 	result, err := decorator.WithTimeout[*userPb.Empty](5*time.Second)(func(ctx context.Context) (*userPb.Empty, error) {
+// 		return h.roleService.DeleteRoleGRPC(ctx, req)
+// 	})(ctx)
 
-	role, err := h.userService.UpdateRole(ctx, req.Id, updateReq)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-	var permissionIds []string
-	for _, perm := range role.Permissions {
-		permissionIds = append(permissionIds, perm.Id)
-	}
+// 	return result, nil
+// }
 
-	return &userPb.Role{
-		Id:            role.ID,
-		Name:          role.Name,
-		Code:          role.Code,
-		Description:   role.Description,
-		PermissionIds: permissionIds,
-	}, nil
-}
+// func (h *grpcHandler) CreatePermission(ctx context.Context, req *userPb.CreatePermissionRequest) (*userPb.Permission, error) {
+// 	result, err := decorator.WithTimeout[*userPb.Permission](10*time.Second)(func(ctx context.Context) (*userPb.Permission, error) {
+// 		return h.permService.CreatePermissionGRPC(ctx, req)
+// 	})(ctx)
 
-func (h *grpcHandler) DeleteRole(ctx context.Context, req *userPb.DeleteRoleRequest) (*userPb.Empty, error) {
-	err := h.userService.DeleteRole(ctx, req.Id)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-	return &userPb.Empty{}, nil
-}
+// 	return result, nil
+// }
 
-func (h *grpcHandler) CreatePermission(ctx context.Context, req *userPb.CreatePermissionRequest) (*userPb.Permission, error) {
-	createReq := &dto.CreatePermissionRequest{
-		Name:        req.Name,
-		Code:        req.Code,
-		Description: req.Description,
-		Module:      req.Module,
-	}
+// func (h *grpcHandler) GetPermission(ctx context.Context, req *userPb.GetPermissionRequest) (*userPb.Permission, error) {
+// 	result, err := decorator.WithTimeout[*userPb.Permission](5*time.Second)(func(ctx context.Context) (*userPb.Permission, error) {
+// 		return h.permService.GetPermissionGRPC(ctx, req)
+// 	})(ctx)
 
-	permission, err := h.userService.CreatePermission(ctx, createReq)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-	return &userPb.Permission{
-		Id:          permission.ID,
-		Name:        permission.Name,
-		Code:        permission.Code,
-		Description: permission.Description,
-		Module:      permission.Module,
-	}, nil
-}
+// 	return result, nil
+// }
 
-func (h *grpcHandler) GetPermission(ctx context.Context, req *userPb.GetPermissionRequest) (*userPb.Permission, error) {
-	permission, err := h.userService.GetPermissionByID(ctx, req.Id)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// func (h *grpcHandler) GetAllPermissions(ctx context.Context, req *userPb.GetAllPermissionsRequest) (*userPb.GetAllPermissionsResponse, error) {
+// 	result, err := decorator.WithTimeout[*userPb.GetAllPermissionsResponse](15*time.Second)(func(ctx context.Context) (*userPb.GetAllPermissionsResponse, error) {
+// 		return h.permService.GetAllPermissionsGRPC(ctx, req)
+// 	})(ctx)
 
-	return &userPb.Permission{
-		Id:          permission.ID,
-		Name:        permission.Name,
-		Code:        permission.Code,
-		Description: permission.Description,
-		Module:      permission.Module,
-	}, nil
-}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-func (h *grpcHandler) GetAllPermissions(ctx context.Context, _ *userPb.GetAllPermissionsRequest) (*userPb.GetAllPermissionsResponse, error) {
-	permissions, err := h.userService.GetAllPermissions(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	return result, nil
+// }
 
-	pbPermissions := make([]*userPb.Permission, len(permissions))
-	for i, permission := range permissions {
-		pbPermissions[i] = &userPb.Permission{
-			Id:          permission.ID,
-			Name:        permission.Name,
-			Code:        permission.Code,
-			Description: permission.Description,
-			Module:      permission.Module,
-		}
-	}
+// func (h *grpcHandler) UpdatePermission(ctx context.Context, req *userPb.UpdatePermissionRequest) (*userPb.Permission, error) {
+// 	result, err := decorator.WithTimeout[*userPb.Permission](10*time.Second)(func(ctx context.Context) (*userPb.Permission, error) {
+// 		return h.permService.UpdatePermissionGRPC(ctx, req)
+// 	})(ctx)
 
-	return &userPb.GetAllPermissionsResponse{
-		Permissions: pbPermissions,
-	}, nil
-}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-func (h *grpcHandler) UpdatePermission(ctx context.Context, req *userPb.UpdatePermissionRequest) (*userPb.Permission, error) {
-	updateReq := &dto.UpdatePermissionRequest{
-		Name:        req.Name,
-		Code:        req.Code,
-		Description: req.Description,
-		Module:      req.Module,
-	}
+// 	return result, nil
+// }
 
-	permission, err := h.userService.UpdatePermission(ctx, req.Id, updateReq)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// func (h *grpcHandler) DeletePermission(ctx context.Context, req *userPb.DeletePermissionRequest) (*userPb.Empty, error) {
+// 	result, err := decorator.WithTimeout[*userPb.Empty](5*time.Second)(func(ctx context.Context) (*userPb.Empty, error) {
+// 		return h.permService.DeletePermissionGRPC(ctx, req)
+// 	})(ctx)
 
-	return &userPb.Permission{
-		Id:          permission.ID,
-		Name:        permission.Name,
-		Code:        permission.Code,
-		Description: permission.Description,
-		Module:      permission.Module,
-	}, nil
-}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-func (h *grpcHandler) DeletePermission(ctx context.Context, req *userPb.DeletePermissionRequest) (*userPb.Empty, error) {
-	err := h.userService.DeletePermission(ctx, req.Id)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	return result, nil
+// }
 
-	return &userPb.Empty{}, nil
-}
+// func (h *grpcHandler) CheckUsername(ctx context.Context, req *userPb.CheckUsernameRequest) (*userPb.CheckUsernameResponse, error) {
+// 	// Use gRPC method directly
+// 	result, err := decorator.WithTimeout[*userPb.CheckUsernameResponse](5*time.Second)(func(ctx context.Context) (*userPb.CheckUsernameResponse, error) {
+// 		return h.userService.CheckUsernameGRPC(ctx, req)
+// 	})(ctx)
 
-// Add functions for CheckUsername and SetPassword
-func (h *grpcHandler) CheckUsername(ctx context.Context, req *userPb.CheckUsernameRequest) (*userPb.CheckUsernameResponse, error) {
-	dtoReq := &dto.CheckUsernameRequest{
-		Username: req.Username,
-	}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-	resp, err := h.userService.CheckUsername(ctx, dtoReq)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+// 	return result, nil
+// }
 
-	pbResp := &userPb.CheckUsernameResponse{
-		Exists: resp.Exists,
-	}
+// func (h *grpcHandler) SetPassword(ctx context.Context, req *userPb.SetPasswordRequest) (*userPb.SetPasswordResponse, error) {
+// 	// Use gRPC method directly
+// 	result, err := decorator.WithTimeout[*userPb.SetPasswordResponse](5*time.Second)(func(ctx context.Context) (*userPb.SetPasswordResponse, error) {
+// 		return h.userService.SetPasswordGRPC(ctx, req)
+// 	})(ctx)
 
-	if resp.User != nil {
-		pbResp.UserInfo = &userPb.UserInfo{
-			Id:       resp.User.ID,
-			Username: resp.User.Username,
-			Name: &userPb.Name{
-				FirstName:  resp.User.Name.FirstName,
-				MiddleName: resp.User.Name.MiddleName,
-				LastName:   resp.User.Name.LastName,
-			},
-			MajorId:     resp.User.MajorID,
-			IsActivated: resp.User.IsActivated,
-		}
+// 	if err != nil {
+// 		return nil, status.Error(codes.Internal, err.Error())
+// 	}
 
-		// Add major if available
-		if resp.User.Major != nil {
-			pbResp.UserInfo.Major = resp.User.Major
-		}
-	}
+// 	return result, nil
+// }
 
-	return pbResp, nil
-}
-
-func (h *grpcHandler) SetPassword(ctx context.Context, req *userPb.SetPasswordRequest) (*userPb.SetPasswordResponse, error) {
-	dtoReq := &dto.SetPasswordRequest{
-		Username: req.Username,
-		Password: req.Password,
-	}
-
-	resp, err := h.userService.SetPassword(ctx, dtoReq)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	return &userPb.SetPasswordResponse{
-		Success: resp.Success,
-		Message: resp.Message,
-	}, nil
-}
-
-// Required by gRPC generated code just empty implementation
-func (h *grpcHandler) mustEmbedUnimplementedUserServiceServer() {} 
+// func (h *grpcHandler) mustEmbedUnimplementedUserServiceServer() {}

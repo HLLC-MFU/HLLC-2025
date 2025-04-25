@@ -110,7 +110,7 @@ type (
 		Name        string              `json:"name"`
 		Code        string              `json:"code"`
 		Description string              `json:"description"`
-		Permissions []*userPb.Permission `json:"permissions,omitempty"`
+		Permissions []string            `json:"permissions,omitempty"`
 	}
 
 	PermissionResponse struct {
@@ -126,3 +126,17 @@ type (
 		Password string `json:"password" validate:"required"`
 	}
 )
+
+func (req *CreateUserRequest) ToProto() *userPb.CreateUserRequest {
+	return &userPb.CreateUserRequest{
+		Username: req.Username,
+		Password: req.Password,
+		Name: &userPb.Name{
+			FirstName:  req.Name.FirstName,
+			MiddleName: req.Name.MiddleName,
+			LastName:   req.Name.LastName,
+		},
+		RoleIds: req.RoleIDs,
+		MajorId: req.MajorID,
+	}
+}

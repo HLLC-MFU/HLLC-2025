@@ -1,55 +1,54 @@
 package server
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	activityRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/activity/repository"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/controller"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/handler"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/service"
 	userRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"go.mongodb.org/mongo-driver/mongo"
+	"google.golang.org/grpc"
 )
 
-func (s *server) checkinService() {
-	log.Println("Initializing check-in service...")
+// CheckInService is a global variable to be accessed by other modules directly
+var (
+	CheckInSvc service.CheckInService
+)
 
-	// Initialize MongoDB repositories
-	checkInRepo := repository.NewCheckInRepository(s.db)
-	
-	// Initialize repositories from other modules
-	userRepoFactory := userRepo.NewFactory(s.db)
-	userRepository := userRepoFactory.NewUserRepository()
-	activityRepository := activityRepo.NewActivityRepository(s.db)
+// InitCheckinService initializes the checkin service and its dependencies
+func InitCheckinService(app *fiber.App, cfg *config.Config, db *mongo.Client) error {
+	log.Println("Initializing checkin service...")
 
-	// Initialize services
-	checkInService := service.NewCheckInService(s.config, checkInRepo, userRepository, activityRepository)
+	// Initialize repositories
+	userRepo := userRepo.NewUserRepository(db)
+	activityRepo := activityRepo.NewActivityRepository(db)
+	checkinRepo := repository.NewCheckInRepository(db)
 
-	// Initialize controllers
-	checkInController := controller.NewCheckInController(checkInService)
+	// Initialize service
+	CheckInSvc = service.NewCheckInService(cfg, checkinRepo, userRepo, activityRepo)
 
-	// Initialize HTTP handlers
-	httpHandler := handler.NewHTTPHandler(s.config, checkInController)
+	// Initialize HTTP handler
+	httpHandler := handler.NewHTTPHandler(cfg, CheckInSvc)
 
-	// Set up HTTP middleware
-	s.app.Use(cors.New(cors.Config{
-		AllowCredentials: true,
-		AllowOrigins:     "http://localhost:3000",  // Frontend development URL
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowMethods:     "GET, POST, PUT, DELETE",
-	}))
-	s.app.Use(logger.New())
-	s.app.Use(recover.New())
-	s.app.Use(middleware.RequestIDMiddleware())
-	s.app.Use(middleware.LoggingMiddleware())
+	// Register gRPC service
+	log.Println("Registering checkin gRPC service...")
+	grpcHandler := handler.NewGRPCHandler(cfg, CheckInSvc)
+	if err := core.RegisterGRPCService("checkin", func(server *grpc.Server) {
+		generated.RegisterCheckInServiceServer(server, grpcHandler)
+	}); err != nil {
+		return fmt.Errorf("failed to register checkin gRPC service: %v", err)
+	}
+	log.Printf("Successfully registered checkin gRPC service")
 
-	// Set up HTTP routes
-	api := s.app.Group("/api/v1")
+	// Initialize HTTP server
+	api := app.Group("/api/v1")
 
 	// Public routes (no auth required)
 	public := api.Group("/public/checkins")
@@ -57,19 +56,12 @@ func (s *server) checkinService() {
 
 	// Protected routes (auth required)
 	protected := api.Group("/checkins")
-	protected.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
 	httpHandler.RegisterProtectedRoutes(protected)
 
 	// Admin routes (auth + admin role required)
 	admin := api.Group("/admin/checkins")
-	admin.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
-	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
 	httpHandler.RegisterAdminRoutes(admin)
 
-	// Set up health check
-	s.app.Get("/health", func(c *fiber.Ctx) error {
-		return c.SendString("OK")
-	})
-
-	log.Printf("CheckIn service initialized")
-} 
+	log.Printf("Checkin service initialized in monolithic mode")
+	return nil
+}

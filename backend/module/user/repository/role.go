@@ -2,25 +2,39 @@ package repository
 
 import (
 	"context"
-	"errors"
-	"log"
-	"strings"
+	"fmt"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 
 	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/exceptions"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/logging"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// roleRepository implements role-specific operations
-type roleRepository struct {
-	db *mongo.Client
-}
+const (
+	collectionRoles = "roles"
+)
 
-// NewRoleRepository creates a new role repository instance
+// RoleRepositoryService defines role-specific operations
+type (
+	RoleRepositoryService interface {
+		CreateRole(ctx context.Context, role *userPb.Role) error
+		FindRoleByID(ctx context.Context, id primitive.ObjectID) (*userPb.Role, error)
+		FindRoleByCode(ctx context.Context, code string) (*userPb.Role, error)
+		FindAllRoles(ctx context.Context) ([]*userPb.Role, error)
+		UpdateRole(ctx context.Context, role *userPb.Role) error
+		DeleteRole(ctx context.Context, id primitive.ObjectID) error
+	}
+
+	roleRepository struct {
+		db *mongo.Client
+	}
+)
+
+// NewRoleRepository creates a new role repository
 func NewRoleRepository(db *mongo.Client) RoleRepositoryService {
 	return &roleRepository{db: db}
 }
@@ -29,356 +43,441 @@ func (r *roleRepository) dbConnect(ctx context.Context) *mongo.Database {
 	return r.db.Database("hllc-2025")
 }
 
-// CreateRole creates a new role with timeout handling
+func (r *roleRepository) rolesColl(ctx context.Context) *mongo.Collection {
+	return r.dbConnect(ctx).Collection(collectionRoles)
+}
+
+// CreateRole creates a new role with proper error handling and structured logging
 func (r *roleRepository) CreateRole(ctx context.Context, role *userPb.Role) error {
 	_, err := decorator.WithTimeout[struct{}](10*time.Second)(func(ctx context.Context) (struct{}, error) {
-		collection := r.dbConnect(ctx).Collection("roles")
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Creating role",
+			logging.FieldOperation, "create_role",
+			logging.FieldEntity, "role",
+			"code", role.Code,
+			"name", role.Name,
+		)
 		
-		// Ensure we have an ID and convert it to ObjectID for MongoDB _id field
-		if role.Id == "" {
-			role.Id = primitive.NewObjectID().Hex()
+		rolesColl := r.rolesColl(ctx)
+		
+		// Check if role already exists by code
+		var existingRole userPb.Role
+		err := rolesColl.FindOne(ctx, bson.M{"code": role.Code}).Decode(&existingRole)
+		if err == nil {
+			logger.Warn("Role already exists",
+				logging.FieldOperation, "create_role",
+				logging.FieldEntity, "role",
+				"code", role.Code,
+			)
+			return struct{}{}, exceptions.AlreadyExists(
+				"role", "code", role.Code, nil,
+				exceptions.WithOperation("create"),
+			)
+		} else if err != mongo.ErrNoDocuments {
+			logger.Error("Error checking existing role", err,
+				logging.FieldOperation, "create_role",
+				logging.FieldEntity, "role",
+				"code", role.Code,
+			)
+			return struct{}{}, exceptions.Internal("error checking existing role", err)
 		}
 		
-		objectID, err := primitive.ObjectIDFromHex(role.Id)
-		if err != nil {
-			// If the ID is invalid, generate a new one
+		// Convert string ID to ObjectID for MongoDB
+		var objectID primitive.ObjectID
+		if role.Id == "" {
 			objectID = primitive.NewObjectID()
 			role.Id = objectID.Hex()
+		} else {
+			var err error
+			objectID, err = primitive.ObjectIDFromHex(role.Id)
+			if err != nil {
+				logger.Error("Invalid role ID format", err,
+					logging.FieldOperation, "create_role",
+					logging.FieldEntity, "role",
+					"role_id", role.Id,
+				)
+				return struct{}{}, exceptions.InvalidInput(fmt.Sprintf("invalid role ID format: %s", role.Id), err)
+			}
 		}
 		
-		// Create a document with both _id and id fields matching
+		// Create document
 		doc := bson.M{
-			"_id":            objectID,
-			"id":             role.Id,
-			"name":           role.Name,
-			"code":           role.Code,
-			"description":    role.Description,
+			"_id":           objectID,
+			"id":            role.Id,
+			"name":          role.Name,
+			"code":          role.Code,
+			"description":   role.Description,
 			"permission_ids": role.PermissionIds,
-			"created_at":     role.CreatedAt,
-			"updated_at":     role.UpdatedAt,
+			"created_at":    role.CreatedAt,
+			"updated_at":    role.UpdatedAt,
 		}
 		
-		_, err = collection.InsertOne(ctx, doc)
+		// Insert role
+		_, err = rolesColl.InsertOne(ctx, doc)
 		if err != nil {
 			if mongo.IsDuplicateKeyError(err) {
-				return struct{}{}, errors.New("role already exists")
+				logger.Warn("Duplicate key error when creating role", 
+					logging.FieldOperation, "create_role",
+					logging.FieldEntity, "role",
+					"code", role.Code,
+				)
+				return struct{}{}, exceptions.AlreadyExists("role", "code", role.Code, err)
 			}
-			return struct{}{}, err
+			
+			logger.Error("Error creating role", err,
+				logging.FieldOperation, "create_role",
+				logging.FieldEntity, "role",
+				"code", role.Code,
+			)
+			return struct{}{}, exceptions.Internal("error creating role", err)
 		}
 		
-		log.Printf("Created role in database: %s (%s) with %d permissions", 
-			role.Name, role.Id, len(role.PermissionIds))
+		logger.Info("Role created successfully",
+			logging.FieldOperation, "create_role",
+			logging.FieldEntity, "role",
+			logging.FieldEntityID, role.Id,
+			"code", role.Code,
+		)
 		
 		return struct{}{}, nil
 	})(ctx)
+	
 	return err
 }
 
-// FindRoleByID finds a role by ID with timeout handling
+// FindRoleByID finds a role by ID with proper error handling and logging
 func (r *roleRepository) FindRoleByID(ctx context.Context, id primitive.ObjectID) (*userPb.Role, error) {
-	var role *userPb.Role
-	_, err := decorator.WithTimeout[struct{}](10*time.Second)(func(ctx context.Context) (struct{}, error) {
-		collection := r.dbConnect(ctx).Collection("roles")
+	return decorator.WithTimeout[*userPb.Role](5*time.Second)(func(ctx context.Context) (*userPb.Role, error) {
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Finding role by ID",
+			logging.FieldOperation, "find_role_by_id",
+			logging.FieldEntity, "role",
+			logging.FieldEntityID, id.Hex(),
+		)
 		
-		// Log what we're looking for
-		log.Printf("FindRoleByID: Looking for role with ID %s", id.Hex())
+		rolesColl := r.rolesColl(ctx)
 		
-		// First try to get the raw document for debugging
-		var rawDoc bson.M
-		err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&rawDoc)
-		if err == nil {
-			// Log the raw document to see exactly what's in the database
-			log.Printf("FindRoleByID: Raw role document: %+v", rawDoc)
+		// Try finding by both ID formats (_id and id string)
+		filter := bson.M{
+			"$or": []bson.M{
+				{"_id": id},
+				{"id": id.Hex()},
+			},
+		}
+		
+		var role userPb.Role
+		err := rolesColl.FindOne(ctx, filter).Decode(&role)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				logger.Warn("Role not found",
+					logging.FieldOperation, "find_role_by_id",
+					logging.FieldEntity, "role",
+					logging.FieldEntityID, id.Hex(),
+				)
+				return nil, exceptions.NotFound("role", id.Hex(), err)
+			}
 			
-			// Log permission IDs from the raw document
-			if pids, ok := rawDoc["permission_ids"].(primitive.A); ok {
-				log.Printf("FindRoleByID: Found permission_ids as primitive.A: %v", pids)
-			} else if pids, ok := rawDoc["permissionIds"].(primitive.A); ok {
-				log.Printf("FindRoleByID: Found permissionIds as primitive.A: %v", pids)
-			} else {
-				log.Printf("FindRoleByID: Could not find permission IDs in document")
-			}
-		} else {
-			log.Printf("FindRoleByID: Error getting raw document: %v", err)
+			logger.Error("Error finding role by ID", err,
+				logging.FieldOperation, "find_role_by_id",
+				logging.FieldEntity, "role",
+				logging.FieldEntityID, id.Hex(),
+			)
+			return nil, exceptions.Internal("error finding role by ID", err)
 		}
 		
-		// Try finding by _id first
-		result := collection.FindOne(ctx, bson.M{"_id": id})
-		if result.Err() != nil {
-			if result.Err() == mongo.ErrNoDocuments {
-				// If not found by _id, try by id string field
-				idStr := id.Hex()
-				result = collection.FindOne(ctx, bson.M{"id": idStr})
-				if result.Err() != nil {
-					if result.Err() == mongo.ErrNoDocuments {
-						return struct{}{}, ErrNotFound
-					}
-					return struct{}{}, result.Err()
-				}
-			} else {
-				return struct{}{}, result.Err()
-			}
-		}
+		logger.Info("Found role by ID",
+			logging.FieldOperation, "find_role_by_id",
+			logging.FieldEntity, "role",
+			logging.FieldEntityID, id.Hex(),
+			"code", role.Code,
+		)
 		
-		if err := result.Decode(&role); err != nil {
-			return struct{}{}, err
-		}
-		
-		// Ensure permissionIds is at least an empty array instead of nil
-		if role.PermissionIds == nil {
-			role.PermissionIds = []string{}
-		}
-		
-		// Log the role structure for debugging
-		log.Printf("FindRoleByID: Found role by ID %s: %s (%s) with %d permission IDs: %v", 
-			id.Hex(), role.Name, role.Id, len(role.PermissionIds), role.PermissionIds)
-		
-		return struct{}{}, nil
+		return &role, nil
 	})(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return role, nil
 }
 
-// FindAllRoles retrieves all roles with timeout and cursor handling
-func (r *roleRepository) FindAllRoles(ctx context.Context) ([]*userPb.Role, error) {
-	var roles []*userPb.Role
-	
-	_, err := decorator.WithTimeout[struct{}](10*time.Second)(func(ctx context.Context) (struct{}, error) {
-		collection := r.dbConnect(ctx).Collection("roles")
+// FindRoleByCode finds a role by code with proper error handling and logging
+func (r *roleRepository) FindRoleByCode(ctx context.Context, code string) (*userPb.Role, error) {
+	return decorator.WithTimeout[*userPb.Role](5*time.Second)(func(ctx context.Context) (*userPb.Role, error) {
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Finding role by code",
+			logging.FieldOperation, "find_role_by_code",
+			logging.FieldEntity, "role",
+			"code", code,
+		)
 		
-		// Get all roles from the collection
-		log.Printf("Finding all roles in the database...")
-		cursor, err := collection.Find(ctx, bson.M{})
+		rolesColl := r.rolesColl(ctx)
+		
+		var role userPb.Role
+		err := rolesColl.FindOne(ctx, bson.M{"code": code}).Decode(&role)
 		if err != nil {
-			log.Printf("Error finding roles: %v", err)
-			return struct{}{}, err
+			if err == mongo.ErrNoDocuments {
+				logger.Warn("Role not found by code",
+					logging.FieldOperation, "find_role_by_code",
+					logging.FieldEntity, "role",
+					"code", code,
+				)
+				return nil, exceptions.NotFound("role", fmt.Sprintf("code:%s", code), err)
+			}
+			
+			logger.Error("Error finding role by code", err,
+				logging.FieldOperation, "find_role_by_code",
+				logging.FieldEntity, "role",
+				"code", code,
+			)
+			return nil, exceptions.Internal("error finding role by code", err)
+		}
+		
+		logger.Info("Found role by code",
+			logging.FieldOperation, "find_role_by_code",
+			logging.FieldEntity, "role",
+			logging.FieldEntityID, role.Id,
+			"code", code,
+		)
+		
+		return &role, nil
+	})(ctx)
+}
+
+// FindAllRoles retrieves all roles with proper error handling and logging
+func (r *roleRepository) FindAllRoles(ctx context.Context) ([]*userPb.Role, error) {
+	return decorator.WithTimeout[[]*userPb.Role](10*time.Second)(func(ctx context.Context) ([]*userPb.Role, error) {
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Finding all roles",
+			logging.FieldOperation, "find_all_roles",
+			logging.FieldEntity, "role",
+		)
+		
+		rolesColl := r.rolesColl(ctx)
+		
+		// Find all roles
+		cursor, err := rolesColl.Find(ctx, bson.M{})
+		if err != nil {
+			logger.Error("Error finding all roles", err,
+				logging.FieldOperation, "find_all_roles",
+				logging.FieldEntity, "role",
+			)
+			return nil, exceptions.Internal("error finding all roles", err)
 		}
 		defer cursor.Close(ctx)
-
-		// Decode into raw BSON documents first for better debugging
-		var rawDocs []bson.M
-		if err := cursor.All(ctx, &rawDocs); err != nil {
-			log.Printf("Error decoding roles: %v", err)
-			return struct{}{}, err
+		
+		var roles []*userPb.Role
+		if err := cursor.All(ctx, &roles); err != nil {
+			logger.Error("Error decoding roles", err,
+				logging.FieldOperation, "find_all_roles",
+				logging.FieldEntity, "role",
+			)
+			return nil, exceptions.Internal("error decoding roles", err)
 		}
 		
-		log.Printf("Found %d roles in database", len(rawDocs))
-		
-		// Convert raw documents to proto objects
-		roles = make([]*userPb.Role, 0, len(rawDocs))
-		for _, doc := range rawDocs {
-			// Debug log the document key names
-			keys := make([]string, 0, len(doc))
-			for k := range doc {
-				keys = append(keys, k)
-			}
-			log.Printf("Role document keys: %v", keys)
-			
-			// Extract ID fields properly
-			var roleID string
-			if id, ok := doc["_id"].(primitive.ObjectID); ok {
-				roleID = id.Hex()
-				log.Printf("Extracted role ID from _id field: %s", roleID)
-			} else if id, ok := doc["id"].(string); ok {
-				roleID = id
-				log.Printf("Extracted role ID from id field: %s", roleID)
-			} else {
-				log.Printf("Warning: Role document has invalid ID format: %v", doc["_id"])
-				continue
-			}
-			
-			// Extract permission IDs, handling different field name formats
-			var permissionIDs []string
-			
-			// First check for permission_ids (snake_case)
-			if pids, ok := doc["permission_ids"].(primitive.A); ok {
-				log.Printf("Found permission_ids as primitive.A with %d elements", len(pids))
-				for _, pid := range pids {
-					if pidStr, ok := pid.(string); ok {
-						permissionIDs = append(permissionIDs, pidStr)
-						log.Printf("Added permission ID: %s", pidStr)
-					} else {
-						log.Printf("Warning: Non-string permission ID: %T %v", pid, pid)
-					}
-				}
-			} else if pids, ok := doc["permission_ids"].([]interface{}); ok {
-				log.Printf("Found permission_ids as []interface{} with %d elements", len(pids))
-				for _, pid := range pids {
-					if pidStr, ok := pid.(string); ok {
-						permissionIDs = append(permissionIDs, pidStr)
-						log.Printf("Added permission ID: %s", pidStr)
-					} else {
-						log.Printf("Warning: Non-string permission ID: %T %v", pid, pid)
-					}
-				}
-			} else {
-				// Then check for permissionIds (camelCase)
-				if pids, ok := doc["permissionIds"].(primitive.A); ok {
-					log.Printf("Found permissionIds as primitive.A with %d elements", len(pids))
-					for _, pid := range pids {
-						if pidStr, ok := pid.(string); ok {
-							permissionIDs = append(permissionIDs, pidStr)
-							log.Printf("Added permission ID: %s", pidStr)
-						} else {
-							log.Printf("Warning: Non-string permission ID: %T %v", pid, pid)
-						}
-					}
-				} else if pids, ok := doc["permissionIds"].([]interface{}); ok {
-					log.Printf("Found permissionIds as []interface{} with %d elements", len(pids))
-					for _, pid := range pids {
-						if pidStr, ok := pid.(string); ok {
-							permissionIDs = append(permissionIDs, pidStr)
-							log.Printf("Added permission ID: %s", pidStr)
-						} else {
-							log.Printf("Warning: Non-string permission ID: %T %v", pid, pid)
-						}
-					}
-				} else {
-					log.Printf("No permission IDs found in role document")
-					permissionIDs = []string{}
-				}
-			}
-			
-			// Create Role object
-			role := &userPb.Role{
-				Id:            roleID,
-				Name:          getStringValue(doc, "name"),
-				Code:          getStringValue(doc, "code"),
-				Description:   getStringValue(doc, "description"),
-				PermissionIds: permissionIDs,
-				CreatedAt:     getStringValue(doc, "created_at"),
-				UpdatedAt:     getStringValue(doc, "updated_at"),
-			}
-			
-			log.Printf("Processed role: %s (%s) with %d permission IDs: %v", 
-				role.Name, role.Id, len(role.PermissionIds), role.PermissionIds)
-			
-			roles = append(roles, role)
+		// Return empty array instead of nil
+		if roles == nil {
+			roles = []*userPb.Role{}
 		}
 		
-		log.Printf("Successfully processed %d roles", len(roles))
-		return struct{}{}, nil
+		logger.Info("Found roles",
+			logging.FieldOperation, "find_all_roles",
+			logging.FieldEntity, "role",
+			"count", len(roles),
+		)
+		
+		return roles, nil
 	})(ctx)
-	
-	if err != nil {
-		return nil, err
-	}
-	return roles, nil
 }
 
-// getStringValue safely extracts string values from BSON documents
-func getStringValue(doc bson.M, key string) string {
-	// Try snake_case first
-	if val, ok := doc[key].(string); ok {
-		return val
-	}
-	
-	// Try camelCase alternative
-	camelKey := toCamelCase(key)
-	if val, ok := doc[camelKey].(string); ok {
-		return val
-	}
-	
-	return ""
-}
-
-// toCamelCase converts a snake_case string to camelCase
-func toCamelCase(s string) string {
-	parts := strings.Split(s, "_")
-	for i := 1; i < len(parts); i++ {
-		if len(parts[i]) > 0 {
-			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
-		}
-	}
-	return strings.Join(parts, "")
-}
-
-// UpdateRole updates role information with timeout handling
+// UpdateRole updates a role with proper error handling and logging
 func (r *roleRepository) UpdateRole(ctx context.Context, role *userPb.Role) error {
 	_, err := decorator.WithTimeout[struct{}](10*time.Second)(func(ctx context.Context) (struct{}, error) {
-		collection := r.dbConnect(ctx).Collection("roles")
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Updating role",
+			logging.FieldOperation, "update_role",
+			logging.FieldEntity, "role",
+			logging.FieldEntityID, role.Id,
+			"code", role.Code,
+		)
 		
-		// Ensure permissionIds is at least an empty array 
-		if role.PermissionIds == nil {
-			role.PermissionIds = []string{}
-		}
+		roleColl := r.rolesColl(ctx)
 		
-		// Log what we're about to update
-		log.Printf("Updating role %s with permission IDs: %v", role.Id, role.PermissionIds)
-		
-		// Check if the role exists first
-		var existing bson.M
+		// Convert string ID to ObjectID
 		objectID, err := primitive.ObjectIDFromHex(role.Id)
 		if err != nil {
-			log.Printf("Error converting role ID to ObjectID: %v", err)
-			return struct{}{}, err
+			logger.Error("Invalid role ID format", err,
+				logging.FieldOperation, "update_role",
+				logging.FieldEntity, "role",
+				"role_id", role.Id,
+			)
+			return struct{}{}, exceptions.InvalidInput(fmt.Sprintf("invalid role ID format: %s", role.Id), err)
 		}
 		
-		err = collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&existing)
+		// Check if role exists
+		filter := bson.M{
+			"$or": []bson.M{
+				{"_id": objectID},
+				{"id": role.Id},
+			},
+		}
+		
+		var existingRole userPb.Role
+		err = roleColl.FindOne(ctx, filter).Decode(&existingRole)
 		if err != nil {
-			// Try by string ID
-			err = collection.FindOne(ctx, bson.M{"id": role.Id}).Decode(&existing)
-			if err != nil {
-				log.Printf("Error finding role to update: %v", err)
-				return struct{}{}, err
+			if err == mongo.ErrNoDocuments {
+				logger.Warn("Role not found for update",
+					logging.FieldOperation, "update_role",
+					logging.FieldEntity, "role",
+					logging.FieldEntityID, role.Id,
+				)
+				return struct{}{}, exceptions.NotFound("role", role.Id, err)
 			}
+			
+			logger.Error("Error finding role for update", err,
+				logging.FieldOperation, "update_role",
+				logging.FieldEntity, "role",
+				logging.FieldEntityID, role.Id,
+			)
+			return struct{}{}, exceptions.Internal("error finding role for update", err)
 		}
 		
-		// Create the update with both snake_case and camelCase for maximum compatibility
+		// Prepare update document
 		update := bson.M{
 			"$set": bson.M{
 				"name":           role.Name,
 				"code":           role.Code,
 				"description":    role.Description,
-				"permission_ids": role.PermissionIds, // snake_case
-				"permissionIds":  role.PermissionIds, // camelCase
-				"updated_at":     time.Now().Format(time.RFC3339),
+				"permission_ids": role.PermissionIds,
+				"updated_at":     role.UpdatedAt,
 			},
 		}
 		
-		// Update by _id field
-		result, err := collection.UpdateOne(ctx, 
-			bson.M{"_id": objectID}, 
-			update)
+		// If code is changing, check for duplicates
+		if role.Code != existingRole.Code {
+			// Check if the new code already exists for another role
+			var duplicateRole userPb.Role
+			err = roleColl.FindOne(ctx, bson.M{
+				"code": role.Code,
+				"_id": bson.M{"$ne": objectID},
+			}).Decode(&duplicateRole)
 			
+			if err == nil {
+				logger.Warn("Role code already taken",
+					logging.FieldOperation, "update_role",
+					logging.FieldEntity, "role",
+					"code", role.Code,
+				)
+				return struct{}{}, exceptions.AlreadyExists("role", "code", role.Code, nil)
+			} else if err != mongo.ErrNoDocuments {
+				logger.Error("Error checking code uniqueness", err,
+					logging.FieldOperation, "update_role",
+					logging.FieldEntity, "role",
+					"code", role.Code,
+				)
+				return struct{}{}, exceptions.Internal("error checking code uniqueness", err)
+			}
+		}
+		
+		// Update role
+		result, err := roleColl.UpdateOne(ctx, filter, update)
 		if err != nil {
-			log.Printf("Error updating role: %v", err)
-			return struct{}{}, err
+			logger.Error("Error updating role", err,
+				logging.FieldOperation, "update_role",
+				logging.FieldEntity, "role",
+				logging.FieldEntityID, role.Id,
+			)
+			return struct{}{}, exceptions.Internal("error updating role", err)
 		}
 		
 		if result.MatchedCount == 0 {
-			// Try updating by string ID
-			result, err = collection.UpdateOne(ctx, 
-				bson.M{"id": role.Id}, 
-				update)
-				
-			if err != nil {
-				log.Printf("Error updating role by string ID: %v", err)
-				return struct{}{}, err
-			}
-			
-			if result.MatchedCount == 0 {
-				log.Printf("Role not found for update: %s", role.Id)
-				return struct{}{}, ErrNotFound
-			}
+			logger.Warn("Role not found for update after check",
+				logging.FieldOperation, "update_role",
+				logging.FieldEntity, "role",
+				logging.FieldEntityID, role.Id,
+			)
+			return struct{}{}, exceptions.NotFound("role", role.Id, nil)
 		}
 		
-		log.Printf("Successfully updated role %s (%s) with %d permissions", 
-			role.Name, role.Id, len(role.PermissionIds))
+		logger.Info("Role updated successfully",
+			logging.FieldOperation, "update_role",
+			logging.FieldEntity, "role",
+			logging.FieldEntityID, role.Id,
+			"code", role.Code,
+		)
 		
 		return struct{}{}, nil
 	})(ctx)
+	
 	return err
 }
 
-// DeleteRole deletes a role with timeout handling
+// DeleteRole deletes a role with proper error handling and logging
 func (r *roleRepository) DeleteRole(ctx context.Context, id primitive.ObjectID) error {
 	_, err := decorator.WithTimeout[struct{}](5*time.Second)(func(ctx context.Context) (struct{}, error) {
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Deleting role",
+			logging.FieldOperation, "delete_role",
+			logging.FieldEntity, "role",
+			logging.FieldEntityID, id.Hex(),
+		)
+		
 		collection := r.dbConnect(ctx).Collection("roles")
-		_, err := collection.DeleteOne(ctx, bson.M{"_id": id})
-		return struct{}{}, err
+		
+		// Find role first for better logging and error reporting
+		filter := bson.M{
+			"$or": []bson.M{
+				{"_id": id},
+				{"id": id.Hex()},
+			},
+		}
+		
+		var role userPb.Role
+		err := collection.FindOne(ctx, filter).Decode(&role)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				logger.Warn("Role not found for deletion",
+					logging.FieldOperation, "delete_role",
+					logging.FieldEntity, "role",
+					logging.FieldEntityID, id.Hex(),
+				)
+				return struct{}{}, exceptions.NotFound("role", id.Hex(), err)
+			}
+			
+			logger.Error("Error finding role for deletion", err,
+				logging.FieldOperation, "delete_role",
+				logging.FieldEntity, "role",
+				logging.FieldEntityID, id.Hex(),
+			)
+			return struct{}{}, exceptions.Internal("error finding role for deletion", err)
+		}
+		
+		// Delete role
+		result, err := collection.DeleteOne(ctx, filter)
+		if err != nil {
+			logger.Error("Error deleting role", err,
+				logging.FieldOperation, "delete_role",
+				logging.FieldEntity, "role",
+				logging.FieldEntityID, id.Hex(),
+				"code", role.Code,
+			)
+			return struct{}{}, exceptions.Internal("error deleting role", err)
+		}
+		
+		if result.DeletedCount == 0 {
+			logger.Warn("Role not deleted after found",
+				logging.FieldOperation, "delete_role",
+				logging.FieldEntity, "role",
+				logging.FieldEntityID, id.Hex(),
+				"code", role.Code,
+			)
+			return struct{}{}, exceptions.Internal("role not deleted after found", nil)
+		}
+		
+		logger.Info("Role deleted successfully",
+			logging.FieldOperation, "delete_role",
+			logging.FieldEntity, "role",
+			logging.FieldEntityID, id.Hex(),
+			"code", role.Code,
+		)
+		
+		return struct{}{}, nil
 	})(ctx)
+	
 	return err
-} 
+}

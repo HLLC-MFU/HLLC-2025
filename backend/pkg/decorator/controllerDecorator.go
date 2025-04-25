@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/request"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/response"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -26,6 +28,35 @@ type (
 		Router fiber.Router
 	}
 )
+
+func WithJSONResponse[T any](fn func(ctx *fiber.Ctx) (T, error)) HTTPHandlerFunc {
+	return func(c *fiber.Ctx) error {
+		data, err := fn(c)
+		if err != nil {
+			return response.Error(c, fiber.StatusInternalServerError, err.Error())
+		}
+		return response.Success(c, fiber.StatusOK, data)
+	}
+}
+
+
+// NewBaseController creates a new BaseController
+func WithRecovery() ControllerDecorator {
+	return func(handler HTTPHandlerFunc) HTTPHandlerFunc {
+		return func(c *fiber.Ctx) (err error) {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf("Panic Recovered: %v", r)
+					err = c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+						"error": "Internal Server Error",
+					})
+				}
+			}()
+			return handler(c)
+		}
+	}
+}
+
 
 // WithLogging adds logging to the handler
 func WithLogging(handler HTTPHandlerFunc) HTTPHandlerFunc {
@@ -106,6 +137,20 @@ func WithTransaction(handler HTTPHandlerFunc) HTTPHandlerFunc {
 		return nil
 	}
 }
+
+func WithJSONValidation[T any](handler func(*fiber.Ctx, *T) error) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		ctxWrapper := request.NewContextWrapper(c)
+		req := new(T)
+
+		if err := ctxWrapper.Bind(req); err != nil {
+			return response.Error(c, fiber.StatusBadRequest, err.Error())
+		}
+
+		return handler(c, req)
+	}
+}
+
 
 // ComposeDecorators combines multiple decorators into one
 func ComposeDecorators(decorators ...ControllerDecorator) ControllerDecorator {

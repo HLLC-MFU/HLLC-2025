@@ -1,0 +1,43 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Code Review Checklist
+
+## gRPC and REST API Mapping
+- [ ] **gRPC Mapping**: Verify that all gRPC services are correctly mapped to the corresponding REST API endpoints.
+- [ ] **gRPC Functionality**: Ensure that the gRPC services are functioning as expected. Test all endpoints for proper responses.
+
+## Cookie Management
+- [ ] **Cookie Implementation**: Check that cookies are being set, retrieved, and managed correctly according to best practices.
+- [ ] **Security**: Ensure that cookies are secure (e.g., HttpOnly, Secure flags) and that sensitive information is not stored in cookies.
+
+## Service Optimization
+- [ ] **Service Techniques**: Review all services to confirm they are using current techniques and libraries. Identify any deprecated methods and update them to the latest versions.
+- [ ] **Performance**: Optimize services for performance where applicable.
+
+## Context Usage
+- [ ] **Context Handling**: Ensure that all controllers, handlers, and routes are using the correct context (`ctx`) from the library specified in `main.mdc`. 
+- [ ] **Timeouts**: Verify that the context is wrapped with the `WithTimeout` decorator where necessary.
+
+## Error Handling
+- [ ] **Exception Handling**: Check that all repositories, use cases, controllers, and handlers have proper exception or error handling implemented.
+- [ ] **Optimization**: If error handling is not optimized, refactor the code to include comprehensive error handling.
+
+## Data Transfer Objects (DTOs)
+- [ ] **DTO Implementation**: Confirm that each service module has a corresponding DTO. Identify any modules lacking DTOs and implement them.
+- [ ] **Consistency**: Ensure that DTOs are consistently used across all services.
+
+## Role and Permission Management
+- [ ] **Role Functionality**: Verify that role and permission management is functioning correctly.
+- [ ] **Alignment with Cookies**: Ensure that role and permission checks align with cookie management rules.
+
+## Final Review
+- [ ] **Code Consistency**: Review the overall code structure for consistency and adherence to the established rules.
+- [ ] **Documentation**: Ensure that all changes are documented and that the code is well-commented for future reference.
+
+## Action Items
+- [ ] **Refactor**: Make necessary changes based on the checklist findings.
+- [ ] **Test**: Conduct thorough testing after making changes to ensure everything works as expected.
+- [ ] **Commit Changes**: Once all items are addressed, commit the changes with a clear message summarizing the updates.

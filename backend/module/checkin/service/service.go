@@ -9,7 +9,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	activityRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/activity/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/dto"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/entity"
+	entity "github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/model"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/repository"
 	userRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"

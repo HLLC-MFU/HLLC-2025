@@ -12,66 +12,59 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// AuthMiddleware handles authentication for HTTP requests
+// AuthMiddleware handles authentication for HTTP requests using Authorization header
 func AuthMiddleware(secretKey string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// Check for token in Authorization header
 		authHeader := c.Get("Authorization")
-		var tokenString string
-
-		if authHeader != "" {
-			// Extract token from Bearer scheme
-			tokenParts := strings.Split(authHeader, " ")
-			if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
-				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-					"status": false,
-					"error": "invalid authorization format, use Bearer token",
-					"code": "invalid_auth_format",
-				})
-			}
-			tokenString = tokenParts[1]
-		} else {
-			// If not in header, try to get from cookies
-			cookie := c.Cookies("access_token")
-			if cookie == "" {
-				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-					"status": false,
-					"error": "missing authentication token",
-					"code": "missing_token",
-				})
-			}
-			tokenString = cookie
+		if authHeader == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"status": false,
+				"error":  "authorization header is required",
+				"code":   "missing_auth_header",
+			})
 		}
 
-		// Validate token
+		// Must be in the form: Bearer <token>
+		tokenParts := strings.Split(authHeader, " ")
+		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"status": false,
+				"error":  "invalid authorization format, expected 'Bearer <token>'",
+				"code":   "invalid_auth_format",
+			})
+		}
+
+		tokenString := tokenParts[1]
+
+		// Validate the JWT
 		claims, err := security.ParseToken(secretKey, tokenString)
 		if err != nil {
 			statusCode := fiber.StatusUnauthorized
 			errorCode := "invalid_token"
 			errorMsg := "invalid token"
-			
+
 			if err == security.ErrTokenExpired {
 				errorMsg = "token expired"
 				errorCode = "token_expired"
 			}
-			
+
 			return c.Status(statusCode).JSON(fiber.Map{
 				"status": false,
-				"error": errorMsg,
-				"code": errorCode,
+				"error":  errorMsg,
+				"code":   errorCode,
 			})
 		}
 
-		// Check token type
+		// Only accept access tokens
 		if claims.TokenType != security.TokenTypeAccess {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"status": false,
-				"error": "invalid token type",
-				"code": "invalid_token_type",
+				"error":  "invalid token type",
+				"code":   "invalid_token_type",
 			})
 		}
 
-		// Store claims in context
+		// Attach token claims to context for downstream access
 		c.Locals("user_id", claims.UserID)
 		c.Locals("username", claims.Username)
 		c.Locals("role_codes", claims.RoleCodes)
@@ -80,6 +73,7 @@ func AuthMiddleware(secretKey string) fiber.Handler {
 		return c.Next()
 	}
 }
+
 
 // RoleMiddleware checks if user has required roles
 func RoleMiddleware(requiredRoles []string) fiber.Handler {
