@@ -31,13 +31,13 @@ type (
 	}
 
 	RefreshTokenRequest struct {
-		RefreshToken string `json:"refreshToken" validate:"required"`
+		RefreshToken string `json:"refresh_token" validate:"required"`
 	}
 
 	TokenResponse struct {
-		AccessToken  string    `json:"accessToken"`
-		RefreshToken string    `json:"refreshToken"`
-		ExpiresAt    time.Time `json:"expiresAt"`
+		AccessToken  string    `json:"access_token"`
+		RefreshToken string    `json:"refresh_token"`
+		ExpiresAt    time.Time `json:"expires_at"`
 	}
 
 	UserResponse struct {

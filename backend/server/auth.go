@@ -1,25 +1,18 @@
 package server
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/controller"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/handler"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/repository"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/service"
+	authService "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/service/http"
 	userRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
+	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
-	"google.golang.org/grpc"
-)
-
-var (
-	AuthSvc service.AuthService
-	HttpSvc service.AuthService
 )
 
 // InitAuthService initializes the auth service and its dependencies
@@ -27,39 +20,45 @@ func InitAuthService(app *fiber.App, cfg *config.Config, db *mongo.Client) error
 	log.Println("Initializing auth service...")
 
 	// Initialize repositories
-	userRepo := userRepo.NewUserRepository(db)
+	userRepository := userRepo.NewUserRepository(db)
+	roleRepository := userRepo.NewRoleRepository(db)
+	permRepository := userRepo.NewPermissionRepository(db)
 	authRepo := repository.NewAuthRepository(db)
 
+	// Initialize user service for auth
+	userSvc := userService.NewUserService(userRepository, roleRepository, permRepository)
+
 	// Initialize service
-	AuthSvc = service.NewAuthService(cfg, userRepo, authRepo, UserSvc)
+	authSvc := authService.NewAuthService(cfg, userRepository, authRepo, userSvc)
+	
 	// Initialize HTTP handler
-	httpHandler := handler.NewAuthHttpHandler(cfg, AuthSvc)
+	httpHandler := handler.NewAuthHTTPHandler(cfg, authSvc)
 
 	// Initialize controller
-	authController := controller.NewAuthController(cfg, AuthSvc, httpHandler)
+	authController := controller.NewAuthController(cfg, authSvc, httpHandler)
 
-	// Register gRPC service
-	log.Println("Registering auth gRPC service...")
-	grpcHandler := handler.NewGRPCHandler(cfg, AuthSvc)
-	if err := core.RegisterGRPCService("auth", func(server *grpc.Server) {
-		generated.RegisterAuthServiceServer(server, grpcHandler)
-	}); err != nil {
-		return fmt.Errorf("failed to register auth gRPC service: %v", err)
-	}
-	log.Printf("Successfully registered auth gRPC service")
-
-	// Initialize HTTP server
+	// Initialize HTTP server routes
 	api := app.Group("/api/v1")
 
-	// Public routes (no auth required)
-	public := api.Group("/public/auth")
+	// Public routes (no auth required) 
+	public := api.Group("/auth")
 	authController.RegisterPublicRoutes(public)
 
+	// JWT secret key from config
+	secretKey := cfg.Jwt.AccessSecretKey
+
 	// Protected routes (auth required)
-	protected := api.Group("/auth")
+	protected := api.Group("/protected/auth")
+	protected.Use(middleware.AuthMiddleware(secretKey))
 	authController.RegisterProtectedRoutes(protected)
 
-	log.Printf("Auth service initialized in monolithic mode")
+	// Admin routes (admin role required)
+	admin := api.Group("/admin/auth")
+	admin.Use(middleware.AuthMiddleware(secretKey))
+	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
+	authController.RegisterAdminRoutes(admin)
+
+	log.Printf("Auth service initialized successfully")
 	return nil
 }
 
