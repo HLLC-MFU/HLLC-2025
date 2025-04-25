@@ -128,12 +128,12 @@ HLLC-2025/
     <td><a href="https://github.com/klavivach">klavivach</a></td>
     <td>Klavivach</td>
     <td>
-        <b>Role:</b> Frontend Developer<br/>
+        <b>Role:</b> Frontend Developer / QA Tester<br/>
         <b>Responsibilities:</b>
         <ul>
             <li>Chat UI Implementation</li>
             <li>Frontend Component Development</li>
-            <li>User Interface Design</li>
+            <li>Testing & Quality Assurance</li>
             <li>Frontend-Backend Integration</li>
         </ul>
     </td>
@@ -152,29 +152,8 @@ HLLC-2025/
         <b>Role:</b> UI/UX Designer<br/>
         <b>Responsibilities:</b>
         <ul>
-            <li>UI/UX Design & Development</li>
-            <li>Upcoming modules (additional services)</li>
-            <li>Interface Mockups & Prototyping</li>
-        </ul>
-    </td>
-    <td align="center">
-        <img src="https://img.shields.io/badge/Commits-0-blue?style=for-the-badge"/>
-        <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
-        <br/>
-        <b>0% of total contributions</b>
-    </td>
-</tr>
-
-<tr>
-    <td><a href="https://github.com/MABiuS1">MABiuS1</a></td>
-    <td>MABiuS</td>
-    <td>
-        <b>Role:</b> DevOps & QA<br/>
-        <b>Responsibilities:</b>
-        <ul>
-            <li>Testing & Quality Assurance</li>
-            <li>Deployment Support</li>
-            <li>Bug Tracking & Resolution</li>
+            <li>Coming soon</li>
+            <li>Role to be determined</li>
         </ul>
     </td>
     <td align="center">
@@ -196,7 +175,6 @@ pie
     "Poonyawat Khomlek" : 0
     "Klavivach" : 0
     "ABOUTBLANK" : 0
-    "MABiuS" : 0
 ```
 
 ## 📋 Current and Upcoming Modules
