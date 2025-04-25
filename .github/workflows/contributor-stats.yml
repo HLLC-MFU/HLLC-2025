@@ -1,0 +1,100 @@
+name: Update Contributor Stats
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+  workflow_dispatch:
+
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Generate Repository Stats
+        id: repo-stats
+        run: |
+          # Map of GitHub usernames to real names
+          declare -A STUDENT_IDS=(
+            ["6531503042"]="Nimit Tanboontor"
+            ["aboutblank0000000"]="ABOUTBLANK"
+            ["jemiezler"]="Nattawat Nattachanasit"
+            ["MABiuS1"]="MABiuS"
+            ["poonyawat0511"]="Poonyawat Khomlek"
+          )
+
+          # Get total repository stats
+          TOTAL_COMMITS=$(git rev-list --count HEAD)
+          echo "TOTAL_COMMITS=$TOTAL_COMMITS" >> $GITHUB_ENV
+
+          # Get individual contribution stats
+          for username in "${!STUDENT_IDS[@]}"; do
+            commits=$(git log --author="$username" --oneline | wc -l)
+            prs=$(gh pr list --author="$username" --state all --limit 1000 | wc -l)
+
+            # Calculate percentage
+            percentage=$(awk "BEGIN {printf \"%.2f\", ($commits/$TOTAL_COMMITS)*100}")
+
+            # Store in environment variables
+            echo "${username}_COMMITS=$commits" >> $GITHUB_ENV
+            echo "${username}_PRS=$prs" >> $GITHUB_ENV
+            echo "${username}_PERCENTAGE=$percentage" >> $GITHUB_ENV
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update README Stats
+        run: |
+          # Read the current README
+          README_CONTENT=$(cat README.md)
+
+          # Update statistics in the table
+          for username in "${!STUDENT_IDS[@]}"; do
+            commits_var="${username}_COMMITS"
+            prs_var="${username}_PRS"
+            percentage_var="${username}_PERCENTAGE"
+
+            commits=${!commits_var}
+            prs=${!prs_var}
+            percentage=${!percentage_var}
+
+            # Update commit badge
+            README_CONTENT=$(echo "$README_CONTENT" | sed -E "s|<img src=\"https://img.shields.io/badge/Commits-[0-9]+-blue\?style=for-the-badge\"/>|<img src=\"https://img.shields.io/badge/Commits-${commits}-blue?style=for-the-badge\"/>|g")
+
+            # Update PR badge
+            README_CONTENT=$(echo "$README_CONTENT" | sed -E "s|<img src=\"https://img.shields.io/badge/PRs-[0-9]+-green\?style=for-the-badge\"/>|<img src=\"https://img.shields.io/badge/PRs-${prs}-green?style=for-the-badge\"/>|g")
+
+            # Update percentage
+            README_CONTENT=$(echo "$README_CONTENT" | sed -E "s|<b>[0-9]+% of total contributions</b>|<b>${percentage}% of total contributions</b>|g")
+          done
+
+          # Update total repository stats
+          README_CONTENT=$(echo "$README_CONTENT" | sed -E "s|Total Commits: [0-9,]+|Total Commits: $TOTAL_COMMITS|g")
+
+          # Update last updated timestamp
+          CURRENT_DATE=$(date '+%Y-%m-%d %H:%M:%S UTC')
+          README_CONTENT=$(echo "$README_CONTENT" | sed -E "s|Last updated: .*|Last updated: $CURRENT_DATE|g")
+
+          # Write back to README
+          echo "$README_CONTENT" > README.md
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+          git add README.md
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "docs: Update contributor statistics [skip ci]"
+            git push
+          fi
