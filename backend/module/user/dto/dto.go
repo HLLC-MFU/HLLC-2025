@@ -21,6 +21,13 @@ type (
 		LastName   string `json:"lastName"`
 	}
 
+	// UserClaims represents the user authentication information from context
+	UserClaims struct {
+		UserID    string   `json:"userId"`
+		Username  string   `json:"username"`
+		RoleCodes []string `json:"roleCodes"`
+	}
+
 	CreateUserRequest struct {
 		Username string `json:"username" validate:"required"`
 		Password string `json:"password"`  // Optional for admin creation
@@ -31,12 +38,13 @@ type (
 	}
 
 	UpdateUserRequest struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Name     Name   `json:"name"`
-		RoleIDs  []string `json:"roleIds"`
-		MajorID  string `json:"majorId"`
-		IsActivated bool `json:"isActivated"`
+		Username    string `json:"username,omitempty"`
+		FirstName   string `json:"first_name,omitempty"`
+		MiddleName  string `json:"middle_name,omitempty"`
+		LastName    string `json:"last_name,omitempty"`
+		RoleIDs     []string `json:"role_ids,omitempty"`
+		MajorID     string `json:"major_id,omitempty"`
+		IsActivated *bool  `json:"is_activated,omitempty"`
 	}
 
 	CreateRoleRequest struct {
@@ -124,6 +132,17 @@ type (
 	ValidateCredentialsRequest struct {
 		Username string `json:"username" validate:"required"`
 		Password string `json:"password" validate:"required"`
+	}
+
+	// Request-response DTOs for activating user
+	ActivateUserRequest struct {
+		UserID string `json:"user_id" validate:"required"`
+	}
+
+	ActivateUserResponse struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+		UserID  string `json:"user_id"`
 	}
 )
 

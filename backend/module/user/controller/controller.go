@@ -3,35 +3,32 @@ package controller
 import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/handler"
-	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/logging"
 	"github.com/gofiber/fiber/v2"
 )
 
 // UserController is responsible for registering routes for the user module
-type UserController interface {
-	RegisterPublicRoutes(router fiber.Router)
-	RegisterProtectedRoutes(router fiber.Router)
-	RegisterAdminRoutes(router fiber.Router)
-}
+type (
+	UserController interface {
+		RegisterPublicRoutes(router fiber.Router)
+		RegisterProtectedRoutes(router fiber.Router)
+		RegisterAdminRoutes(router fiber.Router)
+	}
 
-// userController implements UserController
-type userController struct {
-	cfg           *config.Config
-	httpHandler   handler.HTTPHandler
-	baseController decorator.BaseController
-	logger        *logging.Logger
-}
+	userController struct {
+		cfg *config.Config
+		httpHandler handler.HTTPHandler
+		baseController decorator.BaseController
+		logger *logging.Logger
+	}
+)
 
 // NewUserController creates a new user controller
 func NewUserController(
 	cfg *config.Config, 
-	userService serviceHttp.UserService, 
-	roleService serviceHttp.RoleService, 
-	permService serviceHttp.PermissionService,
+	httpHandler handler.HTTPHandler,
 ) UserController {
-	httpHandler := handler.NewHTTPHandler(userService, roleService, permService)
 	
 	return &userController{
 		cfg: cfg,
@@ -117,6 +114,7 @@ func (c *userController) RegisterAdminRoutes(router fiber.Router) {
 	c.baseController.RegisterRoute("GET", "/users/:id", c.httpHandler.GetUser, commonDecorators...)
 	c.baseController.RegisterRoute("PUT", "/users/:id", c.httpHandler.UpdateUser, commonDecorators...)
 	c.baseController.RegisterRoute("DELETE", "/users/:id", c.httpHandler.DeleteUser, commonDecorators...)
+	c.baseController.RegisterRoute("POST", "/users/activate", c.httpHandler.ActivateUser, commonDecorators...)
 
 	// Role management
 	c.baseController.RegisterRoute("POST", "/roles", c.httpHandler.CreateRole, commonDecorators...)

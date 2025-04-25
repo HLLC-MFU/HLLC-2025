@@ -5,6 +5,7 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/controller"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
 	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
 	"github.com/gofiber/fiber/v2"
@@ -25,8 +26,11 @@ func InitUserService(app *fiber.App, cfg *config.Config, db *mongo.Client) error
 	roleService := serviceHttp.NewRoleService(roleRepo, permRepo)
 	permService := serviceHttp.NewPermissionService(permRepo)
 
+	// Initialize HTTP handler
+	httpHandler := handler.NewHTTPHandler(userService, roleService, permService)
+
 	// Initialize controller
-	userController := controller.NewUserController(cfg, userService, roleService, permService)
+	userController := controller.NewUserController(cfg, httpHandler)
 
 	// gRPC registration commented out to focus on HTTP implementation
 	/*

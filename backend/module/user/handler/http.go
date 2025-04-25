@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"time"
 
@@ -41,6 +42,9 @@ type HTTPHandler interface {
 	// Registration methods
 	CheckUsername(c *fiber.Ctx) error
 	SetPassword(c *fiber.Ctx) error
+
+	// New method
+	ActivateUser(c *fiber.Ctx) error
 }
 
 // httpHandler implements HTTPHandler
@@ -88,8 +92,8 @@ func (h *httpHandler) GetUser(c *fiber.Ctx) error {
 		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
-		id := c.Params("id")
-		if id == "" {
+	id := c.Params("id")
+	if id == "" {
 			// If no ID provided, get current user's profile if available
 			userID, ok := c.Locals("user_id").(string)
 			if !ok {
@@ -102,9 +106,9 @@ func (h *httpHandler) GetUser(c *fiber.Ctx) error {
 		defer cancel()
 
 		user, err := h.userService.GetUserByID(ctx, id)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
-		}
+	}
 
 		return response.Success(c, fiber.StatusOK, user)
 	})
@@ -118,33 +122,33 @@ func (h *httpHandler) GetAllUsers(c *fiber.Ctx) error {
 		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
-		// Parse pagination parameters from query string
-		page, err := strconv.Atoi(c.Query("page", "1"))
-		if err != nil || page < 1 {
-			page = 1
-		}
+	// Parse pagination parameters from query string
+	page, err := strconv.Atoi(c.Query("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
 
-		limit, err := strconv.Atoi(c.Query("limit", "10"))
-		if err != nil || limit < 1 || limit > 100 {
-			limit = 10 // Default and max limit
-		}
+	limit, err := strconv.Atoi(c.Query("limit", "10"))
+	if err != nil || limit < 1 || limit > 100 {
+		limit = 10 // Default and max limit
+	}
 
 		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
 		defer cancel()
 
 		// Get all users
 		users, err := h.userService.GetAllUsers(ctx)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
-		}
+	}
 
 		return response.Success(c, fiber.StatusOK, fiber.Map{
 			"users": users,
-			"pagination": fiber.Map{
-				"page":  page,
-				"limit": limit,
+		"pagination": fiber.Map{
+			"page":  page,
+			"limit": limit,
 				"total": len(users),
-			},
+		},
 		})
 	})
 
@@ -156,8 +160,8 @@ func (h *httpHandler) UpdateUser(c *fiber.Ctx) error {
 		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.UpdateUserRequest](func(c *fiber.Ctx, req *dto.UpdateUserRequest) error {
-		id := c.Params("id")
-		if id == "" {
+	id := c.Params("id")
+	if id == "" {
 			// If no ID provided, update current user's profile if available
 			userID, ok := c.Locals("user_id").(string)
 			if !ok {
@@ -170,9 +174,9 @@ func (h *httpHandler) UpdateUser(c *fiber.Ctx) error {
 		defer cancel()
 
 		user, err := h.userService.UpdateUser(ctx, id, req)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
-		}
+	}
 
 		return response.Success(c, fiber.StatusOK, user)
 	}))
@@ -185,18 +189,18 @@ func (h *httpHandler) DeleteUser(c *fiber.Ctx) error {
 		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
-		id := c.Params("id")
-		if id == "" {
+	id := c.Params("id")
+	if id == "" {
 			return exceptions.HandleError(c, exceptions.InvalidInput("User ID parameter is required", nil))
-		}
+	}
 
 		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 		defer cancel()
 
 		err := h.userService.DeleteUser(ctx, id)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
-		}
+	}
 
 		return response.Success(c, fiber.StatusOK, fiber.Map{
 			"message": "User deleted successfully",
@@ -216,13 +220,13 @@ func (h *httpHandler) ValidateCredentials(c *fiber.Ctx) error {
 		defer cancel()
 
 		valid, err := h.userService.ValidatePassword(ctx, req.Username, req.Password)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
-		}
+	}
 
-		if !valid {
+	if !valid {
 			return exceptions.HandleError(c, exceptions.Unauthorized("Invalid credentials", nil))
-		}
+	}
 
 		return response.Success(c, fiber.StatusOK, fiber.Map{"valid": valid})
 	}))
@@ -248,7 +252,7 @@ func (h *httpHandler) CreateRole(c *fiber.Ctx) error {
 		}
 
 		role, err := h.roleService.CreateRole(ctx, pbReq)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
 		}
 
@@ -272,8 +276,8 @@ func (h *httpHandler) GetRole(c *fiber.Ctx) error {
 		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
-		id := c.Params("id")
-		if id == "" {
+id := c.Params("id")
+if id == "" {
 			return exceptions.HandleError(c, exceptions.InvalidInput("Role ID parameter is required", nil))
 		}
 
@@ -281,7 +285,7 @@ func (h *httpHandler) GetRole(c *fiber.Ctx) error {
 		defer cancel()
 
 		role, err := h.roleService.GetRoleByID(ctx, id)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
 		}
 
@@ -309,7 +313,7 @@ func (h *httpHandler) GetAllRoles(c *fiber.Ctx) error {
 		defer cancel()
 
 		roles, err := h.roleService.GetAllRoles(ctx)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
 		}
 
@@ -336,8 +340,8 @@ func (h *httpHandler) UpdateRole(c *fiber.Ctx) error {
 		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.UpdateRoleRequest](func(c *fiber.Ctx, req *dto.UpdateRoleRequest) error {
-		id := c.Params("id")
-		if id == "" {
+id := c.Params("id")
+if id == "" {
 			return exceptions.HandleError(c, exceptions.InvalidInput("Role ID parameter is required", nil))
 		}
 
@@ -353,7 +357,7 @@ func (h *httpHandler) UpdateRole(c *fiber.Ctx) error {
 		}
 
 		role, err := h.roleService.UpdateRole(ctx, id, pbReq)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
 		}
 
@@ -377,8 +381,8 @@ func (h *httpHandler) DeleteRole(c *fiber.Ctx) error {
 		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
-		id := c.Params("id")
-		if id == "" {
+id := c.Params("id")
+if id == "" {
 			return exceptions.HandleError(c, exceptions.InvalidInput("Role ID parameter is required", nil))
 		}
 
@@ -386,7 +390,7 @@ func (h *httpHandler) DeleteRole(c *fiber.Ctx) error {
 		defer cancel()
 
 		err := h.roleService.DeleteRole(ctx, id)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
 		}
 
@@ -417,7 +421,7 @@ func (h *httpHandler) CreatePermission(c *fiber.Ctx) error {
 		}
 
 		permission, err := h.permService.CreatePermission(ctx, pbReq)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
 		}
 
@@ -441,8 +445,8 @@ func (h *httpHandler) GetPermission(c *fiber.Ctx) error {
 		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
-		id := c.Params("id")
-		if id == "" {
+id := c.Params("id")
+if id == "" {
 			return exceptions.HandleError(c, exceptions.InvalidInput("Permission ID parameter is required", nil))
 		}
 
@@ -450,7 +454,7 @@ func (h *httpHandler) GetPermission(c *fiber.Ctx) error {
 		defer cancel()
 
 		permission, err := h.permService.GetPermissionByID(ctx, id)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
 		}
 
@@ -478,7 +482,7 @@ func (h *httpHandler) GetAllPermissions(c *fiber.Ctx) error {
 		defer cancel()
 
 		permissions, err := h.permService.GetAllPermissions(ctx)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
 		}
 
@@ -492,7 +496,7 @@ func (h *httpHandler) GetAllPermissions(c *fiber.Ctx) error {
 				Description: permission.GetDescription(),
 				Module:      permission.GetModule(),
 			})
-		}
+	}
 
 		return c.Status(fiber.StatusOK).JSON(response)
 	})
@@ -505,8 +509,8 @@ func (h *httpHandler) UpdatePermission(c *fiber.Ctx) error {
 		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.UpdatePermissionRequest](func(c *fiber.Ctx, req *dto.UpdatePermissionRequest) error {
-		id := c.Params("id")
-		if id == "" {
+id := c.Params("id")
+if id == "" {
 			return exceptions.HandleError(c, exceptions.InvalidInput("Permission ID parameter is required", nil))
 		}
 
@@ -522,7 +526,7 @@ func (h *httpHandler) UpdatePermission(c *fiber.Ctx) error {
 		}
 
 		permission, err := h.permService.UpdatePermission(ctx, id, pbReq)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
 		}
 
@@ -546,8 +550,8 @@ func (h *httpHandler) DeletePermission(c *fiber.Ctx) error {
 		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
-		id := c.Params("id")
-		if id == "" {
+id := c.Params("id")
+if id == "" {
 			return exceptions.HandleError(c, exceptions.InvalidInput("Permission ID parameter is required", nil))
 		}
 
@@ -555,7 +559,7 @@ func (h *httpHandler) DeletePermission(c *fiber.Ctx) error {
 		defer cancel()
 
 		err := h.permService.DeletePermission(ctx, id)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
 		}
 
@@ -578,7 +582,7 @@ func (h *httpHandler) CheckUsername(c *fiber.Ctx) error {
 		defer cancel()
 
 		result, err := h.userService.CheckUsername(ctx, req)
-		if err != nil {
+	if err != nil {
 			return exceptions.HandleError(c, err)
 		}
 
@@ -597,6 +601,73 @@ func (h *httpHandler) SetPassword(c *fiber.Ctx) error {
 		defer cancel()
 
 		result, err := h.userService.SetPassword(ctx, req)
+	if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return response.Success(c, fiber.StatusOK, result)
+	}))
+
+	return handler(c)
+}
+
+// GetUserFromContext retrieves user information from Fiber context
+func GetUserFromContext(c *fiber.Ctx) (*dto.UserClaims, error) {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return nil, errors.New("user ID not found in context")
+	}
+	
+	username, ok := c.Locals("username").(string)
+	if !ok {
+		return nil, errors.New("username not found in context")
+	}
+	
+	roleCodes, ok := c.Locals("role_codes").([]string)
+	if !ok {
+		roleCodes = []string{} // Default to empty if not found
+	}
+	
+	return &dto.UserClaims{
+		UserID:    userID,
+		Username:  username,
+		RoleCodes: roleCodes,
+	}, nil
+}
+
+// ActivateUser activates a user
+func (h *httpHandler) ActivateUser(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithRecovery(),
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.ActivateUserRequest](func(c *fiber.Ctx, req *dto.ActivateUserRequest) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
+
+		// Check if user is admin
+		userClaims, err := GetUserFromContext(c)
+		if err != nil {
+			return exceptions.HandleError(c, exceptions.Unauthorized("unauthorized access", err,
+				exceptions.WithOperation("activate_user"),
+				exceptions.WithEntity("user", "unknown")))
+		}
+
+		// Only admin can activate users
+		hasAdminRole := false
+		for _, roleCode := range userClaims.RoleCodes {
+			if roleCode == "admin" {
+				hasAdminRole = true
+				break
+			}
+		}
+		
+		if !hasAdminRole {
+			return exceptions.HandleError(c, exceptions.Forbidden("only admin can activate users", nil,
+				exceptions.WithOperation("activate_user"),
+				exceptions.WithEntity("user", req.UserID)))
+		}
+
+		result, err := h.userService.ActivateUser(ctx, req)
 		if err != nil {
 			return exceptions.HandleError(c, err)
 		}

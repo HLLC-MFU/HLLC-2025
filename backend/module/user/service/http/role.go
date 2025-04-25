@@ -227,13 +227,13 @@ func (s *roleService) UpdateRole(ctx context.Context, id string, req *userPb.Upd
 
 		// Update the role fields
 		if req.Name != "" {
-			role.Name = req.Name
+		role.Name = req.Name
 		}
 		if req.Code != "" {
 			role.Code = req.Code
 		}
 		if req.Description != "" {
-			role.Description = req.Description
+		role.Description = req.Description
 		}
 		if req.PermissionIds != nil {
 			role.PermissionIds = req.PermissionIds

@@ -2,12 +2,13 @@ package http
 
 import (
 	"context"
-	"log"
 	"time"
 
 	userPb "github.com/HLLC-MFU/HLLC-2025/backend/module/user/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/exceptions"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/logging"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -38,6 +39,13 @@ func NewPermissionService(
 // Create New Permission
 func (s *permissionService) CreatePermission(ctx context.Context, req *userPb.CreatePermissionRequest) (*userPb.Permission, error) {
 	return decorator.WithTimeout[*userPb.Permission](10 * time.Second)(func(ctx context.Context) (*userPb.Permission, error) {
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Creating new permission",
+			logging.FieldOperation, "create_permission",
+			logging.FieldEntity, "permission",
+			"code", req.Code,
+			"name", req.Name,
+		)
 
 		// Create a new permission
 		permission := &userPb.Permission{
@@ -51,9 +59,21 @@ func (s *permissionService) CreatePermission(ctx context.Context, req *userPb.Cr
 
 		// Save permission
 		if err := s.permissionRepository.CreatePermission(ctx, permission); err != nil {
-			log.Printf("CreatePermission: Error saving permission to database: %v", err)
+			logger.Error("Failed to create permission", err,
+				logging.FieldOperation, "create_permission",
+				logging.FieldEntity, "permission",
+				logging.FieldEntityID, permission.Id,
+				"code", permission.Code,
+			)
 			return nil, err
 		}
+
+		logger.Info("Permission created successfully",
+			logging.FieldOperation, "create_permission",
+			logging.FieldEntity, "permission",
+			logging.FieldEntityID, permission.Id,
+			"code", permission.Code,
+		)
 
 		return permission, nil
 	})(ctx)
@@ -62,18 +82,41 @@ func (s *permissionService) CreatePermission(ctx context.Context, req *userPb.Cr
 // Get Permission By ID
 func (s *permissionService) GetPermissionByID(ctx context.Context, id string) (*userPb.Permission, error) {
 	return decorator.WithTimeout[*userPb.Permission](10 * time.Second)(func(ctx context.Context) (*userPb.Permission, error) {
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Getting permission by ID",
+			logging.FieldOperation, "get_permission",
+			logging.FieldEntity, "permission",
+			logging.FieldEntityID, id,
+		)
 
 		objectID, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
-			log.Printf("GetPermissionByID: Invalid ID format %s: %v", id, err)
-			return nil, err
+			logger.Error("Invalid permission ID format", err,
+				logging.FieldOperation, "get_permission",
+				logging.FieldEntity, "permission",
+				logging.FieldEntityID, id,
+			)
+			return nil, exceptions.InvalidInput("invalid permission ID format", err,
+				exceptions.WithOperation("get_permission"),
+				exceptions.WithEntity("permission", id))
 		}
 
 		permission, err := s.permissionRepository.FindPermissionByID(ctx, objectID)
 		if err != nil {
-			log.Printf("GetPermissionByID: Error finding permission: %v", err)
+			logger.Error("Failed to find permission", err,
+				logging.FieldOperation, "get_permission",
+				logging.FieldEntity, "permission",
+				logging.FieldEntityID, id,
+			)
 			return nil, err
 		}
+
+		logger.Info("Permission retrieved successfully",
+			logging.FieldOperation, "get_permission",
+			logging.FieldEntity, "permission",
+			logging.FieldEntityID, permission.Id,
+			"code", permission.Code,
+		)
 
 		return permission, nil
 	})(ctx)
@@ -82,13 +125,26 @@ func (s *permissionService) GetPermissionByID(ctx context.Context, id string) (*
 // Get All Permissions
 func (s *permissionService) GetAllPermissions(ctx context.Context) ([]*userPb.Permission, error) {
 	return decorator.WithTimeout[[]*userPb.Permission](10 * time.Second)(func(ctx context.Context) ([]*userPb.Permission, error) {
-		log.Printf("GetAllPermissions: Fetching all permissions")
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Getting all permissions",
+			logging.FieldOperation, "get_all_permissions",
+			logging.FieldEntity, "permission",
+		)
 
 		permissions, err := s.permissionRepository.FindAllPermissions(ctx)
 		if err != nil {
-			log.Printf("GetAllPermissions: Error finding permissions: %v", err)
+			logger.Error("Failed to find permissions", err,
+				logging.FieldOperation, "get_all_permissions",
+				logging.FieldEntity, "permission",
+			)
 			return nil, err
 		}
+
+		logger.Info("Retrieved all permissions successfully",
+			logging.FieldOperation, "get_all_permissions",
+			logging.FieldEntity, "permission",
+			"count", len(permissions),
+		)
 
 		return permissions, nil
 	})(ctx)
@@ -97,11 +153,23 @@ func (s *permissionService) GetAllPermissions(ctx context.Context) ([]*userPb.Pe
 // Update Permission
 func (s *permissionService) UpdatePermission(ctx context.Context, id string, req *userPb.UpdatePermissionRequest) (*userPb.Permission, error) {
 	return decorator.WithTimeout[*userPb.Permission](10 * time.Second)(func(ctx context.Context) (*userPb.Permission, error) {
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Updating permission",
+			logging.FieldOperation, "update_permission",
+			logging.FieldEntity, "permission",
+			logging.FieldEntityID, id,
+		)
 
 		objectID, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
-			log.Printf("UpdatePermission: Invalid ID format %s: %v", id, err)
-			return nil, err
+			logger.Error("Invalid permission ID format", err,
+				logging.FieldOperation, "update_permission",
+				logging.FieldEntity, "permission",
+				logging.FieldEntityID, id,
+			)
+			return nil, exceptions.InvalidInput("invalid permission ID format", err,
+				exceptions.WithOperation("update_permission"),
+				exceptions.WithEntity("permission", id))
 		}
 
 		// Update permission entity
@@ -115,9 +183,21 @@ func (s *permissionService) UpdatePermission(ctx context.Context, id string, req
 
 		// Save permission
 		if err := s.permissionRepository.UpdatePermission(ctx, permission); err != nil {
-			log.Printf("UpdatePermission: Error updating permission in database: %v", err)
+			logger.Error("Failed to update permission", err,
+				logging.FieldOperation, "update_permission",
+				logging.FieldEntity, "permission",
+				logging.FieldEntityID, id,
+				"code", req.Code,
+			)
 			return nil, err
 		}
+
+		logger.Info("Permission updated successfully",
+			logging.FieldOperation, "update_permission",
+			logging.FieldEntity, "permission",
+			logging.FieldEntityID, id,
+			"code", req.Code,
+		)
 
 		return permission, nil
 	})(ctx)
@@ -126,18 +206,39 @@ func (s *permissionService) UpdatePermission(ctx context.Context, id string, req
 // Delete Permission
 func (s *permissionService) DeletePermission(ctx context.Context, id string) error {
 	_, err := decorator.WithTimeout[struct{}](5 * time.Second)(func(ctx context.Context) (struct{}, error) {
-		log.Printf("DeletePermission: Deleting permission with ID %s", id)
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Deleting permission",
+			logging.FieldOperation, "delete_permission",
+			logging.FieldEntity, "permission",
+			logging.FieldEntityID, id,
+		)
 
 		objectID, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
-			log.Printf("DeletePermission: Invalid ID format %s: %v", id, err)
-			return struct{}{}, err
+			logger.Error("Invalid permission ID format", err,
+				logging.FieldOperation, "delete_permission",
+				logging.FieldEntity, "permission",
+				logging.FieldEntityID, id,
+			)
+			return struct{}{}, exceptions.InvalidInput("invalid permission ID format", err,
+				exceptions.WithOperation("delete_permission"),
+				exceptions.WithEntity("permission", id))
 		}
 
 		if err := s.permissionRepository.DeletePermission(ctx, objectID); err != nil {
-			log.Printf("DeletePermission: Error deleting permission: %v", err)
+			logger.Error("Failed to delete permission", err,
+				logging.FieldOperation, "delete_permission",
+				logging.FieldEntity, "permission",
+				logging.FieldEntityID, id,
+			)
 			return struct{}{}, err
 		}
+
+		logger.Info("Permission deleted successfully",
+			logging.FieldOperation, "delete_permission",
+			logging.FieldEntity, "permission",
+			logging.FieldEntityID, id,
+		)
 
 		return struct{}{}, nil
 	})(ctx)

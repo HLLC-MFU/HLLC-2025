@@ -711,6 +711,18 @@ func (r *userRepository) ValidatePassword(ctx context.Context, username, passwor
 			return false, exceptions.Internal("error finding user for password validation", err)
 		}
 		
+		// Check if user is activated
+		if !user.IsActivated {
+			logger.Warn("Attempted password validation for inactive user",
+				logging.FieldOperation, "validate_password",
+				logging.FieldEntity, "user",
+				logging.FieldEntityID, user.Id,
+				"username", username,
+			)
+			return false, exceptions.Unauthorized("user account is not activated", nil,
+				exceptions.WithOperation("validate_password"))
+		}
+		
 		// Check if password is valid
 		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 		if err != nil {
