@@ -21,11 +21,11 @@
 									"script": {
 										"exec": [
 											"if (pm.response.code === 200) {",
-											"    if (pm.response.json().data && pm.response.json().data.accessToken) {",
-											"        pm.environment.set('access_token', pm.response.json().data.accessToken);",
+											"    if (pm.response.json().data && pm.response.json().data.access_token) {",
+											"        pm.environment.set('access_token', pm.response.json().data.access_token);",
 											"    }",
-											"    if (pm.response.json().data && pm.response.json().data.refreshToken) {",
-											"        pm.environment.set('refresh_token', pm.response.json().data.refreshToken);",
+											"    if (pm.response.json().data && pm.response.json().data.refresh_token) {",
+											"        pm.environment.set('refresh_token', pm.response.json().data.refresh_token);",
 											"    }",
 											"}"
 										],
@@ -54,9 +54,9 @@
 									"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}"
 								},
 								"url": {
-									"raw": "{{auth_url}}/api/v1/auth/login",
+									"raw": "{{base_url}}/api/v1/auth/login",
 									"host": [
-										"{{auth_url}}"
+										"{{base_url}}"
 									],
 									"path": [
 										"api",
@@ -80,12 +80,12 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjgwNTAyNzU3NWVmZWQzMTc0NTRhYTczIiwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGVfaWRzIjpbIjY4MDUwMjc1NzVlZmVkMzE3NDU0YWE3MSJdLCJyb2xlX2NvZGVzIjpbIkFETUlOIl0sInRva2VuX3R5cGUiOiJyZWZyZXNoIiwiaXNzIjoiaGxsYy0yMDI1LmNvbSIsInN1YiI6InJlZnJlc2gtdG9rZW4iLCJhdWQiOlsiaGxsYy0yMDI1LmNvbSJdLCJleHAiOjE3NDU3NjQyNzYsIm5iZiI6MTc0NTE1OTQ3NiwiaWF0IjoxNzQ1MTU5NDc2fQ.cdX6yiMfric5lxlQzHE46dXPLD6uTV2kgNca0EhOWlM\"\n}"
+									"raw": "{\n    \"refresh_token\": \"{{refresh_token}}\"\n}"
 								},
 								"url": {
-									"raw": "{{auth_url}}/api/v1/auth/refresh",
+									"raw": "{{base_url}}/api/v1/auth/refresh",
 									"host": [
-										"{{auth_url}}"
+										"{{base_url}}"
 									],
 									"path": [
 										"api",
@@ -113,9 +113,9 @@
 									}
 								],
 								"url": {
-									"raw": "{{auth_url}}/api/v1/protected/auth/logout",
+									"raw": "{{base_url}}/api/v1/protected/auth/logout",
 									"host": [
-										"{{auth_url}}"
+										"{{base_url}}"
 									],
 									"path": [
 										"api",
@@ -139,9 +139,9 @@
 									}
 								],
 								"url": {
-									"raw": "{{auth_url}}/api/v1/protected/auth/validate",
+									"raw": "{{base_url}}/api/v1/protected/auth/validate",
 									"host": [
-										"{{auth_url}}"
+										"{{base_url}}"
 									],
 									"path": [
 										"api",
@@ -179,12 +179,12 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}"
+									"raw": ""
 								},
 								"url": {
-									"raw": "{{auth_url}}/api/v1/protected/auth/me",
+									"raw": "{{base_url}}/api/v1/protected/auth/me",
 									"host": [
-										"{{auth_url}}"
+										"{{base_url}}"
 									],
 									"path": [
 										"api",
@@ -213,9 +213,9 @@
 									}
 								],
 								"url": {
-									"raw": "{{auth_url}}/api/v1/admin/auth/revoke/{{user_id}}",
+									"raw": "{{base_url}}/api/v1/admin/auth/revoke/{{user_id}}",
 									"host": [
-										"{{auth_url}}"
+										"{{base_url}}"
 									],
 									"path": [
 										"api",
@@ -237,7 +237,7 @@
 			"name": "Health Checks",
 			"item": [
 				{
-					"name": "Auth Service Health",
+					"name": "System Health",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -320,13 +320,14 @@
 											}
 										],
 										"url": {
-											"raw": "{{user_url}}/api/v1/users/profile",
+											"raw": "{{user_url}}/api/v1/protected/users/profile",
 											"host": [
 												"{{user_url}}"
 											],
 											"path": [
 												"api",
 												"v1",
+												"protected",
 												"users",
 												"profile"
 											]
@@ -350,16 +351,17 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"name\": {\n        \"firstName\": \"John\",\n        \"middleName\": \"\",\n        \"lastName\": \"Doe\"\n    }\n}"
+											"raw": "{\n    \"name\": \"Updated Name\",\n    \"email\": \"updated@example.com\"\n}"
 										},
 										"url": {
-											"raw": "{{user_url}}/api/v1/users/profile",
+											"raw": "{{user_url}}/api/v1/protected/users/profile",
 											"host": [
 												"{{user_url}}"
 											],
 											"path": [
 												"api",
 												"v1",
+												"protected",
 												"users",
 												"profile"
 											]
@@ -388,7 +390,7 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"username\": \"newuser\",\n    \"password\": \"password123\",\n    \"name\": {\n        \"firstName\": \"New\",\n        \"middleName\": \"\",\n        \"lastName\": \"User\"\n    },\n    \"roleIds\": [\"{{role_id}}\"]\n}"
+											"raw": "{\n    \"username\": \"newuser\",\n    \"password\": \"password123\",\n    \"name\": \"New User\",\n    \"roleIds\": [\"{{role_id}}\"],\n    \"majorId\": \"{{major_id}}\"\n}"
 										},
 										"url": {
 											"raw": "{{user_url}}/api/v1/admin/users",
@@ -416,7 +418,7 @@
 											}
 										],
 										"url": {
-											"raw": "{{user_url}}/api/v1/admin/users",
+											"raw": "{{user_url}}/api/v1/admin/users?page=1&limit=10",
 											"host": [
 												"{{user_url}}"
 											],
@@ -425,13 +427,23 @@
 												"v1",
 												"admin",
 												"users"
+											],
+											"query": [
+												{
+													"key": "page",
+													"value": "1"
+												},
+												{
+													"key": "limit",
+													"value": "10"
+												}
 											]
 										}
 									},
 									"response": []
 								},
 								{
-									"name": "Get User by ID",
+									"name": "Get User By ID",
 									"request": {
 										"method": "GET",
 										"header": [
@@ -472,7 +484,7 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"username\": \"updateduser\",\n    \"name\": {\n        \"firstName\": \"Updated\",\n        \"middleName\": \"\",\n        \"lastName\": \"User\"\n    },\n    \"roleIds\": [\"{{role_id}}\"]\n}"
+											"raw": "{\n    \"name\": \"Updated User Name\",\n    \"roleIds\": [\"{{role_id}}\"],\n    \"majorId\": \"{{major_id}}\",\n    \"isActivated\": true\n}"
 										},
 										"url": {
 											"raw": "{{user_url}}/api/v1/admin/users/{{user_id}}",
@@ -1770,11 +1782,11 @@
 				"type": "text/javascript",
 				"exec": [
 					"if (pm.response.code === 200) {",
-					"    if (pm.response.json().data && pm.response.json().data.accessToken) {",
-					"        pm.environment.set('access_token', pm.response.json().data.accessToken);",
+					"    if (pm.response.json().data && pm.response.json().data.access_token) {",
+					"        pm.environment.set('access_token', pm.response.json().data.access_token);",
 					"    }",
-					"    if (pm.response.json().data && pm.response.json().data.refreshToken) {",
-					"        pm.environment.set('refresh_token', pm.response.json().data.refreshToken);",
+					"    if (pm.response.json().data && pm.response.json().data.refresh_token) {",
+					"        pm.environment.set('refresh_token', pm.response.json().data.refresh_token);",
 					"    }",
 					"}"
 				]
