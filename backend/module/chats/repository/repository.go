@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
 	"go.mongodb.org/mongo-driver/bson"
@@ -26,9 +25,9 @@ type Repository interface {
 
 	ExistsByID(ctx context.Context, id primitive.ObjectID) (bool, error)
 
-	SaveChatMessages(ctx context.Context, roomID string, messages []model.MessageEntry) error
+	SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error
 
-	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.MessageEntry, error)
+	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error)
 }
 
 type repository struct {
@@ -115,44 +114,36 @@ func (r *repository) ExistsByID(ctx context.Context, id primitive.ObjectID) (boo
 	return count > 0, nil
 }
 
-func (r *repository) CreateChatHistories(ctx context.Context, chatHistory *model.ChatHistories) error {
+func (r *repository) CreateChatHistories(ctx context.Context, chatHistory *model.ChatMessage) error {
 	_, err := r.dbConnect(ctx).Collection("chat_histories").InsertOne(ctx, chatHistory)
 	return err
 }
 
-func (r *repository) SaveChatMessages(ctx context.Context, roomID string, messages []model.MessageEntry) error {
-	update := bson.M{
-		"$push": bson.M{
-			"messages": bson.M{
-				"$each": messages,
-			},
-		},
-		"$setOnInsert": bson.M{
-			"created_at": time.Now(),
-		},
-	}
-
-	opts := options.Update().SetUpsert(true)
-
-	_, err := r.dbConnect(ctx).Collection("chat_histories").UpdateOne(
-		ctx,
-		bson.M{"room_id": roomID},
-		update,
-		opts,
-	)
+func (r *repository) SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error {
+	_, err := r.dbConnect(ctx).Collection("chat_messages").InsertOne(ctx, msg)
 	return err
 }
 
-func (r *repository) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.MessageEntry, error) {
-	var chat model.ChatHistories
-	err := r.dbConnect(ctx).Collection("chat_histories").FindOne(ctx, bson.M{"room_id": roomID}).Decode(&chat)
+func (r *repository) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error) {
+	filter := bson.M{"room_id": roomID}
+	opts := options.Find().
+		SetSort(bson.M{"timestamp": -1}).
+		SetLimit(limit)
+
+	cursor, err := r.dbConnect(ctx).Collection("chat_messages").Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}
+	defer cursor.Close(ctx)
 
-	// Return only latest `limit` messages
-	if int64(len(chat.Messages)) > limit {
-		return chat.Messages[len(chat.Messages)-int(limit):], nil
+	var messages []model.ChatMessage
+	if err := cursor.All(ctx, &messages); err != nil {
+		return nil, err
 	}
-	return chat.Messages, nil
+
+	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+		messages[i], messages[j] = messages[j], messages[i]
+	}
+
+	return messages, nil
 }

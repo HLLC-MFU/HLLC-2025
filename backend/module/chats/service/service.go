@@ -31,12 +31,17 @@ func (s *service) InitChatHub() {
 			case message := <-model.Broadcast:
 				log.Printf("[BROADCAST] Message from %s in room %s: %s\n", message.FROM.UserID, message.FROM.RoomID, message.MSG)
 
-				// ✅ ✅ ✅ ใส่ตรงนี้เพื่อเก็บข้อความลง buffer ก่อนจะ broadcast
-				model.AppendMessageToBuffer(message.FROM.RoomID, model.MessageEntry{
+				// ✅ บันทึกข้อความทันที
+				err := s.repo.SaveChatMessage(context.Background(), &model.ChatMessage{
+					ID:        primitive.NewObjectID(),
+					RoomID:    message.FROM.RoomID,
 					UserID:    message.FROM.UserID,
-					Text:      message.MSG,
+					Message:   message.MSG,
 					Timestamp: time.Now(),
 				})
+				if err != nil {
+					log.Printf("[ERROR] Failed to save message: %v", err)
+				}
 
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
 					if userID != message.FROM.UserID {
@@ -51,11 +56,6 @@ func (s *service) InitChatHub() {
 			}
 		}
 	}()
-
-	// ✅ Now s.repo is valid
-	model.FlushChatBufferToDatabase(func(ctx context.Context, roomID string, messages []model.MessageEntry) error {
-		return s.repo.SaveChatMessages(ctx, roomID, messages)
-	})
 }
 
 type Service interface {
@@ -65,8 +65,7 @@ type Service interface {
 	UpdateRoom(ctx context.Context, room *model.Room) error
 	DeleteRoom(ctx context.Context, id primitive.ObjectID) error
 	InitChatHub()
-	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.MessageEntry, error)
-
+	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error)
 }
 
 type service struct {
@@ -128,6 +127,6 @@ func (s *service) DeleteRoom(ctx context.Context, id primitive.ObjectID) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.MessageEntry, error) {
+func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error) {
 	return s.repo.GetChatHistoryByRoom(ctx, roomID, limit)
 }
