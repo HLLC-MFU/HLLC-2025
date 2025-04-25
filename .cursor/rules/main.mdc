@@ -1,0 +1,150 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+You are an expert Go backend engineer specializing in Fiber, gRPC, and clean architecture, using the latest stable version of Go (1.22 or newer).
+
+# 🔧 General Rules
+- Use **Go 1.24.1** with Fiber framework and gRPC for internal communication.
+- Follow **clean architecture** with clear separation of concerns between layers: handler, controller, service, repository, etc.
+- Use the **ctx** pattern with proper context cancellation and timeouts via `WithTimeout` decorator in `backend/pkg/decorator/contextDecorator.go`.
+- Always interact with APIs using context passed down from Fiber handlers.
+- APIs must be exposed via REST using **Fiber** and backed by **gRPC** logic internally.
+- The shared `.proto` definitions are in `backend/pkg/proto/core`, and codegen will be imported and used accordingly.
+- No deprecated functions, use the latest idiomatic Go practices.
+- Use **cookies** for session-based authentication (not JWT).
+- Input must be validated properly and JSON responses must be formatted.
+- Middleware lives in `backend/pkg/middleware` (e.g., auth, logging, recovery).
+- Reuse common request/response structs in `backend/pkg/common`.
+- Redis, gRPC clients, and other integrations live in `backend/pkg/core`.
+
+---
+
+# 🧱 Project Structure
+
+backend/
+├── config/             # Config structs and loaders
+├── env/                # Environment variable files
+│   ├── dev/
+│   ├── prod/
+│   └── test/
+├── module/             # Each feature module
+│   ├── auth/           # Authentication Service
+│   │   ├── controller/
+│   │   ├── handler/
+│   │   ├── proto/
+│   │   ├── repository/
+│   │   └── service/
+│   └── user/           # User Management
+│       ├── controller/
+│       ├── handler/
+│       ├── proto/
+│       ├── repository/
+│       └── service/
+├── pkg/
+│   ├── core/
+│   │   └── model/       # Redis clients, gRPC clients, shared configs
+│   ├── middleware/      # Auth, recovery, logging middleware
+│   ├── common/          # Custom request/response bindings
+│   ├── proto/
+│   │   └── core/        # Shared gRPC/proto messages
+│   ├── decorator/
+│   │   └── contextDecorator.go  # Global context timeout handler
+│   └── migration/       # Database migration tools
+├── scripts/             # Utility/setup scripts
+├── server/
+│   ├── server.go        # Service router with switch-case
+│   ├── authServer.go    # auth module service starter
+│   └── userServer.go    # user module service starter
+└── main.go              # Application entrypoint
+
+# 🔌 gRPC ↔ REST Mapping
+- All internal logic in `service/` and `controller/` will call gRPC clients under `pkg/core/model`.
+- REST Fiber handlers (in `handler/`) will:
+  - Validate input using `pkg/common`
+  - Bind context with `WithTimeout`
+  - Call `controller/` methods with context
+  - Controller calls gRPC via service and repository layer
+  - All routes return JSON responses
+- Use `WithTimeout` for all context passing, ensuring clean cancellation.
+
+```go
+// Use WithTimeout for context
+result, err := decorator.WithTimeout(3 * time.Second)(func(ctx context.Context) (ResultType, error) {
+    return svc.DoSomething(ctx, input)
+})(c.Context())
+```
+
+# 🧪 gRPC Implementation
+Each module must:
+
+- Define `.proto` files in `module/<name>/proto/`
+- Generate gRPC server/client code
+- Implement gRPC server in `service/`
+- Register gRPC service and map REST routes to gRPC client via `controller/`
+- Shared proto types must be imported from `pkg/proto/core`
+
+---
+
+# 🧭 REST API Setup with Fiber
+- All routes registered in `server/<service>.go`
+- Middlewares (logging, error recovery, auth) applied globally per service
+- Context passed into every handler must use `.Context()` from Fiber
+- Routes must use RESTful conventions
+
+```go
+app.Post("/user", middleware.Auth(), userHandler.CreateUser)
+app.Get("/user/:id", middleware.Auth(), userHandler.GetUserByID)
+```
+
+# Server Entry Logic
+
+The main entry point is in `main.go`, which loads the configuration, sets up the gRPC client, and initializes the Fiber app.
+
+## Service Initialization
+
+In `server/server.go`, the application name is switched to initialize the correct routes:
+
+```go
+switch s.config.App.Name {
+case "user":
+    s.userService()
+case "auth":
+    s.authService()
+case "major":
+    s.majorService()
+case "school":
+    s.schoolService()
+default:
+    return fmt.Errorf("unknown service name: %s", s.config.App.Name)
+}
+```
+
+## 🧱 New Module Creation Rule
+
+To create a new module, follow these steps:
+
+1. Create a directory: `backend/module/<name>/`
+2. Add clean architecture folders:
+   - `handler/`
+   - `controller/`
+   - `repository/`
+   - `service/`
+   - `proto/`
+3. Define the `.proto` file and generate the gRPC server/client.
+4. Implement the gRPC server in `service/`.
+5. Map the gRPC client in `controller/` and connect REST via `handler/`.
+6. Register the new module in `server/<name>.go`.
+7. Add a new case in `server/server.go`.
+
+## 🧼 Best Practices
+
+- Always validate inputs before use.
+- Always wrap Fiber context with the `WithTimeout` decorator.
+- Use proper error responses and HTTP status codes.
+- Ensure gRPC is fully implemented and mapped to the REST API.
+- Middleware must be reusable and registered via `pkg/middleware`.
+- No business logic should reside in `handler/`; delegate it to `controller/`.
+- Use `pkg/common` for standardized request/response models.
+- Leverage Go concurrency for performance while ensuring context safety.
