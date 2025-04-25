@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type (
@@ -36,7 +37,35 @@ func (s *MigrationService) Run(ctx context.Context, migrations []Migration) erro
 	collection := s.db.Database("hllc-2025").Collection("migrations")
 
 	for _, m := range migrations {
-		// Check if migration has been run
+		// Special handling for initial setup - always run it to ensure admin account is properly set up
+		if m.Name() == "initial_setup_001" {
+			log.Printf("Running essential migration: %s", m.Name())
+			if err := m.Up(ctx); err != nil {
+				return err
+			}
+			
+			// Update migration record
+			_, err := collection.UpdateOne(
+				ctx,
+				map[string]string{"name": m.Name()},
+				map[string]interface{}{
+					"$set": MigrationRecord{
+						Name:      m.Name(),
+						CreatedAt: time.Now(),
+						Status:    "completed",
+					},
+				},
+				options.Update().SetUpsert(true),
+			)
+			if err != nil {
+				return err
+			}
+			
+			log.Printf("Essential migration completed: %s", m.Name())
+			continue
+		}
+		
+		// For other migrations, check if they've been run
 		var record MigrationRecord
 		err := collection.FindOne(ctx, map[string]string{"name": m.Name()}).Decode(&record)
 		if err != nil && err != mongo.ErrNoDocuments {
@@ -69,4 +98,9 @@ func (s *MigrationService) Run(ctx context.Context, migrations []Migration) erro
 	}
 
 	return nil
+}
+
+// Helper function to return pointer to a boolean value
+func toPtr(b bool) *bool {
+	return &b
 } 

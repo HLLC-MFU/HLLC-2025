@@ -33,11 +33,6 @@ func (m *MongoWrapper) WithTransaction(ctx context.Context, fn func(ctx context.
     })
     return err
 }
-
-func (m *MongoWrapper) getCollection(name string) *mongo.Collection {
-	return m.Client.Database(m.Database).Collection(name)
-}
-
 // WithMongoTimeout adds a timeout to MongoDB operations
 func WithMongoTimeout(timeout time.Duration, operation func(ctx context.Context) error) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)

@@ -22,6 +22,8 @@ import (
 func main() {
 	// Initialize structured logger
 	logging.Init(logging.InfoLevel, true) // Use pretty console output in development
+	logging.DefaultLogger.Info("Starting application...")
+	logging.DefaultLogger.Info("Environment: ", os.Getenv("APP_ENV"))
 
 	// Determine environment and load configs
 	env := os.Getenv("APP_ENV")

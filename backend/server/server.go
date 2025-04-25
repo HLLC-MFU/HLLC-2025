@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
+	"strings"
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/controller"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
 	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
@@ -18,6 +17,8 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/migration"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -27,135 +28,177 @@ import (
  * @author Dev. Bengi (Backend Team)
  */
 
-type server struct {
+type Server struct {
 	app    *fiber.App
 	config *config.Config
 	db     *mongo.Client
 	redis  *core.RedisCache
 }
 
-// UserService is a global variable to be accessed by other modules directly
-var (
-	UserSvc  serviceHttp.UserService
-	RoleSvc  serviceHttp.RoleService
-	PermSvc  serviceHttp.PermissionService
-)
-
-func NewServer(cfg *config.Config, db *mongo.Client) *server {
+func NewServer(config *config.Config, db *mongo.Client) *Server {
 	app := fiber.New(fiber.Config{
-		DisableStartupMessage: true,
-		AppName:              cfg.App.Name,
+		ReadTimeout:          10 * time.Second,
+		WriteTimeout:         10 * time.Second,
+		AppName:              "HLLC-2025 Backend Service",
 		EnablePrintRoutes:    true,
+		DisableStartupMessage: false,
 	})
 
-	redis := core.RedisConnect(context.Background(), cfg)
+	redis := core.RedisConnect(context.Background(), config)
 
-	return &server{
+	// Add global middlewares
+	app.Use(recover.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:3000,http://localhost:5173",
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowCredentials: true,
+	}))
+	
+	// Add request ID middleware
+	app.Use(func(c *fiber.Ctx) error {
+		requestID := c.Get("X-Request-ID")
+		if requestID == "" {
+			requestID = uuid.New().String()
+			c.Set("X-Request-ID", requestID)
+		}
+		return c.Next()
+	})
+
+	// Add health check endpoint
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"status":  "ok",
+			"service": config.App.Name,
+			"time":    time.Now().Format(time.RFC3339),
+		})
+	})
+
+	return &Server{
 		app:    app,
-		config: cfg,
+		config: config,
 		db:     db,
 		redis:  redis,
 	}
 }
 
-func (s *server) verifyGRPCServices() {
-	// Wait a bit for services to fully start
-	time.Sleep(2 * time.Second)
+// Unused gRPC services
+// func (s *server) verifyGRPCServices() {
+// 	// Wait a bit for services to fully start
+// 	time.Sleep(2 * time.Second)
 
-	// Get all registered gRPC services
-	ports := core.GetGRPCPorts()
-	if len(ports) == 0 {
-		log.Println("Warning: No gRPC services registered!")
-		return
-	}
+// 	// Get all registered gRPC services
+// 	ports := core.GetGRPCPorts()
+// 	if len(ports) == 0 {
+// 		log.Println("Warning: No gRPC services registered!")
+// 		return
+// 	}
 
-	log.Println("\n=== gRPC Services Status ===")
-	for service, port := range ports {
-		// Try to establish a connection to verify the service is running
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+// 	log.Println("\n=== gRPC Services Status ===")
+// 	for service, port := range ports {
+// 		// Try to establish a connection to verify the service is running
+// 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 		defer cancel()
 
-		conn, err := core.GetGRPCConnection(ctx, service)
-		if err != nil {
-			log.Printf("❌ %s service (port %d): Not responding - %v", service, port, err)
-			continue
-		}
-		defer conn.Close()
+// 		conn, err := core.GetGRPCConnection(ctx, service)
+// 		if err != nil {
+// 			log.Printf("❌ %s service (port %d): Not responding - %v", service, port, err)
+// 			continue
+// 		}
+// 		defer conn.Close()
 
-		log.Printf("✅ %s service running on port %d", service, port)
-	}
-	log.Println("===========================\n")
-}
+// 		log.Printf("✅ %s service running on port %d", service, port)
+// 	}
+// 	log.Println("===========================\n")
+// }
 
-func (s *server) Start() error {
-	// Run migrations
-	migrationService := migration.NewMigrationService(s.db)
-	migrations := []migration.Migration{
-		migration.NewInitialSetupMigration(s.db),
-	}
-	if err := migrationService.Run(context.Background(), migrations); err != nil {
-		return fmt.Errorf("failed to run migrations: %v", err)
-	}
-
-	// Set up global middleware
-	s.app.Use(cors.New(cors.Config{
-		AllowCredentials: true,
-		AllowOrigins:     "http://localhost:3000",  // Frontend development URL 
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowMethods:     "GET, POST, PUT, DELETE",
-	}))
-	s.app.Use(middleware.RequestIDMiddleware())
-	s.app.Use(middleware.LoggingMiddleware())
-	s.app.Use(middleware.RecoveryMiddleware())
+func (s *Server) initializeMonolith() error {
+	log.Printf("Initializing monolithic server with all services...")
 
 	// Initialize all services
-	log.Println("Starting service initialization...")
-	s.initializeAllServices()
-	log.Println("Service initialization completed")
-
-	// Verify gRPC services in a separate goroutine
-	go s.verifyGRPCServices()
-
-	// Set up health check
-	s.app.Get("/health", func(c *fiber.Ctx) error {
-		return c.SendString("OK")
-	})
-
-	// Start HTTP server
-	go func() {
-		log.Printf("Starting monolithic server on %s", s.config.App.Url)
-		if err := s.app.Listen(s.config.App.Url); err != nil {
-			log.Fatalf("Failed to start HTTP server: %v", err)
-		}
-	}()
-
-	// Wait for interrupt signal to gracefully shut down the server
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
-
-	log.Println("Shutting down server...")
-	
-	// Shutdown HTTP server
-	if err := s.app.Shutdown(); err != nil {
-		log.Printf("Error shutting down HTTP server: %v", err)
+	if err := InitAuthService(s.app, s.config, s.db); err != nil {
+		return fmt.Errorf("failed to initialize auth service: %v", err)
 	}
 
-	// Disconnect from Redis
-	if err := s.redis.Close(); err != nil {
-		log.Printf("Error disconnecting from Redis: %v", err)
+	if err := InitUserService(s.app, s.config, s.db); err != nil {
+		return fmt.Errorf("failed to initialize user service: %v", err)
 	}
 
-	// Disconnect from MongoDB
-	if err := s.db.Disconnect(context.Background()); err != nil {
-		log.Printf("Error disconnecting from MongoDB: %v", err)
+	if err := InitMajorService(s.app, s.config, s.db); err != nil {
+		return fmt.Errorf("failed to initialize major service: %v", err)
+	}
+
+	if err := InitSchoolService(s.app, s.config, s.db); err != nil {
+		return fmt.Errorf("failed to initialize school service: %v", err)
+	}
+
+	if err := InitActivityService(s.app, s.config, s.db); err != nil {
+		return fmt.Errorf("failed to initialize activity service: %v", err)
+	}
+
+	if err := InitCheckinService(s.app, s.config, s.db); err != nil {
+		return fmt.Errorf("failed to initialize checkin service: %v", err)
 	}
 
 	return nil
 }
 
+func (s *Server) Start() error {
+	// Run database migrations
+	log.Println("Running database migrations...")
+	if err := s.RunMigrations(); err != nil {
+		return fmt.Errorf("failed to run migrations: %v", err)
+	}
+	log.Println("Database migrations completed successfully")
+
+	// Default to monolithic mode
+	if err := s.initializeMonolith(); err != nil {
+		return err
+	}
+
+	// Print all routes for clarity
+	log.Printf("Registered routes:")
+	
+	// Group routes by module
+	routesByModule := make(map[string][]fiber.Route)
+	
+	for _, route := range s.app.GetRoutes() {
+		// Simple module categorization based on path
+		moduleName := "core"
+		path := route.Path
+		
+		if strings.Contains(path, "/auth") {
+			moduleName = "auth"
+		} else if strings.Contains(path, "/users") {
+			moduleName = "user"
+		} else if strings.Contains(path, "/major") {
+			moduleName = "major"
+		} else if strings.Contains(path, "/school") {
+			moduleName = "school"
+		} else if strings.Contains(path, "/activity") {
+			moduleName = "activity"
+		} else if strings.Contains(path, "/checkin") {
+			moduleName = "checkin"
+		}
+		
+		routesByModule[moduleName] = append(routesByModule[moduleName], route)
+	}
+	
+	// Print routes grouped by module
+	for module, routes := range routesByModule {
+		log.Printf("  Module: %s", module)
+		for _, route := range routes {
+			log.Printf("    %s %s", route.Method, route.Path)
+		}
+	}
+
+	// Start HTTP server on port 3000
+	log.Printf("Starting monolithic server on port 3000...")
+	return s.app.Listen(":3000")
+}
+
 // initializeAllServices initializes all services for the monolithic application
-func (s *server) initializeAllServices() {
+func (s *Server) initializeAllServices() {
 	log.Println("Initializing all services...")
 
 	// Initialize services in order of dependencies
@@ -168,12 +211,12 @@ func (s *server) initializeAllServices() {
 	}
 
 	// Add other services as needed
-
+	
 	log.Println("All services initialized successfully in monolithic mode")
 }
 
 // initializeUserService initializes the user service and its dependencies
-func (s *server) initializeUserService() error {
+func (s *Server) initializeUserService() error {
 	log.Println("Initializing user service...")
 
 	// Initialize repositories
@@ -182,12 +225,15 @@ func (s *server) initializeUserService() error {
 	permRepo := repository.NewPermissionRepository(s.db)
 
 	// Initialize services
-	UserSvc = serviceHttp.NewUserService(userRepo, roleRepo, permRepo)
-	RoleSvc = serviceHttp.NewRoleService(roleRepo, permRepo)
-	PermSvc = serviceHttp.NewPermissionService(permRepo)
+	userService := serviceHttp.NewUserService(userRepo, roleRepo, permRepo)
+	roleService := serviceHttp.NewRoleService(roleRepo, permRepo)
+	permService := serviceHttp.NewPermissionService(permRepo)
+
+	// Initialize HTTP handler
+	httpHandler := handler.NewHTTPHandler(userService, roleService, permService)
 
 	// Initialize controller
-	userController := controller.NewUserController(s.config, UserSvc, RoleSvc, PermSvc)
+	userController := controller.NewUserController(s.config, httpHandler)
 
 	// Register routes
 	apiV1 := s.app.Group("/api/v1")
@@ -212,8 +258,26 @@ func (s *server) initializeUserService() error {
 }
 
 // initializeAuthService initializes the auth service
-func (s *server) initializeAuthService() error {
+func (s *Server) initializeAuthService() error {
 	// Auth service implementation goes here
 	log.Println("Auth service initialized successfully")
 	return nil
+}
+
+// RunMigrations runs all database migrations
+func (s *Server) RunMigrations() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	
+	// Create migration service
+	migrationService := migration.NewMigrationService(s.db)
+	
+	// Register all migrations in order
+	migrations := []migration.Migration{
+		migration.NewInitialSetupMigration(s.db),
+		// Add future migrations here in order
+	}
+	
+	// Run migrations
+	return migrationService.Run(ctx, migrations)
 }

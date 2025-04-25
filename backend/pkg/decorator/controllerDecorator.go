@@ -3,6 +3,7 @@ package decorator
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/request"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/response"
@@ -64,15 +65,31 @@ func WithLogging(handler HTTPHandlerFunc) HTTPHandlerFunc {
 		// Pre-request logging
 		method := c.Method()
 		path := c.Path()
-		c.Context().Logger().Printf("Request: %s %s", method, path)
+		ip := c.IP()
+		userAgent := c.Get("User-Agent")
+		requestID := c.Get("X-Request-ID")
+		
+		if requestID == "" {
+			requestID = "untracked"
+		}
+		
+		log.Printf("[%s] Request: %s %s - IP: %s - UA: %s", 
+			requestID, method, path, ip, userAgent)
 
+		// Process the request
+		startTime := time.Now()
 		err := handler(c)
+		duration := time.Since(startTime)
 
 		// Post-request logging
+		statusCode := c.Response().StatusCode()
+		
 		if err != nil {
-			c.Context().Logger().Printf("Error: %s %s - %v", method, path, err)
+			log.Printf("[%s] Error: %s %s - Status: %d - Duration: %v - Error: %v", 
+				requestID, method, path, statusCode, duration, err)
 		} else {
-			c.Context().Logger().Printf("Success: %s %s", method, path)
+			log.Printf("[%s] Success: %s %s - Status: %d - Duration: %v", 
+				requestID, method, path, statusCode, duration)
 		}
 
 		return err
@@ -169,6 +186,9 @@ func (b *BaseController) RegisterRoute(method string, path string, handler HTTPH
 	for _, decorator := range decorators {
 		decorated = decorator(decorated)
 	}
+
+	// Log the route registration
+	log.Printf("Registering route: %s %s", method, path)
 
 	// Register the route
 	switch method {

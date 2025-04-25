@@ -41,6 +41,21 @@ func WithValue(ctx context.Context, key, value interface{}) ContextDecoratorFunc
 	}
 }
 
+// WithRetry for retrying connect mongoDB or cloud (!! Production Only !!)
+func WithRetry[T any] (maxAttempts int, delay time.Duration, fn func() (T, error)) (T, error) {
+	var result T
+	var err error
+	
+	for attempts := 0; attempts < maxAttempts; attempts++ {
+		result, err = fn()
+		if err != nil {
+			time.Sleep(delay)
+			continue
+		}
+	}
+	return result, err
+}
+
 // WithLogger adds logger to context
 func WithLogger(logger *log.Logger) ContextDecoratorFunc {
 	return func(next func(ctx context.Context) error) func(ctx context.Context) error {
