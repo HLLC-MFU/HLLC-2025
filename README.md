@@ -190,7 +190,7 @@ HLLC-2025/
 ### Contribution Distribution
 ```mermaid
 pie
-    title Total Commits: 0
+    title Total Commits: 100
     "Nattawat Nattachanasit" : 0
     "Nimit Tanboontor" : 0
     "Poonyawat Khomlek" : 0
