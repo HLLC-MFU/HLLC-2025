@@ -1,4 +1,10 @@
 import { apiRequest } from '@/utils/api';
+import { Platform } from 'react-native';
+
+// Use actual IP for Android, localhost for iOS
+const BASE_URL = Platform.OS === 'android' 
+  ? 'http://10.0.2.2:1334'  // Android emulator maps 10.0.2.2 to host machine's localhost
+  : 'http://localhost:1334';
 
 export interface RoomName {
   en_name: string;
@@ -49,7 +55,7 @@ export const chatService = {
   // Get all chat rooms (public)
   getRooms: async (): Promise<ChatRoom[]> => {
     try {
-      const response = await fetch('http://localhost:1334/api/v1/public/rooms');
+      const response = await fetch(`${BASE_URL}/api/v1/public/rooms`);
       const result: RoomsResponse = await response.json();
       console.log('API Response:', result);
       
@@ -67,7 +73,7 @@ export const chatService = {
   // Get a specific room (public)
   getRoom: async (roomId: string): Promise<ChatRoom | null> => {
     try {
-      const response = await fetch(`http://localhost:1334/api/v1/public/rooms/${roomId}`);
+      const response = await fetch(`${BASE_URL}/api/v1/public/rooms/${roomId}`);
       const result = await response.json();
       
       if (!response.ok) {
@@ -84,7 +90,7 @@ export const chatService = {
   // Create a new room (protected)
   createRoom: async (data: CreateRoomDto): Promise<ChatRoom | null> => {
     try {
-      const response = await fetch('http://localhost:1334/api/v1/rooms', {
+      const response = await fetch(`${BASE_URL}/api/v1/rooms`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +113,7 @@ export const chatService = {
   // Update a room (admin only)
   updateRoom: async (roomId: string, data: UpdateRoomDto): Promise<ChatRoom | null> => {
     try {
-      const response = await fetch(`http://localhost:1334/api/v1/rooms/${roomId}`, {
+      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -130,7 +136,7 @@ export const chatService = {
   // Delete a room (protected/admin)
   deleteRoom: async (roomId: string): Promise<boolean> => {
     try {
-      const response = await fetch(`http://localhost:1334/api/v1/rooms/${roomId}`, {
+      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}`, {
         method: 'DELETE',
       });
       
@@ -146,11 +152,10 @@ export const chatService = {
     }
   },
 
-
   // Send a new message
   sendMessage: async (roomId: string, message: string): Promise<ChatMessage | null> => {
     try {
-      const response = await fetch(`http://localhost:1334/api/v1/rooms/${roomId}/messages`, {
+      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -173,7 +178,7 @@ export const chatService = {
   // Join a chat room
   joinRoom: async (roomId: string): Promise<boolean> => {
     try {
-      const response = await fetch(`http://localhost:1334/api/v1/rooms/${roomId}/join`, {
+      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}/join`, {
         method: 'POST',
       });
       
@@ -192,7 +197,7 @@ export const chatService = {
   // Leave a chat room
   leaveRoom: async (roomId: string): Promise<boolean> => {
     try {
-      const response = await fetch(`http://localhost:1334/api/v1/rooms/${roomId}/leave`, {
+      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}/leave`, {
         method: 'POST',
       });
       
@@ -211,7 +216,7 @@ export const chatService = {
   // Get chat history for a room
   getRoomMessages: async (roomId: string): Promise<ChatMessage[]> => {
     try {
-      const response = await fetch(`http://localhost:1334/api/v1/rooms/${roomId}/messages`);
+      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}/messages`);
       const result = await response.json();
       
       if (!response.ok) {

@@ -31,11 +31,19 @@ export default function ChatRoomPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const { isConnected, error: wsError, sendMessage: wsSendMessage, messages } = useWebSocket(roomId as string);
+  const { isConnected, error: wsError, sendMessage: wsSendMessage, messages, connectedUsers } = useWebSocket(roomId as string);
+  const [showUsersList, setShowUsersList] = useState(false);
 
   useEffect(() => {
     loadRoom();
   }, [roomId]);
+
+  // Add room refresh when messages change
+  useEffect(() => {
+    if (messages.some(msg => msg.type === 'join' || msg.type === 'leave')) {
+      loadRoom();
+    }
+  }, [messages]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -121,12 +129,51 @@ export default function ChatRoomPage() {
               <View style={styles.memberInfo}>
                 <Users size={14} color="#666" />
                 <Text style={styles.memberCount}>
-                  {room?.connected_users || 0}/{room?.capacity || 0} members
+                  {connectedUsers.length} online
                 </Text>
               </View>
             </View>
+            <TouchableOpacity 
+              style={styles.usersButton}
+              onPress={() => setShowUsersList(prev => !prev)}
+            >
+              <Users size={20} color="#fff" />
+              {connectedUsers.length > 0 && (
+                <View style={styles.userCountBadge}>
+                  <Text style={styles.userCountText}>{connectedUsers.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
             {renderConnectionStatus()}
           </View>
+
+          {/* Connected Users List */}
+          {showUsersList && (
+            <View style={styles.usersListContainer}>
+              <Text style={styles.usersListTitle}>Connected Users ({connectedUsers.length})</Text>
+              <ScrollView style={styles.usersList}>
+                {connectedUsers.length === 0 ? (
+                  <Text style={styles.emptyUsersText}>No users connected</Text>
+                ) : (
+                  connectedUsers.map((connectedUser) => (
+                    <View key={connectedUser.id} style={styles.userItem}>
+                      <View style={styles.userInfo}>
+                        <Text style={styles.userName}>
+                          {connectedUser.id === user?.id ? 'You' : connectedUser.id}
+                        </Text>
+                        {connectedUser.id === user?.id && (
+                          <Text style={styles.currentUserBadge}>(You)</Text>
+                        )}
+                      </View>
+                      <Text style={styles.userJoinTime}>
+                        {new Date(connectedUser.joinedAt).toLocaleTimeString()}
+                      </Text>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Messages */}
           <ScrollView 
@@ -389,5 +436,86 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  usersButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  usersListContainer: {
+    position: 'absolute',
+    top: 80,
+    right: 16,
+    backgroundColor: '#252525',
+    borderRadius: 12,
+    padding: 16,
+    width: 250,
+    maxHeight: 300,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  usersListTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  usersList: {
+    maxHeight: 240,
+  },
+  userItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  userName: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  userJoinTime: {
+    color: '#666',
+    fontSize: 12,
+  },
+  userCountBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#0A84FF',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  userCountText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  emptyUsersText: {
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  currentUserBadge: {
+    color: '#0A84FF',
+    fontSize: 12,
+    fontWeight: '500',
   },
 }); 
