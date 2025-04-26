@@ -4,9 +4,9 @@ import (
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/controller"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/routes"
 	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -30,7 +30,7 @@ func InitUserService(app *fiber.App, cfg *config.Config, db *mongo.Client) error
 	httpHandler := handler.NewHTTPHandler(userService, roleService, permService)
 
 	// Initialize controller
-	userController := controller.NewUserController(cfg, httpHandler)
+	userRoutes := routes.NewUserController(cfg, httpHandler)
 
 	// gRPC registration commented out to focus on HTTP implementation
 	/*
@@ -50,15 +50,15 @@ func InitUserService(app *fiber.App, cfg *config.Config, db *mongo.Client) error
 
 	// Public routes (no auth required)
 	public := api.Group("/public/users")
-	userController.RegisterPublicRoutes(public)
+	userRoutes.RegisterPublicRoutes(public)
 
 	// Protected routes (auth required)
 	protected := api.Group("/users")
-	userController.RegisterProtectedRoutes(protected)
+	userRoutes.RegisterProtectedRoutes(protected)
 
 	// Admin routes (auth + admin role required)
 	admin := api.Group("/admin/users")
-	userController.RegisterAdminRoutes(admin)
+	userRoutes.RegisterAdminRoutes(admin)
 
 	log.Printf("User service initialized with HTTP implementation")
 	return nil

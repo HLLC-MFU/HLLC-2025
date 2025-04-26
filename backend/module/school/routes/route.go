@@ -1,4 +1,4 @@
-package controller
+package routes
 
 import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"

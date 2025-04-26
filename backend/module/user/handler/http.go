@@ -70,7 +70,6 @@ func NewHTTPHandler(
 // User management handlers
 func (h *httpHandler) CreateUser(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.CreateUserRequest](func(c *fiber.Ctx, req *dto.CreateUserRequest) error {
 		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -89,7 +88,6 @@ func (h *httpHandler) CreateUser(c *fiber.Ctx) error {
 
 func (h *httpHandler) GetUser(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -119,7 +117,6 @@ func (h *httpHandler) GetUser(c *fiber.Ctx) error {
 // GetAllUsers retrieves all users
 func (h *httpHandler) GetAllUsers(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 	// Parse pagination parameters from query string
@@ -157,7 +154,6 @@ func (h *httpHandler) GetAllUsers(c *fiber.Ctx) error {
 
 func (h *httpHandler) UpdateUser(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.UpdateUserRequest](func(c *fiber.Ctx, req *dto.UpdateUserRequest) error {
 	id := c.Params("id")
@@ -186,7 +182,6 @@ func (h *httpHandler) UpdateUser(c *fiber.Ctx) error {
 
 func (h *httpHandler) DeleteUser(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -213,7 +208,6 @@ func (h *httpHandler) DeleteUser(c *fiber.Ctx) error {
 
 func (h *httpHandler) ValidateCredentials(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.ValidateCredentialsRequest](func(c *fiber.Ctx, req *dto.ValidateCredentialsRequest) error {
 		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
@@ -237,7 +231,6 @@ func (h *httpHandler) ValidateCredentials(c *fiber.Ctx) error {
 // Role management handlers
 func (h *httpHandler) CreateRole(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.CreateRoleRequest](func(c *fiber.Ctx, req *dto.CreateRoleRequest) error {
 		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -273,7 +266,6 @@ func (h *httpHandler) CreateRole(c *fiber.Ctx) error {
 
 func (h *httpHandler) GetRole(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 id := c.Params("id")
@@ -306,7 +298,6 @@ if id == "" {
 
 func (h *httpHandler) GetAllRoles(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -337,7 +328,6 @@ func (h *httpHandler) GetAllRoles(c *fiber.Ctx) error {
 
 func (h *httpHandler) UpdateRole(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.UpdateRoleRequest](func(c *fiber.Ctx, req *dto.UpdateRoleRequest) error {
 id := c.Params("id")
@@ -378,7 +368,6 @@ if id == "" {
 
 func (h *httpHandler) DeleteRole(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 id := c.Params("id")
@@ -406,7 +395,6 @@ if id == "" {
 // Permission management handlers
 func (h *httpHandler) CreatePermission(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.CreatePermissionRequest](func(c *fiber.Ctx, req *dto.CreatePermissionRequest) error {
 		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -442,7 +430,6 @@ func (h *httpHandler) CreatePermission(c *fiber.Ctx) error {
 
 func (h *httpHandler) GetPermission(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 id := c.Params("id")
@@ -475,7 +462,6 @@ if id == "" {
 
 func (h *httpHandler) GetAllPermissions(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -506,7 +492,6 @@ func (h *httpHandler) GetAllPermissions(c *fiber.Ctx) error {
 
 func (h *httpHandler) UpdatePermission(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.UpdatePermissionRequest](func(c *fiber.Ctx, req *dto.UpdatePermissionRequest) error {
 id := c.Params("id")
@@ -547,7 +532,6 @@ if id == "" {
 
 func (h *httpHandler) DeletePermission(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 id := c.Params("id")
@@ -575,7 +559,6 @@ if id == "" {
 // Registration methods
 func (h *httpHandler) CheckUsername(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.CheckUsernameRequest](func(c *fiber.Ctx, req *dto.CheckUsernameRequest) error {
 		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
@@ -594,7 +577,6 @@ func (h *httpHandler) CheckUsername(c *fiber.Ctx) error {
 
 func (h *httpHandler) SetPassword(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.SetPasswordRequest](func(c *fiber.Ctx, req *dto.SetPasswordRequest) error {
 		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
@@ -638,7 +620,6 @@ func GetUserFromContext(c *fiber.Ctx) (*dto.UserClaims, error) {
 // ActivateUser activates a user
 func (h *httpHandler) ActivateUser(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.ActivateUserRequest](func(c *fiber.Ctx, req *dto.ActivateUserRequest) error {
 		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)

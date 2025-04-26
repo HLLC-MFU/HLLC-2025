@@ -40,25 +40,6 @@ func WithJSONResponse[T any](fn func(ctx *fiber.Ctx) (T, error)) HTTPHandlerFunc
 	}
 }
 
-
-// NewBaseController creates a new BaseController
-func WithRecovery() ControllerDecorator {
-	return func(handler HTTPHandlerFunc) HTTPHandlerFunc {
-		return func(c *fiber.Ctx) (err error) {
-			defer func() {
-				if r := recover(); r != nil {
-					log.Printf("Panic Recovered: %v", r)
-					err = c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-						"error": "Internal Server Error",
-					})
-				}
-			}()
-			return handler(c)
-		}
-	}
-}
-
-
 // WithLogging adds logging to the handler
 func WithLogging(handler HTTPHandlerFunc) HTTPHandlerFunc {
 	return func(c *fiber.Ctx) error {

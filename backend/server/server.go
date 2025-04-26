@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/controller"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/routes"
 	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
@@ -233,7 +233,7 @@ func (s *Server) initializeUserService() error {
 	httpHandler := handler.NewHTTPHandler(userService, roleService, permService)
 
 	// Initialize controller
-	userController := controller.NewUserController(s.config, httpHandler)
+	userController := routes.NewUserController(s.config, httpHandler)
 
 	// Register routes
 	apiV1 := s.app.Group("/api/v1")

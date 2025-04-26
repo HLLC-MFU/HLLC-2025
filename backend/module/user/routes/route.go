@@ -1,4 +1,4 @@
-package controller
+package routes
 
 import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
@@ -49,7 +49,6 @@ func (c *userController) RegisterPublicRoutes(router fiber.Router) {
 	
 	// Apply common decorators
 	commonDecorators := []decorator.ControllerDecorator{
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	}
 	
@@ -75,7 +74,6 @@ func (c *userController) RegisterProtectedRoutes(router fiber.Router) {
 	
 	// Apply common decorators
 	commonDecorators := []decorator.ControllerDecorator{
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	}
 	
@@ -104,7 +102,6 @@ func (c *userController) RegisterAdminRoutes(router fiber.Router) {
 	
 	// Apply common decorators
 	commonDecorators := []decorator.ControllerDecorator{
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	}
 	

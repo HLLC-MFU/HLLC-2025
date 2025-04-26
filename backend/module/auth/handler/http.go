@@ -88,7 +88,6 @@ func NewAuthHTTPHandler(cfg *config.Config, authService authService.AuthService)
 // POST /auth/login
 func (h *authHttpHandler) Login(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.LoginRequest](func(c *fiber.Ctx, req *dto.LoginRequest) error {
 		logger := logging.DefaultLogger.WithContext(c.Context())
@@ -167,7 +166,6 @@ func (h *authHttpHandler) Login(c *fiber.Ctx) error {
 // POST /auth/refresh-token
 func (h *authHttpHandler) RefreshToken(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(decorator.WithJSONValidation[dto.RefreshTokenRequest](func(c *fiber.Ctx, req *dto.RefreshTokenRequest) error {
 		logger := logging.DefaultLogger.WithContext(c.Context())
@@ -251,7 +249,6 @@ func (h *authHttpHandler) RefreshToken(c *fiber.Ctx) error {
 // GET /auth/validate
 func (h *authHttpHandler) ValidateToken(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 		logger := logging.DefaultLogger.WithContext(c.Context())
@@ -306,7 +303,6 @@ func (h *authHttpHandler) ValidateToken(c *fiber.Ctx) error {
 // POST /auth/logout
 func (h *authHttpHandler) Logout(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 		logger := logging.DefaultLogger.WithContext(c.Context())
@@ -411,7 +407,6 @@ func (h *authHttpHandler) Logout(c *fiber.Ctx) error {
 // POST /auth/revoke-sessions/:userId
 func (h *authHttpHandler) RevokeUserSessions(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
-		decorator.WithRecovery(),
 		decorator.WithLogging,
 	)(func(c *fiber.Ctx) error {
 		logger := logging.DefaultLogger.WithContext(c.Context())
