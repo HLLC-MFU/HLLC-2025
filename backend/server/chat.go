@@ -4,10 +4,12 @@ import (
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/handler"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/kafka"
 	chatPb "github.com/HLLC-MFU/HLLC-2025/backend/module/chats/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
+	kafkaUtil "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -16,12 +18,27 @@ import (
 
 func (s *server) chatService() {
 	// Start chat hub loop
+	publisher := kafka.GetPublisher()
+
+	topicName := "chat-room"
+	err := kafkaUtil.EnsureKafkaTopic("localhost:9092", topicName)
+	if err != nil {
+		log.Fatalf("[Kafka] Ensure Topic error: %v", err)
+	}
 
 	repo := repository.NewRepository(s.db)
-	roomService := service.NewService(repo)
+	roomService := service.NewService(repo, publisher)
 	roomService.InitChatHub()
 
-	httpHandler := handler.NewHTTPHandler(roomService)
+	// ✅ เพิ่ม Kafka Consumer ตรงนี้
+	kafka.StartKafkaConsumer(
+		"localhost:9092",
+		[]string{}, // ตอน start ยังไม่มี topic
+		"chat-group",
+		roomService,
+	)
+
+	httpHandler := handler.NewHTTPHandler(roomService, publisher)
 	grpcHandler := handler.NewGrpcHandler(roomService)
 
 	// Set up HTTP middleware
@@ -85,7 +102,7 @@ func (s *server) chatService() {
 	log.Printf("Room service initialized")
 
 	// HTTP WebSocket route
-	s.app.Get("/ws/:roomId/:userId", websocket.New(handler.HandleWebSocket(roomService)))
+	s.app.Get("/ws/:roomId/:userId", websocket.New(httpHandler.HandleWebSocket()))
 
 	// Simple ping route (optional)
 	s.app.Get("/ping", func(c *fiber.Ctx) error {

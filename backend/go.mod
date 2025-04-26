@@ -17,7 +17,9 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
+	github.com/segmentio/kafka-go v0.4.47 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
 )
 
@@ -62,6 +64,10 @@ replace (
 	github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto => ./module/auth/proto
 	github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated => ./module/auth/proto/generated
 
+	//Chat
+	github.com/HLLC-MFU/HLLC-2025/backend/module/chat/proto => ./module/chat/proto
+	github.com/HLLC-MFU/HLLC-2025/backend/module/chat/proto/generated => ./module/chat/proto/generated
+
 	//Checkins
 	github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/proto => ./module/checkin/proto
 	github.com/HLLC-MFU/HLLC-2025/backend/module/checkin/proto/generated => ./module/checkin/proto/generated
@@ -73,10 +79,6 @@ replace (
 	//School
 	github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto => ./module/school/proto
 	github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated => ./module/school/proto/generated
-
-	//Chat
-	github.com/HLLC-MFU/HLLC-2025/backend/module/chat/proto => ./module/chat/proto
-	github.com/HLLC-MFU/HLLC-2025/backend/module/chat/proto/generated => ./module/chat/proto/generated
 
 	//Module
 

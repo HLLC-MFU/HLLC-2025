@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/kafka"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	coreModel "github.com/HLLC-MFU/HLLC-2025/backend/pkg/core/model"
@@ -13,7 +14,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func HandleWebSocket(chatService service.Service) func(c *websocket.Conn) {
+// ก่อน: เป็น function ธรรมดา
+// func HandleWebSocket(chatService service.Service) func(c *websocket.Conn) {
+
+func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 	return func(c *websocket.Conn) {
 		roomIdStr := c.Params("roomId")
 		userId := c.Params("userId")
@@ -26,9 +30,8 @@ func HandleWebSocket(chatService service.Service) func(c *websocket.Conn) {
 			return
 		}
 
-		// ✅ Check if room exists via gRPC or direct service call
 		ctx := context.Background()
-		room, err := chatService.GetRoom(ctx, roomId)
+		room, err := h.service.GetRoom(ctx, roomId)
 		if err != nil || room == nil {
 			log.Printf("[WS] Room %s not found", roomId.Hex())
 			_ = c.WriteMessage(websocket.TextMessage, []byte("Room not found"))
@@ -50,7 +53,7 @@ func HandleWebSocket(chatService service.Service) func(c *websocket.Conn) {
 			Conn:   c,
 		}
 
-		history, err := chatService.GetChatHistoryByRoom(context.Background(), roomId.Hex(), 10)
+		history, err := h.service.GetChatHistoryByRoom(context.Background(), roomId.Hex(), 10)
 		if err == nil && len(history) > 0 {
 			for _, msg := range history {
 				_ = c.WriteMessage(websocket.TextMessage, []byte(msg.UserID+": "+msg.Message))
@@ -71,17 +74,26 @@ func HandleWebSocket(chatService service.Service) func(c *websocket.Conn) {
 				MSG:  string(msg),
 				FROM: client,
 			})
+
+			// ✅ ตรงนี้ใช้ h.publisher ได้แล้ว
+			err = h.publisher.SendMessage(client.RoomID, client.UserID, string(msg))
+			if err != nil {
+				log.Printf("[Kafka] Failed to publish message: %v", err)
+			}
 		}
 	}
 }
 
+
 type HTTPHandler struct {
-	service service.Service
+	service   service.Service
+	publisher kafka.Publisher
 }
 
-func NewHTTPHandler(service service.Service) *HTTPHandler {
+func NewHTTPHandler(service service.Service, publisher kafka.Publisher) *HTTPHandler {
 	return &HTTPHandler{
-		service: service,
+		service:   service,
+		publisher: publisher,
 	}
 }
 
