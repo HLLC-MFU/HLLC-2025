@@ -19,22 +19,14 @@ service MajorService {
   rpc DeleteMajor(DeleteMajorRequest) returns (DeleteMajorResponse);
 }
 
-// Major photos
-message MajorPhotos {
-  string cover_photo = 1;      // Main cover photo
-  string banner_photo = 2;     // Banner/header photo
-  string thumbnail_photo = 3;  // Thumbnail for listings
-  string logo_photo = 4;       // Major logo
-}
-
 // Major message
 message Major {
   string id = 1;
   string school_id = 2;
   core.LocalizedName name = 3;
-  string acronym = 4;
+  core.LocalizedAcronym acronym = 4;
   core.LocalizedDetails details = 5;
-  MajorPhotos photos = 6;
+  core.Photos photos = 6;
   school.School school = 7;    // Embedded school information
   google.protobuf.Timestamp created_at = 8;
   google.protobuf.Timestamp updated_at = 9;
@@ -44,9 +36,9 @@ message Major {
 message CreateMajorRequest {
   string school_id = 1;
   core.LocalizedName name = 2;
-  string acronym = 3;
+  core.LocalizedAcronym acronym = 3;
   core.LocalizedDetails details = 4;
-  MajorPhotos photos = 5;
+  core.Photos photos = 5;
 }
 
 message GetMajorRequest {
@@ -65,9 +57,9 @@ message ListMajorsBySchoolRequest {
 message UpdateMajorRequest {
   string id = 1;
   core.LocalizedName name = 2;
-  string acronym = 3;
+  core.LocalizedAcronym acronym = 3;
   core.LocalizedDetails details = 4;
-  MajorPhotos photos = 5;
+  core.Photos photos = 5;
 }
 
 message DeleteMajorRequest {

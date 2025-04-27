@@ -25,7 +25,7 @@ type (
 	TokenType string
 
 	AuthFactory interface {
-		SignToken() string
+		SignToken() (string, error)
 	}
 
 	Claims struct {
@@ -77,10 +77,13 @@ func jwtTimeRepeatAdapter(t int64) *jwt.NumericDate {
 	return jwt.NewNumericDate(time.Unix(t, 0))
 }
 
-func (a *authConcrete) SignToken() string {
+func (a *authConcrete) SignToken() (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, a.Claims)
-	ss, _ := token.SignedString(a.Secret)
-	return ss
+	ss, err := token.SignedString(a.Secret)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
+	return ss, nil
 }
 
 func NewAccessToken(secret string, expiredAt int64, claims *Claims) AuthFactory {
@@ -121,7 +124,7 @@ func NewRefreshToken(secret string, expiredAt int64, claims *Claims) AuthFactory
 	}
 }
 
-func ReloadToken(secret string, expiredAt int64, claims *Claims) string {
+func ReloadToken(secret string, expiredAt int64, claims *Claims) (string, error) {
 	claims.TokenType = TokenTypeRefresh
 	claims.RegisteredClaims = jwt.RegisteredClaims{
 		Issuer:    "hllc-2025.com",
@@ -191,7 +194,10 @@ func SetApiKey(secret string) {
 				Claims: claims,
 			},
 		}
-		apiKeyInstance = apiKey.SignToken()
+		token, err := apiKey.SignToken()
+		if err == nil {
+			apiKeyInstance = token
+		}
 	})
 }
 

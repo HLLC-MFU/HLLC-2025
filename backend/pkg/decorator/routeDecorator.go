@@ -22,12 +22,15 @@ type (
 	HTTPHandlerFunc func(*fiber.Ctx) error
 
 	// ControllerDecorator wraps controller methods with additional functionality
-	ControllerDecorator func(HTTPHandlerFunc) HTTPHandlerFunc
+	RouteDecorator func(HTTPHandlerFunc) HTTPHandlerFunc
 
 	// BaseController provides common controller functionality
 	BaseController struct {
 		Router fiber.Router
 	}
+
+	// ControllerHandler represents a basic handler function for Fiber
+	ControllerHandler func(c *fiber.Ctx) error
 )
 
 func WithJSONResponse[T any](fn func(ctx *fiber.Ctx) (T, error)) HTTPHandlerFunc {
@@ -149,9 +152,8 @@ func WithJSONValidation[T any](handler func(*fiber.Ctx, *T) error) fiber.Handler
 	}
 }
 
-
 // ComposeDecorators combines multiple decorators into one
-func ComposeDecorators(decorators ...ControllerDecorator) ControllerDecorator {
+func ComposeDecorators(decorators ...RouteDecorator) func(HTTPHandlerFunc) HTTPHandlerFunc {
 	return func(handler HTTPHandlerFunc) HTTPHandlerFunc {
 		for i := len(decorators) - 1; i >= 0; i-- {
 			handler = decorators[i](handler)
@@ -161,7 +163,7 @@ func ComposeDecorators(decorators ...ControllerDecorator) ControllerDecorator {
 }
 
 // RegisterRoute registers a route with decorators
-func (b *BaseController) RegisterRoute(method string, path string, handler HTTPHandlerFunc, decorators ...ControllerDecorator) {
+func (b *BaseController) RegisterRoute(method string, path string, handler HTTPHandlerFunc, decorators ...RouteDecorator) {
 	// Apply all decorators
 	decorated := handler
 	for _, decorator := range decorators {

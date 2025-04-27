@@ -8,6 +8,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/routes"
 	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -48,16 +49,24 @@ func InitUserService(app *fiber.App, cfg *config.Config, db *mongo.Client) error
 	// Initialize HTTP server
 	api := app.Group("/api/v1")
 
+	// JWT secret key from config
+	secretKey := cfg.Jwt.AccessSecretKey
+
 	// Public routes (no auth required)
 	public := api.Group("/public/users")
 	userRoutes.RegisterPublicRoutes(public)
 
 	// Protected routes (auth required)
 	protected := api.Group("/users")
+	protected.Use(middleware.AuthMiddleware(secretKey))
+	protected.Use(middleware.PermissionLoadingMiddleware(db))
 	userRoutes.RegisterProtectedRoutes(protected)
 
 	// Admin routes (auth + admin role required)
 	admin := api.Group("/admin/users")
+	admin.Use(middleware.AuthMiddleware(secretKey))
+	admin.Use(middleware.PermissionLoadingMiddleware(db))
+	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
 	userRoutes.RegisterAdminRoutes(admin)
 
 	log.Printf("User service initialized with HTTP implementation")

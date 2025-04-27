@@ -13,11 +13,6 @@ import (
  */
 
 type (
-
-	ContextDecorator struct {
-		Name string
-	}
-
 	ContextDecoratorFunc func(next func(ctx context.Context) error) func(ctx context.Context) error
 )
 

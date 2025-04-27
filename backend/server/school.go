@@ -1,33 +1,37 @@
 package server
 
 import (
-	"log"
+	"context"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/routes"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/service"
+	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/school/service/http"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/logging"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// SchoolService is a global variable to be accessed by other modules directly
-var (
-	SchoolSvc service.Service
-)
-
 // InitSchoolService initializes the school service and its dependencies
 func InitSchoolService(app *fiber.App, cfg *config.Config, db *mongo.Client) error {
-	log.Println("Initializing school service...")
+	logger := logging.DefaultLogger.WithContext(context.Background())
+	logger.Info("Initializing school service...",
+		logging.FieldModule, "school",
+		logging.FieldOperation, "init",
+	)
 
 	// Initialize repository
 	schoolRepo := repository.NewRepository(db)
 
-	// Initialize service
-	SchoolSvc = service.NewService(schoolRepo)
+	//Initial Service
+	schoolService := serviceHttp.NewSchoolService(schoolRepo)
+
+	httpHandler := handler.NewHTTPHandler(schoolService)
 
 	// Initialize controller
-	schoolRoutes := routes.NewController(cfg, SchoolSvc)
+	schoolRoutes := routes.NewSchoolController(cfg, httpHandler)
 
 	// Register gRPC service
 	// log.Println("Registering school gRPC service...")
@@ -42,18 +46,29 @@ func InitSchoolService(app *fiber.App, cfg *config.Config, db *mongo.Client) err
 	// Initialize HTTP server
 	api := app.Group("/api/v1")
 
+	// JWT secret key from config
+	secretKey := cfg.Jwt.AccessSecretKey
+
 	// Public routes (no auth required)
 	public := api.Group("/public/schools")
 	schoolRoutes.RegisterPublicRoutes(public)
 
 	// Protected routes (auth required)
 	protected := api.Group("/schools")
+	protected.Use(middleware.AuthMiddleware(secretKey))
+	protected.Use(middleware.PermissionLoadingMiddleware(db))
 	schoolRoutes.RegisterProtectedRoutes(protected)
 
 	// Admin routes (auth + admin role required)
 	admin := api.Group("/admin/schools")
+	admin.Use(middleware.AuthMiddleware(secretKey))
+	admin.Use(middleware.PermissionLoadingMiddleware(db))
+	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
 	schoolRoutes.RegisterAdminRoutes(admin)
 
-	log.Printf("School service initialized in monolithic mode")
+	logger.Info("School service initialized in monolithic mode",
+		logging.FieldModule, "school",
+		logging.FieldOperation, "init",
+	)
 	return nil
 } 

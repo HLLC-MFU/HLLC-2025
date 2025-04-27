@@ -35,12 +35,12 @@ func InitAuthService(app *fiber.App, cfg *config.Config, db *mongo.Client) error
 	httpHandler := handler.NewAuthHTTPHandler(cfg, authSvc)
 
 	// Initialize controller
-	authRoutes := routes.NewAuthController(cfg, authSvc, httpHandler)
+	authRoutes := routes.NewAuthController(cfg, httpHandler)
 
 	// Initialize HTTP server routes
 	api := app.Group("/api/v1")
 
-	// Public routes (no auth required) 
+	// Public routes (no auth required) - no middleware, direct access
 	public := api.Group("/auth")
 	authRoutes.RegisterPublicRoutes(public)
 
@@ -48,13 +48,17 @@ func InitAuthService(app *fiber.App, cfg *config.Config, db *mongo.Client) error
 	secretKey := cfg.Jwt.AccessSecretKey
 
 	// Protected routes (auth required)
-	protected := api.Group("/protected/auth")
+	protected := api.Group("/auth")
 	protected.Use(middleware.AuthMiddleware(secretKey))
+	// Add permission loading middleware to add proper permissions based on roles
+	protected.Use(middleware.PermissionLoadingMiddleware(db))
 	authRoutes.RegisterProtectedRoutes(protected)
 
 	// Admin routes (admin role required)
 	admin := api.Group("/admin/auth")
 	admin.Use(middleware.AuthMiddleware(secretKey))
+	// Add permission loading middleware to add proper permissions based on roles
+	admin.Use(middleware.PermissionLoadingMiddleware(db))
 	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
 	authRoutes.RegisterAdminRoutes(admin)
 

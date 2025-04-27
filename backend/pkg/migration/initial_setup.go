@@ -264,6 +264,118 @@ func (m *InitialSetupMigration) Up(ctx context.Context) error {
 			CreatedAt:   time.Now().Format(time.RFC3339),
 			UpdatedAt:   time.Now().Format(time.RFC3339),
 		},
+		
+		// Module-based permissions for Auth module
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "Auth Module - Public Access",
+			Code:        "AUTH_MODULE_PUBLIC_ACCESS",
+			Module:      "auth",
+			Description: "Permission to access public auth endpoints like login",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "Auth Module - User Access",
+			Code:        "AUTH_MODULE_USER_ACCESS",
+			Module:      "auth",
+			Description: "Permission to access user-level auth endpoints",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "Auth Module - Admin Access",
+			Code:        "AUTH_MODULE_ADMIN_ACCESS",
+			Module:      "auth",
+			Description: "Permission to access admin-level auth endpoints",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
+		
+		// Module-based permissions for School module
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "School Module - Public Access",
+			Code:        "SCHOOL_MODULE_PUBLIC_ACCESS",
+			Module:      "school",
+			Description: "Permission to access public school endpoints",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "School Module - User Access",
+			Code:        "SCHOOL_MODULE_USER_ACCESS",
+			Module:      "school",
+			Description: "Permission to access user-level school endpoints",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "School Module - Admin Access",
+			Code:        "SCHOOL_MODULE_ADMIN_ACCESS",
+			Module:      "school",
+			Description: "Permission to access admin-level school endpoints",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "School - Create School",
+			Code:        "SCHOOL_SCHOOL_CREATE",
+			Module:      "school",
+			Description: "Permission to create schools",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "School - Read School",
+			Code:        "SCHOOL_SCHOOL_READ",
+			Module:      "school",
+			Description: "Permission to read school details",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "School - Update School",
+			Code:        "SCHOOL_SCHOOL_UPDATE",
+			Module:      "school",
+			Description: "Permission to update schools",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "School - Delete School",
+			Code:        "SCHOOL_SCHOOL_DELETE",
+			Module:      "school",
+			Description: "Permission to delete schools",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "School - List Schools",
+			Code:        "SCHOOL_SCHOOL_LIST",
+			Module:      "school",
+			Description: "Permission to list schools",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
+		{
+			Id:          primitive.NewObjectID().Hex(),
+			Name:        "School Module User Read",
+			Code:        "SCHOOL_MODULE_USER_READ",
+			Module:      "school",
+			Description: "Permission for regular users to read school data",
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			UpdatedAt:   time.Now().Format(time.RFC3339),
+		},
 	}
 
 	// Insert permissions
@@ -338,10 +450,12 @@ func (m *InitialSetupMigration) Up(ctx context.Context) error {
 		_, err = roleCollection.UpdateOne(
 			ctx,
 			bson.M{"code": "ADMIN"},
-			bson.M{"$set": bson.M{
-				"permission_ids": allPermissionIds,
-				"updated_at": time.Now().Format(time.RFC3339),
-			}},
+			bson.M{
+				"$set": bson.M{
+					"permission_ids": allPermissionIds,
+					"updated_at": time.Now().Format(time.RFC3339),
+				},
+			},
 		)
 		if err != nil {
 			return err
@@ -352,7 +466,7 @@ func (m *InitialSetupMigration) Up(ctx context.Context) error {
 	// Create normal user role with limited permissions
 	normalUserRole := &userPb.Role{
 		Id:            primitive.NewObjectID().Hex(),
-		Name:          "Regular User",
+		Name:          "Normal User",
 		Code:          "USER",
 		Description:   "Regular user with limited access",
 		PermissionIds: normalUserPermissionIds,
@@ -379,10 +493,12 @@ func (m *InitialSetupMigration) Up(ctx context.Context) error {
 		_, err = roleCollection.UpdateOne(
 			ctx,
 			bson.M{"code": "USER"},
-			bson.M{"$set": bson.M{
-				"permission_ids": normalUserPermissionIds,
-				"updated_at": time.Now().Format(time.RFC3339),
-			}},
+			bson.M{
+				"$set": bson.M{
+					"permission_ids": normalUserPermissionIds,
+					"updated_at": time.Now().Format(time.RFC3339),
+				},
+			},
 		)
 		if err != nil {
 			return err
@@ -449,146 +565,16 @@ func (m *InitialSetupMigration) Up(ctx context.Context) error {
 		log.Printf("Admin user password has been reset and account is activated")
 	}
 	
-	// Create a normal user
-	err = userCollection.FindOne(ctx, bson.M{"username": "user"}).Decode(&existingUser)
-	if err == mongo.ErrNoDocuments {
-		// Create normal user
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("user123"), bcrypt.DefaultCost)
-		if err != nil {
-			return err
-		}
-
-		normalUser := &userPb.User{
-			Id:       primitive.NewObjectID().Hex(),
-			Username: "user",
-			Password: string(hashedPassword),
-			Name: &userPb.Name{
-				FirstName: "Normal",
-				LastName:  "User",
-			},
-			RoleIds:     []string{normalUserRole.Id},
-			CreatedAt:   time.Now().Format(time.RFC3339),
-			UpdatedAt:   time.Now().Format(time.RFC3339),
-			IsActivated: true,
-		}
-
-		_, err = userCollection.InsertOne(ctx, normalUser)
-		if err != nil {
-			return err
-		}
-		log.Println("Normal user created")
-	} else if err != nil {
-		return err
-	} else {
-		log.Println("Normal user already exists")
-		
-		// Update normal user role to ensure they have the correct role
-		_, err = userCollection.UpdateOne(
-			ctx,
-			bson.M{"username": "user"},
-			bson.M{"$set": bson.M{
-				"role_ids": []string{normalUserRole.Id},
-				"updated_at": time.Now().Format(time.RFC3339),
-			}},
-		)
-		if err != nil {
-			return err
-		}
-		log.Println("Normal user roles updated")
-	}
-
-	return nil
-}
-
-func (m *InitialSetupMigration) createNormalUserRoleAndAccount(ctx context.Context) error {
-	userCollection := m.db.Database("hllc-2025").Collection("users")
-	roleCollection := m.db.Database("hllc-2025").Collection("roles")
-	permissionCollection := m.db.Database("hllc-2025").Collection("permissions")
-	
-	// Define permission codes for normal users
-	normalUserPermissionCodes := []string{
-		"ACCESS_PUBLIC", 
-		"ACCESS_PROTECTED", 
-		"EDIT_OWN_PROFILE",
-	}
-	
-	// Find or create permissions
-	normalUserPermissionIds := []string{}
-	
-	for _, code := range normalUserPermissionCodes {
-		var permission userPb.Permission
-		err := permissionCollection.FindOne(ctx, bson.M{"code": code}).Decode(&permission)
-		
-		// If permission doesn't exist, create it
-		if err == mongo.ErrNoDocuments {
-			permName := ""
-			permDesc := ""
-			permModule := "general"
-			
-			switch code {
-			case "ACCESS_PUBLIC":
-				permName = "Access Public APIs"
-				permDesc = "Permission to access public endpoints"
-			case "ACCESS_PROTECTED":
-				permName = "Access Protected APIs"
-				permDesc = "Permission to access protected endpoints (requires login)"
-			case "EDIT_OWN_PROFILE":
-				permName = "Edit Own Profile"
-				permDesc = "Permission to edit one's own profile"
-				permModule = "user"
-			}
-			
-			newPermission := userPb.Permission{
-				Id:          primitive.NewObjectID().Hex(),
-				Name:        permName,
-				Code:        code,
-				Module:      permModule,
-				Description: permDesc,
-				CreatedAt:   time.Now().Format(time.RFC3339),
-				UpdatedAt:   time.Now().Format(time.RFC3339),
-			}
-			
-			_, err := permissionCollection.InsertOne(ctx, newPermission)
-			if err != nil {
-				return err
-			}
-			log.Printf("Created permission: %s", code)
-			
-			normalUserPermissionIds = append(normalUserPermissionIds, newPermission.Id)
-		} else if err != nil {
-			return err
-		} else {
-			normalUserPermissionIds = append(normalUserPermissionIds, permission.Id)
-		}
-	}
-	
-	// Create user role
-	normalUserRole := &userPb.Role{
-		Id:            primitive.NewObjectID().Hex(),
-		Name:          "Regular User",
-		Code:          "USER",
-		Description:   "Regular user with limited access",
-		PermissionIds: normalUserPermissionIds,
-		CreatedAt:     time.Now().Format(time.RFC3339),
-		UpdatedAt:     time.Now().Format(time.RFC3339),
-	}
-	
-	_, err := roleCollection.InsertOne(ctx, normalUserRole)
-	if err != nil {
-		return err
-	}
-	log.Println("Normal user role created")
-	
 	// Create normal user account
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("user123"), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-
+	
 	normalUser := &userPb.User{
-		Id:       primitive.NewObjectID().Hex(),
-		Username: "user",
-		Password: string(hashedPassword),
+		Id:          primitive.NewObjectID().Hex(),
+		Username:    "user",
+		Password:    string(hashedPassword),
 		Name: &userPb.Name{
 			FirstName: "Normal",
 			LastName:  "User",
@@ -603,93 +589,207 @@ func (m *InitialSetupMigration) createNormalUserRoleAndAccount(ctx context.Conte
 	if err != nil {
 		return err
 	}
-	log.Println("Normal user created")
 	
+	log.Println("Normal user created")
 	return nil
 }
 
-func (m *InitialSetupMigration) updateNormalUserPermissions(ctx context.Context) error {
-	roleCollection := m.db.Database("hllc-2025").Collection("roles")
+func (m *InitialSetupMigration) createNormalUserRoleAndAccount(ctx context.Context) error {
+	// Create new user role
 	permissionCollection := m.db.Database("hllc-2025").Collection("permissions")
 	
-	// Define permission codes for normal users
-	normalUserPermissionCodes := []string{
-		"ACCESS_PUBLIC", 
-		"ACCESS_PROTECTED", 
-		"EDIT_OWN_PROFILE",
-	}
+	// Query to find all the required permissions for normal user
+	cursor, err := permissionCollection.Find(ctx, bson.M{
+		"code": bson.M{
+			"$in": []string{
+				"ACCESS_PUBLIC", 
+				"ACCESS_PROTECTED",
+				"AUTH_MODULE_PUBLIC_ACCESS",  // Ensure normal users can login
+				"SCHOOL_MODULE_PUBLIC_ACCESS",
+				"EDIT_OWN_PROFILE",
+			},
+		},
+	})
 	
-	// Get normal user role
-	var userRole userPb.Role
-	err := roleCollection.FindOne(ctx, bson.M{"code": "USER"}).Decode(&userRole)
 	if err != nil {
 		return err
 	}
 	
-	// Find permissions
-	normalUserPermissionIds := []string{}
-	
-	for _, code := range normalUserPermissionCodes {
-		var permission userPb.Permission
-		err := permissionCollection.FindOne(ctx, bson.M{"code": code}).Decode(&permission)
-		
-		// If permission doesn't exist, create it
-		if err == mongo.ErrNoDocuments {
-			permName := ""
-			permDesc := ""
-			permModule := "general"
-			
-			switch code {
-			case "ACCESS_PUBLIC":
-				permName = "Access Public APIs"
-				permDesc = "Permission to access public endpoints"
-			case "ACCESS_PROTECTED":
-				permName = "Access Protected APIs"
-				permDesc = "Permission to access protected endpoints (requires login)"
-			case "EDIT_OWN_PROFILE":
-				permName = "Edit Own Profile"
-				permDesc = "Permission to edit one's own profile"
-				permModule = "user"
-			}
-			
-			newPermission := userPb.Permission{
-				Id:          primitive.NewObjectID().Hex(),
-				Name:        permName,
-				Code:        code,
-				Module:      permModule,
-				Description: permDesc,
-				CreatedAt:   time.Now().Format(time.RFC3339),
-				UpdatedAt:   time.Now().Format(time.RFC3339),
-			}
-			
-			_, err := permissionCollection.InsertOne(ctx, newPermission)
-			if err != nil {
-				return err
-			}
-			log.Printf("Created permission: %s", code)
-			
-			normalUserPermissionIds = append(normalUserPermissionIds, newPermission.Id)
-		} else if err != nil {
-			return err
-		} else {
-			normalUserPermissionIds = append(normalUserPermissionIds, permission.Id)
-		}
+	var normalUserPermissions []*userPb.Permission
+	if err = cursor.All(ctx, &normalUserPermissions); err != nil {
+		return err
 	}
 	
-	// Update normal user role permissions
+	// Extract permission IDs
+	var normalUserPermissionIds []string
+	for _, p := range normalUserPermissions {
+		normalUserPermissionIds = append(normalUserPermissionIds, p.Id)
+	}
+	
+	// Create the normal user role
+	roleCollection := m.db.Database("hllc-2025").Collection("roles")
+	normalUserRole := &userPb.Role{
+		Id:          primitive.NewObjectID().Hex(),
+		Name:        "Normal User",
+		Code:        "USER",
+		Description: "Regular user with limited permissions",
+		PermissionIds: normalUserPermissionIds,
+		CreatedAt:   time.Now().Format(time.RFC3339),
+		UpdatedAt:   time.Now().Format(time.RFC3339),
+	}
+	
+	_, err = roleCollection.InsertOne(ctx, normalUserRole)
+	if err != nil {
+		return err
+	}
+	
+	// Add all the new permissions to admin role
+	// First get all permissions
+	cursor, err = permissionCollection.Find(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	
+	var allPermissions []*userPb.Permission
+	if err = cursor.All(ctx, &allPermissions); err != nil {
+		return err
+	}
+	
+	var allPermissionIds []string
+	for _, p := range allPermissions {
+		allPermissionIds = append(allPermissionIds, p.Id)
+	}
+	
+	// Get admin role
+	var adminRole userPb.Role
+	err = roleCollection.FindOne(ctx, bson.M{"code": "ADMIN"}).Decode(&adminRole)
+	if err != nil {
+		return err
+	}
+	
+	// Update admin role with all permissions
+	_, err = roleCollection.UpdateOne(
+		ctx,
+		bson.M{"code": "ADMIN"},
+		bson.M{
+			"$set": bson.M{
+				"permission_ids": allPermissionIds,
+				"updated_at": time.Now().Format(time.RFC3339),
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	// Create normal user account
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	userCollection := m.db.Database("hllc-2025").Collection("users")
+	normalUser := &userPb.User{
+		Id:          primitive.NewObjectID().Hex(),
+		Username:    "user",
+		Password:    string(hashedPassword),
+		Name: &userPb.Name{
+			FirstName: "Normal",
+			LastName:  "User",
+		},
+		RoleIds:     []string{normalUserRole.Id},
+		CreatedAt:   time.Now().Format(time.RFC3339),
+		UpdatedAt:   time.Now().Format(time.RFC3339),
+		IsActivated: true,
+	}
+
+	_, err = userCollection.InsertOne(ctx, normalUser)
+	if err != nil {
+		return err
+	}
+	
+	log.Println("Normal user created")
+	return nil
+}
+
+func (m *InitialSetupMigration) updateNormalUserPermissions(ctx context.Context) error {
+	// Query to find all the required permissions for normal user
+	permissionCollection := m.db.Database("hllc-2025").Collection("permissions")
+	cursor, err := permissionCollection.Find(ctx, bson.M{
+		"code": bson.M{
+			"$in": []string{
+				"ACCESS_PUBLIC", 
+				"ACCESS_PROTECTED",
+				"AUTH_MODULE_PUBLIC_ACCESS",  // Ensure normal users can login
+				"SCHOOL_MODULE_PUBLIC_ACCESS",
+				"EDIT_OWN_PROFILE",
+			},
+		},
+	})
+	
+	if err != nil {
+		return err
+	}
+	
+	var normalUserPermissions []*userPb.Permission
+	if err = cursor.All(ctx, &normalUserPermissions); err != nil {
+		return err
+	}
+	
+	// Extract permission IDs
+	var normalUserPermissionIds []string
+	for _, p := range normalUserPermissions {
+		normalUserPermissionIds = append(normalUserPermissionIds, p.Id)
+	}
+	
+	// Update normal user role
+	roleCollection := m.db.Database("hllc-2025").Collection("roles")
 	_, err = roleCollection.UpdateOne(
 		ctx,
 		bson.M{"code": "USER"},
-		bson.M{"$set": bson.M{
-			"permission_ids": normalUserPermissionIds,
-			"updated_at": time.Now().Format(time.RFC3339),
-		}},
+		bson.M{
+			"$set": bson.M{
+				"permission_ids": normalUserPermissionIds,
+				"updated_at": time.Now().Format(time.RFC3339),
+			},
+		},
 	)
 	if err != nil {
 		return err
 	}
 	
-	log.Println("Normal user role permissions updated")
+	// Add all the new permissions to admin role
+	// First get all permissions
+	cursor, err = permissionCollection.Find(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	
+	var allPermissions []*userPb.Permission
+	if err = cursor.All(ctx, &allPermissions); err != nil {
+		return err
+	}
+	
+	var allPermissionIds []string
+	for _, p := range allPermissions {
+		allPermissionIds = append(allPermissionIds, p.Id)
+	}
+	
+	// Update admin role with all permissions
+	_, err = roleCollection.UpdateOne(
+		ctx,
+		bson.M{"code": "ADMIN"},
+		bson.M{
+			"$set": bson.M{
+				"permission_ids": allPermissionIds,
+				"updated_at": time.Now().Format(time.RFC3339),
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	
 	return nil
 }
 

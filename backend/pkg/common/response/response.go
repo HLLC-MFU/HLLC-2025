@@ -8,29 +8,32 @@ import "github.com/gofiber/fiber/v2"
  * @author Dev. Bengi (Backend Team)
  */
 
+// Response is the standard API response structure
 type Response struct {
-	Status  bool        `json:"status"`
+	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func Error(c *fiber.Ctx, statusCode int, message string) error {
+// Success returns a successful response with the given data
+func Success(c *fiber.Ctx, statusCode int, data interface{}) error {
 	return c.Status(statusCode).JSON(Response{
-		Status:  false,
-		Message: message,
+		Success: true,
+		Data:    data,
 	})
 }
 
-func Success(c *fiber.Ctx, statusCode int, data interface{}) error {
+// Error returns an error response with the given message
+func Error(c *fiber.Ctx, statusCode int, message string) error {
 	return c.Status(statusCode).JSON(Response{
-		Status: true,
-		Data:   data,
+		Success: false,
+		Message: message,
 	})
 }
 
 func SuccessWithMessage(c *fiber.Ctx, statusCode int, message string, data interface{}) error {
 	return c.Status(statusCode).JSON(Response{
-		Status:  true,
+		Success: true,
 		Message: message,
 		Data:    data,
 	})

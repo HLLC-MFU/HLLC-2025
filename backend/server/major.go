@@ -2,26 +2,27 @@ package server
 
 import (
 	"context"
-	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/repository"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/service"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/major/routes"
+	service "github.com/HLLC-MFU/HLLC-2025/backend/module/major/service/http"
 	schoolPb "github.com/HLLC-MFU/HLLC-2025/backend/module/school/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/logging"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// MajorService is a global variable to be accessed by other modules directly
-var (
-	MajorSvc service.Service
-)
-
-// InitMajorService initializes the major service and its dependencies
+// MajorService initializes the major service
 func InitMajorService(app *fiber.App, cfg *config.Config, db *mongo.Client) error {
-	log.Println("Initializing major service...")
+	logger := logging.DefaultLogger.WithContext(context.Background())
+	logger.Info("Initializing major service...",
+		logging.FieldModule, "major",
+		logging.FieldOperation, "init",
+	)
 
 	// Initialize repository
 	majorRepo := repository.NewRepository(db)
@@ -29,7 +30,11 @@ func InitMajorService(app *fiber.App, cfg *config.Config, db *mongo.Client) erro
 	// Get school client for adapter mode
 	schoolClient, err := core.GetGRPCConnection(context.Background(), "school")
 	if err != nil {
-		log.Printf("Warning: Could not connect to school service: %v", err)
+		logger.Warn("Could not connect to school service",
+			logging.FieldModule, "major",
+			logging.FieldOperation, "init",
+			"error", err.Error(),
+		)
 	}
 	var schoolSvc schoolPb.SchoolServiceClient
 	if schoolClient != nil {
@@ -37,27 +42,57 @@ func InitMajorService(app *fiber.App, cfg *config.Config, db *mongo.Client) erro
 	}
 
 	// Initialize service
-	MajorSvc = service.NewService(majorRepo, schoolSvc)
+	majorSvc := service.NewMajorService(majorRepo, schoolSvc)
 
 	// Initialize HTTP handler
-	httpHandler := handler.NewHTTPHandler(MajorSvc)
+	httpHandler := handler.NewHTTPHandler(majorSvc)
 
-	// // Register gRPC service
-	// log.Println("Registering major gRPC service...")
-	// grpcHandler := handler.NewGrpcHandler(MajorSvc)
-	// if err := core.RegisterGRPCService("major", func(server *grpc.Server) {
-	// 	generated.RegisterMajorServiceServer(server, grpcHandler)
-	// }); err != nil {
-	// 	return fmt.Errorf("failed to register major gRPC service: %v", err)
-	// }
-	// log.Printf("Successfully registered major gRPC service")
+	// Register routes
+	majorController := routes.NewMajorController(cfg, httpHandler)
 
-	// Initialize HTTP server
+	// Register routes based on different access levels
 	api := app.Group("/api/v1")
+	
+	// JWT secret key from config
+	secretKey := cfg.Jwt.AccessSecretKey
+	
+	// Public routes
+	publicRouter := api.Group("/public")
+	majorController.RegisterPublicRoutes(publicRouter)
+	
+	// Protected routes
+	protected := api.Group("/majors")
+	protected.Use(middleware.AuthMiddleware(secretKey))
+	protected.Use(middleware.PermissionLoadingMiddleware(db))
+	majorController.RegisterProtectedRoutes(protected)
+	
+	// Admin routes
+	admin := api.Group("/admin/majors")
+	admin.Use(middleware.AuthMiddleware(secretKey))
+	admin.Use(middleware.PermissionLoadingMiddleware(db))
+	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
+	majorController.RegisterAdminRoutes(admin)
 
-	// Register all routes
-	httpHandler.RegisterRoutes(api.Group("/majors"))
+	// Optional: Register gRPC service if needed
+	// if s.grpcServer != nil {
+	// 	logger.Info("Registering major gRPC service...",
+	// 		logging.FieldModule, "major",
+	// 		logging.FieldOperation, "register_grpc",
+	// 	)
+		
+	// 	// Initialize gRPC handler
+	// 	grpcHandler := handler.NewGrpcHandler(majorSvc)
+	// 	majorPb.RegisterMajorServiceServer(s.grpcServer, grpcHandler)
+		
+	// 	logger.Info("Successfully registered major gRPC service",
+	// 		logging.FieldModule, "major",
+	// 		logging.FieldOperation, "register_grpc",
+	// 	)
+	// }
 
-	log.Printf("Major service initialized in monolithic mode")
+	logger.Info("Major service initialized successfully",
+		logging.FieldModule, "major",
+		logging.FieldOperation, "init",
+	)
 	return nil
 } 

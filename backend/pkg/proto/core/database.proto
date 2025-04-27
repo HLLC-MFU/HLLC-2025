@@ -22,18 +22,11 @@ message Base {
 
 // Query represents common database query parameters
 message Query {
-    // Pagination
     int32 page = 1;
     int32 limit = 2;
-    
-    // Sorting
     string sort_by = 3;
     bool ascending = 4;
-    
-    // Filtering
     map<string, string> filters = 5;
-    
-    // Search
     string search_term = 6;
     repeated string search_fields = 7;
 }

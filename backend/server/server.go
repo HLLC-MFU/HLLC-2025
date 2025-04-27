@@ -8,12 +8,7 @@ import (
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/handler"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/repository"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/routes"
-	serviceHttp "github.com/HLLC-MFU/HLLC-2025/backend/module/user/service/http"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/migration"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -197,72 +192,7 @@ func (s *Server) Start() error {
 	return s.app.Listen(":3000")
 }
 
-// initializeAllServices initializes all services for the monolithic application
-func (s *Server) initializeAllServices() {
-	log.Println("Initializing all services...")
 
-	// Initialize services in order of dependencies
-	if err := s.initializeUserService(); err != nil {
-		log.Printf("Error initializing user service: %v", err)
-	}
-
-	if err := s.initializeAuthService(); err != nil {
-		log.Printf("Error initializing auth service: %v", err)
-	}
-
-	// Add other services as needed
-	
-	log.Println("All services initialized successfully in monolithic mode")
-}
-
-// initializeUserService initializes the user service and its dependencies
-func (s *Server) initializeUserService() error {
-	log.Println("Initializing user service...")
-
-	// Initialize repositories
-	userRepo := repository.NewUserRepository(s.db)
-	roleRepo := repository.NewRoleRepository(s.db)
-	permRepo := repository.NewPermissionRepository(s.db)
-
-	// Initialize services
-	userService := serviceHttp.NewUserService(userRepo, roleRepo, permRepo)
-	roleService := serviceHttp.NewRoleService(roleRepo, permRepo)
-	permService := serviceHttp.NewPermissionService(permRepo)
-
-	// Initialize HTTP handler
-	httpHandler := handler.NewHTTPHandler(userService, roleService, permService)
-
-	// Initialize controller
-	userController := routes.NewUserController(s.config, httpHandler)
-
-	// Register routes
-	apiV1 := s.app.Group("/api/v1")
-	userController.RegisterPublicRoutes(apiV1.Group("/public"))
-	
-	// JWT secret key from config
-	secretKey := s.config.Jwt.AccessSecretKey
-	
-	// Protected routes (require authentication)
-	protected := apiV1.Group("/protected")
-	protected.Use(middleware.AuthMiddleware(secretKey))
-	userController.RegisterProtectedRoutes(protected)
-	
-	// Admin routes (require admin role)
-	admin := apiV1.Group("/admin")
-	admin.Use(middleware.AuthMiddleware(secretKey))
-	admin.Use(middleware.RoleMiddleware([]string{"admin"}))
-	userController.RegisterAdminRoutes(admin)
-
-	log.Println("User service initialized successfully")
-	return nil
-}
-
-// initializeAuthService initializes the auth service
-func (s *Server) initializeAuthService() error {
-	// Auth service implementation goes here
-	log.Println("Auth service initialized successfully")
-	return nil
-}
 
 // RunMigrations runs all database migrations
 func (s *Server) RunMigrations() error {
