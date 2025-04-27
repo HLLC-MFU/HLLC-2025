@@ -25,6 +25,9 @@ type (
 		FindPermissionByID(ctx context.Context, id primitive.ObjectID) (*userPb.Permission, error)
 		FindPermissionByCode(ctx context.Context, code string) (*userPb.Permission, error)
 		FindAllPermissions(ctx context.Context) ([]*userPb.Permission, error)
+		FindPermissionsByModule(ctx context.Context, module string) ([]*userPb.Permission, error)
+		FindPermissionsByModuleAndAction(ctx context.Context, module, action string) ([]*userPb.Permission, error)
+		FindPermissionsByAccessLevel(ctx context.Context, accessLevel string) ([]*userPb.Permission, error)
 		UpdatePermission(ctx context.Context, permission *userPb.Permission) error
 		DeletePermission(ctx context.Context, id primitive.ObjectID) error
 	}
@@ -78,6 +81,10 @@ func (r *permissionRepository) CreatePermission(ctx context.Context, permission 
 			"name":        permission.Name,
 			"code":        permission.Code,
 			"description": permission.Description,
+			"module":      permission.Module,
+			"action":      permission.Action,
+			"access_level": permission.AccessLevel,
+			"resource":    permission.Resource,
 			"created_at":  permission.CreatedAt,
 			"updated_at":  permission.UpdatedAt,
 		}
@@ -287,6 +294,166 @@ func (r *permissionRepository) FindAllPermissions(ctx context.Context) ([]*userP
 	})(ctx)
 }
 
+// FindPermissionsByModule retrieves permissions by module with proper error handling and logging
+func (r *permissionRepository) FindPermissionsByModule(ctx context.Context, module string) ([]*userPb.Permission, error) {
+	return decorator.WithTimeout[[]*userPb.Permission](10*time.Second)(func(ctx context.Context) ([]*userPb.Permission, error) {
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Finding permissions by module",
+			logging.FieldOperation, "find_permissions_by_module",
+			logging.FieldEntity, "permission",
+			"module", module,
+		)
+		
+		permissionsColl := r.permissionsColl(ctx)
+		
+		// Get all permissions with the specified module
+		cursor, err := permissionsColl.Find(ctx, bson.M{"module": module})
+		if err != nil {
+			logger.Error("Failed to find permissions by module", err,
+				logging.FieldOperation, "find_permissions_by_module",
+				logging.FieldEntity, "permission",
+				"module", module,
+			)
+			return nil, exceptions.Internal("failed to find permissions", err,
+				exceptions.WithOperation("find_permissions_by_module"))
+		}
+		defer cursor.Close(ctx)
+
+		var permissions []*userPb.Permission
+		if err := cursor.All(ctx, &permissions); err != nil {
+			logger.Error("Failed to decode permissions", err,
+				logging.FieldOperation, "find_permissions_by_module",
+				logging.FieldEntity, "permission",
+				"module", module,
+			)
+			return nil, exceptions.Internal("failed to decode permissions", err,
+				exceptions.WithOperation("find_permissions_by_module"))
+		}
+		
+		// If nil, return empty array instead
+		if permissions == nil {
+			permissions = []*userPb.Permission{}
+		}
+		
+		logger.Info("Found permissions successfully",
+			logging.FieldOperation, "find_permissions_by_module",
+			logging.FieldEntity, "permission",
+			"module", module,
+			"count", len(permissions),
+		)
+		
+		return permissions, nil
+	})(ctx)
+}
+
+// FindPermissionsByModuleAndAction retrieves permissions by module and action with proper error handling and logging
+func (r *permissionRepository) FindPermissionsByModuleAndAction(ctx context.Context, module, action string) ([]*userPb.Permission, error) {
+	return decorator.WithTimeout[[]*userPb.Permission](10*time.Second)(func(ctx context.Context) ([]*userPb.Permission, error) {
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Finding permissions by module and action",
+			logging.FieldOperation, "find_permissions_by_module_and_action",
+			logging.FieldEntity, "permission",
+			"module", module,
+			"action", action,
+		)
+		
+		permissionsColl := r.permissionsColl(ctx)
+		
+		// Get all permissions with the specified module and action
+		cursor, err := permissionsColl.Find(ctx, bson.M{"module": module, "action": action})
+		if err != nil {
+			logger.Error("Failed to find permissions by module and action", err,
+				logging.FieldOperation, "find_permissions_by_module_and_action",
+				logging.FieldEntity, "permission",
+				"module", module,
+				"action", action,
+			)
+			return nil, exceptions.Internal("failed to find permissions", err,
+				exceptions.WithOperation("find_permissions_by_module_and_action"))
+		}
+		defer cursor.Close(ctx)
+
+		var permissions []*userPb.Permission
+		if err := cursor.All(ctx, &permissions); err != nil {
+			logger.Error("Failed to decode permissions", err,
+				logging.FieldOperation, "find_permissions_by_module_and_action",
+				logging.FieldEntity, "permission",
+				"module", module,
+				"action", action,
+			)
+			return nil, exceptions.Internal("failed to decode permissions", err,
+				exceptions.WithOperation("find_permissions_by_module_and_action"))
+		}
+		
+		// If nil, return empty array instead
+		if permissions == nil {
+			permissions = []*userPb.Permission{}
+		}
+		
+		logger.Info("Found permissions successfully",
+			logging.FieldOperation, "find_permissions_by_module_and_action",
+			logging.FieldEntity, "permission",
+			"module", module,
+			"action", action,
+			"count", len(permissions),
+		)
+		
+		return permissions, nil
+	})(ctx)
+}
+
+// FindPermissionsByAccessLevel retrieves permissions by access level with proper error handling and logging
+func (r *permissionRepository) FindPermissionsByAccessLevel(ctx context.Context, accessLevel string) ([]*userPb.Permission, error) {
+	return decorator.WithTimeout[[]*userPb.Permission](10*time.Second)(func(ctx context.Context) ([]*userPb.Permission, error) {
+		logger := logging.DefaultLogger.WithContext(ctx)
+		logger.Info("Finding permissions by access level",
+			logging.FieldOperation, "find_permissions_by_access_level",
+			logging.FieldEntity, "permission",
+			"access_level", accessLevel,
+		)
+		
+		permissionsColl := r.permissionsColl(ctx)
+		
+		// Get all permissions with the specified access level
+		cursor, err := permissionsColl.Find(ctx, bson.M{"access_level": accessLevel})
+		if err != nil {
+			logger.Error("Failed to find permissions by access level", err,
+				logging.FieldOperation, "find_permissions_by_access_level",
+				logging.FieldEntity, "permission",
+				"access_level", accessLevel,
+			)
+			return nil, exceptions.Internal("failed to find permissions", err,
+				exceptions.WithOperation("find_permissions_by_access_level"))
+		}
+		defer cursor.Close(ctx)
+
+		var permissions []*userPb.Permission
+		if err := cursor.All(ctx, &permissions); err != nil {
+			logger.Error("Failed to decode permissions", err,
+				logging.FieldOperation, "find_permissions_by_access_level",
+				logging.FieldEntity, "permission",
+				"access_level", accessLevel,
+			)
+			return nil, exceptions.Internal("failed to decode permissions", err,
+				exceptions.WithOperation("find_permissions_by_access_level"))
+		}
+		
+		// If nil, return empty array instead
+		if permissions == nil {
+			permissions = []*userPb.Permission{}
+		}
+		
+		logger.Info("Found permissions successfully",
+			logging.FieldOperation, "find_permissions_by_access_level",
+			logging.FieldEntity, "permission",
+			"access_level", accessLevel,
+			"count", len(permissions),
+		)
+		
+		return permissions, nil
+	})(ctx)
+}
+
 // UpdatePermission updates permission information with proper error handling and logging
 func (r *permissionRepository) UpdatePermission(ctx context.Context, permission *userPb.Permission) error {
 	_, err := decorator.WithTimeout[struct{}](10*time.Second)(func(ctx context.Context) (struct{}, error) {
@@ -316,6 +483,10 @@ func (r *permissionRepository) UpdatePermission(ctx context.Context, permission 
 				"name":        permission.Name,
 				"code":        permission.Code,
 				"description": permission.Description,
+				"module":      permission.Module,
+				"action":      permission.Action,
+				"access_level": permission.AccessLevel,
+				"resource":    permission.Resource,
 				"updated_at":  permission.UpdatedAt,
 			},
 		}

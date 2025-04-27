@@ -41,8 +41,12 @@ message Permission {
     string code = 3;
     string description = 4;
     string module = 5;
-    string created_at = 6;
-    string updated_at = 7;
+    string action = 6; // create, read, update, delete, list
+    string access_level = 7; // public, protected, admin
+    string resource = 8; // specific resource this permission applies to
+    repeated string tags = 9; // tags for organizing permissions
+    string created_at = 10;
+    string updated_at = 11;
 }
 
 // User related messages
@@ -130,6 +134,10 @@ message CreatePermissionRequest {
     string code = 2;
     string description = 3;
     string module = 4;
+    string action = 5; // create, read, update, delete, list
+    string access_level = 6; // public, protected, admin
+    string resource = 7; // specific resource this permission applies to
+    repeated string tags = 8; // tags for organizing permissions
 }
 
 message GetPermissionRequest {
@@ -148,6 +156,10 @@ message UpdatePermissionRequest {
     string code = 3;
     string description = 4;
     string module = 5;
+    string action = 6;
+    string access_level = 7;
+    string resource = 8;
+    repeated string tags = 9;
 }
 
 message DeletePermissionRequest {

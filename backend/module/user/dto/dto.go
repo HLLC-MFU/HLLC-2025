@@ -66,6 +66,10 @@ type (
 		Code        string `json:"code" validate:"required"`
 		Description string `json:"description"`
 		Module      string `json:"module" validate:"required"`
+		Action      string `json:"action" validate:"required,oneof=create read update delete list"`
+		AccessLevel string `json:"access_level" validate:"required,oneof=public protected admin"`
+		Resource    string `json:"resource" validate:"required"`
+		Tags        []string `json:"tags,omitempty"`
 	}
 
 	UpdatePermissionRequest struct {
@@ -73,6 +77,10 @@ type (
 		Code        string `json:"code"`
 		Description string `json:"description"`
 		Module      string `json:"module"`
+		Action      string `json:"action" validate:"omitempty,oneof=create read update delete list"`
+		AccessLevel string `json:"access_level" validate:"omitempty,oneof=public protected admin"`
+		Resource    string `json:"resource"`
+		Tags        []string `json:"tags,omitempty"`
 	}
 
 	CheckUsernameRequest struct {
@@ -122,11 +130,15 @@ type (
 	}
 
 	PermissionResponse struct {
-		ID          string `json:"id"`
-		Name        string `json:"name"`
-		Code        string `json:"code"`
-		Description string `json:"description"`
-		Module      string `json:"module"`
+		ID          string   `json:"id"`
+		Name        string   `json:"name"`
+		Code        string   `json:"code"`
+		Description string   `json:"description"`
+		Module      string   `json:"module"`
+		Action      string   `json:"action"`
+		AccessLevel string   `json:"access_level"`
+		Resource    string   `json:"resource"`
+		Tags        []string `json:"tags,omitempty"`
 	}
 
 	ValidateCredentialsRequest struct {
@@ -143,6 +155,37 @@ type (
 		Success bool   `json:"success"`
 		Message string `json:"message"`
 		UserID  string `json:"user_id"`
+	}
+
+	// New DTOs for template-based permission generation
+	CreatePermissionTemplateRequest struct {
+		Module      string   `json:"module" validate:"required"`
+		Resource    string   `json:"resource" validate:"required"`
+		Actions     []string `json:"actions" validate:"required,dive,oneof=create read update delete list"`
+		AccessLevel string   `json:"access_level" validate:"required,oneof=public protected admin"`
+		Description string   `json:"description"`
+		Tags        []string `json:"tags"`
+	}
+
+	PermissionTemplateResponse struct {
+		Module      string                `json:"module"`
+		Resource    string                `json:"resource"`
+		Permissions []*PermissionResponse `json:"permissions"`
+	}
+
+	// Module permission template for generating standard module access levels
+	ModulePermissionTemplateRequest struct {
+		Module       string   `json:"module" validate:"required"`
+		Description  string   `json:"description"`
+		GenerateRBAC bool     `json:"generate_rbac" default:"true"`
+	}
+
+	// Alias for HTTP handler compatibility
+	CreateModulePermissionsRequest = ModulePermissionTemplateRequest
+
+	ModulePermissionTemplateResponse struct {
+		Module      string                `json:"module"`
+		Permissions []*PermissionResponse `json:"permissions"`
 	}
 )
 

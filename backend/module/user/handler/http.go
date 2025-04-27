@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/user/dto"
@@ -38,6 +39,11 @@ type HTTPHandler interface {
 	GetAllPermissions(c *fiber.Ctx) error
 	UpdatePermission(c *fiber.Ctx) error
 	DeletePermission(c *fiber.Ctx) error
+	GetPermissionsByModule(c *fiber.Ctx) error
+	GetPermissionsByModuleAndAction(c *fiber.Ctx) error
+	GetPermissionsByAccessLevel(c *fiber.Ctx) error
+	CreatePermissionFromTemplate(c *fiber.Ctx) error
+	CreateModulePermissions(c *fiber.Ctx) error
 
 	// Registration methods
 	CheckUsername(c *fiber.Ctx) error
@@ -556,6 +562,141 @@ if id == "" {
 	return handler(c)
 }
 
+// GetPermissionsByModule retrieves permissions by module
+func (h *httpHandler) GetPermissionsByModule(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		module := c.Params("module")
+		if module == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("Module parameter is required", nil))
+		}
+
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
+
+		permissions, err := h.permService.GetPermissionsByModule(ctx, module)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		// Convert proto responses to DTOs
+		response := make([]*dto.PermissionResponse, 0, len(permissions))
+		for _, permission := range permissions {
+			response = append(response, &dto.PermissionResponse{
+				ID:          permission.GetId(),
+				Name:        permission.GetName(),
+				Code:        permission.GetCode(),
+				Description: permission.GetDescription(),
+				Module:      permission.GetModule(),
+				// Add the new fields once they're available in the proto
+			})
+		}
+
+		return c.Status(fiber.StatusOK).JSON(response)
+	})
+
+	return handler(c)
+}
+
+// GetPermissionsByModuleAndAction retrieves permissions by module and action
+func (h *httpHandler) GetPermissionsByModuleAndAction(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		module := c.Params("module")
+		if module == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("Module parameter is required", nil))
+		}
+
+		action := c.Params("action")
+		if action == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("Action parameter is required", nil))
+		}
+
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
+
+		permissions, err := h.permService.GetPermissionsByModuleAndAction(ctx, module, action)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		// Convert proto responses to DTOs
+		response := make([]*dto.PermissionResponse, 0, len(permissions))
+		for _, permission := range permissions {
+			response = append(response, &dto.PermissionResponse{
+				ID:          permission.GetId(),
+				Name:        permission.GetName(),
+				Code:        permission.GetCode(),
+				Description: permission.GetDescription(),
+				Module:      permission.GetModule(),
+				// Add the new fields once they're available in the proto
+			})
+		}
+
+		return c.Status(fiber.StatusOK).JSON(response)
+	})
+
+	return handler(c)
+}
+
+// GetPermissionsByAccessLevel retrieves permissions by access level
+func (h *httpHandler) GetPermissionsByAccessLevel(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		accessLevel := c.Params("access_level")
+		if accessLevel == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("Access level parameter is required", nil))
+		}
+
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
+
+		permissions, err := h.permService.GetPermissionsByAccessLevel(ctx, accessLevel)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		// Convert proto responses to DTOs
+		response := make([]*dto.PermissionResponse, 0, len(permissions))
+		for _, permission := range permissions {
+			response = append(response, &dto.PermissionResponse{
+				ID:          permission.GetId(),
+				Name:        permission.GetName(),
+				Code:        permission.GetCode(),
+				Description: permission.GetDescription(),
+				Module:      permission.GetModule(),
+				// Add the new fields once they're available in the proto
+			})
+		}
+
+		return c.Status(fiber.StatusOK).JSON(response)
+	})
+
+	return handler(c)
+}
+
+// CreatePermissionFromTemplate creates permissions from a template
+func (h *httpHandler) CreatePermissionFromTemplate(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.CreatePermissionTemplateRequest](func(c *fiber.Ctx, req *dto.CreatePermissionTemplateRequest) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 15*time.Second)
+		defer cancel()
+
+		result, err := h.permService.CreatePermissionFromTemplate(ctx, req)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return c.Status(fiber.StatusCreated).JSON(result)
+	}))
+
+	return handler(c)
+}
+
 // Registration methods
 func (h *httpHandler) CheckUsername(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
@@ -617,7 +758,7 @@ func GetUserFromContext(c *fiber.Ctx) (*dto.UserClaims, error) {
 	}, nil
 }
 
-// ActivateUser activates a user
+// ActivateUser activates a user account
 func (h *httpHandler) ActivateUser(c *fiber.Ctx) error {
 	handler := decorator.ComposeDecorators(
 		decorator.WithLogging,
@@ -633,10 +774,10 @@ func (h *httpHandler) ActivateUser(c *fiber.Ctx) error {
 				exceptions.WithEntity("user", "unknown")))
 		}
 
-		// Only admin can activate users
+		// Only admin can activate users - check both "admin" and "ADMIN" variations
 		hasAdminRole := false
 		for _, roleCode := range userClaims.RoleCodes {
-			if roleCode == "admin" {
+			if strings.EqualFold(roleCode, "admin") {
 				hasAdminRole = true
 				break
 			}
@@ -654,6 +795,25 @@ func (h *httpHandler) ActivateUser(c *fiber.Ctx) error {
 		}
 
 		return response.Success(c, fiber.StatusOK, result)
+	}))
+
+	return handler(c)
+}
+
+// CreateModulePermissions creates module permissions
+func (h *httpHandler) CreateModulePermissions(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.CreateModulePermissionsRequest](func(c *fiber.Ctx, req *dto.CreateModulePermissionsRequest) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
+
+		result, err := h.permService.CreateModulePermissions(ctx, (*dto.ModulePermissionTemplateRequest)(req))
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return response.Success(c, fiber.StatusCreated, result)
 	}))
 
 	return handler(c)
