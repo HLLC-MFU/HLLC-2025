@@ -7,7 +7,6 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/dto"
-	authPb "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/proto/generated"
 	authService "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/service/http"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/response"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
@@ -68,6 +67,7 @@ type (
 		ValidateToken(c *fiber.Ctx) error
 		Logout(c *fiber.Ctx) error
 		RevokeUserSessions(c *fiber.Ctx) error
+		GetProfile(c *fiber.Ctx) error
 	}
 
 	authHttpHandler struct {
@@ -427,20 +427,9 @@ func (h *authHttpHandler) RevokeUserSessions(c *fiber.Ctx) error {
 			"target_user_id", userId,
 		)
 
-		// Check if caller has admin role
-		callerData, exists := c.Locals("user").(map[string]interface{})
-		if !exists || callerData == nil {
-			logger.Warn("Unauthorized access attempt - no user data",
-				logging.FieldOperation, "revoke_sessions_handler",
-				logging.FieldEntity, "user",
-				"target_user_id", userId,
-			)
-			return exceptions.HandleError(c, exceptions.Unauthorized("admin role required", nil))
-		}
-		
-		// Check if caller has roles
-		callerRoles, hasRoles := callerData["roles"].([]string)
-		if !hasRoles || len(callerRoles) == 0 {
+		// Get role codes from context
+		roleCodes, ok := c.Locals("role_codes").([]string)
+		if !ok || len(roleCodes) == 0 {
 			logger.Warn("Unauthorized access attempt - no roles",
 				logging.FieldOperation, "revoke_sessions_handler",
 				logging.FieldEntity, "user",
@@ -449,10 +438,10 @@ func (h *authHttpHandler) RevokeUserSessions(c *fiber.Ctx) error {
 			return exceptions.HandleError(c, exceptions.Unauthorized("admin role required", nil))
 		}
 		
-		// Check specifically for ADMIN role
+		// Check specifically for ADMIN role - case insensitive
 		hasAdminRole := false
-		for _, role := range callerRoles {
-			if role == "ADMIN" {
+		for _, roleCode := range roleCodes {
+			if strings.EqualFold(roleCode, "admin") {
 				hasAdminRole = true
 				break
 			}
@@ -463,21 +452,23 @@ func (h *authHttpHandler) RevokeUserSessions(c *fiber.Ctx) error {
 				logging.FieldOperation, "revoke_sessions_handler",
 				logging.FieldEntity, "user",
 				"target_user_id", userId,
-				"caller_roles", callerRoles,
 			)
-			return exceptions.HandleError(c, exceptions.Unauthorized("admin role required", nil))
+			return exceptions.HandleError(c, exceptions.Forbidden("admin role required", nil))
 		}
-
+		
+		// Create request from params
+		req := &dto.RevokeSessionRequest{
+			UserID: userId,
+		}
+		
 		// Set context timeout
 		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 		defer cancel()
-
-		_, err := h.authService.RevokeSession(ctx, &authPb.RevokeSessionRequest{
-			UserId: userId,
-		})
-
+		
+		// Call service
+		result, err := h.authService.RevokeSession(ctx, req)
 		if err != nil {
-			logger.Error("Session revocation failed", err,
+			logger.Error("Failed to revoke sessions", err,
 				logging.FieldOperation, "revoke_sessions_handler",
 				logging.FieldEntity, "user",
 				"target_user_id", userId,
@@ -485,16 +476,66 @@ func (h *authHttpHandler) RevokeUserSessions(c *fiber.Ctx) error {
 			return exceptions.HandleError(c, err)
 		}
 
-		logger.Info("Session revocation successful",
+		logger.Info("Sessions revoked successfully",
 			logging.FieldOperation, "revoke_sessions_handler",
 			logging.FieldEntity, "user",
 			"target_user_id", userId,
 		)
+		
+		return response.Success(c, fiber.StatusOK, result)
+	})
 
-		return response.Success(c, fiber.StatusOK, fiber.Map{
-			"message": "All sessions for user have been revoked successfully",
-			"userId":  userId,
-		})
+	return handler(c)
+}
+
+// GetProfile returns the user's profile
+// GET /auth/me
+func (h *authHttpHandler) GetProfile(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		logger := logging.DefaultLogger.WithContext(c.Context())
+		logger.Info("Processing profile request",
+			logging.FieldOperation, "get_profile_handler",
+			logging.FieldEntity, "user",
+		)
+		
+		// Get token from Authorization header or cookie
+		var token string
+		authHeader := c.Get("Authorization")
+		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+			token = strings.TrimPrefix(authHeader, "Bearer ")
+		} else {
+			token = c.Cookies("access_token")
+		}
+
+		if token == "" {
+			logger.Warn("No token provided",
+				logging.FieldOperation, "get_profile_handler",
+				logging.FieldEntity, "user",
+			)
+			return exceptions.HandleError(c, exceptions.Unauthorized("no authentication token provided", nil))
+		}
+
+		// Set context timeout
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
+		
+		result, err := h.authService.GetProfile(ctx, token)
+		if err != nil {
+			logger.Error("Profile retrieval failed", err,
+				logging.FieldOperation, "get_profile_handler",
+				logging.FieldEntity, "user",
+			)
+			return exceptions.HandleError(c, err)
+		}
+		
+		logger.Info("Profile retrieval successful",
+			logging.FieldOperation, "get_profile_handler",
+			logging.FieldEntity, "user",
+		)
+
+		return response.Success(c, fiber.StatusOK, result)
 	})
 
 	return handler(c)

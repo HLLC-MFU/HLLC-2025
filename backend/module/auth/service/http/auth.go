@@ -23,12 +23,8 @@ type (
 		RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (*dto.TokenResponse, error)
 		ValidateToken(ctx context.Context, token string) (*dto.UserResponse, error)
 		Logout(ctx context.Context, userId string) error
-		
-		// gRPC service methods
-		InternalLogin(ctx context.Context, req *authPb.InternalLoginRequest) (*authPb.InternalLoginResponse, error)
-		ValidateTokenGRPC(ctx context.Context, req *authPb.ValidateTokenRequest) (*authPb.ValidateTokenResponse, error)
-		RefreshTokenGRPC(ctx context.Context, req *authPb.RefreshTokenRequest) (*authPb.RefreshTokenResponse, error)
-		RevokeSession(ctx context.Context, req *authPb.RevokeSessionRequest) (*authPb.RevokeSessionResponse, error)
+		GetProfile(ctx context.Context, token string) (*dto.UserResponse, error)
+		RevokeSession(ctx context.Context, req *dto.RevokeSessionRequest) (*dto.RevokeSessionResponse, error)
 	}
 
 	authService struct {
@@ -112,17 +108,29 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 			RoleCodes: roleCodes,
 		}
 
-		accessToken := security.NewAccessToken(
+		accessToken, err := security.NewAccessToken(
 			s.cfg.Jwt.AccessSecretKey,
 			s.cfg.Jwt.AccessDuration,
 			claims,
 		).SignToken()
+		if err != nil {
+			logger.Error("Failed to generate access token", err,
+				logging.FieldOperation, "login",
+				logging.FieldEntity, "token",
+			)
+		}
 
-		refreshToken := security.NewRefreshToken(
+		refreshToken, err := security.NewRefreshToken(
 			s.cfg.Jwt.RefreshSecretKey,
 			s.cfg.Jwt.RefreshDuration,
 			claims,
 		).SignToken()
+		if err != nil {
+			logger.Error("Failed to generate refresh token", err,
+				logging.FieldOperation, "login",
+				logging.FieldEntity, "token",
+			)
+		}
 
 		expiresAt := time.Now().Add(time.Duration(s.cfg.Jwt.AccessDuration) * time.Second)
 
@@ -239,31 +247,35 @@ func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 			RoleCodes: roleCodes,
 		}
 
-		accessToken := security.NewAccessToken(
+		accessToken, err := security.NewAccessToken(
 			s.cfg.Jwt.AccessSecretKey,
 			s.cfg.Jwt.AccessDuration,
 			newClaims,
 		).SignToken()
+		if err != nil {
+			logger.Error("Failed to generate access token", err,
+				logging.FieldOperation, "refresh_token",
+				logging.FieldEntity, "token",
+			)
+			return nil, exceptions.Internal("failed to generate access token", err)
+		}
 
-		newRefreshToken := security.NewRefreshToken(
+		newRefreshToken, err := security.NewRefreshToken(
 			s.cfg.Jwt.RefreshSecretKey,
 			s.cfg.Jwt.RefreshDuration,
 			newClaims,
 		).SignToken()
-
-		// Delete the old refresh token and store the new one
-		err = s.authRepo.DeleteRefreshToken(ctx, userID)
 		if err != nil {
-			logger.Error("Failed to delete old refresh token", err,
+			logger.Error("Failed to generate refresh token", err,
 				logging.FieldOperation, "refresh_token",
-				logging.FieldEntity, "refresh_token",
-				logging.FieldEntityID, userID,
+				logging.FieldEntity, "token",
 			)
-			// Continue even if delete fails
+			return nil, exceptions.Internal("failed to generate refresh token", err)
 		}
 
-		expiresAt := time.Now().Add(time.Duration(s.cfg.Jwt.RefreshDuration) * time.Second)
-		err = s.authRepo.StoreRefreshToken(ctx, newRefreshToken, userID, expiresAt)
+		// Store the new refresh token in the database
+		refreshExpiresAt := time.Now().Add(time.Duration(s.cfg.Jwt.RefreshDuration) * time.Second)
+		err = s.authRepo.StoreRefreshToken(ctx, newRefreshToken, userID, refreshExpiresAt)
 		if err != nil {
 			logger.Error("Failed to store new refresh token", err,
 				logging.FieldOperation, "refresh_token",
@@ -282,7 +294,7 @@ func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 		return &dto.TokenResponse{
 			AccessToken:  accessToken,
 			RefreshToken: newRefreshToken,
-			ExpiresAt:    expiresAt,
+			ExpiresAt:    refreshExpiresAt,
 		}, nil
 	})(ctx)
 }
@@ -446,18 +458,30 @@ func (s *authService) InternalLogin(ctx context.Context, req *authPb.InternalLog
 		}
 
 		// Generate access token
-		accessToken := security.NewAccessToken(
+		accessToken, err := security.NewAccessToken(
 			s.cfg.Jwt.AccessSecretKey,
 			s.cfg.Jwt.AccessDuration,
 			claims,
 		).SignToken()
+		if err != nil {
+			logger.Error("Failed to generate access token", err,
+				logging.FieldOperation, "internal_login",
+				logging.FieldEntity, "token",
+			)
+		}
 
 		// Generate refresh token
-		refreshToken := security.NewRefreshToken(
+		refreshToken, err := security.NewRefreshToken(
 			s.cfg.Jwt.RefreshSecretKey,
 			s.cfg.Jwt.RefreshDuration,
 			claims,
 		).SignToken()
+		if err != nil {
+			logger.Error("Failed to generate refresh token", err,
+				logging.FieldOperation, "internal_login",
+				logging.FieldEntity, "token",
+			)
+		}
 
 		// Store refresh token
 		expiresAt := time.Now().Add(time.Duration(s.cfg.Jwt.RefreshDuration) * time.Second)
@@ -502,204 +526,78 @@ func (s *authService) InternalLogin(ctx context.Context, req *authPb.InternalLog
 	})(ctx)
 }
 
-// ValidateTokenGRPC validates a token for gRPC requests
-func (s *authService) ValidateTokenGRPC(ctx context.Context, req *authPb.ValidateTokenRequest) (*authPb.ValidateTokenResponse, error) {
-	return decorator.WithTimeout[*authPb.ValidateTokenResponse](5*time.Second)(func(ctx context.Context) (*authPb.ValidateTokenResponse, error) {
+// GetProfile returns the user's profile
+func (s *authService) GetProfile(ctx context.Context, token string) (*dto.UserResponse, error) {
+	return decorator.WithTimeout[*dto.UserResponse](5*time.Second)(func(ctx context.Context) (*dto.UserResponse, error) {
 		logger := logging.DefaultLogger.WithContext(ctx)
-		logger.Info("Validating token for gRPC",
-			logging.FieldOperation, "validate_token_grpc",
-			logging.FieldEntity, "token",
+		logger.Info("Processing profile request",
+			logging.FieldOperation, "get_profile",
+			logging.FieldEntity, "user",
 		)
 
-		// Parse and validate the token
-		claims, err := security.ParseToken(s.cfg.Jwt.AccessSecretKey, req.Token)
+		// Parse the token to get claims
+		claims, err := security.ParseToken(s.cfg.Jwt.AccessSecretKey, token)
 		if err != nil {
 			logger.Error("Invalid token", err,
-				logging.FieldOperation, "validate_token_grpc",
+				logging.FieldOperation, "get_profile",
 				logging.FieldEntity, "token",
 			)
 			return nil, exceptions.Unauthorized("invalid token", err)
 		}
-
-		// Get full user details
+		
+		// Get user information
 		user, err := s.userService.GetUserByID(ctx, claims.UserID)
 		if err != nil {
-			logger.Error("Failed to get user for token validation", err,
-				logging.FieldOperation, "validate_token_grpc",
+			logger.Error("Failed to get user for profile request", err,
+				logging.FieldOperation, "get_profile",
 				logging.FieldEntity, "user",
-				logging.FieldEntityID, claims.UserID,
 			)
 			return nil, exceptions.Internal("failed to get user information", err)
 		}
 
-		// Convert to UserInfo for gRPC response
-		userInfo := &authPb.UserInfo{
-			Id:         user.ID,
-			Username:   user.Username,
-			FirstName:  user.Name.FirstName,
+		logger.Info("Profile request successful",
+			logging.FieldOperation, "get_profile",
+			logging.FieldEntity, "user",
+		)
+
+		return &dto.UserResponse{
+			ID: user.ID,
+			Username: user.Username,
+			FirstName: user.Name.FirstName,
 			MiddleName: user.Name.MiddleName,
-			LastName:   user.Name.LastName,
-		}
-
-		// Add roles
-		roles := make([]string, 0)
-		roleCodes := make([]string, 0)
-		for _, role := range user.Roles {
-			roles = append(roles, role.Id)
-			roleCodes = append(roleCodes, role.Code)
-		}
-		userInfo.Roles = roles
-
-		// Add major if available
-		if user.MajorID != "" {
-			userInfo.MajorId = user.MajorID
-		}
-
-		logger.Info("Token validated successfully for gRPC",
-			logging.FieldOperation, "validate_token_grpc",
-			logging.FieldEntity, "user",
-			logging.FieldEntityID, user.ID,
-		)
-
-		return &authPb.ValidateTokenResponse{
-			Valid: true,
-			User:  userInfo,
-		}, nil
-	})(ctx)
-}
-
-// RefreshTokenGRPC refreshes a token for gRPC requests
-func (s *authService) RefreshTokenGRPC(ctx context.Context, req *authPb.RefreshTokenRequest) (*authPb.RefreshTokenResponse, error) {
-	return decorator.WithTimeout[*authPb.RefreshTokenResponse](5*time.Second)(func(ctx context.Context) (*authPb.RefreshTokenResponse, error) {
-		logger := logging.DefaultLogger.WithContext(ctx)
-		logger.Info("Refreshing token for gRPC",
-			logging.FieldOperation, "refresh_token_grpc",
-			logging.FieldEntity, "token",
-		)
-
-		// Validate refresh token
-		claims, err := security.ParseToken(s.cfg.Jwt.RefreshSecretKey, req.RefreshToken)
-		if err != nil {
-			logger.Error("Invalid refresh token", err,
-				logging.FieldOperation, "refresh_token_grpc",
-				logging.FieldEntity, "token",
-			)
-			return nil, exceptions.Unauthorized("invalid refresh token", err)
-		}
-
-		// Check if token exists in database
-		userID, err := s.authRepo.FindRefreshToken(ctx, req.RefreshToken)
-		if err != nil {
-			logger.Error("Refresh token not found in database", err,
-				logging.FieldOperation, "refresh_token_grpc",
-				logging.FieldEntity, "token",
-			)
-			return nil, exceptions.Unauthorized("invalid refresh token", err)
-		}
-
-		// Get user for up-to-date roles
-		user, err := s.userService.GetUserByUsername(ctx, claims.Username)
-		if err != nil {
-			logger.Error("Failed to get user for refresh token", err,
-				logging.FieldOperation, "refresh_token_grpc",
-				logging.FieldEntity, "user",
-				"username", claims.Username,
-			)
-			return nil, exceptions.Internal("failed to get user information", err)
-		}
-
-		// Update role IDs and codes from current user data
-		roleIDs := make([]string, 0)
-		roleCodes := make([]string, 0)
-		for _, role := range user.Roles {
-			roleIDs = append(roleIDs, role.Id)
-			roleCodes = append(roleCodes, role.Code)
-		}
-
-		// Generate new tokens
-		newClaims := &security.Claims{
-			UserID:    user.ID,
-			Username:  user.Username,
-			RoleIds:   roleIDs,
-			RoleCodes: roleCodes,
-		}
-
-		accessToken := security.NewAccessToken(
-			s.cfg.Jwt.AccessSecretKey,
-			s.cfg.Jwt.AccessDuration,
-			newClaims,
-		).SignToken()
-
-		newRefreshToken := security.NewRefreshToken(
-			s.cfg.Jwt.RefreshSecretKey,
-			s.cfg.Jwt.RefreshDuration,
-			newClaims,
-		).SignToken()
-
-		// Delete the old refresh token and store the new one
-		err = s.authRepo.DeleteRefreshToken(ctx, userID)
-		if err != nil {
-			logger.Error("Failed to delete old refresh token", err,
-				logging.FieldOperation, "refresh_token_grpc",
-				logging.FieldEntity, "refresh_token",
-				logging.FieldEntityID, userID,
-			)
-			// Continue even if delete fails
-		}
-
-		expiresAt := time.Now().Add(time.Duration(s.cfg.Jwt.RefreshDuration) * time.Second)
-		err = s.authRepo.StoreRefreshToken(ctx, newRefreshToken, userID, expiresAt)
-		if err != nil {
-			logger.Error("Failed to store new refresh token", err,
-				logging.FieldOperation, "refresh_token_grpc",
-				logging.FieldEntity, "refresh_token",
-				logging.FieldEntityID, userID,
-			)
-			return nil, exceptions.Internal("failed to store new refresh token", err)
-		}
-
-		logger.Info("Refresh token successful for gRPC",
-			logging.FieldOperation, "refresh_token_grpc",
-			logging.FieldEntity, "user",
-			logging.FieldEntityID, userID,
-		)
-
-		return &authPb.RefreshTokenResponse{
-			AccessToken:  accessToken,
-			RefreshToken: newRefreshToken,
-			ExpiresAt:    expiresAt.Unix(),
+			LastName: user.Name.LastName,
 		}, nil
 	})(ctx)
 }
 
 // RevokeSession revokes a user session
-func (s *authService) RevokeSession(ctx context.Context, req *authPb.RevokeSessionRequest) (*authPb.RevokeSessionResponse, error) {
-	return decorator.WithTimeout[*authPb.RevokeSessionResponse](5*time.Second)(func(ctx context.Context) (*authPb.RevokeSessionResponse, error) {
+func (s *authService) RevokeSession(ctx context.Context, req *dto.RevokeSessionRequest) (*dto.RevokeSessionResponse, error) {
+	return decorator.WithTimeout[*dto.RevokeSessionResponse](5*time.Second)(func(ctx context.Context) (*dto.RevokeSessionResponse, error) {
 		logger := logging.DefaultLogger.WithContext(ctx)
 		logger.Info("Revoking session",
 			logging.FieldOperation, "revoke_session",
 			logging.FieldEntity, "user",
-			logging.FieldEntityID, req.UserId,
+			logging.FieldEntityID, req.UserID,
 		)
 
 		// Revoke all sessions for user
-		err := s.authRepo.DeactivateAllUserSessions(ctx, req.UserId)
+		err := s.authRepo.DeactivateAllUserSessions(ctx, req.UserID)
 		if err != nil {
 			logger.Error("Failed to revoke sessions", err,
 				logging.FieldOperation, "revoke_session",
 				logging.FieldEntity, "session",
-				logging.FieldEntityID, req.UserId,
+				logging.FieldEntityID, req.UserID,
 			)
 			return nil, exceptions.Internal("failed to revoke sessions", err)
 		}
 
 		// Delete refresh tokens
-		err = s.authRepo.DeleteRefreshToken(ctx, req.UserId)
+		err = s.authRepo.DeleteRefreshToken(ctx, req.UserID)
 		if err != nil {
 			logger.Error("Failed to delete refresh tokens", err,
 				logging.FieldOperation, "revoke_session",
 				logging.FieldEntity, "refresh_token",
-				logging.FieldEntityID, req.UserId,
+				logging.FieldEntityID, req.UserID,
 			)
 			return nil, exceptions.Internal("failed to delete refresh tokens", err)
 		}
@@ -707,11 +605,11 @@ func (s *authService) RevokeSession(ctx context.Context, req *authPb.RevokeSessi
 		logger.Info("Sessions revoked successfully",
 			logging.FieldOperation, "revoke_session",
 			logging.FieldEntity, "user",
-			logging.FieldEntityID, req.UserId,
+			logging.FieldEntityID, req.UserID,
 		)
 
-		return &authPb.RevokeSessionResponse{
-			Success: true,
+		return &dto.RevokeSessionResponse{
+			Status: true,
 		}, nil
 	})(ctx)
 }

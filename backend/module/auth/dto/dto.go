@@ -40,6 +40,14 @@ type (
 		ExpiresAt    time.Time `json:"expires_at"`
 	}
 
+	RevokeSessionRequest struct {
+		UserID string `json:"userId" validate:"required"`
+	}
+
+	RevokeSessionResponse struct {
+		Status bool `json:"status"`
+	}
+
 	UserResponse struct {
 		ID         string        `json:"id"`
 		Username   string        `json:"username"`

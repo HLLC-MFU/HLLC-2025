@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -300,58 +301,113 @@ func (r *authRepository) StoreRefreshToken(ctx context.Context, token, userID st
 		logger.Info("Storing refresh token",
 			logging.FieldOperation, "store_refresh_token",
 			logging.FieldEntity, "refresh_token",
-			logging.FieldEntityID, userID,
+			logging.FieldUserID, userID,
+			"token_length", len(token),
+			"expires_at", expiresAt.Format(time.RFC3339),
 		)
 
+		// Debug log database connection details
+		db := r.dbConnect(ctx)
 		collection := r.authTokensColl(ctx)
-		
+		logger.Debug("Database connection details",
+			logging.FieldOperation, "store_refresh_token",
+			"database_name", db.Name(),
+			"collection_name", collection.Name(),
+		)
+
 		// Check if a refresh token already exists for this user
 		var existingToken bson.M
 		err := collection.FindOne(ctx, bson.M{"user_id": userID}).Decode(&existingToken)
 		
+		id := primitive.NewObjectID()
+		now := time.Now()
+		
 		if err == nil {
-			// If token exists, update it without changing the _id
-			_, err = collection.UpdateOne(
+			// Update existing token
+			logger.Info("Updating existing refresh token",
+				logging.FieldOperation, "store_refresh_token",
+				logging.FieldEntity, "refresh_token",
+				logging.FieldUserID, userID,
+				"token_id", existingToken["id"],
+			)
+			
+			result, err := collection.UpdateOne(
 				ctx,
 				bson.M{"user_id": userID},
-				bson.M{"$set": bson.M{
-					"token":         token,
-					"expires_at":    expiresAt,
-					"last_login_at": time.Now(),
-				}},
+				bson.M{
+					"$set": bson.M{
+						"refreshToken":   token,
+						"expires_at":    expiresAt,
+						"last_login_at": now,
+					},
+				},
 			)
-		} else if err == mongo.ErrNoDocuments {
-			// If token doesn't exist, create a new one
-			tokenID := primitive.NewObjectID().Hex()
-			refreshToken := &authPb.RefreshToken{
-				Id:          tokenID,
+			
+			if err != nil {
+				logger.Error("Failed to update refresh token", err,
+					logging.FieldOperation, "store_refresh_token",
+					logging.FieldEntity, "refresh_token",
+					logging.FieldUserID, userID,
+				)
+				return struct{}{}, exceptions.Internal("failed to update refresh token: "+err.Error(), err)
+			}
+			
+			logger.Info("Successfully updated refresh token",
+				logging.FieldOperation, "store_refresh_token", 
+				logging.FieldEntity, "refresh_token",
+				logging.FieldUserID, userID,
+				"matched_count", result.MatchedCount,
+				"modified_count", result.ModifiedCount,
+			)
+			
+			return struct{}{}, nil
+		}
+		
+		// Create new token since one doesn't exist
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			logger.Info("Creating new refresh token",
+				logging.FieldOperation, "store_refresh_token",
+				logging.FieldEntity, "refresh_token",
+				logging.FieldUserID, userID,
+			)
+			
+			newToken := &authPb.RefreshToken{
+				Id:          id.Hex(),
 				UserId:      userID,
 				Token:       token,
 				ExpiresAt:   expiresAt.Unix(),
-				LastLoginAt: time.Now().Unix(),
+				LastLoginAt: now.Unix(),
 			}
 			
-			// Convert to BSON for MongoDB storage
-			refreshTokenDoc := createRefreshTokenDoc(refreshToken)
-			_, err = collection.InsertOne(ctx, refreshTokenDoc)
-		}
-		
-		if err != nil {
-			logger.Error("Error storing refresh token", err,
+			doc := createRefreshTokenDoc(newToken)
+			
+			result, err := collection.InsertOne(ctx, doc)
+			if err != nil {
+				logger.Error("Failed to insert refresh token", err,
+					logging.FieldOperation, "store_refresh_token",
+					logging.FieldEntity, "refresh_token",
+					logging.FieldUserID, userID,
+				)
+				return struct{}{}, exceptions.Internal("failed to insert refresh token: "+err.Error(), err)
+			}
+			
+			logger.Info("Successfully inserted refresh token",
 				logging.FieldOperation, "store_refresh_token",
-				logging.FieldEntity, "refresh_token",
-				logging.FieldEntityID, userID,
+				logging.FieldEntity, "refresh_token", 
+				logging.FieldUserID, userID,
+				"inserted_id", result.InsertedID,
 			)
-			return struct{}{}, exceptions.Internal("error storing refresh token", err)
+			
+			return struct{}{}, nil
 		}
 		
-		logger.Info("Refresh token stored successfully",
+		logger.Error("Failed to check existing refresh token", err,
 			logging.FieldOperation, "store_refresh_token",
 			logging.FieldEntity, "refresh_token",
-			logging.FieldEntityID, userID,
+			logging.FieldUserID, userID,
 		)
 		
-		return struct{}{}, nil
+		return struct{}{}, exceptions.Internal("failed to check existing refresh token: "+err.Error(), err)
 	})(ctx)
 	
 	return err
@@ -359,100 +415,113 @@ func (r *authRepository) StoreRefreshToken(ctx context.Context, token, userID st
 
 // FindRefreshToken finds a refresh token with proper error handling and logging
 func (r *authRepository) FindRefreshToken(ctx context.Context, token string) (string, error) {
-	return decorator.WithTimeout[string](5*time.Second)(func(ctx context.Context) (string, error) {
+	var userID string
+	
+	_, findErr := decorator.WithTimeout[struct{}](5*time.Second)(func(ctx context.Context) (struct{}, error) {
 		logger := logging.DefaultLogger.WithContext(ctx)
+		
 		logger.Info("Finding refresh token",
 			logging.FieldOperation, "find_refresh_token",
 			logging.FieldEntity, "refresh_token",
+			"token_length", len(token),
 		)
-
+		
 		collection := r.authTokensColl(ctx)
 		
-		var result bson.M
-		err := collection.FindOne(ctx, bson.M{
-			"token": token,
-			"expires_at": bson.M{"$gt": time.Now()},
-		}).Decode(&result)
-		
+		var tokenDoc bson.M
+		err := collection.FindOne(ctx, bson.M{"refreshToken": token}).Decode(&tokenDoc)
 		if err != nil {
-			if err == mongo.ErrNoDocuments {
-				logger.Warn("Refresh token not found or expired",
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				logger.Warn("Refresh token not found",
 					logging.FieldOperation, "find_refresh_token",
 					logging.FieldEntity, "refresh_token",
 				)
-				return "", exceptions.NotFound("refresh_token", "token", nil)
+				return struct{}{}, exceptions.NotFound("refresh token", "token", err)
 			}
 			
-			logger.Error("Error finding refresh token", err,
+			logger.Error("Failed to find refresh token", err,
 				logging.FieldOperation, "find_refresh_token",
 				logging.FieldEntity, "refresh_token",
 			)
-			return "", exceptions.Internal("error finding refresh token", err)
+			return struct{}{}, exceptions.Internal("failed to find refresh token: "+err.Error(), err)
 		}
 		
-		// Convert BSON document to expected return value
-		userID, ok := result["user_id"].(string)
-		if !ok {
-			logger.Error("Invalid user ID format in refresh token document", nil,
-				logging.FieldOperation, "find_refresh_token",
-				logging.FieldEntity, "refresh_token",
-			)
-			return "", exceptions.Internal("invalid user ID format in refresh token document", nil)
+		// Check if token has expired
+		expiresAt, ok := tokenDoc["expires_at"].(primitive.DateTime)
+		if ok {
+			expiresTime := expiresAt.Time()
+			if expiresTime.Before(time.Now()) {
+				logger.Warn("Refresh token has expired",
+					logging.FieldOperation, "find_refresh_token", 
+					logging.FieldEntity, "refresh_token",
+					"expires_at", expiresTime.Format(time.RFC3339),
+				)
+				return struct{}{}, exceptions.Unauthorized("refresh token has expired", nil)
+			}
 		}
 		
-		logger.Info("Refresh token found",
+		userID, _ = tokenDoc["user_id"].(string)
+		
+		logger.Info("Refresh token found successfully",
 			logging.FieldOperation, "find_refresh_token",
 			logging.FieldEntity, "refresh_token",
-			logging.FieldEntityID, userID,
+			logging.FieldUserID, userID,
 		)
 		
-		return userID, nil
+		return struct{}{}, nil
 	})(ctx)
+	
+	if findErr != nil {
+		return "", findErr
+	}
+	
+	return userID, nil
 }
 
 // DeleteRefreshToken deletes a refresh token with proper error handling and logging
 func (r *authRepository) DeleteRefreshToken(ctx context.Context, userID string) error {
 	_, err := decorator.WithTimeout[struct{}](5*time.Second)(func(ctx context.Context) (struct{}, error) {
 		logger := logging.DefaultLogger.WithContext(ctx)
+		
 		logger.Info("Deleting refresh token",
 			logging.FieldOperation, "delete_refresh_token",
 			logging.FieldEntity, "refresh_token",
-			logging.FieldEntityID, userID,
+			logging.FieldUserID, userID,
 		)
-
+		
 		collection := r.authTokensColl(ctx)
 		
-		result, err := collection.DeleteOne(ctx, bson.M{"user_id": userID})
+		result, err := collection.DeleteMany(ctx, bson.M{"user_id": userID})
 		if err != nil {
-			logger.Error("Error deleting refresh token", err,
+			logger.Error("Failed to delete refresh token", err,
 				logging.FieldOperation, "delete_refresh_token",
 				logging.FieldEntity, "refresh_token",
-				logging.FieldEntityID, userID,
+				logging.FieldUserID, userID,
 			)
-			return struct{}{}, exceptions.Internal("error deleting refresh token", err)
+			return struct{}{}, exceptions.Internal("failed to delete refresh token: "+err.Error(), err)
 		}
 		
 		if result.DeletedCount == 0 {
-			logger.Warn("No refresh token found to delete",
+			logger.Warn("No refresh tokens found for user",
 				logging.FieldOperation, "delete_refresh_token",
 				logging.FieldEntity, "refresh_token",
-				logging.FieldEntityID, userID,
+				logging.FieldUserID, userID,
 			)
-			// Don't return error if no token found, just log a warning
+			// Not returning an error since no tokens is not an error condition
+		} else {
+			logger.Info("Successfully deleted refresh tokens",
+				logging.FieldOperation, "delete_refresh_token",
+				logging.FieldEntity, "refresh_token",
+				logging.FieldUserID, userID,
+				"deleted_count", result.DeletedCount,
+			)
 		}
-		
-		logger.Info("Refresh token deleted successfully",
-			logging.FieldOperation, "delete_refresh_token",
-			logging.FieldEntity, "refresh_token",
-			logging.FieldEntityID, userID,
-		)
 		
 		return struct{}{}, nil
 	})(ctx)
 	
 	return err
 }
-
 // --- Helpers ---
 
 func createSessionDoc(session *authPb.Session) bson.M {
@@ -472,11 +541,10 @@ func createSessionDoc(session *authPb.Session) bson.M {
 
 func createRefreshTokenDoc(token *authPb.RefreshToken) bson.M {
 	return bson.M{
-		"_id":           primitive.NewObjectID(),
-		"id":            token.Id,
-		"user_id":       token.UserId,
-		"token":         token.Token,
-		"expires_at":    time.Unix(token.ExpiresAt, 0),
-		"last_login_at": time.Unix(token.LastLoginAt, 0),
+		"id":           token.Id,
+		"user_id":      token.UserId,
+		"refreshToken": token.Token,
+		"expires_at":   primitive.NewDateTimeFromTime(time.Unix(token.ExpiresAt, 0)),
+		"last_login_at": primitive.NewDateTimeFromTime(time.Unix(token.LastLoginAt, 0)),
 	}
 }

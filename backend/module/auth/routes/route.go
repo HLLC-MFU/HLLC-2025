@@ -1,30 +1,25 @@
 package routes
 
 import (
+	"fmt"
+
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/auth/handler"
-	authService "github.com/HLLC-MFU/HLLC-2025/backend/module/auth/service/http"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/logging"
 	"github.com/gofiber/fiber/v2"
 )
 
 type (
-	AuthController interface {
+	AuthRoutes interface {
 		RegisterPublicRoutes(router fiber.Router)
 		RegisterProtectedRoutes(router fiber.Router)
 		RegisterAdminRoutes(router fiber.Router)
-		Login(c *fiber.Ctx) error
-		GetProfile(c *fiber.Ctx) error
-		RefreshToken(c *fiber.Ctx) error
-		Logout(c *fiber.Ctx) error
-		ValidateToken(c *fiber.Ctx) error
-		RevokeUserSessions(c *fiber.Ctx) error
 	}
 
-	authController struct {
+	authRoutes struct {
 		cfg         *config.Config
-		handler 	handler.AuthHttpHandler
+		httpHandler handler.AuthHttpHandler
 		baseController decorator.BaseController
 		logger        *logging.Logger
 	}
@@ -32,19 +27,18 @@ type (
 
 func NewAuthController(
 	cfg *config.Config, 
-	authService authService.AuthService, 
-	authHandler handler.AuthHttpHandler,
-) AuthController {
-	return &authController{
+	httpHandler handler.AuthHttpHandler,
+) AuthRoutes {
+	return &authRoutes{
 		cfg:         cfg,
-		handler:     authHandler,
+		httpHandler:     httpHandler,
 		baseController: decorator.BaseController{},
 		logger: logging.DefaultLogger,
 	}
 }
 
 // RegisterPublicRoutes registers public routes that don't require authentication
-func (c *authController) RegisterPublicRoutes(router fiber.Router) {
+func (c *authRoutes) RegisterPublicRoutes(router fiber.Router) {
 	c.baseController.Router = router
 	
 	// Log registration start
@@ -53,23 +47,41 @@ func (c *authController) RegisterPublicRoutes(router fiber.Router) {
 		logging.FieldOperation, "register_routes",
 	)
 
-	// Apply common decorators
-	commonDecorators := []decorator.ControllerDecorator{
+	// Apply common decorators - but NOT permission middleware for login route
+	commonDecorators := []decorator.RouteDecorator{
 		decorator.WithLogging,
 	}
 
-	// Public auth-related endpoints
-	c.baseController.RegisterRoute("POST", "/login", c.Login, commonDecorators...)
-	c.baseController.RegisterRoute("POST", "/refresh", c.RefreshToken, commonDecorators...)
+	// Map route config: key = "METHOD PATH", value = (handler, permission)
+	routes := map[string]struct {
+		Handler fiber.Handler
+		NeedsPermission bool
+	} {
+		"POST /login": {c.httpHandler.Login, false},
+		"POST /refresh": {c.httpHandler.RefreshToken, false},
+	}
+
+	for route, config := range routes {
+		// Split "METHOD PATH" -> method, path
+		var method, path string
+		fmt.Sscanf(route, "%s %s", &method, &path)
+		
+		// For public routes like login, we don't need permission checks
+		decorators := commonDecorators
+		
+		// Register the route with appropriate decorators
+		c.baseController.RegisterRoute(method, path, config.Handler, decorators...)
+	}
 
 	c.logger.Info("Successfully registered public routes for auth module",
 		logging.FieldModule, "auth",
 		logging.FieldOperation, "register_routes",
+		"endpoint_count", len(routes),
 	)
 }
 
 // RegisterProtectedRoutes registers routes that require authentication
-func (c *authController) RegisterProtectedRoutes(router fiber.Router) {
+func (c *authRoutes) RegisterProtectedRoutes(router fiber.Router) {
 	c.baseController.Router = router
 	
 	// Log registration start
@@ -79,24 +91,42 @@ func (c *authController) RegisterProtectedRoutes(router fiber.Router) {
 	)
 
 	// Apply common decorators
-	commonDecorators := []decorator.ControllerDecorator{
+	commonDecorators := []decorator.RouteDecorator{
 		decorator.WithLogging,
 	}
 
-	// Protected auth-related endpoints
-	c.baseController.RegisterRoute("POST", "/logout", c.Logout, commonDecorators...)
-	c.baseController.RegisterRoute("GET", "/validate", c.ValidateToken, commonDecorators...)
-	c.baseController.RegisterRoute("GET", "/me", c.GetProfile, commonDecorators...)
+	routes := map[string]struct {
+		Handler fiber.Handler
+		Permission string
+	} {
+		"POST /logout": {c.httpHandler.Logout, "AUTH_MODULE_PUBLIC_ACCESS"},
+		"GET /validate": {c.httpHandler.ValidateToken, "AUTH_MODULE_PUBLIC_ACCESS"},
+		"GET /me": {c.httpHandler.GetProfile, "AUTH_MODULE_PUBLIC_ACCESS"},		
+	}
+
+	for route, config := range routes {
+		// Split "METHOD PATH" -> method, path
+		var method, path string
+		fmt.Sscanf(route, "%s %s", &method, &path)
+		
+		// Apply permission middleware but use PUBLIC_ACCESS instead of USER_ACCESS to allow any authenticated user
+		decorators := append([]decorator.RouteDecorator{
+			decorator.AdaptMiddlewareToController(decorator.WithPermission(config.Permission)),
+		}, commonDecorators...)
+
+		c.baseController.RegisterRoute(method, path, config.Handler, decorators...)
+	}
 
 	// Log registration end-point
 	c.logger.Info("Successfully registered protected routes for auth module",
 		logging.FieldModule, "auth",
 		logging.FieldOperation, "register_routes",
+		"endpoint_count", len(routes),
 	)
 }
 
 // RegisterAdminRoutes registers routes that require admin role
-func (c *authController) RegisterAdminRoutes(router fiber.Router) {
+func (c *authRoutes) RegisterAdminRoutes(router fiber.Router) {
 	c.baseController.Router = router
 	
 	// Log registration start
@@ -106,38 +136,33 @@ func (c *authController) RegisterAdminRoutes(router fiber.Router) {
 	)
 
 	// Apply common decorators
-	commonDecorators := []decorator.ControllerDecorator{
+	commonDecorators := []decorator.RouteDecorator{
 		decorator.WithLogging,
+		decorator.AdaptMiddlewareToController(decorator.WithPermission("AUTH_MODULE_ADMIN_ACCESS")),
 	}
 
-	c.baseController.RegisterRoute("POST", "/revoke/:userId", c.RevokeUserSessions, commonDecorators...)
+	routes := map[string]struct {
+		Handler fiber.Handler
+		Permission string
+	} {
+		"POST /revoke/:userId": {c.httpHandler.RevokeUserSessions, "AUTH_MODULE_ADMIN_ACCESS"},
+	}
+
+	for route, config := range routes {
+		var method, path string
+		fmt.Sscanf(route, "%s %s", &method, &path)
+
+		decorators := append([]decorator.RouteDecorator{
+			decorator.AdaptMiddlewareToController(decorator.WithPermission(config.Permission)),
+		}, commonDecorators...)
+
+		c.baseController.RegisterRoute(method, path, config.Handler, decorators...)
+	}
+
 
 	c.logger.Info("Successfully registered admin routes for auth module",
 		logging.FieldModule, "auth",
 		logging.FieldOperation, "register_routes",
+		"endpoint_count", len(routes),
 	)
-}
-
-func (c *authController) Login(ctx *fiber.Ctx) error {
-	return c.handler.Login(ctx)
-}
-
-func (c *authController) RefreshToken(ctx *fiber.Ctx) error {
-	return c.handler.RefreshToken(ctx)
-}
-
-func (c *authController) Logout(ctx *fiber.Ctx) error {
-	return c.handler.Logout(ctx)
-}
-
-func (c *authController) ValidateToken(ctx *fiber.Ctx) error {
-	return c.handler.ValidateToken(ctx)
-}
-
-func (c *authController) RevokeUserSessions(ctx *fiber.Ctx) error {
-	return c.handler.RevokeUserSessions(ctx)
-}
-
-func (c *authController) GetProfile(ctx *fiber.Ctx) error {
-	return c.handler.ValidateToken(ctx)
 }
