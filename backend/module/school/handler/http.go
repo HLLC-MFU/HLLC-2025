@@ -1,191 +1,236 @@
 package handler
 
 import (
+	"context"
 	"strconv"
+	"time"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/model"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/service"
-	coreModel "github.com/HLLC-MFU/HLLC-2025/backend/pkg/core/model"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/school/dto"
+	service "github.com/HLLC-MFU/HLLC-2025/backend/module/school/service/http"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/common/response"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/decorator"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/exceptions"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type HTTPHandler struct {
-	service service.Service
+// HTTPHandler defines the HTTP handler methods for school functionality
+type HTTPHandler interface {
+	// School management
+	CreateSchool(c *fiber.Ctx) error
+	GetSchool(c *fiber.Ctx) error
+	ListSchools(c *fiber.Ctx) error
+	UpdateSchool(c *fiber.Ctx) error
+	DeleteSchool(c *fiber.Ctx) error
+
+	// Bulk operations
+	// BulkCreateSchools(c *fiber.Ctx) error
+	// BulkUpdateSchools(c *fiber.Ctx) error
+	// BulkDeleteSchools(c *fiber.Ctx) error
 }
 
-func NewHTTPHandler(service service.Service) *HTTPHandler {
-	return &HTTPHandler{
-		service: service,
+// httpHandler implements HTTPHandler
+type httpHandler struct {
+	schoolService service.SchoolService
+}
+
+// NewHTTPHandler creates a new HTTP handler
+func NewHTTPHandler(schoolService service.SchoolService) HTTPHandler {
+	return &httpHandler{
+		schoolService: schoolService,
 	}
 }
 
-// Request structs for mapping client requests
-type createSchoolRequest struct {
-	Name struct {
-		Th string `json:"th"`
-		En string `json:"en"`
-	} `json:"name"`
-	Acronym string `json:"acronym"`
-	Details struct {
-		Th string `json:"th"`
-		En string `json:"en"`
-	} `json:"details"`
-	Photos coreModel.Photos `json:"photos"`
-}
+// School management handlers
+func (h *httpHandler) CreateSchool(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.CreateSchoolRequest](func(c *fiber.Ctx, req *dto.CreateSchoolRequest) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
 
-// RegisterRoutes registers HTTP routes for the school service
-func (h *HTTPHandler) RegisterRoutes(router fiber.Router) {
-	router.Post("/", h.CreateSchool)
-	router.Get("/:id", h.GetSchool)
-	router.Get("/", h.ListSchools)
-	router.Put("/:id", h.UpdateSchool)
-	router.Delete("/:id", h.DeleteSchool)
-}
-
-func (h *HTTPHandler) CreateSchool(c *fiber.Ctx) error {
-	var req createSchoolRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid request body",
-		})
-	}
-
-	school := &model.School{
-		Name: coreModel.LocalizedName{
-			ThName: req.Name.Th,
-			EnName: req.Name.En,
-		},
-		Acronym: req.Acronym,
-		Details: coreModel.LocalizedDetails{
-			ThDetails: req.Details.Th,
-			EnDetails: req.Details.En,
-		},
-		Photos: req.Photos,
-	}
-
-	if err := h.service.CreateSchool(c.Context(), school); err != nil {
-		if err == service.ErrSchoolAlreadyExists {
-			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-				"error": err.Error(),
-			})
+		school, err := h.schoolService.CreateSchool(ctx, req)
+		if err != nil {
+			return exceptions.HandleError(c, err)
 		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
 
-	return c.Status(fiber.StatusCreated).JSON(school)
+		return response.Success(c, fiber.StatusCreated, school)
+	}))
+
+	return handler(c)
 }
 
-func (h *HTTPHandler) GetSchool(c *fiber.Ctx) error {
-	id, err := primitive.ObjectIDFromHex(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid school ID",
-		})
-	}
+func (h *httpHandler) GetSchool(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		if id == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("School ID parameter is required", nil))
+		}
 
-	school, err := h.service.GetSchool(c.Context(), id)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-	if school == nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "school not found",
-		})
-	}
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
 
-	return c.JSON(school)
-}
+		school, err := h.schoolService.GetSchoolByID(ctx, id)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
 
-func (h *HTTPHandler) ListSchools(c *fiber.Ctx) error {
-	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
-	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
-
-	schools, total, err := h.service.ListSchools(c.Context(), page, limit)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-
-	return c.JSON(fiber.Map{
-		"schools": schools,
-		"total":   total,
-		"page":    page,
-		"limit":   limit,
+		return response.Success(c, fiber.StatusOK, school)
 	})
+
+	return handler(c)
 }
 
-func (h *HTTPHandler) UpdateSchool(c *fiber.Ctx) error {
-	id, err := primitive.ObjectIDFromHex(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid school ID",
-		})
-	}
-
-	var req createSchoolRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid request body",
-		})
-	}
-
-	school := &model.School{
-		ID: id,
-		Name: coreModel.LocalizedName{
-			ThName: req.Name.Th,
-			EnName: req.Name.En,
-		},
-		Acronym: req.Acronym,
-		Details: coreModel.LocalizedDetails{
-			ThDetails: req.Details.Th,
-			EnDetails: req.Details.En,
-		},
-		Photos: req.Photos,
-	}
-
-	if err := h.service.UpdateSchool(c.Context(), school); err != nil {
-		if err == service.ErrSchoolNotFound {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"error": err.Error(),
-			})
+func (h *httpHandler) ListSchools(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		// Parse pagination parameters from query string
+		page, err := strconv.ParseInt(c.Query("page", "1"), 10, 64)
+		if err != nil || page < 1 {
+			page = 1
 		}
-		if err == service.ErrSchoolAlreadyExists {
-			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-				"error": err.Error(),
-			})
-		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
 
-	return c.JSON(school)
+		limit, err := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
+		if err != nil || limit < 1 || limit > 100 {
+			limit = 10 // Default and max limit
+		}
+
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
+
+		// Get all schools
+		schools, total, err := h.schoolService.ListSchools(ctx, page, limit)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return response.Success(c, fiber.StatusOK, fiber.Map{
+			"schools": schools,
+			"pagination": fiber.Map{
+				"page":  page,
+				"limit": limit,
+				"total": total,
+			},
+		})
+	})
+
+	return handler(c)
 }
 
-func (h *HTTPHandler) DeleteSchool(c *fiber.Ctx) error {
-	id, err := primitive.ObjectIDFromHex(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid school ID",
-		})
-	}
-
-	if err := h.service.DeleteSchool(c.Context(), id); err != nil {
-		if err == service.ErrSchoolNotFound {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"error": err.Error(),
-			})
+func (h *httpHandler) UpdateSchool(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithLogging,
+	)(decorator.WithJSONValidation[dto.UpdateSchoolRequest](func(c *fiber.Ctx, req *dto.UpdateSchoolRequest) error {
+		id := c.Params("id")
+		if id == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("School ID parameter is required", nil))
 		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
 
-	return c.SendStatus(fiber.StatusNoContent)
-} 
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
+
+		school, err := h.schoolService.UpdateSchool(ctx, id, req)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return response.Success(c, fiber.StatusOK, school)
+	}))
+
+	return handler(c)
+}
+
+func (h *httpHandler) DeleteSchool(c *fiber.Ctx) error {
+	handler := decorator.ComposeDecorators(
+		decorator.WithLogging,
+	)(func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		if id == "" {
+			return exceptions.HandleError(c, exceptions.InvalidInput("School ID parameter is required", nil))
+		}
+
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
+
+		err := h.schoolService.DeleteSchool(ctx, id)
+		if err != nil {
+			return exceptions.HandleError(c, err)
+		}
+
+		return response.Success(c, fiber.StatusOK, fiber.Map{
+			"message":   "School deleted successfully",
+			"school_id": id,
+		})
+	})
+
+	return handler(c)
+}
+
+// Bulk operations
+// func (h *httpHandler) BulkCreateSchools(c *fiber.Ctx) error {
+// 	handler := decorator.ComposeDecorators(
+// 		decorator.WithLogging,
+// 	)(decorator.WithJSONValidation[dto.BulkCreateSchoolsRequest](func(c *fiber.Ctx, req *dto.BulkCreateSchoolsRequest) error {
+// 		if len(req.Schools) == 0 {
+// 			return exceptions.HandleError(c, exceptions.InvalidInput("At least one school is required", nil))
+// 		}
+
+// 		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+// 		defer cancel()
+
+// 		result, err := h.schoolService.BulkCreateSchools(ctx, req)
+// 		if err != nil {
+// 			return exceptions.HandleError(c, err)
+// 		}
+
+// 		return response.Success(c, fiber.StatusOK, result)
+// 	}))
+
+// 	return handler(c)
+// }
+
+// func (h *httpHandler) BulkUpdateSchools(c *fiber.Ctx) error {
+// 	handler := decorator.ComposeDecorators(
+// 		decorator.WithLogging,
+// 	)(decorator.WithJSONValidation[dto.BulkUpdateSchoolsRequest](func(c *fiber.Ctx, req *dto.BulkUpdateSchoolsRequest) error {
+// 		if len(req.Schools) == 0 {
+// 			return exceptions.HandleError(c, exceptions.InvalidInput("At least one school is required", nil))
+// 		}
+
+// 		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+// 		defer cancel()
+
+// 		result, err := h.schoolService.BulkUpdateSchools(ctx, req)
+// 		if err != nil {
+// 			return exceptions.HandleError(c, err)
+// 		}
+
+// 		return response.Success(c, fiber.StatusOK, result)
+// 	}))
+
+// 	return handler(c)
+// }
+
+// func (h *httpHandler) BulkDeleteSchools(c *fiber.Ctx) error {
+// 	handler := decorator.ComposeDecorators(
+// 		decorator.WithLogging,
+// 	)(decorator.WithJSONValidation[dto.BulkDeleteSchoolsRequest](func(c *fiber.Ctx, req *dto.BulkDeleteSchoolsRequest) error {
+// 		if len(req.IDs) == 0 {
+// 			return exceptions.HandleError(c, exceptions.InvalidInput("At least one school ID is required", nil))
+// 		}
+
+// 		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+// 		defer cancel()
+
+// 		result, err := h.schoolService.BulkDeleteSchools(ctx, req)
+// 		if err != nil {
+// 			return exceptions.HandleError(c, err)
+// 		}
+
+// 		return response.Success(c, fiber.StatusOK, result)
+// 	}))
+
+// 	return handler(c)
+// } 
