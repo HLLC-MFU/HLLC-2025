@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package role;
+
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/role/proto/generated;generated";
+
+message Role {
+  string name = 1;
+  string description = 2;
+  repeated string permission_ids = 3;
+  bool is_system_role = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
+}

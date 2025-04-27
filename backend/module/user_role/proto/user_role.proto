@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package userrole;
+
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/userrole/proto/generated;generated";
+
+message UserRole {
+  string id = 1;             // MongoDB ObjectID
+  string user_id = 2;        // user._id ที่อ้างถึง
+  repeated string role_ids = 3; // รายชื่อ Role IDs ที่ user คนนี้มี
+  int64 created_at = 4;      // เวลา created
+  int64 updated_at = 5;      // เวลา updated
+}

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package permission;
+
+option go_package = "github.com/HLLC-MFU/HLLC-2025/backend/module/permission/proto/generated;generated";
+
+message Permission {
+  string id = 1;             // Permission ID (MongoDB ObjectID)
+  string name = 2;           // ชื่อสิทธิ์ เช่น "user:create"
+  string module = 3;       // เช่น "user", "customer", "product"
+  string action = 4;         // เช่น "create", "read", "update", "delete"
+  int64 created_at = 5;      // timestamp ตอนสร้าง
+  int64 updated_at = 6;      // timestamp ตอนอัปเดตล่าสุด
+}

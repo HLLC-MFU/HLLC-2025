@@ -1,0 +1,8 @@
+services:
+  redis:
+    image: redis:latest
+    container_name: my-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--databases", "1"]  # มี 0, 1, 2, ... ไปเรื่อย ๆ default 16 DB, ไม่ต้องตั้งอะไรเพิ่มเติม
+    restart: unless-stopped

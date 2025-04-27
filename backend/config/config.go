@@ -18,6 +18,7 @@ type Config struct {
 	App struct {
 		Name string
 		Url  string
+		Port string
 	}
 	Jwt struct {
 		AccessSecretKey  string
@@ -49,6 +50,7 @@ func LoadConfig(path string) *Config {
 	// App configuration
 	cfg.App.Name = getEnvOrDefault("APP_NAME", "monolith")
 	cfg.App.Url = getEnvOrFatal("APP_URL")
+	cfg.App.Port = getEnvOrDefault("APP_PORT", "8080")
 
 	// JWT configuration
 	cfg.Jwt.AccessSecretKey = getEnvOrFatal("JWT_ACCESS_SECRET_KEY")
