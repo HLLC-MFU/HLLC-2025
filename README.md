@@ -78,7 +78,7 @@ HLLC-2025/
         <img src="https://img.shields.io/badge/Commits-1-blue?style=for-the-badge"/>
         <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
         <br/>
-        <b>0.86% of total contributions</b>
+        <b>0.85% of total contributions</b>
     </td>
 </tr>
 
@@ -99,7 +99,7 @@ HLLC-2025/
         <img src="https://img.shields.io/badge/Commits-83-blue?style=for-the-badge"/>
         <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
         <br/>
-        <b>71.55% of total contributions</b>
+        <b>70.94% of total contributions</b>
     </td>
 </tr>
 
@@ -120,7 +120,7 @@ HLLC-2025/
         <img src="https://img.shields.io/badge/Commits-6-blue?style=for-the-badge"/>
         <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
         <br/>
-        <b>5.17% of total contributions</b>
+        <b>5.13% of total contributions</b>
     </td>
 </tr>
 
@@ -169,7 +169,7 @@ HLLC-2025/
 ### Contribution Distribution
 ```mermaid
 pie
-    title Total Commits: 116
+    title Total Commits: 117
     "Nattawat Nattachanasit" : 1
     "Nimit Tanboontor" : 83
     "Poonyawat Khomlek" : 6
