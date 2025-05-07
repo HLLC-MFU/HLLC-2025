@@ -1,35 +1,88 @@
-import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+// src/module/auth/auth.service.ts
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import * as bcrypt from 'bcryptjs';
 import { Model } from 'mongoose';
-import { User } from '../users/schemas/user.schema';
-import { UserDocument } from '../users/schemas/user.schema';
+import { UserDocument } from 'src/module/users/schemas/user.schema';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private jwtService: JwtService,
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-  ) {}
+    constructor(
+        @InjectModel('User') private userModel: Model<UserDocument>,
+        private jwtService: JwtService,
+    ) {}
 
-  async validateUser(username: string, pass: string): Promise<UserDocument | null> {
-    const user = await this.userModel.findOne({ username }).exec();
-  
-    if (!user) return null;
-  
-    const isMatch = await bcrypt.compare(pass, user.password);
-    console.log(isMatch);
-    if (!isMatch) return null;
+    async validateUser(username: string, pass: string): Promise<any> {
+        const user = await this.userModel.findOne({ username }).populate('role');
+        if (!user) throw new UnauthorizedException('User not found');
 
-    return user;
-  }
-  
+        const isMatch = await bcrypt.compare(pass, user.password);
+        if (!isMatch) throw new UnauthorizedException('Invalid password');
 
-  async login(user: UserDocument) {
-    const payload = { sub: user._id, roleId: user.role };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
-  }
+        return user;
+    }
+
+    async login(user: UserDocument) {
+        const payload = { sub: user._id.toString(), username: user.username };
+        const accessToken = this.jwtService.sign(payload, {
+            expiresIn: '15m',
+        });
+        const refreshToken = this.jwtService.sign(payload, {
+            expiresIn: '7d',
+            secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+        });
+
+        // ✅ Save refreshToken to user
+        user.refreshToken = await bcrypt.hash(refreshToken, 10);
+        await user.save();
+
+        return { accessToken, refreshToken };
+    }
+
+    async refreshToken(oldRefreshToken: string) {
+        try {
+            const payload = this.jwtService.verify(oldRefreshToken, {
+                secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+            });
+
+            const user = await this.userModel.findById(payload.sub);
+            if (!user || !user.refreshToken) {
+                throw new UnauthorizedException('User not found');
+            }
+
+            // ✅ Check if refresh token is valid
+            const isMatch = await bcrypt.compare(oldRefreshToken, user.refreshToken);
+            if (!isMatch) {
+                throw new UnauthorizedException('Invalid refresh token');
+            }
+
+            // ✅ Generate new tokens
+            const newAccessToken = this.jwtService.sign({ sub: user._id.toString(), username: user.username }, {
+                expiresIn: '15m',
+            });
+
+            const newRefreshToken = this.jwtService.sign({ sub: user._id.toString(), username: user.username }, {
+                expiresIn: '7d',
+                secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+            });
+
+            // ✅ Update refresh token
+            user.refreshToken = await bcrypt.hash(newRefreshToken, 10);
+            await user.save();
+
+            return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+        } catch (err) {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+    }
+
+    async logout(userId: string) {
+        const user = await this.userModel.findById(userId);
+        if (!user) throw new UnauthorizedException('User not found');
+
+        user.refreshToken = null;
+        await user.save();
+        return { message: 'Logged out successfully' };
+    }
 }

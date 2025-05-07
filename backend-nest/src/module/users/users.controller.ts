@@ -5,13 +5,14 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-
+import { Public } from '../auth/decorators/public.decorator';
 @UseGuards(PermissionsGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @Public()
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
@@ -30,7 +31,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Permissions('users:read:id', 'users:read')
+  @Permissions('users:read:id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }

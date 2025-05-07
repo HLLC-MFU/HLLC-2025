@@ -1,18 +1,30 @@
-import { Controller, Post, Body, UnauthorizedException, UseGuards } from '@nestjs/common';
+// src/module/auth/auth.controller.ts
+import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
-
-import { PermissionsGuard } from './guards/permissions.guard';
 import { Public } from './decorators/public.decorator';
-@UseGuards(PermissionsGuard)
+import { PermissionsGuard } from './guards/permissions.guard';
+
+
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+    constructor(private authService: AuthService) {}
 
-  @Public()
-  @Post('login')
-  async login(@Body() body: { username: string; password: string }) {
-    const user = await this.authService.validateUser(body.username, body.password);
-    if (!user) throw new UnauthorizedException('Invalid credentials');
-    return this.authService.login(user);
-  }
+    @Public()
+    @Post('login')
+    async login(@Body() body: { username: string, password: string }) {
+        const user = await this.authService.validateUser(body.username, body.password);
+        return this.authService.login(user);
+    }
+
+    @Public()
+    @Post('refresh')
+    async refresh(@Body() body: { refreshToken: string }) {
+        return this.authService.refreshToken(body.refreshToken);
+    }
+
+    @Post('logout')
+    @UseGuards(PermissionsGuard)
+    async logout(@Req() req) {
+        return this.authService.logout(req.user._id);
+    }
 }

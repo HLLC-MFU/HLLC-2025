@@ -6,7 +6,12 @@ export type UserDocument = HydratedDocument<User>;
 
 @Schema({ timestamps: true })
 export class User {
-    @Prop({ required: true, unique: true, type: Object })
+    @Prop({ required: true, type: {
+        first: { type: String, required: true, unique: false },
+        middle: { type: String, required: false, unique: false },
+        last: { type: String, required: false, unique: false }
+
+    } })
     name: {
         first: string
         middle?: string
@@ -22,8 +27,8 @@ export class User {
     @Prop({ required: true, type: Types.ObjectId, ref: 'Role' })
     role: Types.ObjectId
 
-    @Prop()
-    refreshToken: string
+    @Prop({ type: String || null,default: null })
+    refreshToken: string | null
 
     @Prop({ type: Types.ObjectId, default: {} })
     metadata: Record<string, any>
