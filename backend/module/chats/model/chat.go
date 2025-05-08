@@ -58,16 +58,28 @@ func RegisterClient(client ClientObject) {
 	}
 	Clients[client.RoomID][client.UserID] = client.Conn
 	Register <- client
+
+	// Start Heartbeat
+	go func() {
+		for {
+			err := client.Conn.WriteMessage(websocket.PingMessage, nil)
+			if err != nil {
+				log.Printf("[HEARTBEAT] Disconnected: %s in room %s", client.UserID, client.RoomID)
+				UnregisterClient(client)
+				break
+			}
+			time.Sleep(30 * time.Second) // Heartbeat interval
+		}
+	}()
+
 	log.Printf("[JOIN] %s joined room %s\n", client.UserID, client.RoomID)
 }
 
 func UnregisterClient(client ClientObject) {
-	if roomClients, ok := Clients[client.RoomID]; ok {
-		if _, ok := roomClients[client.UserID]; ok {
-			delete(roomClients, client.UserID)
-			Unregister <- client
-			log.Printf("[LEAVE] %s left room %s\n", client.UserID, client.RoomID)
-		}
+	roomClients := Clients[client.RoomID]
+	if roomClients != nil {
+		delete(roomClients, client.UserID)
+		log.Printf("[UNREGISTER] %s left room %s", client.UserID, client.RoomID)
 	}
 }
 

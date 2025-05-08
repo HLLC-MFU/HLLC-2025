@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
+	"github.com/gofiber/websocket/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -28,6 +30,7 @@ type Service interface {
 	InitChatHub()
 	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error)
 	SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error
+	SyncRoomMembers()
 }
 
 type service struct {
@@ -47,13 +50,16 @@ func (s *service) InitChatHub() {
 		for {
 			select {
 			case client := <-model.Register:
-				log.Printf("[REGISTER] %s joined room %s\n", client.UserID, client.RoomID)
+				model.Clients[client.RoomID][client.UserID] = client.Conn
+				log.Printf("[REGISTER] %s joined room %s", client.UserID, client.RoomID)
 
 			case client := <-model.Unregister:
-				log.Printf("[UNREGISTER] %s left room %s\n", client.UserID, client.RoomID)
+				delete(model.Clients[client.RoomID], client.UserID)
+				redis.RemoveUserFromRoom(client.RoomID, client.UserID)
+				log.Printf("[UNREGISTER] %s left room %s", client.UserID, client.RoomID)
 
 			case message := <-model.Broadcast:
-				log.Printf("[BROADCAST] Message from %s in room %s: %s\n", message.FROM.UserID, message.FROM.RoomID, message.MSG)
+				log.Printf("[BROADCAST] Message from %s in room %s: %s", message.FROM.UserID, message.FROM.RoomID, message.MSG)
 
 				// ✅ สำคัญ!! เติม "chat-room-" ตอนส่ง Kafka
 				err := s.publisher.SendMessage(message.FROM.RoomID, message.FROM.UserID, message.MSG)
@@ -74,10 +80,10 @@ func (s *service) InitChatHub() {
 
 				// ✅ Broadcast ต่อให้คนในห้อง
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
-					if userID != message.FROM.UserID {
-						err := conn.WriteMessage(1, []byte(message.FROM.UserID+": "+message.MSG))
+					if userID != message.FROM.UserID && conn != nil {
+						err := conn.WriteMessage(websocket.TextMessage, []byte(message.FROM.UserID+": "+message.MSG))
 						if err != nil {
-							log.Printf("[Memory] Failed to write message to user %s: %v", userID, err)
+							log.Printf("[MEMORY] Failed to send message to user %s: %v", userID, err)
 							conn.Close()
 							delete(model.Clients[message.FROM.RoomID], userID)
 						}
@@ -164,4 +170,37 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 
 func (s *service) SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error {
 	return s.repo.SaveChatMessage(ctx, msg)
+}
+
+// Sync Redis members to in-memory map on startup
+func (s *service) SyncRoomMembers() {
+	rooms, _, err := s.repo.List(context.Background(), 1, 1000)
+	if err != nil {
+		log.Printf("[SYNC] Failed to fetch rooms from database: %v", err)
+		return
+	}
+
+	for _, room := range rooms {
+		members, err := redis.GetRoomMembers(room.ID.Hex())
+		if err != nil {
+			log.Printf("[SYNC] Failed to get members for room %s: %v", room.ID.Hex(), err)
+			continue
+		}
+
+		if len(members) > 0 {
+			if model.Clients[room.ID.Hex()] == nil {
+				model.Clients[room.ID.Hex()] = make(map[string]*websocket.Conn)
+			}
+
+			// Ensure only connected users are counted
+			for _, userID := range members {
+				if _, exists := model.Clients[room.ID.Hex()][userID]; !exists {
+					model.Clients[room.ID.Hex()][userID] = nil
+				}
+				log.Printf("[SYNC] User %s is a member of room %s", userID, room.ID.Hex())
+			}
+		}
+	}
+
+	log.Println("[SYNC] Room membership synchronized")
 }

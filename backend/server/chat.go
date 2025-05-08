@@ -6,6 +6,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/kafka"
 	chatPb "github.com/HLLC-MFU/HLLC-2025/backend/module/chats/proto/generated"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
@@ -17,6 +18,9 @@ import (
 )
 
 func (s *server) chatService() {
+
+	redis.InitRedis()
+
 	// Start chat hub loop
 	publisher := kafka.GetPublisher()
 
@@ -28,6 +32,7 @@ func (s *server) chatService() {
 
 	repo := repository.NewRepository(s.db)
 	roomService := service.NewService(repo, publisher)
+	roomService.SyncRoomMembers()
 	roomService.InitChatHub()
 
 	// ✅ เพิ่ม Kafka Consumer ตรงนี้
@@ -66,6 +71,10 @@ func (s *server) chatService() {
 	protected.Post("/", httpHandler.CreateRoom)
 	protected.Put("/:id", httpHandler.UpdateRoom)
 	protected.Delete("/:id", httpHandler.DeleteRoom)
+
+	// ✅ Add Join and Leave routes here
+	protected.Post("/:roomId/:userId/join", httpHandler.JoinRoom)
+	protected.Post("/:roomId/:userId/leave", httpHandler.LeaveRoom)
 
 	// Admin routes (auth + admin role required)
 	admin := api.Group("/admin/rooms")
