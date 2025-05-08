@@ -1,0 +1,785 @@
+{
+  "info": {
+    "_postman_id": "67e4c9c9-6b25-4d47-af73-f8d9a0c79a5e",
+    "name": "HLLC-API",
+    "description": "API collection for HLLC Campus CRM System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login to get JWT token.",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "type": "text/javascript",
+                  "exec": [
+                    "const response = pm.response.json();",
+                    "if (response.accessToken) {",
+                    "    pm.environment.set('accessToken', response.accessToken);",
+                    "}",
+                    "if (response.refreshToken) {",
+                    "    pm.environment.set('refreshToken', response.refreshToken);",
+                    "}"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token.",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "type": "text/javascript",
+                  "exec": [
+                    "const response = pm.response.json();",
+                    "if (response.accessToken) {",
+                    "    pm.environment.set('accessToken', response.accessToken);",
+                    "}"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout and invalidate tokens."
+          }
+        }
+      ],
+      "description": "Authentication related endpoints"
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get all users with pagination."
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "Get a single user by ID."
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": {\n        \"first\": \"John\",\n        \"middle\": \"\",\n        \"last\": \"Doe\"\n    },\n    \"username\": \"johndoe\",\n    \"password\": \"password123\",\n    \"role\": \"{{roleId}}\",\n    \"metadata\": {\n        \"schoolId\": \"{{schoolId}}\",\n        \"majorId\": \"{{majorId}}\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "Create a new user.",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "type": "text/javascript",
+                  "exec": [
+                    "const response = pm.response.json();",
+                    "if (response._id) {",
+                    "    pm.environment.set('userId', response._id);",
+                    "}"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": {\n        \"first\": \"John\",\n        \"middle\": \"\",\n        \"last\": \"Updated\"\n    },\n    \"metadata\": {\n        \"schoolId\": \"{{schoolId}}\",\n        \"majorId\": \"{{majorId}}\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "Update a user by ID."
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "Delete a user by ID."
+          }
+        }
+      ],
+      "description": "User management endpoints"
+    },
+    {
+      "name": "Schools",
+      "item": [
+        {
+          "name": "Get All Schools",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/schools",
+              "host": ["{{baseUrl}}"],
+              "path": ["schools"]
+            },
+            "description": "Get all schools."
+          }
+        },
+        {
+          "name": "Get School by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/schools/{{schoolId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["schools", "{{schoolId}}"]
+            },
+            "description": "Get a school by ID."
+          }
+        },
+        {
+          "name": "Create School",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Engineering School\",\n    \"code\": \"ENG\",\n    \"description\": \"School of Engineering and Technology\",\n    \"address\": \"123 Campus Road\",\n    \"contactEmail\": \"eng@university.edu\",\n    \"contactPhone\": \"+6612345678\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/schools",
+              "host": ["{{baseUrl}}"],
+              "path": ["schools"]
+            },
+            "description": "Create a new school.",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "type": "text/javascript",
+                  "exec": [
+                    "const response = pm.response.json();",
+                    "if (response._id) {",
+                    "    pm.environment.set('schoolId', response._id);",
+                    "}"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Update School",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Engineering School\",\n    \"description\": \"Updated School of Engineering and Technology\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/schools/{{schoolId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["schools", "{{schoolId}}"]
+            },
+            "description": "Update a school by ID."
+          }
+        },
+        {
+          "name": "Delete School",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/schools/{{schoolId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["schools", "{{schoolId}}"]
+            },
+            "description": "Delete a school by ID."
+          }
+        }
+      ],
+      "description": "School management endpoints"
+    },
+    {
+      "name": "Majors",
+      "item": [
+        {
+          "name": "Get All Majors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/majors",
+              "host": ["{{baseUrl}}"],
+              "path": ["majors"]
+            },
+            "description": "Get all majors."
+          }
+        },
+        {
+          "name": "Get Major by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/majors/{{majorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["majors", "{{majorId}}"]
+            },
+            "description": "Get a major by ID."
+          }
+        },
+        {
+          "name": "Create Major",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Computer Science\",\n    \"code\": \"CS\",\n    \"description\": \"Study of computer systems and computational processes\",\n    \"school\": \"{{schoolId}}\",\n    \"credits\": 120,\n    \"duration\": \"4 years\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/majors",
+              "host": ["{{baseUrl}}"],
+              "path": ["majors"]
+            },
+            "description": "Create a new major.",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "type": "text/javascript",
+                  "exec": [
+                    "const response = pm.response.json();",
+                    "if (response._id) {",
+                    "    pm.environment.set('majorId', response._id);",
+                    "}"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Update Major",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Computer Science\",\n    \"description\": \"Updated study of computer systems and computational processes\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/majors/{{majorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["majors", "{{majorId}}"]
+            },
+            "description": "Update a major by ID."
+          }
+        },
+        {
+          "name": "Delete Major",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/majors/{{majorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["majors", "{{majorId}}"]
+            },
+            "description": "Delete a major by ID."
+          }
+        }
+      ],
+      "description": "Major management endpoints"
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "Get All Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"]
+            },
+            "description": "Get all roles."
+          }
+        },
+        {
+          "name": "Get Role by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{roleId}}"]
+            },
+            "description": "Get a role by ID."
+          }
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Student\",\n    \"permissions\": [\"read:profile\", \"update:profile\", \"read:courses\"],\n    \"description\": \"Regular student role\",\n    \"metadataSchema\": {\n        \"required\": [\"schoolId\", \"majorId\"],\n        \"properties\": {\n            \"schoolId\": { \"type\": \"string\" },\n            \"majorId\": { \"type\": \"string\" },\n            \"studentId\": { \"type\": \"string\" },\n            \"enrollmentYear\": { \"type\": \"number\" }\n        }\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"]
+            },
+            "description": "Create a new role.",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "type": "text/javascript",
+                  "exec": [
+                    "const response = pm.response.json();",
+                    "if (response._id) {",
+                    "    pm.environment.set('roleId', response._id);",
+                    "}"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Student\",\n    \"permissions\": [\"read:profile\", \"update:profile\", \"read:courses\", \"read:events\"],\n    \"description\": \"Updated student role with more permissions\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{roleId}}"]
+            },
+            "description": "Update a role by ID."
+          }
+        },
+        {
+          "name": "Update Role Metadata Schema",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"required\": [\"schoolId\", \"majorId\", \"studentId\"],\n    \"properties\": {\n        \"schoolId\": { \"type\": \"string\" },\n        \"majorId\": { \"type\": \"string\" },\n        \"studentId\": { \"type\": \"string\" },\n        \"enrollmentYear\": { \"type\": \"number\" },\n        \"graduationYear\": { \"type\": \"number\" }\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}/metadata-schema",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{roleId}}", "metadata-schema"]
+            },
+            "description": "Update a role's metadata schema."
+          }
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{roleId}}"]
+            },
+            "description": "Delete a role by ID."
+          }
+        }
+      ],
+      "description": "Role management endpoints"
+    },
+    {
+      "name": "Activities",
+      "item": [
+        {
+          "name": "Get All Activities",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activities?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["activities"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get all activities with pagination."
+          }
+        },
+        {
+          "name": "Get Activity by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activities/{{activityId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["activities", "{{activityId}}"]
+            },
+            "description": "Get an activity by ID."
+          }
+        },
+        {
+          "name": "Create Activity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": {\n        \"en\": \"Freshman Orientation\",\n        \"th\": \"ปฐมนิเทศนักศึกษาใหม่\"\n    },\n    \"fullDetails\": {\n        \"en\": \"Comprehensive orientation for new students\",\n        \"th\": \"การปฐมนิเทศอย่างครอบคลุมสำหรับนักศึกษาใหม่\"\n    },\n    \"shortDetails\": {\n        \"en\": \"New student orientation\",\n        \"th\": \"ปฐมนิเทศนักศึกษาใหม่\"\n    },\n    \"photos\": {\n        \"thumb\": \"orientation-thumb.jpg\",\n        \"full\": \"orientation-full.jpg\"\n    },\n    \"type\": \"orientation\",\n    \"icon\": \"school\",\n    \"isOpen\": true,\n    \"isVisible\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activities",
+              "host": ["{{baseUrl}}"],
+              "path": ["activities"]
+            },
+            "description": "Create a new activity.",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "type": "text/javascript",
+                  "exec": [
+                    "const response = pm.response.json();",
+                    "if (response._id) {",
+                    "    pm.environment.set('activityId', response._id);",
+                    "}"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Update Activity",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": {\n        \"en\": \"Updated Freshman Orientation\",\n        \"th\": \"ปฐมนิเทศนักศึกษาใหม่ (ปรับปรุง)\"\n    },\n    \"isInProgress\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activities/{{activityId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["activities", "{{activityId}}"]
+            },
+            "description": "Update an activity by ID."
+          }
+        },
+        {
+          "name": "Delete Activity",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activities/{{activityId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["activities", "{{activityId}}"]
+            },
+            "description": "Delete an activity by ID."
+          }
+        }
+      ],
+      "description": "Activity management endpoints"
+    }
+  ]
+} 
