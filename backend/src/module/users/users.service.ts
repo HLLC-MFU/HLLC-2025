@@ -336,7 +336,7 @@ export class UsersService {
       const schoolsMap: Record<string, any> = {};
       for (const school of schools) {
         if (school && school._id) {
-          schoolsMap[school._id.toString()] = school;
+        schoolsMap[school._id.toString()] = school;
         }
       }
       
@@ -365,7 +365,7 @@ export class UsersService {
       const majorsMap: Record<string, any> = {};
       for (const major of majors) {
         if (major && major._id) {
-          majorsMap[major._id.toString()] = major;
+        majorsMap[major._id.toString()] = major;
         }
       }
       
@@ -468,5 +468,253 @@ export class UsersService {
     
     const totalTime = Date.now() - startTime;
     this.logger.log(`[Cache] Cache invalidation completed in ${totalTime}ms`);
+  }
+
+  /**
+   * Reset a user's password to a default value
+   * This clears the current password and secret
+   */
+  async resetPassword(id: string): Promise<User> {
+    this.logger.debug(`[Users] Resetting password for user ${id}`);
+    const startTime = Date.now();
+    
+    const user = await findOrThrow(this.userModel, id, 'User');
+    
+    // Clear password and secret
+    user.password = await bcrypt.hash('123456', 10);
+    user.refreshToken = null;
+    
+    const updatedUser = await user.save();
+    
+    // Invalidate any cached data for this user
+    await this.invalidateUserRelatedCaches();
+    
+    const duration = Date.now() - startTime;
+    this.logger.log(`[Users] Password reset for user ${id} completed in ${duration}ms`);
+    
+    return this.findOne(id); // Use findOne to get the enriched user with metadata
+  }
+
+  /**
+   * Upload multiple users in bulk with specified defaults
+   */
+  async uploadUsers(uploadData: {
+    users: Array<{
+      name: { first: string; last: string };
+      studentId: string;
+      major?: string | Types.ObjectId;
+    }>;
+    major?: string | Types.ObjectId;
+    role: string | Types.ObjectId;
+    metadata?: Record<string, any>;
+  }): Promise<any> {
+    this.logger.log(`[Users] Uploading ${uploadData.users.length} users`);
+    const startTime = Date.now();
+    
+    // Validate the role
+    const role = await findOrThrow(this.roleModel, uploadData.role, 'Role');
+    
+    // Check if major exists if provided as default
+    if (uploadData.major) {
+      const majorId = uploadData.major.toString();
+      const majorData = await this.getMajorData(majorId);
+      if (!majorData) {
+        throw new NotFoundException(`Default major with ID ${majorId} not found`);
+      }
+    }
+    
+    // Process each user, checking their major if specified
+    const createUserDtos = await Promise.all(
+      uploadData.users.map(async (userData) => {
+        const userMajorId = userData.major || uploadData.major;
+        
+        if (userMajorId) {
+          const majorData = await this.getMajorData(userMajorId.toString());
+          if (!majorData) {
+            throw new NotFoundException(`Major with ID ${userMajorId} not found for user ${userData.studentId}`);
+          }
+        }
+        
+        // Prepare base metadata
+        const metadata = { ...uploadData.metadata || {} };
+        
+        // Add major data to metadata if provided
+        if (userMajorId) {
+          metadata.majorId = userMajorId;
+          const majorData = await this.getMajorData(userMajorId.toString());
+          if (majorData) {
+            metadata.major = majorData;
+          }
+        }
+        
+        return {
+          name: {
+            first: userData.name.first,
+            last: userData.name.last
+          },
+          username: userData.studentId,
+          password: await bcrypt.hash('123456', 10), // Default password
+          role: role._id,
+          metadata
+        };
+      })
+    );
+    
+    try {
+      // Bulk insert users
+      const insertedUsers = await this.userModel.insertMany(createUserDtos, { lean: true });
+      
+      // Invalidate cache after bulk creation
+      await this.invalidateUserRelatedCaches();
+      
+      const duration = Date.now() - startTime;
+      this.logger.log(`[Users] Successfully uploaded ${insertedUsers.length} users in ${duration}ms`);
+      
+      // Return with full metadata enrichment
+      const result = await this.findAll({ _id: { $in: insertedUsers.map(u => u._id) } }, 1, insertedUsers.length);
+      return result.data;
+    } catch (error) {
+      if (error.code === 11000) {
+        const duplicateKey = error.keyValue ? Object.keys(error.keyValue)[0] : 'unknown';
+        const duplicateValue = error.keyValue ? error.keyValue[Object.keys(error.keyValue)[0]] : '';
+        throw new BadRequestException(`Duplicate entry for ${duplicateKey}: ${duplicateValue}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Check status of all user registrations
+   */
+  async checkRegistrationStatus(): Promise<{
+    totalUsers: number;
+    registeredUsers: number;
+    notRegisteredUsers: number;
+    registrationRate: string;
+  }> {
+    this.logger.debug(`[Users] Checking registration status of all users`);
+    
+    // Use a cached pattern for this operation with short TTL
+    const cacheKey = 'user:registration_status';
+    const cachedStats = await this.cacheManager.get(cacheKey);
+    
+    if (cachedStats) {
+      return cachedStats as any;
+    }
+    
+    const users = await this.userModel.find(
+      {},
+      { password: 1, refreshToken: 1, username: 1 }
+    ).lean();
+    
+    if (!users || users.length === 0) {
+      throw new NotFoundException('No users found in the system');
+    }
+    
+    // Consider a user registered if they have password and have logged in at least once
+    const registeredUsers = users.filter(user => 
+      user.password && 
+      user.password.length > 0
+    );
+    
+    const notRegisteredUsers = users.filter(user => 
+      !user.password || 
+      user.password.length === 0
+    );
+    
+    const stats = {
+      totalUsers: users.length,
+      registeredUsers: registeredUsers.length,
+      notRegisteredUsers: notRegisteredUsers.length,
+      registrationRate: `${((registeredUsers.length / users.length) * 100).toFixed(2)}%`
+    };
+    
+    // Cache the results for 15 minutes
+    await this.cacheManager.set(cacheKey, stats, 900);
+    
+    return stats;
+  }
+  
+  /**
+   * Delete multiple users by IDs
+   */
+  async removeMultiple(ids: string[]): Promise<{ deletedCount: number }> {
+    this.logger.debug(`[Users] Removing multiple users: ${ids.join(', ')}`);
+    const startTime = Date.now();
+    
+    if (!ids || ids.length === 0) {
+      throw new BadRequestException('No user IDs provided for deletion');
+    }
+    
+    // Validate IDs first
+    const validIds = ids.filter(id => Types.ObjectId.isValid(id));
+    if (validIds.length !== ids.length) {
+      throw new BadRequestException('One or more invalid user IDs provided');
+    }
+    
+    const result = await this.userModel.deleteMany({ 
+      _id: { $in: validIds.map(id => new Types.ObjectId(id)) } 
+    });
+    
+    if (result.deletedCount === 0) {
+      throw new NotFoundException('No users found with the provided IDs');
+    }
+    
+    // Invalidate cache after bulk deletion
+    await this.invalidateUserRelatedCaches();
+    
+    const duration = Date.now() - startTime;
+    this.logger.log(`[Users] Removed ${result.deletedCount} users in ${duration}ms`);
+    
+    return { deletedCount: result.deletedCount };
+  }
+  
+  /**
+   * Find a user by their student ID (username)
+   */
+  async findByUsername(username: string): Promise<User> {
+    this.logger.debug(`[Users] Finding user by username: ${username}`);
+    
+    // Try to find in cache first
+    const cacheKey = `user:username:${username}`;
+    const cachedUser = await this.cacheManager.get<User>(cacheKey);
+    
+    if (cachedUser) {
+      return cachedUser;
+    }
+    
+    // Find in database
+    const user = await this.userModel.findOne({ username }).lean();
+    
+    if (!user) {
+      throw new NotFoundException(`User with username ${username} not found`);
+    }
+    
+    // Check if the user has registered (has password)
+    if (!user.password || user.password.length === 0) {
+      throw new BadRequestException(`User ${username} has not completed registration`);
+    }
+    
+    // Enrich with metadata and store in cache (short TTL for user data)
+    const roleData = await this.getRolesMetadata([user.role?.toString()]);
+    
+    const schoolIds = user.metadata?.schoolId ? [user.metadata.schoolId.toString()] : [];
+    const majorIds = user.metadata?.majorId ? [user.metadata.majorId.toString()] : [];
+    
+    const schoolData = await this.getSchoolsMetadata(schoolIds);
+    const majorData = await this.getMajorsMetadata(majorIds);
+    
+    const [enrichedUser] = await this.enrichUsersWithMetadata(
+      [user], 
+      roleData,
+      schoolData,
+      majorData,
+      []
+    );
+    
+    // Cache for a short time (5 minutes)
+    await this.cacheManager.set(cacheKey, enrichedUser, 300);
+    
+    return enrichedUser;
   }
 }

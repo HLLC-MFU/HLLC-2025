@@ -18,6 +18,7 @@ import { InterceptorsModule } from './pkg/interceptors/interceptors.module';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
+import { CheckinsModule } from './module/checkins/checkins.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
     MajorsModule,
     RoleModule,
     ActivitesModule,
+    CheckinsModule,
   ],
   providers: [
     {

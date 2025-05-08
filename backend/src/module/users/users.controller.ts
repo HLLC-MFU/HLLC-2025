@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, HttpCode } from '@nestjs/common';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -37,12 +37,70 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @Permissions('users:update:id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
+  @Permissions('users:delete:id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  /**
+   * Reset a user's password to the default value
+   */
+  @Post(':id/reset-password')
+  @HttpCode(200)
+  @Permissions('users:update:id')
+  resetPassword(@Param('id') id: string) {
+    return this.usersService.resetPassword(id);
+  }
+
+  /**
+   * Upload multiple users in bulk
+   */
+  @Post('upload')
+  @Permissions('users:create')
+  uploadUsers(@Body() uploadData: {
+    users: Array<{
+      name: { first: string; last: string };
+      studentId: string;
+      major?: string;
+    }>;
+    major?: string;
+    role: string;
+    metadata?: Record<string, any>;
+  }) {
+    return this.usersService.uploadUsers(uploadData);
+  }
+
+  /**
+   * Get registration statistics
+   */
+  @Get('stats/registration')
+  @Permissions('users:read')
+  checkRegistrationStatus() {
+    return this.usersService.checkRegistrationStatus();
+  }
+
+  /**
+   * Find a user by their username (student ID)
+   */
+  @Get('by-username/:username')
+  @Permissions('users:read')
+  findByUsername(@Param('username') username: string) {
+    return this.usersService.findByUsername(username);
+  }
+
+  /**
+   * Delete multiple users by ID
+   */
+  @Post('remove-multiple')
+  @HttpCode(200)
+  @Permissions('users:delete')
+  removeMultiple(@Body() data: { ids: string[] }) {
+    return this.usersService.removeMultiple(data.ids);
   }
 }

@@ -1,27 +1,29 @@
 import { Module } from '@nestjs/common';
-import { ActivitesService } from './activites.service';
-import { ActivitesController } from './activites.controller';
+import { CheckinsService } from './checkins.service';
+import { CheckinsController } from './checkins.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Activity, ActivitySchema } from './schemas/activities.schema';
+import { Checkin, CheckinSchema } from './schemas/checkins.schema';
 import { MetadataCacheInterceptor } from '../../pkg/interceptors/metadata-cache.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { Activity, ActivitySchema } from '../activites/schemas/activities.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
+      { name: Checkin.name, schema: CheckinSchema },
       { name: Activity.name, schema: ActivitySchema },
       { name: User.name, schema: UserSchema }
     ])
   ],
-  controllers: [ActivitesController],
+  controllers: [CheckinsController],
   providers: [
-    ActivitesService,
+    CheckinsService,
     {
       provide: APP_INTERCEPTOR,
       useClass: MetadataCacheInterceptor,
     }
   ],
-  exports: [ActivitesService]
+  exports: [CheckinsService]
 })
-export class ActivitesModule {}
+export class CheckinsModule {}
