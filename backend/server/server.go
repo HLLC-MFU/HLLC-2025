@@ -11,7 +11,6 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/migration"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -51,29 +50,8 @@ func (s *server) grpcListener(addr string) (net.Listener, error) {
 }
 
 func (s *server) Start() error {
-	// Run migrations
-	migrationService := migration.NewMigrationService(s.db)
-	migrations := []migration.Migration{
-		migration.NewInitialSetupMigration(s.db),
-	}
-	if err := migrationService.Run(context.Background(), migrations); err != nil {
-		return fmt.Errorf("failed to run migrations: %v", err)
-	}
-
 	// Route service based on App Name
 	switch s.config.App.Name {
-	case "user":
-		s.userService()
-	case "auth":
-		s.authService()
-	case "major":
-		s.majorService()
-	case "school":
-		s.schoolService()
-	case "activity":
-		s.activityService()
-	case "checkin":
-		s.checkinService()
 	case "chat":
 		s.chatService()
 	default:

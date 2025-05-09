@@ -93,9 +93,9 @@ import (
 func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 	return func(c *websocket.Conn) {
 		roomIdStr := c.Params("roomId")
-		userId := c.Params("userId")
+		userID := c.Params("userId") // ✅ ใช้ userID แทน userId
 
-		if roomIdStr == "" || userId == "" {
+		if roomIdStr == "" || userID == "" {
 			log.Println("[WS] Missing roomId or userId")
 			c.WriteMessage(websocket.TextMessage, []byte("Missing roomId or userId"))
 			c.Close()
@@ -105,17 +105,24 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 		// ✅ Create a new background context for MongoDB query
 		ctx := context.Background()
 
-		// เช็คว่าผู้ใช้อยู่ใน Redis ไหม
-		isMember, err := redis.IsUserInRoom(roomIdStr, userId)
+		// ✅ Use MemberService instead of direct Redis call
+		roomID, err := primitive.ObjectIDFromHex(roomIdStr)
 		if err != nil {
-			log.Printf("[REDIS] Failed to check if user is in room: %v", err)
+			c.WriteMessage(websocket.TextMessage, []byte("Invalid room ID"))
+			c.Close()
+			return
+		}
+
+		isMember, err := h.memberService.IsUserInRoom(ctx, roomID, userID)
+		if err != nil {
+			log.Printf("[ERROR] Failed to check if user is in room: %v", err)
 			c.WriteMessage(websocket.TextMessage, []byte("Internal server error"))
 			c.Close()
 			return
 		}
 
 		if !isMember {
-			log.Printf("[WS] User %s is not a member of room %s", userId, roomIdStr)
+			log.Printf("[WS] User %s is not a member of room %s", userID, roomIdStr)
 			c.WriteMessage(websocket.TextMessage, []byte("You are not a member of this room"))
 			c.Close()
 			return
@@ -123,12 +130,12 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 
 		client := model.ClientObject{
 			RoomID: roomIdStr,
-			UserID: userId,
+			UserID: userID, // ✅ ใช้ userID แทน userId
 			Conn:   c,
 		}
 
 		// ✅ ส่ง Chat History กลับไปเมื่อผู้ใช้เชื่อมต่อ
-		history, err := h.service.GetChatHistoryByRoom(ctx, roomIdStr, 50) // กำหนดจำนวน message ล่าสุดที่ต้องการส่งกลับ
+		history, err := h.service.GetChatHistoryByRoom(ctx, roomIdStr, 50)
 		if err == nil && len(history) > 0 {
 			for _, msg := range history {
 				_ = c.WriteMessage(websocket.TextMessage, []byte(msg.UserID+": "+msg.Message))
@@ -137,12 +144,11 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 
 		// Register client in memory
 		model.RegisterClient(client)
-		log.Printf("[WS] User %s connected to room %s", userId, roomIdStr)
+		log.Printf("[WS] User %s connected to room %s", userID, roomIdStr)
 
 		defer func() {
-			// ✅ ไม่ลบออกจาก Redis อัตโนมัติ
 			model.UnregisterClient(client)
-			log.Printf("[WS] User %s disconnected from room %s", userId, roomIdStr)
+			log.Printf("[WS] User %s disconnected from room %s", userID, roomIdStr)
 		}()
 
 		for {
@@ -154,8 +160,9 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 
 			// Handle leave command
 			if string(msg) == "/leave" {
-				// ✅ ออกห้องอย่างเป็นทางการ
-				redis.RemoveUserFromRoom(roomIdStr, userId)
+				if err := h.memberService.RemoveUserFromRoom(ctx, roomID, userID); err != nil {
+					log.Printf("[ERROR] Failed to remove user %s from room %s: %v", userID, roomIdStr, err)
+				}
 				model.UnregisterClient(client)
 				c.WriteMessage(websocket.TextMessage, []byte("You have left the room"))
 				c.Close()
@@ -171,14 +178,16 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 }
 
 type HTTPHandler struct {
-	service   service.Service
-	publisher kafka.Publisher
+	service       service.Service
+	memberService service.MemberService
+	publisher     kafka.Publisher
 }
 
-func NewHTTPHandler(service service.Service, publisher kafka.Publisher) *HTTPHandler {
+func NewHTTPHandler(service service.Service, memberService service.MemberService, publisher kafka.Publisher) *HTTPHandler {
 	return &HTTPHandler{
-		service:   service,
-		publisher: publisher,
+		service:       service,
+		memberService: memberService,
+		publisher:     publisher,
 	}
 }
 
@@ -232,13 +241,23 @@ func (h *HTTPHandler) CreateRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	// ✅ เพิ่มผู้สร้างเป็นสมาชิกใน Redis
+	// ✅ เพิ่มผู้สร้างเป็นสมาชิกใน Redis และ MongoDB
 	creatorID := c.Query("creator_id")
 	if creatorID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "creator_id is required",
 		})
 	}
+
+	// ✅ เพิ่มใน MongoDB
+	if err := h.memberService.AddUserToRoom(c.Context(), room.ID, creatorID); err != nil {
+		log.Printf("[MONGODB] Failed to add creator %s to room %s: %v", creatorID, room.ID.Hex(), err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to add creator to room",
+		})
+	}
+
+	// ✅ เพิ่มใน Redis
 	if err := redis.AddUserToRoom(room.ID.Hex(), creatorID); err != nil {
 		log.Printf("[REDIS] Failed to add creator %s to room %s: %v", creatorID, room.ID.Hex(), err)
 	}
@@ -249,7 +268,7 @@ func (h *HTTPHandler) CreateRoom(c *fiber.Ctx) error {
 // ✅ เข้าห้อง (Join)
 func (h *HTTPHandler) JoinRoom(c *fiber.Ctx) error {
 	roomIdStr := c.Params("roomId")
-	userId := c.Params("userId")
+	userID := c.Params("userId")
 
 	roomID, err := primitive.ObjectIDFromHex(roomIdStr)
 	if err != nil {
@@ -258,6 +277,7 @@ func (h *HTTPHandler) JoinRoom(c *fiber.Ctx) error {
 		})
 	}
 
+	// ✅ ตรวจสอบว่าห้องมีอยู่จริง
 	room, err := h.service.GetRoom(c.Context(), roomID)
 	if err != nil || room == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -265,27 +285,30 @@ func (h *HTTPHandler) JoinRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	// ตรวจสอบ capacity
-	memberCount, err := redis.TotalRoomMembers(roomIdStr)
+	// ✅ ตรวจสอบ Capacity ของห้อง
+	memberCount, err := h.memberService.GetRoomMembers(context.Background(), roomID)
 	if err != nil {
+		log.Printf("[ERROR] Failed to get member count for room %s: %v", roomID.Hex(), err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "internal server error",
+			"error": "failed to check room capacity",
 		})
 	}
 
-	if int(memberCount) >= room.Capacity {
+	if len(memberCount) >= room.Capacity {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"error": "room is full",
 		})
 	}
 
-	// เพิ่มสมาชิก
-	if err := redis.AddUserToRoom(roomIdStr, userId); err != nil {
+	// ✅ Add user to room
+	if err := h.memberService.AddUserToRoom(context.Background(), roomID, userID); err != nil {
+		log.Printf("[ERROR] Failed to add user %s to room %s: %v", userID, roomID.Hex(), err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to join room",
 		})
 	}
 
+	log.Printf("[JOIN] User %s joined room %s", userID, roomID.Hex())
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "joined room",
 	})
@@ -294,21 +317,22 @@ func (h *HTTPHandler) JoinRoom(c *fiber.Ctx) error {
 // ✅ ออกจากห้อง (Leave)
 func (h *HTTPHandler) LeaveRoom(c *fiber.Ctx) error {
 	roomIdStr := c.Params("roomId")
-	userId := c.Params("userId")
+	userID := c.Params("userId") // ✅ ใช้ userID แทน userId
 
-	// ✅ ลบออกจาก Redis เมื่อผู้ใช้ leave เอง
-	if err := redis.RemoveUserFromRoom(roomIdStr, userId); err != nil {
+	roomID, err := primitive.ObjectIDFromHex(roomIdStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid room ID",
+		})
+	}
+
+	if err := h.memberService.RemoveUserFromRoom(context.Background(), roomID, userID); err != nil {
+		log.Printf("[ERROR] Failed to remove user %s from room %s: %v", userID, roomID.Hex(), err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to leave room",
 		})
 	}
 
-	model.UnregisterClient(model.ClientObject{
-		RoomID: roomIdStr,
-		UserID: userId,
-	})
-
-	log.Printf("[LEAVE] %s left room %s", userId, roomIdStr)
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "left room",
 	})
@@ -318,7 +342,14 @@ func (h *HTTPHandler) LeaveRoom(c *fiber.Ctx) error {
 func (h *HTTPHandler) GetRoomMembers(c *fiber.Ctx) error {
 	roomIdStr := c.Params("roomId")
 
-	members, err := redis.GetRoomMembers(roomIdStr)
+	roomID, err := primitive.ObjectIDFromHex(roomIdStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid room ID",
+		})
+	}
+
+	members, err := h.memberService.GetRoomMembers(context.Background(), roomID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to get room members",

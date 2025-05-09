@@ -5,13 +5,10 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/kafka"
-	chatPb "github.com/HLLC-MFU/HLLC-2025/backend/module/chats/proto/generated"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
 	kafkaUtil "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/websocket/v2"
@@ -32,6 +29,8 @@ func (s *server) chatService() {
 
 	repo := repository.NewRepository(s.db)
 	roomService := service.NewService(repo, publisher)
+	memberRepo := repository.NewRoomMemberRepository(s.db)
+	memberService := service.NewMemberService(memberRepo)
 	roomService.SyncRoomMembers()
 	roomService.InitChatHub()
 
@@ -43,8 +42,7 @@ func (s *server) chatService() {
 		roomService,
 	)
 
-	httpHandler := handler.NewHTTPHandler(roomService, publisher)
-	grpcHandler := handler.NewGrpcHandler(roomService)
+	httpHandler := handler.NewHTTPHandler(roomService, memberService, publisher)
 
 	// Set up HTTP middleware
 	s.app.Use(cors.New(cors.Config{
@@ -53,9 +51,6 @@ func (s *server) chatService() {
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET, POST, PUT, DELETE",
 	}))
-	s.app.Use(middleware.RequestIDMiddleware())
-	s.app.Use(middleware.LoggingMiddleware())
-	s.app.Use(middleware.RecoveryMiddleware())
 
 	api := s.app.Group("/api/v1")
 
@@ -65,7 +60,6 @@ func (s *server) chatService() {
 
 	// Protected routes (auth required)
 	protected := api.Group("/rooms")
-	protected.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
 	protected.Get("/", httpHandler.ListRooms)
 	protected.Get("/:id", httpHandler.GetRoom)
 	protected.Post("/", httpHandler.CreateRoom)
@@ -78,30 +72,9 @@ func (s *server) chatService() {
 
 	// Admin routes (auth + admin role required)
 	admin := api.Group("/admin/rooms")
-	admin.Use(middleware.AuthMiddleware(s.config.Jwt.AccessSecretKey))
-	admin.Use(middleware.RoleMiddleware([]string{"ADMIN"}))
 	admin.Post("/", httpHandler.CreateRoom)
 	admin.Put("/:id", httpHandler.UpdateRoom)
 	admin.Delete("/:id", httpHandler.DeleteRoom)
-
-	// Set up gRPC server for internal service communication
-	go func() {
-		jwtConfig := &core.JwtConfig{
-			AccessSecretKey:  s.config.Jwt.AccessSecretKey,
-			RefreshSecretKey: s.config.Jwt.RefreshSecretKey,
-			ApiSecretKey:     s.config.Jwt.ApiSecretKey,
-			AccessDuration:   s.config.Jwt.AccessDuration,
-			RefreshDuration:  s.config.Jwt.RefreshDuration,
-			ApiDuration:      s.config.Jwt.ApiDuration,
-		}
-		grpcServer, lis := core.NewGrpcServer(jwtConfig, s.config.Chat.GRPCAddr)
-		chatPb.RegisterRoomServiceServer(grpcServer, grpcHandler)
-
-		log.Printf("Room gRPC server listening on %s", s.config.Chat.GRPCAddr)
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("gRPC server error: %v", err)
-		}
-	}()
 
 	// Set up health check
 	s.app.Get("/health", func(c *fiber.Ctx) error {
