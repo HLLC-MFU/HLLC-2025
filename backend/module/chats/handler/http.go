@@ -4,11 +4,13 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/kafka"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils"
 	coreModel "github.com/HLLC-MFU/HLLC-2025/backend/pkg/core/model"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
@@ -130,7 +132,7 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 
 		client := model.ClientObject{
 			RoomID: roomIdStr,
-			UserID: userID, // ✅ ใช้ userID แทน userId
+			UserID: userID,
 			Conn:   c,
 		}
 
@@ -158,8 +160,10 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 				break
 			}
 
+			messageText := strings.TrimSpace(string(msg))
+
 			// Handle leave command
-			if string(msg) == "/leave" {
+			if messageText == "/leave" {
 				if err := h.memberService.RemoveUserFromRoom(ctx, roomID, userID); err != nil {
 					log.Printf("[ERROR] Failed to remove user %s from room %s: %v", userID, roomIdStr, err)
 				}
@@ -169,8 +173,12 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 				return
 			}
 
+			// ✅ Apply Profanity Filter
+			filteredMessage := utils.FilterProfanity(messageText)
+
+			// Broadcast the filtered message
 			model.BroadcastMessage(model.BroadcastObject{
-				MSG:  string(msg),
+				MSG:  filteredMessage,
 				FROM: client,
 			})
 		}
