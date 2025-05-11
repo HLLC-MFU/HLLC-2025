@@ -2,9 +2,11 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/kafka"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
@@ -17,80 +19,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// ก่อน: เป็น function ธรรมดา
-// func HandleWebSocket(chatService service.Service) func(c *websocket.Conn) {
-
-// handler/http.go
-// handler/http.go
-
-// func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
-// 	return func(c *websocket.Conn) {
-// 		roomIdStr := c.Params("roomId")
-// 		userId := c.Params("userId")
-
-// 		if roomIdStr == "" || userId == "" {
-// 			log.Println("[WS] Missing roomId or userId")
-// 			c.WriteMessage(websocket.TextMessage, []byte("Missing roomId or userId"))
-// 			c.Close()
-// 			return
-// 		}
-
-// 		// เช็คว่าผู้ใช้อยู่ใน Redis ไหม
-// 		isMember, err := redis.IsUserInRoom(roomIdStr, userId)
-// 		if err != nil {
-// 			log.Printf("[REDIS] Failed to check if user is in room: %v", err)
-// 			c.WriteMessage(websocket.TextMessage, []byte("Internal server error"))
-// 			c.Close()
-// 			return
-// 		}
-
-// 		if !isMember {
-// 			log.Printf("[WS] User %s is not a member of room %s", userId, roomIdStr)
-// 			c.WriteMessage(websocket.TextMessage, []byte("You are not a member of this room"))
-// 			c.Close()
-// 			return
-// 		}
-
-// 		client := model.ClientObject{
-// 			RoomID: roomIdStr,
-// 			UserID: userId,
-// 			Conn:   c,
-// 		}
-
-// 		// Register client in memory
-// 		model.RegisterClient(client)
-// 		log.Printf("[WS] User %s connected to room %s", userId, roomIdStr)
-
-// 		defer func() {
-// 			// ✅ ไม่ลบออกจาก Redis อัตโนมัติ
-// 			model.UnregisterClient(client)
-// 			log.Printf("[WS] User %s disconnected from room %s", userId, roomIdStr)
-// 		}()
-
-// 		for {
-// 			_, msg, err := c.ReadMessage()
-// 			if err != nil {
-// 				log.Println("[WS] Read error:", err)
-// 				break
-// 			}
-
-// 			// Handle leave command
-// 			if string(msg) == "/leave" {
-// 				// ✅ ออกห้องอย่างเป็นทางการ
-// 				redis.RemoveUserFromRoom(roomIdStr, userId)
-// 				model.UnregisterClient(client)
-// 				c.WriteMessage(websocket.TextMessage, []byte("You have left the room"))
-// 				c.Close()
-// 				return
-// 			}
-
-// 			model.BroadcastMessage(model.BroadcastObject{
-// 				MSG:  string(msg),
-// 				FROM: client,
-// 			})
-// 		}
-// 	}
-// }
+type TypingEvent struct {
+	UserID string `json:"userId"`
+	RoomID string `json:"roomId"`
+	Typing bool   `json:"typing"`
+}
 
 func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 	return func(c *websocket.Conn) {
@@ -153,6 +86,10 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 			log.Printf("[WS] User %s disconnected from room %s", userID, roomIdStr)
 		}()
 
+		// Typing state management
+		typingTimers := make(map[string]time.Time)
+		const typingTimeout = 5 * time.Second
+
 		for {
 			_, msg, err := c.ReadMessage()
 			if err != nil {
@@ -161,6 +98,50 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 			}
 
 			messageText := strings.TrimSpace(string(msg))
+
+			// Handle typing event
+			if strings.HasPrefix(messageText, "/typing") {
+				if time.Since(typingTimers[userID]) > typingTimeout {
+					typingEvent := TypingEvent{
+						UserID: userID,
+						RoomID: roomIdStr,
+						Typing: true,
+					}
+					h.broadcastTypingEvent(roomIdStr, typingEvent)
+					typingTimers[userID] = time.Now()
+
+					// Stop typing event after timeout
+					go func(userID, roomIdStr string) {
+						time.Sleep(typingTimeout)
+						h.broadcastTypingEvent(roomIdStr, TypingEvent{
+							UserID: userID,
+							RoomID: roomIdStr,
+							Typing: false,
+						})
+					}(userID, roomIdStr)
+				}
+				continue
+			}
+
+			// Inside the WebSocket message loop
+			if strings.HasPrefix(messageText, "/read") {
+				parts := strings.Split(messageText, " ")
+				if len(parts) == 2 {
+					messageID := parts[1]
+					h.SendReadReceipt(roomIdStr, userID, messageID)
+					continue
+				}
+			}
+
+			if strings.HasPrefix(messageText, "/react") {
+				parts := strings.Split(messageText, " ")
+				if len(parts) == 3 {
+					messageID := parts[1]
+					reaction := parts[2]
+					h.SendMessageReaction(roomIdStr, userID, messageID, reaction)
+					continue
+				}
+			}
 
 			// Handle leave command
 			if messageText == "/leave" {
@@ -183,6 +164,80 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 			})
 		}
 	}
+}
+
+func (h *HTTPHandler) broadcastTypingEvent(roomID string, event TypingEvent) {
+	h.broadcastEvent(roomID, "typing", event)
+}
+
+type ChatEvent struct {
+	EventType string      `json:"eventType"`
+	Payload   interface{} `json:"payload"`
+}
+
+func (h *HTTPHandler) broadcastEvent(roomID, eventType string, data interface{}) {
+	event := ChatEvent{
+		EventType: eventType,
+		Payload:   data,
+	}
+
+	// Extract the userId from the data if available
+	var userID string
+	switch v := data.(type) {
+	case map[string]string:
+		userID = v["userId"]
+	case TypingEvent:
+		userID = v.UserID
+	case model.BroadcastObject:
+		if v.FROM.UserID != "" {
+			userID = v.FROM.UserID
+		}
+	case ChatEvent:
+		if payload, ok := v.Payload.(map[string]interface{}); ok {
+			if uid, ok := payload["userId"].(string); ok {
+				userID = uid
+			}
+		}
+	}
+
+	eventJSON, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("[ERROR] Failed to marshal %s event: %v", eventType, err)
+		return
+	}
+
+	model.BroadcastMessage(model.BroadcastObject{
+		MSG: string(eventJSON),
+		FROM: model.ClientObject{
+			RoomID: roomID,
+			UserID: userID,
+		},
+	})
+
+	log.Printf("[BROADCAST] Message from %s in room %s: %s", userID, roomID, string(eventJSON))
+}
+
+func (h *HTTPHandler) SendReadReceipt(roomID, userID, messageID string) {
+	readReceipt := map[string]string{
+		"userId":    userID,
+		"roomId":    roomID,
+		"messageId": messageID,
+		"status":    "read",
+	}
+
+	h.broadcastEvent(roomID, "read_receipt", readReceipt)
+}
+
+// Send Message Reaction
+func (h *HTTPHandler) SendMessageReaction(roomID, userID, messageID, reaction string) {
+	messageReaction := map[string]string{
+		"userId":    userID,
+		"roomId":    roomID,
+		"messageId": messageID,
+		"reaction":  reaction,
+	}
+
+	h.broadcastEvent(roomID, "message_reaction", messageReaction)
 }
 
 type HTTPHandler struct {
