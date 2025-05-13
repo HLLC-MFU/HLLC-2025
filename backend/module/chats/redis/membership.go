@@ -5,19 +5,16 @@ import (
 	"log"
 
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var rdb = redis.NewClient(&redis.Options{
-	Addr:     "localhost:6379",
-	Password: "",
-	DB:       0,
-})
+var rdb *redis.Client
 
 func InitRedis() {
 	rdb = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
+		Password: "", // No password set
+		DB:       0,  // Use default DB
 	})
 
 	// Test the connection
@@ -28,46 +25,36 @@ func InitRedis() {
 	log.Println("[REDIS] Connected to Redis server")
 }
 
-func AddUserToRoom(roomID, userID string) error {
-	err := rdb.SAdd(context.Background(), "room:"+roomID, userID).Err()
-	if err != nil {
-		log.Printf("[REDIS] Failed to add user %s to room %s: %v", userID, roomID, err)
-	}
-	return err
+func AddUserToRoom(roomID string, userID string) error {
+	return rdb.SAdd(context.Background(), "room:"+roomID, userID).Err()
 }
 
-func RemoveUserFromRoom(roomID, userID string) error {
-	err := rdb.SRem(context.Background(), "room:"+roomID, userID).Err()
-	if err != nil {
-		log.Printf("[REDIS] Failed to remove user %s from room %s: %v", userID, roomID, err)
-	}
-	return err
+func RemoveUserFromRoom(roomID string, userID string) error {
+	return rdb.SRem(context.Background(), "room:"+roomID, userID).Err()
 }
 
-func GetRoomMembers(roomID string) ([]string, error) {
+func GetRoomMembers(roomID string) ([]primitive.ObjectID, error) {
 	members, err := rdb.SMembers(context.Background(), "room:"+roomID).Result()
 	if err != nil {
-		log.Printf("[REDIS] Failed to get members for room %s: %v", roomID, err)
 		return nil, err
 	}
-	return members, nil
+
+	objectIDs := make([]primitive.ObjectID, 0, len(members))
+	for _, member := range members {
+		objID, err := primitive.ObjectIDFromHex(member)
+		if err != nil {
+			continue // Skip invalid ObjectIDs
+		}
+		objectIDs = append(objectIDs, objID)
+	}
+
+	return objectIDs, nil
 }
 
 func TotalRoomMembers(roomID string) (int64, error) {
-	count, err := rdb.SCard(context.Background(), "room:"+roomID).Result()
-	if err != nil {
-		log.Printf("[REDIS] Failed to count members in room %s: %v", roomID, err)
-		return 0, err
-	}
-	return count, nil
+	return rdb.SCard(context.Background(), "room:"+roomID).Result()
 }
 
-// ✅ เพิ่มฟังก์ชันตรวจสอบสมาชิก
-func IsUserInRoom(roomID, userID string) (bool, error) {
-	isMember, err := rdb.SIsMember(context.Background(), "room:"+roomID, userID).Result()
-	if err != nil {
-		log.Printf("[REDIS] Failed to check if user %s is in room %s: %v", userID, roomID, err)
-		return false, err
-	}
-	return isMember, nil
+func IsUserInRoom(roomID string, userID string) (bool, error) {
+	return rdb.SIsMember(context.Background(), "room:"+roomID, userID).Result()
 }

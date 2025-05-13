@@ -12,7 +12,7 @@ import (
 type MemberService interface {
 	AddUserToRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error
 	RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error
-	GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]string, error)
+	GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error)
 	IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
 }
 
@@ -24,16 +24,20 @@ func NewMemberService(repo repository.RoomMemberRepository) MemberService {
 	return &memberService{repo: repo}
 }
 
-// service/MemberService.go
-
 func (s *memberService) AddUserToRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		log.Printf("[ERROR] Invalid user ID: %v", err)
+		return err
+	}
+
 	// ✅ Add to MongoDB
-	if err := s.repo.AddUserToRoom(ctx, roomID, userID); err != nil {
+	if err := s.repo.AddUserToRoom(ctx, roomID, userObjID); err != nil {
 		return err
 	}
 
 	// ✅ Add to Redis
-	if err := redis.AddUserToRoom(roomID.Hex(), userID); err != nil {
+	if err := redis.AddUserToRoom(roomID.Hex(), userObjID.Hex()); err != nil {
 		return err
 	}
 
@@ -42,13 +46,19 @@ func (s *memberService) AddUserToRoom(ctx context.Context, roomID primitive.Obje
 }
 
 func (s *memberService) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
-	// Remove from MongoDB
-	if err := s.repo.RemoveUserFromRoom(ctx, roomID, userID); err != nil {
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		log.Printf("[ERROR] Invalid user ID: %v", err)
 		return err
 	}
 
-	// Remove from Redis
-	if err := redis.RemoveUserFromRoom(roomID.Hex(), userID); err != nil {
+	// ✅ Remove from MongoDB
+	if err := s.repo.RemoveUserFromRoom(ctx, roomID, userObjID); err != nil {
+		return err
+	}
+
+	// ✅ Remove from Redis
+	if err := redis.RemoveUserFromRoom(roomID.Hex(), userObjID.Hex()); err != nil {
 		return err
 	}
 
@@ -56,14 +66,14 @@ func (s *memberService) RemoveUserFromRoom(ctx context.Context, roomID primitive
 	return nil
 }
 
-func (s *memberService) GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]string, error) {
+func (s *memberService) GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error) {
 	return s.repo.GetRoomMembers(ctx, roomID)
 }
 
 func (s *memberService) IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
-	isMember, err := redis.IsUserInRoom(roomID.Hex(), userID)
-	if err == nil && isMember {
-		return true, nil
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return false, err
 	}
-	return s.repo.IsUserInRoom(ctx, roomID, userID)
+	return s.repo.IsUserInRoom(ctx, roomID, userObjID)
 }

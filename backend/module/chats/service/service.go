@@ -181,23 +181,24 @@ func (s *service) SyncRoomMembers() {
 	}
 
 	for _, room := range rooms {
-		members, err := redis.GetRoomMembers(room.ID.Hex())
+		memberIDs, err := redis.GetRoomMembers(room.ID.Hex())
 		if err != nil {
 			log.Printf("[SYNC] Failed to get members for room %s: %v", room.ID.Hex(), err)
 			continue
 		}
 
-		if len(members) > 0 {
+		if len(memberIDs) > 0 {
 			if model.Clients[room.ID.Hex()] == nil {
 				model.Clients[room.ID.Hex()] = make(map[string]*websocket.Conn)
 			}
 
 			// Ensure only connected users are counted
-			for _, userID := range members {
-				if _, exists := model.Clients[room.ID.Hex()][userID]; !exists {
-					model.Clients[room.ID.Hex()][userID] = nil
+			for _, userID := range memberIDs {
+				userIDStr := userID.Hex() // Convert to string
+				if _, exists := model.Clients[room.ID.Hex()][userIDStr]; !exists {
+					model.Clients[room.ID.Hex()][userIDStr] = nil
 				}
-				log.Printf("[SYNC] User %s is a member of room %s", userID, room.ID.Hex())
+				log.Printf("[SYNC] User %s is a member of room %s", userIDStr, room.ID.Hex())
 			}
 		}
 	}

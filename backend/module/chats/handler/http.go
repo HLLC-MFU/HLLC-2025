@@ -27,9 +27,18 @@ type TypingEvent struct {
 
 func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 	return func(c *websocket.Conn) {
-		roomIdStr := c.Params("roomId")
-		userID := c.Params("userId") // ✅ ใช้ userID แทน userId
+		// Extract user info from JWT middleware
+		userID, ok := c.Locals("userId").(string)
+		username, ok2 := c.Locals("username").(string)
 
+		if !ok || !ok2 {
+			log.Println("[WS] Missing user information from JWT")
+			c.WriteMessage(websocket.TextMessage, []byte("Unauthorized"))
+			c.Close()
+			return
+		}
+
+		roomIdStr := c.Params("roomId")
 		if roomIdStr == "" || userID == "" {
 			log.Println("[WS] Missing roomId or userId")
 			c.WriteMessage(websocket.TextMessage, []byte("Missing roomId or userId"))
@@ -69,7 +78,7 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 			Conn:   c,
 		}
 
-		// ✅ ส่ง Chat History กลับไปเมื่อผู้ใช้เชื่อมต่อ
+		// ✅ Send Chat History to User
 		history, err := h.service.GetChatHistoryByRoom(ctx, roomIdStr, 50)
 		if err == nil && len(history) > 0 {
 			for _, msg := range history {
@@ -79,7 +88,7 @@ func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
 
 		// Register client in memory
 		model.RegisterClient(client)
-		log.Printf("[WS] User %s connected to room %s", userID, roomIdStr)
+		log.Printf("[WS] User %s (%s) connected to room %s", userID, username, roomIdStr)
 
 		defer func() {
 			model.UnregisterClient(client)

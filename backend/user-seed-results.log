@@ -1,0 +1,43 @@
+Role: User (6820cd7fd75aeeb07ff42414)
+Faculties: 5
+Majors: 12
+Total users to create: 3000
+Batch size: 100
+
+Batch 1: Created 100 users in 67ms (avg: 0.67ms/user)
+Batch 2: Created 100 users in 18ms (avg: 0.18ms/user)
+Batch 3: Created 100 users in 23ms (avg: 0.23ms/user)
+Batch 4: Created 100 users in 12ms (avg: 0.12ms/user)
+Batch 5: Created 100 users in 7ms (avg: 0.07ms/user)
+Batch 6: Created 100 users in 17ms (avg: 0.17ms/user)
+Batch 7: Created 100 users in 6ms (avg: 0.06ms/user)
+Batch 8: Created 100 users in 4ms (avg: 0.04ms/user)
+Batch 9: Created 100 users in 25ms (avg: 0.25ms/user)
+Batch 10: Created 100 users in 27ms (avg: 0.27ms/user)
+Batch 11: Created 100 users in 9ms (avg: 0.09ms/user)
+Batch 12: Created 100 users in 6ms (avg: 0.06ms/user)
+Batch 13: Created 100 users in 5ms (avg: 0.05ms/user)
+Batch 14: Created 100 users in 8ms (avg: 0.08ms/user)
+Batch 15: Created 100 users in 4ms (avg: 0.04ms/user)
+Batch 16: Created 100 users in 8ms (avg: 0.08ms/user)
+Batch 17: Created 100 users in 8ms (avg: 0.08ms/user)
+Batch 18: Created 100 users in 5ms (avg: 0.05ms/user)
+Batch 19: Created 100 users in 5ms (avg: 0.05ms/user)
+Batch 20: Created 100 users in 5ms (avg: 0.05ms/user)
+Batch 21: Created 100 users in 5ms (avg: 0.05ms/user)
+Batch 22: Created 100 users in 4ms (avg: 0.04ms/user)
+Batch 23: Created 100 users in 3ms (avg: 0.03ms/user)
+Batch 24: Created 100 users in 4ms (avg: 0.04ms/user)
+Batch 25: Created 100 users in 8ms (avg: 0.08ms/user)
+Batch 26: Created 100 users in 8ms (avg: 0.08ms/user)
+Batch 27: Created 100 users in 6ms (avg: 0.06ms/user)
+Batch 28: Created 100 users in 7ms (avg: 0.07ms/user)
+Batch 29: Created 100 users in 6ms (avg: 0.06ms/user)
+Batch 30: Created 100 users in 11ms (avg: 0.11ms/user)
+
+Summary:
+Total users created: 3000
+Total time: 580ms
+Average time per user: 0.19ms
+System info: Windows_NT 10.0.26100 | 13th Gen Intel(R) Core(TM) i3-13100F x 8 | 16GB RAM
+Timestamp: 2025-05-12T02:56:11.199Z

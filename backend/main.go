@@ -8,6 +8,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
 	"github.com/HLLC-MFU/HLLC-2025/backend/server"
+	"github.com/joho/godotenv"
 )
 
 /**
@@ -38,6 +39,14 @@ func main() {
 
 	// Create server instance
 	srv := server.NewServer(cfg, db)
+
+	// Load environment variables from .env file
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
+	log.Println("JWT_SECRET:", os.Getenv("JWT_SECRET"))
 
 	// Start the server
 	if err := srv.Start(); err != nil {

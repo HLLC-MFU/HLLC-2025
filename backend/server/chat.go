@@ -9,6 +9,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	kafkaUtil "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/websocket/v2"
@@ -82,6 +83,9 @@ func (s *server) chatService() {
 	})
 
 	log.Printf("Room service initialized")
+
+	// Apply JWT middleware
+	s.app.Use("/ws/:roomId/:userId", middleware.JWTMiddleware())
 
 	// HTTP WebSocket route
 	s.app.Get("/ws/:roomId/:userId", websocket.New(httpHandler.HandleWebSocket()))

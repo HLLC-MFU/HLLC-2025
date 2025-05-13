@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -11,10 +10,10 @@ import (
 )
 
 type RoomMemberRepository interface {
-	AddUserToRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error
-	RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error
-	GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]string, error)
-	IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+	AddUserToRoom(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) error
+	RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) error
+	GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error)
+	IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) (bool, error)
 }
 
 type roomMemberRepository struct {
@@ -29,21 +28,21 @@ func (r *roomMemberRepository) dbConnect(ctx context.Context) *mongo.Database {
 	return r.db.Database("hllc-2025")
 }
 
-func (r *roomMemberRepository) AddUserToRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+func (r *roomMemberRepository) AddUserToRoom(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) error {
 	filter := bson.M{"room_id": roomID}
 	update := bson.M{"$addToSet": bson.M{"user_ids": userID}}
 	_, err := r.dbConnect(ctx).Collection("room_members").UpdateOne(ctx, filter, update, options.Update().SetUpsert(true))
 	return err
 }
 
-func (r *roomMemberRepository) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+func (r *roomMemberRepository) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) error {
 	filter := bson.M{"room_id": roomID}
 	update := bson.M{"$pull": bson.M{"user_ids": userID}}
 	_, err := r.dbConnect(ctx).Collection("room_members").UpdateOne(ctx, filter, update)
 	return err
 }
 
-func (r *roomMemberRepository) GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]string, error) {
+func (r *roomMemberRepository) GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error) {
 	var room model.RoomMember
 	err := r.dbConnect(ctx).Collection("room_members").FindOne(ctx, bson.M{"room_id": roomID}).Decode(&room)
 	if err != nil {
@@ -52,7 +51,7 @@ func (r *roomMemberRepository) GetRoomMembers(ctx context.Context, roomID primit
 	return room.UserIDs, nil
 }
 
-func (r *roomMemberRepository) IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+func (r *roomMemberRepository) IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) (bool, error) {
 	filter := bson.M{"room_id": roomID, "user_ids": userID}
 	count, err := r.dbConnect(ctx).Collection("room_members").CountDocuments(ctx, filter)
 	return count > 0, err
