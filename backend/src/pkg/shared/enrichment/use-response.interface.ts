@@ -5,8 +5,8 @@ import { Major } from '../../../module/majors/schemas/major.schema';
 import { School } from '../../../module/schools/schemas/school.schema';
 
 // Enriched User Interface
-export interface EnrichedUser extends User {
-  role: Role;
+export interface EnrichedUser extends Omit<User, 'role' | 'metadata'> {
+  role: Role | Types.ObjectId; // Can be either Role object or ObjectId
   metadata: {
     majorId?: string | Types.ObjectId;
     major?: Major;

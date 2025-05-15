@@ -9,6 +9,7 @@ import { Inject } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { buildPaginatedResponse } from 'src/pkg/helper/buildPaginatedResponse';
+import { FilterMap } from 'src/pkg/types/common.types';
 
 @Injectable()
 export class ActivitesService {
@@ -59,7 +60,7 @@ export class ActivitesService {
    * Find all activities with pagination and filters
    */
   async findAll(
-    filters: Record<string, any> = {},
+    filters: FilterMap<string | boolean | string[] | object> = {},
     page = 1,
     limit = 10,
     populate: string[] = []
@@ -76,7 +77,7 @@ export class ActivitesService {
     this.logger.debug(`Cache miss for activities list, fetching from database`);
     
     // Build query
-    const query = this.buildQuery(filters);
+    const query = this.buildQuery(filters as Partial<Record<string, string | boolean | string[]>>);
     
     // Execute with pagination
     const skip = (page - 1) * limit;
@@ -289,7 +290,7 @@ export class ActivitesService {
   /**
    * Build query from filters
    */
-  private buildQuery(filters: Record<string, any>) {
+  private buildQuery(filters: Partial<Record<string, string | string[] | boolean>>) {
     const query: Record<string, any> = {};
     
     // Process specific filters
@@ -315,20 +316,20 @@ export class ActivitesService {
     
     // Date range filters for registration
     if (filters.registrationAfter) {
-      query['settings.registrationPeriod.start'] = { $gte: new Date(filters.registrationAfter) };
+      query['settings.registrationPeriod.start'] = { $gte: new Date(filters.registrationAfter as string) };
     }
     
     if (filters.registrationBefore) {
-      query['settings.registrationPeriod.end'] = { $lte: new Date(filters.registrationBefore) };
+      query['settings.registrationPeriod.end'] = { $lte: new Date(filters.registrationBefore as string) };
     }
     
     // Date range filters for activity period
     if (filters.activityAfter) {
-      query['settings.activityPeriod.start'] = { $gte: new Date(filters.activityAfter) };
+      query['settings.activityPeriod.start'] = { $gte: new Date(filters.activityAfter as string) };
     }
     
     if (filters.activityBefore) {
-      query['settings.activityPeriod.end'] = { $lte: new Date(filters.activityBefore) };
+      query['settings.activityPeriod.end'] = { $lte: new Date(filters.activityBefore as string) };
     }
     
     return query;

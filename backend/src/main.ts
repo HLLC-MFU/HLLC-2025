@@ -1,10 +1,12 @@
 // main.ts
 import { NestFactory } from '@nestjs/core';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import helmet from 'helmet';
-import * as compression from 'compression';
+import helmet from '@fastify/helmet';
+import cors from '@fastify/cors';
+import { join } from 'path';
 import { SerializerInterceptor } from './pkg/interceptors/serializer.interceptor';
 
 async function bootstrap() {
@@ -13,7 +15,10 @@ async function bootstrap() {
     process.env.NODE_ENV = 'development';
   }
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter()
+  );
 
   // Disable global cache interceptor temporarily
   // const cacheManager = app.get(CACHE_MANAGER);
@@ -34,13 +39,19 @@ app.useGlobalPipes(
 
 
   // Use Helmet
-  app.use(helmet());
-
-  // Use Compression
-  app.use(compression());
+  await app.register(helmet);
 
   // Enable CORS
-  app.enableCors();
+  await app.register(cors, {
+    origin: true,
+    credentials: true
+  });
+
+  // Configure static assets
+  await app.register(require('@fastify/static'), {
+    root: join(__dirname, '..', 'public'),
+    prefix: '/public/',
+  });
 
   // Config Swagger
   const config = new DocumentBuilder()
@@ -56,7 +67,7 @@ app.useGlobalPipes(
 
   // Start the server
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`🚀 Application is running on: http://localhost:${port}`);
   console.log(`🌎 Environment: ${process.env.NODE_ENV}`);
 }

@@ -19,6 +19,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { ModuleCacheInterceptor, CacheTTL, NoCache } from '../../pkg/interceptors/module-cache.interceptor';
+import { FilterMap } from 'src/pkg/types/common.types';
 
 @Controller('activities')
 @UseGuards(PermissionsGuard)
@@ -52,7 +53,7 @@ export class ActivitesController {
     @Query('tags') tags?: string[],
     @Query('populate') populate?: string,
   ) {
-    const filters: Record<string, any> = {};
+    const filters: FilterMap<string | boolean | string[] | object> = {};
     
     // Add filters if provided
     if (type) filters.type = type;

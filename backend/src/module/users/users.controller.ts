@@ -20,7 +20,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { SerializerInterceptor } from '../../pkg/interceptors/serializer.interceptor';
 import { BulkUploadUsersDto } from './dto/bulk-upload-users.dto';
 import { RemoveMultipleDto } from './dto/remove-multiple.dto';
-
+import { QueryWithPagination } from '../../pkg/types/common.types';
 /**
  * Users Controller
  * 
@@ -52,7 +52,7 @@ export class UsersController {
    */
   @Get()
   @Permissions('users:read')
-  async findAll(@Query() query: Record<string, any>) {
+  async findAll(@Query() query: QueryWithPagination) {
     const { page = 1, limit, excluded = '', ...filters } = query;
     const excludedList = excluded.split(',').filter(Boolean);
     const parsedLimit = limit !== undefined ? +limit : undefined;

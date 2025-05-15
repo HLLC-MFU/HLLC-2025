@@ -467,7 +467,12 @@ export class UsersService {
     const cachedStats = await this.cacheManager.get(cacheKey);
     
     if (cachedStats) {
-      return cachedStats as any;
+      return cachedStats as {
+        totalUsers: number;
+        registeredUsers: number;
+        notRegisteredUsers: number;
+        registrationRate: string;
+      };
     }
     
     // Get all users with minimal fields
@@ -548,13 +553,19 @@ export class UsersService {
     // Update school data if schoolId changed
     if (metadata.schoolId && (!user.metadata?.schoolId || 
         metadata.schoolId.toString() !== user.metadata.schoolId.toString())) {
-      metadata.school = await this.metadataService.getSchool(metadata.schoolId);
+      const school = await this.metadataService.getSchool(metadata.schoolId);
+      if (school) {
+        metadata.school = school;
+      }
     }
     
     // Update major data if majorId changed
     if (metadata.majorId && (!user.metadata?.majorId || 
         metadata.majorId.toString() !== user.metadata.majorId.toString())) {
-      metadata.major = await this.metadataService.getMajor(metadata.majorId);
+      const major = await this.metadataService.getMajor(metadata.majorId);
+      if (major) {
+        metadata.major = major;
+      }
     }
     
     return metadata;

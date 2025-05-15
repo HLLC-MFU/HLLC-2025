@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Major, MajorDocument } from './schemas/major.schema';
-import { School } from '../schools/schemas/school.schema';
+import { School, SchoolDocument } from '../schools/schemas/school.schema';
 
 @Injectable()
 export class MajorInitializerService implements OnModuleInit {
@@ -10,7 +10,7 @@ export class MajorInitializerService implements OnModuleInit {
 
   constructor(
     @InjectModel(Major.name) private readonly majorModel: Model<MajorDocument>,
-    @InjectModel(School.name) private readonly schoolModel: Model<any>
+    @InjectModel(School.name) private readonly schoolModel: Model<SchoolDocument>
   ) {}
 
   async onModuleInit() {

@@ -5,6 +5,17 @@ import { Model } from 'mongoose';
 import { UserDocument } from 'src/module/users/schemas/user.schema';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { Auth } from './entities/auth.entity';
+
+interface DevUser {
+    _id: string;
+    username: string;
+    role: {
+        _id: string;
+        name: string;
+        permissions: string[];
+    };
+}
 
 @Injectable()
 export class AuthService {
@@ -13,7 +24,7 @@ export class AuthService {
         private jwtService: JwtService,
     ) {}
 
-    async validateUser(username: string, pass: string): Promise<any> {
+    async validateUser(username: string, pass: string): Promise<Auth> {
         const user = await this.userModel.findOne({ username }).populate('role');
         if (!user) throw new UnauthorizedException('User not found');
 
@@ -84,5 +95,31 @@ export class AuthService {
         user.refreshToken = null;
         await user.save();
         return { message: 'Logged out successfully' };
+    }
+
+    async getMe(userId: string): Promise<Record<string, any>> {
+        // Handle development mode mock user
+        if (process.env.NODE_ENV === 'development' && userId === 'dev-user') {
+            return {
+                _id: 'dev-user',
+                username: 'dev',
+                role: {
+                    _id: 'dev-role',
+                    name: 'Administrator',
+                    permissions: ['admin:access']
+                }
+            };
+        }
+
+        const user = await this.userModel.findById(userId)
+            .select('-password -refreshToken') // Exclude sensitive fields
+            .populate('role')
+            .lean();
+            
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        return user;
     }
 }

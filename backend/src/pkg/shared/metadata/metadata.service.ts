@@ -1,5 +1,4 @@
 import { Inject } from "@nestjs/common";
-
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { Injectable, Logger } from "@nestjs/common";
 import { Cache } from "cache-manager";
@@ -7,6 +6,18 @@ import { Model, Types, Connection } from "mongoose";
 import { buildCacheKey, buildTimestampKey } from "./metadata.utils";
 import { MetadataKey } from "./metadata.types";
 import { InjectConnection } from "@nestjs/mongoose";
+import { Role } from "../../../module/role/schemas/role.schema";
+import { School } from "../../../module/schools/schemas/school.schema";
+import { Major } from "../../../module/majors/schemas/major.schema";
+
+interface DocumentWithId {
+    _id: Types.ObjectId;
+}
+
+interface DocumentWithTimestamps extends DocumentWithId {
+    updatedAt: Date;
+    createdAt: Date;
+}
 
 @Injectable()
 export class SharedMetadataService {
@@ -21,14 +32,12 @@ export class SharedMetadataService {
     ) {}
 
     // Get Metadata Map
-    async getMetadataMap<T>(
+    async getMetadataMap<T extends DocumentWithId>(
         // Declare Cache Key, Database Fetcher, Last Updated Key, Database Last Updated
         cacheKey: string,
         dbFetcher: () => Promise<T[]>,
         lastUpdatedKey: string,
         dbLastUpdated: () => Promise<number>
-
-        // Declare Cache TTL
     ): Promise<Record<string, T>> {
         // Get Last Cached
         const lastCached = await this.cacheManager.get<number>(lastUpdatedKey);
@@ -37,7 +46,6 @@ export class SharedMetadataService {
 
         // Check if Cache is Outdated
         if (!lastCached || lastCached < lastDbUpdated) {
-
             // Then Invalidate Cache (Delete Cache)
             await this.invalidateCache(cacheKey)
         }
@@ -51,8 +59,8 @@ export class SharedMetadataService {
         const list = await dbFetcher();
         // Create Metadata Map from Metadata List
         const map = Object.fromEntries(
-            list.map((item: any) => [item._id.toString(), item])
-          );
+            list.map((item: T) => [item._id.toString(), item])
+        );
 
         // Set Cached Metadata Map
         await this.cacheManager.set(cacheKey, map, this.TTL)
@@ -73,7 +81,7 @@ export class SharedMetadataService {
     }
 
     // Get Last Updated Time Stamp from Database
-    async getLastUpdatedTimeStampFromDatabase<T>(model : any): Promise<number> {
+    async getLastUpdatedTimeStampFromDatabase<T extends DocumentWithTimestamps>(model: Model<T>): Promise<number> {
         // Get Latest Document
         const latest = await model.findOne().sort(
             { updatedAt: -1 }
@@ -83,9 +91,9 @@ export class SharedMetadataService {
     }
     
     // Get role data by ID
-    async getRole(id: string | Types.ObjectId): Promise<any> {
+    async getRole(id: string | Types.ObjectId): Promise<Role | null> {
         try {
-            const RoleModel = this.connection.model('Role');
+            const RoleModel = this.connection.model<Role & DocumentWithTimestamps>('Role');
             if (!RoleModel) {
                 this.logger.error('Role model not found');
                 return null;
@@ -94,7 +102,7 @@ export class SharedMetadataService {
             const cacheKey = buildCacheKey('roles');
             const timestampKey = buildTimestampKey('roles');
             
-            const rolesMap = await this.getMetadataMap(
+            const rolesMap = await this.getMetadataMap<Role & DocumentWithId>(
                 cacheKey,
                 () => RoleModel.find().lean(),
                 timestampKey,
@@ -109,9 +117,9 @@ export class SharedMetadataService {
     }
     
     // Get school data by ID
-    async getSchool(id: string | Types.ObjectId): Promise<any> {
+    async getSchool(id: string | Types.ObjectId): Promise<School | null> {
         try {
-            const SchoolModel = this.connection.model('School');
+            const SchoolModel = this.connection.model<School & DocumentWithTimestamps>('School');
             if (!SchoolModel) {
                 this.logger.error('School model not found');
                 return null;
@@ -120,7 +128,7 @@ export class SharedMetadataService {
             const cacheKey = buildCacheKey('schools');
             const timestampKey = buildTimestampKey('schools');
             
-            const schoolsMap = await this.getMetadataMap(
+            const schoolsMap = await this.getMetadataMap<School & DocumentWithId>(
                 cacheKey,
                 () => SchoolModel.find().lean(),
                 timestampKey,
@@ -135,9 +143,9 @@ export class SharedMetadataService {
     }
     
     // Get major data by ID
-    async getMajor(id: string | Types.ObjectId): Promise<any> {
+    async getMajor(id: string | Types.ObjectId): Promise<Major | null> {
         try {
-            const MajorModel = this.connection.model('Major');
+            const MajorModel = this.connection.model<Major & DocumentWithTimestamps>('Major');
             if (!MajorModel) {
                 this.logger.error('Major model not found');
                 return null;
@@ -146,7 +154,7 @@ export class SharedMetadataService {
             const cacheKey = buildCacheKey('majors');
             const timestampKey = buildTimestampKey('majors');
             
-            const majorsMap = await this.getMetadataMap(
+            const majorsMap = await this.getMetadataMap<Major & DocumentWithId>(
                 cacheKey,
                 () => MajorModel.find().lean(),
                 timestampKey,

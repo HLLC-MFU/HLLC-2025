@@ -1,9 +1,9 @@
 // src/module/auth/auth.controller.ts
-import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
 import { PermissionsGuard } from './guards/permissions.guard';
-
+import { UserDocument } from '../users/schemas/user.schema';
 
 @Controller('auth')
 export class AuthController {
@@ -13,7 +13,7 @@ export class AuthController {
     @Post('login')
     async login(@Body() body: { username: string, password: string }) {
         const user = await this.authService.validateUser(body.username, body.password);
-        return this.authService.login(user);
+        return this.authService.login(user as UserDocument);
     }
 
     @Public()
@@ -26,5 +26,11 @@ export class AuthController {
     @UseGuards(PermissionsGuard)
     async logout(@Req() req) {
         return this.authService.logout(req.user._id);
+    }
+
+    @Get('me')
+    @UseGuards(PermissionsGuard)
+    async getMe(@Req() req) {
+        return this.authService.getMe(req.user._id);
     }
 }

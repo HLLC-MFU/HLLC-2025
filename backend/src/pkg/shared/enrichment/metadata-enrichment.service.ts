@@ -1,8 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { User } from 'src/module/users/schemas/user.schema';
+import { User, UserDocument } from '../../../module/users/schemas/user.schema';
 import { EnrichedUser } from './use-response.interface';
 import { Types } from 'mongoose';
 import { SharedMetadataService } from '../metadata/metadata.service';
+import { Role, RoleDocument } from '../../../module/role/schemas/role.schema';
+import { School, SchoolDocument } from '../../../module/schools/schemas/school.schema';
+import { Major, MajorDocument } from '../../../module/majors/schemas/major.schema';
 
 // Metadata Enrichment Service
 @Injectable()
@@ -12,19 +15,22 @@ export class MetadataEnrichmentService {
   constructor(private readonly metadataService: SharedMetadataService) {}
 
   async enrichUsersWithMetadata(
-    users: User[],
-    roles: Record<string, any>,
-    schools: Record<string, any>,
-    majors: Record<string, any>,
+    users: UserDocument[],
+    roles: Record<string, Role>,
+    schools: Record<string, School>,
+    majors: Record<string, Major>,
     excluded: string[] = [],
   ): Promise<EnrichedUser[]> {
-    return users.map((user: any) => {
+    return users.map((user: UserDocument) => {
+      const userObj = user.toObject();
       const enriched: EnrichedUser = {
-        ...user,
+        ...userObj,
         metadata: {
-          ...user.metadata,
+          ...userObj.metadata,
+          school: undefined,
+          major: undefined,
         },
-        role: user.role,
+        role: userObj.role,
       };
 
       if (!excluded.includes('role') && roles[user.role?.toString()]) {
@@ -44,22 +50,24 @@ export class MetadataEnrichmentService {
   }
 
   // Directly enrich a single user with metadata
-  async enrichUser(user: any): Promise<EnrichedUser> {
+  async enrichUser(user: UserDocument): Promise<EnrichedUser> {
     try {
       const userId = user._id?.toString() || 'unknown';
       this.logger.debug(`Enriching user ${userId}`);
       
+      const userObj = user.toObject();
       const enriched: EnrichedUser = {
-        ...user,
+        ...userObj,
         metadata: {
-          ...user.metadata,
+          ...userObj.metadata,
+          school: undefined,
+          major: undefined,
         },
-        role: user.role,
+        role: userObj.role,
       };
 
       // Enrich role data if present
       if (user.role) {
-        // Use a new method you would add to SharedMetadataService
         const role = await this.metadataService.getRole(user.role);
         if (role) {
           enriched.role = role;
@@ -85,12 +93,12 @@ export class MetadataEnrichmentService {
       return enriched;
     } catch (error) {
       this.logger.error(`Error enriching user: ${error.message}`, error.stack);
-      return user as EnrichedUser;
+      return user.toObject() as unknown as EnrichedUser;
     }
   }
   
   // Batch enrich multiple users with metadata
-  async enrichUsers(users: User[]): Promise<EnrichedUser[]> {
+  async enrichUsers(users: UserDocument[]): Promise<EnrichedUser[]> {
     try {
       this.logger.debug(`Enriching ${users.length} users with metadata`);
       
@@ -117,16 +125,16 @@ export class MetadataEnrichmentService {
       return this.enrichUsersWithMetadata(users, roles, schools, majors);
     } catch (error) {
       this.logger.error(`Error batch enriching users: ${error.message}`, error.stack);
-      return users as EnrichedUser[];
+      return users.map(user => user.toObject() as unknown as EnrichedUser);
     }
   }
   
   // Helper methods to get metadata
-  private async getRolesData(roleIds: string[]): Promise<Record<string, any>> {
+  private async getRolesData(roleIds: string[]): Promise<Record<string, Role>> {
     if (!roleIds.length) return {};
     
     try {
-      const result: Record<string, any> = {};
+      const result: Record<string, Role> = {};
       await Promise.all(
         roleIds.map(async (id) => {
           const role = await this.metadataService.getRole(id);
@@ -140,11 +148,11 @@ export class MetadataEnrichmentService {
     }
   }
   
-  private async getSchoolsData(schoolIds: string[]): Promise<Record<string, any>> {
+  private async getSchoolsData(schoolIds: string[]): Promise<Record<string, School>> {
     if (!schoolIds.length) return {};
     
     try {
-      const result: Record<string, any> = {};
+      const result: Record<string, School> = {};
       await Promise.all(
         schoolIds.map(async (id) => {
           const school = await this.metadataService.getSchool(id);
@@ -158,11 +166,11 @@ export class MetadataEnrichmentService {
     }
   }
   
-  private async getMajorsData(majorIds: string[]): Promise<Record<string, any>> {
+  private async getMajorsData(majorIds: string[]): Promise<Record<string, Major>> {
     if (!majorIds.length) return {};
     
     try {
-      const result: Record<string, any> = {};
+      const result: Record<string, Major> = {};
       await Promise.all(
         majorIds.map(async (id) => {
           const major = await this.metadataService.getMajor(id);
