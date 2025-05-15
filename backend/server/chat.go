@@ -10,18 +10,17 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	kafkaUtil "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
+
+	// "github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/websocket/v2"
+	websocket "github.com/gofiber/websocket/v2"
 )
 
 func (s *server) chatService() {
-
 	redis.InitRedis()
 
-	// Start chat hub loop
 	publisher := kafka.GetPublisher()
-
 	topicName := "chat-room"
 	err := kafkaUtil.EnsureKafkaTopic("localhost:9092", topicName)
 	if err != nil {
@@ -35,62 +34,62 @@ func (s *server) chatService() {
 	roomService.SyncRoomMembers()
 	roomService.InitChatHub()
 
-	// ✅ เพิ่ม Kafka Consumer ตรงนี้
 	kafka.StartKafkaConsumer(
 		"localhost:9092",
-		[]string{}, // ตอน start ยังไม่มี topic
+		[]string{},
 		"chat-group",
 		roomService,
 	)
 
 	httpHandler := handler.NewHTTPHandler(roomService, memberService, publisher)
 
-	// Set up HTTP middleware
 	s.app.Use(cors.New(cors.Config{
 		AllowCredentials: true,
-		AllowOrigins:     "http://localhost:3000", // Frontend development URL
+		AllowOrigins:     "http://localhost:3000",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET, POST, PUT, DELETE",
 	}))
+
+	s.app.Use("/ws/:roomId", func(c *fiber.Ctx) error {
+		if websocket.IsWebSocketUpgrade(c) {
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
+	})
+
+	s.app.Get("/ws/:roomId", middleware.WrapWebSocketWithJWT(
+		middleware.JWTMiddleware(),
+		func(conn *websocket.Conn, userID, username, roomID string) {
+			httpHandler.HandleWebSocket(conn, userID, username, roomID)
+		},
+	))
 
 	api := s.app.Group("/api/v1")
 
 	public := api.Group("/public/rooms")
 	public.Get("/", httpHandler.ListRooms)
-	public.Get("/:id", httpHandler.GetRoom)
+	public.Get(":id", httpHandler.GetRoom)
 
-	// Protected routes (auth required)
 	protected := api.Group("/rooms")
 	protected.Get("/", httpHandler.ListRooms)
-	protected.Get("/:id", httpHandler.GetRoom)
+	protected.Get(":id", httpHandler.GetRoom)
 	protected.Post("/", httpHandler.CreateRoom)
-	protected.Put("/:id", httpHandler.UpdateRoom)
-	protected.Delete("/:id", httpHandler.DeleteRoom)
+	protected.Put(":id", httpHandler.UpdateRoom)
+	protected.Delete(":id", httpHandler.DeleteRoom)
+	protected.Post(":roomId/:userId/join", httpHandler.JoinRoom)
+	protected.Post(":roomId/:userId/leave", httpHandler.LeaveRoom)
 
-	// ✅ Add Join and Leave routes here
-	protected.Post("/:roomId/:userId/join", httpHandler.JoinRoom)
-	protected.Post("/:roomId/:userId/leave", httpHandler.LeaveRoom)
-
-	// Admin routes (auth + admin role required)
 	admin := api.Group("/admin/rooms")
 	admin.Post("/", httpHandler.CreateRoom)
-	admin.Put("/:id", httpHandler.UpdateRoom)
-	admin.Delete("/:id", httpHandler.DeleteRoom)
+	admin.Put(":id", httpHandler.UpdateRoom)
+	admin.Delete(":id", httpHandler.DeleteRoom)
 
-	// Set up health check
 	s.app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
 	})
 
-	log.Printf("Room service initialized")
+	httpHandler.RegisterRoutes(protected)
 
-	// Apply JWT middleware
-	s.app.Use("/ws/:roomId/:userId", middleware.JWTMiddleware())
-
-	// HTTP WebSocket route
-	s.app.Get("/ws/:roomId/:userId", websocket.New(httpHandler.HandleWebSocket()))
-
-	// Simple ping route (optional)
 	s.app.Get("/ping", func(c *fiber.Ctx) error {
 		return c.SendString("pong")
 	})

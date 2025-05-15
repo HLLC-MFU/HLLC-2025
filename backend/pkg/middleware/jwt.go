@@ -3,32 +3,24 @@
 package middleware
 
 import (
+	"log"
 	"os"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func JWTMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// Extract token from query parameter or Authorization header
-		tokenString := c.Query("token")
-		if tokenString == "" {
-			authHeader := c.Get("Authorization")
-			if strings.HasPrefix(authHeader, "Bearer ") {
-				tokenString = strings.TrimPrefix(authHeader, "Bearer ")
-			}
-		}
-
-		if tokenString == "" {
+		authHeader := c.Get("Authorization")
+		if !strings.HasPrefix(authHeader, "Bearer ") {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "missing token",
+				"error": "missing or malformed Authorization header",
 			})
 		}
 
-		// Validate the JWT token
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("JWT_SECRET")), nil
 		})
@@ -40,34 +32,27 @@ func JWTMiddleware() fiber.Handler {
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok || !token.Valid {
+		if !ok {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "invalid token claims",
 			})
 		}
 
-		// Extract user information
-		userId, ok := claims["sub"].(string)
-		if !ok || userId == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "missing or invalid user ID",
-			})
-		}
+		log.Printf("JWT claims: %+v\n", claims)
 
-		// Validate that the user ID is a valid MongoDB ObjectID
-		if _, err := primitive.ObjectIDFromHex(userId); err != nil {
+		userId, _ := claims["sub"].(string)
+		username, _ := claims["username"].(string)
+
+		if len(userId) != 24 {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "invalid user ID format",
 			})
 		}
 
-		username, _ := claims["username"].(string)
-		role, _ := claims["role"].(string)
-
-		// Attach the claims to the request context
+		// ✅ Add this line to allow websocket.Conn to use fiberCtx
 		c.Locals("userId", userId)
 		c.Locals("username", username)
-		c.Locals("role", role)
+		c.Locals("fiberCtx", c)
 
 		return c.Next()
 	}

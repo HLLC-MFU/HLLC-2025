@@ -25,153 +25,122 @@ type TypingEvent struct {
 	Typing bool   `json:"typing"`
 }
 
-func (h *HTTPHandler) HandleWebSocket() func(c *websocket.Conn) {
-	return func(c *websocket.Conn) {
-		// Extract user info from JWT middleware
-		userID, ok := c.Locals("userId").(string)
-		username, ok2 := c.Locals("username").(string)
+func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, roomID string) {
+	log.Println("[WS Handler] Entered WebSocket handler")
+	log.Println("userID:", userID, "username:", username, "role:", "roomID:", roomID)
+	roomIdStr := conn.Params("roomId")
+	if roomIdStr == "" || userID == "" {
+		log.Println("[WS] Missing roomId or userId")
+		conn.WriteMessage(websocket.TextMessage, []byte("Missing roomId or userId"))
+		conn.Close()
+		return
+	}
 
-		if !ok || !ok2 {
-			log.Println("[WS] Missing user information from JWT")
-			c.WriteMessage(websocket.TextMessage, []byte("Unauthorized"))
-			c.Close()
-			return
+	ctx := context.Background()
+
+	// ✅ เปลี่ยนชื่อเป็น roomObjID เพื่อหลีกเลี่ยงชนกับ string roomID
+	roomObjID, err := primitive.ObjectIDFromHex(roomIdStr)
+	if err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte("Invalid room ID"))
+		conn.Close()
+		return
+	}
+
+	isMember, err := h.memberService.IsUserInRoom(ctx, roomObjID, userID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to check if user is in room: %v", err)
+		conn.WriteMessage(websocket.TextMessage, []byte("Internal server error"))
+		conn.Close()
+		return
+	}
+
+	if !isMember {
+		log.Printf("[WS] User %s is not a member of room %s", userID, roomIdStr)
+		conn.WriteMessage(websocket.TextMessage, []byte("You are not a member of this room"))
+		conn.Close()
+		return
+	}
+
+	client := model.ClientObject{
+		RoomID: roomIdStr,
+		UserID: userID,
+		Conn:   conn,
+	}
+
+	history, err := h.service.GetChatHistoryByRoom(ctx, roomIdStr, 50)
+	if err == nil && len(history) > 0 {
+		for _, msg := range history {
+			_ = conn.WriteMessage(websocket.TextMessage, []byte(msg.UserID+": "+msg.Message))
 		}
+	}
 
-		roomIdStr := c.Params("roomId")
-		if roomIdStr == "" || userID == "" {
-			log.Println("[WS] Missing roomId or userId")
-			c.WriteMessage(websocket.TextMessage, []byte("Missing roomId or userId"))
-			c.Close()
-			return
-		}
+	model.RegisterClient(client)
+	log.Printf("[WS] User %s (%s) connected to room %s", userID, username, roomIdStr)
 
-		// ✅ Create a new background context for MongoDB query
-		ctx := context.Background()
+	defer func() {
+		model.UnregisterClient(client)
+		log.Printf("[WS] User %s disconnected from room %s", userID, roomIdStr)
+	}()
 
-		// ✅ Use MemberService instead of direct Redis call
-		roomID, err := primitive.ObjectIDFromHex(roomIdStr)
+	typingTimers := make(map[string]time.Time)
+	const typingTimeout = 5 * time.Second
+
+	for {
+		_, msg, err := conn.ReadMessage()
 		if err != nil {
-			c.WriteMessage(websocket.TextMessage, []byte("Invalid room ID"))
-			c.Close()
-			return
+			log.Println("[WS] Read error:", err)
+			break
 		}
 
-		isMember, err := h.memberService.IsUserInRoom(ctx, roomID, userID)
-		if err != nil {
-			log.Printf("[ERROR] Failed to check if user is in room: %v", err)
-			c.WriteMessage(websocket.TextMessage, []byte("Internal server error"))
-			c.Close()
-			return
-		}
+		messageText := strings.TrimSpace(string(msg))
 
-		if !isMember {
-			log.Printf("[WS] User %s is not a member of room %s", userID, roomIdStr)
-			c.WriteMessage(websocket.TextMessage, []byte("You are not a member of this room"))
-			c.Close()
-			return
-		}
-
-		client := model.ClientObject{
-			RoomID: roomIdStr,
-			UserID: userID,
-			Conn:   c,
-		}
-
-		// ✅ Send Chat History to User
-		history, err := h.service.GetChatHistoryByRoom(ctx, roomIdStr, 50)
-		if err == nil && len(history) > 0 {
-			for _, msg := range history {
-				_ = c.WriteMessage(websocket.TextMessage, []byte(msg.UserID+": "+msg.Message))
+		if strings.HasPrefix(messageText, "/typing") {
+			if time.Since(typingTimers[userID]) > typingTimeout {
+				typingEvent := TypingEvent{UserID: userID, RoomID: roomIdStr, Typing: true}
+				h.broadcastTypingEvent(roomIdStr, typingEvent)
+				typingTimers[userID] = time.Now()
+				go func(userID, roomIdStr string) {
+					time.Sleep(typingTimeout)
+					h.broadcastTypingEvent(roomIdStr, TypingEvent{UserID: userID, RoomID: roomIdStr, Typing: false})
+				}(userID, roomIdStr)
 			}
+			continue
 		}
 
-		// Register client in memory
-		model.RegisterClient(client)
-		log.Printf("[WS] User %s (%s) connected to room %s", userID, username, roomIdStr)
-
-		defer func() {
-			model.UnregisterClient(client)
-			log.Printf("[WS] User %s disconnected from room %s", userID, roomIdStr)
-		}()
-
-		// Typing state management
-		typingTimers := make(map[string]time.Time)
-		const typingTimeout = 5 * time.Second
-
-		for {
-			_, msg, err := c.ReadMessage()
-			if err != nil {
-				log.Println("[WS] Read error:", err)
-				break
-			}
-
-			messageText := strings.TrimSpace(string(msg))
-
-			// Handle typing event
-			if strings.HasPrefix(messageText, "/typing") {
-				if time.Since(typingTimers[userID]) > typingTimeout {
-					typingEvent := TypingEvent{
-						UserID: userID,
-						RoomID: roomIdStr,
-						Typing: true,
-					}
-					h.broadcastTypingEvent(roomIdStr, typingEvent)
-					typingTimers[userID] = time.Now()
-
-					// Stop typing event after timeout
-					go func(userID, roomIdStr string) {
-						time.Sleep(typingTimeout)
-						h.broadcastTypingEvent(roomIdStr, TypingEvent{
-							UserID: userID,
-							RoomID: roomIdStr,
-							Typing: false,
-						})
-					}(userID, roomIdStr)
-				}
+		if strings.HasPrefix(messageText, "/read") {
+			parts := strings.Split(messageText, " ")
+			if len(parts) == 2 {
+				messageID := parts[1]
+				h.SendReadReceipt(roomIdStr, userID, messageID)
 				continue
 			}
-
-			// Inside the WebSocket message loop
-			if strings.HasPrefix(messageText, "/read") {
-				parts := strings.Split(messageText, " ")
-				if len(parts) == 2 {
-					messageID := parts[1]
-					h.SendReadReceipt(roomIdStr, userID, messageID)
-					continue
-				}
-			}
-
-			if strings.HasPrefix(messageText, "/react") {
-				parts := strings.Split(messageText, " ")
-				if len(parts) == 3 {
-					messageID := parts[1]
-					reaction := parts[2]
-					h.SendMessageReaction(roomIdStr, userID, messageID, reaction)
-					continue
-				}
-			}
-
-			// Handle leave command
-			if messageText == "/leave" {
-				if err := h.memberService.RemoveUserFromRoom(ctx, roomID, userID); err != nil {
-					log.Printf("[ERROR] Failed to remove user %s from room %s: %v", userID, roomIdStr, err)
-				}
-				model.UnregisterClient(client)
-				c.WriteMessage(websocket.TextMessage, []byte("You have left the room"))
-				c.Close()
-				return
-			}
-
-			// ✅ Apply Profanity Filter
-			filteredMessage := utils.FilterProfanity(messageText)
-
-			// Broadcast the filtered message
-			model.BroadcastMessage(model.BroadcastObject{
-				MSG:  filteredMessage,
-				FROM: client,
-			})
 		}
+
+		if strings.HasPrefix(messageText, "/react") {
+			parts := strings.Split(messageText, " ")
+			if len(parts) == 3 {
+				messageID := parts[1]
+				reaction := parts[2]
+				h.SendMessageReaction(roomIdStr, userID, messageID, reaction)
+				continue
+			}
+		}
+
+		if messageText == "/leave" {
+			if err := h.memberService.RemoveUserFromRoom(ctx, roomObjID, userID); err != nil {
+				log.Printf("[ERROR] Failed to remove user %s from room %s: %v", userID, roomIdStr, err)
+			}
+			model.UnregisterClient(client)
+			conn.WriteMessage(websocket.TextMessage, []byte("You have left the room"))
+			conn.Close()
+			return
+		}
+
+		filteredMessage := utils.FilterProfanity(messageText)
+		model.BroadcastMessage(model.BroadcastObject{
+			MSG:  filteredMessage,
+			FROM: client,
+		})
 	}
 }
 
