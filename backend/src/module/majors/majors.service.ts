@@ -1,72 +1,179 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Major, MajorDocument } from './schemas/major.schema';
+import { Injectable } from '@nestjs/common';
 import { CreateMajorDto } from './dto/create-major.dto';
 import { UpdateMajorDto } from './dto/update-major.dto';
-import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
-import { SharedMetadataService } from 'src/pkg/shared/metadata/metadata.service';
-import { MetadataEnrichmentService } from 'src/pkg/shared/enrichment/metadata-enrichment.service';
-import { buildPaginatedResponse } from 'src/pkg/helper/buildPaginatedResponse';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Major } from './entities/major.entity';
+import { MajorDocument } from './schemas/major.schema';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class MajorsService {
-  private readonly logger = new Logger(MajorsService.name);
+  private readonly METADATA_TTL = 3600; // 1 hour
+  private readonly MAJORS_CACHE_KEY = 'metadata:all_majors';
+  private readonly MAJORS_BY_SCHOOL_PREFIX = 'metadata:majors_by_school:';
+  private readonly MAJORS_LAST_UPDATED_KEY = 'metadata:majors_last_updated';
 
   constructor(
-    @InjectModel(Major.name) private readonly majorModel: Model<MajorDocument>,
-    private readonly metadataService: SharedMetadataService,
-    private readonly enrichmentService: MetadataEnrichmentService,
+    @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  async create(createMajorDto: CreateMajorDto): Promise<Major> {
-    await throwIfExists(this.majorModel, { name: createMajorDto.name }, 'Major name already exists');
-    const major = await this.majorModel.create(createMajorDto);
-    await this.metadataService.invalidate(['majors']);
-    return major;
+  async create(createMajorDto: CreateMajorDto) {
+    const result = await this.majorModel.create(createMajorDto);
+
+    // ล้าง cache เมื่อมีการเพิ่มข้อมูลใหม่
+    await this.updateLastModified();
+    await this.invalidateCache();
+
+    return result.toObject();
   }
 
-  async findAll(page = 1, limit?: number) {
-    const query = this.majorModel.find();
+  async findAll() {
+    try {
+      // ตรวจสอบว่ามีการอัพเดตข้อมูลหรือไม่
+      const lastCachedUpdate = await this.cacheManager.get<number>(
+        this.MAJORS_LAST_UPDATED_KEY,
+      );
+      const lastDbUpdate = await this.getLastUpdatedTimestamp();
 
-    if (limit !== undefined && limit > 0) {
-      const skip = (page - 1) * limit;
-      query.skip(skip).limit(limit);
+      if (!lastCachedUpdate || lastDbUpdate > lastCachedUpdate) {
+        await this.invalidateCache();
+      }
+
+      // ดึงข้อมูลจาก cache
+      let majors = await this.cacheManager.get<any[]>(this.MAJORS_CACHE_KEY);
+
+      // ถ้าไม่มี cache ให้ดึงจาก database และเก็บใน cache
+      if (!majors) {
+        majors = await this.fetchMajorsWithSchools();
+        await this.cacheManager.set(
+          this.MAJORS_CACHE_KEY,
+          majors,
+          this.METADATA_TTL,
+        );
+        await this.updateLastModified();
+      }
+
+      return majors;
+    } catch (error) {
+      console.error('Error in findAll majors:', error);
+      return this.majorModel.find().populate('school').lean();
     }
-
-    const [data, total, latest] = await Promise.all([
-      query.lean(),
-      this.majorModel.countDocuments(),
-      this.majorModel.findOne().sort({ updatedAt: -1 }).select('updatedAt').lean(),
-    ]);
-
-    const lastUpdatedAt = latest && 'updatedAt' in latest && latest.updatedAt instanceof Date
-      ? latest.updatedAt.toISOString()
-      : new Date().toISOString();
-
-    return buildPaginatedResponse(data, {
-      total,
-      page,
-      limit: limit ?? total,
-      lastUpdatedAt,
-    });
   }
 
-  async findOne(id: string): Promise<Major> {
-    return findOrThrow(this.majorModel, id, 'Major');
+  async findOne(id: string) {
+    try {
+      // ตรวจสอบใน cache ทั้งหมดก่อน
+      const allMajors = await this.cacheManager.get<any[]>(
+        this.MAJORS_CACHE_KEY,
+      );
+
+      if (allMajors && Array.isArray(allMajors)) {
+        const major = allMajors.find((m) => m._id.toString() === id);
+        if (major) return major;
+      }
+
+      // ถ้าไม่มีใน cache ให้ดึงจาก database
+      const major = await this.majorModel
+        .findById(id)
+        .populate('school')
+        .lean();
+      return major;
+    } catch (error) {
+      console.error('Error in findOne major:', error);
+      return this.majorModel.findById(id).populate('school').lean();
+    }
   }
 
-  async update(id: string, updateMajorDto: UpdateMajorDto): Promise<Major> {
-    const major = await findOrThrow(this.majorModel, id, 'Major');
-    Object.assign(major, updateMajorDto);
-    await major.save();
-    await this.metadataService.invalidate(['majors']);
-    return major;
+  async update(id: string, updateMajorDto: UpdateMajorDto) {
+    const updatedMajor = await this.majorModel
+      .findByIdAndUpdate(id, updateMajorDto, { new: true })
+      .populate('school')
+      .lean();
+
+    // ล้าง cache เมื่อมีการอัพเดตข้อมูล
+    await this.updateLastModified();
+    await this.invalidateCache();
+
+    return updatedMajor;
   }
 
-  async remove(id: string): Promise<void> {
-    await findOrThrow(this.majorModel, id, 'Major');
-    await this.majorModel.findByIdAndDelete(id);
-    await this.metadataService.invalidate(['majors']);
+  async remove(id: string) {
+    const result = await this.majorModel
+      .findByIdAndDelete(id)
+      .populate('school')
+      .lean();
+
+    // ล้าง cache เมื่อมีการลบข้อมูล
+    await this.updateLastModified();
+    await this.invalidateCache();
+
+    return result;
+  }
+
+  // --- Helper Methods ---
+
+  private async fetchMajorsWithSchools() {
+    return this.majorModel.find().populate('school').lean();
+  }
+
+  private async getLastUpdatedTimestamp(): Promise<number> {
+    const latestMajor = await this.majorModel
+      .findOne()
+      .sort({ updatedAt: -1 })
+      .select('updatedAt')
+      .lean();
+
+    return latestMajor && latestMajor['updatedAt']
+      ? new Date(latestMajor['updatedAt']).getTime()
+      : Date.now();
+  }
+
+  private async updateLastModified(): Promise<void> {
+    await this.cacheManager.set(
+      this.MAJORS_LAST_UPDATED_KEY,
+      Date.now(),
+      this.METADATA_TTL,
+    );
+  }
+
+  private async invalidateCache(): Promise<void> {
+    // ล้าง cache หลัก
+    await this.cacheManager.del(this.MAJORS_CACHE_KEY);
+
+    // ล้าง cache ทั้งหมดที่ขึ้นต้นด้วย prefix
+    const keys = await this.cacheManager.store.keys(
+      `${this.MAJORS_BY_SCHOOL_PREFIX}*`,
+    );
+    if (keys && keys.length > 0) {
+      await Promise.all(keys.map((key) => this.cacheManager.del(key)));
+    }
+  }
+
+  // ใช้สำหรับดึงข้อมูลตามโรงเรียน (ใช้เพิ่มเติมหากต้องการ)
+  async findBySchool(schoolId: string) {
+    try {
+      const cacheKey = `${this.MAJORS_BY_SCHOOL_PREFIX}${schoolId}`;
+      let majors = await this.cacheManager.get<any[]>(cacheKey);
+
+      if (!majors) {
+        majors = await this.majorModel
+          .find({ school: schoolId })
+          .populate('school')
+          .lean();
+        await this.cacheManager.set(cacheKey, majors, this.METADATA_TTL);
+      }
+
+      return majors;
+    } catch (error) {
+      console.error(`Error finding majors by school ${schoolId}:`, error);
+      return this.majorModel
+        .find({ school: schoolId })
+        .populate('school')
+        .lean();
+    }
   }
 }

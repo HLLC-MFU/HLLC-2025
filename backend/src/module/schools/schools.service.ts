@@ -1,72 +1,127 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { School, SchoolDocument } from './schemas/school.schema';
+import { Injectable } from '@nestjs/common';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
-import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
-import { SharedMetadataService } from 'src/pkg/shared/metadata/metadata.service';
-import { MetadataEnrichmentService } from 'src/pkg/shared/enrichment/metadata-enrichment.service';
-import { buildPaginatedResponse } from 'src/pkg/helper/buildPaginatedResponse';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { School } from './entities/school.entity';
+import { SchoolDocument } from './schemas/school.schema';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class SchoolsService {
-  private readonly logger = new Logger(SchoolsService.name);
+  private readonly METADATA_TTL = 3600; // 1 hour
+  private readonly SCHOOLS_CACHE_KEY = 'metadata:all_schools';
+  private readonly SCHOOLS_LAST_UPDATED_KEY = 'metadata:schools_last_updated';
 
   constructor(
-    @InjectModel(School.name) private readonly schoolModel: Model<SchoolDocument>,
-    private readonly metadataService: SharedMetadataService,
-    private readonly enrichmentService: MetadataEnrichmentService,
+    @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  async create(createSchoolDto: CreateSchoolDto): Promise<School> {
-    await throwIfExists(this.schoolModel, { name: createSchoolDto.name }, 'School name already exists');
-    const school = await this.schoolModel.create(createSchoolDto);
-    await this.metadataService.invalidate(['schools']);
-    return school;
+  async create(createSchoolDto: CreateSchoolDto) {
+    const result = await this.schoolModel.create(createSchoolDto);
+    await this.updateLastModified();
+    await this.invalidateAllSchoolsCache();
+    return result.toObject();
   }
 
-  async findAll(page = 1, limit?: number) {
-    const query = this.schoolModel.find();
-
-    if (limit !== undefined && limit > 0) {
-      const skip = (page - 1) * limit;
-      query.skip(skip).limit(limit);
+  async findAll() {
+    try {
+      // ตรวจสอบว่ามีการอัพเดตข้อมูลหรือไม่ตั้งแต่ครั้งสุดท้ายที่ดึง cache
+      const lastCachedUpdate = await this.cacheManager.get<number>(this.SCHOOLS_LAST_UPDATED_KEY);
+      const lastDbUpdate = await this.getLastUpdatedTimestamp();
+      
+      // ถ้า cache ไม่ up to date ให้ล้าง cache
+      if (!lastCachedUpdate || lastDbUpdate > lastCachedUpdate) {
+        await this.invalidateAllSchoolsCache();
+      }
+      
+      // ดึงข้อมูลจาก cache
+      let schools = await this.cacheManager.get<any[]>(this.SCHOOLS_CACHE_KEY);
+      
+      // ถ้าไม่มี cache ให้ดึงจาก database
+      if (!schools) {
+        schools = await this.schoolModel.find().lean();
+        
+        // เก็บข้อมูลใน cache
+        await this.cacheManager.set(this.SCHOOLS_CACHE_KEY, schools, this.METADATA_TTL);
+        await this.updateLastModified();
+      }
+      
+      return schools;
+    } catch (error) {
+      console.error('Error in findAll schools:', error);
+      return this.schoolModel.find().lean();
     }
-
-    const [data, total, latest] = await Promise.all([
-      query.lean(),
-      this.schoolModel.countDocuments(),
-      this.schoolModel.findOne().sort({ updatedAt: -1 }).select('updatedAt').lean(),
-    ]);
-
-    const lastUpdatedAt = latest && 'updatedAt' in latest && latest.updatedAt instanceof Date
-      ? latest.updatedAt.toISOString()
-      : new Date().toISOString();
-
-    return buildPaginatedResponse(data, {
-      total,
-      page,
-      limit: limit ?? total,
-      lastUpdatedAt,
-    });
   }
 
-  async findOne(id: string): Promise<School> {
-    return findOrThrow(this.schoolModel, id, 'School');
+  async findOne(id: string) {
+    try {
+      // ตรวจสอบใน cache ทั้งหมดก่อน
+      const allSchools = await this.cacheManager.get<any[]>(this.SCHOOLS_CACHE_KEY);
+      
+      if (allSchools && Array.isArray(allSchools)) {
+        const school = allSchools.find(s => s._id.toString() === id);
+        if (school) return school;
+      }
+      
+      // ถ้าไม่มีใน cache ให้ดึงจาก database
+      const school = await this.schoolModel.findById(id).lean();
+      return school;
+    } catch (error) {
+      console.error('Error in findOne school:', error);
+      return this.schoolModel.findById(id).lean();
+    }
   }
 
-  async update(id: string, updateSchoolDto: UpdateSchoolDto): Promise<School> {
-    const school = await findOrThrow(this.schoolModel, id, 'School');
-    Object.assign(school, updateSchoolDto);
-    await school.save();
-    await this.metadataService.invalidate(['schools']);
-    return school;
+  async update(id: string, updateSchoolDto: UpdateSchoolDto) {
+    const updatedSchool = await this.schoolModel.findByIdAndUpdate(
+      id, 
+      updateSchoolDto, 
+      { new: true }
+    ).lean();
+    
+    // อัพเดต timestamp และล้าง cache
+    await this.updateLastModified();
+    await this.invalidateAllSchoolsCache();
+    
+    return updatedSchool;
   }
 
-  async remove(id: string): Promise<void> {
-    await findOrThrow(this.schoolModel, id, 'School');
-    await this.schoolModel.findByIdAndDelete(id);
-    await this.metadataService.invalidate(['schools']);
+  async remove(id: string) {
+    const result = await this.schoolModel.findByIdAndDelete(id).lean();
+    
+    // อัพเดต timestamp และล้าง cache
+    await this.updateLastModified();
+    await this.invalidateAllSchoolsCache();
+    
+    return result;
+  }
+
+  // --- Metadata Caching Helper Methods ---
+  
+  private async getLastUpdatedTimestamp(): Promise<number> {
+    const latestSchool = await this.schoolModel.findOne()
+      .sort({ updatedAt: -1 })
+      .select('updatedAt')
+      .lean();
+      
+    return latestSchool && latestSchool['updatedAt'] 
+      ? new Date(latestSchool['updatedAt']).getTime()
+      : Date.now();
+  }
+  
+  private async updateLastModified(): Promise<void> {
+    await this.cacheManager.set(
+      this.SCHOOLS_LAST_UPDATED_KEY, 
+      Date.now(), 
+      this.METADATA_TTL
+    );
+  }
+  
+  private async invalidateAllSchoolsCache(): Promise<void> {
+    await this.cacheManager.del(this.SCHOOLS_CACHE_KEY);
   }
 }

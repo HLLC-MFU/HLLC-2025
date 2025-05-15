@@ -13,118 +13,70 @@ import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { userMetadataValidator } from '../../pkg/validator/userMetadata.validator';
 import { throwIfExists, findOrThrow } from '../../pkg/validator/model.validator';
 import * as bcrypt from 'bcryptjs';
-import { buildPaginatedResponse, BaseResponse } from 'src/pkg/helper/buildPaginatedResponse';
+import { buildPaginatedResponse } from 'src/pkg/helper/buildPaginatedResponse';
 import { Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { MetadataEnrichmentService } from 'src/pkg/shared/enrichment/metadata-enrichment.service';
-import { SharedMetadataService } from 'src/pkg/shared/metadata/metadata.service';
-import { EnrichedUser } from 'src/pkg/shared/enrichment/use-response.interface';
-import { BulkUploadUsersDto } from './dto/bulk-upload-users.dto';
 
-/**
- * Users Service
- * 
- * Handles all user-related business logic, including:
- * - User CRUD operations
- * - User metadata management
- * - Authentication-related functions
- * - Bulk operations
- */
 @Injectable()
 export class UsersService {
-  // Default constants
-  private readonly DEFAULT_PASSWORD = '123456';
-  private readonly USER_CACHE_TTL = 300; // 5 minutes
-
-  // Logger for this service
   private readonly logger = new Logger(UsersService.name);
+  private readonly METADATA_TTL = 3600; // 1 hour
+  private readonly ROLES_CACHE_KEY = 'metadata:roles';
+  private readonly MAJORS_CACHE_KEY = 'metadata:majors';
+  private readonly SCHOOLS_CACHE_KEY = 'metadata:schools';
 
-  /**
-   * Constructor with dependency injection
-   */
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     @InjectModel(Role.name) private readonly roleModel: Model<RoleDocument>,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-    private readonly metadataService: SharedMetadataService,
-    private readonly enrichmentService: MetadataEnrichmentService,
-  ) {}
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) { }
 
-  /**
-   * ==============================
-   * CORE CRUD OPERATIONS
-   * ==============================
-   */
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    await throwIfExists(this.userModel, { username: createUserDto.username }, 'Username already exists');
 
-  /**
-   * Create a new user
-   * 
-   * @param createUserDto - Data for the new user
-   * @returns Newly created user with enriched metadata
-   */
-  async create(createUserDto: CreateUserDto): Promise<EnrichedUser> {
-    // Check for duplicate username
-    await throwIfExists(
-      this.userModel, 
-      { username: createUserDto.username }, 
-      'Username already exists'
-    );
-
-    // Verify role exists
     const role = await findOrThrow(this.roleModel, createUserDto.role, 'Role');
 
-    // Validate metadata against role's schema if defined
     if (role.metadataSchema) {
       userMetadataValidator(createUserDto.metadata || {}, role.metadataSchema);
     }
 
-    // Enrich metadata with referenced entities
-    const enrichedMetadata = await this.enrichMetadata(createUserDto.metadata || {});
+    const enrichedMetadata = { ...createUserDto.metadata };
+    
+    if (enrichedMetadata?.schoolId) {
+      const schoolData = await this.getSchoolData(enrichedMetadata.schoolId);
+      if (schoolData) {
+        enrichedMetadata.school = schoolData;
+      }
+    }
+    
+    if (enrichedMetadata?.majorId) {
+      const majorData = await this.getMajorData(enrichedMetadata.majorId);
+      if (majorData) {
+        enrichedMetadata.major = majorData;
+      }
+    }
 
-    // Create and save the user
     const user = new this.userModel({
       ...createUserDto,
       role: new Types.ObjectId(createUserDto.role),
-      metadata: enrichedMetadata,
+      metadata: enrichedMetadata
     });
 
     const savedUser = await user.save();
+    // อัพเดต cache เมื่อมีการเพิ่มข้อมูลใหม่
+    await this.invalidateUserRelatedCaches();
     
-    // Invalidate all user list caches
-    await this.invalidateUserListCaches();
-    
-    return this.findOne(savedUser._id);
+    return savedUser;
   }
 
-  /**
-   * Find all users with filtering and pagination
-   * 
-   * @param filters - MongoDB filter criteria
-   * @param page - Page number (1-based)
-   * @param limit - Items per page
-   * @param excluded - Fields to exclude from response
-   * @returns Paginated list of users with metadata
-   */
   async findAll(
     filters: Record<string, any> = {},
     page = 1,
-    limit = 100,
+    limit?: number, // ❗ limit เป็น optional
     excluded: string[] = [],
-  ): Promise<BaseResponse<EnrichedUser[]>> {
-    // Build cache key based on filters and pagination
-    const cacheKey = `users:list:${JSON.stringify(filters)}:${page}:${limit}`;
-    
-    // Try to get from cache first
-    const cachedData = await this.cacheManager.get<BaseResponse<EnrichedUser[]>>(cacheKey);
-    if (cachedData) {
-      this.logger.debug(`[Users] Cache HIT for key: ${cacheKey}`);
-      return cachedData;
-    }
-
-    this.logger.debug(`[Users] Cache MISS for key: ${cacheKey}`);
-
-    // Build query with pagination
+  ) {
+    // ใช้ metadata cache แทนการ populate
     const query = this.userModel.find(filters);
 
     if (limit !== undefined && limit > 0) {
@@ -132,209 +84,476 @@ export class UsersService {
       query.skip(skip).limit(limit);
     }
 
-    // Execute query and get metadata in parallel
     const [data, total, latest] = await Promise.all([
       query.lean(),
       this.userModel.countDocuments(filters),
-      this.userModel.findOne().sort({ updatedAt: -1 }).select('updatedAt').lean(),
+      this.userModel.findOne().sort({ updatedAt: -1 }).select('updatedAt').lean() as { updatedAt?: Date },
     ]);
 
-    // Enrich users with metadata using the enrichment service
-    const enrichedData = await this.enrichmentService.enrichUsers(data);
+    // ดึง metadata จาก cache
+    const roleIds = data.map(user => user.role?.toString()).filter(Boolean);
+    const roleData = await this.getRolesMetadata(roleIds);
     
-    // Get last updated timestamp
-    const lastUpdatedAt = latest && 'updatedAt' in latest && latest.updatedAt instanceof Date
-      ? latest.updatedAt.toISOString()
-      : new Date().toISOString();
+    // ดึง school และ major จาก cache ถ้ายังไม่มีใน metadata
+    const schoolIds = data
+      .filter(user => user.metadata?.schoolId && !user.metadata?.school)
+      .map(user => user.metadata!.schoolId!.toString());
+      
+    const majorIds = data
+      .filter(user => user.metadata?.majorId && !user.metadata?.major)
+      .map(user => user.metadata!.majorId!.toString());
+    
+    const schoolData = await this.getSchoolsMetadata(schoolIds);
+    const majorData = await this.getMajorsMetadata(majorIds);
 
-    // Build response
-    const result = buildPaginatedResponse(enrichedData, {
+    // เพิ่ม metadata จาก cache แทนการ populate
+    const enrichedData = await this.enrichUsersWithMetadata(
+      data, 
+      roleData,
+      schoolData,
+      majorData, 
+      excluded
+    );
+    
+    const lastUpdatedAt = latest?.updatedAt?.toISOString() ?? new Date().toISOString();
+
+    return buildPaginatedResponse(enrichedData, {
       total,
       page,
       limit: limit ?? total,
       lastUpdatedAt,
     });
-
-    // Cache the response
-    await this.cacheManager.set(cacheKey, result, this.USER_CACHE_TTL);
-
-    return result;
   }
 
-  /**
-   * Find a user by ID or custom filter
-   * 
-   * @param idOrFilters - User ID or MongoDB filter criteria
-   * @returns User with enriched metadata
-   * @throws NotFoundException if user not found
-   */
-  async findOne(idOrFilters: string | FilterQuery<UserDocument>): Promise<EnrichedUser> {
+  async findOne(idOrFilters: string | FilterQuery<UserDocument>): Promise<User> {
     let user;
-    
-    // Find by ID or custom filter
     if (typeof idOrFilters === 'string') {
       user = await this.userModel.findById(idOrFilters).lean();
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
     } else {
       user = await this.userModel.findOne(idOrFilters).lean();
-    }
-    
-    // Throw if not found
-    if (!user) {
-      throw new NotFoundException('User not found');
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
     }
 
-    // Enrich user with metadata and return
-    return this.enrichmentService.enrichUser(user);
+    // ดึง metadata จาก cache
+    const roleData = await this.getRolesMetadata([user.role?.toString()]);
+    
+    const schoolIds = user.metadata?.schoolId ? [user.metadata.schoolId.toString()] : [];
+    const majorIds = user.metadata?.majorId ? [user.metadata.majorId.toString()] : [];
+    
+    const schoolData = await this.getSchoolsMetadata(schoolIds);
+    const majorData = await this.getMajorsMetadata(majorIds);
+    
+    // เพิ่ม metadata
+    const [enrichedUser] = await this.enrichUsersWithMetadata(
+      [user], 
+      roleData,
+      schoolData,
+      majorData,
+      []
+    );
+    
+    return enrichedUser;
   }
 
-  /**
-   * Update a user
-   * 
-   * @param id - User ID
-   * @param updateUserDto - Fields to update
-   * @returns Updated user with enriched metadata
-   */
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<EnrichedUser> {
-    // Find user and verify role
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await findOrThrow(this.userModel, id, 'User');
-    const role = await findOrThrow(
-      this.roleModel, 
-      updateUserDto.role ?? user.role, 
-      'Role'
-    );
+    const role = await findOrThrow(this.roleModel, updateUserDto.role ?? user.role, 'Role');
 
-    // Validate metadata against role schema
     if (role.metadataSchema) {
       userMetadataValidator(updateUserDto.metadata || {}, role.metadataSchema);
     }
 
-    // Hash password if provided
     if (updateUserDto.password) {
-      updateUserDto.password = await this.hashPassword(updateUserDto.password);
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
     }
 
-    // Update metadata if provided
+    // ถ้ามีการอัพเดต metadata ให้ปรับปรุงข้อมูล school และ major
     if (updateUserDto.metadata) {
-      updateUserDto.metadata = await this.updateUserMetadata(user, updateUserDto);
+      const metadata = { ...user.metadata, ...updateUserDto.metadata };
+      
+      // ถ้ามีการอัพเดต schoolId
+      if (metadata.schoolId && (!user.metadata?.schoolId || 
+          metadata.schoolId.toString() !== user.metadata.schoolId.toString())) {
+        const schoolData = await this.getSchoolData(metadata.schoolId);
+        if (schoolData) {
+          metadata.school = schoolData;
+        }
+      }
+      
+      // ถ้ามีการอัพเดต majorId
+      if (metadata.majorId && (!user.metadata?.majorId || 
+          metadata.majorId.toString() !== user.metadata.majorId.toString())) {
+        const majorData = await this.getMajorData(metadata.majorId);
+        if (majorData) {
+          metadata.major = majorData;
+        }
+      }
+      
+      updateUserDto.metadata = metadata;
     }
 
-    // Apply updates and save
     Object.assign(user, updateUserDto);
-    await user.save();
+    const updatedUser = await user.save();
     
-    // Invalidate all user list caches
-    await this.invalidateUserListCaches();
+    // อัพเดต cache เมื่อมีการแก้ไขข้อมูล
+    await this.invalidateUserRelatedCaches();
     
     return this.findOne(id);
   }
 
-  /**
-   * Delete a user
-   * 
-   * @param id - User ID
-   */
   async remove(id: string): Promise<void> {
-    // Verify user exists
     await findOrThrow(this.userModel, id, 'User');
-    
-    // Delete user
     await this.userModel.findByIdAndDelete(id);
     
-    // Invalidate all user list caches
-    await this.invalidateUserListCaches();
+    // อัพเดต cache เมื่อมีการลบข้อมูล
+    await this.invalidateUserRelatedCaches();
+  }
+
+  // --- Metadata Caching Methods ---
+  
+  private async getRolesMetadata(roleIds: string[]): Promise<Record<string, any>> {
+    try {
+      this.logger.debug(`[Cache] Fetching roles metadata for: ${roleIds.join(', ')}`);
+      const startTime = Date.now();
+      let rolesData = await this.cacheManager.get<Record<string, any>>(this.ROLES_CACHE_KEY);
+      const fetchTime = Date.now() - startTime;
+      
+      if (!rolesData) {
+        this.logger.debug(`[Cache] MISS for roles - Fetching from database...`);
+        const dbStartTime = Date.now();
+        // ถ้าไม่มี cache ให้ดึงข้อมูลทั้งหมดและเก็บไว้
+        const roles = await this.roleModel.find().lean();
+        const dbFetchTime = Date.now() - dbStartTime;
+        this.logger.debug(`[Cache] Database fetch took ${dbFetchTime}ms for roles (${roles.length} entries)`);
+        
+        rolesData = {};
+        
+        for (const role of roles) {
+          rolesData[role._id.toString()] = role;
+        }
+        
+        // เก็บลง cache
+        const cacheStartTime = Date.now();
+        await this.cacheManager.set(this.ROLES_CACHE_KEY, rolesData, this.METADATA_TTL);
+        const cacheSetTime = Date.now() - cacheStartTime;
+        this.logger.debug(`[Cache] Stored roles in cache in ${cacheSetTime}ms`);
+      } else {
+        this.logger.debug(`[Cache] HIT for roles - Retrieved in ${fetchTime}ms`);
+      }
+      
+      // กรองเฉพาะ role ที่ต้องการ
+      const filteredRoles: Record<string, any> = {};
+      for (const roleId of roleIds) {
+        if (roleId && rolesData[roleId]) {
+          filteredRoles[roleId] = rolesData[roleId];
+        }
+      }
+      
+      return filteredRoles;
+    } catch (error) {
+      this.logger.error(`[Cache] Error getting roles metadata: ${error.message}`, error.stack);
+      // ถ้าเกิด error ให้ดึงข้อมูลจาก database โดยตรง
+      const roles = await this.roleModel.find({ _id: { $in: roleIds } }).lean();
+      const rolesMap: Record<string, any> = {};
+      for (const role of roles) {
+        rolesMap[role._id.toString()] = role;
+      }
+      return rolesMap;
+    }
+  }
+  
+  private async getSchoolsMetadata(schoolIds: string[]): Promise<Record<string, any>> {
+    if (!schoolIds.length) return {};
+    
+    try {
+      // ตรวจสอบ cache
+      let schoolsData = await this.cacheManager.get<Record<string, any>>(this.SCHOOLS_CACHE_KEY);
+      
+      if (!schoolsData) {
+        // ดึงข้อมูลจาก database
+        schoolsData = await this.fetchAndCacheSchoolsData();
+      }
+      
+      // กรองเฉพาะ school ที่ต้องการ
+      const filteredSchools: Record<string, any> = {};
+      for (const schoolId of schoolIds) {
+        if (schoolId && schoolsData[schoolId]) {
+          filteredSchools[schoolId] = schoolsData[schoolId];
+        }
+      }
+      
+      return filteredSchools;
+    } catch (error) {
+      console.error('Error getting schools metadata:', error);
+      return {};
+    }
+  }
+  
+  private async getMajorsMetadata(majorIds: string[]): Promise<Record<string, any>> {
+    if (!majorIds.length) return {};
+    
+    try {
+      // ตรวจสอบ cache
+      let majorsData = await this.cacheManager.get<Record<string, any>>(this.MAJORS_CACHE_KEY);
+      
+      if (!majorsData) {
+        // ดึงข้อมูลจาก database
+        majorsData = await this.fetchAndCacheMajorsData();
+      }
+      
+      // กรองเฉพาะ major ที่ต้องการ
+      const filteredMajors: Record<string, any> = {};
+      for (const majorId of majorIds) {
+        if (majorId && majorsData[majorId]) {
+          filteredMajors[majorId] = majorsData[majorId];
+        }
+      }
+      
+      return filteredMajors;
+    } catch (error) {
+      console.error('Error getting majors metadata:', error);
+      return {};
+    }
+  }
+  
+  private async fetchAndCacheSchoolsData(): Promise<Record<string, any>> {
+    try {
+      // Check if School model exists
+      const SchoolModel = this.userModel.db.models.School;
+      if (!SchoolModel) {
+        console.error('School model not found in mongoose connection');
+        return {};
+      }
+      
+      // Use the School model to query data
+      const schools = await SchoolModel.find().lean();
+      
+      const schoolsMap: Record<string, any> = {};
+      for (const school of schools) {
+        if (school && school._id) {
+        schoolsMap[school._id.toString()] = school;
+        }
+      }
+      
+      // เก็บลง cache
+      await this.cacheManager.set(this.SCHOOLS_CACHE_KEY, schoolsMap, this.METADATA_TTL);
+      
+      return schoolsMap;
+    } catch (error) {
+      console.error('Error fetching schools data:', error);
+      return {};
+    }
+  }
+  
+  private async fetchAndCacheMajorsData(): Promise<Record<string, any>> {
+    try {
+      // Check if Major model exists
+      const MajorModel = this.userModel.db.models.Major;
+      if (!MajorModel) {
+        console.error('Major model not found in mongoose connection');
+        return {};
+      }
+      
+      // Use the Major model to query data
+      const majors = await MajorModel.find().lean();
+      
+      const majorsMap: Record<string, any> = {};
+      for (const major of majors) {
+        if (major && major._id) {
+        majorsMap[major._id.toString()] = major;
+        }
+      }
+      
+      // เก็บลง cache
+      await this.cacheManager.set(this.MAJORS_CACHE_KEY, majorsMap, this.METADATA_TTL);
+      
+      return majorsMap;
+    } catch (error) {
+      console.error('Error fetching majors data:', error);
+      return {};
+    }
+  }
+  
+  private async getSchoolData(schoolId: string | Types.ObjectId): Promise<any> {
+    const schools = await this.getSchoolsMetadata([schoolId.toString()]);
+    return schools[schoolId.toString()];
+  }
+  
+  private async getMajorData(majorId: string | Types.ObjectId): Promise<any> {
+    const majors = await this.getMajorsMetadata([majorId.toString()]);
+    return majors[majorId.toString()];
+  }
+  
+  private async enrichUsersWithMetadata(
+    users: any[], 
+    rolesData: Record<string, any>,
+    schoolsData: Record<string, any>,
+    majorsData: Record<string, any>,
+    excluded: string[] = []
+  ): Promise<any[]> {
+    return users.map(user => {
+      const enrichedUser = { ...user };
+      
+      // เพิ่ม role data
+      if (user.role && rolesData[user.role.toString()] && !excluded.includes('role')) {
+        enrichedUser.role = rolesData[user.role.toString()];
+      }
+      
+      // เพิ่ม school data (ถ้ายังไม่มี)
+      if (user.metadata?.schoolId && !user.metadata.school && schoolsData[user.metadata.schoolId.toString()]) {
+        enrichedUser.metadata = {
+          ...enrichedUser.metadata,
+          school: schoolsData[user.metadata.schoolId.toString()]
+        };
+      }
+      
+      // เพิ่ม major data (ถ้ายังไม่มี)
+      if (user.metadata?.majorId && !user.metadata.major && majorsData[user.metadata.majorId.toString()]) {
+        enrichedUser.metadata = {
+          ...enrichedUser.metadata,
+          major: majorsData[user.metadata.majorId.toString()]
+        };
+      }
+      
+      return enrichedUser;
+    });
+  }
+  
+  private async invalidateUserRelatedCaches(): Promise<void> {
+    this.logger.log('[Cache] Invalidating user-related caches');
+    const startTime = Date.now();
+    
+    // Clear all related caches to ensure fresh data
+    await this.cacheManager.del(this.ROLES_CACHE_KEY);
+    await this.cacheManager.del(this.SCHOOLS_CACHE_KEY);
+    await this.cacheManager.del(this.MAJORS_CACHE_KEY);
+    
+    // Try to get all cache keys with these prefixes and delete them
+    try {
+      const store = this.cacheManager.store as any;
+      if (store && typeof store.keys === 'function') {
+        const patterns = [
+          'metadata:*',
+          'users:*'
+        ];
+        
+        for (const pattern of patterns) {
+          try {
+            const keysStartTime = Date.now();
+            const keys = await store.keys(pattern);
+            const keysFetchTime = Date.now() - keysStartTime;
+            
+            this.logger.debug(`[Cache] Found ${keys.length} keys for pattern ${pattern} in ${keysFetchTime}ms`);
+            
+            if (keys && keys.length) {
+              const deleteStartTime = Date.now();
+              await Promise.all(keys.map(key => this.cacheManager.del(key)));
+              const deleteTime = Date.now() - deleteStartTime;
+              
+              this.logger.debug(`[Cache] Deleted ${keys.length} keys in ${deleteTime}ms`);
+            }
+          } catch (e) {
+            this.logger.error(`[Cache] Error clearing cache pattern ${pattern}: ${e.message}`, e.stack);
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error(`[Cache] Error clearing cache: ${error.message}`, error.stack);
+    }
+    
+    const totalTime = Date.now() - startTime;
+    this.logger.log(`[Cache] Cache invalidation completed in ${totalTime}ms`);
   }
 
   /**
-   * ==============================
-   * ADVANCED USER OPERATIONS
-   * ==============================
+   * Reset a user's password to a default value
+   * This clears the current password and secret
    */
-
-  /**
-   * Reset a user's password to default value
-   * 
-   * @param id - User ID
-   * @returns User with updated password
-   */
-  async resetPassword(id: string): Promise<EnrichedUser> {
+  async resetPassword(id: string): Promise<User> {
     this.logger.debug(`[Users] Resetting password for user ${id}`);
     const startTime = Date.now();
     
-    // Find user
     const user = await findOrThrow(this.userModel, id, 'User');
     
-    // Reset password and token
-    user.password = await this.hashPassword(this.DEFAULT_PASSWORD);
+    // Clear password and secret
+    user.password = await bcrypt.hash('123456', 10);
     user.refreshToken = null;
     
-    // Save changes
-    await user.save();
+    const updatedUser = await user.save();
     
-    // Invalidate cache
-    await this.metadataService.invalidate(['users']);
+    // Invalidate any cached data for this user
+    await this.invalidateUserRelatedCaches();
     
-    // Log performance
     const duration = Date.now() - startTime;
     this.logger.log(`[Users] Password reset for user ${id} completed in ${duration}ms`);
     
-    // Return enriched user
-    return this.findOne(id);
+    return this.findOne(id); // Use findOne to get the enriched user with metadata
   }
 
   /**
-   * Upload multiple users in bulk
-   * 
-   * @param uploadData - Bulk upload data including users, default role and metadata
-   * @returns Array of created users with enriched metadata
+   * Upload multiple users in bulk with specified defaults
    */
-  async uploadUsers(uploadData: BulkUploadUsersDto): Promise<EnrichedUser[]> {
+  async uploadUsers(uploadData: {
+    users: Array<{
+      name: { first: string; last: string };
+      studentId: string;
+      major?: string | Types.ObjectId;
+    }>;
+    major?: string | Types.ObjectId;
+    role: string | Types.ObjectId;
+    metadata?: Record<string, any>;
+  }): Promise<any> {
     this.logger.log(`[Users] Uploading ${uploadData.users.length} users`);
     const startTime = Date.now();
     
-    // Validate role
+    // Validate the role
     const role = await findOrThrow(this.roleModel, uploadData.role, 'Role');
     
-    // Check default major if provided
+    // Check if major exists if provided as default
     if (uploadData.major) {
       const majorId = uploadData.major.toString();
-      const majorData = await this.metadataService.getMajor(majorId);
+      const majorData = await this.getMajorData(majorId);
       if (!majorData) {
         throw new NotFoundException(`Default major with ID ${majorId} not found`);
       }
     }
     
-    // Process each user
+    // Process each user, checking their major if specified
     const createUserDtos = await Promise.all(
       uploadData.users.map(async (userData) => {
-        // Get major data
         const userMajorId = userData.major || uploadData.major;
+        
         if (userMajorId) {
-          const majorData = await this.metadataService.getMajor(userMajorId.toString());
+          const majorData = await this.getMajorData(userMajorId.toString());
           if (!majorData) {
             throw new NotFoundException(`Major with ID ${userMajorId} not found for user ${userData.studentId}`);
           }
         }
         
-        // Prepare metadata
+        // Prepare base metadata
         const metadata = { ...uploadData.metadata || {} };
         
-        // Add major info to metadata
+        // Add major data to metadata if provided
         if (userMajorId) {
           metadata.majorId = userMajorId;
-          const majorData = await this.metadataService.getMajor(userMajorId.toString());
+          const majorData = await this.getMajorData(userMajorId.toString());
           if (majorData) {
             metadata.major = majorData;
           }
         }
         
-        // Return user creation data
         return {
           name: {
             first: userData.name.first,
-            last: userData.name.last || '',
+            last: userData.name.last
           },
           username: userData.studentId,
-          password: await this.hashPassword(this.DEFAULT_PASSWORD),
+          password: await bcrypt.hash('123456', 10), // Default password
           role: role._id,
           metadata
         };
@@ -342,25 +561,19 @@ export class UsersService {
     );
     
     try {
-      // Bulk insert
+      // Bulk insert users
       const insertedUsers = await this.userModel.insertMany(createUserDtos, { lean: true });
       
-      // Invalidate cache
-      await this.metadataService.invalidate(['users']);
+      // Invalidate cache after bulk creation
+      await this.invalidateUserRelatedCaches();
       
-      // Log performance
       const duration = Date.now() - startTime;
       this.logger.log(`[Users] Successfully uploaded ${insertedUsers.length} users in ${duration}ms`);
       
-      // Return enriched users
-      const result = await this.findAll(
-        { _id: { $in: insertedUsers.map(u => u._id) } }, 
-        1, 
-        insertedUsers.length
-      );
-      return result.data as EnrichedUser[];
+      // Return with full metadata enrichment
+      const result = await this.findAll({ _id: { $in: insertedUsers.map(u => u._id) } }, 1, insertedUsers.length);
+      return result.data;
     } catch (error) {
-      // Handle duplicate key errors
       if (error.code === 11000) {
         const duplicateKey = error.keyValue ? Object.keys(error.keyValue)[0] : 'unknown';
         const duplicateValue = error.keyValue ? error.keyValue[Object.keys(error.keyValue)[0]] : '';
@@ -369,90 +582,9 @@ export class UsersService {
       throw error;
     }
   }
-  
-  /**
-   * Delete multiple users by ID
-   * 
-   * @param ids - Array of user IDs to delete
-   * @returns Object with count of deleted users
-   */
-  async removeMultiple(ids: string[]): Promise<{ deletedCount: number }> {
-    this.logger.debug(`[Users] Removing multiple users: ${ids.join(', ')}`);
-    const startTime = Date.now();
-    
-    // Validate input
-    if (!ids || ids.length === 0) {
-      throw new BadRequestException('No user IDs provided for deletion');
-    }
-    
-    // Validate each ID
-    const validIds = ids.filter(id => Types.ObjectId.isValid(id));
-    if (validIds.length !== ids.length) {
-      throw new BadRequestException('One or more invalid user IDs provided');
-    }
-    
-    // Perform deletion
-    const result = await this.userModel.deleteMany({ 
-      _id: { $in: validIds.map(id => new Types.ObjectId(id)) } 
-    });
-    
-    // Check results
-    if (result.deletedCount === 0) {
-      throw new NotFoundException('No users found with the provided IDs');
-    }
-    
-    // Invalidate cache
-    await this.metadataService.invalidate(['users']);
-    
-    // Log performance
-    const duration = Date.now() - startTime;
-    this.logger.log(`[Users] Removed ${result.deletedCount} users in ${duration}ms`);
-    
-    return { deletedCount: result.deletedCount };
-  }
 
   /**
-   * Find a user by username
-   * 
-   * @param username - Username to search for
-   * @returns User with enriched metadata
-   */
-  async findByUsername(username: string): Promise<EnrichedUser> {
-    this.logger.debug(`[Users] Finding user by username: ${username}`);
-    
-    // Try to get from cache first
-    const cacheKey = `user:username:${username}`;
-    const cachedUser = await this.cacheManager.get<EnrichedUser>(cacheKey);
-    
-    if (cachedUser) {
-      return cachedUser;
-    }
-    
-    // Find in database
-    const user = await this.userModel.findOne({ username }).lean();
-    
-    if (!user) {
-      throw new NotFoundException(`User with username ${username} not found`);
-    }
-    
-    // Check if user has completed registration
-    if (!user.password || user.password.length === 0) {
-      throw new BadRequestException(`User ${username} has not completed registration`);
-    }
-    
-    // Enrich user data
-    const enrichedUser = await this.enrichmentService.enrichUser(user);
-    
-    // Cache result
-    await this.cacheManager.set(cacheKey, enrichedUser, this.USER_CACHE_TTL);
-    
-    return enrichedUser;
-  }
-  
-  /**
-   * Get registration statistics
-   * 
-   * @returns Object with registration statistics
+   * Check status of all user registrations
    */
   async checkRegistrationStatus(): Promise<{
     totalUsers: number;
@@ -462,7 +594,7 @@ export class UsersService {
   }> {
     this.logger.debug(`[Users] Checking registration status of all users`);
     
-    // Try to get from cache
+    // Use a cached pattern for this operation with short TTL
     const cacheKey = 'user:registration_status';
     const cachedStats = await this.cacheManager.get(cacheKey);
     
@@ -470,7 +602,6 @@ export class UsersService {
       return cachedStats as any;
     }
     
-    // Get all users with minimal fields
     const users = await this.userModel.find(
       {},
       { password: 1, refreshToken: 1, username: 1 }
@@ -480,7 +611,7 @@ export class UsersService {
       throw new NotFoundException('No users found in the system');
     }
     
-    // Calculate statistics
+    // Consider a user registered if they have password and have logged in at least once
     const registeredUsers = users.filter(user => 
       user.password && 
       user.password.length > 0
@@ -498,74 +629,92 @@ export class UsersService {
       registrationRate: `${((registeredUsers.length / users.length) * 100).toFixed(2)}%`
     };
     
-    // Cache results
-    await this.cacheManager.set(cacheKey, stats, 900); // 15 minutes
+    // Cache the results for 15 minutes
+    await this.cacheManager.set(cacheKey, stats, 900);
     
     return stats;
   }
-
-  /**
-   * ==============================
-   * HELPER METHODS
-   * ==============================
-   */
   
   /**
-   * Hash a password using bcrypt
+   * Delete multiple users by IDs
    */
-  private async hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, 10);
+  async removeMultiple(ids: string[]): Promise<{ deletedCount: number }> {
+    this.logger.debug(`[Users] Removing multiple users: ${ids.join(', ')}`);
+    const startTime = Date.now();
+    
+    if (!ids || ids.length === 0) {
+      throw new BadRequestException('No user IDs provided for deletion');
+    }
+    
+    // Validate IDs first
+    const validIds = ids.filter(id => Types.ObjectId.isValid(id));
+    if (validIds.length !== ids.length) {
+      throw new BadRequestException('One or more invalid user IDs provided');
+    }
+    
+    const result = await this.userModel.deleteMany({ 
+      _id: { $in: validIds.map(id => new Types.ObjectId(id)) } 
+    });
+    
+    if (result.deletedCount === 0) {
+      throw new NotFoundException('No users found with the provided IDs');
+    }
+    
+    // Invalidate cache after bulk deletion
+    await this.invalidateUserRelatedCaches();
+    
+    const duration = Date.now() - startTime;
+    this.logger.log(`[Users] Removed ${result.deletedCount} users in ${duration}ms`);
+    
+    return { deletedCount: result.deletedCount };
   }
   
   /**
-   * Enrich metadata with referenced entities
+   * Find a user by their student ID (username)
    */
-  private async enrichMetadata(metadata: Record<string, any>): Promise<Record<string, any>> {
-    const enriched = { ...metadata };
+  async findByUsername(username: string): Promise<User> {
+    this.logger.debug(`[Users] Finding user by username: ${username}`);
     
-    // Add school data if schoolId exists
-    if (enriched.schoolId) {
-      enriched.school = await this.metadataService.getSchool(enriched.schoolId);
+    // Try to find in cache first
+    const cacheKey = `user:username:${username}`;
+    const cachedUser = await this.cacheManager.get<User>(cacheKey);
+    
+    if (cachedUser) {
+      return cachedUser;
     }
     
-    // Add major data if majorId exists
-    if (enriched.majorId) {
-      enriched.major = await this.metadataService.getMajor(enriched.majorId);
+    // Find in database
+    const user = await this.userModel.findOne({ username }).lean();
+    
+    if (!user) {
+      throw new NotFoundException(`User with username ${username} not found`);
     }
     
-    return enriched;
-  }
-  
-  /**
-   * Update user metadata, refreshing relationships as needed
-   */
-  private async updateUserMetadata(
-    user: UserDocument, 
-    updateUserDto: UpdateUserDto
-  ): Promise<Record<string, any>> {
-    const metadata = { ...user.metadata, ...updateUserDto.metadata };
-    
-    // Update school data if schoolId changed
-    if (metadata.schoolId && (!user.metadata?.schoolId || 
-        metadata.schoolId.toString() !== user.metadata.schoolId.toString())) {
-      metadata.school = await this.metadataService.getSchool(metadata.schoolId);
+    // Check if the user has registered (has password)
+    if (!user.password || user.password.length === 0) {
+      throw new BadRequestException(`User ${username} has not completed registration`);
     }
     
-    // Update major data if majorId changed
-    if (metadata.majorId && (!user.metadata?.majorId || 
-        metadata.majorId.toString() !== user.metadata.majorId.toString())) {
-      metadata.major = await this.metadataService.getMajor(metadata.majorId);
-    }
+    // Enrich with metadata and store in cache (short TTL for user data)
+    const roleData = await this.getRolesMetadata([user.role?.toString()]);
     
-    return metadata;
-  }
-
-  // Add new helper method for cache invalidation
-  private async invalidateUserListCaches(): Promise<void> {
-    const keys = await this.cacheManager.store.keys('users:list:*');
-    if (keys.length > 0) {
-        await Promise.all(keys.map(key => this.cacheManager.del(key)));
-        this.logger.debug(`[Users] Invalidated ${keys.length} user list caches`);
-    }
+    const schoolIds = user.metadata?.schoolId ? [user.metadata.schoolId.toString()] : [];
+    const majorIds = user.metadata?.majorId ? [user.metadata.majorId.toString()] : [];
+    
+    const schoolData = await this.getSchoolsMetadata(schoolIds);
+    const majorData = await this.getMajorsMetadata(majorIds);
+    
+    const [enrichedUser] = await this.enrichUsersWithMetadata(
+      [user], 
+      roleData,
+      schoolData,
+      majorData,
+      []
+    );
+    
+    // Cache for a short time (5 minutes)
+    await this.cacheManager.set(cacheKey, enrichedUser, 300);
+    
+    return enrichedUser;
   }
 }

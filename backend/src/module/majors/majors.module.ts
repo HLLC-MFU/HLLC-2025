@@ -1,20 +1,20 @@
 import { Module } from '@nestjs/common';
 import { MajorsService } from './majors.service';
 import { MajorsController } from './majors.controller';
-import { Major, MajorSchema } from './schemas/major.schema';
 import { MongooseModule } from '@nestjs/mongoose';
-import { SharedMetadataModule } from '../../pkg/shared/metadata/metadata.module';
-import { SharedEnrichmentModule } from '../../pkg/shared/enrichment/enrichment.module';
-import { SerializerInterceptor } from '../../pkg/interceptors/serializer.interceptor';
+import { Major, MajorSchema } from './schemas/major.schema';
+import { MetadataCacheInterceptor } from '../../pkg/interceptors/metadata-cache.interceptor';
+import { MajorInitializerService } from './major.initializer.service';
+import { School, SchoolSchema } from '../schools/schemas/school.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Major.name, schema: MajorSchema }]),
-    SharedMetadataModule,
-    SharedEnrichmentModule,
+    MongooseModule.forFeature([
+      { name: Major.name, schema: MajorSchema },
+      { name: School.name, schema: SchoolSchema },
+    ]),
   ],
   controllers: [MajorsController],
-  providers: [MajorsService, SerializerInterceptor],
-  exports: [MajorsService],
+  providers: [MajorsService, MetadataCacheInterceptor, MajorInitializerService],
 })
 export class MajorsModule {}

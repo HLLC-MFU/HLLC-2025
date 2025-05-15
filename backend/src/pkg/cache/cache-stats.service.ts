@@ -40,9 +40,7 @@ export class CacheStatsService {
   private readonly STATS_PRINT_INTERVAL = 10 * 60 * 1000; // 10 minutes
   private readonly STATS_KEY_PREFIX = 'cache_stats:';
 
-  constructor(
-    @Optional() @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {
+  constructor(@Optional() @Inject(CACHE_MANAGER) private cacheManager: Cache) {
     this.setupStatsReporting();
     this.logger.log('CacheStatsService initialized');
   }
@@ -62,9 +60,9 @@ export class CacheStatsService {
     this.stats[prefix].hits++;
     this.stats[prefix].requests++;
     this.stats[prefix].totalGetTime += duration;
-    this.stats[prefix].averageGetTime = 
+    this.stats[prefix].averageGetTime =
       this.stats[prefix].totalGetTime / this.stats[prefix].requests;
-    this.stats[prefix].hitRate = 
+    this.stats[prefix].hitRate =
       this.stats[prefix].hits / this.stats[prefix].requests;
     this.stats[prefix].lastRequest = new Date();
     this.stats[prefix].lastHit = new Date();
@@ -96,9 +94,9 @@ export class CacheStatsService {
     this.stats[prefix].misses++;
     this.stats[prefix].requests++;
     this.stats[prefix].totalGetTime += duration;
-    this.stats[prefix].averageGetTime = 
+    this.stats[prefix].averageGetTime =
       this.stats[prefix].totalGetTime / this.stats[prefix].requests;
-    this.stats[prefix].hitRate = 
+    this.stats[prefix].hitRate =
       this.stats[prefix].hits / this.stats[prefix].requests;
     this.stats[prefix].lastRequest = new Date();
     this.stats[prefix].lastMiss = new Date();
@@ -128,7 +126,7 @@ export class CacheStatsService {
 
     this.stats[prefix].stores++;
     this.stats[prefix].totalSetTime += duration;
-    this.stats[prefix].averageSetTime = 
+    this.stats[prefix].averageSetTime =
       this.stats[prefix].totalSetTime / this.stats[prefix].stores;
     this.stats[prefix].lastRequest = new Date();
 
@@ -220,7 +218,7 @@ export class CacheStatsService {
 
   printCacheStats() {
     this.logger.log('Cache Statistics:');
-    
+
     const totalStats = {
       hits: 0,
       misses: 0,
@@ -238,26 +236,27 @@ export class CacheStatsService {
 
       this.logger.log(
         `[Cache] ${prefix}: ` +
-        `Hits: ${stats.hits}, ` +
-        `Misses: ${stats.misses}, ` +
-        `Hit Rate: ${(stats.hitRate * 100).toFixed(2)}%, ` +
-        `Avg Get Time: ${stats.averageGetTime.toFixed(2)}ms, ` +
-        `Avg Set Time: ${stats.averageSetTime.toFixed(2)}ms`
+          `Hits: ${stats.hits}, ` +
+          `Misses: ${stats.misses}, ` +
+          `Hit Rate: ${(stats.hitRate * 100).toFixed(2)}%, ` +
+          `Avg Get Time: ${stats.averageGetTime.toFixed(2)}ms, ` +
+          `Avg Set Time: ${stats.averageSetTime.toFixed(2)}ms`,
       );
     }
 
-    const totalHitRate = totalStats.requests > 0
-      ? (totalStats.hits / totalStats.requests) * 100
-      : 0;
+    const totalHitRate =
+      totalStats.requests > 0
+        ? (totalStats.hits / totalStats.requests) * 100
+        : 0;
 
     this.logger.log(
       `[Cache] Overall: ` +
-      `Hits: ${totalStats.hits}, ` +
-      `Misses: ${totalStats.misses}, ` +
-      `Hit Rate: ${totalHitRate.toFixed(2)}%, ` +
-      `Requests: ${totalStats.requests}, ` +
-      `Stores: ${totalStats.stores}, ` +
-      `Deletes: ${totalStats.deletes}`
+        `Hits: ${totalStats.hits}, ` +
+        `Misses: ${totalStats.misses}, ` +
+        `Hit Rate: ${totalHitRate.toFixed(2)}%, ` +
+        `Requests: ${totalStats.requests}, ` +
+        `Stores: ${totalStats.stores}, ` +
+        `Deletes: ${totalStats.deletes}`,
     );
   }
 
@@ -306,4 +305,4 @@ export class CacheStatsService {
 
     return result;
   }
-} 
+}

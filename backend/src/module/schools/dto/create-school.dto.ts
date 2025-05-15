@@ -1,19 +1,17 @@
 export class CreateSchoolDto {
-    name: {
-        th: string
-        en: string
-    }
+  name: {
+    th: string;
+    en: string;
+  };
 
-    acronym: string
+  acronym: string;
 
-    detail: {
-        th: string
-        en: string
-    }
+  detail: {
+    th: string;
+    en: string;
+  };
 
-    photo: string
+  photo: string;
 
-    createdAt: Date
-    
-    
+  createdAt: Date;
 }

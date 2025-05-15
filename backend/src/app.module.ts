@@ -19,9 +19,6 @@ import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
 import { CheckinsModule } from './module/checkins/checkins.module';
-import { SerializerInterceptor } from './pkg/interceptors/serializer.interceptor';
-import { SharedMetadataModule } from './pkg/shared/metadata/metadata.module';
-import { SharedEnrichmentModule } from './pkg/shared/enrichment/enrichment.module';
 
 @Module({
   imports: [
@@ -38,20 +35,14 @@ import { SharedEnrichmentModule } from './pkg/shared/enrichment/enrichment.modul
         }),
       ],
     }),
-
-    // Inject Config
     ConfigModule.forRoot({
       load: [configuration],
       isGlobal: true,
     }),
-
-    // Nest Default Caching
     NestCacheModule.registerAsync({
       isGlobal: true,
       useFactory: getCacheConfig,
     }),
-
-    // Mongoose Connnection
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -60,8 +51,6 @@ import { SharedEnrichmentModule } from './pkg/shared/enrichment/enrichment.modul
       inject: [ConfigService],
     }),
     CacheModule,
-    SharedMetadataModule,
-    SharedEnrichmentModule,
     InterceptorsModule,
     UsersModule,
     AuthModule,
@@ -80,10 +69,6 @@ import { SharedEnrichmentModule } from './pkg/shared/enrichment/enrichment.modul
     {
       provide: APP_INTERCEPTOR,
       useClass: HttpCacheInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: SerializerInterceptor,
     },
   ],
 })
