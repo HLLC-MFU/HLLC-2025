@@ -29,7 +29,14 @@ export class MetadataCacheInterceptor implements NestInterceptor {
     next: CallHandler,
   ): Promise<Observable<any>> {
     const request = context.switchToHttp().getRequest();
-    const isMetadataEndpoint = this.isMetadataEndpoint(request.path);
+    const path = request?.url || request?.path;
+    
+    if (!path) {
+      this.logger.warn('No path found in request, skipping cache check');
+      return next.handle();
+    }
+
+    const isMetadataEndpoint = this.isMetadataEndpoint(path);
     
     if (!isMetadataEndpoint) {
       return next.handle();
@@ -92,8 +99,11 @@ export class MetadataCacheInterceptor implements NestInterceptor {
   }
 
   private buildMetadataCacheKey(request: any): string {
-    const { path, query, method } = request;
-    const queryString = Object.keys(query || {})
+    const path = request?.url || request?.path || '';
+    const query = request?.query || {};
+    const method = request?.method || 'GET';
+    
+    const queryString = Object.keys(query)
       .sort()
       .map(key => `${key}=${query[key]}`)
       .join('&');
