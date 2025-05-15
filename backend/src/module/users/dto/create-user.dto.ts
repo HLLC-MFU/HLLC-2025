@@ -5,11 +5,15 @@ import {
   IsObject,
   ValidateNested,
   IsMongoId,
+  IsEmail,
 } from 'class-validator';
 import { Types } from 'mongoose';
 import { Type } from 'class-transformer';
 
-class NameDto {
+/**
+ * User name data transfer object
+ */
+export class NameDto {
   @IsNotEmpty()
   @IsString()
   first: string;
@@ -23,7 +27,11 @@ class NameDto {
   last: string;
 }
 
-class UserMetadataDto {
+/**
+ * User metadata data transfer object
+ * Contains additional information about the user based on their role
+ */
+export class UserMetadataDto {
   @IsOptional()
   @IsMongoId()
   schoolId?: string | Types.ObjectId;
@@ -40,10 +48,14 @@ class UserMetadataDto {
   @IsObject()
   major?: Record<string, any>;
 
-  // อื่นๆ ตามที่ role กำหนด
+  // Additional fields defined by role schema
   [key: string]: any;
 }
 
+/**
+ * Create user data transfer object
+ * Used when creating a new user in the system
+ */
 export class CreateUserDto {
   @ValidateNested()
   @Type(() => NameDto)
@@ -57,7 +69,12 @@ export class CreateUserDto {
   password: string;
 
   @IsNotEmpty()
+  @IsMongoId()
   role: Types.ObjectId | string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 
   @IsOptional()
   @ValidateNested()

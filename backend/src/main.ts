@@ -1,15 +1,11 @@
 // main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as compression from 'compression';
-import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { HttpAdapterHost } from '@nestjs/core';
-// Keep the import but don't use the interceptor temporarily until fixed
-// import { HttpCacheInterceptor } from './pkg/interceptors/cache.interceptor';
+import { SerializerInterceptor } from './pkg/interceptors/serializer.interceptor';
 
 async function bootstrap() {
   // Set development mode for easier debugging
@@ -21,24 +17,44 @@ async function bootstrap() {
 
   // Disable global cache interceptor temporarily
   // const cacheManager = app.get(CACHE_MANAGER);
-  // app.useGlobalInterceptors(new HttpCacheInterceptor(cacheManager, app.get(HttpAdapterHost)));
+  app.useGlobalInterceptors(
+    new SerializerInterceptor()
+    // Disable global cache interceptor temporarily
+    // new HttpCacheInterceptor(cacheManager, app.get(HttpAdapterHost), app.get(Logger))
+  );
 
+// Use Validation Pipe
+app.useGlobalPipes(
+  new ValidationPipe({ whitelist: true, transform: true })
+);
+
+  // Set Global Prefix
   app.setGlobalPrefix('api');
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
+
+
+  // Use Helmet
   app.use(helmet());
+
+  // Use Compression
   app.use(compression());
+
+  // Enable CORS
   app.enableCors();
 
+  // Config Swagger
   const config = new DocumentBuilder()
     .setTitle('HLLC API Documentation')
     .setDescription('API Documentation for the application')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
-  
+
+  // Create Swagger document
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
+  // Start the server
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`🚀 Application is running on: http://localhost:${port}`);

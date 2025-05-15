@@ -1,27 +1,58 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, HttpCode } from '@nestjs/common';
-
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Body, 
+  Patch, 
+  Param, 
+  Delete, 
+  Query, 
+  UseGuards, 
+  HttpCode,
+  UseInterceptors
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { SerializerInterceptor } from '../../pkg/interceptors/serializer.interceptor';
+import { BulkUploadUsersDto } from './dto/bulk-upload-users.dto';
+import { RemoveMultipleDto } from './dto/remove-multiple.dto';
+
+/**
+ * Users Controller
+ * 
+ * Handles all user-related HTTP endpoints including:
+ * - User account management
+ * - User data retrieval
+ * - Bulk operations
+ * - Password management
+ */
 @UseGuards(PermissionsGuard)
 @Controller('users')
+@UseInterceptors(SerializerInterceptor)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  /**
+   * Create a new user
+   */
   @Post()
   @Public()
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
+  /**
+   * Get all users with optional filtering and pagination
+   * 
+   * @param query Filter, pagination, and exclusion parameters
+   */
   @Get()
   @Permissions('users:read')
-  async findAll(
-    @Query() query: Record<string, any>
-  ) {
+  async findAll(@Query() query: Record<string, any>) {
     const { page = 1, limit, excluded = '', ...filters } = query;
     const excludedList = excluded.split(',').filter(Boolean);
     const parsedLimit = limit !== undefined ? +limit : undefined;
@@ -30,18 +61,27 @@ export class UsersController {
     return this.usersService.findAll(filters, parsedPage, parsedLimit, excludedList);
   }
 
+  /**
+   * Find a user by their ID
+   */
   @Get(':id')
   @Permissions('users:read:id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
+  /**
+   * Update a user's information
+   */
   @Patch(':id')
   @Permissions('users:update:id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
+  /**
+   * Delete a user by ID
+   */
   @Delete(':id')
   @Permissions('users:delete:id')
   remove(@Param('id') id: string) {
@@ -63,16 +103,7 @@ export class UsersController {
    */
   @Post('upload')
   @Permissions('users:create')
-  uploadUsers(@Body() uploadData: {
-    users: Array<{
-      name: { first: string; last: string };
-      studentId: string;
-      major?: string;
-    }>;
-    major?: string;
-    role: string;
-    metadata?: Record<string, any>;
-  }) {
+  uploadUsers(@Body() uploadData: BulkUploadUsersDto) {
     return this.usersService.uploadUsers(uploadData);
   }
 
@@ -100,7 +131,7 @@ export class UsersController {
   @Post('remove-multiple')
   @HttpCode(200)
   @Permissions('users:delete')
-  removeMultiple(@Body() data: { ids: string[] }) {
+  removeMultiple(@Body() data: RemoveMultipleDto) {
     return this.usersService.removeMultiple(data.ids);
   }
 }

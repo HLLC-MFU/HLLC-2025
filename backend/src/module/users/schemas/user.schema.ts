@@ -4,13 +4,16 @@ import { HydratedDocument, Types } from "mongoose";
 
 export type UserDocument = HydratedDocument<User>;
 
+/**
+ * User schema for MongoDB
+ * Contains core user information and references to related data
+ */
 @Schema({ timestamps: true })
 export class User {
     @Prop({ required: true, type: {
         first: { type: String, required: true, unique: false },
         middle: { type: String, required: false, unique: false },
         last: { type: String, required: false, unique: false }
-
     } })
     name: {
         first: string
@@ -23,6 +26,9 @@ export class User {
 
     @Prop({})
     password: string
+
+    @Prop({ required: false, unique: true, sparse: true })
+    email?: string
 
     @Prop({ required: true, type: Types.ObjectId, ref: 'Role' })
     role: Types.ObjectId
@@ -46,7 +52,15 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+// Indexes for better query performance
+UserSchema.index({ username: 1 }, { unique: true });
+UserSchema.index({ email: 1 }, { unique: true, sparse: true });
 UserSchema.index({ updatedAt: -1 });
+UserSchema.index({ "metadata.schoolId": 1 });
+UserSchema.index({ "metadata.majorId": 1 });
+
+// Hash password before saving
 UserSchema.pre('save', async function (next) {
     if (this.isModified('password')) {
         this.password = await bcrypt.hash(this.password, 10);

@@ -7,13 +7,16 @@ import {
   Param,
   Delete,
   Put,
+  UseInterceptors,
 } from '@nestjs/common';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
+import { SerializerInterceptor } from '../../pkg/interceptors/serializer.interceptor';
 
 @Controller('roles') // แนะนำใช้พหูพจน์
+@UseInterceptors(SerializerInterceptor)
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 

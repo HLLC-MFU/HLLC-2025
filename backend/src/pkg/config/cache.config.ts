@@ -2,7 +2,7 @@
 import { registerAs } from '@nestjs/config';
 import * as Joi from 'joi';
 import { CacheModuleOptions, CacheStoreFactory } from '@nestjs/cache-manager';
-import { redisStore, RedisStore } from 'cache-manager-redis-store';
+import { redisStore } from 'cache-manager-redis-store';
 
 export const cacheConfig = registerAs('cache', () => ({
   host: process.env.REDIS_HOST || 'localhost',
