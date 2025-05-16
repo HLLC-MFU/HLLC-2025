@@ -137,11 +137,34 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 		}
 
 		filteredMessage := utils.FilterProfanity(messageText)
+
+		mentions := extractMentions(filteredMessage)
+
 		model.BroadcastMessage(model.BroadcastObject{
 			MSG:  filteredMessage,
 			FROM: client,
 		})
+
+		for _, mention := range mentions {
+			h.broadcastEvent(roomIdStr, "mention", map[string]string{
+				"mentioned": mention,
+				"from":      userID,
+				"message":   filteredMessage,
+			})
+		}
+
 	}
+}
+
+func extractMentions(message string) []string {
+	words := strings.Fields(message)
+	var mentions []string
+	for _, word := range words {
+		if strings.HasPrefix(word, "@") && len(word) > 1 {
+			mentions = append(mentions, strings.TrimPrefix(word, "@"))
+		}
+	}
+	return mentions
 }
 
 func (h *HTTPHandler) broadcastTypingEvent(roomID string, event TypingEvent) {
@@ -163,7 +186,11 @@ func (h *HTTPHandler) broadcastEvent(roomID, eventType string, data interface{})
 	var userID string
 	switch v := data.(type) {
 	case map[string]string:
-		userID = v["userId"]
+		if uid, ok := v["userId"]; ok {
+			userID = uid
+		} else if from, ok := v["from"]; ok {
+			userID = from
+		}
 	case TypingEvent:
 		userID = v.UserID
 	case model.BroadcastObject:

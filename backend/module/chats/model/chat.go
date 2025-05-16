@@ -23,6 +23,7 @@ type ChatMessage struct {
 	RoomID    string             `bson:"room_id" json:"room_id"`
 	UserID    string             `bson:"user_id" json:"user_id"`
 	Message   string             `bson:"message" json:"message"`
+	Mentions  []string           `bson:"mentions,omitempty"`
 	Timestamp time.Time          `bson:"timestamp" json:"timestamp"`
 }
 

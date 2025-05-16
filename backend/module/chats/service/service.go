@@ -8,6 +8,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 	"github.com/gofiber/websocket/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -61,6 +62,8 @@ func (s *service) InitChatHub() {
 			case message := <-model.Broadcast:
 				log.Printf("[BROADCAST] Message from %s in room %s: %s", message.FROM.UserID, message.FROM.RoomID, message.MSG)
 
+				mentions := utils.ExtractMentions(message.MSG)
+
 				// ✅ สำคัญ!! เติม "chat-room-" ตอนส่ง Kafka
 				err := s.publisher.SendMessage(message.FROM.RoomID, message.FROM.UserID, message.MSG)
 				if err != nil {
@@ -72,6 +75,7 @@ func (s *service) InitChatHub() {
 					RoomID:    message.FROM.RoomID,
 					UserID:    message.FROM.UserID,
 					Message:   message.MSG,
+					Mentions:  mentions,
 					Timestamp: time.Now(),
 				})
 				if saveErr != nil {
