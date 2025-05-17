@@ -88,6 +88,8 @@ func (s *server) chatService() {
 		return c.SendString("OK")
 	})
 
+	s.app.Static("/files", "./uploads")
+
 	httpHandler.RegisterRoutes(protected)
 
 	s.app.Get("/ping", func(c *fiber.Ctx) error {

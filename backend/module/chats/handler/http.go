@@ -3,7 +3,9 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -212,7 +214,6 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 	}
 }
 
-
 func extractMentions(message string) []string {
 	words := strings.Fields(message)
 	var mentions []string
@@ -245,7 +246,11 @@ func (h *HTTPHandler) broadcastEvent(roomID, eventType string, data interface{})
 	case MentionPayload:
 		userID = v.From
 	case map[string]string:
-		userID = v["from"]
+		if uid, ok := v["userId"]; ok {
+			userID = uid
+		} else if from, ok := v["from"]; ok {
+			userID = from
+		}
 	case TypingEvent:
 		userID = v.UserID
 	case model.BroadcastObject:
@@ -300,6 +305,69 @@ func (h *HTTPHandler) SendMessageReaction(roomID, userID, messageID, reaction st
 	h.broadcastEvent(roomID, "message_reaction", messageReaction)
 }
 
+func (h *HTTPHandler) UploadFile(c *fiber.Ctx) error {
+	roomId := c.FormValue("roomId")
+	userId := c.FormValue("userId")
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "file is required"})
+	}
+
+	// Validate allowed types (image/pdf/etc.)
+	ext := filepath.Ext(file.Filename)
+	allowed := map[string]string{
+		".jpg":  "image",
+		".jpeg": "image",
+		".png":  "image",
+		".pdf":  "pdf",
+	}
+	fileType, ok := allowed[strings.ToLower(ext)]
+	if !ok {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "unsupported file type"})
+	}
+
+	// Save file
+	savePath := fmt.Sprintf("./uploads/%s_%s", time.Now().Format("20060102150405"), file.Filename)
+	if err := c.SaveFile(file, savePath); err != nil {
+		log.Printf("[UPLOAD ERROR] Failed to save file: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "upload failed"})
+	}
+
+	// Save message with file reference
+	msg := &model.ChatMessage{
+		RoomID:    roomId,
+		UserID:    userId,
+		FileURL:   savePath,
+		FileName:  file.Filename,
+		FileType:  fileType,
+		Timestamp: time.Now(),
+	}
+
+	if err := h.service.SaveChatMessage(c.Context(), msg); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save message"})
+	}
+
+	// ✅ Broadcast to all clients in the room
+	model.BroadcastMessage(model.BroadcastObject{
+		MSG: fmt.Sprintf("[file] %s", msg.FileName),
+		FROM: model.ClientObject{
+			RoomID: msg.RoomID,
+			UserID: msg.UserID,
+		},
+	})
+
+	// ✅ Optional: send rich event payload
+	h.broadcastEvent(roomId, "file", map[string]string{
+		"userId":   userId,
+		"fileName": msg.FileName,
+		"fileURL":  msg.FileURL,
+		"fileType": msg.FileType,
+	})
+
+	return c.Status(fiber.StatusOK).JSON(msg)
+}
+
 type HTTPHandler struct {
 	service       service.Service
 	memberService service.MemberService
@@ -328,6 +396,7 @@ func (h *HTTPHandler) RegisterRoutes(router fiber.Router) {
 	router.Get("/", h.ListRooms)
 	router.Put("/:id", h.UpdateRoom)
 	router.Delete("/:id", h.DeleteRoom)
+	router.Post("/upload", h.UploadFile)
 
 	// ✅ Member Management
 	router.Get("/:roomId/members", h.GetRoomMembers)
