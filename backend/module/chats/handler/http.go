@@ -25,9 +25,16 @@ type TypingEvent struct {
 	Typing bool   `json:"typing"`
 }
 
+type MentionPayload struct {
+	Mentioned string `json:"mentioned"`
+	From      string `json:"from"`
+	Message   string `json:"message"`
+}
+
 func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, roomID string) {
 	log.Println("[WS Handler] Entered WebSocket handler")
-	log.Println("userID:", userID, "username:", username, "role:", "roomID:", roomID)
+	log.Println("userID:", userID, "username:", username, "roomID:", roomID)
+
 	roomIdStr := conn.Params("roomId")
 	if roomIdStr == "" || userID == "" {
 		log.Println("[WS] Missing roomId or userId")
@@ -37,8 +44,6 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 	}
 
 	ctx := context.Background()
-
-	// ✅ เปลี่ยนชื่อเป็น roomObjID เพื่อหลีกเลี่ยงชนกับ string roomID
 	roomObjID, err := primitive.ObjectIDFromHex(roomIdStr)
 	if err != nil {
 		conn.WriteMessage(websocket.TextMessage, []byte("Invalid room ID"))
@@ -94,11 +99,13 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 
 		messageText := strings.TrimSpace(string(msg))
 
+		// Typing Event
 		if strings.HasPrefix(messageText, "/typing") {
 			if time.Since(typingTimers[userID]) > typingTimeout {
 				typingEvent := TypingEvent{UserID: userID, RoomID: roomIdStr, Typing: true}
 				h.broadcastTypingEvent(roomIdStr, typingEvent)
 				typingTimers[userID] = time.Now()
+
 				go func(userID, roomIdStr string) {
 					time.Sleep(typingTimeout)
 					h.broadcastTypingEvent(roomIdStr, TypingEvent{UserID: userID, RoomID: roomIdStr, Typing: false})
@@ -107,6 +114,7 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			continue
 		}
 
+		// Read receipt
 		if strings.HasPrefix(messageText, "/read") {
 			parts := strings.Split(messageText, " ")
 			if len(parts) == 2 {
@@ -116,6 +124,7 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			}
 		}
 
+		// Reactions
 		if strings.HasPrefix(messageText, "/react") {
 			parts := strings.Split(messageText, " ")
 			if len(parts) == 3 {
@@ -126,6 +135,7 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			}
 		}
 
+		// Leave command
 		if messageText == "/leave" {
 			if err := h.memberService.RemoveUserFromRoom(ctx, roomObjID, userID); err != nil {
 				log.Printf("[ERROR] Failed to remove user %s from room %s: %v", userID, roomIdStr, err)
@@ -136,8 +146,8 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			return
 		}
 
+		// Normal message
 		filteredMessage := utils.FilterProfanity(messageText)
-
 		mentions := extractMentions(filteredMessage)
 
 		model.BroadcastMessage(model.BroadcastObject{
@@ -145,14 +155,14 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			FROM: client,
 		})
 
+		// Broadcast each mention
 		for _, mention := range mentions {
-			h.broadcastEvent(roomIdStr, "mention", map[string]string{
-				"mentioned": mention,
-				"from":      userID,
-				"message":   filteredMessage,
+			h.broadcastEvent(roomIdStr, "mention", MentionPayload{
+				Mentioned: mention,
+				From:      userID,
+				Message:   filteredMessage,
 			})
 		}
-
 	}
 }
 
@@ -185,12 +195,10 @@ func (h *HTTPHandler) broadcastEvent(roomID, eventType string, data interface{})
 	// Extract the userId from the data if available
 	var userID string
 	switch v := data.(type) {
+	case MentionPayload:
+		userID = v.From
 	case map[string]string:
-		if uid, ok := v["userId"]; ok {
-			userID = uid
-		} else if from, ok := v["from"]; ok {
-			userID = from
-		}
+		userID = v["from"]
 	case TypingEvent:
 		userID = v.UserID
 	case model.BroadcastObject:
