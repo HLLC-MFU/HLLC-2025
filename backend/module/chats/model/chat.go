@@ -19,12 +19,13 @@ type Room struct {
 var _ = coreModel.Collection("rooms")
 
 type ChatMessage struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	RoomID    string             `bson:"room_id" json:"room_id"`
-	UserID    string             `bson:"user_id" json:"user_id"`
-	Message   string             `bson:"message" json:"message"`
-	Mentions  []string           `bson:"mentions,omitempty"`
-	Timestamp time.Time          `bson:"timestamp" json:"timestamp"`
+	ID        primitive.ObjectID  `bson:"_id,omitempty" json:"id"`
+	RoomID    string              `bson:"room_id" json:"room_id"`
+	UserID    string              `bson:"user_id" json:"user_id"`
+	Message   string              `bson:"message" json:"message"`
+	Mentions  []string            `bson:"mentions,omitempty"`
+	ReplyToID *primitive.ObjectID `bson:"reply_to_id,omitempty" json:"reply_to_id,omitempty"`
+	Timestamp time.Time           `bson:"timestamp" json:"timestamp"`
 }
 
 var _ = coreModel.Collection("chat_messages")

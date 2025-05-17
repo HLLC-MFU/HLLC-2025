@@ -99,6 +99,44 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 
 		messageText := strings.TrimSpace(string(msg))
 
+		// Reply Message Handler
+		if strings.HasPrefix(messageText, "/reply") {
+			parts := strings.SplitN(messageText, " ", 3)
+			if len(parts) < 3 {
+				conn.WriteMessage(websocket.TextMessage, []byte("Invalid reply format. Use: /reply <messageId> <message>"))
+				continue
+			}
+
+			replyToIDHex := parts[1]
+			messageBody := parts[2]
+
+			replyToID, err := primitive.ObjectIDFromHex(replyToIDHex)
+			if err != nil {
+				conn.WriteMessage(websocket.TextMessage, []byte("Invalid message ID for reply"))
+				continue
+			}
+
+			filteredMessage := utils.FilterProfanity(messageBody)
+			mentions := extractMentions(filteredMessage)
+
+			model.BroadcastMessage(model.BroadcastObject{
+				MSG:  filteredMessage,
+				FROM: client,
+			})
+
+			_ = h.service.SaveChatMessage(ctx, &model.ChatMessage{
+				RoomID:    roomIdStr,
+				UserID:    userID,
+				Message:   filteredMessage,
+				Mentions:  mentions,
+				ReplyToID: &replyToID,
+				Timestamp: time.Now(),
+			})
+
+			// Optional: You can also broadcast a `reply` event
+			continue
+		}
+
 		// Typing Event
 		if strings.HasPrefix(messageText, "/typing") {
 			if time.Since(typingTimers[userID]) > typingTimeout {
@@ -155,7 +193,6 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			FROM: client,
 		})
 
-		// Broadcast each mention
 		for _, mention := range mentions {
 			h.broadcastEvent(roomIdStr, "mention", MentionPayload{
 				Mentioned: mention,
@@ -163,8 +200,18 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 				Message:   filteredMessage,
 			})
 		}
+
+		// Save normal message
+		_ = h.service.SaveChatMessage(ctx, &model.ChatMessage{
+			RoomID:    roomIdStr,
+			UserID:    userID,
+			Message:   filteredMessage,
+			Mentions:  mentions,
+			Timestamp: time.Now(),
+		})
 	}
 }
+
 
 func extractMentions(message string) []string {
 	words := strings.Fields(message)
