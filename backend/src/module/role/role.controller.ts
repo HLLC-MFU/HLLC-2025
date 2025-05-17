@@ -46,7 +46,7 @@ export class RoleController {
   @Put(':id/metadata-schema')
   updateMetadataSchema(
     @Param('id') id: string,
-    @Body() dto: UpdateMetadataSchemaDto
+    @Body() dto: UpdateMetadataSchemaDto,
   ) {
     return this.roleService.updateMetadataSchema(id, dto);
   }

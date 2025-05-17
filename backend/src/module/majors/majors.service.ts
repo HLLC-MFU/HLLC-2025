@@ -9,7 +9,7 @@ import { MajorDocument } from './schemas/major.schema';
 @Injectable()
 export class MajorsService {
   constructor(
-    @InjectModel(Major.name) private majorModel: Model<MajorDocument>
+    @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
   ) {}
 
   async create(createMajorDto: CreateMajorDto) {
@@ -25,7 +25,10 @@ export class MajorsService {
   }
 
   update(id: string, updateMajorDto: UpdateMajorDto) {
-    return this.majorModel.findByIdAndUpdate(id, updateMajorDto, { new: true }).populate('school').lean();
+    return this.majorModel
+      .findByIdAndUpdate(id, updateMajorDto, { new: true })
+      .populate('school')
+      .lean();
   }
 
   remove(id: string) {

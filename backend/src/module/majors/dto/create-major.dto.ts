@@ -1,19 +1,19 @@
-import { Types } from "mongoose";
+import { Types } from 'mongoose';
 
 export class CreateMajorDto {
-    name: {
-        th: string
-        en: string
-    }
+  name: {
+    th: string;
+    en: string;
+  };
 
-    acronym: string
+  acronym: string;
 
-    detail: {
-        th: string
-        en: string
-    }
+  detail: {
+    th: string;
+    en: string;
+  };
 
-    school: Types.ObjectId | string
+  school: Types.ObjectId | string;
 
-    createdAt: Date
+  createdAt: Date;
 }

@@ -40,7 +40,7 @@ export class CacheService {
   async set<T extends SafeCacheValue = SafeCacheValue>(
     key: string,
     value: T,
-    ttl = 600000000,
+    ttl = this.l1TTL,
   ): Promise<void> {
     this.l1.set(key, { value, expireAt: Date.now() + this.l1TTL });
     await this.l2.set(key, value, ttl);

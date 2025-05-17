@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { MajorsService } from './majors.service';
 import { CreateMajorDto } from './dto/create-major.dto';
 import { UpdateMajorDto } from './dto/update-major.dto';
@@ -9,7 +17,7 @@ export class MajorsController {
 
   @Post()
   create(@Body() createMajorDto: CreateMajorDto) {
-    createMajorDto.createdAt = new Date()
+    createMajorDto.createdAt = new Date();
     return this.majorsService.create(createMajorDto);
   }
 
@@ -25,7 +33,7 @@ export class MajorsController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateMajorDto: UpdateMajorDto) {
-    updateMajorDto.updatedAt = new Date()
+    updateMajorDto.updatedAt = new Date();
     return this.majorsService.update(id, updateMajorDto);
   }
 

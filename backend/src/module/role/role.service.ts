@@ -14,14 +14,17 @@ import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
 @Injectable()
 export class RoleService {
   constructor(
-    @InjectModel(Role.name) private readonly roleModel: Model<RoleDocument>
+    @InjectModel(Role.name) private readonly roleModel: Model<RoleDocument>,
   ) {}
 
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
-    await throwIfExists(this.roleModel, { name: createRoleDto.name }, 'Role name already exists');
+    await throwIfExists(
+      this.roleModel,
+      { name: createRoleDto.name },
+      'Role name already exists',
+    );
     return this.roleModel.create(createRoleDto);
   }
-  
 
   async findAll(): Promise<Role[]> {
     return this.roleModel.find().lean();
@@ -44,7 +47,7 @@ export class RoleService {
 
   async updateMetadataSchema(
     id: string,
-    dto: UpdateMetadataSchemaDto
+    dto: UpdateMetadataSchemaDto,
   ): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
     role.metadataSchema = dto.metadataSchema;
