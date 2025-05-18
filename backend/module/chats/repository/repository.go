@@ -28,6 +28,8 @@ type Repository interface {
 	SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error
 
 	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error)
+
+	Save(ctx context.Context, msg *model.ChatMessage) (primitive.ObjectID, error)
 }
 
 type repository struct {
@@ -146,4 +148,12 @@ func (r *repository) GetChatHistoryByRoom(ctx context.Context, roomID string, li
 	}
 
 	return messages, nil
+}
+
+func (r *repository) Save(ctx context.Context, msg *model.ChatMessage) (primitive.ObjectID, error) {
+	res, err := r.dbConnect(ctx).Collection("chat_messages").InsertOne(ctx, msg)
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
+	return res.InsertedID.(primitive.ObjectID), nil
 }

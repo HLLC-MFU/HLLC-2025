@@ -12,6 +12,8 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 
 	// "github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
+	stickerRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/repository"
+	stickerService "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	websocket "github.com/gofiber/websocket/v2"
@@ -31,6 +33,8 @@ func (s *server) chatService() {
 	roomService := service.NewService(repo, publisher)
 	memberRepo := repository.NewRoomMemberRepository(s.db)
 	memberService := service.NewMemberService(memberRepo)
+	stickerRepo := stickerRepo.NewStickerRepository(s.db)
+	stickerService := stickerService.NewStickerService(stickerRepo)
 	roomService.SyncRoomMembers()
 	roomService.InitChatHub()
 
@@ -41,7 +45,7 @@ func (s *server) chatService() {
 		roomService,
 	)
 
-	httpHandler := handler.NewHTTPHandler(roomService, memberService, publisher)
+	httpHandler := handler.NewHTTPHandler(roomService, memberService, publisher, stickerService)
 
 	s.app.Use(cors.New(cors.Config{
 		AllowCredentials: true,
@@ -76,6 +80,7 @@ func (s *server) chatService() {
 	protected.Post("/", httpHandler.CreateRoom)
 	protected.Put(":id", httpHandler.UpdateRoom)
 	protected.Delete(":id", httpHandler.DeleteRoom)
+	protected.Post("/rooms/:roomId/send-sticker", httpHandler.SendSticker)
 	protected.Post(":roomId/:userId/join", httpHandler.JoinRoom)
 	protected.Post(":roomId/:userId/leave", httpHandler.LeaveRoom)
 

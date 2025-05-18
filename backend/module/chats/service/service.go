@@ -173,7 +173,12 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 }
 
 func (s *service) SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error {
-	return s.repo.SaveChatMessage(ctx, msg)
+	id, err := s.repo.Save(ctx, msg)
+	if err != nil {
+		return err
+	}
+	msg.ID = id // 🔥 Save back to `msg` for response
+	return nil
 }
 
 // Sync Redis members to in-memory map on startup

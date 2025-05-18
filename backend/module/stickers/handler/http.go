@@ -13,10 +13,10 @@ import (
 )
 
 type HTTPHandler struct {
-	service service.Service
+	service service.StickerService
 }
 
-func NewHTTPHandler(service service.Service) *HTTPHandler {
+func NewHTTPHandler(service service.StickerService) *HTTPHandler {
 	return &HTTPHandler{
 		service: service,
 	}

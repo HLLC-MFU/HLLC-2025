@@ -29,6 +29,8 @@ type ChatMessage struct {
 	FileType  string              `bson:"file_type,omitempty" json:"file_type,omitempty"`
 	FileName  string              `bson:"file_name,omitempty" json:"file_name,omitempty"`
 	Timestamp time.Time           `bson:"timestamp" json:"timestamp"`
+	StickerID *primitive.ObjectID `bson:"sticker_id,omitempty" json:"stickerId,omitempty"`
+	Image     string              `bson:"image,omitempty" json:"image,omitempty"`
 }
 
 var _ = coreModel.Collection("chat_messages")

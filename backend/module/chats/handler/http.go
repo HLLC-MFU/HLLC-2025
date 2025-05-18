@@ -15,6 +15,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils"
+	stickerService "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
 	coreModel "github.com/HLLC-MFU/HLLC-2025/backend/pkg/core/model"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
@@ -369,16 +370,18 @@ func (h *HTTPHandler) UploadFile(c *fiber.Ctx) error {
 }
 
 type HTTPHandler struct {
-	service       service.Service
-	memberService service.MemberService
-	publisher     kafka.Publisher
+	service        service.Service
+	memberService  service.MemberService
+	publisher      kafka.Publisher
+	stickerService stickerService.StickerService
 }
 
-func NewHTTPHandler(service service.Service, memberService service.MemberService, publisher kafka.Publisher) *HTTPHandler {
+func NewHTTPHandler(service service.Service, memberService service.MemberService, publisher kafka.Publisher, stickerService stickerService.StickerService) *HTTPHandler {
 	return &HTTPHandler{
-		service:       service,
-		memberService: memberService,
-		publisher:     publisher,
+		service:        service,
+		memberService:  memberService,
+		publisher:      publisher,
+		stickerService: stickerService,
 	}
 }
 
@@ -397,11 +400,53 @@ func (h *HTTPHandler) RegisterRoutes(router fiber.Router) {
 	router.Put("/:id", h.UpdateRoom)
 	router.Delete("/:id", h.DeleteRoom)
 	router.Post("/upload", h.UploadFile)
+	router.Post("/:roomId/stickers", h.SendSticker)
 
 	// ✅ Member Management
 	router.Get("/:roomId/members", h.GetRoomMembers)
 	router.Post("/:roomId/:userId/join", h.JoinRoom)
 	router.Post("/:roomId/:userId/leave", h.LeaveRoom)
+}
+
+func (h *HTTPHandler) SendSticker(c *fiber.Ctx) error {
+	roomIdStr := c.Params("roomId")
+	userID := c.Query("userId")
+
+	stickerID := c.Query("stickerId")
+	if stickerID == "" || userID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "stickerId and userId are required"})
+	}
+
+	stickerObjID, err := primitive.ObjectIDFromHex(stickerID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid sticker ID"})
+	}
+
+	sticker, err := h.stickerService.GetSticker(c.Context(), stickerObjID)
+	if err != nil || sticker == nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "sticker not found"})
+	}
+
+	// ✅ Save to chat DB
+	msg := &model.ChatMessage{
+		RoomID:    roomIdStr,
+		UserID:    userID,
+		StickerID: &sticker.ID,
+		Image:     sticker.Image,
+		Timestamp: time.Now(),
+	}
+	if err := h.service.SaveChatMessage(c.Context(), msg); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save sticker message"})
+	}
+
+	// ✅ Only broadcast once using structured event
+	h.broadcastEvent(roomIdStr, "sticker", map[string]string{
+		"userId":    userID,
+		"sticker":   sticker.Image,
+		"stickerId": sticker.ID.Hex(),
+	})
+
+	return c.JSON(msg)
 }
 
 // ✅ เมื่อสร้างห้อง เพิ่มผู้สร้างเป็นสมาชิกห้อง

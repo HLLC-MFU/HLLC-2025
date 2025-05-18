@@ -16,7 +16,7 @@ func NewError(text string) error {
 	return Error(text)
 }
 
-type Service interface {
+type StickerService interface {
 	CreateSticker(ctx context.Context, sticker *model.Sticker) error
 	GetSticker(ctx context.Context, id primitive.ObjectID) (*model.Sticker, error)
 	ListStickers(ctx context.Context, page, limit int64) ([]*model.Sticker, int64, error)
@@ -28,7 +28,7 @@ type service struct {
 	repo repository.Repository
 }
 
-func NewService(repo repository.Repository) Service {
+func NewStickerService(repo repository.Repository) StickerService {
 	return &service{
 		repo: repo,
 	}

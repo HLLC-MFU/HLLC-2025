@@ -23,7 +23,7 @@ type repository struct {
 	db *mongo.Client
 }
 
-func NewRepository(db *mongo.Client) Repository {
+func NewStickerRepository(db *mongo.Client) Repository {
 	return &repository{db: db}
 }
 

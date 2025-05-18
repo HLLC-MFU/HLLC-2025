@@ -11,8 +11,8 @@ import (
 )
 
 func (s *server) stickerService() {
-	repo := repository.NewRepository(s.db)
-	stickerService := service.NewService(repo)
+	repo := repository.NewStickerRepository(s.db)
+	stickerService := service.NewStickerService(repo)
 
 	httpHandler := handler.NewHTTPHandler(stickerService)
 
