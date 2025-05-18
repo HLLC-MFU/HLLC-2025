@@ -78,7 +78,12 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 	history, err := h.service.GetChatHistoryByRoom(ctx, roomIdStr, 50)
 	if err == nil && len(history) > 0 {
 		for _, msg := range history {
-			_ = conn.WriteMessage(websocket.TextMessage, []byte(msg.UserID+": "+msg.Message))
+			event := ChatEvent{
+				EventType: "history",
+				Payload:   msg,
+			}
+			eventJSON, _ := json.Marshal(event)
+			_ = conn.WriteMessage(websocket.TextMessage, eventJSON)
 		}
 	}
 
@@ -122,21 +127,26 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			filteredMessage := utils.FilterProfanity(messageBody)
 			mentions := extractMentions(filteredMessage)
 
+			// ✅ สร้าง structured event
+			replyPayload := map[string]interface{}{
+				"userId":    userID,
+				"message":   filteredMessage,
+				"replyToId": replyToID.Hex(),
+				"mentions":  mentions,
+			}
+
+			event := ChatEvent{
+				EventType: "reply",
+				Payload:   replyPayload,
+			}
+
+			eventJSON, _ := json.Marshal(event)
+
 			model.BroadcastMessage(model.BroadcastObject{
-				MSG:  filteredMessage,
+				MSG:  string(eventJSON),
 				FROM: client,
 			})
 
-			_ = h.service.SaveChatMessage(ctx, &model.ChatMessage{
-				RoomID:    roomIdStr,
-				UserID:    userID,
-				Message:   filteredMessage,
-				Mentions:  mentions,
-				ReplyToID: &replyToID,
-				Timestamp: time.Now(),
-			})
-
-			// Optional: You can also broadcast a `reply` event
 			continue
 		}
 
@@ -160,6 +170,16 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			parts := strings.Split(messageText, " ")
 			if len(parts) == 2 {
 				messageID := parts[1]
+
+				// Save to DB
+				msgID, _ := primitive.ObjectIDFromHex(messageID)
+				_ = h.service.SaveReadReceipt(ctx, &model.MessageReadReceipt{
+					MessageID: msgID,
+					UserID:    userID,
+					Timestamp: time.Now(),
+				})
+
+				// Broadcast
 				h.SendReadReceipt(roomIdStr, userID, messageID)
 				continue
 			}
@@ -171,6 +191,17 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			if len(parts) == 3 {
 				messageID := parts[1]
 				reaction := parts[2]
+
+				// Save to DB
+				msgID, _ := primitive.ObjectIDFromHex(messageID)
+				_ = h.service.SaveReaction(ctx, &model.MessageReaction{
+					MessageID: msgID,
+					UserID:    userID,
+					Reaction:  reaction,
+					Timestamp: time.Now(),
+				})
+
+				// Broadcast
 				h.SendMessageReaction(roomIdStr, userID, messageID, reaction)
 				continue
 			}
@@ -203,15 +234,6 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 				Message:   filteredMessage,
 			})
 		}
-
-		// Save normal message
-		_ = h.service.SaveChatMessage(ctx, &model.ChatMessage{
-			RoomID:    roomIdStr,
-			UserID:    userID,
-			Message:   filteredMessage,
-			Mentions:  mentions,
-			Timestamp: time.Now(),
-		})
 	}
 }
 
@@ -241,7 +263,6 @@ func (h *HTTPHandler) broadcastEvent(roomID, eventType string, data interface{})
 		Payload:   data,
 	}
 
-	// Extract the userId from the data if available
 	var userID string
 	switch v := data.(type) {
 	case MentionPayload:
@@ -272,15 +293,33 @@ func (h *HTTPHandler) broadcastEvent(roomID, eventType string, data interface{})
 		return
 	}
 
-	model.BroadcastMessage(model.BroadcastObject{
-		MSG: string(eventJSON),
-		FROM: model.ClientObject{
-			RoomID: roomID,
-			UserID: userID,
-		},
-	})
+	// Send to all clients with optional sender inclusion
+	for uid, conn := range model.Clients[roomID] {
+		if conn == nil {
+			continue
+		}
 
-	log.Printf("[BROADCAST] Message from %s in room %s: %s", userID, roomID, string(eventJSON))
+		// Logic to skip self for typing/read/text, but allow for sticker/file
+		skipSelf := map[string]bool{
+			"typing":           true,
+			"read_receipt":     true,
+			"message_reaction": true,
+			"text":             true, // custom if needed
+		}
+
+		if uid == userID && skipSelf[eventType] {
+			continue
+		}
+
+		err := conn.WriteMessage(websocket.TextMessage, eventJSON)
+		if err != nil {
+			log.Printf("[WS ERROR] Failed to send %s to user %s: %v", eventType, uid, err)
+			conn.Close()
+			delete(model.Clients[roomID], uid)
+		}
+	}
+
+	log.Printf("[BROADCAST] Event %s from %s in room %s", eventType, userID, roomID)
 }
 
 func (h *HTTPHandler) SendReadReceipt(roomID, userID, messageID string) {

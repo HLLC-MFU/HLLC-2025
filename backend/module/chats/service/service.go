@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
@@ -29,8 +30,10 @@ type Service interface {
 	UpdateRoom(ctx context.Context, room *model.Room) error
 	DeleteRoom(ctx context.Context, id primitive.ObjectID) error
 	InitChatHub()
-	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error)
+	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error)
 	SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error
+	SaveReaction(ctx context.Context, reaction *model.MessageReaction) error
+	SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error
 	SyncRoomMembers()
 }
 
@@ -64,33 +67,43 @@ func (s *service) InitChatHub() {
 
 				mentions := utils.ExtractMentions(message.MSG)
 
-				// ✅ สำคัญ!! เติม "chat-room-" ตอนส่ง Kafka
-				err := s.publisher.SendMessage(message.FROM.RoomID, message.FROM.UserID, message.MSG)
-				if err != nil {
+				if err := s.publisher.SendMessage(message.FROM.RoomID, message.FROM.UserID, message.MSG); err != nil {
 					log.Printf("[Kafka] Failed to publish message: %v", err)
 				}
 
-				// ✅ Save ลง MongoDB ด้วย
-				saveErr := s.repo.SaveChatMessage(context.Background(), &model.ChatMessage{
+				if err := s.repo.SaveChatMessage(context.Background(), &model.ChatMessage{
 					RoomID:    message.FROM.RoomID,
 					UserID:    message.FROM.UserID,
 					Message:   message.MSG,
 					Mentions:  mentions,
 					Timestamp: time.Now(),
-				})
-				if saveErr != nil {
-					log.Printf("[MongoDB] Failed to save chat message: %v", saveErr)
+				}); err != nil {
+					log.Printf("[MongoDB] Failed to save chat message: %v", err)
 				}
 
-				// ✅ Broadcast ต่อให้คนในห้อง
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
-					if userID != message.FROM.UserID && conn != nil {
-						err := conn.WriteMessage(websocket.TextMessage, []byte(message.FROM.UserID+": "+message.MSG))
-						if err != nil {
-							log.Printf("[MEMORY] Failed to send message to user %s: %v", userID, err)
-							conn.Close()
-							delete(model.Clients[message.FROM.RoomID], userID)
-						}
+					if conn == nil {
+						continue
+					}
+
+					isJSON := strings.HasPrefix(strings.TrimSpace(message.MSG), "{") &&
+						strings.HasSuffix(strings.TrimSpace(message.MSG), "}")
+
+					if !isJSON && userID == message.FROM.UserID {
+						continue
+					}
+
+					var outgoing string
+					if isJSON {
+						outgoing = message.MSG
+					} else {
+						outgoing = message.FROM.UserID + ": " + message.MSG
+					}
+
+					if err := conn.WriteMessage(websocket.TextMessage, []byte(outgoing)); err != nil {
+						log.Printf("[WS] Failed to send message to user %s: %v", userID, err)
+						conn.Close()
+						delete(model.Clients[message.FROM.RoomID], userID)
 					}
 				}
 			}
@@ -117,20 +130,13 @@ func (s *service) CreateRoom(ctx context.Context, room *model.Room) error {
 
 	topicName := "chat-room-" + room.ID.Hex()
 
-	// Step 1: Create Kafka topic
 	if err := kafkaPublisher.EnsureKafkaTopic("localhost:9092", topicName); err != nil {
 		log.Printf("[Kafka] Failed to create topic %s: %v", topicName, err)
 	}
-
-	// Step 2: Force produce message to create partition
 	if err := kafkaPublisher.ForceCreateTopic("localhost:9092", topicName); err != nil {
 		log.Printf("[Kafka] Failed to force produce to topic %s: %v", topicName, err)
 	}
-
-	// Step 3: Sleep 1-2 second เพื่อให้ Kafka "register" topic ใหม่เข้า broker
 	time.Sleep(5 * time.Second)
-
-	// Step 4: Check if topic ready
 	if err := kafkaPublisher.WaitUntilTopicReady("localhost:9092", topicName, 10*time.Second); err != nil {
 		log.Printf("[Kafka] Topic %s not ready: %v", topicName, err)
 	}
@@ -168,8 +174,25 @@ func (s *service) DeleteRoom(ctx context.Context, id primitive.ObjectID) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error) {
-	return s.repo.GetChatHistoryByRoom(ctx, roomID, limit)
+func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {
+	rawMessages, err := s.repo.GetChatHistoryByRoom(ctx, roomID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	var enriched []model.ChatMessageEnriched
+	for _, msg := range rawMessages {
+		reactions, _ := s.repo.GetReactionsByMessageID(ctx, msg.ID)
+		reads, _ := s.repo.GetReadReceiptsByMessageID(ctx, msg.ID)
+
+		enriched = append(enriched, model.ChatMessageEnriched{
+			ChatMessage:  msg,
+			Reactions:    reactions,
+			ReadReceipts: reads,
+		})
+	}
+
+	return enriched, nil
 }
 
 func (s *service) SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error {
@@ -177,11 +200,10 @@ func (s *service) SaveChatMessage(ctx context.Context, msg *model.ChatMessage) e
 	if err != nil {
 		return err
 	}
-	msg.ID = id // 🔥 Save back to `msg` for response
+	msg.ID = id
 	return nil
 }
 
-// Sync Redis members to in-memory map on startup
 func (s *service) SyncRoomMembers() {
 	rooms, _, err := s.repo.List(context.Background(), 1, 1000)
 	if err != nil {
@@ -201,9 +223,8 @@ func (s *service) SyncRoomMembers() {
 				model.Clients[room.ID.Hex()] = make(map[string]*websocket.Conn)
 			}
 
-			// Ensure only connected users are counted
 			for _, userID := range memberIDs {
-				userIDStr := userID.Hex() // Convert to string
+				userIDStr := userID.Hex()
 				if _, exists := model.Clients[room.ID.Hex()][userIDStr]; !exists {
 					model.Clients[room.ID.Hex()][userIDStr] = nil
 				}
@@ -213,4 +234,12 @@ func (s *service) SyncRoomMembers() {
 	}
 
 	log.Println("[SYNC] Room membership synchronized")
+}
+
+func (s *service) SaveReaction(ctx context.Context, reaction *model.MessageReaction) error {
+	return s.repo.SaveReaction(ctx, reaction)
+}
+
+func (s *service) SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error {
+	return s.repo.SaveReadReceipt(ctx, receipt)
 }

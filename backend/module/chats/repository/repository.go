@@ -30,6 +30,12 @@ type Repository interface {
 	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error)
 
 	Save(ctx context.Context, msg *model.ChatMessage) (primitive.ObjectID, error)
+
+	SaveReaction(ctx context.Context, reaction *model.MessageReaction) error
+	SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error
+
+	GetReactionsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReaction, error)
+	GetReadReceiptsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReadReceipt, error)
 }
 
 type repository struct {
@@ -156,4 +162,44 @@ func (r *repository) Save(ctx context.Context, msg *model.ChatMessage) (primitiv
 		return primitive.NilObjectID, err
 	}
 	return res.InsertedID.(primitive.ObjectID), nil
+}
+
+func (r *repository) SaveReaction(ctx context.Context, reaction *model.MessageReaction) error {
+	_, err := r.dbConnect(ctx).Collection("message_reactions").InsertOne(ctx, reaction)
+	return err
+}
+
+func (r *repository) SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error {
+	_, err := r.dbConnect(ctx).Collection("message_read_receipts").InsertOne(ctx, receipt)
+	return err
+}
+
+func (r *repository) GetReactionsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReaction, error) {
+	filter := bson.M{"message_id": messageID}
+	cursor, err := r.dbConnect(ctx).Collection("message_reactions").Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var reactions []model.MessageReaction
+	if err := cursor.All(ctx, &reactions); err != nil {
+		return nil, err
+	}
+	return reactions, nil
+}
+
+func (r *repository) GetReadReceiptsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReadReceipt, error) {
+	filter := bson.M{"message_id": messageID}
+	cursor, err := r.dbConnect(ctx).Collection("message_read_receipts").Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var receipts []model.MessageReadReceipt
+	if err := cursor.All(ctx, &receipts); err != nil {
+		return nil, err
+	}
+	return receipts, nil
 }
