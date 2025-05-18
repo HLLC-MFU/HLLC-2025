@@ -48,6 +48,9 @@ type Config struct {
 	Chat struct {
 		GRPCAddr string
 	}
+	Sticker struct {
+		GRPCAddr string
+	}
 	Db struct {
 		Url      string
 		Database string
@@ -116,6 +119,13 @@ func LoadConfig(path string) *Config {
 		// Checkin service might need auth for validation
 		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
 	case "chat":
+		// Chat service gRPC address
+		cfg.Chat.GRPCAddr = getEnvOrFatal("GRPC_CHAT_URL")
+		// Chat service might need auth for validation
+		cfg.Auth.GRPCAddr = getEnvOrFatal("GRPC_AUTH_URL")
+		// Chat service might need user service for user validation
+		cfg.User.GRPCAddr = getEnvOrFatal("GRPC_USER_URL")
+	case "sticker":
 		// Chat service gRPC address
 		cfg.Chat.GRPCAddr = getEnvOrFatal("GRPC_CHAT_URL")
 		// Chat service might need auth for validation

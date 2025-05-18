@@ -54,6 +54,8 @@ func (s *server) Start() error {
 	switch s.config.App.Name {
 	case "chat":
 		s.chatService()
+	case "sticker":
+		s.stickerService()
 	default:
 		return fmt.Errorf("unknown service name: %s", s.config.App.Name)
 	}
