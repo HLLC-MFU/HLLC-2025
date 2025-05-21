@@ -78,7 +78,7 @@ func (s *server) chatService() {
 	protected.Get("/", httpHandler.ListRooms)
 	protected.Get(":id", httpHandler.GetRoom)
 	protected.Post("/", httpHandler.CreateRoom)
-	protected.Put(":id", httpHandler.UpdateRoom)
+	protected.Patch(":id", httpHandler.UpdateRoom)
 	protected.Delete(":id", httpHandler.DeleteRoom)
 	protected.Post("/rooms/:roomId/send-sticker", httpHandler.SendSticker)
 	protected.Post(":roomId/:userId/join", httpHandler.JoinRoom)
@@ -86,14 +86,14 @@ func (s *server) chatService() {
 
 	admin := api.Group("/admin/rooms")
 	admin.Post("/", httpHandler.CreateRoom)
-	admin.Put(":id", httpHandler.UpdateRoom)
+	admin.Patch(":id", httpHandler.UpdateRoom)
 	admin.Delete(":id", httpHandler.DeleteRoom)
 
 	s.app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
 	})
 
-	s.app.Static("/files", "./uploads")
+	s.app.Static("/uploads", "./uploads")
 
 	httpHandler.RegisterRoutes(protected)
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -127,17 +128,7 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			filteredMessage := utils.FilterProfanity(messageBody)
 			mentions := extractMentions(filteredMessage)
 
-			// ✅ บันทึกลง MongoDB
-			_ = h.service.SaveChatMessage(ctx, &model.ChatMessage{
-				RoomID:    roomIdStr,
-				UserID:    userID,
-				Message:   filteredMessage,
-				Mentions:  mentions,
-				ReplyToID: &replyToID,
-				Timestamp: time.Now(),
-			})
-
-			// ✅ Broadcast reply event
+			// ✅ สร้าง structured event
 			replyPayload := map[string]interface{}{
 				"userId":    userID,
 				"message":   filteredMessage,
@@ -446,7 +437,7 @@ func (h *HTTPHandler) RegisterRoutes(router fiber.Router) {
 	router.Post("/", h.CreateRoom)
 	router.Get("/:id", h.GetRoom)
 	router.Get("/", h.ListRooms)
-	router.Put("/:id", h.UpdateRoom)
+	router.Patch("/:id", h.UpdateRoom)
 	router.Delete("/:id", h.DeleteRoom)
 	router.Post("/upload", h.UploadFile)
 	router.Post("/:roomId/stickers", h.SendSticker)
@@ -500,53 +491,49 @@ func (h *HTTPHandler) SendSticker(c *fiber.Ctx) error {
 
 // ✅ เมื่อสร้างห้อง เพิ่มผู้สร้างเป็นสมาชิกห้อง
 func (h *HTTPHandler) CreateRoom(c *fiber.Ctx) error {
-	var req createRoomRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid request body",
-		})
+	thName := c.FormValue("name[thName]")
+	enName := c.FormValue("name[enName]")
+	capacityStr := c.FormValue("capacity")
+	creatorID := c.FormValue("creator_id")
+	capacity, _ := strconv.Atoi(capacityStr)
+
+	roomID := primitive.NewObjectID()
+	imagePath := ""
+
+	// ✅ Handle file upload
+	file, err := c.FormFile("image")
+	if err == nil && file != nil {
+		_ = os.MkdirAll("./uploads/rooms", os.ModePerm)
+		fileName := fmt.Sprintf("%s_%s", roomID.Hex(), file.Filename)
+		savePath := fmt.Sprintf("./uploads/rooms/%s", fileName)
+		if err := c.SaveFile(file, savePath); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "failed to save image",
+			})
+		}
+		imagePath = fmt.Sprintf("%s/uploads/rooms/%s", c.BaseURL(), fileName)
 	}
 
 	room := &model.Room{
-		ID: primitive.NewObjectID(),
+		ID: roomID,
 		Name: coreModel.LocalizedName{
-			ThName: req.Name.ThName,
-			EnName: req.Name.EnName,
+			ThName: thName,
+			EnName: enName,
 		},
-		Capacity: req.Capacity,
+		Capacity: capacity,
+		Image:    imagePath,
 	}
 
 	if err := h.service.CreateRoom(c.Context(), room); err != nil {
-		if err == service.ErrRoomAlreadyExists {
-			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-				"error": err.Error(),
-			})
-		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	// ✅ เพิ่มผู้สร้างเป็นสมาชิกใน Redis และ MongoDB
-	creatorID := c.Query("creator_id")
 	if creatorID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "creator_id is required",
-		})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "creator_id is required"})
 	}
 
-	// ✅ เพิ่มใน MongoDB
-	if err := h.memberService.AddUserToRoom(c.Context(), room.ID, creatorID); err != nil {
-		log.Printf("[MONGODB] Failed to add creator %s to room %s: %v", creatorID, room.ID.Hex(), err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to add creator to room",
-		})
-	}
-
-	// ✅ เพิ่มใน Redis
-	if err := redis.AddUserToRoom(room.ID.Hex(), creatorID); err != nil {
-		log.Printf("[REDIS] Failed to add creator %s to room %s: %v", creatorID, room.ID.Hex(), err)
-	}
+	_ = h.memberService.AddUserToRoom(c.Context(), room.ID, creatorID)
+	_ = redis.AddUserToRoom(room.ID.Hex(), creatorID)
 
 	return c.Status(fiber.StatusCreated).JSON(room)
 }
@@ -691,41 +678,40 @@ func (h *HTTPHandler) ListRooms(c *fiber.Ctx) error {
 func (h *HTTPHandler) UpdateRoom(c *fiber.Ctx) error {
 	id, err := primitive.ObjectIDFromHex(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid room ID",
-		})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid room ID"})
 	}
 
-	var req createRoomRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid request body",
-		})
+	room, err := h.service.GetRoom(c.Context(), id)
+	if err != nil || room == nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "room not found"})
 	}
 
-	room := &model.Room{
-		ID: id,
-		Name: coreModel.LocalizedName{
-			ThName: req.Name.ThName,
-			EnName: req.Name.EnName,
-		},
-		Capacity: req.Capacity,
+	thName := c.FormValue("name[thName]")
+	enName := c.FormValue("name[enName]")
+	capacityStr := c.FormValue("capacity")
+	capacity, _ := strconv.Atoi(capacityStr)
+
+	imagePath := room.Image
+	file, err := c.FormFile("image")
+	if err == nil && file != nil {
+		_ = os.MkdirAll("./uploads/rooms", os.ModePerm)
+		fileName := fmt.Sprintf("%s_%s", id.Hex(), file.Filename)
+		savePath := fmt.Sprintf("./uploads/rooms/%s", fileName)
+		if err := c.SaveFile(file, savePath); err == nil {
+			imagePath = fmt.Sprintf("%s/uploads/rooms/%s", c.BaseURL(), fileName)
+		} else {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save image"})
+		}
 	}
+
+	room.Name.ThName = thName
+	room.Name.EnName = enName
+	room.Capacity = capacity
+	room.Image = imagePath
+	room.UpdatedAt = time.Now()
 
 	if err := h.service.UpdateRoom(c.Context(), room); err != nil {
-		if err == service.ErrRoomNotFound {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"error": err.Error(),
-			})
-		}
-		if err == service.ErrRoomAlreadyExists {
-			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-				"error": err.Error(),
-			})
-		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.JSON(room)

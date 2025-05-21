@@ -50,5 +50,7 @@ func (s *server) stickerService() {
 		return c.SendString("OK")
 	})
 
+	s.app.Static("/uploads", "./uploads")
+
 	log.Printf("Sticker service initialized")
 }

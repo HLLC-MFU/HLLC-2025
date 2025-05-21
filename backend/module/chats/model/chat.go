@@ -14,6 +14,7 @@ type Room struct {
 	ID             primitive.ObjectID      `bson:"_id" json:"id"`
 	Name           coreModel.LocalizedName `bson:"name" json:"name"`
 	Capacity       int                     `bson:"capacity" json:"capacity"`
+	Image          string                  `bson:"image,omitempty" json:"image,omitempty"`
 }
 
 var _ = coreModel.Collection("rooms")

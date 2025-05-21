@@ -52,7 +52,7 @@ func (h *HTTPHandler) CreateSticker(c *fiber.Ctx) error {
 	}
 
 	// ✅ Generate public URL for image
-	imageURL := fmt.Sprintf("%s/files/stickers/%s", c.BaseURL(), filename)
+	imageURL := fmt.Sprintf("%s/uploads/stickers/%s", c.BaseURL(), filename)
 
 	// ✅ Extract and bind manually
 	thName := c.FormValue("name[th]")
