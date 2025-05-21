@@ -1,179 +1,277 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import useProfile from '@/hooks/useProfile';
 import { Platform } from 'react-native';
+import { Message, ConnectedUser } from '../types/chatTypes';
 
 // Use actual IP for Android, localhost for iOS
 const WS_BASE_URL = Platform.OS === 'android' 
   ? 'ws://10.0.2.2:1334'  // Android emulator maps 10.0.2.2 to host machine's localhost
   : 'ws://localhost:1334';
 
-interface Message {
-  text: string;
-  senderId: string;
-  type: 'message' | 'join' | 'leave';
+// Maximum number of messages to keep in memory
+const MAX_MESSAGES = 100;
+
+interface WebSocketHook {
+  isConnected: boolean;
+  error: string | null;
+  sendMessage: (text: string) => void;
+  messages: Message[];
+  connectedUsers: ConnectedUser[];
+  connectedCount: number;
+  ws: WebSocket | null;
+  typing: Array<{ id: string; name?: string }>;
 }
 
-interface ConnectedUser {
-  id: string;
-  joinedAt: Date;
-}
-
-export const useWebSocket = (roomId: string) => {
+export const useWebSocket = (roomId: string): WebSocketHook => {
   const { user } = useProfile();
   const ws = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
+  const [typing, setTyping] = useState<Array<{ id: string; name?: string }>>([]);
+  
+  // Keep track of reconnection attempts
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Function to handle user joining
-  const handleUserJoin = (userId: string) => {
-    console.log('User joined:', userId);
+  const token = user?.token;
+
+  // Function to handle user joining - memoized to prevent recreations
+  const handleUserJoin = useCallback((username: string) => {
+    if (!username) return;
+    
+    console.log('User joined:', username);
     setConnectedUsers(prev => {
       // Don't add if already in the list
-      if (prev.find(u => u.id === userId)) {
-        console.log('User already in list:', userId);
+      if (prev.find(u => u.id === username)) {
         return prev;
       }
-      console.log('Adding user to list:', userId);
-      return [...prev, { id: userId, joinedAt: new Date() }];
+      // Limit the number of users in memory
+      const newUsers = [...prev, { 
+        id: username,
+        name: username,
+        online: true
+      }];
+      
+      // Only keep most recent 50 users
+      return newUsers.slice(-50);
     });
-  };
+  }, []);
 
-  // Function to handle user leaving
-  const handleUserLeave = (userId: string) => {
-    console.log('User left:', userId);
-    setConnectedUsers(prev => prev.filter(u => u.id !== userId));
-  };
+  // Function to handle user leaving - memoized
+  const handleUserLeave = useCallback((username: string) => {
+    if (!username) return;
+    
+    console.log('User left:', username);
+    setConnectedUsers(prev => prev.filter(u => u.id !== username));
+  }, []);
 
-  useEffect(() => {
-    if (!roomId || !user?.id) return;
+  // Add message with memory management
+  const addMessage = useCallback((message: Message) => {
+    setMessages(prev => {
+      // Add id and timestamp if not present
+      const newMessage = { 
+        ...message, 
+        id: message.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        timestamp: message.timestamp || new Date().toISOString()
+      };
+      
+      // Limit the messages in memory to prevent excessive growth
+      const newMessages = [...prev, newMessage];
+      return newMessages.slice(-MAX_MESSAGES);
+    });
+  }, []);
 
-    const wsUrl = `${WS_BASE_URL}/ws/${roomId}/${user.id}`;
+  // Memoized reconnect function
+  const attemptReconnect = useCallback(() => {
+    if (reconnectAttempts.current >= maxReconnectAttempts) {
+      console.log('Max reconnect attempts reached');
+      return;
+    }
+    
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+    
+    reconnectTimeoutRef.current = setTimeout(() => {
+      console.log(`Reconnect attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts}`);
+      reconnectAttempts.current += 1;
+      
+      // Recreate the connection
+      if (ws.current) {
+        try {
+          ws.current.close();
+        } catch (e) {
+          // Ignore errors when closing
+        }
+      }
+      
+      connect();
+    }, delay);
+  }, []);
+
+  // Connect function to avoid redundant code
+  const connect = useCallback(() => {
+    if (!roomId || !user?.username || !token) return;
+
+    const wsUrl = `${WS_BASE_URL}/ws/${roomId}/${user.username}`;
     console.log('Connecting to WebSocket:', wsUrl);
-    ws.current = new WebSocket(wsUrl);
+    
+    try {
+      ws.current = new WebSocket(wsUrl);
+      
+      // Add token to the WebSocket connection
+      ws.current.onopen = () => {
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+          ws.current.send(JSON.stringify({ type: 'auth', token }));
+        }
+      };
 
-    ws.current.onopen = () => {
-      console.log('WebSocket Connected');
-      setIsConnected(true);
-      setError(null);
-      // Add self to connected users when connection established
-      handleUserJoin(user.id);
-    };
+      ws.current.onclose = (event) => {
+        console.log('WebSocket Disconnected', event.code, event.reason);
+        setIsConnected(false);
+        
+        // Only try to reconnect if this wasn't a normal closure
+        if (event.code !== 1000) {
+          attemptReconnect();
+        }
+      };
 
-    ws.current.onclose = () => {
-      console.log('WebSocket Disconnected');
-      setIsConnected(false);
-      setConnectedUsers([]); // Clear connected users on disconnect
-    };
+      ws.current.onerror = (error) => {
+        console.error('WebSocket Error:', error);
+        setError('Failed to connect to chat server');
+      };
 
-    ws.current.onerror = (error) => {
-      console.error('WebSocket Error:', error);
-      setError('Failed to connect to chat server');
-    };
+      ws.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'auth_success') {
+            setIsConnected(true);
+            setError(null);
+            reconnectAttempts.current = 0;
+            return;
+          }
 
-    ws.current.onmessage = (event) => {
-      try {
-        const text = event.data;
-        console.log('WebSocket message received:', text);
+          if (data.type === 'auth_error') {
+            setError('Authentication failed');
+            return;
+          }
 
-        // Handle initial users list
-        if (text.startsWith('[USERS]')) {
-          const usersMatch = text.match(/\[USERS\] (.*)/);
-          if (usersMatch) {
-            const userIds: string[] = usersMatch[1].split(',').map((id: string) => id.trim());
-            console.log('Initial users list:', userIds);
-            setConnectedUsers(userIds.map((id: string) => ({
+          if (data.type === 'users') {
+            setConnectedUsers(data.users.map((id: string) => ({
               id,
-              joinedAt: new Date()
+              name: id,
+              online: true
             })));
             return;
           }
-        }
 
-        // Handle JOIN messages
-        if (text.includes('[JOIN]')) {
-          const joinMatch = text.match(/\[JOIN\] (.*?) joined/);
-          if (joinMatch) {
-            const joinedUserId = joinMatch[1];
-            handleUserJoin(joinedUserId);
-            setMessages(prev => [...prev, {
-              text: `${joinedUserId} joined the room`,
-              senderId: joinedUserId,
-              type: 'join'
-            }]);
+          if (data.type === 'join') {
+            handleUserJoin(data.userId);
+            addMessage({
+              text: `${data.userId} joined the room`,
+              senderId: data.userId,
+              type: 'join',
+              timestamp: new Date().toISOString()
+            });
+            return;
           }
-          return;
-        }
 
-        // Handle LEAVE messages
-        if (text.includes('[LEAVE]')) {
-          const leaveMatch = text.match(/\[LEAVE\] (.*?) left/);
-          if (leaveMatch) {
-            const leftUserId = leaveMatch[1];
-            handleUserLeave(leftUserId);
-            setMessages(prev => [...prev, {
-              text: `${leftUserId} left the room`,
-              senderId: leftUserId,
-              type: 'leave'
-            }]);
+          if (data.type === 'leave') {
+            handleUserLeave(data.userId);
+            addMessage({
+              text: `${data.userId} left the room`,
+              senderId: data.userId,
+              type: 'leave',
+              timestamp: new Date().toISOString()
+            });
+            return;
           }
-          return;
-        }
 
-        // Handle BROADCAST messages
-        if (text.includes('[BROADCAST]')) {
-          const broadcastMatch = text.match(/Message from (.*?) in room .*?: (.*)/);
-          if (broadcastMatch) {
-            const [, senderId, message] = broadcastMatch;
-            // Ensure sender is in connected users list
-            handleUserJoin(senderId);
-            setMessages(prev => [...prev, {
-              text: message,
-              senderId: senderId,
-              type: 'message'
-            }]);
+          if (data.type === 'message') {
+            addMessage({
+              text: data.text,
+              senderId: data.senderId,
+              type: 'message',
+              timestamp: data.timestamp || new Date().toISOString()
+            });
+            return;
           }
-          return;
+        } catch (err) {
+          console.error('Error handling message:', err, event.data);
         }
+      };
+    } catch (error) {
+      console.error('Error creating WebSocket:', error);
+      setError('Failed to create WebSocket connection');
+      attemptReconnect();
+    }
+  }, [roomId, user?.username, token, handleUserJoin, handleUserLeave, addMessage, attemptReconnect]);
 
-        // Handle other messages (fallback)
-        const [senderId, messageText] = text.split(':');
-        if (senderId && messageText) {
-          // Ensure sender is in connected users list
-          handleUserJoin(senderId);
-          setMessages(prev => [...prev, {
-            text: messageText,
-            senderId: senderId,
-            type: 'message'
-          }]);
-        }
-      } catch (err) {
-        console.error('Error handling message:', err, event.data);
-      }
-    };
-
+  useEffect(() => {
+    connect();
+    
+    // Cleanup function to handle component unmount
     return () => {
-      if (ws.current) {
-        ws.current.close();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
+      
+      if (ws.current) {
+        // Use a local variable to avoid closure issues
+        const socket = ws.current;
+        
+        // Set onclose to null to prevent reconnection attempts during unmount
+        socket.onclose = null;
+        socket.onerror = null;
+        socket.onmessage = null;
+        socket.onopen = null;
+        
+        // Close the connection
+        if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+          try {
+            socket.close(1000, "Component unmounted");
+          } catch (e) {
+            console.error('Error closing WebSocket:', e);
+          }
+        }
+      }
+      
+      // Clear state on unmount
+      setMessages([]);
+      setConnectedUsers([]);
+      setIsConnected(false);
+      setError(null);
     };
-  }, [roomId, user?.id]);
+  }, [connect]);
 
-  const sendMessage = (text: string) => {
+  // Memoized function to send messages
+  const sendMessage = useCallback((text: string) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setError('Not connected to chat server');
       return;
     }
 
-    setMessages(prev => [...prev, {
+    // Add message to local state optimistically
+    addMessage({
       text: text,
       senderId: user?.id || '',
-      type: 'message'
-    }]);
+      type: 'message',
+      timestamp: new Date().toISOString()
+    });
 
-    ws.current.send(`${text}`);
-  };
+    // Send the message to the server
+    ws.current.send(JSON.stringify({
+      type: 'message',
+      text
+    }));
+  }, [user?.id, addMessage]);
 
   return {
     isConnected,
@@ -183,5 +281,6 @@ export const useWebSocket = (roomId: string) => {
     connectedUsers,
     connectedCount: connectedUsers.length,
     ws: ws.current,
+    typing
   };
 }; 
