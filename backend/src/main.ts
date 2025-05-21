@@ -14,7 +14,11 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter(),
   );
-  await app.register(compression, { encodings: ['gzip', 'deflate'] });
+  await app.register(compression, {
+    global: true,
+    encodings: ['gzip', 'deflate'],
+    threshold: 1024,
+  });
   app.setGlobalPrefix('api');
   const config = new DocumentBuilder()
     .setTitle('HLLC API Documentation')
