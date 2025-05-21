@@ -1,23 +1,16 @@
-import { apiRequest } from '@/utils/api';
 import { Platform } from 'react-native';
+import { ChatRoom } from '../types/chatTypes';
+import { getToken } from '@/utils/storage';
 
-// Use actual IP for Android, localhost for iOS
 const BASE_URL = Platform.OS === 'android' 
-  ? 'http://10.0.2.2:1334'  // Android emulator maps 10.0.2.2 to host machine's localhost
+  ? 'http://10.0.2.2:1334'
   : 'http://localhost:1334';
 
-export interface RoomName {
-  en_name: string;
-  th_name: string;
-}
+const API_BASE_URL = `${BASE_URL}/api/v1`;
 
-export interface ChatRoom {
-  id: string;
-  name: RoomName;
-  capacity: number;
-  connected_users: number;
-  created_at: string;
-  updated_at: string;
+export interface RoomName {
+  th_name: string;
+  en_name: string;
 }
 
 export interface RoomsResponse {
@@ -34,8 +27,8 @@ export interface ApiResponse<T> {
 }
 
 export interface CreateRoomDto {
-  name: string;
-  description: string;
+  name: RoomName;
+  capacity: number;
   image?: string;
 }
 
@@ -51,58 +44,174 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+const getAuthHeaders = async () => {
+  const token = await getToken('accessToken');
+  console.log('Token from storage:', token);
+  
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  };
+  
+  console.log('Auth headers:', headers);
+  return headers;
+};
+
+export interface ChatRoom {
+  _id: string;
+  created_at: string;
+  updated_at: string;
+  name: RoomName;
+  capacity: number;
+  image?: string;
+  members?: string[];
+  is_member?: boolean;
+}
+
+export interface JoinRoomResponse {
+  success: boolean;
+  message?: string;
+  room?: ChatRoom;
+}
+
 export const chatService = {
-  // Get all chat rooms (public)
-  getRooms: async (): Promise<ChatRoom[]> => {
+  async getRooms(): Promise<ChatRoom[]> {
     try {
-      const response = await fetch(`${BASE_URL}/api/v1/public/rooms`);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/rooms`, {
+        headers
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch rooms');
+      }
+      
       const result: RoomsResponse = await response.json();
       console.log('API Response:', result);
       
-      if (!result.rooms) {
-        return [];
+      // Get current user ID from token
+      const token = await getToken('accessToken');
+      if (!token) {
+        throw new Error('No access token found');
       }
       
-      return result.rooms;
+      const userData = JSON.parse(atob(token.split('.')[1]));
+      const currentUserId = userData.id;
+
+      // Mark rooms where user is a member
+      return result.rooms.map(room => ({
+        ...room,
+        is_member: room.members?.includes(currentUserId) || false
+      }));
     } catch (error) {
       console.error('Error fetching rooms:', error);
       return [];
     }
   },
 
-  // Get a specific room (public)
-  getRoom: async (roomId: string): Promise<ChatRoom | null> => {
+  async getRoom(roomId: string): Promise<ChatRoom | null> {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {
+      headers
+    });
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    return response.json();
+  },
+
+  async checkRoomMembership(roomId: string): Promise<boolean> {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/members`, {
+      headers
+    });
+    
+    if (!response.ok) {
+      return false;
+    }
+    
+    const data = await response.json();
+    return data.isMember;
+  },
+
+  async joinRoom(roomId: string): Promise<JoinRoomResponse> {
     try {
-      const response = await fetch(`${BASE_URL}/api/v1/public/rooms/${roomId}`);
-      const result = await response.json();
+      const headers = await getAuthHeaders();
       
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to fetch room');
+      // First check if room is full
+      const roomResponse = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {
+        headers
+      });
+      
+      if (!roomResponse.ok) {
+        throw new Error('Failed to get room information');
       }
       
-      return result;
+      const roomData = await roomResponse.json();
+      const room = roomData.data;
+      
+      // Check if room is full
+      if (room.members && room.members.length >= room.capacity) {
+        return {
+          success: false,
+          message: 'Room is full'
+        };
+      }
+
+      // Try to join the room
+      const joinResponse = await fetch(`${API_BASE_URL}/rooms/${roomId}/join`, {
+        method: 'POST',
+        headers
+      });
+      
+      if (!joinResponse.ok) {
+        const errorData = await joinResponse.json();
+        return {
+          success: false,
+          message: errorData.message || 'Failed to join room'
+        };
+      }
+
+      // Get updated room data after joining
+      const updatedRoomResponse = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {
+        headers
+      });
+      
+      if (!updatedRoomResponse.ok) {
+        throw new Error('Failed to get updated room information');
+      }
+
+      const updatedRoomData = await updatedRoomResponse.json();
+      
+      return {
+        success: true,
+        room: updatedRoomData.data
+      };
     } catch (error) {
-      console.error('Error fetching room:', error);
-      return null;
+      console.error('Error joining room:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to join room'
+      };
     }
   },
 
-  // Create a new room (protected)
-  createRoom: async (data: CreateRoomDto): Promise<ChatRoom | null> => {
+  async createRoom(data: CreateRoomDto): Promise<ChatRoom | null> {
     try {
-      const response = await fetch(`${BASE_URL}/api/v1/rooms`, {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/rooms`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        headers,
+        body: JSON.stringify(data)
       });
-      const result: ApiResponse<ChatRoom> = await response.json();
       
       if (!response.ok) {
-        throw new Error(result.message || 'Failed to create room');
+        throw new Error('Failed to create room');
       }
       
+      const result = await response.json();
       return result.data;
     } catch (error) {
       console.error('Error creating room:', error);
@@ -110,22 +219,18 @@ export const chatService = {
     }
   },
 
-  // Update a room (admin only)
   updateRoom: async (roomId: string, data: UpdateRoomDto): Promise<ChatRoom | null> => {
     try {
-      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}`, {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(data),
       });
+
       const result: ApiResponse<ChatRoom> = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to update room');
-      }
-      
+      if (!response.ok) throw new Error(result.message || 'Failed to update room');
+
       return result.data;
     } catch (error) {
       console.error('Error updating room:', error);
@@ -133,18 +238,14 @@ export const chatService = {
     }
   },
 
-  // Delete a room (protected/admin)
   deleteRoom: async (roomId: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}`, {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/rooms/${roomId}`, { 
         method: 'DELETE',
+        headers
       });
-      
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.message || 'Failed to delete room');
-      }
-      
+      if (!response.ok) throw new Error((await response.json()).message || 'Failed to delete room');
       return true;
     } catch (error) {
       console.error('Error deleting room:', error);
@@ -152,22 +253,18 @@ export const chatService = {
     }
   },
 
-  // Send a new message
   sendMessage: async (roomId: string, message: string): Promise<ChatMessage | null> => {
     try {
-      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}/messages`, {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/messages`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ message }),
       });
+
       const result: ApiResponse<ChatMessage> = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to send message');
-      }
-      
+      if (!response.ok) throw new Error(result.message || 'Failed to send message');
+
       return result.data;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -175,37 +272,14 @@ export const chatService = {
     }
   },
 
-  // Join a chat room
-  joinRoom: async (roomId: string): Promise<boolean> => {
-    try {
-      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}/join`, {
-        method: 'POST',
-      });
-      
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.message || 'Failed to join room');
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error joining room:', error);
-      return false;
-    }
-  },
-
-  // Leave a chat room
   leaveRoom: async (roomId: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}/leave`, {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/leave`, { 
         method: 'POST',
+        headers
       });
-      
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.message || 'Failed to leave room');
-      }
-      
+      if (!response.ok) throw new Error((await response.json()).message || 'Failed to leave room');
       return true;
     } catch (error) {
       console.error('Error leaving room:', error);
@@ -213,20 +287,58 @@ export const chatService = {
     }
   },
 
-  // Get chat history for a room
   getRoomMessages: async (roomId: string): Promise<ChatMessage[]> => {
     try {
-      const response = await fetch(`${BASE_URL}/api/v1/rooms/${roomId}/messages`);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/messages`, {
+        headers
+      });
       const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to fetch messages');
-      }
-      
+      if (!response.ok) throw new Error(result.message || 'Failed to fetch messages');
       return result.data || [];
     } catch (error) {
       console.error('Error fetching messages:', error);
       return [];
     }
   },
-}; 
+
+  async getMyRooms(): Promise<ChatRoom[]> {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/rooms`, {
+        headers
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch my rooms');
+      }
+      
+      const result = await response.json();
+      return result.data || [];
+    } catch (error) {
+      console.error('Error fetching my rooms:', error);
+      return [];
+    }
+  },
+
+  async getDiscoverRooms(): Promise<ChatRoom[]> {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/rooms`, {
+        headers
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch discover rooms');
+      }
+      
+      const result = await response.json();
+      return result.data || [];
+    } catch (error) {
+      console.error('Error fetching discover rooms:', error);
+      return [];
+    }
+  },
+};
+export { ChatRoom };
+
