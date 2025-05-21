@@ -43,7 +43,6 @@ import { useTypingIndicator } from './hooks/useTypingIndicator';
 import { useMessageGrouping } from './hooks/useMessageGrouping';
 import useProfile from '@/hooks/useProfile';
 import { useWebSocket } from './hooks/useWebSocket';
-import { useLanguage } from '@/hooks/useLanguage';
 
 // Services
 import { chatService } from './services/chatService';
@@ -75,7 +74,6 @@ export default function ChatRoomPage() {
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const userId = (urlUserId as string) || user?.id || '';
-  const { language } = useLanguage();
 
   const [room, setRoom] = useState<ChatRoom | null>(null);
   const {
@@ -85,8 +83,6 @@ export default function ChatRoomPage() {
     messages,
     connectedUsers,
     typing,
-    connect,
-    disconnect,
   } = useWebSocket(roomId as string);
 
   const [messageText, setMessageText] = useState('');
@@ -96,58 +92,26 @@ export default function ChatRoomPage() {
   const [joinAttempted, setJoinAttempted] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
-  const [isMember, setIsMember] = useState(false);
 
   const { isTyping, handleTyping } = useTypingIndicator();
   const groupMessages = useMessageGrouping(messages);
 
-  useEffect(() => {
-    const initializeRoom = async () => {
-      try {
-        // If room data is passed from navigation
-        if (roomId) {
-          const roomData = await chatService.getRoom(roomId);
-          if (!roomData) {
-            throw new Error('Room not found');
-          }
-          setRoom(roomData);
-          setIsMember(join === 'true');
-          
-          // Connect to WebSocket if member
-          if (join === 'true') {
-            await connect(roomId);
-          }
-        } else {
-          // Fetch room data
-          const roomData = await chatService.getRoom(roomId as string);
-          if (!roomData) {
-            throw new Error('Room not found');
-          }
-          setRoom(roomData);
-          
-          // Check membership
-          const membership = await chatService.checkRoomMembership(roomId as string, userId);
-          setIsMember(membership);
-          
-          // Connect to WebSocket if member
-          if (membership) {
-            await connect(roomId as string);
-          }
-        }
-      } catch (err) {
-        console.error('Error initializing room:', err);
-        setError('Failed to load room');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadRoom = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await chatService.getRoom(roomId as string);
+      if (!data) throw new Error(ERROR_MESSAGES.ROOM_NOT_FOUND);
+      const isMember = await chatService.checkRoomMembership(roomId as string, userId);
+      data.is_member = isMember;
+      setRoom(data);
+    } catch {
+      setError(ERROR_MESSAGES.ROOM_NOT_FOUND);
+    } finally {
+      setLoading(false);
+    }
+  }, [roomId, userId]);
 
-    initializeRoom();
-
-    return () => {
-      disconnect();
-    };
-  }, [roomId, join, userId, connect, disconnect]);
+  useEffect(() => { loadRoom(); }, [loadRoom]);
 
   useEffect(() => {
     if (join === 'true' && room && !joinAttempted) {
@@ -167,24 +131,32 @@ export default function ChatRoomPage() {
     }
   }, [messages]);
 
-  const handleJoin = async () => {
+  const handleJoin = useCallback(async () => {
+    if (!room || room.is_member || joining) return;
+    setJoining(true);
     try {
-      if (!room) return;
-
-      const result = await chatService.joinRoom(room.id);
-      
-      if (result.success && result.room) {
-        setRoom(result.room);
-        setIsMember(true);
-        await connect(room.id);
-      } else {
-        throw new Error(result.message || 'Failed to join room');
+      if (room.connected_users >= room.capacity) {
+        Alert.alert('ห้องเต็ม', ERROR_MESSAGES.ROOM_FULL);
+        return;
       }
-    } catch (error) {
-      console.error('Error joining room:', error);
-      setError(language === 'th' ? 'ไม่สามารถเข้าร่วมห้องแชทได้' : 'Failed to join room');
+      
+      const success = await chatService.joinRoom(roomId as string);
+      if (success) {
+        setRoom(prev => prev ? { ...prev, is_member: true } : null);
+        if (Platform.OS === 'ios') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          Vibration.vibrate(80);
+        }
+      } else {
+        setError(ERROR_MESSAGES.JOIN_FAILED);
+      }
+    } catch {
+      setError(ERROR_MESSAGES.JOIN_ERROR);
+    } finally {
+      setJoining(false);
     }
-  };
+  }, [room, roomId, joining]);
   
   const handleSendMessage = useCallback(() => {
     const trimmedMessage = messageText.trim();
@@ -236,7 +208,7 @@ export default function ChatRoomPage() {
   }, []);
 
   if (loading) return <Loader />;
-  if (error) return <ErrorView message={error} onRetry={() => {}} />;
+  if (error) return <ErrorView message={error} onRetry={loadRoom} />;
 
   return (
     <TouchableWithoutFeedback onPress={() => {
