@@ -25,7 +25,6 @@ async function bootstrap() {
     .setDescription('API Documentation for the application')
     .setVersion('1.0')
     .build();
-
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
   void app.listen(process.env.PORT ?? 3000);

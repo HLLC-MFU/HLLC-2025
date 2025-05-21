@@ -8,6 +8,7 @@ import { Major, MajorSchema } from './schemas/major.schema';
   imports: [
     MongooseModule.forFeature([{ name: Major.name, schema: MajorSchema }]),
   ],
+  exports: [MongooseModule],
   controllers: [MajorsController],
   providers: [MajorsService],
 })

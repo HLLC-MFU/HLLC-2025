@@ -8,6 +8,7 @@ import {
   UseInterceptors,
   Body,
   Patch,
+  Post,
 } from '@nestjs/common';
 
 import { UsersService } from './users.service';
@@ -17,6 +18,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { CacheKey } from '@nestjs/cache-manager';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
@@ -24,11 +26,11 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // @Post()
-  // @Public()
-  // create(@Body() createUserDto: CreateUserDto) {
-  //   return this.usersService.create(createUserDto);
-  // }
+  @Post()
+  @Public()
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
+  }
 
   @Get()
   @Public()

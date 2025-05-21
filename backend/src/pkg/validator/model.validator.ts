@@ -1,12 +1,12 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { Model, FilterQuery, Types, Query, Document } from 'mongoose';
+import { Model, FilterQuery, Types, HydratedDocument } from 'mongoose';
 
 /**
  * เช็กว่าข้อมูลซ้ำหรือไม่ → ถ้าซ้ำให้ throw
  */
-export async function throwIfExists<T extends Document>(
-  model: Model<T>,
-  filter: FilterQuery<T>,
+export async function throwIfExists<T>(
+  model: Model<HydratedDocument<T>>,
+  filter: FilterQuery<HydratedDocument<T>>,
   message = 'Data already exists',
 ): Promise<void> {
   const exists = await model.exists(filter);
@@ -18,49 +18,22 @@ export async function throwIfExists<T extends Document>(
 /**
  * หา document ตาม ID หรือ query → ถ้าไม่เจอให้ throw
  */
-export async function findOrThrow<T extends Document>(
-  input: Model<T> | Query<T | null, T>,
-  id?: string | Types.ObjectId,
+export async function findOrThrow<T>(
+  model: Model<HydratedDocument<T>>,
+  idOrFilter: string | Types.ObjectId | FilterQuery<HydratedDocument<T>>,
   name = 'Item',
-): Promise<T> {
-  let result: T | null;
+): Promise<HydratedDocument<T>> {
+  let doc: HydratedDocument<T> | null = null;
 
-  if (isQuery<T>(input)) {
-    result = await input.exec();
-    id = id || (result?._id?.toString?.() ?? 'unknown');
-  } else if (isModel<T>(input)) {
-    result = await input.findById(id).exec();
+  if (typeof idOrFilter === 'string' || idOrFilter instanceof Types.ObjectId) {
+    doc = await model.findById(idOrFilter).exec();
   } else {
-    throw new Error('Invalid input passed to findOrThrow');
+    doc = await model.findOne(idOrFilter).exec();
   }
 
-  if (!result) {
-    throw new NotFoundException(
-      `${name} #${id?.toString() ?? 'unknown'} not found`,
-    );
+  if (!doc) {
+    throw new NotFoundException(`${name} not found`);
   }
 
-  return result;
-}
-
-/**
- * Type Guard: ตรวจว่าเป็น Model หรือไม่
- */
-function isModel<T>(obj: unknown): obj is Model<T> {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    typeof (obj as Model<T>).findById === 'function'
-  );
-}
-
-/**
- * Type Guard: ตรวจว่าเป็น Query หรือไม่
- */
-function isQuery<T>(obj: unknown): obj is Query<T | null, T> {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    typeof (obj as Query<T | null, T>).exec === 'function'
-  );
+  return doc;
 }
