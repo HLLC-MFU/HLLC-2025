@@ -9,6 +9,7 @@ import { SchoolDocument } from '../schools/schemas/school.schema';
 import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { Types } from 'mongoose';
+import { queryAll, queryFindOne, queryUpdateOne, queryDeleteOne } from 'src/pkg/helper/query.util';
 
 @Injectable()
 export class MajorsService {
@@ -39,22 +40,27 @@ export class MajorsService {
     }
   }
 
-  findAll() {
-    return this.majorModel.find().populate('school').lean();
+  async findAll(query: Record<string, string>) {
+    return queryAll<Major>({
+      model: this.majorModel,
+      query,
+      filterSchema: {},
+      buildPopulateFields: (excluded) =>
+        Promise.resolve(excluded.includes('school') ? [] : [{  path: 'school' }]),
+    });
   }
 
-  findOne(id: string) {
-    return this.majorModel.findById(id).populate('school').lean();
+  async findOne(id: string) {
+    return queryFindOne<Major>(this.majorModel, { _id: id }, [
+      { path: 'school' },
+    ]);
   }
 
-  update(id: string, updateMajorDto: UpdateMajorDto) {
-    return this.majorModel
-      .findByIdAndUpdate(id, updateMajorDto, { new: true })
-      .populate('school')
-      .lean();
+  async update(id: string, updateMajorDto: UpdateMajorDto) {
+    return queryUpdateOne<Major>(this.majorModel, id, updateMajorDto);
   }
 
-  remove(id: string) {
-    return this.majorModel.findByIdAndDelete(id).populate('school').lean();
+  async remove(id: string) {
+    return queryDeleteOne<Major>(this.majorModel, id);
   }
 }
