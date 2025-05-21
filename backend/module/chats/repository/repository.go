@@ -36,6 +36,7 @@ type Repository interface {
 
 	GetReactionsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReaction, error)
 	GetReadReceiptsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReadReceipt, error)
+	GetMessageByID(ctx context.Context, id primitive.ObjectID) (*model.ChatMessage, error)
 }
 
 type repository struct {
@@ -202,4 +203,14 @@ func (r *repository) GetReadReceiptsByMessageID(ctx context.Context, messageID p
 		return nil, err
 	}
 	return receipts, nil
+}
+
+func (r *repository) GetMessageByID(ctx context.Context, id primitive.ObjectID) (*model.ChatMessage, error) {
+	var msg model.ChatMessage
+	err := r.dbConnect(ctx).Collection("chat_messages").
+		FindOne(ctx, bson.M{"_id": id}).Decode(&msg)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	}
+	return &msg, err
 }

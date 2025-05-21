@@ -185,10 +185,16 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 		reactions, _ := s.repo.GetReactionsByMessageID(ctx, msg.ID)
 		reads, _ := s.repo.GetReadReceiptsByMessageID(ctx, msg.ID)
 
+		var replyTo *model.ChatMessage
+		if msg.ReplyToID != nil {
+			replyTo, _ = s.repo.GetMessageByID(ctx, *msg.ReplyToID)
+		}
+
 		enriched = append(enriched, model.ChatMessageEnriched{
 			ChatMessage:  msg,
 			Reactions:    reactions,
 			ReadReceipts: reads,
+			ReplyTo:      replyTo,
 		})
 	}
 

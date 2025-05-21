@@ -127,7 +127,17 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			filteredMessage := utils.FilterProfanity(messageBody)
 			mentions := extractMentions(filteredMessage)
 
-			// ✅ สร้าง structured event
+			// ✅ บันทึกลง MongoDB
+			_ = h.service.SaveChatMessage(ctx, &model.ChatMessage{
+				RoomID:    roomIdStr,
+				UserID:    userID,
+				Message:   filteredMessage,
+				Mentions:  mentions,
+				ReplyToID: &replyToID,
+				Timestamp: time.Now(),
+			})
+
+			// ✅ Broadcast reply event
 			replyPayload := map[string]interface{}{
 				"userId":    userID,
 				"message":   filteredMessage,
