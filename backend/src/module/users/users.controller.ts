@@ -6,6 +6,8 @@ import {
   Query,
   UseGuards,
   UseInterceptors,
+  Body,
+  Patch,
 } from '@nestjs/common';
 
 import { UsersService } from './users.service';
@@ -14,6 +16,7 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { CacheKey } from '@nestjs/cache-manager';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
@@ -43,11 +46,11 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  // @Patch(':id')
-  // @CacheKey('users:list')
-  // update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-  //   return this.usersService.update(id, updateUserDto);
-  // }
+  @Patch(':id')
+  @CacheKey('users:list')
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(id, updateUserDto);
+  }
 
   @Delete(':id')
   @CacheKey('users')
