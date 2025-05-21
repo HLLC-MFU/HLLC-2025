@@ -36,7 +36,7 @@ func NewStickerService(repo repository.Repository) StickerService {
 
 func (s *service) CreateSticker(ctx context.Context, sticker *model.Sticker) error {
 
-	existing, err := s.repo.GetByName(ctx, sticker.Name.ThName, sticker.Name.EnName)
+	existing, err := s.repo.GetByName(ctx, sticker.Name.Th, sticker.Name.En)
 	if err != nil {
 		return err
 	}

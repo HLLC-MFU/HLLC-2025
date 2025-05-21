@@ -62,8 +62,8 @@ func (h *HTTPHandler) CreateSticker(c *fiber.Ctx) error {
 	sticker := &model.Sticker{
 		ID: primitive.NewObjectID(),
 		Name: coreModel.LocalizedName{
-			ThName: thName,
-			EnName: enName,
+			Th: thName,
+			En: enName,
 		},
 		Image: imageURL,
 	}
@@ -161,8 +161,8 @@ func (h *HTTPHandler) UpdateSticker(c *fiber.Ctx) error {
 	sticker := &model.Sticker{
 		ID: id,
 		Name: coreModel.LocalizedName{
-			ThName: thName,
-			EnName: enName,
+			Th: thName,
+			En: enName,
 		},
 		Image: image,
 	}

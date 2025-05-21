@@ -116,7 +116,7 @@ func (s *service) CreateRoom(ctx context.Context, room *model.Room) error {
 	room.CreatedAt = now
 	room.UpdatedAt = now
 
-	existing, err := s.repo.GetByName(ctx, room.Name.ThName, room.Name.EnName)
+	existing, err := s.repo.GetByName(ctx, room.Name.Th, room.Name.En)
 	if err != nil {
 		return err
 	}

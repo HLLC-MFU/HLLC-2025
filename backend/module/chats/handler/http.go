@@ -491,8 +491,8 @@ func (h *HTTPHandler) SendSticker(c *fiber.Ctx) error {
 
 // ✅ เมื่อสร้างห้อง เพิ่มผู้สร้างเป็นสมาชิกห้อง
 func (h *HTTPHandler) CreateRoom(c *fiber.Ctx) error {
-	thName := c.FormValue("name[thName]")
-	enName := c.FormValue("name[enName]")
+	th := c.FormValue("name[th]")
+	en := c.FormValue("name[en]")
 	capacityStr := c.FormValue("capacity")
 	creatorID := c.FormValue("creator_id")
 	capacity, _ := strconv.Atoi(capacityStr)
@@ -517,8 +517,8 @@ func (h *HTTPHandler) CreateRoom(c *fiber.Ctx) error {
 	room := &model.Room{
 		ID: roomID,
 		Name: coreModel.LocalizedName{
-			ThName: thName,
-			EnName: enName,
+			Th: th,
+			En: en,
 		},
 		Capacity: capacity,
 		Image:    imagePath,
@@ -704,8 +704,8 @@ func (h *HTTPHandler) UpdateRoom(c *fiber.Ctx) error {
 		}
 	}
 
-	room.Name.ThName = thName
-	room.Name.EnName = enName
+	room.Name.Th = thName
+	room.Name.En = enName
 	room.Capacity = capacity
 	room.Image = imagePath
 	room.UpdatedAt = time.Now()
