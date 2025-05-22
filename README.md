@@ -1,234 +1,89 @@
-# HLLC-2025
+# 🛠️ HLLC CLI
 
-HLLC-2025 is a comprehensive platform for campus management and student engagement built with modern technologies and following clean architecture principles.
+A lightweight CLI for managing local development tasks across a fullstack monorepo, including NestJS, Go services, Next.js, Expo, and Docker.
 
-## 🚀 Project Overview
-
-This project provides a scalable and maintainable solution for:
-- User management with role-based access control
-- Authentication and authorization
-- School and major/department management
-- Activity tracking and check-in system
-- Real-time chat functionality
-- Comprehensive reporting and analytics
-
-## ⚙️ System Architecture
-
-The system is built using a modular microservice architecture:
-
-### Backend Services
-- **User Service**: User management and profile handling
-- **Auth Service**: Authentication, session management, and authorization
-- **School Service**: School and institution management
-- **Major Service**: Academic major/department management
-- **Activity Service**: Event and activity tracking
-- **Check-in Service**: Attendance and check-in system
-- **Chat Service**: Real-time messaging functionality
-- **Notification Service**: Alert and notification delivery
-
-### Technologies
-- **Backend**: Go 1.24.1, Fiber, gRPC, MongoDB, Redis
-- **Frontend**: React, Material UI, WebSockets
-- **DevOps**: Docker, GitHub Actions, Kubernetes
-- **Monitoring**: Prometheus, Grafana
-
-## 🛠️ Project Structure
-
-The project follows a clean architecture approach with clear separation between layers:
+## 📦 Project Structure
 
 ```
-HLLC-2025/
-├── backend/             # Go backend services
-│   ├── config/          # Configuration management
-│   ├── module/          # Service modules
-│   ├── pkg/             # Shared utilities
-│   └── server/          # Server initialization
-├── frontend/            # React frontend application
-├── docs/                # Documentation
-├── scripts/             # Utility scripts
-└── .github/             # GitHub Actions workflows
+📦 HLLC Monorepo
+├── backend/
+│   ├── app/         # NestJS API
+│   └── chat/        # Go WebSocket Server
+├── frontend/
+│   ├── admin/       # Next.js Admin Panel
+│   └── student/     # Expo React Native App
+├── docker-compose.yml  # Redis and other services
+├── scripts/
+│   ├── hllc.js       # CLI Entry
+│   └── commands/
+│       ├── dev.js    # hllc dev
+│       ├── install.js # hllc install
+│       └── upgrade.js # hllc upgrade (optional)
 ```
 
-## 👥 Contributors
+---
 
-### Team Members and Contributions
+## 📦 Installation
 
-<table>
-<tr>
-    <th>GitHub Username</th>
-    <th>Name</th>
-    <th>Contributions</th>
-    <th>Statistics</th>
-</tr>
-
-<tr>
-    <td><a href="https://github.com/jemiezler">jemiezler</a></td>
-    <td>Nattawat Nattachanasit</td>
-    <td>
-        <b>Role:</b> Team Lead / Project Manager / Full Stack Developer<br/>
-        <b>Responsibilities:</b>
-        <ul>
-            <li>Project Management & Client Communication</li>
-            <li>Frontend Design & Implementation</li>
-            <li>DevOps & Deployment</li>
-            <li>Frontend Architecture & Layout Design</li>
-        </ul>
-    </td>
-    <td align="center">
-        <img src="https://img.shields.io/badge/Commits-1-blue?style=for-the-badge"/>
-        <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
-        <br/>
-        <b>0.78% of total contributions</b>
-    </td>
-</tr>
-
-<tr>
-    <td><a href="https://github.com/6531503042">6531503042</a></td>
-    <td>Nimit Tanboontor</td>
-    <td>
-        <b>Role:</b> Backend Developer / Architect<br/>
-        <b>Responsibilities:</b>
-        <ul>
-            <li>Backend Architecture Design</li>
-            <li>Core Service Implementation (User, Auth)</li>
-            <li>Decorator Pattern & Middleware</li>
-            <li>Database Schema & Service Structure</li>
-        </ul>
-    </td>
-    <td align="center">
-        <img src="https://img.shields.io/badge/Commits-83-blue?style=for-the-badge"/>
-        <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
-        <br/>
-        <b>64.84% of total contributions</b>
-    </td>
-</tr>
-
-<tr>
-    <td><a href="https://github.com/poonyawat0511">poonyawat0511</a></td>
-    <td>Poonyawat Khomlek</td>
-    <td>
-        <b>Role:</b> Backend Developer<br/>
-        <b>Responsibilities:</b>
-        <ul>
-            <li>Chat System Implementation</li>
-            <li>Real-time Data Processing</li>
-            <li>Backend Service Development</li>
-            <li>API Integration & Testing</li>
-        </ul>
-    </td>
-    <td align="center">
-        <img src="https://img.shields.io/badge/Commits-6-blue?style=for-the-badge"/>
-        <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
-        <br/>
-        <b>4.69% of total contributions</b>
-    </td>
-</tr>
-
-<tr>
-    <td><a href="https://github.com/klavivach">klavivach</a></td>
-    <td>Klavivach</td>
-    <td>
-        <b>Role:</b> Frontend Developer / QA Tester<br/>
-        <b>Responsibilities:</b>
-        <ul>
-            <li>Chat UI Implementation</li>
-            <li>Frontend Component Development</li>
-            <li>Testing & Quality Assurance</li>
-            <li>Frontend-Backend Integration</li>
-        </ul>
-    </td>
-    <td align="center">
-        <img src="https://img.shields.io/badge/Commits-0-blue?style=for-the-badge"/>
-        <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
-        <br/>
-        <b>0.0% of total contributions</b>
-    </td>
-</tr>
-
-<tr>
-    <td><a href="https://github.com/aboutblank0000000">aboutblank0000000</a></td>
-    <td>ABOUTBLANK</td>
-    <td>
-        <b>Role:</b> UI/UX Designer<br/>
-        <b>Responsibilities:</b>
-        <ul>
-            <li>Coming soon</li>
-            <li>Role to be determined</li>
-        </ul>
-    </td>
-    <td align="center">
-        <img src="https://img.shields.io/badge/Commits-0-blue?style=for-the-badge"/>
-        <img src="https://img.shields.io/badge/PRs-0-green?style=for-the-badge"/>
-        <br/>
-        <b>0.0% of total contributions</b>
-    </td>
-</tr>
-
-</table>
-
-### Contribution Distribution
-```mermaid
-pie
-    title Total Commits: 128
-    "Nattawat Nattachanasit" : 1
-    "Nimit Tanboontor" : 83
-    "Poonyawat Khomlek" : 6
-    "Klavivach" : 0
-    "ABOUTBLANK" : 0
+### 1. Clone this repo (or download it)
+```bash
+git clone https://github.com/your-org/hllc-2025
+cd hllc-2025
 ```
 
-## 📋 Current and Upcoming Modules
+### 2. Link the CLI globally
+```bash
+npm i -g .
+# or
+pnpm link --global
+```
 
-### Implemented Services
-- User Management
-- Authentication & Authorization
-- School Management
-- Major/Department Management
+---
 
-### Upcoming Services
-- Activity Management
-- Check-in System
-- Chat System
-- Lamduan Integration
-- Notifications
-- Reporting & Analytics
+## 🚀 Usage
 
-## 🚀 Getting Started
+### Start a service
 
-### Prerequisites
-- Go 1.24.1 or newer
-- MongoDB
-- Redis
-- Node.js and npm
+```bash
+hllc dev
+```
 
-### Setup and Installation
-1. Clone the repository
-2. Set up environment variables for backend services
-3. Install backend dependencies: `cd backend && go mod download`
-4. Install frontend dependencies: `cd frontend && npm install`
-5. Run the backend services: `cd backend && go run main.go api`
-6. Run the frontend: `cd frontend && npm start`
+> Choose **one** service to run in the same terminal:
+- `Docker Compose`
+- `NestJS Backend`
+- `Go Chat Server`
+- `Next.js Admin Frontend`
+- `Expo Student App`
 
-## 📄 Documentation
+### Install dependencies
 
-Comprehensive documentation is available in the `/docs` directory and includes:
-- API Reference
-- User Guides
-- Architecture Overview
-- Development Guidelines
+```bash
+hllc install
+```
 
-## 🤝 Contributing
+- Installs dependencies for:
+  - `backend/app` (pnpm)
+  - `backend/chat` (go mod tidy)
+  - `frontend/admin` (pnpm)
+  - `frontend/student` (pnpm)
+- Also runs:
+  ```bash
+  docker-compose up -d redis
+  ```
 
-We welcome contributions to the HLLC-2025 project:
+### (Optional) Upgrade all dependencies except Tailwind CSS
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a pull request
+```bash
+npx npm-check-updates -u --reject tailwindcss --workspace && pnpm install
+```
 
-Please follow our coding standards and guidelines when contributing.
+You can also add this as a future command:
+```bash
+hllc upgrade
+```
 
-## 📜 License
+---
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## 🧾 License
+
+MIT © 2025 Your Name or Organization
