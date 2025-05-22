@@ -10,6 +10,7 @@ import { RoleInitializerService } from './role.initializer.service';
   imports: [
     MongooseModule.forFeature([{ name: Role.name, schema: RoleSchema }]),
   ],
+  exports: [MongooseModule],
   controllers: [RoleController],
   providers: [RoleService, RoleInitializerService],
 })

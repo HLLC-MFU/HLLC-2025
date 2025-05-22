@@ -19,6 +19,7 @@ import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { CacheKey } from '@nestjs/cache-manager';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UploadUserDto } from './dto/upload.user.dto';
 
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
@@ -46,6 +47,21 @@ export class UsersController {
   @CacheKey('users:$params.id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
+  }
+
+  @Get('search/:username')
+  @Public()
+  @Permissions('users:read:username')
+  @CacheKey('users:search:$params.username')
+  findByUsername(@Param('username') username: string) {
+    return this.usersService.findByUsername(username);
+  }
+
+  @Post('upload')
+  @Public()
+  @Permissions('users:upload')
+  upload(@Body() uploadUserDto: UploadUserDto) {
+    return this.usersService.upload(uploadUserDto);
   }
 
   @Patch(':id')
