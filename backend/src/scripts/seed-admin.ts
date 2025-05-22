@@ -24,7 +24,7 @@ enum Actions {
 
 // สร้าง permissions ที่ถูกต้องตามรูปแบบ `${string}:${Actions}`
 const createPermissions = () => {
-  const resources = ['users', 'schools', 'majors', 'roles', 'activities'];
+  const resources = ['users', 'schools', 'majors', 'roles', 'activities', 'checkin'];
   const actions = Object.values(Actions);
   
   const permissions: string[] = [];

@@ -50,7 +50,7 @@ export class RoleInitializerService implements OnModuleInit {
   }
 
   private createAdminPermissions(): `${string}:${Actions}`[] {
-    const resources = ['users', 'schools', 'majors', 'roles', 'activities'] as const;
+    const resources = ['users', 'schools', 'majors', 'roles', 'activities', 'checkin'] as const;
     const actions = Object.values(Actions);
     
     const permissions: `${string}:${Actions}`[] = [];

@@ -1,6 +1,6 @@
-import { Inject, Injectable, Logger, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, ConflictException, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { isValidObjectId, Model, Types } from 'mongoose';
 import {
   queryDeleteOne,
   queryFindOne,
@@ -15,6 +15,7 @@ import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { Major ,MajorDocument} from '../majors/schemas/major.schema';
 import { UploadUserDto } from './dto/upload.user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -67,7 +68,7 @@ export class UsersService {
   async findOne(id: string) {
     return queryFindOne<User>(this.userModel, { _id: id }, [
       { path: 'role' },
-      { path: 'metadata.major', model: 'Major' },
+      { path: 'major' },
     ]);
   }
 
@@ -83,17 +84,50 @@ export class UsersService {
     }
   }
 
-  async update(id: string, updateData: Partial<User>) {
-    if (updateData.username) {
-      await findOrThrow(this.userModel, { username: updateData.username }, 'Username already exists');
+  async getMe(id: string) {
+    try {
+      console.log('🔍 Finding user with ID:', id);
+      
+      if (!id) {
+        throw new UnauthorizedException('User ID is required');
+      }
+
+      const user = await this.userModel
+        .findById(id)
+        .select('-password -refreshToken')
+        .populate([
+          { path: 'role' },
+          { path: 'major' },
+        ])
+        .lean();
+  
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      console.log('✅ Found user:', user);
+      return user;
+    } catch (error) {
+      console.error('❌ Error in getMe:', error);
+      if (error.name === 'CastError') {
+        throw new UnauthorizedException('Invalid user ID format');
+      }
+      throw error;
     }
-    if (updateData.role) {
-      await findOrThrow(this.roleModel, updateData.role, 'Role not found');
+  }
+  
+
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    if (updateUserDto.username) {
+      await findOrThrow(this.userModel, { username: updateUserDto.username }, 'Username already exists');
     }
-    if (updateData.major) {
-      await findOrThrow(this.majorModel, updateData.major, 'Major not found');
+    if (updateUserDto.role) {
+      await findOrThrow(this.roleModel, updateUserDto.role, 'Role not found');
     }
-    return queryUpdateOne<User>(this.userModel, id, updateData);
+    if (updateUserDto.major) {
+      await findOrThrow(this.majorModel, updateUserDto.major, 'Major not found');
+    }
+    return queryUpdateOne<User>(this.userModel, id, updateUserDto);
   }
 
   async remove(id: string): Promise<void> {
