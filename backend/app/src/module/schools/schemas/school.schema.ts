@@ -14,8 +14,16 @@ export class School {
   @Prop({ required: true, unique: true, type: Object })
   detail: Localization;
 
-  @Prop({ type: Object})
+  @Prop({ type: Object })
   photo: Photo;
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(School);
+SchoolSchema.index({ updatedAt: 1 });
+SchoolSchema.virtual('majors', {
+  ref: 'Major',
+  localField: '_id',
+  foreignField: 'school',
+});
+SchoolSchema.set('toObject', { virtuals: true });
+SchoolSchema.set('toJSON', { virtuals: true });
