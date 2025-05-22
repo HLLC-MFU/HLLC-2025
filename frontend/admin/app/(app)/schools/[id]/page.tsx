@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { Button, Card, CardBody, CardHeader, Divider } from "@heroui/react";
 import { ArrowLeft, Building2, GraduationCap, Pencil, Plus, Trash2 } from "lucide-react";
 import type { School, Major } from "@/types/school";
-import mockSchools from "@/public/mock/schools.json";
 import { MajorModal } from "./_components/MajorModal";
 import { DeleteConfirmationModal } from "./_components/DeleteConfirmationModal";
 import { SchoolDetailSkeleton } from "./_components/SchoolDetailSkeleton";
+import { apiRequest } from "@/utils/api";
+import { useSchools } from "@/hooks/useSchool";
 
 export default function SchoolDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
@@ -19,19 +20,26 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
     const [selectedMajor, setSelectedMajor] = useState<Major | undefined>();
     const [modalMode, setModalMode] = useState<"add" | "edit">("add");
     const [isLoading, setIsLoading] = useState(true);
+    const {schools} = useSchools();
 
     useEffect(() => {
-        const fetchSchool = async () => {
-            setIsLoading(true);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            const foundSchool = mockSchools.find(s => s.id === id);
-            if (foundSchool) {
-                setSchool(foundSchool);
-            }
+        console.log(id);
+        const school = schools?.find(school => school._id === id);
+        if (school) {
+            setSchool(school);
             setIsLoading(false);
-        };
-        fetchSchool();
-    }, [id]);
+        } else {
+            apiRequest(`/schools/${id}`, "GET")
+                .then((data) => {
+                    setSchool(data.data as School);
+                    setIsLoading(false);
+                })
+                .catch((error) => {
+                    console.error("Error fetching school data:", error);
+                    setIsLoading(false);
+                });
+        }
+    }, []);
 
     const handleAddMajor = () => {
         setModalMode("add");
@@ -54,7 +62,7 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
         if (modalMode === "add") {
             const newMajor: Major = {
                 ...majorData,
-                school: id
+                school: id,
             };
             setSchool(prev => {
                 if (!prev) return prev;
@@ -106,7 +114,7 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
 
     return (
         <div className="flex flex-col min-h-screen">
-            <div className="container mx-auto px-4 py-6">
+            <div className="container mx-auto px-4">
                 <div className="flex flex-col gap-6">
                     <div className="flex items-center gap-4">
                         <Button

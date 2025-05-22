@@ -13,11 +13,11 @@ export function SchoolCard({ school, onEdit, onDelete }: SchoolCardProps) {
     const router = useRouter();
 
     const handleViewDetails = () => {
-        router.push(`/schools/${school.id}`);
+        router.push(`/schools/${school._id}`);
     };
 
     return (
-        <Card isHoverable className="h-full">
+        <Card isHoverable isPressable onPress={handleViewDetails} className="h-full">
             <CardHeader className="flex gap-3 p-4">
                 <Card
                     radius="md"
