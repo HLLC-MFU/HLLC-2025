@@ -27,11 +27,17 @@ A lightweight CLI for managing local development tasks across a fullstack monore
 
 ### 1. Clone this repo (or download it)
 ```bash
-git clone https://github.com/your-org/hllc-2025
-cd hllc-2025
+git clone https://github.com/HLLC-MFU/HLLC-2025
+cd HLLC-2025
 ```
 
-### 2. Link the CLI globally
+
+### 2. Install Workspace Dependency
+```bash
+pnpm i
+```
+
+### 3. Link the CLI globally
 ```bash
 npm i -g .
 # or
@@ -41,20 +47,6 @@ pnpm link --global
 ---
 
 ## 🚀 Usage
-
-### Start a service
-
-```bash
-hllc dev
-```
-
-> Choose **one** service to run in the same terminal:
-- `Docker Compose`
-- `NestJS Backend`
-- `Go Chat Server`
-- `Next.js Admin Frontend`
-- `Expo Student App`
-
 ### Install dependencies
 
 ```bash
@@ -71,6 +63,20 @@ hllc install
   docker-compose up -d redis
   ```
 
+### Start a service
+
+```bash
+hllc dev
+```
+
+> Choose **one** service to run in the same terminal:
+- `Docker Compose`
+- `NestJS Backend`
+- `Go Chat Server`
+- `Next.js Admin Frontend`
+- `Expo Student App`
+
+
 ### (Optional) Upgrade all dependencies except Tailwind CSS
 
 ```bash
@@ -86,4 +92,4 @@ hllc upgrade
 
 ## 🧾 License
 
-MIT © 2025 Your Name or Organization
+MIT © 2025 How to Live and Learn On Campus
