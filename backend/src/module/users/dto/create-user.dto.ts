@@ -35,7 +35,10 @@ export class CreateUserDto {
   password: string;
 
   @IsNotEmpty()
-  role: Types.ObjectId | string;
+  role: Types.ObjectId;
+
+  @IsNotEmpty()
+  major: Types.ObjectId;
 
   @IsOptional()
   @IsObject()

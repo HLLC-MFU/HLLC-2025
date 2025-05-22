@@ -1,27 +1,21 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-
+import { Localization, Photo } from 'src/pkg/types/common';
 export type SchoolDocument = HydratedDocument<School>;
 
 @Schema({ timestamps: true })
 export class School {
   @Prop({ required: true, unique: true, type: Object })
-  name: {
-    th: string;
-    en: string;
-  };
+  name: Localization;
 
   @Prop({ required: true, unique: true })
   acronym: string;
 
   @Prop({ required: true, unique: true, type: Object })
-  detail: {
-    th: string;
-    en: string;
-  };
+  detail: Localization;
 
-  @Prop({ unique: true })
-  photo: string;
+  @Prop({ type: Object})
+  photo: Photo;
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(School);

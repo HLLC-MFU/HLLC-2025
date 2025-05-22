@@ -11,6 +11,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { GlobalCacheModule } from './pkg/cache/cache.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
 import * as redisStore from 'cache-manager-ioredis';
+
 @Module({
   imports: [
     ConfigModule.forRoot({

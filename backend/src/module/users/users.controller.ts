@@ -6,6 +6,9 @@ import {
   Query,
   UseGuards,
   UseInterceptors,
+  Body,
+  Patch,
+  Post,
 } from '@nestjs/common';
 
 import { UsersService } from './users.service';
@@ -14,6 +17,9 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { CacheKey } from '@nestjs/cache-manager';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UploadUserDto } from './dto/upload.user.dto';
 
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
@@ -21,11 +27,11 @@ import { CacheKey } from '@nestjs/cache-manager';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // @Post()
-  // @Public()
-  // create(@Body() createUserDto: CreateUserDto) {
-  //   return this.usersService.create(createUserDto);
-  // }
+  @Post()
+  @Public()
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
+  }
 
   @Get()
   @Public()
@@ -43,11 +49,26 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  // @Patch(':id')
-  // @CacheKey('users:list')
-  // update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-  //   return this.usersService.update(id, updateUserDto);
-  // }
+  @Get('search/:username')
+  @Public()
+  @Permissions('users:read:username')
+  @CacheKey('users:search:$params.username')
+  findByUsername(@Param('username') username: string) {
+    return this.usersService.findByUsername(username);
+  }
+
+  @Post('upload')
+  @Public()
+  @Permissions('users:upload')
+  upload(@Body() uploadUserDto: UploadUserDto) {
+    return this.usersService.upload(uploadUserDto);
+  }
+
+  @Patch(':id')
+  @CacheKey('users:list')
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(id, updateUserDto);
+  }
 
   @Delete(':id')
   @CacheKey('users')
