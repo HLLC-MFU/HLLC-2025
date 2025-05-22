@@ -10,5 +10,6 @@ import { School, SchoolSchema } from './schemas/school.schema';
   ],
   controllers: [SchoolsController],
   providers: [SchoolsService],
+  exports: [MongooseModule],
 })
 export class SchoolsModule {}

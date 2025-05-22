@@ -13,4 +13,3 @@ export function handleMongoDuplicateError(err: unknown, field: string): never {
     }
     throw err;
 }
-  
