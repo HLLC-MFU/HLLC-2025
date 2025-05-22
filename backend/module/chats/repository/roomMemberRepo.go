@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,6 +15,7 @@ type RoomMemberRepository interface {
 	RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) error
 	GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error)
 	IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) (bool, error)
+	ListRoomMembers(ctx context.Context, page, limit int64) ([]*model.RoomMember, int64, error)
 }
 
 type roomMemberRepository struct {
@@ -55,4 +57,26 @@ func (r *roomMemberRepository) IsUserInRoom(ctx context.Context, roomID primitiv
 	filter := bson.M{"room_id": roomID, "user_ids": userID}
 	count, err := r.dbConnect(ctx).Collection("room_members").CountDocuments(ctx, filter)
 	return count > 0, err
+}
+
+func (r *roomMemberRepository) ListRoomMembers(ctx context.Context, page, limit int64) ([]*model.RoomMember, int64, error) {
+	skip := (page - 1) * limit
+
+	total, err := r.dbConnect(ctx).Collection("room_members").CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return nil, 0, nil
+	}
+
+	opts := options.Find().SetSkip(skip).SetLimit(limit)
+	cursor, err := r.dbConnect(ctx).Collection("room_members").Find(ctx, bson.M{}, opts)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var roomMember []*model.RoomMember
+	if err := cursor.All(ctx, &roomMember); err != nil {
+		return nil, 0, err
+	}
+	return roomMember, total, nil
 }

@@ -434,6 +434,7 @@ type createRoomRequest struct {
 }
 
 func (h *HTTPHandler) RegisterRoutes(router fiber.Router) {
+	router.Get("/with-members", h.ListRoomMembers)
 	router.Post("/", h.CreateRoom)
 	router.Get("/:id", h.GetRoom)
 	router.Get("/", h.ListRooms)
@@ -737,4 +738,17 @@ func (h *HTTPHandler) DeleteRoom(c *fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *HTTPHandler) ListRoomMembers(c *fiber.Ctx) error {
+	roomMembers, err := h.service.ListRoomsWithMembers(c.Context(), h.memberService)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"rooms": roomMembers,
+	})
 }

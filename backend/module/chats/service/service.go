@@ -35,6 +35,7 @@ type Service interface {
 	SaveReaction(ctx context.Context, reaction *model.MessageReaction) error
 	SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error
 	SyncRoomMembers()
+	ListRoomsWithMembers(ctx context.Context, memberService MemberService) ([]map[string]interface{}, error)
 }
 
 type service struct {
@@ -248,4 +249,28 @@ func (s *service) SaveReaction(ctx context.Context, reaction *model.MessageReact
 
 func (s *service) SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error {
 	return s.repo.SaveReadReceipt(ctx, receipt)
+}
+
+func (s *service) ListRoomsWithMembers(ctx context.Context, memberService MemberService) ([]map[string]interface{}, error) {
+	rooms, _, err := s.ListRooms(ctx, 1, 10)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
+
+	for _, room := range rooms {
+		members, err := memberService.GetRoomMembers(ctx, room.ID)
+		if err != nil {
+			log.Printf("[WARN] Cannot get members for room %s: %v", room.ID.Hex(), err)
+			members = []primitive.ObjectID{}
+		}
+
+		result = append(result, map[string]interface{}{
+			"room":    room,
+			"members": members,
+		})
+	}
+
+	return result, nil
 }

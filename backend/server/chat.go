@@ -70,24 +70,8 @@ func (s *server) chatService() {
 
 	api := s.app.Group("/api/v1")
 
-	public := api.Group("/public/rooms")
-	public.Get("/", httpHandler.ListRooms)
-	public.Get(":id", httpHandler.GetRoom)
-
-	protected := api.Group("/rooms")
-	protected.Get("/", httpHandler.ListRooms)
-	protected.Get(":id", httpHandler.GetRoom)
-	protected.Post("/", httpHandler.CreateRoom)
-	protected.Patch(":id", httpHandler.UpdateRoom)
-	protected.Delete(":id", httpHandler.DeleteRoom)
-	protected.Post("/rooms/:roomId/send-sticker", httpHandler.SendSticker)
-	protected.Post(":roomId/:userId/join", httpHandler.JoinRoom)
-	protected.Post(":roomId/:userId/leave", httpHandler.LeaveRoom)
-
-	admin := api.Group("/admin/rooms")
-	admin.Post("/", httpHandler.CreateRoom)
-	admin.Patch(":id", httpHandler.UpdateRoom)
-	admin.Delete(":id", httpHandler.DeleteRoom)
+	public := api.Group("/rooms")
+	httpHandler.RegisterRoutes(public)
 
 	s.app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
@@ -95,7 +79,7 @@ func (s *server) chatService() {
 
 	s.app.Static("/uploads", "./uploads")
 
-	httpHandler.RegisterRoutes(protected)
+	httpHandler.RegisterRoutes(public)
 
 	s.app.Get("/ping", func(c *fiber.Ctx) error {
 		return c.SendString("pong")
