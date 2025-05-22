@@ -1,0 +1,1012 @@
+{
+	"info": {
+		"_postman_id": "0f27e1a2-1392-480c-9f5d-d78130ad74da",
+		"name": "HLLC-API",
+		"description": "API collection for HLLC Campus CRM System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29106659"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login to get JWT token."
+					},
+					"response": []
+				},
+				{
+					"name": "Login (User)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"6531503055\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login to get JWT token."
+					},
+					"response": []
+				},
+				{
+					"name": "Me",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ODJlY2E4ZDRmYjQ1MTUxNjJhZTFiYjAiLCJ1c2VybmFtZSI6ImFkbWluIiwiaWF0IjoxNzQ3ODk3MTI5LCJleHAiOjE3NDc4OTgwMjl9.JX_33bZgOgnIWiJGZfzIpc8XlCjo6_G5orXpKLw9K2M",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"description": "Login to get JWT token."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
+						},
+						"description": "Refresh access token using refresh token."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Logout and invalidate tokens."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication related endpoints"
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							]
+						},
+						"description": "Get all users with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Ger Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me"
+							]
+						},
+						"description": "Get all users with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{userId}}"
+							]
+						},
+						"description": "Get a single user by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": {\n    \"first\": \"Monkey\",\n    \"middle\": \"D.\",\n    \"last\": \"Luffy\"\n  },\n  \"username\": \"6531503055\",\n  \"password\": \"password123\",\n  \"major\": \"682ee35d9fc8ea728d1d630f\",\n  \"role\": \"682ef6e80827126131434318\"\n}\n"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							]
+						},
+						"description": "Create a new user."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": {\n        \"first\": \"John\",\n        \"middle\": \"\",\n        \"last\": \"Updated\"\n    },\n    \"metadata\": {\n        \"schoolId\": \"{{schoolId}}\",\n        \"majorId\": \"{{majorId}}\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{userId}}"
+							]
+						},
+						"description": "Update a user by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{userId}}"
+							]
+						},
+						"description": "Delete a user by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "User management endpoints"
+		},
+		{
+			"name": "Schools",
+			"item": [
+				{
+					"name": "Get All Schools",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/schools",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"schools"
+							]
+						},
+						"description": "Get all schools."
+					},
+					"response": []
+				},
+				{
+					"name": "Get School by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/schools/{{schoolId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"schools",
+								"{{schoolId}}"
+							]
+						},
+						"description": "Get a school by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create School",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": {\n    \"th\": \"สำนักวิชาเทคโนโลยีสารสนเทศ\",\n    \"en\": \"School of Information Technology\"\n  },\n  \"acronym\": \"it\",\n  \"detail\": {\n    \"th\": \"สำนักวิชาที่มุ่งเน้นการเรียนรู้ด้านเทคโนโลยีสารสนเทศ วิทยาการคอมพิวเตอร์ และนวัตกรรมดิจิทัล\",\n    \"en\": \"A faculty focused on Information Technology, Computer Science, and Digital Innovation.\"\n  },\n  \"photo\": {\n    \"coverPhoto\": \"url_to_cover_photo\",\n    \"bannerPhoto\": \"url_to_banner_photo\",\n    \"thumbnailPhoto\": \"url_to_thumbnail_photo\",\n    \"logoPhoto\": \"url_to_logo_photo\"\n  }\n}\n"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/schools",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"schools"
+							]
+						},
+						"description": "Create a new school."
+					},
+					"response": []
+				},
+				{
+					"name": "Update School",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Engineering School\",\n    \"description\": \"Updated School of Engineering and Technology\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/schools/{{schoolId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"schools",
+								"{{schoolId}}"
+							]
+						},
+						"description": "Update a school by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete School",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/schools/{{schoolId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"schools",
+								"{{schoolId}}"
+							]
+						},
+						"description": "Delete a school by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "School management endpoints"
+		},
+		{
+			"name": "Majors",
+			"item": [
+				{
+					"name": "Get All Majors",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/majors",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"majors"
+							]
+						},
+						"description": "Get all majors."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Major by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/majors/{{majorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"majors",
+								"{{majorId}}"
+							]
+						},
+						"description": "Get a major by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Major",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": {\n    \"th\": \"วิศวกรรมซอฟต์แวร์\",\n    \"en\": \"Software Engineering\"\n  },\n  \"acronym\": \"SE\",\n  \"detail\": {\n    \"th\": \"หลักสูตรที่มุ่งเน้นการพัฒนา ออกแบบ และบริหารจัดการซอฟต์แวร์อย่างเป็นระบบ โดยใช้กระบวนการวิศวกรรมเพื่อสร้างซอฟต์แวร์คุณภาพสูงที่ตอบโจทย์ผู้ใช้งาน\",\n    \"en\": \"A program focused on the systematic development, design, and management of software using engineering principles to build high-quality and user-oriented software systems.\"\n  },\n  \"school\": \"682ee3569fc8ea728d1d630b\"\n}\n"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/majors",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"majors"
+							]
+						},
+						"description": "Create a new major."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Major",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Computer Science\",\n    \"description\": \"Updated study of computer systems and computational processes\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/majors/{{majorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"majors",
+								"{{majorId}}"
+							]
+						},
+						"description": "Update a major by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Major",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/majors/{{majorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"majors",
+								"{{majorId}}"
+							]
+						},
+						"description": "Delete a major by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Major management endpoints"
+		},
+		{
+			"name": "Roles",
+			"item": [
+				{
+					"name": "Get All Roles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/roles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles"
+							]
+						},
+						"description": "Get all roles."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Role by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{roleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{roleId}}"
+							]
+						},
+						"description": "Get a role by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Student\",\n    \"permissions\": [\"read:profile\", \"update:profile\", \"read:courses\"],\n    \"description\": \"Regular student role\",\n    \"metadataSchema\": {\n        \"required\": [\"schoolId\", \"majorId\"],\n        \"properties\": {\n            \"schoolId\": { \"type\": \"string\" },\n            \"majorId\": { \"type\": \"string\" },\n            \"studentId\": { \"type\": \"string\" },\n            \"enrollmentYear\": { \"type\": \"number\" }\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/roles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles"
+							]
+						},
+						"description": "Create a new role."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Role",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Student\",\n    \"permissions\": [\"read:profile\", \"update:profile\", \"read:courses\", \"read:events\"],\n    \"description\": \"Updated student role with more permissions\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{roleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{roleId}}"
+							]
+						},
+						"description": "Update a role by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Role Metadata Schema",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"required\": [\"schoolId\", \"majorId\", \"studentId\"],\n    \"properties\": {\n        \"schoolId\": { \"type\": \"string\" },\n        \"majorId\": { \"type\": \"string\" },\n        \"studentId\": { \"type\": \"string\" },\n        \"enrollmentYear\": { \"type\": \"number\" },\n        \"graduationYear\": { \"type\": \"number\" }\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{roleId}}/metadata-schema",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{roleId}}",
+								"metadata-schema"
+							]
+						},
+						"description": "Update a role's metadata schema."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Role",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{roleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{roleId}}"
+							]
+						},
+						"description": "Delete a role by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Role management endpoints"
+		},
+		{
+			"name": "Activities",
+			"item": [
+				{
+					"name": "Get All Activities",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/activities",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"activities"
+							]
+						},
+						"description": "Get all activities with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Activity by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/activities/{{activityId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"activities",
+								"{{activityId}}"
+							]
+						},
+						"description": "Get an activity by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Activity",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fullName\": {\n        \"en\": \"Freshman Orientation\",\n        \"th\": \"ปฐมนิเทศนักศึกษาใหม่\"\n    },\n    \"shortName\": {\n        \"en\": \"Freshman Orientation\",\n        \"th\": \"ปฐมนิเทศนักศึกษาใหม่\"\n    },\n    \"fullDetails\": {\n        \"en\": \"Comprehensive orientation for new students\",\n        \"th\": \"การปฐมนิเทศอย่างครอบคลุมสำหรับนักศึกษาใหม่\"\n    },\n    \"shortDetails\": {\n        \"en\": \"New student orientation\",\n        \"th\": \"ปฐมนิเทศนักศึกษาใหม่\"\n    },\n    \"photo\": {\n        \"thumb\": \"orientation-thumb.jpg\",\n        \"full\": \"orientation-full.jpg\"\n    },\n    \"type\": \"orientation\",\n    \"icon\": \"school\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/activities",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"activities"
+							]
+						},
+						"description": "Create a new activity."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Activity",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": {\n        \"en\": \"Updated Freshman Orientation\",\n        \"th\": \"ปฐมนิเทศนักศึกษาใหม่ (ปรับปรุง)\"\n    },\n    \"isInProgress\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/activities/{{activityId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"activities",
+								"{{activityId}}"
+							]
+						},
+						"description": "Update an activity by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Activity",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/activities/{{activityId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"activities",
+								"{{activityId}}"
+							]
+						},
+						"description": "Delete an activity by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Activity management endpoints"
+		},
+		{
+			"name": "Checkin",
+			"item": [
+				{
+					"name": "Get Checkin",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/checkin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"checkin"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Request Checkin (User)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"activity\": \"682ee3d42a4d6bd63e96483d\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/checkin/request",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"checkin",
+								"request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Scan QR Code (Staff)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user\": \"682ed02d31f759c6a46e968a\",     // User ID from QR code\n    \"activity\": \"682ee3d42a4d6bd63e96483d\",  // Activity ID from QR code\n    \"deviceId\": \"staff-device-001\"           // Optional\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/checkin/scan",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"checkin",
+								"scan"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
