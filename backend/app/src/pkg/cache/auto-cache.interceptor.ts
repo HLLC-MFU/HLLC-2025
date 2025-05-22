@@ -38,6 +38,7 @@ export class AutoCacheInterceptor implements NestInterceptor {
   ): Promise<Observable<T>> {
     const response = context.switchToHttp().getResponse<FastifyReply>();
     const request = context.switchToHttp().getRequest();
+    const method = request.method?.toUpperCase();
     const querySuffix = request.url.includes('?')
       ? `:${request.url.split('?')[1]}`
       : '';
@@ -88,6 +89,16 @@ export class AutoCacheInterceptor implements NestInterceptor {
             return '';
           }
         }) + querySuffix;
+
+    // ✅ ลบ cache ถ้า method ไม่ใช่ GET
+    if (method !== 'GET') {
+      this.logger.warn(`♻️ INVALIDATE CACHE: ${key} due to ${method}`);
+      this.memoryCache.delete(key);
+      void this.cacheManager.del(key).then(() => {
+        this.logger.log(`🧹 Deleted L2 cache key: ${key}`);
+      });
+      return next.handle(); // ไม่ต้อง cache ค่าใหม่
+    }
 
     const now = Date.now();
 
