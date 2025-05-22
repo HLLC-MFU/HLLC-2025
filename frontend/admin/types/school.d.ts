@@ -1,7 +1,7 @@
 import { Lang } from "./lang";
 
 export type School = {
-    id: string;
+    _id: string;
     name: Lang;
     acronym: string;
     detail: Lang;

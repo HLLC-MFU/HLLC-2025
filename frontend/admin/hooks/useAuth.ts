@@ -19,7 +19,7 @@ const useAuth = create<AuthStore>()(
       loading: false,
       error: null,
 
-      signIn: async (username, password) => {
+      signIn: async (username: string, password:string) => {
         try {
           set({ loading: true, error: null });
 

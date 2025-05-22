@@ -30,6 +30,7 @@ export class SchoolsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
+    console.log('findOne', id);
     return this.schoolsService.findOne(id);
   }
 
