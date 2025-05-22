@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -23,6 +24,7 @@ export class AutoCacheInterceptor implements NestInterceptor {
     string,
     { value: unknown; expiresAt: number }
   >();
+  private readonly groupKeyMap = new Map<string, Set<string>>();
   private readonly L1_TTL = 5000; // 5 seconds
 
   constructor(
@@ -49,60 +51,52 @@ export class AutoCacheInterceptor implements NestInterceptor {
 
     if (!rawKey) return next.handle();
 
-    // ✅ Replace dynamic variables: $args[0], $params.id, $query.name
+    // Generate actual cache key by replacing variables
     const args: unknown[] = context.getArgs();
     const key =
       rawKey
         .replace(/\$args\[(\d+)\]/g, (_, i) => {
           const arg = args?.[+i];
-          if (arg === undefined || arg === null) return '';
-          if (typeof arg === 'string') return arg;
-          if (typeof arg === 'number' || typeof arg === 'boolean')
-            return arg.toString();
-          try {
-            return JSON.stringify(arg);
-          } catch {
-            return '';
-          }
+          return typeof arg === 'object'
+            ? JSON.stringify(arg)
+            : String(arg ?? '');
         })
         .replace(/\$params\.(\w+)/g, (_, k) => {
           const param = request.params?.[k];
-          if (param === undefined || param === null) return '';
-          if (typeof param === 'string') return param;
-          if (typeof param === 'number' || typeof param === 'boolean')
-            return param.toString();
-          try {
-            return JSON.stringify(param);
-          } catch {
-            return '';
-          }
+          return typeof param === 'object'
+            ? JSON.stringify(param)
+            : String(param ?? '');
         })
         .replace(/\$query\.(\w+)/g, (_, k) => {
           const queryVal = request.query?.[k];
-          if (queryVal === undefined || queryVal === null) return '';
-          if (typeof queryVal === 'string') return queryVal;
-          if (typeof queryVal === 'number' || typeof queryVal === 'boolean')
-            return queryVal.toString();
-          try {
-            return JSON.stringify(queryVal);
-          } catch {
-            return '';
-          }
+          return typeof queryVal === 'object'
+            ? JSON.stringify(queryVal)
+            : String(queryVal ?? '');
         }) + querySuffix;
 
-    // ✅ ลบ cache ถ้า method ไม่ใช่ GET
+    // Define group prefix from rawKey (e.g. users:xxx → users)
+    const group = rawKey.split(':')[0];
+
+    // 🧹 Invalidate cache group if not GET
     if (method !== 'GET') {
-      this.logger.warn(`♻️ INVALIDATE CACHE: ${key} due to ${method}`);
-      this.memoryCache.delete(key);
-      void this.cacheManager.del(key).then(() => {
-        this.logger.log(`🧹 Deleted L2 cache key: ${key}`);
-      });
-      return next.handle(); // ไม่ต้อง cache ค่าใหม่
+      this.logger.warn(`♻️ INVALIDATE CACHE GROUP: ${group} due to ${method}`);
+
+      const groupKeys = this.groupKeyMap.get(group) ?? new Set();
+
+      for (const k of groupKeys) {
+        this.memoryCache.delete(k);
+        void this.cacheManager.del(k).then(() => {
+          this.logger.log(`🧹 Deleted cache [${group}] → ${k}`);
+        });
+      }
+
+      this.groupKeyMap.delete(group); // Clear group tracking
+      return next.handle(); // No caching on CUD
     }
 
     const now = Date.now();
 
-    // ✅ L1 check
+    // 🔍 L1 Cache
     const l1 = this.memoryCache.get(key);
     if (l1 && l1.expiresAt > now) {
       this.logger.verbose(`✅ L1 HIT: ${key}`);
@@ -110,23 +104,26 @@ export class AutoCacheInterceptor implements NestInterceptor {
       return of(l1.value as T);
     }
 
-    this.logger.verbose(`❌ CACHE MISS: ${key}`);
-
-    // ✅ L2 fallback
+    // 🔍 L2 Cache
     const fromRedis = await this.cacheManager.get<T>(key);
     if (fromRedis !== undefined && fromRedis !== null) {
-      this.logger.verbose(`🪙 L2 HIT → restore L1: ${key}`);
       this.memoryCache.set(key, {
         value: fromRedis,
         expiresAt: now + this.L1_TTL,
       });
+      this.groupKeyMap.set(group, this.groupKeyMap.get(group) ?? new Set());
+      this.groupKeyMap.get(group)?.add(key);
+
+      this.logger.verbose(`🪙 L2 HIT → L1 SET: ${key}`);
       response.header('x-cache', 'HIT:L2');
       return of(fromRedis);
     }
 
+    // 🚫 MISS
+    this.logger.verbose(`❌ CACHE MISS: ${key}`);
     response.header('x-cache', 'MISS');
 
-    // ✅ Handle and cache response
+    // ✅ Cache result
     return next.handle().pipe(
       tap((responseData: T) => {
         const sanitized = JSON.parse(JSON.stringify(responseData)) as T;
@@ -135,11 +132,16 @@ export class AutoCacheInterceptor implements NestInterceptor {
           value: sanitized,
           expiresAt: now + this.L1_TTL,
         });
+
+        // Track key in group
+        this.groupKeyMap.set(group, this.groupKeyMap.get(group) ?? new Set());
+        this.groupKeyMap.get(group)?.add(key);
+
         this.logger.verbose(`💾 L1 SET: ${key} (TTL ${this.L1_TTL / 1000}s)`);
 
         void this.cacheManager
           .set(key, sanitized, 0)
-          .then(() => this.logger.log(`📦 L2 SET (permanent): ${key}`))
+          .then(() => this.logger.log(`📦 L2 SET: ${key}`))
           .catch((err) => this.logger.error(`❌ L2 SET error: ${key}`, err));
       }),
     );
