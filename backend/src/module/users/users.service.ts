@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
@@ -13,8 +13,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { Major } from '../majors/schemas/major.schema';
-import { MajorDocument } from '../majors/schemas/major.schema';
+import { Major ,MajorDocument} from '../majors/schemas/major.schema';
+import { UploadUserDto } from './dto/upload.user.dto';
 
 @Injectable()
 export class UsersService {
@@ -71,12 +71,43 @@ export class UsersService {
     ]);
   }
 
+  async findByUsername(username: string) {
+    const user = await this.userModel.findOne({ username }).lean();
+    try {
+      if (!user?.password || user.password.length == 0 || user.password == 'null') {
+        throw new BadRequestException("User isn't registered yet")
+      }
+      return user;
+    } catch (error) {
+      throw new NotFoundException('User not found');
+    }
+  }
+
   async update(id: string, updateData: Partial<User>) {
+    if (updateData.username) {
+      await findOrThrow(this.userModel, { username: updateData.username }, 'Username already exists');
+    }
+    if (updateData.role) {
+      await findOrThrow(this.roleModel, updateData.role, 'Role not found');
+    }
+    if (updateData.major) {
+      await findOrThrow(this.majorModel, updateData.major, 'Major not found');
+    }
     return queryUpdateOne<User>(this.userModel, id, updateData);
   }
 
   async remove(id: string): Promise<void> {
     await queryDeleteOne<User>(this.userModel, id);
+  }
+
+  async removeMultiple(ids: string[]): Promise<User[]> {
+    try {
+      const users = await this.userModel.find({ _id: { $in: ids } }).lean();
+      await this.userModel.deleteMany({ _id: { $in: ids } });
+      return users;
+    } catch (error) {
+      throw new NotFoundException('Users not found');
+    }
   }
 
   async resetPassword(id: string) {
@@ -86,7 +117,54 @@ export class UsersService {
     await user.save();
   }
 
-  // async uploadUsers ()
+  async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
+    const users: CreateUserDto[] = await Promise.all(
+      uploadUserDto.users.map(async (userDto) => {
+        const userMajor = userDto.major || uploadUserDto.major;
+
+        if (userDto.major) {
+          const userMajorRecord = await this.majorModel
+            .findById(userDto.major)
+            .lean();
+          if (!userMajorRecord) {
+            throw new NotFoundException('Major in database not found');
+          }
+        }
+
+        return {
+          name: {
+            first: userDto.name.first,
+            last: userDto.name.last || '',
+          },
+          fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
+          username: userDto.studentId,
+          password: '',
+          secret: '',
+          major: new Types.ObjectId(userMajor),
+          role: new Types.ObjectId(uploadUserDto.role),
+          type: uploadUserDto.type,
+          round: uploadUserDto.round,
+        };
+      }),
+    );
+
+    try {
+      const savedUsers = await Promise.all(
+        users.map(async (user) => {
+          const userDoc = new this.userModel(user);
+          return await userDoc.save();
+        }),
+      );
+
+      return savedUsers.map((user) => user.toObject());
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new ConflictException('Username already exists');
+      }
+      throw error;
+    }
+  }
+
 
 
 }

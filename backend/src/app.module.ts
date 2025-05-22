@@ -10,25 +10,9 @@ import { AuthModule } from './module/auth/auth.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { GlobalCacheModule } from './pkg/cache/cache.module';
 import * as redisStore from 'cache-manager-ioredis';
-import { WinstonModule } from 'nest-winston';
-import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
-import * as winston from 'winston';
 
 @Module({
   imports: [
-    WinstonModule.forRoot({
-      transports: [
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.timestamp(),
-            nestWinstonModuleUtilities.format.nestLike('HLLC-2025', {
-              colors: true,
-              prettyPrint: true,
-            }),
-          ),
-        }),
-      ],
-    }),
     ConfigModule.forRoot({
       load: [configuration],
       isGlobal: true,
