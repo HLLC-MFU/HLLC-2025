@@ -39,26 +39,22 @@ export class UsersController {
   @Permissions('users:read')
   @CacheKey('users')
   async findAll(@Query() query: Record<string, any>) {
+    const { id, username } = query;
+
+    if (id || username) {
+      const identifier = {
+        id: id as string | undefined,
+        username: username as string | undefined,
+      };
+      return this.usersService.findOne(identifier);
+    }
+
     return this.usersService.findAll(query);
   }
 
   @Get('me')
   getMe(@CurrentUser() user: JwtPayload & { _id: string }) {
     return this.usersService.getMe(user._id);
-  }
-
-  @Get('search/:username')
-  @Permissions('users:read')
-  @CacheKey('users:search:$params.username')
-  findByUsername(@Param('username') username: string) {
-    return this.usersService.findByUsername(username);
-  }
-
-  @Get(':id')
-  @Permissions('users:read:id')
-  @CacheKey('users:$params.id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
   }
 
   @Post('upload')

@@ -5,6 +5,8 @@ import { Public } from './decorators/public.decorator';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { LoginDto } from './dto/login.dto';
 import { UserDocument } from '../users/schemas/user.schema';
+import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -18,6 +20,18 @@ export class AuthController {
       body.password,
     );
     return this.authService.login(user as unknown as UserDocument);
+  }
+
+  @Public()
+  @Post('register')
+  async register(@Body() body: RegisterDto) {
+    return this.authService.register(body);
+  }
+
+  @Public()
+  @Post('reset-password')
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    return this.authService.resetPassword(body);
   }
 
   @Public()

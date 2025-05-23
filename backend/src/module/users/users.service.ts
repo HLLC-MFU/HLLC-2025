@@ -1,17 +1,14 @@
 import {
-  Inject,
   Injectable,
-  Logger,
   NotFoundException,
   ConflictException,
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { isValidObjectId, Model, Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import {
   queryDeleteOne,
-  queryFindOne,
   queryUpdateOne,
   queryAll,
 } from 'src/pkg/helper/query.util';
@@ -24,6 +21,7 @@ import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { UploadUserDto } from './dto/upload.user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
@@ -70,27 +68,23 @@ export class UsersService {
     });
   }
 
-  async findOne(id: string) {
-    return queryFindOne<User>(this.userModel, { _id: id }, [
-      { path: 'role' },
-      { path: 'major' },
-    ]);
-  }
+  async findOne(identifier: { id?: string; username?: string }) {
+    const condition = identifier.id
+      ? { _id: identifier.id }
+      : { username: identifier.username };
 
-  async findByUsername(username: string) {
-    const user = await this.userModel.findOne({ username }).lean();
-    try {
-      if (
-        !user?.password ||
-        user.password.length == 0 ||
-        user.password == 'null'
-      ) {
-        throw new BadRequestException("User isn't registered yet");
-      }
-      return user;
-    } catch (error) {
-      throw new NotFoundException('User not found');
+    const user = await this.userModel
+      .findOne(condition)
+      .populate([{ path: 'role' }, { path: 'major' }])
+      .lean();
+
+    if (!user) throw new NotFoundException('User not found');
+
+    if (identifier.username && (!user.password || user.password === '')) {
+      throw new BadRequestException("User isn't registered yet");
     }
+
+    return user;
   }
 
   async getMe(id: string) {
@@ -165,6 +159,7 @@ export class UsersService {
       uploadUserDto.users.map(async userDto => {
         const userMajor = userDto.major || uploadUserDto.major;
 
+        // ✅ Check major existence
         if (userDto.major) {
           const userMajorRecord = await this.majorModel
             .findById(userDto.major)
@@ -181,11 +176,13 @@ export class UsersService {
           },
           fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
           username: userDto.studentId,
-          password: '',
-          secret: '',
+          password: '', // initially blank
+          secret: '', // initially blank
           major: new Types.ObjectId(userMajor),
           role: new Types.ObjectId(uploadUserDto.role),
-          type: uploadUserDto.type,
+          metadata: {
+            type: uploadUserDto.metadata?.type ?? null,
+          },
         };
       }),
     );

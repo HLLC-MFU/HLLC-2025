@@ -37,28 +37,13 @@ class UserUploadDto {
   @IsOptional()
   @IsMongoId()
   major?: string;
-}
-
-export class UploadUserDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => UserUploadDto)
-  users: UserUploadDto[];
-
-  @IsOptional()
-  @IsMongoId()
-  major?: string | Types.ObjectId;
-
-  @IsMongoId()
-  @IsNotEmpty()
-  role: string | Types.ObjectId;
 
   @IsOptional()
   @IsString()
-  type?: string;
+  province?: string;
 }
 
-export class UploadUsersDto {
+export class UploadUserDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UserUploadDto)

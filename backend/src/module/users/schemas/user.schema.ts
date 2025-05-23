@@ -13,6 +13,7 @@ export class User {
       middle: { type: String, required: false, unique: false },
       last: { type: String, required: false, unique: false },
     },
+    _id: false,
   })
   name: {
     first: string;
@@ -28,6 +29,9 @@ export class User {
 
   @Prop({ required: true, type: Types.ObjectId, ref: 'Role' })
   role: Types.ObjectId;
+
+  @Prop({ type: String, default: '' })
+  secret: string;
 
   @Prop({ required: false, type: Types.ObjectId, ref: 'Major' })
   major: Types.ObjectId;
