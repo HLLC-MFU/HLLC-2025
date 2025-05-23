@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, SchemaTypes, Types } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -29,13 +29,13 @@ export class User {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Role' })
   role: Types.ObjectId;
 
-  @Prop({ required: true,type: Types.ObjectId, ref: 'Major'})
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Major' })
   major: Types.ObjectId;
 
   @Prop({ type: String || null, default: null })
   refreshToken: string | null;
 
-  @Prop({ type: Types.ObjectId, default: {} })
+  @Prop({ type: Types.Map, of: SchemaTypes.Mixed, default: {} })
   metadata: Record<string, any>;
 }
 

@@ -2,13 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Notification, NotificationDocument } from './schemas/notification.schema';
 import { Model } from 'mongoose';
+import { Expo } from 'expo-server-sdk';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectModel(Notification.name)
-    private readonly notificationModel: Model<NotificationDocument> 
+    private readonly notificationModel: Model<NotificationDocument>
   ) {}
 
   async create(createNotificationDto: Notification) {
@@ -32,5 +33,22 @@ export class NotificationsService {
 
   async remove(id: string) {
     return await queryDeleteOne<Notification>(this.notificationModel, id);
+  }
+
+  async sendNotification(sendNotificationDto: Notification) {
+    const expo = new Expo();
+    
+    const messages = [
+      {
+        to: "",
+        sound: 'default',
+        title: sendNotificationDto.title.th,
+        body: sendNotificationDto.body,
+      },
+    ];
+
+    const ticketChunk = await expo.sendPushNotificationsAsync(messages);
+    console.log('Push ticket:', ticketChunk);
+
   }
 }
