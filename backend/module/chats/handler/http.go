@@ -371,7 +371,7 @@ func (h *HTTPHandler) UploadFile(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save message"})
 	}
 
-	// ✅ Broadcast to all clients in the room
+	// Broadcast to all clients in the room
 	model.BroadcastMessage(model.BroadcastObject{
 		MSG: fmt.Sprintf("[file] %s", msg.FileName),
 		FROM: model.ClientObject{
@@ -380,7 +380,7 @@ func (h *HTTPHandler) UploadFile(c *fiber.Ctx) error {
 		},
 	})
 
-	// ✅ Optional: send rich event payload
+	// Optional: send rich event payload
 	h.broadcastEvent(roomId, "file", map[string]string{
 		"userId":   userId,
 		"fileName": msg.FileName,
@@ -425,7 +425,7 @@ func (h *HTTPHandler) RegisterRoutes(router fiber.Router) {
 	router.Post("/upload", h.UploadFile)
 	router.Post("/:roomId/stickers", h.SendSticker)
 
-	// ✅ Member Management
+	// Member Management
 	router.Get("/:roomId/members", h.GetRoomMembers)
 	router.Post("/:roomId/:userId/join", h.JoinRoom)
 	router.Post("/:roomId/:userId/leave", h.LeaveRoom)
@@ -450,7 +450,7 @@ func (h *HTTPHandler) SendSticker(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "sticker not found"})
 	}
 
-	// ✅ Save to chat DB
+	// Save to chat DB
 	msg := &model.ChatMessage{
 		RoomID:    roomIdStr,
 		UserID:    userID,
@@ -462,7 +462,7 @@ func (h *HTTPHandler) SendSticker(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save sticker message"})
 	}
 
-	// ✅ Only broadcast once using structured event
+	// Only broadcast once using structured event
 	h.broadcastEvent(roomIdStr, "sticker", map[string]string{
 		"userId":    userID,
 		"sticker":   sticker.Image,
@@ -472,18 +472,27 @@ func (h *HTTPHandler) SendSticker(c *fiber.Ctx) error {
 	return c.JSON(msg)
 }
 
-// ✅ เมื่อสร้างห้อง เพิ่มผู้สร้างเป็นสมาชิกห้อง
+// when create add creator to member first
 func (h *HTTPHandler) CreateRoom(c *fiber.Ctx) error {
 	th := c.FormValue("name[th]")
 	en := c.FormValue("name[en]")
 	capacityStr := c.FormValue("capacity")
 	creatorID := c.FormValue("creator_id")
-	capacity, _ := strconv.Atoi(capacityStr)
 
+	if creatorID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "creator_id is required"})
+	}
+
+	creatorObjID, err := primitive.ObjectIDFromHex(creatorID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid creator_id"})
+	}
+
+	capacity, _ := strconv.Atoi(capacityStr)
 	roomID := primitive.NewObjectID()
 	imagePath := ""
 
-	// ✅ Handle file upload
+	//Handle file upload
 	file, err := c.FormFile("image")
 	if err == nil && file != nil {
 		_ = os.MkdirAll("./uploads/rooms", os.ModePerm)
@@ -505,14 +514,11 @@ func (h *HTTPHandler) CreateRoom(c *fiber.Ctx) error {
 		},
 		Capacity: capacity,
 		Image:    imagePath,
+		Creator:  creatorObjID,
 	}
 
 	if err := h.service.CreateRoom(c.Context(), room); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	if creatorID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "creator_id is required"})
 	}
 
 	_ = h.memberService.AddUserToRoom(c.Context(), room.ID, creatorID)
@@ -521,7 +527,7 @@ func (h *HTTPHandler) CreateRoom(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(room)
 }
 
-// ✅ เข้าห้อง (Join)
+// Join Room
 func (h *HTTPHandler) JoinRoom(c *fiber.Ctx) error {
 	roomIdStr := c.Params("roomId")
 	userID := c.Params("userId")
@@ -533,7 +539,7 @@ func (h *HTTPHandler) JoinRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	// ✅ ตรวจสอบว่าห้องมีอยู่จริง
+	// handle Room avaliable
 	room, err := h.service.GetRoom(c.Context(), roomID)
 	if err != nil || room == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -541,7 +547,7 @@ func (h *HTTPHandler) JoinRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	// ✅ ตรวจสอบ Capacity ของห้อง
+	// handle Capacity of room
 	memberCount, err := h.memberService.GetRoomMembers(context.Background(), roomID)
 	if err != nil {
 		log.Printf("[ERROR] Failed to get member count for room %s: %v", roomID.Hex(), err)
@@ -556,7 +562,7 @@ func (h *HTTPHandler) JoinRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	// ✅ Add user to room
+	// Add User to Room
 	if err := h.memberService.AddUserToRoom(context.Background(), roomID, userID); err != nil {
 		log.Printf("[ERROR] Failed to add user %s to room %s: %v", userID, roomID.Hex(), err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -570,10 +576,10 @@ func (h *HTTPHandler) JoinRoom(c *fiber.Ctx) error {
 	})
 }
 
-// ✅ ออกจากห้อง (Leave)
+// Leave Room
 func (h *HTTPHandler) LeaveRoom(c *fiber.Ctx) error {
 	roomIdStr := c.Params("roomId")
-	userID := c.Params("userId") // ✅ ใช้ userID แทน userId
+	userID := c.Params("userId")
 
 	roomID, err := primitive.ObjectIDFromHex(roomIdStr)
 	if err != nil {
@@ -594,7 +600,7 @@ func (h *HTTPHandler) LeaveRoom(c *fiber.Ctx) error {
 	})
 }
 
-// ✅ ตรวจสอบสมาชิก
+// handle Member
 func (h *HTTPHandler) GetRoomMembers(c *fiber.Ctx) error {
 	roomIdStr := c.Params("roomId")
 

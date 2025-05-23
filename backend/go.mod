@@ -7,8 +7,6 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/segmentio/kafka-go v0.4.47
 	go.mongodb.org/mongo-driver v1.17.3
-	google.golang.org/grpc v1.71.0
-	google.golang.org/protobuf v1.36.5
 )
 
 require (
@@ -20,7 +18,6 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
 	golang.org/x/crypto v0.32.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
 )
 
 require (
