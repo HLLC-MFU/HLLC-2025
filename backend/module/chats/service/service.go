@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
@@ -55,6 +55,9 @@ func (s *service) InitChatHub() {
 		for {
 			select {
 			case client := <-model.Register:
+				if model.Clients[client.RoomID] == nil {
+					model.Clients[client.RoomID] = make(map[string]*websocket.Conn)
+				}
 				model.Clients[client.RoomID][client.UserID] = client.Conn
 				log.Printf("[REGISTER] %s joined room %s", client.UserID, client.RoomID)
 
@@ -66,42 +69,44 @@ func (s *service) InitChatHub() {
 			case message := <-model.Broadcast:
 				log.Printf("[BROADCAST] Message from %s in room %s: %s", message.FROM.UserID, message.FROM.RoomID, message.MSG)
 
+				// Extract mentions before storing
 				mentions := utils.ExtractMentions(message.MSG)
 
-				if err := s.publisher.SendMessage(message.FROM.RoomID, message.FROM.UserID, message.MSG); err != nil {
-					log.Printf("[Kafka] Failed to publish message: %v", err)
+				// 🔄 Store message in Kafka and MongoDB asynchronously
+				go func(roomID, userID, msg string, mentions []string) {
+					if err := s.publisher.SendMessage(roomID, userID, msg); err != nil {
+						log.Printf("[Kafka] Failed to publish message: %v", err)
+					}
+					if err := s.repo.SaveChatMessage(context.Background(), &model.ChatMessage{
+						RoomID:    roomID,
+						UserID:    userID,
+						Message:   msg,
+						Mentions:  mentions,
+						Timestamp: time.Now(),
+					}); err != nil {
+						log.Printf("[MongoDB] Failed to save chat message: %v", err)
+					}
+				}(message.FROM.RoomID, message.FROM.UserID, message.MSG, mentions)
+
+				// 🧱 Create a JSON event to broadcast
+				payload := model.MessagePayload{
+					UserID:   message.FROM.UserID,
+					RoomID:   message.FROM.RoomID,
+					Message:  message.MSG,
+					Mentions: mentions,
 				}
 
-				if err := s.repo.SaveChatMessage(context.Background(), &model.ChatMessage{
-					RoomID:    message.FROM.RoomID,
-					UserID:    message.FROM.UserID,
-					Message:   message.MSG,
-					Mentions:  mentions,
-					Timestamp: time.Now(),
-				}); err != nil {
-					log.Printf("[MongoDB] Failed to save chat message: %v", err)
+				event := model.ChatEvent{
+					EventType: "message",
+					Payload:   payload,
 				}
 
+				// 🚀 Broadcast to all clients in room
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
 					if conn == nil {
 						continue
 					}
-
-					isJSON := strings.HasPrefix(strings.TrimSpace(message.MSG), "{") &&
-						strings.HasSuffix(strings.TrimSpace(message.MSG), "}")
-
-					if !isJSON && userID == message.FROM.UserID {
-						continue
-					}
-
-					var outgoing string
-					if isJSON {
-						outgoing = message.MSG
-					} else {
-						outgoing = message.FROM.UserID + ": " + message.MSG
-					}
-
-					if err := conn.WriteMessage(websocket.TextMessage, []byte(outgoing)); err != nil {
+					if err := sendJSONMessage(conn, event); err != nil {
 						log.Printf("[WS] Failed to send message to user %s: %v", userID, err)
 						conn.Close()
 						delete(model.Clients[message.FROM.RoomID], userID)
@@ -111,6 +116,17 @@ func (s *service) InitChatHub() {
 		}
 	}()
 }
+
+// ✅ Helper to safely send JSON
+func sendJSONMessage(conn *websocket.Conn, v interface{}) error {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	return conn.WriteMessage(websocket.TextMessage, data)
+}
+
+
 
 func (s *service) CreateRoom(ctx context.Context, room *model.Room) error {
 	now := time.Now()

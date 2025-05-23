@@ -35,6 +35,18 @@ type ChatMessage struct {
 	Image     string              `bson:"image,omitempty" json:"image,omitempty"`
 }
 
+type ChatEvent struct {
+	EventType string      `json:"eventType"`
+	Payload   interface{} `json:"payload"`
+}
+
+type MessagePayload struct {
+	UserID   string   `json:"userId"`
+	RoomID   string   `json:"roomId"`
+	Message  string   `json:"message"`
+	Mentions []string `json:"mentions"`
+}
+
 var _ = coreModel.Collection("chat_messages")
 
 var _ = []interface{}{
