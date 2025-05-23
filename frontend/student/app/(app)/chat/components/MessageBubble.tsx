@@ -63,21 +63,27 @@ const styles = StyleSheet.create({
   messageWrapper: { 
     marginVertical: 2,
     maxWidth: '100%',
+    flexDirection: 'column',
   },
   myMessage: { 
     alignSelf: 'flex-end',
     marginLeft: 40,
+    flexDirection: 'column',
+    alignItems: 'flex-end',
   },
   otherMessage: { 
     alignSelf: 'flex-start',
     marginRight: 40,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
   },
   messageBubbleRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    flexWrap: 'wrap',
   },
   messageBubble: { 
-    maxWidth: '100%', 
+    maxWidth: '80%',
     paddingVertical: 8,
     paddingHorizontal: 12, 
     borderRadius: 18,
@@ -113,6 +119,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     lineHeight: 22,
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   senderNameAbove: { 
     color: '#0A84FF', 

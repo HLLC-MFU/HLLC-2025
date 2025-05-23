@@ -17,6 +17,7 @@ const RoomCard = ({ room, width, language, onPress, index }: RoomCardProps) => {
   const opacityAnim = useRef(new Animated.Value(0)).current;
   
   useEffect(() => {
+    console.log("RoomCard received room:", JSON.stringify(room, null, 2));
     const delay = index * 100;
     Animated.parallel([
       Animated.timing(scaleAnim, {
@@ -34,7 +35,7 @@ const RoomCard = ({ room, width, language, onPress, index }: RoomCardProps) => {
     ]).start();
   }, []);
 
-  const hue = useMemo(() => (room.id.charCodeAt(0) * 137) % 360, [room.id]);
+  const hue = useMemo(() => (room.id?.charCodeAt(0) || 0) * 137 % 360, [room.id]);
 
   return (
     <Animated.View style={[
@@ -61,24 +62,30 @@ const RoomCard = ({ room, width, language, onPress, index }: RoomCardProps) => {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.roomAvatarText}>{room.name.th_name.charAt(0).toUpperCase()}</Text>
+                <Text style={styles.roomAvatarText}>
+                  {(room.name?.th?.charAt(0) || '?').toUpperCase()}
+                </Text>
               </LinearGradient>
             </View>
           </View>
           
           <View style={styles.roomInfo}>
             <Text style={styles.roomCardName} numberOfLines={1} ellipsizeMode="tail">
-              {language === 'th' ? room.name.th_name : room.name.en_name}
+              {language === 'th' ? room.name?.th || 'Unnamed' : room.name?.en || 'Unnamed'}
             </Text>
             <View style={styles.roomStatsCard}>
               <Users size={14} color="#fff" />
-              <Text style={styles.roomMembersCard}>{room.connected_users} / {room.capacity}</Text>
+              <Text style={styles.roomMembersCard}>
+                {room.members?.length || 0} / {room.capacity || 0}
+              </Text>
             </View>
             
             <View style={styles.activityIndicator}>
-              <View style={[styles.pulsingDot, {backgroundColor: room.connected_users > 3 ? '#4CAF50' : '#FFA726'}]} />
+              <View style={[styles.pulsingDot, {
+                backgroundColor: (room.members?.length || 0) > 3 ? '#4CAF50' : '#FFA726'
+              }]} />
               <Text style={styles.activityText}>
-                {room.connected_users > 3 ? 
+                {(room.members?.length || 0) > 3 ? 
                   (language === 'th' ? 'กำลังใช้งาน' : 'Active') : 
                   (language === 'th' ? 'เงียบสงบ' : 'Quiet')}
               </Text>

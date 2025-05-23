@@ -24,6 +24,15 @@ interface CreateRoomModalProps {
   userId: string;
 }
 
+interface CreateRoomFormData {
+  name: {
+    thName: string;
+    enName: string;
+  };
+  capacity: number;
+  image?: string;
+}
+
 const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
   visible,
   onClose,
@@ -31,12 +40,13 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
   userId,
 }) => {
   const { language } = useLanguage();
-  const [thName, setThName] = useState('');
-  const [enName, setEnName] = useState('');
-  const [capacity, setCapacity] = useState('10');
+  const [formData, setFormData] = useState<CreateRoomFormData>({
+    name: { thName: '', enName: '' },
+    capacity: 10,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [image, setImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const pickImage = async () => {
     try {
@@ -48,7 +58,7 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
       });
 
       if (!result.canceled) {
-        setImage(result.assets[0].uri);
+        setSelectedImage(result.assets[0].uri);
       }
     } catch (err) {
       console.error('Error picking image:', err);
@@ -57,61 +67,61 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
   };
 
   const handleCreateRoom = async () => {
-    if (!thName.trim() || !enName.trim() || !capacity) {
-      setError('Please fill in all fields');
-      return;
-    }
-
-    const capacityNum = parseInt(capacity, 10);
-    if (isNaN(capacityNum) || capacityNum < 2 || capacityNum > 100) {
-      setError('Capacity must be between 2 and 100');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
     try {
-      const roomData: CreateRoomDto = {
-        name: {
-          th_name: thName.trim(),
-          en_name: enName.trim(),
-        },
-        capacity: capacityNum,
-        image: image || undefined,
-      };
-
-      console.log('Creating room with data:', roomData);
-      const result = await chatService.createRoom(roomData);
-      
-      if (result) {
-        console.log('Room created successfully:', result);
+      if (!formData.name.thName || !formData.name.enName) {
         Alert.alert(
-          "Success",
-          "Chat room created successfully!",
-          [{ text: "OK", onPress: () => {
-            onSuccess();
-            resetForm();
-          }}]
+          'Error',
+          'Please enter both Thai and English room names'
         );
-      } else {
-        console.error('Room creation failed: result is null');
-        setError('Failed to create room');
+        return;
       }
-    } catch (err) {
-      console.error('Error creating room:', err);
-      setError('An error occurred while creating the room');
+
+      if (!formData.capacity || formData.capacity < 2) {
+        Alert.alert(
+          'Error',
+          'Room capacity must be at least 2'
+        );
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      const result = await chatService.createRoom({
+        name: {
+          thName: formData.name.thName,
+          enName: formData.name.enName,
+        },
+        capacity: formData.capacity,
+        image: selectedImage || undefined,
+      });
+
+      if (!result) {
+        throw new Error('Failed to create room');
+      }
+
+      resetForm();
+      onClose();
+      onSuccess();
+    } catch (error) {
+      console.error('Error creating room:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create room');
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Failed to create room'
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const resetForm = () => {
-    setThName('');
-    setEnName('');
-    setCapacity('10');
+    setFormData({
+      name: { thName: '', enName: '' },
+      capacity: 10,
+    });
     setError(null);
-    setImage(null);
+    setSelectedImage(null);
   };
 
   const handleClose = () => {
@@ -142,8 +152,8 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
               style={styles.imageContainer} 
               onPress={pickImage}
             >
-              {image ? (
-                <Image source={{ uri: image }} style={styles.roomImage} />
+              {selectedImage ? (
+                <Image source={{ uri: selectedImage }} style={styles.roomImage} />
               ) : (
                 <View style={styles.imagePlaceholder}>
                   <ImageIcon size={32} color="#666" />
@@ -160,13 +170,15 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
               </Text>
               <TextInput
                 style={styles.input}
-                placeholder={language === 'th' ? 'ใส่ชื่อห้องภาษาไทย' : 'Enter Thai room name'}
-                placeholderTextColor="#666"
-                value={thName}
-                onChangeText={setThName}
-                maxLength={30}
+                placeholder="Room Name (Thai)"
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                value={formData.name.thName}
+                onChangeText={(text) => setFormData(prev => ({
+                  ...prev,
+                  name: { ...prev.name, thName: text }
+                }))}
               />
-              <Text style={styles.charCount}>{thName.length}/30</Text>
+              <Text style={styles.charCount}>{formData.name.thName.length}/30</Text>
             </View>
             
             <View style={styles.inputContainer}>
@@ -175,13 +187,15 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
               </Text>
               <TextInput
                 style={styles.input}
-                placeholder={language === 'th' ? 'ใส่ชื่อห้องภาษาอังกฤษ' : 'Enter English room name'}
-                placeholderTextColor="#666"
-                value={enName}
-                onChangeText={setEnName}
-                maxLength={30}
+                placeholder="Room Name (English)"
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                value={formData.name.enName}
+                onChangeText={(text) => setFormData(prev => ({
+                  ...prev,
+                  name: { ...prev.name, enName: text }
+                }))}
               />
-              <Text style={styles.charCount}>{enName.length}/30</Text>
+              <Text style={styles.charCount}>{formData.name.enName.length}/30</Text>
             </View>
             
             <View style={styles.inputContainer}>
@@ -192,8 +206,11 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                 style={styles.input}
                 placeholder={language === 'th' ? 'จำนวนสมาชิกสูงสุด' : 'Maximum number of users'}
                 placeholderTextColor="#666"
-                value={capacity}
-                onChangeText={setCapacity}
+                value={formData.capacity.toString()}
+                onChangeText={(text) => setFormData(prev => ({
+                  ...prev,
+                  capacity: parseInt(text, 10)
+                }))}
                 keyboardType="numeric"
                 maxLength={3}
               />
@@ -219,10 +236,10 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                 style={[
                   styles.button, 
                   styles.createButton,
-                  (!thName.trim() || !enName.trim()) && styles.disabledButton
+                  (!formData.name.thName.trim() || !formData.name.enName.trim()) && styles.disabledButton
                 ]} 
                 onPress={handleCreateRoom}
-                disabled={loading || !thName.trim() || !enName.trim()}
+                disabled={loading || !formData.name.thName.trim() || !formData.name.enName.trim()}
               >
                 {loading ? (
                   <ActivityIndicator size="small" color="#fff" />

@@ -15,7 +15,7 @@ const RoomListItem = ({ room, language, onPress, index }: RoomListItemProps) => 
   const slideAnim = useRef(new Animated.Value(-50)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   
-  const hue = useMemo(() => (room.id.charCodeAt(0) * 137) % 360, [room.id]);
+  const hue = useMemo(() => (room.id?.charCodeAt(0) || 0) * 137 % 360, [room.id]);
   
   useEffect(() => {
     const delay = index * 80;
@@ -59,18 +59,24 @@ const RoomListItem = ({ room, language, onPress, index }: RoomListItemProps) => 
             colors={[`hsla(${hue + 30}, 90%, 55%, 1)`, `hsla(${hue - 30}, 90%, 45%, 1)`]}
             style={styles.roomAvatar}
           >
-            <Text style={styles.roomAvatarText}>{room.name.th_name.charAt(0).toUpperCase()}</Text>
+            <Text style={styles.roomAvatarText}>
+              {(room.name?.thName?.charAt(0) || '?').toUpperCase()}
+            </Text>
           </LinearGradient>
           <View style={styles.roomJoinedBadge} />
         </View>
         
         <View style={styles.roomListInfo}>
-          <Text style={styles.roomName}>{language === 'th' ? room.name.th_name : room.name.en_name}</Text>
+          <Text style={styles.roomName}>
+            {language === 'th' ? room.name?.thName || 'Unnamed' : room.name?.enName || 'Unnamed'}
+          </Text>
           
           <View style={styles.roomExtraInfo}>
             <View style={styles.roomStats}>
               <Users size={14} color="rgba(255,255,255,0.7)" />
-              <Text style={styles.roomMembers}>{room.connected_users} / {room.capacity}</Text>
+              <Text style={styles.roomMembers}>
+                {room.members?.length || 0} / {room.capacity || 0}
+              </Text>
             </View>
             
             <View style={styles.lastActiveContainer}>

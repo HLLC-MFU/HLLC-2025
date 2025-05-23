@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import useProfile from '@/hooks/useProfile';
 import { Platform } from 'react-native';
 import { Message, ConnectedUser } from '../types/chatTypes';
+import { getToken } from '@/utils/storage';
 
 // Use actual IP for Android, localhost for iOS
 const WS_BASE_URL = Platform.OS === 'android' 
@@ -11,74 +12,71 @@ const WS_BASE_URL = Platform.OS === 'android'
 // Maximum number of messages to keep in memory
 const MAX_MESSAGES = 100;
 
-interface WebSocketHook {
+export interface WebSocketHook {
   isConnected: boolean;
   error: string | null;
-  sendMessage: (text: string) => void;
+  sendMessage: (message: string) => void;
+  sendTyping: () => void;
+  sendReadReceipt: (messageId: string) => void;
+  sendReaction: (messageId: string, reaction: string) => void;
   messages: Message[];
   connectedUsers: ConnectedUser[];
-  connectedCount: number;
+  typing: { id: string; name?: string }[];
+  connect: (roomId: string) => Promise<void>;
+  disconnect: () => void;
   ws: WebSocket | null;
-  typing: Array<{ id: string; name?: string }>;
+  addMessage: (message: Message) => void;
 }
 
 export const useWebSocket = (roomId: string): WebSocketHook => {
   const { user } = useProfile();
-  const ws = useRef<WebSocket | null>(null);
+  const [ws, setWs] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
-  const [typing, setTyping] = useState<Array<{ id: string; name?: string }>>([]);
+  const [typing, setTyping] = useState<{ id: string; name?: string }[]>([]);
+  
+  // Keep track of connection state
+  const isConnecting = useRef(false);
+  const connectionTimeout = useRef<NodeJS.Timeout | null>(null);
   
   // Keep track of reconnection attempts
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const token = user?.token;
-
   // Function to handle user joining - memoized to prevent recreations
-  const handleUserJoin = useCallback((username: string) => {
-    if (!username) return;
+  const handleUserJoin = useCallback((userId: string, username?: string) => {
+    if (!userId) return;
     
-    console.log('User joined:', username);
+    console.log('User joined:', userId, username);
     setConnectedUsers(prev => {
-      // Don't add if already in the list
-      if (prev.find(u => u.id === username)) {
+      if (prev.find(u => u.id === userId)) {
         return prev;
       }
-      // Limit the number of users in memory
-      const newUsers = [...prev, { 
-        id: username,
-        name: username,
-        online: true
-      }];
-      
-      // Only keep most recent 50 users
+      const newUsers = [...prev, { id: userId, name: username, online: true }];
       return newUsers.slice(-50);
     });
   }, []);
 
   // Function to handle user leaving - memoized
-  const handleUserLeave = useCallback((username: string) => {
-    if (!username) return;
+  const handleUserLeave = useCallback((userId: string) => {
+    if (!userId) return;
     
-    console.log('User left:', username);
-    setConnectedUsers(prev => prev.filter(u => u.id !== username));
+    console.log('User left:', userId);
+    setConnectedUsers(prev => prev.filter(u => u.id !== userId));
   }, []);
 
   // Add message with memory management
   const addMessage = useCallback((message: Message) => {
     setMessages(prev => {
-      // Add id and timestamp if not present
       const newMessage = { 
         ...message, 
         id: message.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         timestamp: message.timestamp || new Date().toISOString()
       };
       
-      // Limit the messages in memory to prevent excessive growth
       const newMessages = [...prev, newMessage];
       return newMessages.slice(-MAX_MESSAGES);
     });
@@ -101,139 +99,214 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       console.log(`Reconnect attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts}`);
       reconnectAttempts.current += 1;
       
-      // Recreate the connection
-      if (ws.current) {
+      if (ws) {
         try {
-          ws.current.close();
+          ws.close();
         } catch (e) {
           // Ignore errors when closing
         }
       }
       
-      connect();
+      connect(roomId);
     }, delay);
-  }, []);
+  }, [roomId, ws]);
 
   // Connect function to avoid redundant code
-  const connect = useCallback(() => {
-    if (!roomId || !user?.username || !token) return;
+  const connect = useCallback(async (roomId: string) => {
+    if (!roomId || !user?._id || isConnecting.current) return;
 
-    const wsUrl = `${WS_BASE_URL}/ws/${roomId}/${user.username}`;
-    console.log('Connecting to WebSocket:', wsUrl);
-    
     try {
-      ws.current = new WebSocket(wsUrl);
+      isConnecting.current = true;
+      const token = await getToken('accessToken');
+      if (!token) {
+        throw new Error('No access token found');
+      }
+
+      // Check token expiration
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expirationTime = payload.exp * 1000;
+      const currentTime = Date.now();
       
-      // Add token to the WebSocket connection
-      ws.current.onopen = () => {
-        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-          ws.current.send(JSON.stringify({ type: 'auth', token }));
+      if (currentTime >= expirationTime) {
+        throw new Error('Token expired');
+      }
+
+      const wsUrl = `${WS_BASE_URL}/ws/${roomId}/${user._id}`;
+      console.log('Connecting to WebSocket:', wsUrl);
+      
+      // Close existing connection if any
+      if (ws) {
+        try {
+          ws.close();
+        } catch (e) {
+          console.error('Error closing existing connection:', e);
+        }
+        setWs(null);
+      }
+      
+      const socket = new WebSocket(wsUrl);
+      
+      // Set connection timeout
+      if (connectionTimeout.current) {
+        clearTimeout(connectionTimeout.current);
+      }
+      
+      connectionTimeout.current = setTimeout(() => {
+        if (socket.readyState !== WebSocket.OPEN) {
+          console.log('Connection timeout');
+          socket.close();
+          isConnecting.current = false;
+          setError('Connection timeout');
+        }
+      }, 5000);
+      
+      socket.onopen = () => {
+        console.log('WebSocket Connected');
+        setIsConnected(true);
+        setError(null);
+        reconnectAttempts.current = 0;
+        isConnecting.current = false;
+        
+        if (connectionTimeout.current) {
+          clearTimeout(connectionTimeout.current);
         }
       };
 
-      ws.current.onclose = (event) => {
+      socket.onclose = (event) => {
         console.log('WebSocket Disconnected', event.code, event.reason);
         setIsConnected(false);
+        isConnecting.current = false;
         
-        // Only try to reconnect if this wasn't a normal closure
+        if (connectionTimeout.current) {
+          clearTimeout(connectionTimeout.current);
+        }
+        
         if (event.code !== 1000) {
           attemptReconnect();
         }
       };
 
-      ws.current.onerror = (error) => {
+      socket.onerror = (error) => {
         console.error('WebSocket Error:', error);
         setError('Failed to connect to chat server');
+        isConnecting.current = false;
+        
+        if (connectionTimeout.current) {
+          clearTimeout(connectionTimeout.current);
+        }
       };
 
-      ws.current.onmessage = (event) => {
+      socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log('WebSocket message received:', data);
           
-          if (data.type === 'auth_success') {
-            setIsConnected(true);
-            setError(null);
-            reconnectAttempts.current = 0;
-            return;
-          }
+          // Handle different event types
+          if (data.eventType === 'history') {
+            if (data.payload?.chat) {
+              try {
+                const messageData = data.payload.chat;
+                console.log('Parsed history message:', messageData);
+                
+                const newMessage = {
+                  id: messageData.id,
+                  text: messageData.message,
+                  senderId: messageData.user_id,
+                  senderName: messageData.user_id,
+                  type: 'message' as const,
+                  timestamp: messageData.timestamp,
+                  isRead: false
+                };
+                console.log('Adding history message:', newMessage);
+                setMessages(prev => {
+                  // Check if message already exists
+                  if (prev.some(msg => msg.id === newMessage.id)) {
+                    return prev;
+                  }
+                  const updatedMessages = [...prev, newMessage];
+                  console.log('Updated messages after history:', updatedMessages);
+                  return updatedMessages;
+                });
+              } catch (parseError) {
+                console.error('Error parsing history message:', parseError);
+              }
+            }
+          } else if (data.eventType === 'message') {
+            // Handle direct message
+            try {
+              const messageData = data.payload;
+              console.log('Received new message:', messageData);
 
-          if (data.type === 'auth_error') {
-            setError('Authentication failed');
-            return;
-          }
-
-          if (data.type === 'users') {
-            setConnectedUsers(data.users.map((id: string) => ({
-              id,
-              name: id,
-              online: true
-            })));
-            return;
-          }
-
-          if (data.type === 'join') {
-            handleUserJoin(data.userId);
-            addMessage({
-              text: `${data.userId} joined the room`,
-              senderId: data.userId,
-              type: 'join',
-              timestamp: new Date().toISOString()
-            });
-            return;
-          }
-
-          if (data.type === 'leave') {
-            handleUserLeave(data.userId);
-            addMessage({
-              text: `${data.userId} left the room`,
-              senderId: data.userId,
-              type: 'leave',
-              timestamp: new Date().toISOString()
-            });
-            return;
-          }
-
-          if (data.type === 'message') {
-            addMessage({
-              text: data.text,
-              senderId: data.senderId,
-              type: 'message',
-              timestamp: data.timestamp || new Date().toISOString()
-            });
-            return;
+              // Check if this is our own message (sent by us)
+              const isOwnMessage = messageData.userId === user?._id;
+              
+              // Only add message if it's not our own (since we already added it via addMessage)
+              if (!isOwnMessage) {
+                const newMessage = {
+                  id: Date.now().toString(),
+                  text: messageData.message,
+                  senderId: messageData.userId,
+                  senderName: messageData.userId,
+                  type: 'message' as const,
+                  timestamp: new Date().toISOString(),
+                  isRead: false
+                };
+                console.log('Adding new message:', newMessage);
+                setMessages(prev => {
+                  const updatedMessages = [...prev, newMessage];
+                  console.log('Updated messages after new message:', updatedMessages);
+                  return updatedMessages;
+                });
+              }
+            } catch (parseError) {
+              console.error('Error parsing new message:', parseError);
+            }
           }
         } catch (err) {
           console.error('Error handling message:', err, event.data);
         }
       };
+
+      setWs(socket);
     } catch (error) {
       console.error('Error creating WebSocket:', error);
       setError('Failed to create WebSocket connection');
-      attemptReconnect();
+      isConnecting.current = false;
+      
+      if (connectionTimeout.current) {
+        clearTimeout(connectionTimeout.current);
+      }
+      
+      // Don't attempt reconnect immediately on error
+      setTimeout(() => {
+        attemptReconnect();
+      }, 3000);
     }
-  }, [roomId, user?.username, token, handleUserJoin, handleUserLeave, addMessage, attemptReconnect]);
+  }, [roomId, user?._id, addMessage, attemptReconnect]);
 
   useEffect(() => {
-    connect();
+    if (roomId && user?._id && !isConnecting.current) {
+      connect(roomId);
+    }
     
-    // Cleanup function to handle component unmount
     return () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
       
-      if (ws.current) {
-        // Use a local variable to avoid closure issues
-        const socket = ws.current;
-        
-        // Set onclose to null to prevent reconnection attempts during unmount
+      if (connectionTimeout.current) {
+        clearTimeout(connectionTimeout.current);
+        connectionTimeout.current = null;
+      }
+      
+      if (ws) {
+        const socket = ws;
         socket.onclose = null;
         socket.onerror = null;
         socket.onmessage = null;
         socket.onopen = null;
         
-        // Close the connection
         if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
           try {
             socket.close(1000, "Component unmounted");
@@ -243,44 +316,93 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         }
       }
       
-      // Clear state on unmount
       setMessages([]);
       setConnectedUsers([]);
       setIsConnected(false);
       setError(null);
+      isConnecting.current = false;
     };
-  }, [connect]);
+  }, [roomId, user?._id]);
 
-  // Memoized function to send messages
-  const sendMessage = useCallback((text: string) => {
-    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+  // Send message
+  const sendMessage = useCallback((message: string) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
       setError('Not connected to chat server');
       return;
     }
 
-    // Add message to local state optimistically
-    addMessage({
-      text: text,
-      senderId: user?.id || '',
-      type: 'message',
-      timestamp: new Date().toISOString()
-    });
+    try {
+      // Send message directly
+      ws.send(message);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setError('Failed to send message');
+    }
+  }, [ws]);
 
-    // Send the message to the server
-    ws.current.send(JSON.stringify({
-      type: 'message',
-      text
-    }));
-  }, [user?.id, addMessage]);
+  // Send typing event
+  const sendTyping = useCallback(() => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    
+    const typingData = {
+      eventType: 'typing',
+      payload: {
+        typing: true
+      }
+    };
+    
+    ws.send(JSON.stringify(typingData));
+  }, [ws]);
+
+  // Send read receipt
+  const sendReadReceipt = useCallback((messageId: string) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    
+    const readData = {
+      eventType: 'read_receipt',
+      payload: {
+        messageId
+      }
+    };
+    
+    ws.send(JSON.stringify(readData));
+  }, [ws]);
+
+  // Send reaction
+  const sendReaction = useCallback((messageId: string, reaction: string) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    
+    const reactionData = {
+      eventType: 'message_reaction',
+      payload: {
+        messageId,
+        reaction
+      }
+    };
+    
+    ws.send(JSON.stringify(reactionData));
+  }, [ws]);
+
+  const disconnect = useCallback(() => {
+    if (ws) {
+      ws.close();
+      setWs(null);
+    }
+  }, [ws]);
 
   return {
     isConnected,
     error,
     sendMessage,
+    sendTyping,
+    sendReadReceipt,
+    sendReaction,
     messages,
     connectedUsers,
-    connectedCount: connectedUsers.length,
-    ws: ws.current,
-    typing
+    typing,
+    connect,
+    disconnect,
+    ws,
+    addMessage
   };
 }; 

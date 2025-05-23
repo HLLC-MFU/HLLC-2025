@@ -1,22 +1,31 @@
 export interface Message {
   id?: string;
-  type: 'message' | 'join' | 'leave';
   text: string;
   senderId: string;
   senderName?: string;
+  type: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention';
   timestamp: string;
   isRead?: boolean;
+  reactions?: Array<{
+    userId: string;
+    reaction: string;
+  }>;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
+  stickerUrl?: string;
+  mentioned?: string;
 }
 
 export interface ConnectedUser {
   id: string;
-  name: string;
+  name?: string;
   online: boolean;
 }
 
 export interface RoomName {
-  th_name: string;
-  en_name: string;
+  th: string;
+  en: string;
 }
 
 export interface ChatRoom {
@@ -28,6 +37,7 @@ export interface ChatRoom {
   image?: string;
   members?: string[];
   is_member?: boolean;
+  creator_id?: string;
 }
 
 export interface RoomsResponse {

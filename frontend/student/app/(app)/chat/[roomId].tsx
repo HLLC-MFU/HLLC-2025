@@ -28,6 +28,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Vibration } from 'react-native';
+import WebSocket from 'ws';
 
 // Components
 import Avatar from './components/Avatar';
@@ -69,21 +70,28 @@ const Loader = () => (
 
 export default function ChatRoomPage() {
   const router = useRouter();
-  const { roomId, join, userId: urlUserId } = useLocalSearchParams();
+  const params = useLocalSearchParams();
   const { user } = useProfile();
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
-  const userId = (urlUserId as string) || user?.id || '';
+  const userId = user?._id || '';
+  const roomId = params.roomId as string;
 
   const [room, setRoom] = useState<ChatRoom | null>(null);
+  const [isMember, setIsMember] = useState(false);
+  const [language, setLanguage] = useState('th');
   const {
     isConnected,
     error: wsError,
     sendMessage: wsSendMessage,
-    messages,
+    messages: wsMessages,
     connectedUsers,
     typing,
-  } = useWebSocket(roomId as string);
+    connect: wsConnect,
+    disconnect: wsDisconnect,
+    ws,
+    addMessage
+  } = useWebSocket(roomId);
 
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -94,81 +102,86 @@ export default function ChatRoomPage() {
   const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
 
   const { isTyping, handleTyping } = useTypingIndicator();
-  const groupMessages = useMessageGrouping(messages);
+  const groupMessages = useMessageGrouping(wsMessages);
 
-  const loadRoom = useCallback(async () => {
+  // Initialize room data
+  const initializeRoom = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await chatService.getRoom(roomId as string);
-      if (!data) throw new Error(ERROR_MESSAGES.ROOM_NOT_FOUND);
-      const isMember = await chatService.checkRoomMembership(roomId as string, userId);
-      data.is_member = isMember;
-      setRoom(data);
-    } catch {
-      setError(ERROR_MESSAGES.ROOM_NOT_FOUND);
+      // If room data is passed from navigation
+      if (params.room) {
+        const roomData = JSON.parse(params.room as string);
+        setRoom(roomData);
+        setIsMember(roomData.is_member || false);
+        
+        // Connect to WebSocket if member
+        if (roomData.is_member) {
+          await wsConnect(roomId);
+        }
+      } else {
+        // Fetch room data
+        const roomData = await chatService.getRoom(roomId);
+        if (!roomData) {
+          throw new Error('Room not found');
+        }
+        setRoom(roomData);
+        setIsMember(roomData.is_member || false);
+        
+        // Connect to WebSocket if member
+        if (roomData.is_member) {
+          await wsConnect(roomId);
+        }
+      }
+    } catch (err) {
+      console.error('Error initializing room:', err);
+      setError('Failed to load room');
     } finally {
       setLoading(false);
     }
-  }, [roomId, userId]);
+  }, [roomId, params.room, wsConnect]);
 
-  useEffect(() => { loadRoom(); }, [loadRoom]);
-
+  // Handle WebSocket connection
   useEffect(() => {
-    if (join === 'true' && room && !joinAttempted) {
-      if (room.is_member || connectedUsers.some(u => u.id === userId)) {
-        setRoom(prev => prev ? { ...prev, is_member: true } : null);
-        setJoinAttempted(true);
-      } else {
-        setJoinAttempted(true);
-        handleJoin();
+    let mounted = true;
+    let reconnectTimeout: NodeJS.Timeout;
+
+    const setupWebSocket = async () => {
+      if (!room?.is_member || !mounted) return;
+      
+      try {
+        await wsConnect(roomId);
+      } catch (err) {
+        console.error('Error connecting to WebSocket:', err);
+        setError('Failed to connect to chat');
+        
+        // Attempt to reconnect after 3 seconds
+        if (mounted) {
+          reconnectTimeout = setTimeout(setupWebSocket, 3000);
+        }
       }
-    }
-  }, [join, room, connectedUsers, userId, joinAttempted]);
-  
+    };
+
+    setupWebSocket();
+
+    return () => {
+      mounted = false;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      wsDisconnect();
+    };
+  }, [room?.is_member, roomId, wsConnect, wsDisconnect]);
+
   useEffect(() => {
-    if (messages.length > 0 && flatListRef.current) {
+    if (wsMessages.length > 0 && flatListRef.current) {
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), SCROLL_DELAY);
     }
-  }, [messages]);
+  }, [wsMessages]);
 
-  const handleJoin = useCallback(async () => {
-    if (!room || room.is_member || joining) return;
-    setJoining(true);
-    try {
-      if (room.connected_users >= room.capacity) {
-        Alert.alert('ห้องเต็ม', ERROR_MESSAGES.ROOM_FULL);
-        return;
-      }
-      
-      const success = await chatService.joinRoom(roomId as string);
-      if (success) {
-        setRoom(prev => prev ? { ...prev, is_member: true } : null);
-        if (Platform.OS === 'ios') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } else {
-          Vibration.vibrate(80);
-        }
-      } else {
-        setError(ERROR_MESSAGES.JOIN_FAILED);
-      }
-    } catch {
-      setError(ERROR_MESSAGES.JOIN_ERROR);
-    } finally {
-      setJoining(false);
-    }
-  }, [room, roomId, joining]);
-  
-  const handleSendMessage = useCallback(() => {
-    const trimmedMessage = messageText.trim();
-    if (!trimmedMessage || !room?.is_member || !isConnected) return;
-    
-    wsSendMessage(trimmedMessage);
-    setMessageText('');
-    
-    if (Platform.OS === 'ios') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [messageText, room, isConnected, wsSendMessage]);
+  // Initialize room on mount
+  useEffect(() => {
+    initializeRoom();
+  }, [initializeRoom]);
 
   const renderItem = useCallback(({ item }: { item: Message[] }) => {
     if (item.length === 1 && (item[0].type === 'join' || item[0].type === 'leave')) {
@@ -207,8 +220,92 @@ export default function ChatRoomPage() {
     return `group-${idx}`;
   }, []);
 
+  const scrollToBottom = useCallback(() => {
+    if (flatListRef.current && groupMessages().length > 0) {
+      flatListRef.current.scrollToEnd({ animated: true });
+    }
+  }, [groupMessages]);
+
+  useEffect(() => {
+    if (wsMessages.length > 0) {
+      scrollToBottom();
+    }
+  }, [wsMessages, scrollToBottom]);
+
+  const handleSendMessage = useCallback(async () => {
+    const trimmedMessage = messageText.trim();
+    if (!trimmedMessage || !room?.is_member || !isConnected) return;
+    
+    try {
+      console.log('Sending message:', trimmedMessage);
+      
+      // Create temporary message for immediate display
+      const tempMessage = {
+        id: Date.now().toString(),
+        text: trimmedMessage,
+        senderId: userId,
+        senderName: userId,
+        type: 'message' as const,
+        timestamp: new Date().toISOString(),
+        isRead: false
+      };
+
+      // Add message to WebSocket messages immediately
+      addMessage(tempMessage);
+      
+      // Send message via WebSocket
+      wsSendMessage(trimmedMessage);
+      
+      // Clear input after sending
+      setMessageText('');
+      
+      // Scroll to bottom after sending
+      scrollToBottom();
+      
+      if (Platform.OS === 'ios') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setError('Failed to send message');
+    }
+  }, [messageText, room, isConnected, wsSendMessage, userId, addMessage, scrollToBottom]);
+
+  const handleJoin = async () => {
+    try {
+      if (!room || room.is_member || joining) return;
+      setJoining(true);
+
+      const result = await chatService.joinRoom(roomId);
+      
+      if (result.success && result.room) {
+        setRoom(result.room);
+        setIsMember(true);
+        
+        // Connect to WebSocket after successful join
+        if (ws) {
+          ws.close();
+        }
+        await wsConnect(roomId);
+        
+        if (Platform.OS === 'ios') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          Vibration.vibrate(80);
+        }
+      } else {
+        throw new Error(result.message || 'Failed to join room');
+      }
+    } catch (error) {
+      console.error('Error joining room:', error);
+      setError(language === 'th' ? 'ไม่สามารถเข้าร่วมห้องแชทได้' : 'Failed to join room');
+    } finally {
+      setJoining(false);
+    }
+  };
+
   if (loading) return <Loader />;
-  if (error) return <ErrorView message={error} onRetry={loadRoom} />;
+  if (error) return <ErrorView message={error} onRetry={initializeRoom} />;
 
   return (
     <TouchableWithoutFeedback onPress={() => {
@@ -234,7 +331,7 @@ export default function ChatRoomPage() {
               activeOpacity={0.7}
             >
               <Text style={styles.headerTitle} numberOfLines={1}>
-                {room?.name?.th_name || 'ห้องแชท'}
+                {room?.name?.th || 'ห้องแชท'}
               </Text>
               <View style={styles.memberInfo}>
                 <Users size={14} color="#0A84FF" />
@@ -276,14 +373,18 @@ export default function ChatRoomPage() {
             data={groupMessages()}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
+            initialNumToRender={10}
+            maxToRenderPerBatch={5}
+            windowSize={5}
+            removeClippedSubviews={true}
             contentContainerStyle={styles.messagesContent}
             showsVerticalScrollIndicator={false}
-            initialNumToRender={15}
-            maxToRenderPerBatch={10}
-            windowSize={15}
             maintainVisibleContentPosition={{
               minIndexForVisible: 0,
             }}
+            onEndReachedThreshold={0.5}
+            onContentSizeChange={scrollToBottom}
+            onLayout={scrollToBottom}
           />
           
           {/* Typing indicators */}
@@ -311,18 +412,20 @@ export default function ChatRoomPage() {
                   styles.input, 
                   (!room?.is_member || !isConnected) && styles.disabledInput
                 ]}
-                placeholder={!isConnected 
-                  ? PLACEHOLDER_MESSAGES.CONNECTING
-                  : room?.is_member 
-                    ? PLACEHOLDER_MESSAGES.TYPE_MESSAGE
-                    : PLACEHOLDER_MESSAGES.JOIN_TO_CHAT}
+                placeholder={
+                  !room?.is_member 
+                    ? PLACEHOLDER_MESSAGES.JOIN_TO_CHAT
+                    : !isConnected 
+                      ? PLACEHOLDER_MESSAGES.CONNECTING
+                      : PLACEHOLDER_MESSAGES.TYPE_MESSAGE
+                }
                 placeholderTextColor="#666"
                 value={messageText}
                 onChangeText={(text) => {
                   setMessageText(text);
                   handleTyping();
                 }}
-                editable={!!room?.is_member && isConnected}
+                editable={!!room?.is_member}
                 multiline
                 maxLength={MAX_MESSAGE_LENGTH}
                 autoCapitalize="none"
@@ -333,18 +436,18 @@ export default function ChatRoomPage() {
               <TouchableOpacity 
                 style={styles.emojiButton}
                 onPress={() => setShowEmojiPicker(!showEmojiPicker)}
-                disabled={!room?.is_member || !isConnected}
+                disabled={!room?.is_member}
               >
-                <Smile color={(!room?.is_member || !isConnected) ? "#555" : "#0A84FF"} size={22} />
+                <Smile color={!room?.is_member ? "#555" : "#0A84FF"} size={22} />
               </TouchableOpacity>
               
               <TouchableOpacity
                 style={[
                   styles.sendButton, 
-                  (!room?.is_member || !isConnected || !messageText.trim()) && styles.disabledSendButton
+                  (!room?.is_member || !messageText.trim()) && styles.disabledSendButton
                 ]}
                 onPress={handleSendMessage}
-                disabled={!room?.is_member || !isConnected || !messageText.trim()}
+                disabled={!room?.is_member || !messageText.trim()}
                 activeOpacity={0.7}
               >
                 <Send color="#fff" size={20} />
@@ -437,6 +540,7 @@ const styles = StyleSheet.create({
   messagesContent: { 
     padding: 16, 
     paddingBottom: 80,
+    
   },
   inputContainer: { 
     backgroundColor: '#1A1A1A',

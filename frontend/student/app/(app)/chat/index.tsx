@@ -10,6 +10,7 @@ import {
   Animated,
   Platform,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MessageCircle, Sparkles } from 'lucide-react-native';
@@ -40,14 +41,13 @@ export default function ChatPage() {
   const { user } = useProfile();
   const [activeTab, setActiveTab] = useState<'my' | 'discover'>('my');
   const [createModalVisible, setCreateModalVisible] = useState(false);
-  const userId = user?.id || '';
-  
-  // Animation refs
+  const userId = user?._id || '';
+
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerOpacity = useRef(new Animated.Value(1)).current;
   const tabBarAnimation = useRef(new Animated.Value(1)).current;
   const tabIndicatorPosition = useRef(new Animated.Value(0)).current;
-  
+
   useEffect(() => {
     Animated.spring(tabIndicatorPosition, {
       toValue: activeTab === 'my' ? 0 : 1,
@@ -56,19 +56,52 @@ export default function ChatPage() {
       useNativeDriver: true
     }).start();
   }, [activeTab]);
-  
+
+  useEffect(() => {
+    console.log('User state changed:', { userId, user });
+  }, [userId, user]);
+
   const loadRooms = useCallback(async () => {
+    console.log('Starting loadRooms...', { userId });
     try {
       if (!userId) {
+        console.log('No userId available, skipping room load');
         setRooms([]);
         return;
       }
       setLoading(true);
       setError(null);
 
+      console.time('loadRooms');
+      console.time('getRooms');
       const allRooms = await chatService.getRooms();
+      console.timeEnd('getRooms');
       console.log('Fetched rooms:', allRooms);
-      setRooms(allRooms);
+
+      console.time('getToken');
+      const token = await getToken('accessToken');
+      console.timeEnd('getToken');
+
+      console.time('processRooms');
+      const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
+      console.log('Payload:', payload);
+      const currentUserId = payload?.sub;
+      console.log('Current user ID:', currentUserId);
+
+      if (!currentUserId) {
+        throw new Error('Could not get user ID from token');
+      }
+
+      const memberSet = new Set(allRooms.flatMap(room => room.members || []));
+      const enrichedRooms = allRooms.map(room => ({
+        ...room,
+        is_member: memberSet.has(currentUserId),
+      }));
+      console.timeEnd('processRooms');
+      console.log('Processed rooms:', enrichedRooms);
+
+      setRooms(enrichedRooms);
+      console.timeEnd('loadRooms');
     } catch (err) {
       console.error('Error loading rooms:', err);
       setError('Failed to load chat rooms');
@@ -78,34 +111,16 @@ export default function ChatPage() {
       setRefreshing(false);
     }
   }, [userId]);
-  
+
   useEffect(() => {
+    console.log('loadRooms effect triggered', { userId });
     if (userId) {
       loadRooms();
     }
   }, [loadRooms, userId]);
-  
-  const handleRefresh = useCallback(() => { 
-    Animated.sequence([
-      Animated.timing(tabBarAnimation, {
-        toValue: 0.97,
-        duration: 100,
-        useNativeDriver: true
-      }),
-      Animated.spring(tabBarAnimation, {
-        toValue: 1,
-        friction: 3,
-        tension: 40,
-        useNativeDriver: true
-      })
-    ]).start();
-    
-    setRefreshing(true); 
-    loadRooms(); 
-  }, [loadRooms]);
 
-  const myRooms = useMemo(() => (rooms || []).filter(r => r.is_member), [rooms]);
-  const discoverRooms = useMemo(() => (rooms || []).filter(r => !r.is_member), [rooms]);
+  const myRooms = useMemo(() => rooms.filter(r => r.is_member), [rooms]);
+  const discoverRooms = useMemo(() => rooms.filter(r => !r.is_member), [rooms]);
 
   const joinRoom = useCallback(async (roomId: string) => {
     try {
@@ -119,10 +134,11 @@ export default function ChatPage() {
       if (result.success && result.room) {
         // Navigate to room and connect WebSocket
         router.push({
-          pathname: `/chat/${roomId}`,
+          pathname: "/chat/[roomId]",
           params: { 
+            roomId: roomId,
             room: JSON.stringify(result.room),
-            isMember: true
+            isMember: 'true'
           }
         });
         loadRooms(); // Refresh room list
@@ -135,13 +151,50 @@ export default function ChatPage() {
     }
   }, [router, loadRooms, language]);
 
-  const navigateToRoom = useCallback((rid: string, isMember: boolean) => {
-    if (isMember) {
-      router.push(`/chat/${rid}`);
-    } else {
-      joinRoom(rid);
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadRooms();
+  }, [loadRooms]);
+
+  const navigateToRoom = useCallback(async (rid: string, isMember: boolean) => {
+    try {
+      if (isMember) {
+        router.push({
+          pathname: "/chat/[roomId]",
+          params: { 
+            roomId: rid,
+            isMember: 'true'
+          }
+        });
+      } else {
+        const result = await chatService.joinRoom(rid);
+        
+        if (result.success && result.room) {
+          router.push({
+            pathname: "/chat/[roomId]",
+            params: { 
+              roomId: rid,
+              isMember: 'true'
+            }
+          });
+          loadRooms();
+        } else {
+          Alert.alert(
+            language === 'th' ? 'ไม่สามารถเข้าร่วมห้อง' : 'Cannot Join Room',
+            result.message || (language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room'),
+            [{ text: 'OK' }]
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error navigating to room:', error);
+      Alert.alert(
+        language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
+        language === 'th' ? 'ไม่สามารถเข้าห้องแชทได้' : 'Cannot access chat room',
+        [{ text: 'OK' }]
+      );
     }
-  }, [router, joinRoom]);
+  }, [router, loadRooms, language]);
 
   const renderEmptyState = useCallback((message: string) => {
     const EmptyStateIcon = activeTab === 'my' ? MessageCircle : Sparkles;
@@ -209,6 +262,24 @@ export default function ChatPage() {
     extrapolate: 'clamp'
   });
 
+  const flatListProps = {
+    initialNumToRender: 8,
+    maxToRenderPerBatch: 5,
+    windowSize: 5,
+    removeClippedSubviews: true,
+    showsVerticalScrollIndicator: false,
+    onEndReachedThreshold: 0.5,
+    refreshControl: (
+      <RefreshControl 
+        refreshing={refreshing} 
+        onRefresh={handleRefresh} 
+        colors={['#4CAF50']} 
+        tintColor="#4CAF50" 
+        progressBackgroundColor="#1A1A1A"
+      />
+    ),
+  };
+
   if (loading && !refreshing) return (
     <View style={[styles.container, styles.centerContent]}>
       <StatusBar barStyle="light-content" backgroundColor="#121212" />
@@ -261,21 +332,8 @@ export default function ChatPage() {
                 data={myRooms}
                 renderItem={renderMyRoomItem}
                 keyExtractor={keyExtractor}
-                refreshControl={
-                  <RefreshControl 
-                    refreshing={refreshing} 
-                    onRefresh={handleRefresh} 
-                    colors={['#4CAF50']} 
-                    tintColor="#4CAF50" 
-                    progressBackgroundColor="#1A1A1A"
-                  />
-                }
-                initialNumToRender={8}
-                maxToRenderPerBatch={5}
-                windowSize={5}
-                removeClippedSubviews
+                {...flatListProps}
                 contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
                 onScroll={Animated.event(
                   [{ nativeEvent: { contentOffset: { y: scrollY } } }],
                   { useNativeDriver: true }
@@ -294,21 +352,8 @@ export default function ChatPage() {
                 keyExtractor={keyExtractor}
                 numColumns={2}
                 columnWrapperStyle={styles.columnWrapper}
-                refreshControl={
-                  <RefreshControl 
-                    refreshing={refreshing} 
-                    onRefresh={handleRefresh} 
-                    colors={['#4CAF50']} 
-                    tintColor="#4CAF50" 
-                    progressBackgroundColor="#1A1A1A"
-                  />
-                }
-                initialNumToRender={8}
-                maxToRenderPerBatch={6}
-                windowSize={5}
-                removeClippedSubviews
+                {...flatListProps}
                 contentContainerStyle={styles.gridContent}
-                showsVerticalScrollIndicator={false}
                 onScroll={Animated.event(
                   [{ nativeEvent: { contentOffset: { y: scrollY } } }],
                   { useNativeDriver: true }

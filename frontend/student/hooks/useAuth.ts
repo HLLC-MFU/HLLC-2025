@@ -28,8 +28,9 @@ const useAuth = create<AuthStore>()(
             username,
             password,
           });
+          console.log(res);
 
-          if (res.statusCode === 200 && res.data) {
+          if (res.statusCode === 201 && res.data) {
             await saveToken("accessToken", res.data.accessToken);
             await saveToken("refreshToken", res.data.refreshToken);
             const { getProfile } = useProfile.getState();
@@ -61,7 +62,7 @@ const useAuth = create<AuthStore>()(
             refreshToken,
           });
 
-          if (res.statusCode === 200 && res.data) {
+          if (res.statusCode === 201 && res.data) {
             await saveToken("accessToken", res.data.accessToken);
             await saveToken("refreshToken", res.data.refreshToken);
             await useProfile.getState().getProfile();
