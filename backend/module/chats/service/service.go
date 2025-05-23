@@ -129,18 +129,22 @@ func (s *service) CreateRoom(ctx context.Context, room *model.Room) error {
 		return err
 	}
 
-	topicName := "chat-room-" + room.ID.Hex()
+	// 🔄 Setup Kafka topic asynchronously
+	go func(roomID primitive.ObjectID) {
+		topicName := "chat-room-" + roomID.Hex()
 
-	if err := kafkaPublisher.EnsureKafkaTopic("localhost:9092", topicName); err != nil {
-		log.Printf("[Kafka] Failed to create topic %s: %v", topicName, err)
-	}
-	if err := kafkaPublisher.ForceCreateTopic("localhost:9092", topicName); err != nil {
-		log.Printf("[Kafka] Failed to force produce to topic %s: %v", topicName, err)
-	}
-	time.Sleep(5 * time.Second)
-	if err := kafkaPublisher.WaitUntilTopicReady("localhost:9092", topicName, 10*time.Second); err != nil {
-		log.Printf("[Kafka] Topic %s not ready: %v", topicName, err)
-	}
+		if err := kafkaPublisher.EnsureKafkaTopic("localhost:9092", topicName); err != nil {
+			log.Printf("[Kafka] Failed to create topic %s: %v", topicName, err)
+		}
+
+		if err := kafkaPublisher.ForceCreateTopic("localhost:9092", topicName); err != nil {
+			log.Printf("[Kafka] Failed to force produce to topic %s: %v", topicName, err)
+		}
+
+		if err := kafkaPublisher.WaitUntilTopicReady("localhost:9092", topicName, 10*time.Second); err != nil {
+			log.Printf("[Kafka] Topic %s not ready: %v", topicName, err)
+		}
+	}(room.ID)
 
 	return nil
 }
