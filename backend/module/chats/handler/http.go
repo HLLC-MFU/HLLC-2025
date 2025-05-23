@@ -39,16 +39,15 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 	log.Println("[WS Handler] Entered WebSocket handler")
 	log.Println("userID:", userID, "username:", username, "roomID:", roomID)
 
-	roomIdStr := conn.Params("roomId")
-	if roomIdStr == "" || userID == "" {
-		log.Println("[WS] Missing roomId or userId")
-		conn.WriteMessage(websocket.TextMessage, []byte("Missing roomId or userId"))
+	if userID == "" || roomID == "" {
+		log.Println("[WS] Missing roomID or userID")
+		conn.WriteMessage(websocket.TextMessage, []byte("Missing roomID or userID"))
 		conn.Close()
 		return
 	}
 
 	ctx := context.Background()
-	roomObjID, err := primitive.ObjectIDFromHex(roomIdStr)
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
 		conn.WriteMessage(websocket.TextMessage, []byte("Invalid room ID"))
 		conn.Close()
@@ -64,19 +63,19 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 	}
 
 	if !isMember {
-		log.Printf("[WS] User %s is not a member of room %s", userID, roomIdStr)
+		log.Printf("[WS] User %s is not a member of room %s", userID, roomID)
 		conn.WriteMessage(websocket.TextMessage, []byte("You are not a member of this room"))
 		conn.Close()
 		return
 	}
 
 	client := model.ClientObject{
-		RoomID: roomIdStr,
+		RoomID: roomID,
 		UserID: userID,
 		Conn:   conn,
 	}
 
-	history, err := h.service.GetChatHistoryByRoom(ctx, roomIdStr, 50)
+	history, err := h.service.GetChatHistoryByRoom(ctx, roomID, 50)
 	if err == nil && len(history) > 0 {
 		for _, msg := range history {
 			event := ChatEvent{
@@ -89,11 +88,11 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 	}
 
 	model.RegisterClient(client)
-	log.Printf("[WS] User %s (%s) connected to room %s", userID, username, roomIdStr)
+	log.Printf("[WS] User %s (%s) connected to room %s", userID, username, roomID)
 
 	defer func() {
 		model.UnregisterClient(client)
-		log.Printf("[WS] User %s disconnected from room %s", userID, roomIdStr)
+		log.Printf("[WS] User %s disconnected from room %s", userID, roomID)
 	}()
 
 	typingTimers := make(map[string]time.Time)
@@ -108,7 +107,6 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 
 		messageText := strings.TrimSpace(string(msg))
 
-		// Reply Message Handler
 		if strings.HasPrefix(messageText, "/reply") {
 			parts := strings.SplitN(messageText, " ", 3)
 			if len(parts) < 3 {
@@ -128,7 +126,6 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			filteredMessage := utils.FilterProfanity(messageBody)
 			mentions := extractMentions(filteredMessage)
 
-			// ✅ สร้าง structured event
 			replyPayload := map[string]interface{}{
 				"userId":    userID,
 				"message":   filteredMessage,
@@ -142,58 +139,47 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			}
 
 			eventJSON, _ := json.Marshal(event)
-
 			model.BroadcastMessage(model.BroadcastObject{
 				MSG:  string(eventJSON),
 				FROM: client,
 			})
-
 			continue
 		}
 
-		// Typing Event
 		if strings.HasPrefix(messageText, "/typing") {
 			if time.Since(typingTimers[userID]) > typingTimeout {
-				typingEvent := TypingEvent{UserID: userID, RoomID: roomIdStr, Typing: true}
-				h.broadcastTypingEvent(roomIdStr, typingEvent)
+				typingEvent := TypingEvent{UserID: userID, RoomID: roomID, Typing: true}
+				h.broadcastTypingEvent(roomID, typingEvent)
 				typingTimers[userID] = time.Now()
 
-				go func(userID, roomIdStr string) {
+				go func(userID, roomID string) {
 					time.Sleep(typingTimeout)
-					h.broadcastTypingEvent(roomIdStr, TypingEvent{UserID: userID, RoomID: roomIdStr, Typing: false})
-				}(userID, roomIdStr)
+					h.broadcastTypingEvent(roomID, TypingEvent{UserID: userID, RoomID: roomID, Typing: false})
+				}(userID, roomID)
 			}
 			continue
 		}
 
-		// Read receipt
 		if strings.HasPrefix(messageText, "/read") {
 			parts := strings.Split(messageText, " ")
 			if len(parts) == 2 {
 				messageID := parts[1]
-
-				// Save to DB
 				msgID, _ := primitive.ObjectIDFromHex(messageID)
 				_ = h.service.SaveReadReceipt(ctx, &model.MessageReadReceipt{
 					MessageID: msgID,
 					UserID:    userID,
 					Timestamp: time.Now(),
 				})
-
-				// Broadcast
-				h.SendReadReceipt(roomIdStr, userID, messageID)
+				h.SendReadReceipt(roomID, userID, messageID)
 				continue
 			}
 		}
 
-		// Reactions
 		if strings.HasPrefix(messageText, "/react") {
 			parts := strings.Split(messageText, " ")
 			if len(parts) == 3 {
 				messageID := parts[1]
 				reaction := parts[2]
-
-				// Save to DB
 				msgID, _ := primitive.ObjectIDFromHex(messageID)
 				_ = h.service.SaveReaction(ctx, &model.MessageReaction{
 					MessageID: msgID,
@@ -201,17 +187,14 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 					Reaction:  reaction,
 					Timestamp: time.Now(),
 				})
-
-				// Broadcast
-				h.SendMessageReaction(roomIdStr, userID, messageID, reaction)
+				h.SendMessageReaction(roomID, userID, messageID, reaction)
 				continue
 			}
 		}
 
-		// Leave command
 		if messageText == "/leave" {
 			if err := h.memberService.RemoveUserFromRoom(ctx, roomObjID, userID); err != nil {
-				log.Printf("[ERROR] Failed to remove user %s from room %s: %v", userID, roomIdStr, err)
+				log.Printf("[ERROR] Failed to remove user %s from room %s: %v", userID, roomID, err)
 			}
 			model.UnregisterClient(client)
 			conn.WriteMessage(websocket.TextMessage, []byte("You have left the room"))
@@ -219,7 +202,6 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 			return
 		}
 
-		// Normal message
 		filteredMessage := utils.FilterProfanity(messageText)
 		mentions := extractMentions(filteredMessage)
 
@@ -229,7 +211,7 @@ func (h *HTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username, ro
 		})
 
 		for _, mention := range mentions {
-			h.broadcastEvent(roomIdStr, "mention", MentionPayload{
+			h.broadcastEvent(roomID, "mention", MentionPayload{
 				Mentioned: mention,
 				From:      userID,
 				Message:   filteredMessage,

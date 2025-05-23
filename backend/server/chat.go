@@ -9,9 +9,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	kafkaUtil "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 
-	// "github.com/HLLC-MFU/HLLC-2025/backend/pkg/middleware"
 	stickerRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/repository"
 	stickerService "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
 	"github.com/gofiber/fiber/v2"
@@ -54,19 +52,19 @@ func (s *server) chatService() {
 		AllowMethods:     "GET, POST, PUT, DELETE",
 	}))
 
-	s.app.Use("/ws/:roomId", func(c *fiber.Ctx) error {
+	s.app.Use("/ws/:roomId/:userId", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
 			return c.Next()
 		}
 		return fiber.ErrUpgradeRequired
 	})
 
-	s.app.Get("/ws/:roomId", middleware.WrapWebSocketWithJWT(
-		middleware.JWTMiddleware(),
-		func(conn *websocket.Conn, userID, username, roomID string) {
-			httpHandler.HandleWebSocket(conn, userID, username, roomID)
-		},
-	))
+	s.app.Get("/ws/:roomId/:userId", websocket.New(func(conn *websocket.Conn) {
+		roomID := conn.Params("roomId")
+		userID := conn.Params("userId")
+		username := userID // or fetch from DB if needed
+		httpHandler.HandleWebSocket(conn, userID, username, roomID)
+	}))
 
 	api := s.app.Group("/api/v1")
 
