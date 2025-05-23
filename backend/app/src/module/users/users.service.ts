@@ -85,7 +85,7 @@ export class UsersService {
       }
       return user;
     } catch (error) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(error);
     }
   }
 
@@ -116,7 +116,7 @@ export class UsersService {
       await this.userModel.deleteMany({ _id: { $in: ids } });
       return users;
     } catch (error) {
-      throw new NotFoundException('Users not found');
+      throw new NotFoundException(error);
     }
   }
 

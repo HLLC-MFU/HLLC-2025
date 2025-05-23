@@ -29,7 +29,7 @@ export class User {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Role' })
   role: Types.ObjectId;
 
-  @Prop({ required: true,type: Types.ObjectId, ref: 'Major'})
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Major' })
   major: Types.ObjectId;
 
   @Prop({ type: String || null, default: null })

@@ -43,7 +43,6 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Public()
   @Permissions('users:read:id')
   @CacheKey('users:$params.id')
   findOne(@Param('id') id: string) {
@@ -52,7 +51,7 @@ export class UsersController {
 
   @Get('search/:username')
   @Public()
-  @Permissions('users:read:username')
+  @Permissions('users:read:id')
   @CacheKey('users:search:$params.username')
   findByUsername(@Param('username') username: string) {
     return this.usersService.findByUsername(username);

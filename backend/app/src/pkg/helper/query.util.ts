@@ -11,6 +11,7 @@ import {
   QueryPaginationOptions,
   PopulateField,
 } from '../types/query';
+import { NotFoundException } from '@nestjs/common';
 
 function parseSort(sortString?: string): Record<string, SortOrder> {
   if (!sortString) return {};
@@ -153,30 +154,42 @@ export async function queryFindOne<T>(
   model: Model<HydratedDocument<T>>,
   filter: FilterQuery<T>,
   populateFields?: PopulateField[],
-): Promise<T | null> {
+): Promise<T> {
   const query = model.findOne(filter);
-
   populateFields?.forEach((p) => {
     query.populate(p);
   });
 
-  return query.lean().exec() as Promise<T | null>;
+  const result = (await query.lean().exec()) as T | null;
+
+  if (!result) {
+    throw new NotFoundException(`${filter._id} not found`);
+  }
+
+  return result;
 }
 
 export async function queryUpdateOne<T>(
   model: Model<HydratedDocument<T>>,
   id: string,
   update: UpdateQuery<HydratedDocument<T>>,
-): Promise<T | null> {
-  return model
+): Promise<T> {
+  const updated = await model
     .findByIdAndUpdate(id, update, { new: true })
-    .lean()
-    .exec() as Promise<T | null>;
+    .lean();
+  if (!updated) {
+    throw new NotFoundException(`Update failed, id ${id} not found`);
+  }
+  return updated as T;
 }
 
 export async function queryDeleteOne<T>(
   model: Model<HydratedDocument<T>>,
   id: string,
-): Promise<void> {
-  await model.findByIdAndDelete(id).exec();
+): Promise<T> {
+  const deleted = await model.findByIdAndDelete(id).lean();
+  if (!deleted) {
+    throw new NotFoundException(`Delete failed, id ${id} not found`);
+  }
+  return deleted as T;
 }
