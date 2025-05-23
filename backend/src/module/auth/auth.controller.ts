@@ -3,6 +3,8 @@ import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
 import { PermissionsGuard } from './guards/permissions.guard';
+import { LoginDto } from './dto/login.dto';
+import { UserDocument } from '../users/schemas/user.schema';
 
 @Controller('auth')
 export class AuthController {
@@ -10,12 +12,12 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  async login(@Body() body: { username: string; password: string }) {
+  async login(@Body() body: LoginDto) {
     const user = await this.authService.validateUser(
       body.username,
       body.password,
     );
-    return this.authService.login(user);
+    return this.authService.login(user as unknown as UserDocument);
   }
 
   @Public()

@@ -1,20 +1,28 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsMongoId, IsNotEmpty, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsMongoId,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { Types } from 'mongoose';
 
 class UserNameDto {
-    @IsString()
-    @IsNotEmpty()
-    first: string;
-  
-    @IsOptional()
-    @IsString()
-    middle?: string;
-  
-    @IsOptional()
-    @IsString()
-    last?: string;
-  }
+  @IsString()
+  @IsNotEmpty()
+  first: string;
+
+  @IsOptional()
+  @IsString()
+  middle?: string;
+
+  @IsOptional()
+  @IsString()
+  last?: string;
+}
 
 class UserUploadDto {
   @IsObject()
@@ -45,13 +53,9 @@ export class UploadUserDto {
   @IsNotEmpty()
   role: string | Types.ObjectId;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  type: string;
-
-  @IsString()
-  @IsNotEmpty()
-  round: string;
+  type?: string;
 }
 
 export class UploadUsersDto {

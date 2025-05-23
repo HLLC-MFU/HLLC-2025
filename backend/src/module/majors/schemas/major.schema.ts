@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { Localization } from 'src/pkg/types/common';
+
 export type MajorDocument = HydratedDocument<Major>;
 
 @Schema({ timestamps: true })

@@ -5,6 +5,7 @@ import { Model } from 'mongoose';
 import { UserDocument } from 'src/module/users/schemas/user.schema';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { Role } from '../role/schemas/role.schema';
 
 @Injectable()
 export class AuthService {
@@ -24,14 +25,10 @@ export class AuthService {
   }
 
   async login(user: UserDocument) {
-    const payload = { sub: user._id.toString(), username: user.username };
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: '15m',
-    });
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: '7d',
-      secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
-    });
+    // Populate role to get permissions
+    await user.populate<{ role: Role }>('role');
+
+    const { accessToken, refreshToken } = this.generateTokenPair(user);
 
     // ✅ Save refreshToken to user
     user.refreshToken = await bcrypt.hash(refreshToken, 10);
@@ -46,7 +43,7 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
       });
 
-      const user = await this.userModel.findById(payload.sub);
+      const user = await this.userModel.findById(payload.sub).populate('role');
       if (!user || !user.refreshToken) {
         throw new UnauthorizedException('User not found');
       }
@@ -58,26 +55,13 @@ export class AuthService {
       }
 
       // ✅ Generate new tokens
-      const newAccessToken = this.jwtService.sign(
-        { sub: user._id.toString(), username: user.username },
-        {
-          expiresIn: '15m',
-        },
-      );
-
-      const newRefreshToken = this.jwtService.sign(
-        { sub: user._id.toString(), username: user.username },
-        {
-          expiresIn: '7d',
-          secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
-        },
-      );
+      const { accessToken, refreshToken } = this.generateTokenPair(user);
 
       // ✅ Update refresh token
-      user.refreshToken = await bcrypt.hash(newRefreshToken, 10);
+      user.refreshToken = await bcrypt.hash(refreshToken, 10);
       await user.save();
 
-      return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+      return { accessToken, refreshToken };
     } catch (err) {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -90,5 +74,28 @@ export class AuthService {
     user.refreshToken = null;
     await user.save();
     return { message: 'Logged out successfully' };
+  }
+
+  private generateTokenPair(user: UserDocument) {
+    if (!user.role || !('permissions' in user.role)) {
+      throw new UnauthorizedException('User role not properly populated');
+    }
+
+    const payload = {
+      sub: user._id.toString(),
+      username: user.username,
+      permissions: user.role?.permissions || [],
+    };
+
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: '15m',
+    });
+
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: '7d',
+      secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+    });
+
+    return { accessToken, refreshToken };
   }
 }

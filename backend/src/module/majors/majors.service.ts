@@ -9,30 +9,38 @@ import { SchoolDocument } from '../schools/schemas/school.schema';
 import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { Types } from 'mongoose';
-import { queryAll, queryFindOne, queryUpdateOne, queryDeleteOne } from 'src/pkg/helper/query.util';
+import {
+  queryAll,
+  queryFindOne,
+  queryUpdateOne,
+  queryDeleteOne,
+} from 'src/pkg/helper/query.util';
 
 @Injectable()
 export class MajorsService {
   constructor(
     @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
-    @InjectModel(School.name) private schoolModel: Model<SchoolDocument>
+    @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
   ) {}
-
 
   async create(createMajorDto: CreateMajorDto) {
     await throwIfExists(
       this.majorModel,
       { name: createMajorDto.name },
-      'Major already exists', 
+      'Major already exists',
     );
 
-    await findOrThrow(this.schoolModel, createMajorDto.school, 'School not found');
+    await findOrThrow(
+      this.schoolModel,
+      createMajorDto.school,
+      'School not found',
+    );
 
     const major = new this.majorModel({
       ...createMajorDto,
       school: new Types.ObjectId(createMajorDto.school),
-    })
-    
+    });
+
     try {
       return await major.save();
     } catch (error) {
@@ -45,8 +53,10 @@ export class MajorsService {
       model: this.majorModel,
       query,
       filterSchema: {},
-      buildPopulateFields: (excluded) =>
-        Promise.resolve(excluded.includes('school') ? [] : [{  path: 'school' }]),
+      buildPopulateFields: excluded =>
+        Promise.resolve(
+          excluded.includes('school') ? [] : [{ path: 'school' }],
+        ),
     });
   }
 
@@ -57,6 +67,7 @@ export class MajorsService {
   }
 
   async update(id: string, updateMajorDto: UpdateMajorDto) {
+    updateMajorDto.updatedAt = new Date();
     return queryUpdateOne<Major>(this.majorModel, id, updateMajorDto);
   }
 

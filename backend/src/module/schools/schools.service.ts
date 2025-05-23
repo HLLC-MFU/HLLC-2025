@@ -6,24 +6,29 @@ import { Model } from 'mongoose';
 import { School, SchoolDocument } from './schemas/school.schema';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { queryAll, queryFindOne, queryUpdateOne, queryDeleteOne } from 'src/pkg/helper/query.util';
+import {
+  queryAll,
+  queryFindOne,
+  queryUpdateOne,
+  queryDeleteOne,
+} from 'src/pkg/helper/query.util';
 
 @Injectable()
 export class SchoolsService {
   constructor(
     @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
   ) {}
-  
+
   async create(createSchoolDto: CreateSchoolDto) {
     await throwIfExists(
       this.schoolModel,
-       {name : createSchoolDto.name},
-       'School already exists',
+      { name: createSchoolDto.name },
+      'School already exists',
     );
 
     const school = new this.schoolModel({
       ...createSchoolDto,
-    })
+    });
 
     try {
       return await school.save();
@@ -32,25 +37,21 @@ export class SchoolsService {
     }
   }
 
-
-
   async findAll(query: Record<string, string>) {
     return queryAll<School>({
       model: this.schoolModel,
       query,
       filterSchema: {},
-      buildPopulateFields: (excluded) =>
-        Promise.resolve(excluded.includes('majors') ? [] : [{ path: 'majors' }]),
-    })
+      buildPopulateFields: excluded => Promise.resolve([]),
+    });
   }
 
   async findOne(id: string) {
-    return queryFindOne<School>(this.schoolModel, { _id: id }, [
-      { path: 'majors' },
-    ]);
+    return queryFindOne<School>(this.schoolModel, { _id: id }, []);
   }
 
   async update(id: string, updateSchoolDto: UpdateSchoolDto) {
+    updateSchoolDto.updatedAt = new Date();
     return queryUpdateOne<School>(this.schoolModel, id, updateSchoolDto);
   }
 

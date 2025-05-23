@@ -12,7 +12,7 @@ import { ConfigService } from '@nestjs/config';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    private configService: ConfigService
+    private configService: ConfigService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -25,7 +25,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     try {
       console.log('🔍 JWT Payload:', payload);
 
-      const user = await this.userModel.findById(payload.sub)
+      const user = await this.userModel
+        .findById(payload.sub)
         .select('-password -refreshToken')
         .populate('role')
         .lean();

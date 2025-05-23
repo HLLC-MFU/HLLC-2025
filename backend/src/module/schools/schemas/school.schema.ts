@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Localization, Photo } from 'src/pkg/types/common';
+
+
 export type SchoolDocument = HydratedDocument<School>;
 
 @Schema({ timestamps: true })
@@ -14,7 +16,7 @@ export class School {
   @Prop({ required: true, unique: true, type: Object })
   detail: Localization;
 
-  @Prop({ type: Object})
+  @Prop({ type: Object })
   photo: Photo;
 }
 

@@ -9,14 +9,11 @@ import {
   Body,
   Patch,
   Post,
-  Req,
-  UnauthorizedException,
 } from '@nestjs/common';
 
 import { UsersService } from './users.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Public } from '../auth/decorators/public.decorator';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { CacheKey } from '@nestjs/cache-manager';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -32,40 +29,32 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Public()
+  @Permissions('users:create')
+  @CacheKey('users:invalidate')
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
-  @Public()
+  @Permissions('users:read')
   @CacheKey('users')
-  // @Permissions('users:read')
   async findAll(@Query() query: Record<string, any>) {
     return this.usersService.findAll(query);
   }
 
   @Get('me')
-  @UseGuards(PermissionsGuard)
   getMe(@CurrentUser() user: JwtPayload & { _id: string }) {
-    console.log('✅ CurrentUser:', user);
-    if (!user) {
-      throw new UnauthorizedException('User not authenticated');
-    }
     return this.usersService.getMe(user._id);
   }
 
-
   @Get('search/:username')
-  @Public()
-  @Permissions('users:read:username')
+  @Permissions('users:read')
   @CacheKey('users:search:$params.username')
   findByUsername(@Param('username') username: string) {
     return this.usersService.findByUsername(username);
   }
 
   @Get(':id')
-  @Public()
   @Permissions('users:read:id')
   @CacheKey('users:$params.id')
   findOne(@Param('id') id: string) {
@@ -73,22 +62,29 @@ export class UsersController {
   }
 
   @Post('upload')
-  @Public()
-  @Permissions('users:upload')
+  @Permissions('users:create')
   upload(@Body() uploadUserDto: UploadUserDto) {
     return this.usersService.upload(uploadUserDto);
   }
 
   @Patch(':id')
-  @CacheKey('users:list')
+  @Permissions('users:update')
+  @CacheKey('users:invalidate')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
-  @CacheKey('users')
-  @Public()
+  @Permissions('users:delete')
+  @CacheKey('users:invalidate')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  @Delete('multiple')
+  @Permissions('users:delete')
+  @CacheKey('users:invalidate')
+  removeMultiple(@Body() ids: string[]) {
+    return this.usersService.removeMultiple(ids);
   }
 }

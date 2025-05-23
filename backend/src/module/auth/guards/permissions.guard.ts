@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
-import { Types } from 'mongoose';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
@@ -51,32 +50,41 @@ export class PermissionsGuard extends AuthGuard('jwt') {
       );
 
       if (requiredPermissions && requiredPermissions.length > 0) {
-        const role = user.role;
-        if (!role || !Array.isArray(role.permissions)) {
-          throw new ForbiddenException('Role or permissions not valid');
+        if (!Array.isArray(user.permissions)) {
+          throw new ForbiddenException('User permissions not valid');
         }
 
-        const fullPermissions = role.permissions.filter(
-          (p) => !p.endsWith(':id'),
+        const fullPermissions = user.permissions.filter(
+          p => !p.endsWith(':id'),
         );
-        const ownPermissions = role.permissions.filter((p) => p.endsWith(':id'));
+        const ownPermissions = user.permissions.filter(p => p.endsWith(':id'));
 
         let hasPermission = false;
 
         for (const perm of requiredPermissions) {
-          // ✅ Full permission (เช่น activities:read, checkins:read)
-          if (fullPermissions.includes(perm)) {
+          // Check if user has the exact permission
+          if (user.permissions.includes(perm)) {
             hasPermission = true;
             break;
           }
 
-          // ✅ Own permission (เช่น activities:read:id, checkins:read:id)
+          // Check if user has a broader permission (non-:id version)
           if (perm.endsWith(':id')) {
             const basePerm = perm.replace(':id', '');
-            const paramId = request.params['id'];
+            if (user.permissions.includes(basePerm)) {
+              hasPermission = true;
+              break;
+            }
+          }
 
-            // ✅ ถ้า owner id ตรงกับ user
-            if (paramId && paramId === user._id.toString()) {
+          // Check if it's an :id permission and user is accessing their own resource
+          if (perm.endsWith(':id')) {
+            const paramId = request.params['id'];
+            if (
+              paramId &&
+              paramId === user._id.toString() &&
+              ownPermissions.includes(perm)
+            ) {
               hasPermission = true;
               break;
             }

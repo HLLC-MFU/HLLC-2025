@@ -7,7 +7,6 @@ export class PermissionScannerService implements OnModuleInit {
   constructor(
     private readonly discoveryService: DiscoveryService,
     private readonly metadataScanner: MetadataScanner,
-    private readonly reflector: Reflector,
   ) {}
 
   private readonly methodToActionMap = {
@@ -39,7 +38,6 @@ export class PermissionScannerService implements OnModuleInit {
 
       for (const methodName of methodNames) {
         const methodRef = prototype[methodName];
-        const routePath = Reflect.getMetadata(PATH_METADATA, methodRef);
         const methodType: RequestMethod = Reflect.getMetadata(
           METHOD_METADATA,
           methodRef,

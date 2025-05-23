@@ -1,4 +1,3 @@
-
 import { HydratedDocument, Model } from 'mongoose';
 
 export type FieldType = 'string' | 'number' | 'boolean';
@@ -34,4 +33,3 @@ export interface PopulateField {
   path: string;
   model?: string;
 }
-
