@@ -60,7 +60,7 @@ const RoomListItem = ({ room, language, onPress, index }: RoomListItemProps) => 
             style={styles.roomAvatar}
           >
             <Text style={styles.roomAvatarText}>
-              {(room.name?.thName?.charAt(0) || '?').toUpperCase()}
+              {(room.name?.th?.charAt(0) || '?').toUpperCase()}
             </Text>
           </LinearGradient>
           <View style={styles.roomJoinedBadge} />
@@ -68,7 +68,7 @@ const RoomListItem = ({ room, language, onPress, index }: RoomListItemProps) => 
         
         <View style={styles.roomListInfo}>
           <Text style={styles.roomName}>
-            {language === 'th' ? room.name?.thName || 'Unnamed' : room.name?.enName || 'Unnamed'}
+            {language === 'th' ? room.name?.th || 'Unnamed' : room.name?.en || 'Unnamed'}
           </Text>
           
           <View style={styles.roomExtraInfo}>

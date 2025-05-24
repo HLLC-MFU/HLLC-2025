@@ -92,11 +92,28 @@ export default function ChatPage() {
         throw new Error('Could not get user ID from token');
       }
 
-      const memberSet = new Set(allRooms.flatMap(room => room.members || []));
-      const enrichedRooms = allRooms.map(room => ({
-        ...room,
-        is_member: memberSet.has(currentUserId),
-      }));
+      // Get rooms with members
+      const roomsWithMembers = await chatService.getRoomsWithMembers();
+      console.log('Member rooms:', JSON.stringify(roomsWithMembers, null, 2));
+
+      // Create a map of room IDs to their members
+      const roomMembersMap = new Map<string, string[]>();
+      roomsWithMembers.rooms.forEach(({ room, members }) => {
+        console.log('Room:', JSON.stringify(room, null, 2));
+        roomMembersMap.set(room.id, members);
+      });
+
+      // Set is_member based on whether the current user is in the members array
+      const enrichedRooms = allRooms.map(room => {
+        console.log('Processing room:', JSON.stringify(room, null, 2));
+        const roomData = {
+          ...room,
+          is_member: roomMembersMap.get(room.id)?.includes(currentUserId) || false,
+        };
+        console.log('Processed room data:', JSON.stringify(roomData, null, 2));
+        return roomData;
+      });
+
       console.timeEnd('processRooms');
       console.log('Processed rooms:', enrichedRooms);
 

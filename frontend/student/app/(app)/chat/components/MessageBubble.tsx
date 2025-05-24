@@ -1,8 +1,9 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { MessageBubbleProps } from '../types/chatTypes';
 import Avatar from './Avatar';
 import { formatTime } from '../utils/timeUtils';
+import { Reply } from 'lucide-react-native';
 
 const MessageBubble = memo(({ 
   message, 
@@ -13,6 +14,7 @@ const MessageBubble = memo(({
   showAvatar = true,
   isLastInGroup = true,
   isFirstInGroup = true,
+  onReply,
 }: MessageBubbleProps) => {
   const statusElement = isMyMessage && (
     <View style={styles.messageStatus}>
@@ -21,6 +23,37 @@ const MessageBubble = memo(({
       </Text>
     </View>
   );
+
+  const renderContent = () => {
+    if (message.stickerId) {
+      return (
+        <Image 
+          source={{ uri: message.image }} 
+          style={styles.stickerImage}
+          resizeMode="contain"
+        />
+      );
+    }
+
+    if (message.fileUrl) {
+      if (message.fileType === 'image') {
+        return (
+          <Image 
+            source={{ uri: message.fileUrl }} 
+            style={styles.messageImage}
+            resizeMode="cover"
+          />
+        );
+      }
+      return (
+        <View style={styles.fileContainer}>
+          <Text style={styles.fileName}>{message.fileName}</Text>
+        </View>
+      );
+    }
+
+    return <Text style={styles.messageText}>{message.text}</Text>;
+  };
   
   return (
     <View style={[
@@ -43,10 +76,26 @@ const MessageBubble = memo(({
           styles.messageBubble, 
           isMyMessage ? styles.myBubble : styles.otherBubble,
           isFirstInGroup && (isMyMessage ? styles.myFirstBubble : styles.otherFirstBubble),
-          isLastInGroup && (isMyMessage ? styles.myLastBubble : styles.otherLastBubble)
+          isLastInGroup && (isMyMessage ? styles.myLastBubble : styles.otherLastBubble),
+          (message.stickerId || message.fileType === 'image') && styles.mediaBubble
         ]}>
-          <Text style={styles.messageText}>{message.text}</Text>
+          {message.replyTo && (
+            <View style={styles.replyContainer}>
+              <Reply size={14} color="#8E8E93" />
+              <Text style={styles.replyText} numberOfLines={1}>
+                {message.replyTo.text}
+              </Text>
+            </View>
+          )}
+          {renderContent()}
         </View>
+
+        <TouchableOpacity 
+          style={styles.replyButton}
+          onPress={() => onReply && onReply(message)}
+        >
+          <Reply size={16} color="#8E8E93" />
+        </TouchableOpacity>
       </View>
       
       {isLastInGroup && (
@@ -115,6 +164,10 @@ const styles = StyleSheet.create({
   otherLastBubble: {
     borderBottomLeftRadius: 18,
   },
+  mediaBubble: {
+    padding: 4,
+    backgroundColor: 'transparent',
+  },
   messageText: { 
     color: '#fff',
     fontSize: 16,
@@ -145,6 +198,44 @@ const styles = StyleSheet.create({
   timestamp: {
     color: '#8E8E93',
     fontSize: 10,
+  },
+  replyButton: {
+    padding: 8,
+    opacity: 0.7,
+  },
+  replyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    padding: 4,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  replyText: {
+    color: '#8E8E93',
+    fontSize: 12,
+    marginLeft: 4,
+    flex: 1,
+  },
+  stickerImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+  },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+  },
+  fileContainer: {
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 8,
+  },
+  fileName: {
+    color: '#fff',
+    fontSize: 14,
   },
 });
 

@@ -67,15 +67,14 @@ export interface SendMessageDto {
 }
 
 export interface ChatRoom {
-  _id: string;
+  id: string;
   created_at: string;
   updated_at: string;
   name: RoomName;
   capacity: number;
   image?: string;
-  members?: string[];
+  user_id: string;
   is_member?: boolean;
-  creator_id?: string;
 }
 
 const getAuthHeaders = async () => {
@@ -535,6 +534,24 @@ export const chatService = {
     } catch (error) {
       console.error('Error marking message as read:', error);
       return false;
+    }
+  },
+
+  async getRoomsWithMembers(): Promise<{ rooms: { room: ChatRoom, members: string[] }[] }> {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/rooms/with-members`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch rooms with members');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching rooms with members:', error);
+      return { rooms: [] };
     }
   },
 };

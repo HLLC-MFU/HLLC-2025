@@ -12,6 +12,10 @@ const WS_BASE_URL = Platform.OS === 'android'
 // Maximum number of messages to keep in memory
 const MAX_MESSAGES = 100;
 
+interface WebSocketWithHeartbeat extends WebSocket {
+  heartbeatInterval?: NodeJS.Timeout;
+}
+
 export interface WebSocketHook {
   isConnected: boolean;
   error: string | null;
@@ -24,13 +28,13 @@ export interface WebSocketHook {
   typing: { id: string; name?: string }[];
   connect: (roomId: string) => Promise<void>;
   disconnect: () => void;
-  ws: WebSocket | null;
+  ws: WebSocketWithHeartbeat | null;
   addMessage: (message: Message) => void;
 }
 
 export const useWebSocket = (roomId: string): WebSocketHook => {
   const { user } = useProfile();
-  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [ws, setWs] = useState<WebSocketWithHeartbeat | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -131,6 +135,13 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         throw new Error('Token expired');
       }
 
+      // Only connect if not already connected
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        console.log('WebSocket already connected');
+        isConnecting.current = false;
+        return;
+      }
+
       const wsUrl = `${WS_BASE_URL}/ws/${roomId}/${user._id}`;
       console.log('Connecting to WebSocket:', wsUrl);
       
@@ -144,7 +155,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         setWs(null);
       }
       
-      const socket = new WebSocket(wsUrl);
+      const socket = new WebSocket(wsUrl) as WebSocketWithHeartbeat;
       
       // Set connection timeout
       if (connectionTimeout.current) {
@@ -170,6 +181,25 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         if (connectionTimeout.current) {
           clearTimeout(connectionTimeout.current);
         }
+
+        // Use WebSocket ping/pong frames
+        const pingInterval = setInterval(() => {
+          if (socket.readyState === WebSocket.OPEN) {
+            try {
+              // Use WebSocket ping frame
+              socket.ping();
+            } catch (err) {
+              console.error('Error sending ping:', err);
+              clearInterval(pingInterval);
+              socket.close();
+            }
+          } else {
+            clearInterval(pingInterval);
+          }
+        }, 30000);
+
+        // Store interval ID for cleanup
+        socket.heartbeatInterval = pingInterval;
       };
 
       socket.onclose = (event) => {
@@ -179,6 +209,11 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         
         if (connectionTimeout.current) {
           clearTimeout(connectionTimeout.current);
+        }
+
+        // Clear heartbeat interval
+        if (socket.heartbeatInterval) {
+          clearInterval(socket.heartbeatInterval);
         }
         
         if (event.code !== 1000) {
@@ -208,14 +243,16 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                 const messageData = data.payload.chat;
                 console.log('Parsed history message:', messageData);
                 
-                const newMessage = {
+                const newMessage: Message = {
                   id: messageData.id,
-                  text: messageData.message,
+                  text: messageData.message || '',
                   senderId: messageData.user_id,
                   senderName: messageData.user_id,
-                  type: 'message' as const,
+                  type: messageData.stickerId ? 'sticker' : 'message',
                   timestamp: messageData.timestamp,
-                  isRead: false
+                  isRead: false,
+                  stickerId: messageData.stickerId,
+                  image: messageData.image
                 };
                 console.log('Adding history message:', newMessage);
                 setMessages(prev => {
@@ -231,6 +268,20 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                 console.error('Error parsing history message:', parseError);
               }
             }
+          } else if (data.eventType === 'sticker') {
+            const stickerData = data.payload;
+            const newMessage: Message = {
+              id: Date.now().toString(),
+              text: '',
+              senderId: stickerData.userId,
+              senderName: stickerData.userId,
+              type: 'sticker',
+              timestamp: new Date().toISOString(),
+              isRead: false,
+              stickerId: stickerData.stickerId,
+              image: stickerData.sticker
+            };
+            setMessages(prev => [...prev, newMessage]);
           } else if (data.eventType === 'message') {
             // Handle direct message
             try {
@@ -302,6 +353,12 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       
       if (ws) {
         const socket = ws;
+        
+        // Clear heartbeat interval
+        if (socket.heartbeatInterval) {
+          clearInterval(socket.heartbeatInterval);
+        }
+
         socket.onclose = null;
         socket.onerror = null;
         socket.onmessage = null;

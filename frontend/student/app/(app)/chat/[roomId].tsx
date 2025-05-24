@@ -24,11 +24,14 @@ import {
   Smile, 
   Mic, 
   MoreHorizontal,
+  X,
+  Reply,
 } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Vibration } from 'react-native';
 import WebSocket from 'ws';
+import * as ImagePicker from 'expo-image-picker';
 
 // Components
 import Avatar from './components/Avatar';
@@ -38,6 +41,9 @@ import TypingIndicator from './components/TypingIndicator';
 import ErrorView from './components/ErrorView';
 import JoinBanner from './components/JoinBanner';
 import RoomInfoModal from './components/RoomInfoModal';
+import StickerPicker from './components/StickerPicker';
+import ChatInput from './components/ChatInput';
+import MessageList from './components/MessageList';
 
 // Hooks
 import { useTypingIndicator } from './hooks/useTypingIndicator';
@@ -100,6 +106,8 @@ export default function ChatRoomPage() {
   const [joinAttempted, setJoinAttempted] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
 
   const { isTyping, handleTyping } = useTypingIndicator();
   const groupMessages = useMessageGrouping(wsMessages);
@@ -115,8 +123,10 @@ export default function ChatRoomPage() {
         setIsMember(roomData.is_member || false);
         
         // Connect to WebSocket if member
-        if (roomData.is_member) {
+        if (roomData.is_member && (!ws || ws.readyState !== WebSocket.OPEN)) {
           await wsConnect(roomId);
+          // Start heartbeat after successful connection
+          startHeartbeat();
         }
       } else {
         // Fetch room data
@@ -128,8 +138,10 @@ export default function ChatRoomPage() {
         setIsMember(roomData.is_member || false);
         
         // Connect to WebSocket if member
-        if (roomData.is_member) {
+        if (roomData.is_member && (!ws || ws.readyState !== WebSocket.OPEN)) {
           await wsConnect(roomId);
+          // Start heartbeat after successful connection
+          startHeartbeat();
         }
       }
     } catch (err) {
@@ -138,50 +150,82 @@ export default function ChatRoomPage() {
     } finally {
       setLoading(false);
     }
-  }, [roomId, params.room, wsConnect]);
+  }, [roomId, params.room, wsConnect, ws]);
 
-  // Handle WebSocket connection
-  useEffect(() => {
-    let mounted = true;
-    let reconnectTimeout: NodeJS.Timeout;
-
-    const setupWebSocket = async () => {
-      if (!room?.is_member || !mounted) return;
-      
-      try {
-        await wsConnect(roomId);
-      } catch (err) {
-        console.error('Error connecting to WebSocket:', err);
-        setError('Failed to connect to chat');
-        
-        // Attempt to reconnect after 3 seconds
-        if (mounted) {
-          reconnectTimeout = setTimeout(setupWebSocket, 3000);
+  // Heartbeat mechanism
+  const startHeartbeat = useCallback(() => {
+    const heartbeatInterval = setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        try {
+          ws.send(JSON.stringify({ type: 'heartbeat' }));
+        } catch (err) {
+          console.error('Error sending heartbeat:', err);
+          clearInterval(heartbeatInterval);
+          // Attempt to reconnect
+          if (room?.is_member) {
+            wsConnect(roomId);
+          }
+        }
+      } else {
+        clearInterval(heartbeatInterval);
+        // Attempt to reconnect if disconnected
+        if (room?.is_member) {
+          wsConnect(roomId);
         }
       }
+    }, 30000); // Send heartbeat every 30 seconds
+
+    return () => clearInterval(heartbeatInterval);
+  }, [ws, room?.is_member, roomId, wsConnect]);
+
+  // Initialize room on mount
+  useEffect(() => {
+    let heartbeatCleanup: (() => void) | undefined;
+    
+    const setup = async () => {
+      await initializeRoom();
+      if (room?.is_member) {
+        heartbeatCleanup = startHeartbeat();
+      }
     };
 
-    setupWebSocket();
+    setup();
 
     return () => {
-      mounted = false;
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
+      if (heartbeatCleanup) {
+        heartbeatCleanup();
       }
-      wsDisconnect();
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
     };
-  }, [room?.is_member, roomId, wsConnect, wsDisconnect]);
+  }, [initializeRoom, startHeartbeat, room?.is_member]);
+
+  // Handle WebSocket disconnection
+  useEffect(() => {
+    if (!ws) return;
+
+    const handleDisconnect = () => {
+      if (room?.is_member) {
+        console.log('WebSocket disconnected, attempting to reconnect...');
+        wsConnect(roomId);
+      }
+    };
+
+    ws.addEventListener('close', handleDisconnect);
+    ws.addEventListener('error', handleDisconnect);
+
+    return () => {
+      ws.removeEventListener('close', handleDisconnect);
+      ws.removeEventListener('error', handleDisconnect);
+    };
+  }, [ws, room?.is_member, roomId, wsConnect]);
 
   useEffect(() => {
     if (wsMessages.length > 0 && flatListRef.current) {
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), SCROLL_DELAY);
     }
   }, [wsMessages]);
-
-  // Initialize room on mount
-  useEffect(() => {
-    initializeRoom();
-  }, [initializeRoom]);
 
   const renderItem = useCallback(({ item }: { item: Message[] }) => {
     if (item.length === 1 && (item[0].type === 'join' || item[0].type === 'leave')) {
@@ -232,6 +276,69 @@ export default function ChatRoomPage() {
     }
   }, [wsMessages, scrollToBottom]);
 
+  const handleReply = useCallback((message: Message) => {
+    setReplyTo(message);
+    inputRef.current?.focus();
+  }, []);
+
+  const handleCancelReply = useCallback(() => {
+    setReplyTo(null);
+  }, []);
+
+  const handleImageUpload = useCallback(async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const formData = new FormData();
+        formData.append('file', {
+          uri: result.assets[0].uri,
+          type: 'image/jpeg',
+          name: 'image.jpg',
+        } as any);
+        formData.append('roomId', roomId);
+        formData.append('userId', userId);
+
+        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/chats/upload`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to upload image');
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', 'Failed to upload image');
+    }
+  }, [roomId, userId]);
+
+  const handleSendSticker = useCallback(async (stickerId: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:1334/api/v1/rooms/${roomId}/stickers?userId=${userId}&stickerId=${stickerId}`,
+        { method: 'POST' }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to send sticker');
+      }
+
+      setShowStickerPicker(false);
+    } catch (error) {
+      console.error('Error sending sticker:', error);
+      Alert.alert('Error', 'Failed to send sticker');
+    }
+  }, [roomId, userId]);
+
   const handleSendMessage = useCallback(async () => {
     const trimmedMessage = messageText.trim();
     if (!trimmedMessage || !room?.is_member || !isConnected) return;
@@ -247,17 +354,28 @@ export default function ChatRoomPage() {
         senderName: userId,
         type: 'message' as const,
         timestamp: new Date().toISOString(),
-        isRead: false
+        isRead: false,
+        replyTo: replyTo ? {
+          id: replyTo.id || '',
+          text: replyTo.text,
+          senderId: replyTo.senderId,
+          senderName: replyTo.senderName,
+        } : undefined,
       };
 
       // Add message to WebSocket messages immediately
       addMessage(tempMessage);
       
       // Send message via WebSocket
-      wsSendMessage(trimmedMessage);
+      if (replyTo) {
+        wsSendMessage(`/reply ${replyTo.id} ${trimmedMessage}`);
+      } else {
+        wsSendMessage(trimmedMessage);
+      }
       
-      // Clear input after sending
+      // Clear input and reply after sending
       setMessageText('');
+      setReplyTo(null);
       
       // Scroll to bottom after sending
       scrollToBottom();
@@ -269,7 +387,7 @@ export default function ChatRoomPage() {
       console.error('Error sending message:', error);
       setError('Failed to send message');
     }
-  }, [messageText, room, isConnected, wsSendMessage, userId, addMessage, scrollToBottom]);
+  }, [messageText, room, isConnected, wsSendMessage, userId, addMessage, scrollToBottom, replyTo]);
 
   const handleJoin = async () => {
     try {
@@ -311,6 +429,7 @@ export default function ChatRoomPage() {
     <TouchableWithoutFeedback onPress={() => {
       Keyboard.dismiss();
       setShowEmojiPicker(false);
+      setShowStickerPicker(false);
     }}>
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
@@ -331,7 +450,7 @@ export default function ChatRoomPage() {
               activeOpacity={0.7}
             >
               <Text style={styles.headerTitle} numberOfLines={1}>
-                {room?.name?.th || 'ห้องแชท'}
+                {room?.name?.th_name || 'ห้องแชท'}
               </Text>
               <View style={styles.memberInfo}>
                 <Users size={14} color="#0A84FF" />
@@ -367,93 +486,44 @@ export default function ChatRoomPage() {
             />
           )}
           
-          {/* Messages List */}
-          <FlatList
-            ref={flatListRef}
-            data={groupMessages()}
-            renderItem={renderItem}
-            keyExtractor={keyExtractor}
-            initialNumToRender={10}
-            maxToRenderPerBatch={5}
-            windowSize={5}
-            removeClippedSubviews={true}
-            contentContainerStyle={styles.messagesContent}
-            showsVerticalScrollIndicator={false}
-            maintainVisibleContentPosition={{
-              minIndexForVisible: 0,
-            }}
-            onEndReachedThreshold={0.5}
-            onContentSizeChange={scrollToBottom}
-            onLayout={scrollToBottom}
-          />
-          
-          {/* Typing indicators */}
-          {typing && typing.length > 0 && (
-            <TypingIndicator typingUsers={typing} />
-          )}
-          
-          {/* Input Area */}
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-            style={styles.inputContainer}
-          >
-            <View style={styles.inputWrapper}>
-              <TouchableOpacity 
-                style={styles.attachButton}
-                disabled={!room?.is_member || !isConnected}
-              >
-                <ImageIcon color={(!room?.is_member || !isConnected) ? "#555" : "#0A84FF"} size={22} />
-              </TouchableOpacity>
-              
-              <TextInput
-                ref={inputRef}
-                style={[
-                  styles.input, 
-                  (!room?.is_member || !isConnected) && styles.disabledInput
-                ]}
-                placeholder={
-                  !room?.is_member 
-                    ? PLACEHOLDER_MESSAGES.JOIN_TO_CHAT
-                    : !isConnected 
-                      ? PLACEHOLDER_MESSAGES.CONNECTING
-                      : PLACEHOLDER_MESSAGES.TYPE_MESSAGE
-                }
-                placeholderTextColor="#666"
-                value={messageText}
-                onChangeText={(text) => {
-                  setMessageText(text);
-                  handleTyping();
-                }}
-                editable={!!room?.is_member}
-                multiline
-                maxLength={MAX_MESSAGE_LENGTH}
-                autoCapitalize="none"
-                returnKeyType="send"
-                onSubmitEditing={handleSendMessage}
-              />
-              
-              <TouchableOpacity 
-                style={styles.emojiButton}
-                onPress={() => setShowEmojiPicker(!showEmojiPicker)}
-                disabled={!room?.is_member}
-              >
-                <Smile color={!room?.is_member ? "#555" : "#0A84FF"} size={22} />
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[
-                  styles.sendButton, 
-                  (!room?.is_member || !messageText.trim()) && styles.disabledSendButton
-                ]}
-                onPress={handleSendMessage}
-                disabled={!room?.is_member || !messageText.trim()}
-                activeOpacity={0.7}
-              >
-                <Send color="#fff" size={20} />
+          {/* Reply Banner */}
+          {replyTo && (
+            <View style={styles.replyBanner}>
+              <View style={styles.replyBannerContent}>
+                <Reply size={16} color="#0A84FF" />
+                <Text style={styles.replyBannerText} numberOfLines={1}>
+                  Replying to {replyTo.senderName || replyTo.senderId}: {replyTo.text}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={handleCancelReply}>
+                <X size={16} color="#8E8E93" />
               </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
+          )}
+          
+          {/* Messages List */}
+          <MessageList
+            messages={groupMessages()}
+            userId={userId}
+            typing={typing}
+            flatListRef={flatListRef}
+            onReply={handleReply}
+            scrollToBottom={scrollToBottom}
+          />
+          
+          {/* Input Area */}
+          <ChatInput
+            messageText={messageText}
+            setMessageText={setMessageText}
+            handleSendMessage={handleSendMessage}
+            handleImageUpload={handleImageUpload}
+            handleTyping={handleTyping}
+            isMember={!!room?.is_member}
+            isConnected={isConnected}
+            inputRef={inputRef}
+            setShowStickerPicker={setShowStickerPicker}
+            showStickerPicker={showStickerPicker}
+          />
           
           {/* Room Info Modal */}
           <RoomInfoModal 
@@ -462,6 +532,14 @@ export default function ChatRoomPage() {
             onClose={() => setIsRoomInfoVisible(false)}
             connectedUsers={connectedUsers}
           />
+
+          {/* Sticker Picker Modal */}
+          {showStickerPicker && (
+            <StickerPicker
+              onSelectSticker={handleSendSticker}
+              onClose={() => setShowStickerPicker(false)}
+            />
+          )}
         </SafeAreaView>
       </View>
     </TouchableWithoutFeedback>
@@ -537,60 +615,25 @@ const styles = StyleSheet.create({
   messageGroup: {
     marginBottom: 8,
   },
-  messagesContent: { 
-    padding: 16, 
-    paddingBottom: 80,
-    
-  },
-  inputContainer: { 
-    backgroundColor: '#1A1A1A',
-    borderTopWidth: 1, 
-    borderTopColor: '#2A2A2A',
-    paddingVertical: 8,
-  },
-  inputWrapper: {
+  replyBanner: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1A1A1A',
+    paddingHorizontal: 16,
     paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A2A',
   },
-  input: { 
-    flex: 1, 
-    backgroundColor: '#333', 
-    borderRadius: 20, 
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 10,
-    color: '#fff', 
-    marginHorizontal: 8,
-    maxHeight: 120,
-    minHeight: 40,
-    fontSize: 16,
-  },
-  disabledInput: { 
-    opacity: 0.6 
-  },
-  attachButton: {
-    padding: 8,
-    justifyContent: 'center',
+  replyBannerContent: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 8,
   },
-  emojiButton: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButton: { 
-    backgroundColor: '#0A84FF', 
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 4,
-  },
-  disabledSendButton: { 
-    backgroundColor: '#555', 
-    opacity: 0.5 
+  replyBannerText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 14,
   },
 });
