@@ -115,8 +115,10 @@ export default function ChatRoomPage() {
         setIsMember(roomData.is_member || false);
         
         // Connect to WebSocket if member
-        if (roomData.is_member) {
+        if (roomData.is_member && (!ws || ws.readyState !== WebSocket.OPEN)) {
           await wsConnect(roomId);
+          // Start heartbeat after successful connection
+          startHeartbeat();
         }
       } else {
         // Fetch room data
@@ -128,8 +130,10 @@ export default function ChatRoomPage() {
         setIsMember(roomData.is_member || false);
         
         // Connect to WebSocket if member
-        if (roomData.is_member) {
+        if (roomData.is_member && (!ws || ws.readyState !== WebSocket.OPEN)) {
           await wsConnect(roomId);
+          // Start heartbeat after successful connection
+          startHeartbeat();
         }
       }
     } catch (err) {
@@ -138,50 +142,82 @@ export default function ChatRoomPage() {
     } finally {
       setLoading(false);
     }
-  }, [roomId, params.room, wsConnect]);
+  }, [roomId, params.room, wsConnect, ws]);
 
-  // Handle WebSocket connection
-  useEffect(() => {
-    let mounted = true;
-    let reconnectTimeout: NodeJS.Timeout;
-
-    const setupWebSocket = async () => {
-      if (!room?.is_member || !mounted) return;
-      
-      try {
-        await wsConnect(roomId);
-      } catch (err) {
-        console.error('Error connecting to WebSocket:', err);
-        setError('Failed to connect to chat');
-        
-        // Attempt to reconnect after 3 seconds
-        if (mounted) {
-          reconnectTimeout = setTimeout(setupWebSocket, 3000);
+  // Heartbeat mechanism
+  const startHeartbeat = useCallback(() => {
+    const heartbeatInterval = setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        try {
+          ws.send(JSON.stringify({ type: 'heartbeat' }));
+        } catch (err) {
+          console.error('Error sending heartbeat:', err);
+          clearInterval(heartbeatInterval);
+          // Attempt to reconnect
+          if (room?.is_member) {
+            wsConnect(roomId);
+          }
+        }
+      } else {
+        clearInterval(heartbeatInterval);
+        // Attempt to reconnect if disconnected
+        if (room?.is_member) {
+          wsConnect(roomId);
         }
       }
+    }, 30000); // Send heartbeat every 30 seconds
+
+    return () => clearInterval(heartbeatInterval);
+  }, [ws, room?.is_member, roomId, wsConnect]);
+
+  // Initialize room on mount
+  useEffect(() => {
+    let heartbeatCleanup: (() => void) | undefined;
+    
+    const setup = async () => {
+      await initializeRoom();
+      if (room?.is_member) {
+        heartbeatCleanup = startHeartbeat();
+      }
     };
 
-    setupWebSocket();
+    setup();
 
     return () => {
-      mounted = false;
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
+      if (heartbeatCleanup) {
+        heartbeatCleanup();
       }
-      wsDisconnect();
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
     };
-  }, [room?.is_member, roomId, wsConnect, wsDisconnect]);
+  }, [initializeRoom, startHeartbeat, room?.is_member]);
+
+  // Handle WebSocket disconnection
+  useEffect(() => {
+    if (!ws) return;
+
+    const handleDisconnect = () => {
+      if (room?.is_member) {
+        console.log('WebSocket disconnected, attempting to reconnect...');
+        wsConnect(roomId);
+      }
+    };
+
+    ws.addEventListener('close', handleDisconnect);
+    ws.addEventListener('error', handleDisconnect);
+
+    return () => {
+      ws.removeEventListener('close', handleDisconnect);
+      ws.removeEventListener('error', handleDisconnect);
+    };
+  }, [ws, room?.is_member, roomId, wsConnect]);
 
   useEffect(() => {
     if (wsMessages.length > 0 && flatListRef.current) {
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), SCROLL_DELAY);
     }
   }, [wsMessages]);
-
-  // Initialize room on mount
-  useEffect(() => {
-    initializeRoom();
-  }, [initializeRoom]);
 
   const renderItem = useCallback(({ item }: { item: Message[] }) => {
     if (item.length === 1 && (item[0].type === 'join' || item[0].type === 'leave')) {
@@ -331,7 +367,7 @@ export default function ChatRoomPage() {
               activeOpacity={0.7}
             >
               <Text style={styles.headerTitle} numberOfLines={1}>
-                {room?.name?.th || 'ห้องแชท'}
+                {room?.name?.th_name || 'ห้องแชท'}
               </Text>
               <View style={styles.memberInfo}>
                 <Users size={14} color="#0A84FF" />

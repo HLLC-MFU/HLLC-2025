@@ -24,8 +24,8 @@ export interface ConnectedUser {
 }
 
 export interface RoomName {
-  th: string;
-  en: string;
+  th_name: string;
+  en_name: string;
 }
 
 export interface ChatRoom {
