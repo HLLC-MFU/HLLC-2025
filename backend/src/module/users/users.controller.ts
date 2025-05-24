@@ -9,6 +9,8 @@ import {
   Body,
   Patch,
   Post,
+  Request,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 import { UsersService } from './users.service';
@@ -19,8 +21,7 @@ import { CacheKey } from '@nestjs/cache-manager';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UploadUserDto } from './dto/upload.user.dto';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtPayload } from '../auth/types/jwt-payload.type';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
@@ -53,8 +54,12 @@ export class UsersController {
   }
 
   @Get('me')
-  getMe(@CurrentUser() user: JwtPayload & { _id: string }) {
-    return this.usersService.getMe(user._id);
+  @UseGuards(JwtAuthGuard)
+  async getMe(@Request() req) {
+    if (!req.user || !req.user._id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return this.usersService.getMe(req.user._id);
   }
 
   @Post('upload')

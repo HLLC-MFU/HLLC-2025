@@ -7,7 +7,7 @@ export class CreateCheckinDto {
 
   @IsNotEmpty()
   @IsString()
-  staff: string;
+  staff?: string;
 
   @IsNotEmpty()
   @IsString()

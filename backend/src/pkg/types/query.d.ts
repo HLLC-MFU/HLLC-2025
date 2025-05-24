@@ -5,6 +5,7 @@ export type FieldType = 'string' | 'number' | 'boolean';
 export interface PopulateField {
   path: string;
   model?: string;
+  select?: string;
 }
 
 export interface Meta {
