@@ -3,7 +3,9 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -455,4 +457,67 @@ func (h *ChatHTTPHandler) LeaveRoom(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "left room",
 	})
+}
+
+func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
+	roomId := c.FormValue("roomId")
+	userId := c.FormValue("userId")
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "file is required"})
+	}
+
+	// Validate allowed types (image/pdf/etc.)
+	ext := filepath.Ext(file.Filename)
+	allowed := map[string]string{
+		".jpg":  "image",
+		".jpeg": "image",
+		".png":  "image",
+		".pdf":  "pdf",
+	}
+	fileType, ok := allowed[strings.ToLower(ext)]
+	if !ok {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "unsupported file type"})
+	}
+
+	// Save file
+	savePath := fmt.Sprintf("./uploads/%s_%s", time.Now().Format("20060102150405"), file.Filename)
+	if err := c.SaveFile(file, savePath); err != nil {
+		log.Printf("[UPLOAD ERROR] Failed to save file: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "upload failed"})
+	}
+
+	// Save message with file reference
+	msg := &model.ChatMessage{
+		RoomID:    roomId,
+		UserID:    userId,
+		FileURL:   savePath,
+		FileName:  file.Filename,
+		FileType:  fileType,
+		Timestamp: time.Now(),
+	}
+
+	if err := h.service.SaveChatMessage(c.Context(), msg); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save message"})
+	}
+
+	// Broadcast to all clients in the room
+	model.BroadcastMessage(model.BroadcastObject{
+		MSG: fmt.Sprintf("[file] %s", msg.FileName),
+		FROM: model.ClientObject{
+			RoomID: msg.RoomID,
+			UserID: msg.UserID,
+		},
+	})
+
+	// Optional: send rich event payload
+	h.broadcastEvent(roomId, "file", map[string]string{
+		"userId":   userId,
+		"fileName": msg.FileName,
+		"fileURL":  msg.FileURL,
+		"fileType": msg.FileType,
+	})
+
+	return c.Status(fiber.StatusOK).JSON(msg)
 }
