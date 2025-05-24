@@ -1,27 +1,27 @@
 export interface Message {
   id?: string;
-  text: string;
+  text?: string;
   senderId: string;
-  senderName?: string;
+  senderName: string;
   type: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention';
   timestamp: string;
-  isRead?: boolean;
+  isRead: boolean;
   reactions?: Array<{
     userId: string;
     reaction: string;
   }>;
+  replyTo?: {
+    id: string;
+    text: string;
+    senderId: string;
+    senderName: string;
+  };
   fileUrl?: string;
   fileName?: string;
   fileType?: string;
   stickerId?: string;
   image?: string;
   mentioned?: string;
-  replyTo?: {
-    id: string;
-    text: string;
-    senderId: string;
-    senderName?: string;
-  };
 }
 
 export interface ConnectedUser {
@@ -37,14 +37,16 @@ export interface RoomName {
 
 export interface ChatRoom {
   id: string;
+  name: {
+    th_name: string;
+    en_name: string;
+  };
+  capacity: number;
+  image: string;
+  is_member: boolean;
+  creator: string;
   created_at: string;
   updated_at: string;
-  name: RoomName;
-  capacity: number;
-  image?: string;
-  members?: string[];
-  is_member?: boolean;
-  creator_id?: string;
 }
 
 export interface RoomsResponse {

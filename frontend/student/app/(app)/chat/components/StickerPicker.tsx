@@ -34,7 +34,7 @@ export default function StickerPicker({ onSelectSticker, onClose }: StickerPicke
 
   const fetchStickers = async () => {
     try {
-      const response = await fetch(`http://localhost:1333/api/v1/stickers`);
+      const response = await fetch(`http://localhost:1334/api/v1/stickers`);
       if (!response.ok) {
         throw new Error('Failed to fetch stickers');
       }

@@ -38,11 +38,21 @@ const MessageBubble = memo(({
     if (message.fileUrl) {
       if (message.fileType === 'image') {
         return (
-          <Image 
-            source={{ uri: message.fileUrl }} 
-            style={styles.messageImage}
-            resizeMode="cover"
-          />
+          <TouchableOpacity 
+            onPress={() => {
+              // TODO: Implement image preview
+              console.log('Preview image:', message.fileUrl);
+            }}
+          >
+            <Image 
+              source={{ uri: message.fileUrl }} 
+              style={styles.messageImage}
+              resizeMode="cover"
+              onError={(error) => {
+                console.error('Error loading image:', error.nativeEvent.error);
+              }}
+            />
+          </TouchableOpacity>
         );
       }
       return (
@@ -227,6 +237,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 12,
+    backgroundColor: '#2A2A2A',
   },
   fileContainer: {
     padding: 8,

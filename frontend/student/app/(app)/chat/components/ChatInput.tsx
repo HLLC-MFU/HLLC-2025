@@ -4,11 +4,9 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { ImageIcon, Smile, Send } from 'lucide-react-native';
-import { PLACEHOLDER_MESSAGES, MAX_MESSAGE_LENGTH } from '../constants/chatConstants';
+import { Image as ImageIcon, Send, Smile } from 'lucide-react-native';
 
 interface ChatInputProps {
   messageText: string;
@@ -36,122 +34,107 @@ const ChatInput: React.FC<ChatInputProps> = ({
   showStickerPicker,
 }) => {
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      style={styles.inputContainer}
-    >
-      <View style={styles.inputWrapper}>
-        <TouchableOpacity 
-          style={styles.attachButton}
+    <View style={styles.container}>
+      <View style={styles.inputContainer}>
+        <TouchableOpacity
+          style={styles.iconButton}
           onPress={handleImageUpload}
           disabled={!isMember || !isConnected}
         >
-          <ImageIcon color={(!isMember || !isConnected) ? "#555" : "#0A84FF"} size={22} />
+          <ImageIcon
+            size={24}
+            color={isMember && isConnected ? '#0A84FF' : '#666'}
+          />
         </TouchableOpacity>
-        
+
         <TextInput
           ref={inputRef}
-          style={[
-            styles.input, 
-            (!isMember || !isConnected) && styles.disabledInput
-          ]}
-          placeholder={
-            !isMember 
-              ? PLACEHOLDER_MESSAGES.JOIN_TO_CHAT
-              : !isConnected 
-                ? PLACEHOLDER_MESSAGES.CONNECTING
-                : PLACEHOLDER_MESSAGES.TYPE_MESSAGE
-          }
-          placeholderTextColor="#666"
+          style={styles.input}
           value={messageText}
           onChangeText={(text) => {
             setMessageText(text);
             handleTyping();
           }}
-          editable={isMember}
+          placeholder="พิมพ์ข้อความ..."
+          placeholderTextColor="#666"
           multiline
-          maxLength={MAX_MESSAGE_LENGTH}
-          autoCapitalize="none"
-          returnKeyType="send"
-          onSubmitEditing={handleSendMessage}
+          maxLength={1000}
+          editable={isMember && isConnected}
+          onFocus={() => {
+            if (showStickerPicker) {
+              setShowStickerPicker(false);
+            }
+          }}
         />
-        
-        <TouchableOpacity 
-          style={styles.emojiButton}
+
+        <TouchableOpacity
+          style={styles.iconButton}
           onPress={() => setShowStickerPicker(!showStickerPicker)}
-          disabled={!isMember}
+          disabled={!isMember || !isConnected}
         >
-          <Smile color={!isMember ? "#555" : "#0A84FF"} size={22} />
+          <Smile
+            size={24}
+            color={isMember && isConnected ? '#0A84FF' : '#666'}
+          />
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
-            styles.sendButton, 
-            (!isMember || !messageText.trim()) && styles.disabledSendButton
+            styles.sendButton,
+            (!messageText.trim() || !isMember || !isConnected) && styles.sendButtonDisabled,
           ]}
           onPress={handleSendMessage}
-          disabled={!isMember || !messageText.trim()}
-          activeOpacity={0.7}
+          disabled={!messageText.trim() || !isMember || !isConnected}
         >
-          <Send color="#fff" size={20} />
+          <Send
+            size={20}
+            color={messageText.trim() && isMember && isConnected ? '#fff' : '#666'}
+          />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  inputContainer: { 
+  container: {
     backgroundColor: '#1A1A1A',
-    borderTopWidth: 1, 
+    borderTopWidth: 1,
     borderTopColor: '#2A2A2A',
+    paddingHorizontal: 8,
     paddingVertical: 8,
   },
-  inputWrapper: {
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 12,
+    backgroundColor: '#2A2A2A',
+    borderRadius: 20,
+    paddingHorizontal: 8,
     paddingVertical: 8,
   },
-  input: { 
-    flex: 1, 
-    backgroundColor: '#333', 
-    borderRadius: 20, 
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 10,
-    color: '#fff', 
-    marginHorizontal: 8,
-    maxHeight: 120,
-    minHeight: 40,
+  input: {
+    flex: 1,
+    color: '#fff',
     fontSize: 16,
+    maxHeight: 100,
+    paddingHorizontal: 8,
+    paddingTop: Platform.OS === 'ios' ? 8 : 0,
+    paddingBottom: Platform.OS === 'ios' ? 8 : 0,
   },
-  disabledInput: { 
-    opacity: 0.6 
-  },
-  attachButton: {
+  iconButton: {
     padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  emojiButton: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButton: { 
-    backgroundColor: '#0A84FF', 
+  sendButton: {
+    backgroundColor: '#0A84FF',
     width: 36,
     height: 36,
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 4,
+    marginLeft: 8,
   },
-  disabledSendButton: { 
-    backgroundColor: '#555', 
-    opacity: 0.5 
+  sendButtonDisabled: {
+    backgroundColor: '#2A2A2A',
   },
 });
 

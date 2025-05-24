@@ -243,17 +243,43 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                 const messageData = data.payload.chat;
                 console.log('Parsed history message:', messageData);
                 
-                const newMessage: Message = {
-                  id: messageData.id,
-                  text: messageData.message || '',
-                  senderId: messageData.user_id,
-                  senderName: messageData.user_id,
-                  type: messageData.stickerId ? 'sticker' : 'message',
-                  timestamp: messageData.timestamp,
-                  isRead: false,
-                  stickerId: messageData.stickerId,
-                  image: messageData.image
-                };
+                let newMessage: Message;
+                
+                if (messageData.file_url) {
+                  newMessage = {
+                    id: messageData.id,
+                    fileUrl: messageData.file_url,
+                    fileName: messageData.file_name,
+                    fileType: messageData.file_type,
+                    senderId: messageData.user_id,
+                    senderName: messageData.user_id,
+                    type: 'file',
+                    timestamp: messageData.timestamp,
+                    isRead: false,
+                  };
+                } else if (messageData.stickerId) {
+                  newMessage = {
+                    id: messageData.id,
+                    image: messageData.image,
+                    stickerId: messageData.stickerId,
+                    senderId: messageData.user_id,
+                    senderName: messageData.user_id,
+                    type: 'sticker',
+                    timestamp: messageData.timestamp,
+                    isRead: false,
+                  };
+                } else {
+                  newMessage = {
+                    id: messageData.id,
+                    text: messageData.message || '',
+                    senderId: messageData.user_id,
+                    senderName: messageData.user_id,
+                    type: 'message',
+                    timestamp: messageData.timestamp,
+                    isRead: false,
+                  };
+                }
+
                 console.log('Adding history message:', newMessage);
                 setMessages(prev => {
                   // Check if message already exists
