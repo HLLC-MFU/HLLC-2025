@@ -42,6 +42,8 @@ import ErrorView from './components/ErrorView';
 import JoinBanner from './components/JoinBanner';
 import RoomInfoModal from './components/RoomInfoModal';
 import StickerPicker from './components/StickerPicker';
+import ChatInput from './components/ChatInput';
+import MessageList from './components/MessageList';
 
 // Hooks
 import { useTypingIndicator } from './hooks/useTypingIndicator';
@@ -500,93 +502,28 @@ export default function ChatRoomPage() {
           )}
           
           {/* Messages List */}
-          <FlatList
-            ref={flatListRef}
-            data={groupMessages()}
-            renderItem={renderItem}
-            keyExtractor={keyExtractor}
-            initialNumToRender={10}
-            maxToRenderPerBatch={5}
-            windowSize={5}
-            removeClippedSubviews={true}
-            contentContainerStyle={styles.messagesContent}
-            showsVerticalScrollIndicator={false}
-            maintainVisibleContentPosition={{
-              minIndexForVisible: 0,
-            }}
-            onEndReachedThreshold={0.5}
-            onContentSizeChange={scrollToBottom}
-            onLayout={scrollToBottom}
+          <MessageList
+            messages={groupMessages()}
+            userId={userId}
+            typing={typing}
+            flatListRef={flatListRef}
+            onReply={handleReply}
+            scrollToBottom={scrollToBottom}
           />
           
-          {/* Typing indicators */}
-          {typing && typing.length > 0 && (
-            <TypingIndicator typingUsers={typing} />
-          )}
-          
           {/* Input Area */}
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-            style={styles.inputContainer}
-          >
-            <View style={styles.inputWrapper}>
-              <TouchableOpacity 
-                style={styles.attachButton}
-                onPress={handleImageUpload}
-                disabled={!room?.is_member || !isConnected}
-              >
-                <ImageIcon color={(!room?.is_member || !isConnected) ? "#555" : "#0A84FF"} size={22} />
-              </TouchableOpacity>
-              
-              <TextInput
-                ref={inputRef}
-                style={[
-                  styles.input, 
-                  (!room?.is_member || !isConnected) && styles.disabledInput
-                ]}
-                placeholder={
-                  !room?.is_member 
-                    ? PLACEHOLDER_MESSAGES.JOIN_TO_CHAT
-                    : !isConnected 
-                      ? PLACEHOLDER_MESSAGES.CONNECTING
-                      : PLACEHOLDER_MESSAGES.TYPE_MESSAGE
-                }
-                placeholderTextColor="#666"
-                value={messageText}
-                onChangeText={(text) => {
-                  setMessageText(text);
-                  handleTyping();
-                }}
-                editable={!!room?.is_member}
-                multiline
-                maxLength={MAX_MESSAGE_LENGTH}
-                autoCapitalize="none"
-                returnKeyType="send"
-                onSubmitEditing={handleSendMessage}
-              />
-              
-              <TouchableOpacity 
-                style={styles.emojiButton}
-                onPress={() => setShowStickerPicker(!showStickerPicker)}
-                disabled={!room?.is_member}
-              >
-                <Smile color={!room?.is_member ? "#555" : "#0A84FF"} size={22} />
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[
-                  styles.sendButton, 
-                  (!room?.is_member || !messageText.trim()) && styles.disabledSendButton
-                ]}
-                onPress={handleSendMessage}
-                disabled={!room?.is_member || !messageText.trim()}
-                activeOpacity={0.7}
-              >
-                <Send color="#fff" size={20} />
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
+          <ChatInput
+            messageText={messageText}
+            setMessageText={setMessageText}
+            handleSendMessage={handleSendMessage}
+            handleImageUpload={handleImageUpload}
+            handleTyping={handleTyping}
+            isMember={!!room?.is_member}
+            isConnected={isConnected}
+            inputRef={inputRef}
+            setShowStickerPicker={setShowStickerPicker}
+            showStickerPicker={showStickerPicker}
+          />
           
           {/* Room Info Modal */}
           <RoomInfoModal 
@@ -678,62 +615,6 @@ const styles = StyleSheet.create({
   messageGroup: {
     marginBottom: 8,
   },
-  messagesContent: { 
-    padding: 16, 
-    paddingBottom: 80,
-    
-  },
-  inputContainer: { 
-    backgroundColor: '#1A1A1A',
-    borderTopWidth: 1, 
-    borderTopColor: '#2A2A2A',
-    paddingVertical: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  input: { 
-    flex: 1, 
-    backgroundColor: '#333', 
-    borderRadius: 20, 
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 10,
-    color: '#fff', 
-    marginHorizontal: 8,
-    maxHeight: 120,
-    minHeight: 40,
-    fontSize: 16,
-  },
-  disabledInput: { 
-    opacity: 0.6 
-  },
-  attachButton: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emojiButton: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButton: { 
-    backgroundColor: '#0A84FF', 
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 4,
-  },
-  disabledSendButton: { 
-    backgroundColor: '#555', 
-    opacity: 0.5 
-  },
   replyBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -754,16 +635,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginLeft: 8,
     fontSize: 14,
-  },
-  stickerPicker: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#1A1A1A',
-    borderTopWidth: 1,
-    borderTopColor: '#2A2A2A',
-    padding: 16,
-    maxHeight: 300,
   },
 });
