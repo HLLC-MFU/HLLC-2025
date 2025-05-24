@@ -482,7 +482,9 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	}
 
 	// Save file
-	savePath := fmt.Sprintf("./uploads/%s_%s", time.Now().Format("20060102150405"), file.Filename)
+	filename := fmt.Sprintf("%s_%s", time.Now().Format("20060102150405"), file.Filename)
+	savePath := fmt.Sprintf("./uploads/%s", filename)
+	publicURL := fmt.Sprintf("http://localhost:1334/uploads/%s", filename)
 	if err := c.SaveFile(file, savePath); err != nil {
 		log.Printf("[UPLOAD ERROR] Failed to save file: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "upload failed"})
@@ -492,7 +494,7 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	msg := &model.ChatMessage{
 		RoomID:    roomId,
 		UserID:    userId,
-		FileURL:   savePath,
+		FileURL:   publicURL,
 		FileName:  file.Filename,
 		FileType:  fileType,
 		Timestamp: time.Now(),
