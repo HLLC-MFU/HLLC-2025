@@ -1,0 +1,282 @@
+{
+	"info": {
+		"_postman_id": "b8e3f3a2-5b3e-4b3c-8f5a-9f8b3e4b3c8f",
+		"name": "HLLC Chat & Sticker API",
+		"description": "Collection for testing HLLC Chat and Sticker functionalities",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Chat",
+			"item": [
+				{
+					"name": "Create Room",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name[th]",
+									"value": "ห้องแชท 1",
+									"type": "text"
+								},
+								{
+									"key": "name[en]",
+									"value": "Chat Room 1",
+									"type": "text"
+								},
+								{
+									"key": "capacity",
+									"value": "10",
+									"type": "text"
+								},
+								{
+									"key": "creator_id",
+									"value": "user123",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/v1/chats",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "v1", "chats"]
+						}
+					}
+				},
+				{
+					"name": "List Rooms",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/v1/chats?page=1&limit=10",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "v1", "chats"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Room",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/v1/chats/:id",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "v1", "chats", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "room_id_here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Upload File",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "roomId",
+									"value": "room_id_here",
+									"type": "text"
+								},
+								{
+									"key": "userId",
+									"value": "user123",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/v1/chats/upload",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "v1", "chats", "upload"]
+						}
+					}
+				},
+				{
+					"name": "WebSocket Connection",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "ws://localhost:3000/ws/chat?userId=user123&roomId=room_id_here&username=testuser",
+							"protocol": "ws",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["ws", "chat"],
+							"query": [
+								{
+									"key": "userId",
+									"value": "user123"
+								},
+								{
+									"key": "roomId",
+									"value": "room_id_here"
+								},
+								{
+									"key": "username",
+									"value": "testuser"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Stickers",
+			"item": [
+				{
+					"name": "Create Sticker",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Happy Face",
+									"type": "text"
+								},
+								{
+									"key": "category",
+									"value": "Emotions",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/v1/stickers",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "v1", "stickers"]
+						}
+					}
+				},
+				{
+					"name": "List Stickers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/v1/stickers?page=1&limit=10&category=Emotions",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "v1", "stickers"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "category",
+									"value": "Emotions"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Sticker",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/v1/stickers/:id",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "v1", "stickers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "sticker_id_here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Send Sticker",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/api/v1/stickers/:roomId/send?userId=user123&stickerId=sticker_id_here",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "v1", "stickers", ":roomId", "send"],
+							"query": [
+								{
+									"key": "userId",
+									"value": "user123"
+								},
+								{
+									"key": "stickerId",
+									"value": "sticker_id_here"
+								}
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "room_id_here"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+} 
