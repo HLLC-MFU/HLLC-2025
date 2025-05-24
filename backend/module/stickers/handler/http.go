@@ -12,12 +12,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type HTTPHandler struct {
+type StickerHTTPHandler struct {
 	service service.StickerService
 }
 
-func NewHTTPHandler(service service.StickerService) *HTTPHandler {
-	return &HTTPHandler{
+func NewHTTPHandler(service service.StickerService) *StickerHTTPHandler {
+	return &StickerHTTPHandler{
 		service: service,
 	}
 }
@@ -30,15 +30,7 @@ type createStickerRequest struct {
 	Image string `json:"image,omitempty"`
 }
 
-func (h *HTTPHandler) RegisterRoutes(router fiber.Router) {
-	router.Post("/", h.CreateSticker)
-	router.Get("/:id", h.GetSticker)
-	router.Get("/", h.ListStickers)
-	router.Patch("/:id", h.UpdateSticker)
-	router.Delete("/:id", h.DeleteSticker)
-}
-
-func (h *HTTPHandler) CreateSticker(c *fiber.Ctx) error {
+func (h *StickerHTTPHandler) CreateSticker(c *fiber.Ctx) error {
 	file, err := c.FormFile("image")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "image is required"})
@@ -75,7 +67,7 @@ func (h *HTTPHandler) CreateSticker(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(sticker)
 }
 
-func (h *HTTPHandler) GetSticker(c *fiber.Ctx) error {
+func (h *StickerHTTPHandler) GetSticker(c *fiber.Ctx) error {
 	id, err := primitive.ObjectIDFromHex(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -98,7 +90,7 @@ func (h *HTTPHandler) GetSticker(c *fiber.Ctx) error {
 	return c.JSON(sticker)
 }
 
-func (h *HTTPHandler) ListStickers(c *fiber.Ctx) error {
+func (h *StickerHTTPHandler) ListStickers(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
 
@@ -117,7 +109,7 @@ func (h *HTTPHandler) ListStickers(c *fiber.Ctx) error {
 	})
 }
 
-func (h *HTTPHandler) UpdateSticker(c *fiber.Ctx) error {
+func (h *StickerHTTPHandler) UpdateSticker(c *fiber.Ctx) error {
 	id, err := primitive.ObjectIDFromHex(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -177,7 +169,7 @@ func (h *HTTPHandler) UpdateSticker(c *fiber.Ctx) error {
 	return c.JSON(sticker)
 }
 
-func (h *HTTPHandler) DeleteSticker(c *fiber.Ctx) error {
+func (h *StickerHTTPHandler) DeleteSticker(c *fiber.Ctx) error {
 	id, err := primitive.ObjectIDFromHex(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{

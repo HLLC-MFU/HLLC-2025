@@ -22,12 +22,7 @@ func main() {
 	ctx := context.Background()
 
 	// Load configuration from .env file
-	cfg := config.LoadConfig(func() string {
-		if len(os.Args) < 2 {
-			log.Fatal("Error: .env path is required")
-		}
-		return os.Args[1]
-	}())
+	cfg := config.LoadConfig(".env")
 
 	// Connect to the database
 	db := core.DbConnect(ctx, cfg)

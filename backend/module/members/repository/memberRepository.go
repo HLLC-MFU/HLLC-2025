@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/members/model"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"

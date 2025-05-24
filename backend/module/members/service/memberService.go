@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/members/repository"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

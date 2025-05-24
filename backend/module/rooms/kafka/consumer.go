@@ -10,13 +10,13 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-func StartKafkaConsumer(brokerAddress string, topics []string, groupID string, chatService service.Service) {
+func StartKafkaConsumer(brokerAddress string, topics []string, groupID string, chatService service.ChatService) {
     for _, topic := range topics {
         go consumeTopic(brokerAddress, topic, groupID, chatService)
     }
 }
 
-func consumeTopic(brokerAddress, topic, groupID string, chatService service.Service) {
+func consumeTopic(brokerAddress, topic, groupID string, chatService service.ChatService) {
     r := kafka.NewReader(kafka.ReaderConfig{
         Brokers: []string{brokerAddress},
         GroupID: groupID,

@@ -2,9 +2,7 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,12 +12,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-/**
- * Server struct
- *
- * @author Dev. Bengi (Backend Team)
- */
 
 type server struct {
 	app    *fiber.App
@@ -45,20 +37,11 @@ func NewServer(cfg *config.Config, db *mongo.Client) *server {
 	}
 }
 
-func (s *server) grpcListener(addr string) (net.Listener, error) {
-	return net.Listen("tcp", addr)
-}
-
 func (s *server) Start() error {
 	// Route service based on App Name
-	switch s.config.App.Name {
-	case "chat":
-		s.chatService()
-	case "sticker":
-		s.stickerService()
-	default:
-		return fmt.Errorf("unknown service name: %s", s.config.App.Name)
-	}
+	s.chatService()
+	s.roomService()
+	s.stickerService()
 
 	// Start HTTP server
 	go func() {

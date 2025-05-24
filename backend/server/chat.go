@@ -4,47 +4,65 @@ import (
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/handler"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/kafka"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
-	kafkaUtil "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
+
+	memberRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/members/repository"
+	memberService "github.com/HLLC-MFU/HLLC-2025/backend/module/members/service"
 
 	stickerRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/repository"
-	stickerService "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
+	stickerServicePkg "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
+
+	roomKafka "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
+	roomRedis "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
+
+	RoomRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
+	RoomService "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/service"
+	kafkaUtil "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	websocket "github.com/gofiber/websocket/v2"
+	"github.com/gofiber/websocket/v2"
 )
 
 func (s *server) chatService() {
-	redis.InitRedis()
+	roomRedis.InitRedis()
 
-	publisher := kafka.GetPublisher()
+	publisher := roomKafka.GetPublisher()
+
 	topicName := "chat-room"
-	err := kafkaUtil.EnsureKafkaTopic("localhost:9092", topicName)
-	if err != nil {
+	if err := kafkaUtil.EnsureKafkaTopic("localhost:9092", topicName); err != nil {
 		log.Fatalf("[Kafka] Ensure Topic error: %v", err)
 	}
 
-	repo := repository.NewRepository(s.db)
-	roomService := service.NewService(repo, publisher)
-	memberRepo := repository.NewRoomMemberRepository(s.db)
-	memberService := service.NewMemberService(memberRepo)
-	stickerRepo := stickerRepo.NewStickerRepository(s.db)
-	stickerService := stickerService.NewStickerService(stickerRepo)
-	roomService.SyncRoomMembers()
-	roomService.InitChatHub()
+	// Chats logic
+	chatRepo := repository.NewRepository(s.db)
+	roomRepo := RoomRepository.NewRepository(s.db)
+	chatService := service.NewService(chatRepo, publisher, roomRepo)
 
-	kafka.StartKafkaConsumer(
-		"localhost:9092",
-		[]string{},
-		"chat-group",
-		roomService,
-	)
+	// Members logic
+	memRepo := memberRepo.NewRoomMemberRepository(s.db)
+	memberService := memberService.NewMemberService(memRepo)
 
-	httpHandler := handler.NewHTTPHandler(roomService, memberService, publisher, stickerService)
+	// Stickers logic
+	stkRepo := stickerRepo.NewStickerRepository(s.db)
+	stickerService := stickerServicePkg.NewStickerService(stkRepo)
 
+	// Rooms logic
+	roomService := RoomService.NewService(roomRepo, publisher, memberService)
+
+	// Background services
+	chatService.SyncRoomMembers()
+	chatService.InitChatHub()
+
+	// Kafka consumer
+	kafkaConsumerGroup := "chat-group"
+	roomKafka.StartKafkaConsumer("localhost:9092", []string{}, kafkaConsumerGroup, chatService)
+
+	// HTTP/WebSocket handler
+	httpHandler := handler.NewHTTPHandler(chatService, memberService, publisher, stickerService, roomService)
+
+	// Fiber Middleware
 	s.app.Use(cors.New(cors.Config{
 		AllowCredentials: true,
 		AllowOrigins:     "http://localhost:3000",
@@ -62,23 +80,18 @@ func (s *server) chatService() {
 	s.app.Get("/ws/:roomId/:userId", websocket.New(func(conn *websocket.Conn) {
 		roomID := conn.Params("roomId")
 		userID := conn.Params("userId")
-		username := userID // or fetch from DB if needed
+		username := userID // Replace this if you plan to fetch usernames
 		httpHandler.HandleWebSocket(conn, userID, username, roomID)
 	}))
 
-	api := s.app.Group("/api/v1")
+	// Routes (using centralized router if applicable)
+	// router.RegisterChatRoutes(s.app.Group("/api/v1/rooms"), httpHandler)
 
-	public := api.Group("/rooms")
-	httpHandler.RegisterRoutes(public)
-
+	// Health
 	s.app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
 	})
-
 	s.app.Static("/uploads", "./uploads")
-
-	httpHandler.RegisterRoutes(public)
-
 	s.app.Get("/ping", func(c *fiber.Ctx) error {
 		return c.SendString("pong")
 	})
