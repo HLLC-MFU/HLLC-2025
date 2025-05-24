@@ -243,14 +243,16 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                 const messageData = data.payload.chat;
                 console.log('Parsed history message:', messageData);
                 
-                const newMessage = {
+                const newMessage: Message = {
                   id: messageData.id,
-                  text: messageData.message,
+                  text: messageData.message || '',
                   senderId: messageData.user_id,
                   senderName: messageData.user_id,
-                  type: 'message' as const,
+                  type: messageData.stickerId ? 'sticker' : 'message',
                   timestamp: messageData.timestamp,
-                  isRead: false
+                  isRead: false,
+                  stickerId: messageData.stickerId,
+                  image: messageData.image
                 };
                 console.log('Adding history message:', newMessage);
                 setMessages(prev => {
@@ -266,6 +268,20 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                 console.error('Error parsing history message:', parseError);
               }
             }
+          } else if (data.eventType === 'sticker') {
+            const stickerData = data.payload;
+            const newMessage: Message = {
+              id: Date.now().toString(),
+              text: '',
+              senderId: stickerData.userId,
+              senderName: stickerData.userId,
+              type: 'sticker',
+              timestamp: new Date().toISOString(),
+              isRead: false,
+              stickerId: stickerData.stickerId,
+              image: stickerData.sticker
+            };
+            setMessages(prev => [...prev, newMessage]);
           } else if (data.eventType === 'message') {
             // Handle direct message
             try {

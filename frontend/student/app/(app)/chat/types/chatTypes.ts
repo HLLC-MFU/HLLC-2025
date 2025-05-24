@@ -13,8 +13,15 @@ export interface Message {
   fileUrl?: string;
   fileName?: string;
   fileType?: string;
-  stickerUrl?: string;
+  stickerId?: string;
+  image?: string;
   mentioned?: string;
+  replyTo?: {
+    id: string;
+    text: string;
+    senderId: string;
+    senderName?: string;
+  };
 }
 
 export interface ConnectedUser {
@@ -73,6 +80,7 @@ export interface MessageBubbleProps {
   showAvatar?: boolean;
   isLastInGroup?: boolean;
   isFirstInGroup?: boolean;
+  onReply?: (message: Message) => void;
 }
 
 export interface ErrorViewProps {

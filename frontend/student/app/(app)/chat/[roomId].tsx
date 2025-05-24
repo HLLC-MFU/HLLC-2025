@@ -24,11 +24,14 @@ import {
   Smile, 
   Mic, 
   MoreHorizontal,
+  X,
+  Reply,
 } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Vibration } from 'react-native';
 import WebSocket from 'ws';
+import * as ImagePicker from 'expo-image-picker';
 
 // Components
 import Avatar from './components/Avatar';
@@ -38,6 +41,7 @@ import TypingIndicator from './components/TypingIndicator';
 import ErrorView from './components/ErrorView';
 import JoinBanner from './components/JoinBanner';
 import RoomInfoModal from './components/RoomInfoModal';
+import StickerPicker from './components/StickerPicker';
 
 // Hooks
 import { useTypingIndicator } from './hooks/useTypingIndicator';
@@ -100,6 +104,8 @@ export default function ChatRoomPage() {
   const [joinAttempted, setJoinAttempted] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
 
   const { isTyping, handleTyping } = useTypingIndicator();
   const groupMessages = useMessageGrouping(wsMessages);
@@ -268,6 +274,69 @@ export default function ChatRoomPage() {
     }
   }, [wsMessages, scrollToBottom]);
 
+  const handleReply = useCallback((message: Message) => {
+    setReplyTo(message);
+    inputRef.current?.focus();
+  }, []);
+
+  const handleCancelReply = useCallback(() => {
+    setReplyTo(null);
+  }, []);
+
+  const handleImageUpload = useCallback(async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const formData = new FormData();
+        formData.append('file', {
+          uri: result.assets[0].uri,
+          type: 'image/jpeg',
+          name: 'image.jpg',
+        } as any);
+        formData.append('roomId', roomId);
+        formData.append('userId', userId);
+
+        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/chats/upload`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to upload image');
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', 'Failed to upload image');
+    }
+  }, [roomId, userId]);
+
+  const handleSendSticker = useCallback(async (stickerId: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:1334/api/v1/rooms/${roomId}/stickers?userId=${userId}&stickerId=${stickerId}`,
+        { method: 'POST' }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to send sticker');
+      }
+
+      setShowStickerPicker(false);
+    } catch (error) {
+      console.error('Error sending sticker:', error);
+      Alert.alert('Error', 'Failed to send sticker');
+    }
+  }, [roomId, userId]);
+
   const handleSendMessage = useCallback(async () => {
     const trimmedMessage = messageText.trim();
     if (!trimmedMessage || !room?.is_member || !isConnected) return;
@@ -283,17 +352,28 @@ export default function ChatRoomPage() {
         senderName: userId,
         type: 'message' as const,
         timestamp: new Date().toISOString(),
-        isRead: false
+        isRead: false,
+        replyTo: replyTo ? {
+          id: replyTo.id || '',
+          text: replyTo.text,
+          senderId: replyTo.senderId,
+          senderName: replyTo.senderName,
+        } : undefined,
       };
 
       // Add message to WebSocket messages immediately
       addMessage(tempMessage);
       
       // Send message via WebSocket
-      wsSendMessage(trimmedMessage);
+      if (replyTo) {
+        wsSendMessage(`/reply ${replyTo.id} ${trimmedMessage}`);
+      } else {
+        wsSendMessage(trimmedMessage);
+      }
       
-      // Clear input after sending
+      // Clear input and reply after sending
       setMessageText('');
+      setReplyTo(null);
       
       // Scroll to bottom after sending
       scrollToBottom();
@@ -305,7 +385,7 @@ export default function ChatRoomPage() {
       console.error('Error sending message:', error);
       setError('Failed to send message');
     }
-  }, [messageText, room, isConnected, wsSendMessage, userId, addMessage, scrollToBottom]);
+  }, [messageText, room, isConnected, wsSendMessage, userId, addMessage, scrollToBottom, replyTo]);
 
   const handleJoin = async () => {
     try {
@@ -347,6 +427,7 @@ export default function ChatRoomPage() {
     <TouchableWithoutFeedback onPress={() => {
       Keyboard.dismiss();
       setShowEmojiPicker(false);
+      setShowStickerPicker(false);
     }}>
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
@@ -403,6 +484,21 @@ export default function ChatRoomPage() {
             />
           )}
           
+          {/* Reply Banner */}
+          {replyTo && (
+            <View style={styles.replyBanner}>
+              <View style={styles.replyBannerContent}>
+                <Reply size={16} color="#0A84FF" />
+                <Text style={styles.replyBannerText} numberOfLines={1}>
+                  Replying to {replyTo.senderName || replyTo.senderId}: {replyTo.text}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={handleCancelReply}>
+                <X size={16} color="#8E8E93" />
+              </TouchableOpacity>
+            </View>
+          )}
+          
           {/* Messages List */}
           <FlatList
             ref={flatListRef}
@@ -437,6 +533,7 @@ export default function ChatRoomPage() {
             <View style={styles.inputWrapper}>
               <TouchableOpacity 
                 style={styles.attachButton}
+                onPress={handleImageUpload}
                 disabled={!room?.is_member || !isConnected}
               >
                 <ImageIcon color={(!room?.is_member || !isConnected) ? "#555" : "#0A84FF"} size={22} />
@@ -471,7 +568,7 @@ export default function ChatRoomPage() {
               
               <TouchableOpacity 
                 style={styles.emojiButton}
-                onPress={() => setShowEmojiPicker(!showEmojiPicker)}
+                onPress={() => setShowStickerPicker(!showStickerPicker)}
                 disabled={!room?.is_member}
               >
                 <Smile color={!room?.is_member ? "#555" : "#0A84FF"} size={22} />
@@ -498,6 +595,14 @@ export default function ChatRoomPage() {
             onClose={() => setIsRoomInfoVisible(false)}
             connectedUsers={connectedUsers}
           />
+
+          {/* Sticker Picker Modal */}
+          {showStickerPicker && (
+            <StickerPicker
+              onSelectSticker={handleSendSticker}
+              onClose={() => setShowStickerPicker(false)}
+            />
+          )}
         </SafeAreaView>
       </View>
     </TouchableWithoutFeedback>
@@ -628,5 +733,37 @@ const styles = StyleSheet.create({
   disabledSendButton: { 
     backgroundColor: '#555', 
     opacity: 0.5 
+  },
+  replyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1A1A1A',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A2A',
+  },
+  replyBannerContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  replyBannerText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  stickerPicker: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#1A1A1A',
+    borderTopWidth: 1,
+    borderTopColor: '#2A2A2A',
+    padding: 16,
+    maxHeight: 300,
   },
 });
