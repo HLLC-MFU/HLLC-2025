@@ -10,6 +10,7 @@ import { AuthModule } from './module/auth/auth.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { GlobalCacheModule } from './pkg/cache/cache.module';
 import * as redisStore from 'cache-manager-ioredis';
+import { ReportCategoriesModule } from './module/report_categories/report_categories.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import * as redisStore from 'cache-manager-ioredis';
     RoleModule,
     AuthModule,
     GlobalCacheModule,
+    ReportCategoriesModule
   ],
   providers: [],
 })
