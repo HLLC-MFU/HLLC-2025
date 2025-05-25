@@ -271,14 +271,34 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                     isRead: false,
                   };
                 } else {
+                  let messageText = messageData.message || '';
+                  let replyTo = undefined;
+
+                  // Check if this is a reply message
+                  try {
+                    const parsedMessage = JSON.parse(messageText);
+                    if (parsedMessage.eventType === 'reply' && parsedMessage.payload) {
+                      messageText = parsedMessage.payload.message;
+                      replyTo = {
+                        id: parsedMessage.payload.replyToId,
+                        text: '', // We'll need to find the original message text
+                        senderId: parsedMessage.payload.userId,
+                        senderName: parsedMessage.payload.userId
+                      };
+                    }
+                  } catch (e) {
+                    // Not a JSON message, use as is
+                  }
+
                   newMessage = {
                     id: messageData.id,
-                    text: messageData.message || '',
+                    text: messageText,
                     senderId: messageData.user_id,
                     senderName: messageData.user_id,
                     type: 'message',
                     timestamp: messageData.timestamp,
                     isRead: false,
+                    replyTo
                   };
                 }
 
@@ -325,14 +345,34 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
               
               // Only add message if it's not our own (since we already added it via addMessage)
               if (!isOwnMessage) {
+                let messageText = messageData.message;
+                let replyTo = undefined;
+
+                // Check if this is a reply message
+                try {
+                  const parsedMessage = JSON.parse(messageText);
+                  if (parsedMessage.eventType === 'reply' && parsedMessage.payload) {
+                    messageText = parsedMessage.payload.message;
+                    replyTo = {
+                      id: parsedMessage.payload.replyToId,
+                      text: '', // We'll need to find the original message text
+                      senderId: parsedMessage.payload.userId,
+                      senderName: parsedMessage.payload.userId
+                    };
+                  }
+                } catch (e) {
+                  // Not a JSON message, use as is
+                }
+
                 const newMessage = {
                   id: Date.now().toString(),
-                  text: messageData.message,
+                  text: messageText,
                   senderId: messageData.userId,
                   senderName: messageData.userId,
                   type: 'message' as const,
                   timestamp: new Date().toISOString(),
-                  isRead: false
+                  isRead: false,
+                  replyTo
                 };
                 console.log('Adding new message:', newMessage);
                 setMessages(prev => {
