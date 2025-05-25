@@ -16,7 +16,7 @@ export class Role {
   name: string;
 
   @Prop({ type: [String], default: [] })
-  permissions: `${string}:${Actions}`[];
+  permissions: string[];
 
   @Prop({ type: Object, default: {} })
   metadataSchema: Record<
@@ -30,3 +30,9 @@ export class Role {
 }
 
 export const RoleSchema = SchemaFactory.createForClass(Role);
+RoleSchema.set('toJSON', {
+  transform: (doc, ret) => {
+    delete ret.__v;
+    return ret;
+  },
+});

@@ -1,4 +1,9 @@
-import { Inject, Injectable, Logger, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
@@ -8,26 +13,24 @@ import {
   queryAll,
 } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from './schemas/user.schema';
-import { Role , RoleDocument } from '../role/schemas/role.schema' 
+import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { Major ,MajorDocument} from '../majors/schemas/major.schema';
+import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { UploadUserDto } from './dto/upload.user.dto';
 
 @Injectable()
 export class UsersService {
-
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
     @InjectModel(Role.name)
     private readonly roleModel: Model<RoleDocument>,
     @InjectModel(Major.name)
-    private readonly majorModel: Model<MajorDocument>
+    private readonly majorModel: Model<MajorDocument>,
   ) {}
-
 
   async create(createUserDto: CreateUserDto) {
     await throwIfExists(
@@ -35,11 +38,6 @@ export class UsersService {
       { username: createUserDto.username },
       'Username already exists',
     );
-
-    await findOrThrow(this.roleModel, createUserDto.role, 'Role not found');
-
-    await findOrThrow(this.majorModel, createUserDto.major, 'Major not found');
-
 
     const user = new this.userModel({
       ...createUserDto,
@@ -74,24 +72,29 @@ export class UsersService {
   async findByUsername(username: string) {
     const user = await this.userModel.findOne({ username }).lean();
     try {
-      if (!user?.password || user.password.length == 0 || user.password == 'null') {
-        throw new BadRequestException("User isn't registered yet")
+      if (
+        !user?.password ||
+        user.password.length == 0 ||
+        user.password == 'null'
+      ) {
+        throw new BadRequestException("User isn't registered yet");
       }
       return user;
     } catch (error) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(error);
     }
   }
 
   async update(id: string, updateData: Partial<User>) {
     if (updateData.username) {
-      await findOrThrow(this.userModel, { username: updateData.username }, 'Username already exists');
+      await findOrThrow(
+        this.userModel,
+        { username: updateData.username },
+        'Username already exists',
+      );
     }
     if (updateData.role) {
       await findOrThrow(this.roleModel, updateData.role, 'Role not found');
-    }
-    if (updateData.major) {
-      await findOrThrow(this.majorModel, updateData.major, 'Major not found');
     }
     return queryUpdateOne<User>(this.userModel, id, updateData);
   }
@@ -106,13 +109,13 @@ export class UsersService {
       await this.userModel.deleteMany({ _id: { $in: ids } });
       return users;
     } catch (error) {
-      throw new NotFoundException('Users not found');
+      throw new NotFoundException(error);
     }
   }
 
   async resetPassword(id: string) {
-    const user = await findOrThrow(this.userModel, id, 'User not found')
-    user.password = "";
+    const user = await findOrThrow(this.userModel, id, 'User not found');
+    user.password = '';
     user.refreshToken = null;
     await user.save();
   }
@@ -164,7 +167,4 @@ export class UsersService {
       throw error;
     }
   }
-
-
-
 }

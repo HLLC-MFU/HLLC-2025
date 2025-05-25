@@ -60,6 +60,10 @@ export class SchoolsService {
   }
 
   async remove(id: string) {
-    return queryDeleteOne<School>(this.schoolModel, id);
+    await queryDeleteOne<School>(this.schoolModel, id);
+    return {
+      message: 'School deleted successfully',
+      id,
+    };
   }
 }
