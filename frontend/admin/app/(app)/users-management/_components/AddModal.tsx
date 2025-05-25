@@ -1,6 +1,5 @@
 import React from "react";
-import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, useDisclosure } from "@heroui/react";
-import ResponseDialog from "./ResponseDialog";
+import { addToast, Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, useDisclosure } from "@heroui/react";
 
 export const schools = [
     {
@@ -71,7 +70,6 @@ export default function FileModal({ isOpen, onClose, onSubmit }: FileModalProps)
     const [lastNameValue, setLastNameValue] = React.useState("");
     const [schoolValue, setSchoolValue] = React.useState("");
     const [majorValue, setMajorValue] = React.useState("");
-    const [isResponseOpen, setIsResponseOpen] = React.useState(false);
 
     const handleClose = () => {
         setStudentIdValue("");
@@ -83,7 +81,7 @@ export default function FileModal({ isOpen, onClose, onSubmit }: FileModalProps)
         onClose();
     }
 
-    const handleSubmit = (e: any) => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const data = {
             studentId: studentIdValue,
@@ -95,7 +93,17 @@ export default function FileModal({ isOpen, onClose, onSubmit }: FileModalProps)
         };
         onSubmit(data);
         handleClose();
-        setIsResponseOpen(true);
+        addToast({ 
+            title: "Add Successful", 
+            description: "User has been added successfully", 
+            color: "success",
+            variant: "solid",
+            classNames: {
+                base: "text-white",
+                title: "text-white",
+                description: "text-white",
+            },
+        });
     };
 
     return (
@@ -193,13 +201,6 @@ export default function FileModal({ isOpen, onClose, onSubmit }: FileModalProps)
                     </Form>
                 </ModalContent>
             </Modal>
-
-            <ResponseDialog
-                dialog="Added new user successfully"
-                isOpen={isResponseOpen}
-                onClose={() => setIsResponseOpen(false)}
-                color="success"
-            />
         </>
     )
 }

@@ -1,10 +1,9 @@
 // Problem: Table still rely on columns [:12]
 // Solution: Get value from file 
 
-import { Button, Form, getKeyValue, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { addToast, Button, Form, getKeyValue, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import React from "react";
 import * as XLSX from "xlsx";
-import ResponseDialog from "./ResponseDialog";
 
 interface ImportModalProps {
     isOpen: boolean;
@@ -24,9 +23,6 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
     const [fileData, setFileData] = React.useState<any[]>([]);
     const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
-    const [isResponseOpen, setIsResponseOpen] = React.useState(false);
-    const [responseDialog, setResponseDialog] = React.useState("");
-    const [isValid, setIsValid] = React.useState(true);
 
     const [page, setPage] = React.useState(1);
     const rowsPerPage = 6;
@@ -53,20 +49,23 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
             const worksheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[worksheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
             setFileData(jsonData);
-            {jsonData.map((item: any) => {
+
+            const hasInvalidData = jsonData.some((item: any) => {
                 const studentId = getKeyValue(item, "Student ID");
                 const firstName = getKeyValue(item, "First Name");
                 const lastName = getKeyValue(item, "Last Name");
                 const school = getKeyValue(item, "School");
                 const major = getKeyValue(item, "Major");
 
-                if (!studentId || !firstName || !lastName || !school || !major) {
-                    setIsValid(false);
-                    handleInvalidFile();
-                    return;
-                }
-            })};
+                return !studentId || !firstName || !lastName || !school || !major
+            })
+            if (hasInvalidData) {
+                handleInvalidFile();
+                return;
+            }
+
             console.log(jsonData);
         };
 
@@ -76,17 +75,20 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
     const handleNext = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        setIsValid(true);
         setIsPreviewModalOpen(true);
         setIsImportModalOpen(false);
         onClose();
     };
 
     const handleInvalidFile = () => {
-        setResponseDialog("Invalid data format");
-        setIsResponseOpen(true);
         setIsImportModalOpen(false);
         onClose();
+        addToast({
+            title: "Invalid File",
+            description: "Please ensure the file contains valid data",
+            color: "danger",
+            variant: "solid",
+        });
     };
 
     const handleCancel = () => {
@@ -95,9 +97,18 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
     };
 
     const handleConfirmImport = () => {
-        setResponseDialog("Import file successfully");
-        setIsResponseOpen(true);
         setIsPreviewModalOpen(false);
+        addToast({
+            title: "Import Successful",
+            description: "File has been imported successfully",
+            color: "success",
+            variant: "solid",
+            classNames: {
+                base: "text-white",
+                title: "text-white",
+                description: "text-white",
+            },
+        });
     };
 
     const renderCell = React.useCallback((item: any, columnKey: React.Key) => {
@@ -150,7 +161,7 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
                                     isCompact
                                     showControls
                                     showShadow
-                                    color="secondary"
+                                    color="primary"
                                     page={page}
                                     total={pages}
                                     onChange={(page) => setPage(page)}
@@ -185,13 +196,6 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
                     </ModalFooter>
                 </ModalContent>
             </Modal>
-
-            <ResponseDialog
-                dialog={responseDialog}
-                isOpen={isResponseOpen}
-                onClose={() => setIsResponseOpen(false)}
-                color={isValid ? "success" : "danger"}
-            />
         </>
     );
 };

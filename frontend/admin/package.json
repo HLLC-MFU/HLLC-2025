@@ -24,6 +24,7 @@
     "@react-aria/ssr": "3.9.8",
     "@react-aria/visually-hidden": "3.8.23",
     "clsx": "2.1.1",
+    "file-saver": "^2.0.5",
     "framer-motion": "12.12.1",
     "intl-messageformat": "10.7.16",
     "lucide-react": "^0.511.0",

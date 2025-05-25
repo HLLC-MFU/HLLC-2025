@@ -16,10 +16,18 @@ import {
     Chip,
     User,
     Pagination,
+    Modal,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    Form,
 } from "@heroui/react";
-import { EllipsisVertical, FileUp, PlusIcon, UserRound } from "lucide-react";
+import { EllipsisVertical, FileDown, FileInput, FileOutput, FileUp, PlusIcon, UserRound } from "lucide-react";
 import AddModal from "../_components/AddModal";
 import ImportModal from "../_components/ImportModal";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 export const columns = [
     { name: "ID", uid: "id", sortable: true },
@@ -321,8 +329,26 @@ export default function AdminPage() {
     // Add this to other file
     const [isNewModalOpen, setIsNewModalOpen] = React.useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = React.useState(false);
+    const fileNameRef = React.useRef<HTMLInputElement>(null);
 
     const hasSearchFilter = Boolean(filterValue);
+
+    const exportFile = (data: any[], fileName = "data") => {
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: 'array' })
+        const blob = new Blob([excelBuffer], { type: "application/octet-stream" })
+        saveAs(blob, `${fileName}.xlsx`);
+    };
+
+    const handleExport = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        exportFile(users, fileNameRef.current?.value || "Data"); 
+        setIsExportModalOpen(false);
+    };
 
     const headerColumns = React.useMemo(() => {
         if (visibleColumns === "all") return columns;
@@ -403,7 +429,8 @@ export default function AdminPage() {
                                 </Button>
                             </DropdownTrigger>
                             <DropdownMenu>
-                                <DropdownItem key="view">View</DropdownItem>
+                                {/* Delete from other files */}
+                                {/* <DropdownItem key="view">View</DropdownItem> */}
                                 <DropdownItem key="edit">Edit</DropdownItem>
                                 <DropdownItem key="delete">Delete</DropdownItem>
                             </DropdownMenu>
@@ -509,24 +536,52 @@ export default function AdminPage() {
                         {/* Add these to other file  */}
                         <Dropdown>
                             <DropdownTrigger>
-                                <Button color="primary" endContent={<PlusIcon />}>Add new</Button>
+                                <Button color="primary" endContent={<PlusIcon size={20} />}>Add new</Button>
                             </DropdownTrigger>
                             <DropdownMenu aria-label="Static Actions">
                                 <DropdownItem onPress={() => setIsNewModalOpen(true)} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
-                                <DropdownItem onPress={() => setIsImportModalOpen(true)} key="import" startContent={<FileUp size={16} />}>Import .xlsx file</DropdownItem>
+                                <DropdownItem onPress={() => setIsImportModalOpen(true)} key="import" startContent={<FileInput size={16} />}>Import .xlsx file</DropdownItem>
                             </DropdownMenu>
-                        </Dropdown>
+                        </Dropdown >
+                        <Button color="success" className="text-white" endContent={<FileOutput size={20} />} onPress={() => setIsExportModalOpen(true)}>Export</Button>
 
-                        <AddModal 
+                        <AddModal
                             isOpen={isNewModalOpen}
                             onClose={() => setIsNewModalOpen(false)}
                             onSubmit={handleUserSubmit}
                         />
 
-                        <ImportModal 
+                        <ImportModal
                             isOpen={isImportModalOpen}
                             onClose={() => setIsImportModalOpen(false)}
                         />
+
+                        <Modal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)}>
+                            <ModalContent>
+                                <Form
+                                    className="w-full"
+                                    onSubmit={(e) => handleExport(e)}
+                                >
+                                    <ModalHeader className="flex flex-col gap-1">Export File</ModalHeader>
+                                    <ModalBody className="w-full">
+                                        <Input
+                                            type="text"
+                                            label="File Name"
+                                            placeholder="Enter file name"
+                                            ref={fileNameRef}
+                                        />
+                                    </ModalBody>
+                                    <ModalFooter className="w-full">
+                                        <Button color="danger" variant="light" onPress={() => setIsExportModalOpen(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button color="primary" type="submit">
+                                            Confirm
+                                        </Button>
+                                    </ModalFooter>
+                                </Form>
+                            </ModalContent>
+                        </Modal>
 
                     </div>
                 </div>
@@ -543,6 +598,7 @@ export default function AdminPage() {
         // Add this to other file
         isNewModalOpen,
         isImportModalOpen,
+        isExportModalOpen,
     ]);
 
     const bottomContent = React.useMemo(() => {
