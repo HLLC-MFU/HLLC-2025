@@ -301,13 +301,6 @@ export default function ChatPage() {
     <View style={[styles.container, styles.centerContent]}>
       <StatusBar barStyle="light-content" backgroundColor="#121212" />
       <LoadingSpinner text={language === 'th' ? 'กำลังโหลดห้องแชท...' : 'Loading chat rooms...'} />
-    </View>
-  );
-
-  if (error && !refreshing) return (
-    <View style={[styles.container, styles.centerContent]}>
-      <StatusBar barStyle="light-content" backgroundColor="#121212" />
-      <Text style={styles.errorText}>{language === 'th' ? 'ไม่สามารถโหลดข้อมูลได้' : error}</Text>
       <TouchableOpacity 
         style={styles.retryButton} 
         onPress={loadRooms}
@@ -317,6 +310,41 @@ export default function ChatPage() {
       </TouchableOpacity>
     </View>
   );
+
+  if (error && !refreshing) {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#121212" translucent />
+        <SafeAreaView style={styles.safeArea}>
+          <CustomTabBar 
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            language={language}
+            tabBarOpacity={tabBarOpacity}
+            tabBarAnimation={tabBarAnimation}
+            tabIndicatorPosition={tabIndicatorPosition}
+          />
+          <View style={[styles.roomsContainer, styles.centerContent]}>
+            <Text style={styles.errorText}>{language === 'th' ? 'ไม่สามารถโหลดข้อมูลได้' : error}</Text>
+            <TouchableOpacity 
+              style={styles.retryButton} 
+              onPress={loadRooms}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.retryText}>{language === 'th' ? 'ลองใหม่' : 'Retry'}</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+        <FloatingActionButton onPress={() => setCreateModalVisible(true)} />
+        <CreateRoomModal 
+          visible={createModalVisible} 
+          onClose={() => setCreateModalVisible(false)} 
+          onSuccess={loadRooms} 
+          userId={userId} 
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

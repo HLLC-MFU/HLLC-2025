@@ -75,6 +75,7 @@ export interface ChatRoom {
   image?: string;
   user_id: string;
   is_member?: boolean;
+  creator: string;
 }
 
 const getAuthHeaders = async () => {
