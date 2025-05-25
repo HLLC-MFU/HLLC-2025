@@ -17,7 +17,9 @@ import {
     User,
     Pagination,
 } from "@heroui/react";
-import { EllipsisVertical, PlusIcon } from "lucide-react";
+import { EllipsisVertical, FileUp, PlusIcon, UserRound } from "lucide-react";
+import AddModal from "../_components/AddModal";
+import ImportModal from "../_components/ImportModal";
 
 export const columns = [
     { name: "ID", uid: "id", sortable: true },
@@ -316,6 +318,9 @@ export default function AdminPage() {
         direction: "ascending",
     });
     const [page, setPage] = React.useState(1);
+    // Add this to other file
+    const [isNewModalOpen, setIsNewModalOpen] = React.useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
 
     const hasSearchFilter = Boolean(filterValue);
 
@@ -441,6 +446,10 @@ export default function AdminPage() {
         setPage(1);
     }, []);
 
+    const handleUserSubmit = () => {
+        // Connect to the backend to submit the new user data
+    };
+
     const topContent = React.useMemo(() => {
         return (
             <div className="flex flex-col gap-4">
@@ -497,12 +506,30 @@ export default function AdminPage() {
                                 ))}
                             </DropdownMenu>
                         </Dropdown>
-                        <Button color="primary" endContent={<PlusIcon />}>
-                            Add New
-                        </Button>
+                        {/* Add these to other file  */}
+                        <Dropdown>
+                            <DropdownTrigger>
+                                <Button color="primary" endContent={<PlusIcon />}>Add new</Button>
+                            </DropdownTrigger>
+                            <DropdownMenu aria-label="Static Actions">
+                                <DropdownItem onPress={() => setIsNewModalOpen(true)} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
+                                <DropdownItem onPress={() => setIsImportModalOpen(true)} key="import" startContent={<FileUp size={16} />}>Import .xlsx file</DropdownItem>
+                            </DropdownMenu>
+                        </Dropdown>
+
+                        <AddModal 
+                            isOpen={isNewModalOpen}
+                            onClose={() => setIsNewModalOpen(false)}
+                            onSubmit={handleUserSubmit}
+                        />
+
+                        <ImportModal 
+                            isOpen={isImportModalOpen}
+                            onClose={() => setIsImportModalOpen(false)}
+                        />
+
                     </div>
                 </div>
-
             </div>
         );
     }, [
@@ -513,6 +540,9 @@ export default function AdminPage() {
         users.length,
         onSearchChange,
         hasSearchFilter,
+        // Add this to other file
+        isNewModalOpen,
+        isImportModalOpen,
     ]);
 
     const bottomContent = React.useMemo(() => {
