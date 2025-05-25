@@ -39,10 +39,6 @@ export class UsersService {
       'Username already exists',
     );
 
-    await findOrThrow(this.roleModel, createUserDto.role, 'Role not found');
-
-    await findOrThrow(this.majorModel, createUserDto.major, 'Major not found');
-
     const user = new this.userModel({
       ...createUserDto,
       role: new Types.ObjectId(createUserDto.role),
@@ -99,9 +95,6 @@ export class UsersService {
     }
     if (updateData.role) {
       await findOrThrow(this.roleModel, updateData.role, 'Role not found');
-    }
-    if (updateData.major) {
-      await findOrThrow(this.majorModel, updateData.major, 'Major not found');
     }
     return queryUpdateOne<User>(this.userModel, id, updateData);
   }

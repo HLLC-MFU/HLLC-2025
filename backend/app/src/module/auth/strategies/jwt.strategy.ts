@@ -14,11 +14,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       secretOrKey: process.env.JWT_SECRET || 'secret',
     });
   }
-
-  async validate(payload: any): Promise<any> {
+  /**
+   * Validate the JWT payload and return the user.
+   * @param payload The JWT payload containing user information.
+   * @returns The user object if found, otherwise throws UnauthorizedException.
+   */
+  async validate(payload: JwtPayload): Promise<any> {
     const user = await this.userModel.findById(payload.sub).populate('role');
     if (!user) throw new UnauthorizedException('User not found');
-
     return user;
   }
 }

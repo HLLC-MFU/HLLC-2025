@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Role, RoleDocument } from './schemas/role.schema';
@@ -10,6 +6,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
 import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
+import { encryptItem } from '../auth/utils/crypto';
 
 @Injectable()
 export class RoleService {
@@ -18,12 +15,25 @@ export class RoleService {
   ) {}
 
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
+    // 🔍 ตรวจสอบซ้ำ
     await throwIfExists(
       this.roleModel,
       { name: createRoleDto.name },
       'Role name already exists',
     );
-    return this.roleModel.create(createRoleDto);
+
+    // 🔐 Encrypt ทีละ permission (เก็บเป็น array ของ encrypted string)
+    const encryptedPermissions = createRoleDto.permissions?.map((perm) =>
+      encryptItem(perm),
+    );
+
+    const roleData: Partial<Role> = {
+      name: createRoleDto.name,
+      metadataSchema: createRoleDto.metadataSchema,
+      permissions: encryptedPermissions || [],
+    };
+
+    return this.roleModel.create(roleData);
   }
 
   async findAll(): Promise<Role[]> {
@@ -36,7 +46,21 @@ export class RoleService {
 
   async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
-    Object.assign(role, updateRoleDto);
+
+    // 🔐 ถ้ามี permissions ใหม่ → encrypt ทีละ item
+    if (updateRoleDto.permissions && Array.isArray(updateRoleDto.permissions)) {
+      role.permissions = updateRoleDto.permissions.map((perm) =>
+        encryptItem(perm),
+      );
+    }
+
+    if (updateRoleDto.name) {
+      role.name = updateRoleDto.name;
+    }
+    if (updateRoleDto.metadataSchema) {
+      role.metadataSchema = updateRoleDto.metadataSchema;
+    }
+
     return role.save();
   }
 

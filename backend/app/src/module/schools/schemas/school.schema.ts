@@ -11,7 +11,7 @@ export class School {
   @Prop({ required: true, unique: true })
   acronym: string;
 
-  @Prop({ required: true, unique: true, type: Object })
+  @Prop({ required: true, type: Object })
   detail: Localization;
 
   @Prop({ type: Object })
