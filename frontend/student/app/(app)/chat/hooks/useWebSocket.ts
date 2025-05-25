@@ -269,15 +269,33 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                     isRead: false,
                   };
                 } else {
+                  // Try to parse the message content if it's a JSON string
+                  let messageContent = messageData.message;
+                  let replyTo = undefined;
+                  
+                  try {
+                    const parsedContent = JSON.parse(messageData.message);
+                    if (parsedContent.eventType === 'message' && parsedContent.payload) {
+                      messageContent = parsedContent.payload.message;
+                      if (parsedContent.payload.replyTo) {
+                        replyTo = parsedContent.payload.replyTo;
+                      }
+                    }
+                  } catch (e) {
+                    // If parsing fails, use the original message
+                    console.log('Message is not JSON, using as is');
+                  }
+                  
                   newMessage = {
-                  id: messageData.id,
-                  text: messageData.message || '',
-                  senderId: messageData.user_id,
-                  senderName: messageData.user_id,
+                    id: messageData.id,
+                    text: messageContent,
+                    senderId: messageData.user_id,
+                    senderName: messageData.user_id,
                     type: 'message',
-                  timestamp: messageData.timestamp,
-                  isRead: false,
-                };
+                    timestamp: messageData.timestamp,
+                    isRead: false,
+                    replyTo: replyTo
+                  };
                 }
 
                 console.log('Adding history message:', newMessage);
@@ -319,14 +337,31 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
               
               // Only add message if it's not our own (since we already added it via addMessage)
               if (!isOwnMessage) {
+                let messageContent = messageData.message;
+                let replyTo = undefined;
+                
+                try {
+                  const parsedContent = JSON.parse(messageData.message);
+                  if (parsedContent.eventType === 'message' && parsedContent.payload) {
+                    messageContent = parsedContent.payload.message;
+                    if (parsedContent.payload.replyTo) {
+                      replyTo = parsedContent.payload.replyTo;
+                    }
+                  }
+                } catch (e) {
+                  // If parsing fails, use the original message
+                  console.log('Message is not JSON, using as is');
+                }
+                
                 const newMessage = {
                   id: Date.now().toString(),
-                  text: messageData.message,
+                  text: messageContent,
                   senderId: messageData.userId,
                   senderName: messageData.userId,
                   type: 'message' as const,
                   timestamp: new Date().toISOString(),
-                  isRead: false
+                  isRead: false,
+                  replyTo: replyTo
                 };
                 console.log('Adding new message:', newMessage);
                 setMessages(prev => {

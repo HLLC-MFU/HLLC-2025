@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   StatusBar,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -43,6 +44,7 @@ import { chatStyles } from './constants/chatStyles';
 
 export default function ChatRoomPage() {
   const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
   const {
     room,
     isMember,
@@ -63,7 +65,6 @@ export default function ChatRoomPage() {
     wsError,
     connectedUsers,
     typing,
-    flatListRef,
     inputRef,
     userId,
     groupMessages,
@@ -74,6 +75,13 @@ export default function ChatRoomPage() {
     handleTyping,
     initializeRoom,
   } = useChatRoom();
+
+  // Add auto-scroll effect
+  useEffect(() => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToEnd({ animated: true });
+    }
+  }, [groupMessages()]); // Scroll when messages change
 
   if (loading) return <Loader />;
   if (error) return <ErrorView message={error} onRetry={initializeRoom} />;
@@ -148,7 +156,7 @@ export default function ChatRoomPage() {
                   Replying to {replyTo.senderName || replyTo.senderId}: {replyTo.text}
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => setReplyTo(null)}>
+              <TouchableOpacity onPress={() => setReplyTo(undefined)}>
                 <X size={16} color="#8E8E93" />
               </TouchableOpacity>
             </View>
@@ -161,6 +169,11 @@ export default function ChatRoomPage() {
             typing={typing}
             flatListRef={flatListRef}
             onReply={setReplyTo}
+            scrollToBottom={() => {
+              if (flatListRef.current) {
+                flatListRef.current.scrollToEnd({ animated: true });
+              }
+            }}
           />
           
           {/* Input Area */}

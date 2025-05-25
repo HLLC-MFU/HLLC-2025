@@ -43,7 +43,7 @@ export const useChatRoom = () => {
   const [joining, setJoining] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
-  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [replyTo, setReplyTo] = useState<Message | undefined>(undefined);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
 
   const {
@@ -188,14 +188,23 @@ export const useChatRoom = () => {
       const tempMessage = createTempMessage(trimmedMessage, userId, replyTo);
       addMessage(tempMessage);
       
-      if (replyTo) {
-        wsSendMessage(`/reply ${replyTo.id} ${trimmedMessage}`);
-      } else {
-        wsSendMessage(trimmedMessage);
-      }
+      const messageData = {
+        eventType: 'message',
+        payload: {
+          message: trimmedMessage,
+          userId: userId,
+          replyTo: replyTo ? {
+            id: replyTo.id || '',
+            text: replyTo.text || '',
+            senderId: replyTo.senderId,
+            senderName: replyTo.senderName
+          } : undefined
+        }
+      };
       
+      wsSendMessage(JSON.stringify(messageData));
       setMessageText('');
-      setReplyTo(null);
+      setReplyTo(undefined);
       triggerHapticFeedback();
     } catch (error) {
       console.error('Error sending message:', error);

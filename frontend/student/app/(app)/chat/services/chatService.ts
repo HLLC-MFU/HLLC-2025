@@ -74,7 +74,7 @@ export interface ChatRoom {
   capacity: number;
   image?: string;
   user_id: string;
-  is_member?: boolean;
+  is_member: boolean;
   creator: string;
 }
 
