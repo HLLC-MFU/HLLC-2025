@@ -1,17 +1,17 @@
-import { Localization, Photo } from 'src/pkg/types/common';
-
 export class CreateSchoolDto {
-  name: Localization;
+  name: {
+    th: string;
+    en: string;
+  };
 
   acronym: string;
 
-  detail: Localization;
+  detail: {
+    th: string;
+    en: string;
+  };
 
-  photo: Photo;
-
-  role: string;
-
-  major: string;
+  photo: string;
 
   createdAt: Date;
 }

@@ -19,7 +19,7 @@ export async function apiRequest<T>(
     const token = (await cookies()).get('accessToken')?.value;
 
     const headers: HeadersInit = {
-      "Content-Type": "application/json",
+      ...(body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     };

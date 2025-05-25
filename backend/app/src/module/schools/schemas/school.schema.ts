@@ -13,7 +13,7 @@ export class School {
   @Prop({ required: true, unique: true })
   acronym: string;
 
-  @Prop({ required: true, unique: true, type: Object })
+  @Prop({ required: true, type: Object })
   detail: Localization;
 
   @Prop({ type: Object })
@@ -21,3 +21,11 @@ export class School {
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(School);
+SchoolSchema.index({ updatedAt: 1 });
+SchoolSchema.virtual('majors', {
+  ref: 'Major',
+  localField: '_id',
+  foreignField: 'school',
+});
+SchoolSchema.set('toObject', { virtuals: true });
+SchoolSchema.set('toJSON', { virtuals: true });

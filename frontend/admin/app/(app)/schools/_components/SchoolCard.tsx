@@ -13,11 +13,12 @@ export function SchoolCard({ school, onEdit, onDelete }: SchoolCardProps) {
     const router = useRouter();
 
     const handleViewDetails = () => {
-        router.push(`/schools/${school.id}`);
+        router.push(`/schools/${school._id}`);
     };
 
     return (
-        <Card isHoverable className="h-full">
+        <div onClick={handleViewDetails} className="hover:cursor-pointer">        
+        <Card isHoverable  className="h-full">
             <CardHeader className="flex gap-3 p-4">
                 <Card
                     radius="md"
@@ -38,7 +39,7 @@ export function SchoolCard({ school, onEdit, onDelete }: SchoolCardProps) {
                 </div>
                 <div className="flex items-center gap-2">
                     <GraduationCap className="text-default-500 flex-shrink-0" size={16} />
-                    <span className="text-sm text-default-500">{school.majors.length} Programs</span>
+                    <span className="text-sm text-default-500">{school.majors?.length ?? 0} Programs</span>
                 </div>
                 <p className="text-sm text-default-500 line-clamp-2">
                     {school.detail.en}
@@ -89,5 +90,6 @@ export function SchoolCard({ school, onEdit, onDelete }: SchoolCardProps) {
                 </Dropdown>
             </CardFooter>
         </Card>
+        </div>
     );
 } 

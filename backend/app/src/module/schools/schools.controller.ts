@@ -7,13 +7,11 @@ import {
   Param,
   Delete,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
-import { Permissions } from '../auth/decorators/permissions.decorator';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Public } from '../auth/decorators/public.decorator';
 
 @UseGuards(PermissionsGuard)
 @Controller('schools')
@@ -26,6 +24,7 @@ export class SchoolsController {
     return this.schoolsService.create(createSchoolDto);
   }
 
+  @Public()
   @Get()
   findAll(@Query() query: Record<string, string>) {
     return this.schoolsService.findAll(query);
@@ -33,6 +32,7 @@ export class SchoolsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
+    console.log('findOne', id);
     return this.schoolsService.findOne(id);
   }
 

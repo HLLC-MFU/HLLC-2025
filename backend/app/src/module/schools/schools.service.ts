@@ -42,7 +42,10 @@ export class SchoolsService {
       model: this.schoolModel,
       query,
       filterSchema: {},
-      buildPopulateFields: excluded => Promise.resolve([]),
+      buildPopulateFields: (excluded) =>
+        Promise.resolve(
+          excluded.includes('majors') ? [] : [{ path: 'majors' }],
+        ),
     });
   }
 
@@ -56,6 +59,10 @@ export class SchoolsService {
   }
 
   async remove(id: string) {
-    return queryDeleteOne<School>(this.schoolModel, id);
+    await queryDeleteOne<School>(this.schoolModel, id);
+    return {
+      message: 'School deleted successfully',
+      id,
+    };
   }
 }

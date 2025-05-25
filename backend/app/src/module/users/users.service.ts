@@ -3,7 +3,6 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -40,10 +39,6 @@ export class UsersService {
       { username: createUserDto.username },
       'Username already exists',
     );
-
-    await findOrThrow(this.roleModel, createUserDto.role, 'Role not found');
-
-    await findOrThrow(this.majorModel, createUserDto.major, 'Major not found');
 
     const user = new this.userModel({
       ...createUserDto,
@@ -89,8 +84,12 @@ export class UsersService {
 
   async getMe(id: string) {
     try {
-      if (!id) {
-        throw new UnauthorizedException('User ID is required');
+      if (
+        !user?.password ||
+        user.password.length == 0 ||
+        user.password == 'null'
+      ) {
+        throw new BadRequestException("User isn't registered yet");
       }
 
       const user = await this.userModel
@@ -105,32 +104,22 @@ export class UsersService {
 
       return user;
     } catch (error) {
-      if (error.name === 'CastError') {
-        throw new UnauthorizedException('Invalid user ID format');
-      }
-      throw error;
+      throw new NotFoundException(error);
     }
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
-    if (updateUserDto.username) {
+  async update(id: string, updateData: Partial<User>) {
+    if (updateData.username) {
       await findOrThrow(
         this.userModel,
-        { username: updateUserDto.username },
+        { username: updateData.username },
         'Username already exists',
       );
     }
     if (updateUserDto.role) {
       await findOrThrow(this.roleModel, updateUserDto.role, 'Role not found');
     }
-    if (updateUserDto.major) {
-      await findOrThrow(
-        this.majorModel,
-        updateUserDto.major,
-        'Major not found',
-      );
-    }
-    return queryUpdateOne<User>(this.userModel, id, updateUserDto);
+    return queryUpdateOne<User>(this.userModel, id, updateData);
   }
 
   async remove(id: string): Promise<void> {
@@ -143,7 +132,7 @@ export class UsersService {
       await this.userModel.deleteMany({ _id: { $in: ids } });
       return users;
     } catch (error) {
-      throw new NotFoundException('Users not found');
+      throw new NotFoundException(error);
     }
   }
 

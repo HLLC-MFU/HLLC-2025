@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateMajorDto } from './dto/create-major.dto';
 import { UpdateMajorDto } from './dto/update-major.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -53,7 +53,7 @@ export class MajorsService {
       model: this.majorModel,
       query,
       filterSchema: {},
-      buildPopulateFields: excluded =>
+      buildPopulateFields: (excluded) =>
         Promise.resolve(
           excluded.includes('school') ? [] : [{ path: 'school' }],
         ),

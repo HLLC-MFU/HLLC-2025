@@ -142,7 +142,7 @@ export class AutoCacheInterceptor implements NestInterceptor {
         void this.cacheManager
           .set(key, sanitized, 0)
           .then(() => this.logger.log(`📦 L2 SET: ${key}`))
-          .catch(err => this.logger.error(`❌ L2 SET error: ${key}`, err));
+          .catch((err) => this.logger.error(`❌ L2 SET error: ${key}`, err));
       }),
     );
   }

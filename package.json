@@ -2,35 +2,16 @@
   "name": "hllc-2025",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "format:check": "prettier --check ."
+  "description": "A CLI tool for HLLC 2025",
+  "type": "module",
+  "bin": {
+    "hllc": "./scripts/hllc.js"
   },
   "dependencies": {
-    "@heroui/react": "^2.0.0",
-    "@heroui/tooltip": "^2.0.0",
-    "hllc-2025": "file:",
-    "next": "14.1.0",
-    "react": "^18",
-    "react-dom": "^18"
+    "hllc-2025": "file:"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "autoprefixer": "^10.0.1",
-    "eslint": "^8",
-    "eslint-config-next": "14.1.0",
-    "postcss": "^8",
-    "prettier": "^3.5.3",
-    "prettier-plugin-tailwindcss": "^0.5.11",
-    "tailwindcss": "^3.3.0",
-    "typescript": "^5",
-    "eslint-config-prettier": "^10.1.5",
-    "eslint-plugin-prettier": "^5.4.0"
+    "cross-spawn": "^7.0.6",
+    "inquirer": "^12.6.1"
   }
 }

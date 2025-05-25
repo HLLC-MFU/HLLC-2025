@@ -22,14 +22,15 @@ export function SchoolList({ schools, isLoading, onEditSchool, onDeleteSchool }:
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {schools?.map((school) => (
-                <SchoolCard 
-                    key={school.id} 
-                    school={school} 
-                    onEdit={onEditSchool}
-                    onDelete={onDeleteSchool}
-                />
-            ))}
+{schools?.map((school, index) => (
+  <SchoolCard
+    key={school._id ?? `school-${index}`}
+    school={school}
+    onEdit={onEditSchool}
+    onDelete={onDeleteSchool}
+  />
+))}
+
         </div>
     );
 } 

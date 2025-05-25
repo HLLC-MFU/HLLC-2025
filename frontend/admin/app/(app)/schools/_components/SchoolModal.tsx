@@ -1,157 +1,115 @@
-import { useState, useEffect } from "react";
+"use client";
+
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Textarea } from "@heroui/react";
+import { useState, useEffect } from "react";
 import type { School } from "@/types/school";
 
 interface SchoolModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSubmit: (school: Partial<School>) => void;
-    school?: School;
-    mode: "add" | "edit";
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: (school: Partial<School>, mode: "add" | "edit") => void;
+  school?: School;
+  mode: "add" | "edit";
 }
 
-interface FormData {
-    name: {
-        en: string;
-        th: string;
+export function SchoolModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  school,
+  mode
+}: SchoolModalProps) {
+  const [nameEn, setNameEn] = useState("");
+  const [nameTh, setNameTh] = useState("");
+  const [detailEn, setDetailEn] = useState("");
+  const [detailTh, setDetailTh] = useState("");
+  const [acronym, setAcronym] = useState("");
+
+  useEffect(() => {
+    if (school) {
+      setNameEn(school.name?.en || "");
+      setNameTh(school.name?.th || "");
+      setDetailEn(school.detail?.en || "");
+      setDetailTh(school.detail?.th || "");
+      setAcronym(school.acronym || "");
+    } else {
+      setNameEn("");
+      setNameTh("");
+      setDetailEn("");
+      setDetailTh("");
+      setAcronym("");
+    }
+  }, [school]);
+
+  const handleSubmit = () => {
+    if (!nameEn.trim() || !nameTh.trim()) return;
+
+    const updatedSchool: Partial<School> = {
+      ...school,
+      name: { en: nameEn.trim(), th: nameTh.trim() },
+      detail: { en: detailEn.trim(), th: detailTh.trim() },
+      acronym: acronym.trim() || nameEn.substring(0, 3).toUpperCase()
     };
-    acronym: string;
-    detail: {
-        en: string;
-        th: string;
-    };
+
+    onSuccess(updatedSchool, mode); // pass back to parent
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+      <ModalContent>
+        <ModalHeader className="flex flex-col gap-1">
+          {mode === "add" ? "Add New School" : "Edit School"}
+        </ModalHeader>
+        <ModalBody>
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="School Name (English)"
+                placeholder="Enter school name in English"
+                value={nameEn}
+                onValueChange={setNameEn}
+              />
+              <Input
+                label="School Name (Thai)"
+                placeholder="Enter school name in Thai"
+                value={nameTh}
+                onValueChange={setNameTh}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Textarea
+                label="Description (English)"
+                placeholder="Enter description in English"
+                value={detailEn}
+                onValueChange={setDetailEn}
+                minRows={4}
+              />
+              <Textarea
+                label="Description (Thai)"
+                placeholder="Enter description in Thai"
+                value={detailTh}
+                onValueChange={setDetailTh}
+                minRows={4}
+              />
+            </div>
+            <Input
+              label="Acronym"
+              placeholder="Enter school acronym"
+              value={acronym}
+              onValueChange={setAcronym}
+            />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" variant="light" onPress={onClose}>
+            Cancel
+          </Button>
+          <Button color="primary" onPress={handleSubmit}>
+            {mode === "add" ? "Add" : "Save"}
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
 }
-
-export function SchoolModal({ isOpen, onClose, onSubmit, school, mode }: SchoolModalProps) {
-    const [formData, setFormData] = useState<FormData>({
-        name: {
-            en: "",
-            th: ""
-        },
-        acronym: "",
-        detail: {
-            en: "",
-            th: ""
-        }
-    });
-
-    // Update form data when school prop changes
-    useEffect(() => {
-        if (school) {
-            setFormData({
-                name: {
-                    en: school.name?.en || "",
-                    th: school.name?.th || ""
-                },
-                acronym: school.acronym || "",
-                detail: {
-                    en: school.detail?.en || "",
-                    th: school.detail?.th || ""
-                }
-            });
-        } else {
-            // Reset form when adding new school
-            setFormData({
-                name: {
-                    en: "",
-                    th: ""
-                },
-                acronym: "",
-                detail: {
-                    en: "",
-                    th: ""
-                }
-            });
-        }
-    }, [school]);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSubmit(formData);
-        onClose();
-    };
-
-    return (
-        <Modal isOpen={isOpen} scrollBehavior="outside" onClose={onClose}>
-            <ModalContent>
-                <form onSubmit={handleSubmit}>
-                    <ModalHeader className="flex flex-col gap-1">
-                        {mode === "add" ? "Add New School" : "Edit School"}
-                    </ModalHeader>
-                    <ModalBody>
-                        <div className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm font-medium">English Name</label>
-                                <Input
-                                    value={formData.name.en}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
-                                        name: { ...prev.name, en: e.target.value }
-                                    }))}
-                                    placeholder="Enter school name in English"
-                                    required
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm font-medium">Thai Name</label>
-                                <Input
-                                    value={formData.name.th}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
-                                        name: { ...prev.name, th: e.target.value }
-                                    }))}
-                                    placeholder="Enter school name in Thai"
-                                    required
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm font-medium">Acronym</label>
-                                <Input
-                                    value={formData.acronym}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
-                                        acronym: e.target.value
-                                    }))}
-                                    placeholder="Enter school acronym"
-                                    required
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm font-medium">English Description</label>
-                                <Textarea
-                                    value={formData.detail.en}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
-                                        detail: { ...prev.detail, en: e.target.value }
-                                    }))}
-                                    placeholder="Enter school description in English"
-                                    required
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm font-medium">Thai Description</label>
-                                <Textarea
-                                    value={formData.detail.th}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
-                                        detail: { ...prev.detail, th: e.target.value }
-                                    }))}
-                                    placeholder="Enter school description in Thai"
-                                    required
-                                />
-                            </div>
-                        </div>
-                    </ModalBody>
-                    <ModalFooter>
-                        <Button color="danger" variant="light" onPress={onClose}>
-                            Cancel
-                        </Button>
-                        <Button color="primary" type="submit">
-                            {mode === "add" ? "Add School" : "Save Changes"}
-                        </Button>
-                    </ModalFooter>
-                </form>
-            </ModalContent>
-        </Modal>
-    );
-} 

@@ -30,12 +30,6 @@ export class User {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Role' })
   role: Types.ObjectId;
 
-  @Prop({ type: String, default: '' })
-  secret: string;
-
-  @Prop({ required: false, type: Types.ObjectId, ref: 'Major' })
-  major: Types.ObjectId;
-
   @Prop({ type: String || null, default: null })
   refreshToken: string | null;
 
@@ -52,4 +46,12 @@ UserSchema.pre('save', async function (next) {
     this.password = await bcrypt.hash(this.password, 10);
   }
   next();
+});
+UserSchema.set('toJSON', {
+  transform: (doc, ret) => {
+    delete ret.password;
+    delete ret.refreshToken;
+    delete ret.__v;
+    return ret;
+  },
 });
