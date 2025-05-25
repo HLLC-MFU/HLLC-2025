@@ -10,7 +10,7 @@ export type School = {
 }
 
 export type Major = {
-    id: string;
+    _id?: string;
     name: Lang;
     detail: Lang;
     acronym: string;

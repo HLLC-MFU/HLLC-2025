@@ -12,7 +12,7 @@ export function useSchools() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiRequest<{ data: School[] }>("/schools", "GET");
+      const res = await apiRequest<{ data: School[] }>("/schools?limit=0", "GET");
       setSchools(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (err: any) {
       setError(err.message || "Failed to fetch schools.");
@@ -26,8 +26,16 @@ export function useSchools() {
     try {
       setLoading(true);
       const res = await apiRequest<School>("/schools", "POST", schoolData);
+      console.log("Create response:", res);
+
       if (res.data) {
-        setSchools((prev) => [...prev, res.data as School]);
+        await new Promise((resolve) => {
+          setSchools((prev) => {
+            const updated = [...prev, res.data as School];
+            resolve(updated);
+            return updated;
+          });
+        });
       }
     } catch (err: any) {
       setError(err.message || "Failed to create school.");
@@ -36,15 +44,15 @@ export function useSchools() {
     }
   };
 
+
+
   // ✏️ Update school
   const updateSchool = async (id: string, schoolData: Partial<School>) => {
     try {
       setLoading(true);
       const res = await apiRequest<School>(`/schools/${id}`, "PATCH", schoolData);
       if (res.data) {
-        setSchools((prev) =>
-          prev.map((s) => (s._id === id ? res.data! : s))
-        );
+        setSchools((prev) => prev.map((s) => (s._id === id ? res.data! : s)));
       }
     } catch (err: any) {
       setError(err.message || "Failed to update school.");
@@ -57,8 +65,13 @@ export function useSchools() {
   const deleteSchool = async (id: string) => {
     try {
       setLoading(true);
-      await apiRequest(`/schools/${id}`, "DELETE");
-      setSchools((prev) => prev.filter((s) => s._id !== id));
+      const res = await apiRequest(`/schools/${id}`, "DELETE");
+      console.log("Delete response:", res);
+      if (res.statusCode !== 200) {
+        throw new Error(res.message || "Failed to delete school.");
+      } else {
+        setSchools((prev) => prev.filter((s) => s._id !== id));
+      }
     } catch (err: any) {
       setError(err.message || "Failed to delete school.");
     } finally {

@@ -64,7 +64,7 @@ async function getLastUpdatedAt<T>(
 
 export async function queryAll<T>(
   options: QueryPaginationOptions<T>,
-): Promise<PaginatedResponse<T>> {
+): Promise<PaginatedResponse<T> & { message: string }> {
   const {
     model,
     query = {},
@@ -119,6 +119,7 @@ export async function queryAll<T>(
         totalPages: 1,
         lastUpdatedAt: await getLastUpdatedAt(model),
       },
+      message: 'Data fetched successfully',
     };
   }
 
@@ -147,6 +148,7 @@ export async function queryAll<T>(
       totalPages,
       lastUpdatedAt,
     },
+    message: 'Data fetched successfully',
   };
 }
 

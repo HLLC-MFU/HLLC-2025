@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateMajorDto } from './dto/create-major.dto';
 import { UpdateMajorDto } from './dto/update-major.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -9,30 +9,38 @@ import { SchoolDocument } from '../schools/schemas/school.schema';
 import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { Types } from 'mongoose';
-import { queryAll, queryFindOne, queryUpdateOne, queryDeleteOne } from 'src/pkg/helper/query.util';
+import {
+  queryAll,
+  queryFindOne,
+  queryUpdateOne,
+  queryDeleteOne,
+} from 'src/pkg/helper/query.util';
 
 @Injectable()
 export class MajorsService {
   constructor(
     @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
-    @InjectModel(School.name) private schoolModel: Model<SchoolDocument>
+    @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
   ) {}
-
 
   async create(createMajorDto: CreateMajorDto) {
     await throwIfExists(
       this.majorModel,
       { name: createMajorDto.name },
-      'Major already exists', 
+      'Major already exists',
     );
 
-    await findOrThrow(this.schoolModel, createMajorDto.school, 'School not found');
+    await findOrThrow(
+      this.schoolModel,
+      createMajorDto.school,
+      'School not found',
+    );
 
     const major = new this.majorModel({
       ...createMajorDto,
       school: new Types.ObjectId(createMajorDto.school),
-    })
-    
+    });
+
     try {
       return await major.save();
     } catch (error) {
@@ -46,7 +54,9 @@ export class MajorsService {
       query,
       filterSchema: {},
       buildPopulateFields: (excluded) =>
-        Promise.resolve(excluded.includes('school') ? [] : [{  path: 'school' }]),
+        Promise.resolve(
+          excluded.includes('school') ? [] : [{ path: 'school' }],
+        ),
     });
   }
 
