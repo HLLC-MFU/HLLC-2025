@@ -504,14 +504,14 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save message"})
 	}
 
-	// Broadcast to all clients in the room
-	model.BroadcastMessage(model.BroadcastObject{
-		MSG: fmt.Sprintf("[file] %s", msg.FileName),
-		FROM: model.ClientObject{
-			RoomID: msg.RoomID,
-			UserID: msg.UserID,
-		},
-	})
+	// // Broadcast to all clients in the room
+	// model.BroadcastMessage(model.BroadcastObject{
+	// 	MSG: fmt.Sprintf("[file] %s", msg.FileName),
+	// 	FROM: model.ClientObject{
+	// 		RoomID: msg.RoomID,
+	// 		UserID: msg.UserID,
+	// 	},
+	// })
 
 	// Optional: send rich event payload
 	h.broadcastEvent(roomId, "file", map[string]string{
