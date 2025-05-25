@@ -102,27 +102,4 @@ export interface RoomInfoModalProps {
   isVisible: boolean;
   onClose: () => void;
   connectedUsers: ConnectedUser[];
-}
-
-export interface WebSocketHook {
-  isConnected: boolean;
-  error: string | null;
-  sendMessage: (message: string) => void;
-  sendTyping: () => void;
-  sendReadReceipt: (messageId: string) => void;
-  sendReaction: (messageId: string, reaction: string) => void;
-  sendSticker: (stickerId: string, sticker: string) => void;
-  sendImage: (file: File) => void;
-  messages: Message[];
-  connectedUsers: ConnectedUser[];
-  typing: { id: string; name?: string }[];
-  connect: (roomId: string) => Promise<void>;
-  disconnect: () => void;
-  ws: WebSocketWithHeartbeat | null;
-  addMessage: (message: Message) => void;
-}
-
-export interface StickerPickerProps {
-  onSelectSticker: (stickerId: string, sticker: string) => void;
-  onClose: () => void;
 } 

@@ -30,8 +30,6 @@ export interface WebSocketHook {
   disconnect: () => void;
   ws: WebSocketWithHeartbeat | null;
   addMessage: (message: Message) => void;
-  sendSticker: (stickerId: string, sticker: string) => void;
-  sendImage: (file: File) => void;
 }
 
 export const useWebSocket = (roomId: string): WebSocketHook => {
@@ -271,35 +269,15 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                     isRead: false,
                   };
                 } else {
-                  let messageText = messageData.message || '';
-                  let replyTo = undefined;
-
-                  // Check if this is a reply message
-                  try {
-                    const parsedMessage = JSON.parse(messageText);
-                    if (parsedMessage.eventType === 'reply' && parsedMessage.payload) {
-                      messageText = parsedMessage.payload.message;
-                      replyTo = {
-                        id: parsedMessage.payload.replyToId,
-                        text: '', // We'll need to find the original message text
-                        senderId: parsedMessage.payload.userId,
-                        senderName: parsedMessage.payload.userId
-                      };
-                    }
-                  } catch (e) {
-                    // Not a JSON message, use as is
-                  }
-
                   newMessage = {
-                    id: messageData.id,
-                    text: messageText,
-                    senderId: messageData.user_id,
-                    senderName: messageData.user_id,
+                  id: messageData.id,
+                  text: messageData.message || '',
+                  senderId: messageData.user_id,
+                  senderName: messageData.user_id,
                     type: 'message',
-                    timestamp: messageData.timestamp,
-                    isRead: false,
-                    replyTo
-                  };
+                  timestamp: messageData.timestamp,
+                  isRead: false,
+                };
                 }
 
                 console.log('Adding history message:', newMessage);
@@ -312,10 +290,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                   console.log('Updated messages after history:', updatedMessages);
                   return updatedMessages;
                 });
-
-                // Set connected state after receiving history
-                setIsConnected(true);
-                setError(null);
               } catch (parseError) {
                 console.error('Error parsing history message:', parseError);
               }
@@ -345,34 +319,14 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
               
               // Only add message if it's not our own (since we already added it via addMessage)
               if (!isOwnMessage) {
-                let messageText = messageData.message;
-                let replyTo = undefined;
-
-                // Check if this is a reply message
-                try {
-                  const parsedMessage = JSON.parse(messageText);
-                  if (parsedMessage.eventType === 'reply' && parsedMessage.payload) {
-                    messageText = parsedMessage.payload.message;
-                    replyTo = {
-                      id: parsedMessage.payload.replyToId,
-                      text: '', // We'll need to find the original message text
-                      senderId: parsedMessage.payload.userId,
-                      senderName: parsedMessage.payload.userId
-                    };
-                  }
-                } catch (e) {
-                  // Not a JSON message, use as is
-                }
-
                 const newMessage = {
                   id: Date.now().toString(),
-                  text: messageText,
+                  text: messageData.message,
                   senderId: messageData.userId,
                   senderName: messageData.userId,
                   type: 'message' as const,
                   timestamp: new Date().toISOString(),
-                  isRead: false,
-                  replyTo
+                  isRead: false
                 };
                 console.log('Adding new message:', newMessage);
                 setMessages(prev => {
@@ -469,55 +423,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     }
   }, [ws]);
 
-  // Send sticker
-  const sendSticker = useCallback((stickerId: string, sticker: string) => {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      setError('Not connected to chat server');
-      return;
-    }
-
-    try {
-      const stickerData = {
-        eventType: 'sticker',
-        payload: {
-          stickerId,
-          sticker
-        }
-      };
-      ws.send(JSON.stringify(stickerData));
-    } catch (error) {
-      console.error('Error sending sticker:', error);
-      setError('Failed to send sticker');
-    }
-  }, [ws]);
-
-  // Send image
-  const sendImage = useCallback((file: File) => {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      setError('Not connected to chat server');
-      return;
-    }
-
-    try {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const imageData = {
-          eventType: 'image',
-          payload: {
-            file: reader.result,
-            fileName: file.name,
-            fileType: file.type
-          }
-        };
-        ws.send(JSON.stringify(imageData));
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Error sending image:', error);
-      setError('Failed to send image');
-    }
-  }, [ws]);
-
   // Send typing event
   const sendTyping = useCallback(() => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
@@ -581,8 +486,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     connect,
     disconnect,
     ws,
-    addMessage,
-    sendSticker,
-    sendImage
+    addMessage
   };
 }; 

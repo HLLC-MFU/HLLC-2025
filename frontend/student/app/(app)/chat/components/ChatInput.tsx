@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import {
   View,
   TextInput,
@@ -6,120 +6,136 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { Image as ImageIcon, Send, Smile } from 'lucide-react-native';
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
-  onTyping: () => void;
-  onStickerPress: () => void;
-  onImagePress: () => void;
+  messageText: string;
+  setMessageText: (text: string) => void;
+  handleSendMessage: () => void;
+  handleImageUpload: () => void;
+  handleTyping: () => void;
+  isMember: boolean;
+  isConnected: boolean;
+  inputRef: React.RefObject<TextInput>;
+  setShowStickerPicker: (show: boolean) => void;
+  showStickerPicker: boolean;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({
-  onSend,
-  onTyping,
-  onStickerPress,
-  onImagePress,
+const ChatInput: React.FC<ChatInputProps> = ({
+  messageText,
+  setMessageText,
+  handleSendMessage,
+  handleImageUpload,
+  handleTyping,
+  isMember,
+  isConnected,
+  inputRef,
+  setShowStickerPicker,
+  showStickerPicker,
 }) => {
-  const [message, setMessage] = useState('');
-  const inputRef = useRef<TextInput>(null);
-
-  const handleSend = () => {
-    if (message.trim()) {
-      onSend(message.trim());
-      setMessage('');
-    }
-  };
-
-  const handleImagePress = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Sorry, we need camera roll permissions to make this work!');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        onImagePress();
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-    }
-  };
-
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={onStickerPress} style={styles.iconButton}>
-        <Ionicons name="happy-outline" size={24} color="#666" />
-      </TouchableOpacity>
-      
-      <TouchableOpacity onPress={handleImagePress} style={styles.iconButton}>
-        <Ionicons name="image-outline" size={24} color="#666" />
-      </TouchableOpacity>
+      <View style={styles.inputContainer}>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={handleImageUpload}
+          disabled={!isMember || !isConnected}
+        >
+          <ImageIcon
+            size={24}
+            color={isMember && isConnected ? '#0A84FF' : '#666'}
+          />
+        </TouchableOpacity>
 
-      <TextInput
-        ref={inputRef}
-        style={styles.input}
-        value={message}
-        onChangeText={(text) => {
-          setMessage(text);
-          onTyping();
-        }}
-        placeholder="Type a message..."
-        placeholderTextColor="#999"
-        multiline
-        maxLength={1000}
-      />
-
-      <TouchableOpacity 
-        onPress={handleSend}
-        style={[styles.sendButton, !message.trim() && styles.sendButtonDisabled]}
-        disabled={!message.trim()}
-      >
-        <Ionicons 
-          name="send" 
-          size={24} 
-          color={message.trim() ? '#007AFF' : '#999'} 
+        <TextInput
+          ref={inputRef}
+          style={styles.input}
+          value={messageText}
+          onChangeText={(text) => {
+            setMessageText(text);
+            handleTyping();
+          }}
+          placeholder="พิมพ์ข้อความ..."
+          placeholderTextColor="#666"
+          multiline
+          maxLength={1000}
+          editable={isMember && isConnected}
+          onFocus={() => {
+            if (showStickerPicker) {
+              setShowStickerPicker(false);
+            }
+          }}
         />
-      </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => setShowStickerPicker(!showStickerPicker)}
+          disabled={!isMember || !isConnected}
+        >
+          <Smile
+            size={24}
+            color={isMember && isConnected ? '#0A84FF' : '#666'}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.sendButton,
+            (!messageText.trim() || !isMember || !isConnected) && styles.sendButtonDisabled,
+          ]}
+          onPress={handleSendMessage}
+          disabled={!messageText.trim() || !isMember || !isConnected}
+        >
+          <Send
+            size={20}
+            color={messageText.trim() && isMember && isConnected ? '#fff' : '#666'}
+          />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#2A2A2A',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: '#2A2A2A',
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   input: {
     flex: 1,
-    marginHorizontal: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 20,
+    color: '#fff',
+    fontSize: 16,
     maxHeight: 100,
-    color: '#000',
+    paddingHorizontal: 8,
+    paddingTop: Platform.OS === 'ios' ? 8 : 0,
+    paddingBottom: Platform.OS === 'ios' ? 8 : 0,
   },
   iconButton: {
     padding: 8,
   },
   sendButton: {
-    padding: 8,
+    backgroundColor: '#0A84FF',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
   sendButtonDisabled: {
-    opacity: 0.5,
+    backgroundColor: '#2A2A2A',
   },
-}); 
+});
+
+export default ChatInput; 
