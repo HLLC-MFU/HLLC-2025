@@ -224,7 +224,7 @@ export default function AddModal({ title, isOpen, onClose, data, }: AddModalProp
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please select your school" }
                                 }
                                 selectedKeys={schoolValue}
-                                onSelectionChange={(keys) => setSchoolValue(keys as string)}
+                                onSelectionChange={(keys) => setSchoolValue(keys as Set<string>)}
                             >
                                 {schools.map((school) => (
                                     <SelectItem key={school.name}>{school.name}</SelectItem>
@@ -238,7 +238,7 @@ export default function AddModal({ title, isOpen, onClose, data, }: AddModalProp
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please select your major" }
                                 }
                                 selectedKeys={majorValue}
-                                onSelectionChange={(keys) => setMajorValue(keys as string)}
+                                onSelectionChange={(keys) => setMajorValue(keys as Set<string>)}
                             >
                                 {(schools.find((school) => school.name === Array.from(schoolValue)[0])?.majors || []).map((major) => (
                                     <SelectItem key={major}>{major}</SelectItem>

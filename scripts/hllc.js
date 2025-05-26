@@ -13,7 +13,12 @@ switch (command) {
     await module.runInstallCommand();
     break;
   }
+  case 'i': {
+    const module = await import('./commands/install.js');
+    await module.runInstallCommand();
+    break;
+  }
   default:
-    console.log(`❌ ไม่รู้จักคำสั่ง: ${command}`);
+    console.log(`unknown command: ${command}`);
     console.log('ใช้ได้: dev, install');
 }

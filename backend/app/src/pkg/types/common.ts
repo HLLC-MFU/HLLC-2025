@@ -1,11 +1,11 @@
 export type Localization = {
-    th : string;
-    en : string;
-}
+  th: string;
+  en: string;
+};
 
 export type Photo = {
-    coverPhoto: string;
-    bannerPhoto: string;
-    thumbnail: string;
-    logoPhoto: string;
-}
+  coverPhoto: string;
+  bannerPhoto: string;
+  thumbnail: string;
+  logoPhoto: string;
+};

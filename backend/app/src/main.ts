@@ -7,6 +7,9 @@ import {
   FastifyAdapter,
 } from '@nestjs/platform-fastify';
 import compression from '@fastify/compress';
+import { TransformInterceptor } from './pkg/interceptors/transform.interceptor';
+import cookie from '@fastify/cookie';
+import { MongoExceptionFilter } from './pkg/filters/mongo.filter';
 
 async function bootstrap() {
   Logger.log(`Server is running on port ${process.env.PORT ?? 3000}`);
@@ -20,6 +23,12 @@ async function bootstrap() {
     threshold: 1024,
   });
   app.setGlobalPrefix('api');
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    credentials: true,
+  });
+
+  await app.register(cookie);
   const config = new DocumentBuilder()
     .setTitle('HLLC API Documentation')
     .setDescription('API Documentation for the application')
@@ -27,6 +36,8 @@ async function bootstrap() {
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
+  app.useGlobalFilters(new MongoExceptionFilter());
+  // app.useGlobalInterceptors(new TransformInterceptor());
   void app.listen(process.env.PORT ?? 3000);
 }
 void bootstrap();

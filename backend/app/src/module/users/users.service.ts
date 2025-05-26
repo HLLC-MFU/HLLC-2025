@@ -1,4 +1,9 @@
-import { Inject, Injectable, Logger, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
@@ -8,50 +13,42 @@ import {
   queryAll,
 } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from './schemas/user.schema';
-import { Role , RoleDocument } from '../role/schemas/role.schema' 
+import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { Major ,MajorDocument} from '../majors/schemas/major.schema';
+import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { UploadUserDto } from './dto/upload.user.dto';
+import { FlattenMaps } from 'mongoose';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
 
 @Injectable()
 export class UsersService {
-
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
     @InjectModel(Role.name)
     private readonly roleModel: Model<RoleDocument>,
     @InjectModel(Major.name)
-    private readonly majorModel: Model<MajorDocument>
-  ) {}
+    private readonly majorModel: Model<MajorDocument>,
+  ) { }
 
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const role = await this.roleModel.findById(createUserDto.role).lean();
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
 
-  async create(createUserDto: CreateUserDto) {
-    await throwIfExists(
-      this.userModel,
-      { username: createUserDto.username },
-      'Username already exists',
-    );
+    validateMetadataSchema(createUserDto.metadata, role.metadataSchema);
 
-    await findOrThrow(this.roleModel, createUserDto.role, 'Role not found');
-
-    await findOrThrow(this.majorModel, createUserDto.major, 'Major not found');
-
-
-    const user = new this.userModel({
+    const newUser = new this.userModel({
       ...createUserDto,
-      role: new Types.ObjectId(createUserDto.role),
-      major: new Types.ObjectId(createUserDto.major),
+      metadata: createUserDto.metadata,
     });
 
-    try {
-      return await user.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'username');
-    }
+    return await newUser.save();
   }
 
   async findAll(query: Record<string, string>) {
@@ -74,27 +71,43 @@ export class UsersService {
   async findByUsername(username: string) {
     const user = await this.userModel.findOne({ username }).lean();
     try {
-      if (!user?.password || user.password.length == 0 || user.password == 'null') {
-        throw new BadRequestException("User isn't registered yet")
+      if (
+        !user?.password ||
+        user.password.length == 0 ||
+        user.password == 'null'
+      ) {
+        throw new BadRequestException("User isn't registered yet");
       }
       return user;
     } catch (error) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(error);
     }
   }
 
-  async update(id: string, updateData: Partial<User>) {
-    if (updateData.username) {
-      await findOrThrow(this.userModel, { username: updateData.username }, 'Username already exists');
+  async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.userModel.findById(userId).lean();
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
-    if (updateData.role) {
-      await findOrThrow(this.roleModel, updateData.role, 'Role not found');
+
+    const role = await this.roleModel.findById(user.role).lean();
+    if (!role) {
+      throw new NotFoundException('Role not found');
     }
-    if (updateData.major) {
-      await findOrThrow(this.majorModel, updateData.major, 'Major not found');
+
+    if (updateUserDto.metadata) {
+      validateMetadataSchema(updateUserDto.metadata, role.metadataSchema);
     }
-    return queryUpdateOne<User>(this.userModel, id, updateData);
+
+    const updatedUser = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $set: updateUserDto },
+      { new: true },
+    ).lean();
+
+    return updatedUser as User;
   }
+
 
   async remove(id: string): Promise<void> {
     await queryDeleteOne<User>(this.userModel, id);
@@ -106,13 +119,13 @@ export class UsersService {
       await this.userModel.deleteMany({ _id: { $in: ids } });
       return users;
     } catch (error) {
-      throw new NotFoundException('Users not found');
+      throw new NotFoundException(error);
     }
   }
 
   async resetPassword(id: string) {
-    const user = await findOrThrow(this.userModel, id, 'User not found')
-    user.password = "";
+    const user = await findOrThrow(this.userModel, id, 'User not found');
+    user.password = '';
     user.refreshToken = null;
     await user.save();
   }
@@ -164,7 +177,4 @@ export class UsersService {
       throw error;
     }
   }
-
-
-
 }
