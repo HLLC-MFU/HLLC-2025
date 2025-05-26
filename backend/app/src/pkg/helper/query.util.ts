@@ -152,24 +152,31 @@ export async function queryAll<T>(
   };
 }
 
+/**
+ * 
+ * @param query 
+ * @returns 
+ * example: this.usersService.findOneByQuery({ username });
+ */
 export async function queryFindOne<T>(
   model: Model<HydratedDocument<T>>,
   filter: FilterQuery<T>,
   populateFields?: PopulateField[],
-): Promise<T> {
+): Promise<HydratedDocument<T>> {
   const query = model.findOne(filter);
   populateFields?.forEach((p) => {
     query.populate(p);
   });
 
-  const result = (await query) as T | null;
+  const result = await query;
 
   if (!result) {
-    throw new NotFoundException(`${filter._id} not found`);
+    throw new NotFoundException(`${filter._id ?? JSON.stringify(filter)} not found`);
   }
 
   return result;
 }
+
 
 export async function queryUpdateOne<T>(
   model: Model<HydratedDocument<T>>,

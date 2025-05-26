@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Localization, Photo } from 'src/pkg/types/common';
+
+
 export type SchoolDocument = HydratedDocument<School>;
 
 @Schema({ timestamps: true })
@@ -27,3 +29,8 @@ SchoolSchema.virtual('majors', {
 });
 SchoolSchema.set('toObject', { virtuals: true });
 SchoolSchema.set('toJSON', { virtuals: true });
+SchoolSchema.pre('findOneAndDelete', async function (next) {
+  const schoolId = this.getQuery()['_id'];
+  await new this.model('Major').deleteMany({ school: schoolId });
+  next();
+});

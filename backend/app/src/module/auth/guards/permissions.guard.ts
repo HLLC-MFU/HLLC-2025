@@ -2,6 +2,7 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
@@ -17,7 +18,7 @@ declare module 'fastify' {
 }
 
 interface Role {
-  permissions: string[]; // ✅ array of encrypted strings
+  permissions: string[]; // Can be encrypted or plain strings
 }
 
 interface User {
@@ -29,6 +30,21 @@ interface User {
 export class PermissionsGuard extends AuthGuard('jwt') {
   constructor(private readonly reflector: Reflector) {
     super();
+  }
+
+  private isEncrypted(text: string): boolean {
+    return text.includes(':') && /^[0-9a-fA-F]+:[0-9a-fA-F]+$/.test(text);
+  }
+
+  private decryptPermission(permission: string): string {
+    try {
+      return this.isEncrypted(permission)
+        ? decryptItem(permission)
+        : permission;
+    } catch (error) {
+      console.warn('Failed to decrypt permission:', permission, error);
+      return permission;
+    }
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -45,17 +61,17 @@ export class PermissionsGuard extends AuthGuard('jwt') {
     const user = request.user as User | undefined;
     if (!user) throw new ForbiddenException('User not found');
 
-    // 🟡 Decrypt each permission item
-    const decryptedPermissions: string[] = user.role.permissions.map((enc) =>
-      decryptItem(enc),
+    // Handle both encrypted and non-encrypted permissions
+    const decryptedPermissions: string[] = user.role.permissions.map(
+      (permission) => this.decryptPermission(permission),
     );
 
-    // 🟡 ✅ NEW: If permissions include "*", bypass check
+    // If permissions include "*", bypass check
     if (decryptedPermissions.includes('*')) {
       return true;
     }
 
-    // 🟡 Check required permissions
+    // Check required permissions
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
@@ -91,9 +107,11 @@ export class PermissionsGuard extends AuthGuard('jwt') {
       }
     }
 
-    // 🟡 Re-encrypt each permission for downstream usage
-    user.role.permissions = decryptedPermissions.map((perm) =>
-      encryptItem(perm),
+    // Re-encrypt permissions only if they were encrypted before
+    user.role.permissions = user.role.permissions.map((permission) =>
+      this.isEncrypted(permission)
+        ? encryptItem(this.decryptPermission(permission))
+        : permission,
     );
 
     return true;
@@ -105,7 +123,7 @@ export class PermissionsGuard extends AuthGuard('jwt') {
     context?: ExecutionContext, // Note the "?" here
   ): TUser {
     if (err || !user) {
-      throw err || new ForbiddenException('Unauthorized');
+      throw err || new UnauthorizedException('Unauthorized');
     }
 
     if (context) {

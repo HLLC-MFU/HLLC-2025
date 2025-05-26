@@ -3,24 +3,22 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
   queryDeleteOne,
-  queryFindOne,
   queryUpdateOne,
   queryAll,
+  queryFindOne,
 } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from './schemas/user.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
-import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { UploadUserDto } from './dto/upload.user.dto';
-import { FlattenMaps } from 'mongoose';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
 
@@ -51,37 +49,32 @@ export class UsersService {
     return await newUser.save();
   }
 
-  async findAll(query: Record<string, string>) {
-    return queryAll<User>({
+  async findAll(query: Record<string, any>) {
+    return await queryAll<User>({
       model: this.userModel,
       query,
       filterSchema: {},
-      buildPopulateFields: (excluded) =>
+      buildPopulateFields: excluded =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
     });
   }
 
-  async findOne(id: string) {
-    return queryFindOne<User>(this.userModel, { _id: id }, [
-      { path: 'role' },
-      { path: 'metadata.major', model: 'Major' },
-    ]);
+  async findOne(_id: string) {
+    return queryFindOne<User>(this.userModel, { _id }, []);
   }
 
-  async findByUsername(username: string) {
-    const user = await this.userModel.findOne({ username }).lean();
-    try {
-      if (
-        !user?.password ||
-        user.password.length == 0 ||
-        user.password == 'null'
-      ) {
-        throw new BadRequestException("User isn't registered yet");
-      }
-      return user;
-    } catch (error) {
-      throw new NotFoundException(error);
-    }
+  /**
+   * 
+   * @param query 
+   * @returns 
+   * example: this.usersService.findOneByQuery({ username });
+   */
+  async findOneByQuery(query: Partial<User> & { _id?: string }) {
+    return queryFindOne<User>(this.userModel, query, [{
+      path: 'role',
+    }, {
+      path: 'metadata.major', model: 'Major'
+    }]);
   }
 
   async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
@@ -108,7 +101,6 @@ export class UsersService {
     return updatedUser as User;
   }
 
-
   async remove(id: string): Promise<void> {
     await queryDeleteOne<User>(this.userModel, id);
   }
@@ -132,9 +124,10 @@ export class UsersService {
 
   async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
     const users: CreateUserDto[] = await Promise.all(
-      uploadUserDto.users.map(async (userDto) => {
+      uploadUserDto.users.map(async userDto => {
         const userMajor = userDto.major || uploadUserDto.major;
 
+        // ✅ Check major existence
         if (userDto.major) {
           const userMajorRecord = await this.majorModel
             .findById(userDto.major)
@@ -151,25 +144,26 @@ export class UsersService {
           },
           fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
           username: userDto.studentId,
-          password: '',
-          secret: '',
+          password: '', // initially blank
+          secret: '', // initially blank
           major: new Types.ObjectId(userMajor),
           role: new Types.ObjectId(uploadUserDto.role),
-          type: uploadUserDto.type,
-          round: uploadUserDto.round,
+          metadata: {
+            type: uploadUserDto.metadata?.type ?? null,
+          },
         };
       }),
     );
 
     try {
       const savedUsers = await Promise.all(
-        users.map(async (user) => {
+        users.map(async user => {
           const userDoc = new this.userModel(user);
           return await userDoc.save();
         }),
       );
 
-      return savedUsers.map((user) => user.toObject());
+      return savedUsers.map(user => user.toObject());
     } catch (error) {
       if (error.code === 11000) {
         throw new ConflictException('Username already exists');
