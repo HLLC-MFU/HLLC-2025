@@ -50,12 +50,11 @@ export class SchoolsService {
   }
 
   async findOne(id: string) {
-    return queryFindOne<School>(this.schoolModel, { _id: id }, [
-      { path: 'majors' },
-    ]);
+    return queryFindOne<School>(this.schoolModel, { _id: id }, []);
   }
 
   async update(id: string, updateSchoolDto: UpdateSchoolDto) {
+    updateSchoolDto.updatedAt = new Date();
     return queryUpdateOne<School>(this.schoolModel, id, updateSchoolDto);
   }
 

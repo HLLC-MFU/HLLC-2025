@@ -10,6 +10,10 @@ export enum Actions {
   Delete = 'delete',
 }
 
+type BasePermission = `${string}:${Actions}`;
+type IdPermission = `${string}:${Actions}:id`;
+export type Permission = BasePermission | IdPermission;
+
 @Schema({ timestamps: true })
 export class Role {
   @Prop({ required: true, unique: true })

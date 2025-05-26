@@ -7,17 +7,22 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 import { Public } from '../auth/decorators/public.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 
+@UseGuards(PermissionsGuard)
 @Controller('schools')
 export class SchoolsController {
   constructor(private readonly schoolsService: SchoolsService) {}
 
   @Post()
+  @Permissions('schools:create')
   create(@Body() createSchoolDto: CreateSchoolDto) {
     return this.schoolsService.create(createSchoolDto);
   }
@@ -35,12 +40,14 @@ export class SchoolsController {
   }
 
   @Patch(':id')
+  @Permissions('schools:update')
   update(@Param('id') id: string, @Body() updateSchoolDto: UpdateSchoolDto) {
     updateSchoolDto.updatedAt = new Date();
     return this.schoolsService.update(id, updateSchoolDto);
   }
 
   @Delete(':id')
+  @Permissions('schools:delete')
   remove(@Param('id') id: string) {
     return this.schoolsService.remove(id);
   }

@@ -9,6 +9,8 @@ import {
   Body,
   Patch,
   Post,
+  Request,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 import { UsersService } from './users.service';
@@ -35,10 +37,19 @@ export class UsersController {
   }
 
   @Get()
-  @Public()
+  @Permissions('users:read')
   @CacheKey('users')
-  // @Permissions('users:read')
   async findAll(@Query() query: Record<string, any>) {
+    const { id, username } = query;
+
+    if (id || username) {
+      const identifier = {
+        id: id as string | undefined,
+        username: username as string | undefined,
+      };
+      return this.usersService.findOne(identifier);
+    }
+
     return this.usersService.findAll(query);
   }
 
@@ -58,8 +69,7 @@ export class UsersController {
   }
 
   @Post('upload')
-  @Public()
-  @Permissions('users:upload')
+  @Permissions('users:create')
   upload(@Body() uploadUserDto: UploadUserDto) {
     return this.usersService.upload(uploadUserDto);
   }
@@ -75,5 +85,12 @@ export class UsersController {
   @Public()
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  @Delete('multiple')
+  @Permissions('users:delete')
+  @CacheKey('users:invalidate')
+  removeMultiple(@Body() ids: string[]) {
+    return this.usersService.removeMultiple(ids);
   }
 }
