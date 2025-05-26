@@ -27,7 +27,7 @@ export default function management() {
 
     return (
         <div className="flex flex-col min-h-screen">
-            <div className="container mx-auto px-4 py-6">
+            <div className="container mx-autopy-6">
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-3xl font-bold">Users Management</h1>
                 </div>

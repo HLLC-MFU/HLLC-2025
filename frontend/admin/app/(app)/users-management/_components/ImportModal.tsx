@@ -5,7 +5,7 @@ import { addToast, Button, Form, getKeyValue, Input, Modal, ModalBody, ModalCont
 import React from "react";
 import * as XLSX from "xlsx";
 
-interface ImportModalProps {
+export interface ImportModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
@@ -82,13 +82,13 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
 
     const handleInvalidFile = () => {
         setIsImportModalOpen(false);
-        onClose();
         addToast({
             title: "Invalid File",
             description: "Please ensure the file contains valid data",
             color: "danger",
             variant: "solid",
         });
+        onClose();
     };
 
     const handleCancel = () => {

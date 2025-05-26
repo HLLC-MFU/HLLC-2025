@@ -23,11 +23,11 @@ import {
     ModalFooter,
     Form,
 } from "@heroui/react";
-import { EllipsisVertical, FileDown, FileInput, FileOutput, FileUp, PlusIcon, UserRound } from "lucide-react";
+import { EllipsisVertical, FileDown, FileInput, FileOutput, FileUp, Pen, PlusIcon, Trash, UserRound } from "lucide-react";
 import AddModal from "../_components/AddModal";
 import ImportModal from "../_components/ImportModal";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
+import ExportModal from "../_components/ExportModal";
+import DeleteModal from "../_components/DeleteModal";
 
 export const columns = [
     { name: "ID", uid: "id", sortable: true },
@@ -46,7 +46,18 @@ export const statusOptions = [
     { name: "Vacation", uid: "vacation" },
 ];
 
-export const users = [
+export interface UserProps {
+    id: number,
+    name: string,
+    role: string,
+    team: string,
+    status: string,
+    age: string,
+    avatar: string,
+    email: string,
+}
+
+export const users: UserProps[] = [
     {
         id: 1,
         name: "Tony Reichert",
@@ -322,33 +333,20 @@ export default function AdminPage() {
     const [statusFilter, setStatusFilter] = React.useState("all");
     const [rowsPerPage, setRowsPerPage] = React.useState(5);
     const [sortDescriptor, setSortDescriptor] = React.useState({
-        column: "age",
+        column: "id",
         direction: "ascending",
     });
     const [page, setPage] = React.useState(1);
     // Add this to other file
-    const [isNewModalOpen, setIsNewModalOpen] = React.useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
+    const [AddModalText, setAddModalText] = React.useState<"Add" | "Edit">("Add");
     const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = React.useState(false);
-    const fileNameRef = React.useRef<HTMLInputElement>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+    const [startIndex, setStartIndex] = React.useState(0);
+    const [endIndex, setEndIndex] = React.useState(1);
 
     const hasSearchFilter = Boolean(filterValue);
-
-    const exportFile = (data: any[], fileName = "data") => {
-        const worksheet = XLSX.utils.json_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: 'array' })
-        const blob = new Blob([excelBuffer], { type: "application/octet-stream" })
-        saveAs(blob, `${fileName}.xlsx`);
-    };
-
-    const handleExport = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        exportFile(users, fileNameRef.current?.value || "Data"); 
-        setIsExportModalOpen(false);
-    };
 
     const headerColumns = React.useMemo(() => {
         if (visibleColumns === "all") return columns;
@@ -384,16 +382,16 @@ export default function AdminPage() {
 
     const sortedItems = React.useMemo(() => {
         return [...items].sort((a, b) => {
-            const first = a[sortDescriptor.column];
-            const second = b[sortDescriptor.column];
+            const first = a[sortDescriptor.column as keyof UserProps];
+            const second = b[sortDescriptor.column as keyof UserProps];
             const cmp = first < second ? -1 : first > second ? 1 : 0;
 
             return sortDescriptor.direction === "descending" ? -cmp : cmp;
         });
     }, [sortDescriptor, items]);
 
-    const renderCell = React.useCallback((user, columnKey) => {
-        const cellValue = user[columnKey];
+    const renderCell = React.useCallback((user: UserProps, columnKey: React.Key, index: number) => {
+        const cellValue = user[columnKey as keyof typeof user];
 
         switch (columnKey) {
             case "name":
@@ -431,8 +429,8 @@ export default function AdminPage() {
                             <DropdownMenu>
                                 {/* Delete from other files */}
                                 {/* <DropdownItem key="view">View</DropdownItem> */}
-                                <DropdownItem key="edit">Edit</DropdownItem>
-                                <DropdownItem key="delete">Delete</DropdownItem>
+                                <DropdownItem key="edit" startContent={<Pen size="16px" />} onPress={() => {setAddModalText("Edit"); setIsAddModalOpen(true); setStartIndex((page * 5) + index - 5); }}>Edit</DropdownItem>
+                                <DropdownItem key="delete" startContent={<Trash size="16px" />} onPress={() => { setIsDeleteModalOpen(true); setStartIndex((page * 5) + index - 5); setEndIndex((page * 5) + index - 4); }}>Delete</DropdownItem>
                             </DropdownMenu>
                         </Dropdown>
                     </div>
@@ -440,7 +438,7 @@ export default function AdminPage() {
             default:
                 return cellValue;
         }
-    }, []);
+    }, [page]);
 
     const onNextPage = React.useCallback(() => {
         if (page < pages) {
@@ -472,10 +470,6 @@ export default function AdminPage() {
         setFilterValue("");
         setPage(1);
     }, []);
-
-    const handleUserSubmit = () => {
-        // Connect to the backend to submit the new user data
-    };
 
     const topContent = React.useMemo(() => {
         return (
@@ -539,50 +533,11 @@ export default function AdminPage() {
                                 <Button color="primary" endContent={<PlusIcon size={20} />}>Add new</Button>
                             </DropdownTrigger>
                             <DropdownMenu aria-label="Static Actions">
-                                <DropdownItem onPress={() => setIsNewModalOpen(true)} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
+                                <DropdownItem onPress={() => {setAddModalText("Add"); setIsAddModalOpen(true);}} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
                                 <DropdownItem onPress={() => setIsImportModalOpen(true)} key="import" startContent={<FileInput size={16} />}>Import .xlsx file</DropdownItem>
                             </DropdownMenu>
                         </Dropdown >
                         <Button color="success" className="text-white" endContent={<FileOutput size={20} />} onPress={() => setIsExportModalOpen(true)}>Export</Button>
-
-                        <AddModal
-                            isOpen={isNewModalOpen}
-                            onClose={() => setIsNewModalOpen(false)}
-                            onSubmit={handleUserSubmit}
-                        />
-
-                        <ImportModal
-                            isOpen={isImportModalOpen}
-                            onClose={() => setIsImportModalOpen(false)}
-                        />
-
-                        <Modal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)}>
-                            <ModalContent>
-                                <Form
-                                    className="w-full"
-                                    onSubmit={(e) => handleExport(e)}
-                                >
-                                    <ModalHeader className="flex flex-col gap-1">Export File</ModalHeader>
-                                    <ModalBody className="w-full">
-                                        <Input
-                                            type="text"
-                                            label="File Name"
-                                            placeholder="Enter file name"
-                                            ref={fileNameRef}
-                                        />
-                                    </ModalBody>
-                                    <ModalFooter className="w-full">
-                                        <Button color="danger" variant="light" onPress={() => setIsExportModalOpen(false)}>
-                                            Cancel
-                                        </Button>
-                                        <Button color="primary" type="submit">
-                                            Confirm
-                                        </Button>
-                                    </ModalFooter>
-                                </Form>
-                            </ModalContent>
-                        </Modal>
-
                     </div>
                 </div>
             </div>
@@ -596,7 +551,7 @@ export default function AdminPage() {
         onSearchChange,
         hasSearchFilter,
         // Add this to other file
-        isNewModalOpen,
+        isAddModalOpen,
         isImportModalOpen,
         isExportModalOpen,
     ]);
@@ -631,41 +586,72 @@ export default function AdminPage() {
     }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
     return (
-        <Table
-            isHeaderSticky
-            aria-label="Example table with custom cells, pagination and sorting"
-            bottomContent={bottomContent}
-            bottomContentPlacement="outside"
-            classNames={{
-                wrapper: "max-h-[382px]",
-            }}
-            selectedKeys={selectedKeys}
-            selectionMode="multiple"
-            // sortDescriptor={sortDescriptor}
-            topContent={topContent}
-            topContentPlacement="outside"
-        // onSelectionChange={setSelectedKeys}
-        // onSortChange={setSortDescriptor}
-        >
-            <TableHeader columns={headerColumns}>
-                {(column) => (
-                    <TableColumn
-                        key={column.uid}
-                        align={column.uid === "actions" ? "center" : "start"}
-                        allowsSorting={column.sortable}
-                    >
-                        {column.name}
-                    </TableColumn>
-                )}
-            </TableHeader>
-            <TableBody emptyContent={"No users found"} items={sortedItems}>
-                {(item) => (
-                    <TableRow key={item.id}>
-                        {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-                    </TableRow>
-                )}
-            </TableBody>
-        </Table>
+        <>
+            <Table
+                isHeaderSticky
+                aria-label="Example table with custom cells, pagination and sorting"
+                bottomContent={bottomContent}
+                bottomContentPlacement="outside"
+                classNames={{
+                    wrapper: "max-h-[382px]",
+                }}
+                selectedKeys={selectedKeys}
+                selectionMode="multiple"
+                // sortDescriptor={sortDescriptor}
+                topContent={topContent}
+                topContentPlacement="outside"
+                // onSelectionChange={setSelectedKeys}
+                // onSortChange={setSortDescriptor}
+            >
+                <TableHeader columns={headerColumns}>
+                    {(column) => (
+                        <TableColumn
+                            key={column.uid}
+                            align={column.uid === "actions" ? "center" : "start"}
+                            allowsSorting={column.sortable}
+                        >
+                            {column.name}
+                        </TableColumn>
+                    )}
+                </TableHeader>
+                <TableBody emptyContent={"No users found"} items={sortedItems}>
+                    {(item) => {
+                        const index = sortedItems.findIndex((i) => i.id === item.id)
+                        return (
+                            <TableRow key={item.id}>
+                                {(columnKey) => <TableCell>{renderCell(item, columnKey, index)}</TableCell>}
+                            </TableRow>
+                        )
+                    }}
+                </TableBody>
+            </Table>
+
+            <AddModal
+                title={AddModalText}
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                data={[users[startIndex]]}
+            />
+
+            <ImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+            />
+
+            <ExportModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                data={users}
+            />
+
+            <DeleteModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                data={users}
+                startIndex={startIndex}
+                endIndex={endIndex}
+            />
+        </>
     );
 }
 
