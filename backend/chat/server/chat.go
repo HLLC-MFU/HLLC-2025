@@ -28,11 +28,16 @@ import (
 func (s *server) chatService() {
 	roomRedis.InitRedis()
 
-	publisher := roomKafka.GetPublisher()
+	publisher := kafkaUtil.GetPublisher()
 
-	topicName := "chat-room"
-	if err := kafkaUtil.EnsureKafkaTopic("localhost:9092", topicName); err != nil {
-		log.Fatalf("[Kafka] Ensure Topic error: %v", err)
+	topics := []string{"chat-room", "chat-notifications"}
+	for _, topic := range topics {
+		if err := kafkaUtil.EnsureKafkaTopic("localhost:9092", topic); err != nil {
+			log.Fatalf("[Kafka] Ensure Topic %s error: %v", topic, err)
+		}
+		if err := kafkaUtil.ForceCreateTopic("localhost:9092", topic); err != nil {
+			log.Fatalf("[Kafka] Force create Topic %s error: %v", topic, err)
+		}
 	}
 
 	// Chats logic

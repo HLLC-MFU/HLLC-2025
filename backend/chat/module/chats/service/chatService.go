@@ -59,7 +59,10 @@ func (s *service) InitChatHub() {
 				log.Printf("[REGISTER] %s joined room %s", client.UserID, client.RoomID)
 
 			case client := <-model.Unregister:
-				delete(model.Clients[client.RoomID], client.UserID)
+				// Instead of deleting entirely, mark as offline
+				if roomClients, exists := model.Clients[client.RoomID]; exists {
+					roomClients[client.UserID] = nil
+				}
 				redis.RemoveUserFromRoom(client.RoomID, client.UserID)
 				log.Printf("[UNREGISTER] %s left room %s", client.UserID, client.RoomID)
 
@@ -101,6 +104,8 @@ func (s *service) InitChatHub() {
 				// 🚀 Broadcast to all clients in room
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
 					if conn == nil {
+						log.Printf("[DEBUG] User %s is offline, sending notification...", userID)
+						s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG)
 						continue
 					}
 					if err := sendJSONMessage(conn, event); err != nil {
@@ -121,6 +126,24 @@ func sendJSONMessage(conn *websocket.Conn, v interface{}) error {
 		return err
 	}
 	return conn.WriteMessage(websocket.TextMessage, data)
+}
+
+func (s *service) notifyOfflineUser(userID, roomID, fromUserID, message string) {
+	payload := map[string]string{
+		"userId":  userID,
+		"roomId":  roomID,
+		"from":    fromUserID,
+		"message": message,
+	}
+	msg, _ := json.Marshal(payload)
+
+	// ✅ Corrected: use SendMessageToTopic (not SendMessage)
+	if err := s.publisher.SendMessageToTopic("chat-notifications", userID, string(msg)); err != nil {
+		log.Printf("[Kafka Notify] Failed to notify offline user %s: %v", userID, err)
+	} else {
+		log.Printf("[Kafka Notify] Notification queued for %s", userID)
+	}
+
 }
 
 func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {

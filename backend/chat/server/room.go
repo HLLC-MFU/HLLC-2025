@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/handler"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/router"
@@ -35,7 +34,7 @@ func (s *server) roomService() {
 	redis.InitRedis()
 
 	// Setup Kafka topic
-	publisher := kafka.GetPublisher()
+	publisher := kafkaUtil.GetPublisher()
 	topicName := "chat-room"
 	if err := kafkaUtil.EnsureKafkaTopic("localhost:9092", topicName); err != nil {
 		log.Fatalf("[Kafka] Ensure Topic error: %v", err)

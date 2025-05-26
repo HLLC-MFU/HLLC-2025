@@ -78,7 +78,7 @@ func RegisterClient(client ClientObject) {
 			if err != nil {
 				log.Printf("[HEARTBEAT] Disconnected: %s in room %s", client.UserID, client.RoomID)
 				UnregisterClient(client)
-				break
+				Unregister <- client
 			}
 			time.Sleep(30 * time.Second) // Heartbeat interval
 		}
@@ -90,7 +90,7 @@ func RegisterClient(client ClientObject) {
 func UnregisterClient(client ClientObject) {
 	roomClients := Clients[client.RoomID]
 	if roomClients != nil {
-		delete(roomClients, client.UserID)
+		roomClients[client.UserID] = nil
 		log.Printf("[UNREGISTER] %s left room %s", client.UserID, client.RoomID)
 	}
 }

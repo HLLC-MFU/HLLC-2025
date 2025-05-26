@@ -10,6 +10,7 @@ import (
 
 type Publisher interface {
 	SendMessage(roomID string, userID string, message string) error
+	SendMessageToTopic(topic, userID, message string) error
 }
 
 type publisherImpl struct{}
@@ -96,4 +97,27 @@ func ForceCreateTopic(brokerAddress, topicName string) error {
 
 	log.Printf("[Kafka Admin] Force write message to topic '%s' success", topicName)
 	return nil
+}
+
+func (p *publisherImpl) SendMessageToTopic(topic, userID, message string) error {
+	// Ensure topic exists before writing (optional but useful)
+	err := EnsureKafkaTopic("localhost:9092", topic)
+	if err != nil {
+		log.Printf("[Kafka] Failed to ensure topic %s: %v", topic, err)
+		// optionally return here
+	}
+
+	writer := kafka.NewWriter(kafka.WriterConfig{
+		Brokers:  []string{"localhost:9092"},
+		Topic:    topic,
+		Balancer: &kafka.LeastBytes{},
+	})
+	defer writer.Close()
+
+	log.Printf("[Kafka] Sending to topic: %s (user: %s)", topic, userID)
+
+	return writer.WriteMessages(context.Background(), kafka.Message{
+		Key:   []byte(userID),
+		Value: []byte(message),
+	})
 }
