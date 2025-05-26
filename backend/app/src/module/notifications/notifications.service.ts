@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Notification, NotificationDocument } from './schemas/notification.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Expo } from 'expo-server-sdk';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
 
@@ -13,6 +13,14 @@ export class NotificationsService {
   ) {}
 
   async create(createNotificationDto: Notification) {
+
+    if (createNotificationDto.scope !== 'global') {
+      createNotificationDto.scope = createNotificationDto.scope.map((item) => ({
+        ...item,
+        id: item.id.map((id) => new Types.ObjectId(id))
+      }));
+    }
+
     return (await this.notificationModel.create(createNotificationDto)).toObject();
   }
 
