@@ -6,10 +6,12 @@ import {
   FolderIcon,
   UsersIcon,
   CalendarIcon,
+  CircleCheckBig ,
   SettingsIcon,
   HelpCircleIcon,
   LogOutIcon,
   ShieldAlert,
+  
 } from "lucide-react";
 
 export const siteConfig = {
@@ -25,6 +27,7 @@ export const siteConfig = {
     {
       section: "User Management",
       items: [
+        { label: "Checkin" , href: "/checkin", icon: CircleCheckBig},
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Admin", href: "/admin", icon: UserIcon },
         { label: "Reports", href: "/reports", icon: ShieldAlert },
