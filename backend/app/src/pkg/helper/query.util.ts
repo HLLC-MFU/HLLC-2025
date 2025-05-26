@@ -4,6 +4,7 @@ import {
   SortOrder,
   UpdateQuery,
   FilterQuery,
+  PopulateOptions,
 } from 'mongoose';
 import { PaginatedResponse } from '../interceptors/response.interceptor';
 import {
@@ -65,7 +66,7 @@ export async function queryAll<T>(
   options: QueryPaginationOptions<T>,
 ): Promise<PaginatedResponse<T>> {
   const {
-    model,
+    model,  
     query = {},
     filterSchema,
     buildPopulateFields,
@@ -152,7 +153,7 @@ export async function queryAll<T>(
 export async function queryFindOne<T>(
   model: Model<HydratedDocument<T>>,
   filter: FilterQuery<T>,
-  populateFields?: PopulateField[],
+  populateFields?: PopulateOptions[], // ✅ ใช้ type จาก Mongoose
 ): Promise<T | null> {
   const query = model.findOne(filter);
 
