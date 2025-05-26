@@ -72,7 +72,7 @@ export class ReportsService {
     return queryUpdateOne<Report>(this.reportModel, id, UpdateReportDto);
   }
 
-  async remove(id: string) {
+  async remove(id: string) {    
     return queryDeleteOne<Report>(this.reportModel, id);
   }
 }
