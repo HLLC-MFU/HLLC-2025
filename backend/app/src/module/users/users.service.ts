@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -10,6 +11,7 @@ import {
   queryDeleteOne,
   queryUpdateOne,
   queryAll,
+  queryFindOne,
 } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from './schemas/user.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
@@ -50,8 +52,8 @@ export class UsersService {
     return await newUser.save();
   }
 
-  async findAll(query: Record<string, string>) {
-    return queryAll<User>({
+  async findAll(query: Record<string, any>) {
+    return await queryAll<User>({
       model: this.userModel,
       query,
       filterSchema: {},
@@ -60,49 +62,22 @@ export class UsersService {
     });
   }
 
-  async findOne(identifier: { id?: string; username?: string }) {
-    const condition = identifier.id
-      ? { _id: identifier.id }
-      : { username: identifier.username };
-
-    const user = await this.userModel
-      .findOne(condition)
-      .populate([{ path: 'role' }, { path: 'major' }])
-      .lean();
-
-    if (!user) throw new NotFoundException('User not found');
-
-    if (identifier.username && (!user.password || user.password === '')) {
-      throw new BadRequestException("User isn't registered yet");
-    }
-
-    return user;
+  async findOne(_id: string) {
+    return queryFindOne<User>(this.userModel, { _id }, []);
   }
 
-  async getMe(id: string) {
-    try {
-      if (
-        !user?.password ||
-        user.password.length == 0 ||
-        user.password == 'null'
-      ) {
-        throw new BadRequestException("User isn't registered yet");
-      }
-
-      const user = await this.userModel
-        .findById(id)
-        .select('-password -refreshToken')
-        .populate([{ path: 'role' }, { path: 'major' }])
-        .lean();
-
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
-
-      return user;
-    } catch (error) {
-      throw new NotFoundException(error);
-    }
+  /**
+   * 
+   * @param query 
+   * @returns 
+   * example: this.usersService.findOneByQuery({ username });
+   */
+  async findOneByQuery(query: Partial<User> & { _id?: string }) {
+    return queryFindOne<User>(this.userModel, query, [{
+      path: 'role',
+    }, {
+      path: 'metadata.major', model: 'Major'
+    }]);
   }
 
   async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
@@ -128,7 +103,6 @@ export class UsersService {
 
     return updatedUser as User;
   }
-
 
   async remove(id: string): Promise<void> {
     await queryDeleteOne<User>(this.userModel, id);
