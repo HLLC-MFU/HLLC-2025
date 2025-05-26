@@ -15,7 +15,7 @@ import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
 
 @Controller('roles')
 export class RoleController {
-  constructor(private readonly roleService: RoleService) {}
+  constructor(private readonly roleService: RoleService) { }
 
   @Post()
   create(@Body() createRoleDto: CreateRoleDto) {
@@ -32,6 +32,14 @@ export class RoleController {
     return this.roleService.findOne(id);
   }
 
+  @Put(':id/metadata-schema')
+  updateMetadataSchema(
+    @Param('id') id: string,
+    @Body() dto: UpdateMetadataSchemaDto,
+  ) {
+    return this.roleService.updateMetadataSchema(id, dto);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.update(id, updateRoleDto);
@@ -42,12 +50,5 @@ export class RoleController {
     return this.roleService.remove(id);
   }
 
-  // ✅ Endpoint สำหรับอัปเดต metadataSchema
-  @Put(':id/metadata-schema')
-  updateMetadataSchema(
-    @Param('id') id: string,
-    @Body() dto: UpdateMetadataSchemaDto,
-  ) {
-    return this.roleService.updateMetadataSchema(id, dto);
-  }
+
 }

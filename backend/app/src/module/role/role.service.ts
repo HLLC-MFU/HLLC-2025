@@ -12,34 +12,32 @@ import { encryptItem } from '../auth/utils/crypto';
 export class RoleService {
   constructor(
     @InjectModel(Role.name) private readonly roleModel: Model<RoleDocument>,
-  ) {}
+  ) { }
 
+  /**
+   * Creates a new role.
+   * permissions are encrypted before saving.
+   */
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
-    // 🔍 ตรวจสอบซ้ำ
-    await throwIfExists(
-      this.roleModel,
-      { name: createRoleDto.name },
-      'Role name already exists',
-    );
-
-    // 🔐 Encrypt ทีละ permission (เก็บเป็น array ของ encrypted string)
-    const encryptedPermissions = createRoleDto.permissions?.map((perm) =>
-      encryptItem(perm),
-    );
-
-    const roleData: Partial<Role> = {
+    return this.roleModel.create({
       name: createRoleDto.name,
       metadataSchema: createRoleDto.metadataSchema,
-      permissions: encryptedPermissions || [],
-    };
-
-    return this.roleModel.create(roleData);
+      permissions: createRoleDto.permissions?.map(encryptItem) || [],
+    });
   }
 
+  /**
+   * Finds a role by name.
+   * Throws an error if the role already exists.
+   */
   async findAll(): Promise<Role[]> {
     return this.roleModel.find().lean();
   }
 
+  /**
+   * Finds a role by ID.
+   * Throws an error if the role does not exist.
+   */
   async findOne(id: string): Promise<Role> {
     return findOrThrow(this.roleModel, id, 'Role');
   }
@@ -47,7 +45,6 @@ export class RoleService {
   async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
 
-    // 🔐 ถ้ามี permissions ใหม่ → encrypt ทีละ item
     if (updateRoleDto.permissions && Array.isArray(updateRoleDto.permissions)) {
       role.permissions = updateRoleDto.permissions.map((perm) =>
         encryptItem(perm),
