@@ -20,6 +20,9 @@ import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { UploadUserDto } from './dto/upload.user.dto';
+import { FlattenMaps } from 'mongoose';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
 
 @Injectable()
 export class UsersService {
@@ -30,26 +33,22 @@ export class UsersService {
     private readonly roleModel: Model<RoleDocument>,
     @InjectModel(Major.name)
     private readonly majorModel: Model<MajorDocument>,
-  ) {}
+  ) { }
 
-  async create(createUserDto: CreateUserDto) {
-    await throwIfExists(
-      this.userModel,
-      { username: createUserDto.username },
-      'Username already exists',
-    );
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const role = await this.roleModel.findById(createUserDto.role).lean();
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
 
-    const user = new this.userModel({
+    validateMetadataSchema(createUserDto.metadata, role.metadataSchema);
+
+    const newUser = new this.userModel({
       ...createUserDto,
-      role: new Types.ObjectId(createUserDto.role),
-      major: new Types.ObjectId(createUserDto.major),
+      metadata: createUserDto.metadata,
     });
 
-    try {
-      return await user.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'username');
-    }
+    return await newUser.save();
   }
 
   async findAll(query: Record<string, string>) {
@@ -85,19 +84,30 @@ export class UsersService {
     }
   }
 
-  async update(id: string, updateData: Partial<User>) {
-    if (updateData.username) {
-      await findOrThrow(
-        this.userModel,
-        { username: updateData.username },
-        'Username already exists',
-      );
+  async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.userModel.findById(userId).lean();
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
-    if (updateData.role) {
-      await findOrThrow(this.roleModel, updateData.role, 'Role not found');
+
+    const role = await this.roleModel.findById(user.role).lean();
+    if (!role) {
+      throw new NotFoundException('Role not found');
     }
-    return queryUpdateOne<User>(this.userModel, id, updateData);
+
+    if (updateUserDto.metadata) {
+      validateMetadataSchema(updateUserDto.metadata, role.metadataSchema);
+    }
+
+    const updatedUser = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $set: updateUserDto },
+      { new: true },
+    ).lean();
+
+    return updatedUser as User;
   }
+
 
   async remove(id: string): Promise<void> {
     await queryDeleteOne<User>(this.userModel, id);
