@@ -29,3 +29,8 @@ SchoolSchema.virtual('majors', {
 });
 SchoolSchema.set('toObject', { virtuals: true });
 SchoolSchema.set('toJSON', { virtuals: true });
+SchoolSchema.pre('findOneAndDelete', async function (next) {
+  const schoolId = this.getQuery()['_id'];
+  await new this.model('Major').deleteMany({ school: schoolId });
+  next();
+});
