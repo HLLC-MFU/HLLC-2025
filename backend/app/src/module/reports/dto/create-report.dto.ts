@@ -1,13 +1,14 @@
 import { IsNotEmpty, IsMongoId, IsString } from "class-validator";
 
 export class CreateReportDto {
-@IsMongoId()
-@IsNotEmpty()
-reporter_id: string;
 
 @IsMongoId()
 @IsNotEmpty()
-caragory_id: string;
+reporter: string;
+
+@IsMongoId()
+@IsNotEmpty()
+category: string;
 
 @IsString()
 @IsNotEmpty()

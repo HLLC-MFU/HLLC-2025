@@ -1,9 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, HydratedDocument } from 'mongoose';
 import { Localization } from 'src/pkg/types/common';
 
 
-export type ReportCategoryDocument = ReportCategory & Document;
+export type ReportCategoryDocument = HydratedDocument<ReportCategory>;
 
 @Schema()
 export class ReportCategory {

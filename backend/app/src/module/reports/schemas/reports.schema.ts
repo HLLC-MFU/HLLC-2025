@@ -1,18 +1,18 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
-
-export type ReportDocument = Report & Document;
+import { Document, HydratedDocument, Model, Types } from 'mongoose';
+// 
+export type ReportDocument = HydratedDocument<Report>
 
 @Schema({ timestamps: true })
 export class Report {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  reporter_id: Types.ObjectId;
+  reporter: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'ReportCategory', required: true })
-  category_id: Types.ObjectId;
+  category: Types.ObjectId;
 
   @Prop({ required: true })
-  message: string;
+  message: string; 
 
   @Prop({ required: true, maxlength: 50 })
   status: string;

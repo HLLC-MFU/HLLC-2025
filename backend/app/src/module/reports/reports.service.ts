@@ -1,50 +1,78 @@
 import { Injectable } from '@nestjs/common';
-import { CreateReportDto } from './dto/create-report.dto';
-import { UpdateReportDto } from './dto/update-report.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Report, ReportDocument } from './schemas/reports.schema'
-import { Model } from 'mongoose';
-import { error } from 'console';
+import { Model, Types } from 'mongoose';
+
+// Entity & Document
+import { Report, ReportDocument } from './schemas/reports.schema';
+import { User, UserDocument } from '../users/schemas/user.schema';
+import { ReportCategory, ReportCategoryDocument } from '../report_categories/schemas/report_categories.schemas';
+
+// DTO
+import { CreateReportDto } from './dto/create-report.dto';
+
+// Helpers
+import { queryAll, queryFindOne, queryUpdateOne, queryDeleteOne } from 'src/pkg/helper/query.util';
+import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
+import { UpdateReportDto } from './dto/update-report.dto';
+
+const userSelectFields = 'username name';
 
 @Injectable()
 export class ReportsService {
-  constructor (
-    @InjectModel(Report.name) private reportModel:Model<ReportDocument>,
-  ){}
+  constructor(
+    @InjectModel(Report.name)
+    private readonly reportModel: Model<ReportDocument>,
 
-  async create(createReportDto: CreateReportDto): Promise<Report> {
-    const result = new this.reportModel(createReportDto);
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
 
-    return result.save();
+    @InjectModel(ReportCategory.name)
+    private readonly categoryModel: Model<ReportCategoryDocument>,
+  ) {}
+
+  async create(createReportDto: CreateReportDto) {
+    await findOrThrow(this.userModel, createReportDto.reporter, 'User not found');
+    await findOrThrow(this.categoryModel, createReportDto.category, 'Category not found');
+
+    const report = new this.reportModel({
+      ...createReportDto,
+      reporter: new Types.ObjectId(createReportDto.reporter),
+      category: new Types.ObjectId(createReportDto.category),
+    });
+
+    try {
+      return await report.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'reporter_id');
+    }
   }
 
-  async findAll():Promise<Report[]> {
-
-    return this.reportModel.find().exec();
+  async findAll(query: Record<string, string>) {
+    return queryAll<Report>({
+      model: this.reportModel,
+      query,
+      filterSchema: {},
+      buildPopulateFields: () =>
+        Promise.resolve([
+          { path: 'reporter', select: userSelectFields },
+          { path: 'category' },
+        ]),
+    });
   }
 
   async findOne(id: string) {
-
-    return this.reportModel.findById(id).exec();
+    return queryFindOne<Report>(this.reportModel, { _id: id }, [
+      { path: 'reporter_id', },
+      { path: 'category_id' },
+    ]);
   }
 
-  async update(id: string, updateReportDto: UpdateReportDto) {
-    const result = this.reportModel.findByIdAndUpdate(id,updateReportDto, { new:true})
-    .exec();
-    return result;
+  async update(id: string, UpdateReportDto: UpdateReportDto) {
+    return queryUpdateOne<Report>(this.reportModel, id, UpdateReportDto);
   }
 
   async remove(id: string) {
-    try{
-      const result = await this.reportModel.findByIdAndDelete(id)
-    .exec();
-    if (!result) {
-      return { massage: 'id not found'};
-    }
-    return { massage: 'Delete successful'}
-    }catch (error) {
-      return { error };
-    }    
-    
+    return queryDeleteOne<Report>(this.reportModel, id);
   }
 }
