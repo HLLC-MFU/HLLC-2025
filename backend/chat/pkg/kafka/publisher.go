@@ -78,6 +78,21 @@ func EnsureKafkaTopic(brokerAddress, topicName string) error {
 
 // ใช้อันนี้เพื่อ Force Kafka Broker ให้ยอมสร้าง Partition
 func ForceCreateTopic(brokerAddress, topicName string) error {
+	// First ensure topic exists
+	err := EnsureKafkaTopic(brokerAddress, topicName)
+	if err != nil {
+		return err
+	}
+
+	// Then check if the topic already has partitions (i.e., it's active)
+	conn, err := kafka.DialLeader(context.Background(), "tcp", brokerAddress, topicName, 0)
+	if err == nil {
+		conn.Close()
+		log.Printf("[Kafka Admin] Topic '%s' already has partition, skipping force-write", topicName)
+		return nil
+	}
+
+	// If it doesn't exist yet, write dummy message to force partition creation
 	writer := kafka.NewWriter(kafka.WriterConfig{
 		Brokers:  []string{brokerAddress},
 		Topic:    topicName,
@@ -85,7 +100,7 @@ func ForceCreateTopic(brokerAddress, topicName string) error {
 	})
 	defer writer.Close()
 
-	err := writer.WriteMessages(context.Background(), kafka.Message{
+	err = writer.WriteMessages(context.Background(), kafka.Message{
 		Key:   []byte("system"),
 		Value: []byte("initialize-topic"),
 	})
@@ -98,6 +113,7 @@ func ForceCreateTopic(brokerAddress, topicName string) error {
 	log.Printf("[Kafka Admin] Force write message to topic '%s' success", topicName)
 	return nil
 }
+
 
 func (p *publisherImpl) SendMessageToTopic(topic, userID, message string) error {
 	// Ensure topic exists before writing (optional but useful)
