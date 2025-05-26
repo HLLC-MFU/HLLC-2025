@@ -96,6 +96,11 @@ func (s *service) UpdateRoom(ctx context.Context, room *model.Room) error {
 	if existing == nil {
 		return NewError("room not found")
 	}
+
+	// Ensure creator is not lost
+	room.Creator = existing.Creator
+	room.CreatedAt = existing.CreatedAt // Optional: preserve created time too
+
 	return s.repo.Update(ctx, room)
 }
 
