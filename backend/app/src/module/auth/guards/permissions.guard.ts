@@ -120,22 +120,18 @@ export class PermissionsGuard extends AuthGuard('jwt') {
   handleRequest<TUser = any>(
     err: any,
     user: TUser,
-    info: any,
-    context?: ExecutionContext,
+    context?: ExecutionContext, // Note the "?" here
   ): TUser {
     if (err || !user) {
       throw err || new UnauthorizedException('Unauthorized');
     }
 
     if (context) {
-      try {
-        const req = context.switchToHttp().getRequest<FastifyRequest>();
-        req.user = user;
-      } catch (error) {
-        console.warn('Could not set user in request:', error);
-      }
+      const req = context.switchToHttp().getRequest<FastifyRequest>();
+      req.user = user;
     }
 
     return user;
   }
+
 }

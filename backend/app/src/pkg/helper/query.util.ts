@@ -106,7 +106,7 @@ export async function queryAll<T>(
         chunkQuery.populate(p);
       });
 
-      const chunk = (await chunkQuery.lean().exec()) as T[];
+      const chunk = (await chunkQuery) as T[];
       allData.push(...chunk);
     }
 
@@ -135,7 +135,7 @@ export async function queryAll<T>(
   });
 
   const [data, lastUpdatedAt] = await Promise.all([
-    queryBuilder.lean().exec() as Promise<T[]>,
+    queryBuilder as Promise<T[]>,
     getLastUpdatedAt(model),
   ]);
 
@@ -162,7 +162,7 @@ export async function queryFindOne<T>(
     query.populate(p);
   });
 
-  const result = (await query.lean().exec()) as T | null;
+  const result = (await query) as T | null;
 
   if (!result) {
     throw new NotFoundException(`${filter._id} not found`);

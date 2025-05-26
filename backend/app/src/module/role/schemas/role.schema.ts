@@ -37,6 +37,7 @@ export const RoleSchema = SchemaFactory.createForClass(Role);
 RoleSchema.set('toJSON', {
   transform: (doc, ret) => {
     delete ret.__v;
+    delete ret.metadataSchema;
     return ret;
   },
 });
