@@ -8,7 +8,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
   queryDeleteOne,
-  queryFindOne,
   queryUpdateOne,
   queryAll,
 } from 'src/pkg/helper/query.util';
@@ -20,6 +19,8 @@ import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { UploadUserDto } from './dto/upload.user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
@@ -57,20 +58,31 @@ export class UsersService {
       model: this.userModel,
       query,
       filterSchema: {},
-      buildPopulateFields: (excluded) =>
+      buildPopulateFields: excluded =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
     });
   }
 
-  async findOne(id: string) {
-    return queryFindOne<User>(this.userModel, { _id: id }, [
-      { path: 'role' },
-      { path: 'metadata.major', model: 'Major' },
-    ]);
+  async findOne(identifier: { id?: string; username?: string }) {
+    const condition = identifier.id
+      ? { _id: identifier.id }
+      : { username: identifier.username };
+
+    const user = await this.userModel
+      .findOne(condition)
+      .populate([{ path: 'role' }, { path: 'major' }])
+      .lean();
+
+    if (!user) throw new NotFoundException('User not found');
+
+    if (identifier.username && (!user.password || user.password === '')) {
+      throw new BadRequestException("User isn't registered yet");
+    }
+
+    return user;
   }
 
-  async findByUsername(username: string) {
-    const user = await this.userModel.findOne({ username }).lean();
+  async getMe(id: string) {
     try {
       if (
         !user?.password ||
@@ -79,6 +91,17 @@ export class UsersService {
       ) {
         throw new BadRequestException("User isn't registered yet");
       }
+
+      const user = await this.userModel
+        .findById(id)
+        .select('-password -refreshToken')
+        .populate([{ path: 'role' }, { path: 'major' }])
+        .lean();
+
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
       return user;
     } catch (error) {
       throw new NotFoundException(error);
@@ -93,8 +116,8 @@ export class UsersService {
         'Username already exists',
       );
     }
-    if (updateData.role) {
-      await findOrThrow(this.roleModel, updateData.role, 'Role not found');
+    if (updateUserDto.role) {
+      await findOrThrow(this.roleModel, updateUserDto.role, 'Role not found');
     }
     return queryUpdateOne<User>(this.userModel, id, updateData);
   }
@@ -122,9 +145,10 @@ export class UsersService {
 
   async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
     const users: CreateUserDto[] = await Promise.all(
-      uploadUserDto.users.map(async (userDto) => {
+      uploadUserDto.users.map(async userDto => {
         const userMajor = userDto.major || uploadUserDto.major;
 
+        // ✅ Check major existence
         if (userDto.major) {
           const userMajorRecord = await this.majorModel
             .findById(userDto.major)
@@ -141,25 +165,26 @@ export class UsersService {
           },
           fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
           username: userDto.studentId,
-          password: '',
-          secret: '',
+          password: '', // initially blank
+          secret: '', // initially blank
           major: new Types.ObjectId(userMajor),
           role: new Types.ObjectId(uploadUserDto.role),
-          type: uploadUserDto.type,
-          round: uploadUserDto.round,
+          metadata: {
+            type: uploadUserDto.metadata?.type ?? null,
+          },
         };
       }),
     );
 
     try {
       const savedUsers = await Promise.all(
-        users.map(async (user) => {
+        users.map(async user => {
           const userDoc = new this.userModel(user);
           return await userDoc.save();
         }),
       );
 
-      return savedUsers.map((user) => user.toObject());
+      return savedUsers.map(user => user.toObject());
     } catch (error) {
       if (error.code === 11000) {
         throw new ConflictException('Username already exists');
