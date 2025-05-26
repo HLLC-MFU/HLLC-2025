@@ -104,16 +104,23 @@ func (s *service) InitChatHub() {
 				// 🚀 Broadcast to all clients in room
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
 					if conn == nil {
-						log.Printf("[DEBUG] User %s is offline, sending notification...", userID)
-						s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG)
+						if userID != message.FROM.UserID {
+							s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG)
+						}
 						continue
 					}
+
 					if err := sendJSONMessage(conn, event); err != nil {
 						log.Printf("[WS] Failed to send message to user %s: %v", userID, err)
 						conn.Close()
-						delete(model.Clients[message.FROM.RoomID], userID)
+						model.Clients[message.FROM.RoomID][userID] = nil
+
+						if userID != message.FROM.UserID {
+							s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG)
+						}
 					}
 				}
+
 			}
 		}
 	}()
