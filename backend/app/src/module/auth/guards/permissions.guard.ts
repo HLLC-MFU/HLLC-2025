@@ -102,13 +102,18 @@ export class PermissionsGuard extends AuthGuard('jwt') {
   handleRequest<TUser = any>(
     err: any,
     user: TUser,
-    context: ExecutionContext,
+    context?: ExecutionContext, // Note the "?" here
   ): TUser {
     if (err || !user) {
       throw err || new ForbiddenException('Unauthorized');
     }
-    const req = context.switchToHttp().getRequest<FastifyRequest>();
-    req.user = user;
+
+    if (context) {
+      const req = context.switchToHttp().getRequest<FastifyRequest>();
+      req.user = user;
+    }
+
     return user;
   }
+
 }
