@@ -326,6 +326,8 @@ export function QrCodeScan() {
     }
   }, []);
 
+  
+
   const onNextPage = React.useCallback(() => {
     if (page < pages) {
       setPage(page + 1);
@@ -413,7 +415,7 @@ export function QrCodeScan() {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <Button color="primary" endContent={<Plus />} onPress={() => setIsOpenAdd(true)} size="sm">
+            <Button color="primary" endContent={<Plus  />} onPress={() => setIsOpenAdd(true)} >
               Add New
             </Button>
           </div>
@@ -463,7 +465,7 @@ export function QrCodeScan() {
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
   return (
-    <div className="flex flex-col w-full  px-4">
+    <div className="flex w-full  px-4">
     <Table
       isHeaderSticky
       aria-label="Example table with custom cells, pagination and sorting"
