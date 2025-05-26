@@ -9,8 +9,7 @@ import {
   Body,
   Patch,
   Post,
-  Request,
-  UnauthorizedException,
+  Req,
 } from '@nestjs/common';
 
 import { UsersService } from './users.service';
@@ -22,12 +21,13 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UploadUserDto } from './dto/upload.user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
+import { FastifyRequest } from 'fastify';
 
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Post()
   @Public()
@@ -40,32 +40,23 @@ export class UsersController {
   @Permissions('users:read')
   @CacheKey('users')
   async findAll(@Query() query: Record<string, any>) {
-    const { id, username } = query;
-
-    if (id || username) {
-      const identifier = {
-        id: id as string | undefined,
-        username: username as string | undefined,
-      };
-      return this.usersService.findOne(identifier);
-    }
-
     return this.usersService.findAll(query);
   }
 
   @Get(':id')
   @Permissions('users:read:id')
   @CacheKey('users:$params.id')
+  @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
-  @Get('search/:username')
-  @Public()
-  @Permissions('users:read:id')
-  @CacheKey('users:search:$params.username')
-  findByUsername(@Param('username') username: string) {
-    return this.usersService.findByUsername(username);
+  @Get('profile')
+  getProfile(@Req() req: FastifyRequest) {
+    const userId = req.user?._id || req.user?.id;
+    return this.usersService.findOneByQuery({
+      _id: userId,
+    });
   }
 
   @Post('upload')

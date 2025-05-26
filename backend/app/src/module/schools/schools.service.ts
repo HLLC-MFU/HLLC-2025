@@ -17,7 +17,7 @@ import {
 export class SchoolsService {
   constructor(
     @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
-  ) {}
+  ) { }
 
   async create(createSchoolDto: CreateSchoolDto) {
     await throwIfExists(
