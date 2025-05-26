@@ -16,18 +16,18 @@ import { FastifyReply } from 'fastify';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
   @Public()
   @Post('login')
   async login(
     @Body() loginDto: LoginDto,
-    @Query('useCookie') useCookie: string, // ✅ อ่านจาก query
+    @Query('useCookie') useCookie: string,
     @Res() res: FastifyReply,
   ) {
     const { username, password } = loginDto;
     const user = await this.authService.validateUser(username, password);
 
-    const useCookieBool = useCookie === 'true'; // ✅ แปลงเป็น boolean
+    const useCookieBool = useCookie === 'true';
     const tokens = await this.authService.login(user, {
       useCookie: useCookieBool,
       response: res,
@@ -37,8 +37,9 @@ export class AuthController {
       return res.send({ message: 'Login successful!', user });
     }
 
-    return { tokens, user };
+    return res.send({ tokens, user });
   }
+
   @Public()
   @Post('refresh')
   async refresh(@Body() body: { refreshToken: string }) {
