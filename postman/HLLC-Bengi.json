@@ -25,7 +25,7 @@
 							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/auth/login",
+							"raw": "{{baseUrl}}/auth/login?useCookie=true",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -53,7 +53,7 @@
 							"raw": "{\n  \"username\": \"user\",\n  \"password\": \"password123\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/auth/login",
+							"raw": "{{baseUrl}}/auth/login?useCookie=true",
 							"host": [
 								"{{baseUrl}}"
 							],

@@ -17,7 +17,7 @@ import { Activities } from '../activities/schema/activities.schema';
 import { ActivityDocument } from '../activities/schema/activities.schema';
 import { PopulateField } from 'src/pkg/types/query';
 
-const userSelectFields = 'name username major metadata createdAt updatedAt';
+const userSelectFields = 'name username major metadata';
 
 @Injectable()
 export class CheckinService {
