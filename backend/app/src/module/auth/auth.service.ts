@@ -59,17 +59,19 @@ export class AuthService {
       };
       reply.setCookie('accessToken', accessToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
+        secure: false,
+        sameSite: 'lax',
         path: '/',
         maxAge: 60 * 60, // 1h
+        domain: 'localhost',
       });
       reply.setCookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
+        secure: false,
+        sameSite: 'lax',
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days
+        domain: 'localhost',
       });
     }
 
