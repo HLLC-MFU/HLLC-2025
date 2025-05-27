@@ -42,13 +42,11 @@ export default function RootLayout({
         )}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
-          {/* <UsersProvider> */}
-            <div className="flex flex-col h-dvh max-h-dvh justify-center">
-              <main className="grow">
-                {children}
-              </main>
-            </div>
-          {/* </UsersProvider> */}
+          <div className="flex flex-col h-dvh max-h-dvh justify-center">
+            <main className="grow">
+              {children}
+            </main>
+          </div>
         </Providers>
       </body>
     </html>

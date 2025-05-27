@@ -349,6 +349,15 @@ export default function AdminPage() {
 
     const hasSearchFilter = Boolean(filterValue);
 
+    React.useEffect(() => {
+        const fetchData = async () => {
+            const res = await fetch("http://localhost:8080/api/users");
+            const data = await res.json();
+            console.log(data);
+        };
+        fetchData();
+    }, []);
+
     const headerColumns = React.useMemo(() => {
         if (visibleColumns === "all") return columns;
 
