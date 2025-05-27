@@ -7,6 +7,7 @@ import clsx from "clsx";
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { Providers } from "./providers";
+// import { UsersProvider } from "./context/UsersContext";
 
 export const metadata: Metadata = {
   title: {
@@ -41,11 +42,13 @@ export default function RootLayout({
         )}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
-          <div className="flex flex-col h-dvh max-h-dvh justify-center">
-            <main className="grow">
-              {children}
-            </main>
-          </div>
+          {/* <UsersProvider> */}
+            <div className="flex flex-col h-dvh max-h-dvh justify-center">
+              <main className="grow">
+                {children}
+              </main>
+            </div>
+          {/* </UsersProvider> */}
         </Providers>
       </body>
     </html>

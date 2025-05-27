@@ -23,11 +23,12 @@ import {
     ModalFooter,
     Form,
 } from "@heroui/react";
-import { EllipsisVertical, FileDown, FileInput, FileOutput, FileUp, Pen, PlusIcon, Trash, UserRound } from "lucide-react";
+import { EllipsisVertical, FileDown, FileInput, FileOutput, FileUp, Pen, PlusIcon, Trash, UserRound, Users } from "lucide-react";
 import AddModal from "../_components/AddModal";
 import ImportModal from "../_components/ImportModal";
 import ExportModal from "../_components/ExportModal";
 import DeleteModal from "../_components/DeleteModal";
+import { UsersData } from "@/app/context/UsersContext";
 
 export const columns = [
     { name: "ID", uid: "id", sortable: true },
@@ -429,7 +430,7 @@ export default function AdminPage() {
                             <DropdownMenu>
                                 {/* Delete from other files */}
                                 {/* <DropdownItem key="view">View</DropdownItem> */}
-                                <DropdownItem key="edit" startContent={<Pen size="16px" />} onPress={() => {setAddModalText("Edit"); setIsAddModalOpen(true); setStartIndex((page * 5) + index - 5); }}>Edit</DropdownItem>
+                                <DropdownItem key="edit" startContent={<Pen size="16px" />} onPress={() => { setAddModalText("Edit"); setIsAddModalOpen(true); setStartIndex((page * 5) + index - 5); }}>Edit</DropdownItem>
                                 <DropdownItem key="delete" startContent={<Trash size="16px" />} onPress={() => { setIsDeleteModalOpen(true); setStartIndex((page * 5) + index - 5); setEndIndex((page * 5) + index - 4); }}>Delete</DropdownItem>
                             </DropdownMenu>
                         </Dropdown>
@@ -533,7 +534,7 @@ export default function AdminPage() {
                                 <Button color="primary" endContent={<PlusIcon size={20} />}>Add new</Button>
                             </DropdownTrigger>
                             <DropdownMenu aria-label="Static Actions">
-                                <DropdownItem onPress={() => {setAddModalText("Add"); setIsAddModalOpen(true);}} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
+                                <DropdownItem onPress={() => { setAddModalText("Add"); setIsAddModalOpen(true); }} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
                                 <DropdownItem onPress={() => setIsImportModalOpen(true)} key="import" startContent={<FileInput size={16} />}>Import .xlsx file</DropdownItem>
                             </DropdownMenu>
                         </Dropdown >
@@ -600,8 +601,8 @@ export default function AdminPage() {
                 // sortDescriptor={sortDescriptor}
                 topContent={topContent}
                 topContentPlacement="outside"
-                // onSelectionChange={setSelectedKeys}
-                // onSortChange={setSortDescriptor}
+            // onSelectionChange={setSelectedKeys}
+            // onSortChange={setSortDescriptor}
             >
                 <TableHeader columns={headerColumns}>
                     {(column) => (
