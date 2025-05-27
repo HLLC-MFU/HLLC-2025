@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
@@ -20,6 +29,11 @@ export class ReportsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.reportsService.findOne(id);
+  }
+
+  @Get(':id/categories')
+  async getByCategory(@Param('id') categoryId: string) {
+    return this.reportsService.findAllByCategory(categoryId);
   }
 
   @Patch(':id')
