@@ -13,7 +13,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
 
-@Controller('roles') // แนะนำใช้พหูพจน์
+@Controller('roles')
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
