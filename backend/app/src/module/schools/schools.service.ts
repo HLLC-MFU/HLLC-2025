@@ -17,7 +17,7 @@ import {
 export class SchoolsService {
   constructor(
     @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
-  ) {}
+  ) { }
 
   async create(createSchoolDto: CreateSchoolDto) {
     await throwIfExists(
@@ -50,16 +50,19 @@ export class SchoolsService {
   }
 
   async findOne(id: string) {
-    return queryFindOne<School>(this.schoolModel, { _id: id }, [
-      { path: 'majors' },
-    ]);
+    return queryFindOne<School>(this.schoolModel, { _id: id }, []);
   }
 
   async update(id: string, updateSchoolDto: UpdateSchoolDto) {
+    updateSchoolDto.updatedAt = new Date();
     return queryUpdateOne<School>(this.schoolModel, id, updateSchoolDto);
   }
 
   async remove(id: string) {
-    return queryDeleteOne<School>(this.schoolModel, id);
+    await queryDeleteOne<School>(this.schoolModel, id);
+    return {
+      message: 'School deleted successfully',
+      id,
+    };
   }
 }
