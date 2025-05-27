@@ -3,13 +3,16 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Notification, NotificationDocument } from './schemas/notification.schema';
 import { Model, Types } from 'mongoose';
 import { Expo } from 'expo-server-sdk';
-import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne, queryUpdateOneByFilter } from 'src/pkg/helper/query.util';
+import { NotificationRead, NotificationReadDocument } from './schemas/notification-reads.schema';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectModel(Notification.name)
-    private readonly notificationModel: Model<NotificationDocument>
+    private readonly notificationModel: Model<NotificationDocument>,
+    @InjectModel(NotificationRead.name)
+    private readonly notificationReadModel: Model<NotificationReadDocument>,
   ) {}
 
   async create(createNotificationDto: Notification) {
@@ -44,23 +47,18 @@ export class NotificationsService {
   }
 
   async markAsRead(userId: string, notificationId: string) {
-    const notificationRead = await this.notificationModel.findOneAndUpdate(
-      { userId: new Types.ObjectId(userId) },
-      { $addToSet: { readNotifications: new Types.ObjectId(notificationId) } },
-      { new: true, upsert: true }
-    );
+    const filter = { userId: new Types.ObjectId(userId) };
+    const update = { $addToSet: { readNotifications: new Types.ObjectId(notificationId) } };
+    const options = { upsert: true };
 
-    return notificationRead;
+    return await queryUpdateOneByFilter<NotificationRead>(this.notificationReadModel, filter, update, options);
   }
-  
-  async markAsUnread(userId: string, notificatioIds: string[]): Promise<void> {
-    const userObjectId = new Types.ObjectId(userId);
-    const notificatioObjectIds = notificatioIds.map(id => new Types.ObjectId(id));
 
-    await this.notificationModel.updateOne(
-      { userId: userObjectId },
-      { $pullAll: { readNotifications: notificatioObjectIds } },
-    );
+  async markAsUnread(userId: string, notificationIds: string[]): Promise<void> {
+    const filter = { userId: new Types.ObjectId(userId) };
+    const update = { $pullAll: { readNotifications: notificationIds.map(id => new Types.ObjectId(id)) } };
+
+    await queryUpdateOneByFilter<NotificationRead>(this.notificationReadModel, filter, update);
   }
 
   async sendNotification(sendNotificationDto: Notification) {

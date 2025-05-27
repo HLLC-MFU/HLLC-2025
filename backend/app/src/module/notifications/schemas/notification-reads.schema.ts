@@ -1,5 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types, SchemaTypes } from 'mongoose';
+import { Document, Types, SchemaTypes, HydratedDocument } from 'mongoose';
+
+export type NotificationReadDocument = HydratedDocument<NotificationRead>;
 
 @Schema({ collection: 'notification-reads', timestamps: true, versionKey: false })
 export class NotificationRead extends Document {

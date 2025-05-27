@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { NotificationsService } from './notifications.service';
 import { CacheKey } from '@nestjs/cache-manager';
 import { Notification } from './schemas/notification.schema';
+import { MarkAsReadDto, MarkAsUnreadDto } from './dto/notification-read.dto';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -34,12 +35,12 @@ export class NotificationsController {
   }
 
   @Post('read')
-  markAsRead(@Body() body: { userId: string, notificationId: string }) {
-    return this.notificationsService.markAsRead(body.userId, body.notificationId);
+  markAsRead(@Body() markAsReadDto: MarkAsReadDto) {
+    return this.notificationsService.markAsRead(markAsReadDto.userId, markAsReadDto.notificationId);
   }
 
   @Post('unread')
-  markAsUnread(@Body() body: { userId: string, notificationIds: string[] }) {
-    return this.notificationsService.markAsUnread(body.userId, body.notificationIds);
+  markAsUnread(@Body() markAsUnreadDto: MarkAsUnreadDto) {
+    return this.notificationsService.markAsUnread(markAsUnreadDto.userId, markAsUnreadDto.notificationIds);
   }
 }

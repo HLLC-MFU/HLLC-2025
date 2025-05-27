@@ -10,7 +10,6 @@ class RedirectButton {
 
   @Prop({ type: String, required: true })
   url: string;
-  
 }
 
 class Target {
@@ -19,33 +18,31 @@ class Target {
 
   @Prop({ type: [SchemaTypes.ObjectId], required: true })
   id: Types.ObjectId[];
-
 }
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, versionKey: false })
 export class Notification extends Document {
 
-    @Prop({ type: Object, required: true })
-    title: Localization;
-    
-    @Prop({ type: Object, required: true })
-    subtitle: Localization;
+  @Prop({ type: Object, required: true })
+  title: Localization;
+  
+  @Prop({ type: Object, required: true })
+  subtitle: Localization;
 
-    @Prop({ type: Object, required: true })
-    body: Localization;
+  @Prop({ type: Object, required: true })
+  body: Localization;
 
-    @Prop({ type: String, required: true })
-    icon: string;
+  @Prop({ type: String, required: true })
+  icon: string;
 
-    @Prop({ type: String, default: '' })
-    image: string;
+  @Prop({ type: String, default: '' })
+  image: string;
 
-    @Prop({ type: RedirectButton, required: false })
-    redirectButton?: RedirectButton;
+  @Prop({ type: RedirectButton, required: false })
+  redirectButton?: RedirectButton;
 
-    @Prop({ type: SchemaTypes.Mixed, required: true })
-    scope: 'global' | Target[];
-
+  @Prop({ type: SchemaTypes.Mixed, required: true })
+  scope: 'global' | Target[];
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);
