@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
 	"go.mongodb.org/mongo-driver/bson"
@@ -38,8 +39,17 @@ func (r *repository) CreateChatHistories(ctx context.Context, chatHistory *model
 }
 
 func (r *repository) SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error {
-	_, err := r.dbConnect(ctx).Collection("chat_messages").InsertOne(ctx, msg)
-	return err
+	res, err := r.dbConnect(ctx).Collection("chat_messages").InsertOne(ctx, msg)
+	if err != nil {
+		return err
+	}
+
+	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
+		msg.ID = oid
+	} else {
+		return fmt.Errorf("failed to assert InsertedID as ObjectID")
+	}
+	return nil
 }
 
 func (r *repository) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error) {

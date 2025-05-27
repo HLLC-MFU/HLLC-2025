@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
+	roomRedis "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
+
 	RoomRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 
@@ -59,68 +61,81 @@ func (s *service) InitChatHub() {
 				log.Printf("[REGISTER] %s joined room %s", client.UserID, client.RoomID)
 
 			case client := <-model.Unregister:
-				// Instead of deleting entirely, mark as offline
 				if roomClients, exists := model.Clients[client.RoomID]; exists {
 					roomClients[client.UserID] = nil
 				}
-				redis.RemoveUserFromRoom(client.RoomID, client.UserID)
+				roomRedis.RemoveUserFromRoom(client.RoomID, client.UserID)
 				log.Printf("[UNREGISTER] %s left room %s", client.UserID, client.RoomID)
 
 			case message := <-model.Broadcast:
 				log.Printf("[BROADCAST] Message from %s in room %s: %s", message.FROM.UserID, message.FROM.RoomID, message.MSG)
 
-				// Extract mentions before storing
 				mentions := utils.ExtractMentions(message.MSG)
 
-				// 🔄 Store message in Kafka and MongoDB asynchronously
-				go func(roomID, userID, msg string, mentions []string) {
-					if err := s.publisher.SendMessage(roomID, userID, msg); err != nil {
-						log.Printf("[Kafka] Failed to publish message: %v", err)
-					}
-					if err := s.repo.SaveChatMessage(context.Background(), &model.ChatMessage{
-						RoomID:    roomID,
-						UserID:    userID,
-						Message:   msg,
-						Mentions:  mentions,
-						Timestamp: time.Now(),
-					}); err != nil {
-						log.Printf("[MongoDB] Failed to save chat message: %v", err)
-					}
-				}(message.FROM.RoomID, message.FROM.UserID, message.MSG, mentions)
-
-				// 🧱 Create a JSON event to broadcast
-				payload := model.MessagePayload{
-					UserID:   message.FROM.UserID,
-					RoomID:   message.FROM.RoomID,
-					Message:  message.MSG,
-					Mentions: mentions,
+				chatMsg := &model.ChatMessage{
+					RoomID:    message.FROM.RoomID,
+					UserID:    message.FROM.UserID,
+					Message:   message.MSG,
+					Mentions:  mentions,
+					Timestamp: time.Now(),
 				}
 
+				// Save to MongoDB -> Redis -> Kafka (in this order)
+				go func(msg *model.ChatMessage) {
+					ctx := context.Background()
+
+					// Save to Mongo
+					if err := s.repo.SaveChatMessage(ctx, msg); err != nil {
+						log.Printf("[MongoDB] Failed to save chat message: %v", err)
+						return
+					}
+
+					// Save to Redis
+					if err := redis.SaveChatMessageToRoom(msg.RoomID, msg); err != nil {
+						log.Printf("[Redis] Failed to save message to cache: %v", err)
+					}
+
+					// Publish to Kafka
+					msgJSON, err := json.Marshal(msg)
+					if err == nil {
+						if err := s.publisher.SendMessage(msg.RoomID, msg.UserID, string(msgJSON)); err != nil {
+							log.Printf("[Kafka] Failed to publish: %v", err)
+						}
+					} else {
+						log.Printf("[Kafka] Failed to marshal message: %v", err)
+					}
+				}(chatMsg)
+
+				// Send event to all room clients
+				payload := model.MessagePayload{
+					UserID:   chatMsg.UserID,
+					RoomID:   chatMsg.RoomID,
+					Message:  chatMsg.Message,
+					Mentions: chatMsg.Mentions,
+				}
 				event := model.ChatEvent{
 					EventType: "message",
 					Payload:   payload,
 				}
 
-				// 🚀 Broadcast to all clients in room
-				for userID, conn := range model.Clients[message.FROM.RoomID] {
+				for userID, conn := range model.Clients[chatMsg.RoomID] {
 					if conn == nil {
-						if userID != message.FROM.UserID {
-							s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG)
+						if userID != chatMsg.UserID {
+							s.notifyOfflineUser(userID, chatMsg.RoomID, chatMsg.UserID, chatMsg.Message)
 						}
 						continue
 					}
 
 					if err := sendJSONMessage(conn, event); err != nil {
-						log.Printf("[WS] Failed to send message to user %s: %v", userID, err)
+						log.Printf("[WS] Failed to send to %s: %v", userID, err)
 						conn.Close()
-						model.Clients[message.FROM.RoomID][userID] = nil
+						model.Clients[chatMsg.RoomID][userID] = nil
 
-						if userID != message.FROM.UserID {
-							s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG)
+						if userID != chatMsg.UserID {
+							s.notifyOfflineUser(userID, chatMsg.RoomID, chatMsg.UserID, chatMsg.Message)
 						}
 					}
 				}
-
 			}
 		}
 	}()
@@ -197,7 +212,7 @@ func (s *service) SyncRoomMembers() {
 	}
 
 	for _, room := range rooms {
-		memberIDs, err := redis.GetRoomMembers(room.ID.Hex())
+		memberIDs, err := roomRedis.GetRoomMembers(room.ID.Hex())
 		if err != nil {
 			log.Printf("[SYNC] Failed to get members for room %s: %v", room.ID.Hex(), err)
 			continue

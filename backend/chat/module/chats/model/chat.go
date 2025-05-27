@@ -70,21 +70,6 @@ func RegisterClient(client ClientObject) {
 	}
 	Clients[client.RoomID][client.UserID] = client.Conn
 	Register <- client
-
-	// Start Heartbeat
-	go func() {
-		for {
-			err := client.Conn.WriteMessage(websocket.PingMessage, nil)
-			if err != nil {
-				log.Printf("[HEARTBEAT] Disconnected: %s in room %s", client.UserID, client.RoomID)
-				UnregisterClient(client)
-				Unregister <- client
-			}
-			time.Sleep(30 * time.Second) // Heartbeat interval
-		}
-	}()
-
-	log.Printf("[JOIN] %s joined room %s\n", client.UserID, client.RoomID)
 }
 
 func UnregisterClient(client ClientObject) {

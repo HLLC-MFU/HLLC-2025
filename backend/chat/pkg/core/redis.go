@@ -11,6 +11,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+var GlobalRedis *RedisCache
+
 type (
 	RedisConfig struct {
 		Host     string
@@ -62,6 +64,10 @@ func RedisConnect(ctx context.Context, cfg *config.Config) *RedisCache {
 	if err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
+
+	// 💡 Set global reference
+	GlobalRedis = cache
+
 	return cache
 }
 

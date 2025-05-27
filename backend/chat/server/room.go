@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/handler"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/router"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/service"
@@ -31,7 +30,6 @@ import (
 
 func (s *server) roomService() {
 	// Init Redis
-	redis.InitRedis()
 
 	// Setup Kafka topic
 	publisher := kafkaUtil.GetPublisher()

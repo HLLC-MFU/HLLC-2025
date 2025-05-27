@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils"
 	MemberService "github.com/HLLC-MFU/HLLC-2025/backend/module/members/service"
@@ -91,16 +92,30 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 		UserID: userID,
 		Conn:   conn,
 	}
-
-	history, err := h.service.GetChatHistoryByRoom(ctx, roomID, 50)
-	if err == nil && len(history) > 0 {
-		for _, msg := range history {
+	// 1. Try Redis first
+	redisHistory, err := redis.GetRecentMessages(roomID, 50)
+	if err == nil && len(redisHistory) > 0 {
+		for _, msg := range redisHistory {
 			event := ChatEvent{
 				EventType: "history",
 				Payload:   msg,
 			}
 			eventJSON, _ := json.Marshal(event)
 			_ = conn.WriteMessage(websocket.TextMessage, eventJSON)
+		}
+	} else {
+		// 2. Fallback to Mongo if Redis fails
+		log.Println("[REDIS] History not available, fallback to MongoDB")
+		mongoHistory, err := h.service.GetChatHistoryByRoom(ctx, roomID, 50)
+		if err == nil && len(mongoHistory) > 0 {
+			for _, msg := range mongoHistory {
+				event := ChatEvent{
+					EventType: "history",
+					Payload:   msg,
+				}
+				eventJSON, _ := json.Marshal(event)
+				_ = conn.WriteMessage(websocket.TextMessage, eventJSON)
+			}
 		}
 	}
 
@@ -376,6 +391,22 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save sticker message"})
 	}
 
+	stickerPayload := map[string]interface{}{
+		"type":      "sticker",
+		"userId":    userID,
+		"roomId":    roomIdStr,
+		"stickerId": sticker.ID.Hex(),
+		"image":     sticker.Image,
+		"timestamp": time.Now(),
+	}
+
+	jsonData, err := json.Marshal(stickerPayload)
+	if err == nil {
+		_ = h.publisher.SendMessage(roomIdStr, userID, string(jsonData))
+	} else {
+		log.Printf("[Kafka] Failed to marshal sticker payload: %v", err)
+	}
+
 	// Only broadcast once using structured event
 	h.broadcastEvent(roomIdStr, "sticker", map[string]string{
 		"userId":    userID,
@@ -504,14 +535,22 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save message"})
 	}
 
-	// // Broadcast to all clients in the room
-	// model.BroadcastMessage(model.BroadcastObject{
-	// 	MSG: fmt.Sprintf("[file] %s", msg.FileName),
-	// 	FROM: model.ClientObject{
-	// 		RoomID: msg.RoomID,
-	// 		UserID: msg.UserID,
-	// 	},
-	// })
+	filePayload := map[string]interface{}{
+		"type":      "file",
+		"userId":    userId,
+		"roomId":    roomId,
+		"fileName":  msg.FileName,
+		"fileType":  msg.FileType,
+		"fileURL":   msg.FileURL,
+		"timestamp": time.Now(),
+	}
+
+	jsonData, err := json.Marshal(filePayload)
+	if err == nil {
+		_ = h.publisher.SendMessage(roomId, userId, string(jsonData))
+	} else {
+		log.Printf("[Kafka] Failed to marshal file payload: %v", err)
+	}
 
 	// Optional: send rich event payload
 	h.broadcastEvent(roomId, "file", map[string]string{

@@ -14,7 +14,6 @@ import (
 	stickerServicePkg "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
 
 	roomKafka "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
-	roomRedis "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 
 	RoomRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
 	RoomService "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/service"
@@ -26,7 +25,6 @@ import (
 )
 
 func (s *server) chatService() {
-	roomRedis.InitRedis()
 
 	publisher := kafkaUtil.GetPublisher()
 
