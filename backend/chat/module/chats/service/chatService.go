@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils"
 	roomRedis "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
@@ -80,33 +79,6 @@ func (s *service) InitChatHub() {
 					Timestamp: time.Now(),
 				}
 
-				// Save to MongoDB -> Redis -> Kafka (in this order)
-				go func(msg *model.ChatMessage) {
-					ctx := context.Background()
-
-					// Save to Mongo
-					if err := s.repo.SaveChatMessage(ctx, msg); err != nil {
-						log.Printf("[MongoDB] Failed to save chat message: %v", err)
-						return
-					}
-
-					// Save to Redis
-					if err := redis.SaveChatMessageToRoom(msg.RoomID, msg); err != nil {
-						log.Printf("[Redis] Failed to save message to cache: %v", err)
-					}
-
-					// Publish to Kafka
-					msgJSON, err := json.Marshal(msg)
-					if err == nil {
-						if err := s.publisher.SendMessage(msg.RoomID, msg.UserID, string(msgJSON)); err != nil {
-							log.Printf("[Kafka] Failed to publish: %v", err)
-						}
-					} else {
-						log.Printf("[Kafka] Failed to marshal message: %v", err)
-					}
-				}(chatMsg)
-
-				// Send event to all room clients
 				payload := model.MessagePayload{
 					UserID:   chatMsg.UserID,
 					RoomID:   chatMsg.RoomID,
@@ -141,7 +113,6 @@ func (s *service) InitChatHub() {
 	}()
 }
 
-// ✅ Helper to safely send JSON
 func sendJSONMessage(conn *websocket.Conn, v interface{}) error {
 	data, err := json.Marshal(v)
 	if err != nil {
@@ -159,13 +130,11 @@ func (s *service) notifyOfflineUser(userID, roomID, fromUserID, message string) 
 	}
 	msg, _ := json.Marshal(payload)
 
-	// ✅ Corrected: use SendMessageToTopic (not SendMessage)
 	if err := s.publisher.SendMessageToTopic("chat-notifications", userID, string(msg)); err != nil {
 		log.Printf("[Kafka Notify] Failed to notify offline user %s: %v", userID, err)
 	} else {
 		log.Printf("[Kafka Notify] Notification queued for %s", userID)
 	}
-
 }
 
 func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {

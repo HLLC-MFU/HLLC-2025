@@ -237,6 +237,26 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 		filteredMessage := utils.FilterProfanity(messageText)
 		mentions := extractMentions(filteredMessage)
 
+		// ✅ Create ChatMessage
+		chatMsg := &model.ChatMessage{
+			RoomID:    roomID,
+			UserID:    userID,
+			Message:   filteredMessage,
+			Mentions:  mentions,
+			Timestamp: time.Now(),
+		}
+
+		// ✅ Send to Kafka
+		msgJSON, err := json.Marshal(chatMsg)
+		if err != nil {
+			log.Printf("[Kafka] Failed to marshal chat message: %v", err)
+		} else {
+			if err := h.publisher.SendMessage(roomID, userID, string(msgJSON)); err != nil {
+				log.Printf("[Kafka] Failed to send chat message to Kafka: %v", err)
+			}
+		}
+
+		// ✅ Then broadcast to clients (optional — your consumer will also do this)
 		model.BroadcastMessage(model.BroadcastObject{
 			MSG:  filteredMessage,
 			FROM: client,
@@ -249,6 +269,7 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 				Message:   filteredMessage,
 			})
 		}
+
 	}
 }
 

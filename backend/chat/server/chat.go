@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/handler"
@@ -28,8 +29,9 @@ func (s *server) chatService() {
 
 	publisher := kafkaUtil.GetPublisher()
 
-	topics := []string{"chat-room", "chat-notifications"}
-	for _, topic := range topics {
+	staticTopics := []string{"chat-room", "chat-notifications"}
+	for _, topic := range staticTopics {
+		// Create or ensure Kafka topic
 		if err := kafkaUtil.EnsureKafkaTopic("localhost:9092", topic); err != nil {
 			log.Fatalf("[Kafka] Ensure Topic %s error: %v", topic, err)
 		}
@@ -60,7 +62,20 @@ func (s *server) chatService() {
 
 	// Kafka consumer
 	kafkaConsumerGroup := "chat-group"
-	roomKafka.StartKafkaConsumer("localhost:9092", []string{}, kafkaConsumerGroup, chatService)
+	// Fetch rooms from DB
+
+	// Fetch rooms from DB
+	rooms, _, err := roomRepo.List(context.Background(), 1, 1000)
+	if err != nil {
+		log.Fatalf("Failed to fetch rooms: %v", err)
+	}
+
+	var topics []string
+	for _, room := range rooms {
+		topics = append(topics, "chat-room-"+room.ID.Hex())
+	}
+
+	roomKafka.StartKafkaConsumer("localhost:9092", topics, kafkaConsumerGroup, chatService)
 
 	// HTTP/WebSocket handler
 	httpHandler := handler.NewHTTPHandler(chatService, memberService, publisher, stickerService, roomService)
