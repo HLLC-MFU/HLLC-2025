@@ -43,6 +43,26 @@ export class NotificationsService {
     return await queryDeleteOne<Notification>(this.notificationModel, id);
   }
 
+  async markAsRead(userId: string, notificationId: string) {
+    const notificationRead = await this.notificationModel.findOneAndUpdate(
+      { userId: new Types.ObjectId(userId) },
+      { $addToSet: { readNotifications: new Types.ObjectId(notificationId) } },
+      { new: true, upsert: true }
+    );
+
+    return notificationRead;
+  }
+  
+  async markAsUnread(userId: string, notificatioIds: string[]): Promise<void> {
+    const userObjectId = new Types.ObjectId(userId);
+    const notificatioObjectIds = notificatioIds.map(id => new Types.ObjectId(id));
+
+    await this.notificationModel.updateOne(
+      { userId: userObjectId },
+      { $pullAll: { readNotifications: notificatioObjectIds } },
+    );
+  }
+
   async sendNotification(sendNotificationDto: Notification) {
     const expo = new Expo();
     
@@ -57,6 +77,5 @@ export class NotificationsService {
 
     const ticketChunk = await expo.sendPushNotificationsAsync(messages);
     console.log('Push ticket:', ticketChunk);
-
   }
 }

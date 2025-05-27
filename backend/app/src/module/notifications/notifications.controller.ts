@@ -32,4 +32,14 @@ export class NotificationsController {
   remove(@Param('id') id: string) {
     return this.notificationsService.remove(id);
   }
+
+  @Post('read')
+  markAsRead(@Body() body: { userId: string, notificationId: string }) {
+    return this.notificationsService.markAsRead(body.userId, body.notificationId);
+  }
+
+  @Post('unread')
+  markAsUnread(@Body() body: { userId: string, notificationIds: string[] }) {
+    return this.notificationsService.markAsUnread(body.userId, body.notificationIds);
+  }
 }
