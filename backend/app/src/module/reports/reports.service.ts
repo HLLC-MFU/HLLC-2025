@@ -17,7 +17,7 @@ import {
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
-import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
+import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { UpdateReportDto } from './dto/update-report.dto';
 
