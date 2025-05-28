@@ -14,6 +14,7 @@ import { NotificationsModule } from './module/notifications/notifications.module
 import * as redisStore from 'cache-manager-ioredis';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesMajorModule } from './module/activities-major/activities-major.module';
+import { SseModule } from './module/sse/sse.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { ActivitiesMajorModule } from './module/activities-major/activities-majo
     GlobalCacheModule,
     ActivitiesMajorModule,
     NotificationsModule,
+    SseModule,
   ],
   providers: [],
 })

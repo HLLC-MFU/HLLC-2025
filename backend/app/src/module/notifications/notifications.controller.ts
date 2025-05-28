@@ -3,6 +3,7 @@ import { NotificationsService } from './notifications.service';
 import { CacheKey } from '@nestjs/cache-manager';
 import { Notification } from './schemas/notification.schema';
 import { ReadNotificationDto } from './dto/notification-read.dto';
+import { CreateNotificationDto } from './dto/notification.dto';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -10,7 +11,7 @@ export class NotificationsController {
 
   @Post()
   @CacheKey('notifcations')
-  create(@Body() createNotificationDto: Notification) {
+  create(@Body() createNotificationDto: CreateNotificationDto) {
     return this.notificationsService.create(createNotificationDto);
   }
 

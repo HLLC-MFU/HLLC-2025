@@ -6,6 +6,8 @@ import { Expo } from 'expo-server-sdk';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne, queryUpdateOneByFilter } from 'src/pkg/helper/query.util';
 import { NotificationRead, NotificationReadDocument } from './schemas/notification-reads.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
+import { SseService } from '../sse/sse.service';
+import { CreateNotificationDto } from './dto/notification.dto';
 
 @Injectable()
 export class NotificationsService {
@@ -16,18 +18,27 @@ export class NotificationsService {
     private readonly notificationReadModel: Model<NotificationReadDocument>,
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    private readonly sseService: SseService,
   ) {}
 
-  async create(createNotificationDto: Notification) {
+  async create(createNotificationDto: CreateNotificationDto) {
+    let scope: 'global' | { id: Types.ObjectId[]; type: string }[] = 'global';
 
     if (createNotificationDto.scope !== 'global') {
-      createNotificationDto.scope = createNotificationDto.scope.map((item) => ({
+      scope = createNotificationDto.scope.map((item) => ({
         ...item,
-        id: item.id.map((id) => new Types.ObjectId(id))
+        id: item.id.map((id) => new Types.ObjectId(id)),
       }));
     }
 
-    return (await this.notificationModel.create(createNotificationDto)).toObject();
+    this.sseService.notify({
+      type: 'REFETCH_NOTIFICATIONS',
+    });
+
+    return (await this.notificationModel.create({
+      ...createNotificationDto,
+      scope,
+    })).toObject();
   }
 
   async findAll(query: Record<string, string>) {

@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Notification, NotificationSchema } from './schemas/notification.schema';
 import { NotificationRead, NotificationReadSchema } from './schemas/notification-reads.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
+import { SseModule } from '../sse/sse.module';
 
 @Module({
   imports: [
@@ -12,7 +13,8 @@ import { User, UserSchema } from '../users/schemas/user.schema';
       { name: Notification.name, schema: NotificationSchema},
       { name: NotificationRead.name, schema: NotificationReadSchema },
       { name: User.name, schema: UserSchema },
-    ])
+    ]),
+    SseModule,
   ],
   controllers: [NotificationsController],
   providers: [NotificationsService],
