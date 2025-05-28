@@ -1,6 +1,6 @@
 import { ArrayNotEmpty, IsArray, IsMongoId, IsNotEmpty, isNotEmpty } from "class-validator";
 
-export class MarkAsReadDto {
+export class ReadNotificationDto {
   @IsMongoId()
   @IsNotEmpty()
   userId: string;
@@ -8,15 +8,4 @@ export class MarkAsReadDto {
   @IsMongoId()
   @IsNotEmpty()
   notificationId: string;
-}
-
-export class MarkAsUnreadDto {
-  @IsMongoId()
-  @IsNotEmpty()
-  userId: string;
-
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsMongoId({ each: true })
-  notificationIds: string[];
 }
