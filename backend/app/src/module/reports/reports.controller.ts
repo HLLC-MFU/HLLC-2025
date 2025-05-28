@@ -31,9 +31,9 @@ export class ReportsController {
     return this.reportsService.findOne(id);
   }
 
-  @Get(':id/categories')
-  async getByCategory(@Param('id') categoryId: string) {
-    return this.reportsService.findAllByCategory(categoryId);
+  @Get('categories')
+  async getAllByCategory() {
+    return this.reportsService.findAllByCategory();
   }
 
   @Patch(':id')

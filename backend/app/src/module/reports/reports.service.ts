@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PopulateOptions, Types } from 'mongoose';
 
-
 import { Report, ReportDocument } from './schemas/reports.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import {
@@ -10,9 +9,7 @@ import {
   ReportCategoryDocument,
 } from '../report_categories/schemas/report_categories.schemas';
 
-
 import { CreateReportDto } from './dto/create-report.dto';
-
 
 import {
   queryAll,
@@ -94,36 +91,34 @@ export class ReportsService {
     });
   }
 
-  async findAllByCategory(categoryId: string) {
-    const query = {
-      category: new Types.ObjectId(categoryId),
-    };
+  async findAllByCategory() {
+    const categories = await this.categoryModel.find();
 
-    const result = await queryAll<Report>({
-      model: this.reportModel,
-      query: query as unknown as Record<string, string>,
-      filterSchema: {
-        category: 'string',
-      } as const,
-      buildPopulateFields: () =>
-        Promise.resolve([
-          { path: 'reporter', select: userSelectFields },
-          { path: 'category' },
-        ]),
-    });
+    const data = await Promise.all(
+      categories.map(async (cat) => {
+        const result = await queryAll<Report>({
+          model: this.reportModel,
+          query: { category: cat._id } as unknown as Record<string, string>,
+          filterSchema: {
+            category: 'string',
+          } as const,
+          buildPopulateFields: () =>
+            Promise.resolve([
+              { path: 'reporter', select: userSelectFields },
+              { path: 'category' },
+            ]),
+        });
 
-    const reportsWithoutCategory = result.data.map(
-      ({ category, ...rest }) => rest,
+        const reports = result.data.map(({ category, ...rest }) => rest);
+
+        return {
+          category: cat,
+          reports,
+        };
+      }),
     );
 
-    const category =
-      result.data[0]?.category ||
-      (await this.categoryModel.findById(categoryId));
-
-    return {
-      category,
-      reports: reportsWithoutCategory,
-    };
+    return data;
   }
 
   async findOne(id: string) {
@@ -163,18 +158,13 @@ export class ReportsService {
     };
   }
 
-  async remove(id: string) {
-    const found = await this.reportModel.findById(id).lean();
+  async remove(id: string): Promise<{ message: string; deletedId: string }> {
+  await queryDeleteOne<Report>(this.reportModel, id);
 
-    if (!found) {
-      throw new NotFoundException('Report not found');
-    }
+  return {
+    message: 'Report deleted successfully',
+    deletedId: id,
+  };
+}
 
-    await this.reportModel.findByIdAndDelete(id).exec();
-
-    return {
-      message: 'Report deleted successfully',
-      deletedId: id,
-    };
-  }
 }
