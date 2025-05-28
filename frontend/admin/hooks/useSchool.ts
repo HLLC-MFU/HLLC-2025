@@ -44,8 +44,6 @@ export function useSchools() {
     }
   };
 
-
-
   // ✏️ Update school
   const updateSchool = async (id: string, schoolData: Partial<School>) => {
     try {

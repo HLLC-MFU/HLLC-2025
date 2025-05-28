@@ -2,30 +2,18 @@ import React from "react"
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@heroui/react";
 import * as XLSX from 'xlsx'
 import { saveAs } from "file-saver";
-import { UserType } from "@/app/context/UserContext";
+import { User } from "@/types/user";
 
 export interface ExportModalProps {
     isOpen: boolean;
     onClose: () => void;
-    data: UserType[];
+    data: User[];
 }
 
 export default function ExportModal({ isOpen, onClose, data }: ExportModalProps) {
     const fileNameRef = React.useRef<HTMLInputElement>(null);
 
-    const serializadData = data.map((item) => {
-        const newItem: any = {};
-        for (const key in item) {
-            if (typeof item[key as keyof UserType] === "object" && item[key as keyof UserType] != null) {
-                newItem[key] = JSON.stringify(item[key as keyof UserType]);
-            } else {
-                newItem[key] = item[key as keyof UserType];
-            };
-        };
-        return newItem;
-    });
-
-    const exportFile = (data: UserType[], fileName = "data") => {
+    const exportFile = (data: User[], fileName = "data") => {
         const worksheet = XLSX.utils.json_to_sheet(data);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
@@ -37,7 +25,19 @@ export default function ExportModal({ isOpen, onClose, data }: ExportModalProps)
     const handleExport = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        exportFile(serializadData, fileNameRef.current?.value || "Data");
+        const transformedData = data.map((item) => (console.log(item), {
+            username: item.username,
+            first: item.name.first,
+            middle: item.name.middle ?? "",
+            last: item.name.last,
+            role: item.role,
+            school_en: item.metadata?.school?.name?.en ?? "",
+            school_th: item.metadata?.school?.name?.th ?? "",
+            major_en: item.metadata?.major?.name?.en ?? "",
+            major_th: item.metadata?.major?.name?.th ?? "",
+        }));
+
+        exportFile(transformedData, fileNameRef.current?.value || "Data");
         onClose();
     };
 

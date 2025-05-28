@@ -2,13 +2,16 @@ import { addToast, Button, Form, getKeyValue, Input, Modal, ModalBody, ModalCont
 import React from "react";
 import * as XLSX from "xlsx";
 import { columns } from "../admin/page";
+import saveAs from "file-saver";
+import { User } from "@/types/user";
 
 export interface ImportModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onImportUsers: (userData: Partial<User>[]) => void;
 }
 
-export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
+export default function ImportModal({ isOpen, onClose, onImportUsers }: ImportModalProps) {
     const [fileData, setFileData] = React.useState<any[]>([]);
     const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
@@ -48,24 +51,34 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
                         data[key] = item[key];
                     };
                 };
-                return data
+
+                const mapData: any = {};
+                mapData.username = item["username"];
+                mapData.role = item["role"];
+                mapData.name = {
+                    first: item["first"],
+                    middle: item["middle"],
+                    last: item["last"],
+                };
+                mapData.metadata = {
+                    school: {
+                        name: {
+                            en: item["school_en"],
+                            th: item["school_th"]
+                        }
+                    },
+                    major: {
+                        name: {
+                            en: item["major_en"],
+                            th: item["major_th"]
+                        }
+                    }
+                };
+
+                return mapData
             });
 
             setFileData(dataForm);
-
-            // const hasInvalidData = jsonData.some((item: any) => {
-            //     const studentId = getKeyValue(item, "username");
-            //     const firstName = getKeyValue(item, "first");
-            //     const lastName = getKeyValue(item, "last");
-            //     const school = getKeyValue(item, "School");
-
-            //     return !studentId || !firstName || !lastName || !school
-            // })
-            // if (hasInvalidData) {
-            //     handleInvalidFile();
-            //     return;
-            // }
-
         };
 
         reader.readAsArrayBuffer(file);
@@ -79,36 +92,36 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
         onClose();
     };
 
-    const handleInvalidFile = () => {
-        setIsImportModalOpen(false);
-        addToast({
-            title: "Invalid File",
-            description: "Please ensure the file contains valid data",
-            color: "danger",
-            variant: "solid",
-        });
-        onClose();
-    };
-
     const handleCancel = () => {
         setIsPreviewModalOpen(false);
         setIsImportModalOpen(true);
     };
 
     const handleConfirmImport = () => {
+        onImportUsers(fileData);
         setIsPreviewModalOpen(false);
-        addToast({
-            title: "Import Successful",
-            description: "File has been imported successfully",
-            color: "success",
-            variant: "solid",
-            classNames: {
-                base: "text-white",
-                title: "text-white",
-                description: "text-white",
-            },
-        });
     };
+
+    const handleTemplateExport = () => {
+        const temp = {
+            "username": [],
+            "first": [],
+            "middle": [],
+            "last": [],
+            "role": [],
+            "school_en": [],
+            "school_th": [],
+            "major_en": [],
+            "major_th": []
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet([temp]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: 'array' })
+        const blob = new Blob([excelBuffer], { type: "application/octet-stream" })
+        saveAs(blob, "Template.xlsx");
+    }
 
     const renderCell = React.useCallback((item: any, columnKey: React.Key) => {
         const cellValue = item[columnKey as keyof typeof item];
@@ -116,21 +129,13 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
         switch (columnKey) {
             case "name":
                 return `${item.name.first} ${item.name.middle === null ? "" : item.name.middle} ${item.name.last}`;
-            case "metadata":
-                return (
-                    <div className="flex flex-col">
-                        <p className="text-bold text-small capitalize">{item.metadata.email}</p>
-                        <p className="text-bold text-small capitalize">{item.metadata.school.name.en}</p>
-                    </div>
-                );
             case "school":
-                return item.metadata.school.name.en;
+                return item.metadata.school?.name?.en ?? null;
             case "major":
-                return item.metadata.major?.name.en ?? null;
+                return item.metadata.major?.name?.en ?? null;
             case "actions":
                 return null;
             default:
-                // Ensure only valid ReactNode is returned
                 if (typeof cellValue === "object" && cellValue !== null) {
                     return JSON.stringify(cellValue);
                 }
@@ -152,6 +157,7 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
                         <ModalHeader className="flex flex-col gap-1">Import file</ModalHeader>
                         <ModalBody className="w-full">
                             <Input isRequired onChange={handleFileChange} label="File" type="file" accept=".xlsx" errorMessage={"Please select file"} />
+                            <Button color="primary" onPress={handleTemplateExport}>Download template</Button>
                         </ModalBody>
                         <ModalFooter className="w-full">
                             <Button color="danger" variant="light" onPress={() => { onClose(); setIsImportModalOpen(false); }}>

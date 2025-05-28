@@ -2,14 +2,9 @@ import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
 
-
-
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { Providers } from "./providers";
-import { User } from "lucide-react";
-import { UserProvider } from "./context/UserContext";
-// import { UsersProvider } from "./context/UsersContext";
 
 export const metadata: Metadata = {
   title: {
@@ -44,13 +39,11 @@ export default function RootLayout({
         )}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
-          <UserProvider>
-            <div className="flex flex-col h-dvh max-h-dvh justify-center">
-              <main className="grow">
-                {children}
-              </main>
-            </div>
-          </UserProvider>
+          <div className="flex flex-col h-dvh max-h-dvh justify-center">
+            <main className="grow">
+              {children}
+            </main>
+          </div>
         </Providers>
       </body>
     </html>

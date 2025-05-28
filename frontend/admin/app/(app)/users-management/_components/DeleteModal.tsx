@@ -1,30 +1,30 @@
 import React from 'react'
-import { addToast, Button, Form, getKeyValue, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import { columns } from '../admin/page';
-import { UserType } from '@/app/context/UserContext';
+import { User } from '@/types/user';
 
 export interface DeleteModalProps {
     isOpen: boolean;
     onClose: () => void;
-    data: UserType[];
-    startIndex: number;
-    endIndex: number;
+    data: User[];
+    selectedKeys: React.Key[];
+    onDeleteUser: () => void
 }
 
-export default function DeleteModal({ isOpen, onClose, data, startIndex, endIndex }: DeleteModalProps) {
+export default function DeleteModal({ isOpen, onClose, data, selectedKeys, onDeleteUser }: DeleteModalProps) {
 
-    const tableData = data.slice(startIndex, endIndex)
+    const selectedRows = data.filter((row) => [...selectedKeys].includes(row._id));
 
     const [page, setPage] = React.useState(1);
     const rowsPerPage = 6;
 
-    const pages = Math.ceil(tableData.length / rowsPerPage);
+    const pages = Math.ceil(selectedRows.length / rowsPerPage);
 
     const items = React.useMemo(() => {
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
-        return tableData.slice(start, end);
-    }, [page, tableData]);
+        return selectedRows.slice(start, end);
+    }, [page, selectedRows]);
 
     const renderCell = React.useCallback((item: any, columnKey: React.Key) => {
         const cellValue = item[columnKey as keyof typeof item];
@@ -32,42 +32,19 @@ export default function DeleteModal({ isOpen, onClose, data, startIndex, endInde
         switch (columnKey) {
             case "name":
                 return `${item.name.first} ${item.name.middle === null ? "" : item.name.middle} ${item.name.last}`;
-            case "metadata":
-                return (
-                    <div className="flex flex-col">
-                        <p className="text-bold text-small capitalize">{item.metadata.email}</p>
-                        <p className="text-bold text-small capitalize">{item.metadata.school.name.en}</p>
-                    </div>
-                );
             case "school":
-                return item.metadata.school.name.en;
+                return item.metadata?.school?.name?.en ?? null;
             case "major":
-                return item.metadata.major?.name.en ?? null;
+                return item.metadata?.major?.name?.en ?? null;
             case "actions":
                 return null;
             default:
-                // Ensure only valid ReactNode is returned
                 if (typeof cellValue === "object" && cellValue !== null) {
                     return JSON.stringify(cellValue);
                 }
                 return cellValue as React.ReactNode;
         }
-    }, [tableData]);
-
-    const handleDelete = () => {
-        addToast({
-            title: "Delete Successful",
-            description: "Data has been deleted successfully",
-            color: "success",
-            variant: "solid",
-            classNames: {
-                base: "text-white",
-                title: "text-white",
-                description: "text-white",
-            },
-        });
-        onClose();
-    };
+    }, [selectedRows]);
 
     return (
         <Modal
@@ -113,7 +90,7 @@ export default function DeleteModal({ isOpen, onClose, data, startIndex, endInde
                     <Button color="default" variant="light" onPress={onClose}>
                         Cancel
                     </Button>
-                    <Button color="danger" onPress={handleDelete}>
+                    <Button color="danger" onPress={onDeleteUser}>
                         Delete
                     </Button>
                 </ModalFooter>

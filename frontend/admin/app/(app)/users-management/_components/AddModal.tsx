@@ -1,9 +1,9 @@
 import React from "react";
-import { addToast, Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
-import { UserType } from "@/app/context/UserContext";
+import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
 
 // Mockup data for schools
 import schoolsMockup from "@/public/mock/schools.json"
+import { User } from "@/types/user";
 
 export const schools = schoolsMockup;
 
@@ -11,16 +11,18 @@ export interface AddModalProps {
     title: "Add" | "Edit";
     isOpen: boolean;
     onClose: () => void;
-    data: UserType;
+    data: User;
+    onAddUser: (userData: Partial<User>) => void;
 };
 
-export default function AddModal({ title, isOpen, onClose, data }: AddModalProps) {
+export default function AddModal({ title, isOpen, onClose, data, onAddUser }: AddModalProps) {
     const [studentIdValue, setStudentIdValue] = React.useState("");
     const [firstNameValue, setFirstNameValue] = React.useState("");
     const [middleNameValue, setMiddleNameValue] = React.useState("");
     const [lastNameValue, setLastNameValue] = React.useState("");
     const [schoolValue, setSchoolValue] = React.useState<Set<string>>(new Set<string>());
     const [majorValue, setMajorValue] = React.useState<Set<string>>(new Set<string>());
+    const majorId = React.useRef<string>("");
 
     React.useEffect(() => {
         if (title === "Edit") {
@@ -29,29 +31,24 @@ export default function AddModal({ title, isOpen, onClose, data }: AddModalProps
             setMiddleNameValue(data.name.middle || "");
             setLastNameValue(data.name.last);
             schools.map((school) => {
-                if (school.name.en === data.metadata.school.name.en) {
+                if (school.name.en === data.metadata?.school?.name.en) {
                     setSchoolValue(new Set([school.name.en]));
                     {
                         school.majors.map((major) => {
-                            if (major.name.en === data.metadata.major?.name.en) {
+                            if (major.name.en === data.metadata?.major?.name.en) {
                                 setMajorValue(new Set([major.name.en]));
                             }
                         })
-                    };
+                    }
                 }
             })
         }
         if (title === "Add") {
-            clearForm();
+            onClear();
         }
     }, [data, title]);
 
-    const handleClose = () => {
-        clearForm();
-        onClose();
-    }
-
-    const clearForm = () => {
+    const onClear = () => {
         setStudentIdValue("");
         setFirstNameValue("");
         setMiddleNameValue("");
@@ -60,50 +57,44 @@ export default function AddModal({ title, isOpen, onClose, data }: AddModalProps
         setMajorValue(new Set<string>());
     }
 
-    const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const formData = {
-            studentId: studentIdValue,
-            firstName: firstNameValue,
-            middleName: middleNameValue,
-            lastName: lastNameValue,
-            school: Array.from(schoolValue)[0],
-            major: Array.from(majorValue)[0],
-        };
-        
+        schools.map((school) => {
+            if (school.name.en === [...schoolValue][0]) {
+                {
+                    school.majors.map((major) => {
+                        if (major.name.en === [...majorValue][0]) {
+                            majorId.current = major;
+                        }
+                    });
+                }
+            }
+        })
 
-        handleClose();
-        AddToast("Add Successful", "New file has been added successfully");
-    };
-
-    const handleEdit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        const formData = {
-            studentId: studentIdValue,
-            firstName: firstNameValue,
-            middleName: middleNameValue,
-            lastName: lastNameValue,
-            school: Array.from(schoolValue)[0],
-            major: Array.from(majorValue)[0],
-        };
-        handleClose();
-        AddToast("Edit Successful", "Edit has been edited successfully");
-    };
-
-    const AddToast = (title: string, description: string) => {
-        addToast({
-            title: title,
-            description: description,
-            color: "success",
-            variant: "solid",
-            classNames: {
-                base: "text-white",
-                title: "text-white",
-                description: "text-white",
+        const formData: Partial<User> = {
+            name: {
+                first: firstNameValue,
+                middle: middleNameValue,
+                last: lastNameValue,
             },
-        });
+            username: studentIdValue,
+            // Mockup student role
+            role: "6836c4413f987112cc4bca1f",
+            metadata: {
+                major: majorId.current?.id,
+            }
+        };
+
+        if (title === "Add") {
+            onAddUser(formData);
+        } else if (title === "Edit") {
+            onAddUser(formData);
+        } else {
+            console.error("Fail to submit data");
+        }
+
+        onClear();
     };
 
     return (
@@ -112,12 +103,12 @@ export default function AddModal({ title, isOpen, onClose, data }: AddModalProps
                 isDismissable={false}
                 isKeyboardDismissDisabled={true}
                 isOpen={isOpen}
-                onClose={handleClose}
+                onClose={() => { onClose(); onClear(); }}
             >
                 <ModalContent>
                     <Form
                         className="w-full"
-                        onSubmit={(e) => { title === "Add" ? handleAdd(e) : handleEdit(e) }}
+                        onSubmit={(e) => handleSubmit(e)}
                     >
                         <ModalHeader className="flex flex-col gap-1">{title === "Add" ? "Add new file" : "Edit file"}</ModalHeader>
                         <ModalBody className="w-full">
@@ -190,7 +181,7 @@ export default function AddModal({ title, isOpen, onClose, data }: AddModalProps
                             </Select>
                         </ModalBody>
                         <ModalFooter className="self-end">
-                            <Button color="danger" variant="light" onPress={handleClose}>
+                            <Button color="danger" variant="light" onPress={() => { onClose(); onClear(); }}>
                                 Cancel
                             </Button>
                             <Button color="primary" type="submit">

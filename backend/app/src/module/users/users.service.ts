@@ -18,7 +18,7 @@ import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
-import { UploadUserDto } from './dto/upload.user.dto';
+import { UserUploadDirectDto } from './dto/upload.user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
 
@@ -122,48 +122,48 @@ export class UsersService {
     await user.save();
   }
 
-  async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
+  // src/module/users/users.service.ts
+  async upload(usersDto: UserUploadDirectDto[]): Promise<User[]> {
     const users: CreateUserDto[] = await Promise.all(
-      uploadUserDto.users.map(async userDto => {
-        const userMajor = userDto.major || uploadUserDto.major;
+      usersDto.map(async (userDto) => {
+        const userMajorId = userDto.metadata?.major?._id;
 
-        // ✅ Check major existence
-        if (userDto.major) {
-          const userMajorRecord = await this.majorModel
-            .findById(userDto.major)
-            .lean();
-          if (!userMajorRecord) {
+        if (userMajorId) {
+          const majorRecord = await this.majorModel.findById(userMajorId).lean();
+          if (!majorRecord) {
             throw new NotFoundException('Major in database not found');
           }
         }
 
-        return {
+        const createUser: CreateUserDto = {
           name: {
             first: userDto.name.first,
             last: userDto.name.last || '',
           },
           fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
-          username: userDto.studentId,
-          password: '', // initially blank
-          secret: '', // initially blank
-          major: new Types.ObjectId(userMajor),
-          role: new Types.ObjectId(uploadUserDto.role),
-          metadata: {
-            type: uploadUserDto.metadata?.type ?? null,
-          },
+          username: userDto.username,
+          password: userDto.password ?? '',
+          secret: '',
+          ...(userMajorId && { major: new Types.ObjectId(userMajorId) }),
+          role: new Types.ObjectId(userDto.role),
+          metadata: userDto.metadata ?? {},
         };
+        return createUser;
       }),
     );
 
     try {
       const savedUsers = await Promise.all(
-        users.map(async user => {
+        users.map(async (user) => {
           const userDoc = new this.userModel(user);
           return await userDoc.save();
         }),
       );
 
-      return savedUsers.map(user => user.toObject());
+      // Safer conversion: only if toObject exists
+      return savedUsers.map((user) =>
+        typeof user.toObject === "function" ? user.toObject() : user
+      );
     } catch (error) {
       if (error.code === 11000) {
         throw new ConflictException('Username already exists');
@@ -171,4 +171,6 @@ export class UsersService {
       throw error;
     }
   }
+
+
 }
