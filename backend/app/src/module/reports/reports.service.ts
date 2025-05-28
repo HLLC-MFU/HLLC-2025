@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PopulateOptions, Types } from 'mongoose';
 
+// Entity & Document
 import { Report, ReportDocument } from './schemas/reports.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import {
@@ -9,15 +10,17 @@ import {
   ReportCategoryDocument,
 } from '../report_categories/schemas/report_categories.schemas';
 
+// DTO
 import { CreateReportDto } from './dto/create-report.dto';
 
+// Helpers
 import {
   queryAll,
   queryFindOne,
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
-import { findOrThrow } from 'src/pkg/validator/model.validator';
+import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { UpdateReportDto } from './dto/update-report.dto';
 
@@ -91,34 +94,36 @@ export class ReportsService {
     });
   }
 
-  async findAllByCategory() {
-    const categories = await this.categoryModel.find();
+  async findAllByCategory(categoryId: string) {
+    const query = {
+      category: new Types.ObjectId(categoryId),
+    };
 
-    const data = await Promise.all(
-      categories.map(async (cat) => {
-        const result = await queryAll<Report>({
-          model: this.reportModel,
-          query: { category: cat._id } as unknown as Record<string, string>,
-          filterSchema: {
-            category: 'string',
-          } as const,
-          buildPopulateFields: () =>
-            Promise.resolve([
-              { path: 'reporter', select: userSelectFields },
-              { path: 'category' },
-            ]),
-        });
+    const result = await queryAll<Report>({
+      model: this.reportModel,
+      query: query as unknown as Record<string, string>,
+      filterSchema: {
+        category: 'string',
+      } as const,
+      buildPopulateFields: () =>
+        Promise.resolve([
+          { path: 'reporter', select: userSelectFields },
+          { path: 'category' },
+        ]),
+    });
 
-        const reports = result.data.map(({ category, ...rest }) => rest);
-
-        return {
-          category: cat,
-          reports,
-        };
-      }),
+    const reportsWithoutCategory = result.data.map(
+      ({ category, ...rest }) => rest,
     );
 
-    return data;
+    const category =
+      result.data[0]?.category ||
+      (await this.categoryModel.findById(categoryId));
+
+    return {
+      category,
+      reports: reportsWithoutCategory,
+    };
   }
 
   async findOne(id: string) {
