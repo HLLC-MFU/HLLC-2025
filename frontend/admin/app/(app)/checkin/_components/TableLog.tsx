@@ -12,115 +12,28 @@ import {
   Dropdown,
   DropdownMenu,
   DropdownItem,
-  Chip,
   User,
   Pagination,
 } from '@heroui/react';
 
-import { Typing } from './Typing';
+import { Typing } from './TypingModal';
 import { Search, ChevronDown, Plus } from 'lucide-react';
+import { useEffect } from 'react';
+import { useCheckin } from '@/hooks/useCheckin';
 
 export const columns = [
   { name: 'NAME', uid: 'name', sortable: true },
   { name: 'SCHOOL', uid: 'school', sortable: true },
 ];
 
+interface TableProp {
+  selectedActivityIds: string[];
+}
+
+
 export const statusOptions = [
   { name: 'Finished', uid: 'Finished' },
   { name: 'Incomplete', uid: 'Incomplete' },
-];
-
-export const users = [
-  {
-    id: 1,
-    studentid: '6631503016',
-    name: 'Tony Reichert',
-    school: 'ADT',
-    major: 'Software Engineering',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
-    status: 'Finished',
-  },
-  {
-    id: 2,
-    studentid: '6631503017',
-    name: 'Sarah Lin',
-    school: 'ADT',
-    major: 'Computer Science',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
-    status: 'Finished',
-  },
-  {
-    id: 3,
-    studentid: '6631503018',
-    name: 'Michael Chan',
-    school: 'Science',
-    major: 'Biology',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
-    status: 'Incomplete',
-  },
-  {
-    id: 4,
-    studentid: '6631503019',
-    name: 'Emily Stone',
-    school: 'Arts',
-    major: 'Design',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
-    status: 'Incomplete',
-  },
-  {
-    id: 5,
-    studentid: '6631503020',
-    name: 'Daniel Kim',
-    school: 'Business',
-    major: 'Marketing',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
-    status: 'Finished',
-  },
-  {
-    id: 6,
-    studentid: '6631503021',
-    name: 'Ava Green',
-    school: 'Education',
-    major: 'Pedagogy',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
-    status: 'Finished',
-  },
-  {
-    id: 7,
-    studentid: '6631503022',
-    name: 'John Doe',
-    school: 'Law',
-    major: 'Criminal Justice',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
-    status: 'Incomplete',
-  },
-  {
-    id: 8,
-    studentid: '6631503023',
-    name: 'Nina Patel',
-    school: 'Medicine',
-    major: 'Nursing',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
-    status: 'Finished',
-  },
-  {
-    id: 9,
-    studentid: '6631503024',
-    name: 'Lily Adams',
-    school: 'Engineering',
-    major: 'Mechanical',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
-    status: 'Incomplete',
-  },
-  {
-    id: 10,
-    studentid: '6631503025',
-    name: 'Chris Wu',
-    school: 'Science',
-    major: 'Chemistry',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d',
-    status: 'Incomplete',
-  },
 ];
 
 export function capitalize(s) {
@@ -129,7 +42,7 @@ export function capitalize(s) {
 
 const INITIAL_VISIBLE_COLUMNS = ['name', 'school'];
 
-export function TableLog() {
+export function TableLog({ selectedActivityIds }: TableProp) {
   const [filterValue, setFilterValue] = React.useState('');
   const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
   const [visibleColumns, setVisibleColumns] = React.useState(
@@ -138,11 +51,12 @@ export function TableLog() {
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = React.useState({
-    column: 'age',
+    column: 'name',
     direction: 'ascending',
   });
   const [page, setPage] = React.useState(1);
   const [isTypingModelOpen, setIsTypingModelOpen] = React.useState(false);
+  const { checkin, fetchcheckin } = useCheckin();
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -154,6 +68,28 @@ export function TableLog() {
     );
   }, [visibleColumns]);
 
+  useEffect(() => {
+    fetchcheckin();
+    const interval = setInterval(fetchcheckin, 10000); // ทุก 10 วินาที
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const users = React.useMemo(() => {
+    return (Array.isArray(checkin) ? checkin : []).map(item => ({
+      id: item._id,
+      name: `${item.user.name.first} ${item.user.name.middle ?? ''} ${item.user.name.last}`.trim(),
+      studentid: item.user.username,
+      school: item.user?.metadata?.school ?? '-',
+      major: item.user?.major ?? '-',
+      avatar: item.user?.avatar ?? '',
+      status: 'Finished',
+    }));
+  }, [checkin]);
+
+
+  console.log("ข้อมูลร่วมตาราง",checkin)
+
   const filteredItems = React.useMemo(() => {
     let filteredUsers = [...users];
 
@@ -162,6 +98,7 @@ export function TableLog() {
         user.name.toLowerCase().includes(filterValue.toLowerCase()),
       );
     }
+
     if (
       statusFilter !== 'all' &&
       Array.from(statusFilter).length !== statusOptions.length
@@ -418,7 +355,10 @@ export function TableLog() {
 
       <Typing
         isOpen={isTypingModelOpen}
-        onClose={() => setIsTypingModelOpen(false)}
+        onClose={() => {
+          fetchcheckin();
+          setIsTypingModelOpen(false);
+        }}
       />
     </div>
   );

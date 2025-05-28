@@ -1,11 +1,17 @@
 import { useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { addToast } from '@heroui/react';
+import { useCheckin } from '@/hooks/useCheckin';
 
-export function QrCodeScanner() {
+interface QrCodeScannerProps {
+  selectedActivityIds: string[];
+}
+
+export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
+  const { createcheckin } = useCheckin();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isRunningRef = useRef(false);
-  const scannedSetRef = useRef<Set<string>>(new Set()); // เก็บค่าที่เคยสแกน
+  const scannedSetRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const qrRegionId = 'qr-reader';
@@ -24,21 +30,45 @@ export function QrCodeScanner() {
           .start(
             cameraId,
             { fps: 10, qrbox: 250 },
-            decodedText => {
-              if (!decodedText) return;
+            async decodedText => {
+              if (!decodedText || scannedSetRef.current.has(decodedText))
+                return;
 
-              if (scannedSetRef.current.has(decodedText)) {
+              if (selectedActivityIds.length === 0) {
+                setTimeout(() => {
+                  addToast({
+                    title: 'กรุณาเลือกกิจกรรม',
+                    description: 'คุณต้องเลือกกิจกรรมก่อนสแกน',
+                    color: 'danger',
+                  });
+                }, 2000);
+
                 return;
               }
 
               scannedSetRef.current.add(decodedText);
-              console.log('QR Code detected:', decodedText);
 
-              addToast({
-                title: 'Scan Finish',
-                description: `${decodedText} has been added`,
-                color: 'success',
-              });
+              console.log('ค่าที่แสกนได้ ', decodedText);
+
+              try {
+                createcheckin({
+                  user: decodedText,
+                  activities: selectedActivityIds,
+                });
+
+                addToast({
+                  title: 'สแกนสำเร็จ',
+                  description: `${decodedText} ได้ทำการ check-in`,
+                  color: 'success',
+                });
+              } catch (err) {
+                console.error('POST error:', err);
+                addToast({
+                  title: 'เกิดข้อผิดพลาด',
+                  description: 'ไม่สามารถส่งข้อมูลได้',
+                  color: 'danger',
+                });
+              }
             },
             error => {},
           )
@@ -59,7 +89,7 @@ export function QrCodeScanner() {
         });
       }
     };
-  }, []);
+  }, [selectedActivityIds]);
 
   return (
     <div className="w-full max-w-sm mx-auto mb-4 sm:overflow-hidden sm:hidden">
