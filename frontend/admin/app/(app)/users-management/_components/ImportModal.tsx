@@ -1,23 +1,12 @@
-// Problem: Table still rely on columns [:12]
-// Solution: Get value from file 
-
 import { addToast, Button, Form, getKeyValue, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import React from "react";
 import * as XLSX from "xlsx";
+import { columns } from "../admin/page";
 
 export interface ImportModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
-
-export const columns = [
-    { name: "STUDENT ID", key: "Student ID" },
-    { name: "FIRST NAME", key: "First Name" },
-    { name: "MIDDLE NAME", key: "Middle Name" },
-    { name: "LAST NAME", key: "Last Name" },
-    { name: "SCHOOL", key: "School" },
-    { name: "MAJOR", key: "Major" },
-]
 
 export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
     const [fileData, setFileData] = React.useState<any[]>([]);
@@ -50,23 +39,33 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
             const worksheet = workbook.Sheets[worksheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-            setFileData(jsonData);
+            const dataForm = jsonData.map((item: any) => {
+                const data: any = {};
+                for (const key in item) {
+                    try {
+                        data[key] = JSON.parse(item[key]);
+                    } catch (error) {
+                        data[key] = item[key];
+                    };
+                };
+                return data
+            });
 
-            const hasInvalidData = jsonData.some((item: any) => {
-                const studentId = getKeyValue(item, "Student ID");
-                const firstName = getKeyValue(item, "First Name");
-                const lastName = getKeyValue(item, "Last Name");
-                const school = getKeyValue(item, "School");
-                const major = getKeyValue(item, "Major");
+            setFileData(dataForm);
 
-                return !studentId || !firstName || !lastName || !school || !major
-            })
-            if (hasInvalidData) {
-                handleInvalidFile();
-                return;
-            }
+            // const hasInvalidData = jsonData.some((item: any) => {
+            //     const studentId = getKeyValue(item, "username");
+            //     const firstName = getKeyValue(item, "first");
+            //     const lastName = getKeyValue(item, "last");
+            //     const school = getKeyValue(item, "School");
 
-            console.log(jsonData);
+            //     return !studentId || !firstName || !lastName || !school
+            // })
+            // if (hasInvalidData) {
+            //     handleInvalidFile();
+            //     return;
+            // }
+
         };
 
         reader.readAsArrayBuffer(file);
@@ -112,8 +111,31 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
     };
 
     const renderCell = React.useCallback((item: any, columnKey: React.Key) => {
-        const value = item[columnKey as keyof typeof item];
-        return value as React.ReactNode;
+        const cellValue = item[columnKey as keyof typeof item];
+
+        switch (columnKey) {
+            case "name":
+                return `${item.name.first} ${item.name.middle === null ? "" : item.name.middle} ${item.name.last}`;
+            case "metadata":
+                return (
+                    <div className="flex flex-col">
+                        <p className="text-bold text-small capitalize">{item.metadata.email}</p>
+                        <p className="text-bold text-small capitalize">{item.metadata.school.name.en}</p>
+                    </div>
+                );
+            case "school":
+                return item.metadata.school.name.en;
+            case "major":
+                return item.metadata.major?.name.en ?? null;
+            case "actions":
+                return null;
+            default:
+                // Ensure only valid ReactNode is returned
+                if (typeof cellValue === "object" && cellValue !== null) {
+                    return JSON.stringify(cellValue);
+                }
+                return cellValue as React.ReactNode;
+        }
     }, [fileData]);
 
     return (
@@ -173,8 +195,8 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
                             }}
                         >
                             <TableHeader>
-                                {columns.map((column) => (
-                                    <TableColumn key={column.key}>{column.name}</TableColumn>
+                                {columns.filter((col) => col.uid !== 'actions').map((column) => (
+                                    <TableColumn key={column.uid}>{column.name}</TableColumn>
                                 ))}
                             </TableHeader>
                             <TableBody items={items}>

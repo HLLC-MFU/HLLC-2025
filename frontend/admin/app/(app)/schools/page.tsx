@@ -98,47 +98,47 @@ export default function SchoolsPage() {
 
   return (
 
-      <div className="flex flex-col min-h-screen">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold">Schools & Majors Management</h1>
-          </div>
-          <div className="flex flex-col gap-6">
-            <SchoolFilters
-              searchQuery={searchQuery}
-              onSearchQueryChange={setSearchQuery}
-              sortBy={sortBy}
-              sortDirection={sortDirection}
-              onSortByChange={setSortBy}
-              onSortDirectionToggle={toggleSortDirection}
-              onAddSchool={handleAddSchool}
-            />
-            {schools?.length === 0 && !loading && (
-              <p className="text-center text-sm text-default-500">
-                No schools found. Please add a new school.
-              </p>
-            )}
-            <SchoolList
-              schools={filteredAndSortedSchools}
-              isLoading={loading}
-              onEditSchool={handleEditSchool}
-              onDeleteSchool={handleDeleteSchool}
-            />
-          </div>
+    <div className="flex flex-col min-h-screen">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold">Schools & Majors Management</h1>
         </div>
-        <SchoolModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSuccess={handleSubmitSchool}
-          school={selectedSchool}
-          mode={modalMode}
-        />
-        <DeleteConfirmationModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onConfirm={handleConfirmDelete}
-          school={selectedSchool}
-        />
+        <div className="flex flex-col gap-6">
+          <SchoolFilters
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            onSortByChange={setSortBy}
+            onSortDirectionToggle={toggleSortDirection}
+            onAddSchool={handleAddSchool}
+          />
+          {schools?.length === 0 && !loading && (
+            <p className="text-center text-sm text-default-500">
+              No schools found. Please add a new school.
+            </p>
+          )}
+          <SchoolList
+            schools={filteredAndSortedSchools}
+            isLoading={loading}
+            onEditSchool={handleEditSchool}
+            onDeleteSchool={handleDeleteSchool}
+          />
+        </div>
       </div>
+      <SchoolModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleSubmitSchool}
+        school={selectedSchool}
+        mode={modalMode}
+      />
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        school={selectedSchool}
+      />
+    </div>
   );
 }

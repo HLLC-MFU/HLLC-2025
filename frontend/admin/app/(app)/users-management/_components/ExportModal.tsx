@@ -2,18 +2,30 @@ import React from "react"
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@heroui/react";
 import * as XLSX from 'xlsx'
 import { saveAs } from "file-saver";
-import { UserProps } from "../admin/page";
+import { UserType } from "@/app/context/UserContext";
 
 export interface ExportModalProps {
     isOpen: boolean;
     onClose: () => void;
-    data: UserProps[];
+    data: UserType[];
 }
 
 export default function ExportModal({ isOpen, onClose, data }: ExportModalProps) {
     const fileNameRef = React.useRef<HTMLInputElement>(null);
 
-    const exportFile = (data: any[], fileName = "data") => {
+    const serializadData = data.map((item) => {
+        const newItem: any = {};
+        for (const key in item) {
+            if (typeof item[key as keyof UserType] === "object" && item[key as keyof UserType] != null) {
+                newItem[key] = JSON.stringify(item[key as keyof UserType]);
+            } else {
+                newItem[key] = item[key as keyof UserType];
+            };
+        };
+        return newItem;
+    });
+
+    const exportFile = (data: UserType[], fileName = "data") => {
         const worksheet = XLSX.utils.json_to_sheet(data);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
@@ -25,7 +37,7 @@ export default function ExportModal({ isOpen, onClose, data }: ExportModalProps)
     const handleExport = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        exportFile(data, fileNameRef.current?.value || "Data");
+        exportFile(serializadData, fileNameRef.current?.value || "Data");
         onClose();
     };
 
@@ -44,9 +56,9 @@ export default function ExportModal({ isOpen, onClose, data }: ExportModalProps)
                     <ModalHeader className="flex flex-col gap-1">Export File</ModalHeader>
                     <ModalBody className="w-full">
                         <Input
-                            type="text"
+                            type="string"
                             label="File Name"
-                            placeholder="Enter file name"
+                            placeholder={fileNameRef.current?.value || "Data"}
                             ref={fileNameRef}
                         />
                     </ModalBody>

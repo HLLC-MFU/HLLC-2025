@@ -7,7 +7,6 @@ import {
   FastifyAdapter,
 } from '@nestjs/platform-fastify';
 import compression from '@fastify/compress';
-import { TransformInterceptor } from './pkg/interceptors/transform.interceptor';
 import cookie from '@fastify/cookie';
 import { MongoExceptionFilter } from './pkg/filters/mongo.filter';
 

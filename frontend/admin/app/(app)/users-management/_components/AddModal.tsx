@@ -1,72 +1,21 @@
 import React from "react";
-import { addToast, Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, useDisclosure } from "@heroui/react";
-import { UserProps } from "../admin/page";
+import { addToast, Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
+import { UserType } from "@/app/context/UserContext";
 
-export const schools = [
-    {
-        name: "School of Agro-Industry",
-        majors: [
-            "Food Science and Technology",
-            "Agro-Industry",
-            "Postharvest Technology",
-        ],
-    },
-    {
-        name: "School of Cosmetic Science",
-        majors: [
-            "Beauty and Cosmetic Science",
-            "Health and Beauty Innovation",
-        ],
-    },
-    {
-        name: "School of Information Technology",
-        majors: [
-            "Information Technology",
-            "Computer Science",
-            "Data Science and AI",
-        ],
-    },
-    {
-        name: "School of Management",
-        majors: [
-            "Business Administration",
-            "Logistics and Supply Chain Management",
-            "International Business Management",
-        ],
-    },
-    {
-        name: "School of Science",
-        majors: [
-            "Applied Chemistry",
-            "Biological Science",
-            "Environmental Science",
-        ],
-    },
-    {
-        name: "School of Medicine",
-        majors: [
-            "Doctor of Medicine (M.D.)",
-        ],
-    },
-    {
-        name: "School of Liberal Arts",
-        majors: [
-            "English for Professional Communication",
-            "Chinese Language and Culture",
-            "Thai Language for Foreigners",
-        ],
-    },
-];
+// Mockup data for schools
+import schoolsMockup from "@/public/mock/schools.json"
+
+export const schools = schoolsMockup;
 
 export interface AddModalProps {
     title: "Add" | "Edit";
     isOpen: boolean;
     onClose: () => void;
-    data: UserProps[];
+    data: UserType;
 };
 
-export default function AddModal({ title, isOpen, onClose, data, }: AddModalProps) {
-    const [studentIdValue, setStudentIdValue] = React.useState(0);
+export default function AddModal({ title, isOpen, onClose, data }: AddModalProps) {
+    const [studentIdValue, setStudentIdValue] = React.useState("");
     const [firstNameValue, setFirstNameValue] = React.useState("");
     const [middleNameValue, setMiddleNameValue] = React.useState("");
     const [lastNameValue, setLastNameValue] = React.useState("");
@@ -75,28 +24,22 @@ export default function AddModal({ title, isOpen, onClose, data, }: AddModalProp
 
     React.useEffect(() => {
         if (title === "Edit") {
-            setStudentIdValue(data[0].id);
-            setFirstNameValue(data[0].name);
-            setMiddleNameValue(data[0].email);
-            setLastNameValue(data[0].age);
-
-            // Mockup data for school and major
-            {
-                schools.map((school) => {
-                    // if (school.name === data[0].school) {
-                    if (school.name === "School of Liberal Arts") {
-                        setSchoolValue(new Set([school.name]));
-                        {
-                            school.majors.map((major) => {
-                                // if (major === data[0].major) {
-                                if (major === "English for Professional Communication") {
-                                    setMajorValue(new Set([major]));
-                                }
-                            })
-                        };
-                    }
-                })
-            }
+            setStudentIdValue(data.username);
+            setFirstNameValue(data.name.first);
+            setMiddleNameValue(data.name.middle || "");
+            setLastNameValue(data.name.last);
+            schools.map((school) => {
+                if (school.name.en === data.metadata.school.name.en) {
+                    setSchoolValue(new Set([school.name.en]));
+                    {
+                        school.majors.map((major) => {
+                            if (major.name.en === data.metadata.major?.name.en) {
+                                setMajorValue(new Set([major.name.en]));
+                            }
+                        })
+                    };
+                }
+            })
         }
         if (title === "Add") {
             clearForm();
@@ -109,7 +52,7 @@ export default function AddModal({ title, isOpen, onClose, data, }: AddModalProp
     }
 
     const clearForm = () => {
-        setStudentIdValue(0);
+        setStudentIdValue("");
         setFirstNameValue("");
         setMiddleNameValue("");
         setLastNameValue("");
@@ -128,6 +71,8 @@ export default function AddModal({ title, isOpen, onClose, data, }: AddModalProp
             school: Array.from(schoolValue)[0],
             major: Array.from(majorValue)[0],
         };
+        
+
         handleClose();
         AddToast("Add Successful", "New file has been added successfully");
     };
@@ -179,13 +124,13 @@ export default function AddModal({ title, isOpen, onClose, data, }: AddModalProp
                             <Input
                                 isRequired
                                 label="Student ID"
-                                type="number"
+                                type="string"
                                 placeholder="Enter Student ID"
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter your student ID" }
                                 }
-                                value={studentIdValue === 0 ? "" : studentIdValue.toString()}
-                                onChange={(e) => setStudentIdValue(Number(e.target.value))}
+                                value={studentIdValue}
+                                onChange={(e) => setStudentIdValue(e.target.value)}
                             />
                             <Input
                                 isRequired
@@ -227,11 +172,10 @@ export default function AddModal({ title, isOpen, onClose, data, }: AddModalProp
                                 onSelectionChange={(keys) => setSchoolValue(keys as Set<string>)}
                             >
                                 {schools.map((school) => (
-                                    <SelectItem key={school.name}>{school.name}</SelectItem>
+                                    <SelectItem key={school.name.en}>{school.name.en}</SelectItem>
                                 ))}
                             </Select>
                             <Select
-                                isRequired
                                 label="Major"
                                 placeholder="Select Major"
                                 errorMessage={
@@ -240,8 +184,8 @@ export default function AddModal({ title, isOpen, onClose, data, }: AddModalProp
                                 selectedKeys={majorValue}
                                 onSelectionChange={(keys) => setMajorValue(keys as Set<string>)}
                             >
-                                {(schools.find((school) => school.name === Array.from(schoolValue)[0])?.majors || []).map((major) => (
-                                    <SelectItem key={major}>{major}</SelectItem>
+                                {(schools.find((school) => school.name.en === Array.from(schoolValue)[0])?.majors || []).map((major) => (
+                                    <SelectItem key={major.name.en}>{major.name.en}</SelectItem>
                                 ))}
                             </Select>
                         </ModalBody>

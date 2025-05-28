@@ -1,11 +1,12 @@
 import React from 'react'
 import { addToast, Button, Form, getKeyValue, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
-import { columns, UserProps } from '../admin/page';
+import { columns } from '../admin/page';
+import { UserType } from '@/app/context/UserContext';
 
 export interface DeleteModalProps {
     isOpen: boolean;
     onClose: () => void;
-    data: UserProps[];
+    data: UserType[];
     startIndex: number;
     endIndex: number;
 }
@@ -26,8 +27,31 @@ export default function DeleteModal({ isOpen, onClose, data, startIndex, endInde
     }, [page, tableData]);
 
     const renderCell = React.useCallback((item: any, columnKey: React.Key) => {
-        const value = item[columnKey as keyof typeof item];
-        return value as React.ReactNode;
+        const cellValue = item[columnKey as keyof typeof item];
+
+        switch (columnKey) {
+            case "name":
+                return `${item.name.first} ${item.name.middle === null ? "" : item.name.middle} ${item.name.last}`;
+            case "metadata":
+                return (
+                    <div className="flex flex-col">
+                        <p className="text-bold text-small capitalize">{item.metadata.email}</p>
+                        <p className="text-bold text-small capitalize">{item.metadata.school.name.en}</p>
+                    </div>
+                );
+            case "school":
+                return item.metadata.school.name.en;
+            case "major":
+                return item.metadata.major?.name.en ?? null;
+            case "actions":
+                return null;
+            default:
+                // Ensure only valid ReactNode is returned
+                if (typeof cellValue === "object" && cellValue !== null) {
+                    return JSON.stringify(cellValue);
+                }
+                return cellValue as React.ReactNode;
+        }
     }, [tableData]);
 
     const handleDelete = () => {
@@ -78,7 +102,7 @@ export default function DeleteModal({ isOpen, onClose, data, startIndex, endInde
                         </TableHeader>
                         <TableBody items={items}>
                             {(item) => (
-                                <TableRow key={item.id}>
+                                <TableRow key={item._id}>
                                     {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
                                 </TableRow>
                             )}
