@@ -17,7 +17,8 @@ import {
   Pagination,
 } from '@heroui/react';
 
-import { Search, ChevronDown } from 'lucide-react';
+import { Typing } from './Typing';
+import { Search, ChevronDown, Plus } from 'lucide-react';
 
 export const columns = [
   { name: 'NAME', uid: 'name', sortable: true },
@@ -141,6 +142,7 @@ export function TableLog() {
     direction: 'ascending',
   });
   const [page, setPage] = React.useState(1);
+  const [isTypingModelOpen, setIsTypingModelOpen] = React.useState(false);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -207,7 +209,7 @@ export function TableLog() {
         );
       case 'school':
         return (
-          <div className="flex flex-col">
+          <div className="flex flex-col ">
             <p className="text-bold text-small capitalize">{cellValue}</p>
             <p className="text-bold text-tiny capitalize text-default-400">
               {user.major}
@@ -312,6 +314,13 @@ export function TableLog() {
                 ))}
               </DropdownMenu>
             </Dropdown>
+            <Button
+              color="primary"
+              endContent={<Plus />}
+              onPress={() => setIsTypingModelOpen(true)}
+            >
+              Typing
+            </Button>
           </div>
         </div>
         <div className="flex justify-between items-center">
@@ -406,6 +415,11 @@ export function TableLog() {
           )}
         </TableBody>
       </Table>
+
+      <Typing
+        isOpen={isTypingModelOpen}
+        onClose={() => setIsTypingModelOpen(false)}
+      />
     </div>
   );
 }

@@ -40,9 +40,7 @@ export function QrCodeScanner() {
                 color: 'success',
               });
             },
-            error => {
-              
-            },
+            error => {},
           )
           .then(() => {
             isRunningRef.current = true;
@@ -64,7 +62,7 @@ export function QrCodeScanner() {
   }, []);
 
   return (
-    <div className="w-full max-w-sm mx-auto mb-4">
+    <div className="w-full max-w-sm mx-auto mb-4 sm:overflow-hidden sm:hidden">
       <div id="qr-reader" style={{ width: '100%' }} />
     </div>
   );
