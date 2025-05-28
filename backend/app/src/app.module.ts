@@ -13,6 +13,10 @@ import { ActivitiesModule } from './module/activities/activities.module';
 import * as redisStore from 'cache-manager-ioredis';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesMajorModule } from './module/activities-major/activities-major.module';
+import { SystemStatusModule } from './module/system-status/system-status.module';
+import { APP_GUARD } from '@nestjs/core';
+import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
+import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -45,7 +49,18 @@ import { ActivitiesMajorModule } from './module/activities-major/activities-majo
     AuthModule,
     GlobalCacheModule,
     ActivitiesMajorModule,
+    SystemStatusModule,
   ],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SystemStatusGuard,
+    },
+  ],
+
 })
 export class AppModule {}
