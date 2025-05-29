@@ -19,6 +19,8 @@ import { PopulateField } from 'src/pkg/types/query';
 
 const userSelectFields = 'name username major metadata';
 
+
+
 @Injectable()
 export class CheckinService {
   constructor(
@@ -28,47 +30,38 @@ export class CheckinService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel(Activities.name)
     private readonly activitiesModel: Model<ActivityDocument>,
-  ) {}
+  ) { }
 
   async create(createCheckinDto: CreateCheckinDto) {
-    if (createCheckinDto.user) {
-      await findOrThrow(
-        this.userModel,
-        createCheckinDto.user,
-        'User not found',
-      );
+    let userId: Types.ObjectId;
+
+    // หา user จาก username
+    const user = await this.userModel.findOne({ username: createCheckinDto.user });
+    if (!user) throw new Error('User not found');
+    userId = user._id;
+
+    // ตรวจสอบ activities
+    const activityIds = Array.isArray(createCheckinDto.activities)
+      ? createCheckinDto.activities.map(id => new Types.ObjectId(id))
+      : [];
+
+    for (const id of activityIds) {
+      await findOrThrow(this.activitiesModel, id, 'Activity not found');
     }
 
-    if (createCheckinDto.activities) {
-      await findOrThrow(
-        this.activitiesModel,
-        createCheckinDto.activities,
-        'Activity not found',
-      );
-    }
+    // สร้าง checkin ทีละ activity
+    const checkins = await Promise.all(
+      activityIds.map(activityId => {
+        const checkin = new this.checkinModel({
+          user: userId,
+          staff: new Types.ObjectId(createCheckinDto.staff),
+          activities: activityId,
+        });
+        return checkin.save();
+      })
+    );
 
-    if (createCheckinDto.staff) {
-      await findOrThrow(
-        this.userModel,
-        createCheckinDto.staff,
-        'Staff not found',
-      );
-    }
-
-    const checkin = new this.checkinModel({
-      ...createCheckinDto,
-      user: createCheckinDto.user
-        ? new Types.ObjectId(createCheckinDto.user)
-        : null,
-      staff: createCheckinDto.staff
-        ? new Types.ObjectId(createCheckinDto.staff)
-        : null,
-      activities: createCheckinDto.activities
-        ? new Types.ObjectId(createCheckinDto.activities)
-        : null,
-    });
-
-    return checkin.save();
+    return checkins;
   }
 
   async findAll(query: Record<string, string>) {
