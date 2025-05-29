@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
     Button,
     Card,
     CardBody,
     CardHeader,
     Divider,
-    Skeleton,
 } from '@heroui/react';
 import { CategoryModal } from './_components/CategoryModal';
 // import { ProblemModal } from './_components/ProblemModal';
@@ -37,7 +36,6 @@ export default function ReportsPage() {
 
     const {
         problems,
-        loading: loadingReports,
         updateStatus,
         addOrEditProblem,
         removeByCategory
@@ -51,8 +49,6 @@ export default function ReportsPage() {
     const handleStatusChange = async (id: string, newStatus: Problem['status']) => {
         await updateStatus(id, newStatus);
     };
-
-
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -72,93 +68,100 @@ export default function ReportsPage() {
             <ProblemCharts problems={problems} categories={categories} />
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {categories.map(category => (
-                    <Card
-                        key={category.id}
-                        className="border-2"
-                        style={{ borderColor: category.color }}
-                        isHoverable
-                    >
-                        <CardHeader className="flex items-center justify-between">
-                            <div className="text-start">
-                                <Link href={`/reports/${category.id}`} className="hover:underline">
-                                    <h3 className="text-lg font-semibold">{category.name.en}</h3>
-                                    <p className="text-sm text-gray-500">{category.name.th}</p>
-                                </Link>
-                            </div>
-                            <div className="flex gap-2">
-                                <Button
-                                    size="sm"
-                                    variant="flat"
-                                    onClick={e => {
-                                        e.stopPropagation();
-                                        setSelectedCategory(category);
-                                        setIsCategoryModalOpen(true);
-                                    }}
-                                >
-                                    Edit
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    color="danger"
-                                    variant="light"
-                                    onClick={async e => {
-                                        e.stopPropagation();
-                                        try {
-                                            await deleteCategory(category.id);
-                                            removeByCategory(category.id);
-
-                                        } catch (error) {
-                                            console.error("Failed to delete category:", error);
-                                        }
-                                    }}
-                                >
-                                    Delete
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <Divider />
-                        <CardBody
-                            className="cursor-pointer"
-                            onClick={() => router.push(`/reports/${category.id}`)}
-                            >
-                            <div className="space-y-4">
-                                {problems
-                                .filter(problem => problem.categoryId === category.id)
-                                .map(problem => (
-                                    <div
-                                    key={problem.id}
-                                    className="rounded-lg border border-gray-200 p-3 hover:border-gray-300"
-                                    onClick={e => {
-                                        e.stopPropagation();
-                                        setSelectedProblem(problem);
-                                        setIsProblemModalOpen(true);
-                                    }}
+                {categories.map(category => {
+                    const filteredProblems = problems.filter(p => p.categoryId === category.id);
+                    return (
+                        <Card
+                            key={category.id}
+                            className="border-2"
+                            style={{ borderColor: category.color }}
+                            isHoverable
+                        >
+                            <CardHeader className="flex items-center justify-between">
+                                <div className="text-start">
+                                    <Link href={`/reports/${category.id}`} className="hover:underline">
+                                        <h3 className="text-lg font-semibold">{category.name.en}</h3>
+                                        <p className="text-sm text-gray-500">{category.name.th}</p>
+                                    </Link>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="flat"
+                                        onClick={e => {
+                                            e.stopPropagation();
+                                            setSelectedCategory(category);
+                                            setIsCategoryModalOpen(true);
+                                        }}
                                     >
-                                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                                        <div className="flex-1 min-w-0">
-                                        <h4 className="font-medium truncate">{problem.title.en}</h4>
-                                        <p className="text-sm text-gray-500 truncate">{problem.title.th}</p>
+                                        Edit
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        color="danger"
+                                        variant="light"
+                                        onClick={async e => {
+                                            e.stopPropagation();
+                                            try {
+                                                await deleteCategory(category.id);
+                                                removeByCategory(category.id);
+                                            } catch (error) {
+                                                console.error("Failed to delete category:", error);
+                                            }
+                                        }}
+                                    >
+                                        Delete
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <Divider />
+                            <CardBody className="cursor-pointer" onClick={() => router.push(`/reports/${category.id}`)}>
+                                <div className="space-y-4">
+                                    {filteredProblems.slice(0, 4).map(problem => (
+                                        <div
+                                            key={problem.id}
+                                            className="rounded-lg border border-gray-200 p-3 hover:border-gray-300"
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                setSelectedProblem(problem);
+                                                setIsProblemModalOpen(true);
+                                            }}
+                                        >
+                                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-medium truncate">{problem.title.en}</h4>
+                                                    <p className="text-sm text-gray-500 truncate">{problem.title.th}</p>
+                                                </div>
+                                                <div className="flex flex-wrap sm:flex-nowrap gap-2 sm:justify-end">
+                                                    <StatusDropdown
+                                                        status={problem.status}
+                                                        onChange={newStatus => handleStatusChange(problem.id, newStatus)}
+                                                    />
+                                                    <SendNotiButton />
+                                                </div>
+                                            </div>
+                                            <p className="mt-2 text-sm text-gray-600 line-clamp-2 sm:line-clamp-3">
+                                                {problem.description.en}
+                                            </p>
                                         </div>
-
-                                        <div className="flex flex-wrap sm:flex-nowrap gap-2 sm:justify-end">
-                                        <StatusDropdown
-                                            status={problem.status}
-                                            onChange={newStatus => handleStatusChange(problem.id, newStatus)}
-                                        />
-                                        <SendNotiButton />
-                                        </div>
+                                    ))}
+                                    <div className="flex justify-between items-center mt-4 px-1 text-sm text-gray-500">
+                                        <span>{filteredProblems.length} reports</span>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                router.push(`/reports/${category.id}`);
+                                            }}
+                                            className="text-blue-600 hover:underline font-medium"
+                                        >
+                                            View all
+                                        </button>
                                     </div>
-
-                                    <p className="mt-2 text-sm text-gray-600 line-clamp-2 sm:line-clamp-3">
-                                        {problem.description.en}
-                                    </p>
-                                    </div>
-                                ))}
-                            </div>
+                                </div>
                             </CardBody>
-                    </Card>
-                ))}
+                        </Card>
+                    );
+                })}
             </div>
 
             <CategoryModal
@@ -171,14 +174,16 @@ export default function ReportsPage() {
                 mode={selectedCategory ? 'edit' : 'add'}
             />
 
-            {/* <ProblemModal
+            {/* 
+            <ProblemModal
                 isOpen={isProblemModalOpen}
                 onClose={() => setIsProblemModalOpen(false)}
                 onSubmit={handleProblemSubmit}
                 problem={selectedProblem}
                 categories={categories}
                 mode={selectedProblem ? 'edit' : 'add'}
-            /> */}
+            /> 
+            */}
         </div>
     );
 }

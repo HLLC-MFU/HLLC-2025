@@ -1,5 +1,5 @@
 import { addToast, Button } from "@heroui/react";
-import { Send, X } from "lucide-react";
+import { Bell, Send, X } from "lucide-react";
 
 export default function SendNotiButton() {
     return (
@@ -42,7 +42,7 @@ export default function SendNotiButton() {
                     });
                 }}
             >
-                <Send className="w-4 h-4" />
+                <Bell className="w-4 h-4" />
             </Button >
         </>
     );
