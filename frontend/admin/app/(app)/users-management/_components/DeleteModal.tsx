@@ -7,13 +7,14 @@ export interface DeleteModalProps {
     isOpen: boolean;
     onClose: () => void;
     data: User[];
+    userIndex: number;
     selectedKeys: React.Key[];
     onDeleteUser: () => void
 }
 
-export default function DeleteModal({ isOpen, onClose, data, selectedKeys, onDeleteUser }: DeleteModalProps) {
+export default function DeleteModal({ isOpen, onClose, data, userIndex, selectedKeys, onDeleteUser }: DeleteModalProps) {
 
-    const selectedRows = data.filter((row) => [...selectedKeys].includes(row._id));
+    const selectedRows = [...selectedKeys].length > 0 ? data.filter((row) => [...selectedKeys].includes(row._id)) : [data[userIndex]].filter(Boolean);
 
     const [page, setPage] = React.useState(1);
     const rowsPerPage = 6;
@@ -73,7 +74,7 @@ export default function DeleteModal({ isOpen, onClose, data, selectedKeys, onDel
                         }
                     >
                         <TableHeader>
-                            {columns.map((column) => (
+                            {columns.filter((col) => col.uid !== "actions").map((column) => (
                                 <TableColumn key={column.uid}>{column.name}</TableColumn>
                             ))}
                         </TableHeader>

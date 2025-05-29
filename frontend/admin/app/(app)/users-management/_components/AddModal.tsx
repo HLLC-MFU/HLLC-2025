@@ -93,8 +93,6 @@ export default function AddModal({ title, isOpen, onClose, data, onAddUser }: Ad
         } else {
             console.error("Fail to submit data");
         }
-
-        onClear();
     };
 
     return (

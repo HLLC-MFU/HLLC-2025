@@ -9,9 +9,10 @@ export interface ImportModalProps {
     isOpen: boolean;
     onClose: () => void;
     onImportUsers: (userData: Partial<User>[]) => void;
+    onExportTemplate: () => void;
 }
 
-export default function ImportModal({ isOpen, onClose, onImportUsers }: ImportModalProps) {
+export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTemplate }: ImportModalProps) {
     const [fileData, setFileData] = React.useState<any[]>([]);
     const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
@@ -102,27 +103,6 @@ export default function ImportModal({ isOpen, onClose, onImportUsers }: ImportMo
         setIsPreviewModalOpen(false);
     };
 
-    const handleTemplateExport = () => {
-        const temp = {
-            "username": [],
-            "first": [],
-            "middle": [],
-            "last": [],
-            "role": [],
-            "school_en": [],
-            "school_th": [],
-            "major_en": [],
-            "major_th": []
-        }
-
-        const worksheet = XLSX.utils.json_to_sheet([temp]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: 'array' })
-        const blob = new Blob([excelBuffer], { type: "application/octet-stream" })
-        saveAs(blob, "Template.xlsx");
-    }
-
     const renderCell = React.useCallback((item: any, columnKey: React.Key) => {
         const cellValue = item[columnKey as keyof typeof item];
 
@@ -141,6 +121,7 @@ export default function ImportModal({ isOpen, onClose, onImportUsers }: ImportMo
                 }
                 return cellValue as React.ReactNode;
         }
+
     }, [fileData]);
 
     return (
@@ -157,7 +138,7 @@ export default function ImportModal({ isOpen, onClose, onImportUsers }: ImportMo
                         <ModalHeader className="flex flex-col gap-1">Import file</ModalHeader>
                         <ModalBody className="w-full">
                             <Input isRequired onChange={handleFileChange} label="File" type="file" accept=".xlsx" errorMessage={"Please select file"} />
-                            <Button color="primary" onPress={handleTemplateExport}>Download template</Button>
+                            <Button color="primary" onPress={onExportTemplate}>Download template</Button>
                         </ModalBody>
                         <ModalFooter className="w-full">
                             <Button color="danger" variant="light" onPress={() => { onClose(); setIsImportModalOpen(false); }}>

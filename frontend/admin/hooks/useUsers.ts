@@ -60,6 +60,8 @@ export function useUsers() {
                     });
                 });
             }
+
+            return res;
         } catch (err: any) {
             setError(err.message || "Failed to upload users.");
         } finally {

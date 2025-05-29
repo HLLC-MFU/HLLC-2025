@@ -23,11 +23,13 @@ interface TableContentProps {
     setPage: (page: number) => void;
     onPreviousPage: () => void;
     onNextPage: () => void;
-    setSelectedKeys: React.Dispatch<SetStateAction<Set<never>>>;
+    setSelectedKeys: (keys: "all" | Set<unknown>) => void;
+    sortDescriptor: any[];
     setSortDescriptor: (sort: any) => void;
     headerColumns: any[];
     sortedItems: User[];
     renderCell: (item: User, columnKey: React.Key, index: number) => any;
+    onRowsPerPageChange: (e: any) => void;
 }
 
 export default function TableContent({
@@ -50,10 +52,12 @@ export default function TableContent({
     onPreviousPage,
     onNextPage,
     setSelectedKeys,
+    sortDescriptor,
     setSortDescriptor,
     headerColumns,
     sortedItems,
     renderCell,
+    onRowsPerPageChange,
 }: TableContentProps) {
     return (
         <Table
@@ -74,7 +78,7 @@ export default function TableContent({
             }}
             selectedKeys={selectedKeys}
             selectionMode="multiple"
-            // sortDescriptor={sortDescriptor}
+            sortDescriptor={sortDescriptor}
             topContent={<TopContent
                 filterValue={filterValue}
                 visibleColumns={visibleColumns}
@@ -87,17 +91,18 @@ export default function TableContent({
                 setIsAddModalOpen={setIsAddModalOpen}
                 setIsImportModalOpen={setIsImportModalOpen}
                 setIsExportModalOpen={setIsExportModalOpen}
+                onRowsPerPageChange={onRowsPerPageChange}
             />}
             topContentPlacement="outside"
             onSelectionChange={setSelectedKeys}
-        // onSortChange={setSortDescriptor}
+            onSortChange={setSortDescriptor}
         >
             <TableHeader columns={headerColumns}>
                 {(column) => (
                     <TableColumn
                         key={column.uid}
                         align={column.uid === "actions" ? "center" : "start"}
-                    // allowsSorting={column.sortable}
+                        allowsSorting={column.sortable}
                     >
                         {column.name}
                     </TableColumn>

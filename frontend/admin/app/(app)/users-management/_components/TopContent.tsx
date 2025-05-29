@@ -1,4 +1,4 @@
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from "@heroui/react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Select, SelectItem } from "@heroui/react";
 import { ChevronDownIcon, FileInput, FileOutput, PlusIcon, SearchIcon, UserRound } from "lucide-react";
 import React from "react";
 
@@ -14,6 +14,7 @@ interface TopContentProps {
     setIsAddModalOpen: (value: boolean) => void;
     setIsImportModalOpen: (value: boolean) => void;
     setIsExportModalOpen: (value: boolean) => void;
+    onRowsPerPageChange: (e: any) => void;
 }
 
 export default function TopContent({
@@ -27,7 +28,8 @@ export default function TopContent({
     setAddModalText,
     setIsAddModalOpen,
     setIsImportModalOpen,
-    setIsExportModalOpen
+    setIsExportModalOpen,
+    onRowsPerPageChange,
 }: TopContentProps) {
     return (
         <div className="flex flex-col gap-4">
@@ -35,7 +37,7 @@ export default function TopContent({
                 <Input
                     isClearable
                     className="w-full sm:max-w-[44%]"
-                    placeholder="Search by name..."
+                    placeholder="Search by student id..."
                     startContent={<SearchIcon />}
                     value={filterValue}
                     onClear={() => onClear()}
@@ -54,7 +56,7 @@ export default function TopContent({
                             closeOnSelect={false}
                             selectedKeys={visibleColumns}
                             selectionMode="multiple"
-                            onSelectionChange={setVisibleColumns}
+                            onSelectionChange={(keys) => setVisibleColumns(new Set(Array.from(keys as any)))}
                         >
                             {columns.map((column) => (
                                 <DropdownItem key={column.uid} className="capitalize">
@@ -63,7 +65,6 @@ export default function TopContent({
                             ))}
                         </DropdownMenu>
                     </Dropdown>
-                    {/* Add these to other file  */}
                     <Dropdown>
                         <DropdownTrigger>
                             <Button color="primary" endContent={<PlusIcon size={20} />}>Add new</Button>
@@ -76,6 +77,13 @@ export default function TopContent({
                     <Button color="success" className="text-white" endContent={<FileOutput size={20} />} onPress={() => setIsExportModalOpen(true)}>Export</Button>
                 </div>
             </div>
-        </div>
+            <label className="flex items-center text-default-400 text-small">
+                <Select className="max-w-xs" label="Rows per page:" defaultSelectedKeys={"5"} variant="underlined" onChange={onRowsPerPageChange}>
+                    <SelectItem key="5">5</SelectItem>
+                    <SelectItem key="10">10</SelectItem>
+                    <SelectItem key="15">15</SelectItem>
+                </Select>
+            </label>
+        </div >
     );
 };
