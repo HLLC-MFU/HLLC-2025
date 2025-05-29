@@ -24,12 +24,12 @@ import { useCheckin } from '@/hooks/useCheckin';
 export const columns = [
   { name: 'NAME', uid: 'name', sortable: true },
   { name: 'SCHOOL', uid: 'school', sortable: true },
+  { name: 'ACTIVITY', uid: 'activity', sortable: true}
 ];
 
 interface TableProp {
   selectedActivityIds: string[];
 }
-
 
 export const statusOptions = [
   { name: 'Finished', uid: 'Finished' },
@@ -40,7 +40,7 @@ export function capitalize(s) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
 
-const INITIAL_VISIBLE_COLUMNS = ['name', 'school'];
+const INITIAL_VISIBLE_COLUMNS = ['name', 'school' , 'activity'];
 
 export function TableLog({ selectedActivityIds }: TableProp) {
   const [filterValue, setFilterValue] = React.useState('');
@@ -75,7 +75,7 @@ export function TableLog({ selectedActivityIds }: TableProp) {
     return () => clearInterval(interval);
   }, []);
 
-  const users = React.useMemo(() => {
+    const users = React.useMemo(() => {
     return (Array.isArray(checkin) ? checkin : []).map(item => ({
       id: item._id,
       name: `${item.user.name.first} ${item.user.name.middle ?? ''} ${item.user.name.last}`.trim(),
@@ -87,9 +87,9 @@ export function TableLog({ selectedActivityIds }: TableProp) {
     }));
   }, [checkin]);
 
+  console.log('ข้อมูลร่วมตาราง', checkin);
 
-  console.log("ข้อมูลร่วมตาราง",checkin)
-
+  
   const filteredItems = React.useMemo(() => {
     let filteredUsers = [...users];
 
@@ -145,6 +145,15 @@ export function TableLog({ selectedActivityIds }: TableProp) {
           </User>
         );
       case 'school':
+        return (
+          <div className="flex flex-col ">
+            <p className="text-bold text-small capitalize">{cellValue}</p>
+            <p className="text-bold text-tiny capitalize text-default-400">
+              {user.major}
+            </p>
+          </div>
+        );
+      case 'activity':
         return (
           <div className="flex flex-col ">
             <p className="text-bold text-small capitalize">{cellValue}</p>
