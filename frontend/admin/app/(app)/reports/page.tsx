@@ -128,11 +128,11 @@ export default function ReportsPage() {
 
   const getStatusColor = (status: Problem['status']) => {
     switch (status) {
-      case 'open':
+      case 'Pending':
         return 'danger';
-      case 'in-progress':
+      case 'In Progress':
         return 'warning';
-      case 'resolved':
+      case 'Resolved':
         return 'success';
       default:
         return 'default';
