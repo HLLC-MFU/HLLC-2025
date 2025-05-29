@@ -17,6 +17,7 @@ import { SystemStatusModule } from './module/system-status/system-status.module'
 import { APP_GUARD } from '@nestjs/core';
 import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
+import { AppearancesModule } from './module/appearances/appearances.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
     GlobalCacheModule,
     ActivitiesMajorModule,
     SystemStatusModule,
+    AppearancesModule,
   ],
   providers: [
     {
@@ -63,4 +65,4 @@ import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
   ],
 
 })
-export class AppModule {}
+export class AppModule { }
