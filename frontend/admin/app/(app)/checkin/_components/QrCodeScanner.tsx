@@ -15,85 +15,108 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
 
   useEffect(() => {
     const qrRegionId = 'qr-reader';
-    const scanner = new Html5Qrcode(qrRegionId);
-    scannerRef.current = scanner;
 
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices.length > 0) {
-        const cameraId = devices[0].id;
+    let isMounted = true;
 
-        if (isRunningRef.current) {
-          scanner.clear();
+    const stopScanner = async () => {
+      if (scannerRef.current && isRunningRef.current) {
+        try {
+          await scannerRef.current.stop();
+          await scannerRef.current.clear();
+        } catch (err) {
+          console.error('Error stopping scanner:', err);
         }
-
-        scanner
-          .start(
-            cameraId,
-            { fps: 10, qrbox: 250 },
-            async decodedText => {
-              if (!decodedText || scannedSetRef.current.has(decodedText))
-                return;
-
-              if (selectedActivityIds.length === 0) {
-                setTimeout(() => {
-                  addToast({
-                    title: 'กรุณาเลือกกิจกรรม',
-                    description: 'คุณต้องเลือกกิจกรรมก่อนสแกน',
-                    color: 'danger',
-                  });
-                }, 2000);
-
-                return;
-              }
-
-              scannedSetRef.current.add(decodedText);
-
-              console.log('ค่าที่แสกนได้ ', decodedText);
-
-              try {
-                createcheckin({
-                  user: decodedText,
-                  activities: selectedActivityIds,
-                });
-
-                addToast({
-                  title: 'สแกนสำเร็จ',
-                  description: `${decodedText} ได้ทำการ check-in`,
-                  color: 'success',
-                });
-              } catch (err) {
-                console.error('POST error:', err);
-                addToast({
-                  title: 'เกิดข้อผิดพลาด',
-                  description: 'ไม่สามารถส่งข้อมูลได้',
-                  color: 'danger',
-                });
-              }
-            },
-            error => {},
-          )
-          .then(() => {
-            isRunningRef.current = true;
-          })
-          .catch(err => {
-            console.error('Camera start error:', err);
-          });
+        isRunningRef.current = false;
       }
-    });
+    };
+
+    const startScanner = async () => {
+      if (selectedActivityIds.length === 0) return;
+
+      const scanner = new Html5Qrcode(qrRegionId);
+      scannerRef.current = scanner;
+
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (!isMounted || devices.length === 0) return;
+
+        const cameraId = devices[0].id;
+        await scanner.start(
+          cameraId,
+          { fps: 10, qrbox: 250 },
+          async decodedText => {
+            if (!decodedText || scannedSetRef.current.has(decodedText)) return;
+
+            scannedSetRef.current.add(decodedText);
+
+            try {
+              await createcheckin({
+                user: decodedText,
+                activities: selectedActivityIds,
+              });
+
+              addToast({
+                title: 'สแกนสำเร็จ',
+                description: `${decodedText} ได้ทำการ check-in`,
+                color: 'success',
+              });
+            } catch (err) {
+              addToast({
+                title: 'เกิดข้อผิดพลาด',
+                description: 'ไม่สามารถส่งข้อมูลได้',
+                color: 'danger',
+              });
+            }
+          },
+          () => {},
+        );
+
+        isRunningRef.current = true;
+      } catch (err) {
+        console.error('Camera start error:', err);
+      }
+    };
+
+    // Prevent race condition
+    (async () => {
+      await stopScanner();
+      if (selectedActivityIds.length > 0) {
+        await startScanner();
+      }
+    })();
 
     return () => {
-      if (scannerRef.current && isRunningRef.current) {
-        scannerRef.current.stop().then(() => {
-          scannerRef.current?.clear();
-          isRunningRef.current = false;
-        });
-      }
+      isMounted = false;
+      stopScanner();
     };
   }, [selectedActivityIds]);
 
   return (
     <div className="w-full max-w-sm mx-auto mb-4 sm:overflow-hidden sm:hidden">
-      <div id="qr-reader" style={{ width: '100%', height: '100%'}} />
+      {selectedActivityIds.length === 0 ? (
+        <div
+          style={{
+            width: '100%',
+            height: '250px',
+            backgroundColor: 'black',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '1rem',
+            fontWeight: 'bold',
+            borderRadius: '10px',
+          }}
+        >
+          กรุณาเลือกกิจกรรม
+        </div>
+      ) : (
+        <div
+          id="qr-reader"
+          style={{ width: '100%' }}
+          className="w-full rounded-xl overflow-hidden"
+        />
+      )}
     </div>
   );
 }
