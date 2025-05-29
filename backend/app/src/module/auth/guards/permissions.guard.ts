@@ -1,77 +1,100 @@
-// src/module/auth/guards/permissions.guard.ts
 import {
-  CanActivate,
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
-import { Types } from 'mongoose';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { FastifyRequest } from 'fastify';
+import { decryptItem, encryptItem } from '../utils/crypto';
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    user?: any;
+  }
+}
+
+interface Role {
+  permissions: string[]; // Can be encrypted or plain strings
+}
+
+interface User {
+  _id: string;
+  role: Role;
+}
 
 @Injectable()
 export class PermissionsGuard extends AuthGuard('jwt') {
-  constructor(private reflector: Reflector) {
+  constructor(private readonly reflector: Reflector) {
     super();
   }
 
+  private isEncrypted(text: string): boolean {
+    return text.includes(':') && /^[0-9a-fA-F]+:[0-9a-fA-F]+$/.test(text);
+  }
+
+  private decryptPermission(permission: string): string {
+    try {
+      return this.isEncrypted(permission)
+        ? decryptItem(permission)
+        : permission;
+    } catch (error) {
+      console.warn('Failed to decrypt permission:', permission, error);
+      return permission;
+    }
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // ✅ Public route check
     const isPublic = this.reflector.get<boolean>(
       IS_PUBLIC_KEY,
       context.getHandler(),
     );
-    if (isPublic) {
+    if (isPublic) return true;
+
+    const isJwtValid = (await super.canActivate(context)) as boolean;
+    if (!isJwtValid) throw new ForbiddenException('Unauthorized');
+
+    const request = context.switchToHttp().getRequest<FastifyRequest>();
+    const user = request.user as User | undefined;
+    if (!user) throw new ForbiddenException('User not found');
+
+    // Handle both encrypted and non-encrypted permissions
+    const decryptedPermissions: string[] = user.role.permissions.map(
+      (permission) => this.decryptPermission(permission),
+    );
+
+    // If permissions include "*", bypass check
+    if (decryptedPermissions.includes('*')) {
       return true;
     }
 
-    // ✅ ให้ AuthGuard ทำงานก่อน
-    const isJwtValid = await super.canActivate(context);
-    if (!isJwtValid) {
-      throw new ForbiddenException('Unauthorized');
-    }
-
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-
-    if (!user) {
-      throw new ForbiddenException('User not found');
-    }
-
-    // ✅ Permission check
+    // Check required permissions
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
     );
 
     if (requiredPermissions && requiredPermissions.length > 0) {
-      const role = user.role;
-      if (!role || !Array.isArray(role.permissions)) {
-        throw new ForbiddenException('Role or permissions not valid');
-      }
-
-      const fullPermissions = role.permissions.filter(
+      const fullPermissions = decryptedPermissions.filter(
         (p) => !p.endsWith(':id'),
       );
-      const ownPermissions = role.permissions.filter((p) => p.endsWith(':id'));
-
       let hasPermission = false;
 
       for (const perm of requiredPermissions) {
-        // ✅ Full permission (เช่น activities:read, checkins:read)
         if (fullPermissions.includes(perm)) {
           hasPermission = true;
           break;
         }
 
-        // ✅ Own permission (เช่น activities:read:id, checkins:read:id)
         if (perm.endsWith(':id')) {
-          const basePerm = perm.replace(':id', '');
-          const paramId = request.params['id'];
-
-          // ✅ ถ้า owner id ตรงกับ user
+          const params = request.params as Record<string, unknown> | undefined;
+          const paramId =
+            typeof params?.['id'] === 'string'
+              ? params['id']
+              : params?.['id']?.toString?.();
           if (paramId && paramId === user._id.toString()) {
             hasPermission = true;
             break;
@@ -84,16 +107,31 @@ export class PermissionsGuard extends AuthGuard('jwt') {
       }
     }
 
+    // Re-encrypt permissions only if they were encrypted before
+    user.role.permissions = user.role.permissions.map((permission) =>
+      this.isEncrypted(permission)
+        ? encryptItem(this.decryptPermission(permission))
+        : permission,
+    );
+
     return true;
   }
 
-  // ✅ Override handleRequest เพื่อให้ user แนบกับ req ก่อน
-  handleRequest(err, user, info, context) {
+  handleRequest<TUser = any>(
+    err: any,
+    user: TUser,
+    context?: ExecutionContext, // Note the "?" here
+  ): TUser {
     if (err || !user) {
-      throw err || new ForbiddenException('Unauthorized');
+      throw err || new UnauthorizedException('Unauthorized');
     }
-    const req = context.switchToHttp().getRequest();
-    req.user = user;
+
+    if (context) {
+      const req = context.switchToHttp().getRequest<FastifyRequest>();
+      req.user = user;
+    }
+
     return user;
   }
+
 }

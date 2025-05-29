@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import NextLink from "next/link";
 import { Tooltip } from "@heroui/tooltip";
 import { siteConfig } from "@/config/site";
-import { MenuIcon, XIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button, Divider, Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
 import clsx from "clsx";
 import { usePathname } from "next/navigation";
@@ -82,7 +82,7 @@ export const Sidebar = () => {
               <div className="space-y-1 px-2">
                 {section.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = pathname === item.href;
+                  const isActive = pathname.startsWith(item.href);
 
                   return (
                     <Tooltip
