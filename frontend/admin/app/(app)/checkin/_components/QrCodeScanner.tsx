@@ -93,7 +93,7 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
 
   return (
     <div className="w-full max-w-sm mx-auto mb-4 sm:overflow-hidden sm:hidden">
-      <div id="qr-reader" style={{ width: '100%' }} />
+      <div id="qr-reader" style={{ width: '100%', height: '100%'}} />
     </div>
   );
 }

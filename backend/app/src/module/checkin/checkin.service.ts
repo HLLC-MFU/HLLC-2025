@@ -17,7 +17,7 @@ import { Activities } from '../activities/schema/activities.schema';
 import { ActivityDocument } from '../activities/schema/activities.schema';
 import { PopulateField } from 'src/pkg/types/query';
 
-const userSelectFields = 'name username major metadata';
+const userSelectFields = 'name username ';
 
 
 
