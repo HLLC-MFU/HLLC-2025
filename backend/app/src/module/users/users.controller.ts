@@ -27,7 +27,7 @@ import { FastifyRequest } from 'fastify';
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @Post()
   @Public()
@@ -41,6 +41,40 @@ export class UsersController {
   @CacheKey('users')
   async findAll(@Query() query: Record<string, any>) {
     return this.usersService.findAll(query);
+  }
+
+  @Get('statistics')
+  @Permissions('users:read')
+  @CacheKey('users')
+  async getUserCountByRoles(): Promise<Record<string, number>> {
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'roles', // collection ชื่อ role (เล็กสุดตาม MongoDB)
+          localField: 'role',
+          foreignField: '_id',
+          as: 'roleData',
+        },
+      },
+      { $unwind: '$roleData' },
+      {
+        $group: {
+          _id: '$roleData.name',
+          count: { $sum: 1 },
+        },
+      },
+    ];
+
+    const result = await this.userModel.aggregate(pipeline).exec();
+
+    // แปลง array [{ _id: 'student', count: 10 }] เป็น object { student: 10 }
+    return result.reduce(
+      (acc, curr) => {
+        acc[curr._id] = curr.count;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
   }
 
   @Get(':id')

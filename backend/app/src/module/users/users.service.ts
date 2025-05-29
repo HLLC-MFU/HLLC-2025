@@ -31,8 +31,12 @@ export class UsersService {
     private readonly roleModel: Model<RoleDocument>,
     @InjectModel(Major.name)
     private readonly majorModel: Model<MajorDocument>,
-  ) { }
+  ) {}
 
+  /**
+   * Creates a new user.
+   * @param createUserDto - The data to create a new user.
+   */
   async create(createUserDto: CreateUserDto): Promise<User> {
     const role = await this.roleModel.findById(createUserDto.role).lean();
     if (!role) {
@@ -54,7 +58,7 @@ export class UsersService {
       model: this.userModel,
       query,
       filterSchema: {},
-      buildPopulateFields: excluded =>
+      buildPopulateFields: (excluded) =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
     });
   }
@@ -63,18 +67,53 @@ export class UsersService {
     return queryFindOne<User>(this.userModel, { _id }, []);
   }
 
+  // users.service.ts
+  async getUserCountByRoles(): Promise<Record<string, number>> {
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'roles',
+          localField: 'role',
+          foreignField: '_id',
+          as: 'roleData',
+        },
+      },
+      { $unwind: '$roleData' },
+      {
+        $group: {
+          _id: '$roleData.name',
+          count: { $sum: 1 },
+        },
+      },
+    ];
+
+    // กำหนด type ชัดเจน
+    const result: { _id: string; count: number }[] = await this.userModel
+      .aggregate(pipeline)
+      .exec();
+
+    return result.reduce<Record<string, number>>((acc, curr) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+  }
+
   /**
-   * 
-   * @param query 
-   * @returns 
+   *
+   * @param query
+   * @returns
    * example: this.usersService.findOneByQuery({ username });
    */
   async findOneByQuery(query: Partial<User> & { _id?: string }) {
-    return queryFindOne<User>(this.userModel, query, [{
-      path: 'role',
-    }, {
-      path: 'metadata.major', model: 'Major'
-    }]);
+    return queryFindOne<User>(this.userModel, query, [
+      {
+        path: 'role',
+      },
+      {
+        path: 'metadata.major',
+        model: 'Major',
+      },
+    ]);
   }
 
   async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
@@ -92,11 +131,9 @@ export class UsersService {
       validateMetadataSchema(updateUserDto.metadata, role.metadataSchema);
     }
 
-    const updatedUser = await this.userModel.findByIdAndUpdate(
-      userId,
-      { $set: updateUserDto },
-      { new: true },
-    ).lean();
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(userId, { $set: updateUserDto }, { new: true })
+      .lean();
 
     return updatedUser as User;
   }
@@ -124,7 +161,7 @@ export class UsersService {
 
   async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
     const users: CreateUserDto[] = await Promise.all(
-      uploadUserDto.users.map(async userDto => {
+      uploadUserDto.users.map(async (userDto) => {
         const userMajor = userDto.major || uploadUserDto.major;
 
         // ✅ Check major existence
@@ -157,13 +194,13 @@ export class UsersService {
 
     try {
       const savedUsers = await Promise.all(
-        users.map(async user => {
+        users.map(async (user) => {
           const userDoc = new this.userModel(user);
           return await userDoc.save();
         }),
       );
 
-      return savedUsers.map(user => user.toObject());
+      return savedUsers.map((user) => user.toObject());
     } catch (error) {
       if (error.code === 11000) {
         throw new ConflictException('Username already exists');
