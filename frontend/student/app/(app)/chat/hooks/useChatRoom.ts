@@ -3,7 +3,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Alert, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Vibration } from 'react-native';
-import WebSocket from 'ws';
+import WebSocket from 'react';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useWebSocket } from './useWebSocket';
