@@ -10,6 +10,7 @@ import {
   HelpCircleIcon,
   LogOutIcon,
   ShieldAlert,
+  Palette,
   Megaphone,
 } from "lucide-react";
 
@@ -42,6 +43,7 @@ export const siteConfig = {
       items: [
         { label: "Settings", href: "/settings", icon: SettingsIcon },
         { label: "Help & Feedback", href: "/help-feedback", icon: HelpCircleIcon },
+        { label: "Appearance", href: "/appearance", icon: Palette }
       ],
     },
     {
