@@ -24,7 +24,7 @@ export interface Problem {
         th: string;
     };
     categoryId: string;
-    status: 'Pending' | 'In Progress' | 'Resolved';
+    status: "Pending" | "In-Progress" | "Resolved";
     createdAt: Date;
     updatedAt: Date;
 }

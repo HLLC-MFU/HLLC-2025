@@ -110,14 +110,13 @@ export function ProblemModal({ isOpen, onClose, onSubmit, problem, categories, m
                                     </SelectItem>
                                 ))}
                             </Select>
-    
                             <Select
                                 label="Status"
                                 selectedKeys={[status]}
                                 onChange={(e) => setStatus(e.target.value as Problem["status"])}
                             >
                                 <SelectItem key="Pending">Pending</SelectItem>
-                                <SelectItem key="In Progress">In Progress</SelectItem>
+                                <SelectItem key="In-Progress">In-Progress</SelectItem>
                                 <SelectItem key="Resolved">Resolved</SelectItem>
                             </Select>
                         </div>

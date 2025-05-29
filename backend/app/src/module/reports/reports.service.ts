@@ -37,7 +37,7 @@ export class ReportsService {
 
     @InjectModel(ReportCategory.name)
     private readonly categoryModel: Model<ReportCategoryDocument>,
-  ) {}
+  ) { }
 
   async create(createReportDto: CreateReportDto) {
     await findOrThrow(
@@ -131,7 +131,7 @@ export class ReportsService {
       { path: 'reporter', select: userSelectFields },
       { path: 'category' },
     ];
-    return queryFindOne<Report>(this.reportModel, { _id: id }, populateFields);
+    return queryFindOne<Report>(this.reportModel, { _id: id });
   }
 
   async update(id: string, updateReportDto: UpdateReportDto) {
@@ -164,12 +164,12 @@ export class ReportsService {
   }
 
   async remove(id: string): Promise<{ message: string; deletedId: string }> {
-  await queryDeleteOne<Report>(this.reportModel, id);
+    await queryDeleteOne<Report>(this.reportModel, id);
 
-  return {
-    message: 'Report deleted successfully',
-    deletedId: id,
-  };
-}
+    return {
+      message: 'Report deleted successfully',
+      deletedId: id,
+    };
+  }
 
 }

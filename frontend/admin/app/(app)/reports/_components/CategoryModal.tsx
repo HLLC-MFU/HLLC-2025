@@ -20,16 +20,23 @@ interface CategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (category: Category) => void;
+  onAdd: (category: Partial<Category>) => void;
+  onUpdate: (id: string, category: Partial<Category>) => void;
   category?: Category;
   mode: 'add' | 'edit';
 }
 
-export function CategoryModal({ isOpen, onClose, onSubmit, category, mode }: CategoryModalProps) {
+export function CategoryModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  category,
+  onAdd,
+  onUpdate,
+  mode,
+}: CategoryModalProps) {
   const [nameEn, setNameEn] = useState('');
   const [nameTh, setNameTh] = useState('');
-  const [descriptionEn, setDescriptionEn] = useState('');
-  const [descriptionTh, setDescriptionTh] = useState('');
-  const [color, setColor] = useState('#000000');
 
   useEffect(() => {
     if (category) {
@@ -52,24 +59,18 @@ export function CategoryModal({ isOpen, onClose, onSubmit, category, mode }: Cat
     };
 
     try {
-      let saved;
+      let saved: any;
 
       if (mode === 'edit' && category?.id) {
-        // 🔁 UPDATE ไป backend
-        const res = await fetch(`http://localhost:8080/api/categories/${category.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        saved = await res.json();
+        saved = await onUpdate(category.id, payload); // ✅ รับ object กลับมา
       } else {
-        // ➕ ADD ใหม่
-        const res = await fetch('http://localhost:8080/api/categories', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        saved = await res.json();
+        saved = await onAdd(payload); // ✅ รับ object กลับมา
+      }
+
+      // กรณี onAdd หรือ onUpdate ไม่คืนค่า ให้ข้าม onSubmit
+      if (!saved) {
+        console.warn("No category data returned from save");
+        return;
       }
 
       const updatedCategory: Category = {
@@ -81,15 +82,15 @@ export function CategoryModal({ isOpen, onClose, onSubmit, category, mode }: Cat
           en: '',
           th: '',
         },
-        color: '',
+        color: '', // คุณอาจต้องเติม logic สี ถ้ามีในระบบจริง
       };
 
-      onSubmit(updatedCategory);
+      onSubmit(updatedCategory); // แจ้ง page.tsx ให้ reset state
     } catch (error) {
       console.error('Error saving category:', error);
     }
 
-    onClose();
+    onClose(); // ปิด modal
   };
 
   return (
@@ -100,7 +101,7 @@ export function CategoryModal({ isOpen, onClose, onSubmit, category, mode }: Cat
         </ModalHeader>
         <ModalBody>
           <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 label="Category Name (English)"
                 placeholder="Enter category name in English"

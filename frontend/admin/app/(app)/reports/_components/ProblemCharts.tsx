@@ -33,11 +33,9 @@ const COLORS = {
 };
 
 const CHART_COLORS = [
-    COLORS.primary,
-    COLORS.secondary,
-    COLORS.warning,
     COLORS.danger,
-    COLORS.success
+    COLORS.warning,
+    COLORS.success,
 ];
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -62,11 +60,12 @@ export function ProblemCharts({ problems, categories }: ProblemChartsProps) {
         color: category.color
     }));
 
+
     // Prepare data for status distribution chart
     const statusData: ChartData[] = [
         { name: 'Pending', value: problems.filter(p => p.status === 'Pending').length },
-        { name: 'In Progress', value: problems.filter(p => p.status === 'In Progress').length },
-        { name: 'Resolved', value: problems.filter(p => p.status === 'Resolved').length }
+        { name: 'In-Progress', value: problems.filter(p => p.status === 'In-Progress').length },
+        { name: 'Done', value: problems.filter(p => p.status === 'Resolved').length }
     ];
 
     const totalProblems = problems.length;
@@ -84,19 +83,19 @@ export function ProblemCharts({ problems, categories }: ProblemChartsProps) {
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={categoryData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                                    <XAxis 
-                                        dataKey="name" 
+                                    <XAxis
+                                        dataKey="name"
                                         stroke="#6B7280"
                                         tick={{ fontSize: 12 }}
                                     />
-                                    <YAxis 
+                                    <YAxis
                                         stroke="#6B7280"
                                         tick={{ fontSize: 12 }}
                                     />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Legend />
-                                    <Bar 
-                                        dataKey="count" 
+                                    <Bar
+                                        dataKey="count"
                                         fill={COLORS.primary}
                                         radius={[4, 4, 0, 0]}
                                     />
@@ -104,8 +103,6 @@ export function ProblemCharts({ problems, categories }: ProblemChartsProps) {
                             </ResponsiveContainer>
                         </div>
                     </div>
-
-                    {/* Status Distribution Chart */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Problems by Status</h3>
                         <div className="h-[250px]">
@@ -123,8 +120,8 @@ export function ProblemCharts({ problems, categories }: ProblemChartsProps) {
                                         strokeWidth={2}
                                     >
                                         {statusData.map((entry, index) => (
-                                            <Cell 
-                                                key={`cell-${index}`} 
+                                            <Cell
+                                                key={`cell-${index}`}
                                                 fill={CHART_COLORS[index % CHART_COLORS.length]}
                                                 stroke="#fff"
                                             />

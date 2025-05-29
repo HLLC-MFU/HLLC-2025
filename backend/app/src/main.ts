@@ -1,5 +1,3 @@
-import cors from '@fastify/cors';
-// ...ของเดิมทั้งหมด
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -19,23 +17,16 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter(),
   );
-
-  // ✅ เปิด CORS สำหรับ frontend ที่ localhost:3000
-  await app.register(cors, {
-    origin: 'http://localhost:3000',
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'], // หรือใช้ true ถ้าอยากให้ทุก origin เข้าได้
-  });
-
   await app.register(compression, {
     global: true,
     encodings: ['gzip', 'deflate'],
     threshold: 1024,
   });
-
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
   await app.register(cookie);
@@ -44,7 +35,6 @@ async function bootstrap() {
     .setDescription('API Documentation for the application')
     .setVersion('1.0')
     .build();
-
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
   app.useGlobalFilters(new MongoExceptionFilter());
