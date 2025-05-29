@@ -27,11 +27,6 @@ export const columns = [
   { name: 'ACTIVITY', uid: 'activity', sortable: true },
 ];
 
-export const statusOptions = [
-  { name: 'Finished', uid: 'Finished' },
-  { name: 'Incomplete', uid: 'Incomplete' },
-];
-
 export function capitalize(s) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
@@ -44,7 +39,6 @@ export function TableLog() {
   const [visibleColumns, setVisibleColumns] = React.useState(
     new Set(INITIAL_VISIBLE_COLUMNS),
   );
-  const [statusFilter, setStatusFilter] = React.useState('all');
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = React.useState({
     column: 'name',
@@ -55,6 +49,9 @@ export function TableLog() {
   const { checkin, fetchcheckin } = useCheckin();
   type Activity = { id: string; name: string };
   const [activity, setActivity] = React.useState<Activity[]>();
+  const [activtyFilter, setActivityFilter] = React.useState<Set<string>>(
+    new Set(),
+  );
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -91,13 +88,14 @@ export function TableLog() {
   }, []);
 
   console.log(user);
-  console.log("ค่ากิจกรรมในหน้าตาราง",activity);
+  console.log('ค่ากิจกรรมในหน้าตาราง', activity);
 
   const users = React.useMemo(() => {
     return (Array.isArray(checkin) ? checkin : []).map(item => ({
       id: item._id,
       name: `${item.user.name.first} ${item.user.name.middle ?? ''} ${item.user.name.last}`.trim(),
       studentid: item.user.username,
+      activityId: item.activities?.[0]?._id ?? '',
       activity: item.activities?.[0]?.fullName?.en ?? '-',
       activityth: item.activities?.[0]?.fullName?.th ?? '-',
       status: 'Finished', // ถ้าไม่มีข้อมูลสถานะจากหลังบ้าน
@@ -115,17 +113,14 @@ export function TableLog() {
       );
     }
 
-    if (
-      statusFilter !== 'all' &&
-      Array.from(statusFilter).length !== statusOptions.length
-    ) {
+    if (activtyFilter && activtyFilter.size > 0) {
       filteredUsers = filteredUsers.filter(user =>
-        Array.from(statusFilter).includes(user.status),
+        activtyFilter.has(user.activityId),
       );
     }
 
     return filteredUsers;
-  }, [users, filterValue, statusFilter]);
+  }, [users, filterValue, activtyFilter]);
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
@@ -225,16 +220,16 @@ export function TableLog() {
                   endContent={<ChevronDown className="text-small" />}
                   variant="flat"
                 >
-                  Status
+                  Activity
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
                 disallowEmptySelection
                 aria-label="Table Columns"
                 closeOnSelect={false}
-                selectedKeys={statusFilter}
+                selectedKeys={activtyFilter}
                 selectionMode="multiple"
-                onSelectionChange={setStatusFilter}
+                onSelectionChange={setActivityFilter}
               >
                 {(activity ?? []).map(activty => (
                   <DropdownItem key={activty.id} className="capitalize">
@@ -285,7 +280,7 @@ export function TableLog() {
     );
   }, [
     filterValue,
-    statusFilter,
+    activtyFilter,
     visibleColumns,
     onRowsPerPageChange,
     users.length,
