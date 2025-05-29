@@ -121,41 +121,42 @@ export default function ReportsPage() {
                         <CardBody
                             className="cursor-pointer"
                             onClick={() => router.push(`/reports/${category.id}`)}
-                        >
+                            >
                             <div className="space-y-4">
                                 {problems
-                                    .filter(problem => problem.categoryId === category.id)
-                                    .map(problem => (
-                                        <div
-                                            key={problem.id}
-                                            className="rounded-lg border border-gray-200 p-3 hover:border-gray-300"
-                                            onClick={e => {
-                                                e.stopPropagation();
-                                                setSelectedProblem(problem);
-                                                setIsProblemModalOpen(true);
-                                            }}
-                                        >
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <h4 className="font-medium">{problem.title.en}</h4>
-                                                    <p className="text-sm text-gray-500">{problem.title.th}</p>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <StatusDropdown
-                                                        status={problem.status}
-                                                        onChange={newStatus => handleStatusChange(problem.id, newStatus)}
-                                                    />
-
-                                                    <SendNotiButton />
-                                                </div>
-                                            </div>
-                                            <p className="mt-2 line-clamp-2 text-sm text-gray-600">
-                                                {problem.description.en}
-                                            </p>
+                                .filter(problem => problem.categoryId === category.id)
+                                .map(problem => (
+                                    <div
+                                    key={problem.id}
+                                    className="rounded-lg border border-gray-200 p-3 hover:border-gray-300"
+                                    onClick={e => {
+                                        e.stopPropagation();
+                                        setSelectedProblem(problem);
+                                        setIsProblemModalOpen(true);
+                                    }}
+                                    >
+                                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                        <h4 className="font-medium truncate">{problem.title.en}</h4>
+                                        <p className="text-sm text-gray-500 truncate">{problem.title.th}</p>
                                         </div>
-                                    ))}
+
+                                        <div className="flex flex-wrap sm:flex-nowrap gap-2 sm:justify-end">
+                                        <StatusDropdown
+                                            status={problem.status}
+                                            onChange={newStatus => handleStatusChange(problem.id, newStatus)}
+                                        />
+                                        <SendNotiButton />
+                                        </div>
+                                    </div>
+
+                                    <p className="mt-2 text-sm text-gray-600 line-clamp-2 sm:line-clamp-3">
+                                        {problem.description.en}
+                                    </p>
+                                    </div>
+                                ))}
                             </div>
-                        </CardBody>
+                            </CardBody>
                     </Card>
                 ))}
             </div>
