@@ -53,19 +53,35 @@ async findOne(id: string) {
 }
 
 
-  async update(id: string, updateReportCategoryDto: UpdateReportCategoryDto) {
-    if (updateReportCategoryDto.name) {
-      await throwIfExists(
-        this.reportCategoryModel,
-        {
-          _id: { $ne: id },
-          'name.th': updateReportCategoryDto.name.th,
-          'name.en': updateReportCategoryDto.name.en,
-        },
-        'Report category with this name already exists',
-      );
-    }
+async update(id: string, updateReportCategoryDto: UpdateReportCategoryDto) {
+  if (updateReportCategoryDto.name) {
+    await throwIfExists(
+      this.reportCategoryModel,
+      {
+        _id: { $ne: id },
+        'name.th': updateReportCategoryDto.name.th,
+        'name.en': updateReportCategoryDto.name.en,
+      },
+      'Report category with this name already exists',
+    );
   }
+
+  const updated = await this.reportCategoryModel.findByIdAndUpdate(
+    id,
+    updateReportCategoryDto,
+    { new: true } // ← ให้ return ค่าใหม่ที่อัปเดตแล้ว
+  ).lean();
+
+  if (!updated) {
+    throw new NotFoundException('Category not found');
+  }
+
+  return {
+    message: 'Category updated successfully',
+    data: updated,
+  };
+}
+
 
   async remove(id: string): Promise<void> {
     await queryDeleteOne<ReportCategory>(this.reportCategoryModel, id);

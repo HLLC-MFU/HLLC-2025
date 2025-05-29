@@ -19,7 +19,8 @@ async function bootstrap() {
 
   // ✅ เปิด CORS สำหรับ frontend ที่ localhost:3000
   await app.register(cors, {
-    origin: 'http://localhost:3000', // หรือใช้ true ถ้าอยากให้ทุก origin เข้าได้
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'], // หรือใช้ true ถ้าอยากให้ทุก origin เข้าได้
   });
 
   await app.register(compression, {
