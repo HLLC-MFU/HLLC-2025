@@ -15,7 +15,7 @@ import {
 import { chatService, CreateRoomDto } from '../services/chatService';
 import { useLanguage } from '@/context/LanguageContext';
 import { X, Image as ImageIcon } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
+// import * as ImagePicker from 'expo-image-picker';
 
 interface CreateRoomModalProps {
   visible: boolean;

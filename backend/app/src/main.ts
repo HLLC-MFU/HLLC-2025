@@ -38,6 +38,6 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, documentFactory);
   app.useGlobalFilters(new MongoExceptionFilter());
   // app.useGlobalInterceptors(new TransformInterceptor());
-  void app.listen(process.env.PORT ?? 3000);
+  void app.listen(process.env.PORT ?? 3000, "0.0.0.0");
 }
 void bootstrap();

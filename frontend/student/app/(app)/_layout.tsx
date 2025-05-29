@@ -6,12 +6,13 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SplashScreen, Stack } from "expo-router";
-
+import "@/utils/notifications"; 
 import { Redirect } from "expo-router";
 import { BlurView } from "expo-blur";
 import { ImageBackground } from "expo-image";
 import useProfile from "@/hooks/useProfile";
 import { useEffect, useState } from "react";
+
 
 
 export default function Layout() {

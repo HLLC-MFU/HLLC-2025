@@ -3,8 +3,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Alert, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Vibration } from 'react-native';
-import WebSocket from 'react';
-import * as ImagePicker from 'expo-image-picker';
+// WebSocket is globally available in React Native
+  // import * as ImagePicker from 'expo-image-picker';
 
 import { useWebSocket } from './useWebSocket';
 import { useTypingIndicator } from './useTypingIndicator';
@@ -12,14 +12,14 @@ import { useMessageGrouping } from './useMessageGrouping';
 import useProfile from '@/hooks/useProfile';
 import { chatService } from '../services/chatService';
 import { ChatRoom, Message } from '../types/chatTypes';
-import { 
-  MAX_MESSAGE_LENGTH, 
+import {
+  MAX_MESSAGE_LENGTH,
   SCROLL_DELAY,
   ERROR_MESSAGES,
   HEARTBEAT_INTERVAL,
 } from '../constants/chatConstants';
-import { 
-  triggerHapticFeedback, 
+import {
+  triggerHapticFeedback,
   triggerSuccessHaptic,
   createTempMessage,
   createFileMessage,
@@ -70,7 +70,7 @@ export const useChatRoom = () => {
         const roomData = JSON.parse(params.room as string);
         setRoom(roomData);
         setIsMember(roomData.is_member || false);
-        
+
         if (roomData.is_member && (!ws || ws.readyState !== WebSocket.OPEN)) {
           await wsConnect(roomId);
           startHeartbeat();
@@ -78,10 +78,10 @@ export const useChatRoom = () => {
       } else {
         const roomData = await chatService.getRoom(roomId);
         if (!roomData) throw new Error('Room not found');
-        
+
         setRoom(roomData);
         setIsMember(roomData.is_member || false);
-        
+
         if (roomData.is_member && (!ws || ws.readyState !== WebSocket.OPEN)) {
           await wsConnect(roomId);
           startHeartbeat();
@@ -118,7 +118,7 @@ export const useChatRoom = () => {
   // Initialize room on mount
   useEffect(() => {
     let heartbeatCleanup: (() => void) | undefined;
-    
+
     const setup = async () => {
       await initializeRoom();
       if (room?.is_member) {
@@ -160,14 +160,14 @@ export const useChatRoom = () => {
       setJoining(true);
 
       const result = await chatService.joinRoom(roomId);
-      
+
       if (result.success && result.room) {
         setRoom(result.room);
         setIsMember(true);
-        
+
         if (ws) ws.close();
         await wsConnect(roomId);
-        
+
         triggerSuccessHaptic();
       } else {
         throw new Error(result.message || ERROR_MESSAGES.JOIN_FAILED);
@@ -183,11 +183,11 @@ export const useChatRoom = () => {
   const handleSendMessage = useCallback(async () => {
     const trimmedMessage = messageText.trim();
     if (!trimmedMessage || !room?.is_member || !isConnected) return;
-    
+
     try {
       const tempMessage = createTempMessage(trimmedMessage, userId, replyTo);
       addMessage(tempMessage);
-      
+
       const messageData = {
         eventType: 'message',
         payload: {
@@ -201,7 +201,7 @@ export const useChatRoom = () => {
           } : undefined
         }
       };
-      
+
       wsSendMessage(JSON.stringify(messageData));
       setMessageText('');
       setReplyTo(undefined);
@@ -245,7 +245,7 @@ export const useChatRoom = () => {
         const data = await response.json();
         const tempMessage = createFileMessage(data);
         addMessage(tempMessage);
-        
+
         if (Platform.OS === 'ios') {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "624663222030",
+    "project_id": "notifications-hllc2025",
+    "storage_bucket": "notifications-hllc2025.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:624663222030:android:20c1ddc8152f15505aa95f",
+        "android_client_info": {
+          "package_name": "dev.expo.notificationshllc2025"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARX9gk9gd-yCCC9S3rlZ_BdFrO_epwQas"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

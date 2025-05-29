@@ -9,6 +9,7 @@ import {
 import HomeHero from "@/components/home/Hero";
 import FAB from "@/components/FAB";
 import { QrCode, MessageSquare } from "lucide-react-native";
+import * as Notifications from 'expo-notifications';
 
 import { useRouter } from "expo-router";
 import TopNav from "@/components/global/TopNav";
@@ -18,6 +19,10 @@ import SectionHeader from "@/components/home/SectionHeader";
 import useProfile from "@/hooks/useProfile";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTranslation } from "react-i18next";
+import { useNotification } from "@/context/NotificationContext";
+import { useEffect } from "react";
+import { Platform } from 'react-native';
+
 
 export default function HomeScreen() {
   const { user } = useProfile();
@@ -26,6 +31,24 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const { activities, loading, error } = useActivities();
+  const { expoPushToken, notification } = useNotification();
+
+  useEffect(() => {
+    console.log("🔔 Expo Push Token:", expoPushToken);
+    console.log("🔔 Current Notification:", notification);
+  }, [expoPushToken, notification]);
+
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        sound: 'default',
+      });
+    }
+  }, []);
+  
+
   if (loading) {
     return (
       <SafeAreaView
