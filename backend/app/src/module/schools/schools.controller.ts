@@ -32,6 +32,7 @@ export class SchoolsController {
   findAll(@Query() query: Record<string, string>) {
     return this.schoolsService.findAll(query);
   }
+  
 
   @Get(':id')
   findOne(@Param('id') id: string) {

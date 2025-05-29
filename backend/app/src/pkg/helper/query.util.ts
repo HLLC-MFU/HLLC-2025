@@ -72,6 +72,7 @@ export async function queryAll<T>(
     buildPopulateFields,
     chunkSize = 1000,
     defaultLimit = 20,
+    select,
   } = options;
 
   const { page = '1', limit, sort, excluded = '', ...rawFilters } = query;
@@ -102,6 +103,10 @@ export async function queryAll<T>(
         .limit(chunkSize)
         .sort(sortFields);
 
+      if (select) {
+        chunkQuery.select(select);
+      }
+
       populateFields.forEach((p) => {
         chunkQuery.populate(p);
       });
@@ -130,6 +135,10 @@ export async function queryAll<T>(
     .limit(limitNum)
     .sort(sortFields);
 
+  if (select) {
+    queryBuilder.select(select);
+  }
+
   populateFields.forEach((p) => {
     queryBuilder.populate(p);
   });
@@ -152,12 +161,6 @@ export async function queryAll<T>(
   };
 }
 
-/**
- * 
- * @param query 
- * @returns 
- * example: this.usersService.findOneByQuery({ username });
- */
 export async function queryFindOne<T>(
   model: Model<HydratedDocument<T>>,
   filter: FilterQuery<T>,
@@ -176,7 +179,6 @@ export async function queryFindOne<T>(
 
   return result;
 }
-
 
 export async function queryUpdateOne<T>(
   model: Model<HydratedDocument<T>>,

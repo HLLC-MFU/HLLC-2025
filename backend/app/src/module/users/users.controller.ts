@@ -40,17 +40,17 @@ export class UsersController {
   @Permissions('users:read')
   @CacheKey('users')
   async findAll(@Query() query: Record<string, any>) {
-    return this.usersService.findAll(query);
+    return this.usersService.findAllByQuery(query);
   }
 
   @Get(':id')
   @Permissions('users:read:id')
   @CacheKey('users:$params.id')
-  @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
+  @Public()
   @Get('profile')
   getProfile(@Req() req: FastifyRequest) {
     const userId = req.user?._id || req.user?.id;
@@ -58,6 +58,12 @@ export class UsersController {
       _id: userId,
     });
   }
+
+  // @Get('activities/users')
+  // findUsersByMetadata(@Req() req: FastifyRequest) {
+  //   const userId = req.user?._id || req.user?.id;
+  //   return this.usersService.getUserScopeIds(userId);
+  // }
 
   @Post('upload')
   @Permissions('users:create')

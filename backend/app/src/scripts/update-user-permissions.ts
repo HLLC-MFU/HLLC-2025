@@ -33,11 +33,28 @@ async function updateUserPermissions(): Promise<void> {
       },
     );
 
+    const result2 = await rolesCollection.updateOne(
+      {name : 'Administrator'},
+    {
+        $set: {
+          permissions: ['*'],
+          updatedAt: new Date(),
+        },
+      },
+    );
+    
     if (result.matchedCount === 0) {
       console.log('⚠️ No User role found to update');
     } else {
       console.log('✅ Successfully updated User role permissions');
       console.log(`Modified ${result.modifiedCount} document(s)`);
+    }
+
+    if (result2.matchedCount === 0) {
+      console.log('⚠️ No Administrator role found to update');
+    } else {
+      console.log('✅ Successfully updated Administrator role permissions');
+      console.log(`Modified ${result2.modifiedCount} document(s)`);
     }
   } catch (error) {
     console.error('❌ Error updating permissions:', error);

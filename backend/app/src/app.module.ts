@@ -12,6 +12,7 @@ import { GlobalCacheModule } from './pkg/cache/cache.module';
 import { ActivitiesModule } from './module/activities/activities.module';
 import * as redisStore from 'cache-manager-ioredis';
 import { CheckinModule } from './module/checkin/checkin.module';
+import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
 
 @Module({
   imports: [
@@ -35,14 +36,15 @@ import { CheckinModule } from './module/checkin/checkin.module';
       }),
       inject: [ConfigService],
     }),
+    GlobalCacheModule,
+    AuthModule,
+    RoleModule,
     UsersModule,
     CheckinModule,
     SchoolsModule,
     MajorsModule,
-    RoleModule,
     ActivitiesModule,
-    AuthModule,
-    GlobalCacheModule,
+    ActivitiesTypeModule,
   ],
   providers: [],
 })

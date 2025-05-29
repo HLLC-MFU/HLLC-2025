@@ -28,6 +28,7 @@ export interface QueryPaginationOptions<T> {
   buildPopulateFields?: (excluded: string[]) => Promise<PopulateField[]>;
   chunkSize?: number;
   defaultLimit?: number;
+  select?: string | string[] | Record<string, number | boolean | object>;
 }
 
 export interface PopulateField {

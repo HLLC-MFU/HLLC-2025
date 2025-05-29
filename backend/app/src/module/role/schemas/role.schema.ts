@@ -8,11 +8,13 @@ export enum Actions {
   Create = 'create',
   Update = 'update',
   Delete = 'delete',
+  All = '*'
 }
 
 type BasePermission = `${string}:${Actions}`;
 type IdPermission = `${string}:${Actions}:id`;
-export type Permission = BasePermission | IdPermission;
+type WildcardPermission = '*' | `${string}:*`;
+export type Permission = BasePermission | IdPermission | WildcardPermission;
 
 @Schema({ timestamps: true })
 export class Role {
@@ -27,8 +29,14 @@ export class Role {
 
   /**
  * The permissions associated with the role.
- * Each permission should be a string formatted as "resource:action" or "resource:action:id".
- * @example ["user:create", "user:update:id"]
+ * Each permission should be a string formatted as:
+ * - "resource:action" (e.g., "users:create")
+ * - "resource:action:id" (e.g., "users:update:id")
+ * - "resource:*" (all actions for a resource)
+ * - "*" (all actions for all resources)
+ * @example ["*"] for superadmin
+ * @example ["users:*"] for full user management
+ * @example ["users:create", "users:update:id"] for specific permissions
  */
   @Prop({ type: [String], default: [] })
   permissions: string[];

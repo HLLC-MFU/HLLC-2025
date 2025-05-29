@@ -11,32 +11,33 @@ import {
 import { ActivitiesService } from './activities.service';
 import { CreateActivitiesDto } from './dto/create-activities.dto';
 import { UpdateActivityDto } from './dto/update-activities.dto';
-import { Permissions } from '../auth/decorators/permissions.decorator';
 
 @Controller('activities')
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
-  @Permissions('activities:create')
   create(@Body() createActivitiesDto: CreateActivitiesDto) {
     return this.activitiesService.create(createActivitiesDto);
   }
 
   @Get()
-  @Permissions('activities:read')
-  findAll(@Query() query: Record<string, string>) {
-    return this.activitiesService.findAll(query);
+  findAll(
+    @Query() query: Record<string, string>,
+    @Query('userId') userId?: string,
+  ) {
+    return this.activitiesService.findAll(query, userId);
   }
 
   @Get(':id')
-  @Permissions('activities:read')
-  findOne(@Param('id') id: string) {
-    return this.activitiesService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.activitiesService.findOne(id, userId);
   }
 
   @Patch(':id')
-  @Permissions('activities:update')
   update(
     @Param('id') id: string,
     @Body() updateActivityDto: UpdateActivityDto,
@@ -45,7 +46,6 @@ export class ActivitiesController {
   }
 
   @Delete(':id')
-  @Permissions('activities:delete')
   remove(@Param('id') id: string) {
     return this.activitiesService.remove(id);
   }

@@ -21,7 +21,7 @@ export class RoleInitializerService implements OnModuleInit {
     const roles = [
       {
         name: 'Administrator',
-        permissions: this.createAdminPermissions(),
+        permissions: ['*'] as Permission[], // Admin has full access to everything
       },
       {
         name: 'User',
@@ -45,14 +45,8 @@ export class RoleInitializerService implements OnModuleInit {
           await existing.save();
         }
         // Update Administrator permissions if needed
-        else if (
-          roleData.name === 'Administrator' &&
-          (!existing.permissions ||
-            existing.permissions.length < roleData.permissions.length)
-        ) {
-          this.logger.log(
-            `Updating Administrator permissions from ${existing.permissions.length} to ${roleData.permissions.length}`,
-          );
+        else if (roleData.name === 'Administrator' && existing.permissions[0] !== '*') {
+          this.logger.log('Updating Administrator permissions to use wildcard (*)');
           existing.permissions = roleData.permissions;
           await existing.save();
         }
