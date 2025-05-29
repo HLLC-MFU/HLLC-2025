@@ -25,40 +25,57 @@ export default function ReportsPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const fetchMockupData = async () => {
-            try {
-                const [categoriesResponse, problemsResponse] = await Promise.all([
-                    fetch('/mock/categories.json'),
-                    fetch('/mock/problems.json')
-                ]);
+  const fetchRealData = async () => {
+    try {
+      const [categoriesRes, reportsRes] = await Promise.all([
+        fetch("http://localhost:8080/api/categories"),
+        fetch("http://localhost:8080/api/reports"),
+      ]);
 
-                const categoriesData = await categoriesResponse.json();
-                const problemsData = await problemsResponse.json();
+      const categoriesJson = await categoriesRes.json();
+      const reportsJson = await reportsRes.json();
 
-                // Convert string dates to Date objects
-                const processedCategories = categoriesData.categories.map((cat: any) => ({
-                    ...cat,
-                    createdAt: new Date(cat.createdAt),
-                    updatedAt: new Date(cat.updatedAt)
-                }));
+      console.log("Categories data:", categoriesJson);
+      console.log("Reports data:", reportsJson);
 
-                const processedProblems = problemsData.problems.map((prob: any) => ({
-                    ...prob,
-                    createdAt: new Date(prob.createdAt),
-                    updatedAt: new Date(prob.updatedAt)
-                }));
+      const processedCategories = categoriesJson.data.map((cat: any) => ({
+        ...cat,
+        id: cat._id,
+        createdAt: new Date(cat.createdAt ?? Date.now()),
+        updatedAt: new Date(cat.updatedAt ?? Date.now()),
+      }));
 
-                setCategories(processedCategories);
-                setProblems(processedProblems);
-            } catch (error) {
-                console.error("Error loading mockup data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+      const processedReports = reportsJson.data.map((report: any) => ({
+        ...report,
+        id: report._id,
+        categoryId: report.category?._id ?? "",
+        createdAt: new Date(report.createdAt ?? Date.now()),
+        updatedAt: new Date(report.updatedAt ?? Date.now()),
+        title: {
+          en: report.message,
+          th: report.message,
+        },
+        description: {
+          en: "",
+          th: "",
+        },
+        severity: "medium",
+        status: report.status ?? "open",
+      }));
 
-        fetchMockupData();
-    }, []);
+      setCategories(processedCategories);
+      setProblems(processedReports);
+    } catch (error) {
+      console.error("Error loading real data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchRealData();
+}, []);
+
+
 
     const handleCategorySubmit = (category: Category) => {
         if (selectedCategory) {
