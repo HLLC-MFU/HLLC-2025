@@ -13,6 +13,11 @@ import { ActivitiesModule } from './module/activities/activities.module';
 import * as redisStore from 'cache-manager-ioredis';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
+import { EvoucherTypeModule } from './module/evoucher-type/evoucher-type.module';
+import { EvoucherModule } from './module/evoucher/evoucher.module';
+import { EvoucherCodeModule } from './module/evoucher-code/evoucher-code.module';
+import { SponsorsModule } from './module/sponsors/sponsors.module';
+import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 
 @Module({
   imports: [
@@ -45,6 +50,11 @@ import { ActivitiesTypeModule } from './module/activities-type/activities-type.m
     MajorsModule,
     ActivitiesModule,
     ActivitiesTypeModule,
+    EvoucherTypeModule,
+    EvoucherModule,
+    EvoucherCodeModule,
+    SponsorsModule,
+    SponsorsTypeModule,
   ],
   providers: [],
 })

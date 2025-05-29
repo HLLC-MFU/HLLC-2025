@@ -58,11 +58,7 @@ export class Activities {
     isOpen: true,
     isProgressCount: false,
     isVisible: true,
-    scope: {
-      major: [],
-      school: [],
-      user: [],
-    }
+    scope: {}
   })})
   metadata: ActivityMetadata;
 }
