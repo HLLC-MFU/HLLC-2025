@@ -16,11 +16,15 @@ export default function checkin() {
           <h1 className="text-3xl font-bold text-center sm:text-left ">
             Checkin
           </h1>
-          <Selectdropdown selectedActivityIds={selectedActivityIds} setSelectActivityIds={setSelectedActivityIds} forceVisible={forceVisible}/>
+          <Selectdropdown
+            selectedActivityIds={selectedActivityIds}
+            setSelectActivityIds={setSelectedActivityIds}
+            forceVisible={forceVisible}
+          />
         </div>
       </div>
       <QrCodeScanner selectedActivityIds={selectedActivityIds} />
-      <TableLog selectedActivityIds={selectedActivityIds} />
+      <TableLog />
     </div>
   );
 }

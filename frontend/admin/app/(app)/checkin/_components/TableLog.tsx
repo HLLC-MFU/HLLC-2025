@@ -27,10 +27,6 @@ export const columns = [
   { name: 'ACTIVITY', uid: 'activity', sortable: true },
 ];
 
-interface TableProp {
-  selectedActivityIds: string[];
-}
-
 export const statusOptions = [
   { name: 'Finished', uid: 'Finished' },
   { name: 'Incomplete', uid: 'Incomplete' },
@@ -42,7 +38,7 @@ export function capitalize(s) {
 
 const INITIAL_VISIBLE_COLUMNS = ['name', 'activity'];
 
-export function TableLog({ selectedActivityIds }: TableProp) {
+export function TableLog() {
   const [filterValue, setFilterValue] = React.useState('');
   const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
   const [visibleColumns, setVisibleColumns] = React.useState(
@@ -57,6 +53,8 @@ export function TableLog({ selectedActivityIds }: TableProp) {
   const [page, setPage] = React.useState(1);
   const [isTypingModelOpen, setIsTypingModelOpen] = React.useState(false);
   const { checkin, fetchcheckin } = useCheckin();
+  type Activity = { id: string; name: string };
+  const [activity, setActivity] = React.useState<Activity[]>();
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -69,13 +67,31 @@ export function TableLog({ selectedActivityIds }: TableProp) {
   }, [visibleColumns]);
 
   useEffect(() => {
+    const fecthActivity = async () => {
+      try {
+        const res = await fetch('http://localhost:8080/api/activities');
+        const json = await res.json();
+        const activityList = json.data.map((activity: any) => ({
+          id: activity._id,
+          name: activity.shortName.en,
+        }));
+
+        setActivity(activityList);
+      } catch (err) {
+        console.error('Fetch failed', err);
+      }
+    };
+
+    fecthActivity();
     fetchcheckin();
+
     const interval = setInterval(fetchcheckin, 10000); // ทุก 10 วินาที
 
     return () => clearInterval(interval);
   }, []);
 
   console.log(user);
+  console.log("ค่ากิจกรรมในหน้าตาราง",activity);
 
   const users = React.useMemo(() => {
     return (Array.isArray(checkin) ? checkin : []).map(item => ({
@@ -148,7 +164,9 @@ export function TableLog({ selectedActivityIds }: TableProp) {
         return (
           <div className="flex flex-col ">
             <p className="text-bold text-small capitalize">{cellValue}</p>
-            <p className="text-bold text-tiny capitalize text-default-400">{user.activityth}</p>
+            <p className="text-bold text-tiny capitalize text-default-400">
+              {user.activityth}
+            </p>
           </div>
         );
       default:
@@ -218,9 +236,9 @@ export function TableLog({ selectedActivityIds }: TableProp) {
                 selectionMode="multiple"
                 onSelectionChange={setStatusFilter}
               >
-                {statusOptions.map(status => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {capitalize(status.name)}
+                {(activity ?? []).map(activty => (
+                  <DropdownItem key={activty.id} className="capitalize">
+                    {capitalize(activty.name)}
                   </DropdownItem>
                 ))}
               </DropdownMenu>
