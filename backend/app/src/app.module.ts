@@ -9,7 +9,10 @@ import { RoleModule } from './module/role/role.module';
 import { AuthModule } from './module/auth/auth.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { GlobalCacheModule } from './pkg/cache/cache.module';
+import { ActivitiesModule } from './module/activities/activities.module';
 import * as redisStore from 'cache-manager-ioredis';
+import { CheckinModule } from './module/checkin/checkin.module';
+import { ActivitiesMajorModule } from './module/activities-major/activities-major.module';
 import { ReportCategoriesModule } from './module/report_categories/report_categories.module';
 import { ReportsModule } from './module/reports/reports.module';
 
@@ -36,11 +39,14 @@ import { ReportsModule } from './module/reports/reports.module';
       inject: [ConfigService],
     }),
     UsersModule,
+    CheckinModule,
     SchoolsModule,
     MajorsModule,
     RoleModule,
+    ActivitiesModule,
     AuthModule,
     GlobalCacheModule,
+    ActivitiesMajorModule,
     ReportCategoriesModule,
     ReportsModule,
   ],

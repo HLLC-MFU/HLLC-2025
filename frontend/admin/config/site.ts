@@ -19,7 +19,7 @@ export const siteConfig = {
     {
       section: "Dashboard",
       items: [
-        { label: "Home", href: "/", icon: HomeIcon },
+        { label: "Dashboard", href: "/dashboard", icon: HomeIcon },
       ],
     },
     {

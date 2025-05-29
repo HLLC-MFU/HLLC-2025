@@ -1,7 +1,7 @@
 import { Lang } from "./lang";
 
 export type School = {
-    id: string;
+    _id: string;
     name: Lang;
     acronym: string;
     detail: Lang;
@@ -10,7 +10,7 @@ export type School = {
 }
 
 export type Major = {
-    id: string;
+    _id?: string;
     name: Lang;
     detail: Lang;
     acronym: string;

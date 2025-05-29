@@ -12,6 +12,7 @@ import {
   QueryPaginationOptions,
   PopulateField,
 } from '../types/query';
+import { NotFoundException } from '@nestjs/common';
 
 function parseSort(sortString?: string): Record<string, SortOrder> {
   if (!sortString) return {};
@@ -64,9 +65,9 @@ async function getLastUpdatedAt<T>(
 
 export async function queryAll<T>(
   options: QueryPaginationOptions<T>,
-): Promise<PaginatedResponse<T>> {
+): Promise<PaginatedResponse<T> & { message: string }> {
   const {
-    model,  
+    model,
     query = {},
     filterSchema,
     buildPopulateFields,
@@ -106,7 +107,7 @@ export async function queryAll<T>(
         chunkQuery.populate(p);
       });
 
-      const chunk = (await chunkQuery.lean().exec()) as T[];
+      const chunk = (await chunkQuery) as T[];
       allData.push(...chunk);
     }
 
@@ -119,6 +120,7 @@ export async function queryAll<T>(
         totalPages: 1,
         lastUpdatedAt: await getLastUpdatedAt(model),
       },
+      message: 'Data fetched successfully',
     };
   }
 
@@ -134,7 +136,7 @@ export async function queryAll<T>(
   });
 
   const [data, lastUpdatedAt] = await Promise.all([
-    queryBuilder.lean().exec() as Promise<T[]>,
+    queryBuilder as Promise<T[]>,
     getLastUpdatedAt(model),
   ]);
 
@@ -147,37 +149,57 @@ export async function queryAll<T>(
       totalPages,
       lastUpdatedAt,
     },
+    message: 'Data fetched successfully',
   };
 }
 
+/**
+ * 
+ * @param query 
+ * @returns 
+ * example: this.usersService.findOneByQuery({ username });
+ */
 export async function queryFindOne<T>(
   model: Model<HydratedDocument<T>>,
   filter: FilterQuery<T>,
-  populateFields?: PopulateOptions[], // ✅ ใช้ type จาก Mongoose
-): Promise<T | null> {
+  populateFields?: PopulateField[],
+): Promise<HydratedDocument<T>> {
   const query = model.findOne(filter);
-
   populateFields?.forEach((p) => {
     query.populate(p);
   });
 
-  return query.lean().exec() as Promise<T | null>;
+  const result = await query;
+
+  if (!result) {
+    throw new NotFoundException(`${filter._id ?? JSON.stringify(filter)} not found`);
+  }
+
+  return result;
 }
+
 
 export async function queryUpdateOne<T>(
   model: Model<HydratedDocument<T>>,
   id: string,
   update: UpdateQuery<HydratedDocument<T>>,
-): Promise<T | null> {
-  return model
+): Promise<T> {
+  const updated = await model
     .findByIdAndUpdate(id, update, { new: true })
-    .lean()
-    .exec() as Promise<T | null>;
+    .lean();
+  if (!updated) {
+    throw new NotFoundException(`Update failed, id ${id} not found`);
+  }
+  return updated as T;
 }
 
 export async function queryDeleteOne<T>(
   model: Model<HydratedDocument<T>>,
   id: string,
-): Promise<void> {
-  await model.findByIdAndDelete(id).exec();
+): Promise<T> {
+  const deleted = await model.findByIdAndDelete(id).lean();
+  if (!deleted) {
+    throw new NotFoundException(`Delete failed, id ${id} not found`);
+  }
+  return deleted as T;
 }

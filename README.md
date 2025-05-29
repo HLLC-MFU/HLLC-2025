@@ -34,7 +34,7 @@ cd HLLC-2025
 
 ### 2. Install Workspace Dependency
 ```bash
-pnpm i
+npm i
 ```
 
 ### 3. Link the CLI globally
