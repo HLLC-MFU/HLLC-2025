@@ -65,12 +65,12 @@ export function ProblemCharts({ problems, categories }: ProblemChartsProps) {
     const statusData: ChartData[] = [
         { name: 'Pending', value: problems.filter(p => p.status === 'Pending').length },
         { name: 'In-Progress', value: problems.filter(p => p.status === 'In-Progress').length },
-        { name: 'Done', value: problems.filter(p => p.status === 'Resolved').length }
+        { name: 'Done', value: problems.filter(p => p.status === 'Done').length }
     ];
 
     const totalProblems = problems.length;
-    const resolvedProblems = problems.filter(p => p.status === 'Resolved').length;
-    const resolutionRate = totalProblems > 0 ? (resolvedProblems / totalProblems * 100).toFixed(1) : 0;
+    const doneProblems = problems.filter(p => p.status === 'Done').length;
+    const resolutionRate = totalProblems > 0 ? (doneProblems / totalProblems * 100).toFixed(1) : 0;
 
     return (
         <Card className="bg-white mb-6">

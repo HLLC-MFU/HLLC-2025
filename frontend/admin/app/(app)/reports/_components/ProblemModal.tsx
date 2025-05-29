@@ -117,7 +117,7 @@ export function ProblemModal({ isOpen, onClose, onSubmit, problem, categories, m
                             >
                                 <SelectItem key="Pending">Pending</SelectItem>
                                 <SelectItem key="In-Progress">In-Progress</SelectItem>
-                                <SelectItem key="Resolved">Resolved</SelectItem>
+                                <SelectItem key="Done">Done</SelectItem>
                             </Select>
                         </div>
                     </div>
