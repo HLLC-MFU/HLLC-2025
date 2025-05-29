@@ -12,6 +12,7 @@ import {
   Textarea,
   Select,
   SelectItem,
+  Alert,
 } from "@heroui/react";
 import { useEffect, useState } from "react";
 
@@ -20,7 +21,7 @@ type CampaignStatus = "draft" | "active" | "completed";
 interface CampaignUpdateDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (campaignData: Partial<Campaign>) => void;
+  onSuccess: (formData: FormData) => void;
   campaign: Campaign | undefined;
 }
 
@@ -31,30 +32,95 @@ export const CampaignUpdateDialog = ({
   campaign,
 }: CampaignUpdateDialogProps) => {
   const [formData, setFormData] = useState<Partial<Campaign>>({
-    name: "",
-    description: "",
-    startDate: "",
-    endDate: "",
+    name: {
+      th: "",
+      en: ""
+    },
+    detail: {
+      th: "",
+      en: ""
+    },
+    startAt: "",
+    endAt: "",
     budget: 0,
     status: "draft",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<{
+    message: string;
+    details?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (campaign) {
       setFormData({
         name: campaign.name,
-        description: campaign.description,
-        startDate: campaign.startDate,
-        endDate: campaign.endDate,
+        detail: campaign.detail,
+        startAt: campaign.startAt,
+        endAt: campaign.endAt,
         budget: campaign.budget,
         status: campaign.status,
       });
     }
   }, [campaign]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSuccess(formData);
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const data = new FormData();
+      
+      // Add name fields
+      data.append("name[th]", formData.name?.th || "");
+      data.append("name[en]", formData.name?.en || "");
+      
+      // Add detail fields
+      data.append("detail[th]", formData.detail?.th || "");
+      data.append("detail[en]", formData.detail?.en || "");
+      
+      // Add other fields
+      data.append("startAt", formData.startAt || "");
+      data.append("endAt", formData.endAt || "");
+      data.append("budget", formData.budget?.toString() || "0");
+      data.append("status", formData.status || "draft");
+      
+      // Add image if exists
+      if (formData.image) {
+        data.append("image", formData.image.filename);
+      }
+
+      await onSuccess(data);
+      onClose();
+    } catch (error: any) {
+      console.error("Error updating campaign:", error);
+      
+      // Handle different error cases
+      let errorMessage = "เกิดข้อผิดพลาดในการอัปเดตแคมเปญ";
+      let errorDetails = "กรุณาลองใหม่อีกครั้ง";
+
+      if (error?.response?.status === 404) {
+        errorMessage = "ไม่พบแคมเปญที่ต้องการอัปเดต";
+        errorDetails = "แคมเปญอาจถูกลบไปแล้วหรือไม่มีอยู่ในระบบ";
+      } else if (error?.response?.status === 403) {
+        errorMessage = "ไม่มีสิทธิ์ในการอัปเดตแคมเปญ";
+        errorDetails = "กรุณาติดต่อผู้ดูแลระบบ";
+      } else if (error?.response?.status === 500) {
+        errorMessage = "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์";
+        errorDetails = "กรุณาลองใหม่อีกครั้งในภายหลัง";
+      } else if (error?.response?.data?.message) {
+        errorDetails = error.response.data.message;
+      } else if (error?.message) {
+        errorDetails = error.message;
+      }
+
+      setError({
+        message: errorMessage,
+        details: errorDetails
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -63,38 +129,67 @@ export const CampaignUpdateDialog = ({
         <form onSubmit={handleSubmit}>
           <ModalHeader>Update Campaign</ModalHeader>
           <ModalBody>
+            {error && (
+              <Alert
+                className="mb-4"
+                color="danger"
+                variant="flat"
+                onClose={() => setError(null)}
+              >
+                <div className="flex flex-col gap-1">
+                  <div>{error.message}</div>
+                  {error.details && (
+                    <div className="text-sm opacity-80">{error.details}</div>
+                  )}
+                </div>
+              </Alert>
+            )}
             <div className="flex flex-col gap-4">
               <Input
                 label="Campaign Name"
-                value={formData.name}
+                value={formData.name?.th}
                 onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
+                  setFormData({ ...formData, name: { ...formData.name, th: e.target.value } } as Partial<Campaign>)
                 }
                 isRequired
               />
+              <Input
+                label="Campaign Name (English)"
+                value={formData.name?.en}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: { ...formData.name, en: e.target.value } } as Partial<Campaign>)
+                }
+              />
               <Textarea
                 label="Description"
-                value={formData.description}
+                value={formData.detail?.th}
                 onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
+                  setFormData({ ...formData, detail: { ...formData.detail, th: e.target.value } } as Partial<Campaign>)
+                }
+              />
+              <Textarea
+                label="Description (English)"
+                value={formData.detail?.en}
+                onChange={(e) =>
+                  setFormData({ ...formData, detail: { ...formData.detail, en: e.target.value } } as Partial<Campaign>)
                 }
               />
               <div className="flex gap-4">
                 <Input
                   type="date"
                   label="Start Date"
-                  value={formData.startDate}
+                  value={formData.startAt}
                   onChange={(e) =>
-                    setFormData({ ...formData, startDate: e.target.value })
+                    setFormData({ ...formData, startAt: e.target.value })
                   }
                   isRequired
                 />
                 <Input
                   type="date"
                   label="End Date"
-                  value={formData.endDate}
+                  value={formData.endAt}
                   onChange={(e) =>
-                    setFormData({ ...formData, endDate: e.target.value })
+                    setFormData({ ...formData, endAt: e.target.value })
                   }
                   isRequired
                 />
@@ -125,11 +220,16 @@ export const CampaignUpdateDialog = ({
             </div>
           </ModalBody>
           <ModalFooter>
-            <Button color="default" variant="light" onPress={onClose}>
+            <Button color="danger" variant="light" onPress={onClose}>
               Cancel
             </Button>
-            <Button color="primary" type="submit">
-              Update Campaign
+            <Button 
+              color="primary" 
+              type="submit"
+              isLoading={isSubmitting}
+              isDisabled={isSubmitting}
+            >
+              {isSubmitting ? "Updating..." : "Update Campaign"}
             </Button>
           </ModalFooter>
         </form>

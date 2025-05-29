@@ -29,7 +29,7 @@ export const DeleteConfirmationModal = ({
         <ModalHeader>Delete Campaign</ModalHeader>
         <ModalBody>
           <p>
-            Are you sure you want to delete the campaign "{campaign?.name}"? This
+            Are you sure you want to delete the campaign "{campaign?.name.th}"? This
             action cannot be undone.
           </p>
         </ModalBody>

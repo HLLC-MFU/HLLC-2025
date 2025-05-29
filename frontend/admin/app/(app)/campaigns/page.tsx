@@ -21,7 +21,7 @@ export default function CampaignsPage() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | undefined>();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const { campaigns, loading, createCampaign, updateCampaign, deleteCampaign } = useCampaigns();
+  const { campaigns, loading, createCampaign, updateCampaign, deleteCampaign, fetchCampaigns } = useCampaigns();
 
   const filteredAndSortedCampaigns = useMemo(() => {
     if (!campaigns) return [];
@@ -33,8 +33,8 @@ export default function CampaignsPage() {
       const lower = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (campaign: Campaign) =>
-          campaign.name.toLowerCase().includes(lower) ||
-          campaign.description.toLowerCase().includes(lower)
+          campaign.name.th.toLowerCase().includes(lower) ||
+          campaign.detail.th.toLowerCase().includes(lower)
       );
     }
 
@@ -44,17 +44,17 @@ export default function CampaignsPage() {
     }
 
     // Apply sorting
-    return filtered.sort((a: Campaign, b: Campaign) => {
+    const sorted = filtered.sort((a: Campaign, b: Campaign) => {
       let comparison = 0;
       switch (sortBy) {
         case "name":
-          comparison = a.name.localeCompare(b.name);
+          comparison = a.name.th.localeCompare(b.name.th);
           break;
         case "startDate":
-          comparison = new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+          comparison = new Date(a.startAt).getTime() - new Date(b.startAt).getTime();
           break;
         case "endDate":
-          comparison = new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+          comparison = new Date(a.endAt).getTime() - new Date(b.endAt).getTime();
           break;
         case "budget":
           comparison = a.budget - b.budget;
@@ -64,6 +64,9 @@ export default function CampaignsPage() {
       }
       return sortDirection === "asc" ? comparison : -comparison;
     });
+
+    console.log("Final sorted campaigns:", sorted);
+    return sorted;
   }, [campaigns, searchQuery, sortBy, sortDirection, statusFilter]);
 
   const handleAddCampaign = () => {
@@ -81,15 +84,25 @@ export default function CampaignsPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const handleCreateSuccess = (campaignData: Partial<Campaign>) => {
-    createCampaign(campaignData);
-    setIsCreateModalOpen(false);
+  const handleCreateSuccess = async (formData: FormData) => {
+    try {
+      await createCampaign(formData);
+      await fetchCampaigns(); // Fetch campaigns after create
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error("Error creating campaign:", error);
+    }
   };
 
-  const handleUpdateSuccess = (campaignData: Partial<Campaign>) => {
-    if (selectedCampaign) {
-      updateCampaign(selectedCampaign._id, campaignData);
-      setIsUpdateModalOpen(false);
+  const handleUpdateSuccess = async (formData: FormData) => {
+    try {
+      if (selectedCampaign) {
+        await updateCampaign(selectedCampaign._id, formData);
+        await fetchCampaigns(); // Fetch campaigns after update
+        setIsUpdateModalOpen(false);
+      }
+    } catch (error) {
+      console.error("Error updating campaign:", error);
     }
   };
 
@@ -97,6 +110,14 @@ export default function CampaignsPage() {
     if (selectedCampaign) {
       deleteCampaign(selectedCampaign._id);
       setIsDeleteModalOpen(false);
+    }
+  };
+
+  const handleDeleteSuccess = async () => {
+    try {
+      await fetchCampaigns(); // Fetch campaigns after delete
+    } catch (error) {
+      console.error("Error fetching campaigns after delete:", error);
     }
   };
 
@@ -275,38 +296,53 @@ export default function CampaignsPage() {
               ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
               : "space-y-4"
           }>
-            {filteredAndSortedCampaigns.map((campaign: Campaign) => (
-              <div 
-                key={campaign._id} 
-                className="group relative bg-white/60 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 overflow-hidden"
-              >
-                <CampaignPreview campaign={campaign} />
-                
-                {/* Enhanced Action Buttons */}
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEditCampaign(campaign)}
-                      className="p-2 bg-blue-500/90 backdrop-blur-sm text-white rounded-lg hover:bg-blue-600 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
-                      title="Edit Campaign"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCampaign(campaign)}
-                      className="p-2 bg-red-500/90 backdrop-blur-sm text-white rounded-lg hover:bg-red-600 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
-                      title="Delete Campaign"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+         
+
+{(() => {
+  console.log("filteredAndSortedCampaigns:", filteredAndSortedCampaigns);
+  return filteredAndSortedCampaigns.map((campaign: Campaign) => {
+    console.log("Rendering campaign:", campaign);
+    return (
+      <div 
+        key={campaign._id} 
+        className="group relative bg-white/60 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 overflow-hidden min-h-[300px]"
+      >
+        {/* Campaign Preview Content */}
+        <CampaignPreview campaign={campaign} />
+        
+        {/* Enhanced Action Buttons */}
+        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-10">
+          <div className="flex space-x-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditCampaign(campaign);
+              }}
+              className="p-2 bg-blue-500/90 backdrop-blur-sm text-white rounded-lg hover:bg-blue-600 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+              title="Edit Campaign"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteCampaign(campaign);
+              }}
+              className="p-2 bg-red-500/90 backdrop-blur-sm text-white rounded-lg hover:bg-red-600 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+              title="Delete Campaign"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  });
+})()}
           </div>
         )}
       </div>
