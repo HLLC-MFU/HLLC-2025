@@ -74,6 +74,7 @@ export function TableLog() {
         }));
 
         setActivity(activityList);
+        setActivityFilter(new Set(activityList.map((a: any) => a.id)));
       } catch (err) {
         console.error('Fetch failed', err);
       }
@@ -82,7 +83,7 @@ export function TableLog() {
     fecthActivity();
     fetchcheckin();
 
-    const interval = setInterval(fetchcheckin, 10000); // ทุก 10 วินาที
+    const interval = setInterval(fetchcheckin, 3000); // ทุก 10 วินาที
 
     return () => clearInterval(interval);
   }, []);
@@ -98,7 +99,6 @@ export function TableLog() {
       activityId: item.activities?.[0]?._id ?? '',
       activity: item.activities?.[0]?.fullName?.en ?? '-',
       activityth: item.activities?.[0]?.fullName?.th ?? '-',
-      status: 'Finished', // ถ้าไม่มีข้อมูลสถานะจากหลังบ้าน
     }));
   }, [checkin]);
 
@@ -203,7 +203,7 @@ export function TableLog() {
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex sm:flex-row sm:justify-between gap-3 sm:items-end ">
+        <div className="flex justify-between gap-3 items-end">
           <Input
             isClearable
             className="w-full sm:max-w-[44%] "
