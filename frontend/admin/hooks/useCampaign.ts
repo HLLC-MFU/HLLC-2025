@@ -18,7 +18,7 @@ export const useCampaigns = () => {
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const api = useApi<CampaignResponse>();
+    const api = useApi();
 
     const fetchCampaigns = async () => {
         setLoading(true);
