@@ -18,6 +18,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
 import { AppearancesModule } from './module/appearances/appearances.module';
+import { CampaignsModule } from './module/campaigns/campaigns.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { AppearancesModule } from './module/appearances/appearances.module';
     ActivitiesMajorModule,
     SystemStatusModule,
     AppearancesModule,
+    CampaignsModule,
   ],
   providers: [
     {
