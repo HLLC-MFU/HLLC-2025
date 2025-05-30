@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { Campaign } from "@/types/campaign";
+import { Campaign } from '@/types/campaign';
 import {
   Modal,
   ModalContent,
@@ -13,10 +13,10 @@ import {
   Select,
   SelectItem,
   Alert,
-} from "@heroui/react";
-import { useEffect, useState } from "react";
+} from '@heroui/react';
+import { useEffect, useState } from 'react';
 
-type CampaignStatus = "draft" | "active" | "completed";
+type CampaignStatus = 'draft' | 'active' | 'completed';
 
 interface CampaignUpdateDialogProps {
   isOpen: boolean;
@@ -31,19 +31,21 @@ export const CampaignUpdateDialog = ({
   onSuccess,
   campaign,
 }: CampaignUpdateDialogProps) => {
-  const [formData, setFormData] = useState<Partial<Campaign>>({
+  const [formData, setFormData] = useState<
+    Partial<Campaign> & { newImage?: File }
+  >({
     name: {
-      th: "",
-      en: ""
+      th: '',
+      en: '',
     },
     detail: {
-      th: "",
-      en: ""
+      th: '',
+      en: '',
     },
-    startAt: "",
-    endAt: "",
+    startAt: '',
+    endAt: '',
     budget: 0,
-    status: "draft",
+    status: 'draft',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<{
@@ -60,6 +62,7 @@ export const CampaignUpdateDialog = ({
         endAt: campaign.endAt,
         budget: campaign.budget,
         status: campaign.status,
+        image: campaign.image,
       });
     }
   }, [campaign]);
@@ -70,44 +73,44 @@ export const CampaignUpdateDialog = ({
     setError(null);
     try {
       const data = new FormData();
-      
+
       // Add name fields
-      data.append("name[th]", formData.name?.th || "");
-      data.append("name[en]", formData.name?.en || "");
-      
+      data.append('name[th]', formData.name?.th || '');
+      data.append('name[en]', formData.name?.en || '');
+
       // Add detail fields
-      data.append("detail[th]", formData.detail?.th || "");
-      data.append("detail[en]", formData.detail?.en || "");
-      
+      data.append('detail[th]', formData.detail?.th || '');
+      data.append('detail[en]', formData.detail?.en || '');
+
       // Add other fields
-      data.append("startAt", formData.startAt || "");
-      data.append("endAt", formData.endAt || "");
-      data.append("budget", formData.budget?.toString() || "0");
-      data.append("status", formData.status || "draft");
-      
+      data.append('startAt', formData.startAt || '');
+      data.append('endAt', formData.endAt || '');
+      data.append('budget', formData.budget?.toString() || '0');
+      data.append('status', formData.status || 'draft');
+
       // Add image if exists
-      if (formData.image) {
-        data.append("image", formData.image.filename);
+      if (formData.newImage) {
+        data.append('image', formData.newImage);
       }
 
       await onSuccess(data);
       onClose();
     } catch (error: any) {
-      console.error("Error updating campaign:", error);
-      
+      console.error('Error updating campaign:', error);
+
       // Handle different error cases
-      let errorMessage = "เกิดข้อผิดพลาดในการอัปเดตแคมเปญ";
-      let errorDetails = "กรุณาลองใหม่อีกครั้ง";
+      let errorMessage = 'เกิดข้อผิดพลาดในการอัปเดตแคมเปญ';
+      let errorDetails = 'กรุณาลองใหม่อีกครั้ง';
 
       if (error?.response?.status === 404) {
-        errorMessage = "ไม่พบแคมเปญที่ต้องการอัปเดต";
-        errorDetails = "แคมเปญอาจถูกลบไปแล้วหรือไม่มีอยู่ในระบบ";
+        errorMessage = 'ไม่พบแคมเปญที่ต้องการอัปเดต';
+        errorDetails = 'แคมเปญอาจถูกลบไปแล้วหรือไม่มีอยู่ในระบบ';
       } else if (error?.response?.status === 403) {
-        errorMessage = "ไม่มีสิทธิ์ในการอัปเดตแคมเปญ";
-        errorDetails = "กรุณาติดต่อผู้ดูแลระบบ";
+        errorMessage = 'ไม่มีสิทธิ์ในการอัปเดตแคมเปญ';
+        errorDetails = 'กรุณาติดต่อผู้ดูแลระบบ';
       } else if (error?.response?.status === 500) {
-        errorMessage = "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์";
-        errorDetails = "กรุณาลองใหม่อีกครั้งในภายหลัง";
+        errorMessage = 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์';
+        errorDetails = 'กรุณาลองใหม่อีกครั้งในภายหลัง';
       } else if (error?.response?.data?.message) {
         errorDetails = error.response.data.message;
       } else if (error?.message) {
@@ -116,7 +119,7 @@ export const CampaignUpdateDialog = ({
 
       setError({
         message: errorMessage,
-        details: errorDetails
+        details: errorDetails,
       });
     } finally {
       setIsSubmitting(false);
@@ -148,30 +151,42 @@ export const CampaignUpdateDialog = ({
               <Input
                 label="Campaign Name"
                 value={formData.name?.th}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: { ...formData.name, th: e.target.value } } as Partial<Campaign>)
+                onChange={e =>
+                  setFormData({
+                    ...formData,
+                    name: { ...formData.name, th: e.target.value },
+                  } as Partial<Campaign>)
                 }
                 isRequired
               />
               <Input
                 label="Campaign Name (English)"
                 value={formData.name?.en}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: { ...formData.name, en: e.target.value } } as Partial<Campaign>)
+                onChange={e =>
+                  setFormData({
+                    ...formData,
+                    name: { ...formData.name, en: e.target.value },
+                  } as Partial<Campaign>)
                 }
               />
               <Textarea
                 label="Description"
                 value={formData.detail?.th}
-                onChange={(e) =>
-                  setFormData({ ...formData, detail: { ...formData.detail, th: e.target.value } } as Partial<Campaign>)
+                onChange={e =>
+                  setFormData({
+                    ...formData,
+                    detail: { ...formData.detail, th: e.target.value },
+                  } as Partial<Campaign>)
                 }
               />
               <Textarea
                 label="Description (English)"
                 value={formData.detail?.en}
-                onChange={(e) =>
-                  setFormData({ ...formData, detail: { ...formData.detail, en: e.target.value } } as Partial<Campaign>)
+                onChange={e =>
+                  setFormData({
+                    ...formData,
+                    detail: { ...formData.detail, en: e.target.value },
+                  } as Partial<Campaign>)
                 }
               />
               <div className="flex gap-4">
@@ -179,7 +194,7 @@ export const CampaignUpdateDialog = ({
                   type="date"
                   label="Start Date"
                   value={formData.startAt}
-                  onChange={(e) =>
+                  onChange={e =>
                     setFormData({ ...formData, startAt: e.target.value })
                   }
                   isRequired
@@ -188,7 +203,7 @@ export const CampaignUpdateDialog = ({
                   type="date"
                   label="End Date"
                   value={formData.endAt}
-                  onChange={(e) =>
+                  onChange={e =>
                     setFormData({ ...formData, endAt: e.target.value })
                   }
                   isRequired
@@ -198,15 +213,26 @@ export const CampaignUpdateDialog = ({
                 type="number"
                 label="Budget (THB)"
                 value={formData.budget?.toString()}
-                onChange={(e) =>
+                onChange={e =>
                   setFormData({ ...formData, budget: Number(e.target.value) })
                 }
                 isRequired
               />
+              <Input
+                type="file"
+                label="Campaign Image"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setFormData(prev => ({ ...prev, newImage: file }));
+                  }
+                }}
+                accept="image/*"
+              />
               <Select
                 label="Status"
                 selectedKeys={[formData.status as string]}
-                onChange={(e) =>
+                onChange={e =>
                   setFormData({
                     ...formData,
                     status: e.target.value as CampaignStatus,
@@ -223,17 +249,17 @@ export const CampaignUpdateDialog = ({
             <Button color="danger" variant="light" onPress={onClose}>
               Cancel
             </Button>
-            <Button 
-              color="primary" 
+            <Button
+              color="primary"
               type="submit"
               isLoading={isSubmitting}
               isDisabled={isSubmitting}
             >
-              {isSubmitting ? "Updating..." : "Update Campaign"}
+              {isSubmitting ? 'Updating...' : 'Update Campaign'}
             </Button>
           </ModalFooter>
         </form>
       </ModalContent>
     </Modal>
   );
-}; 
+};
