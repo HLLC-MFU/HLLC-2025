@@ -4,6 +4,7 @@ import {
   SortOrder,
   UpdateQuery,
   FilterQuery,
+  PopulateOptions,
 } from 'mongoose';
 import { PaginatedResponse } from '../interceptors/response.interceptor';
 import {
@@ -66,7 +67,7 @@ export async function queryAll<T>(
   options: QueryPaginationOptions<T>,
 ): Promise<PaginatedResponse<T> & { message: string }> {
   const {
-    model,
+    model,  
     query = {},
     filterSchema,
     buildPopulateFields,

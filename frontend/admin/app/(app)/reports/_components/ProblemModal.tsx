@@ -17,8 +17,7 @@ export function ProblemModal({ isOpen, onClose, onSubmit, problem, categories, m
     const [descriptionEn, setDescriptionEn] = useState("");
     const [descriptionTh, setDescriptionTh] = useState("");
     const [categoryId, setCategoryId] = useState("");
-    const [severity, setSeverity] = useState<Problem["severity"]>("medium");
-    const [status, setStatus] = useState<Problem["status"]>("open");
+    const [status, setStatus] = useState<Problem["status"]>("Pending");
 
     useEffect(() => {
         if (problem) {
@@ -27,7 +26,6 @@ export function ProblemModal({ isOpen, onClose, onSubmit, problem, categories, m
             setDescriptionEn(problem.description.en);
             setDescriptionTh(problem.description.th);
             setCategoryId(problem.categoryId);
-            setSeverity(problem.severity);
             setStatus(problem.status);
         } else {
             setTitleEn("");
@@ -35,8 +33,7 @@ export function ProblemModal({ isOpen, onClose, onSubmit, problem, categories, m
             setDescriptionEn("");
             setDescriptionTh("");
             setCategoryId(categories[0]?.id || "");
-            setSeverity("medium");
-            setStatus("open");
+            setStatus("Pending");
         }
     }, [problem, categories]);
 
@@ -54,7 +51,6 @@ export function ProblemModal({ isOpen, onClose, onSubmit, problem, categories, m
                 th: descriptionTh.trim()
             },
             categoryId,
-            severity,
             status,
             createdAt: problem?.createdAt || new Date(),
             updatedAt: new Date()
@@ -114,24 +110,15 @@ export function ProblemModal({ isOpen, onClose, onSubmit, problem, categories, m
                                     </SelectItem>
                                 ))}
                             </Select>
-                            <Select
-                                label="Severity"
-                                selectedKeys={[severity]}
-                                onChange={(e) => setSeverity(e.target.value as Problem["severity"])}
-                            >
-                                <SelectItem key="low">Low</SelectItem>
-                                <SelectItem key="medium">Medium</SelectItem>
-                                <SelectItem key="high">High</SelectItem>
-                                <SelectItem key="critical">Critical</SelectItem>
-                            </Select>
+    
                             <Select
                                 label="Status"
                                 selectedKeys={[status]}
                                 onChange={(e) => setStatus(e.target.value as Problem["status"])}
                             >
-                                <SelectItem key="open">Open</SelectItem>
-                                <SelectItem key="in-progress">In Progress</SelectItem>
-                                <SelectItem key="resolved">Resolved</SelectItem>
+                                <SelectItem key="Pending">Pending</SelectItem>
+                                <SelectItem key="In Progress">In Progress</SelectItem>
+                                <SelectItem key="Resolved">Resolved</SelectItem>
                             </Select>
                         </div>
                     </div>

@@ -13,6 +13,8 @@ import { ActivitiesModule } from './module/activities/activities.module';
 import * as redisStore from 'cache-manager-ioredis';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesMajorModule } from './module/activities-major/activities-major.module';
+import { ReportCategoriesModule } from './module/report_categories/report_categories.module';
+import { ReportsModule } from './module/reports/reports.module';
 
 @Module({
   imports: [
@@ -45,6 +47,8 @@ import { ActivitiesMajorModule } from './module/activities-major/activities-majo
     AuthModule,
     GlobalCacheModule,
     ActivitiesMajorModule,
+    ReportCategoriesModule,
+    ReportsModule,
   ],
   providers: [],
 })
