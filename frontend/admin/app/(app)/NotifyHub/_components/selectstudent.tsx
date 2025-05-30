@@ -1,4 +1,5 @@
 import { Select, SelectItem, Switch, Avatar } from '@heroui/react';
+import React, { useState } from 'react';
 
 export const animals = [
   { key: 'cat', label: 'Cat' },
@@ -29,7 +30,6 @@ export function Selectstudent() {
         size="lg"
         labelPlacement="inside"
         variant="faded" //flat
-    
       >
         {animals.map(animal => (
           <SelectItem key={animal.key}>{animal.label}</SelectItem>
