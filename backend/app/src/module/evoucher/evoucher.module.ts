@@ -6,6 +6,7 @@ import { Evoucher, EvoucherSchema } from './schema/evoucher.schema';
 import { EvoucherType, EvoucherTypeSchema } from '../evoucher-type/schema/evoucher-type.schema';
 import { Sponsors } from '../sponsors/schema/sponsors.schema';
 import { SponsorsSchema } from '../sponsors/schema/sponsors.schema';
+import { Campaign, CampaignSchema } from '../campaigns/schema/campaigns.schema';
 
 @Module({
   imports: [
@@ -21,6 +22,10 @@ import { SponsorsSchema } from '../sponsors/schema/sponsors.schema';
       {
         name: Sponsors.name,
         schema: SponsorsSchema
+      },
+      {
+        name: Campaign.name,
+        schema: CampaignSchema
       }
     ])
   ],

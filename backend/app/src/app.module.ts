@@ -18,6 +18,7 @@ import { EvoucherModule } from './module/evoucher/evoucher.module';
 import { EvoucherCodeModule } from './module/evoucher-code/evoucher-code.module';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
+import { CampaignsModule } from './module/campaigns/campaigns.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module'
     EvoucherCodeModule,
     SponsorsModule,
     SponsorsTypeModule,
+    CampaignsModule,
   ],
   providers: [],
 })

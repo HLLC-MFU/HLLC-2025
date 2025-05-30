@@ -19,6 +19,9 @@ export class Evoucher {
     @Prop({ required: true, type: Types.ObjectId, ref: 'Sponsors'})
     sponsors: Types.ObjectId;
 
+    @Prop({ required: true, type: Types.ObjectId, ref: 'Campaign'})
+    campaign: Types.ObjectId;
+
     @Prop({ required: true, type: Object})
     detail: Localization;
 

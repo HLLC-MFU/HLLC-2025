@@ -19,6 +19,10 @@ export class CreateEvoucherDto {
     @IsEmpty()
     sponsors: string;
 
+    @IsMongoId()
+    @IsEmpty()
+    campaign: string;
+
     @IsDate()
     @IsEmpty()
     expiration: Date;

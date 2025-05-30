@@ -7,9 +7,12 @@ import {
   FastifyAdapter,
 } from '@nestjs/platform-fastify';
 import compression from '@fastify/compress';
-import { TransformInterceptor } from './pkg/interceptors/transform.interceptor';
+// import { TransformInterceptor } from './pkg/interceptors/transform.interceptor';
 import cookie from '@fastify/cookie';
 import { MongoExceptionFilter } from './pkg/filters/mongo.filter';
+import { fastifyStatic } from '@fastify/static';
+import path from 'path';
+import multipart from '@fastify/multipart';
 
 async function bootstrap() {
   Logger.log(`Server is running on port ${process.env.PORT ?? 3000}`);
@@ -22,6 +25,17 @@ async function bootstrap() {
     encodings: ['gzip', 'deflate'],
     threshold: 1024,
   });
+
+  await app.register(multipart, {
+    limits: {
+      fileSize: 500 * 1024,
+    },
+  });
+  app.register(fastifyStatic, {
+    root: path.join(__dirname, '..', 'uploads'),
+    prefix: '/uploads/',
+  });
+
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',

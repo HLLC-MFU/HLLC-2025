@@ -10,6 +10,7 @@ import { SponsorsDocument } from '../sponsors/schema/sponsors.schema';
 import { Sponsors } from '../sponsors/schema/sponsors.schema';
 import { EvoucherTypeDocument } from '../evoucher-type/schema/evoucher-type.schema';
 import { EvoucherType } from '../evoucher-type/schema/evoucher-type.schema';
+import { Campaign, CampaignDocument } from '../campaigns/schema/campaigns.schema';
 
 @Injectable()
 export class EvoucherService {
@@ -20,7 +21,9 @@ export class EvoucherService {
     @InjectModel(Sponsors.name)
     private sponsorsModel: Model<SponsorsDocument>,
     @InjectModel(EvoucherType.name)
-    private evoucherTypeModel: Model<EvoucherTypeDocument>
+    private evoucherTypeModel: Model<EvoucherTypeDocument>,
+    @InjectModel(Campaign.name)
+    private campaignModel: Model<CampaignDocument>
   ) {}
 
   async create(createEvoucherDto: CreateEvoucherDto) {
@@ -37,10 +40,17 @@ export class EvoucherService {
       'Sponsors not found'
     )
 
+    await findOrThrow(
+      this.campaignModel,
+      createEvoucherDto.campaign,
+      'Campaign not found'
+    )
+
     const evoucher = new this.evoucherModel({
       ...createEvoucherDto,
       type: new Types.ObjectId(createEvoucherDto.type),
       sponsors: new Types.ObjectId(createEvoucherDto.sponsors),
+      campaign: new Types.ObjectId(createEvoucherDto.campaign),
     });
 
     return evoucher.save();
@@ -52,7 +62,7 @@ export class EvoucherService {
       query,
       filterSchema: {},
       buildPopulateFields: () =>
-        Promise.resolve([{ path: 'type' }, { path: 'sponsors' }]),
+        Promise.resolve([{ path: 'type' }, { path: 'sponsors' }, { path: 'campaign' }]),
     });
   }
 
@@ -62,7 +72,8 @@ export class EvoucherService {
       { _id: id},
       [
         { path: 'type' },
-        { path: 'sponsors' }
+        { path: 'sponsors' },
+        { path: 'campaign' },
       ]
     )
   }

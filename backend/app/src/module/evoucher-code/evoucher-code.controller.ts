@@ -40,15 +40,15 @@ export class EvoucherCodeController {
     return this.evoucherCodeService.useVoucher(id, userId);
   }
 
-  @Get('check/:userId/:evoucherId')
-  async checkVoucherUsage(
-    @Param('userId') userId: string,
-    @Param('evoucherId') evoucherId: string,
-  ) {
-    if (!userId || !evoucherId) {
-      throw new BadRequestException('Both user ID and evoucher ID are required');
-    }
-    const isUsed = await this.evoucherCodeService.checkVoucherUsage(userId, evoucherId);
-    return { isUsed };
-  }
+  // @Get('check/:userId/:evoucherId')
+  // async checkVoucherUsage(
+  //   @Param('userId') userId: string,
+  //   @Param('evoucherId') evoucherId: string,
+  // ) {
+  //   if (!userId || !evoucherId) {
+  //     throw new BadRequestException('Both user ID and evoucher ID are required');
+  //   }
+  //   const isUsed = await this.evoucherCodeService.checkVoucherUsage(userId, evoucherId);
+  //   return { isUsed };
+  // }
 }
