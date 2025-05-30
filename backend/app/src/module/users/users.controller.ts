@@ -45,36 +45,9 @@ export class UsersController {
 
   @Get('statistics')
   @Permissions('users:read')
-  @CacheKey('users')
+  @CacheKey('users:statistics')
   async getUserCountByRoles(): Promise<Record<string, number>> {
-    const pipeline = [
-      {
-        $lookup: {
-          from: 'roles', // collection ชื่อ role (เล็กสุดตาม MongoDB)
-          localField: 'role',
-          foreignField: '_id',
-          as: 'roleData',
-        },
-      },
-      { $unwind: '$roleData' },
-      {
-        $group: {
-          _id: '$roleData.name',
-          count: { $sum: 1 },
-        },
-      },
-    ];
-
-    const result = await this.userModel.aggregate(pipeline).exec();
-
-    // แปลง array [{ _id: 'student', count: 10 }] เป็น object { student: 10 }
-    return result.reduce(
-      (acc, curr) => {
-        acc[curr._id] = curr.count;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
+    return this.usersService.getUserCountByRoles();
   }
 
   @Get(':id')
@@ -86,8 +59,12 @@ export class UsersController {
   }
 
   @Get('profile')
-  getProfile(@Req() req: FastifyRequest) {
-    const userId = req.user?._id || req.user?.id;
+  @CacheKey('users:$req.user')
+  getProfile(
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
+  ) {
+    const user = req.user as { _id?: string; id?: string } | undefined;
+    const userId: string | undefined = user?._id ?? user?.id;
     return this.usersService.findOneByQuery({
       _id: userId,
     });

@@ -2,14 +2,11 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-  BadRequestException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
   queryDeleteOne,
-  queryUpdateOne,
   queryAll,
   queryFindOne,
 } from 'src/pkg/helper/query.util';
@@ -21,6 +18,7 @@ import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { UploadUserDto } from './dto/upload.user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
+import { Logger } from 'winston';
 
 @Injectable()
 export class UsersService {
@@ -67,7 +65,6 @@ export class UsersService {
     return queryFindOne<User>(this.userModel, { _id }, []);
   }
 
-  // users.service.ts
   async getUserCountByRoles(): Promise<Record<string, number>> {
     const pipeline = [
       {
@@ -86,11 +83,11 @@ export class UsersService {
         },
       },
     ];
-
-    // กำหนด type ชัดเจน
-    const result: { _id: string; count: number }[] = await this.userModel
-      .aggregate(pipeline)
-      .exec();
+    console.log('Pipeline:', JSON.stringify(pipeline, null, 2));
+    const result = (await this.userModel.aggregate(pipeline).exec()) as {
+      _id: string;
+      count: number;
+    }[];
 
     return result.reduce<Record<string, number>>((acc, curr) => {
       acc[curr._id] = curr.count;
@@ -112,6 +109,10 @@ export class UsersService {
       {
         path: 'metadata.major',
         model: 'Major',
+        populate: {
+          path: 'school',
+          model: 'School',
+        },
       },
     ]);
   }

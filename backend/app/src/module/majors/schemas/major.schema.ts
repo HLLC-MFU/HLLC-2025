@@ -20,3 +20,13 @@ export class Major {
 }
 
 export const MajorSchema = SchemaFactory.createForClass(Major);
+MajorSchema.set('toObject', { virtuals: true });
+MajorSchema.index({ updatedAt: 1 });
+MajorSchema.set('toJSON', {
+  virtuals: true,
+  transform: (_doc, ret) => {
+    delete ret.id;
+    delete ret.__v;
+    return ret;
+  },
+});

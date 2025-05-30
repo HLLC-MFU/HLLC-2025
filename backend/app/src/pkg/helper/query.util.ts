@@ -75,7 +75,7 @@ export async function queryAll<T>(
   } = options;
 
   const { page = '1', limit, sort, excluded = '', ...rawFilters } = query;
-
+  const modelName = model.modelName ?? 'Document';
   const pageNum = parseInt(page, 10) || 1;
   const limitNum = limit ? parseInt(limit, 10) : defaultLimit;
   const excludedList = excluded.split(',').filter(Boolean);
@@ -119,7 +119,7 @@ export async function queryAll<T>(
         totalPages: 1,
         lastUpdatedAt: await getLastUpdatedAt(model),
       },
-      message: 'Data fetched successfully',
+      message: `${modelName} fetched successfully`,
     };
   }
 
@@ -148,35 +148,41 @@ export async function queryAll<T>(
       totalPages,
       lastUpdatedAt,
     },
-    message: 'Data fetched successfully',
+    message: `${modelName} fetched successfully`,
   };
 }
 
 /**
- * 
- * @param query 
- * @returns 
+ *
+ * @param query
+ * @returns
  * example: this.usersService.findOneByQuery({ username });
  */
 export async function queryFindOne<T>(
   model: Model<HydratedDocument<T>>,
   filter: FilterQuery<T>,
   populateFields?: PopulateField[],
-): Promise<HydratedDocument<T>> {
+): Promise<{ data: T[]; message: string }> {
+  // <- note: data is plain T[]
   const query = model.findOne(filter);
   populateFields?.forEach((p) => {
     query.populate(p);
   });
 
-  const result = await query;
+  const result = await query.lean({ virtuals: true });
 
   if (!result) {
-    throw new NotFoundException(`${filter._id ?? JSON.stringify(filter)} not found`);
+    throw new NotFoundException(
+      `${filter._id ?? JSON.stringify(filter)} not found`,
+    );
   }
 
-  return result;
+  const modelName = model.modelName ?? 'Document';
+  return {
+    data: [result as T], // no .toObject() needed, already plain
+    message: `${modelName} fetched successfully`,
+  };
 }
-
 
 export async function queryUpdateOne<T>(
   model: Model<HydratedDocument<T>>,
