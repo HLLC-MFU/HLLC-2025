@@ -16,7 +16,7 @@ export default function NotiManage() {
       <div className="grid grid-cols-2 px-4 py-6 gap-4 bg-gray-100 min-h-screen ">
         <div
           id="Notification Info"
-          className="flex row-span-2  bg-blue-200 rounded-2xl"
+          className="flex row-span-2  bg-blue-200 rounded-2xl "
         >
           <div className="flex flex-col w-full ">
             <div className="flex flex-col w-full p-5 gap-4">

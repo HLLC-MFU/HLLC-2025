@@ -27,8 +27,10 @@ export const icons = [
 ];
 
 export function Informationinfo() {
-  const [selected, setSelected] = useState<typeof icons[0] | undefined>(undefined);
-    
+  const [selected, setSelected] = useState<(typeof icons)[0] | undefined>(
+    undefined,
+  );
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-row justify-between">
@@ -68,29 +70,28 @@ export function Informationinfo() {
         </Select>
       </div>
 
-      <h1> Title </h1>
+      <h1 className="text-xl font-bold"> Title </h1>
       <div className="flex flex-row justify-between gap-5">
         <Input label="EN" size="md" type="Text" />
 
         <Input label="TH" size="md" type="Text" />
       </div>
 
-      <h1>Subtitle</h1>
+      <h1 className="text-xl font-bold"> Subtitle</h1>
       <div className="flex flex-row justify-between gap-5">
         <Input label="EN" size="md" type="Text" />
 
         <Input label="TH" size="md" type="Text" />
       </div>
 
-      <h1> Description </h1>
+      <h1 className="text-xl font-bold"> Description </h1>
       <div className="flex flex-row justify-between gap-5">
         <Textarea label="EN" />
 
         <Textarea label="TH" />
       </div>
 
-      <h1> Imange </h1>
-      
+      <h1 className="text-xl font-bold"> Imange </h1>
     </div>
   );
 }
