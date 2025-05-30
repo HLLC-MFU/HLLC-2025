@@ -29,6 +29,7 @@ export function Selectstudent() {
         size="lg"
         labelPlacement="inside"
         variant="faded" //flat
+    
       >
         {animals.map(animal => (
           <SelectItem key={animal.key}>{animal.label}</SelectItem>
