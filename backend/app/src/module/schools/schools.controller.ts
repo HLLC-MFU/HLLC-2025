@@ -8,6 +8,8 @@ import {
   Delete,
   Query,
   UseGuards,
+  UseInterceptors,
+  Req,
 } from '@nestjs/common';
 import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
@@ -15,6 +17,8 @@ import { UpdateSchoolDto } from './dto/update-school.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
+import { FastifyRequest } from 'fastify';
 
 @UseGuards(PermissionsGuard)
 @Controller('schools')
@@ -23,8 +27,10 @@ export class SchoolsController {
 
   @Post()
   @Permissions('schools:create')
-  create(@Body() createSchoolDto: CreateSchoolDto) {
-    return this.schoolsService.create(createSchoolDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  create(@Req() req: FastifyRequest) {
+    const dto = req.body as CreateSchoolDto;
+    return this.schoolsService.create(dto);
   }
 
   @Public()
@@ -42,9 +48,11 @@ export class SchoolsController {
 
   @Patch(':id')
   @Permissions('schools:update')
-  update(@Param('id') id: string, @Body() updateSchoolDto: UpdateSchoolDto) {
-    updateSchoolDto.updatedAt = new Date();
-    return this.schoolsService.update(id, updateSchoolDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  update(@Param('id') id: string, @Req() req: FastifyRequest) {
+    const dto = req.body as UpdateSchoolDto;
+    dto.updatedAt = new Date();
+    return this.schoolsService.update(id, dto);
   }
 
   @Delete(':id')

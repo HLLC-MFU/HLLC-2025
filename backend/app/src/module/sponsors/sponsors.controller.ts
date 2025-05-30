@@ -1,15 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, UseInterceptors } from '@nestjs/common';
 import { SponsorsService } from './sponsors.service';
 import { CreateSponsorDto } from './dto/create-sponsor.dto';
 import { UpdateSponsorDto } from './dto/update-sponsor.dto';
+import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
+import { FastifyRequest } from 'fastify';
 
 @Controller('sponsors')
 export class SponsorsController {
   constructor(private readonly sponsorsService: SponsorsService) {}
 
   @Post()
-  create(@Body() createSponsorDto: CreateSponsorDto) {
-    return this.sponsorsService.create(createSponsorDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  create(@Req() req: FastifyRequest) {
+    const dto = req.body as CreateSponsorDto;
+    return this.sponsorsService.create(dto);
   }
 
   @Get()
@@ -23,8 +27,11 @@ export class SponsorsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSponsorDto: UpdateSponsorDto) {
-    return this.sponsorsService.update(id, updateSponsorDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  update(@Param('id') id: string, @Req() req: FastifyRequest) {
+    const dto = req.body as UpdateSponsorDto;
+    dto.updatedAt = new Date();
+    return this.sponsorsService.update(id, dto);
   }
 
   @Delete(':id')

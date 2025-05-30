@@ -9,6 +9,7 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
 import { CreateActivitiesDto } from './dto/create-activities.dto';
@@ -17,6 +18,7 @@ import { FastifyRequest } from 'fastify';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 
 @UseGuards(JwtAuthGuard)
 @Controller('activities')
@@ -24,8 +26,10 @@ export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
-  create(@Body() createActivitiesDto: CreateActivitiesDto) {
-    return this.activitiesService.create(createActivitiesDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  create(@Req() req: FastifyRequest) {
+    const dto = req.body as CreateActivitiesDto;
+    return this.activitiesService.create(dto);
   }
 
   @Public()
@@ -56,11 +60,14 @@ export class ActivitiesController {
   }
 
   @Patch(':id')
+  @UseInterceptors(new MultipartInterceptor(500))
   update(
     @Param('id') id: string,
-    @Body() updateActivityDto: UpdateActivityDto,
+    @Req() req: FastifyRequest,
   ) {
-    return this.activitiesService.update(id, updateActivityDto);
+    const dto = req.body as UpdateActivityDto;
+    dto.updatedAt = new Date();
+    return this.activitiesService.update(id, dto);
   }
 
   @Delete(':id')

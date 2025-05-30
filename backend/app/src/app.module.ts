@@ -19,6 +19,7 @@ import { EvoucherCodeModule } from './module/evoucher-code/evoucher-code.module'
 import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 import { CampaignsModule } from './module/campaigns/campaigns.module';
+import { MultipartInterceptor } from './pkg/interceptors/multipart.interceptor';
 
 @Module({
   imports: [

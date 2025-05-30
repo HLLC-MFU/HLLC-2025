@@ -1,13 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseInterceptors, Req } from '@nestjs/common';
 import { EvoucherService } from './evoucher.service';
 import { CreateEvoucherDto } from './dto/create-evoucher.dto';
 import { UpdateEvoucherDto } from './dto/update-evoucher.dto';
+import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
+import { FastifyRequest } from 'fastify';
 
 @Controller('evoucher')
 export class EvoucherController {
   constructor(private readonly evoucherService: EvoucherService) {}
 
   @Post()
+  @UseInterceptors(new MultipartInterceptor(500))
   create(@Body() createEvoucherDto: CreateEvoucherDto) {
     return this.evoucherService.create(createEvoucherDto);
   }
@@ -23,8 +26,11 @@ export class EvoucherController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEvoucherDto: UpdateEvoucherDto) {
-    return this.evoucherService.update(id, updateEvoucherDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  update(@Param('id') id: string, @Req() req: FastifyRequest) {
+    const dto = req.body as UpdateEvoucherDto;
+    dto.updatedAt = new Date();
+    return this.evoucherService.update(id, dto);
   }
 
   @Delete(':id')
