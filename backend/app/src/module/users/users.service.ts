@@ -35,6 +35,7 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const role = await this.roleModel.findById(createUserDto.role).lean();
+    
     if (!role) {
       throw new NotFoundException('Role not found');
     }

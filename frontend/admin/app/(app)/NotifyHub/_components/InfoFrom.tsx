@@ -39,7 +39,7 @@ export function Informationinfo() {
           Information Info
         </h1>
         <Select
-          className="w-56"
+          className="w-56 bg-white border border-gray-300 rounded-lg shadow-sm"
           label="Select Icons"
           size="md"
           selectedKeys={selected ? [selected.name] : []}
@@ -73,31 +73,72 @@ export function Informationinfo() {
 
       <h1 className="text-xl font-bold"> Title </h1>
       <div className="flex flex-row justify-between gap-5">
-        <Input label="English" size="md" type="Text" />
+        <Input
+          label="English"
+          size="md"
+          type="Text"
+          className="bg-white border border-gray-300 rounded-lg shadow-md"
+        />
 
-        <Input label="Thai" size="md" type="Text" />
+        <Input
+          label="Thai"
+          size="md"
+          type="Text"
+          className="bg-white border border-gray-300 rounded-lg shadow-md"
+        />
       </div>
 
       <h1 className="text-xl font-bold"> Subtitle</h1>
       <div className="flex flex-row justify-between gap-5">
-        <Input label="English" size="md" type="Text" />
+        <Input
+          label="English"
+          size="md"
+          type="Text"
+          className="bg-white border border-gray-300 rounded-lg shadow-md"
+        />
 
-        <Input label="Thai" size="md" type="Text" />
+        <Input
+          label="Thai"
+          size="md"
+          type="Text"
+          className="bg-white border border-gray-300 rounded-lg shadow-md"
+        />
       </div>
 
       <h1 className="text-xl font-bold"> Description </h1>
       <div className="flex flex-row justify-between gap-5">
-        <Textarea label="English" />
+        <Textarea
+          label="English"
+          className="bg-white border border-gray-300 rounded-lg shadow-md"
+        />
 
-        <Textarea label="Thai" />
+        <Textarea
+          label="Thai"
+          className="bg-white border border-gray-300 rounded-lg shadow-md"
+        />
       </div>
 
       <h1 className="text-xl font-bold"> Redirect (Optional) </h1>
       <div className="grid grid-cols-2 justify-between gap-5">
-        <Input label="English" size="md" type="Text" />
+        <Input
+          label="English"
+          size="md"
+          type="Text"
+          className="bg-white border border-gray-300 rounded-lg shadow-md"
+        />
 
-        <Input label="Thai" size="md" type="Text" />
-        <Input label="Link" size="md" type="Url" />
+        <Input
+          label="Thai"
+          size="md"
+          type="Text"
+          className="bg-white border border-gray-300 rounded-lg shadow-md"
+        />
+        <Input
+          label="Link"
+          size="md"
+          type="Url"
+          className="bg-white border border-gray-300 rounded-lg shadow-md"
+        />
       </div>
 
       <h1 className="text-xl font-bold"> Imange (Optional) </h1>

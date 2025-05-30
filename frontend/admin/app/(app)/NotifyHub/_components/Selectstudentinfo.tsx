@@ -1,5 +1,6 @@
-import { Select, SelectItem, Switch, Avatar } from '@heroui/react';
+import { Select, SelectItem, Switch } from '@heroui/react';
 import React, { useState } from 'react';
+import { TableInfo } from './TableStudent';
 
 export const animals = [
   { key: 'cat', label: 'Cat' },
@@ -17,24 +18,18 @@ export const animals = [
   { key: 'crocodile', label: 'Crocodile' },
 ];
 
-export function Selectstudent() {
+export function SelectStudent() {
+  const [showSelect, setShowSelect] = useState(true);
+
   return (
     <div className="flex flex-col gap-5">
-      <Switch defaultSelected size="lg">
+      <Switch size="lg" isSelected={showSelect} onValueChange={setShowSelect}>
         All Student
       </Switch>
-      <Select
-        className="max-w"
-        label="Student Select"
-        selectionMode="multiple"
-        size="lg"
-        labelPlacement="inside"
-        variant="faded" //flat
-      >
-        {animals.map(animal => (
-          <SelectItem key={animal.key}>{animal.label}</SelectItem>
-        ))}
-      </Select>
+
+      {!showSelect && (
+        <TableInfo />
+      )}
     </div>
   );
 }
