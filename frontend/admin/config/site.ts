@@ -10,6 +10,7 @@ import {
   HelpCircleIcon,
   LogOutIcon,
   ShieldAlert,
+  BellRing
 } from "lucide-react";
 
 export const siteConfig = {
@@ -25,6 +26,7 @@ export const siteConfig = {
     {
       section: "User Management",
       items: [
+        { label: "Notification Management", href: '/NotifyHub', icon: BellRing },
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Admin", href: "/admin", icon: UserIcon },
         { label: "Reports", href: "/reports", icon: ShieldAlert },
