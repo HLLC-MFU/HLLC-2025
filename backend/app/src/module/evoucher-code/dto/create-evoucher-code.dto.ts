@@ -1,19 +1,20 @@
-import { IsBoolean, IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsMongoId, IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
 
 export class CreateEvoucherCodeDto {
 
-    @IsString()
+    @IsMongoId()
     @IsNotEmpty()
-    code: string;
+    user: string;
+
+    @IsMongoId()
+    @IsNotEmpty()
+    evoucher: string;
 
     @IsBoolean()
     @IsOptional()
     isUsed?: boolean;
 
     @IsObject()
-    @IsNotEmpty()
-    metadata: {
-        user?: string;
-        evoucher: string;
-    };
+    @IsOptional()
+    metadata: Record<string, any>
 }
