@@ -16,7 +16,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 
-@UseGuards(PermissionsGuard)
+// @UseGuards(PermissionsGuard)
 @Controller('schools')
 export class SchoolsController {
   constructor(private readonly schoolsService: SchoolsService) { }

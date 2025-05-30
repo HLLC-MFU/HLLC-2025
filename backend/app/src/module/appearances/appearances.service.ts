@@ -48,7 +48,8 @@ export class AppearancesService {
   }
 
   async update(id: string, updateAppearanceDto: UpdateAppearanceDto) {
-    return queryUpdateOne<Appearance>(this.apprearanceModel, id, updateAppearanceDto);
+    await queryUpdateOne<Appearance>(this.apprearanceModel, id, updateAppearanceDto);
+    return this.apprearanceModel.findById(id).populate('school').exec();
   }
 
   async remove(id: string) {
