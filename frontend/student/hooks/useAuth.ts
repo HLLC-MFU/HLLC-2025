@@ -9,7 +9,7 @@ import useProfile from "./useProfile";
 interface AuthStore {
   loading: boolean;
   error: string | null;
-  signIn: (username: string, password: string) => Promise<void>;
+  signIn: (username: string, password: string) => Promise<boolean>;
   signOut: () => void;
   refreshSession: () => Promise<boolean>;
 }
@@ -34,17 +34,22 @@ const useAuth = create<AuthStore>()(
             await saveToken("refreshToken", res.data.refreshToken);
             const { getProfile } = useProfile.getState();
             const user = await getProfile();
-            if (user) router.replace("/");
-          } else {
-            set({ error: res.message });
-            alert("Login failed!");
+            if (user) {
+              router.replace("/");
+              return true; // ✅ Login successful
+            }
           }
+
+          set({ error: res.message });
+          return false; // ❌ Login failed
         } catch (err) {
           set({ error: (err as Error).message });
+          return false; // ❌ Login failed
         } finally {
           set({ loading: false });
         }
       },
+
 
       signOut: () => {
         removeToken("accessToken");
