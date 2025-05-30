@@ -13,13 +13,6 @@ type PopulatedUser = Omit<User, 'role'> & {
   role: Role;
 };
 
-interface UserWithRole {
-  _id: Types.ObjectId;
-  role: Role & {
-    permissions: string[];
-  };
-}
-
 @Injectable()
 export class ActivitiesService {
   constructor(
