@@ -23,6 +23,7 @@ import {
 import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { UpdateReportDto } from './dto/update-report.dto';
+import { PopulateField } from 'src/pkg/types/query';
 
 const userSelectFields = 'username name';
 
@@ -127,7 +128,7 @@ export class ReportsService {
   }
 
   async findOne(id: string) {
-    const populateFields: PopulateOptions[] = [
+    const populateFields: PopulateField[] = [
       { path: 'reporter', select: userSelectFields },
       { path: 'category' },
     ];
