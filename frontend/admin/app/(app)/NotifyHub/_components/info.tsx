@@ -2,6 +2,7 @@ import { Input, Textarea } from '@heroui/input';
 import { Select, SelectItem, Avatar } from '@heroui/react';
 import { Star, School, BookMarked, CircleCheckBig } from 'lucide-react';
 import { useState } from 'react';
+import { ImageUploader } from './imageupload';
 
 export const icons = [
   {
@@ -72,26 +73,35 @@ export function Informationinfo() {
 
       <h1 className="text-xl font-bold"> Title </h1>
       <div className="flex flex-row justify-between gap-5">
-        <Input label="EN" size="md" type="Text" />
+        <Input label="English" size="md" type="Text" />
 
-        <Input label="TH" size="md" type="Text" />
+        <Input label="Thai" size="md" type="Text" />
       </div>
 
       <h1 className="text-xl font-bold"> Subtitle</h1>
       <div className="flex flex-row justify-between gap-5">
-        <Input label="EN" size="md" type="Text" />
+        <Input label="English" size="md" type="Text" />
 
-        <Input label="TH" size="md" type="Text" />
+        <Input label="Thai" size="md" type="Text" />
       </div>
 
       <h1 className="text-xl font-bold"> Description </h1>
       <div className="flex flex-row justify-between gap-5">
-        <Textarea label="EN" />
+        <Textarea label="English" />
 
-        <Textarea label="TH" />
+        <Textarea label="Thai" />
       </div>
 
-      <h1 className="text-xl font-bold"> Imange </h1>
+      <h1 className="text-xl font-bold"> Redirect (Optional) </h1>
+      <div className="grid grid-cols-2 justify-between gap-5">
+        <Input label="English" size="md" type="Text" />
+
+        <Input label="Thai" size="md" type="Text" />
+        <Input label="Link" size="md" type="Url" />
+      </div>
+
+      <h1 className="text-xl font-bold"> Imange (Optional) </h1>
+      <ImageUploader />
     </div>
   );
 }
