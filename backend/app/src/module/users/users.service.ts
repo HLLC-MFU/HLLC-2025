@@ -20,6 +20,7 @@ import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { UploadUserDto } from './dto/upload.user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class UsersService {
@@ -45,7 +46,11 @@ export class UsersService {
       metadata: createUserDto.metadata,
     });
 
-    return await newUser.save();
+    try {
+      return await newUser.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'username');
+    }
   }
 
   async findAll(query: Record<string, any>) {
@@ -137,10 +142,13 @@ export class UsersService {
     return updatedUser as User;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string) {
     await queryDeleteOne<User>(this.userModel, id);
+    return {
+      message: 'User deleted successfully',
+      id,
+    };
   }
-3
 
   async removeMultiple(ids: string[]): Promise<User[]> {
     try {

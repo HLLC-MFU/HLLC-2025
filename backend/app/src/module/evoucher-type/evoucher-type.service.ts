@@ -6,6 +6,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { EvoucherType, EvoucherTypeDocument } from './schema/evoucher-type.schema';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class EvoucherTypeService {
@@ -26,7 +27,11 @@ export class EvoucherTypeService {
       ...createEvoucherTypeDto,
     });
 
-    return evoucherType.save();
+    try {
+      return await evoucherType.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name');
+    }
   }
 
   async findAll(query: Record<string, string>) {
@@ -53,9 +58,13 @@ export class EvoucherTypeService {
   }
 
   async remove(id: string) {
-    return queryDeleteOne<EvoucherType>(
+    await queryDeleteOne<EvoucherType>(
       this.evoucherTypeModel,
       id,
     );
+    return {
+      message: 'Evoucher type deleted successfully',
+      id,
+    };
   }
 }

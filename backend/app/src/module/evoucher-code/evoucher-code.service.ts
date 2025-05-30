@@ -9,6 +9,7 @@ import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { Evoucher, EvoucherDocument } from '../evoucher/schema/evoucher.schema';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class EvoucherCodeService {
@@ -52,7 +53,11 @@ export class EvoucherCodeService {
       }
     });
   
-    return await newEvoucherCode.save();
+    try {
+      return await newEvoucherCode.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'code');
+    }
   }
   
   
@@ -133,7 +138,11 @@ async getExistsEvoucherCodes(userId: string): Promise<{ evoucher: Evoucher; exis
   }
 
   async remove(id: string) {
-    return await queryDeleteOne<EvoucherCode>(this.evoucherCodeModel, id);
+    await queryDeleteOne<EvoucherCode>(this.evoucherCodeModel, id);
+    return {
+      message: 'Evoucher code deleted successfully',
+      id,
+    }
   }
 
   async useVoucher(id: string, user: string) {
@@ -199,8 +208,12 @@ async getExistsEvoucherCodes(userId: string): Promise<{ evoucher: Evoucher; exis
       current++;
     }
   
-    await this.evoucherCodeModel.insertMany(codesToInsert);
-    return codesToInsert.map(c => c.code);
+    try {
+      await this.evoucherCodeModel.insertMany(codesToInsert);
+      return codesToInsert.map(c => c.code);
+    } catch (error) {
+      handleMongoDuplicateError(error, 'code');
+    }
   }
   
   

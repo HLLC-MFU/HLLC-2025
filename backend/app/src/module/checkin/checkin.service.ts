@@ -16,6 +16,7 @@ import { UserDocument } from '../users/schemas/user.schema';
 import { Activities } from '../activities/schema/activities.schema';
 import { ActivityDocument } from '../activities/schema/activities.schema';
 import { PopulateField } from 'src/pkg/types/query';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 const userSelectFields = 'name username major metadata';
 
@@ -68,7 +69,11 @@ export class CheckinService {
         : null,
     });
 
-    return checkin.save();
+    try {
+      return await checkin.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name');
+    }
   }
 
   async findAll(query: Record<string, string>) {
@@ -128,6 +133,10 @@ export class CheckinService {
   }
 
   async remove(id: string) {
-    return queryDeleteOne<Checkin>(this.checkinModel, id);
+    await queryDeleteOne<Checkin>(this.checkinModel, id);
+    return {
+      message: 'Checkin deleted successfully',
+      id,
+    }
   }
 }

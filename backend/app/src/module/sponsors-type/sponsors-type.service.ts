@@ -6,6 +6,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class SponsorsTypeService {
@@ -26,7 +27,11 @@ export class SponsorsTypeService {
       ...createSponsorsTypeDto,
     });
 
-    return await newSponsorsType.save();
+    try {
+      return await newSponsorsType.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name');
+    }
   }
 
   async findAll(query: Record<string, string>) {
@@ -46,6 +51,10 @@ export class SponsorsTypeService {
   }
 
   async remove(id: string) {
-    return await queryDeleteOne<SponsorsType>(this.sponsorsTypeModel, id);
+    await queryDeleteOne<SponsorsType>(this.sponsorsTypeModel, id);
+    return {
+      message: 'Sponsors type deleted successfully',
+      id,
+    };
   }
 }

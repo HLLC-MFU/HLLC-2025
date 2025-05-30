@@ -56,10 +56,6 @@ export class MultipartInterceptor implements NestInterceptor {
     if (Object.keys(detail).length) dto.detail = detail;
     if (Object.keys(photo).length) dto.photo = photo;
 
-    if (dto.budget) dto.budget = parseFloat(dto.budget);
-    if (dto.startAt) dto.startAt = new Date(dto.startAt);
-    if (dto.endAt) dto.endAt = new Date(dto.endAt);
-
     req.body = dto;
     return next.handle();
   }

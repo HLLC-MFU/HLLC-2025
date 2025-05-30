@@ -115,7 +115,11 @@ export class ActivitiesService {
       throw new NotFoundException('Access denied');
     }
 
-    return activity;
+    try {
+      return await this.activitiesModel.findById(id).lean();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name');
+    }
   }
 
   async update(id: string, updateActivityDto: UpdateActivityDto) {
@@ -141,11 +145,12 @@ export class ActivitiesService {
   }
 
   async remove(id: string) {
-    const activity = await this.activitiesModel.findByIdAndDelete(id).lean();
-    if (!activity) {
-      throw new NotFoundException('Activity not found');
-    }
-    return activity;
+    await this.activitiesModel.findByIdAndDelete(id).lean();
+    
+    return {
+      message: 'Activity deleted successfully',
+      id,
+    };
   }
 
   private async isUserInScope(activity: Activities, userId: string): Promise<boolean> {

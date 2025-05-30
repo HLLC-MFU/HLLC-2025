@@ -11,6 +11,7 @@ import { Sponsors } from '../sponsors/schema/sponsors.schema';
 import { EvoucherTypeDocument } from '../evoucher-type/schema/evoucher-type.schema';
 import { EvoucherType } from '../evoucher-type/schema/evoucher-type.schema';
 import { Campaign, CampaignDocument } from '../campaigns/schema/campaigns.schema';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class EvoucherService {
@@ -53,7 +54,12 @@ export class EvoucherService {
       campaign: new Types.ObjectId(createEvoucherDto.campaign),
     });
 
-    return evoucher.save();
+    try {
+      return await evoucher.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name')
+    }
+    
   }
 
   async findAll(query: Record<string, string>) {
@@ -87,9 +93,13 @@ export class EvoucherService {
   }
 
   async remove(id: string) {
-    return queryDeleteOne<Evoucher>(
+    await queryDeleteOne<Evoucher>(
       this.evoucherModel,
       id
     )
+    return {
+      message: 'Evoucher deleted successfully',
+      id,
+    }
   }
 }
