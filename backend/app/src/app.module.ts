@@ -14,6 +14,12 @@ import { NotificationsModule } from './module/notifications/notifications.module
 import * as redisStore from 'cache-manager-ioredis';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesMajorModule } from './module/activities-major/activities-major.module';
+import { SystemStatusModule } from './module/system-status/system-status.module';
+import { APP_GUARD } from '@nestjs/core';
+import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
+import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
+import { AppearancesModule } from './module/appearances/appearances.module';
+import { CampaignsModule } from './module/campaigns/campaigns.module';
 import { SseModule } from './module/sse/sse.module';
 
 @Module({
@@ -47,9 +53,22 @@ import { SseModule } from './module/sse/sse.module';
     AuthModule,
     GlobalCacheModule,
     ActivitiesMajorModule,
+    SystemStatusModule,
+    AppearancesModule,
+    CampaignsModule,
     NotificationsModule,
     SseModule,
   ],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SystemStatusGuard,
+    },
+  ],
+
 })
-export class AppModule {}
+export class AppModule { }

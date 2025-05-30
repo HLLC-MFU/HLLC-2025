@@ -19,7 +19,7 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 @UseGuards(PermissionsGuard)
 @Controller('schools')
 export class SchoolsController {
-  constructor(private readonly schoolsService: SchoolsService) {}
+  constructor(private readonly schoolsService: SchoolsService) { }
 
   @Post()
   @Permissions('schools:create')
@@ -50,5 +50,11 @@ export class SchoolsController {
   @Permissions('schools:delete')
   remove(@Param('id') id: string) {
     return this.schoolsService.remove(id);
+  }
+
+  @Get(':id/appearances')
+  findAppearance(@Param('id') id: string, query: Record<string, string>) {
+    console.log('findOne Appearance', id);
+    return this.schoolsService.findColor(id, query);
   }
 }

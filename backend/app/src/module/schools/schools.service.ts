@@ -12,11 +12,13 @@ import {
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
+import { Appearance, ApprearanceDocument } from '../appearances/schemas/apprearance.schema';
 
 @Injectable()
 export class SchoolsService {
   constructor(
     @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
+    @InjectModel(Appearance.name) private AppearanceModel: Model<ApprearanceDocument>,
   ) { }
 
   async create(createSchoolDto: CreateSchoolDto) {
@@ -64,5 +66,9 @@ export class SchoolsService {
       message: 'School deleted successfully',
       id,
     };
+  }
+
+  async findColor(id: string, query: Record<string, string>) {
+    return queryFindOne<Appearance>(this.AppearanceModel, { _id: id }, [{ path: 'school' }]);
   }
 }
