@@ -22,7 +22,7 @@ export default function LoginScreen() {
                 <Text style={styles.header}>Let's start your journey</Text>
                 <Text style={styles.subHeader}>Login to Continue</Text>
                 <Input value={username} onChange={setUsername} placeholder="Username" color="primary" size="sm"></Input>
-                <Input value={username} onChange={setPassword} placeholder="Password" color="primary" size="sm"></Input>
+                <Input value={password} onChange={setPassword} placeholder="Password" color="primary" size="sm"></Input>
                 <Button color="primary" size="md" radius="full" fullWidth onPress={() => handleLogin()}>Login</Button>
             </SafeAreaView>
         </ImageBackground>
