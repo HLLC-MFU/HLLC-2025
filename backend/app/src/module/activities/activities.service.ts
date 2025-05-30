@@ -1,11 +1,24 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types, FilterQuery } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Activities, ActivityDocument } from './schema/activities.schema';
 import { CreateActivitiesDto } from './dto/create-activities.dto';
 import { UpdateActivityDto } from './dto/update-activities.dto';
-import { User } from '../users/schemas/user.schema';
 import { UsersService } from '../users/users.service';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
+import { Role } from '../role/schemas/role.schema';
+import { User } from '../users/schemas/user.schema';
+
+type PopulatedUser = Omit<User, 'role'> & {
+  role: Role;
+};
+
+interface UserWithRole {
+  _id: Types.ObjectId;
+  role: Role & {
+    permissions: string[];
+  };
+}
 
 @Injectable()
 export class ActivitiesService {
@@ -17,13 +30,7 @@ export class ActivitiesService {
 
   async create(createActivitiesDto: CreateActivitiesDto) {
     const metadata = createActivitiesDto.metadata || {};
-    const scope = metadata.scope || {};
-
-    const convertedScope = {
-      major: (scope.major || []).map(id => new Types.ObjectId(id)),
-      school: (scope.school || []).map(id => new Types.ObjectId(id)),
-      user: (scope.user || []).map(id => new Types.ObjectId(id)),
-    };
+    const convertedScope = this.normalizeScope(metadata.scope || {});
 
     const activity = new this.activitiesModel({
       ...createActivitiesDto,
@@ -35,76 +42,76 @@ export class ActivitiesService {
       },
     });
 
-    return activity.save();
+    try {
+      return await activity.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name');
+    }
   }
 
-  async findAll(query: Record<string, string>, userId?: string) {
-    console.log('[Activities] 🔍 Finding activities with query:', query);
-    console.log('[Activities] 👤 User ID:', userId || 'none');
-
+  async findAllForUser(query: Record<string, string>, userId?: string) {
     const baseQuery = {
       ...query,
       'metadata.isVisible': true,
       'metadata.isOpen': true,
     };
 
-    const activities = await this.activitiesModel.find(baseQuery).lean();
-    console.log(`[Activities] 📋 Found ${activities.length} activities total`);
+    const activities = await this.activitiesModel.find(baseQuery)
+      .select('-metadata.scope')
+      .lean();
 
-    // Return early if no activities found
-    if (!activities.length) {
-      console.log('[Activities] ℹ️ No activities found');
-      return [];
-    }
-
-    // If no userId provided, only return activities with no scope restrictions
-    if (!userId) {
-      console.log('[Activities] ⚠️ No userId provided - filtering for public activities only');
-      return activities.filter(activity => {
-        const scope = activity.metadata?.scope;
-        const isPublic = !scope || (!scope.user?.length && !scope.major?.length && !scope.school?.length);
-        console.log(`[Activities] Activity ${activity._id}: ${isPublic ? 'public' : 'restricted'}`);
-        return isPublic;
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+      return activities.filter((a) => {
+        const s = a.metadata?.scope;
+        return !s || (!s.user?.length && !s.major?.length && !s.school?.length);
       });
     }
 
-    // Invalid userId format
-    if (!Types.ObjectId.isValid(userId)) {
-      console.log('[Activities] ❌ Invalid userId format:', userId);
-      return [];
-    }
-
-    console.log('[Activities] 🔍 Checking visibility for user:', userId);
-    
-    const visibleActivities = await Promise.all(
-      activities.map(async (activity) => {
-        console.log(`\n[Activities] Checking activity ${activity._id}:`);
-        console.log('Scope:', JSON.stringify(activity.metadata?.scope, null, 2));
+    const visible = await Promise.all(
+      activities.map(async (a) => {
+        const isInScope = await this.isUserInScope(a, userId);
+        if (!isInScope) return null;
         
-        const canSee = await this.isUserVisibleForActivity(activity, userId);
-        return canSee ? activity : null;
-      })
+        // Return activity without scope information
+        const { metadata, ...rest } = a;
+        const { scope, ...metadataWithoutScope } = metadata;
+        return {
+          ...rest,
+          metadata: metadataWithoutScope
+        };
+      }),
     );
 
-    const filteredActivities = visibleActivities.filter((a): a is typeof activities[0] => a !== null);
-    console.log(`[Activities] ✅ Filtered to ${filteredActivities.length} visible activities`);
-    
-    // Log which activities were filtered out
-    const filteredOutIds = activities
-      .filter(a => !filteredActivities.find(f => f._id.toString() === a._id.toString()))
-      .map(a => a._id);
-    if (filteredOutIds.length) {
-      console.log('[Activities] 🚫 Filtered out activities:', filteredOutIds);
-    }
-
-    return filteredActivities;
+    return visible.filter(Boolean);
   }
 
+  async findAllForAdmin(query: Record<string, string>) {
+    return this.activitiesModel.find(query).lean();
+  }
+  
   async findOne(id: string, userId?: string) {
     const activity = await this.activitiesModel.findById(id).lean();
     if (!activity) throw new NotFoundException('Activity not found');
 
-    if (!userId || !(await this.isUserVisibleForActivity(activity, userId))) {
+    if (!userId) {
+      throw new NotFoundException('Access denied');
+    }
+
+    const user = await this.usersService.findOneByQuery({ 
+      _id: userId as unknown as Types.ObjectId & string
+    }) as unknown as PopulatedUser;
+    if (!user) {
+      throw new NotFoundException('Access denied');
+    }
+
+    // Check if user has admin permissions (wildcard permission)
+    const isAdmin = Array.isArray(user.role?.permissions) && user.role.permissions.includes('*');
+    if (isAdmin) {
+      return activity;
+    }
+
+    // For non-admin users, check scope restrictions
+    if (!(await this.isUserInScope(activity, userId))) {
       throw new NotFoundException('Access denied');
     }
 
@@ -141,116 +148,49 @@ export class ActivitiesService {
     return activity;
   }
 
-  async isUserVisibleForActivity(activity: Activities, userId: string): Promise<boolean> {
-    const activityId = (activity as any)._id?.toString() || 'unknown';
-    console.log(`\n[Visibility] 🔍 Checking visibility for activity ${activityId}`);
-    console.log('[Visibility] 👤 Checking for user:', userId);
+  private async isUserInScope(activity: Activities, userId: string): Promise<boolean> {
+    const scope = activity.metadata?.scope;
+    if (!scope) return true;
 
-    // Input validation
-    if (!activity) {
-      console.log('[Visibility] ❌ Activity is null or undefined');
-      return false;
-    }
+    const hasNoScope =
+      !scope.user?.length && !scope.major?.length && !scope.school?.length;
+    if (hasNoScope) return true;
 
-    // Check if activity has any scope restrictions
-    if (!activity.metadata?.scope) {
-      console.log('[Visibility] ℹ️ No scope defined - activity is public');
-      return true;
-    }
-
-    const scope = activity.metadata.scope;
-    
-    // If scope exists but all arrays are empty, activity is public
-    const hasNoScope = (!scope.user?.length && !scope.major?.length && !scope.school?.length);
-    if (hasNoScope) {
-      console.log('[Visibility] ℹ️ Empty scope - activity is public');
-      return true;
-    }
-
-    // Validate userId
-    if (!Types.ObjectId.isValid(userId)) {
-      console.log('[Visibility] ❌ Invalid userId format:', userId);
-      return false;
-    }
-
-    // Get user details
+    if (!Types.ObjectId.isValid(userId)) return false;
     const user = await this.usersService.findOne(userId);
-    if (!user) {
-      console.log('[Visibility] ❌ User not found:', userId);
-      return false;
-    }
+    if (!user) return false;
 
-    // Log scope and user details
-    console.log('[Visibility] 📋 Scope details:', {
-      users: scope.user?.map(id => id.toString()) || [],
-      majors: scope.major?.map(id => id.toString()) || [],
-      schools: scope.school?.map(id => id.toString()) || []
-    });
+    const userStr = user._id.toString();
+    const majorStr = user.metadata?.major?.toString();
 
-    console.log('[Visibility] 👤 User details:', {
-      id: userId,
-      major: user.metadata?.major?.toString() || 'none',
-      school: user.metadata?.school?.toString() || 'none'
-    });
+    const userSet = new Set(scope.user?.map((id) => id.toString()));
+    if (userSet.has(userStr)) return true;
 
-    // Check user scope
-    const userIdStr = userId.toString();
-    if (scope.user?.length) {
-      const userIds = scope.user.map(id => id.toString());
-      console.log('[Visibility] Comparing user ID:', userIdStr, 'with scope users:', userIds);
-      const inUserScope = userIds.includes(userIdStr);
-      if (inUserScope) {
-        console.log('[Visibility] ✅ User found in user scope');
-        return true;
-      }
-    }
+    const majorSet = new Set(scope.major?.map((id) => id.toString()));
+    if (majorStr && majorSet.has(majorStr)) return true;
 
-    // Check major scope
-    const userMajor = user.metadata?.major?.toString();
-    if (scope.major?.length && userMajor) {
-      const majorIds = scope.major.map(id => id.toString());
-      console.log('[Visibility] Comparing user major:', userMajor, 'with scope majors:', majorIds);
-      const inMajorScope = majorIds.includes(userMajor);
-      if (inMajorScope) {
-        console.log('[Visibility] ✅ User major found in major scope');
-        return true;
-      }
-    }
-
-    // Check school scope
-    if (scope.school?.length && userMajor) {
-      console.log('[Visibility] 🏫 Checking school scope through majors');
-      
-      // Get all majors for each school in scope
+    if (scope.school?.length && majorStr) {
       for (const schoolId of scope.school) {
-        console.log(`[Visibility] 🔍 Checking majors for school: ${schoolId}`);
-        
-        try {
-          // Find all majors in this school
-          const schoolMajors = await this.usersService.findAllByQuery({
-            school: schoolId.toString()
-          });
+        const schoolUsers = await this.usersService.findAllByQuery({
+          school: schoolId.toString(),
+        });
 
-          if (schoolMajors?.data?.length) {
-            const majorIds = schoolMajors.data
-              .filter(m => m.metadata?.major)
-              .map(m => m.metadata.major.toString());
+        const majorIds = schoolUsers.data
+          .map((u) => u.metadata?.major?.toString())
+          .filter(Boolean);
 
-            console.log('[Visibility] Found school majors:', majorIds);
-
-            // Check if user's major is in this school
-            if (majorIds.includes(userMajor)) {
-              console.log('[Visibility] ✅ User major found in school scope');
-              return true;
-            }
-          }
-        } catch (error) {
-          console.error('[Visibility] ❌ Error checking school majors:', error);
-        }
+        if (majorIds.includes(majorStr)) return true;
       }
     }
 
-    console.log('[Visibility] ❌ User does not match any scope criteria');
     return false;
+  }
+
+  private normalizeScope(scope: any) {
+    return {
+      major: (scope.major || []).map((id) => new Types.ObjectId(id)),
+      school: (scope.school || []).map((id) => new Types.ObjectId(id)),
+      user: (scope.user || []).map((id) => new Types.ObjectId(id)),
+    };
   }
 }

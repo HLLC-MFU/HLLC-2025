@@ -16,27 +16,34 @@ import { UpdateActivityDto } from './dto/update-activities.dto';
 import { FastifyRequest } from 'fastify';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('activities')
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
-  @Public()
   @Post()
   create(@Body() createActivitiesDto: CreateActivitiesDto) {
     return this.activitiesService.create(createActivitiesDto);
   }
 
+  @Public()
   @Get()
-  async getActivities(
+  async getActivitiesForUser(
     @Query() query: Record<string, string>,
     @Req() req: FastifyRequest & { user?: { _id: string } },
   ) {
-    console.log('[Controller] 📝 Request user:', req.user);
     const userId = req.user?._id;
-    console.log('[Controller] 👤 Extracted userId:', userId);
-    return this.activitiesService.findAll(query, userId);
+    return this.activitiesService.findAllForUser(query, userId);
+  }
+
+  @Get('admin')
+  @Permissions('activities:read')
+  async getActivitiesForAdmin(
+    @Query() query: Record<string, string>,
+  ) {
+    return this.activitiesService.findAllForAdmin(query);
   }
 
   @Get(':id')
