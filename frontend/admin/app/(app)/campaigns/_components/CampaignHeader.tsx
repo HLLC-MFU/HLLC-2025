@@ -6,7 +6,7 @@ interface CampaignHeaderProps {
 
 export const CampaignHeader = ({ onAddCampaign }: CampaignHeaderProps) => {
   return (
-    <div className="bg-white/70 backdrop-blur-sm border-b border-white/20 sticky top-0 z-10">
+    <div className="bg-white/70 backdrop-blur-sm border-b border-white/20 top-0 z-10">
       <div className="container mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
