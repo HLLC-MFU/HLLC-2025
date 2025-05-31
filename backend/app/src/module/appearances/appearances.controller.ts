@@ -95,6 +95,18 @@ export class AppearancesController {
     const updateAppearanceDto: any = { updatedAt: new Date() };
     const assets: Record<string, string> = {};
 
+    // Get existing appearance first
+    const existingAppearance = await this.appearancesService.findOne(id);
+    if (!existingAppearance) {
+      throw new HttpException('Appearance not found', HttpStatus.NOT_FOUND);
+    }
+
+    // Initialize assets with existing values
+    const existingAssets = existingAppearance.data[0].assets as Record<string, string>;
+    assets.background = existingAssets.background || "";
+    assets.backpack = existingAssets.backpack || "";
+    assets.appearance = existingAssets.appearance || "";
+
     for await (const part of parts) {
       if (part.type === 'file') {
         const isAsset = part.fieldname.startsWith('assets[');
@@ -130,15 +142,7 @@ export class AppearancesController {
       }
     }
 
-    const existingAppearance = await this.appearancesService.findOne(id);
-    if (!existingAppearance) {
-      throw new HttpException('Appearance not found', HttpStatus.NOT_FOUND);
-    }
-
-    updateAppearanceDto.assets = {
-      ...(existingAppearance.assets ?? {}),
-      ...assets,
-    };
+    updateAppearanceDto.assets = assets;
 
     const updated = await this.appearancesService.update(id, updateAppearanceDto);
     return { data: updated };
