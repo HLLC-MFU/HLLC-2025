@@ -27,7 +27,7 @@ import { FastifyRequest } from 'fastify';
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @Post()
   @Public()
@@ -43,6 +43,13 @@ export class UsersController {
     return this.usersService.findAll(query);
   }
 
+  @Get('statistics')
+  @Permissions('users:read')
+  @CacheKey('users:statistics')
+  async getUserCountByRoles(): Promise<Record<string, number>> {
+    return this.usersService.getUserCountByRoles();
+  }
+
   @Get(':id')
   @Permissions('users:read:id')
   @CacheKey('users:$params.id')
@@ -52,8 +59,12 @@ export class UsersController {
   }
 
   @Get('profile')
-  getProfile(@Req() req: FastifyRequest) {
-    const userId = req.user?._id || req.user?.id;
+  @CacheKey('users:$req.user')
+  getProfile(
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
+  ) {
+    const user = req.user as { _id?: string; id?: string } | undefined;
+    const userId: string | undefined = user?._id ?? user?.id;
     return this.usersService.findOneByQuery({
       _id: userId,
     });
