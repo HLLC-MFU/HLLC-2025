@@ -14,15 +14,15 @@ export function ColorsSection({
     onSaveColors
 }: ColorsSectionProps) {
     return (
-        <Card className="shadow-xl hover:shadow-2xl transition-all duration-300 border-0 bg-white/70 backdrop-blur-sm">
-            <CardHeader className="pb-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg">
+        <Card className="shadow-xl">
+            <CardHeader>
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                         <Palette className="w-6 h-6" />
                     </div>
-                    <div>
+                    <div className='flex flex-col items-start'>
                         <h2 className="text-xl font-semibold">Color Scheme</h2>
-                        <p className="text-purple-100 text-sm">Primary and secondary brand colors</p>
+                        <p className="text-sm">Primary and secondary brand colors</p>
                     </div>
                 </div>
             </CardHeader>
@@ -30,7 +30,7 @@ export function ColorsSection({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {(["primary", "secondary"] as const).map((key) => (
                         <div key={key} className="space-y-4">
-                            <h3 className="font-semibold text-gray-700 capitalize text-lg">{key} Color</h3>
+                            <h3 className="font-semibold capitalize text-lg">{key} Color</h3>
                             <div className="flex flex-col items-center space-y-4">
                                 <div className="relative group">
                                     <div
@@ -56,7 +56,7 @@ export function ColorsSection({
                         </div>
                     ))}
                 </div>
-                
+
                 <div className="mt-8 pt-6 border-t border-gray-200">
                     <div className="flex justify-center">
                         <Button

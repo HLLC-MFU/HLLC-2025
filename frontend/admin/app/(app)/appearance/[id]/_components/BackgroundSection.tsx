@@ -23,20 +23,20 @@ export function BackgroundSection({
     onSaveAsset
 }: BackgroundSectionProps) {
     return (
-        <Card className="shadow-xl hover:shadow-2xl transition-all duration-300 border-0 bg-white/70 backdrop-blur-sm">
-            <CardHeader className="pb-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+        <Card className="shadow-xl">
+            <CardHeader>
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                         <Image className="w-6 h-6" />
                     </div>
-                    <div>
+                    <div className='flex flex-col items-start p-2'>
                         <h2 className="text-xl font-semibold">Background Image</h2>
-                        <p className="text-blue-100 text-sm">Main background for your school interface</p>
+                        <p className="text-sm">Main background for your school interface</p>
                     </div>
                 </div>
             </CardHeader>
-            <CardBody className="p-6">
-                <div className="flex flex-col lg:flex-row gap-6 items-center">
+            <CardBody>
+                <div className="flex flex-col gap-6 items-center">
                     <div className="flex-1 max-w-md">
                         <div className="relative group">
                             <img
@@ -49,7 +49,7 @@ export function BackgroundSection({
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="flex-1 space-y-4">
                         <div className="relative">
                             <input
@@ -62,33 +62,32 @@ export function BackgroundSection({
                                 className="hidden"
                                 id="background-upload"
                             />
-                            <label 
+                            <label
                                 htmlFor="background-upload"
-                                className="flex items-center justify-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
+                                className="flex items-center justify-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-gray-400 hover:bg-black-100 transition-colors cursor-pointer"
                             >
-                                <Upload className="w-5 h-5 text-gray-400" />
-                                <span className="text-gray-600 font-medium">Choose new background</span>
+                                <Upload className="w-5 h-5" />
+                                <span className="font-medium">Choose new background</span>
                             </label>
-                        </div>
-                        
-                        {assetDrafts.background && (
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-3 rounded-lg">
-                                    <CheckCircle className="w-4 h-4" />
-                                    <span>📁 {assetDrafts.background.name}</span>
+
+                            {assetDrafts.background && (
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-3 rounded-lg">
+                                        <CheckCircle className="w-4 h-4" />
+                                        <span>📁 {assetDrafts.background.name}</span>
+                                    </div>
+                                    <Button
+                                        color="primary"
+                                        size="lg"
+                                        className="w-full font-medium"
+                                        isLoading={uploadingAssets.background}
+                                        onPress={() => onSaveAsset('background')}
+                                    >
+                                        {uploadingAssets.background ? 'Uploading...' : 'Save Background'}
+                                    </Button>
                                 </div>
-                                <Button
-                                    color="primary"
-                                    size="lg"
-                                    className="w-full font-medium"
-                                    isLoading={uploadingAssets.background}
-                                    onPress={() => onSaveAsset('background')}
-                                >
-                                    {uploadingAssets.background ? 'Uploading...' : 'Save Background'}
-                                </Button>
-                            </div>
-                        )}
-                        
+                            )}
+                        </div>
                         {savedAssets.background && (
                             <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-3 rounded-lg">
                                 <CheckCircle className="w-4 h-4" />

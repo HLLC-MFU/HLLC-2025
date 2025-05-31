@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { SchoolDetailSkeleton } from '../../schools/[id]/_components/SchoolDetailSkeleton';
 import { useSchoolByAppearance } from '@/hooks/useSchoolByAppearance';
-import { Card, CardBody } from '@heroui/react';
+import { addToast, Card, CardBody } from '@heroui/react';
 import { AlertCircle, Image } from 'lucide-react';
 import { Button } from '@heroui/button';
 import { AppearanceHeader } from './_components/AppearanceHeader';
@@ -34,7 +34,7 @@ export default function AppearanceDetailsPage() {
         previewUrls,
         handleFileChange,
         handleSaveAsset,
-    } = useAppearanceAssets({ 
+    } = useAppearanceAssets({
         appearance,
         onAppearanceUpdate: (updatedAppearance) => {
             setAppearance(updatedAppearance);
@@ -67,13 +67,17 @@ export default function AppearanceDetailsPage() {
                 setAppearance(updatedAppearance);
             }
             setIsUpdateModalOpen(false);
+            addToast({
+                title: "Appearance updated successfully",
+                color: "success",
+            });
         } catch (error) {
             console.error("Update failed", error);
         }
     };
 
     if (loading) return <SchoolDetailSkeleton />;
-    
+
     if (error) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-pink-50">
@@ -82,9 +86,9 @@ export default function AppearanceDetailsPage() {
                         <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
                         <h2 className="text-xl font-semibold mb-2 text-red-700">Something went wrong</h2>
                         <p className="text-red-600">{error}</p>
-                        <Button 
-                            className="mt-4" 
-                            color="primary" 
+                        <Button
+                            className="mt-4"
+                            color="primary"
                             onPress={() => router.back()}
                         >
                             Go Back
@@ -103,9 +107,9 @@ export default function AppearanceDetailsPage() {
                         <Image className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h2 className="text-xl font-semibold mb-2 text-gray-700">School not found</h2>
                         <p className="text-gray-600 mb-4">The appearance you're looking for doesn't exist.</p>
-                        <Button 
-                            className="mt-4" 
-                            color="primary" 
+                        <Button
+                            className="mt-4"
+                            color="primary"
                             onPress={() => router.back()}
                         >
                             Go Back
@@ -117,7 +121,7 @@ export default function AppearanceDetailsPage() {
     }
 
     return (
-        <div className="min-h-screen">
+        <div className="h-screen">
             {appearance && <AppearanceHeader appearance={appearance} />}
 
             <div className="container mx-auto px-6 py-8">
