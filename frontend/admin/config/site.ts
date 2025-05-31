@@ -11,6 +11,7 @@ import {
   LogOutIcon,
   ShieldAlert,
   Palette,
+  Megaphone,
 } from "lucide-react";
 
 export const siteConfig = {
@@ -29,6 +30,12 @@ export const siteConfig = {
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Admin", href: "/admin", icon: UserIcon },
         { label: "Reports", href: "/reports", icon: ShieldAlert },
+      ],
+    },
+    {
+      section: "Evoucher Management",
+      items: [
+        { label: "Campaign", href: "/campaigns", icon: Megaphone },
       ],
     },
     {

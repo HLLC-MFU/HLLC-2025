@@ -37,6 +37,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
@@ -49,7 +50,7 @@ async function bootstrap() {
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
-  // app.useGlobalFilters(new MongoExceptionFilter());
+  app.useGlobalFilters(new MongoExceptionFilter());
   // app.useGlobalInterceptors(new TransformInterceptor());
   void app.listen(process.env.PORT ?? 3000);
 }
