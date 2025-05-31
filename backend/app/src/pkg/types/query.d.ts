@@ -25,7 +25,7 @@ export interface QueryPaginationOptions<T> {
   model: Model<HydratedDocument<T>>;
   query?: Record<string, string>;
   filterSchema?: Record<string, FieldType>;
-  buildPopulateFields?: (excluded: string[]) => Promise<PopulateField[]>;
+  populateFields?: (excluded: string[]) => Promise<PopulateField[]>;
   chunkSize?: number;
   defaultLimit?: number;
 }
