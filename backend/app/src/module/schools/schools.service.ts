@@ -44,7 +44,7 @@ export class SchoolsService {
       model: this.schoolModel,
       query,
       filterSchema: {},
-      buildPopulateFields: (excluded) =>
+      populateFields: (excluded) =>
         Promise.resolve(
           excluded.includes('majors') ? [] : [{ path: 'majors' }],
         ),
@@ -71,7 +71,11 @@ export class SchoolsService {
     };
   }
 
-  async findColor(id: string, query: Record<string, string>) {
-    return queryFindOne<Appearance>(this.AppearanceModel, { _id: id }, [{ path: 'school' }]);
+  async findColor(schoolId: string, query: Record<string, string>) {
+    return queryFindOne<Appearance>(
+      this.AppearanceModel,
+      { school: schoolId },
+      [{ path: 'school' }]
+    );
   }
 }

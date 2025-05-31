@@ -36,7 +36,7 @@ export class AppearancesService {
       model: this.apprearanceModel,
       query,
       filterSchema: {},
-      buildPopulateFields: (exclude) =>
+      populateFields: (exclude) =>
         Promise.resolve(
           exclude.includes('school') ? [] : [{ path: 'school' }]
         )
@@ -44,7 +44,7 @@ export class AppearancesService {
   }
 
   async findOne(id: string) {
-    return queryFindOne<Appearance>(this.apprearanceModel, { _id: id }, []);
+    return queryFindOne<Appearance>(this.apprearanceModel, { _id: id }, [{path:'school'}]);
   }
 
   async update(id: string, updateAppearanceDto: UpdateAppearanceDto) {
