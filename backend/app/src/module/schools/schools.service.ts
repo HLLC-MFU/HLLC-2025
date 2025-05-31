@@ -51,8 +51,11 @@ export class SchoolsService {
     });
   }
 
-  async findOne(id: string) {
-    return queryFindOne<School>(this.schoolModel, { _id: id }, []);
+  async findOne(
+    id: string,
+  ): Promise<{ data: School[] | null; message: string }> {
+    const result = await queryFindOne(this.schoolModel, { _id: id });
+    return result;
   }
 
   async update(id: string, updateSchoolDto: UpdateSchoolDto) {

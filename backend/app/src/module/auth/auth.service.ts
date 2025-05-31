@@ -19,7 +19,7 @@ export class AuthService {
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async validateUser(username: string, pass: string): Promise<UserDocument> {
     const user = await this.userModel.findOne({ username }).populate('role');
@@ -62,15 +62,16 @@ export class AuthService {
         secure: false,
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60, // 1h
+        maxAge: 60 * 60,
         domain: 'localhost',
       });
+
       reply.setCookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: false,
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 7,
         domain: 'localhost',
       });
     }
