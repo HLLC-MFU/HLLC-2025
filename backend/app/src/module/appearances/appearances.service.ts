@@ -36,7 +36,7 @@ export class AppearancesService {
       model: this.apprearanceModel,
       query,
       filterSchema: {},
-      buildPopulateFields: (exclude) =>
+      populateFields: (exclude) =>
         Promise.resolve(
           exclude.includes('school') ? [] : [{ path: 'school' }]
         )
