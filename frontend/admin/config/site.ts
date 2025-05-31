@@ -11,6 +11,7 @@ import {
   LogOutIcon,
   ShieldAlert,
   Megaphone,
+  Ticket,
 } from "lucide-react";
 
 export const siteConfig = {
@@ -34,7 +35,7 @@ export const siteConfig = {
     {
       section: "Evoucher Management",
       items: [
-        { label: "Evoucher", href: "/evoucher", icon: Megaphone },
+        { label: "Evoucher", href: "/evoucher", icon: Ticket },
         { label: "Campaign", href: "/campaigns", icon: Megaphone },
       ],
     },
