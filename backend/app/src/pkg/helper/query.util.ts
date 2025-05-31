@@ -77,79 +77,72 @@ export async function queryAll<T>(
 
   const { page = '1', limit, sort, excluded = '', ...rawFilters } = query;
 
-  const pageNum = parseInt(page, 10) || 1;
+  const modelName = model.modelName || 'Document';
+  const pageNum = Math.max(parseInt(page, 10), 1);
   const limitNum = limit ? parseInt(limit, 10) : defaultLimit;
-  const excludedList = excluded.split(',').filter(Boolean);
+  const excludedList = excluded ? excluded.split(',').filter(Boolean) : [];
 
-  const filters = parseFilters<T>(rawFilters, filterSchema);
+  const filters = parseFilters<T>(
+    rawFilters,
+    filterSchema,
+  ) as import('mongoose').RootFilterQuery<T>;
   const sortFields = parseSort(sort);
   const populateFields = buildPopulateFields
     ? await buildPopulateFields(excludedList)
     : [];
 
-  const total = await model.countDocuments(
-    filters as import('mongoose').RootFilterQuery<T>,
-  );
-  const totalPages = limitNum > 0 ? Math.ceil(total / limitNum) : 1;
+  const countPromise = model.countDocuments(filters);
+  const lastUpdatedAtPromise = getLastUpdatedAt(model);
 
   if (limitNum === 0) {
+    const total = await countPromise;
     const totalChunks = Math.ceil(total / chunkSize);
-    const allData: T[] = [];
-
-    for (let i = 0; i < totalChunks; i++) {
-      const chunkQuery = model
-        .find(filters as import('mongoose').RootFilterQuery<T>)
+    const chunkQueries = Array.from({ length: totalChunks }, (_, i) =>
+      model
+        .find(filters)
         .skip(i * chunkSize)
         .limit(chunkSize)
-        .sort(sortFields);
+        .sort(sortFields)
+        .populate(populateFields)
+        .lean(),
+    );
 
-      if (select) {
-        chunkQuery.select(select);
-      }
-
-      populateFields.forEach((p) => {
-        chunkQuery.populate(p);
-      });
-
-      const chunk = (await chunkQuery) as T[];
-      allData.push(...chunk);
-    }
+    const chunks = await Promise.all(chunkQueries);
+    const allData = chunks.flat();
 
     return {
-      data: allData,
+      data: allData as T[],
       meta: {
         total,
         page: 1,
         limit: total,
         totalPages: 1,
-        lastUpdatedAt: await getLastUpdatedAt(model),
+        lastUpdatedAt: await lastUpdatedAtPromise,
       },
-      message: 'Data fetched successfully',
+      message: `${modelName} fetched successfully`,
     };
   }
 
   const skip = (pageNum - 1) * limitNum;
-  const queryBuilder = model
-    .find(filters as import('mongoose').RootFilterQuery<T>)
+
+  const dataPromise = model
+    .find(filters)
     .skip(skip)
     .limit(limitNum)
-    .sort(sortFields);
+    .sort(sortFields)
+    .populate(populateFields)
+    .lean();
 
-  if (select) {
-    queryBuilder.select(select);
-  }
-
-  populateFields.forEach((p) => {
-    queryBuilder.populate(p);
-  });
-
-  const [data, lastUpdatedAt] = await Promise.all([
-    queryBuilder as Promise<T[]>,
-    getLastUpdatedAt(model),
+  const [total, data, lastUpdatedAt] = await Promise.all([
+    countPromise,
+    dataPromise,
+    lastUpdatedAtPromise,
   ]);
 
+  const totalPages = Math.ceil(total / limitNum);
+
   return {
-    data,
+    data: data as T[],
     meta: {
       total,
       page: pageNum,
@@ -157,27 +150,40 @@ export async function queryAll<T>(
       totalPages,
       lastUpdatedAt,
     },
-    message: 'Data fetched successfully',
+    message: `${modelName} fetched successfully`,
   };
 }
 
+/**
+ *
+ * @param query
+ * @returns
+ * example: this.usersService.findOneByQuery({ username });
+ */
 export async function queryFindOne<T>(
   model: Model<HydratedDocument<T>>,
   filter: FilterQuery<T>,
   populateFields?: PopulateField[],
-): Promise<HydratedDocument<T>> {
+): Promise<{ data: T[]; message: string }> {
+  // <- note: data is plain T[]
   const query = model.findOne(filter);
   populateFields?.forEach((p) => {
     query.populate(p);
   });
 
-  const result = await query;
+  const result = await query.lean({ virtuals: true });
 
   if (!result) {
-    throw new NotFoundException(`${filter._id ?? JSON.stringify(filter)} not found`);
+    throw new NotFoundException(
+      `${filter._id ?? JSON.stringify(filter)} not found`,
+    );
   }
 
-  return result;
+  const modelName = model.modelName ?? 'Document';
+  return {
+    data: [result as T], // no .toObject() needed, already plain
+    message: `${modelName} fetched successfully`,
+  };
 }
 
 export async function queryUpdateOne<T>(

@@ -34,4 +34,6 @@ export interface QueryPaginationOptions<T> {
 export interface PopulateField {
   path: string;
   model?: string;
+  select?: string | string[];
+  populate?: PopulateField | PopulateField[];
 }
