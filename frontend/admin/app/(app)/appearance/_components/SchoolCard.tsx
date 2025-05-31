@@ -3,18 +3,17 @@
 import { Card, CardBody, CardHeader } from "@heroui/react";
 import type { School } from "@/types/school";
 import { useRouter } from "next/navigation";
-import { Appearance } from "@/types/appearance";
 
-interface AppearanceCardProps {
-    appearance: Appearance;
+interface SchoolCardProps {
+    school: School;
 }
 
-export function AppearanceCard({ appearance }: AppearanceCardProps) {
+export function SchoolCard({ school }: SchoolCardProps) {
     const router = useRouter();
 
     const handleClick = () => {
-        if (appearance?._id) {
-            router.push(`/schools/appearance/${appearance._id}`);
+        if (school?._id) {
+            router.push(`/schools/${school._id}/appearances`);
         }
     };
 
@@ -27,12 +26,12 @@ export function AppearanceCard({ appearance }: AppearanceCardProps) {
         >
             <CardHeader>
                 <h3 className="text-lg font-semibold">
-                    {appearance?.school.name?.en || appearance?.school?.name?.th || "Unnamed School"}
+                    {school?.name?.en || school?.name?.th || "Unnamed School"}
                 </h3>
             </CardHeader>
             <CardBody>
                 <p className="text-gray-600">
-                    {appearance?.school?.acronym ? `Acronym: ${appearance?.school?.acronym}` : "No acronym"}
+                    {school?.acronym ? `Acronym: ${school?.acronym}` : "No acronym"}
                 </p>
                 <p className="text-gray-500 text-sm mt-2">
                     Click to view appearance details

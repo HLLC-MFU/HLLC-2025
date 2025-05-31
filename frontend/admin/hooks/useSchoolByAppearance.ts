@@ -2,24 +2,24 @@ import { useEffect, useState } from "react";
 import { apiRequest } from "@/utils/api";
 import { Appearance } from "@/types/appearance";
 
-export function useSchoolByAppearance(appearanceId?: string) {
+export function useSchoolByAppearance(id?: string) {
     const [appearance, setAppearance] = useState<Appearance | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-
 
     const fetchSchoolAppearance = async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<Appearance>(
-                `/schools/${appearanceId}/appearances`,
+            const res = await apiRequest<{ data: Appearance[] }>(
+                `/schools/${id}/appearances`,
                 "GET"
             );
-            console.log('Fetched appearance from API:', res.data);
-            if (res.data) {
-                setAppearance(res.data);
+            console.log("Fetched appearance array:", res.data);
+
+            // ✅ ดึงตัวแรกจาก array
+            if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+                setAppearance(res.data[0]);
             } else {
                 setAppearance(null);
             }
@@ -31,9 +31,9 @@ export function useSchoolByAppearance(appearanceId?: string) {
     };
 
     useEffect(() => {
-        if (!appearanceId) return;
+        if (!id) return;
         fetchSchoolAppearance();
-    }, [appearanceId]);
+    }, [id]);
 
     return {
         appearance,

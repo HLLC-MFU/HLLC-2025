@@ -8,7 +8,7 @@ const sortOptions = [
   { name: "majors", label: "Number of Majors" }
 ];
 
-interface AppearanceFiltersProps {
+interface SchoolFiltersProps {
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   sortBy: string;
@@ -17,14 +17,14 @@ interface AppearanceFiltersProps {
   onSortDirectionToggle: () => void;
 }
 
-export function AppearanceFilters({
+export function SchoolFilters({
   searchQuery,
   onSearchQueryChange,
   sortBy,
   sortDirection,
   onSortByChange,
   onSortDirectionToggle,
-}: AppearanceFiltersProps) {
+}: SchoolFiltersProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -33,7 +33,7 @@ export function AppearanceFilters({
           value={searchQuery}
           onValueChange={onSearchQueryChange}
           className="w-full"
-          placeholder="Search Appearances..."
+          placeholder="Search Schools..."
           startContent={<SearchIcon className="text-default-400" />}
         />
         <div className="flex gap-2 sm:gap-3">

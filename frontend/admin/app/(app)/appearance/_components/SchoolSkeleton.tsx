@@ -1,6 +1,6 @@
 import { Card, Skeleton } from "@heroui/react";
 
-export function AppearanceSkeleton() {
+export function SchoolSkeleton() {
     return (
         <Card className="p-4">
             <div className="flex items-center space-x-4">

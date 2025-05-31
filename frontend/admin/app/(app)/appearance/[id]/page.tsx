@@ -14,10 +14,9 @@ import { UpdateConfirmationModal } from './_components/UpdateConfirmationModal';
 
 export default function AppearanceDetailsPage() {
 
-    const params = useParams();
     const router = useRouter();
-    const appearanceId = params?.id as string;
-    const { appearance, loading, error, setAppearance } = useSchoolByAppearance(appearanceId);
+    const { id } = useParams<{ id: string }>();
+    const { appearance, loading, error, setAppearance } = useSchoolByAppearance(id);
     const [modalMode, setModalMode] = useState<"add" | "edit">("add");
     const [isAppearanceModalOpen, setIsAppearanceModalOpen] = useState(false);
     const [selectedAppearance, setSelectedAppearance] = useState<Appearance | undefined>();
@@ -190,15 +189,15 @@ export default function AppearanceDetailsPage() {
             </div>
         );
     }
-    const schoolId = appearance?.school?._id ?? appearance?.school?._id;
-    if (!appearance || !appearance.school || !schoolId) {
+
+    if (!appearance && !loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <p className="text-center text-lg">School not found</p>
             </div>
         );
     }
-    
+
     return (
         <div className="flex flex-col min-h-screen">
             <div className="container mx-auto px-4">
@@ -207,14 +206,14 @@ export default function AppearanceDetailsPage() {
                         <Button variant="flat" startContent={<ArrowLeft />} onPress={() => router.back()}>
                             Back
                         </Button>
-                        <h1 className="text-2xl font-bold">Appearance : {appearance.school?.name.en ?? "Unnamed School"}</h1>
+                        <h1 className="text-2xl font-bold">Appearance : {appearance?.school?.name?.en ?? "Unnamed School"}</h1>
                     </div>
 
                     {/* Background Section */}
                     <Card>
                         <CardHeader className="flex gap-3 p-4">
                             <Card radius="md" className="w-12 h-12 flex items-center justify-center">
-                                <h1 className="text-sm font-bold">{appearance.school.acronym ?? "N/A"}</h1>
+                                <h1 className="text-sm font-bold">{appearance?.school.acronym ?? "N/A"}</h1>
                             </Card>
                             <div className="flex flex-col items-start">
                                 <h1 className="text-xl font-semibold mb-1">Background</h1>
@@ -296,7 +295,7 @@ export default function AppearanceDetailsPage() {
                                                 size="sm"
                                                 className="text-xs mt-1"
                                                 onPress={() =>
-                                                    updateAppearanceField(appearance._id, "assets", key, assetDrafts[key]!)
+                                                    updateAppearanceField(appearance?._id, "assets", key, assetDrafts[key]!)
                                                 }
                                             >
                                                 Save {key}
@@ -357,7 +356,7 @@ export default function AppearanceDetailsPage() {
                     <Card>
                         <CardHeader className='flex gap-3 p-4'>
                             <Card radius="md" className="w-12 h-12 flex items-center justify-center">
-                                <h1 className="text-sm font-bold">{appearance.school.acronym ?? "N/A"}</h1>
+                                <h1 className="text-sm font-bold">{appearance?.school.acronym ?? "N/A"}</h1>
                             </Card>
                             <div className='flex flex-col items-start'>
                                 <h1 className="text-xl font-semibold mb-2">UI</h1>
@@ -366,10 +365,10 @@ export default function AppearanceDetailsPage() {
                         </CardHeader>
                         <CardBody className='gap-2 grid grid-cols-3'>
                             <p className="text-sm p-2 rounded overflow-x-auto">
-                                {JSON.stringify(appearance.colors.primary, null, 2)}
+                                {JSON.stringify(appearance?.colors.primary, null, 2)}
                             </p>
                             <p className="text-sm p-2 rounded overflow-x-auto">
-                                {JSON.stringify(appearance.colors.secondary, null, 2)}
+                                {JSON.stringify(appearance?.colors.secondary, null, 2)}
                             </p>
                         </CardBody>
                     </Card>
