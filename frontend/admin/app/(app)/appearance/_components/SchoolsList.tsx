@@ -19,7 +19,7 @@ export function SchoolList({ schools, isLoading }: SchoolListProps) {
                 <div
                     key={school._id}
                     className="border p-4 rounded-lg shadow cursor-pointer hover:bg-gray-100"
-                    onClick={() => router.push(`/appearances/${school._id}`)}
+                    onClick={() => router.push(`/appearance/${school._id}`)}
                 >
                     <h2 className="text-xl font-semibold">
                         {school?.name?.en ?? "Unnamed School"}

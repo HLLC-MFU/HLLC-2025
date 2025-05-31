@@ -18,8 +18,8 @@ export function useSchoolByAppearance(id?: string) {
             console.log("Fetched appearance array:", res.data);
 
             // ✅ ดึงตัวแรกจาก array
-            if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-                setAppearance(res.data[0]);
+            if (res.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+                setAppearance(res.data.data[0]);
             } else {
                 setAppearance(null);
             }

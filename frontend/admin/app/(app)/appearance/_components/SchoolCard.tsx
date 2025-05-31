@@ -13,7 +13,7 @@ export function SchoolCard({ school }: SchoolCardProps) {
 
     const handleClick = () => {
         if (school?._id) {
-            router.push(`/schools/${school._id}/appearances`);
+            router.push(`/schools/${school._id}`);
         }
     };
 
