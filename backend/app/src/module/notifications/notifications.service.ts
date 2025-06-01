@@ -106,4 +106,24 @@ export class NotificationsService {
     const exists = await this.notificationModel.exists({ _id: notiId });
     if (!exists) throw new NotFoundException('Notification not found');
   }
+
+  async getUserNotifications(userId: string, schoolId: string, majorId: string) {
+    const userNotifications = await this.notificationModel.find({
+      $or: [
+        { scope: 'global' },
+        { scope: 'school', targetId: new Types.ObjectId(userId) },
+        { scope: 'major', targetId: new Types.ObjectId(schoolId) },
+        { scope: 'individual', targetId: new Types.ObjectId(majorId) },
+      ],
+    }).sort({ createdAt: -1 }).lean();
+
+    const readDocument = await this.notificationReadModel.findOne({ userId: userId }).lean();
+    const readNotificationIds = (readDocument?.readNotifications ?? []).map((id) => id.toString());
+    
+    return userNotifications.map((notification) => ({
+      ...notification,
+      isRead: readNotificationIds.includes(notification._id.toString()),
+    }));
+  }
+
 }
