@@ -176,7 +176,7 @@ export default function CampaignsPage() {
         <CampaignStats stats={stats} />
 
         {/* Enhanced Filter Section */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-lg mb-8">
+        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-white/20 dark:border-gray-700/20 shadow-lg mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <CampaignFilter
               searchQuery={searchQuery}
@@ -193,13 +193,13 @@ export default function CampaignsPage() {
             />
             
             {/* View Mode Toggle */}
-            <div className="flex items-center space-x-2 bg-gray-100 rounded-xl p-1">
+            <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
               <button
                 onClick={() => setViewMode("grid")}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
                   viewMode === "grid"
-                    ? "bg-white shadow-sm text-blue-600"
-                    : "text-gray-600 hover:text-gray-800"
+                    ? "bg-white dark:bg-gray-800 shadow-sm text-blue-600 dark:text-blue-400"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                 }`}
               >
                 <Grid className="w-4 h-4" />
@@ -209,8 +209,8 @@ export default function CampaignsPage() {
                 onClick={() => setViewMode("list")}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
                   viewMode === "list"
-                    ? "bg-white shadow-sm text-blue-600"
-                    : "text-gray-600 hover:text-gray-800"
+                    ? "bg-white dark:bg-gray-800 shadow-sm text-blue-600 dark:text-blue-400"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                 }`}
               >
                 <List className="w-4 h-4" />
