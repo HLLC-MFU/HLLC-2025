@@ -33,7 +33,7 @@ export class UsersController {
   @Public()
   @CacheKey('users:invalidate')
   create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+    return this.usersService.create(createUserDto)
   }
 
   @Get()
