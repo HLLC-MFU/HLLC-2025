@@ -2,26 +2,27 @@
 
 export type User = {
     _id: string;
-    name: UserName[];
+    name: UserName;
     username: string;
     password: string;
-    role: Role[];
+    role: Role;
     refreshToken: string;
     metadata: Metadata[];
-}
+};
 
 export type UserName = {
     first: string;
-    middle: string;
+    middle?: string;
     last: string;
-}
+};
 
 export type Role = {
     _id: string;
     name: string;
     permissions: string[];
     metadataSchema: [];
-}
+};
+
 
 export type Metadata = {
     phone: string;

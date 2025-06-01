@@ -54,10 +54,14 @@ export class UsersService {
   async findAll(query: Record<string, any>) {
     return await queryAll<User>({
       model: this.userModel,
-      query,
+      query: {
+        ...query,
+        excluded: 'password,refreshToken,role.permissions,role.metadataSchema'
+      },
       filterSchema: {},
-      buildPopulateFields: (excluded) =>
+      populateFields: (excluded) =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
+      
     });
   }
 
