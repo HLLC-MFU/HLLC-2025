@@ -1,14 +1,15 @@
 'use client'
 
 import { useSystem } from "@/hooks/useSystem";
-
 import { useState, useEffect } from "react";
 import { System } from "@/types/system";
-import { addToast } from "@heroui/react";
+import { addToast, Button } from "@heroui/react";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { SystemCard } from "./_components/SystemCard";
+import { useRouter } from "next/navigation";
 
 export default function SystemPage() {
+    const router = useRouter();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSystem, setSelectedSystem] = useState<System | null>(null);
     const [countdown, setCountdown] = useState<number | null>(null);
@@ -19,18 +20,15 @@ export default function SystemPage() {
         setSelectedSystem(system);
         setIsModalOpen(true);
         
-        // ถ้าเป็น close system (status = true) ให้เริ่ม countdown
         if (system.status) {
-            setCountdown(10); // เริ่มนับจาก 10 วินาที
+            setCountdown(10);
             setShowConfirmButtons(false);
         } else {
-            // ถ้าเป็น open system ให้แสดงปุ่มยืนยันทันที
             setCountdown(null);
             setShowConfirmButtons(true);
         }
     };
 
-    // useEffect สำหรับ countdown
     useEffect(() => {
         if (countdown === null || countdown <= 0) return;
 
@@ -76,7 +74,6 @@ export default function SystemPage() {
     const renderModalContent = () => {
         if (!selectedSystem) return "";
 
-        // แสดง countdown สำหรับ close system
         if (selectedSystem.status && countdown !== null && countdown > 0) {
             return (
                 <div className="text-center py-6">
@@ -93,7 +90,6 @@ export default function SystemPage() {
             );
         }
 
-        // แสดงข้อความยืนยันปกติ
         return selectedSystem.status
             ? "Are you sure you want to close the system?"
             : "Are you sure you want to open the system?";
@@ -102,7 +98,21 @@ export default function SystemPage() {
     return (
         <div className="flex flex-col min-h-screen">
             <div className="container mx-auto px-4">
-                <h1 className="text-3xl font-bold mb-8">System Management</h1>
+                <div className="flex items-center gap-4 mb-8">
+                    <Button
+                        color="primary"
+                        variant="light"
+                        onPress={() => router.back()}
+                        startContent={
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 12H5M12 19l-7-7 7-7"/>
+                            </svg>
+                        }
+                    >
+                        Back
+                    </Button>
+                    <h1 className="text-3xl font-bold">System Management</h1>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {systems.map((system) => (

@@ -54,29 +54,6 @@ export default function SettingAccoardion() {
                             View All Systems
                         </Button>
                     </div>
-                    {systems.map((system) => (
-                        <SystemCard
-                            key={system._id}
-                            system={system}
-                            onClick={handleUpdateSystem}
-                        />
-                    ))}
-                    <ConfirmationModal
-                        body={
-                            selectedSystem?.status
-                                ? "Are you sure you want to close the system?"
-                                : "Are you sure you want to open the system?"
-                        }
-                        confirmColor={selectedSystem?.status ? "danger" : "success"}
-                        confirmText={selectedSystem?.status ? "Close" : "Open"}
-                        isOpen={isModalOpen}
-                        title={selectedSystem?.status ? "Close system" : "Open system"}
-                        onClose={() => {
-                            setSelectedSystem(null);
-                            setIsModalOpen(false);
-                        }}
-                        onConfirm={handleConfirm}
-                    />
                 </div>
             </AccordionItem>
         </Accordion>
