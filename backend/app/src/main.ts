@@ -8,6 +8,7 @@ import {
 } from '@nestjs/platform-fastify';
 import compression from '@fastify/compress';
 import cookie from '@fastify/cookie';
+import { CustomValidationPipe } from './pkg/validator/custom-validation.pipe';
 
 async function bootstrap() {
   Logger.log(`Server is running on port ${process.env.PORT ?? 3000}`);
@@ -37,6 +38,7 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
   // app.useGlobalFilters(new MongoExceptionFilter());
+  app.useGlobalPipes(CustomValidationPipe);
   // app.useGlobalInterceptors(new TransformInterceptor());
   void app.listen(process.env.PORT ?? 3000);
 }
