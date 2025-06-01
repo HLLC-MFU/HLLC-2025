@@ -1,6 +1,6 @@
 "use client"
 
-import React, { SVGProps } from "react";
+import React from "react";
 import {
     Table,
     TableHeader,
@@ -14,20 +14,13 @@ import {
     Dropdown,
     DropdownMenu,
     DropdownItem,
-    Pagination,
     Selection,
     ChipProps,
     SortDescriptor,
     Accordion,
     AccordionItem,
-    Chip,
 } from "@heroui/react";
-import { ChevronDownIcon, EllipsisVertical, PlusIcon, SearchIcon, User } from "lucide-react";
-import { mock } from "node:test";
-
-export type IconSvgProps = SVGProps<SVGSVGElement> & {
-    size?: number;
-};
+import { ChevronDownIcon, EllipsisVertical, PlusIcon, SearchIcon } from "lucide-react"
 
 export function capitalize(s: string) {
     return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -96,6 +89,7 @@ const mockupData = [
     }
 ];
 
+import { Evoucher } from "@/types/evoucher";
 
 export const columns = [
     { name: "SPONSOR", uid: "sponsor" },
@@ -118,30 +112,24 @@ export const typeOptions = [
 
 const typeColorMap: Record<string, ChipProps["color"]> = {
     global: "success",
-    individual: "success",
+    individual: "warning",
 };
 
-// const INITIAL_VISIBLE_COLUMNS = ["sponsor", "acronym", "actions"];
 const INITIAL_VISIBLE_COLUMNS = ["sponsor", "acronym", "detail", "discount", "expiration", "type", "cover", "actions"];
 
-type Data = any[];
-
 export default function EvoucherPage() {
-    const [data, setData] = React.useState<any[]>([]);
+    const [evoucher, setEvoucher] = React.useState<Evoucher[]>([]);
     const [filterValue, setFilterValue] = React.useState("");
     const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([]));
     const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
         new Set(INITIAL_VISIBLE_COLUMNS),
     );
     const [typeFilter, setTypeFilter] = React.useState<Selection>("all");
-    // const [rowsPerPage, setRowsPerPage] = React.useState(5);
     const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-        column: "age",
+        column: "acronym",
         direction: "ascending",
     });
     const renderedSponsors = new Set();
-
-    // const [page, setPage] = React.useState(1);
 
     const hasSearchFilter = Boolean(filterValue);
 
@@ -168,27 +156,8 @@ export default function EvoucherPage() {
         return filteredEvoucher;
     }, [mockupData, filterValue, typeFilter]);
 
-    // const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
-
-    // const items = React.useMemo(() => {
-    //     const start = (page - 1) * rowsPerPage;
-    //     const end = start + rowsPerPage;
-
-    //     return filteredItems.slice(start, end);
-    // }, [page, filteredItems, rowsPerPage]);
-
-    // const sortedItems = React.useMemo(() => {
-    //     return [...items].sort((a: Data, b: Data) => {
-    //         const first = a[sortDescriptor.column as keyof Data] as number;
-    //         const second = b[sortDescriptor.column as keyof Data] as number;
-    //         const cmp = first < second ? -1 : first > second ? 1 : 0;
-
-    //         return sortDescriptor.direction === "descending" ? -cmp : cmp;
-    //     });
-    // }, [sortDescriptor, items]);
-
-    const renderCell = React.useCallback((evoucher: Data, columnKey: React.Key) => {
-        const cellValue = evoucher[columnKey as keyof Data];
+    const renderCell = React.useCallback((evoucher: Evoucher, columnKey: React.Key) => {
+        const cellValue = evoucher[columnKey as keyof Evoucher];
 
         switch (columnKey) {
             case "sponsor":
@@ -205,7 +174,6 @@ export default function EvoucherPage() {
                                 </Button>
                             </DropdownTrigger>
                             <DropdownMenu>
-                                <DropdownItem key="view">View</DropdownItem>
                                 <DropdownItem key="edit">Edit</DropdownItem>
                                 <DropdownItem key="delete">Delete</DropdownItem>
                             </DropdownMenu>
@@ -217,27 +185,9 @@ export default function EvoucherPage() {
         }
     }, []);
 
-    // const onNextPage = React.useCallback(() => {
-    //     if (page < pages) {
-    //         setPage(page + 1);
-    //     }
-    // }, [page, pages]);
-
-    // const onPreviousPage = React.useCallback(() => {
-    //     if (page > 1) {
-    //         setPage(page - 1);
-    //     }
-    // }, [page]);
-
-    // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    //     setRowsPerPage(Number(e.target.value));
-    //     setPage(1);
-    // }, []);
-
     const onSearchChange = React.useCallback((value?: string) => {
         if (value) {
             setFilterValue(value);
-            // setPage(1);
         } else {
             setFilterValue("");
         }
@@ -245,7 +195,6 @@ export default function EvoucherPage() {
 
     const onClear = React.useCallback(() => {
         setFilterValue("");
-        // setPage(1);
     }, []);
 
     const topContent = React.useMemo(() => {
@@ -316,39 +265,9 @@ export default function EvoucherPage() {
         typeFilter,
         visibleColumns,
         onSearchChange,
-        // onRowsPerPageChange,
-        data.length,
+        evoucher.length,
         hasSearchFilter,
     ]);
-
-    // const bottomContent = React.useMemo(() => {
-    //     return (
-    //         <div className="py-2 px-2 flex justify-between items-center">
-    //             <span className="w-[30%] text-small text-default-400">
-    //                 {selectedKeys === "all"
-    //                     ? "All items selected"
-    //                     : `${selectedKeys.size} of ${filteredItems.length} selected`}
-    //             </span>
-    //             <Pagination
-    //                 isCompact
-    //                 showControls
-    //                 showShadow
-    //                 color="primary"
-    //                 page={page}
-    //                 total={pages}
-    //                 onChange={setPage}
-    //             />
-    //             <div className="hidden sm:flex w-[30%] justify-end gap-2">
-    //                 <Button isDisabled={pages === 1} size="sm" variant="flat" onPress={onPreviousPage}>
-    //                     Previous
-    //                 </Button>
-    //                 <Button isDisabled={pages === 1} size="sm" variant="flat" onPress={onNextPage}>
-    //                     Next
-    //                 </Button>
-    //             </div>
-    //         </div>
-    //     );
-    // }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -362,9 +281,6 @@ export default function EvoucherPage() {
                 isHeaderSticky
                 aria-label="Table header"
                 bottomContentPlacement="outside"
-                // classNames={{
-                //     wrapper: "max-h-[382px]",
-                // }}
                 // selectedKeys={selectedKeys}
                 // selectionMode="multiple"
                 sortDescriptor={sortDescriptor}
@@ -409,7 +325,6 @@ export default function EvoucherPage() {
                                                 hideHeader
                                                 removeWrapper
                                                 aria-label="Table data"
-                                            // bottomContent={bottomContent}
                                             >
                                                 <TableHeader columns={headerColumns}>
                                                     {(column) => (
