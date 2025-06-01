@@ -1,6 +1,10 @@
 import { useState } from 'react';
 
-export function ImageUploader() {
+export function ImageUploader({
+  onChange,
+}: {
+  onChange?: (file: File, url: string) => void;
+}) {
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -9,6 +13,7 @@ export function ImageUploader() {
     if (file) {
       setImage(file);
       setPreviewUrl(URL.createObjectURL(file));
+      onChange?.(file, URL.createObjectURL(file));
     }
   };
 

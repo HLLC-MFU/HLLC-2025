@@ -43,6 +43,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
   const [selected, setSelected] = useState<(typeof icons)[0] | undefined>(
     undefined,
   );
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const [title, setTitle] = useState({ en: '', th: '' });
   const [subtitle, setSubtitle] = useState({ en: '', th: '' });
@@ -56,11 +57,12 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
       subtitle,
       description,
       redirect,
+      imageUrl
     };
     if (onChange) {
       onChange(data); // 🔁 ส่งข้อมูลออกทุกครั้งที่เปลี่ยน
     }
-  }, [selected, title, subtitle, description, redirect, onChange]);
+  }, [selected, title, subtitle, description, redirect, imageUrl ,onChange]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -69,7 +71,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           Information Info
         </h1>
         <Select
-          className="w-56 bg-white border border-gray-300 rounded-lg shadow-sm"
+          className="w-56 bg-white border border-gray-300 rounded-xl shadow-sm"
           label="Select Icons"
           size="md"
           selectedKeys={selected ? [selected.name] : []}
@@ -108,7 +110,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="English"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-lg shadow-md"
+          className="bg-white border border-gray-300 rounded-xl shadow-md"
           value={title.en}
           onChange={e => setTitle({ ...title, en: e.target.value })}
         />
@@ -117,7 +119,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="Thai"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-lg shadow-md"
+          className="bg-white border border-gray-300 rounded-xl shadow-md"
           value={title.th}
           onChange={e => setTitle({ ...title, th: e.target.value })}
         />
@@ -130,7 +132,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="English"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-lg shadow-md"
+          className="bg-white border border-gray-300 rounded-xl shadow-md"
           value={subtitle.en}
           onChange={e => setSubtitle({ ...subtitle, en: e.target.value })}
         />
@@ -139,27 +141,34 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="Thai"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-lg shadow-md"
+          className="bg-white border border-gray-300 rounded-xl shadow-md"
           value={subtitle.th}
           onChange={e => setSubtitle({ ...subtitle, th: e.target.value })}
         />
       </div>
 
       <h1 className="text-xl font-bold"> Description </h1>
-      <div className="flex flex-row justify-between gap-5">
-        <Textarea
-          label="English"
-          className="bg-white border border-gray-300 rounded-lg shadow-md"
-          value={description.en}
-          onChange={e => setDescription({ ...description, en: e.target.value })}
-        />
-
-        <Textarea
-          label="Thai"
-          className="bg-white border border-gray-300 rounded-lg shadow-md"
-          value={description.th}
-          onChange={e => setDescription({ ...description, th: e.target.value })}
-        />
+      <div className="flex flex-row justify-between gap-5 items-stretch">
+        <div className="w-full h-full">
+          <Textarea
+            label="English"
+            className="bg-white border border-gray-300 rounded-xl shadow-md"
+            value={description.en}
+            onChange={e =>
+              setDescription({ ...description, en: e.target.value })
+            }
+          />
+        </div>
+        <div className="w-full h-full">
+          <Textarea
+            label="Thai"
+            className="bg-white border border-gray-300 rounded-xl shadow-md "
+            value={description.th}
+            onChange={e =>
+              setDescription({ ...description, th: e.target.value })
+            }
+          />
+        </div>
       </div>
 
       <h1 className="text-xl font-bold"> Redirect (Optional) </h1>
@@ -168,7 +177,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="English"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-lg shadow-md"
+          className="bg-white border border-gray-300 rounded-xl shadow-md"
           value={redirect.en}
           onChange={e => setRedirect({ ...redirect, en: e.target.value })}
         />
@@ -177,7 +186,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="Thai"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-lg shadow-md"
+          className="bg-white border border-gray-300 rounded-xl shadow-md"
           value={redirect.th}
           onChange={e => setRedirect({ ...redirect, th: e.target.value })}
         />
@@ -185,14 +194,14 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="Link"
           size="md"
           type="Url"
-          className="bg-white border border-gray-300 rounded-lg shadow-md"
+          className="bg-white border border-gray-300 rounded-xl shadow-md"
           value={redirect.link}
           onChange={e => setRedirect({ ...redirect, link: e.target.value })}
         />
       </div>
 
       <h1 className="text-xl font-bold"> Imange (Optional) </h1>
-      <ImageUploader />
+      <ImageUploader onChange={(file,url) => setImageUrl(url)}/>
     </div>
   );
 }

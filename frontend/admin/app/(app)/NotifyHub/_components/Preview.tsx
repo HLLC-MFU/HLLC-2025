@@ -68,13 +68,15 @@ export function PreviewApp({ info, lang }: { info: any; lang: 'en' | 'th' }) {
           </div>
 
           {/* รูปที่มุมขวาบน */}
-          <div className="absolute top-3 right-5">
-            <Image
-              src="/HLLC.jpg"
-              alt="Logo"
-              className="w-20 h-20 rounded-xl object-cover"
-            />
-          </div>
+          {info?.imageUrl && (
+            <div className="absolute top-3 right-5">
+              <Image
+                src={info?.imageUrl}
+                alt="Logo"
+                className="w-20 h-20 rounded-xl object-cover"
+              />
+            </div>
+          )}
 
           {/* ปุ่มที่มุมขวาล่าง */}
           {info?.redirect?.en && (
