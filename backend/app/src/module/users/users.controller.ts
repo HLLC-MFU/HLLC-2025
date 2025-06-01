@@ -19,9 +19,9 @@ import { Public } from '../auth/decorators/public.decorator';
 import { CacheKey } from '@nestjs/cache-manager';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UploadUserDto } from './dto/upload.user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { FastifyRequest } from 'fastify';
+import { UserUploadDirectDto } from './dto/upload.user.dto';
 
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
@@ -71,9 +71,9 @@ export class UsersController {
   }
 
   @Post('upload')
-  @Permissions('users:create')
-  upload(@Body() uploadUserDto: UploadUserDto) {
-    return this.usersService.upload(uploadUserDto);
+  @Public()
+  upload(@Body() userUploadDirectDto: UserUploadDirectDto[]) {
+    return this.usersService.upload(userUploadDirectDto);
   }
 
   @Patch(':id')

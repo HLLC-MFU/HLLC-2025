@@ -11,9 +11,6 @@
     "test": "jest --watchAll",
     "lint": "expo lint"
   },
-  "jest": {
-    "preset": "jest-expo"
-  },
   "dependencies": {
     "@babel/runtime": "^7.27.1",
     "@expo-google-fonts/noto-sans": "^0.3.0",

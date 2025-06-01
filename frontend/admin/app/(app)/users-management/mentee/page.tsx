@@ -305,7 +305,7 @@ const statusColorMap = {
 
 const INITIAL_VISIBLE_COLUMNS = ["name", "role", "status", "actions"];
 
-export default function AdminPage() {
+export default function StaffPage() {
     const [filterValue, setFilterValue] = React.useState("");
     const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
     const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
@@ -444,7 +444,6 @@ export default function AdminPage() {
     const topContent = React.useMemo(() => {
         return (
             <div className="flex flex-col gap-4">
-
                 <div className="flex justify-between gap-3 items-end">
                     <Input
                         isClearable
@@ -559,8 +558,8 @@ export default function AdminPage() {
             // sortDescriptor={sortDescriptor}
             topContent={topContent}
             topContentPlacement="outside"
-            // onSelectionChange={setSelectedKeys}
-            // onSortChange={setSortDescriptor}
+        // onSelectionChange={setSelectedKeys}
+        // onSortChange={setSortDescriptor}
         >
             <TableHeader columns={headerColumns}>
                 {(column) => (

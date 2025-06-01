@@ -21,6 +21,7 @@ async function bootstrap() {
     encodings: ['gzip', 'deflate'],
     threshold: 1024,
   });
+
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
@@ -32,6 +33,7 @@ async function bootstrap() {
     .setTitle('HLLC API Documentation')
     .setDescription('API Documentation for the application')
     .setVersion('1.0')
+
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);

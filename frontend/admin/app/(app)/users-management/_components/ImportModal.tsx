@@ -1,0 +1,210 @@
+import { addToast, Button, Form, getKeyValue, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import React from "react";
+import * as XLSX from "xlsx";
+import { columns } from "../admin/page";
+import saveAs from "file-saver";
+import { User } from "@/types/user";
+
+export interface ImportModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onImportUsers: (userData: Partial<User>[]) => void;
+    onExportTemplate: () => void;
+}
+
+export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTemplate }: ImportModalProps) {
+    const [fileData, setFileData] = React.useState<any[]>([]);
+    const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
+
+    const [page, setPage] = React.useState(1);
+    const rowsPerPage = 6;
+
+    const pages = Math.ceil(fileData.length / rowsPerPage);
+
+    const items = React.useMemo(() => {
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        return fileData.slice(start, end);
+    }, [page, fileData]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            const arrayBuffer = e.target?.result as ArrayBuffer;
+            const data = new Uint8Array(arrayBuffer);
+            const workbook = XLSX.read(data, { type: "array" });
+            const worksheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[worksheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            const dataForm = jsonData.map((item: any) => {
+                const data: any = {};
+                for (const key in item) {
+                    try {
+                        data[key] = JSON.parse(item[key]);
+                    } catch (error) {
+                        data[key] = item[key];
+                    };
+                };
+
+                const mapData: any = {};
+                mapData.username = item["username"];
+                mapData.role = item["role"];
+                mapData.name = {
+                    first: item["first"],
+                    middle: item["middle"],
+                    last: item["last"],
+                };
+                mapData.metadata = {
+                    school: {
+                        name: {
+                            en: item["school_en"],
+                            th: item["school_th"]
+                        }
+                    },
+                    major: {
+                        name: {
+                            en: item["major_en"],
+                            th: item["major_th"]
+                        }
+                    }
+                };
+
+                return mapData
+            });
+
+            setFileData(dataForm);
+        };
+
+        reader.readAsArrayBuffer(file);
+    };
+
+    const handleNext = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        setIsPreviewModalOpen(true);
+        setIsImportModalOpen(false);
+        onClose();
+    };
+
+    const handleCancel = () => {
+        setIsPreviewModalOpen(false);
+        setIsImportModalOpen(true);
+    };
+
+    const handleConfirmImport = () => {
+        onImportUsers(fileData);
+        setIsPreviewModalOpen(false);
+    };
+
+    const renderCell = React.useCallback((item: any, columnKey: React.Key) => {
+        const cellValue = item[columnKey as keyof typeof item];
+
+        switch (columnKey) {
+            case "name":
+                return `${item.name.first} ${item.name.middle === null ? "" : item.name.middle} ${item.name.last}`;
+            case "school":
+                return item.metadata.school?.name?.en ?? null;
+            case "major":
+                return item.metadata.major?.name?.en ?? null;
+            case "actions":
+                return null;
+            default:
+                if (typeof cellValue === "object" && cellValue !== null) {
+                    return JSON.stringify(cellValue);
+                }
+                return cellValue as React.ReactNode;
+        }
+
+    }, [fileData]);
+
+    return (
+        <>
+            {/* Import Modal */}
+            <Modal
+                isDismissable={false}
+                isKeyboardDismissDisabled={true}
+                isOpen={isOpen || isImportModalOpen}
+                onClose={() => { onClose(); setIsImportModalOpen(false); }}
+            >
+                <ModalContent>
+                    <Form onSubmit={(e) => handleNext(e)} className="w-full">
+                        <ModalHeader className="flex flex-col gap-1">Import file</ModalHeader>
+                        <ModalBody className="w-full">
+                            <Input isRequired onChange={handleFileChange} label="File" type="file" accept=".xlsx" errorMessage={"Please select file"} />
+                            <Button color="primary" onPress={onExportTemplate}>Download template</Button>
+                        </ModalBody>
+                        <ModalFooter className="w-full">
+                            <Button color="danger" variant="light" onPress={() => { onClose(); setIsImportModalOpen(false); }}>
+                                Cancel
+                            </Button>
+                            <Button color="primary" type="submit">
+                                Next
+                            </Button>
+                        </ModalFooter>
+                    </Form>
+                </ModalContent>
+            </Modal>
+
+            {/* Preview Modal */}
+            <Modal
+                isDismissable={false}
+                isKeyboardDismissDisabled={true}
+                isOpen={isPreviewModalOpen}
+                onClose={handleCancel}
+                className="w-full max-w-4xl"
+            >
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1">Preview table</ModalHeader>
+                    <ModalBody>
+                        <Table
+                            aria-label="Preview table"
+                            bottomContent={
+                                <Pagination
+                                    isCompact
+                                    showControls
+                                    showShadow
+                                    color="primary"
+                                    page={page}
+                                    total={pages}
+                                    onChange={(page) => setPage(page)}
+                                    className="flex w-full justify-center"
+                                />
+                            }
+                            classNames={{
+                                wrapper: "min-h-[222px]",
+                            }}
+                        >
+                            <TableHeader>
+                                {columns.filter((col) => col.uid !== 'actions').map((column) => (
+                                    <TableColumn key={column.uid}>{column.name}</TableColumn>
+                                ))}
+                            </TableHeader>
+                            <TableBody items={items}>
+                                {(item) => (
+                                    <TableRow key={item}>
+                                        {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button color="danger" variant="light" onPress={handleCancel}>
+                            Cancel
+                        </Button>
+                        <Button color="primary" onPress={handleConfirmImport}>
+                            Confirm
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+        </>
+    );
+};
