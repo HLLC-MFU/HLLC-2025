@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Appearance } from '@/types/appearance';
+import { addToast } from '@heroui/react';
 
 interface UseAppearanceAssetsProps {
     appearance: Appearance | null;
@@ -18,7 +19,7 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
 
     const handleFileChange = (key: string, file: File) => {
         setAssetDrafts(prev => ({ ...prev, [key]: file }));
-        
+
         // Create preview URL
         const url = URL.createObjectURL(file);
         setPreviewUrls(prev => ({ ...prev, [key]: url }));
@@ -26,11 +27,11 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
 
     const handleSaveAsset = async (key: string) => {
         if (!appearance) return;
-        
+
         setUploadingAssets(prev => ({ ...prev, [key]: true }));
         try {
             const formData = new FormData();
-            
+
             // Add all assets to formData, keeping existing values for unchanged assets
             Object.entries(appearance.assets).forEach(([assetKey, value]) => {
                 if (assetKey === key && assetDrafts[key]) {
@@ -55,30 +56,35 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
 
             const json = await res.json();
             const updatedAppearance = json.data;
-            
+
             // Update appearance state if callback is provided
             if (onAppearanceUpdate) {
                 onAppearanceUpdate(updatedAppearance);
             }
-            
+
             // Show success state for the updated asset
             setSavedAssets(prev => ({ ...prev, [key]: true }));
-            
+
+            addToast({
+                title: "Asset updated successfully",
+                color: "success",
+            });
+
             // Clear draft for the updated asset
             setAssetDrafts(prev => ({ ...prev, [key]: null }));
-            
+
             // Clear preview URL for the updated asset
             setPreviewUrls(prev => {
                 const newUrls = { ...prev };
                 delete newUrls[key];
                 return newUrls;
             });
-            
+
             // Hide success state after 2 seconds
             setTimeout(() => {
                 setSavedAssets(prev => ({ ...prev, [key]: false }));
             }, 2000);
-            
+
             return updatedAppearance;
         } catch (err) {
             console.error(`Error saving ${key}:`, err);
@@ -87,6 +93,22 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
             setUploadingAssets(prev => ({ ...prev, [key]: false }));
         }
     };
+
+    const handleCancelAsset = (key: string) => {
+        setAssetDrafts(prev => ({ ...prev, [key]: null }));
+        setSavedAssets(prev => ({ ...prev, [key]: false }));
+
+        setPreviewUrls(prev => {
+            const url = prev[key];
+            if (url) URL.revokeObjectURL(url);
+
+            const updated = { ...prev };
+            delete updated[key];
+            return updated;
+        });
+    };
+
+
 
     useEffect(() => {
         // Cleanup preview URLs
@@ -104,5 +126,6 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
         previewUrls,
         handleFileChange,
         handleSaveAsset,
+        handleCancelAsset,
     };
 } 

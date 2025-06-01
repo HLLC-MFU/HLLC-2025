@@ -15,17 +15,20 @@ import { useAppearanceAssets } from '@/hooks/useAppearanceAssets';
 import { useAppearanceColors } from '@/hooks/useAppearanceColors';
 import { useState } from 'react';
 import { DeleteConfirmationModal } from './_components/DeleteConfirmationModal';
-import { UpdateConfirmationModal } from './_components/UpdateConfirmationModal';
 import { apiRequest } from '@/utils/api';
 import { Appearance } from '@/types/appearance';
+import { ColorConfirmationModal } from './_components/ColorConfirmationModal';
+import { AssetsConfirmationModal } from './_components/AssetsConfirmationModal';
 
 export default function AppearanceDetailsPage() {
     const router = useRouter();
     const { id } = useParams<{ id: string }>();
     const { appearance, loading, error, setAppearance } = useSchoolByAppearance(id);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+    const [isConfirmColorModalOpen, setIsConfirmColorModalOpen] = useState(false);
     const [selectedAppearance, setSelectedAppearance] = useState<Appearance | undefined>();
+    const [isAssetSaveModalOpen, setIsAssetSaveModalOpen] = useState(false);
+    const [pendingAssetKey, setPendingAssetKey] = useState<string | null>(null);
 
     const {
         assetDrafts,
@@ -34,6 +37,7 @@ export default function AppearanceDetailsPage() {
         previewUrls,
         handleFileChange,
         handleSaveAsset,
+        handleCancelAsset,
     } = useAppearanceAssets({
         appearance,
         onAppearanceUpdate: (updatedAppearance) => {
@@ -66,13 +70,26 @@ export default function AppearanceDetailsPage() {
             if (updatedAppearance) {
                 setAppearance(updatedAppearance);
             }
-            setIsUpdateModalOpen(false);
+            setIsConfirmColorModalOpen(false);
             addToast({
                 title: "Appearance updated successfully",
                 color: "success",
             });
         } catch (error) {
             console.error("Update failed", error);
+        }
+    };
+
+    const handleRequestAssetSave = (key: string) => {
+        setPendingAssetKey(key);
+        setIsAssetSaveModalOpen(true);
+    };
+
+    const handleConfirmAssetSave = async () => {
+        if (pendingAssetKey) {
+            await handleSaveAsset(pendingAssetKey);
+            setIsAssetSaveModalOpen(false);
+            setPendingAssetKey(null);
         }
     };
 
@@ -125,7 +142,7 @@ export default function AppearanceDetailsPage() {
             {appearance && <AppearanceHeader appearance={appearance} />}
 
             <div className="container mx-auto px-6 py-8">
-                <div className="grid gap-8 max-w-6xl mx-auto">
+                <div className="grid gap-8 w-full mx-auto">
                     {appearance && (
                         <>
                             <BackgroundSection
@@ -135,7 +152,8 @@ export default function AppearanceDetailsPage() {
                                 uploadingAssets={uploadingAssets}
                                 savedAssets={savedAssets}
                                 onFileChange={handleFileChange}
-                                onSaveAsset={handleSaveAsset}
+                                onSaveAsset={handleRequestAssetSave}
+                                onCancel={() => handleCancelAsset('background')}
                             />
 
                             <AssetsSection
@@ -151,7 +169,7 @@ export default function AppearanceDetailsPage() {
                             <ColorsSection
                                 colorDrafts={colorDrafts}
                                 onColorChange={handleColorChange}
-                                onSaveColors={() => setIsUpdateModalOpen(true)}
+                                onSaveColors={() => setIsConfirmColorModalOpen(true)}
                             />
 
                             <PreviewSection
@@ -170,11 +188,16 @@ export default function AppearanceDetailsPage() {
                 appearance={selectedAppearance}
             />
 
-            <UpdateConfirmationModal
-                isOpen={isUpdateModalOpen}
-                onClose={() => setIsUpdateModalOpen(false)}
+            <ColorConfirmationModal
+                isOpen={isConfirmColorModalOpen}
+                onClose={() => setIsConfirmColorModalOpen(false)}
                 onConfirm={handleConfirmUpdate}
-                appearance={selectedAppearance}
+            />
+
+            <AssetsConfirmationModal
+                isOpen={isAssetSaveModalOpen}
+                onClose={() => setIsAssetSaveModalOpen(false)}
+                onConfirm={handleConfirmAssetSave}
             />
         </div>
     );
