@@ -29,7 +29,7 @@ export const siteConfig = {
       items: [
         { label: "Checkin" , href: "/checkin", icon: CircleCheckBig},
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
-        { label: "Admin", href: "/admin", icon: UserIcon },
+        { label: "Users Management", href: "/users", icon: UserIcon },
         { label: "Reports", href: "/reports", icon: ShieldAlert },
       ],
     },

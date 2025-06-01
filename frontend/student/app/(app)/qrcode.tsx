@@ -1,57 +1,53 @@
 // app/qr.tsx
-import { SafeAreaView, View, Text, StyleSheet } from "react-native";
+import { SafeAreaView, View, Text, StyleSheet } from 'react-native';
 
-import QRCodeGenerator from "@/components/qrcode/generator";
-import { MotiView } from "moti";
-import { useRouter } from "expo-router";
-import { TouchableOpacity } from "react-native";
-import useProfile from "@/hooks/useProfile";
-import { ImageBackground } from "expo-image";
-import { BlurView } from "expo-blur";
+import QRCodeGenerator from '@/components/qrcode/generator';
+import { MotiView } from 'moti';
+import { useRouter } from 'expo-router';
+import { TouchableOpacity } from 'react-native';
+import useProfile from '@/hooks/useProfile';
+import { ImageBackground } from 'expo-image';
+import { BlurView } from 'expo-blur';
 
 export default function QRCodePage() {
   const { user } = useProfile();
   const router = useRouter();
 
   return (
-    <ImageBackground
-      source={{ uri: user?.theme?.assets?.background }}
-      style={StyleSheet.absoluteFill}
-      contentFit="cover"
+    <SafeAreaView
+      style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
     >
-      <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
-      <SafeAreaView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <MotiView
+      <MotiView
+        style={{
+          backgroundColor: 'white',
+          padding: 36,
+          borderRadius: 24,
+          alignItems: 'center',
+          gap: 24,
+        }}
+      >
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ fontSize: 20, fontWeight: 'bold' }}>
+            {user?.fullName}
+          </Text>
+          <Text>Student ID: {user?.username}</Text>
+        </View>
+
+        <QRCodeGenerator username={user?.username ?? 'defaultUsername'} />
+
+        <TouchableOpacity
+          onPress={() => router.back()}
           style={{
-            backgroundColor: "white",
-            padding: 36,
-            borderRadius: 24,
-            alignItems: "center",
-            gap: 24,
+            marginTop: 16,
+            paddingVertical: 10,
+            paddingHorizontal: 20,
+            backgroundColor: '#2563EB',
+            borderRadius: 8,
           }}
         >
-          <View style={{ alignItems: "center" }}>
-            <Text style={{ fontSize: 20, fontWeight: "bold" }}>{user?.fullName}</Text>
-            <Text>Student ID: {user?.username}</Text>
-          </View>
-
-          <QRCodeGenerator username={user?.username ?? "defaultUsername"} />
-
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={{
-              marginTop: 16,
-              paddingVertical: 10,
-              paddingHorizontal: 20,
-              backgroundColor: "#2563EB",
-              borderRadius: 8,
-            }}
-          >
-            <Text style={{ color: "white", fontWeight: "bold" }}>Go Back</Text>
-          </TouchableOpacity>
-        </MotiView>
-      </SafeAreaView>
-    </ImageBackground>
-
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>Go Back</Text>
+        </TouchableOpacity>
+      </MotiView>
+    </SafeAreaView>
   );
 }
