@@ -1,35 +1,35 @@
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Dimensions,
   ScrollView,
   View,
   Text,
   ActivityIndicator,
-} from "react-native";
-import HomeHero from "@/components/home/Hero";
-import FAB from "@/components/FAB";
-import { QrCode, MessageSquare } from "lucide-react-native";
+} from 'react-native';
+import HomeHero from '@/components/home/Hero';
+import FAB from '@/components/FAB';
+import { QrCode } from 'lucide-react-native';
 
-import { useRouter } from "expo-router";
-import TopNav from "@/components/global/TopNav";
-import HomeActivityCard from "@/components/home/ActivityCard";
-import { useActivities } from "@/hooks/useActivities";
-import SectionHeader from "@/components/home/SectionHeader";
-import useProfile from "@/hooks/useProfile";
-import { useLanguage } from "@/context/LanguageContext";
-import { useTranslation } from "react-i18next";
+import { useRouter } from 'expo-router';
+import TopNav from '@/components/global/TopNav';
+import HomeActivityCard from '@/components/home/ActivityCard';
+import { useActivities } from '@/hooks/useActivities';
+import SectionHeader from '@/components/home/SectionHeader';
+import useProfile from '@/hooks/useProfile';
+import { useLanguage } from '@/context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 export default function HomeScreen() {
   const { user } = useProfile();
   const router = useRouter();
-  const { width } = Dimensions.get("window");
+  const { width } = Dimensions.get('window');
   const { t } = useTranslation();
   const { language } = useLanguage();
   const { activities, loading, error } = useActivities();
   if (loading) {
     return (
       <SafeAreaView
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
       >
         <ActivityIndicator size="large" color="#888" />
       </SafeAreaView>
@@ -41,11 +41,11 @@ export default function HomeScreen() {
       <SafeAreaView style={{ flex: 1, top: -36 }}>
         <ScrollView showsVerticalScrollIndicator={false}>
           <HomeHero style={{ paddingHorizontal: 16 }} />
-          <View style={{ top: -60, width: "100%", gap: 16 }}>
+          <View style={{ top: -60, width: '100%', gap: 16 }}>
             <SectionHeader
-              title={t("home.activities")}
-              rightText={t("home.seeAll")}
-              onPressRight={() => console.log("Pressed See All")}
+              title={t('home.activities')}
+              rightText={t('home.seeAll')}
+              onPressRight={() => console.log('Pressed See All')}
             />
             <ScrollView
               horizontal
@@ -56,41 +56,27 @@ export default function HomeScreen() {
               <View style={{ width: 16 }}></View>
               {activities
                 .filter(
-                  (activity) =>
-                    activity.code !== "LAMDUAN" && activity.code !== "KHANTOKE"
+                  activity =>
+                    activity.code !== 'LAMDUAN' && activity.code !== 'KHANTOKE',
                 )
-                .map((activity) => (
+                .map(activity => (
                   <HomeActivityCard
                     key={activity.id}
                     activity={activity}
                     lang={language}
-                    onPress={() => router.push({
-                      pathname: `/activities/[id]`,
-                      params: { id: activity.id },
-                    })}
+                    onPress={() =>
+                      router.push({
+                        pathname: `/activities/[id]`,
+                        params: { id: activity.id },
+                      })
+                    }
                     style={{ width: width * 0.85, marginRight: 16 }}
                   />
                 ))}
             </ScrollView>
           </View>
         </ScrollView>
-
-
       </SafeAreaView>
-      <View style={{ position: 'absolute', bottom: 16, right: 16, gap: 16 }}>
-        <FAB
-          icon={QrCode}
-          onPress={() => router.push("/qrcode")}
-          // style={{ backgroundColor: user?.theme.colors.secondary }}
-        />
-      </View>
-      <View style={{ position: 'absolute', bottom: 16, right: 100, gap: 16 }}>
-      <FAB
-          icon={MessageSquare}
-          onPress={() => router.push("/chat")}
-          // style={{ backgroundColor: user?.theme.colors.primary }}
-        />
-      </View>
     </View>
   );
 }
