@@ -11,9 +11,6 @@
     "test": "jest --watchAll",
     "lint": "expo lint"
   },
-  "jest": {
-    "preset": "jest-expo"
-  },
   "dependencies": {
     "@expo-google-fonts/noto-sans": "^0.3.0",
     "@expo-google-fonts/noto-sans-thai": "^0.3.0",
