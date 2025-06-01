@@ -1,7 +1,7 @@
 import { Input, Textarea } from '@heroui/input';
 import { Select, SelectItem, Avatar } from '@heroui/react';
 import { Star, School, BookMarked, CircleCheckBig } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ImageUploader } from './imageupload';
 
 export const icons = [
@@ -27,10 +27,40 @@ export const icons = [
   },
 ];
 
-export function Informationinfo() {
+type InformationInfoData = {
+  icon?: React.ElementType;
+  title: { en: string; th: string };
+  subtitle: { en: string; th: string };
+  description: { en: string; th: string };
+  redirect: { en: string; th: string; link: string };
+};
+
+type InformationinfoProps = {
+  onChange?: (data: InformationInfoData) => void;
+};
+
+export function Informationinfo({ onChange }: InformationinfoProps) {
   const [selected, setSelected] = useState<(typeof icons)[0] | undefined>(
     undefined,
   );
+
+  const [title, setTitle] = useState({ en: '', th: '' });
+  const [subtitle, setSubtitle] = useState({ en: '', th: '' });
+  const [description, setDescription] = useState({ en: '', th: '' });
+  const [redirect, setRedirect] = useState({ en: '', th: '', link: '' });
+
+  useEffect(() => {
+    const data = {
+      icon: selected?.icon,
+      title,
+      subtitle,
+      description,
+      redirect,
+    };
+    if (onChange) {
+      onChange(data); // 🔁 ส่งข้อมูลออกทุกครั้งที่เปลี่ยน
+    }
+  }, [selected, title, subtitle, description, redirect, onChange]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -71,6 +101,7 @@ export function Informationinfo() {
         </Select>
       </div>
 
+      {/* Title */}
       <h1 className="text-xl font-bold"> Title </h1>
       <div className="flex flex-row justify-between gap-5">
         <Input
@@ -78,6 +109,8 @@ export function Informationinfo() {
           size="md"
           type="Text"
           className="bg-white border border-gray-300 rounded-lg shadow-md"
+          value={title.en}
+          onChange={e => setTitle({ ...title, en: e.target.value })}
         />
 
         <Input
@@ -85,9 +118,12 @@ export function Informationinfo() {
           size="md"
           type="Text"
           className="bg-white border border-gray-300 rounded-lg shadow-md"
+          value={title.th}
+          onChange={e => setTitle({ ...title, th: e.target.value })}
         />
       </div>
 
+      {/* Subtitle */}
       <h1 className="text-xl font-bold"> Subtitle</h1>
       <div className="flex flex-row justify-between gap-5">
         <Input
@@ -95,6 +131,8 @@ export function Informationinfo() {
           size="md"
           type="Text"
           className="bg-white border border-gray-300 rounded-lg shadow-md"
+          value={subtitle.en}
+          onChange={e => setSubtitle({ ...subtitle, en: e.target.value })}
         />
 
         <Input
@@ -102,6 +140,8 @@ export function Informationinfo() {
           size="md"
           type="Text"
           className="bg-white border border-gray-300 rounded-lg shadow-md"
+          value={subtitle.th}
+          onChange={e => setSubtitle({ ...subtitle, th: e.target.value })}
         />
       </div>
 
@@ -110,11 +150,15 @@ export function Informationinfo() {
         <Textarea
           label="English"
           className="bg-white border border-gray-300 rounded-lg shadow-md"
+          value={description.en}
+          onChange={e => setDescription({ ...description, en: e.target.value })}
         />
 
         <Textarea
           label="Thai"
           className="bg-white border border-gray-300 rounded-lg shadow-md"
+          value={description.th}
+          onChange={e => setDescription({ ...description, th: e.target.value })}
         />
       </div>
 
@@ -125,6 +169,8 @@ export function Informationinfo() {
           size="md"
           type="Text"
           className="bg-white border border-gray-300 rounded-lg shadow-md"
+          value={redirect.en}
+          onChange={e => setRedirect({ ...redirect, en: e.target.value })}
         />
 
         <Input
@@ -132,12 +178,16 @@ export function Informationinfo() {
           size="md"
           type="Text"
           className="bg-white border border-gray-300 rounded-lg shadow-md"
+          value={redirect.th}
+          onChange={e => setRedirect({ ...redirect, th: e.target.value })}
         />
         <Input
           label="Link"
           size="md"
           type="Url"
           className="bg-white border border-gray-300 rounded-lg shadow-md"
+          value={redirect.link}
+          onChange={e => setRedirect({ ...redirect, link: e.target.value })}
         />
       </div>
 
