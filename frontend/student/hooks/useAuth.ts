@@ -1,10 +1,18 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { apiRequest } from "@/utils/api";
-import { getToken, saveToken, removeToken } from "@/utils/storage";
-import { router } from "expo-router";
-import useProfile from "./useProfile";
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiRequest } from '@/utils/api';
+import { getToken, saveToken, removeToken } from '@/utils/storage';
+import { router } from 'expo-router';
+import useProfile from './useProfile';
+
+interface TokenResponse {
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
+  };
+  user: any;
+}
 
 interface AuthStore {
   loading: boolean;
@@ -24,14 +32,15 @@ const useAuth = create<AuthStore>()(
         try {
           set({ loading: true, error: null });
 
-          const res = await apiRequest<TokenResponse>("/auth/login", "POST", {
+          const res = await apiRequest<TokenResponse>('/auth/login', 'POST', {
             username,
             password,
           });
+          console.log('Login log', res);
 
-          if (res.statusCode === 200 && res.data) {
-            await saveToken("accessToken", res.data.accessToken);
-            await saveToken("refreshToken", res.data.refreshToken);
+          if (res.statusCode === 201 && res.data) {
+            await saveToken('accessToken', res.data.tokens.accessToken);
+            await saveToken('refreshToken', res.data.tokens.refreshToken);
             const { getProfile } = useProfile.getState();
             const user = await getProfile();
             if (user) {
@@ -43,6 +52,7 @@ const useAuth = create<AuthStore>()(
           set({ error: res.message });
           return false; // ❌ Login failed
         } catch (err) {
+          console.error('Login error:', err);
           set({ error: (err as Error).message });
           return false; // ❌ Login failed
         } finally {
@@ -52,40 +62,40 @@ const useAuth = create<AuthStore>()(
 
 
       signOut: () => {
-        removeToken("accessToken");
-        removeToken("refreshToken");
+        removeToken('accessToken');
+        removeToken('refreshToken');
         useProfile.getState().setUser(null);
       },
 
       refreshSession: async () => {
         try {
-          const refreshToken = await getToken("refreshToken");
+          const refreshToken = await getToken('refreshToken');
           if (!refreshToken) return false;
 
-          const res = await apiRequest<TokenResponse>("/auth/refresh", "POST", {
+          const res = await apiRequest<TokenResponse>('/auth/refresh', 'POST', {
             refreshToken,
           });
 
-          if (res.statusCode === 200 && res.data) {
-            await saveToken("accessToken", res.data.accessToken);
-            await saveToken("refreshToken", res.data.refreshToken);
+          if (res.statusCode === 201 && res.data) {
+            await saveToken('accessToken', res.data.tokens.accessToken);
+            await saveToken('refreshToken', res.data.tokens.refreshToken);
             await useProfile.getState().getProfile();
             return true;
           }
 
           return false;
         } catch (err) {
-          console.error("Refresh session failed", err);
+          console.error('Refresh session failed', err);
           return false;
         }
       },
     }),
     {
-      name: "auth-store",
+      name: 'auth-store',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({}),
-    }
-  )
+      partialize: state => ({}),
+    },
+  ),
 );
 
 export default useAuth;
