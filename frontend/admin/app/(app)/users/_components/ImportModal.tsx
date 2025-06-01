@@ -1,7 +1,7 @@
 import { addToast, Button, Form, getKeyValue, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import React from "react";
 import * as XLSX from "xlsx";
-import { columns } from "../admin/page";
+import { columns } from "./user-table";
 import saveAs from "file-saver";
 import { User } from "@/types/user";
 

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
-import { columns } from '../admin/page';
+import { columns } from './user-table';
 import { User } from '@/types/user';
 
 export interface DeleteModalProps {
