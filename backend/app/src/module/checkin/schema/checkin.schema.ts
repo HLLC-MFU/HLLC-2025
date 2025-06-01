@@ -11,8 +11,8 @@ export class Checkin {
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
   staff: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Activities' })
-  activities: Types.ObjectId;
+  @Prop({ required: true, type: [Types.ObjectId], ref: 'Activities' })
+  activities: Types.ObjectId[];
 }
 
 export const CheckinSchema = SchemaFactory.createForClass(Checkin);
