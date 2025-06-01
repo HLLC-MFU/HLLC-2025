@@ -5,7 +5,7 @@ export type Evoucher = {
     discount: number;
     acronym: string;
     type: Type;
-    sponsors: Sponsor;
+    sponsor: Sponsor;
     campaign: Campaign;
     detail: Lang;
     expiration: Date;

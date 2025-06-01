@@ -26,68 +26,64 @@ export function capitalize(s: string) {
     return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
 
-const mockupData = [
+const mockupData: Evoucher[] = [
     {
-        acronym: "ABC",
+        discount: 10,
+        acronym: "EVA1",
+        type: { name: "Individual" },
         sponsor: {
-            name: "ABC Corporation"
-        }
+            name: { en: "Sponsor A", th: "ผู้สนับสนุน A" },
+        },
+        detail: { en: "Discount on summer products", th: "ส่วนลดฤดูร้อน" },
+        campaign: { name: "Campaign 1" },
+        expiration: new Date("2025-12-31"),
     },
     {
-        acronym: "ABC",
+        discount: 15,
+        acronym: "EVA2",
+        type: { name: "Global" },
         sponsor: {
-            name: "ABC Corporation"
-        }
+            name: { en: "Sponsor A", th: "ผู้สนับสนุน A" },
+        },
+        detail: { en: "Special offer for new members", th: "ข้อเสนอพิเศษสำหรับสมาชิกใหม่" },
+        campaign: { name: "Campaign 2" },
+        expiration: new Date("2025-10-31"),
     },
     {
-        acronym: "ABC",
+        discount: 20,
+        acronym: "EVB1",
+        type: { name: "Individual" },
         sponsor: {
-            name: "ABC Corporation"
-        }
+            name: { en: "Sponsor B", th: "ผู้สนับสนุน B" },
+        },
+        detail: { en: "Back-to-school discount", th: "ส่วนลดกลับไปโรงเรียน" },
+        campaign: { name: "Campaign 3" },
+        expiration: new Date("2025-09-30"),
     },
     {
-        acronym: "ABC",
+        discount: 25,
+        acronym: "EVB2",
+        type: { name: "Global" },
         sponsor: {
-            name: "ABC Corporation"
-        }
+            name: { en: "Sponsor B", th: "ผู้สนับสนุน B" },
+        },
+        detail: { en: "Autumn special offer", th: "ข้อเสนอพิเศษฤดูใบไม้ร่วง" },
+        campaign: { name: "Campaign 4" },
+        expiration: new Date("2025-11-15"),
     },
     {
-        acronym: "ABC",
+        discount: 30,
+        acronym: "EVB3",
+        type: { name: "Individual" },
         sponsor: {
-            name: "ABC Corporation"
-        }
+            name: { en: "Sponsor B", th: "ผู้สนับสนุน B" },
+        },
+        detail: { en: "Winter wonderland", th: "มหัศจรรย์ฤดูหนาว" },
+        campaign: { name: "Campaign 5" },
+        expiration: new Date("2025-12-01"),
     },
-    {
-        acronym: "XYZ",
-        sponsor: {
-            name: "XYZ Enterprises"
-        }
-    },
-    {
-        acronym: "Springtime",
-        sponsor: {
-            name: "Springtime Co."
-        }
-    },
-    {
-        acronym: "ABC",
-        sponsor: {
-            name: "ABC Corporation"
-        }
-    },
-    {
-        acronym: "XYZ",
-        sponsor: {
-            name: "XYZ Enterprises"
-        }
-    },
-    {
-        acronym: "Springtime",
-        sponsor: {
-            name: "Springtime Co."
-        }
-    }
 ];
+
 
 import { Evoucher } from "@/types/evoucher";
 
@@ -99,20 +95,20 @@ export const columns = [
     { name: "EXPIRATION", uid: "expiration", },
     { name: "TYPE", uid: "type", },
     { name: "COVER", uid: "cover", },
-    { name: "BANNER", uid: "banner", },
-    { name: "THUMPNAIL", uid: "thumpnail", },
-    { name: "LOGO", uid: "logo", },
+    // { name: "BANNER", uid: "banner", },
+    // { name: "THUMPNAIL", uid: "thumpnail", },
+    // { name: "LOGO", uid: "logo", },
     { name: "ACTIONS", uid: "actions", },
 ];
 
 export const typeOptions = [
-    { name: "Global", uid: "global" },
-    { name: "Individual", uid: "individual" },
+    { name: "Global" },
+    { name: "Individual" },
 ];
 
 const typeColorMap: Record<string, ChipProps["color"]> = {
-    global: "success",
-    individual: "warning",
+    Global: "success",
+    Individual: "warning",
 };
 
 const INITIAL_VISIBLE_COLUMNS = ["sponsor", "acronym", "detail", "discount", "expiration", "type", "cover", "actions"];
@@ -144,14 +140,14 @@ export default function EvoucherPage() {
 
         if (hasSearchFilter) {
             filteredEvoucher = filteredEvoucher.filter((evoucher) =>
-                evoucher.sponsor.name.toLowerCase().includes(filterValue.toLowerCase()),
+                evoucher.sponsor.name.en.toLowerCase().includes(filterValue.toLowerCase()),
             );
         }
-        // if (typeFilter !== "all" && Array.from(typeFilter).length !== typeOptions.length) {
-        //     filteredEvoucher = filteredEvoucher.filter((evoucher) =>
-        //         Array.from(typeFilter).includes(evoucher.type),
-        //     );
-        // }
+        if (typeFilter !== "all" && Array.from(typeFilter).length !== typeOptions.length) {
+            filteredEvoucher = filteredEvoucher.filter((evoucher) =>
+                Array.from(typeFilter).includes(evoucher.type.name),
+            );
+        }
 
         return filteredEvoucher;
     }, [mockupData, filterValue, typeFilter]);
@@ -159,11 +155,21 @@ export default function EvoucherPage() {
     const renderCell = React.useCallback((evoucher: Evoucher, columnKey: React.Key) => {
         const cellValue = evoucher[columnKey as keyof Evoucher];
 
+        console.log(cellValue)
+
         switch (columnKey) {
             case "sponsor":
+                return cellValue.name.en;
+            case "detail":
+                return cellValue.en;
+            case "type":
                 return cellValue.name;
-            case "acronym":
-                return cellValue;
+            case "expiration":
+                return cellValue.toLocaleString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "2-digit",
+                });
             case "actions":
                 return (
                     <div className="relative flex justify-end items-center gap-2">
@@ -214,7 +220,7 @@ export default function EvoucherPage() {
                         <Dropdown>
                             <DropdownTrigger className="hidden sm:flex">
                                 <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
-                                    type
+                                    Type
                                 </Button>
                             </DropdownTrigger>
                             <DropdownMenu
@@ -226,7 +232,7 @@ export default function EvoucherPage() {
                                 onSelectionChange={setTypeFilter}
                             >
                                 {typeOptions.map((type) => (
-                                    <DropdownItem key={type.uid} className="capitalize">
+                                    <DropdownItem key={type.name} className="capitalize">
                                         {capitalize(type.name)}
                                     </DropdownItem>
                                 ))}
@@ -269,6 +275,61 @@ export default function EvoucherPage() {
         hasSearchFilter,
     ]);
 
+    const bodyContent = React.useMemo(() => {
+        return (
+            <Accordion
+                selectionMode="multiple"
+                itemClasses={{
+                    trigger: "px-4 my-1 data-[hover=true]:bg-default-100 rounded-lg"
+                }}
+            >
+                {mockupData.map((evoucher) => {
+                    if (renderedSponsors.has(evoucher.sponsor.name.en)) {
+                        return null;
+                    }
+                    renderedSponsors.add(evoucher.sponsor.name.en);
+
+                    return (
+                        <AccordionItem
+                            key={evoucher.sponsor.name.en}
+                            aria-label={evoucher.sponsor.name.en}
+                            title={evoucher.sponsor.name.en}
+                        >
+                            <Table
+                                hideHeader
+                                removeWrapper
+                                aria-label="Table data"
+                            >
+                                <TableHeader columns={headerColumns}>
+                                    {(column) => (
+                                        <TableColumn
+                                            key={column.uid}
+                                            align={column.uid === "actions" ? "center" : "start"}
+                                        >
+                                            {column.name}
+                                        </TableColumn>
+                                    )}
+                                </TableHeader>
+                                <TableBody emptyContent={"No data found"} items={filteredItems.filter((data) => data.sponsor.name.en === evoucher.sponsor.name.en)}>
+                                    {(item) => (
+                                        <TableRow key={item.sponsor.name.en}>
+                                            {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </AccordionItem>
+                    )
+                })};
+            </Accordion>
+        );
+    }, [
+        onSearchChange,
+        onClear,
+        filteredItems,
+        headerColumns,
+    ]);
+
     return (
         <div className="flex flex-col min-h-screen">
             <div className="container mx-auto px-4">
@@ -281,13 +342,13 @@ export default function EvoucherPage() {
                 isHeaderSticky
                 aria-label="Table header"
                 bottomContentPlacement="outside"
-                // selectedKeys={selectedKeys}
-                // selectionMode="multiple"
-                sortDescriptor={sortDescriptor}
                 topContent={topContent}
                 topContentPlacement="outside"
-                onSelectionChange={setSelectedKeys}
-                onSortChange={setSortDescriptor}
+                // selectedKeys={selectedKeys}
+                // selectionMode="multiple"
+                // sortDescriptor={sortDescriptor}
+                // onSelectionChange={setSelectedKeys}
+                // onSortChange={setSortDescriptor}
             >
                 <TableHeader columns={headerColumns}>
                     {(column) => (
@@ -303,51 +364,7 @@ export default function EvoucherPage() {
                 <TableBody>
                     <TableRow>
                         <TableCell colSpan={headerColumns.length} className="p-0">
-                            <Accordion
-                                selectionMode="multiple"
-                                itemClasses={{
-                                    trigger: "px-4 my-2 data-[hover=true]:bg-default-100 rounded-lg"
-                                }}
-                            >
-                                {mockupData.map((evoucher) => {
-                                    if (renderedSponsors.has(evoucher.sponsor.name)) {
-                                        return null;
-                                    }
-                                    renderedSponsors.add(evoucher.sponsor.name);
-
-                                    return (
-                                        <AccordionItem
-                                            key={evoucher.sponsor.name}
-                                            aria-label={evoucher.sponsor.name}
-                                            title={evoucher.sponsor.name}
-                                        >
-                                            <Table
-                                                hideHeader
-                                                removeWrapper
-                                                aria-label="Table data"
-                                            >
-                                                <TableHeader columns={headerColumns}>
-                                                    {(column) => (
-                                                        <TableColumn
-                                                            key={column.uid}
-                                                            align={column.uid === "actions" ? "center" : "start"}
-                                                        >
-                                                            {column.name}
-                                                        </TableColumn>
-                                                    )}
-                                                </TableHeader>
-                                                <TableBody emptyContent={"No data found"} items={mockupData.filter((data) => data.sponsor.name === evoucher.sponsor.name)}>
-                                                    {(item) => (
-                                                        <TableRow key={item.sponsor.name}>
-                                                            {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-                                                        </TableRow>
-                                                    )}
-                                                </TableBody>
-                                            </Table>
-                                        </AccordionItem>
-                                    )
-                                })};
-                            </Accordion>
+                            {bodyContent}
                         </TableCell>
                     </TableRow>
                 </TableBody>
