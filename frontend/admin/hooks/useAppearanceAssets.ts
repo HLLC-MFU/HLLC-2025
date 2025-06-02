@@ -82,15 +82,19 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
     const handleCancelAsset = (key: string) => {
         setAssetDrafts(prev => ({ ...prev, [key]: null }));
         setSavedAssets(prev => ({ ...prev, [key]: false }));
+
         setPreviewUrls(prev => {
             const updated = { ...prev };
-            if (updated[key]) {
-                URL.revokeObjectURL(updated[key]);
+            const url = updated[key];
+            if (url) {
+                URL.revokeObjectURL(url);
                 delete updated[key];
             }
+
             return updated;
         });
     };
+
 
     useEffect(() => {
         if (!appearance?.assets) return;

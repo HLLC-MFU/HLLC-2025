@@ -1,7 +1,7 @@
 import { createRef, useMemo } from 'react';
 import { Button } from '@heroui/button';
 import { Card, CardBody, CardHeader } from '@heroui/react';
-import { CheckCircle, Upload, Image } from 'lucide-react';
+import { CheckCircle, Upload, Image, Save } from 'lucide-react';
 import { Appearance } from '@/types/appearance';
 
 interface AssetsSectionProps {
@@ -12,6 +12,7 @@ interface AssetsSectionProps {
     savedAssets: Record<string, boolean>;
     onFileChange: (key: string, file: File) => void;
     onSaveAsset: (key: string) => void;
+    onCancel: (key: string) => void;
 }
 
 export function AssetsSection({
@@ -22,9 +23,9 @@ export function AssetsSection({
     savedAssets,
     onFileChange,
     onSaveAsset,
+    onCancel,
 }: AssetsSectionProps) {
     const assetKeys = Object.keys(appearance.assets).filter(key => key !== 'background');
-
 
     const fileInputRefs = useMemo(() => {
         const refs: Record<string, React.RefObject<HTMLInputElement | null>> = {};
@@ -34,16 +35,17 @@ export function AssetsSection({
         return refs;
     }, [assetKeys]);
 
-    const handleTriggerUpload = (key: string) => {
-        fileInputRefs[key]?.current?.click();
-    };
+    const hasUnsavedAssets = useMemo(() => {
+        return Object.values(assetDrafts).some(file => file !== null);
+    }, [assetDrafts]);
+
 
     return (
-        <Card className="shadow-xl">
-            <CardHeader>
+        <Card>
+            <CardHeader className="pb-4">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                        <Image className="w-6 h-6" />
+                    <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100">
+                        <Image className="w-6 h-6 text-gray-600" />
                     </div>
                     <div className="flex flex-col items-start">
                         <h2 className="text-xl font-semibold">School Assets</h2>
@@ -52,22 +54,25 @@ export function AssetsSection({
                 </div>
             </CardHeader>
 
-            <CardBody className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <CardBody className="p-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {assetKeys.map((key) => (
-                        <div key={key} className="space-y-4">
-                            <h3 className="font-semibold capitalize text-lg">{key}</h3>
-
-                            <div className="relative max-w-xs mx-auto">
+                        <div key={key} className="space-y-3">
+                            <div className="relative group">
                                 <label htmlFor={`upload-${key}`} className="cursor-pointer block">
-                                    <img
-                                        src={
-                                            previewUrls[key] ||
-                                            `http://localhost:8080/uploads/${appearance.assets[key]}`
-                                        }
-                                        alt={key}
-                                        className="w-full rounded-xl shadow-lg"
-                                    />
+                                    <div className="relative overflow-hidden rounded-lg hover:border-gray-300 transition-all duration-300 group-hover:shadow-md">
+                                        <img
+                                            src={previewUrls[key] || `http://localhost:8080/uploads/${appearance.assets[key]}`}
+                                            alt={key}
+                                            className="aspect-square w-full object-contain"
+                                        />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
+                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center">
+                                                <Upload className="w-5 h-5 text-white mb-1" />
+                                                <p className="text-white text-xs font-medium">Upload new background</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </label>
                                 <input
                                     id={`upload-${key}`}
@@ -81,37 +86,58 @@ export function AssetsSection({
                                     className="hidden"
                                 />
                             </div>
+                            <h3 className="text-sm font-medium capitalize text-center">{key}</h3>
 
-                            <div className="space-y-3">
-                                {assetDrafts[key] && (
-                                    <>
-                                        <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 p-2 rounded">
-                                            <CheckCircle className="w-3 h-3" />
-                                            <span>📁 {assetDrafts[key]!.name}</span>
-                                        </div>
-                                        <Button
-                                            color="success"
-                                            size="sm"
-                                            className="w-full text-sm"
-                                            isLoading={uploadingAssets[key]}
-                                            onPress={() => onSaveAsset(key)}
-                                        >
-                                            {uploadingAssets[key] ? 'Uploading...' : `Save ${key}`}
-                                        </Button>
-                                    </>
-                                )}
-
-                                {savedAssets[key] && (
-                                    <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 p-2 rounded">
-                                        <CheckCircle className="w-3 h-3" />
-                                        <span>{key} saved successfully!</span>
-                                    </div>
-                                )}
-                            </div>
+                            {savedAssets[key] && (
+                                <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 p-2 rounded-md">
+                                    <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                                    <span className="font-medium">Saved!</span>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
+
+                <div className="mt-6 flex gap-3 justify-end">
+                    <Button
+                        color="primary"
+                        size="md"
+                        variant='light'
+                        disabled={!hasUnsavedAssets}
+                        className="disabled:opacity-50 disabled:cursor-not-allowed"
+                        onPress={async () => {
+                            for (const key of Object.keys(assetDrafts)) {
+                                if (assetDrafts[key]) {
+                                    await onSaveAsset(key);
+                                }
+                            }
+                        }}
+                    >
+                        <span className="flex items-center gap-2">
+                            <Save className="w-4 h-4" /> Save All
+                        </span>
+                    </Button>
+
+                    <Button
+                        color="danger"
+                        variant="light"
+                        size="md"
+                        disabled={!hasUnsavedAssets}
+                        className="disabled:opacity-50 disabled:cursor-not-allowed"
+                        onPress={() => {
+                            assetKeys.forEach((key) => {
+                                onCancel(key);
+                                const input = fileInputRefs[key]?.current;
+                                if (input) input.value = '';
+                            });
+                        }}
+                    >
+                        Cancel All
+                    </Button>
+
+                </div>
             </CardBody>
+
         </Card>
     );
 }

@@ -164,6 +164,7 @@ export default function AppearanceDetailsPage() {
                                 savedAssets={savedAssets}
                                 onFileChange={handleFileChange}
                                 onSaveAsset={handleSaveAsset}
+                                onCancel={handleCancelAsset}
                             />
 
                             <ColorsSection
