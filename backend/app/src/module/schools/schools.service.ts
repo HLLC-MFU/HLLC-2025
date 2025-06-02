@@ -42,7 +42,7 @@ export class SchoolsService {
       model: this.schoolModel,
       query,
       filterSchema: {},
-      buildPopulateFields: (excluded) =>
+      populateFields: (excluded) =>
         Promise.resolve(
           excluded.includes('majors') ? [] : [{ path: 'majors' }],
         ),

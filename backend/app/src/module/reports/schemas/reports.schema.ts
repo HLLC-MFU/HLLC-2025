@@ -11,7 +11,7 @@ export class Report {
   @Prop({ type: Types.ObjectId, ref: 'ReportCategory', required: true })
   category: Types.ObjectId;
 
-  @Prop({ required: true })
+  @Prop({ required: true, type: String })
   message: string; 
 
   @Prop({ required: true, maxlength: 50 })

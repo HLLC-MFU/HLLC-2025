@@ -25,8 +25,6 @@ import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { PopulateField } from 'src/pkg/types/query';
 
-const userSelectFields = 'username name';
-
 @Injectable()
 export class ReportsService {
   constructor(
@@ -59,36 +57,23 @@ export class ReportsService {
     });
 
     try {
-      const saved = await report.save();
-
-      const populateFields: PopulateOptions[] = [
-        { path: 'reporter', select: userSelectFields },
-        { path: 'category' },
-      ];
-
-      const populated = await this.reportModel
-        .findById(saved._id)
-        .populate(populateFields)
-        .lean()
-        .exec();
-
-      return {
-        message: 'Report created successfully',
-        createdId: saved._id,
-        data: populated,
-      };
+      return await report.save();
     } catch (error) {
-      handleMongoDuplicateError(error, 'reporter');
+      handleMongoDuplicateError(error, 'name');
     }
   }
 
   async findAll(query: Record<string, string>) {
   return queryAll<Report>({
     model: this.reportModel,
-    query,
+    query: {
+      ...query,
+excluded: 'password,refreshToken,role.permissions,role.metadataSchema,__v'
+
+    },
     filterSchema: {},
     populateFields: async () => [
-      { path: 'reporter', select: userSelectFields },
+      { path: 'reporter' },
       { path: 'category' },
     ],
   });
@@ -107,7 +92,7 @@ export class ReportsService {
       category: 'string',
     } as const,
     populateFields: async () => [
-      { path: 'reporter', select: userSelectFields },
+      { path: 'reporter' },
       { path: 'category' },
     ],
   });
@@ -129,7 +114,7 @@ export class ReportsService {
 
   async findOne(id: string) {
     const populateFields: PopulateField[] = [
-      { path: 'reporter', select: userSelectFields },
+      { path: 'reporter',},
       { path: 'category' },
     ];
     return queryFindOne<Report>(this.reportModel, { _id: id }, populateFields);
@@ -147,7 +132,7 @@ export class ReportsService {
     }
 
     const populateFields: PopulateOptions[] = [
-      { path: 'reporter', select: userSelectFields },
+      { path: 'reporter'},
       { path: 'category' },
     ];
 
