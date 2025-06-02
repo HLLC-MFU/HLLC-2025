@@ -41,7 +41,7 @@ export default function ChatPage() {
   const { user } = useProfile();
   const [activeTab, setActiveTab] = useState<'my' | 'discover'>('my');
   const [createModalVisible, setCreateModalVisible] = useState(false);
-  const userId = user?._id || '';
+  const userId = user?.data?.[0]?._id || '';
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerOpacity = useRef(new Animated.Value(1)).current;

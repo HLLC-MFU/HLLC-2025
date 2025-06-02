@@ -63,7 +63,7 @@ const FloatingActionButton = ({ onPress }: FloatingActionButtonProps) => {
 const styles = StyleSheet.create({
   fabContainer: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 120,
     right: 24,
     zIndex: 10,
     shadowColor: '#000',

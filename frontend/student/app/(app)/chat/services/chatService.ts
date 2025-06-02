@@ -139,7 +139,7 @@ export const chatService = {
       const currentUserId = payload.sub;
       console.log('Current user ID:', currentUserId);
 
-      // Get all rooms where user is a member in a single request
+      // Get rooms with members
       console.time('fetchMembers');
       console.log('Fetching room members');
       const membersResponse = await fetch(`${API_BASE_URL}/rooms/with-members`, {
@@ -149,7 +149,7 @@ export const chatService = {
       let memberRooms: string[] = [];
       if (membersResponse.ok) {
         const membersData = await membersResponse.json();
-        memberRooms = membersData.rooms || [];
+        memberRooms = membersData.rooms.map((r: any) => r.room.id);
         console.log('Member rooms:', memberRooms);
       } else {
         console.error('Failed to fetch member rooms:', membersResponse.status, membersResponse.statusText);
@@ -158,10 +158,9 @@ export const chatService = {
 
       // Process rooms
       console.time('processRooms');
-      const memberSet = new Set(result.rooms.flatMap(room => room.members || []));
       const enrichedRooms = result.rooms.map(room => ({
         ...room,
-        is_member: memberSet.has(currentUserId),
+        is_member: memberRooms.includes(room.id),
       }));
       console.timeEnd('processRooms');
       console.log('Processed rooms:', enrichedRooms);
@@ -556,5 +555,3 @@ export const chatService = {
     }
   },
 };
-
-export { ChatRoom };

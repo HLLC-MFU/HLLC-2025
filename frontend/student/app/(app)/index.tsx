@@ -77,20 +77,6 @@ export default function HomeScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-      <View style={{ position: 'absolute', bottom: 16, right: 16, gap: 16 }}>
-        <FAB
-          icon={QrCode}
-          onPress={() => router.push("/qrcode")}
-          // style={{ backgroundColor: user?.theme.colors.secondary }}
-        />
-      </View>
-      <View style={{ position: 'absolute', bottom: 16, right: 100, gap: 16 }}>
-      <FAB
-          icon={MessageSquare}
-          onPress={() => router.push("/chat")}
-          // style={{ backgroundColor: user?.theme.colors.primary }}
-        />
-      </View>
     </View>
   );
 }

@@ -2,6 +2,25 @@
 import { create } from "zustand";
 import { apiRequest } from "@/utils/api";
 
+interface UserData {
+  _id: string;
+  username: string;
+  name: {
+    first: string;
+    last: string;
+  };
+  role: {
+    name: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface User {
+  data: UserData[];
+  message: string;
+}
+
 interface ProfileStore {
   user: User | null;
   setUser: (user: User | null) => void;
