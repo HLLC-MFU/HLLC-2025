@@ -32,7 +32,7 @@ export const useChatRoom = () => {
   const { user } = useProfile();
   const flatListRef = useRef(null);
   const inputRef = useRef(null);
-  const userId = user?._id || '';
+  const userId = user?.data[0]._id || '';
   const roomId = params.roomId as string;
 
   const [room, setRoom] = useState<ChatRoom | null>(null);
@@ -265,13 +265,32 @@ export const useChatRoom = () => {
 
       if (!response.ok) throw new Error('Failed to send sticker');
 
+      const data = await response.json();
+      
+      // Add the sticker message to WebSocket state
+      const stickerMessage: Message = {
+        id: data.id,
+        room_id: data.room_id,
+        user_id: data.user_id,
+        message: data.message,
+        Mentions: data.Mentions,
+        timestamp: data.timestamp,
+        stickerId: data.stickerId,
+        image: data.image,
+        senderId: data.user_id,
+        senderName: user?.data[0].name || '',
+        type: 'sticker',
+        isRead: false
+      };
+      
+      addMessage(stickerMessage);
       setShowStickerPicker(false);
       triggerHapticFeedback();
     } catch (error) {
       console.error('Error sending sticker:', error);
       Alert.alert('Error', 'Failed to send sticker');
     }
-  }, [roomId, userId]);
+  }, [roomId, userId, addMessage, user?.data[0].name]);
 
   return {
     room,

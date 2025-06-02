@@ -1,5 +1,6 @@
 // app/qr.tsx
 import { SafeAreaView, View, Text, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
 
 import QRCodeGenerator from '@/components/qrcode/generator';
 import { MotiView } from 'moti';
@@ -10,8 +11,12 @@ import { ImageBackground } from 'expo-image';
 import { BlurView } from 'expo-blur';
 
 export default function QRCodePage() {
-  const { user } = useProfile();
+  const { user, getProfile } = useProfile();
   const router = useRouter();
+
+  useEffect(() => {
+    getProfile();
+  }, []);
 
   return (
     <SafeAreaView
@@ -28,12 +33,12 @@ export default function QRCodePage() {
       >
         <View style={{ alignItems: 'center' }}>
           <Text style={{ fontSize: 20, fontWeight: 'bold' }}>
-            {user?.fullName}
+            {user?.data[0].name.first}  {user?.data[0].name.last}
           </Text>
-          <Text>Student ID: {user?.username}</Text>
+          <Text>Student ID: {user?.data[0].username}</Text>
         </View>
 
-        <QRCodeGenerator username={user?.username ?? 'defaultUsername'} />
+        <QRCodeGenerator username={user?.data[0].username ?? 'defaultUsername'} />
 
         <TouchableOpacity
           onPress={() => router.back()}

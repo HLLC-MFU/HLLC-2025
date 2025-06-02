@@ -39,7 +39,7 @@ export default function BottomNav() {
                 }}
                 activeOpacity={0.85}
               >
-                <Icon size={36} color={isActive ? '#3b82f6' : '#64748b'} />
+                <Icon size={36} color={isActive ? '#fff' : '#fff'} />
               </TouchableOpacity>
             </View>
           );
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     width: '100%',
     height: 90,
-    backgroundColor: 'rgb(255, 255, 255)', // เปลี่ยนสีพื้นหลังให้เหมือนในภาพ
+    backgroundColor: 'rgb(255, 255, 255)', 
     borderColor: 'rgba(255, 255, 255, 0.6)',
     borderWidth: 0.5,
     position: 'absolute',

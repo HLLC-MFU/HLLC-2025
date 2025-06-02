@@ -1,25 +1,7 @@
 // stores/useProfile.ts
 import { create } from "zustand";
 import { apiRequest } from "@/utils/api";
-
-interface UserData {
-  _id: string;
-  username: string;
-  name: {
-    first: string;
-    last: string;
-  };
-  role: {
-    name: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface User {
-  data: UserData[];
-  message: string;
-}
+import { User, UserData } from "../types/user";
 
 interface ProfileStore {
   user: User | null;
