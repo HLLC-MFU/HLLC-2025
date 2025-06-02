@@ -1,6 +1,7 @@
+import { createRef, useMemo } from 'react';
 import { Button } from '@heroui/button';
 import { Card, CardBody, CardHeader } from '@heroui/react';
-import { CheckCircle, Image, Upload } from 'lucide-react';
+import { CheckCircle, Upload, Image } from 'lucide-react';
 import { Appearance } from '@/types/appearance';
 
 interface AssetsSectionProps {
@@ -20,8 +21,23 @@ export function AssetsSection({
     uploadingAssets,
     savedAssets,
     onFileChange,
-    onSaveAsset
+    onSaveAsset,
 }: AssetsSectionProps) {
+    const assetKeys = Object.keys(appearance.assets).filter(key => key !== 'background');
+
+
+    const fileInputRefs = useMemo(() => {
+        const refs: Record<string, React.RefObject<HTMLInputElement | null>> = {};
+        assetKeys.forEach((key) => {
+            refs[key] = createRef<HTMLInputElement>();
+        });
+        return refs;
+    }, [assetKeys]);
+
+    const handleTriggerUpload = (key: string) => {
+        fileInputRefs[key]?.current?.click();
+    };
+
     return (
         <Card className="shadow-xl">
             <CardHeader>
@@ -29,46 +45,44 @@ export function AssetsSection({
                     <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                         <Image className="w-6 h-6" />
                     </div>
-                    <div className='flex flex-col items-start'>
+                    <div className="flex flex-col items-start">
                         <h2 className="text-xl font-semibold">School Assets</h2>
                         <p className="text-sm">Logo, icons and visual elements</p>
                     </div>
                 </div>
             </CardHeader>
+
             <CardBody className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {["backpack", "appearance"].map((key) => (
+                    {assetKeys.map((key) => (
                         <div key={key} className="space-y-4">
                             <h3 className="font-semibold capitalize text-lg">{key}</h3>
-                            <div className="relative group">
-                                <img
-                                    src={previewUrls[key] || `http://localhost:8080/uploads/${appearance?.assets[key]}`}
-                                    alt={key}
-                                    className="w-full max-w-[200px] mx-auto rounded-xl shadow-lg group-hover:shadow-xl transition-shadow duration-300"
+
+                            <div className="relative max-w-xs mx-auto">
+                                <label htmlFor={`upload-${key}`} className="cursor-pointer block">
+                                    <img
+                                        src={
+                                            previewUrls[key] ||
+                                            `http://localhost:8080/uploads/${appearance.assets[key]}`
+                                        }
+                                        alt={key}
+                                        className="w-full rounded-xl shadow-lg"
+                                    />
+                                </label>
+                                <input
+                                    id={`upload-${key}`}
+                                    ref={fileInputRefs[key]}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) onFileChange(key, file);
+                                    }}
+                                    className="hidden"
                                 />
                             </div>
 
                             <div className="space-y-3">
-                                <div className="relative">
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) onFileChange(key, file);
-                                        }}
-                                        className="hidden"
-                                        id={`${key}-upload`}
-                                    />
-                                    <label
-                                        htmlFor={`${key}-upload`}
-                                        className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer text-sm"
-                                    >
-                                        <Upload className="w-4 h-4 text-gray-400" />
-                                        <span className="text-gray-600">Choose {key}</span>
-                                    </label>
-                                </div>
-
                                 {assetDrafts[key] && (
                                     <>
                                         <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 p-2 rounded">
@@ -100,4 +114,4 @@ export function AssetsSection({
             </CardBody>
         </Card>
     );
-} 
+}

@@ -1,6 +1,5 @@
-import { Photo } from "src/pkg/types/common"
 import { status } from "../enum/status.enum"
-import { IsDate, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
+import { IsDateString, IsNotEmpty, IsNumber, IsObject, IsOptional } from "class-validator";
 
 export class CreateCampaignDto {
 
@@ -17,17 +16,16 @@ export class CreateCampaignDto {
     budget: number;
 
     @IsNotEmpty()
-    @IsObject()
-    image: Photo;
+    image: string;
 
     @IsOptional()
     status: status;
 
     @IsNotEmpty()
-    @IsDate()
+    @IsDateString()
     startAt: Date;
 
     @IsNotEmpty()
-    @IsDate()
+    @IsDateString()
     endAt: Date;
 }

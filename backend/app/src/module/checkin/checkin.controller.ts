@@ -32,7 +32,7 @@ interface RequestWithUser extends Request {
 @Controller('checkin')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class CheckinController {
-  constructor(private readonly checkinService: CheckinService) {}
+  constructor(private readonly checkinService: CheckinService) { }
 
   @Post()
   @Permissions('checkin:create')
@@ -40,11 +40,11 @@ export class CheckinController {
     @Request() req: RequestWithUser,
     @Body() createCheckinDto: CreateCheckinDto,
   ) {
-    if (!req.user.permissions.includes('checkin:create')) {
-      throw new UnauthorizedException(
-        'You do not have permission to create check-ins',
-      );
-    }
+    // if (!req.user.permissions.includes('checkin:create')) {
+    //   throw new UnauthorizedException(
+    //     'You do not have permission to create check-ins',
+    //   );
+    // }
 
     createCheckinDto.staff = req.user._id;
 

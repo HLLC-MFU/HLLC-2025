@@ -4,6 +4,7 @@ import {
   SortOrder,
   UpdateQuery,
   FilterQuery,
+  QueryOptions,
 } from 'mongoose';
 import { PaginatedResponse } from '../interceptors/response.interceptor';
 import {
@@ -234,6 +235,39 @@ export async function queryUpdateOne<T>(
   if (!updated) {
     throw new NotFoundException(`Update failed, id ${id} not found`);
   }
+  return updated as T;
+}
+
+/**
+ * 
+ * @param {Model<HydratedDocument<T>>} model - Mongoose model to query.
+ * @param {FilterQuery<T>} filter - Filter condition to find the document.
+ * @param {UpdateQuery<HydratedDocument<T>>} update - Update query for the document.
+ * @param {QueryOptions} [options={}] - Additional Mongoose update options (e.g., upsert, projection, runValidators).
+ * @returns {Promise<T>} - Updated document as a plain JavaScript object (lean).
+ * @example
+ * const updated = await queryUpdateOneByFilter<User>(
+ *   this.userModel,
+ *   { email: 'test@example.com' },
+ *   { $set: { name: 'Updated' } },
+ *   { upsert: true, runValidators: true }
+ * );
+ */
+export async function queryUpdateOneByFilter<T>(
+  model: Model<HydratedDocument<T>>,
+  filter: FilterQuery<T>,
+  update: UpdateQuery<HydratedDocument<T>>,
+  options: QueryOptions = {},
+): Promise<T> {
+  const updated = await model.findOneAndUpdate(filter, update, {
+    new: true,
+    ...options,
+  }).lean();
+
+  if (!updated) {
+    throw new NotFoundException(`Update failed, filter: ${JSON.stringify(filter)} not found`);
+  }
+
   return updated as T;
 }
 
