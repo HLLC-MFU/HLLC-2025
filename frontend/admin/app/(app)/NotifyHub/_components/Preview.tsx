@@ -34,12 +34,12 @@ export function PreviewApp({ info, lang }: { info: any; lang: 'en' | 'th' }) {
   });
 
   return (
-    <div className="w-full h-full flex bg-cover bg-center bg-[url('/Bg_test1.png')] justify-center items-center rounded-2xl">
+    <div className="w-full h-[400px] flex bg-cover bg-center bg-[url('/Bg_test1.png')] justify-center items-center rounded-2xl">
       <Card className="w-[90%] h-[80%] ">
         <CardHeader className="flex gap-3">
           <div className="flex flex-col w-full">
             <div className="flex flex-row justify-between items-center w-full space-x-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 pr-36">
                 {SelectedIcon && (
                   <SelectedIcon className="w-6 h-6 text-black" />
                 )}
@@ -47,7 +47,7 @@ export function PreviewApp({ info, lang }: { info: any; lang: 'en' | 'th' }) {
                   {info?.title?.[lang] || 'Title'}
                 </p>
               </div>
-              <p className="text-sm text-gray-500 whitespace-nowrap">
+              <p className="absolute top-5 right-5 text-sm text-gray-500 whitespace-nowrap">
                 {dateString} | {timeString}
               </p>
             </div>
@@ -59,7 +59,7 @@ export function PreviewApp({ info, lang }: { info: any; lang: 'en' | 'th' }) {
           </div>
         </CardHeader>
         <Divider />
-        <CardBody className="w-full h-12 relative pt-4 pb-16 pr-24">
+        <CardBody className="relative pt-4 pb-16 pr-24 overflow-auto">
           <div className="pr-8">
             {/* เพิ่ม padding ขวาให้ห่างจากรูป */}
             <p className="whitespace-pre-wrap break-words">

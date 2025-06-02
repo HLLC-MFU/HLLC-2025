@@ -22,31 +22,31 @@ export default function NotiManage() {
 
   console.log('ข้อมูลหน้าบ้าน', infoData);
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-scree">
       <div className="container mx-auto flex justify-between items-center px-4 py-6">
         {/* Heder Text */}
         <div className="flex w-full items-center justify-between ">
           <h1 className="text-3xl font-bold">Notification Management</h1>
         </div>
       </div>
-      <div className="flex flex-row justify-between gap-5 px-4 py-6">
-        <div className="flex px-4 py-6 gap-5 min-h-screen ">
-          <div id="Notification Info" className="flex row-span-2 ">
-            <div className="flex flex-col w-full gap-5">
-              <div className="flex flex-col w-full px-5 py-6 gap-5 bg-white rounded-2xl border border-gray-300 shadow-md">
+      <div className="flex flex-row  px-4 py-6">
+        <div className="flex px-4 py-6 gap-6 min-h-screen w-1/2">
+          <div id="Notification Info" className="flex row-span-2 w-full">
+            <div className="flex flex-col w-full gap-6">
+              <div className="flex flex-col w-full px-5 py-6 gap-6 bg-white rounded-2xl border border-gray-300 shadow-md">
                 <h1 className="text-3xl font-bold ">Preview</h1>
                 <SelectStudent />
               </div>
-              <div className="flex flex-col w-full px-5 py-6 gap-5 bg-white rounded-2xl border border-gray-300 shadow-md">
+              <div className="flex flex-col w-full px-5 py-6 gap-6 bg-white rounded-2xl border border-gray-300 shadow-md">
                 <Informationinfo onChange={setInfoData} />
               </div>
             </div>
           </div>
         </div>
-        <div className="flex flex-col px-4 py-6 gap-5 min-h-screen ">
+        <div className="flex flex-col px-4 py-6 gap-6 w-1/2">
           <div
             id="Preview (Application)"
-            className="flex flex-col bg-white rounded-2xl border border-gray-300  p-6 gap-6 shadow-md items-end"
+            className="flex flex-col bg-white rounded-2xl border border-gray-300 p-6 gap-6 shadow-md items-end"
           >
             <div className="flex flex-row justify-between w-full">
               <h1 className="text-3xl font-bold ">Preview In Application</h1>
@@ -78,7 +78,7 @@ export default function NotiManage() {
           </div>
           <div
             id="Preview (Application)"
-            className="flex flex-col bg-white rounded-2xl border border-gray-300  p-6 gap-6 shadow-md items-end"
+            className="flex flex-col bg-white rounded-2xl border border-gray-300 h-96 p-6 gap-6 shadow-md items-end"
           >
             <div className="flex flex-row justify-between w-full">
               <h1 className="text-3xl font-bold ">Preview Notfication</h1>
