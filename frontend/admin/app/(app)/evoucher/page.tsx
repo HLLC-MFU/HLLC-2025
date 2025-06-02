@@ -62,10 +62,13 @@ const mockupData: Evoucher[] = [
 ];
 
 import { Evoucher } from "@/types/evoucher";
+import AddModal from "./_components/AddModal";
 
 export default function EvoucherPage() {
 
     const [evouchers, setEvouchers] = React.useState<Evoucher[]>([]);
+
+    const [isAddOpen, setIsAddOpen] = React.useState<boolean>(false);
 
     React.useEffect(() => {
         setEvouchers(mockupData);
@@ -77,6 +80,14 @@ export default function EvoucherPage() {
         if (!groupedEvouchers[sponsorName]) groupedEvouchers[sponsorName] = [];
         groupedEvouchers[sponsorName].push(evoucher);
     });
+
+    const handleAdd = () => {
+        return (
+            <div>
+
+            </div>
+        )
+    };
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -100,6 +111,14 @@ export default function EvoucherPage() {
                     </Accordion>
                 </div>
             </div>
+
+            <AddModal
+                title={"Add"}
+                isOpen={isAddOpen}
+                onClose={() => setIsAddOpen(false)}
+                // data={}
+                handleAdd={handleAdd}
+            />
         </div>
     )
 }

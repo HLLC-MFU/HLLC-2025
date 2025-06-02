@@ -1,8 +1,9 @@
 import { Evoucher } from "@/types/evoucher";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from "@heroui/react";
-import { ChevronDownIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Select, SelectItem } from "@heroui/react";
+import { ChevronDownIcon, FileInput, FileOutput, PlusIcon, SearchIcon, Ticket } from "lucide-react";
 import { TableColumnType } from "./TableContent";
-import AddModal from "../../users/_components/AddModal";
+import AddModal from "./AddModal";
+import React from "react";
 
 export interface TopContentProps {
     filterValue: string;
@@ -22,6 +23,7 @@ export interface TopContentProps {
     onNextPage?: () => void;
     onClear: () => void;
     onSearchChange: (value: string) => void;
+    onRowsPerPageChange: (e: any) => void;
 }
 
 export default function TopContent({
@@ -35,16 +37,11 @@ export default function TopContent({
     columns,
     onClear,
     onSearchChange,
+    onRowsPerPageChange,
 }: TopContentProps) {
+
     return (
         <div className="flex flex-col gap-4">
-            <AddModal
-                title="Add Evoucher"
-                isOpen={false}
-                onClose={() => {}}
-                data={[]}
-                onAddUser={() => {}}
-            />
             <div className="flex justify-between gap-3 items-end">
                 <Input
                     isClearable
@@ -98,11 +95,21 @@ export default function TopContent({
                             ))}
                         </DropdownMenu>
                     </Dropdown>
-                    <Button color="primary" endContent={<PlusIcon />}>
-                        Add Evoucher
-                    </Button>
+                    <Dropdown>
+                        <DropdownTrigger>
+                            <Button color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
+                        </DropdownTrigger>
+                        <Button onPress={() => { setIsAddModalOpen(true); }} key="new" startContent={<Ticket size={16} />}>New evoucher</Button>
+                    </Dropdown >
                 </div>
             </div>
+            <label className="flex items-center text-default-400 text-small">
+                <Select className="max-w-xs" label="Rows per page:" defaultSelectedKeys={"5"} variant="underlined" onChange={onRowsPerPageChange}>
+                    <SelectItem key="5">5</SelectItem>
+                    <SelectItem key="10">10</SelectItem>
+                    <SelectItem key="15">15</SelectItem>
+                </Select>
+            </label>
         </div>
     )
 };

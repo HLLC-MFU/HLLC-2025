@@ -61,6 +61,7 @@ export default function TableContent({
     onNextPage,
     onClear,
     onSearchChange,
+    onRowsPerPageChange,
 }: TableContentProps) {
     return (
         <Table
@@ -87,6 +88,7 @@ export default function TableContent({
                 columns={columns}
                 onClear={onClear}
                 onSearchChange={onSearchChange}
+                onRowsPerPageChange={onRowsPerPageChange}
             />}
             topContentPlacement="outside"
             selectedKeys={selectedKeys}

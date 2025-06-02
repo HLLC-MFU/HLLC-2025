@@ -101,7 +101,6 @@ export default function EvoucherTable({
         return filteredItems.slice(start, end);
     }, [page, filteredItems, rowsPerPage]);
 
-
     const sortedItems = React.useMemo(() => {
         return [...items].sort((a: Evoucher, b: Evoucher) => {
             const first = a[sortDescriptor.column as keyof Evoucher] as number;

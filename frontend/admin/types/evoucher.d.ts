@@ -6,19 +6,19 @@ export type Evoucher = {
     acronym: string;
     type: Type;
     sponsor: Sponsor;
-    campaign: Campaign;
+    campaign?: Campaign;
     detail: Lang;
     expiration: Date;
-    photo: Photo;
-    metadata: Record<string, any>;
+    photo?: Photo;
+    metadata?: Record<string, any>;
 };
 
 export type Sponsor = {
     name: Lang;
-    photo: Photo;
-    type: Type;
-    isShow: boolean;
-    metadata: Record<string, any>;
+    photo?: Photo;
+    type?: Type;
+    isShow?: boolean;
+    metadata?: Record<string, any>;
 };
 
 export type Type = {
