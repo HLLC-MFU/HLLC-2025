@@ -37,9 +37,20 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
+  await app.register(multipart, {
+    limits: {
+      fileSize: 500 * 1024,
+    },
+  });
+  app.register(fastifyStatic, {
+    root: path.join(__dirname, '..', 'uploads'),
+    prefix: '/uploads/',
+  });
+
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
 
@@ -53,6 +64,7 @@ async function bootstrap() {
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
+  app.useGlobalFilters(new MongoExceptionFilter());
   // app.useGlobalFilters(new MongoExceptionFilter());
   // app.useGlobalPipes(CustomValidationPipe);
   // app.useGlobalInterceptors(new TransformInterceptor());

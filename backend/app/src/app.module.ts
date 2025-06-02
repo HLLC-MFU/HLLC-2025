@@ -24,6 +24,11 @@ import { MultipartInterceptor } from './pkg/interceptors/multipart.interceptor';
 import { SseModule } from './module/sse/sse.module';
 import { ReportCategoriesModule } from './module/report_categories/report_categories.module';
 import { ReportsModule } from './module/reports/reports.module';
+import { AppearancesModule } from './module/appearances/appearances.module';
+import { SystemStatusModule } from './module/system-status/system-status.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
+import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
 
 @Module({
   imports: [
@@ -64,9 +69,21 @@ import { ReportsModule } from './module/reports/reports.module';
     CampaignsModule,
     NotificationsModule,
     ReportCategoriesModule,
+    SystemStatusModule,
+    AppearancesModule,
     ReportsModule,
     SseModule
   ],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SystemStatusGuard,
+    },
+  ],
+
 })
-export class AppModule {}
+export class AppModule { }
