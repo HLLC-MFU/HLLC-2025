@@ -18,7 +18,7 @@ export class CreateCampaignDto {
 
     @IsNotEmpty()
     @IsObject()
-    image: Photo;
+    photo: Photo;
 
     @IsOptional()
     status: status;

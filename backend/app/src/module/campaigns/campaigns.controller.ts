@@ -13,7 +13,7 @@ export class CampaignsController {
   constructor(private readonly campaignsService: CampaignsService) { }
 
   @Post()
-  @Permissions('campaign:create')
+  @Permissions('campaigns:create')
   @UseInterceptors(new MultipartInterceptor(500))
   async create(@Req() req: FastifyRequest) {
     const dto = req.body as CreateCampaignDto;
@@ -21,6 +21,7 @@ export class CampaignsController {
   }
 
   @Get()
+  @Permissions('campaigns:read')
   findAll(@Query() query: Record<string, string>) {
     return this.campaignsService.findAll(query);
   }
@@ -31,7 +32,7 @@ export class CampaignsController {
   }
 
   @Patch(':id')
-  @Permissions('campaign:update')
+  @Permissions('campaigns:update')
   @UseInterceptors(new MultipartInterceptor(500))
   async update(@Param('id') id: string, @Req() req: FastifyRequest) {
     const dto = req.body as UpdateCampaignDto;
@@ -40,7 +41,7 @@ export class CampaignsController {
   }
 
   @Delete(':id')
-  @Permissions('campaign:delete')
+  @Permissions('campaigns:delete')
   remove(@Param('id') id: string) {
     return this.campaignsService.remove(id);
   }

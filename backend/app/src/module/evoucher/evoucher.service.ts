@@ -67,8 +67,11 @@ export class EvoucherService {
       model: this.evoucherModel,
       query,
       filterSchema: {},
-      buildPopulateFields: () =>
-        Promise.resolve([{ path: 'type' }, { path: 'sponsors' }, { path: 'campaign' }]),
+      populateFields: () => Promise.resolve([
+        { path: 'type' },
+        { path: 'sponsors' },
+        { path: 'campaign' },
+      ]),
     });
   }
 

@@ -158,8 +158,8 @@ export class ActivitiesService {
     const user = await this.usersService.findOne(userId);
     if (!user) return false;
 
-    const userStr = user._id.toString();
-    const majorStr = user.metadata?.major?.toString();
+    const userStr = user.data[0]._id.toString();
+    const majorStr = user.data[0].metadata?.major?.toString();
 
     const userSet = new Set(scope.user?.map((id) => id.toString()));
     if (userSet.has(userStr)) return true;
@@ -185,10 +185,17 @@ export class ActivitiesService {
   }
 
   private normalizeScope(scope: any) {
+    const clean = (list?: string[]) =>
+      (list || [])
+        .map((id) => id?.trim())
+        .filter((id) => id && Types.ObjectId.isValid(id))
+        .map((id) => new Types.ObjectId(id));
+  
     return {
-      major: (scope.major || []).map((id) => new Types.ObjectId(id)),
-      school: (scope.school || []).map((id) => new Types.ObjectId(id)),
-      user: (scope.user || []).map((id) => new Types.ObjectId(id)),
+      major: clean(scope.major),
+      school: clean(scope.school),
+      user: clean(scope.user),
     };
   }
+  
 }

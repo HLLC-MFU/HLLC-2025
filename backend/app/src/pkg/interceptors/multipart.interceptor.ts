@@ -1,18 +1,18 @@
-import { HttpStatus } from "@nestjs/common";
-import { HttpException } from "@nestjs/common";
-import { CallHandler } from "@nestjs/common";
-import { ExecutionContext } from "@nestjs/common";
-import { NestInterceptor } from "@nestjs/common";
-import { Injectable } from "@nestjs/common";
-import { FastifyRequest } from "fastify";
-import { Observable } from "rxjs";
-import { generateFilename, saveFileToUploadDir } from "../config/storage.config";
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { FastifyRequest } from 'fastify';
+import { Observable } from 'rxjs';
+import { generateFilename, saveFileToUploadDir } from '../config/storage.config';
 
 @Injectable()
 export class MultipartInterceptor implements NestInterceptor {
-  constructor(
-    private readonly maxSizeKbs = 256,
-  ) {}
+  constructor(private readonly maxSizeKbs = 256) {}
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     const req = context.switchToHttp().getRequest<FastifyRequest>();
@@ -23,38 +23,59 @@ export class MultipartInterceptor implements NestInterceptor {
     }
 
     const dto: any = {};
-    const name: Record<string, string> = {};
-    const detail: Record<string, string> = {};
-    const photo: Record<string, string> = {};
 
     for await (const part of parts) {
+      const keys = part.fieldname.match(/[^[\]]+/g);
+
+      // ✅ Handle file upload
       if (part.type === 'file') {
-        const keys = part.fieldname.match(/[^[\]]+/g); // e.g., photo[coverPhoto]
         if (!keys || keys.length !== 2 || keys[0] !== 'photo') {
-          throw new HttpException(`Invalid file field "${part.fieldname}"`, HttpStatus.BAD_REQUEST);
+          throw new HttpException(
+            `Invalid file field "${part.fieldname}"`,
+            HttpStatus.BAD_REQUEST,
+          );
         }
 
         const buffer = await part.toBuffer();
         if (buffer.length > this.maxSizeKbs * 1024) {
-          throw new HttpException(`File too large (max ${this.maxSizeKbs}KB)`, HttpStatus.UNPROCESSABLE_ENTITY);
+          throw new HttpException(
+            `File too large (max ${this.maxSizeKbs}KB)`,
+            HttpStatus.UNPROCESSABLE_ENTITY,
+          );
         }
 
         const filename = generateFilename(part.filename);
         saveFileToUploadDir(filename, buffer);
-        photo[keys[1]] = filename;
+
+        dto.photo = dto.photo || {};
+        dto.photo[keys[1]] = filename;
+        continue;
       }
 
+      // ✅ Handle field parsing (supports nested)
       if (part.type === 'field') {
-        const keys = part.fieldname.match(/[^[\]]+/g);
-        if (keys?.[0] === 'name') name[keys[1]] = part.value;
-        else if (keys?.[0] === 'detail') detail[keys[1]] = part.value;
-        else dto[part.fieldname] = part.value;
+        if (!keys) {
+          dto[part.fieldname] = part.value;
+          continue;
+        }
+
+        let target = dto;
+        for (let i = 0; i < keys.length - 1; i++) {
+          const key = keys[i];
+          if (!target[key]) {
+            target[key] = isNaN(Number(keys[i + 1])) ? {} : [];
+          }
+          target = target[key];
+        }
+
+        const lastKey = keys[keys.length - 1];
+        if (Array.isArray(target)) {
+          target.push(part.value);
+        } else {
+          target[lastKey] = part.value;
+        }
       }
     }
-
-    if (Object.keys(name).length) dto.name = name;
-    if (Object.keys(detail).length) dto.detail = detail;
-    if (Object.keys(photo).length) dto.photo = photo;
 
     req.body = dto;
     return next.handle();

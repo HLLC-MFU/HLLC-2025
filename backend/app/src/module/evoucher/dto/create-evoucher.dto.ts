@@ -1,43 +1,43 @@
-import { IsBoolean, IsDate, IsEmpty, IsMongoId, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsDate, IsMongoId, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
 import { Localization, Photo } from "src/pkg/types/common";
 
 export class CreateEvoucherDto {
 
     @IsNumber()
-    @IsEmpty()
+    @IsNotEmpty()
     discount: number;
 
     @IsString()
-    @IsEmpty()
+    @IsNotEmpty()
     acronym: string;
 
     @IsMongoId()
-    @IsEmpty()
+    @IsNotEmpty()
     type: string;
 
     @IsMongoId()
-    @IsEmpty()
+    @IsNotEmpty()
     sponsors: string;
 
     @IsMongoId()
-    @IsEmpty()
+    @IsNotEmpty()
     campaign: string;
 
     @IsDate()
-    @IsEmpty()
+    @IsNotEmpty()
     expiration: Date;
 
     @IsObject()
-    @IsEmpty()
+    @IsNotEmpty()
     detail: Localization;
 
     @IsObject()
-    @IsEmpty()
+    @IsNotEmpty()
     photo: Photo;
 
     @IsBoolean()
-    @IsEmpty()
-    status: boolean;
+    @IsOptional()
+    status?: boolean;
 
     @IsObject()
     @IsOptional()

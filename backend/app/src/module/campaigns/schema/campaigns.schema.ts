@@ -17,7 +17,7 @@ export class Campaign {
     budget: number;
 
     @Prop({ required: true, type: Object })
-    image: Photo
+    photo: Photo
 
     @Prop({ type: String, enum: Object.values(status), default: status.DRAFT })
     status: status.DRAFT | status.ACTIVE | status.COMPLETED

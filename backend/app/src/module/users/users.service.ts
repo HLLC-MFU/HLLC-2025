@@ -10,13 +10,14 @@ import {
   queryDeleteOne,
   queryAll,
   queryFindOne,
+  queryUpdateOne,
 } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from './schemas/user.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
-import { UploadUserDto } from './dto/upload.user.dto';
+import { UserUploadDirectDto } from './dto/upload.user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
@@ -158,7 +159,8 @@ export class UsersService {
       query: q,
       select: 'username name role metadata.major',
       filterSchema: {},
-      buildPopulateFields: () => Promise.resolve([]), // ถ้าไม่ต้อง populate อะไร
+      populateFields: (excluded) =>
+        Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
     });
   }
   
@@ -210,15 +212,15 @@ export class UsersService {
     await user.save();
   }
 
-  async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
+  async upload(uploadUserDto: UserUploadDirectDto[]): Promise<User[]> {
     const users: CreateUserDto[] = await Promise.all(
-      uploadUserDto.users.map(async (userDto) => {
-        const userMajor = userDto.major || uploadUserDto.major;
+      uploadUserDto.map(async (userDto) => {
+        const userMajor = userDto.metadata?.major;
 
         // ✅ Check major existence
-        if (userDto.major) {
+        if (userDto.metadata?.major) {
           const userMajorRecord = await this.majorModel
-            .findById(userDto.major)
+            .findById(userDto.metadata?.major)
             .lean();
           if (!userMajorRecord) {
             throw new NotFoundException('Major in database not found');
@@ -231,13 +233,13 @@ export class UsersService {
             last: userDto.name.last || '',
           },
           fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
-          username: userDto.studentId,
+          username: userDto.username,
           password: '', // initially blank
           secret: '', // initially blank
           major: new Types.ObjectId(userMajor),
-          role: new Types.ObjectId(uploadUserDto.role),
+          role: new Types.ObjectId(userDto.role),
           metadata: {
-            type: uploadUserDto.metadata?.type ?? null,
+            type: userDto.metadata?.type ?? null,
           },
         };
       }),

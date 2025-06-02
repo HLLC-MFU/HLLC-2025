@@ -93,7 +93,7 @@ export class NotificationsService {
       },
     ];
 
-    const ticketChunk = await expo.sendPushNotificationsAsync(messages);
+    const ticketChunk = await expo.sendPushNotificationsAsync(messages) ;
     console.log('Push ticket:', ticketChunk);
   }
 

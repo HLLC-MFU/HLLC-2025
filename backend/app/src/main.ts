@@ -9,10 +9,10 @@ import {
 import compression from '@fastify/compress';
 // import { TransformInterceptor } from './pkg/interceptors/transform.interceptor';
 import cookie from '@fastify/cookie';
-import { MongoExceptionFilter } from './pkg/filters/mongo.filter';
 import { fastifyStatic } from '@fastify/static';
 import path from 'path';
 import multipart from '@fastify/multipart';
+import { CustomValidationPipe } from './pkg/validator/custom-validation.pipe';
 
 async function bootstrap() {
   Logger.log(`Server is running on port ${process.env.PORT ?? 3000}`);
