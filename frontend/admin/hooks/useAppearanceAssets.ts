@@ -8,20 +8,14 @@ interface UseAppearanceAssetsProps {
 }
 
 export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppearanceAssetsProps) {
-    const [assetDrafts, setAssetDrafts] = useState<Record<string, File | null>>({
-        background: null,
-        backpack: null,
-        appearance: null,
-    });
+    const [assetDrafts, setAssetDrafts] = useState<Record<string, File | null>>({});
     const [uploadingAssets, setUploadingAssets] = useState<Record<string, boolean>>({});
     const [savedAssets, setSavedAssets] = useState<Record<string, boolean>>({});
     const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
 
     const handleFileChange = (key: string, file: File) => {
-        setAssetDrafts(prev => ({ ...prev, [key]: file }));
-
-        // Create preview URL
         const url = URL.createObjectURL(file);
+        setAssetDrafts(prev => ({ ...prev, [key]: file }));
         setPreviewUrls(prev => ({ ...prev, [key]: url }));
     };
 
@@ -32,13 +26,10 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
         try {
             const formData = new FormData();
 
-            // Add all assets to formData, keeping existing values for unchanged assets
             Object.entries(appearance.assets).forEach(([assetKey, value]) => {
                 if (assetKey === key && assetDrafts[key]) {
-                    // Use new value for the asset being updated
                     formData.append(`assets[${assetKey}]`, assetDrafts[key]!);
                 } else {
-                    // Keep existing value for other assets
                     formData.append(`assets[${assetKey}]`, value);
                 }
             });
@@ -57,30 +48,24 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
             const json = await res.json();
             const updatedAppearance = json.data;
 
-            // Update appearance state if callback is provided
             if (onAppearanceUpdate) {
                 onAppearanceUpdate(updatedAppearance);
             }
 
-            // Show success state for the updated asset
             setSavedAssets(prev => ({ ...prev, [key]: true }));
+            setAssetDrafts(prev => ({ ...prev, [key]: null }));
+            setPreviewUrls(prev => {
+                const updated = { ...prev };
+                URL.revokeObjectURL(prev[key]);
+                delete updated[key];
+                return updated;
+            });
 
             addToast({
                 title: "Asset updated successfully",
                 color: "success",
             });
 
-            // Clear draft for the updated asset
-            setAssetDrafts(prev => ({ ...prev, [key]: null }));
-
-            // Clear preview URL for the updated asset
-            setPreviewUrls(prev => {
-                const newUrls = { ...prev };
-                delete newUrls[key];
-                return newUrls;
-            });
-
-            // Hide success state after 2 seconds
             setTimeout(() => {
                 setSavedAssets(prev => ({ ...prev, [key]: false }));
             }, 2000);
@@ -97,21 +82,36 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
     const handleCancelAsset = (key: string) => {
         setAssetDrafts(prev => ({ ...prev, [key]: null }));
         setSavedAssets(prev => ({ ...prev, [key]: false }));
-
         setPreviewUrls(prev => {
-            const url = prev[key];
-            if (url) URL.revokeObjectURL(url);
-
             const updated = { ...prev };
-            delete updated[key];
+            if (updated[key]) {
+                URL.revokeObjectURL(updated[key]);
+                delete updated[key];
+            }
             return updated;
         });
     };
 
+    useEffect(() => {
+        if (!appearance?.assets) return;
 
+        const keys = Object.keys(appearance.assets);
+        const draftInit: Record<string, File | null> = {};
+        const uploadingInit: Record<string, boolean> = {};
+        const savedInit: Record<string, boolean> = {};
+
+        keys.forEach(k => {
+            draftInit[k] = null;
+            uploadingInit[k] = false;
+            savedInit[k] = false;
+        });
+
+        setAssetDrafts(draftInit);
+        setUploadingAssets(uploadingInit);
+        setSavedAssets(savedInit);
+    }, [appearance?.assets]);
 
     useEffect(() => {
-        // Cleanup preview URLs
         return () => {
             Object.values(previewUrls).forEach(url => {
                 if (url) URL.revokeObjectURL(url);
@@ -128,4 +128,4 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
         handleSaveAsset,
         handleCancelAsset,
     };
-} 
+}
