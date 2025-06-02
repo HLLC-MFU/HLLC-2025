@@ -3,27 +3,24 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
   queryDeleteOne,
-  queryUpdateOne,
   queryAll,
   queryFindOne,
+  queryUpdateOne,
 } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from './schemas/user.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
-import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { UploadUserDto } from './dto/upload.user.dto';
-import { FlattenMaps } from 'mongoose';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
+import { Logger } from 'winston';
 
 @Injectable()
 export class UsersService {
@@ -34,8 +31,12 @@ export class UsersService {
     private readonly roleModel: Model<RoleDocument>,
     @InjectModel(Major.name)
     private readonly majorModel: Model<MajorDocument>,
-  ) { }
+  ) {}
 
+  /**
+   * Creates a new user.
+   * @param createUserDto - The data to create a new user.
+   */
   async create(createUserDto: CreateUserDto): Promise<User> {
     const role = await this.roleModel.findById(createUserDto.role).lean();
     if (!role) {
@@ -55,9 +56,12 @@ export class UsersService {
   async findAll(query: Record<string, any>) {
     return await queryAll<User>({
       model: this.userModel,
-      query,
+      query: {
+        ...query,
+        excluded: 'password,refreshToken,role.permissions,role.metadataSchema',
+      },
       filterSchema: {},
-      buildPopulateFields: excluded =>
+      populateFields: (excluded) =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
     });
   }
@@ -66,18 +70,56 @@ export class UsersService {
     return queryFindOne<User>(this.userModel, { _id }, []);
   }
 
+  async getUserCountByRoles(): Promise<Record<string, number>> {
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'roles',
+          localField: 'role',
+          foreignField: '_id',
+          as: 'roleData',
+        },
+      },
+      { $unwind: '$roleData' },
+      {
+        $group: {
+          _id: '$roleData.name',
+          count: { $sum: 1 },
+        },
+      },
+    ];
+    console.log('Pipeline:', JSON.stringify(pipeline, null, 2));
+    const result = (await this.userModel.aggregate(pipeline).exec()) as {
+      _id: string;
+      count: number;
+    }[];
+
+    return result.reduce<Record<string, number>>((acc, curr) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+  }
+
   /**
-   * 
-   * @param query 
-   * @returns 
+   *
+   * @param query
+   * @returns
    * example: this.usersService.findOneByQuery({ username });
    */
   async findOneByQuery(query: Partial<User> & { _id?: string }) {
-    return queryFindOne<User>(this.userModel, query, [{
-      path: 'role',
-    }, {
-      path: 'metadata.major', model: 'Major'
-    }]);
+    return queryFindOne<User>(this.userModel, query, [
+      {
+        path: 'role',
+      },
+      {
+        path: 'metadata.major',
+        model: 'Major',
+        populate: {
+          path: 'school',
+          model: 'School',
+        },
+      },
+    ]);
   }
 
   async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
@@ -95,11 +137,9 @@ export class UsersService {
       validateMetadataSchema(updateUserDto.metadata, role.metadataSchema);
     }
 
-    const updatedUser = await this.userModel.findByIdAndUpdate(
-      userId,
-      { $set: updateUserDto },
-      { new: true },
-    ).lean();
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(userId, { $set: updateUserDto }, { new: true })
+      .lean();
 
     return updatedUser as User;
   }
@@ -127,7 +167,7 @@ export class UsersService {
 
   async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
     const users: CreateUserDto[] = await Promise.all(
-      uploadUserDto.users.map(async userDto => {
+      uploadUserDto.users.map(async (userDto) => {
         const userMajor = userDto.major || uploadUserDto.major;
 
         // ✅ Check major existence
@@ -160,18 +200,43 @@ export class UsersService {
 
     try {
       const savedUsers = await Promise.all(
-        users.map(async user => {
+        users.map(async (user) => {
           const userDoc = new this.userModel(user);
           return await userDoc.save();
         }),
       );
 
-      return savedUsers.map(user => user.toObject());
+      return savedUsers.map((user) => user.toObject());
     } catch (error) {
       if (error.code === 11000) {
         throw new ConflictException('Username already exists');
       }
       throw error;
     }
+  }
+
+  async registerDeviceToken(
+    id: string,
+    registerTokenDto: Record<string, string>,
+  ) {
+    await findOrThrow(this.userModel, id, 'User not found');
+
+    const token = registerTokenDto.deviceToken;
+
+    return await queryUpdateOne(this.userModel, id, {
+      $addToSet: { 'metadata.deviceTokens': token },
+    });
+  }
+
+  async removeDeviceToken(id: string, deviceToken: string) {
+    await findOrThrow(this.userModel, id, 'User not found');
+
+    if (!deviceToken) {
+      throw new BadRequestException('Token is required');
+    }
+
+    return await queryUpdateOne(this.userModel, id, {
+      $pull: { 'metadata.deviceTokens': deviceToken },
+    });
   }
 }

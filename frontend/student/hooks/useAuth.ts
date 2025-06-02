@@ -17,7 +17,7 @@ interface TokenResponse {
 interface AuthStore {
   loading: boolean;
   error: string | null;
-  signIn: (username: string, password: string) => Promise<void>;
+  signIn: (username: string, password: string) => Promise<boolean>;
   signOut: () => void;
   refreshSession: () => Promise<boolean>;
 }
@@ -43,24 +43,23 @@ const useAuth = create<AuthStore>()(
             await saveToken('refreshToken', res.data.tokens.refreshToken);
             const { getProfile } = useProfile.getState();
             const user = await getProfile();
-            console.log('Profile fetched:', user);
             if (user) {
-              console.log('Navigating to home...');
-              router.replace('/');
-            } else {
-              console.log('No user profile, navigation cancelled');
+              router.replace("/");
+              return true; // ✅ Login successful
             }
-          } else {
-            set({ error: res.message });
-            alert('Login failed!');
           }
+
+          set({ error: res.message });
+          return false; // ❌ Login failed
         } catch (err) {
           console.error('Login error:', err);
           set({ error: (err as Error).message });
+          return false; // ❌ Login failed
         } finally {
           set({ loading: false });
         }
       },
+
 
       signOut: () => {
         removeToken('accessToken');

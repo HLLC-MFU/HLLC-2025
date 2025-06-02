@@ -6,3 +6,8 @@ export interface UserRequest extends FastifyRequest {
     // ใส่ field อื่นๆ ของ user ที่คุณต้องการ (username, role, etc.)
   };
 }
+
+export type RoleCountResult = {
+  _id: string; // role name
+  count: number;
+};
