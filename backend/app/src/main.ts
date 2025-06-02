@@ -47,10 +47,12 @@ async function bootstrap() {
     .setTitle('HLLC API Documentation')
     .setDescription('API Documentation for the application')
     .setVersion('1.0')
+
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
   // app.useGlobalFilters(new MongoExceptionFilter());
+  app.useGlobalPipes(CustomValidationPipe);
   // app.useGlobalInterceptors(new TransformInterceptor());
   void app.listen(process.env.PORT ?? 3000);
 }

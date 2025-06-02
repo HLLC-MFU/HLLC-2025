@@ -59,10 +59,14 @@ export class UsersService {
   async findAll(query: Record<string, any>) {
     return await queryAll<User>({
       model: this.userModel,
-      query,
+      query: {
+        ...query,
+        excluded: 'password,refreshToken,role.permissions,role.metadataSchema'
+      },
       filterSchema: {},
-      buildPopulateFields: (excluded) =>
+      populateFields: (excluded) =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
+      
     });
   }
 
@@ -256,26 +260,34 @@ export class UsersService {
     }
   }
 
-  // async getUserScopeIds(userId: string) {
-  //   const user = await this.userModel.findById(userId).lean();
-  //   if (!user) return null;
+  async registerDeviceToken(id: string, registerTokenDto: Record<string, string>) {
+    await findOrThrow(this.userModel, id, 'User not found');
 
-  //   const majorId = user.metadata?.major;
-  //   let schoolId: string | undefined = undefined;
+    const token = registerTokenDto.deviceToken;
 
-  //   if (majorId) {
-  //     const major = await this.majorModel.findById(majorId).lean();
-  //     schoolId = major?.school?.toString();
-  //   }
+    return await queryUpdateOne(
+      this.userModel,
+      id,
+      {
+        $addToSet: { 'metadata.deviceTokens': token },
+      },
+    );
+  }
 
-  //   return {
-  //     userId: user._id.toString(),
-  //     majorId: majorId?.toString(),
-  //     schoolId,
-  //     role: user.role?.toString(),
-  //   };
-  // }
-  
-  
-  
+  async removeDeviceToken(id: string, deviceToken: string) {
+    await findOrThrow(this.userModel, id, 'User not found');
+
+    if (!deviceToken) {
+      throw new BadRequestException('Token is required');
+    }
+    
+    return await queryUpdateOne(
+      this.userModel,
+      id,
+      {
+        $pull: { 'metadata.deviceTokens': deviceToken },
+      }
+    );
+  }
+
 }
