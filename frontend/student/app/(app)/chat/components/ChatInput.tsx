@@ -28,7 +28,7 @@ interface ChatInputProps {
   showStickerPicker: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({
+const ChatInput = ({
   messageText,
   setMessageText,
   handleSendMessage,
@@ -39,7 +39,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   inputRef,
   setShowStickerPicker,
   showStickerPicker,
-}) => {
+}: ChatInputProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const anim = useRef(new Animated.Value(0)).current;
   const hasText = messageText.trim().length > 0;

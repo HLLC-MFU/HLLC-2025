@@ -107,31 +107,31 @@ const EnhancedRoomCard = ({
 
     if (isFeatured) {
       return {
-        primary: [`hsl(${45}, 100%, 60%)`, `hsl(${30}, 100%, 50%)`], // Gold gradient
-        secondary: [`hsl(${45}, 80%, 70%)`, `hsl(${30}, 80%, 60%)`],
-        accent: '#FFD700',
-        textShadow: 'rgba(255, 215, 0, 0.3)'
+        primary: ['#a5b4fc', '#f0f4ff'], // ฟ้า-ขาว
+        secondary: ['#c7d2fe', '#e0e7ff'],
+        accent: '#6366f1',
+        textShadow: 'rgba(99,102,241,0.15)'
       };
     } else if (isActive && isPopular) {
       return {
-        primary: [`hsl(${baseHue}, 85%, 55%)`, `hsl(${baseHue + 40}, 75%, 45%)`],
-        secondary: [`hsl(${baseHue + 20}, 70%, 65%)`, `hsl(${baseHue - 20}, 70%, 55%)`],
-        accent: `hsl(${baseHue}, 80%, 60%)`,
-        textShadow: `hsla(${baseHue}, 70%, 30%, 0.5)`
+        primary: ['#a5b4fc', '#f0f4ff'],
+        secondary: ['#c7d2fe', '#e0e7ff'],
+        accent: '#6366f1',
+        textShadow: 'rgba(99,102,241,0.12)'
       };
     } else if (isActive) {
       return {
-        primary: [`hsl(${baseHue}, 70%, 50%)`, `hsl(${baseHue + 30}, 60%, 40%)`],
-        secondary: [`hsl(${baseHue + 15}, 60%, 60%)`, `hsl(${baseHue - 15}, 60%, 50%)`],
-        accent: `hsl(${baseHue}, 70%, 55%)`,
-        textShadow: `hsla(${baseHue}, 60%, 25%, 0.4)`
+        primary: ['#dbeafe', '#f0f4ff'],
+        secondary: ['#c7d2fe', '#e0e7ff'],
+        accent: '#60a5fa',
+        textShadow: 'rgba(96,165,250,0.10)'
       };
     } else {
       return {
-        primary: [`hsl(${baseHue}, 40%, 35%)`, `hsl(${baseHue + 20}, 35%, 25%)`],
-        secondary: [`hsl(${baseHue + 10}, 35%, 45%)`, `hsl(${baseHue - 10}, 35%, 35%)`],
-        accent: `hsl(${baseHue}, 45%, 40%)`,
-        textShadow: `hsla(${baseHue}, 40%, 20%, 0.3)`
+        primary: ['#f0f4ff', '#e0e7ff'],
+        secondary: ['#e0e7ff', '#f0f4ff'],
+        accent: '#a5b4fc',
+        textShadow: 'rgba(165,180,252,0.10)'
       };
     }
   }, [room.id, room.activity_score, room.members, room.featured]);
@@ -265,9 +265,15 @@ const EnhancedRoomCard = ({
           
           {/* Room info */}
           <View style={styles.roomInfo}>
-            <Text style={[styles.roomCardName, { textShadowColor: roomTheme.textShadow }]} numberOfLines={1}>
+            <Text style={[styles.roomCardName, { textShadowColor: roomTheme.textShadow }]} numberOfLines={1} ellipsizeMode="tail">
               {language === 'th' ? room.name?.th || 'ไม่มีชื่อ' : room.name?.en || 'Unnamed'}
             </Text>
+            {/* Category/Tag */}
+            {room.category && (
+              <View style={styles.categoryTagContainer}>
+                <Text style={styles.categoryTagText} numberOfLines={1} ellipsizeMode="tail">{room.category}</Text>
+              </View>
+            )}
             
             {/* Member stats with progress bar */}
             <View style={styles.memberStatsContainer}>
@@ -340,14 +346,16 @@ const styles = StyleSheet.create({
   },
   roomCard: {
     position: 'relative',
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
-    elevation: 12,
-    shadowColor: '#000',
+    elevation: 8,
+    shadowColor: '#a5b4fc',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    height: 200,
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    height: 210,
+    backgroundColor: '#f8fafc',
+    marginBottom: 8,
   },
   roomCardGradient: {
     position: 'absolute',
@@ -384,10 +392,10 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   featuredBadge: {
-    backgroundColor: 'rgba(255, 215, 0, 0.9)',
+    backgroundColor: '#6366f1',
   },
   trendBadge: {
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    backgroundColor: '#60a5fa',
   },
   badgeText: {
     color: '#fff',
@@ -395,7 +403,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   roomCardContent: {
-    padding: 16,
+    padding: 14,
     flex: 1,
     justifyContent: 'space-between',
     zIndex: 1,
@@ -442,10 +450,13 @@ const styles = StyleSheet.create({
   roomCardName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#22223b',
     textAlign: 'center',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+    marginBottom: 2,
+    maxWidth: 120,
+    alignSelf: 'center',
   },
   memberStatsContainer: {
     gap: 4,
@@ -507,6 +518,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
     borderRadius: 12,
     overflow: 'hidden',
+    backgroundColor: '#6366f1',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
   },
   joinButtonGradient: {
     flexDirection: 'row',
@@ -527,6 +543,23 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
+  },
+  categoryTagContainer: {
+    alignSelf: 'center',
+    backgroundColor: '#e0e7ff',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginTop: 2,
+    marginBottom: 2,
+    maxWidth: 100,
+  },
+  categoryTagText: {
+    color: '#6366f1',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    maxWidth: 90,
   },
 });
 
