@@ -38,7 +38,7 @@ export class ReportsService {
 
     @InjectModel(ReportCategory.name)
     private readonly categoryModel: Model<ReportCategoryDocument>,
-  ) {}
+  ) { }
 
   async create(createReportDto: CreateReportDto) {
     await findOrThrow(
@@ -83,49 +83,49 @@ export class ReportsService {
   }
 
   async findAll(query: Record<string, string>) {
-    return queryAll<Report>({
-      model: this.reportModel,
-      query,
-      filterSchema: {},
-      buildPopulateFields: () =>
-        Promise.resolve([
-          { path: 'reporter', select: userSelectFields },
-          { path: 'category' },
-        ]),
-    });
-  }
+  return queryAll<Report>({
+    model: this.reportModel,
+    query,
+    filterSchema: {},
+    populateFields: async () => [
+      { path: 'reporter', select: userSelectFields },
+      { path: 'category' },
+    ],
+  });
+}
+
 
   async findAllByCategory(categoryId: string) {
-    const query = {
-      category: new Types.ObjectId(categoryId),
-    };
+  const query = {
+    category: new Types.ObjectId(categoryId),
+  };
 
-    const result = await queryAll<Report>({
-      model: this.reportModel,
-      query: query as unknown as Record<string, string>,
-      filterSchema: {
-        category: 'string',
-      } as const,
-      buildPopulateFields: () =>
-        Promise.resolve([
-          { path: 'reporter', select: userSelectFields },
-          { path: 'category' },
-        ]),
-    });
+  const result = await queryAll<Report>({
+    model: this.reportModel,
+    query: query as unknown as Record<string, string>,
+    filterSchema: {
+      category: 'string',
+    } as const,
+    populateFields: async () => [
+      { path: 'reporter', select: userSelectFields },
+      { path: 'category' },
+    ],
+  });
 
-    const reportsWithoutCategory = result.data.map(
-      ({ category, ...rest }) => rest,
-    );
+  const reportsWithoutCategory = result.data.map(
+    ({ category, ...rest }) => rest,
+  );
 
-    const category =
-      result.data[0]?.category ||
-      (await this.categoryModel.findById(categoryId));
+  const category =
+    result.data[0]?.category ||
+    (await this.categoryModel.findById(categoryId));
 
-    return {
-      category,
-      reports: reportsWithoutCategory,
-    };
-  }
+  return {
+    category,
+    reports: reportsWithoutCategory,
+  };
+}
+
 
   async findOne(id: string) {
     const populateFields: PopulateField[] = [
@@ -165,12 +165,12 @@ export class ReportsService {
   }
 
   async remove(id: string): Promise<{ message: string; deletedId: string }> {
-  await queryDeleteOne<Report>(this.reportModel, id);
+    await queryDeleteOne<Report>(this.reportModel, id);
 
-  return {
-    message: 'Report deleted successfully',
-    deletedId: id,
-  };
-}
+    return {
+      message: 'Report deleted successfully',
+      deletedId: id,
+    };
+  }
 
 }
