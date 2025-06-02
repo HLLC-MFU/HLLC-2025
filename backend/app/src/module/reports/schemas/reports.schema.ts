@@ -16,6 +16,7 @@ export class Report {
 
   @Prop({ required: true, maxlength: 50 , default: 'pending'})
   status: string;
+  
 }
 
 export const ReportSchema = SchemaFactory.createForClass(Report);

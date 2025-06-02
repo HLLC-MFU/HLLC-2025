@@ -17,5 +17,7 @@ massage: string;
 @IsString()
 @IsNotEmpty()
 status: string;
+
+createdAt: Date;
 }
 
