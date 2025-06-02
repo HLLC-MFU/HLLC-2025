@@ -47,8 +47,6 @@ export class CreateNotificationDto {
   @Type(() => RedirectButtonDto)
   redirectButton?: RedirectButtonDto;
 
-//   @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => TargetDto)
+  @IsNotEmpty()
   scope: 'global' | TargetDto[];
 }

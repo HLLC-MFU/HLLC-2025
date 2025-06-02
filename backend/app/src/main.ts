@@ -9,6 +9,7 @@ import {
 import compression from '@fastify/compress';
 import multipart from '@fastify/multipart';
 import cookie from '@fastify/cookie';
+import { CustomValidationPipe } from './pkg/validator/custom-validation.pipe';
 import { MongoExceptionFilter } from './pkg/filters/mongo.filter';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
@@ -25,6 +26,7 @@ async function bootstrap() {
     encodings: ['gzip', 'deflate'],
     threshold: 1024,
   });
+
 
   await app.register(multipart, {
     limits: {
@@ -46,9 +48,12 @@ async function bootstrap() {
     .setTitle('HLLC API Documentation')
     .setDescription('API Documentation for the application')
     .setVersion('1.0')
+
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
+  // app.useGlobalFilters(new MongoExceptionFilter());
+  app.useGlobalPipes(CustomValidationPipe);
   app.useGlobalFilters(new MongoExceptionFilter());
   app.useGlobalPipes(CustomValidationPipe);
   // app.useGlobalInterceptors(new TransformInterceptor());

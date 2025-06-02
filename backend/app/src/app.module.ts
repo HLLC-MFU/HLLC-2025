@@ -11,9 +11,11 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { GlobalCacheModule } from './pkg/cache/cache.module';
 import { ActivitiesModule } from './module/activities/activities.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
+import { NotificationsModule } from './module/notifications/notifications.module';
 import * as redisStore from 'cache-manager-ioredis';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesMajorModule } from './module/activities-major/activities-major.module';
+import { SseModule } from './module/sse/sse.module';
 import { SystemStatusModule } from './module/system-status/system-status.module';
 import { APP_GUARD } from '@nestjs/core';
 import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
@@ -53,6 +55,8 @@ import { SseModule } from './module/sse/sse.module';
     AuthModule,
     GlobalCacheModule,
     ActivitiesMajorModule,
+    NotificationsModule,
+    SseModule,
     SystemStatusModule,
     AppearancesModule,
     CampaignsModule,

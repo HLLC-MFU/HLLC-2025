@@ -1,144 +1,187 @@
-"use client";
-import { useMemo, useState } from "react";
-import { SchoolList } from "./_components/SchoolList";
-import { SchoolFilters } from "./_components/SchoolFilters";
-import { SchoolModal } from "./_components/SchoolModal";
-import { DeleteConfirmationModal } from "./_components/DeleteConfirmationModal";
-import { useSchools } from "@/hooks/useSchool";
-import { School } from "@/types/school";
+'use client';
+import { useMemo, useState } from 'react';
+import { addToast } from '@heroui/react';
+
+import { SchoolList } from './_components/SchoolList';
+import { SchoolFilters } from './_components/SchoolFilters';
+import { SchoolModal } from './_components/SchoolModal';
+
+import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
+import { useSchools } from '@/hooks/useSchool';
+import { School } from '@/types/school';
 
 export default function SchoolsPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<string>("name");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedSchool, setSelectedSchool] = useState<School | undefined>();
-  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
+	const [searchQuery, setSearchQuery] = useState('');
+	const [sortBy, setSortBy] = useState<string>('name');
+	const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [selectedSchool, setSelectedSchool] = useState<
+		School | Partial<School> | undefined
+	>();
+	const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+	const [confirmationModalType, setConfirmationModalType] = useState<
+		'delete' | 'edit' | null
+	>(null);
 
-  const { schools, loading, createSchool, updateSchool, deleteSchool } = useSchools();
+	const { schools, loading, createSchool, updateSchool, deleteSchool } =
+		useSchools();
 
-  const filteredAndSortedSchools = useMemo(() => {
-    if (!schools) return [];
+	const filteredAndSortedSchools = useMemo(() => {
+		if (!schools) return [];
 
-    let filtered = schools;
-    if (searchQuery.trim() !== "") {
-      const lower = searchQuery.toLowerCase();
-      filtered = schools.filter(
-        (s) =>
-          s.name?.en?.toLowerCase().includes(lower) ||
-          s.name?.th?.toLowerCase().includes(lower) ||
-          s.acronym?.toLowerCase().includes(lower)
-      );
-    }
+		let filtered = schools;
 
-    return filtered.sort((a, b) => {
-      let comparison = 0;
-      switch (sortBy) {
-        case "name": {
-          const nameA = a.name?.en ?? "";
-          const nameB = b.name?.en ?? "";
-          comparison = nameA.localeCompare(nameB);
-          break;
-        }
-        case "acronym": {
-          const acronymA = a.acronym ?? "";
-          const acronymB = b.acronym ?? "";
-          comparison = acronymA.localeCompare(acronymB);
-          break;
-        }
-        case "majors": {
-          const majorsA = a.majors?.length ?? 0;
-          const majorsB = b.majors?.length ?? 0;
-          comparison = majorsA - majorsB;
-          break;
-        }
-      }
-      return sortDirection === "asc" ? comparison : -comparison;
-    });
-  }, [schools, searchQuery, sortBy, sortDirection]);
+		if (searchQuery.trim() !== '') {
+			const lower = searchQuery.toLowerCase();
 
-  const toggleSortDirection = () => {
-    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-  };
+			filtered = schools.filter(
+				(s) =>
+					s.name?.en?.toLowerCase().includes(lower) ||
+					s.name?.th?.toLowerCase().includes(lower) ||
+					s.acronym?.toLowerCase().includes(lower),
+			);
+		}
 
-  const handleAddSchool = () => {
-    setModalMode("add");
-    setSelectedSchool(undefined);
-    setIsModalOpen(true);
-  };
+		return filtered.sort((a, b) => {
+			let comparison = 0;
 
-  const handleEditSchool = (school: School) => {
-    setModalMode("edit");
-    setSelectedSchool(school);
-    setIsModalOpen(true);
-  };
+			switch (sortBy) {
+				case 'name':
+					comparison = (a.name?.en ?? '').localeCompare(b.name?.en ?? '');
+					break;
+				case 'acronym':
+					comparison = (a.acronym ?? '').localeCompare(b.acronym ?? '');
+					break;
+				case 'majors':
+					comparison = (a.majors?.length ?? 0) - (b.majors?.length ?? 0);
+					break;
+			}
 
-  const handleDeleteSchool = (school: School) => {
-    setSelectedSchool(school);
-    setIsDeleteModalOpen(true);
-  };
+			return sortDirection === 'asc' ? comparison : -comparison;
+		});
+	}, [schools, searchQuery, sortBy, sortDirection]);
 
-  const handleConfirmDelete = () => {
-    if (selectedSchool) {
-      deleteSchool(selectedSchool._id);
-      setSelectedSchool(undefined);
-      setIsDeleteModalOpen(false);
-    }
-  };
+	const toggleSortDirection = () => {
+		setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+	};
 
-  const handleSubmitSchool = (schoolData: Partial<School>) => {
-    if (selectedSchool && selectedSchool._id) {
-      updateSchool(selectedSchool._id, schoolData);
-    } else {
-      createSchool(schoolData);
-    }
-    setIsModalOpen(false);
-  };
+	const handleAddSchool = () => {
+		setModalMode('add');
+		setSelectedSchool(undefined);
+		setIsModalOpen(true);
+	};
 
-  return (
+	const handleEditSchool = (school: School) => {
+		setModalMode('edit');
+		setSelectedSchool(school);
+		setIsModalOpen(true);
+	};
 
-      <div className="flex flex-col min-h-screen">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold">Schools & Majors Management</h1>
-          </div>
-          <div className="flex flex-col gap-6">
-            <SchoolFilters
-              searchQuery={searchQuery}
-              onSearchQueryChange={setSearchQuery}
-              sortBy={sortBy}
-              sortDirection={sortDirection}
-              onSortByChange={setSortBy}
-              onSortDirectionToggle={toggleSortDirection}
-              onAddSchool={handleAddSchool}
-            />
-            {schools?.length === 0 && !loading && (
-              <p className="text-center text-sm text-default-500">
-                No schools found. Please add a new school.
-              </p>
-            )}
-            <SchoolList
-              schools={filteredAndSortedSchools}
-              isLoading={loading}
-              onEditSchool={handleEditSchool}
-              onDeleteSchool={handleDeleteSchool}
-            />
-          </div>
-        </div>
-        <SchoolModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSuccess={handleSubmitSchool}
-          school={selectedSchool}
-          mode={modalMode}
-        />
-        <DeleteConfirmationModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onConfirm={handleConfirmDelete}
-          school={selectedSchool}
-        />
-      </div>
-  );
+	const handleDeleteSchool = (school: School) => {
+		setSelectedSchool(school);
+		setConfirmationModalType('delete');
+	};
+
+	const handleSubmitSchool = (schoolData: Partial<School>) => {
+		if (selectedSchool && ' _id' in selectedSchool && selectedSchool._id) {
+			setSelectedSchool({ ...selectedSchool, ...schoolData });
+			setConfirmationModalType('edit');
+		} else {
+			createSchool(schoolData);
+			addToast({
+				title: 'School added successfully!',
+				color: 'success',
+			});
+		}
+		setIsModalOpen(false);
+	};
+
+	const handleConfirm = () => {
+		if (
+			confirmationModalType === 'delete' &&
+			selectedSchool &&
+			selectedSchool._id
+		) {
+			deleteSchool(selectedSchool._id);
+			addToast({
+				title: 'School deleted successfully!',
+				color: 'success',
+			});
+		} else if (
+			confirmationModalType === 'edit' &&
+			selectedSchool &&
+			selectedSchool._id
+		) {
+			updateSchool(selectedSchool._id, selectedSchool);
+			addToast({
+				title: 'School updated successfully!',
+				color: 'success',
+			});
+		}
+		setConfirmationModalType(null);
+		setSelectedSchool(undefined);
+	};
+
+	return (
+		<div className="flex flex-col min-h-screen">
+			<div className="container mx-auto px-4">
+				<div className="flex items-center justify-between mb-8">
+					<h1 className="text-3xl font-bold">Schools & Majors Management</h1>
+				</div>
+				<div className="flex flex-col gap-6">
+					<SchoolFilters
+						searchQuery={searchQuery}
+						sortBy={sortBy}
+						sortDirection={sortDirection}
+						onAddSchool={handleAddSchool}
+						onSearchQueryChange={setSearchQuery}
+						onSortByChange={setSortBy}
+						onSortDirectionToggle={toggleSortDirection}
+					/>
+					{schools?.length === 0 && !loading && (
+						<p className="text-center text-sm text-default-500">
+							No schools found. Please add a new school.
+						</p>
+					)}
+					<SchoolList
+						isLoading={loading}
+						schools={filteredAndSortedSchools}
+						onDeleteSchool={handleDeleteSchool}
+						onEditSchool={handleEditSchool}
+					/>
+				</div>
+			</div>
+
+			<SchoolModal
+				isOpen={isModalOpen}
+				mode={modalMode}
+				school={
+					selectedSchool && '_id' in selectedSchool
+						? (selectedSchool as School)
+						: undefined
+				}
+				onClose={() => setIsModalOpen(false)}
+				onSuccess={handleSubmitSchool}
+			/>
+
+			<ConfirmationModal
+				body={
+					confirmationModalType === 'edit'
+						? `Are you sure you want to save the changes for "${selectedSchool?.name?.en}"?`
+						: `Are you sure you want to delete the school "${selectedSchool?.name?.en}"? The related majors in this school will be deleted. This action cannot be undone.`
+				}
+				confirmColor={confirmationModalType === 'edit' ? 'primary' : 'danger'}
+				confirmText={confirmationModalType === 'edit' ? 'Save' : 'Delete'}
+				isOpen={confirmationModalType !== null}
+				title={
+					confirmationModalType === 'edit' ? 'Save School' : 'Delete School'
+				}
+				onClose={() => {
+					setConfirmationModalType(null);
+					setSelectedSchool(undefined);
+				}}
+				onConfirm={handleConfirm}
+			/>
+		</div>
+	);
 }
