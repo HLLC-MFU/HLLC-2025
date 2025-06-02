@@ -63,12 +63,6 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  // @Get('activities/users')
-  // findUsersByMetadata(@Req() req: FastifyRequest) {
-  //   const userId = req.user?._id || req.user?.id;
-  //   return this.usersService.getUserScopeIds(userId);
-  // }
-
   @Post('upload')
   @Permissions('users:create')
   upload(@Body() uploadUserDto: UploadUserDto) {
