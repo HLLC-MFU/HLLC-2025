@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateSponsorDto } from './dto/create-sponsor.dto';
 import { UpdateSponsorDto } from './dto/update-sponsor.dto';
 import { SponsorsDocument } from './schema/sponsors.schema';
@@ -7,9 +7,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Sponsors } from './schema/sponsors.schema';
 import { SponsorsType } from '../sponsors-type/schema/sponsors-type.schema';
 import { SponsorsTypeDocument } from '../sponsors-type/schema/sponsors-type.schema';
-import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { queryAll, queryFindOne } from 'src/pkg/helper/query.util';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class SponsorsService {
@@ -35,7 +35,11 @@ export class SponsorsService {
       type: new Types.ObjectId(createSponsorDto.type)
     })
 
-    return await newSponsor.save();
+    try {
+      return await newSponsor.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name');
+    }
   }
 
   async findAll(query: Record<string, any>) {
@@ -43,7 +47,7 @@ export class SponsorsService {
       model: this.sponsorsModel,
       query,
       filterSchema: {},
-      buildPopulateFields: excluded =>
+      populateFields: excluded =>
         Promise.resolve(excluded.includes('type') ? [] : [{ path: 'type' }]),
     })
   }

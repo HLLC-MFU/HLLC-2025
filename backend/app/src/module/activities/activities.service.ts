@@ -47,6 +47,7 @@ export class ActivitiesService {
       ...query,
       'metadata.isVisible': true,
       'metadata.isOpen': true,
+      excluded: 'metadata.scope.user.password,metadata.scope.user.refreshToken,metadata.scope.user.role,metadata.scope.user.metadata,metadata.scope.user.__v,__v'
     };
 
     const activities = await this.activitiesModel.find(baseQuery)
@@ -79,11 +80,19 @@ export class ActivitiesService {
   }
 
   async findAllForAdmin(query: Record<string, string>) {
-    return this.activitiesModel.find(query).lean();
+    return this.activitiesModel.find({
+      ...query,
+      excluded: 'metadata.scope.user.password,metadata.scope.user.refreshToken,metadata.scope.user.role,metadata.scope.user.metadata,metadata.scope.user.__v,__v'
+    }).lean();
   }
   
   async findOne(id: string, userId?: string) {
-    const activity = await this.activitiesModel.findById(id).lean();
+    const query = {
+      _id: id,
+      excluded: 'metadata.scope.user.password,metadata.scope.user.refreshToken,metadata.scope.user.role,metadata.scope.user.metadata,metadata.scope.user.__v,__v'
+    };
+
+    const activity = await this.activitiesModel.findOne(query).lean();
     if (!activity) throw new NotFoundException('Activity not found');
 
     if (!userId) {
@@ -109,7 +118,7 @@ export class ActivitiesService {
     }
 
     try {
-      return await this.activitiesModel.findById(id).lean();
+      return await this.activitiesModel.findOne(query).lean();
     } catch (error) {
       handleMongoDuplicateError(error, 'name');
     }

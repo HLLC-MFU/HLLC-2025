@@ -67,7 +67,7 @@ export class EvoucherCodeService {
       model: this.evoucherCodeModel,
       query,
       filterSchema: {},
-      buildPopulateFields: excluded =>
+      populateFields: excluded =>
         Promise.resolve(excluded.includes('evoucher') ? [] : [{ path: 'evoucher' }]),
     });
   }
@@ -89,7 +89,7 @@ async findAllByQuery(query: Partial<EvoucherCode>) {
     model: this.evoucherCodeModel,
     query: query as Record<string, string>,
     filterSchema: {},
-    buildPopulateFields: () =>
+    populateFields: () =>
       Promise.resolve([{ path: 'evoucher' }, { path: 'user' }]),
   });
 }
@@ -215,16 +215,14 @@ async getExistsEvoucherCodes(userId: string): Promise<{ evoucher: Evoucher; exis
       handleMongoDuplicateError(error, 'code');
     }
   }
-  
-  
 
-  // async checkVoucherUsage(userId: string, evoucherId: string): Promise<boolean> {
-  //   const usedVoucher = await this.evoucherCodeModel.findOne({
-  //     'metadata.user': userId,
-  //     'metadata.evoucher': evoucherId,
-  //     isUsed: true
-  //   });
+  async checkVoucherUsage(user: string, evoucher: string): Promise<boolean> {
+    const usedVoucher = await this.evoucherCodeModel.findOne({
+      user: user,
+      evoucher: evoucher,
+      isUsed: true
+    });
     
-  //   return !!usedVoucher;
-  // }
+    return !!usedVoucher;
+  }
 }
