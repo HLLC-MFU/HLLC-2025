@@ -28,15 +28,8 @@ export class MultipartInterceptor implements NestInterceptor {
     for await (const part of parts) {
       const keys = part.fieldname.match(/[^[\]]+/g);
 
-      // ✅ Handle file upload
+      // Handle file upload
       if (part.type === 'file') {
-        if (!keys || keys.length !== 2 || keys[0] !== 'photo') {
-          throw new HttpException(
-            `Invalid file field "${part.fieldname}"`,
-            HttpStatus.BAD_REQUEST,
-          );
-        }
-
         const buffer = await part.toBuffer();
         if (buffer.length > this.maxSizeKbs * 1024) {
           throw new HttpException(
@@ -48,12 +41,27 @@ export class MultipartInterceptor implements NestInterceptor {
         const filename = generateFilename(part.filename);
         saveFileToUploadDir(filename, buffer);
 
-        dto.photo = dto.photo || {};
-        dto.photo[keys[1]] = filename;
+        if (!keys) {
+          dto[part.fieldname] = filename;
+          continue;
+        }
+
+        // Handle nested file fields
+        let target = dto;
+        for (let i = 0; i < keys.length - 1; i++) {
+          const key = keys[i];
+          if (!target[key]) {
+            target[key] = {};
+          }
+          target = target[key];
+        }
+
+        const lastKey = keys[keys.length - 1];
+        target[lastKey] = filename;
         continue;
       }
 
-      // ✅ Handle field parsing (supports nested)
+      // Handle field parsing (supports nested)
       if (part.type === 'field') {
         if (!keys) {
           dto[part.fieldname] = part.value;
@@ -64,17 +72,13 @@ export class MultipartInterceptor implements NestInterceptor {
         for (let i = 0; i < keys.length - 1; i++) {
           const key = keys[i];
           if (!target[key]) {
-            target[key] = isNaN(Number(keys[i + 1])) ? {} : [];
+            target[key] = {};
           }
           target = target[key];
         }
 
         const lastKey = keys[keys.length - 1];
-        if (Array.isArray(target)) {
-          target.push(part.value);
-        } else {
-          target[lastKey] = part.value;
-        }
+        target[lastKey] = part.value;
       }
     }
 

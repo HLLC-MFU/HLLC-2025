@@ -1,12 +1,11 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument, SchemaTypes, Types } from "mongoose";
 
-
 export type ApprearanceDocument = HydratedDocument<Appearance>;
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, strict: false })
 export class Appearance {
-    @Prop({ type: SchemaTypes.ObjectId, ref: 'School', required: true, })
+    @Prop({ type: SchemaTypes.ObjectId, ref: 'School', required: true })
     school: Types.ObjectId;
 
     @Prop({ type: Object, default: {} })
@@ -17,4 +16,6 @@ export class Appearance {
 }
 
 export const ApprearanceSchema = SchemaFactory.createForClass(Appearance);
+
+ApprearanceSchema.index({ school: 1 }, { unique: true });
 
