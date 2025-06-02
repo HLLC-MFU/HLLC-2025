@@ -64,53 +64,50 @@ export class ReportsService {
   }
 
   async findAll(query: Record<string, string>) {
-  return queryAll<Report>({
-    model: this.reportModel,
-    query: {
-      ...query,
-excluded: 'password,refreshToken,role.permissions,role.metadataSchema,__v'
-
-    },
-    filterSchema: {},
-    populateFields: async () => [
-      { path: 'reporter' },
-      { path: 'category' },
-    ],
-  });
-}
-
+    return queryAll<Report>({
+      model: this.reportModel,
+      query: {
+        ...query,
+        excluded: 'reporter.password,reporter.refreshToken,reporter.role,reporter.metadata,reporter.__v,__v'
+      },
+      filterSchema: {},
+      populateFields: async () => [
+        { path: 'reporter' },
+        { path: 'category' },
+      ],
+    });
+  }
 
   async findAllByCategory(categoryId: string) {
-  const query = {
-    category: new Types.ObjectId(categoryId),
-  };
+    const query = {
+      category: new Types.ObjectId(categoryId),
+    };
 
-  const result = await queryAll<Report>({
-    model: this.reportModel,
-    query: query as unknown as Record<string, string>,
-    filterSchema: {
-      category: 'string',
-    } as const,
-    populateFields: async () => [
-      { path: 'reporter' },
-      { path: 'category' },
-    ],
-  });
+    const result = await queryAll<Report>({
+      model: this.reportModel,
+      query: query as unknown as Record<string, string>,
+      filterSchema: {
+        category: 'string',
+      } as const,
+      populateFields: async () => [
+        { path: 'reporter' },
+        { path: 'category' },
+      ],
+    });
 
-  const reportsWithoutCategory = result.data.map(
-    ({ category, ...rest }) => rest,
-  );
+    const reportsWithoutCategory = result.data.map(
+      ({ category, ...rest }) => rest,
+    );
 
-  const category =
-    result.data[0]?.category ||
-    (await this.categoryModel.findById(categoryId));
+    const category =
+      result.data[0]?.category ||
+      (await this.categoryModel.findById(categoryId));
 
-  return {
-    category,
-    reports: reportsWithoutCategory,
-  };
-}
-
+    return {
+      category,
+      reports: reportsWithoutCategory,
+    };
+  }
 
   async findOne(id: string) {
     const populateFields: PopulateField[] = [
@@ -157,5 +154,4 @@ excluded: 'password,refreshToken,role.permissions,role.metadataSchema,__v'
       deletedId: id,
     };
   }
-
 }

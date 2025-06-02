@@ -22,6 +22,8 @@ import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module'
 import { CampaignsModule } from './module/campaigns/campaigns.module';
 import { MultipartInterceptor } from './pkg/interceptors/multipart.interceptor';
 import { SseModule } from './module/sse/sse.module';
+import { ReportCategoriesModule } from './module/report_categories/report_categories.module';
+import { ReportsModule } from './module/reports/reports.module';
 
 @Module({
   imports: [
@@ -61,6 +63,8 @@ import { SseModule } from './module/sse/sse.module';
     SponsorsTypeModule,
     CampaignsModule,
     NotificationsModule,
+    ReportCategoriesModule,
+    ReportsModule,
     SseModule
   ],
   providers: [],
