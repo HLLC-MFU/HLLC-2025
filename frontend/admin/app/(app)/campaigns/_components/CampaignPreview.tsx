@@ -17,19 +17,15 @@ export const CampaignPreview = ({
   const [imageLoading, setImageLoading] = useState(true);
 
   // Helper function to construct image URL
-  const getImageUrl = (
-    image: { filename?: string; url?: string } | undefined,
-  ) => {
+  const getImageUrl = (image: string | undefined) => {
     if (!image) return '';
-    const filename = image.filename || image.url;
-    if (!filename) return '';
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
     // Remove trailing slash if exists
     const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     // Remove /api from the base URL if it exists
     const apiBaseUrl = cleanBaseUrl.replace(/\/api$/, '');
-    return `${apiBaseUrl}/uploads/${filename}`;
+    return `${apiBaseUrl}/uploads/${image}`;
   };
 
   console.log('CampaignPreview received campaign:', campaign);
