@@ -20,6 +20,7 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter(),
   );
+
   await app.register(compression, {
     global: true,
     encodings: ['gzip', 'deflate'],
@@ -49,10 +50,11 @@ async function bootstrap() {
     .setVersion('1.0')
 
     .build();
+
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
   // app.useGlobalFilters(new MongoExceptionFilter());
-  app.useGlobalPipes(CustomValidationPipe);
+  // app.useGlobalPipes(CustomValidationPipe);
   // app.useGlobalInterceptors(new TransformInterceptor());
   void app.listen(process.env.PORT ?? 3000);
 }
