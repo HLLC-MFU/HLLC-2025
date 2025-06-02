@@ -1,16 +1,30 @@
-import { PlusIcon, SearchIcon } from "lucide-react";
-import { Button, Input } from "@heroui/react";
+import { AArrowDownIcon, AArrowUpIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { Button, ButtonGroup, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from "@heroui/react";
+import { Key } from "react";
 
+const sortOptions = [
+    { name: "name", label: "Name" },
+    { name: "type", label: "Types" },
+    { name: "isShow", label: "Show" }
+]
 
 interface SponsorFiltersProps {
     searchQuery: string;
     onSearchQueryChange: (value: string) => void;
+    sortBy: string;
+    sortDirection: "asc" | "desc";
+    onSortByChange: (key: string) => void;
+    onSortDirectionToggle: () => void;
     onAddSponsor: () => void;
 }
 
 export function SponsorFilters({
     searchQuery,
     onSearchQueryChange,
+    sortBy,
+    sortDirection,
+    onSortByChange,
+    onSortDirectionToggle,
     onAddSponsor
 }: SponsorFiltersProps) {
     return (
@@ -25,12 +39,39 @@ export function SponsorFilters({
                     startContent={<SearchIcon className="text-default-400" />}
                 />
                 <div className="flex gap-2 sm:gap-3">
+                    <ButtonGroup className="flex-1 sm:flex-none">
+                        <Dropdown>
+                            <DropdownTrigger>
+                                <Button variant="flat" className="w-full sm:w-auto">
+                                    Sort by: {sortOptions.find(opt => opt.name === sortBy)?.label}
+                                </Button>
+                            </DropdownTrigger>
+                            <DropdownMenu
+                                aria-label="Sort Options"
+                                onAction={(key: Key) => onSortByChange(key.toString())}
+                            >
+                                {sortOptions.map((option) => (
+                                    <DropdownItem key={option.name} className="capitalize">
+                                        {option.label}
+                                    </DropdownItem>
+                                ))}
+                            </DropdownMenu>
+                        </Dropdown>
+                        <Button
+                            variant="flat"
+                            isIconOnly
+                            onPress={onSortDirectionToggle}
+                            className="flex-shrink-0"
+                        >
+                            {sortDirection === "asc" ? <AArrowUpIcon /> : <AArrowDownIcon />}
+                        </Button>
+                    </ButtonGroup>
                     <Button
                         color="primary"
                         endContent={<PlusIcon />}
                         onPress={onAddSponsor}
                         className="border p-2"
-                        >
+                    >
                         Add Sponsor
                     </Button>
                 </div>
