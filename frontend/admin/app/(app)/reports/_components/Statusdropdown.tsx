@@ -20,7 +20,7 @@ const getStatusColor = (status: Problem["status"]) => {
         case "Pending": return "danger";
         case "In Progress": return "warning";
         case "Resolved": return "success";
-        default: return "Pending";
+        default: return "danger";
     }
 };
 
