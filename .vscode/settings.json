@@ -2,7 +2,8 @@
     "discord.enabled": true,
     "java.configuration.updateBuildConfiguration": "interactive",
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
+    "editor.insertSpaces": true, 
     "prettier.requireConfig": true,
     "prettier.useEditorConfig": false,
     "editor.codeActionsOnSave": {
@@ -19,5 +20,11 @@
     },
     "[typescriptreact]": {
         "editor.defaultFormatter": "vscode.typescript-language-features"
+<<<<<<< HEAD
+=======
+    },
+    "[go]": {
+        "editor.defaultFormatter": "golang.go"
+>>>>>>> efe29f8e5eb7695ae3453f5b504e7b06372da63c
     }
 }

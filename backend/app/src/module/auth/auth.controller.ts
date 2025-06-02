@@ -16,12 +16,12 @@ import { FastifyReply } from 'fastify';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
   @Public()
   @Post('login')
   async login(
     @Body() loginDto: LoginDto,
-    @Query('useCookie') useCookie: string,
+    @Query('useCookies') useCookie: string,
     @Res() res: FastifyReply,
   ) {
     const { username, password } = loginDto;

@@ -12,11 +12,12 @@ import {
 import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
-import { Public } from '../auth/decorators/public.decorator';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { ApiTags } from '@nestjs/swagger';
 
 @UseGuards(PermissionsGuard)
+@ApiTags('schools')
 @Controller('schools')
 export class SchoolsController {
   constructor(private readonly schoolsService: SchoolsService) {}
@@ -27,8 +28,8 @@ export class SchoolsController {
     return this.schoolsService.create(createSchoolDto);
   }
 
-  @Public()
   @Get()
+  @Permissions('schools:read')
   findAll(@Query() query: Record<string, string>) {
     return this.schoolsService.findAll(query);
   }
@@ -36,7 +37,6 @@ export class SchoolsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    console.log('findOne', id);
     return this.schoolsService.findOne(id);
   }
 

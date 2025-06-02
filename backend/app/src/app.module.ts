@@ -10,9 +10,11 @@ import { AuthModule } from './module/auth/auth.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { GlobalCacheModule } from './pkg/cache/cache.module';
 import { ActivitiesModule } from './module/activities/activities.module';
+import { NotificationsModule } from './module/notifications/notifications.module';
 import * as redisStore from 'cache-manager-ioredis';
 import { CheckinModule } from './module/checkin/checkin.module';
-import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
+import { ActivitiesMajorModule } from './module/activities-major/activities-major.module';
+import { SseModule } from './module/sse/sse.module';
 
 @Module({
   imports: [
@@ -44,7 +46,11 @@ import { ActivitiesTypeModule } from './module/activities-type/activities-type.m
     SchoolsModule,
     MajorsModule,
     ActivitiesModule,
-    ActivitiesTypeModule,
+    AuthModule,
+    GlobalCacheModule,
+    ActivitiesMajorModule,
+    NotificationsModule,
+    SseModule,
   ],
   providers: [],
 })
