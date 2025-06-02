@@ -12,6 +12,6 @@
     "inquirer": "^12.6.1"
   },
   "dependencies": {
-    "@internationalized/date": "^3.8.1"
+    "hllc-2025": "file:"
   }
 }

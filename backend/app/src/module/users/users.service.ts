@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -9,6 +10,7 @@ import {
   queryDeleteOne,
   queryAll,
   queryFindOne,
+  queryUpdateOne,
 } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from './schemas/user.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
@@ -56,12 +58,11 @@ export class UsersService {
       model: this.userModel,
       query: {
         ...query,
-        excluded: 'password,refreshToken,role.permissions,role.metadataSchema'
+        excluded: 'password,refreshToken,role.permissions,role.metadataSchema',
       },
       filterSchema: {},
       populateFields: (excluded) =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
-      
     });
   }
 
@@ -214,18 +215,17 @@ export class UsersService {
     }
   }
 
-  async registerDeviceToken(id: string, registerTokenDto: Record<string, string>) {
+  async registerDeviceToken(
+    id: string,
+    registerTokenDto: Record<string, string>,
+  ) {
     await findOrThrow(this.userModel, id, 'User not found');
 
     const token = registerTokenDto.deviceToken;
 
-    return await queryUpdateOne(
-      this.userModel,
-      id,
-      {
-        $addToSet: { 'metadata.deviceTokens': token },
-      },
-    );
+    return await queryUpdateOne(this.userModel, id, {
+      $addToSet: { 'metadata.deviceTokens': token },
+    });
   }
 
   async removeDeviceToken(id: string, deviceToken: string) {
@@ -234,14 +234,9 @@ export class UsersService {
     if (!deviceToken) {
       throw new BadRequestException('Token is required');
     }
-    
-    return await queryUpdateOne(
-      this.userModel,
-      id,
-      {
-        $pull: { 'metadata.deviceTokens': deviceToken },
-      }
-    );
-  }
 
+    return await queryUpdateOne(this.userModel, id, {
+      $pull: { 'metadata.deviceTokens': deviceToken },
+    });
+  }
 }
