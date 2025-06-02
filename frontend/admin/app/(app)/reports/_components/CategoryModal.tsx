@@ -44,87 +44,58 @@ export function CategoryModal({ isOpen, onClose, onSubmit, category, mode }: Cat
   const handleSubmit = async () => {
     if (!nameEn.trim() || !nameTh.trim()) return;
 
-    const payload = {
-      name: {
-        en: nameEn.trim(),
-        th: nameTh.trim(),
-      },
+        const newCategory: Category = {
+            id: category?.id || `category-${Date.now()}`,
+            name: {
+                en: nameEn.trim(),
+                th: nameTh.trim()
+            },
+            description: {
+                en: descriptionEn.trim(),
+                th: descriptionTh.trim()
+            },
+            color,
+            createdAt: category?.createdAt || new Date(),
+            updatedAt: new Date()
+        };
+
+        onSubmit(newCategory);
+        onClose();
     };
 
-    try {
-      let saved;
-
-      if (mode === 'edit' && category?.id) {
-        // 🔁 UPDATE ไป backend
-        const res = await fetch(`http://localhost:8080/api/categories/${category.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        saved = await res.json();
-      } else {
-        // ➕ ADD ใหม่
-        const res = await fetch('http://localhost:8080/api/categories', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        saved = await res.json();
-      }
-
-      const updatedCategory: Category = {
-        id: saved._id,
-        name: saved.name,
-        createdAt: new Date(saved.createdAt ?? Date.now()),
-        updatedAt: new Date(saved.updatedAt ?? Date.now()),
-        description: {
-          en: '',
-          th: '',
-        },
-        color: '',
-      };
-
-      onSubmit(updatedCategory);
-    } catch (error) {
-      console.error('Error saving category:', error);
-    }
-
-    onClose();
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-      <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">
-          {mode === 'add' ? 'Add New Category' : 'Edit Category'}
-        </ModalHeader>
-        <ModalBody>
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Input
-                label="Category Name (English)"
-                placeholder="Enter category name in English"
-                value={nameEn}
-                onValueChange={setNameEn}
-              />
-              <Input
-                label="Category Name (Thai)"
-                placeholder="Enter category name in Thai"
-                value={nameTh}
-                onValueChange={setNameTh}
-              />
-            </div>
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="danger" variant="light" onPress={onClose}>
-            Cancel
-          </Button>
-          <Button color="primary" onPress={handleSubmit}>
-            {mode === 'add' ? 'Add' : 'Save'}
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
-  );
-}
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+            <ModalContent>
+                <ModalHeader className="flex flex-col gap-1">
+                    {mode === "add" ? "Add New Category" : "Edit Category"}
+                </ModalHeader>
+                <ModalBody>
+                    <div className="flex flex-col gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Input
+                                label="Category Name (English)"
+                                placeholder="Enter category name in English"
+                                value={nameEn}
+                                onValueChange={setNameEn}
+                            />
+                            <Input
+                                label="Category Name (Thai)"
+                                placeholder="Enter category name in Thai"
+                                value={nameTh}
+                                onValueChange={setNameTh}
+                            />
+                        </div>
+                    </div>
+                </ModalBody>
+                <ModalFooter>
+                    <Button color="danger" variant="light" onPress={onClose}>
+                        Cancel
+                    </Button>
+                    <Button color="primary" onPress={handleSubmit}>
+                        {mode === "add" ? "Add" : "Save"}
+                    </Button>
+                </ModalFooter>
+            </ModalContent>
+        </Modal>
+    );
+} 
