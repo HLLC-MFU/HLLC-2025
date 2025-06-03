@@ -86,7 +86,7 @@ export function validateMetadataSchema<
 }
 
 export function validateObjectIdFields(
-  metadata: Record<string, any>,
+  metadata: Record<string, string>,
   fields: string[],
 ) {
   const invalid: string[] = [];

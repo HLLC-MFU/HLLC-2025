@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+
+import { NextResponse } from "next/server";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -29,6 +30,7 @@ export async function middleware(req: NextRequest) {
       if (res.ok) {
         const data = await res.json();
         const response = NextResponse.next();
+
         response.cookies.set("accessToken", data.data.accessToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
@@ -39,6 +41,7 @@ export async function middleware(req: NextRequest) {
           secure: process.env.NODE_ENV === "production",
           path: "/",
         });
+
         return response;
       } else {
         return NextResponse.redirect(new URL("/login", req.url));
@@ -57,15 +60,17 @@ function isTokenExpired(token: string): boolean {
     const payload = JSON.parse(atob(payloadBase64));
     const exp = payload.exp;
     const currentTime = Math.floor(Date.now() / 1000);
+
     return exp < currentTime;
   } catch (err) {
     console.error("Invalid token format", err);
+
     return true;
   }
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|login).*)",
+    "/((?!_next/static|_next/image|images|favicon.ico|login).*)",
   ],
 };
