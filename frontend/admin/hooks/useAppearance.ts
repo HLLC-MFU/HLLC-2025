@@ -13,7 +13,7 @@ export default function useAppearance() {
         setError(null);
 
         try {
-            const res = await apiRequest<{ data: Appearance[] }>("/appearances?limit=0", "GET");
+            const res = await apiRequest<{ data: Appearance[] }>("/appearances", "GET");
             setAppearances(Array.isArray(res.data?.data) ? res.data.data : []);
             console.log(res);
             
