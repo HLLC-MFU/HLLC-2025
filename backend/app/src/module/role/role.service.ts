@@ -8,7 +8,6 @@ import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { encryptItem } from '../auth/utils/crypto';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class RoleService {
@@ -22,7 +21,6 @@ export class RoleService {
    */
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
     const role = new this.roleModel({
-    const role = new this.roleModel({
       name: createRoleDto.name,
       metadataSchema: createRoleDto.metadataSchema,
       permissions: createRoleDto.permissions?.map(encryptItem) || [],
@@ -33,14 +31,7 @@ export class RoleService {
     } catch (error) {
       handleMongoDuplicateError(error, 'name');
     }
-
-    try {
-      return await role.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
   }
-
   /**
    * Finds a role by name.
    * Throws an error if the role already exists.
@@ -78,16 +69,9 @@ export class RoleService {
     } catch (error) {
       handleMongoDuplicateError(error, 'name');
     }
-    try {
-      return await role.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
   }
 
   async remove(id: string) {
-  async remove(id: string) {
-    await findOrThrow(this.roleModel, id, 'Role');
     await this.roleModel.findByIdAndDelete(id);
 
     return {
@@ -102,11 +86,6 @@ export class RoleService {
   ): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
     role.metadataSchema = dto.metadataSchema;
-    try {
-      return await role.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
     try {
       return await role.save();
     } catch (error) {

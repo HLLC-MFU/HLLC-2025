@@ -1,6 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
 import { isValidObjectId } from 'mongoose';
-import { isValidObjectId } from 'mongoose';
 
 type MetadataFieldSchema = {
   type: 'string' | 'number' | 'boolean' | 'date';
@@ -84,20 +83,6 @@ export function validateMetadataSchema<
       delete metadata[key];
     }
   });
-}
-
-export function validateObjectIdFields(metadata: Record<string, string>, fields: string[]) {
-  const invalid: string[] = [];
-
-  for (const field of fields) {
-    if (!isValidObjectId(metadata[field])) {
-      invalid.push(`${field} must be a valid ObjectId`);
-    }
-  }
-
-  if (invalid.length > 0) {
-    throw new BadRequestException(invalid.join(', '));
-  }
 }
 
 export function validateObjectIdFields(
