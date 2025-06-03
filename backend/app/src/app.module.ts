@@ -20,6 +20,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
+import { EvoucherModule } from './module/evoucher/evoucher.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module'
     AppearancesModule,
     ReportsModule,
     SseModule,
+    EvoucherModule,
   ],
   providers: [
     {
