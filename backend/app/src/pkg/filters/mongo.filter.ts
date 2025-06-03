@@ -50,7 +50,7 @@ export class MongoExceptionFilter implements ExceptionFilter {
       (exception as { code: number }).code === 11000
     ) {
       const duplicatedField = Object.keys(
-        (exception as { keyValue?: Record<string, unknown> }).keyValue || {},
+        (exception as { keyValue?: Record<string, string> }).keyValue || {},
       ).join(', ');
 
       response.status(HttpStatus.CONFLICT).send({

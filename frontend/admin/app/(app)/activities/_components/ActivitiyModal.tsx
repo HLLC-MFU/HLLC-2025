@@ -1,5 +1,5 @@
 import { Activities } from "@/types/activities";
-import { Input, ModalBody, Modal, ModalContent, ModalHeader } from "@heroui/react";
+import { Input, ModalBody, Modal, ModalContent, ModalHeader, ModalFooter, Button } from "@heroui/react";
 import { useEffect, useState } from "react";
 
 interface ActivityModalProps {
@@ -143,8 +143,31 @@ export function ActivityModal({
                             value={activity?.photo.bannerPhoto}
                             onChange={(e) => setBannerPhoto(e.target.value)}
                         />
+                        <Input
+                            label="Scope Major"
+                            value={scopeMajor.join(", ")}
+                            onChange={(e) => setScopeMajor(e.target.value.split(", "))}
+                        />
+                        <Input
+                            label="Scope School"
+                            value={scopeSchool.join(", ")}
+                            onChange={(e) => setScopeSchool(e.target.value.split(", "))}
+                        />
+                        <Input
+                            label="Scope User"
+                            value={scopeUser.join(", ")}
+                            onChange={(e) => setScopeUser(e.target.value.split(", "))}
+                        />
                     </div>
                 </ModalBody>
+                <ModalFooter>
+                    <Button color="danger" variant="light" onPress={onClose}>
+                        Cancel
+                    </Button>
+                    <Button color="primary" onPress={handleSubmit}>
+                        {mode === "add" ? "Add" : "Save"}
+                    </Button>
+                </ModalFooter>
             </ModalContent>
         </Modal>
     )

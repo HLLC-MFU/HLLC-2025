@@ -82,7 +82,7 @@ export function validateMetadataSchema<TMetadata extends Record<string, unknown>
   });
 }
 
-export function validateObjectIdFields(metadata: Record<string, any>, fields: string[]) {
+export function validateObjectIdFields(metadata: Record<string, string>, fields: string[]) {
   const invalid: string[] = [];
 
   for (const field of fields) {

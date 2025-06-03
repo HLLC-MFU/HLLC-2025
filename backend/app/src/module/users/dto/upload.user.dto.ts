@@ -42,5 +42,5 @@ export class UserUploadDirectDto {
 
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string>;
 }

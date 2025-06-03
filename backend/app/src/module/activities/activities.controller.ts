@@ -33,22 +33,20 @@ export class ActivitiesController {
     return this.activitiesService.create(dto);
   }
 
-  @Public()
-  @Get()
-  async getActivitiesForUser(
-    @Query() query: Record<string, string>,
-    @Req() req: FastifyRequest & { user?: { _id: string } },
-  ) {
-    const userId = req.user?._id;
-    return this.activitiesService.findAllForUser(query, userId);
-  }
 
-  @Get('admin')
+  // @Get('user')
+  // async getActivitiesForUserQuery(
+  //   @Query() query: Record<string, string>,
+  // ) {
+  //   return this.activitiesService.findAllUserQuery(query);
+  // }
+
+  @Get('')
   @Permissions('activities:read')
   async getActivitiesForAdmin(
     @Query() query: Record<string, string>,
   ) {
-    return this.activitiesService.findAllForAdmin(query);
+    return this.activitiesService.findAll(query);
   }
 
   @Get(':id')
@@ -75,4 +73,15 @@ export class ActivitiesController {
   remove(@Param('id') id: string) {
     return this.activitiesService.remove(id);
   }
+
+    // @Public()
+  // @Get()
+  // async getActivitiesForUser(
+  //   @Query() query: Record<string, string>,
+  //   @Req() req: FastifyRequest & { user?: { _id: string } },
+  // ) {
+  //   const userId = req.user?._id;
+  //   return this.activitiesService.findAllForUser(query, userId);
+  // }
+
 }

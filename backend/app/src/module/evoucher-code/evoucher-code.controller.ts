@@ -13,7 +13,7 @@ export class EvoucherCodeController {
   }
 
   @Get()
-  findAll(@Query() query: Record<string, any>) {
+  findAll(@Query() query: Record<string, string>) {
     return this.evoucherCodeService.findAll(query);
   }
 

@@ -16,7 +16,7 @@ export class ReportTypeController {
 
   @Get()
   @Public()
-  findAll(@Query() query: Record<string, any>) {
+  findAll(@Query() query: Record<string, string>) {
     return this.reportTypeService.findAll(query);
   }
 

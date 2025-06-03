@@ -19,7 +19,7 @@ export class EvoucherCode {
     isUsed: boolean;
 
     @Prop({ type: Object })
-    metadata: Record<string, any>
+    metadata: Record<string, string>
 }
 
 export const EvoucherCodeSchema = SchemaFactory.createForClass(EvoucherCode);

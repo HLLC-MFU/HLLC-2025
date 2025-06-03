@@ -42,7 +42,7 @@ export class SponsorsService {
     }
   }
 
-  async findAll(query: Record<string, any>) {
+  async findAll(query: Record<string, string>) {
     return await queryAll<Sponsors>({
       model: this.sponsorsModel,
       query,

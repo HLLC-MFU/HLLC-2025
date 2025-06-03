@@ -62,7 +62,7 @@ export class EvoucherCodeService {
   
   
 
-  async findAll(query: Record<string, any>) {
+  async findAll(query: Record<string, string>) {
     return await queryAll<EvoucherCode>({
       model: this.evoucherCodeModel,
       query,
@@ -191,7 +191,7 @@ async getExistsEvoucherCodes(userId: string): Promise<{ evoucher: Evoucher; exis
       existingCodes.map(c => parseInt(c.code.replace(evoucher.acronym, '')))
     );
   
-    const codesToInsert: any[] = [];
+    const codesToInsert: { code: string; evoucher: Types.ObjectId; user: Types.ObjectId; isUsed: boolean; metadata: { expiration: Date } }[] = [];
     let current = Math.max(...Array.from(existingNumbers), 0) + 1;
   
     while (codesToInsert.length < dto.count) {
