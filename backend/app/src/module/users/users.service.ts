@@ -70,7 +70,9 @@ export class UsersService {
     return queryFindOne<User>(this.userModel, { _id }, []);
   }
 
-  async getUserCountByRoles(): Promise<Record<string, number>> {
+  async getUserCountByRoles(): Promise<
+    Record<string, { registered: number; notRegistered: number }>
+  > {
     const pipeline = [
       {
         $lookup: {
@@ -82,20 +84,58 @@ export class UsersService {
       },
       { $unwind: '$roleData' },
       {
+        $addFields: {
+          isRegistered: {
+            $cond: [
+              {
+                $or: [
+                  { $eq: ['$password', ''] },
+                  { $not: ['$password'] },
+                  { $eq: ['$password', null] },
+                ],
+              },
+              false,
+              true,
+            ],
+          },
+        },
+      },
+      {
         $group: {
           _id: '$roleData.name',
-          count: { $sum: 1 },
+          registered: {
+            $sum: { $cond: [{ $eq: ['$isRegistered', true] }, 1, 0] },
+          },
+          notRegistered: {
+            $sum: { $cond: [{ $eq: ['$isRegistered', false] }, 1, 0] },
+          },
         },
       },
     ];
-    console.log('Pipeline:', JSON.stringify(pipeline, null, 2));
-    const result = (await this.userModel.aggregate(pipeline).exec()) as {
-      _id: string;
-      count: number;
-    }[];
 
-    return result.reduce<Record<string, number>>((acc, curr) => {
-      acc[curr._id] = curr.count;
+    type AggregationResult = {
+      _id: string;
+      registered: number;
+      notRegistered: number;
+      total: number;
+    };
+
+    const result = (await this.userModel
+      .aggregate(pipeline)
+      .exec()) as AggregationResult[];
+
+    // Format output
+    return result.reduce<
+      Record<
+        string,
+        { registered: number; notRegistered: number; total: number }
+      >
+    >((acc, curr) => {
+      acc[curr._id] = {
+        registered: curr.registered,
+        notRegistered: curr.notRegistered,
+        total: curr.registered + curr.notRegistered,
+      };
       return acc;
     }, {});
   }
