@@ -14,4 +14,4 @@ import { RoleInitializerService } from './role.initializer.service';
   controllers: [RoleController],
   providers: [RoleService, RoleInitializerService],
 })
-export class RoleModule { }
+export class RoleModule {}

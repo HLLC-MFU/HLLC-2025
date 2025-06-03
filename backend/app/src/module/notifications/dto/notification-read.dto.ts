@@ -1,4 +1,4 @@
-import { ArrayNotEmpty, IsArray, IsMongoId, IsNotEmpty, isNotEmpty } from "class-validator";
+import { IsMongoId, IsNotEmpty } from 'class-validator';
 
 export class ReadNotificationDto {
   @IsMongoId()

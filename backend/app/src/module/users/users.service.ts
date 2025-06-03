@@ -1,11 +1,10 @@
 import {
   Injectable,
   NotFoundException,
-  ConflictException,
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import {
   queryDeleteOne,
   queryAll,
@@ -17,10 +16,9 @@ import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
-import { UploadUserDto } from './dto/upload.user.dto';
+
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
-import { Logger } from 'winston';
 
 @Injectable()
 export class UsersService {
@@ -61,8 +59,7 @@ export class UsersService {
         excluded: 'password,refreshToken,role.permissions,role.metadataSchema',
       },
       filterSchema: {},
-      populateFields: (excluded) =>
-        Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
+      populateFields: () => Promise.resolve([{ path: 'role' }]),
     });
   }
 
@@ -205,55 +202,60 @@ export class UsersService {
     await user.save();
   }
 
-  async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
-    const users: CreateUserDto[] = await Promise.all(
-      uploadUserDto.users.map(async (userDto) => {
-        const userMajor = userDto.major || uploadUserDto.major;
+  /**
+   * Uploads multiple users from a DTO.
+   * @param uploadUserDto - The DTO containing user data to upload.
+   * @returns An array of created User objects.
+   */
+  // async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
+  //   const users: CreateUserDto[] = await Promise.all(
+  //     uploadUserDto.users.map(async (userDto) => {
+  //       const userMajor = userDto.major || uploadUserDto.major;
 
-        // ✅ Check major existence
-        if (userDto.major) {
-          const userMajorRecord = await this.majorModel
-            .findById(userDto.major)
-            .lean();
-          if (!userMajorRecord) {
-            throw new NotFoundException('Major in database not found');
-          }
-        }
+  //       // ✅ Check major existence
+  //       if (userDto.major) {
+  //         const userMajorRecord = await this.majorModel
+  //           .findById(userDto.major)
+  //           .lean();
+  //         if (!userMajorRecord) {
+  //           throw new NotFoundException('Major in database not found');
+  //         }
+  //       }
 
-        return {
-          name: {
-            first: userDto.name.first,
-            last: userDto.name.last || '',
-          },
-          fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
-          username: userDto.studentId,
-          password: '', // initially blank
-          secret: '', // initially blank
-          major: new Types.ObjectId(userMajor),
-          role: new Types.ObjectId(uploadUserDto.role),
-          metadata: {
-            type: uploadUserDto.metadata?.type ?? null,
-          },
-        };
-      }),
-    );
+  //       return {
+  //         name: {
+  //           first: userDto.name.first,
+  //           last: userDto.name.last || '',
+  //         },
+  //         fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
+  //         username: userDto.studentId,
+  //         password: '', // initially blank
+  //         secret: '', // initially blank
+  //         major: new Types.ObjectId(userMajor),
+  //         role: new Types.ObjectId(uploadUserDto.role),
+  //         metadata: {
+  //           type: uploadUserDto.metadata?.type ?? null,
+  //         },
+  //       };
+  //     }),
+  //   );
 
-    try {
-      const savedUsers = await Promise.all(
-        users.map(async (user) => {
-          const userDoc = new this.userModel(user);
-          return await userDoc.save();
-        }),
-      );
+  //   try {
+  //     const savedUsers = await Promise.all(
+  //       users.map(async (user) => {
+  //         const userDoc = new this.userModel(user);
+  //         return await userDoc.save();
+  //       }),
+  //     );
 
-      return savedUsers.map((user) => user.toObject());
-    } catch (error) {
-      if (error.code === 11000) {
-        throw new ConflictException('Username already exists');
-      }
-      throw error;
-    }
-  }
+  //     return savedUsers.map((user) => user.toObject());
+  //   } catch (error) {
+  //     if (error.code === 11000) {
+  //       throw new ConflictException('Username already exists');
+  //     }
+  //     throw error;
+  //   }
+  // }
 
   async registerDeviceToken(
     id: string,
