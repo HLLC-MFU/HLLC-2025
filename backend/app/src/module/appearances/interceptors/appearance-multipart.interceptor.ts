@@ -7,14 +7,14 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
-import { Observable, from } from 'rxjs';
+import { Observable } from 'rxjs';
 import { generateFilename, saveFileToUploadDir } from 'src/pkg/config/storage.config';
 import { MultipartFile, MultipartValue } from '@fastify/multipart';
 
 interface AppearanceDto {
   colors: Record<string, string>;
   assets: Record<string, string>;
-  [key: string]: string | Record<string, string>;
+  school: string;
 }
 
 interface MultipartRequest extends FastifyRequest {
@@ -38,29 +38,22 @@ export class AppearanceMultipartInterceptor implements NestInterceptor<Multipart
 
     const dto: AppearanceDto = {
       colors: {},
-      assets: {}
+      assets: {},
+      school: ''
     };
 
     for await (const part of parts) {
-      const keys = part.fieldname.match(/[^[\]]+/g);
-      if (!keys) {
-        if (this.isField(part)) {
-          dto[part.fieldname] = part.value;
-        }
+      if (!this.isFile(part) && part.fieldname === 'school') {
+        dto.school = part.value.replace(/^"|"$/g, '');
         continue;
       }
 
+      const keys = part.fieldname.match(/[^[\]]+/g);
+      if (!keys) continue;
+
       const [fieldName, subField] = keys;
 
-      // Handle file uploads (only for assets)
-      if (this.isFile(part)) {
-        if (fieldName !== 'assets') {
-          throw new HttpException(
-            `Files can only be uploaded to assets fields, got: ${fieldName}`,
-            HttpStatus.BAD_REQUEST,
-          );
-        }
-
+      if (this.isFile(part) && fieldName === 'assets' && subField) {
         const buffer = await part.toBuffer();
         if (buffer.length > this.maxSizeKbs * 1024) {
           throw new HttpException(
@@ -70,35 +63,26 @@ export class AppearanceMultipartInterceptor implements NestInterceptor<Multipart
         }
 
         const filename = generateFilename(part.filename);
-        saveFileToUploadDir(filename, buffer);
-
-        if (subField) {
-          dto.assets[subField] = filename;
+        await saveFileToUploadDir(filename, buffer);
+        dto.assets[subField] = filename;
+      } else if (!this.isFile(part) && fieldName === 'colors' && subField) {
+        const colorValue = part.value.replace(/^"|"$/g, '').replace(/\\#/g, '#');
+        if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(colorValue)) {
+          throw new HttpException(
+            `Invalid hex color format for ${subField}: ${colorValue}`,
+            HttpStatus.BAD_REQUEST,
+          );
         }
-        continue;
-      }
-
-      // Handle color fields
-      if (this.isField(part)) {
-        if (fieldName === 'colors' && subField) {
-          // Validate hex color format
-          const colorValue = part.value;
-          if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(colorValue)) {
-            throw new HttpException(
-              `Invalid hex color format for ${subField}: ${colorValue}`,
-              HttpStatus.BAD_REQUEST,
-            );
-          }
-          dto.colors[subField] = colorValue;
-        } else {
-          // Handle other fields (like school)
-          dto[fieldName] = part.value;
-        }
+        dto.colors[subField] = colorValue;
       }
     }
 
+    if (!dto.school) {
+      throw new HttpException('School ID is required', HttpStatus.BAD_REQUEST);
+    }
+
     req.body = dto;
-    return from(Promise.resolve(dto));
+    return next.handle();
   }
 
   private isFile(part: MultipartFile | MultipartValue<string>): part is MultipartFile {

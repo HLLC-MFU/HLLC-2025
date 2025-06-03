@@ -2,26 +2,26 @@ import { Lang } from './lang';
 
 export type Activities = {
     _id: string;
-    fullName: Lang;
-    shortName: Lang;
+    name: Lang;
+    acronym: string;
     fullDetails: Lang;
     shortDetails: Lang;
     type: string;
     photo: Photo;
-    location: string;
-    tags: string[];
+    location: Lang;
     metadata: Metadata;
-    createdBy: string;
+    createdAt?: string;
+    updatedAt?: string;
 };
 
 export type Photo = {
     bannerPhoto: string;
-    logoPhoto: string;
+    logoPhoto?: string;
 };
 
 export type Metadata = {
     isOpen: boolean;
-    isProgrssCount: boolean;
+    isProgressCount: boolean;
     isVisible: boolean;
     scope: Scope;
 };
