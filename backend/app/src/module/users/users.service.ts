@@ -19,6 +19,7 @@ import { Major, MajorDocument } from '../majors/schemas/major.schema';
 
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
+import path from 'path';
 
 @Injectable()
 export class UsersService {
@@ -59,7 +60,18 @@ export class UsersService {
         excluded: 'password,refreshToken,role.permissions,role.metadataSchema',
       },
       filterSchema: {},
-      populateFields: () => Promise.resolve([{ path: 'role' }]),
+      populateFields: () =>
+        Promise.resolve([
+          { path: 'role' },
+          {
+            path: 'metadata.major',
+            model: 'Major',
+            populate: {
+              path: 'school',
+              model: 'School',
+            },
+          },
+        ]),
     });
   }
 
