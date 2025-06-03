@@ -72,7 +72,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         </h1>
         <div className="w-52 h-full">
           <Select
-            className="w-52 bg-white border border-gray-300 rounded-xl shadow-sm"
+            className="w-52 bg-white border border-gray-300 rounded-xl"
             label="Select Icons"
             size="md"
             selectedKeys={selected ? [selected.name] : []}
@@ -112,7 +112,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="English"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-xl shadow-md"
+          className="bg-white border border-gray-300 rounded-xl"
           value={title.en}
           onChange={e => setTitle({ ...title, en: e.target.value })}
         />
@@ -121,7 +121,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="Thai"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-xl shadow-md"
+          className="bg-white border border-gray-300 rounded-xl"
           value={title.th}
           onChange={e => setTitle({ ...title, th: e.target.value })}
         />
@@ -134,7 +134,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="English"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-xl shadow-md"
+          className="bg-white border border-gray-300 rounded-xl "
           value={subtitle.en}
           onChange={e => setSubtitle({ ...subtitle, en: e.target.value })}
         />
@@ -143,7 +143,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="Thai"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-xl shadow-md"
+          className="bg-white border border-gray-300 rounded-xl "
           value={subtitle.th}
           onChange={e => setSubtitle({ ...subtitle, th: e.target.value })}
         />
@@ -154,7 +154,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         <div className="w-full h-full">
           <Textarea
             label="English"
-            className="bg-white border border-gray-300 rounded-xl shadow-md"
+            className="bg-white border border-gray-300 rounded-xl "
             value={description.en}
             onChange={e =>
               setDescription({ ...description, en: e.target.value })
@@ -164,7 +164,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         <div className="w-full h-full">
           <Textarea
             label="Thai"
-            className="bg-white border border-gray-300 rounded-xl shadow-md "
+            className="bg-white border border-gray-300 rounded-xl "
             value={description.th}
             onChange={e =>
               setDescription({ ...description, th: e.target.value })
@@ -179,7 +179,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="English"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-xl shadow-md"
+          className="bg-white border border-gray-300 rounded-xl "
           value={redirect.en}
           onChange={e => setRedirect({ ...redirect, en: e.target.value })}
         />
@@ -188,7 +188,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="Thai"
           size="md"
           type="Text"
-          className="bg-white border border-gray-300 rounded-xl shadow-md"
+          className="bg-white border border-gray-300 rounded-xl "
           value={redirect.th}
           onChange={e => setRedirect({ ...redirect, th: e.target.value })}
         />
@@ -196,7 +196,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           label="Link"
           size="md"
           type="Url"
-          className="bg-white border border-gray-300 rounded-xl shadow-md"
+          className="bg-white border border-gray-300 rounded-xl "
           value={redirect.link}
           onChange={e => setRedirect({ ...redirect, link: e.target.value })}
         />
