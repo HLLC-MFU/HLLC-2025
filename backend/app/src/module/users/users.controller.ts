@@ -37,8 +37,15 @@ export class UsersController {
   @Get()
   @Permissions('users:read')
   @CacheKey('users')
-  async findAll(@Query() query: Record<string, any>) {
+  async findAll(@Query() query: Record<string, string>) {
     return this.usersService.findAll(query);
+  }
+
+  @Get('by-query')
+  @Permissions('users:read')
+  @CacheKey('users:by-query')
+  async findAllByQuery(@Query() query: Record<string, string>) {
+    return this.usersService.findAllByQuery(query);
   }
 
   @Get('statistics')
@@ -63,8 +70,11 @@ export class UsersController {
   getProfile(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
-    const user = req.user as { _id?: string; id?: string } | undefined;
-    const userId: string | undefined = user?._id ?? user?.id;
+    const user = req.user as { _id?: string; id?: string };
+    const userId: string = user?._id ?? user?.id ?? '';
+    if (!userId) {
+      return null;
+    }
     return this.usersService.findOneByQuery({
       _id: userId,
     });

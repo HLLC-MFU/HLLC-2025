@@ -1,10 +1,10 @@
 import { View, ViewStyle, StyleSheet } from "react-native";
-import { Plus } from "lucide-react-native";
+import { Plus, LucideIcon } from "lucide-react-native";
 import { HapticTab } from "./HapticTab";
 
 type FABProps = {
   onPress: () => void;
-  icon?: React.ComponentType<{ color: string; size: number }> | any;
+  icon?: LucideIcon;
   style?: ViewStyle;
 };
 

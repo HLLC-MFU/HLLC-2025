@@ -34,7 +34,7 @@ export class User {
   refreshToken: string | null;
 
   @Prop({ type: Types.Map, of: SchemaTypes.Mixed, default: {} })
-  metadata: Record<string, any>;
+  metadata: Record<string, string>;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
@@ -47,7 +47,15 @@ UserSchema.pre('save', async function (next) {
   }
   next();
 });
+UserSchema.virtual('major', {
+  ref: 'Major',
+  localField: 'metadata.major',
+  foreignField: '_id',
+  justOne: true,
+});
+UserSchema.set('toObject', { virtuals: true });
 UserSchema.set('toJSON', {
+  virtuals: true,
   transform: (doc, ret) => {
     delete ret.password;
     delete ret.refreshToken;
