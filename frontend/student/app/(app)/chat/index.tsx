@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Sparkles, Zap } from 'lucide-react-native';
+import { Plus, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '@/context/LanguageContext';
@@ -210,7 +210,7 @@ export default function ChatPage() {
           activeOpacity={0.9}
         >
           <LinearGradient colors={['#6366f1', '#8b5cf6']} style={styles.fabGradient}>
-            <Zap size={24} color="#fff" />
+            <Plus size={24} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>

@@ -41,7 +41,7 @@ export default function QRCodePage() {
         <QRCodeGenerator username={user?.data[0].username ?? 'defaultUsername'} />
 
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.replace('/')}
           style={{
             marginTop: 16,
             paddingVertical: 10,
