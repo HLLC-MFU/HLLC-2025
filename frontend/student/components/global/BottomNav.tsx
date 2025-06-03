@@ -2,12 +2,14 @@ import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Home, Activity, QrCode, Gift, MessageSquare } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 type TabPath = '/' | '/activities' | '/qrcode' | '/evoucher' | '/chat';
 
 export default function BottomNav() {
   const router = useRouter();
   const pathname = usePathname(); // Get current route
+  const { t } = useTranslation();
 
   useEffect(() => {
     console.log('Current Router Object:', router);
@@ -15,13 +17,13 @@ export default function BottomNav() {
   }, [pathname]);
 
   const tabs = [
-    { name: 'Home', icon: Home, to: '/' },
-    { name: 'Activities', icon: Activity, to: '/activities' },
+    { name: t("bottomNav.home"), icon: Home, to: '/' },
+    { name: t("bottomNav.activity"), icon: Activity, to: '/activities' },
     { name: 'QRCode', icon: QrCode, to: '/qrcode' },
-    { name: 'Evoucher', icon: Gift, to: '/evoucher' },
-    { name: 'Community', icon: MessageSquare, to: '/chat' },
+    { name: t("bottomNav.evoucher"), icon: Gift, to: '/evoucher' },
+    { name: t("bottomNav.community"), icon: MessageSquare, to: '/chat' },
   ] as const;
-  
+
 
   return (
     <View style={styles.container}>
@@ -35,7 +37,7 @@ export default function BottomNav() {
               <TouchableOpacity
                 style={styles.qrButton}
                 onPress={() => {
-                  router.replace (tab.to);
+                  router.replace(tab.to);
                 }}
                 activeOpacity={0.85}
               >
@@ -76,7 +78,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     width: '100%',
     height: 90,
-    backgroundColor: 'rgb(255, 255, 255)', 
+    backgroundColor: 'rgb(255, 255, 255)',
     borderColor: 'rgba(255, 255, 255, 0.6)',
     borderWidth: 0.5,
     position: 'absolute',
