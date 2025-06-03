@@ -8,7 +8,7 @@ export class Report {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   reporter: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'ReportCategory', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'ReportType', required: true })
   category: Types.ObjectId;
 
   @Prop({ required: true, type: String })

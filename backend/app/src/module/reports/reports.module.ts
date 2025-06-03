@@ -4,9 +4,9 @@ import { ReportsService } from './reports.service';
 import { ReportsController } from './reports.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import {
-  ReportCategory,
-  ReportCategorySchema,
-} from '../report_categories/schemas/report_categories.schemas';
+  ReportType,
+  ReportTypeSchema,
+} from '../report-type/schemas/report-type.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 
 @Module({
@@ -14,7 +14,7 @@ import { User, UserSchema } from '../users/schemas/user.schema';
     MongooseModule.forFeature([
       { name: Report.name, schema: ReportSchema },
       { name: User.name, schema: UserSchema },
-      { name: ReportCategory.name, schema: ReportCategorySchema },
+      { name: ReportType.name, schema: ReportTypeSchema },
     ]),
   ],
   controllers: [ReportsController],

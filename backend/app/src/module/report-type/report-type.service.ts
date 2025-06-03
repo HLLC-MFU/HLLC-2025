@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateReportCategoryDto } from './dto/create-report_category.dto';
 import { UpdateReportCategoryDto } from './dto/update-report_category.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { ReportCategory, ReportCategoryDocument } from './schemas/report_categories.schemas';
+import { ReportType, ReportTypeDocument } from './schemas/report-type.schema';
 import { Model } from 'mongoose';
 import {
   queryDeleteOne,
@@ -13,15 +13,15 @@ import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
-export class ReportCategoriesService {
+export class ReportTypeService {
   constructor(
-    @InjectModel(ReportCategory.name)
-    private readonly reportCategoryModel: Model<ReportCategoryDocument>,
+    @InjectModel(ReportType.name)
+    private readonly reportTypeModel: Model<ReportTypeDocument>,
   ) {}
 
   async create(createReportCategoryDto: CreateReportCategoryDto) {
    await throwIfExists(
-     this.reportCategoryModel,
+     this.reportTypeModel,
      {
        'name.th': createReportCategoryDto.name.th,
        'name.en': createReportCategoryDto.name.en,
@@ -29,7 +29,7 @@ export class ReportCategoriesService {
      'Report category already exists',
    );
 
-   const category = new this.reportCategoryModel(createReportCategoryDto);
+   const category = new this.reportTypeModel(createReportCategoryDto);
 
    try {
      return await category.save();
@@ -39,22 +39,22 @@ export class ReportCategoriesService {
   }
 
   async findAll(query: Record<string, string>) {
-    return queryAll<ReportCategory>({
-      model: this.reportCategoryModel  ,
+    return queryAll<ReportType>({
+      model: this.reportTypeModel  ,
       query,
       filterSchema: {},
     });
   }
 
 async findOne(id: string) {
-  return queryFindOne<ReportCategory>(this.reportCategoryModel, { _id: id });
+  return queryFindOne<ReportType>(this.reportTypeModel, { _id: id });
 }
 
 
 async update(id: string, updateReportCategoryDto: UpdateReportCategoryDto) {
   if (updateReportCategoryDto.name) {
     await throwIfExists(
-      this.reportCategoryModel,
+      this.reportTypeModel,
       {
         _id: { $ne: id },
         'name.th': updateReportCategoryDto.name.th,
@@ -64,7 +64,7 @@ async update(id: string, updateReportCategoryDto: UpdateReportCategoryDto) {
     );
   }
 
-  const updated = await this.reportCategoryModel.findByIdAndUpdate(
+  const updated = await this.reportTypeModel.findByIdAndUpdate(
     id,
     updateReportCategoryDto,
     { new: true } // ← ให้ return ค่าใหม่ที่อัปเดตแล้ว
@@ -82,6 +82,6 @@ async update(id: string, updateReportCategoryDto: UpdateReportCategoryDto) {
 
 
   async remove(id: string): Promise<void> {
-    await queryDeleteOne<ReportCategory>(this.reportCategoryModel, id);
+    await queryDeleteOne<ReportType>(this.reportTypeModel, id);
   }
 }

@@ -20,9 +20,8 @@ import { EvoucherCodeModule } from './module/evoucher-code/evoucher-code.module'
 import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 import { CampaignsModule } from './module/campaigns/campaigns.module';
-import { MultipartInterceptor } from './pkg/interceptors/multipart.interceptor';
 import { SseModule } from './module/sse/sse.module';
-import { ReportCategoriesModule } from './module/report_categories/report_categories.module';
+import { ReportTypeModule } from './module/report-type/report-type.module';
 import { ReportsModule } from './module/reports/reports.module';
 import { AppearancesModule } from './module/appearances/appearances.module';
 import { SystemStatusModule } from './module/system-status/system-status.module';
@@ -68,7 +67,7 @@ import { SystemStatusGuard } from './module/system-status/guards/system-status.g
     SponsorsTypeModule,
     CampaignsModule,
     NotificationsModule,
-    ReportCategoriesModule,
+    ReportTypeModule,
     SystemStatusModule,
     AppearancesModule,
     ReportsModule,

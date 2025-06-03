@@ -4,9 +4,9 @@ import { Model, PopulateOptions, Types } from 'mongoose';
 import { Report, ReportDocument } from './schemas/reports.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import {
-  ReportCategory,
-  ReportCategoryDocument,
-} from '../report_categories/schemas/report_categories.schemas';
+  ReportType,
+  ReportTypeDocument,
+} from '../report-type/schemas/report-type.schema';
 import { CreateReportDto } from './dto/create-report.dto';
 import {
   queryAll,
@@ -28,8 +28,8 @@ export class ReportsService {
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
 
-    @InjectModel(ReportCategory.name)
-    private readonly categoryModel: Model<ReportCategoryDocument>,
+    @InjectModel(ReportType.name)
+    private readonly reportTypeModel: Model<ReportTypeDocument>,
   ) { }
 
   async create(createReportDto: CreateReportDto) {
@@ -39,7 +39,7 @@ export class ReportsService {
       'User not found',
     );
     await findOrThrow(
-      this.categoryModel,
+      this.reportTypeModel,
       createReportDto.category,
       'Category not found',
     );
@@ -95,7 +95,7 @@ export class ReportsService {
 
     const category =
       result.data[0]?.category ||
-      (await this.categoryModel.findById(categoryId));
+      (await this.reportTypeModel.findById(categoryId));
 
     return {
       category,
