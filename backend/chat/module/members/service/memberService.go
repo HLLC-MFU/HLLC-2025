@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/members/repository"
@@ -14,6 +15,7 @@ type MemberService interface {
 	RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error
 	GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error)
 	IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+	DeleteRoomMembers(ctx context.Context, roomID primitive.ObjectID) error
 }
 
 type memberService struct {
@@ -76,4 +78,23 @@ func (s *memberService) IsUserInRoom(ctx context.Context, roomID primitive.Objec
 		return false, err
 	}
 	return s.repo.IsUserInRoom(ctx, roomID, userObjID)
+}
+
+// DeleteRoomMembers deletes all members for a room from both MongoDB and Redis
+func (s *memberService) DeleteRoomMembers(ctx context.Context, roomID primitive.ObjectID) error {
+	// Delete from MongoDB
+	if err := s.repo.DeleteRoomMembers(ctx, roomID); err != nil {
+		log.Printf("[ERROR] Failed to delete room members from MongoDB for room %s: %v", roomID.Hex(), err)
+		return err
+	}
+
+	// Delete from Redis
+	key := fmt.Sprintf("room:%s", roomID.Hex())
+	if err := redis.DeleteRoomMembers(key); err != nil {
+		log.Printf("[ERROR] Failed to delete room members from Redis for room %s: %v", roomID.Hex(), err)
+		return err
+	}
+
+	log.Printf("[DELETE] Deleted all members for room %s", roomID.Hex())
+	return nil
 }

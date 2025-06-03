@@ -15,6 +15,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils"
 	MemberService "github.com/HLLC-MFU/HLLC-2025/backend/module/members/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
+	roomRedis "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 	RoomService "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/service"
 	stickerService "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
 
@@ -72,19 +73,36 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 		return
 	}
 
+	// Check MongoDB membership
 	isMember, err := h.memberService.IsUserInRoom(ctx, roomObjID, userID)
 	if err != nil {
-		log.Printf("[ERROR] Failed to check if user is in room: %v", err)
+		log.Printf("[ERROR] Failed to check MongoDB membership: %v", err)
 		conn.WriteMessage(websocket.TextMessage, []byte("Internal server error"))
 		conn.Close()
 		return
 	}
 
+	// Check Redis membership
+	isInRedis, err := roomRedis.IsUserInRoom(roomID, userID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to check Redis membership: %v", err)
+	}
+
+	log.Printf("[WS] Membership check - MongoDB: %v, Redis: %v", isMember, isInRedis)
+
 	if !isMember {
-		log.Printf("[WS] User %s is not a member of room %s", userID, roomID)
+		log.Printf("[WS] User %s is not a member of room %s in MongoDB", userID, roomID)
 		conn.WriteMessage(websocket.TextMessage, []byte("You are not a member of this room"))
 		conn.Close()
 		return
+	}
+
+	// If user is in MongoDB but not in Redis, add them to Redis
+	if isMember && !isInRedis {
+		log.Printf("[WS] User %s is in MongoDB but not in Redis, adding to Redis", userID)
+		if err := roomRedis.AddUserToRoom(roomID, userID); err != nil {
+			log.Printf("[ERROR] Failed to add user to Redis: %v", err)
+		}
 	}
 
 	client := model.ClientObject{
@@ -443,31 +461,59 @@ func (h *ChatHTTPHandler) JoinRoom(c *fiber.Ctx) error {
 	roomIdStr := c.Params("roomId")
 	userID := c.Params("userId")
 
+	log.Printf("[JOIN] Attempting to join room %s with user %s", roomIdStr, userID)
+
 	roomID, err := primitive.ObjectIDFromHex(roomIdStr)
 	if err != nil {
+		log.Printf("[JOIN] Invalid room ID format: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid room ID",
 		})
 	}
 
-	// handle Room avaliable
+	// Check if room exists
 	room, err := h.roomService.GetRoom(c.Context(), roomID)
-	if err != nil || room == nil {
+	if err != nil {
+		log.Printf("[JOIN] Error checking room existence: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to check room existence",
+		})
+	}
+	if room == nil {
+		log.Printf("[JOIN] Room %s not found", roomIdStr)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "room not found",
 		})
 	}
+	log.Printf("[JOIN] Room %s exists with capacity %d", roomIdStr, room.Capacity)
 
-	// handle Capacity of room
+	// Check if user is already a member
+	isMember, err := h.memberService.IsUserInRoom(c.Context(), roomID, userID)
+	if err != nil {
+		log.Printf("[JOIN] Error checking if user is already a member: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to check membership status",
+		})
+	}
+	if isMember {
+		log.Printf("[JOIN] User %s is already a member of room %s", userID, roomIdStr)
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "already a member of the room",
+		})
+	}
+
+	// Check room capacity
 	memberCount, err := h.memberService.GetRoomMembers(context.Background(), roomID)
 	if err != nil {
-		log.Printf("[ERROR] Failed to get member count for room %s: %v", roomID.Hex(), err)
+		log.Printf("[JOIN] Error getting member count for room %s: %v", roomIdStr, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to check room capacity",
 		})
 	}
+	log.Printf("[JOIN] Room %s has %d members (capacity: %d)", roomIdStr, len(memberCount), room.Capacity)
 
 	if len(memberCount) >= room.Capacity {
+		log.Printf("[JOIN] Room %s is full (%d/%d members)", roomIdStr, len(memberCount), room.Capacity)
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"error": "room is full",
 		})
@@ -475,13 +521,13 @@ func (h *ChatHTTPHandler) JoinRoom(c *fiber.Ctx) error {
 
 	// Add User to Room
 	if err := h.memberService.AddUserToRoom(context.Background(), roomID, userID); err != nil {
-		log.Printf("[ERROR] Failed to add user %s to room %s: %v", userID, roomID.Hex(), err)
+		log.Printf("[JOIN] Failed to add user %s to room %s: %v", userID, roomIdStr, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to join room",
 		})
 	}
 
-	log.Printf("[JOIN] User %s joined room %s", userID, roomID.Hex())
+	log.Printf("[JOIN] Successfully added user %s to room %s", userID, roomIdStr)
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "joined room",
 	})
@@ -582,4 +628,23 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	})
 
 	return c.Status(fiber.StatusOK).JSON(msg)
+}
+
+// ClearRoomCache clears all cached messages for a room from Redis
+func (h *ChatHTTPHandler) ClearRoomCache(c *fiber.Ctx) error {
+	roomIdStr := c.Params("roomId")
+
+	log.Printf("[CACHE] Attempting to clear cache for room %s", roomIdStr)
+
+	if err := redis.ClearRoomCache(roomIdStr); err != nil {
+		log.Printf("[CACHE] Failed to clear cache for room %s: %v", roomIdStr, err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to clear room cache",
+		})
+	}
+
+	log.Printf("[CACHE] Successfully cleared cache for room %s", roomIdStr)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "room cache cleared successfully",
+	})
 }

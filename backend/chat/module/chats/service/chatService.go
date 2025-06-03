@@ -14,6 +14,8 @@ import (
 	RoomRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
+	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 	"github.com/gofiber/websocket/v2"
 )
 
@@ -32,20 +34,43 @@ type ChatService interface {
 	SaveReaction(ctx context.Context, reaction *model.MessageReaction) error
 	SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error
 	SyncRoomMembers()
+	DeleteRoomMessages(ctx context.Context, roomID string) error
 }
+
+const (
+	chatConsumerGroup = "chat-service-group"
+	chatTopic         = "chat-messages"
+)
 
 type service struct {
 	repo      repository.ChatRepository
 	publisher kafkaPublisher.Publisher
 	roomRepo  RoomRepository.RoomRepository
+	consumer  *kafka.Consumer
 }
 
 func NewService(repo repository.ChatRepository, publisher kafkaPublisher.Publisher, roomRepo RoomRepository.RoomRepository) ChatService {
-	return &service{
+	s := &service{
 		repo:      repo,
 		publisher: publisher,
 		roomRepo:  roomRepo,
 	}
+
+	// Initialize Kafka consumer with chat-specific group
+	handler := NewChatMessageHandler(s)
+	s.consumer = kafka.NewConsumer(
+		[]string{"localhost:9092"},
+		chatTopic,
+		chatConsumerGroup,
+		handler,
+	)
+
+	// Start consuming messages
+	if err := s.consumer.Start(); err != nil {
+		log.Printf("[Service] Failed to start Kafka consumer: %v", err)
+	}
+
+	return s
 }
 
 func (s *service) InitChatHub() {
@@ -79,33 +104,31 @@ func (s *service) InitChatHub() {
 					Timestamp: time.Now(),
 				}
 
-				payload := model.MessagePayload{
-					UserID:   chatMsg.UserID,
-					RoomID:   chatMsg.RoomID,
-					Message:  chatMsg.Message,
-					Mentions: chatMsg.Mentions,
-				}
-				event := model.ChatEvent{
-					EventType: "message",
-					Payload:   payload,
+				// Send to Kafka topic
+				data, err := json.Marshal(chatMsg)
+				if err != nil {
+					log.Printf("[BROADCAST] Failed to marshal message: %v", err)
+					continue
 				}
 
-				for userID, conn := range model.Clients[chatMsg.RoomID] {
-					if conn == nil {
-						if userID != chatMsg.UserID {
-							s.notifyOfflineUser(userID, chatMsg.RoomID, chatMsg.UserID, chatMsg.Message)
-						}
-						continue
+				if err := s.publisher.SendMessageToTopic(chatTopic, chatMsg.UserID, string(data)); err != nil {
+					log.Printf("[BROADCAST] Failed to send message to Kafka: %v", err)
+					continue
+				}
+
+				// Send acknowledgment back to sender
+				if conn, exists := model.Clients[chatMsg.RoomID][chatMsg.UserID]; exists && conn != nil {
+					ack := model.ChatEvent{
+						EventType: "message_ack",
+						Payload: model.MessagePayload{
+							UserID:   chatMsg.UserID,
+							RoomID:   chatMsg.RoomID,
+							Message:  chatMsg.Message,
+							Mentions: chatMsg.Mentions,
+						},
 					}
-
-					if err := sendJSONMessage(conn, event); err != nil {
-						log.Printf("[WS] Failed to send to %s: %v", userID, err)
-						conn.Close()
-						model.Clients[chatMsg.RoomID][userID] = nil
-
-						if userID != chatMsg.UserID {
-							s.notifyOfflineUser(userID, chatMsg.RoomID, chatMsg.UserID, chatMsg.Message)
-						}
+					if err := sendJSONMessage(conn, ack); err != nil {
+						log.Printf("[BROADCAST] Failed to send acknowledgment to sender: %v", err)
 					}
 				}
 			}
@@ -138,9 +161,41 @@ func (s *service) notifyOfflineUser(userID, roomID, fromUserID, message string) 
 }
 
 func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {
+	// Try to get from Redis cache first
+	cachedMessages, err := redis.GetRecentMessages(roomID, int(limit))
+	if err == nil && len(cachedMessages) > 0 {
+		// Cache hit - enrich the messages with reactions and read receipts
+		var enriched []model.ChatMessageEnriched
+		for _, msg := range cachedMessages {
+			reactions, _ := s.repo.GetReactionsByMessageID(ctx, msg.ID)
+			reads, _ := s.repo.GetReadReceiptsByMessageID(ctx, msg.ID)
+
+			var replyTo *model.ChatMessage
+			if msg.ReplyToID != nil {
+				replyTo, _ = s.repo.GetMessageByID(ctx, *msg.ReplyToID)
+			}
+
+			enriched = append(enriched, model.ChatMessageEnriched{
+				ChatMessage:  msg,
+				Reactions:    reactions,
+				ReadReceipts: reads,
+				ReplyTo:      replyTo,
+			})
+		}
+		return enriched, nil
+	}
+
+	// Cache miss - get from MongoDB
 	rawMessages, err := s.repo.GetChatHistoryByRoom(ctx, roomID, limit)
 	if err != nil {
 		return nil, err
+	}
+
+	// Cache the results in Redis
+	for _, msg := range rawMessages {
+		if err := redis.SaveChatMessageToRoom(roomID, &msg); err != nil {
+			log.Printf("[Cache] Failed to cache message for room %s: %v", roomID, err)
+		}
 	}
 
 	var enriched []model.ChatMessageEnriched
@@ -170,6 +225,12 @@ func (s *service) SaveChatMessage(ctx context.Context, msg *model.ChatMessage) e
 		return err
 	}
 	msg.ID = id
+
+	// Cache the new message in Redis
+	if err := redis.SaveChatMessageToRoom(msg.RoomID, msg); err != nil {
+		log.Printf("[Cache] Failed to cache new message for room %s: %v", msg.RoomID, err)
+	}
+
 	return nil
 }
 
@@ -211,4 +272,30 @@ func (s *service) SaveReaction(ctx context.Context, reaction *model.MessageReact
 
 func (s *service) SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error {
 	return s.repo.SaveReadReceipt(ctx, receipt)
+}
+
+// DeleteRoomMessages deletes all messages, reactions, and read receipts for a room
+func (s *service) DeleteRoomMessages(ctx context.Context, roomID string) error {
+	// Delete messages from MongoDB
+	if err := s.repo.DeleteMessagesByRoomID(ctx, roomID); err != nil {
+		return err
+	}
+
+	// Delete messages from Redis cache
+	if err := redis.DeleteRoomMessages(roomID); err != nil {
+		log.Printf("[DeleteRoomMessages] Failed to delete messages from Redis for room %s: %v", roomID, err)
+		// Don't return error here as messages are already deleted from MongoDB
+	}
+
+	// Delete reactions and read receipts
+	if err := s.repo.DeleteReactionsByRoomID(ctx, roomID); err != nil {
+		log.Printf("[DeleteRoomMessages] Failed to delete reactions for room %s: %v", roomID, err)
+	}
+
+	if err := s.repo.DeleteReadReceiptsByRoomID(ctx, roomID); err != nil {
+		log.Printf("[DeleteRoomMessages] Failed to delete read receipts for room %s: %v", roomID, err)
+	}
+
+	log.Printf("[DeleteRoomMessages] Successfully deleted all messages and related data for room: %s", roomID)
+	return nil
 }

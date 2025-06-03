@@ -2,13 +2,16 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"time"
 
 	MemberService "github.com/HLLC-MFU/HLLC-2025/backend/module/members/service"
+	roomKafka "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/model"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
+	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -112,6 +115,43 @@ func (s *service) DeleteRoom(ctx context.Context, id primitive.ObjectID) error {
 	if existing == nil {
 		return NewError("room not found")
 	}
+
+	// Delete all room members first
+	if err := s.memberService.DeleteRoomMembers(ctx, id); err != nil {
+		log.Printf("[Room Service] Error deleting room members: %v", err)
+		// Continue with deletion even if member deletion fails
+	} else {
+		log.Printf("[Room Service] Successfully deleted all members for room: %s", id.Hex())
+	}
+
+	// Publish room deletion event to Kafka
+	event := roomKafka.RoomEvent{
+		Type:   "room_deleted",
+		RoomID: id.Hex(),
+	}
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("[Room Service] Error marshaling room deletion event: %v", err)
+		// Continue with deletion even if event publishing fails
+	} else {
+		writer := kafka.NewWriter(kafka.WriterConfig{
+			Brokers:  []string{"localhost:9092"},
+			Topic:    "room-events",
+			Balancer: &kafka.LeastBytes{},
+		})
+		defer writer.Close()
+
+		if err := writer.WriteMessages(ctx, kafka.Message{
+			Value: eventBytes,
+		}); err != nil {
+			log.Printf("[Room Service] Error publishing room deletion event: %v", err)
+			// Continue with deletion even if event publishing fails
+		} else {
+			log.Printf("[Room Service] Published room deletion event for room: %s", id.Hex())
+		}
+	}
+
+	// Delete the room from the database
 	return s.repo.Delete(ctx, id)
 }
 
