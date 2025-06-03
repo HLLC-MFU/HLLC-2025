@@ -18,7 +18,6 @@ import { AppearancesModule } from './module/appearances/appearances.module';
 import { SystemStatusModule } from './module/system-status/system-status.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
-import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 
