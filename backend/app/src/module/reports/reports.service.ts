@@ -31,8 +31,8 @@ export class ReportsService {
   async create(createReportDto: CreateReportDto) {
     await throwIfExists(
       this.reportModel,
-      { massage: createReportDto.massage },
-      'Massage already exists',
+      { message: createReportDto.message },
+      'Message already exists',
     );
 
     const report = new this.reportModel({
@@ -77,39 +77,55 @@ export class ReportsService {
   }
 
   async findAllByCategory(categoryId: string) {
-    try {
-      const result = await queryAll<Report>({
-        model: this.reportModel,
-        query: {
-          category: categoryId,
-          excluded: [
-            'reporter.password',
-            'reporter.refreshToken',
-            'reporter.role',
-            'reporter.metadata',
-            'reporter.createdAt',
-            'reporter.updatedAt',
-            'reporter.__v',
-            '__v',
-          ].join(',')
-        } as Record<string, string>,
-        filterSchema: { category: 'string' },
-        populateFields: (e) =>
-          Promise.resolve(
-            ['reporter', 'category']
-              .filter(p => !e.includes(p))
-              .map(path => ({ path }))
-          ),
-      });
+  try {
+    const result = await queryAll<Report>({
+      model: this.reportModel,
+      query: {
+        category: categoryId,
+        excluded: [
+          'reporter.password',
+          'reporter.refreshToken',
+          'reporter.role',
+          'reporter.metadata',
+          'reporter.createdAt',
+          'reporter.updatedAt',
+          'reporter.__v',
+          '__v',
+        ].join(','),
+      } as Record<string, string>,
+      filterSchema: { category: 'string' },
+      populateFields: (e) =>
+        Promise.resolve(
+          ['reporter', 'category']
+            .filter((p) => !e.includes(p))
+            .map((path) => ({ path })),
+        ),
+    });
+
+    if (result.data.length === 0) {
+      const category = await this.categoryModel.findById(categoryId);
+      if (!category) {
+        throw new NotFoundException(`Category with id ${categoryId} not found`);
+      }
 
       return {
-        category: result.data[0]?.category || await this.categoryModel.findById(categoryId),
-        reports: result.data.map(({ category, ...rest }) => rest),
+        category,
+        reports: [],
       };
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to fetch reports by category');
     }
+
+    return {
+      category: result.data[0].category,
+      reports: result.data.map(({ category, ...rest }) => rest),
+    };
+  } catch (error) {
+    if (error instanceof NotFoundException) throw error;
+    throw new InternalServerErrorException('Failed to fetch reports by category');
   }
+}
+
+
+
 
   async findOne(id: string): Promise<{ data: Report[] | null; message: string }> {
 
@@ -128,8 +144,11 @@ export class ReportsService {
       updateReportDto.updatedAt = new Date();
       return await queryUpdateOne<Report>(this.reportModel, id, updateReportDto);
     } catch (error) {
-      throw new InternalServerErrorException(`Failed to update report with id ${id}`);
+      if (error instanceof NotFoundException) {
+      throw error;
     }
+    throw new InternalServerErrorException(`Failed to update report with id ${id}`);
+   }
   }
 
   async remove(id: string) {

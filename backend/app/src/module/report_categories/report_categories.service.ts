@@ -1,16 +1,14 @@
-import { Inject, Injectable, Logger, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateReportCategoryDto } from './dto/create-report_category.dto';
 import { UpdateReportCategoryDto } from './dto/update-report_category.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { ReportCategory, ReportCategoryDocument } from './schemas/report_categories.schemas';
-import { Model, Types  } from 'mongoose';
+import { Model  } from 'mongoose';
 import {
   queryDeleteOne,
   queryFindOne,
-  queryUpdateOne,
   queryAll,
 } from 'src/pkg/helper/query.util';
-import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
@@ -69,7 +67,7 @@ async update(id: string, updateReportCategoryDto: UpdateReportCategoryDto) {
   const updated = await this.reportCategoryModel.findByIdAndUpdate(
     id,
     updateReportCategoryDto,
-    { new: true } // ← ให้ return ค่าใหม่ที่อัปเดตแล้ว
+    { new: true }
   ).lean();
 
   if (!updated) {

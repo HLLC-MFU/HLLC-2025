@@ -12,7 +12,7 @@ category: string;
 
 @IsString()
 @IsNotEmpty()
-massage: string;
+message: string;
 
 @IsString()
 @IsNotEmpty()

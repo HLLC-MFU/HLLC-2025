@@ -3,6 +3,16 @@ import { ReportsService } from './reports.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { NotFoundException } from '@nestjs/common';
 import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
+import {
+  queryAll,
+  queryFindOne,
+  queryDeleteOne,
+  queryUpdateOne,
+} from 'src/pkg/helper/query.util';
+import { CreateReportDto } from './dto/create-report.dto';
+import { UpdateReportDto } from './dto/update-report.dto';
+import { Report, ReportDocument } from './schemas/reports.schema';
+import { Types } from 'mongoose';
 
 jest.mock('src/pkg/helper/query.util', () => ({
   queryAll: jest.fn(),
@@ -16,22 +26,26 @@ jest.mock('src/pkg/validator/model.validator', () => ({
   throwIfExists: jest.fn(),
 }));
 
-import {
-  queryAll,
-  queryFindOne,
-  queryDeleteOne,
-  queryUpdateOne,
-} from 'src/pkg/helper/query.util';
-
-describe('ReportsService', () => {
+describe('ReportsService with DTOs (Full Coverage)', () => {
   let service: ReportsService;
   let saveMock: jest.Mock;
-  let mockReportModel: any;
+  let mockReportModel: jest.Mock<{ save: jest.Mock }, []>;
 
   const mockUserModel = {};
   const mockCategoryModel = {
     findById: jest.fn().mockResolvedValue({ _id: 'catId', name: 'Category A' }),
   };
+
+  const fixedDate = new Date('2025-06-03T00:00:00.000Z');
+
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(fixedDate);
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
 
   beforeEach(async () => {
     saveMock = jest.fn();
@@ -49,116 +63,125 @@ describe('ReportsService', () => {
     service = module.get<ReportsService>(ReportsService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('create', () => {
-    it('should create a report successfully', async () => {
-      const createDto = { massage: 'new message' };
+    const dto: CreateReportDto = {
+      message: 'create test',
+      reporter: new Types.ObjectId().toHexString(),
+      category: new Types.ObjectId().toHexString(),
+      status: 'pending',
+      createdAt: fixedDate,
+    };
+
+    it('should create report successfully', async () => {
       (throwIfExists as jest.Mock).mockResolvedValue(undefined);
-      saveMock.mockResolvedValue({ _id: '1', ...createDto });
-
-      const result = await service.create(createDto as any);
-
-      expect(result).toEqual({ _id: '1', ...createDto });
-      expect(saveMock).toHaveBeenCalled();
+      saveMock.mockResolvedValue({ _id: '1', ...dto });
+      const result = await service.create(dto);
+      expect(result).toEqual({ _id: '1', ...dto });
     });
 
-    it('should throw InternalServerErrorException when save fails', async () => {
-      const createDto = { massage: 'fail' };
-      (throwIfExists as jest.Mock).mockResolvedValue(undefined);
-      saveMock.mockRejectedValue(new Error('save failed'));
+    it('should throw on duplicate', async () => {
+      (throwIfExists as jest.Mock).mockRejectedValue(new Error('Duplicate error'));
+      await expect(service.create(dto)).rejects.toThrow('Duplicate error');
+    });
 
-      await expect(service.create(createDto as any)).rejects.toThrow('Failed to create report');
+    it('should throw InternalServerErrorException on save fail', async () => {
+      (throwIfExists as jest.Mock).mockResolvedValue(undefined);
+      saveMock.mockRejectedValue(new Error('DB error'));
+      await expect(service.create(dto)).rejects.toThrow('Failed to create report');
     });
   });
 
   describe('findAll', () => {
-    it('should return all reports', async () => {
-      const mockResult = { data: ['report1', 'report2'] };
-      (queryAll as jest.Mock).mockResolvedValue(mockResult);
-
+    it('should return reports', async () => {
+      (queryAll as jest.Mock).mockResolvedValue({ data: ['report1'] });
       const result = await service.findAll({});
-      expect(result).toEqual(mockResult);
-      expect(queryAll).toHaveBeenCalled();
+      expect(result).toEqual({ data: ['report1'] });
+    });
+
+    it('should throw InternalServerErrorException on queryAll error', async () => {
+      (queryAll as jest.Mock).mockRejectedValue(new Error('fail'));
+      await expect(service.findAll({})).rejects.toThrow('Failed to fetch reports');
     });
   });
 
   describe('findAllByCategory', () => {
     it('should return reports by category', async () => {
-      const mockResult = {
-        data: [
-          {
-            _id: 'r1',
-            message: 'Hello',
-            category: { _id: 'catId', name: 'Category A' },
-          },
-        ],
-      };
-      (queryAll as jest.Mock).mockResolvedValue(mockResult);
-
+      (queryAll as jest.Mock).mockResolvedValue({ data: [{ _id: '1', message: 'msg', category: { _id: 'catId', name: 'Category A' } }] });
       const result = await service.findAllByCategory('catId');
-      expect(result).toEqual({
-        category: { _id: 'catId', name: 'Category A' },
-        reports: [{ _id: 'r1', message: 'Hello' }],
-      });
+      expect(result).toEqual({ category: { _id: 'catId', name: 'Category A' }, reports: [{ _id: '1', message: 'msg' }] });
+    });
+
+    it('should throw NotFoundException if no category found', async () => {
+      (queryAll as jest.Mock).mockResolvedValue({ data: [] });
+      mockCategoryModel.findById = jest.fn().mockResolvedValue(null);
+      await expect(service.findAllByCategory('notfound')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw InternalServerErrorException on error', async () => {
+      (queryAll as jest.Mock).mockRejectedValue(new Error('fail'));
+      await expect(service.findAllByCategory('catId')).rejects.toThrow('Failed to fetch reports by category');
     });
   });
 
   describe('findOne', () => {
-    it('should return a report if found', async () => {
-      const mockReport = { _id: '1', message: 'Found' };
-      (queryFindOne as jest.Mock).mockResolvedValue(mockReport);
-
+    it('should return report if found', async () => {
+      const report = { _id: '1', message: 'found' };
+      (queryFindOne as jest.Mock).mockResolvedValue({ data: report, message: 'Report retrieved successfully' });
       const result = await service.findOne('1');
-      expect(result).toEqual(mockReport);
+      expect(result).toEqual({ data: report, message: 'Report retrieved successfully' });
     });
 
     it('should throw NotFoundException if not found', async () => {
       (queryFindOne as jest.Mock).mockResolvedValue(null);
-
-      await expect(service.findOne('404')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('notfound')).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('update', () => {
-    it('should update a report successfully', async () => {
-      const updateDto = { message: 'updated' };
-      (findOrThrow as jest.Mock).mockResolvedValue(true);
-      const mockUpdate = { _id: '1', ...updateDto };
-      (queryUpdateOne as jest.Mock).mockResolvedValue(mockUpdate);
+    const dto: UpdateReportDto = {
+      message: 'update',
+      reporter: new Types.ObjectId().toHexString(),
+      category: new Types.ObjectId().toHexString(),
+      status: 'resolved',
+      updatedAt: fixedDate,
+    };
 
-      const result = await service.update('1', updateDto as any);
-      expect(result).toEqual(mockUpdate);
+    it('should update report', async () => {
+      (findOrThrow as jest.Mock).mockResolvedValue(true);
+      (queryUpdateOne as jest.Mock).mockResolvedValue({ _id: '1', ...dto });
+      const result = await service.update('1', dto);
+      expect(result).toEqual({ _id: '1', ...dto });
     });
 
-    it('should throw InternalServerErrorException when update fails', async () => {
-      const updateDto = { message: 'fail' };
-      (findOrThrow as jest.Mock).mockResolvedValue(true);
-      (queryUpdateOne as jest.Mock).mockRejectedValue(new Error('DB error'));
+    it('should throw NotFoundException if not found', async () => {
+      (findOrThrow as jest.Mock).mockRejectedValue(new NotFoundException());
+      await expect(service.update('404', dto)).rejects.toThrow(NotFoundException);
+    });
 
-      await expect(service.update('1', updateDto as any)).rejects.toThrow('Failed to update report with id 1');
+    it('should throw InternalServerErrorException if update fails', async () => {
+      (findOrThrow as jest.Mock).mockResolvedValue(true);
+      (queryUpdateOne as jest.Mock).mockRejectedValue(new Error('fail'));
+      await expect(service.update('1', dto)).rejects.toThrow('Failed to update report with id 1');
     });
   });
 
   describe('remove', () => {
-    it('should delete and return success message', async () => {
+    it('should delete report', async () => {
       (findOrThrow as jest.Mock).mockResolvedValue(true);
       (queryDeleteOne as jest.Mock).mockResolvedValue(true);
-
       const result = await service.remove('1');
-      expect(result).toEqual({
-        message: 'Report deleted successfully',
-        id: '1',
-      });
+      expect(result).toEqual({ message: 'Report deleted successfully', id: '1' });
     });
 
     it('should throw NotFoundException if not found', async () => {
-      (findOrThrow as jest.Mock).mockRejectedValue(new NotFoundException('Report not found'));
-
+      (findOrThrow as jest.Mock).mockRejectedValue(new NotFoundException());
       await expect(service.remove('404')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw InternalServerErrorException if delete fails', async () => {
+      (findOrThrow as jest.Mock).mockResolvedValue(true);
+      (queryDeleteOne as jest.Mock).mockRejectedValue(new Error('fail'));
+      await expect(service.remove('1')).rejects.toThrow('Failed to delete report with id 1');
     });
   });
 });
-
