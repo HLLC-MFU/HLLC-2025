@@ -8,7 +8,6 @@
     "hllc": "./scripts/hllc.js"
   },
   "dependencies": {
-    "@fastify/multipart": "^9.0.3",
     "hllc-2025": "file:"
   },
   "devDependencies": {

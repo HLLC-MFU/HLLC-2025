@@ -28,7 +28,7 @@ jest.mock('src/pkg/validator/model.validator', () => ({
 describe('ReportsService with DTOs (Full Coverage)', () => {
   let service: ReportsService;
   let saveMock: jest.Mock;
-  let mockReportModel: jest.Mock<{ save: jest.Mock }, []>;
+  let mockReportModel: jest.Mock;
 
   const mockUserModel = {};
   const mockCategoryModel = {
@@ -55,7 +55,7 @@ describe('ReportsService with DTOs (Full Coverage)', () => {
         ReportsService,
         { provide: getModelToken('Report'), useValue: mockReportModel },
         { provide: getModelToken('User'), useValue: mockUserModel },
-        { provide: getModelToken('ReportCategory'), useValue: mockCategoryModel },
+        { provide: getModelToken('ReportType'), useValue: mockCategoryModel },
       ],
     }).compile();
 
@@ -105,9 +105,14 @@ describe('ReportsService with DTOs (Full Coverage)', () => {
 
   describe('findAllByCategory', () => {
     it('should return reports by category', async () => {
-      (queryAll as jest.Mock).mockResolvedValue({ data: [{ _id: '1', message: 'msg', category: { _id: 'catId', name: 'Category A' } }] });
+      (queryAll as jest.Mock).mockResolvedValue({
+        data: [{ _id: '1', message: 'msg', category: { _id: 'catId', name: 'Category A' } }],
+      });
       const result = await service.findAllByCategory('catId');
-      expect(result).toEqual({ category: { _id: 'catId', name: 'Category A' }, reports: [{ _id: '1', message: 'msg' }] });
+      expect(result).toEqual({
+        category: { _id: 'catId', name: 'Category A' },
+        reports: [{ _id: '1', message: 'msg' }],
+      });
     });
 
     it('should throw NotFoundException if no category found', async () => {
@@ -118,16 +123,18 @@ describe('ReportsService with DTOs (Full Coverage)', () => {
 
     it('should throw InternalServerErrorException on error', async () => {
       (queryAll as jest.Mock).mockRejectedValue(new Error('fail'));
-      await expect(service.findAllByCategory('catId')).rejects.toThrow('Failed to fetch reports by category');
+      await expect(service.findAllByCategory('catId')).rejects.toThrow(
+        'Failed to fetch reports by category',
+      );
     });
   });
 
   describe('findOne', () => {
     it('should return report if found', async () => {
       const report = { _id: '1', message: 'found' };
-      (queryFindOne as jest.Mock).mockResolvedValue({ data: report, message: 'Report retrieved successfully' });
+      (queryFindOne as jest.Mock).mockResolvedValue(report);
       const result = await service.findOne('1');
-      expect(result).toEqual({ data: report, message: 'Report retrieved successfully' });
+      expect(result).toEqual(report);
     });
 
     it('should throw NotFoundException if not found', async () => {
@@ -160,7 +167,9 @@ describe('ReportsService with DTOs (Full Coverage)', () => {
     it('should throw InternalServerErrorException if update fails', async () => {
       (findOrThrow as jest.Mock).mockResolvedValue(true);
       (queryUpdateOne as jest.Mock).mockRejectedValue(new Error('fail'));
-      await expect(service.update('1', dto)).rejects.toThrow('Failed to update report with id 1');
+      await expect(service.update('1', dto)).rejects.toThrow(
+        'Failed to update report with id 1',
+      );
     });
   });
 
@@ -169,7 +178,10 @@ describe('ReportsService with DTOs (Full Coverage)', () => {
       (findOrThrow as jest.Mock).mockResolvedValue(true);
       (queryDeleteOne as jest.Mock).mockResolvedValue(true);
       const result = await service.remove('1');
-      expect(result).toEqual({ message: 'Report deleted successfully', id: '1' });
+      expect(result).toEqual({
+        message: 'Report deleted successfully',
+        deletedId: '1',
+      });
     });
 
     it('should throw NotFoundException if not found', async () => {
@@ -180,7 +192,9 @@ describe('ReportsService with DTOs (Full Coverage)', () => {
     it('should throw InternalServerErrorException if delete fails', async () => {
       (findOrThrow as jest.Mock).mockResolvedValue(true);
       (queryDeleteOne as jest.Mock).mockRejectedValue(new Error('fail'));
-      await expect(service.remove('1')).rejects.toThrow('Failed to delete report with id 1');
+      await expect(service.remove('1')).rejects.toThrow(
+        'Failed to delete report with id 1',
+      );
     });
   });
 });
