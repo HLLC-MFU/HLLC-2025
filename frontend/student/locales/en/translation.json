@@ -6,5 +6,21 @@
     "home": {
         "activities": "Activities",
         "seeAll": "See all"
+    },
+    "activty": {
+        "activities": "Activities",
+        "subtitle": "Coming soon...",
+        "backward": "Go Back"
+    },
+    "evoucher": {
+        "title": "E-Voucher",
+        "subtitle": "Coming soon...",
+        "backward": "Go Back"
+    },
+    "bottomNav": {
+        "home": "Home",
+        "activity": "Activity",
+        "evoucher": "E-Voucher",
+        "community": "Community"
     }
 }
