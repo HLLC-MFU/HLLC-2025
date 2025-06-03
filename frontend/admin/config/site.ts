@@ -38,7 +38,7 @@ export const siteConfig = {
     {
       section: "Evoucher Management",
       items: [
-        { label: "Campaign", href: "/campaigns", icon: Megaphone },
+        // { label: "Campaign", href: "/campaigns", icon: Megaphone },
       ],
     },
     {
