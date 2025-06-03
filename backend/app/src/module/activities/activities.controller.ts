@@ -28,7 +28,7 @@ export class ActivitiesController {
   findAll(@Query() query: Record<string, string>) {
     return this.activitiesService.findAll(query);
   }
-
+  
   @Get(':id')
   @Permissions('activities:read')
   findOne(@Param('id') id: string) {

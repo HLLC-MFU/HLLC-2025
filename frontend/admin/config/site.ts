@@ -6,14 +6,14 @@ import {
   FolderIcon,
   UsersIcon,
   CalendarIcon,
-  CircleCheckBig ,
+  CircleCheckBig,
   SettingsIcon,
   HelpCircleIcon,
   LogOutIcon,
   ShieldAlert,
-  
   Palette,
   Megaphone,
+  Trophy,
 } from "lucide-react";
 
 export const siteConfig = {
@@ -31,6 +31,7 @@ export const siteConfig = {
       items: [
         { label: "Checkin" , href: "/checkin", icon: CircleCheckBig},
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
+        { label: "Activities", href: "/activities", icon: Trophy },
         { label: "Users Management", href: "/users", icon: UserIcon },
         { label: "Reports", href: "/reports", icon: ShieldAlert },
       ],

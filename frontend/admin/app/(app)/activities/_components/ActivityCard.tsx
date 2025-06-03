@@ -24,22 +24,22 @@ export function ActivityCard({ activity, onEdit, onDelete }: ActivityCardProps) 
                     radius="md"
                     className="w-12 h-12 text-large items-center justify-center flex-shrink-0"
                 >
-                    {activity.shortName.en.substring(0, 3).toUpperCase()}
+                    {activity.acronym}
                 </Card>
                 <div className="flex flex-col items-start min-w-0 text-start">
-                    <p className="text-lg font-semibold truncate w-full">{activity.fullName.en}</p>
-                    <p className="text-small text-default-500 truncate w-full">{activity.fullName.th}</p>
+                    <p className="text-lg font-semibold truncate w-full">{activity.name.en}</p>
+                    <p className="text-small text-default-500 truncate w-full">{activity.name.th}</p>
                 </div>
             </CardHeader>
             <Divider />
             <CardBody className="gap-4 p-4">
                 <div className="flex items-center gap-2">
                     <Building2 className="text-default-500 flex-shrink-0" size={16} />
-                    <span className="text-sm text-default-500 truncate">{activity.shortName.en}</span>
+                    <span className="text-sm text-default-500 truncate">{activity.acronym}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <Calendar className="text-default-500 flex-shrink-0" size={16} />
-                    <span className="text-sm text-default-500">{activity.location}</span>
+                    <span className="text-sm text-default-500">{activity.location.en}</span>
                 </div>
                 <p className="text-sm text-default-500 line-clamp-2">
                     {activity.shortDetails.en}
