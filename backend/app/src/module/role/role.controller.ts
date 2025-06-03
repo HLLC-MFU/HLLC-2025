@@ -49,6 +49,4 @@ export class RoleController {
   remove(@Param('id') id: string) {
     return this.roleService.remove(id);
   }
-
-
 }

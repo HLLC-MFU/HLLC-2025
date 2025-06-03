@@ -14,19 +14,34 @@ export class MongoExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(MongoExceptionFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    // ✅ ปล่อย Nest จัดการ error ปกติของ HTTP (เช่น NotFoundException)
-    if (exception instanceof HttpException) {
-      throw exception;
-    }
-
     // ✅ เช็กว่า context เป็น HTTP
     if (host.getType() !== 'http') {
-      this.logger.warn('Non-HTTP context detected, skipping custom error handling');
+      this.logger.warn(
+        'Non-HTTP context detected, skipping custom error handling',
+      );
       return;
     }
 
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<FastifyReply>();
+
+    // ✅ ปล่อย Nest จัดการ error ปกติของ HTTP (เช่น NotFoundException)
+    if (exception instanceof HttpException) {
+      const status = exception.getStatus();
+      const res = exception.getResponse();
+
+      if (typeof res === 'object' && res !== null) {
+        response.status(status).send(res);
+        return;
+      }
+
+      response.status(status).send({
+        statusCode: status,
+        message: exception.message,
+        error: 'Bad Request',
+      });
+      return;
+    }
 
     // Duplicate Key Error (MongoError: code 11000)
     if (
@@ -68,7 +83,9 @@ export class MongoExceptionFilter implements ExceptionFilter {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       message: 'Internal server error',
       error:
-        exception instanceof Error ? exception.message : 'Unknown error occurred',
+        exception instanceof Error
+          ? exception.message
+          : 'Unknown error occurred',
     });
   }
 }

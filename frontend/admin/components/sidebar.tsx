@@ -1,21 +1,27 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import NextLink from "next/link";
 import { Tooltip } from "@heroui/tooltip";
-import { siteConfig } from "@/config/site";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import { Button, Divider, Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
+import { Button, Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
 import clsx from "clsx";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { Href } from "@react-types/shared";
+
+import { siteConfig } from "@/config/site";
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const router = useRouter()
   const pathname = usePathname();
+    const handleClick = (href: Href) => {
+    router.push(href)
+  }
 
   useEffect(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
+
     if (saved !== null) {
       setCollapsed(saved === "true");
     }
@@ -40,29 +46,29 @@ export const Sidebar = () => {
       {/* Sidebar */}
       <aside
         className={clsx(
-          "fixed lg:static h-screen bg-default-50 border-r flex flex-col overflow-hidden transition-all duration-200 ease-in-out z-40",
+          "fixed lg:static h-screen border-r border-[#00000010] dark:border-[#ffffff25] flex flex-col overflow-hidden transition-all duration-200 ease-in-out z-40",
           collapsed ? "w-16" : "w-64",
           isMobileOpen ? "left-0" : "-left-full lg:left-0"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between p-4 border-b border-[#00000010] dark:border-[#ffffff25]">
           {!collapsed && (
             <div className="flex items-center gap-2">
               <Avatar
+                className="w-8 h-8"
                 size="sm"
                 src="/logo.png"
-                className="w-8 h-8"
               />
               <span className="font-semibold text-default-900">HLLC Admin</span>
             </div>
           )}
           <Button
             isIconOnly
-            variant="light"
-            size="sm"
-            onPress={() => setCollapsed((prev) => !prev)}
             className="ml-auto hidden lg:flex"
+            size="sm"
+            variant="light"
+            onPress={() => setCollapsed((prev) => !prev)}
           >
             {collapsed ? <ChevronRightIcon className="w-4 h-4" /> : <ChevronLeftIcon className="w-4 h-4" />}
           </Button>
@@ -87,19 +93,21 @@ export const Sidebar = () => {
                   return (
                     <Tooltip
                       key={item.href}
+                      className={clsx(collapsed ? "block" : "invisible")}
                       content={collapsed ? item.label : ""}
                       placement="right"
-                      className={clsx(collapsed ? "block" : "invisible")}
                     >
-                      <NextLink
-                        href={item.href}
+                      <Button
                         className={clsx(
-                          "relative flex items-center gap-3 p-2 rounded-md transition-all duration-200 ease-in-out",
+                          "relative flex items-center gap-3 p-2 rounded-md transition-all duration-200 ease-in-out w-full font-semibold",
                           collapsed ? "justify-center" : "justify-start",
+
                           isActive
-                            ? "bg-primary-50 text-primary font-semibold"
+                            ? "bg-primary-50 text-primary font-bold shadow-primary-50 shadow-lg"
                             : "hover:bg-default-100 text-default-700"
                         )}
+                        variant={isActive ? "shadow" : "light"}
+                        onPress={() => handleClick(item.href)}
                       >
                         <span
                           className={clsx(
@@ -114,26 +122,25 @@ export const Sidebar = () => {
                         {!collapsed && (
                           <span className="text-sm z-10">{item.label}</span>
                         )}
-                      </NextLink>
+                      </Button>
                     </Tooltip>
                   );
                 })}
               </div>
-              {!collapsed && <Divider className="my-4" />}
             </div>
           ))}
         </div>
 
         {/* Footer */}
         {!collapsed && (
-          <div className="border-t p-4">
+          <div className="border-t border-[#00000010] dark:border-[#ffffff25] p-4">
             <Dropdown placement="top-start">
               <DropdownTrigger>
                 <div className="flex items-center gap-2 cursor-pointer hover:bg-default-100 p-2 rounded-md transition-colors">
                   <Avatar
+                    className="w-8 h-8"
                     size="sm"
                     src="https://i.pravatar.cc/150?u=a042581f4e29026024d"
-                    className="w-8 h-8"
                   />
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">John Doe</span>

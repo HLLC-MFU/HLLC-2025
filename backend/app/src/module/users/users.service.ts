@@ -1,23 +1,22 @@
 import {
   Injectable,
   NotFoundException,
-  ConflictException,
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import {
   queryDeleteOne,
-  queryUpdateOne,
   queryAll,
   queryFindOne,
+  queryUpdateOne,
 } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from './schemas/user.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
-import { UploadUserDto } from './dto/upload.user.dto';
+
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
 
@@ -30,8 +29,12 @@ export class UsersService {
     private readonly roleModel: Model<RoleDocument>,
     @InjectModel(Major.name)
     private readonly majorModel: Model<MajorDocument>,
-  ) { }
+  ) {}
 
+  /**
+   * Creates a new user.
+   * @param createUserDto - The data to create a new user.
+   */
   async create(createUserDto: CreateUserDto): Promise<User> {
     const role = await this.roleModel.findById(createUserDto.role).lean();
     if (!role) {
@@ -51,10 +54,12 @@ export class UsersService {
   async findAll(query: Record<string, any>) {
     return await queryAll<User>({
       model: this.userModel,
-      query,
+      query: {
+        ...query,
+        excluded: 'password,refreshToken,role.permissions,role.metadataSchema',
+      },
       filterSchema: {},
-      buildPopulateFields: excluded =>
-        Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
+      populateFields: () => Promise.resolve([{ path: 'role' }]),
     });
   }
 
@@ -62,18 +67,96 @@ export class UsersService {
     return queryFindOne<User>(this.userModel, { _id }, []);
   }
 
+  async getUserCountByRoles(): Promise<
+    Record<string, { registered: number; notRegistered: number }>
+  > {
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'roles',
+          localField: 'role',
+          foreignField: '_id',
+          as: 'roleData',
+        },
+      },
+      { $unwind: '$roleData' },
+      {
+        $addFields: {
+          isRegistered: {
+            $cond: [
+              {
+                $or: [
+                  { $eq: ['$password', ''] },
+                  { $not: ['$password'] },
+                  { $eq: ['$password', null] },
+                ],
+              },
+              false,
+              true,
+            ],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$roleData.name',
+          registered: {
+            $sum: { $cond: [{ $eq: ['$isRegistered', true] }, 1, 0] },
+          },
+          notRegistered: {
+            $sum: { $cond: [{ $eq: ['$isRegistered', false] }, 1, 0] },
+          },
+        },
+      },
+    ];
+
+    type AggregationResult = {
+      _id: string;
+      registered: number;
+      notRegistered: number;
+      total: number;
+    };
+
+    const result = (await this.userModel
+      .aggregate(pipeline)
+      .exec()) as AggregationResult[];
+
+    // Format output
+    return result.reduce<
+      Record<
+        string,
+        { registered: number; notRegistered: number; total: number }
+      >
+    >((acc, curr) => {
+      acc[curr._id] = {
+        registered: curr.registered,
+        notRegistered: curr.notRegistered,
+        total: curr.registered + curr.notRegistered,
+      };
+      return acc;
+    }, {});
+  }
+
   /**
-   * 
-   * @param query 
-   * @returns 
+   *
+   * @param query
+   * @returns
    * example: this.usersService.findOneByQuery({ username });
    */
   async findOneByQuery(query: Partial<User> & { _id?: string }) {
-    return queryFindOne<User>(this.userModel, query, [{
-      path: 'role',
-    }, {
-      path: 'metadata.major', model: 'Major'
-    }]);
+    return queryFindOne<User>(this.userModel, query, [
+      {
+        path: 'role',
+      },
+      {
+        path: 'metadata.major',
+        model: 'Major',
+        populate: {
+          path: 'school',
+          model: 'School',
+        },
+      },
+    ]);
   }
 
   /**
@@ -128,11 +211,9 @@ export class UsersService {
       validateMetadataSchema(updateUserDto.metadata, role.metadataSchema);
     }
 
-    const updatedUser = await this.userModel.findByIdAndUpdate(
-      userId,
-      { $set: updateUserDto },
-      { new: true },
-    ).lean();
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(userId, { $set: updateUserDto }, { new: true })
+      .lean();
 
     return updatedUser as User;
   }
@@ -159,54 +240,84 @@ export class UsersService {
     await user.save();
   }
 
-  async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
-    const users: CreateUserDto[] = await Promise.all(
-      uploadUserDto.users.map(async userDto => {
-        const userMajor = userDto.major || uploadUserDto.major;
+  /**
+   * Uploads multiple users from a DTO.
+   * @param uploadUserDto - The DTO containing user data to upload.
+   * @returns An array of created User objects.
+   */
+  // async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
+  //   const users: CreateUserDto[] = await Promise.all(
+  //     uploadUserDto.users.map(async (userDto) => {
+  //       const userMajor = userDto.major || uploadUserDto.major;
 
-        // ✅ Check major existence
-        if (userDto.major) {
-          const userMajorRecord = await this.majorModel
-            .findById(userDto.major)
-            .lean();
-          if (!userMajorRecord) {
-            throw new NotFoundException('Major in database not found');
-          }
-        }
+  //       // ✅ Check major existence
+  //       if (userDto.major) {
+  //         const userMajorRecord = await this.majorModel
+  //           .findById(userDto.major)
+  //           .lean();
+  //         if (!userMajorRecord) {
+  //           throw new NotFoundException('Major in database not found');
+  //         }
+  //       }
 
-        return {
-          name: {
-            first: userDto.name.first,
-            last: userDto.name.last || '',
-          },
-          fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
-          username: userDto.studentId,
-          password: '', // initially blank
-          secret: '', // initially blank
-          major: new Types.ObjectId(userMajor),
-          role: new Types.ObjectId(uploadUserDto.role),
-          metadata: {
-            type: uploadUserDto.metadata?.type ?? null,
-          },
-        };
-      }),
-    );
+  //       return {
+  //         name: {
+  //           first: userDto.name.first,
+  //           last: userDto.name.last || '',
+  //         },
+  //         fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
+  //         username: userDto.studentId,
+  //         password: '', // initially blank
+  //         secret: '', // initially blank
+  //         major: new Types.ObjectId(userMajor),
+  //         role: new Types.ObjectId(uploadUserDto.role),
+  //         metadata: {
+  //           type: uploadUserDto.metadata?.type ?? null,
+  //         },
+  //       };
+  //     }),
+  //   );
 
-    try {
-      const savedUsers = await Promise.all(
-        users.map(async user => {
-          const userDoc = new this.userModel(user);
-          return await userDoc.save();
-        }),
-      );
+  //   try {
+  //     const savedUsers = await Promise.all(
+  //       users.map(async (user) => {
+  //         const userDoc = new this.userModel(user);
+  //         return await userDoc.save();
+  //       }),
+  //     );
 
-      return savedUsers.map(user => user.toObject());
-    } catch (error) {
-      if (error.code === 11000) {
-        throw new ConflictException('Username already exists');
-      }
-      throw error;
+  //     return savedUsers.map((user) => user.toObject());
+  //   } catch (error) {
+  //     if (error.code === 11000) {
+  //       throw new ConflictException('Username already exists');
+  //     }
+  //     throw error;
+  //   }
+  // }
+
+  async registerDeviceToken(
+    id: string,
+    registerTokenDto: Record<string, string>,
+  ) {
+    await findOrThrow(this.userModel, id, 'User not found');
+
+    const token = registerTokenDto.deviceToken;
+
+    return await queryUpdateOne(this.userModel, id, {
+      $addToSet: { 'metadata.deviceTokens': token },
+    });
+  }
+
+  async removeDeviceToken(id: string, deviceToken: string) {
+    await findOrThrow(this.userModel, id, 'User not found');
+
+    if (!deviceToken) {
+      throw new BadRequestException('Token is required');
     }
+
+    return await queryUpdateOne(this.userModel, id, {
+      $pull: { 'metadata.deviceTokens': deviceToken },
+    });
   }
 
   // async getUserScopeIds(userId: string) {

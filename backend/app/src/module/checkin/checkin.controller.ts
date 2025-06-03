@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   Request,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { CheckinService } from './checkin.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
@@ -40,11 +39,11 @@ export class CheckinController {
     @Request() req: RequestWithUser,
     @Body() createCheckinDto: CreateCheckinDto,
   ) {
-    if (!req.user.permissions.includes('checkin:create')) {
-      throw new UnauthorizedException(
-        'You do not have permission to create check-ins',
-      );
-    }
+    // if (!req.user.permissions.includes('checkin:create')) {
+    //   throw new UnauthorizedException(
+    //     'You do not have permission to create check-ins',
+    //   );
+    // }
 
     createCheckinDto.staff = req.user._id;
 
