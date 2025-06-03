@@ -59,13 +59,4 @@ export class SchoolsController {
   remove(@Param('id') id: string) {
     return this.schoolsService.remove(id);
   }
-
-  @Get(':id/appearances')
-  findAppearance(
-    @Param('id') id: string,
-    @Query() query: Record<string, string>
-  ) {
-    console.log('findOne Appearance', id);
-    return this.schoolsService.findColor(id, query);
-  }
 }

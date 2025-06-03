@@ -7,7 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Sponsors } from './schema/sponsors.schema';
 import { SponsorsType } from '../sponsors-type/schema/sponsors-type.schema';
 import { SponsorsTypeDocument } from '../sponsors-type/schema/sponsors-type.schema';
-import { findOrThrow } from 'src/pkg/validator/model.validator';
+import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
 import { queryAll, queryFindOne } from 'src/pkg/helper/query.util';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
@@ -23,17 +23,23 @@ export class SponsorsService {
 
   async create(createSponsorDto: CreateSponsorDto) {
 
+    await throwIfExists(
+      this.sponsorsModel,
+      { name: createSponsorDto.name },
+      'Sponsor name already exists'
+    );
+
     await findOrThrow(
       this.sponsorsTypeModel,
       createSponsorDto.type,
       'Sponsors type not found'
-    )
+    );
 
     const newSponsor = new this.sponsorsModel({
       ...createSponsorDto,
       metadata: createSponsorDto.metadata,
       type: new Types.ObjectId(createSponsorDto.type)
-    })
+    });
 
     try {
       return await newSponsor.save();

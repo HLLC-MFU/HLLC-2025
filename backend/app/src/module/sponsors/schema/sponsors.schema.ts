@@ -17,7 +17,7 @@ export class Sponsors {
     @Prop({ required: true, type: Types.ObjectId, ref: 'SponsorsType' })
     type: Types.ObjectId;
 
-    @Prop({ required: true, type: Boolean, default: false })
+    @Prop({ required: true, type: Boolean, default: true })
     isShow: boolean;
 
     @Prop({ type: Object, default: {} })
