@@ -32,8 +32,5 @@ export type Metadata = {
     //     _id: string;
     // };
     // majorId: string;
-    major?: {
-        name: Lang;
-        // _id: string;
-    };
+    major?: string;
 }

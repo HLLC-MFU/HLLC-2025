@@ -2,13 +2,12 @@ import BottomContent from "./BottomContent"
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react"
 import { User } from "@/types/user"
 import TopContent from "./TopContent"
-import { SetStateAction } from "react";
 
 interface TableContentProps {
     setIsAddOpen: (value: boolean) => void;
     setIsImportOpen: (value: boolean) => void;
     setIsExportOpen: (value: boolean) => void;
-    setActionText: (value: string) => void;
+    setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
     visibleColumns: Set<string>;
     columns: Array<{ uid: string; name: string; sortable?: boolean }>;
@@ -24,12 +23,11 @@ interface TableContentProps {
     onPreviousPage: () => void;
     onNextPage: () => void;
     setSelectedKeys: (keys: "all" | Set<string>) => void;
-    sortDescriptor: { column: string; direction: "ascending" | "descending" };
-    setSortDescriptor: (sort: { column: string; direction: "ascending" | "descending" }) => void;
+    sortDescriptor: { column: React.Key; direction: "ascending" | "descending" };
+    setSortDescriptor: (sort: { column: React.Key; direction: "ascending" | "descending" }) => void;
     headerColumns: Array<{ uid: string; name: string; sortable?: boolean }>;
     sortedItems: User[];
     renderCell: (item: User, columnKey: React.Key, index: number) => any;
-    onRowsPerPageChange: (rowsPerPage: number) => void;
 }
 
 export default function TableContent({
@@ -57,7 +55,6 @@ export default function TableContent({
     headerColumns,
     sortedItems,
     renderCell,
-    onRowsPerPageChange,
 }: TableContentProps) {
     return (
         <Table
@@ -91,7 +88,6 @@ export default function TableContent({
                 onClear={onClear}
                 setVisibleColumns={setVisibleColumns}
                 capitalize={capitalize}
-                onRowsPerPageChange={onRowsPerPageChange}
             />}
             topContentPlacement="outside"
             onSelectionChange={setSelectedKeys}

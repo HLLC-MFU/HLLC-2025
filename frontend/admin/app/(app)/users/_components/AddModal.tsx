@@ -62,9 +62,9 @@ export default function AddModal({ isOpen, onClose, onAdd, roleId, action, user 
         e.preventDefault();
 
         schools.map((s) => {
-            if (s.name.en === [...school][0]) {
+            if (s.name.en === Array.from(school)[0]) {
                 s.majors.map((m) => {
-                    if (m.name.en === [...major][0]) {
+                    if (m.name.en === Array.from(major)[0]) {
                         majorId.current = m.id;
                     }
                 });
@@ -82,9 +82,9 @@ export default function AddModal({ isOpen, onClose, onAdd, roleId, action, user 
                 _id: roleId
             },
             major: majorId.current,
-            metadata: {
+            metadata: [{
                 major: Array.from(major)[0],
-            }
+            }]
         };
 
         console.log(formData);

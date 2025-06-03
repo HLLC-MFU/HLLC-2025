@@ -58,7 +58,7 @@ export default function UsersTable({
   const [userIndex, setUserIndex] = React.useState<number>(0);
 
   const [filterValue, setFilterValue] = React.useState("");
-  const [selectedKeys, setSelectedKeys] = React.useState<"all" | Set<unknown>>(
+  const [selectedKeys, setSelectedKeys] = React.useState<"all" | Set<string | number>>(
     new Set([])
   );
   const [visibleColumns, setVisibleColumns] = React.useState(
@@ -74,7 +74,6 @@ export default function UsersTable({
   const hasSearchFilter = Boolean(filterValue);
 
   const headerColumns = React.useMemo(() => {
-    if (visibleColumns === "all") return columns;
     return columns.filter((column) =>
       Array.from(visibleColumns).includes(column.uid)
     );
@@ -104,9 +103,9 @@ export default function UsersTable({
       const first = a[sortDescriptor.column as keyof User];
       const second = b[sortDescriptor.column as keyof User];
 
-      if (first === null && second === null) return 0;
-      if (first === null) return sortDescriptor.direction === "descending" ? 1 : -1;
-      if (second === null) return sortDescriptor.direction === "descending" ? -1 : 1;
+      if (first === undefined && second === undefined) return 0;
+      if (first === undefined) return sortDescriptor.direction === "descending" ? 1 : -1;
+      if (second === undefined) return sortDescriptor.direction === "descending" ? -1 : 1;
 
       const cmp = first < second ? -1 : first > second ? 1 : 0;
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
@@ -184,10 +183,10 @@ export default function UsersTable({
         middle: user.name?.middle ?? "",
         last: user.name?.last,
         role: user.role?.name,
-        school_en: user.metadata?.school?.name?.en ?? "",
-        school_th: user.metadata?.school?.name?.th ?? "",
-        major_en: user.metadata?.major?.name?.en ?? "",
-        major_th: user.metadata?.major?.name?.th ?? "",
+        // school_en: user.metadata?.school?.name?.en ?? "",
+        // school_th: user.metadata?.school?.name?.th ?? "",
+        // major_en: user.metadata?.major?.name?.en ?? "",
+        // major_th: user.metadata?.major?.name?.th ?? "",
       }))
     } else {
       temp = [{
@@ -216,7 +215,7 @@ export default function UsersTable({
   };
 
   console.log(Array.from(selectedKeys))
-  
+
   const handleDelete = () => {
     if (Array.from(selectedKeys).length > 0) {
       deleteMultiple(Array.from(selectedKeys) as string[]);
@@ -259,10 +258,6 @@ export default function UsersTable({
         headerColumns={headerColumns}
         sortedItems={sortedItems}
         renderCell={renderCell}
-        onRowsPerPageChange={(e) => {
-          setRowsPerPage(Number(e.target.value));
-          setPage(1);
-        }}
       />
 
       {/* Add and Edit  */}

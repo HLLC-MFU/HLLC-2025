@@ -6,7 +6,7 @@ interface TopContentProps {
     setIsAddOpen: (value: boolean) => void;
     setIsImportOpen: (value: boolean) => void;
     setIsExportOpen: (value: boolean) => void;
-    setActionText: (value: string) => void;
+    setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
     visibleColumns: Set<string>;
     columns: any[];
@@ -14,7 +14,6 @@ interface TopContentProps {
     onClear: () => void;
     setVisibleColumns: (columns: Set<string>) => void;
     capitalize: (value: string) => string;
-    onRowsPerPageChange: (e: any) => void;
 }
 
 export default function TopContent({
