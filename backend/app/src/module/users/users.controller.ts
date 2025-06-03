@@ -21,7 +21,6 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { FastifyRequest } from 'fastify';
-
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('users')

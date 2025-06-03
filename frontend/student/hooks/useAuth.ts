@@ -11,7 +11,14 @@ interface TokenResponse {
     accessToken: string;
     refreshToken: string;
   };
-  user: any;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+    createdAt: string;
+    updatedAt: string;
+  };
 }
 
 interface AuthStore {

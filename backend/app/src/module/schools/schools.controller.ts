@@ -8,29 +8,24 @@ import {
   Delete,
   Query,
   UseGuards,
-  UseInterceptors,
-  Req,
 } from '@nestjs/common';
 import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
-import { FastifyRequest } from 'fastify';
 import { ApiTags } from '@nestjs/swagger';
 
-// @UseGuards(PermissionsGuard)
+@UseGuards(PermissionsGuard)
+@ApiTags('schools')
 @Controller('schools')
 export class SchoolsController {
-  constructor(private readonly schoolsService: SchoolsService) { }
+  constructor(private readonly schoolsService: SchoolsService) {}
 
   @Post()
   @Permissions('schools:create')
-  @UseInterceptors(new MultipartInterceptor(500))
-  create(@Req() req: FastifyRequest) {
-    const dto = req.body as CreateSchoolDto;
-    return this.schoolsService.create(dto);
+  create(@Body() createSchoolDto: CreateSchoolDto) {
+    return this.schoolsService.create(createSchoolDto);
   }
 
   @Get()
@@ -38,7 +33,6 @@ export class SchoolsController {
   findAll(@Query() query: Record<string, string>) {
     return this.schoolsService.findAll(query);
   }
-  
 
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -47,25 +41,14 @@ export class SchoolsController {
 
   @Patch(':id')
   @Permissions('schools:update')
-  @UseInterceptors(new MultipartInterceptor(500))
-  update(@Param('id') id: string, @Req() req: FastifyRequest) {
-    const dto = req.body as UpdateSchoolDto;
-    dto.updatedAt = new Date();
-    return this.schoolsService.update(id, dto);
+  update(@Param('id') id: string, @Body() updateSchoolDto: UpdateSchoolDto) {
+    updateSchoolDto.updatedAt = new Date();
+    return this.schoolsService.update(id, updateSchoolDto);
   }
 
   @Delete(':id')
   @Permissions('schools:delete')
   remove(@Param('id') id: string) {
     return this.schoolsService.remove(id);
-  }
-
-  @Get(':id/appearances')
-  findAppearance(
-    @Param('id') id: string,
-    @Query() query: Record<string, string>
-  ) {
-    console.log('findOne Appearance', id);
-    return this.schoolsService.findColor(id, query);
   }
 }

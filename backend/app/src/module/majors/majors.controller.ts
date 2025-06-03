@@ -8,17 +8,14 @@ import {
   Delete,
   Query,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import { MajorsService } from './majors.service';
 import { CreateMajorDto } from './dto/create-major.dto';
 import { UpdateMajorDto } from './dto/update-major.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 
 @UseGuards(PermissionsGuard)
-@UseInterceptors(AutoCacheInterceptor)
 @Controller('majors')
 export class MajorsController {
   constructor(private readonly majorsService: MajorsService) {}
@@ -26,17 +23,16 @@ export class MajorsController {
   @Post()
   @Permissions('majors:create')
   create(@Body() createMajorDto: CreateMajorDto) {
+    createMajorDto.createdAt = new Date();
     return this.majorsService.create(createMajorDto);
   }
 
   @Get()
-  @Permissions('majors:read')
   findAll(@Query() query: Record<string, string>) {
     return this.majorsService.findAll(query);
   }
 
   @Get(':id')
-  @Permissions('majors:read')
   findOne(@Param('id') id: string) {
     return this.majorsService.findOne(id);
   }

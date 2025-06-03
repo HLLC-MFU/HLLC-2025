@@ -8,4 +8,4 @@ export type Photo = {
   bannerPhoto: string;
   thumbnail: string;
   logoPhoto: string;
-}
+};

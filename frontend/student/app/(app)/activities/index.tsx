@@ -2,12 +2,12 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 
-export default function EvoucherPage() {
+export default function ActivitiesPage() {
  const router = useRouter();
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Evoucher</Text>
+        <Text style={styles.title}>Activities</Text>
       </View>
       <View style={styles.content}>
         <Text style={styles.subtitle}>Coming soon...</Text>
