@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { checkin } from "@/types/checkin";
+import { Checkin } from "@/types/checkin";
 import { apiRequest } from "@/utils/api";
 
 export function useCheckin() {
-    const [checkin, setCheckin] = useState<checkin[]>([])
+    const [checkin, setCheckin] = useState<Checkin[]>([])
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -12,7 +12,7 @@ export function useCheckin() {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: checkin[] }>("/checkin?limit=0", "GET");
+            const res = await apiRequest<{ data: Checkin[] }>("/checkin?limit=0", "GET");
             setCheckin(Array.isArray(res.data?.data) ? res.data.data : []);
         } catch (err: any) {
             setError(err.message || "Failed to fetch schools.");
@@ -22,16 +22,16 @@ export function useCheckin() {
     };
 
     // ➕ Create new checkin
-    const createcheckin = async (checkinData: Partial<checkin>) => {
+    const createcheckin = async (checkinData: Partial<Checkin>) => {
         try {
             setLoading(true);
-            const res = await apiRequest<checkin>("/checkin", "POST", checkinData);
+            const res = await apiRequest<Checkin>("/checkin", "POST", checkinData);
             console.log("Create response:", res);
 
             if (res.data) {
                 await new Promise((resolve) => {
                     setCheckin((prev) => {
-                        const updated = [...prev, res.data as checkin];
+                        const updated = [...prev, res.data as Checkin];
                         resolve(updated);
                         return updated;
                     });
@@ -53,6 +53,6 @@ export function useCheckin() {
         loading,
         error,
         fetchcheckin,
-        createcheckin
+        createcheckin,
     }
 }

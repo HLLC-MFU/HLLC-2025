@@ -1,5 +1,5 @@
-import { divider, Select, SelectItem } from '@heroui/react';
-import { useEffect, useState } from 'react';
+import { useActivity } from '@/hooks/useActivity';
+import { Select, SelectItem } from '@heroui/react';
 
 interface SelectProps {
   selectedActivityIds: string[];
@@ -12,27 +12,9 @@ export default function Selectdropdown({
   setSelectActivityIds,
   forceVisible = false,
 }: SelectProps) {
-  const [activity, setActivity] = useState<{ id: string; name: string }[]>([]);
+  const { activities } = useActivity();
 
-  useEffect(() => {
-    const fecthActivity = async () => {
-      try {
-        const res = await fetch('http://localhost:8080/api/activities');
-        const json = await res.json();
-        const activityList = json.data.map((activity: any) => ({
-          id: activity._id,
-          name: activity.shortName.en,
-        }));
-
-        setActivity(activityList);
-      } catch (err) {
-        console.error('Fetch failed', err);
-      }
-    };
-
-    fecthActivity();
-  }, []);
-
+  console.log('Activities:', activities);
   return (
     <Select
       className={`w-full max-w-xl text-sm sm:overflow-hidden text-center ${forceVisible ? '' : 'sm:hidden'}`}
@@ -45,8 +27,8 @@ export default function Selectdropdown({
         setSelectActivityIds(selected);
       }}
     >
-      {activity.map(activity => (
-        <SelectItem key={activity.id}>{activity.name}</SelectItem>
+      {activities.map(activity => (
+        <SelectItem key={activity._id}>{activity.name.en}</SelectItem>
       ))}
     </Select>
   );
