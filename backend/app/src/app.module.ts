@@ -13,8 +13,15 @@ import { ActivitiesModule } from './module/activities/activities.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
 import * as redisStore from 'cache-manager-ioredis';
 import { CheckinModule } from './module/checkin/checkin.module';
-import { ActivitiesMajorModule } from './module/activities-major/activities-major.module';
+import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
 import { SseModule } from './module/sse/sse.module';
+import { ReportTypeModule } from './module/report-type/report-type.module';
+import { ReportsModule } from './module/reports/reports.module';
+import { AppearancesModule } from './module/appearances/appearances.module';
+import { SystemStatusModule } from './module/system-status/system-status.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
+import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
 
 @Module({
   imports: [
@@ -38,18 +45,31 @@ import { SseModule } from './module/sse/sse.module';
       }),
       inject: [ConfigService],
     }),
+    GlobalCacheModule,
+    AuthModule,
+    RoleModule,
     UsersModule,
     CheckinModule,
     SchoolsModule,
     MajorsModule,
-    RoleModule,
     ActivitiesModule,
-    AuthModule,
-    GlobalCacheModule,
-    ActivitiesMajorModule,
+    ActivitiesTypeModule,
     NotificationsModule,
+    ReportTypeModule,
+    SystemStatusModule,
+    AppearancesModule,
+    ReportsModule,
     SseModule,
   ],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SystemStatusGuard,
+    },
+  ],
 })
 export class AppModule {}

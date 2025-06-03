@@ -16,7 +16,8 @@ interface ApiResponse<T> {
 
 @Injectable()
 export class TransformInterceptor<T extends Record<string, unknown>>
-  implements NestInterceptor<T, ApiResponse<Omit<T, 'message'>>> {
+  implements NestInterceptor<T, ApiResponse<Omit<T, 'message'>>>
+{
   intercept(
     context: ExecutionContext,
     next: CallHandler<T>,
