@@ -6,10 +6,10 @@ import { School, SchoolSchema } from './schemas/school.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: School.name, schema: SchoolSchema }])
+    MongooseModule.forFeature([{ name: School.name, schema: SchoolSchema }]),
   ],
   controllers: [SchoolsController],
   providers: [SchoolsService],
   exports: [MongooseModule],
 })
-export class SchoolsModule { }
+export class SchoolsModule {}

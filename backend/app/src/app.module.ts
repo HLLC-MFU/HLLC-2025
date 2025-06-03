@@ -68,4 +68,4 @@ import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module'
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

@@ -13,7 +13,7 @@ import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 export class RoleService {
   constructor(
     @InjectModel(Role.name) private readonly roleModel: Model<RoleDocument>,
-  ) { }
+  ) {}
 
   /**
    * Creates a new role.
