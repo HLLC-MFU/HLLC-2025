@@ -66,7 +66,7 @@ export default function NotiManage() {
               color="primary"
               endContent={<SendHorizontal />}
               className="p-4"
-              size="lg"
+              size="md"
             >
               <p className=" text-xl font-medium">Post</p>
             </Button>
