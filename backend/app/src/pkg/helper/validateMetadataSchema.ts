@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { isValidObjectId } from 'mongoose';
+import { isValidObjectId } from 'mongoose';
 
 type MetadataFieldSchema = {
   type: 'string' | 'number' | 'boolean' | 'date';
@@ -7,7 +8,9 @@ type MetadataFieldSchema = {
   required?: boolean;
 };
 
-export function validateMetadataSchema<TMetadata extends Record<string, unknown> | undefined>(
+export function validateMetadataSchema<
+  TMetadata extends Record<string, unknown> | undefined,
+>(
   metadata: TMetadata,
   metadataSchema: Record<string, MetadataFieldSchema>,
 ): void {
@@ -52,12 +55,13 @@ export function validateMetadataSchema<TMetadata extends Record<string, unknown>
             typeMismatches.push(`${field} should be boolean`);
           }
           break;
-        case 'date':
+        case 'date': {
           const date = new Date(value as string | number | Date);
           if (isNaN(date.getTime())) {
             typeMismatches.push(`${field} should be a valid date`);
           }
           break;
+        }
       }
     }
   }

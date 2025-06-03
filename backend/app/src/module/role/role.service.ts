@@ -5,7 +5,7 @@ import { Role, RoleDocument } from './schemas/role.schema';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
-import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
+import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { encryptItem } from '../auth/utils/crypto';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
@@ -75,7 +75,7 @@ export class RoleService {
   async remove(id: string) {
     await findOrThrow(this.roleModel, id, 'Role');
     await this.roleModel.findByIdAndDelete(id);
-    
+
     return {
       message: 'Role deleted successfully',
       id,

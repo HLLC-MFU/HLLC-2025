@@ -17,4 +17,4 @@ import {
   providers: [SystemStatusService],
   exports: [MongooseModule],
 })
-export class SystemStatusModule { }
+export class SystemStatusModule {}

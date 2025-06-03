@@ -17,6 +17,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 
+
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
 

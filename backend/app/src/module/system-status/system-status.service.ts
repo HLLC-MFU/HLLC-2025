@@ -2,16 +2,24 @@ import { Injectable } from '@nestjs/common';
 import { CreateSystemStatusDto } from './dto/create-system-status.dto';
 import { UpdateSystemStatusDto } from './dto/update-system-status.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { SystemStatus, SystemStatusDocument } from './schemas/system-status.schema';
+import {
+  SystemStatus,
+  SystemStatusDocument,
+} from './schemas/system-status.schema';
 import { Model } from 'mongoose';
-import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import {
+  queryAll,
+  queryDeleteOne,
+  queryFindOne,
+  queryUpdateOne,
+} from 'src/pkg/helper/query.util';
 
 @Injectable()
 export class SystemStatusService {
   constructor(
     @InjectModel(SystemStatus.name)
     private systemStatusModel: Model<SystemStatusDocument>,
-  ) { }
+  ) {}
 
   async create(createSystemStatusDto: CreateSystemStatusDto) {
     const systemStatus = new this.systemStatusModel({
@@ -21,7 +29,11 @@ export class SystemStatusService {
     try {
       return await systemStatus.save();
     } catch (error) {
-      error;
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error(String(error));
+      }
     }
   }
 
@@ -38,7 +50,11 @@ export class SystemStatusService {
   }
 
   async update(id: string, updateSystemStatusDto: UpdateSystemStatusDto) {
-    return queryUpdateOne<SystemStatus>(this.systemStatusModel, id, updateSystemStatusDto);
+    return queryUpdateOne<SystemStatus>(
+      this.systemStatusModel,
+      id,
+      updateSystemStatusDto,
+    );
   }
 
   async remove(id: string) {
@@ -46,7 +62,6 @@ export class SystemStatusService {
     return {
       message: 'System status deleted successfully',
       id,
-    }
-
+    };
   }
 }

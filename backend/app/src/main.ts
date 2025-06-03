@@ -31,11 +31,11 @@ async function bootstrap() {
       fileSize: 500 * 1024,
     },
   });
-  app.register(fastifyStatic, {
+  void app.register(fastifyStatic, {
     root: path.join(__dirname, '..', 'uploads'),
     prefix: '/uploads/',
   });
-  
+
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',

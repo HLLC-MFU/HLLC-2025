@@ -9,5 +9,6 @@ export default () => ({
   JWT_REFRESH_EXPIRATION: process.env.JWT_REFRESH_EXPIRATION || '7d',
   CRYPTO_SECRET: process.env.CRYPTO_SECRET || 'pngwpeonhgperpongp',
   API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:8080/api',
-  UPLOAD_BASE_URL: process.env.UPLOAD_BASE_URL || 'http://127.0.0.1:8080/uploads',
+  UPLOAD_BASE_URL:
+    process.env.UPLOAD_BASE_URL || 'http://127.0.0.1:8080/uploads',
 });

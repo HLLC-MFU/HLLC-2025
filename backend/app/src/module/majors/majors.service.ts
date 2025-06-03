@@ -53,10 +53,7 @@ export class MajorsService {
       model: this.majorModel,
       query,
       filterSchema: {},
-      populateFields: (excluded) =>
-        Promise.resolve(
-          excluded.includes('school') ? [] : [{ path: 'school' }],
-        ),
+      populateFields: () => Promise.resolve([{ path: 'school' }]),
     });
   }
 

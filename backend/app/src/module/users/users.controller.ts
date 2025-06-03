@@ -21,7 +21,6 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { FastifyRequest } from 'fastify';
-
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('users')
@@ -80,6 +79,12 @@ export class UsersController {
       _id: userId,
     });
   }
+
+  // @Post('upload')
+  // @Public()
+  // upload(@Body() userUploadDirectDto: UserUploadDirectDto[]) {
+  //   return this.usersService.upload(userUploadDirectDto);
+  // }
 
   @Patch(':id')
   @CacheKey('users:invalidate')

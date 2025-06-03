@@ -44,4 +44,3 @@ export class CreateUserDto {
   @IsObject()
   metadata?: Record<string, string>;
 }
-
