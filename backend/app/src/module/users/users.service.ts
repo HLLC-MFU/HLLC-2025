@@ -104,7 +104,6 @@ export class UsersService {
     return queryAll<User>({
       model: this.userModel,
       query: q,
-      select: 'username name role metadata.major',
       filterSchema: {},
       populateFields: (excluded) =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),

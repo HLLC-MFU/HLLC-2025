@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserDocument } from 'src/module/users/schemas/user.schema';
@@ -7,6 +7,9 @@ import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
 import { FastifyReply } from 'fastify';
 import '@fastify/cookie';
+import { findOrThrow } from 'src/pkg/validator/model.validator';
+import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 interface LoginOptions {
   useCookie?: boolean;
@@ -79,6 +82,33 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  async register(registerDto: RegisterDto) {
+    const { username, password, confirmPassword, secret } = registerDto;
+
+    const user = await findOrThrow(
+      this.userModel,
+      { username },
+      'Username already exists',
+    );
+
+    if (user.password && user.metadata.secret) {
+      throw new ConflictException(`Username ${username} is already registered`);
+    }
+
+    if (password !== confirmPassword) {
+      throw new BadRequestException(
+        'Password and confirm password do not match',
+      );
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.metadata.secret = await bcrypt.hash(secret, 10);
+
+    await user.save();
+
+    return { message: 'User registered successfully' };
+  }
+
   async refreshToken(oldRefreshToken: string) {
     const refreshSecret =
       this.configService.get<string>('JWT_REFRESH_SECRET') || 'refresh-secret';
@@ -131,6 +161,37 @@ export class AuthService {
       console.error(err); // For debugging, remove in production
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { username, password, confirmPassword, secret } = resetPasswordDto;
+
+    const user = await findOrThrow(
+      this.userModel,
+      { username },
+      'User not found',
+    );
+
+    if (!user.metadata.secret) {
+      throw new BadRequestException('User has no secret set');
+    }
+
+    const isSecretValid = await bcrypt.compare(secret, user.metadata.secret);
+    if (!isSecretValid) {
+      throw new UnauthorizedException('Invalid secret');
+    }
+
+    if (password !== confirmPassword) {
+      throw new BadRequestException(
+        'Password and confirm password do not match',
+      );
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.refreshToken = null;
+    await user.save();
+
+    return { message: 'Password reset successfully' };
   }
 
   async logout(userId: string) {
