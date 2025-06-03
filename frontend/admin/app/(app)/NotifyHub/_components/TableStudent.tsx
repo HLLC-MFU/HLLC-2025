@@ -1,4 +1,4 @@
-import React, { use, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   Table,
   TableHeader,
@@ -12,7 +12,6 @@ import {
   Dropdown,
   DropdownMenu,
   DropdownItem,
-  Chip,
   User,
   Pagination,
 } from "@heroui/react";
@@ -373,7 +372,14 @@ export function TableInfo() {
       sortDescriptor={sortDescriptor}
       topContent={topContent}
       topContentPlacement="outside"
-      onSelectionChange={setSelectedKeys}
+      onSelectionChange={(keys) => {
+        if (keys === "all") {
+          const filteredIds = filteredItems.map(user => user.id);
+          setSelectedKeys(new Set(filteredIds));
+        } else {
+          setSelectedKeys(keys);
+        }
+      }}
       onSortChange={setSortDescriptor}
     >
       <TableHeader columns={headerColumns}>
