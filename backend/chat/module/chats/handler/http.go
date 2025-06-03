@@ -255,7 +255,7 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 		filteredMessage := utils.FilterProfanity(messageText)
 		mentions := extractMentions(filteredMessage)
 
-		// ✅ Create ChatMessage
+		// Create ChatMessage for internal use
 		chatMsg := &model.ChatMessage{
 			RoomID:    roomID,
 			UserID:    userID,
@@ -264,8 +264,9 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 			Timestamp: time.Now(),
 		}
 
-		// ✅ Send to Kafka
-		msgJSON, err := json.Marshal(chatMsg)
+		// Convert to KafkaMessage format for Kafka
+		kafkaMsg := chatMsg.ToKafkaMessage()
+		msgJSON, err := json.Marshal(kafkaMsg)
 		if err != nil {
 			log.Printf("[Kafka] Failed to marshal chat message: %v", err)
 		} else {
@@ -274,7 +275,7 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 			}
 		}
 
-		// ✅ Then broadcast to clients (optional — your consumer will also do this)
+		// Then broadcast to clients
 		model.BroadcastMessage(model.BroadcastObject{
 			MSG:  filteredMessage,
 			FROM: client,
@@ -435,17 +436,9 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save sticker message"})
 	}
 
-	// Send to chat-messages topic
-	stickerPayload := map[string]interface{}{
-		"type":      "sticker",
-		"userId":    userID,
-		"roomId":    roomIdStr,
-		"stickerId": sticker.ID.Hex(),
-		"image":     sticker.Image,
-		"timestamp": time.Now(),
-	}
-
-	jsonData, err := json.Marshal(stickerPayload)
+	// Convert to KafkaMessage format and send to chat-messages topic
+	kafkaMsg := msg.ToKafkaMessage()
+	jsonData, err := json.Marshal(kafkaMsg)
 	if err == nil {
 		if err := h.publisher.SendMessageToTopic("chat-messages", userID, string(jsonData)); err != nil {
 			log.Printf("[Kafka] Failed to send sticker message to chat-messages: %v", err)
@@ -656,18 +649,9 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save message"})
 	}
 
-	// Send to chat-messages topic
-	filePayload := map[string]interface{}{
-		"type":      "file",
-		"userId":    userId,
-		"roomId":    roomId,
-		"fileName":  msg.FileName,
-		"fileType":  msg.FileType,
-		"fileURL":   msg.FileURL,
-		"timestamp": time.Now(),
-	}
-
-	jsonData, err := json.Marshal(filePayload)
+	// Convert to KafkaMessage format and send to chat-messages topic
+	kafkaMsg := msg.ToKafkaMessage()
+	jsonData, err := json.Marshal(kafkaMsg)
 	if err == nil {
 		if err := h.publisher.SendMessageToTopic("chat-messages", userId, string(jsonData)); err != nil {
 			log.Printf("[Kafka] Failed to send file message to chat-messages: %v", err)

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
@@ -19,6 +20,23 @@ func NewChatMessageHandler(s *service) *ChatMessageHandler {
 }
 
 func (h *ChatMessageHandler) HandleMessage(ctx context.Context, msg *model.ChatMessage) error {
+	// Try to unmarshal as KafkaMessage first
+	var kafkaMsg model.KafkaMessage
+	if err := json.Unmarshal([]byte(msg.Message), &kafkaMsg); err == nil {
+		// If successful, convert back to ChatMessage
+		msg = &model.ChatMessage{
+			RoomID:    kafkaMsg.RoomID,
+			UserID:    kafkaMsg.UserID,
+			Message:   kafkaMsg.Message,
+			Mentions:  kafkaMsg.Mentions,
+			FileURL:   kafkaMsg.FileURL,
+			FileType:  kafkaMsg.FileType,
+			FileName:  kafkaMsg.FileName,
+			Timestamp: kafkaMsg.Timestamp,
+			Image:     kafkaMsg.Image,
+		}
+	}
+
 	// Save to MongoDB
 	if err := h.service.SaveChatMessage(ctx, msg); err != nil {
 		log.Printf("[Message Handler] Failed to save message to MongoDB: %v", err)

@@ -134,8 +134,9 @@ func (s *service) InitChatHub() {
 					Timestamp: time.Now(),
 				}
 
-				// Send to Kafka topic
-				data, err := json.Marshal(chatMsg)
+				// Convert to Kafka message format and send to Kafka topic
+				kafkaMsg := chatMsg.ToKafkaMessage()
+				data, err := json.Marshal(kafkaMsg)
 				if err != nil {
 					log.Printf("[BROADCAST] Failed to marshal message: %v", err)
 					continue
