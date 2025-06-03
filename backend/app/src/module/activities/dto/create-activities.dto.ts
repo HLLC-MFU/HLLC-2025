@@ -34,6 +34,7 @@ export class ActivityMetadataDto {
   isVisible?: boolean;
 
   @IsOptional()
+  @Type(() => ActivityScopeDto)
   scope?: ActivityScopeDto;
 }
 
@@ -62,13 +63,11 @@ export class CreateActivitiesDto {
   @IsNotEmpty()
   photo: Photo;
 
-  @IsString()
-  @IsNotEmpty()
-  location: string;
-
-  @IsOptional()
   @IsObject()
   @IsNotEmpty()
+  location: Localization;
+
+  @IsOptional()
   @Type(() => ActivityMetadataDto)
   metadata?: ActivityMetadataDto;
 }

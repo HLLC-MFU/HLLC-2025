@@ -33,9 +33,18 @@ export class ActivitiesService {
     const metadata = createActivitiesDto.metadata || {};
     const scope = metadata.scope || {};
     const convertedScope = {
-      major: scope.major?.map(id => new Types.ObjectId(id)) || [],
-      school: scope.school?.map(id => new Types.ObjectId(id)) || [],
-      user: scope.user?.map(id => new Types.ObjectId(id)) || []
+      major: Array.isArray(scope.major) ? scope.major.map(id => new Types.ObjectId(id)) : [
+        new Types.ObjectId(scope.major)
+      ],
+      school: Array.isArray(scope.school) ? scope.school.map(id => new Types.ObjectId(id)) : [
+        new Types.ObjectId(scope.school)
+      ],
+      user: Array.isArray(scope.user)
+  ? scope.user.map(id => new Types.ObjectId(id))
+  : scope.user
+    ? [new Types.ObjectId(scope.user)]
+    : []
+
     };
 
     const activity = new this.activitiesModel({
@@ -128,7 +137,9 @@ export class ActivitiesService {
     if (!scope) return true;
 
     const hasNoScope =
-      !scope.user?.length && !scope.major?.length && !scope.school?.length;
+      (!Array.isArray(scope.user) || scope.user.length === 0) &&
+      (!Array.isArray(scope.major) || scope.major.length === 0) &&
+      (!Array.isArray(scope.school) || scope.school.length === 0);
     if (hasNoScope) return true;
 
     if (!Types.ObjectId.isValid(userId)) return false;
@@ -140,13 +151,13 @@ export class ActivitiesService {
     const userStr = userId;
     const majorStr = user.metadata?.major?.toString();
  
-    const userSet = new Set(scope.user?.map((id) => id.toString()));
+    const userSet = new Set(Array.isArray(scope.user) ? scope.user.map((id) => id.toString()) : []);
     if (userSet.has(userStr)) return true;
 
-    const majorSet = new Set(scope.major?.map((id) => id.toString()));
+    const majorSet = new Set(Array.isArray(scope.major) ? scope.major.map((id) => id.toString()) : []);
     if (majorStr && majorSet.has(majorStr)) return true;
 
-    if (scope.school?.length && majorStr) {
+    if (Array.isArray(scope.school) && scope.school.length > 0 && majorStr) {
       for (const schoolId of scope.school) {
         const schoolUsers = await this.usersService.findAllByQuery({
           school: schoolId.toString(),
@@ -165,10 +176,12 @@ export class ActivitiesService {
 
   private normalizeScope(scope: Partial<ActivityScope>) {
     const clean = (list?: string[]) =>
-      (list || [])
-        .map((id) => id?.trim())
-        .filter((id) => id && Types.ObjectId.isValid(id))
-        .map((id) => new Types.ObjectId(id));
+      Array.isArray(list) 
+        ? list
+            .map((id) => id?.trim())
+            .filter((id): id is string => Boolean(id && Types.ObjectId.isValid(id)))
+            .map((id) => new Types.ObjectId(id))
+        : [];
   
     return {
       major: clean(scope.major?.map(id => id.toString())),

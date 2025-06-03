@@ -9,22 +9,45 @@ import {
 import { FastifyRequest } from 'fastify';
 import { Observable } from 'rxjs';
 import { generateFilename, saveFileToUploadDir } from '../config/storage.config';
+import { MultipartFile } from '@fastify/multipart';
+
+// Omit type from MultipartFile since we're redefining it
+type MultipartPart = Omit<MultipartFile, 'type'> & {
+  type: 'file' | 'field';
+  value: string;
+  fieldname: string;
+  filename: string;
+  toBuffer(): Promise<Buffer>;
+};
+
+type NestedValue = string | boolean | NestedObject | Array<string | NestedObject>;
+
+interface NestedObject {
+  [key: string]: NestedValue;
+}
+
+type ResponseData = Record<string, NestedValue>;
+
+type RequestData = {
+  body: NestedObject;
+  parts: () => AsyncIterableIterator<MultipartPart>;
+} & FastifyRequest;
 
 @Injectable()
-export class MultipartInterceptor implements NestInterceptor {
+export class MultipartInterceptor implements NestInterceptor<RequestData, ResponseData> {
   constructor(private readonly maxSizeKbs = 256) {}
 
-  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<ResponseData>> {
     const req = context.switchToHttp().getRequest<FastifyRequest>();
-    const parts = (req as any).parts?.();
+    const parts = req.parts?.();
 
     if (!parts) {
       throw new HttpException('multipart/form-data required', HttpStatus.BAD_REQUEST);
     }
 
-    const dto: any = {};
+    const dto: NestedObject = {};
 
-    for await (const part of parts) {
+    for await (const part of parts as AsyncIterableIterator<MultipartPart>) {
       const keys = part.fieldname.match(/[^[\]]+/g);
 
       // Handle file upload
@@ -46,17 +69,39 @@ export class MultipartInterceptor implements NestInterceptor {
         }
 
         // Handle nested file fields
-        let target = dto;
+        let target: NestedObject | Array<string | NestedObject> = dto;
         for (let i = 0; i < keys.length - 1; i++) {
           const key = keys[i];
-          if (!target[key]) {
-            target[key] = {};
+          if (key === '') {
+            // Handle array notation []
+            if (!Array.isArray(target)) {
+              target = [];
+            }
+            target.push({});
+            target = target[target.length - 1] as NestedObject;
+          } else {
+            if (!target || Array.isArray(target)) {
+              target = {};
+            }
+            if (!(key in target)) {
+              target[key] = {};
+            }
+            target = target[key] as NestedObject;
           }
-          target = target[key];
         }
 
         const lastKey = keys[keys.length - 1];
-        target[lastKey] = filename;
+        if (lastKey === '') {
+          if (!Array.isArray(target)) {
+            target = [];
+          }
+          target.push(filename);
+        } else {
+          if (!target || Array.isArray(target)) {
+            target = {};
+          }
+          target[lastKey] = filename;
+        }
         continue;
       }
 
@@ -67,17 +112,53 @@ export class MultipartInterceptor implements NestInterceptor {
           continue;
         }
 
-        let target = dto;
+        let target: NestedObject | Array<string | NestedObject> = dto;
         for (let i = 0; i < keys.length - 1; i++) {
           const key = keys[i];
-          if (!target[key]) {
-            target[key] = {};
+          if (key === '') {
+            // Handle array notation []
+            if (!Array.isArray(target)) {
+              target = [];
+            }
+            target.push({});
+            target = target[target.length - 1] as NestedObject;
+          } else {
+            if (!target || Array.isArray(target)) {
+              target = {};
+            }
+            if (!(key in target)) {
+              target[key] = {};
+            }
+            target = target[key] as NestedObject;
           }
-          target = target[key];
         }
 
         const lastKey = keys[keys.length - 1];
-        target[lastKey] = part.value;
+        if (lastKey === '') {
+          if (!Array.isArray(target)) {
+            target = [];
+          }
+          target.push(part.value);
+        } else {
+          if (!target || Array.isArray(target)) {
+            target = {};
+          }
+          target[lastKey] = part.value;
+        }
+      }
+    }
+
+    // Convert string "true"/"false" to boolean for metadata fields
+    const metadata = dto.metadata as NestedObject;
+    if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+      if ('isOpen' in metadata && typeof metadata.isOpen === 'string') {
+        metadata.isOpen = metadata.isOpen === 'true';
+      }
+      if ('isProgressCount' in metadata && typeof metadata.isProgressCount === 'string') {
+        metadata.isProgressCount = metadata.isProgressCount === 'true';
+      }
+      if ('isVisible' in metadata && typeof metadata.isVisible === 'string') {
+        metadata.isVisible = metadata.isVisible === 'true';
       }
     }
 
