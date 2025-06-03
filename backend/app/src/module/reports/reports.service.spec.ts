@@ -11,7 +11,6 @@ import {
 } from 'src/pkg/helper/query.util';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
-import { Report, ReportDocument } from './schemas/reports.schema';
 import { Types } from 'mongoose';
 
 jest.mock('src/pkg/helper/query.util', () => ({

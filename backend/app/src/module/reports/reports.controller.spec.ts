@@ -9,21 +9,12 @@ describe('ReportsController', () => {
   let service: ReportsService;
 
   const mockService = {
-    create: jest.fn(dto => ({ id: '1', ...dto })),
-    findAll: jest.fn(() => [{ id: '1', message: 'test' }]),
-    findOne: jest.fn(id => {
-      if (id === '404') throw new Error('Not Found');
-      return { id, message: 'found' };
-    }),
-    findAllByCategory: jest.fn(id => [{ id: 'x', category: id }]),
-    update: jest.fn((id, dto) => {
-      if (id === 'bad') throw new Error('Invalid update');
-      return { id, ...dto };
-    }),
-    remove: jest.fn(id => {
-      if (id === 'bad') throw new Error('Delete failed');
-      return { deletedId: id };
-    }),
+    create: jest.fn(),
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    findAllByCategory: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -41,46 +32,67 @@ describe('ReportsController', () => {
     service = module.get<ReportsService>(ReportsService);
   });
 
+  afterEach(() => jest.clearAllMocks());
+
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
   it('should create a report', async () => {
-    const dto: CreateReportDto = { message: 'new report' } as any;
+    const dto: CreateReportDto = { message: 'create test' } as any;
+    const expected = { id: '1', ...dto };
+
+    mockService.create.mockResolvedValue(expected);
     const result = await controller.create(dto);
-    expect(result).toEqual({ id: '1', message: 'new report' });
-    expect(mockService.create).toHaveBeenCalledWith(dto);
+
+    expect(result).toEqual(expected);
+    expect(service.create).toHaveBeenCalledWith(dto);
   });
 
   it('should return all reports', async () => {
+    const expected = [{ id: '1', message: 'report' }];
+    mockService.findAll.mockResolvedValue(expected);
+
     const result = await controller.findAll({});
-    expect(result).toEqual([{ id: '1', message: 'test' }]);
-    expect(mockService.findAll).toHaveBeenCalled();
+    expect(result).toEqual(expected);
+    expect(service.findAll).toHaveBeenCalled();
   });
 
-  it('should return one report by id', async () => {
-    const result = await controller.findOne('123');
-    expect(result).toEqual({ id: '123', message: 'found' });
-    expect(mockService.findOne).toHaveBeenCalledWith('123');
+  it('should return report by id', async () => {
+    const expected = { id: '1', message: 'one report' };
+    mockService.findOne.mockResolvedValue(expected);
+
+    const result = await controller.findOne('1');
+    expect(result).toEqual(expected);
+    expect(service.findOne).toHaveBeenCalledWith('1');
   });
 
-  it('should return reports by category id', async () => {
-    const result = await controller.getByCategory('cat123');
-    expect(result).toEqual([{ id: 'x', category: 'cat123' }]);
-    expect(mockService.findAllByCategory).toHaveBeenCalledWith('cat123');
+  it('should return reports by category', async () => {
+    const expected = [{ id: 'x', category: 'cat01' }];
+    mockService.findAllByCategory.mockResolvedValue(expected);
+
+    const result = await controller.getByCategory('cat01');
+    expect(result).toEqual(expected);
+    expect(service.findAllByCategory).toHaveBeenCalledWith('cat01');
   });
 
   it('should update a report', async () => {
     const dto: UpdateReportDto = { message: 'updated' } as any;
+    const expected = { id: '1', ...dto };
+
+    mockService.update.mockResolvedValue(expected);
     const result = await controller.update('1', dto);
-    expect(result).toEqual({ id: '1', message: 'updated' });
-    expect(mockService.update).toHaveBeenCalledWith('1', dto);
+
+    expect(result).toEqual(expected);
+    expect(service.update).toHaveBeenCalledWith('1', dto);
   });
 
   it('should delete a report', async () => {
-    const result = await controller.remove('1');
-    expect(result).toEqual({ deletedId: '1' });
-    expect(mockService.remove).toHaveBeenCalledWith('1');
-  });
+    const expected = { message: 'deleted', id: '1' };
+    mockService.remove.mockResolvedValue(expected);
 
+    const result = await controller.remove('1');
+    expect(result).toEqual(expected);
+    expect(service.remove).toHaveBeenCalledWith('1');
+  });
 });
