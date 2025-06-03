@@ -76,6 +76,7 @@ export class CheckinService {
       query,
       filterSchema: {},
       populateFields: (excluded) => Promise.resolve(populateFields),
+      populateFields: (excluded) => Promise.resolve(populateFields),
     });
   }
 

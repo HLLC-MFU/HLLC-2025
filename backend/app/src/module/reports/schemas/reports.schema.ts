@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
-export type ReportDocument = HydratedDocument<Report>;
+import { Document, HydratedDocument, Model, Types } from 'mongoose';
+// 
+export type ReportDocument = HydratedDocument<Report>
 
 @Schema({ timestamps: true })
 export class Report {
@@ -11,9 +12,9 @@ export class Report {
   category: Types.ObjectId;
 
   @Prop({ required: true, type: String })
-  message: string;
+  message: string; 
 
-  @Prop({ required: true, maxlength: 50, default: 'pending' })
+  @Prop({ required: true, maxlength: 50 , default: 'pending'})
   status: string;
 }
 

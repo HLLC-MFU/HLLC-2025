@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types, FilterQuery } from 'mongoose';
 import {
   queryDeleteOne,
   queryAll,
@@ -51,7 +51,7 @@ export class UsersService {
     return await newUser.save();
   }
 
-  async findAll(query: Record<string, any>) {
+  async findAll(query: Record<string, string>) {
     return await queryAll<User>({
       model: this.userModel,
       query: {
@@ -59,7 +59,54 @@ export class UsersService {
         excluded: 'password,refreshToken,role.permissions,role.metadataSchema',
       },
       filterSchema: {},
-      populateFields: () => Promise.resolve([{ path: 'role' }]),
+      populateFields: () =>
+        Promise.resolve([
+          { path: 'role' },
+          { 
+            path: 'metadata.major',
+            model: 'Major',
+            populate: { 
+              path: 'school',
+            }
+          }
+        ]),
+    });
+  }
+
+  /**
+   * Find all users with optional filtering by school or major
+   * @param query Query parameters that can include school ID or other user fields
+   * @returns List of users with populated role, major, and school information
+   * example: this.usersService.findAllByQuery({ school: '...' });
+   * example: this.usersService.findAllByQuery({ metadata: { major: '...' } });
+   */
+  async findAllByQuery(query: Partial<User> & { school?: string }) {
+    const q = { ...query } as FilterQuery<User>;
+  
+    if (q.school) {
+      console.log('Searching for school:', q.school);
+      const majors = await this.majorModel
+        .find({ school: new Types.ObjectId(q.school) })
+        .select('_id')
+        .lean();
+  
+      console.log('Found majors:', majors);
+      const majorIds = majors.map((m) => m._id.toString());
+      console.log('Major IDs:', majorIds);
+      
+      q['metadata.major'] = { $in: majorIds.map(id => new Types.ObjectId(id)) };
+      delete q.school;
+    }
+  
+    console.log('Final query:', JSON.stringify(q, null, 2));
+  
+    return queryAll<User>({
+      model: this.userModel,
+      query: q,
+      select: 'username name role metadata.major',
+      filterSchema: {},
+      populateFields: (excluded) =>
+        Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
     });
   }
 
@@ -159,43 +206,6 @@ export class UsersService {
     ]);
   }
 
-  /**
-   * Find all users with optional filtering by school or major
-   * @param query Query parameters that can include school ID or other user fields
-   * @returns List of users with populated role, major, and school information
-   * example: this.usersService.findAllByQuery({ school: '...' });
-   * example: this.usersService.findAllByQuery({ metadata: { major: '...' } });
-   */
-  async findAllByQuery(query: Partial<User> & { school?: string }) {
-    const q: any = { ...query };
-  
-    if (q.school) {
-      console.log('Searching for school:', q.school);
-      const majors = await this.majorModel
-        .find({ school: new Types.ObjectId(q.school) })
-        .select('_id')
-        .lean();
-  
-      console.log('Found majors:', majors);
-      const majorIds = majors.map((m) => m._id.toString());
-      console.log('Major IDs:', majorIds);
-      
-      q['metadata.major'] = { $in: majorIds };
-      delete q.school;
-    }
-  
-    console.log('Final query:', JSON.stringify(q, null, 2));
-  
-    return queryAll<User>({
-      model: this.userModel,
-      query: q,
-      select: 'username name role metadata.major',
-      filterSchema: {},
-      buildPopulateFields: () => Promise.resolve([]), // ถ้าไม่ต้อง populate อะไร
-    });
-  }
-  
-
   async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.userModel.findById(userId).lean();
     if (!user) {
@@ -221,7 +231,6 @@ export class UsersService {
   async remove(id: string): Promise<void> {
     await queryDeleteOne<User>(this.userModel, id);
   }
-3
 
   async removeMultiple(ids: string[]): Promise<User[]> {
     try {
@@ -319,27 +328,4 @@ export class UsersService {
       $pull: { 'metadata.deviceTokens': deviceToken },
     });
   }
-
-  // async getUserScopeIds(userId: string) {
-  //   const user = await this.userModel.findById(userId).lean();
-  //   if (!user) return null;
-
-  //   const majorId = user.metadata?.major;
-  //   let schoolId: string | undefined = undefined;
-
-  //   if (majorId) {
-  //     const major = await this.majorModel.findById(majorId).lean();
-  //     schoolId = major?.school?.toString();
-  //   }
-
-  //   return {
-  //     userId: user._id.toString(),
-  //     majorId: majorId?.toString(),
-  //     schoolId,
-  //     role: user.role?.toString(),
-  //   };
-  // }
-  
-  
-  
 }

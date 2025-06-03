@@ -69,6 +69,10 @@ export class MajorsService {
   }
 
   async remove(id: string) {
-    return queryDeleteOne<Major>(this.majorModel, id);
+    await queryDeleteOne<Major>(this.majorModel, id);
+    return {
+      message: 'Major deleted successfully',
+      id,
+    }
   }
 }

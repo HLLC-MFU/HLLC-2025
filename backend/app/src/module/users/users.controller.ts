@@ -21,6 +21,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { FastifyRequest } from 'fastify';
+
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('users')
@@ -37,8 +38,15 @@ export class UsersController {
   @Get()
   @Permissions('users:read')
   @CacheKey('users')
-  async findAll(@Query() query: Record<string, any>) {
+  async findAll(@Query() query: Record<string, string>) {
     return this.usersService.findAll(query);
+  }
+
+  @Get('by-query')
+  @Permissions('users:read')
+  @CacheKey('users:by-query')
+  async findAllByQuery(@Query() query: Record<string, string>) {
+    return this.usersService.findAllByQuery(query);
   }
 
   @Get('statistics')
@@ -53,28 +61,25 @@ export class UsersController {
   @Get(':id')
   @Permissions('users:read:id')
   @CacheKey('users:$params.id')
+  @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
-  @Public()
   @Get('profile')
   @CacheKey('users:$req.user')
   getProfile(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
-    const user = req.user as { _id?: string; id?: string } | undefined;
-    const userId: string | undefined = user?._id ?? user?.id;
+    const user = req.user as { _id?: string; id?: string };
+    const userId: string = user?._id ?? user?.id ?? '';
+    if (!userId) {
+      return null;
+    }
     return this.usersService.findOneByQuery({
       _id: userId,
     });
   }
-
-  // @Post('upload')
-  // @Public()
-  // upload(@Body() userUploadDirectDto: UserUploadDirectDto[]) {
-  //   return this.usersService.upload(userUploadDirectDto);
-  // }
 
   @Patch(':id')
   @CacheKey('users:invalidate')

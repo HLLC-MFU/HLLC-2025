@@ -5,7 +5,7 @@ import { Localization, Photo } from 'src/pkg/types/common';
 export type ActivityDocument = HydratedDocument<Activities>;
 
 @Schema({ _id: false })
-class ActivityScope {
+export class ActivityScope {
   @Prop({ type: [MongooseSchema.Types.ObjectId], default: [] })
   major: MongooseSchema.Types.ObjectId[];
 
@@ -58,11 +58,7 @@ export class Activities {
     isOpen: true,
     isProgressCount: false,
     isVisible: true,
-    scope: {
-      major: [],
-      school: [],
-      user: [],
-    }
+    scope: {}
   })})
   metadata: ActivityMetadata;
 }

@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Localization } from 'src/pkg/types/common';
 
+
 export type ReportTypeDocument = HydratedDocument<ReportType>;
 
 @Schema()

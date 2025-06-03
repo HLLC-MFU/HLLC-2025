@@ -22,6 +22,13 @@ import { SystemStatusModule } from './module/system-status/system-status.module'
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
 import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
+import { ReportTypeModule } from './module/report-type/report-type.module';
+import { ReportsModule } from './module/reports/reports.module';
+import { AppearancesModule } from './module/appearances/appearances.module';
+import { SystemStatusModule } from './module/system-status/system-status.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
+import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
 
 @Module({
   imports: [
@@ -72,4 +79,4 @@ import { SystemStatusGuard } from './module/system-status/guards/system-status.g
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

@@ -6,6 +6,7 @@ import { model, Model } from 'mongoose';
 import { ActivitiesType, ActivitiesTypeDocument } from './schema/activitiesType.schema';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class ActivitiesTypeService {
@@ -26,7 +27,12 @@ export class ActivitiesTypeService {
       ...createActivitiesTypeDto,
     });
 
-    return activitiesType.save();
+    try {
+      return await activitiesType.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name')
+    }
+    
   }
 
   async findAll(query: Record<string, string>) {
@@ -53,9 +59,14 @@ export class ActivitiesTypeService {
   }
 
   async remove(id: string) {
-    return queryDeleteOne<ActivitiesType>(
+    await queryDeleteOne<ActivitiesType>(
       this.activitiesTypeModel,
       id,
     );
+
+    return {
+      message: 'Activities type deleted successfully',
+      id,
+    }
   }
 }
