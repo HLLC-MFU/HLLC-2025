@@ -14,7 +14,6 @@ import {
   DropdownItem,
   User,
   Pagination,
-  user,
 } from '@heroui/react';
 
 import { Typing } from './TypingModal';

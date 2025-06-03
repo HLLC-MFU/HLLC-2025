@@ -39,8 +39,7 @@ const INITIAL_VISIBLE_COLUMNS = ["name", "major"];
 export function TableInfo() {
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
-  const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
-  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [visibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = React.useState({
     column: "age",
@@ -75,26 +74,28 @@ export function TableInfo() {
 
 
   const formatted = React.useMemo(() => {
-    return (Array.isArray(users) ? users : []).map(item => {
-      const metadataArray = Array.isArray(item.metadata)
-        ? item.metadata
-        : [item.metadata];
+    return (Array.isArray(users) ? users : [])
+      .filter(user => user.role?.name !== 'Administrator')
+      .map(item => {
+        const metadataArray = Array.isArray(item.metadata)
+          ? item.metadata
+          : [item.metadata];
 
-      const majorObj = metadataArray?.[0]?.major;
-      const major = metadataArray?.[0]?.major?.name?.en ?? '-';
-      const schoolObj = metadataArray?.[0]?.major?.school;
-      const school = metadataArray[0]?.major?.school?.name?.en ?? '-';
+        const majorObj = metadataArray?.[0]?.major;
+        const major = metadataArray?.[0]?.major?.name?.en ?? '-';
+        const schoolObj = metadataArray?.[0]?.major?.school;
+        const school = metadataArray[0]?.major?.school?.name?.en ?? '-';
 
-      return {
-        id: item._id,
-        name: `${item.name?.first ?? ''} ${item.name?.middle ?? ''} ${item.name?.last ?? ''}`.trim(),
-        studentid: item.username,
-        major,
-        majorId: majorObj?._id ?? '',
-        school,
-        schoolId: schoolObj?._id ?? '',
-      };
-    });
+        return {
+          id: item._id,
+          name: `${item.name?.first ?? ''} ${item.name?.middle ?? ''} ${item.name?.last ?? ''}`.trim(),
+          studentid: item.username,
+          major,
+          majorId: majorObj?._id ?? '',
+          school,
+          schoolId: schoolObj?._id ?? '',
+        };
+      });
   }, [users]);
 
 
@@ -120,7 +121,8 @@ export function TableInfo() {
       );
     }
 
-    return filteredUsers; // ✅ ต้องคืนค่าที่ผ่านการ filter แล้ว
+
+    return filteredUsers;
   }, [formatted, filterValue, majorFilter, schoolFilter]);
 
 
@@ -142,17 +144,25 @@ export function TableInfo() {
   }, [sortDescriptor, items]);
 
   useEffect(() => {
-    if (majors.length > 0) {
-      const allMajorIds = new Set(majors.map((a) => a._id));
-      setMajorFilter(allMajorIds);
+    if (schoolFilter.size > 0 && majors.length > 0) {
+      // เก็บ school id ที่เลือกไว้
+      const selectedSchoolIds = Array.from(schoolFilter);
+
+      // กรอง majors ที่ belong กับ school ที่เลือก
+      const filteredMajorIds = majors
+        .filter((m) => selectedSchoolIds.includes(m.school._id))
+        .map((m) => m._id);
+
+      // เซ็ตใหม่เฉพาะ major ของ school ที่เลือก
+      setMajorFilter(new Set(filteredMajorIds));
     }
 
-    if (schools.length > 0) {
-      const allSchoolsIds = new Set(schools.map((a) => a._id));
-      setMajorFilter(allSchoolsIds);
+    if (schoolFilter.size === 0) {
+      setMajorFilter(new Set());
     }
 
-  }, [majors, schools]);
+  }, [schoolFilter, majors]);
+
 
   const renderCell = React.useCallback((user, columnKey) => {
     const cellValue = columnKey === "name" ? user.name.full : user[columnKey];
@@ -227,7 +237,6 @@ export function TableInfo() {
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
-                disallowEmptySelection
                 aria-label="Select Majors"
                 closeOnSelect={false}
                 selectedKeys={majorFilter}
@@ -256,11 +265,10 @@ export function TableInfo() {
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
+                aria-label="select schools"
                 closeOnSelect={false}
-                selectedKeys={visibleColumns}
                 selectionMode="multiple"
+                selectedKeys={schoolFilter}
                 onSelectionChange={(keys) => {
                   const selected = Array.from(keys) as string[];
                   setSchoolFilter(new Set(selected));
@@ -296,6 +304,7 @@ export function TableInfo() {
   }, [
     filterValue,
     majorFilter,
+    schoolFilter,
     visibleColumns,
     onSearchChange,
     onRowsPerPageChange,
