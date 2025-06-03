@@ -1,5 +1,5 @@
 import { View, Dimensions, StyleSheet, ActivityIndicator } from 'react-native';
-import { SplashScreen, Stack, Tabs } from 'expo-router';
+import { SplashScreen, Stack, Tabs, usePathname } from 'expo-router';
 import { Redirect } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { ImageBackground } from 'expo-image';
@@ -10,6 +10,7 @@ import BottomNav from '@/components/global/BottomNav';
 export default function Layout() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
     getProfile().finally(() => {
@@ -20,6 +21,9 @@ export default function Layout() {
 
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
   if (!user) return <Redirect href="/(auth)/login" />;
+
+  // Check if we're in the chat room section
+  const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
 
   return (
     <View style={{ flex: 1 }}>
@@ -38,7 +42,7 @@ export default function Layout() {
           tabBarActiveTintColor: '#3b82f6',
           tabBarInactiveTintColor: '#64748b',
         }}
-        tabBar={props => <BottomNav {...props} />}
+        tabBar={props => !isChatRoute ? <BottomNav {...props} /> : null}
       />
     </View>
   );
