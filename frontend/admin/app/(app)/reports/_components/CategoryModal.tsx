@@ -77,31 +77,6 @@ export function CategoryModal({ isOpen, onClose, onSubmit, category, mode }: Cat
                                 onValueChange={setNameTh}
                             />
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Textarea
-                                label="Description (English)"
-                                placeholder="Enter description in English"
-                                value={descriptionEn}
-                                onValueChange={setDescriptionEn}
-                                minRows={3}
-                            />
-                            <Textarea
-                                label="Description (Thai)"
-                                placeholder="Enter description in Thai"
-                                value={descriptionTh}
-                                onValueChange={setDescriptionTh}
-                                minRows={3}
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium">Category Color:</label>
-                            <input
-                                type="color"
-                                value={color}
-                                onChange={(e) => setColor(e.target.value)}
-                                className="w-10 h-10 rounded cursor-pointer"
-                            />
-                        </div>
                     </div>
                 </ModalBody>
                 <ModalFooter>
