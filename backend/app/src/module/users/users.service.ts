@@ -19,6 +19,8 @@ import { Major, MajorDocument } from '../majors/schemas/major.schema';
 
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
+import { Logger } from 'winston';
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -58,18 +60,8 @@ export class UsersService {
         excluded: 'password,refreshToken,role.permissions,role.metadataSchema',
       },
       filterSchema: {},
-      populateFields: () =>
-        Promise.resolve([
-          { path: 'role' },
-          {
-            path: 'metadata.major',
-            model: 'Major',
-            populate: {
-              path: 'school',
-              model: 'School',
-            },
-          },
-        ]),
+      populateFields: (excluded) =>
+        Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
     });
   }
 

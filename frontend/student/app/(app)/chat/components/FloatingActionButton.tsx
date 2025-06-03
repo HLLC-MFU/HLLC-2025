@@ -48,12 +48,12 @@ const FloatingActionButton = ({ onPress }: FloatingActionButtonProps) => {
         onPressOut={handlePressOut}
       >
         <LinearGradient
-          colors={['#4CAF50', '#2E7D32']}
+          colors={['#6366f1', '#60a5fa']}
           style={styles.fab}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <Plus size={24} color="#fff" />
+          <Plus size={28} color="#fff" />
         </LinearGradient>
       </TouchableWithoutFeedback>
     </Animated.View>
@@ -63,13 +63,13 @@ const FloatingActionButton = ({ onPress }: FloatingActionButtonProps) => {
 const styles = StyleSheet.create({
   fabContainer: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 120,
     right: 24,
     zIndex: 10,
-    shadowColor: '#000',
+    shadowColor: '#6366f1',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
     elevation: 8,
   },
   fab: {
@@ -78,6 +78,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
 });
 

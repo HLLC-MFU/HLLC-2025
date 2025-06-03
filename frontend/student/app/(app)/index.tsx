@@ -5,10 +5,10 @@ import {
   View,
   Text,
   ActivityIndicator,
-} from 'react-native';
-import HomeHero from '@/components/home/Hero';
-import FAB from '@/components/FAB';
-import { QrCode } from 'lucide-react-native';
+} from "react-native";
+import HomeHero from "@/components/home/Hero";
+import FAB from "@/components/FAB";
+import { QrCode, MessageSquare } from "lucide-react-native";
 
 import { useRouter } from 'expo-router';
 import TopNav from '@/components/global/TopNav';
