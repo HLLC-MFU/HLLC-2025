@@ -1,5 +1,5 @@
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Select, SelectItem } from "@heroui/react";
-import { ChevronDownIcon, FileInput, FileOutput, PlusIcon, SearchIcon, UserRound } from "lucide-react";
+import { ChevronDownIcon, FileInput, FileOutput, Plus, SearchIcon, UserRound } from "lucide-react";
 import React from "react";
 
 interface TopContentProps {
@@ -9,7 +9,7 @@ interface TopContentProps {
     setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
     visibleColumns: Set<string>;
-    columns: any[];
+    columns: Array<{ uid: string; name: string }>;
     onSearchChange: (value: string) => void;
     onClear: () => void;
     setVisibleColumns: (columns: Set<string>) => void;
@@ -54,7 +54,7 @@ export default function TopContent({
                             closeOnSelect={false}
                             selectedKeys={visibleColumns}
                             selectionMode="multiple"
-                            onSelectionChange={(keys) => setVisibleColumns(new Set(Array.from(keys as any)))}
+                            onSelectionChange={(keys) => setVisibleColumns(new Set(Array.from(keys, String)))}
                         >
                             {columns.map((column) => (
                                 <DropdownItem key={column.uid} className="capitalize">
@@ -65,7 +65,7 @@ export default function TopContent({
                     </Dropdown>
                     <Dropdown>
                         <DropdownTrigger>
-                            <Button color="primary" endContent={<PlusIcon size={20} />}>Add new</Button>
+                            <Button color="primary" endContent={<Plus size={20} />}>Add new</Button>
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Static Actions">
                             <DropdownItem onPress={() => { setActionText("Add"); setIsAddOpen(true); }} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>

@@ -18,6 +18,7 @@ import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import * as XLSX from "xlsx"
 import { saveAs } from "file-saver"
 import { useUsers } from "@/hooks/useUsers";
+import AddToast from "./AddToast";
 
 export const columns = [
   { name: "STUDENT ID", uid: "username", sortable: true },
@@ -41,14 +42,12 @@ const INITIAL_VISIBLE_COLUMNS = [
 
 export default function UsersTable({
   roleName,
-  roleId,
   users,
 }: {
   roleName: string;
-  roleId: string;
   users: User[];
 }) {
-  const { createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
+  const { fetchUsers, createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
 
   const [isAddOpen, setIsAddOpen] = React.useState<boolean>(false);
   const [isImportOpen, setIsImportOpen] = React.useState<boolean>(false);
@@ -169,12 +168,22 @@ export default function UsersTable({
     if (actionText === "Add") createUser(user);
     if (actionText === "Edit") updateUser(users[userIndex]._id, user);
     setIsAddOpen(false);
+    AddToast({
+      title: "Add Successfully",
+      description: "Data has added successfully",
+    });
+    fetchUsers();
   };
 
   const handleImport = (user: Partial<User>[]) => {
     console.log(user);
     // uploadUser(user)
     setIsImportOpen(false);
+    AddToast({
+      title: "Import Successfully",
+      description: "Data has imported successfully",
+    });
+    fetchUsers();
   };
 
   const handleExport = (fileName?: string) => {
@@ -211,6 +220,11 @@ export default function UsersTable({
       saveAs(blob, "Template.xlsx")
     }
     setIsExportOpen(false);
+    AddToast({
+      title: "Export Successfully",
+      description: "Data has exported successfully",
+    });
+    fetchUsers();
   }
 
   const handleDelete = () => {
@@ -220,6 +234,11 @@ export default function UsersTable({
       deleteUser(users[userIndex]._id)
     }
     setIsDeleteOpen(false);
+    AddToast({
+      title: "Delete Successfully",
+      description: "Data has deleted successfully",
+    });
+    fetchUsers();
   };
 
   return (
@@ -262,9 +281,9 @@ export default function UsersTable({
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         onAdd={handleAdd}
-        roleId={roleId}
         action={actionText}
         user={users[userIndex]}
+        role={roleName}
       />
 
       {/* Import */}

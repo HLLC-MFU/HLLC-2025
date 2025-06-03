@@ -11,8 +11,18 @@ export interface ImportModalProps {
     onExportTemplate: () => void;
 }
 
+interface JsonData {
+    role: string;
+    major: string;
+    type: string;
+    username: string;
+    first: string;
+    middle?: string;
+    last: string;
+}
+
 export default function ImportModal({ isOpen, onClose, onImport, onExportTemplate }: ImportModalProps) {
-    const [fileData, setFileData] = React.useState<any[]>([]);
+    const [fileData, setFileData] = React.useState<User[]>([]);
     const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
 
@@ -40,10 +50,10 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
             const workbook = XLSX.read(data, { type: "array" });
             const worksheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[worksheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            const jsonData = XLSX.utils.sheet_to_json(worksheet) as JsonData[];
 
-            const dataForm = jsonData.map((item: any,) => {
-                const mapData = {
+            const dataForm = jsonData.map((item) => {
+                const mapData: User = {
                     role: '',
                     major: '',
                     type: item["role"],
@@ -59,8 +69,7 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                     ]
                 };
 
-                console.log(mapData);
-                // return mapData
+                return mapData;
             });
 
             setFileData(dataForm);
@@ -87,7 +96,7 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
         setIsPreviewModalOpen(false);
     };
 
-    const renderCell = React.useCallback((item: any, columnKey: React.Key) => {
+    const renderCell = React.useCallback((item: User, columnKey: React.Key) => {
         const cellValue = item[columnKey as keyof typeof item];
 
         switch (columnKey) {
@@ -169,7 +178,8 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                             </TableHeader>
                             <TableBody items={items}>
                                 {(item) => (
-                                    <TableRow key={item}>
+                                    // console.log(item),
+                                    <TableRow key={item.users[0]?.studentId}>
                                         {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
                                     </TableRow>
                                 )}

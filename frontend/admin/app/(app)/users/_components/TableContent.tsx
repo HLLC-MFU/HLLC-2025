@@ -22,12 +22,12 @@ interface TableContentProps {
     setPage: (page: number) => void;
     onPreviousPage: () => void;
     onNextPage: () => void;
-    setSelectedKeys: (keys: "all" | Set<string>) => void;
-    sortDescriptor: { column: React.Key; direction: "ascending" | "descending" };
-    setSortDescriptor: (sort: { column: React.Key; direction: "ascending" | "descending" }) => void;
+    setSelectedKeys: (keys: "all" | Set<string | number>) => void;
+    sortDescriptor: { column: string | number; direction: "ascending" | "descending" };
+    setSortDescriptor: (sortDescriptor: { column: string | number; direction: "ascending" | "descending" }) => void;
     headerColumns: Array<{ uid: string; name: string; sortable?: boolean }>;
     sortedItems: User[];
-    renderCell: (item: User, columnKey: React.Key, index: number) => any;
+    renderCell: (item: User, columnKey: React.Key, index: number) => string;
 }
 
 export default function TableContent({
