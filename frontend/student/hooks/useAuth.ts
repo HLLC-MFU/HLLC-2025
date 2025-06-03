@@ -25,6 +25,12 @@ interface AuthStore {
   loading: boolean;
   error: string | null;
   signIn: (username: string, password: string) => Promise<boolean>;
+  signUp: (userData: {
+    username: string;
+    password: string;
+    confirmPassword: string;
+    secret: string;
+  }) => Promise<boolean>;
   signOut: () => void;
   refreshSession: () => Promise<boolean>;
 }
@@ -67,6 +73,34 @@ const useAuth = create<AuthStore>()(
         }
       },
 
+      signUp: async (userData) => {
+        try {
+          set({ loading: true, error: null });
+
+          const res = await apiRequest<TokenResponse>('/auth/register', 'POST', userData);
+          console.log('Register response:', res);
+
+          if (res.statusCode === 201 && res.data?.tokens) {
+            await saveToken('accessToken', res.data.tokens.accessToken);
+            await saveToken('refreshToken', res.data.tokens.refreshToken);
+            const { getProfile } = useProfile.getState();
+            const user = await getProfile();
+            if (user) {
+              router.replace("/");
+              return true; // ✅ Registration successful
+            }
+          }
+
+          set({ error: res.message || 'Registration failed' });
+          return false; // ❌ Registration failed
+        } catch (err) {
+          console.error('Registration error:', err);
+          set({ error: (err as Error).message });
+          return false; // ❌ Registration failed
+        } finally {
+          set({ loading: false });
+        }
+      },
 
       signOut: () => {
         removeToken('accessToken');
