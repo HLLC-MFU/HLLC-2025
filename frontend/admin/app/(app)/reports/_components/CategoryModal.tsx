@@ -1,40 +1,48 @@
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Textarea, Select, SelectItem } from "@heroui/react";
-import { useState, useEffect } from "react";
-import type { Category } from "@/types/report";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Input,
+  Textarea,
+  Select,
+  SelectItem,
+} from '@heroui/react';
+import { useState, useEffect } from 'react';
+import type { Category } from '@/types/report';
+import SendNotiButton from './SendNotiButton';
+import StatusDropdown from './Statusdropdown';
+
 
 interface CategoryModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSubmit: (category: Category) => void;
-    category?: Category;
-    mode: "add" | "edit";
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (category: Category) => void;
+  category?: Category;
+  mode: 'add' | 'edit';
 }
 
 export function CategoryModal({ isOpen, onClose, onSubmit, category, mode }: CategoryModalProps) {
-    const [nameEn, setNameEn] = useState("");
-    const [nameTh, setNameTh] = useState("");
-    const [descriptionEn, setDescriptionEn] = useState("");
-    const [descriptionTh, setDescriptionTh] = useState("");
-    const [color, setColor] = useState("#000000");
+  const [nameEn, setNameEn] = useState('');
+  const [nameTh, setNameTh] = useState('');
+  const [descriptionEn, setDescriptionEn] = useState('');
+  const [descriptionTh, setDescriptionTh] = useState('');
+  const [color, setColor] = useState('#000000');
 
-    useEffect(() => {
-        if (category) {
-            setNameEn(category.name.en);
-            setNameTh(category.name.th);
-            setDescriptionEn(category.description.en);
-            setDescriptionTh(category.description.th);
-            setColor(category.color);
-        } else {
-            setNameEn("");
-            setNameTh("");
-            setDescriptionEn("");
-            setDescriptionTh("");
-            setColor("#000000");
-        }
-    }, [category]);
+  useEffect(() => {
+    if (category) {
+      setNameEn(category.name.en);
+      setNameTh(category.name.th);
+    } else {
+      setNameEn('');
+      setNameTh('');
+    }
+  }, [category]);
 
-    const handleSubmit = () => {
-        if (!nameEn.trim() || !nameTh.trim()) return;
+  const handleSubmit = async () => {
+    if (!nameEn.trim() || !nameTh.trim()) return;
 
         const newCategory: Category = {
             id: category?.id || `category-${Date.now()}`,

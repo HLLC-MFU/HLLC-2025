@@ -104,7 +104,7 @@ export async function queryAll<T>(
   options: QueryPaginationOptions<T>,
 ): Promise<PaginatedResponse<T> & { message: string }> {
   const {
-    model,
+    model,  
     query = {},
     filterSchema,
     populateFields,

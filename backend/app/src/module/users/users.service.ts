@@ -17,10 +17,10 @@ import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
-import { UploadUserDto } from './dto/upload.user.dto';
+import { UserUploadDirectDto } from './dto/upload.user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
-import { Logger } from 'winston';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class UsersService {
@@ -50,7 +50,11 @@ export class UsersService {
       metadata: createUserDto.metadata,
     });
 
-    return await newUser.save();
+    try {
+      return await newUser.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'username');
+    }
   }
 
   async findAll(query: Record<string, any>) {
@@ -154,7 +158,8 @@ export class UsersService {
       query: q,
       select: 'username name role metadata.major',
       filterSchema: {},
-      buildPopulateFields: () => Promise.resolve([]), // ถ้าไม่ต้อง populate อะไร
+      populateFields: (excluded) =>
+        Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
     });
   }
   
@@ -181,10 +186,13 @@ export class UsersService {
     return updatedUser as User;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string) {
     await queryDeleteOne<User>(this.userModel, id);
+    return {
+      message: 'User deleted successfully',
+      id,
+    };
   }
-3
 
   async removeMultiple(ids: string[]): Promise<User[]> {
     try {
@@ -203,15 +211,15 @@ export class UsersService {
     await user.save();
   }
 
-  async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
+  async upload(uploadUserDto: UserUploadDirectDto[]): Promise<User[]> {
     const users: CreateUserDto[] = await Promise.all(
-      uploadUserDto.users.map(async (userDto) => {
-        const userMajor = userDto.major || uploadUserDto.major;
+      uploadUserDto.map(async (userDto) => {
+        const userMajor = userDto.metadata?.major;
 
         // ✅ Check major existence
-        if (userDto.major) {
+        if (userDto.metadata?.major) {
           const userMajorRecord = await this.majorModel
-            .findById(userDto.major)
+            .findById(userDto.metadata?.major)
             .lean();
           if (!userMajorRecord) {
             throw new NotFoundException('Major in database not found');
@@ -224,13 +232,13 @@ export class UsersService {
             last: userDto.name.last || '',
           },
           fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
-          username: userDto.studentId,
+          username: userDto.username,
           password: '', // initially blank
           secret: '', // initially blank
           major: new Types.ObjectId(userMajor),
-          role: new Types.ObjectId(uploadUserDto.role),
+          role: new Types.ObjectId(userDto.role),
           metadata: {
-            type: uploadUserDto.metadata?.type ?? null,
+            type: userDto.metadata?.type ?? null,
           },
         };
       }),

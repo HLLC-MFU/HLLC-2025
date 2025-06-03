@@ -89,11 +89,11 @@ export class NotificationsService {
         to: "",
         sound: 'default',
         title: sendNotificationDto.title.th,
-        body: sendNotificationDto.body,
+        body: sendNotificationDto.body.th,
       },
     ];
 
-    const ticketChunk = await expo.sendPushNotificationsAsync(messages);
+    const ticketChunk = await expo.sendPushNotificationsAsync(messages) ;
     console.log('Push ticket:', ticketChunk);
   }
 

@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 
 import { UsersService } from './users.service';
@@ -20,6 +21,7 @@ import { CacheKey } from '@nestjs/cache-manager';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
+import { isValidObjectId } from 'mongoose';
 import { FastifyRequest } from 'fastify';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
 
@@ -43,11 +45,15 @@ export class UsersController {
     return this.usersService.findAllByQuery(query);
   }
 
-  @Get('statistics')
-  @Permissions('users:read')
-  @CacheKey('users:statistics')
-  async getUserCountByRoles(): Promise<Record<string, number>> {
-    return this.usersService.getUserCountByRoles();
+  @Get('me')
+  async getProfile(@Req() req: FastifyRequest & { user?: { _id: string } }) {
+    const userId = req.user?._id;
+
+    if (!userId || !isValidObjectId(userId)) {
+      throw new BadRequestException('Invalid user ID');
+    }
+
+    return this.usersService.findOneByQuery({ _id: userId });
   }
 
   @Get(':id')
@@ -56,25 +62,6 @@ export class UsersController {
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
-
-  @Public()
-  @Get('profile')
-  @CacheKey('users:$req.user')
-  getProfile(
-    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
-  ) {
-    const user = req.user as { _id?: string; id?: string } | undefined;
-    const userId: string | undefined = user?._id ?? user?.id;
-    return this.usersService.findOneByQuery({
-      _id: userId,
-    });
-  }
-
-  // @Get('activities/users')
-  // findUsersByMetadata(@Req() req: FastifyRequest) {
-  //   const userId = req.user?._id || req.user?.id;
-  //   return this.usersService.getUserScopeIds(userId);
-  // }
 
   @Post('upload')
   @Public()

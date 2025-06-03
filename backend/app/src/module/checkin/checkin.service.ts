@@ -75,7 +75,7 @@ export class CheckinService {
       model: this.checkinModel,
       query,
       filterSchema: {},
-      buildPopulateFields: excluded => Promise.resolve(populateFields),
+      populateFields: (excluded) => Promise.resolve(populateFields),
     });
   }
 
@@ -121,6 +121,10 @@ export class CheckinService {
   }
 
   async remove(id: string) {
-    return queryDeleteOne<Checkin>(this.checkinModel, id);
+    await queryDeleteOne<Checkin>(this.checkinModel, id);
+    return {
+      message: 'Checkin deleted successfully',
+      id,
+    }
   }
 }

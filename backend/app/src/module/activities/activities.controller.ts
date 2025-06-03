@@ -7,42 +7,68 @@ import {
   Param,
   Delete,
   Query,
+  Req,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
 import { CreateActivitiesDto } from './dto/create-activities.dto';
 import { UpdateActivityDto } from './dto/update-activities.dto';
+import { FastifyRequest } from 'fastify';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Public } from '../auth/decorators/public.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 
+@UseGuards(JwtAuthGuard)
 @Controller('activities')
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
-  create(@Body() createActivitiesDto: CreateActivitiesDto) {
-    return this.activitiesService.create(createActivitiesDto);
+  @Public()
+  @UseInterceptors(new MultipartInterceptor(500))
+  create(@Req() req: FastifyRequest) {
+    const dto = req.body as CreateActivitiesDto;
+    return this.activitiesService.create(dto);
   }
 
+  @Public()
   @Get()
-  findAll(
+  async getActivitiesForUser(
     @Query() query: Record<string, string>,
-    @Query('userId') userId?: string,
+    @Req() req: FastifyRequest & { user?: { _id: string } },
   ) {
-    return this.activitiesService.findAll(query, userId);
+    const userId = req.user?._id;
+    return this.activitiesService.findAllForUser(query, userId);
+  }
+
+  @Get('admin')
+  @Permissions('activities:read')
+  async getActivitiesForAdmin(
+    @Query() query: Record<string, string>,
+  ) {
+    return this.activitiesService.findAllForAdmin(query);
   }
 
   @Get(':id')
   findOne(
     @Param('id') id: string,
-    @Query('userId') userId?: string,
+    @Req() req: FastifyRequest & { user?: { _id: string } },
   ) {
+    const userId = req.user?._id;
     return this.activitiesService.findOne(id, userId);
   }
 
   @Patch(':id')
+  @UseInterceptors(new MultipartInterceptor(500))
   update(
     @Param('id') id: string,
-    @Body() updateActivityDto: UpdateActivityDto,
+    @Req() req: FastifyRequest,
   ) {
-    return this.activitiesService.update(id, updateActivityDto);
+    const dto = req.body as UpdateActivityDto;
+    dto.updatedAt = new Date();
+    return this.activitiesService.update(id, dto);
   }
 
   @Delete(':id')

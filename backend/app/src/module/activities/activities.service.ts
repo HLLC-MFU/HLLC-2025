@@ -1,32 +1,29 @@
-// activities.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types, FilterQuery, HydratedDocument } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Activities, ActivityDocument } from './schema/activities.schema';
 import { CreateActivitiesDto } from './dto/create-activities.dto';
 import { UpdateActivityDto } from './dto/update-activities.dto';
-import { User } from '../users/schemas/user.schema';
-import { Major } from '../majors/schemas/major.schema';
 import { UsersService } from '../users/users.service';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
+import { Role } from '../role/schemas/role.schema';
+import { User } from '../users/schemas/user.schema';
+
+type PopulatedUser = Omit<User, 'role'> & {
+  role: Role;
+};
 
 @Injectable()
 export class ActivitiesService {
   constructor(
     @InjectModel(Activities.name)
     private activitiesModel: Model<ActivityDocument>,
-    @InjectModel(Major.name)
     private usersService: UsersService,
   ) {}
 
   async create(createActivitiesDto: CreateActivitiesDto) {
     const metadata = createActivitiesDto.metadata || {};
-    const scope = metadata.scope || {};
-
-    const convertedScope = {
-      major: (scope.major || []).map(id => new Types.ObjectId(id)),
-      school: (scope.school || []).map(id => new Types.ObjectId(id)),
-      user: (scope.user || []).map(id => new Types.ObjectId(id)),
-    };
+    const convertedScope = this.normalizeScope(metadata.scope || {});
 
     const activity = new this.activitiesModel({
       ...createActivitiesDto,
@@ -38,51 +35,93 @@ export class ActivitiesService {
       },
     });
 
-    return activity.save();
+    try {
+      return await activity.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name');
+    }
   }
 
-  async findAll(query: Record<string, string>, userId?: string) {
-    if (!userId || !Types.ObjectId.isValid(userId)) {
-      return this.activitiesModel.find({
-        ...query,
-        'metadata.isVisible': true,
-        'metadata.isOpen': true,
-      }).lean();
-    }
-  
-    const activities = await this.activitiesModel.find({
+  async findAllForUser(query: Record<string, string>, userId?: string) {
+    const baseQuery = {
       ...query,
       'metadata.isVisible': true,
       'metadata.isOpen': true,
-    }).lean();
-  
-    const visibleActivities: typeof activities = [];
-  
-    for (const activity of activities) {
-      const visibleUsers = await this.getVisibleUsersForActivity(activity);
-      if (visibleUsers.some(u => u._id.equals(userId))) {
-        visibleActivities.push(activity);
-      }
+      excluded: 'metadata.scope.user.password,metadata.scope.user.refreshToken,metadata.scope.user.role,metadata.scope.user.metadata,metadata.scope.user.__v,__v'
+    };
+
+    const activities = await this.activitiesModel.find(baseQuery)
+      .select('-metadata.scope')
+      .lean();
+
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+      return activities.filter((a) => {
+        const s = a.metadata?.scope;
+        return !s || (!s.user?.length && !s.major?.length && !s.school?.length);
+      });
     }
-  
-    return visibleActivities;
+
+    const visible = await Promise.all(
+      activities.map(async (a) => {
+        const isInScope = await this.isUserInScope(a, userId);
+        if (!isInScope) return null;
+        
+        // Return activity without scope information
+        const { metadata, ...rest } = a;
+        const { scope, ...metadataWithoutScope } = metadata;
+        return {
+          ...rest,
+          metadata: metadataWithoutScope
+        };
+      }),
+    );
+
+    return visible.filter(Boolean);
+  }
+
+  async findAllForAdmin(query: Record<string, string>) {
+    return this.activitiesModel.find({
+      ...query,
+      excluded: 'metadata.scope.user.password,metadata.scope.user.refreshToken,metadata.scope.user.role,metadata.scope.user.metadata,metadata.scope.user.__v,__v'
+    }).lean();
   }
   
-
   async findOne(id: string, userId?: string) {
-    const activity = await this.activitiesModel.findById(id).lean();
+    const query = {
+      _id: id,
+      excluded: 'metadata.scope.user.password,metadata.scope.user.refreshToken,metadata.scope.user.role,metadata.scope.user.metadata,metadata.scope.user.__v,__v'
+    };
+
+    const activity = await this.activitiesModel.findOne(query).lean();
     if (!activity) throw new NotFoundException('Activity not found');
 
     if (!userId) {
       throw new NotFoundException('Access denied');
     }
 
-    const visibleUsers = await this.getVisibleUsersForActivity(activity);
-    if (!visibleUsers.some(u => u._id.toString() === userId)) {
+    const user = await this.usersService.findOneByQuery({ 
+      _id: userId as unknown as Types.ObjectId & string
+    }) as unknown as PopulatedUser;
+    if (!user) {
       throw new NotFoundException('Access denied');
     }
 
-    return activity;
+    // Check if user has admin permissions (wildcard permission)
+    const isAdmin = Array.isArray(user.role?.permissions) && user.role.permissions.includes('*');
+    if (isAdmin) {
+      return activity;
+    }
+
+    // For non-admin users, check scope restrictions
+    if (!(await this.isUserInScope(activity, userId))) {
+      throw new NotFoundException('Access denied');
+    }
+
+    try {
+      return await this.activitiesModel.findOne(query).lean();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name');
+    }
   }
 
   async update(id: string, updateActivityDto: UpdateActivityDto) {
@@ -108,55 +147,64 @@ export class ActivitiesService {
   }
 
   async remove(id: string) {
-    const activity = await this.activitiesModel.findByIdAndDelete(id).lean();
-    if (!activity) {
-      throw new NotFoundException('Activity not found');
-    }
-    return activity;
+    await this.activitiesModel.findByIdAndDelete(id).lean();
+    
+    return {
+      message: 'Activity deleted successfully',
+      id,
+    };
   }
 
-  async getVisibleUsersForActivity(activity: Activities): Promise<User[]> {
+  private async isUserInScope(activity: Activities, userId: string): Promise<boolean> {
     const scope = activity.metadata?.scope;
-    if (!scope) return [];
-  
-    const resultUsers: User[] = [];
-  
-    // -- user
-    if (Array.isArray(scope.user) && scope.user.length) {
-      const users = await Promise.all(
-        scope.user.map((id) => this.usersService.findOne(id.toString()).catch(() => null))
-      );
-      const filteredUsers = users.filter(
-        (u): u is HydratedDocument<User> => u !== null
-      );
-      
-      resultUsers.push(...filteredUsers);
+    if (!scope) return true;
+
+    const hasNoScope =
+      !scope.user?.length && !scope.major?.length && !scope.school?.length;
+    if (hasNoScope) return true;
+
+    if (!Types.ObjectId.isValid(userId)) return false;
+    const user = await this.usersService.findOne(userId);
+    if (!user) return false;
+
+    const userStr = user.data[0]._id.toString();
+    const majorStr = user.data[0].metadata?.major?.toString();
+
+    const userSet = new Set(scope.user?.map((id) => id.toString()));
+    if (userSet.has(userStr)) return true;
+
+    const majorSet = new Set(scope.major?.map((id) => id.toString()));
+    if (majorStr && majorSet.has(majorStr)) return true;
+
+    if (scope.school?.length && majorStr) {
+      for (const schoolId of scope.school) {
+        const schoolUsers = await this.usersService.findAllByQuery({
+          school: schoolId.toString(),
+        });
+
+        const majorIds = schoolUsers.data
+          .map((u) => u.metadata?.major?.toString())
+          .filter(Boolean);
+
+        if (majorIds.includes(majorStr)) return true;
+      }
     }
-  
-    // -- major
-  if (Array.isArray(scope.major) && scope.major.length > 0) {
-    const majorUsers = await this.usersService.findAllByQuery({
-      'metadata.major': { $in: scope.major.map((id) => id.toString()) },
-    } as FilterQuery<User>);
-    resultUsers.push(...majorUsers.data);
+
+    return false;
   }
+
+  private normalizeScope(scope: any) {
+    const clean = (list?: string[]) =>
+      (list || [])
+        .map((id) => id?.trim())
+        .filter((id) => id && Types.ObjectId.isValid(id))
+        .map((id) => new Types.ObjectId(id));
   
-    // -- school
-    if (Array.isArray(scope.school) && scope.school.length > 0) {
-      const schoolUsers = await this.usersService.findAllByQuery({
-        'metadata.school': { $in: scope.school.map((id) => id.toString()) },
-      } as FilterQuery<User>);
-      resultUsers.push(...schoolUsers.data);
-    }
-  
-    // -- unique
-    const uniqueUsers = Array.from(
-      new Map(resultUsers.map((u) => [u._id.toString(), u])).values()
-    );
-  
-    return uniqueUsers;
+    return {
+      major: clean(scope.major),
+      school: clean(scope.school),
+      user: clean(scope.user),
+    };
   }
-  
-  
   
 }
