@@ -10,7 +10,7 @@ const WS_BASE_URL = Platform.OS === "android" ? "ws://10.0.2.2:1334" : "ws://loc
 const API_BASE_URL = `${BASE_URL}/api/v1`;
 
 // Cache for room data
-const roomCache = new Map<string, { data: any; timestamp: number }>();
+const roomCache = new Map<string, { data: ChatRoom; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Cache for room list data
@@ -355,11 +355,12 @@ class ChatService {
       formData.append("creator_id", creatorId);
       
       if (data.image) {
-        formData.append("image", {
+        const imageFile = {
           uri: data.image,
           type: 'image/jpeg',
           name: 'room-image.jpg'
-        } as any);
+        };
+        formData.append("image", imageFile as unknown as Blob);
       }
 
       const response = await fetch(`${API_BASE_URL}/rooms`, {

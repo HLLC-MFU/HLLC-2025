@@ -49,7 +49,7 @@ export default function BottomNav() {
             key={tab.name}
             style={styles.tabButton}
             onPress={() => {
-              router.replace(tab.to as any);
+              router.replace(tab.to);
             }}
           >
             <Icon size={24} color={isActive ? '#3b82f6' : '#64748b'} />
