@@ -1,27 +1,27 @@
 import React from "react";
 import { Button, DateInput, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
-// import { today, DateValue } from "@internationalized/date";
 
 // Mockup data for schools
 import schoolsMockup from "@/public/mock/schools.json"
 import { Evoucher } from "@/types/evoucher";
+import { Calendar } from "lucide-react";
 
 export const schools = schoolsMockup;
 
 export interface AddModalProps {
-    title: string;
     isOpen: boolean;
     onClose: () => void;
-    data: Evoucher;
-    handleAdd: (userData: Partial<Evoucher>) => void;
+    onAdd: (userData: Partial<Evoucher>) => void;
+    title: string;
+    // data: Evoucher;
 };
 
-export default function AddModal({ title, isOpen, onClose, data, handleAdd }: AddModalProps) {
+export default function AddModal({ isOpen, onClose, onAdd, title, }: AddModalProps) {
     const [sponsor, setSponsor] = React.useState("");
     const [acronym, setAcronym] = React.useState("");
     const [detail, setDetail] = React.useState("");
     const [discount, setDiscount] = React.useState<number>(0);
-    const [expiration, setExpiration] = React.useState<DateValue | undefined>();
+    const [expiration, setExpiration] = React.useState<Date>();
     const [type, setType] = React.useState<Set<string>>(new Set<string>());
     const [cover, setCover] = React.useState("");
     const [banner, setBanner] = React.useState("");
@@ -30,17 +30,17 @@ export default function AddModal({ title, isOpen, onClose, data, handleAdd }: Ad
 
     React.useEffect(() => {
         if (title === "Edit") {
-            setSponsor(data.sponsor.name.en);
-            setAcronym(data.acronym);
-            setDetail(data.detail.en);
-            setDiscount(data.discount);
-            setExpiration(data.expiration);
-            setType(new Set([data.type.name]))
+            // setSponsor(data.sponsor.name.en);
+            // setAcronym(data.acronym);
+            // setDetail(data.detail.en);
+            // setDiscount(data.discount);
+            // setExpiration(data.expiration);
+            // setType(new Set([data.type.name]))
         }
         if (title === "Add") {
             onClear();
         }
-    }, [data, title]);
+    }, [title]);
 
     const onClear = () => {
         setSponsor("");
@@ -54,36 +54,14 @@ export default function AddModal({ title, isOpen, onClose, data, handleAdd }: Ad
     // const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     //     e.preventDefault();
 
-    //     schools.map((school) => {
-    //         if (school.name.en === [...schoolValue][0]) {
-    //             {
-    //                 school.majors.map((major) => {
-    //                     if (major.name.en === [...majorValue][0]) {
-    //                         majorId.current = major;
-    //                     }
-    //                 });
-    //             }
-    //         }
-    //     })
-
     //     const formData: Partial<User> = {
-    //         name: {
-    //             first: firstNameValue,
-    //             middle: middleNameValue,
-    //             last: lastNameValue,
-    //         },
-    //         username: studentIdValue,
-    //         // Mockup student role
-    //         role: "6836c4413f987112cc4bca1f",
-    //         metadata: {
-    //             major: majorId.current?.id,
-    //         }
+    //         
     //     };
 
     //     if (title === "Add") {
-    //         onAddUser(formData);
+    //         handleAdd(formData);
     //     } else if (title === "Edit") {
-    //         onAddUser(formData);
+    //         handleAdd(formData);
     //     } else {
     //         console.error("Fail to submit data");
     //     }
@@ -100,9 +78,9 @@ export default function AddModal({ title, isOpen, onClose, data, handleAdd }: Ad
                 <ModalContent>
                     <Form
                         className="w-full"
-                        // onSubmit={(e) => handleSubmit(e)}
+                    // onSubmit={(e) => handleSubmit(e)}
                     >
-                        <ModalHeader className="flex flex-col gap-1">{title === "Add" ? "Add new file" : "Edit file"}</ModalHeader>
+                        <ModalHeader className="flex flex-col gap-1">{title === "Add" ? "Add evoucher" : "Edit evoucher"}</ModalHeader>
                         <ModalBody className="w-full">
                             <Input
                                 isRequired
@@ -127,6 +105,7 @@ export default function AddModal({ title, isOpen, onClose, data, handleAdd }: Ad
                                 onChange={(e) => setAcronym(e.target.value)}
                             />
                             <Input
+                                isRequired
                                 label="Detail"
                                 type="string"
                                 placeholder="Enter Detail"
@@ -150,7 +129,8 @@ export default function AddModal({ title, isOpen, onClose, data, handleAdd }: Ad
                             <DateInput
                                 isRequired
                                 label="Expiration"
-                                // defaultValue={today("UTC")}
+                                granularity="second"
+                                endContent={<Calendar />}
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter your expiration" }
                                 }
@@ -167,8 +147,7 @@ export default function AddModal({ title, isOpen, onClose, data, handleAdd }: Ad
                                 selectedKeys={type}
                                 onSelectionChange={(keys) => setType(keys as Set<string>)}
                             >
-                                <SelectItem key="Global">Global</SelectItem>
-                                <SelectItem key="Individual">Individual</SelectItem>
+                                <SelectItem key=""></SelectItem>
                             </Select>
                         </ModalBody>
                         <ModalFooter className="self-end">

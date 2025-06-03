@@ -3,6 +3,8 @@ import React from "react";
 import { EllipsisVertical } from "lucide-react";
 import { Evoucher } from "@/types/evoucher";
 import TableContent from "./TableContent";
+import AddModal from "./AddModal";
+import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 
 export const columns = [
     { name: "SPONSOR", uid: "sponsor" },
@@ -44,10 +46,16 @@ const INITIAL_VISIBLE_COLUMNS = [
 
 export default function EvoucherTable({
     sponsorName,
-    evouchers
+    evouchers,
+    setIsAddOpen,
+    setIsDeleteOpen,
+    setActionText,
 }: {
     sponsorName: string,
     evouchers: Evoucher[];
+    setIsAddOpen: (value: boolean) => void;
+    setIsDeleteOpen: (value: boolean) => void;
+    setActionText: (value: string) => void;
 }) {
     const [filterValue, setFilterValue] = React.useState("");
     const [selectedKeys, setSelectedKeys] = React.useState<"all" | Set<unknown>>(new Set([]));
@@ -114,8 +122,6 @@ export default function EvoucherTable({
     const renderCell = React.useCallback((evoucher: Evoucher, columnKey: React.Key) => {
         const cellValue = evoucher[columnKey as keyof Evoucher];
 
-        console.log(cellValue)
-
         switch (columnKey) {
             case "sponsor":
                 return cellValue.name.en;
@@ -145,8 +151,8 @@ export default function EvoucherTable({
                                 </Button>
                             </DropdownTrigger>
                             <DropdownMenu>
-                                <DropdownItem key="edit">Edit</DropdownItem>
-                                <DropdownItem key="delete">Delete</DropdownItem>
+                                <DropdownItem key="edit" onPress={() => {setActionText("Edit"); setIsAddOpen(true);}}>Edit</DropdownItem>
+                                <DropdownItem key="delete" onPress={() => setIsDeleteOpen(true)}>Delete</DropdownItem>
                             </DropdownMenu>
                         </Dropdown>
                     </div>
@@ -157,40 +163,44 @@ export default function EvoucherTable({
     }, []);
 
     return (
-        <TableContent
-            sortDescriptor={sortDescriptor}
-            setSortDescriptor={setSortDescriptor}
-            headerColumns={headerColumns}
-            sortedItems={sortedItems}
-            renderCell={renderCell}
-            filterValue={filterValue}
-            typeFilter={typeFilter}
-            setTypeFilter={setTypeFilter}
-            typeOptions={typeOptions}
-            capitalize={capitalize}
-            visibleColumns={visibleColumns}
-            setVisibleColumns={setVisibleColumns}
-            columns={columns}
-            selectedKeys={selectedKeys}
-            setSelectedKeys={setSelectedKeys}
-            filteredItems={filteredItems}
-            page={page}
-            pages={pages}
-            setPage={setPage}
-            onPreviousPage={() => setPage((page) => Math.max(1, page - 1))}
-            onNextPage={() => setPage((page) => page + 1)}
-            onClear={() => {
-                setFilterValue("");
-                setPage(1);
-            }}
-            onSearchChange={(val) => {
-                setFilterValue(val);
-                setPage(1);
-            }}
-            onRowsPerPageChange={(e) => {
-                setRowsPerPage(e.target.value);
-                setPage(1);
-            }}
-        />
+        <div>
+            <TableContent
+                setIsAddOpen={setIsAddOpen}
+                setActionText={setActionText}
+                sortDescriptor={sortDescriptor}
+                setSortDescriptor={setSortDescriptor}
+                headerColumns={headerColumns}
+                sortedItems={sortedItems}
+                renderCell={renderCell}
+                filterValue={filterValue}
+                typeFilter={typeFilter}
+                setTypeFilter={setTypeFilter}
+                typeOptions={typeOptions}
+                capitalize={capitalize}
+                visibleColumns={visibleColumns}
+                setVisibleColumns={setVisibleColumns}
+                columns={columns}
+                selectedKeys={selectedKeys}
+                setSelectedKeys={setSelectedKeys}
+                filteredItems={filteredItems}
+                page={page}
+                pages={pages}
+                setPage={setPage}
+                onPreviousPage={() => setPage((page) => Math.max(1, page - 1))}
+                onNextPage={() => setPage((page) => page + 1)}
+                onClear={() => {
+                    setFilterValue("");
+                    setPage(1);
+                }}
+                onSearchChange={(val) => {
+                    setFilterValue(val);
+                    setPage(1);
+                }}
+                onRowsPerPageChange={(e) => {
+                    setRowsPerPage(e.target.value);
+                    setPage(1);
+                }}
+            />
+        </div>
     )
 };

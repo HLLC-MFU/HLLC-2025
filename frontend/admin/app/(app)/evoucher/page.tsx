@@ -63,12 +63,15 @@ const mockupData: Evoucher[] = [
 
 import { Evoucher } from "@/types/evoucher";
 import AddModal from "./_components/AddModal";
+import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 
 export default function EvoucherPage() {
 
     const [evouchers, setEvouchers] = React.useState<Evoucher[]>([]);
 
+    const [actionText, setActionText] = React.useState<"Add" | "Edit">("Add");
     const [isAddOpen, setIsAddOpen] = React.useState<boolean>(false);
+    const [isDeleteOpen, setIsDeleteOpen] = React.useState<boolean>(false);
 
     React.useEffect(() => {
         setEvouchers(mockupData);
@@ -82,11 +85,11 @@ export default function EvoucherPage() {
     });
 
     const handleAdd = () => {
-        return (
-            <div>
+        setIsAddOpen(true);
+    };
 
-            </div>
-        )
+    const handleDelete = () => {
+        setIsDeleteOpen(true);
     };
 
     return (
@@ -105,7 +108,13 @@ export default function EvoucherPage() {
                                 title={sponsorName}
                                 className="font-medium mb-2"
                             >
-                                <EvoucherTable sponsorName={sponsorName} evouchers={sponsorEvouchers} />
+                                <EvoucherTable
+                                    sponsorName={sponsorName}
+                                    evouchers={sponsorEvouchers}
+                                    setIsAddOpen={setIsAddOpen}
+                                    setIsDeleteOpen={setIsDeleteOpen}
+                                    setActionText={setActionText}
+                                />
                             </AccordionItem>
                         ))}
                     </Accordion>
@@ -113,11 +122,20 @@ export default function EvoucherPage() {
             </div>
 
             <AddModal
-                title={"Add"}
                 isOpen={isAddOpen}
                 onClose={() => setIsAddOpen(false)}
-                // data={}
-                handleAdd={handleAdd}
+                onAdd={handleAdd}
+                title={actionText}
+            />
+
+            {/* Delete Modal */}
+            <ConfirmationModal
+                isOpen={isDeleteOpen}
+                onClose={() => setIsDeleteOpen(false)}
+                onConfirm={handleDelete}
+                title={"Delete evoucher"}
+                body={"Are you sure you want to delete this item?"}
+                confirmColor='danger'
             />
         </div>
     )

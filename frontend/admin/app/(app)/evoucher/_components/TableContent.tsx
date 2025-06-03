@@ -11,6 +11,8 @@ export interface TableColumnType {
 }
 
 export interface TableContentProps {
+    setIsAddOpen: (value: boolean) => void;
+    setActionText: (value: string) => void;
     sortDescriptor: SortDescriptor;
     setSortDescriptor: (descriptor: SortDescriptor) => void;
     headerColumns: TableColumnType[];
@@ -38,6 +40,8 @@ export interface TableContentProps {
 }
 
 export default function TableContent({
+    setIsAddOpen,
+    setActionText,
     sortDescriptor,
     setSortDescriptor,
     headerColumns,
@@ -78,6 +82,8 @@ export default function TableContent({
             />}
             bottomContentPlacement="outside"
             topContent={<TopContent
+                setIsAddOpen={setIsAddOpen}
+                setActionText={setActionText}
                 filterValue={filterValue}
                 typeFilter={typeFilter}
                 setTypeFilter={setTypeFilter}

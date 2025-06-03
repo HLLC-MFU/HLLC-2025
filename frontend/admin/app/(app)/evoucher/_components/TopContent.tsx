@@ -1,11 +1,12 @@
 import { Evoucher } from "@/types/evoucher";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Select, SelectItem } from "@heroui/react";
-import { ChevronDownIcon, FileInput, FileOutput, PlusIcon, SearchIcon, Ticket } from "lucide-react";
+import { ChevronDownIcon, PlusIcon, SearchIcon, Ticket } from "lucide-react";
 import { TableColumnType } from "./TableContent";
-import AddModal from "./AddModal";
 import React from "react";
 
 export interface TopContentProps {
+    setIsAddOpen: (value: boolean) => void;
+    setActionText: (value: string) => void;
     filterValue: string;
     typeFilter: string;
     setTypeFilter: (value: string) => void;
@@ -27,6 +28,8 @@ export interface TopContentProps {
 }
 
 export default function TopContent({
+    setIsAddOpen,
+    setActionText,
     filterValue,
     typeFilter,
     setTypeFilter,
@@ -95,12 +98,7 @@ export default function TopContent({
                             ))}
                         </DropdownMenu>
                     </Dropdown>
-                    <Dropdown>
-                        <DropdownTrigger>
-                            <Button color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
-                        </DropdownTrigger>
-                        <Button onPress={() => { setIsAddModalOpen(true); }} key="new" startContent={<Ticket size={16} />}>New evoucher</Button>
-                    </Dropdown >
+                    <Button onPress={() => {setActionText("Add"); setIsAddOpen(true);}} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
                 </div>
             </div>
             <label className="flex items-center text-default-400 text-small">
