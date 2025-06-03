@@ -4,11 +4,6 @@ import { Model, PopulateOptions, Types } from 'mongoose';
 import { Report, ReportDocument } from './schemas/reports.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import {
-  ReportType,
-  ReportTypeDocument,
-} from '../report-type/schemas/report-type.schema';
-import { CreateReportDto } from './dto/create-report.dto';
-import {
   queryAll,
   queryFindOne,
   queryUpdateOne,
@@ -18,6 +13,7 @@ import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { PopulateField } from 'src/pkg/types/query';
+import { CreateReportDto } from './dto/create-report.dto';
 
 @Injectable()
 export class ReportsService {
