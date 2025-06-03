@@ -19,8 +19,6 @@ import { Major, MajorDocument } from '../majors/schemas/major.schema';
 
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
-import path from 'path';
-
 @Injectable()
 export class UsersService {
   constructor(
