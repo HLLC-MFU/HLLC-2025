@@ -2,10 +2,7 @@ import React from "react";
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
 
 import { User } from "@/types/user";
-
-// Mockup data for schools
-import schoolsMockup from "@/public/mock/schools.json"
-export const schools = schoolsMockup;
+import { useSchools } from "@/hooks/useSchool";
 
 export interface AddModalProps {
     isOpen: boolean;
@@ -17,13 +14,14 @@ export interface AddModalProps {
 };
 
 export default function AddModal({ isOpen, onClose, onAdd, roleId, action, user }: AddModalProps) {
+    const { schools } = useSchools();
+
     const [username, setUsername] = React.useState("");
     const [firstName, setFirstName] = React.useState("");
     const [middleName, setMiddleName] = React.useState("");
     const [lastName, setLastName] = React.useState("");
     const [school, setSchool] = React.useState<Set<string>>(new Set<string>());
     const [major, setMajor] = React.useState<Set<string>>(new Set<string>());
-    const majorId = React.useRef<string>("");
 
     React.useEffect(() => {
         if (action === "Edit") {
@@ -31,18 +29,8 @@ export default function AddModal({ isOpen, onClose, onAdd, roleId, action, user 
             setFirstName(user.name?.first ?? "");
             setMiddleName(user.name?.middle ?? "");
             setLastName(user.name?.last ?? "");
-            schools.map((school) => {
-                if (school.name.en === user.metadata?.school?.name.en) {
-                    setSchool(new Set([school.name.en]));
-                    {
-                        school.majors.map((major) => {
-                            if (major.name.en === user.metadata?.major?.name.en) {
-                                setMajor(new Set([major.name.en]));
-                            }
-                        })
-                    }
-                }
-            })
+            setSchool(new Set([user.metadata?.major.school.name.en]));
+            setMajor(new Set([user.metadata?.major.name.en]));
         }
         if (action === "Add") {
             onClear();
@@ -61,13 +49,12 @@ export default function AddModal({ isOpen, onClose, onAdd, roleId, action, user 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
+        let majorId = "";
         schools.map((s) => {
             if (s.name.en === Array.from(school)[0]) {
                 s.majors.map((m) => {
-                    if (m.name.en === Array.from(major)[0]) {
-                        majorId.current = m.id;
-                    }
-                });
+                    if (m.name.en === Array.from(major)[0] && m._id) majorId = m._id;
+                })
             }
         })
 
@@ -78,16 +65,11 @@ export default function AddModal({ isOpen, onClose, onAdd, roleId, action, user 
                 last: lastName,
             },
             username: username,
-            role: {
-                _id: roleId
-            },
-            major: majorId.current,
-            metadata: [{
-                major: Array.from(major)[0],
-            }]
+            role: roleId,
+            metadata: {
+                major: majorId
+            }
         };
-
-        console.log(formData);
 
         if (action === "Add") {
             onAdd(formData);

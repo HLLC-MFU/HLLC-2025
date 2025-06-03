@@ -11,7 +11,7 @@ import {
 import { EllipsisVertical, Pen, Trash } from "lucide-react";
 import { User } from "@/types/user";
 import TableContent from "./TableContent";
-import AddModal from "./AddModal";
+import AddModal from "./AddUserModal";
 import ExportModal from "./ExportModal";
 import ImportModal from "./ImportModal";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
@@ -84,7 +84,9 @@ export default function UsersTable({
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((user) =>
         user.username.toLowerCase().includes(filterValue.toLowerCase()) ||
-        `${user.name.first} ${user.name.middle ?? ""} ${user.name.last}`.toLowerCase().includes(filterValue.toLowerCase()) 
+        `${user.name.first} ${user.name.middle ?? ""} ${user.name.last}`.toLowerCase().includes(filterValue.toLowerCase()) ||
+        user.metadata?.major.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
+        user.metadata?.major.school.name.en.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
     return filteredUsers;
@@ -120,7 +122,7 @@ export default function UsersTable({
         case "name":
           return `${item.name.first} ${item.name.middle ?? ""} ${item.name.last}`;
         case "school":
-          return item.metadata?.school?.name?.en ?? "-";
+          return item.metadata?.major?.school?.name?.en ?? "-";
         case "major":
           return item.metadata?.major?.name?.en ?? "-";
         case "actions":
@@ -170,7 +172,8 @@ export default function UsersTable({
   };
 
   const handleImport = (user: Partial<User>[]) => {
-    uploadUser(user)
+    console.log(user);
+    // uploadUser(user)
     setIsImportOpen(false);
   };
 
@@ -183,10 +186,8 @@ export default function UsersTable({
         middle: user.name?.middle ?? "",
         last: user.name?.last,
         role: user.role?.name,
-        // school_en: user.metadata?.school?.name?.en ?? "",
-        // school_th: user.metadata?.school?.name?.th ?? "",
-        // major_en: user.metadata?.major?.name?.en ?? "",
-        // major_th: user.metadata?.major?.name?.th ?? "",
+        school_en: user.metadata?.major.school.name.en ?? "",
+        major_en: user.metadata?.major.name.en ?? "",
       }))
     } else {
       temp = [{
@@ -196,9 +197,7 @@ export default function UsersTable({
         "last": [],
         "role": [],
         "school_en": [],
-        "school_th": [],
         "major_en": [],
-        "major_th": []
       }];
     }
     const worksheet = XLSX.utils.json_to_sheet(temp);
@@ -212,9 +211,7 @@ export default function UsersTable({
       saveAs(blob, "Template.xlsx")
     }
     setIsExportOpen(false);
-  };
-
-  console.log(Array.from(selectedKeys))
+  }
 
   const handleDelete = () => {
     if (Array.from(selectedKeys).length > 0) {

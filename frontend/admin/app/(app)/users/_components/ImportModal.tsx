@@ -42,32 +42,25 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
             const worksheet = workbook.Sheets[worksheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-            const dataForm = jsonData.map((item: any) => {
-                const data: any = {};
-                for (const key in item) {
-                    try {
-                        data[key] = JSON.parse(item[key]);
-                    } catch (error) {
-                        data[key] = item[key];
-                    };
+            const dataForm = jsonData.map((item: any,) => {
+                const mapData = {
+                    role: '',
+                    major: '',
+                    type: item["role"],
+                    users: [
+                        {
+                            studentId: item["username"],
+                            name: {
+                                first: item["first"],
+                                middle: item["middle"],
+                                last: item["last"],
+                            },
+                        }
+                    ]
                 };
 
-                const mapData: any = {};
-                mapData.username = item["username"];
-                mapData.role = {
-                    _id: item["role"]
-                };
-                mapData.name = {
-                    first: item["first"],
-                    middle: item["middle"],
-                    last: item["last"],
-                };
-                // mapData.major: ;
-                mapData.metadata = {
-                    major: item["major_en"]
-                };
-
-                return mapData
+                console.log(mapData);
+                // return mapData
             });
 
             setFileData(dataForm);
@@ -89,7 +82,7 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
         setIsImportModalOpen(true);
     };
 
-    const handleConfirmImport = () => {
+    const handleImport = () => {
         onImport(fileData);
         setIsPreviewModalOpen(false);
     };
@@ -99,18 +92,15 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
 
         switch (columnKey) {
             case "name":
-                return `${item.name.first} ${item.name.middle === null ? "" : item.name.middle} ${item.name.last}`;
+                return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last}`;
             case "school":
-                return item.metadata.school?.name?.en ?? null;
+                return item.metadata?.major?.school.name.en ?? null;
             case "major":
-                return item.metadata.major?.name?.en ?? null;
+                return item.metadata?.major?.name.en ?? null;
             case "actions":
                 return null;
             default:
-                if (typeof cellValue === "object" && cellValue !== null) {
-                    return JSON.stringify(cellValue);
-                }
-                return cellValue as React.ReactNode;
+                return cellValue;
         }
 
     }, [fileData]);
@@ -190,7 +180,7 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                         <Button color="danger" variant="light" onPress={handleCancel}>
                             Cancel
                         </Button>
-                        <Button color="primary" onPress={handleConfirmImport}>
+                        <Button color="primary" onPress={handleImport}>
                             Confirm
                         </Button>
                     </ModalFooter>

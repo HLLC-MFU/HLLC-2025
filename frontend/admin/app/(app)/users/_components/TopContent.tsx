@@ -35,7 +35,7 @@ export default function TopContent({
                 <Input
                     isClearable
                     className="w-full sm:max-w-[44%]"
-                    placeholder="Search by student id..."
+                    placeholder="Search user"
                     startContent={<SearchIcon />}
                     value={filterValue}
                     onClear={() => onClear()}
@@ -75,13 +75,6 @@ export default function TopContent({
                     <Button color="success" className="text-white" endContent={<FileOutput size={20} />} onPress={() => setIsExportOpen(true)}>Export</Button>
                 </div>
             </div>
-            {/* <label className="flex items-center text-default-400 text-small">
-                <Select className="max-w-xs" label="Rows per page:" defaultSelectedKeys={"5"} variant="underlined" onChange={onRowsPerPageChange}>
-                    <SelectItem key="5">5</SelectItem>
-                    <SelectItem key="10">10</SelectItem>
-                    <SelectItem key="15">15</SelectItem>
-                </Select>
-            </label> */}
         </div >
     );
 };
