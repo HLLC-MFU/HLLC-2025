@@ -114,7 +114,6 @@ func ForceCreateTopic(brokerAddress, topicName string) error {
 	return nil
 }
 
-
 func (p *publisherImpl) SendMessageToTopic(topic, userID, message string) error {
 	// Ensure topic exists before writing (optional but useful)
 	err := EnsureKafkaTopic("localhost:9092", topic)

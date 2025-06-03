@@ -29,9 +29,7 @@ func (s *server) chatService() {
 
 	// Create or ensure Kafka topics
 	kafkaTopics := []string{
-		"chat-messages",      // For chat messages
-		"room-events",        // For room events
-		"room-notifications", // For room notifications
+		"chat-notifications", // For chat notifications only
 	}
 
 	for _, topic := range kafkaTopics {

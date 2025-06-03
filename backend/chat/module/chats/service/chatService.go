@@ -16,7 +16,6 @@ import (
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 	"github.com/gofiber/websocket/v2"
 )
 
@@ -36,18 +35,17 @@ type ChatService interface {
 	SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error
 	SyncRoomMembers()
 	DeleteRoomMessages(ctx context.Context, roomID string) error
+	StartRoomConsumers()
 }
 
 const (
 	chatConsumerGroup = "chat-service-group"
-	chatTopic         = "chat-messages"
 )
 
 type service struct {
 	repo      repository.ChatRepository
 	publisher kafkaPublisher.Publisher
 	roomRepo  RoomRepository.RoomRepository
-	consumer  *kafka.Consumer
 }
 
 func NewService(repo repository.ChatRepository, publisher kafkaPublisher.Publisher, roomRepo RoomRepository.RoomRepository) ChatService {
@@ -57,19 +55,7 @@ func NewService(repo repository.ChatRepository, publisher kafkaPublisher.Publish
 		roomRepo:  roomRepo,
 	}
 
-	// Initialize Kafka consumer with chat-specific group
-	handler := NewChatMessageHandler(s)
-	s.consumer = kafka.NewConsumer(
-		[]string{"localhost:9092"},
-		chatTopic,
-		chatConsumerGroup,
-		handler,
-	)
-
-	// Start consuming messages
-	if err := s.consumer.Start(); err != nil {
-		log.Printf("[Service] Failed to start Kafka consumer: %v", err)
-	}
+	s.StartRoomConsumers()
 
 	return s
 }
@@ -142,7 +128,7 @@ func (s *service) InitChatHub() {
 					continue
 				}
 
-				if err := s.publisher.SendMessageToTopic(chatTopic, chatMsg.UserID, string(data)); err != nil {
+				if err := s.publisher.SendMessage(chatMsg.RoomID, chatMsg.UserID, string(data)); err != nil {
 					log.Printf("[BROADCAST] Failed to send message to Kafka: %v", err)
 					continue
 				}
@@ -336,4 +322,29 @@ func (s *service) DeleteRoomMessages(ctx context.Context, roomID string) error {
 
 	log.Printf("[DeleteRoomMessages] Successfully deleted all messages and related data for room: %s", roomID)
 	return nil
+}
+
+func (s *service) StartRoomConsumers() {
+	ctx := context.Background()
+	// Get all rooms (use a large limit to get all)
+	rooms, _, err := s.roomRepo.List(ctx, 1, 10000)
+	if err != nil {
+		log.Printf("[Kafka] Failed to list rooms for consumer startup: %v", err)
+		return
+	}
+	handler := NewChatMessageHandler(s)
+	for _, room := range rooms {
+		topic := "chat-room-" + room.ID.Hex()
+		consumer := kafkaPublisher.NewConsumer(
+			[]string{"localhost:9092"},
+			topic,
+			chatConsumerGroup,
+			handler,
+		)
+		go func(c *kafkaPublisher.Consumer, t string) {
+			if err := c.Start(); err != nil {
+				log.Printf("[Kafka] Failed to start consumer for topic %s: %v", t, err)
+			}
+		}(consumer, topic)
+	}
 }
