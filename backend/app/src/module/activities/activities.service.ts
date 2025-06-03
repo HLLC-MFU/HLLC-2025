@@ -6,12 +6,7 @@ import { Activities, ActivityDocument } from './schema/activities.schema';
 import { Model, Types } from 'mongoose';
 import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import {
-  queryAll,
-  queryDeleteOne,
-  queryFindOne,
-  queryUpdateOne,
-} from 'src/pkg/helper/query.util';
+import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
 
 @Injectable()
 export class ActivitiesService {

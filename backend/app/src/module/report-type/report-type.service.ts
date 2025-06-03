@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateReportCategoryDto } from './dto/create-report_category.dto';
-import { UpdateReportCategoryDto } from './dto/update-report_category.dto';
+import { CreateReportTypeDto } from './dto/create-type.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { ReportType, ReportTypeDocument } from './schemas/report-type.schema';
 import { Model } from 'mongoose';
@@ -11,6 +10,7 @@ import {
 } from 'src/pkg/helper/query.util';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
+import { UpdateReportTypeDto } from './dto/update-report_category.dto';
 
 @Injectable()
 export class ReportTypeService {
@@ -19,17 +19,17 @@ export class ReportTypeService {
     private readonly reportTypeModel: Model<ReportTypeDocument>,
   ) {}
 
-  async create(createReportCategoryDto: CreateReportCategoryDto) {
+  async create(createReportTypeDto: CreateReportTypeDto) {
     await throwIfExists(
       this.reportTypeModel,
       {
-        'name.th': createReportCategoryDto.name.th,
-        'name.en': createReportCategoryDto.name.en,
+        'name.th': createReportTypeDto.name.th,
+        'name.en': createReportTypeDto.name.en,
       },
-      'Report category already exists',
+      'Report type already exists',
     );
 
-    const category = new this.reportTypeModel(createReportCategoryDto);
+    const category = new this.reportTypeModel(createReportTypeDto);
 
     try {
       return await category.save();
@@ -50,33 +50,33 @@ export class ReportTypeService {
     return queryFindOne<ReportType>(this.reportTypeModel, { _id: id });
   }
 
-  async update(id: string, updateReportCategoryDto: UpdateReportCategoryDto) {
-    if (updateReportCategoryDto.name) {
+  async update(id: string, updateReportTypeDto: UpdateReportTypeDto) {
+    if (updateReportTypeDto.name) {
       await throwIfExists(
         this.reportTypeModel,
         {
           _id: { $ne: id },
-          'name.th': updateReportCategoryDto.name.th,
-          'name.en': updateReportCategoryDto.name.en,
+          'name.th': updateReportTypeDto.name.th,
+          'name.en': updateReportTypeDto.name.en,
         },
-        'Report category with this name already exists',
+        'Report type with this name already exists',
       );
     }
 
     const updated = await this.reportTypeModel
       .findByIdAndUpdate(
         id,
-        updateReportCategoryDto,
+        updateReportTypeDto,
         { new: true }, // ← ให้ return ค่าใหม่ที่อัปเดตแล้ว
       )
       .lean();
 
     if (!updated) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException('Report type not found');
     }
 
     return {
-      message: 'Category updated successfully',
+      message: 'Report type updated successfully',
       data: updated,
     };
   }
