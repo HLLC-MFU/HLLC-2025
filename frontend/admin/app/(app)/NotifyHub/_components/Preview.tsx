@@ -2,9 +2,7 @@ import {
   Card,
   CardHeader,
   CardBody,
-  CardFooter,
   Divider,
-  Link,
   Image,
   Button,
 } from '@heroui/react';

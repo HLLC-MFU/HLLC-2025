@@ -1,6 +1,5 @@
 import { useActivity } from '@/hooks/useActivity';
 import { Select, SelectItem } from '@heroui/react';
-import { useEffect, useState } from 'react';
 
 interface SelectProps {
   selectedActivityIds: string[];
@@ -13,7 +12,7 @@ export default function Selectdropdown({
   setSelectActivityIds,
   forceVisible = false,
 }: SelectProps) {
-  const { activities, fetchActivities } = useActivity();
+  const { activities } = useActivity();
 
   console.log('Activities:', activities);
   return (

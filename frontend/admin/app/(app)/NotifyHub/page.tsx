@@ -1,9 +1,10 @@
 'use client';
-import { Milestone, Globe, SendHorizontal } from 'lucide-react';
-import { Input, Button, Switch, Select, SelectItem } from '@heroui/react';
+import { SendHorizontal } from 'lucide-react';
+import { Button, Select, SelectItem } from '@heroui/react';
 import { SelectStudent } from './_components/Selectstudentinfo';
 import { Informationinfo } from './_components/InfoFrom';
 import { PreviewApp, PreviewOutApp } from './_components/Preview';
+import { InformationInfoData } from './_components/InfoFrom';
 import { useState } from 'react';
 
 export const language = [
@@ -12,13 +13,9 @@ export const language = [
 ];
 
 export default function NotiManage() {
-  const [selectLanguagePreview, setSelectLanguagePreview] = useState<
-    'en' | 'th'
-  >('en');
-  const [selectLanguageNotification, setSelectLanguageNotification] = useState<
-    'en' | 'th'
-  >('en');
-  const [infoData, setInfoData] = useState(null);
+  const [selectLanguagePreview, setSelectLanguagePreview] = useState< 'en' | 'th' >('en');
+  const [selectLanguageNotification, setSelectLanguageNotification] = useState< 'en' | 'th' >('en');
+  const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
 
   console.log('ข้อมูลหน้าบ้าน', infoData);
   return (

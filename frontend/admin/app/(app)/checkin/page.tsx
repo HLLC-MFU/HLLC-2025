@@ -2,13 +2,12 @@
 
 import { TableLog } from './_components/TableLog';
 import { QrCodeScanner } from './_components/QrCodeScanner';
-import { Select, SelectItem } from '@heroui/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Selectdropdown from './_components/Select';
 
 export default function checkin() {
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
-  const [forceVisible, setForceVisible] = useState(false);
+  const [forceVisible] = useState(false);
   return (
     <div className="flex flex-col min-h-screen">
       <div className="container mx-auto flex justify-center items-center px-4 py-5">

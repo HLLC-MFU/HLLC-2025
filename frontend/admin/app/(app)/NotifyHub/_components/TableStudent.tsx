@@ -50,6 +50,13 @@ export function TableInfo() {
   const { users } = useUsers();
   const { majors } = useMajors();
   const { schools } = useSchools();
+  const [majorFilter, setMajorFilter] = React.useState<Set<string>>(
+    new Set(),
+  );
+  const [schoolFilter, setSchoolFilter] = React.useState<Set<string>>(
+    new Set(),
+  );
+
 
   console.log("Users data: ", users);
   console.log("Majors data: ", majors);
@@ -73,7 +80,9 @@ export function TableInfo() {
         ? item.metadata
         : [item.metadata];
 
+      const majorObj = metadataArray?.[0]?.major;
       const major = metadataArray?.[0]?.major?.name?.en ?? '-';
+      const schoolObj = metadataArray?.[0]?.major?.school;
       const school = metadataArray[0]?.major?.school?.name?.en ?? '-';
 
       return {
@@ -81,7 +90,9 @@ export function TableInfo() {
         name: `${item.name?.first ?? ''} ${item.name?.middle ?? ''} ${item.name?.last ?? ''}`.trim(),
         studentid: item.username,
         major,
+        majorId: majorObj?._id ?? '',
         school,
+        schoolId: schoolObj?._id ?? '',
       };
     });
   }, [users]);
@@ -92,21 +103,25 @@ export function TableInfo() {
 
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((user) =>
-        user.name.toLowerCase().includes(filterValue.toLowerCase()),
+        user.studentid.toLowerCase().includes(filterValue.toLowerCase()),
       );
     }
 
-    if (
-      statusFilter !== "all" &&
-      Array.from(statusFilter).length !== statusOptions.length
-    ) {
-      filteredUsers = filteredUsers.filter((user) =>
-        Array.from(statusFilter).includes(user.status)
+
+    if (majorFilter && majorFilter.size > 0) {
+      filteredUsers = filteredUsers.filter(user =>
+        majorFilter.has(user.majorId),
+      );
+    }
+
+    if (schoolFilter && schoolFilter.size > 0) {
+      filteredUsers = filteredUsers.filter(user =>
+        schoolFilter.has(user.schoolId),
       );
     }
 
     return filteredUsers; // ✅ ต้องคืนค่าที่ผ่านการ filter แล้ว
-  }, [formatted, filterValue, statusFilter]);
+  }, [formatted, filterValue, majorFilter, schoolFilter]);
 
 
   const items = React.useMemo(() => {
@@ -125,6 +140,19 @@ export function TableInfo() {
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
     });
   }, [sortDescriptor, items]);
+
+  useEffect(() => {
+    if (majors.length > 0) {
+      const allMajorIds = new Set(majors.map((a) => a._id));
+      setMajorFilter(allMajorIds);
+    }
+
+    if (schools.length > 0) {
+      const allSchoolsIds = new Set(schools.map((a) => a._id));
+      setMajorFilter(allSchoolsIds);
+    }
+
+  }, [majors, schools]);
 
   const renderCell = React.useCallback((user, columnKey) => {
     const cellValue = columnKey === "name" ? user.name.full : user[columnKey];
@@ -200,17 +228,21 @@ export function TableInfo() {
               </DropdownTrigger>
               <DropdownMenu
                 disallowEmptySelection
-                aria-label="Table Columns"
+                aria-label="Select Majors"
                 closeOnSelect={false}
-                selectedKeys={statusFilter}
+                selectedKeys={majorFilter}
                 selectionMode="multiple"
-                onSelectionChange={setStatusFilter}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys) as string[];
+                  setMajorFilter(new Set(selected));
+                }}
               >
-                {majors.map((major) => (
-                  <DropdownItem key={major._id} className="capitalize">
-                    {capitalize(major.name.en)}
-                  </DropdownItem>
-                ))}
+                {(majors ?? [])
+                  .map((major) => (
+                    <DropdownItem key={major._id} className="capitalize">
+                      {capitalize(major.name.en)}
+                    </DropdownItem>
+                  ))}
               </DropdownMenu>
             </Dropdown>
             <Dropdown>
@@ -229,13 +261,15 @@ export function TableInfo() {
                 closeOnSelect={false}
                 selectedKeys={visibleColumns}
                 selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys) as string[];
+                  setSchoolFilter(new Set(selected));
+                }}
               >
                 {(schools ?? [])
-                  .filter((s) => s?.name?.en)
-                  .map((s) => (
-                    <DropdownItem key={s._id} className="capitalize">
-                      {capitalize(s.name.en)}
+                  .map((school) => (
+                    <DropdownItem key={school._id} className="capitalize">
+                      {capitalize(school.name.en)}
                     </DropdownItem>
                   ))}
               </DropdownMenu>
@@ -261,7 +295,7 @@ export function TableInfo() {
     );
   }, [
     filterValue,
-    statusFilter,
+    majorFilter,
     visibleColumns,
     onSearchChange,
     onRowsPerPageChange,
