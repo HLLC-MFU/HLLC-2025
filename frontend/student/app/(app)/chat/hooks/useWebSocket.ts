@@ -7,7 +7,7 @@ import { getToken } from '@/utils/storage';
 // Use actual IP for Android, localhost for iOS
 const WS_BASE_URL = Platform.OS === 'android' 
   ? 'ws://10.0.2.2:1334'  
-  : 'ws://172.25.1.92:1334';
+  : 'ws://localhost:1334';
 
 // Maximum number of messages to keep in memory
 const MAX_MESSAGES = 100;
