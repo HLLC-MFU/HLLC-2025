@@ -80,12 +80,6 @@ export class UsersController {
     });
   }
 
-  // @Post('upload')
-  // @Public()
-  // upload(@Body() userUploadDirectDto: UserUploadDirectDto[]) {
-  //   return this.usersService.upload(userUploadDirectDto);
-  // }
-
   @Patch(':id')
   @CacheKey('users:invalidate')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {

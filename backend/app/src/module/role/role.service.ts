@@ -32,7 +32,6 @@ export class RoleService {
       handleMongoDuplicateError(error, 'name');
     }
   }
-
   /**
    * Finds a role by name.
    * Throws an error if the role already exists.
@@ -73,7 +72,6 @@ export class RoleService {
   }
 
   async remove(id: string) {
-    await findOrThrow(this.roleModel, id, 'Role');
     await this.roleModel.findByIdAndDelete(id);
 
     return {

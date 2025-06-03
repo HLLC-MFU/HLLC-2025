@@ -54,7 +54,7 @@ export class AuthService {
         setCookie: (
           name: string,
           value: string,
-          options?: Record<string, any>,
+          options?: Record<string, string>,
         ) => FastifyReply;
       };
       reply.setCookie('accessToken', accessToken, {
