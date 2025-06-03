@@ -6,20 +6,7 @@ import { CreateActivitiesDto } from './dto/create-activities.dto';
 import { UpdateActivityDto } from './dto/update-activities.dto';
 import { UsersService } from '../users/users.service';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { Role } from '../role/schemas/role.schema';
-import { User } from '../users/schemas/user.schema';
 import { queryAll } from 'src/pkg/helper/query.util';
-
-interface PaginatedResponse<T> {
-  data: T[];
-  message: string;
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
 
 @Injectable()
 export class ActivitiesService {
