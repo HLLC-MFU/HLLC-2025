@@ -14,10 +14,10 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils"
 	MemberService "github.com/HLLC-MFU/HLLC-2025/backend/module/members/service"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
 	roomRedis "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 	RoomService "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/service"
 	stickerService "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
+	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
@@ -28,11 +28,11 @@ type ChatHTTPHandler struct {
 	service        service.ChatService
 	roomService    RoomService.RoomService
 	memberService  MemberService.MemberService
-	publisher      kafka.Publisher
+	publisher      kafkaPublisher.Publisher
 	stickerService stickerService.StickerService
 }
 
-func NewHTTPHandler(service service.ChatService, memberService MemberService.MemberService, publisher kafka.Publisher, stickerService stickerService.StickerService, roomService RoomService.RoomService) *ChatHTTPHandler {
+func NewHTTPHandler(service service.ChatService, memberService MemberService.MemberService, publisher kafkaPublisher.Publisher, stickerService stickerService.StickerService, roomService RoomService.RoomService) *ChatHTTPHandler {
 	return &ChatHTTPHandler{
 		service:        service,
 		memberService:  memberService,
@@ -413,6 +413,11 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid sticker ID"})
 	}
 
+	roomObjID, err := primitive.ObjectIDFromHex(roomIdStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid room ID"})
+	}
+
 	sticker, err := h.stickerService.GetSticker(c.Context(), stickerObjID)
 	if err != nil || sticker == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "sticker not found"})
@@ -430,6 +435,7 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save sticker message"})
 	}
 
+	// Send to chat-messages topic
 	stickerPayload := map[string]interface{}{
 		"type":      "sticker",
 		"userId":    userID,
@@ -441,12 +447,55 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 
 	jsonData, err := json.Marshal(stickerPayload)
 	if err == nil {
-		_ = h.publisher.SendMessage(roomIdStr, userID, string(jsonData))
+		if err := h.publisher.SendMessageToTopic("chat-messages", userID, string(jsonData)); err != nil {
+			log.Printf("[Kafka] Failed to send sticker message to chat-messages: %v", err)
+		}
 	} else {
 		log.Printf("[Kafka] Failed to marshal sticker payload: %v", err)
 	}
 
-	// Only broadcast once using structured event
+	// Get all room members
+	members, err := h.memberService.GetRoomMembers(c.Context(), roomObjID)
+	if err != nil {
+		log.Printf("[Kafka] Failed to get room members: %v", err)
+	} else {
+		// Send to chat-notifications topic for offline users
+		notificationPayload := map[string]interface{}{
+			"type":      "sticker",
+			"userId":    userID,
+			"roomId":    roomIdStr,
+			"message":   "sent a sticker",
+			"timestamp": time.Now(),
+		}
+
+		notifData, err := json.Marshal(notificationPayload)
+		if err != nil {
+			log.Printf("[Kafka] Failed to marshal notification payload: %v", err)
+		} else {
+			for _, member := range members {
+				memberID := member.Hex()
+				if memberID != userID { // Don't notify sender
+					// Check if user is online in this room
+					isOnline := false
+					if conns, exists := model.Clients[roomIdStr]; exists {
+						if conn, exists := conns[memberID]; exists && conn != nil {
+							isOnline = true
+						}
+					}
+
+					if !isOnline {
+						if err := h.publisher.SendMessageToTopic("chat-notifications", memberID, string(notifData)); err != nil {
+							log.Printf("[Kafka] Failed to send notification to user %s: %v", memberID, err)
+						} else {
+							log.Printf("[Kafka] Sent sticker notification to offline user %s", memberID)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Broadcast to online users
 	h.broadcastEvent(roomIdStr, "sticker", map[string]string{
 		"userId":    userID,
 		"sticker":   sticker.Image,
@@ -561,6 +610,11 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	roomId := c.FormValue("roomId")
 	userId := c.FormValue("userId")
 
+	roomObjID, err := primitive.ObjectIDFromHex(roomId)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid room ID"})
+	}
+
 	file, err := c.FormFile("file")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "file is required"})
@@ -602,6 +656,7 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save message"})
 	}
 
+	// Send to chat-messages topic
 	filePayload := map[string]interface{}{
 		"type":      "file",
 		"userId":    userId,
@@ -614,12 +669,55 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 
 	jsonData, err := json.Marshal(filePayload)
 	if err == nil {
-		_ = h.publisher.SendMessage(roomId, userId, string(jsonData))
+		if err := h.publisher.SendMessageToTopic("chat-messages", userId, string(jsonData)); err != nil {
+			log.Printf("[Kafka] Failed to send file message to chat-messages: %v", err)
+		}
 	} else {
 		log.Printf("[Kafka] Failed to marshal file payload: %v", err)
 	}
 
-	// Optional: send rich event payload
+	// Get all room members
+	members, err := h.memberService.GetRoomMembers(c.Context(), roomObjID)
+	if err != nil {
+		log.Printf("[Kafka] Failed to get room members: %v", err)
+	} else {
+		// Send to chat-notifications topic for offline users
+		notificationPayload := map[string]interface{}{
+			"type":      "file",
+			"userId":    userId,
+			"roomId":    roomId,
+			"message":   fmt.Sprintf("sent a file: %s", msg.FileName),
+			"timestamp": time.Now(),
+		}
+
+		notifData, err := json.Marshal(notificationPayload)
+		if err != nil {
+			log.Printf("[Kafka] Failed to marshal notification payload: %v", err)
+		} else {
+			for _, member := range members {
+				memberID := member.Hex()
+				if memberID != userId { // Don't notify sender
+					// Check if user is online in this room
+					isOnline := false
+					if conns, exists := model.Clients[roomId]; exists {
+						if conn, exists := conns[memberID]; exists && conn != nil {
+							isOnline = true
+						}
+					}
+
+					if !isOnline {
+						if err := h.publisher.SendMessageToTopic("chat-notifications", memberID, string(notifData)); err != nil {
+							log.Printf("[Kafka] Failed to send notification to user %s: %v", memberID, err)
+						} else {
+							log.Printf("[Kafka] Sent file notification to offline user %s", memberID)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Broadcast to online users
 	h.broadcastEvent(roomId, "file", map[string]string{
 		"userId":   userId,
 		"fileName": msg.FileName,

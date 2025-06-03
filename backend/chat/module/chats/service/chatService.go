@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -94,8 +95,37 @@ func (s *service) InitChatHub() {
 			case message := <-model.Broadcast:
 				log.Printf("[BROADCAST] Message from %s in room %s: %s", message.FROM.UserID, message.FROM.RoomID, message.MSG)
 
-				mentions := utils.ExtractMentions(message.MSG)
+				// Try to parse as a special message type (sticker/file)
+				var specialMsg map[string]interface{}
+				if err := json.Unmarshal([]byte(message.MSG), &specialMsg); err == nil {
+					// Check if it's a special message type
+					if msgType, ok := specialMsg["type"].(string); ok {
+						switch msgType {
+						case "sticker":
+							// Notify offline users about sticker
+							for userID, conn := range model.Clients[message.FROM.RoomID] {
+								if conn == nil {
+									notificationMsg := fmt.Sprintf("sent a sticker")
+									s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg)
+								}
+							}
+							continue
+						case "file":
+							fileName, _ := specialMsg["fileName"].(string)
+							// Notify offline users about file
+							for userID, conn := range model.Clients[message.FROM.RoomID] {
+								if conn == nil {
+									notificationMsg := fmt.Sprintf("sent a file: %s", fileName)
+									s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg)
+								}
+							}
+							continue
+						}
+					}
+				}
 
+				// Handle as regular text message
+				mentions := utils.ExtractMentions(message.MSG)
 				chatMsg := &model.ChatMessage{
 					RoomID:    message.FROM.RoomID,
 					UserID:    message.FROM.UserID,
@@ -114,6 +144,13 @@ func (s *service) InitChatHub() {
 				if err := s.publisher.SendMessageToTopic(chatTopic, chatMsg.UserID, string(data)); err != nil {
 					log.Printf("[BROADCAST] Failed to send message to Kafka: %v", err)
 					continue
+				}
+
+				// Notify offline users
+				for userID, conn := range model.Clients[message.FROM.RoomID] {
+					if conn == nil {
+						s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG)
+					}
 				}
 
 				// Send acknowledgment back to sender
