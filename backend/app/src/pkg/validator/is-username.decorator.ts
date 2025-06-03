@@ -5,7 +5,7 @@ import {
 } from 'class-validator';
 
 export function IsUsername(validationOptions?: ValidationOptions) {
-  return function (object: Record<string, any>, propertyName: string) {
+  return function (object: Record<string, string>, propertyName: string) {
     registerDecorator({
       name: 'IsUsername',
       target: object.constructor,
