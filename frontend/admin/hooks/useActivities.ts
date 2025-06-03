@@ -24,23 +24,19 @@ export function useActivities() {
             console.log('Fetching activities and types...');
             const [activitiesRes, typesRes] = await Promise.all([
                 apiRequest<{ data: Activities[] }>(
-                    '/activities?limit=0',
+                    '/activities',
                     'GET',
                     undefined,
                     {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem('token')}`,
-                        }
+                        credentials: 'include',
                     }
                 ),
                 apiRequest<{ data: ActivityType[] }>(
-                    '/activities-type?limit=0',
+                    '/activities-type',
                     'GET',
                     undefined,
                     {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem('token')}`,
-                        }
+                        credentials: 'include',
                     }
                 ),
             ]);
