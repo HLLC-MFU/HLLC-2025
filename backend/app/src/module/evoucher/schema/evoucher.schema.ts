@@ -32,7 +32,7 @@ export class Evoucher {
     photo: Photo;
 
     @Prop({ type: Object, default: {} })
-    metadata: Record<string, any>;
+    metadata: Record<string, string>;
 }
 
 export const EvoucherSchema = SchemaFactory.createForClass(Evoucher);

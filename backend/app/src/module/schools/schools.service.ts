@@ -12,12 +12,14 @@ import {
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
+import { Appearance, ApprearanceDocument } from '../appearances/schemas/apprearance.schema';
 
 @Injectable()
 export class SchoolsService {
   constructor(
     @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
-  ) {}
+    @InjectModel(Appearance.name) private AppearanceModel: Model<ApprearanceDocument>,
+  ) { }
 
   async create(createSchoolDto: CreateSchoolDto) {
     await throwIfExists(
@@ -42,10 +44,7 @@ export class SchoolsService {
       model: this.schoolModel,
       query,
       filterSchema: {},
-      populateFields: (excluded) =>
-        Promise.resolve(
-          excluded.includes('majors') ? [] : [{ path: 'majors' }],
-        ),
+      populateFields: () => Promise.resolve([{ path: 'majors' }]),
     });
   }
 
@@ -67,5 +66,13 @@ export class SchoolsService {
       message: 'School deleted successfully',
       id,
     };
+  }
+
+  async findColor(schoolId: string, query: Record<string, string>) {
+    return queryFindOne<Appearance>(
+      this.AppearanceModel,
+      { school: schoolId },
+      [{ path: 'school' }]
+    );
   }
 }

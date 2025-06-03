@@ -21,7 +21,7 @@ export class Sponsors {
     isShow: boolean;
 
     @Prop({ type: Object, default: {} })
-    metadata: Record<string, any>;
+    metadata: Record<string, string>;
 }
 
 export const SponsorsSchema = SchemaFactory.createForClass(Sponsors);

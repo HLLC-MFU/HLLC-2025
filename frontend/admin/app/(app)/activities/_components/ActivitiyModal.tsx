@@ -27,9 +27,7 @@ export function ActivityModal({
     const [shortDetailsTh, setShortDetailsTh] = useState("");
     const [locationEn, setLocationEn] = useState("");
     const [locationTh, setLocationTh] = useState("");
-    const [coverPhoto, setCoverPhoto] = useState("");
     const [bannerPhoto, setBannerPhoto] = useState("");
-    const [thumbnail, setThumbnail] = useState("");
     const [logoPhoto, setLogoPhoto] = useState("");
     const [isOpen, setIsOpen] = useState(activity?.metadata?.isOpen || true);
     const [isProgrssCount, setIsProgrssCount] = useState(activity?.metadata?.isProgrssCount || true);
@@ -63,9 +61,7 @@ export function ActivityModal({
             shortDetails: { en: shortDetailsEn.trim(), th: shortDetailsTh.trim() },
             location: { en: locationEn.trim(), th: locationTh.trim() },
             photo: {
-                coverPhoto: coverPhoto,
                 bannerPhoto: bannerPhoto,
-                thumbnail: thumbnail,
                 logoPhoto: logoPhoto
             },
             metadata: {
@@ -116,6 +112,36 @@ export function ActivityModal({
                             label="Full Details"
                             value={fullDetailsTh}
                             onChange={(e) => setFullDetailsTh(e.target.value)}
+                        />
+                        <Input
+                            label="Short Details"
+                            value={shortDetailsEn}
+                            onChange={(e) => setShortDetailsEn(e.target.value)}
+                        />
+                        <Input
+                            label="Short Details"
+                            value={shortDetailsTh}
+                            onChange={(e) => setShortDetailsTh(e.target.value)}
+                        />
+                        <Input
+                            label="Location"
+                            value={locationEn}
+                            onChange={(e) => setLocationEn(e.target.value)}
+                        />
+                        <Input
+                            label="Location"
+                            value={locationTh}
+                            onChange={(e) => setLocationTh(e.target.value)}
+                        />
+                        <Input
+                            label="Photo Icon"
+                            value={activity?.photo.logoPhoto}
+                            onChange={(e) => setLogoPhoto(e.target.value)}
+                        />
+                        <Input
+                            label="Banner Photo"
+                            value={activity?.photo.bannerPhoto}
+                            onChange={(e) => setBannerPhoto(e.target.value)}
                         />
                     </div>
                 </ModalBody>

@@ -19,7 +19,7 @@ export class AuthService {
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   async validateUser(username: string, pass: string): Promise<UserDocument> {
     const user = await this.userModel.findOne({ username }).populate('role');

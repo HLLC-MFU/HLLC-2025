@@ -1,6 +1,6 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document, HydratedDocument, SchemaTypes, Types } from "mongoose";
-import { Localization } from "src/pkg/types/common";
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, HydratedDocument, SchemaTypes, Types } from 'mongoose';
+import { Localization } from 'src/pkg/types/common';
 
 export type NotificationDocument = HydratedDocument<Notification>;
 
@@ -13,7 +13,11 @@ class RedirectButton {
 }
 
 class Target {
-  @Prop({ type: String, enum: ['school', 'major', 'individual'], required: true })
+  @Prop({
+    type: String,
+    enum: ['school', 'major', 'individual'],
+    required: true,
+  })
   type: 'school' | 'major' | 'individual';
 
   @Prop({ type: [SchemaTypes.ObjectId], required: true })
@@ -22,10 +26,9 @@ class Target {
 
 @Schema({ timestamps: true, versionKey: false })
 export class Notification extends Document {
-
   @Prop({ type: Object, required: true })
   title: Localization;
-  
+
   @Prop({ type: Object, required: true })
   subtitle: Localization;
 

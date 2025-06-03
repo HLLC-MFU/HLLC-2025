@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   Request,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { CheckinService } from './checkin.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
@@ -32,7 +31,7 @@ interface RequestWithUser extends Request {
 @Controller('checkin')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class CheckinController {
-  constructor(private readonly checkinService: CheckinService) { }
+  constructor(private readonly checkinService: CheckinService) {}
 
   @Post()
   @Permissions('checkin:create')

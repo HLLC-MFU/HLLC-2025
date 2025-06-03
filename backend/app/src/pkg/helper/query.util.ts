@@ -240,7 +240,7 @@ export async function queryUpdateOne<T>(
 }
 
 /**
- * 
+ *
  * @param {Model<HydratedDocument<T>>} model - Mongoose model to query.
  * @param {FilterQuery<T>} filter - Filter condition to find the document.
  * @param {UpdateQuery<HydratedDocument<T>>} update - Update query for the document.
@@ -260,13 +260,17 @@ export async function queryUpdateOneByFilter<T>(
   update: UpdateQuery<HydratedDocument<T>>,
   options: QueryOptions = {},
 ): Promise<T> {
-  const updated = await model.findOneAndUpdate(filter, update, {
-    new: true,
-    ...options,
-  }).lean();
+  const updated = await model
+    .findOneAndUpdate(filter, update, {
+      new: true,
+      ...options,
+    })
+    .lean();
 
   if (!updated) {
-    throw new NotFoundException(`Update failed, filter: ${JSON.stringify(filter)} not found`);
+    throw new NotFoundException(
+      `Update failed, filter: ${JSON.stringify(filter)} not found`,
+    );
   }
 
   return updated as T;

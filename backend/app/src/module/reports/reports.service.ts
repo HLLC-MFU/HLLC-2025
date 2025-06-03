@@ -1,38 +1,43 @@
 import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-
+import { Model, PopulateOptions, Types } from 'mongoose';
 import { Report, ReportDocument } from './schemas/reports.schema';
-import {
-  ReportCategory,
-  ReportCategoryDocument,
-} from '../report_categories/schemas/report_categories.schemas';
-
-import { CreateReportDto } from './dto/create-report.dto';
-
+import { User, UserDocument } from '../users/schemas/user.schema';
 import {
   queryAll,
   queryFindOne,
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
-import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
+import { findOrThrow } from 'src/pkg/validator/model.validator';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { UpdateReportDto } from './dto/update-report.dto';
+import { PopulateField } from 'src/pkg/types/query';
+import { CreateReportDto } from './dto/create-report.dto';
 
 @Injectable()
 export class ReportsService {
   constructor(
     @InjectModel(Report.name)
     private readonly reportModel: Model<ReportDocument>,
-    @InjectModel(ReportCategory.name)
-    private readonly categoryModel: Model<ReportCategoryDocument>,
-  ) { }
+
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
+
+    @InjectModel(ReportType.name)
+    private readonly reportTypeModel: Model<ReportTypeDocument>,
+  ) {}
 
   async create(createReportDto: CreateReportDto) {
-    await throwIfExists(
-      this.reportModel,
-      { message: createReportDto.message },
-      'Message already exists',
+    await findOrThrow(
+      this.userModel,
+      createReportDto.reporter,
+      'User not found',
+    );
+    await findOrThrow(
+      this.reportTypeModel,
+      createReportDto.category,
+      'Category not found',
     );
 
     const report = new this.reportModel({
@@ -47,108 +52,80 @@ export class ReportsService {
   }
 
   async findAll(query: Record<string, string>) {
-    try {
-      return await queryAll<Report>({
-        model: this.reportModel,
-        query: {
-          ...query,
-          excluded: [
-            'reporter.password',
-            'reporter.refreshToken',
-            'reporter.role',
-            'reporter.metadata',
-            'reporter.createdAt',
-            'reporter.updatedAt',
-            'reporter.__v',
-            '__v',
-          ].join(',')
-        },
-        filterSchema: {},
-        populateFields: (excluded) =>
-          Promise.resolve(
-            ['reporter', 'category']
-              .filter(path => !excluded.includes(path))
-              .map(path => ({ path }))
-          ),
-      });
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to fetch reports');
-    }
+    return queryAll<Report>({
+      model: this.reportModel,
+      query: {
+        ...query,
+        excluded:
+          'reporter.password,reporter.refreshToken,reporter.role,reporter.metadata,reporter.__v,__v',
+      },
+      filterSchema: {},
+      populateFields: () =>
+        Promise.resolve([{ path: 'reporter' }, { path: 'category' }]),
+    });
   }
 
   async findAllByCategory(categoryId: string) {
   try {
     const result = await queryAll<Report>({
       model: this.reportModel,
-      query: {
-        category: categoryId,
-        excluded: [
-          'reporter.password',
-          'reporter.refreshToken',
-          'reporter.role',
-          'reporter.metadata',
-          'reporter.createdAt',
-          'reporter.updatedAt',
-          'reporter.__v',
-          '__v',
-        ].join(','),
-      } as Record<string, string>,
-      filterSchema: { category: 'string' },
-      populateFields: (e) =>
-        Promise.resolve(
-          ['reporter', 'category']
-            .filter((p) => !e.includes(p))
-            .map((path) => ({ path })),
-        ),
+      query: query as unknown as Record<string, string>,
+      filterSchema: {
+        category: 'string',
+      } as const,
+      populateFields: () =>
+        Promise.resolve([{ path: 'reporter' }, { path: 'category' }]),
     });
 
-    if (result.data.length === 0) {
-      const category = await this.categoryModel.findById(categoryId);
-      if (!category) {
-        throw new NotFoundException(`Category with id ${categoryId} not found`);
-      }
+    const reportsWithoutCategory = result.data.map(
+      ({ category, ...rest }) => rest,
+    );
 
-      return {
-        category,
-        reports: [],
-      };
-    }
+    const category =
+      result.data[0]?.category ||
+      (await this.reportTypeModel.findById(categoryId));
 
     return {
-      category: result.data[0].category,
-      reports: result.data.map(({ category, ...rest }) => rest),
+      category,
+      reports: reportsWithoutCategory,
     };
-  } catch (error) {
-    if (error instanceof NotFoundException) throw error;
-    throw new InternalServerErrorException('Failed to fetch reports by category');
   }
-}
 
-
-
-
-  async findOne(id: string): Promise<{ data: Report[] | null; message: string }> {
-
-    const result = await queryFindOne(this.reportModel, { _id: id });
-    if (!result) {
-      throw new NotFoundException(`Report with id ${id} not found`);
-    }
-    return result;
-
+  async findOne(id: string) {
+    const populateFields: PopulateField[] = [
+      { path: 'reporter' },
+      { path: 'category' },
+    ];
+    return queryFindOne<Report>(this.reportModel, { _id: id }, populateFields);
   }
 
   async update(id: string, updateReportDto: UpdateReportDto) {
-    try {
-      await findOrThrow(this.reportModel, { _id: id }, 'Report not found');
+    const updated = await queryUpdateOne<Report>(
+      this.reportModel,
+      id,
+      updateReportDto,
+    );
 
-      updateReportDto.updatedAt = new Date();
-      return await queryUpdateOne<Report>(this.reportModel, id, updateReportDto);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-      throw error;
+    if (!updated) {
+      throw new NotFoundException('Report not found');
     }
-    throw new InternalServerErrorException(`Failed to update report with id ${id}`);
-   }
+
+    const populateFields: PopulateOptions[] = [
+      { path: 'reporter' },
+      { path: 'category' },
+    ];
+
+    const populated = await this.reportModel
+      .findById(id)
+      .populate(populateFields)
+      .lean()
+      .exec();
+
+    return {
+      message: 'Report updated successfully',
+      updatedId: id,
+      data: populated,
+    };
   }
 
   async remove(id: string) {

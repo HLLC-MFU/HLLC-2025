@@ -7,12 +7,11 @@ import {
   FastifyAdapter,
 } from '@nestjs/platform-fastify';
 import compression from '@fastify/compress';
-// import { TransformInterceptor } from './pkg/interceptors/transform.interceptor';
 import cookie from '@fastify/cookie';
 import { fastifyStatic } from '@fastify/static';
 import path from 'path';
 import multipart from '@fastify/multipart';
-import { CustomValidationPipe } from './pkg/validator/custom-validation.pipe';
+import { MongoExceptionFilter } from './pkg/filters/mongo.filter';
 
 async function bootstrap() {
   Logger.log(`Server is running on port ${process.env.PORT ?? 3000}`);
@@ -36,10 +35,11 @@ async function bootstrap() {
     root: path.join(__dirname, '..', 'uploads'),
     prefix: '/uploads/',
   });
-
+  
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
 
@@ -53,9 +53,7 @@ async function bootstrap() {
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
-  // app.useGlobalFilters(new MongoExceptionFilter());
-  // app.useGlobalPipes(CustomValidationPipe);
-  // app.useGlobalInterceptors(new TransformInterceptor());
+  app.useGlobalFilters(new MongoExceptionFilter());
   void app.listen(process.env.PORT ?? 3000);
 }
 void bootstrap();

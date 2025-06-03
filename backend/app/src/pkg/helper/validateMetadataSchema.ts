@@ -7,7 +7,9 @@ type MetadataFieldSchema = {
   required?: boolean;
 };
 
-export function validateMetadataSchema<TMetadata extends Record<string, unknown> | undefined>(
+export function validateMetadataSchema<
+  TMetadata extends Record<string, unknown> | undefined,
+>(
   metadata: TMetadata,
   metadataSchema: Record<string, MetadataFieldSchema>,
 ): void {
@@ -52,12 +54,13 @@ export function validateMetadataSchema<TMetadata extends Record<string, unknown>
             typeMismatches.push(`${field} should be boolean`);
           }
           break;
-        case 'date':
+        case 'date': {
           const date = new Date(value as string | number | Date);
           if (isNaN(date.getTime())) {
             typeMismatches.push(`${field} should be a valid date`);
           }
           break;
+        }
       }
     }
   }
@@ -82,7 +85,10 @@ export function validateMetadataSchema<TMetadata extends Record<string, unknown>
   });
 }
 
-export function validateObjectIdFields(metadata: Record<string, any>, fields: string[]) {
+export function validateObjectIdFields(
+  metadata: Record<string, any>,
+  fields: string[],
+) {
   const invalid: string[] = [];
 
   for (const field of fields) {

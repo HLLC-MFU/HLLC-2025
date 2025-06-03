@@ -1,11 +1,10 @@
 import {
   Injectable,
   NotFoundException,
-  ConflictException,
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, Types, FilterQuery } from 'mongoose';
 import {
   queryDeleteOne,
   queryAll,
@@ -17,10 +16,9 @@ import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
-import { UserUploadDirectDto } from './dto/upload.user.dto';
+
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class UsersService {
@@ -50,20 +48,62 @@ export class UsersService {
       metadata: createUserDto.metadata,
     });
 
-    try {
-      return await newUser.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'username');
-    }
+    return await newUser.save();
   }
 
-  async findAll(query: Record<string, any>) {
+  async findAll(query: Record<string, string>) {
     return await queryAll<User>({
       model: this.userModel,
       query: {
         ...query,
         excluded: 'password,refreshToken,role.permissions,role.metadataSchema',
       },
+      filterSchema: {},
+      populateFields: () =>
+        Promise.resolve([
+          { path: 'role' },
+          { 
+            path: 'metadata.major',
+            model: 'Major',
+            populate: { 
+              path: 'school',
+            }
+          }
+        ]),
+    });
+  }
+
+  /**
+   * Find all users with optional filtering by school or major
+   * @param query Query parameters that can include school ID or other user fields
+   * @returns List of users with populated role, major, and school information
+   * example: this.usersService.findAllByQuery({ school: '...' });
+   * example: this.usersService.findAllByQuery({ metadata: { major: '...' } });
+   */
+  async findAllByQuery(query: Partial<User> & { school?: string }) {
+    const q = { ...query } as FilterQuery<User>;
+  
+    if (q.school) {
+      console.log('Searching for school:', q.school);
+      const majors = await this.majorModel
+        .find({ school: new Types.ObjectId(q.school) })
+        .select('_id')
+        .lean();
+  
+      console.log('Found majors:', majors);
+      const majorIds = majors.map((m) => m._id.toString());
+      console.log('Major IDs:', majorIds);
+      
+      q['metadata.major'] = { $in: majorIds.map(id => new Types.ObjectId(id)) };
+      delete q.school;
+    }
+  
+    console.log('Final query:', JSON.stringify(q, null, 2));
+  
+    return queryAll<User>({
+      model: this.userModel,
+      query: q,
+      select: 'username name role metadata.major',
       filterSchema: {},
       populateFields: (excluded) =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
@@ -74,7 +114,9 @@ export class UsersService {
     return queryFindOne<User>(this.userModel, { _id }, []);
   }
 
-  async getUserCountByRoles(): Promise<Record<string, number>> {
+  async getUserCountByRoles(): Promise<
+    Record<string, { registered: number; notRegistered: number }>
+  > {
     const pipeline = [
       {
         $lookup: {
@@ -86,20 +128,58 @@ export class UsersService {
       },
       { $unwind: '$roleData' },
       {
+        $addFields: {
+          isRegistered: {
+            $cond: [
+              {
+                $or: [
+                  { $eq: ['$password', ''] },
+                  { $not: ['$password'] },
+                  { $eq: ['$password', null] },
+                ],
+              },
+              false,
+              true,
+            ],
+          },
+        },
+      },
+      {
         $group: {
           _id: '$roleData.name',
-          count: { $sum: 1 },
+          registered: {
+            $sum: { $cond: [{ $eq: ['$isRegistered', true] }, 1, 0] },
+          },
+          notRegistered: {
+            $sum: { $cond: [{ $eq: ['$isRegistered', false] }, 1, 0] },
+          },
         },
       },
     ];
-    console.log('Pipeline:', JSON.stringify(pipeline, null, 2));
-    const result = (await this.userModel.aggregate(pipeline).exec()) as {
-      _id: string;
-      count: number;
-    }[];
 
-    return result.reduce<Record<string, number>>((acc, curr) => {
-      acc[curr._id] = curr.count;
+    type AggregationResult = {
+      _id: string;
+      registered: number;
+      notRegistered: number;
+      total: number;
+    };
+
+    const result = (await this.userModel
+      .aggregate(pipeline)
+      .exec()) as AggregationResult[];
+
+    // Format output
+    return result.reduce<
+      Record<
+        string,
+        { registered: number; notRegistered: number; total: number }
+      >
+    >((acc, curr) => {
+      acc[curr._id] = {
+        registered: curr.registered,
+        notRegistered: curr.notRegistered,
+        total: curr.registered + curr.notRegistered,
+      };
       return acc;
     }, {});
   }
@@ -126,44 +206,6 @@ export class UsersService {
     ]);
   }
 
-  /**
-   * Find all users with optional filtering by school or major
-   * @param query Query parameters that can include school ID or other user fields
-   * @returns List of users with populated role, major, and school information
-   * example: this.usersService.findAllByQuery({ school: '...' });
-   * example: this.usersService.findAllByQuery({ metadata: { major: '...' } });
-   */
-  async findAllByQuery(query: Partial<User> & { school?: string }) {
-    const q: any = { ...query };
-  
-    if (q.school) {
-      console.log('Searching for school:', q.school);
-      const majors = await this.majorModel
-        .find({ school: new Types.ObjectId(q.school) })
-        .select('_id')
-        .lean();
-  
-      console.log('Found majors:', majors);
-      const majorIds = majors.map((m) => m._id.toString());
-      console.log('Major IDs:', majorIds);
-      
-      q['metadata.major'] = { $in: majorIds };
-      delete q.school;
-    }
-  
-    console.log('Final query:', JSON.stringify(q, null, 2));
-  
-    return queryAll<User>({
-      model: this.userModel,
-      query: q,
-      select: 'username name role metadata.major',
-      filterSchema: {},
-      populateFields: (excluded) =>
-        Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
-    });
-  }
-  
-
   async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.userModel.findById(userId).lean();
     if (!user) {
@@ -186,12 +228,8 @@ export class UsersService {
     return updatedUser as User;
   }
 
-  async remove(id: string) {
+  async remove(id: string): Promise<void> {
     await queryDeleteOne<User>(this.userModel, id);
-    return {
-      message: 'User deleted successfully',
-      id,
-    };
   }
 
   async removeMultiple(ids: string[]): Promise<User[]> {
@@ -211,55 +249,60 @@ export class UsersService {
     await user.save();
   }
 
-  async upload(uploadUserDto: UserUploadDirectDto[]): Promise<User[]> {
-    const users: CreateUserDto[] = await Promise.all(
-      uploadUserDto.map(async (userDto) => {
-        const userMajor = userDto.metadata?.major;
+  /**
+   * Uploads multiple users from a DTO.
+   * @param uploadUserDto - The DTO containing user data to upload.
+   * @returns An array of created User objects.
+   */
+  // async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
+  //   const users: CreateUserDto[] = await Promise.all(
+  //     uploadUserDto.users.map(async (userDto) => {
+  //       const userMajor = userDto.major || uploadUserDto.major;
 
-        // ✅ Check major existence
-        if (userDto.metadata?.major) {
-          const userMajorRecord = await this.majorModel
-            .findById(userDto.metadata?.major)
-            .lean();
-          if (!userMajorRecord) {
-            throw new NotFoundException('Major in database not found');
-          }
-        }
+  //       // ✅ Check major existence
+  //       if (userDto.major) {
+  //         const userMajorRecord = await this.majorModel
+  //           .findById(userDto.major)
+  //           .lean();
+  //         if (!userMajorRecord) {
+  //           throw new NotFoundException('Major in database not found');
+  //         }
+  //       }
 
-        return {
-          name: {
-            first: userDto.name.first,
-            last: userDto.name.last || '',
-          },
-          fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
-          username: userDto.username,
-          password: '', // initially blank
-          secret: '', // initially blank
-          major: new Types.ObjectId(userMajor),
-          role: new Types.ObjectId(userDto.role),
-          metadata: {
-            type: userDto.metadata?.type ?? null,
-          },
-        };
-      }),
-    );
+  //       return {
+  //         name: {
+  //           first: userDto.name.first,
+  //           last: userDto.name.last || '',
+  //         },
+  //         fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
+  //         username: userDto.studentId,
+  //         password: '', // initially blank
+  //         secret: '', // initially blank
+  //         major: new Types.ObjectId(userMajor),
+  //         role: new Types.ObjectId(uploadUserDto.role),
+  //         metadata: {
+  //           type: uploadUserDto.metadata?.type ?? null,
+  //         },
+  //       };
+  //     }),
+  //   );
 
-    try {
-      const savedUsers = await Promise.all(
-        users.map(async (user) => {
-          const userDoc = new this.userModel(user);
-          return await userDoc.save();
-        }),
-      );
+  //   try {
+  //     const savedUsers = await Promise.all(
+  //       users.map(async (user) => {
+  //         const userDoc = new this.userModel(user);
+  //         return await userDoc.save();
+  //       }),
+  //     );
 
-      return savedUsers.map((user) => user.toObject());
-    } catch (error) {
-      if (error.code === 11000) {
-        throw new ConflictException('Username already exists');
-      }
-      throw error;
-    }
-  }
+  //     return savedUsers.map((user) => user.toObject());
+  //   } catch (error) {
+  //     if (error.code === 11000) {
+  //       throw new ConflictException('Username already exists');
+  //     }
+  //     throw error;
+  //   }
+  // }
 
   async registerDeviceToken(
     id: string,
