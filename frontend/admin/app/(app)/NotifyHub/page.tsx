@@ -22,12 +22,10 @@ export default function NotiManage() {
 
   console.log('ข้อมูลหน้าบ้าน', infoData);
   return (
-    <div className="flex flex-col min-h-scree">
-      <div className="container mx-auto flex justify-between items-center px-4 py-6">
+    <div className="flex flex-col min-h-screen">
+      <div className="flex py-1 px-8">
         {/* Heder Text */}
-        <div className="flex w-full items-center justify-between ">
-          <h1 className="text-3xl font-bold">Notification Management</h1>
-        </div>
+        <h1 className="text-3xl font-bold">Notification Management</h1>
       </div>
       <div className="flex flex-row  px-4 py-6">
         <div className="flex px-4 py-6 gap-6 min-h-screen w-1/2">

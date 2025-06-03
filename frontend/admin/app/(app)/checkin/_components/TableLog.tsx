@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Table,
   TableHeader,
@@ -19,8 +19,8 @@ import {
 
 import { Typing } from './TypingModal';
 import { Search, ChevronDown, Plus } from 'lucide-react';
-import { useEffect } from 'react';
 import { useCheckin } from '@/hooks/useCheckin';
+import { useActivity } from '@/hooks/useActivity';
 
 export const columns = [
   { name: 'NAME', uid: 'name', sortable: true },
@@ -34,6 +34,11 @@ export function capitalize(s) {
 const INITIAL_VISIBLE_COLUMNS = ['name', 'activity'];
 
 export function TableLog() {
+
+  const { checkin, fetchcheckin } = useCheckin();
+
+  console.log(checkin);
+
   const [filterValue, setFilterValue] = React.useState('');
   const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
   const [visibleColumns, setVisibleColumns] = React.useState(
@@ -46,12 +51,10 @@ export function TableLog() {
   });
   const [page, setPage] = React.useState(1);
   const [isTypingModelOpen, setIsTypingModelOpen] = React.useState(false);
-  const { checkin, fetchcheckin } = useCheckin();
-  type Activity = { id: string; name: string };
-  const [activity, setActivity] = React.useState<Activity[]>();
   const [activtyFilter, setActivityFilter] = React.useState<Set<string>>(
     new Set(),
   );
+  const { activities, fetchActivities } = useActivity();
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -63,38 +66,11 @@ export function TableLog() {
     );
   }, [visibleColumns]);
 
-  useEffect(() => {
-    const fecthActivity = async () => {
-      try {
-        const res = await fetch('http://localhost:8080/api/activities');
-        const json = await res.json();
-        const activityList = json.data.map((activity: any) => ({
-          id: activity._id,
-          name: activity.shortName.en,
-        }));
-
-        setActivity(activityList);
-        setActivityFilter(new Set(activityList.map((a: any) => a.id)));
-      } catch (err) {
-        console.error('Fetch failed', err);
-      }
-    };
-
-    fecthActivity();
-    fetchcheckin();
-
-    const interval = setInterval(fetchcheckin, 3000); // ทุก 10 วินาที
-
-    return () => clearInterval(interval);
-  }, []);
-
-  console.log(user);
-  console.log('ค่ากิจกรรมในหน้าตาราง', activity);
 
   const users = React.useMemo(() => {
     return (Array.isArray(checkin) ? checkin : []).map(item => ({
       id: item._id,
-      name: `${item.user.name.first} ${item.user.name.middle ?? ''} ${item.user.name.last}`.trim(),
+      name: `${item.user?.name?.first ?? ''} ${item.user?.name?.middle ?? ''} ${item.user?.name?.last ?? ''}`.trim(),
       studentid: item.user.username,
       activityId: item.activities?.[0]?._id ?? '',
       activity: item.activities?.[0]?.fullName?.en ?? '-',
@@ -131,6 +107,13 @@ export function TableLog() {
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
+  useEffect(() => {
+    if (activities.length > 0) {
+      const allActivityIds = new Set(activities.map((a) => a._id));
+      setActivityFilter(allActivityIds);
+    }
+  }, [activities]);
+
   const sortedItems = React.useMemo(() => {
     return [...items].sort((a, b) => {
       const first = a[sortDescriptor.column];
@@ -143,7 +126,6 @@ export function TableLog() {
 
   const renderCell = React.useCallback((user, columnKey) => {
     const cellValue = user[columnKey];
-
     switch (columnKey) {
       case 'name':
         return (
@@ -229,13 +211,18 @@ export function TableLog() {
                 closeOnSelect={false}
                 selectedKeys={activtyFilter}
                 selectionMode="multiple"
-                onSelectionChange={setActivityFilter}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys) as string[];
+                  setActivityFilter(new Set(selected));
+                }}
+
               >
-                {(activity ?? []).map(activty => (
-                  <DropdownItem key={activty.id} className="capitalize">
-                    {capitalize(activty.name)}
+                {(activities ?? []).map((act) => (
+                  <DropdownItem key={act._id}>
+                    {capitalize(act.shortName?.en || '-')}
                   </DropdownItem>
                 ))}
+
               </DropdownMenu>
             </Dropdown>
             <Dropdown>

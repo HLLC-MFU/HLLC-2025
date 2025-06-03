@@ -62,7 +62,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
     if (onChange) {
       onChange(data); // 🔁 ส่งข้อมูลออกทุกครั้งที่เปลี่ยน
     }
-  }, [selected, title, subtitle, description, redirect, imageUrl ,onChange]);
+  }, [selected, title, subtitle, description, redirect, imageUrl, onChange]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -70,37 +70,39 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         <h1 className="text-3xl font-bold  justify-center ">
           Information Info
         </h1>
-        <Select
-          className="w-56 bg-white border border-gray-300 rounded-xl shadow-sm"
-          label="Select Icons"
-          size="md"
-          selectedKeys={selected ? [selected.name] : []}
-          onSelectionChange={keys => {
-            const name = Array.from(keys)[0];
-            const item = icons.find(i => i.name === name);
-            setSelected(item);
-          }}
-          renderValue={() =>
-            selected ? (
-              <div className="flex items-center gap-2">
-                <selected.icon className="w-5 h-5" />
-                <span>{selected.name}</span>
-              </div>
-            ) : null
-          }
-        >
-          {icons.map(item => {
-            const Icon = item.icon;
-            return (
-              <SelectItem
-                key={item.name}
-                startContent={<Icon className="w-5 h-5" />}
-              >
-                {item.name}
-              </SelectItem>
-            );
-          })}
-        </Select>
+        <div className="w-52 h-full">
+          <Select
+            className="w-52 bg-white border border-gray-300 rounded-xl shadow-sm"
+            label="Select Icons"
+            size="md"
+            selectedKeys={selected ? [selected.name] : []}
+            onSelectionChange={keys => {
+              const name = Array.from(keys)[0];
+              const item = icons.find(i => i.name === name);
+              setSelected(item);
+            }}
+            renderValue={() =>
+              selected ? (
+                <div className="flex items-center gap-2">
+                  <selected.icon className="w-5 h-5" />
+                  <span>{selected.name}</span>
+                </div>
+              ) : null
+            }
+          >
+            {icons.map(item => {
+              const Icon = item.icon;
+              return (
+                <SelectItem
+                  key={item.name}
+                  startContent={<Icon className="w-5 h-5" />}
+                >
+                  {item.name}
+                </SelectItem>
+              );
+            })}
+          </Select>
+        </div>
       </div>
 
       {/* Title */}
@@ -201,7 +203,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
       </div>
 
       <h1 className="text-xl font-bold"> Imange (Optional) </h1>
-      <ImageUploader onChange={(file,url) => setImageUrl(url)}/>
+      <ImageUploader onChange={(file, url) => setImageUrl(url)} />
     </div>
   );
 }

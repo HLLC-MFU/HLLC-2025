@@ -61,7 +61,7 @@ export class UsersService {
       },
       filterSchema: {},
       populateFields: (excluded) =>
-        Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
+        Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' } , { path: 'metadata.major', model: 'Major', populate: { path: 'school', model: 'School' } }]),
       
     });
   }

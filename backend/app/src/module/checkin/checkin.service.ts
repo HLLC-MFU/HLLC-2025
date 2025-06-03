@@ -65,17 +65,15 @@ export class CheckinService {
   }
 
   async findAll(query: Record<string, string>) {
-    const populateFields: PopulateField[] = [
-      { path: 'user', select: userSelectFields },
-      { path: 'staff', select: userSelectFields },
-      { path: 'activities' },
-    ];
 
     return queryAll<Checkin>({
       model: this.checkinModel,
       query,
       filterSchema: {},
-      buildPopulateFields: excluded => Promise.resolve(populateFields),
+      populateFields: (excluded) =>
+        Promise.resolve(
+          excluded.includes('school') ? [] : [{ path: 'user' } , {path: 'activities'}] as PopulateField[],
+        ),
     });
   }
 
