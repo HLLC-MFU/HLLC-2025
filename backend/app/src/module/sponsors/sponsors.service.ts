@@ -21,7 +21,7 @@ export class SponsorsService {
     private sponsorsTypeModel: Model<SponsorsTypeDocument>
   ) {}
 
-  async create(createSponsorDto: CreateSponsorDto) {
+  async create(createSponsorDto: CreateSponsorDto) {  
 
     await findOrThrow(
       this.sponsorsTypeModel,
