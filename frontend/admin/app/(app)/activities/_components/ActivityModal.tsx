@@ -1,10 +1,19 @@
 "use client";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Textarea, Switch, Select, SelectItem, Divider } from "@heroui/react";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from "@heroui/react";
 import { useState, useEffect, createRef } from "react";
-import type { Activities, ActivityType } from "@/types/activities";
+import type { Activities } from "@/types/activities";
 import { useActivities } from "@/hooks/useActivities";
-import { Image, CheckCircle } from "lucide-react";
+import { useSchools } from "@/hooks/useSchool";
+import { useMajors } from "@/hooks/useMajor";
+import { useUsers } from "@/hooks/useUsers";
+import { School, GraduationCap, Users } from "lucide-react";
+
+import { ScopeSelector } from "./activity-modal/ScopeSelector";
+import { ImagePreview } from "./activity-modal/ImagePreview";
+import { BasicInformation } from "./activity-modal/BasicInformation";
+import { ActivityDetails } from "./activity-modal/ActivityDetails";
+import { ActivitySettings } from "./activity-modal/ActivitySettings";
 
 interface ActivityModalProps {
   isOpen: boolean;
@@ -22,6 +31,10 @@ export function ActivityModal({
   mode
 }: ActivityModalProps) {
   const { activityTypes, loading: typesLoading } = useActivities();
+  const { schools, loading: schoolsLoading } = useSchools();
+  const { majors, loading: majorsLoading } = useMajors();
+  const { users, loading: usersLoading } = useUsers();
+
   const [nameEn, setNameEn] = useState("");
   const [nameTh, setNameTh] = useState("");
   const [acronym, setAcronym] = useState("");
@@ -43,8 +56,8 @@ export function ActivityModal({
   const [scopeSchool, setScopeSchool] = useState<string[]>([]);
   const [scopeUser, setScopeUser] = useState<string[]>([]);
 
-  const bannerInputRef = createRef<HTMLInputElement>();
-  const logoInputRef = createRef<HTMLInputElement>();
+  const bannerInputRef = createRef<HTMLInputElement | null>();
+  const logoInputRef = createRef<HTMLInputElement | null>();
 
   useEffect(() => {
     if (activity) {
@@ -57,8 +70,8 @@ export function ActivityModal({
       setShortDetailsTh(activity.shortDetails?.th || "");
       setLocationEn(activity.location?.en || "");
       setLocationTh(activity.location?.th || "");
-      setBannerPreview(activity.photo?.bannerPhoto || "");
-      setLogoPreview(activity.photo?.logoPhoto || "");
+      setBannerPreview(activity.photo?.bannerPhoto ? `http://localhost:8080/uploads/${activity.photo.bannerPhoto}` : "");
+      setLogoPreview(activity.photo?.logoPhoto ? `http://localhost:8080/uploads/${activity.photo.logoPhoto}` : "");
       setType(activity.type || "");
       setIsOpen(activity.metadata?.isOpen ?? true);
       setIsProgressCount(activity.metadata?.isProgressCount ?? true);
@@ -156,7 +169,7 @@ export function ActivityModal({
   };
 
   return (
-    <Modal isOpen={isModalOpen} onClose={onClose} size="3xl" scrollBehavior="inside">
+    <Modal isOpen={isModalOpen} onClose={onClose} size="4xl" scrollBehavior="inside">
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           {mode === "add" ? "Add New Activity" : "Edit Activity"}
@@ -164,205 +177,123 @@ export function ActivityModal({
         <Divider />
         <ModalBody>
           <div className="flex flex-col gap-6">
-            <div>
-              <h3 className="text-sm font-medium mb-3">Basic Information</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="Name (English)"
-                    placeholder="Enter activity name in English"
-                    value={nameEn}
-                    onValueChange={setNameEn}
-                    isRequired
-                  />
-                  <Input
-                    label="Name (Thai)"
-                    placeholder="Enter activity name in Thai"
-                    value={nameTh}
-                    onValueChange={setNameTh}
-                    isRequired
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="Acronym"
-                    placeholder="Enter activity acronym or leave empty for auto-generation"
-                    value={acronym}
-                    onValueChange={setAcronym}
-                  />
-                  <Select
-                    label="Activity Type"
-                    placeholder="Select an activity type"
-                    selectedKeys={type ? [type] : []}
-                    onChange={(e) => setType(e.target.value)}
-                    isLoading={typesLoading}
-                    isRequired
-                  >
-                    {activityTypes.map((type) => (
-                      <SelectItem key={type._id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </Select>
-                </div>
-              </div>
-            </div>
+            <BasicInformation
+              nameEn={nameEn}
+              setNameEn={setNameEn}
+              nameTh={nameTh}
+              setNameTh={setNameTh}
+              acronym={acronym}
+              setAcronym={setAcronym}
+              type={type}
+              setType={setType}
+              activityTypes={activityTypes}
+              typesLoading={typesLoading}
+            />
 
             <Divider />
 
-            <div>
-              <h3 className="text-sm font-medium mb-3">Details</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Textarea
-                    label="Full Details (English)"
-                    placeholder="Enter full details in English"
-                    value={fullDetailsEn}
-                    onValueChange={setFullDetailsEn}
-                    minRows={4}
-                  />
-                  <Textarea
-                    label="Full Details (Thai)"
-                    placeholder="Enter full details in Thai"
-                    value={fullDetailsTh}
-                    onValueChange={setFullDetailsTh}
-                    minRows={4}
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Textarea
-                    label="Short Details (English)"
-                    placeholder="Enter short details in English"
-                    value={shortDetailsEn}
-                    onValueChange={setShortDetailsEn}
-                    minRows={2}
-                  />
-                  <Textarea
-                    label="Short Details (Thai)"
-                    placeholder="Enter short details in Thai"
-                    value={shortDetailsTh}
-                    onValueChange={setShortDetailsTh}
-                    minRows={2}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Divider />
-
-            <div>
-              <h3 className="text-sm font-medium mb-3">Location</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Location (English)"
-                  placeholder="Enter location in English"
-                  value={locationEn}
-                  onValueChange={setLocationEn}
-                />
-                <Input
-                  label="Location (Thai)"
-                  placeholder="Enter location in Thai"
-                  value={locationTh}
-                  onValueChange={setLocationTh}
-                />
-              </div>
-            </div>
-
-            <Divider />
-
+            {/* Photos Section */}
             <div>
               <h3 className="text-sm font-medium mb-3">Photos</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <h4 className="font-semibold capitalize text-lg">Banner Photo</h4>
-                  <div className="relative max-w-xs mx-auto">
-                    <label htmlFor="upload-banner" className="cursor-pointer block">
-                      <img
-                        src={bannerPreview || "http://localhost:8080/uploads/default-banner.jpg"}
-                        alt="Banner"
-                        className="w-full rounded-xl shadow-lg"
-                      />
-                    </label>
-                    <input
-                      id="upload-banner"
-                      ref={bannerInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileChange(file, 'banner');
-                      }}
-                      className="hidden"
-                    />
-                  </div>
-                  {bannerPhoto && (
-                    <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 p-2 rounded">
-                      <CheckCircle className="w-3 h-3" />
-                      <span>📁 {bannerPhoto.name}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-semibold capitalize text-lg">Logo Photo</h4>
-                  <div className="relative max-w-xs mx-auto">
-                    <label htmlFor="upload-logo" className="cursor-pointer block">
-                      <img
-                        src={logoPreview || "http://localhost:8080/uploads/default-logo.jpg"}
-                        alt="Logo"
-                        className="w-full rounded-xl shadow-lg"
-                      />
-                    </label>
-                    <input
-                      id="upload-logo"
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileChange(file, 'logo');
-                      }}
-                      className="hidden"
-                    />
-                  </div>
-                  {logoPhoto && (
-                    <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 p-2 rounded">
-                      <CheckCircle className="w-3 h-3" />
-                      <span>📁 {logoPhoto.name}</span>
-                    </div>
-                  )}
-                </div>
+                <ImagePreview
+                  label="Banner Photo"
+                  preview={bannerPreview}
+                  file={bannerPhoto}
+                  onFileChange={(file) => handleFileChange(file, 'banner')}
+                  onRemove={() => {
+                    setBannerPhoto(null);
+                    setBannerPreview("");
+                  }}
+                  inputRef={bannerInputRef}
+                />
+                <ImagePreview
+                  label="Logo Photo"
+                  preview={logoPreview}
+                  file={logoPhoto}
+                  onFileChange={(file) => handleFileChange(file, 'logo')}
+                  onRemove={() => {
+                    setLogoPhoto(null);
+                    setLogoPreview("");
+                  }}
+                  inputRef={logoInputRef}
+                  aspectRatio="aspect-square"
+                />
               </div>
             </div>
 
             <Divider />
 
+            <ActivityDetails
+              fullDetailsEn={fullDetailsEn}
+              setFullDetailsEn={setFullDetailsEn}
+              fullDetailsTh={fullDetailsTh}
+              setFullDetailsTh={setFullDetailsTh}
+              shortDetailsEn={shortDetailsEn}
+              setShortDetailsEn={setShortDetailsEn}
+              shortDetailsTh={shortDetailsTh}
+              setShortDetailsTh={setShortDetailsTh}
+              locationEn={locationEn}
+              setLocationEn={setLocationEn}
+              locationTh={locationTh}
+              setLocationTh={setLocationTh}
+            />
+
+            <Divider />
+
+            {/* Scope Section */}
             <div>
-              <h3 className="text-sm font-medium mb-3">Settings</h3>
-              <div className="flex flex-col gap-2">
-                <Switch
-                  isSelected={isOpen}
-                  onValueChange={setIsOpen}
-                  size="sm"
-                >
-                  Open for Registration
-                </Switch>
-                <Switch
-                  isSelected={isProgressCount}
-                  onValueChange={setIsProgressCount}
-                  size="sm"
-                >
-                  Count Progress
-                </Switch>
-                <Switch
-                  isSelected={isVisible}
-                  onValueChange={setIsVisible}
-                  size="sm"
-                >
-                  Visible to Users
-                </Switch>
+              <h3 className="text-sm font-medium mb-3">Activity Scope</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <ScopeSelector
+                  label="Schools"
+                  icon={School}
+                  items={schools}
+                  selectedItems={scopeSchool}
+                  onSelect={(id) => setScopeSchool(prev => [...prev, id])}
+                  onRemove={(id) => setScopeSchool(prev => prev.filter(s => s !== id))}
+                  isLoading={schoolsLoading}
+                  placeholder="Select schools..."
+                  getName={(school) => school.name.en}
+                  getId={(school) => school._id}
+                />
+                <ScopeSelector
+                  label="Majors"
+                  icon={GraduationCap}
+                  items={majors}
+                  selectedItems={scopeMajor}
+                  onSelect={(id) => setScopeMajor(prev => [...prev, id])}
+                  onRemove={(id) => setScopeMajor(prev => prev.filter(m => m !== id))}
+                  isLoading={majorsLoading}
+                  placeholder="Select majors..."
+                  getName={(major) => major.name.en}
+                  getId={(major) => major._id}
+                />
+                <ScopeSelector
+                  label="Users"
+                  icon={Users}
+                  items={users}
+                  selectedItems={scopeUser}
+                  onSelect={(id) => setScopeUser(prev => [...prev, id])}
+                  onRemove={(id) => setScopeUser(prev => prev.filter(u => u !== id))}
+                  isLoading={usersLoading}
+                  placeholder="Select users..."
+                  getName={(user) => `${user.name.first} ${user.name.last}`}
+                  getId={(user) => user._id}
+                />
               </div>
             </div>
+
+            <Divider />
+
+            <ActivitySettings
+              isOpen={isOpen}
+              setIsOpen={setIsOpen}
+              isProgressCount={isProgressCount}
+              setIsProgressCount={setIsProgressCount}
+              isVisible={isVisible}
+              setIsVisible={setIsVisible}
+            />
           </div>
         </ModalBody>
         <Divider />
