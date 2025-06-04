@@ -3,7 +3,6 @@ import { Lang } from "./lang";
 export type Sponsor = {
     _id: string;
     name: Lang;
-    description: Lang;
     // logo: Photo;
     logo: Photo;
     type: String;
@@ -11,8 +10,8 @@ export type Sponsor = {
 }
 
 export type Photo = {
-    first: PhotoUrl;
-    second: string;
-    third: string;
-    fourth: string;
-}
+    coverPhoto: string;
+    bannerPhoto: string;
+    thumbnail: string;
+    logoPhoto: string;
+};

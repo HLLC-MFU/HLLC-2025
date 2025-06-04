@@ -70,7 +70,7 @@ export function SponsorFilters({
                         color="primary"
                         endContent={<PlusIcon />}
                         onPress={onAddSponsor}
-                        className="border p-2"
+                        className="flex-1 sm:flex-none"
                     >
                         Add Sponsor
                     </Button>

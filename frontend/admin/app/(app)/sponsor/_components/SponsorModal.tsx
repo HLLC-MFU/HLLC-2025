@@ -30,20 +30,14 @@ export function SponsorModal({
 }: SponsorModalProps) {
   const [nameEn, setNameEn] = useState("");
   const [nameTh, setNameTh] = useState("");
-  const [detailEn, setDetailEn] = useState("");
-  const [detailTh, setDetailTh] = useState("");
 
   useEffect(() => {
     if (sponsor) {
       setNameEn(sponsor.name.en);
       setNameTh(sponsor.name.th);
-      setDetailEn(sponsor.description.en);
-      setDetailTh(sponsor.description.th);
     } else {
       setNameEn("");
       setNameTh("");
-      setDetailEn("");
-      setDetailTh("");
     }
   }, [sponsor]);
 
@@ -53,7 +47,6 @@ export function SponsorModal({
     const updatedSponsor: Partial<Sponsor> = {
       ...sponsor,
       name: { en: nameEn.trim(), th: nameTh.trim() },
-      description: { en: detailEn.trim(), th: detailTh.trim() }
     };
 
     onSuccess(updatedSponsor, mode);
@@ -80,22 +73,6 @@ export function SponsorModal({
                 placeholder="Enter sponsor name in Thai"
                 value={nameTh}
                 onValueChange={setNameTh}
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Textarea
-                label="Description (English)"
-                placeholder="Enter description in English"
-                value={detailEn}
-                onValueChange={setDetailEn}
-                minRows={4}
-              />
-              <Textarea
-                label="Description (Thai)"
-                placeholder="Enter description in Thai"
-                value={detailTh}
-                onValueChange={setDetailTh}
-                minRows={4}
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
