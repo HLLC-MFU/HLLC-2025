@@ -2,24 +2,16 @@
 
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { BreadcrumbProvider } from "@/hooks/useBreadcrumb";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <BreadcrumbProvider>
       <div className="flex h-dvh max-h-dvh w-full min-w-dvw overflow-hidden">
-        {/* Sidebar should be on the left and sticky */}
         <Sidebar />
-
-        {/* Content area */}
         <div className="flex flex-col flex-1 overflow-hidden grow">
-          {/* Sticky top navbar */}
           <Navbar />
-
-          {/* Scrollable main content */}
-          <main className="flex-1 overflow-y-auto p-4">
-            <Breadcrumb />
+          <main className="flex-1 overflow-y-auto p-4 mx-4 md:mx-8">
             {children}
           </main>
         </div>
