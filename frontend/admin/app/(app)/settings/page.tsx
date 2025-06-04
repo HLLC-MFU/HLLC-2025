@@ -17,6 +17,7 @@ export default function SettingsPage() {
         icon: <SettingsIcon />,
         href: "/settings/systems"
     }]
+
     return (
         <>
             <PageHeader description='The is Management Page' icon={<SettingsIcon />} />
@@ -25,10 +26,10 @@ export default function SettingsPage() {
                     {elements.map((item, index) => (
                         <SettingsList
                             key={index}
-                            title={item.title}
                             description={item.description}
-                            icon={item.icon}
                             href={item.href}
+                            icon={item.icon}
+                            title={item.title}
                         />
                     ))}
                 </div>
