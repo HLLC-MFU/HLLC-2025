@@ -193,7 +193,7 @@ export function useActivities() {
             const res = await apiRequest<Activities>(
                 `/activities/${id}`,
                 'PATCH',
-                formData,
+                    formData,
                 {
                     credentials: 'include',
                 }
@@ -207,6 +207,7 @@ export function useActivities() {
                 });
             }
         } catch (err: any) {
+            console.error('Error updating activity:', err);
             const errorMessage = err.message || 'Failed to update activity.';
             setError(errorMessage);
             addToast({
@@ -229,11 +230,20 @@ export function useActivities() {
     const deleteActivity = async (id: string): Promise<void> => {
         try {
             setLoading(true);
-            const res = await apiRequest(`/activities/${id}`, 'DELETE', undefined, {
-                credentials: 'include',
-            });
+            console.log('Deleting activity:', id);
 
-            if (res.statusCode === 200) {
+            const res = await apiRequest(
+                `/activities/${id}`,
+                'DELETE',
+                undefined,
+                {
+                    credentials: 'include',
+                }
+            );
+
+            console.log('Delete response:', res);
+
+            if (res.statusCode === 200 || res.statusCode === 204) {
                 setActivities((prev) => prev.filter((a) => a._id !== id));
                 addToast({
                     title: 'Activity deleted successfully!',
@@ -243,6 +253,7 @@ export function useActivities() {
                 throw new Error(res.message || 'Failed to delete activity.');
             }
         } catch (err: any) {
+            console.error('Error deleting activity:', err);
             const errorMessage = err.message || 'Failed to delete activity.';
             setError(errorMessage);
             addToast({

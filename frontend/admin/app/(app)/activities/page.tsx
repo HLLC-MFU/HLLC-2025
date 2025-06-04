@@ -97,6 +97,7 @@ export default function ActivitiesPage() {
 
   const handleDeleteActivity = (activity: Activities) => {
     setSelectedActivity(activity);
+    setDeleteTarget('activity');
     setConfirmationModalType('delete');
   };
 

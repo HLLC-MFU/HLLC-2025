@@ -23,6 +23,27 @@ interface ActivityModalProps {
   mode: "add" | "edit";
 }
 
+const getSchoolSearchFields = (school: any) => [
+  school.name?.en,
+  school.name?.th,
+  school.acronym,
+  school._id
+];
+
+const getMajorSearchFields = (major: any) => [
+  major.name?.en,
+  major.name?.th,
+  major.acronym,
+  major._id
+];
+
+const getUserSearchFields = (user: any) => [
+  user.name?.first,
+  user.name?.last,
+  user.username,
+  user._id
+];
+
 export function ActivityModal({
   isOpen: isModalOpen,
   onClose,
@@ -93,7 +114,9 @@ export function ActivityModal({
       setLogoPhoto(null);
       setBannerPreview("");
       setLogoPreview("");
-      setType("");
+      if (!type) {
+        setType("");
+      }
       setIsOpen(true);
       setIsProgressCount(true);
       setIsVisible(true);
@@ -101,7 +124,7 @@ export function ActivityModal({
       setScopeSchool([]);
       setScopeUser([]);
     }
-  }, [activity]);
+  }, [activity, type]);
 
   const handleFileChange = (file: File | null, type: 'banner' | 'logo') => {
     if (!file) return;
@@ -153,15 +176,15 @@ export function ActivityModal({
     formData.append("metadata[isProgressCount]", String(isProgressCount));
     formData.append("metadata[isVisible]", String(isVisible));
 
-    // Scope
-    scopeMajor.forEach((major, index) => {
-      formData.append(`metadata[scope][major][${index}]`, major);
+    // Scope - simplified to match backend expectations
+    scopeSchool.forEach((school) => {
+      formData.append("metadata[scope][school]", school);
     });
-    scopeSchool.forEach((school, index) => {
-      formData.append(`metadata[scope][school][${index}]`, school);
+    scopeMajor.forEach((major) => {
+      formData.append("metadata[scope][major]", major);
     });
-    scopeUser.forEach((user, index) => {
-      formData.append(`metadata[scope][user][${index}]`, user);
+    scopeUser.forEach((user) => {
+      formData.append("metadata[scope][user]", user);
     });
 
     onSuccess(formData, mode);
@@ -188,6 +211,7 @@ export function ActivityModal({
               setType={setType}
               activityTypes={activityTypes}
               typesLoading={typesLoading}
+              disableTypeSelection={mode === 'add' && !!type}
             />
 
             <Divider />
@@ -195,7 +219,7 @@ export function ActivityModal({
             {/* Photos Section */}
             <div>
               <h3 className="text-sm font-medium mb-3">Photos</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 gap-6">
                 <ImagePreview
                   label="Banner Photo"
                   preview={bannerPreview}
@@ -205,7 +229,9 @@ export function ActivityModal({
                     setBannerPhoto(null);
                     setBannerPreview("");
                   }}
-                  inputRef={bannerInputRef}
+                  inputRef={bannerInputRef as React.RefObject<HTMLInputElement>}
+                  aspectRatio="aspect-[21/9]"
+                  maxSize="max-h-[300px]"
                 />
                 <ImagePreview
                   label="Logo Photo"
@@ -216,8 +242,10 @@ export function ActivityModal({
                     setLogoPhoto(null);
                     setLogoPreview("");
                   }}
-                  inputRef={logoInputRef}
+                  inputRef={logoInputRef as React.RefObject<HTMLInputElement>}
                   aspectRatio="aspect-square"
+                  maxSize="max-h-[200px]"
+                  containerClassName="max-w-[400px]"
                 />
               </div>
             </div>
@@ -256,6 +284,7 @@ export function ActivityModal({
                   placeholder="Select schools..."
                   getName={(school) => school.name.en}
                   getId={(school) => school._id}
+                  searchFields={getSchoolSearchFields}
                 />
                 <ScopeSelector
                   label="Majors"
@@ -267,7 +296,8 @@ export function ActivityModal({
                   isLoading={majorsLoading}
                   placeholder="Select majors..."
                   getName={(major) => major.name.en}
-                  getId={(major) => major._id}
+                  getId={(major) => major._id || ""}
+                  searchFields={getMajorSearchFields}
                 />
                 <ScopeSelector
                   label="Users"
@@ -279,7 +309,8 @@ export function ActivityModal({
                   isLoading={usersLoading}
                   placeholder="Select users..."
                   getName={(user) => `${user.name.first} ${user.name.last}`}
-                  getId={(user) => user._id}
+                  getId={(user) => user._id || ""}
+                  searchFields={getUserSearchFields}
                 />
               </div>
             </div>

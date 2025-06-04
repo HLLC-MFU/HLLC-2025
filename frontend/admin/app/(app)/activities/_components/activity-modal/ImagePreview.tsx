@@ -1,14 +1,17 @@
 import { Button } from "@heroui/react";
-import { CheckCircle, Upload, X } from "lucide-react";
+import { Image, Upload, X } from "lucide-react";
+import { RefObject } from "react";
 
 interface ImagePreviewProps {
   label: string;
   preview: string;
   file: File | null;
-  onFileChange: (file: File) => void;
+  onFileChange: (file: File | null) => void;
   onRemove: () => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: RefObject<HTMLInputElement>;
   aspectRatio?: string;
+  maxSize?: string;
+  containerClassName?: string;
 }
 
 export function ImagePreview({
@@ -18,62 +21,68 @@ export function ImagePreview({
   onFileChange,
   onRemove,
   inputRef,
-  aspectRatio = "aspect-video"
+  aspectRatio = "aspect-video",
+  maxSize = "max-h-[300px]",
+  containerClassName = "",
 }: ImagePreviewProps) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onFileChange(file);
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      <h4 className="font-semibold capitalize text-lg">{label}</h4>
-      <div className={`relative ${aspectRatio} rounded-xl overflow-hidden border-2 border-dashed border-default-200 group hover:border-primary transition-colors`}>
-        <label 
-          htmlFor={`upload-${label.toLowerCase()}`}
-          className="cursor-pointer block w-full h-full"
-        >
-          {preview ? (
-            <div className="w-full h-full bg-default-50 relative group">
-              <img
-                src={preview}
-                alt={label}
-                className="w-full h-full object-contain"
-              />
-              <div className="absolute inset-0 bg-default-950/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                <div className="bg-default-50 p-2 rounded-lg">
-                  <Upload className="w-6 h-6 text-default-500" />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-default-400">
-              <Upload className="w-8 h-8" />
-              <span>Click to upload {label.toLowerCase()}</span>
-            </div>
+    <div className={`space-y-2 ${containerClassName}`}>
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium text-default-700">{label}</h4>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="flat"
+            color="primary"
+            startContent={<Upload size={14} />}
+            onPress={() => inputRef.current?.click()}
+          >
+            Upload
+          </Button>
+          {preview && (
+            <Button
+              size="sm"
+              variant="flat"
+              color="danger"
+              isIconOnly
+              onPress={onRemove}
+            >
+              <X size={14} />
+            </Button>
           )}
-        </label>
+        </div>
+      </div>
+
+      <div
+        className={`relative ${aspectRatio} rounded-xl overflow-hidden border border-default-200 bg-default-50 group transition-all duration-200 hover:border-primary/50`}
+      >
+        {preview ? (
+          <img
+            src={preview}
+            alt="Preview"
+            className={`w-full h-full object-contain ${maxSize} bg-white`}
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-default-400">
+            <Image size={24} />
+            <span className="text-xs">No image uploaded</span>
+          </div>
+        )}
         <input
-          id={`upload-${label.toLowerCase()}`}
           ref={inputRef}
           type="file"
           accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) onFileChange(file);
-          }}
+          onChange={handleFileChange}
           className="hidden"
         />
       </div>
-      {file && (
-        <div className="flex items-center gap-2 text-xs text-success bg-success-50 p-2 rounded">
-          <CheckCircle className="w-3 h-3" />
-          <span className="flex-1">📁 {file.name}</span>
-          <Button
-            isIconOnly
-            size="sm"
-            variant="light"
-            onPress={onRemove}
-          >
-            <X size={14} />
-          </Button>
-        </div>
-      )}
     </div>
   );
 } 

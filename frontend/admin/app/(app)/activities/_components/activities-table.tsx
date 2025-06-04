@@ -54,7 +54,7 @@ export default function ActivitiesTable({
   onEdit: (activity: Activities) => void;
   onDelete: (activity: Activities) => void;
 }) {
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set([]));
+  const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(new Set([]));
 
   const handleToggleExpand = (id: string) => {
     const newExpandedKeys = new Set(expandedKeys);
