@@ -21,6 +21,8 @@ import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 import { EvoucherModule } from './module/evoucher/evoucher.module';
+import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
+import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { EvoucherModule } from './module/evoucher/evoucher.module';
     ReportsModule,
     SseModule,
     EvoucherModule,
+    EvoucherCodeModule,
+    EvoucherTypeModule
   ],
   providers: [
     {
@@ -70,4 +74,4 @@ import { EvoucherModule } from './module/evoucher/evoucher.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
