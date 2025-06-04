@@ -1,4 +1,4 @@
-export interface Category {
+export interface ReportTypes {
     id: string;
     name: {
         en: string;

@@ -16,7 +16,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StatusDropdown from './_components/Statusdropdown';
 import SendNotiButton from './_components/SendNotiButton';
-import { useCategories } from "@/hooks/useCategories";
+import { useReportTypes } from "@/hooks/useReportTypes";
 import { useReports } from "@/hooks/useReports";
 
 export default function ReportsPage() {
@@ -27,12 +27,12 @@ export default function ReportsPage() {
 
     const router = useRouter();
     const {
-        categories,
+        report-types,
         loading,
         addCategory,
         updateCategory,
         deleteCategory,
-    } = useCategories();
+    } = useReportTypes();
 
     const {
         problems,
@@ -46,36 +46,10 @@ export default function ReportsPage() {
         setSelectedProblem(undefined);
     };
 
-  const handleStatusChange = async (id: string, newStatus: Problem['status']) => {
-    try {
-      await fetch(`http://localhost:8080/api/reports/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
+    const handleStatusChange = async (id: string, newStatus: Problem['status']) => {
+        await updateStatus(id, newStatus);
+    };
 
-      setProblems(prev =>
-        prev.map(p => (p.id === id ? { ...p, status: newStatus, updatedAt: new Date() } : p))
-      );
-    } catch (err) {
-      console.error('Failed to update status:', err);
-    }
-  };
-
-  const getStatusColor = (status: Problem['status']) => {
-    switch (status) {
-      case 'Pending':
-        return 'danger';
-      case 'In Progress':
-        return 'warning';
-      case 'Resolved':
-        return 'success';
-      default:
-        return 'default';
-    }
-  };
-
-  if (loading) {
     return (
         <div className="flex min-h-screen flex-col">
             <div className="container mx-auto flex items-center justify-between px-4 py-6">

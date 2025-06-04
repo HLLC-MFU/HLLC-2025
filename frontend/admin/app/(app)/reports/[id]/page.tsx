@@ -13,7 +13,7 @@ import { ArrowLeft } from "lucide-react";
 import StatusDropdown from "../_components/Statusdropdown";
 import SendNotiButton from "../_components/SendNotiButton";
 import { ProblemCharts } from "../_components/ProblemCharts";
-import { useCategories } from "@/hooks/useCategories";
+import { useCategories } from "@/hooks/useReportTypes";
 import { useReports } from "@/hooks/useReports";
 
 export default function CategoryReportsPage() {

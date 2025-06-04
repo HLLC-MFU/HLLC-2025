@@ -2,12 +2,12 @@
 
 import { Card, CardBody, CardHeader, CardFooter } from "@heroui/react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Label } from 'recharts';
-import type { Problem, Category } from "@/types/report";
+import type { Problem, ReportTypes } from "@/types/report";
 import { TrendingUp } from "lucide-react";
 
 interface ProblemChartsProps {
     problems: Problem[];
-    categories: Category[];
+    reporttypes: ReportTypes[];
 }
 
 interface ChartData {
@@ -52,12 +52,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
-export function ProblemCharts({ problems, categories }: ProblemChartsProps) {
-    // Prepare data for category distribution chart
-    const categoryData: ChartData[] = categories.map(category => ({
-        name: category.name.en,
-        count: problems.filter(p => p.categoryId === category.id).length,
-        color: category.color
+export function ProblemCharts({ problems, reporttypes }: ProblemChartsProps) {
+    // Prepare data for reporttype distribution chart
+    const reporttypeData: ChartData[] = reporttypes.map(reporttype => ({
+        name: reporttype.name.en,
+        count: problems.filter(p => p.categoryId === reporttype.id).length,
+        color: reporttype.color
     }));
 
 
@@ -81,7 +81,7 @@ export function ProblemCharts({ problems, categories }: ProblemChartsProps) {
                         <h3 className="text-lg font-medium">Problems by Category</h3>
                         <div className="h-[250px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={categoryData}>
+                                <BarChart data={reporttypeData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                                     <XAxis
                                         dataKey="name"
