@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
@@ -32,14 +33,15 @@ type ChatService interface {
 	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error)
 	SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error
 	SaveReaction(ctx context.Context, reaction *model.MessageReaction) error
-	SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error
 	SyncRoomMembers()
 	DeleteRoomMessages(ctx context.Context, roomID string) error
 	StartRoomConsumers()
+	NotifyOfflineUser(userID, roomID, fromUserID, message, eventType string)
 }
 
 const (
 	chatConsumerGroup = "chat-service-group"
+	deduplicationTTL  = time.Minute
 )
 
 type service struct {
@@ -47,6 +49,11 @@ type service struct {
 	publisher kafkaPublisher.Publisher
 	roomRepo  RoomRepository.RoomRepository
 }
+
+var (
+	notifiedMu sync.Mutex
+	notified   = make(map[string]time.Time) // key: userId:roomId:message
+)
 
 func NewService(repo repository.ChatRepository, publisher kafkaPublisher.Publisher, roomRepo RoomRepository.RoomRepository) ChatService {
 	s := &service{
@@ -92,7 +99,7 @@ func (s *service) InitChatHub() {
 							for userID, conn := range model.Clients[message.FROM.RoomID] {
 								if conn == nil {
 									notificationMsg := fmt.Sprintf("sent a sticker")
-									s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg)
+									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg, "sticker")
 								}
 							}
 							continue
@@ -102,7 +109,7 @@ func (s *service) InitChatHub() {
 							for userID, conn := range model.Clients[message.FROM.RoomID] {
 								if conn == nil {
 									notificationMsg := fmt.Sprintf("sent a file: %s", fileName)
-									s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg)
+									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg, "file")
 								}
 							}
 							continue
@@ -136,7 +143,7 @@ func (s *service) InitChatHub() {
 				// Notify offline users
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
 					if conn == nil {
-						s.notifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG)
+						s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG, "text")
 					}
 				}
 
@@ -168,12 +175,23 @@ func sendJSONMessage(conn *websocket.Conn, v interface{}) error {
 	return conn.WriteMessage(websocket.TextMessage, data)
 }
 
-func (s *service) notifyOfflineUser(userID, roomID, fromUserID, message string) {
+func (s *service) NotifyOfflineUser(userID, roomID, fromUserID, message, eventType string) {
+	key := userID + ":" + roomID + ":" + eventType + ":" + message
+	notifiedMu.Lock()
+	if t, exists := notified[key]; exists && time.Since(t) < deduplicationTTL {
+		notifiedMu.Unlock()
+		log.Printf("[Notify] Duplicate notification for %s, skipping", key)
+		return
+	}
+	notified[key] = time.Now()
+	notifiedMu.Unlock()
+
 	payload := map[string]string{
 		"userId":  userID,
 		"roomId":  roomID,
 		"from":    fromUserID,
 		"message": message,
+		"type":    eventType,
 	}
 	msg, _ := json.Marshal(payload)
 
@@ -192,7 +210,6 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 		var enriched []model.ChatMessageEnriched
 		for _, msg := range cachedMessages {
 			reactions, _ := s.repo.GetReactionsByMessageID(ctx, msg.ID)
-			reads, _ := s.repo.GetReadReceiptsByMessageID(ctx, msg.ID)
 
 			var replyTo *model.ChatMessage
 			if msg.ReplyToID != nil {
@@ -200,10 +217,9 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 			}
 
 			enriched = append(enriched, model.ChatMessageEnriched{
-				ChatMessage:  msg,
-				Reactions:    reactions,
-				ReadReceipts: reads,
-				ReplyTo:      replyTo,
+				ChatMessage: msg,
+				Reactions:   reactions,
+				ReplyTo:     replyTo,
 			})
 		}
 		return enriched, nil
@@ -225,7 +241,6 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 	var enriched []model.ChatMessageEnriched
 	for _, msg := range rawMessages {
 		reactions, _ := s.repo.GetReactionsByMessageID(ctx, msg.ID)
-		reads, _ := s.repo.GetReadReceiptsByMessageID(ctx, msg.ID)
 
 		var replyTo *model.ChatMessage
 		if msg.ReplyToID != nil {
@@ -233,10 +248,9 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 		}
 
 		enriched = append(enriched, model.ChatMessageEnriched{
-			ChatMessage:  msg,
-			Reactions:    reactions,
-			ReadReceipts: reads,
-			ReplyTo:      replyTo,
+			ChatMessage: msg,
+			Reactions:   reactions,
+			ReplyTo:     replyTo,
 		})
 	}
 
@@ -294,10 +308,6 @@ func (s *service) SaveReaction(ctx context.Context, reaction *model.MessageReact
 	return s.repo.SaveReaction(ctx, reaction)
 }
 
-func (s *service) SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error {
-	return s.repo.SaveReadReceipt(ctx, receipt)
-}
-
 // DeleteRoomMessages deletes all messages, reactions, and read receipts for a room
 func (s *service) DeleteRoomMessages(ctx context.Context, roomID string) error {
 	// Delete messages from MongoDB
@@ -314,10 +324,6 @@ func (s *service) DeleteRoomMessages(ctx context.Context, roomID string) error {
 	// Delete reactions and read receipts
 	if err := s.repo.DeleteReactionsByRoomID(ctx, roomID); err != nil {
 		log.Printf("[DeleteRoomMessages] Failed to delete reactions for room %s: %v", roomID, err)
-	}
-
-	if err := s.repo.DeleteReadReceiptsByRoomID(ctx, roomID); err != nil {
-		log.Printf("[DeleteRoomMessages] Failed to delete read receipts for room %s: %v", roomID, err)
 	}
 
 	log.Printf("[DeleteRoomMessages] Successfully deleted all messages and related data for room: %s", roomID)

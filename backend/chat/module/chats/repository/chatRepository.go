@@ -17,9 +17,7 @@ type ChatRepository interface {
 	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error)
 	Save(ctx context.Context, msg *model.ChatMessage) (primitive.ObjectID, error)
 	SaveReaction(ctx context.Context, reaction *model.MessageReaction) error
-	SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error
 	GetReactionsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReaction, error)
-	GetReadReceiptsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReadReceipt, error)
 	GetMessageByID(ctx context.Context, id primitive.ObjectID) (*model.ChatMessage, error)
 	DeleteMessagesByRoomID(ctx context.Context, roomID string) error
 	DeleteReactionsByRoomID(ctx context.Context, roomID string) error
@@ -93,10 +91,6 @@ func (r *repository) SaveReaction(ctx context.Context, reaction *model.MessageRe
 	return err
 }
 
-func (r *repository) SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error {
-	_, err := r.dbConnect(ctx).Collection("message_read_receipts").InsertOne(ctx, receipt)
-	return err
-}
 
 func (r *repository) GetReactionsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReaction, error) {
 	filter := bson.M{"message_id": messageID}
@@ -113,20 +107,6 @@ func (r *repository) GetReactionsByMessageID(ctx context.Context, messageID prim
 	return reactions, nil
 }
 
-func (r *repository) GetReadReceiptsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReadReceipt, error) {
-	filter := bson.M{"message_id": messageID}
-	cursor, err := r.dbConnect(ctx).Collection("message_read_receipts").Find(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var receipts []model.MessageReadReceipt
-	if err := cursor.All(ctx, &receipts); err != nil {
-		return nil, err
-	}
-	return receipts, nil
-}
 
 func (r *repository) GetMessageByID(ctx context.Context, id primitive.ObjectID) (*model.ChatMessage, error) {
 	var msg model.ChatMessage

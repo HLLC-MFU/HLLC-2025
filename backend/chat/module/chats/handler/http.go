@@ -42,12 +42,6 @@ func NewHTTPHandler(service service.ChatService, memberService MemberService.Mem
 	}
 }
 
-type TypingEvent struct {
-	UserID string `json:"userId"`
-	RoomID string `json:"roomId"`
-	Typing bool   `json:"typing"`
-}
-
 type MentionPayload struct {
 	Mentioned string `json:"mentioned"`
 	From      string `json:"from"`
@@ -145,9 +139,6 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 		log.Printf("[WS] User %s disconnected from room %s", userID, roomID)
 	}()
 
-	typingTimers := make(map[string]time.Time)
-	const typingTimeout = 5 * time.Second
-
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
@@ -194,35 +185,6 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 				FROM: client,
 			})
 			continue
-		}
-
-		if strings.HasPrefix(messageText, "/typing") {
-			if time.Since(typingTimers[userID]) > typingTimeout {
-				typingEvent := TypingEvent{UserID: userID, RoomID: roomID, Typing: true}
-				h.broadcastTypingEvent(roomID, typingEvent)
-				typingTimers[userID] = time.Now()
-
-				go func(userID, roomID string) {
-					time.Sleep(typingTimeout)
-					h.broadcastTypingEvent(roomID, TypingEvent{UserID: userID, RoomID: roomID, Typing: false})
-				}(userID, roomID)
-			}
-			continue
-		}
-
-		if strings.HasPrefix(messageText, "/read") {
-			parts := strings.Split(messageText, " ")
-			if len(parts) == 2 {
-				messageID := parts[1]
-				msgID, _ := primitive.ObjectIDFromHex(messageID)
-				_ = h.service.SaveReadReceipt(ctx, &model.MessageReadReceipt{
-					MessageID: msgID,
-					UserID:    userID,
-					Timestamp: time.Now(),
-				})
-				h.SendReadReceipt(roomID, userID, messageID)
-				continue
-			}
 		}
 
 		if strings.HasPrefix(messageText, "/react") {
@@ -283,10 +245,6 @@ func extractMentions(message string) []string {
 	return mentions
 }
 
-func (h *ChatHTTPHandler) broadcastTypingEvent(roomID string, event TypingEvent) {
-	h.broadcastEvent(roomID, "typing", event)
-}
-
 type ChatEvent struct {
 	EventType string      `json:"eventType"`
 	Payload   interface{} `json:"payload"`
@@ -308,8 +266,6 @@ func (h *ChatHTTPHandler) broadcastEvent(roomID, eventType string, data interfac
 		} else if from, ok := v["from"]; ok {
 			userID = from
 		}
-	case TypingEvent:
-		userID = v.UserID
 	case model.BroadcastObject:
 		if v.FROM.UserID != "" {
 			userID = v.FROM.UserID
@@ -336,10 +292,9 @@ func (h *ChatHTTPHandler) broadcastEvent(roomID, eventType string, data interfac
 
 		// Logic to skip self for typing/read/text, but allow for sticker/file
 		skipSelf := map[string]bool{
-			"typing":           true,
 			"read_receipt":     true,
 			"message_reaction": true,
-			"text":             true, // custom if needed
+			"text":             true,
 		}
 
 		if uid == userID && skipSelf[eventType] {
@@ -355,17 +310,6 @@ func (h *ChatHTTPHandler) broadcastEvent(roomID, eventType string, data interfac
 	}
 
 	log.Printf("[BROADCAST] Event %s from %s in room %s", eventType, userID, roomID)
-}
-
-func (h *ChatHTTPHandler) SendReadReceipt(roomID, userID, messageID string) {
-	readReceipt := map[string]string{
-		"userId":    userID,
-		"roomId":    roomID,
-		"messageId": messageID,
-		"status":    "read",
-	}
-
-	h.broadcastEvent(roomID, "read_receipt", readReceipt)
 }
 
 // Send Message Reaction
@@ -394,11 +338,6 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid sticker ID"})
 	}
 
-	roomObjID, err := primitive.ObjectIDFromHex(roomIdStr)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid room ID"})
-	}
-
 	sticker, err := h.stickerService.GetSticker(c.Context(), stickerObjID)
 	if err != nil || sticker == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "sticker not found"})
@@ -424,53 +363,35 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 		log.Printf("[Kafka] Failed to marshal sticker payload: %v", err)
 	}
 
-	// Get all room members
-	members, err := h.memberService.GetRoomMembers(c.Context(), roomObjID)
-	if err != nil {
-		log.Printf("[Kafka] Failed to get room members: %v", err)
-	} else {
-		// Send to chat-notifications topic for offline users
-		notificationPayload := map[string]interface{}{
-			"type":      "sticker",
-			"userId":    userID,
-			"roomId":    roomIdStr,
-			"message":   "sent a sticker",
-			"timestamp": time.Now(),
-		}
-
-		notifData, err := json.Marshal(notificationPayload)
-		if err != nil {
-			log.Printf("[Kafka] Failed to marshal notification payload: %v", err)
-		} else {
-			for _, member := range members {
-				memberID := member.Hex()
-				if memberID != userID { // Don't notify sender
-					// Check if user is online in this room
-					isOnline := false
-					if conns, exists := model.Clients[roomIdStr]; exists {
-						if conn, exists := conns[memberID]; exists && conn != nil {
-							isOnline = true
-						}
-					}
-
-					if !isOnline {
-						if err := h.publisher.SendMessageToTopic("chat-notifications", memberID, string(notifData)); err != nil {
-							log.Printf("[Kafka] Failed to send notification to user %s: %v", memberID, err)
-						} else {
-							log.Printf("[Kafka] Sent sticker notification to offline user %s", memberID)
-						}
-					}
-				}
-			}
-		}
-	}
-
 	// Broadcast to online users
 	h.broadcastEvent(roomIdStr, "sticker", map[string]string{
 		"userId":    userID,
 		"sticker":   sticker.Image,
 		"stickerId": sticker.ID.Hex(),
 	})
+
+	// After broadcasting sticker, notify offline users
+	stickerRoomObjID, err := primitive.ObjectIDFromHex(roomIdStr)
+	if err == nil {
+		members, err := h.memberService.GetRoomMembers(c.Context(), stickerRoomObjID)
+		if err == nil {
+			for _, member := range members {
+				memberID := member.Hex()
+				if memberID == userID {
+					continue // Don't notify sender
+				}
+				isOnline := false
+				if conns, exists := model.Clients[roomIdStr]; exists {
+					if conn, exists := conns[memberID]; exists && conn != nil {
+						isOnline = true
+					}
+				}
+				if !isOnline {
+					h.service.NotifyOfflineUser(memberID, roomIdStr, userID, "sent a sticker", "sticker")
+				}
+			}
+		}
+	}
 
 	return c.JSON(msg)
 }
@@ -580,11 +501,6 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	roomId := c.FormValue("roomId")
 	userId := c.FormValue("userId")
 
-	roomObjID, err := primitive.ObjectIDFromHex(roomId)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid room ID"})
-	}
-
 	file, err := c.FormFile("file")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "file is required"})
@@ -633,47 +549,6 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 		log.Printf("[Kafka] Failed to marshal file payload: %v", err)
 	}
 
-	// Get all room members
-	members, err := h.memberService.GetRoomMembers(c.Context(), roomObjID)
-	if err != nil {
-		log.Printf("[Kafka] Failed to get room members: %v", err)
-	} else {
-		// Send to chat-notifications topic for offline users
-		notificationPayload := map[string]interface{}{
-			"type":      "file",
-			"userId":    userId,
-			"roomId":    roomId,
-			"message":   fmt.Sprintf("sent a file: %s", msg.FileName),
-			"timestamp": time.Now(),
-		}
-
-		notifData, err := json.Marshal(notificationPayload)
-		if err != nil {
-			log.Printf("[Kafka] Failed to marshal notification payload: %v", err)
-		} else {
-			for _, member := range members {
-				memberID := member.Hex()
-				if memberID != userId { // Don't notify sender
-					// Check if user is online in this room
-					isOnline := false
-					if conns, exists := model.Clients[roomId]; exists {
-						if conn, exists := conns[memberID]; exists && conn != nil {
-							isOnline = true
-						}
-					}
-
-					if !isOnline {
-						if err := h.publisher.SendMessageToTopic("chat-notifications", memberID, string(notifData)); err != nil {
-							log.Printf("[Kafka] Failed to send notification to user %s: %v", memberID, err)
-						} else {
-							log.Printf("[Kafka] Sent file notification to offline user %s", memberID)
-						}
-					}
-				}
-			}
-		}
-	}
-
 	// Broadcast to online users
 	h.broadcastEvent(roomId, "file", map[string]string{
 		"userId":   userId,
@@ -681,6 +556,29 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 		"fileURL":  msg.FileURL,
 		"fileType": msg.FileType,
 	})
+
+	// After broadcasting file, notify offline users
+	fileRoomObjID, err := primitive.ObjectIDFromHex(roomId)
+	if err == nil {
+		members, err := h.memberService.GetRoomMembers(c.Context(), fileRoomObjID)
+		if err == nil {
+			for _, member := range members {
+				memberID := member.Hex()
+				if memberID == userId {
+					continue // Don't notify sender
+				}
+				isOnline := false
+				if conns, exists := model.Clients[roomId]; exists {
+					if conn, exists := conns[memberID]; exists && conn != nil {
+						isOnline = true
+					}
+				}
+				if !isOnline {
+					h.service.NotifyOfflineUser(memberID, roomId, userId, fmt.Sprintf("sent a file: %s", msg.FileName), "file")
+				}
+			}
+		}
+	}
 
 	return c.Status(fiber.StatusOK).JSON(msg)
 }

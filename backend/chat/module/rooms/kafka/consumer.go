@@ -23,9 +23,7 @@ type RoomEvent struct {
 	Payload json.RawMessage `json:"payload,omitempty"`
 }
 
-// StartKafkaConsumer starts consuming room-specific events
 func StartKafkaConsumer(brokerAddress string, chatService service.ChatService) {
-	// Only consume room-specific topics
 	topics := []string{roomEventsTopic, roomNotificationsTopic}
 
 	for _, topic := range topics {
@@ -58,7 +56,6 @@ func consumeRoomTopic(brokerAddress, topic, groupID string, chatService service.
 		if err != nil {
 			switch {
 			case err == context.DeadlineExceeded:
-				// This is normal, just continue silently
 				continue
 			case err == context.Canceled:
 				log.Printf("[Room Kafka Consumer] Consumer canceled for topic: %s", topic)
@@ -94,15 +91,12 @@ func consumeRoomTopic(brokerAddress, topic, groupID string, chatService service.
 				}
 			case "room_created", "room_updated":
 				log.Printf("[Room Kafka Consumer] Processing room event: %s for room: %s", event.Type, event.RoomID)
-				// Add other room event handling here if needed
 			default:
 				log.Printf("[Room Kafka Consumer] Unknown room event type: %s", event.Type)
 			}
 
 		case roomNotificationsTopic:
-			// Handle room notifications
 			log.Printf("[Room Kafka Consumer] Processing room notification: %s", string(msg.Value))
-			// Add your room notification handling logic here
 		}
 	}
 }

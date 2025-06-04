@@ -33,12 +33,12 @@ func (s *memberService) AddUserToRoom(ctx context.Context, roomID primitive.Obje
 		return err
 	}
 
-	// ✅ Add to MongoDB
+	//Add to MongoDB
 	if err := s.repo.AddUserToRoom(ctx, roomID, userObjID); err != nil {
 		return err
 	}
 
-	// ✅ Add to Redis
+	//Add to Redis
 	if err := redis.AddUserToRoom(roomID.Hex(), userObjID.Hex()); err != nil {
 		return err
 	}
@@ -54,12 +54,12 @@ func (s *memberService) RemoveUserFromRoom(ctx context.Context, roomID primitive
 		return err
 	}
 
-	// ✅ Remove from MongoDB
+	//Remove from MongoDB
 	if err := s.repo.RemoveUserFromRoom(ctx, roomID, userObjID); err != nil {
 		return err
 	}
 
-	// ✅ Remove from Redis
+	//Remove from Redis
 	if err := redis.RemoveUserFromRoom(roomID.Hex(), userObjID.Hex()); err != nil {
 		return err
 	}
@@ -80,15 +80,15 @@ func (s *memberService) IsUserInRoom(ctx context.Context, roomID primitive.Objec
 	return s.repo.IsUserInRoom(ctx, roomID, userObjID)
 }
 
-// DeleteRoomMembers deletes all members for a room from both MongoDB and Redis
+// deletes all members for a room from both MongoDB and Redis
 func (s *memberService) DeleteRoomMembers(ctx context.Context, roomID primitive.ObjectID) error {
-	// Delete from MongoDB
+	//delete from MongoDB
 	if err := s.repo.DeleteRoomMembers(ctx, roomID); err != nil {
 		log.Printf("[ERROR] Failed to delete room members from MongoDB for room %s: %v", roomID.Hex(), err)
 		return err
 	}
 
-	// Delete from Redis
+	//delete from Redis
 	key := fmt.Sprintf("room:%s", roomID.Hex())
 	if err := redis.DeleteRoomMembers(key); err != nil {
 		log.Printf("[ERROR] Failed to delete room members from Redis for room %s: %v", roomID.Hex(), err)

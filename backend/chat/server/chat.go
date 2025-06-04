@@ -27,9 +27,8 @@ import (
 func (s *server) chatService() {
 	publisher := kafkaUtil.GetPublisher()
 
-	// Create or ensure Kafka topics
 	kafkaTopics := []string{
-		"chat-notifications", // For chat notifications only
+		"chat-notifications",
 	}
 
 	for _, topic := range kafkaTopics {
@@ -55,7 +54,7 @@ func (s *server) chatService() {
 	stickerService := stickerServicePkg.NewStickerService(stkRepo)
 
 	// Rooms logic
-	roomService := RoomService.NewService(roomRepo, publisher, memberService)
+	roomService := RoomService.NewService(roomRepo, publisher, memberService, chatService)
 
 	// Background services
 	chatService.SyncRoomMembers()
@@ -68,12 +67,7 @@ func (s *server) chatService() {
 	httpHandler := handler.NewHTTPHandler(chatService, memberService, publisher, stickerService, roomService)
 
 	// Fiber Middleware
-	s.app.Use(cors.New(cors.Config{
-		AllowCredentials: true,
-		AllowOrigins:     "http://localhost:3000",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowMethods:     "GET, POST, PUT, DELETE",
-	}))
+	s.app.Use(cors.New(s.config.FiberCORSConfig()))
 
 	s.app.Use("/ws/:roomId/:userId", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
@@ -85,18 +79,13 @@ func (s *server) chatService() {
 	s.app.Get("/ws/:roomId/:userId", websocket.New(func(conn *websocket.Conn) {
 		roomID := conn.Params("roomId")
 		userID := conn.Params("userId")
-		username := userID // Replace this if you plan to fetch usernames
+		username := userID
 		httpHandler.HandleWebSocket(conn, userID, username, roomID)
 	}))
 
-	// Routes (using centralized router if applicable)
-	// router.RegisterChatRoutes(s.app.Group("/api/v1/rooms"), httpHandler)
-
-	// Health
 	s.app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
 	})
-	s.app.Static("/uploads", "./uploads")
 	s.app.Get("/ping", func(c *fiber.Ctx) error {
 		return c.SendString("pong")
 	})

@@ -37,28 +37,27 @@ func NewConsumer(brokers []string, topic, groupID string, handler MessageHandler
 		handler:   handler,
 		ctx:       ctx,
 		cancel:    cancel,
-		retryWait: 5 * time.Second, // Wait 5 seconds between retries
+		retryWait: 5 * time.Second,
 	}
 }
 
 func (c *Consumer) Start() error {
-	// First ensure the topic exists
+
 	if err := EnsureKafkaTopic("localhost:9092", c.topic); err != nil {
 		return fmt.Errorf("failed to ensure topic exists: %w", err)
 	}
 
-	// Wait for topic to be ready
 	if err := WaitUntilTopicReady("localhost:9092", c.topic, 30*time.Second); err != nil {
 		return fmt.Errorf("topic not ready after waiting: %w", err)
 	}
 
-	// Create Kafka reader with retry settings
+
 	c.reader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers:        c.brokers,
 		Topic:          c.topic,
 		GroupID:        c.groupID,
-		MinBytes:       10e3, // 10KB
-		MaxBytes:       10e6, // 10MB
+		MinBytes:       10e3, 
+		MaxBytes:       10e6, 
 		CommitInterval: time.Second,
 		StartOffset:    kafka.LastOffset,
 		ReadBackoffMin: 100 * time.Millisecond,
@@ -93,7 +92,6 @@ func (c *Consumer) consume() {
 		}
 	}()
 
-	// Log startup
 	log.Printf("[Kafka Consumer] Started consuming from topic: %s (group: %s)", c.topic, c.groupID)
 
 	for {
@@ -102,7 +100,7 @@ func (c *Consumer) consume() {
 			log.Printf("[Kafka Consumer] Shutting down consumer for topic: %s", c.topic)
 			return
 		default:
-			// Try to read message with context timeout
+		
 			readCtx, cancel := context.WithTimeout(c.ctx, 30*time.Second)
 			msg, err := c.reader.ReadMessage(readCtx)
 			cancel()
@@ -110,7 +108,7 @@ func (c *Consumer) consume() {
 			if err != nil {
 				switch {
 				case err == context.DeadlineExceeded:
-					// This is normal, just continue silently
+					
 					continue
 				case err == context.Canceled:
 					log.Printf("[Kafka Consumer] Consumer canceled for topic: %s", c.topic)
@@ -119,7 +117,7 @@ func (c *Consumer) consume() {
 					log.Printf("[Kafka Consumer] Connection lost to broker, attempting to reconnect in %v...", c.retryWait)
 					time.Sleep(c.retryWait)
 
-					// Try to recreate the reader
+					
 					if c.reader != nil {
 						c.reader.Close()
 					}
@@ -139,19 +137,17 @@ func (c *Consumer) consume() {
 					continue
 				default:
 					log.Printf("[Kafka Consumer] Unexpected error reading message from topic %s: %v", c.topic, err)
-					time.Sleep(time.Second) // Wait a bit before retrying
+					time.Sleep(time.Second)
 					continue
 				}
 			}
 
-			// Successfully read a message
 			var chatMsg model.ChatMessage
 			if err := json.Unmarshal(msg.Value, &chatMsg); err != nil {
 				log.Printf("[Kafka Consumer] Error unmarshaling message from topic %s: %v", c.topic, err)
 				continue
 			}
 
-			// Handle the message
 			if err := c.handler.HandleMessage(c.ctx, &chatMsg); err != nil {
 				log.Printf("[Kafka Consumer] Error handling message from topic %s: %v", c.topic, err)
 				continue
