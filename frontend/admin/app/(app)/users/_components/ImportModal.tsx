@@ -3,7 +3,7 @@ import React from "react";
 import * as XLSX from "xlsx";
 import { columns } from "./user-table";
 import { User } from "@/types/user";
-import { School } from "@/types/school";
+import { Major } from "@/types/major";
 
 export interface ImportModalProps {
     isOpen: boolean;
@@ -11,7 +11,7 @@ export interface ImportModalProps {
     onImport: (userData: Partial<User>[]) => void;
     onExportTemplate: () => void;
     roleId: string;
-    schools: School[];
+    majors: Major[];
 }
 
 interface JsonData {
@@ -24,7 +24,7 @@ interface JsonData {
     last: string;
 }
 
-export default function ImportModal({ isOpen, onClose, onImport, onExportTemplate, roleId, schools }: ImportModalProps) {
+export default function ImportModal({ isOpen, onClose, onImport, onExportTemplate, roleId, majors }: ImportModalProps) {
     const [fileData, setFileData] = React.useState<User[]>([]);
     const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
@@ -66,12 +66,8 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                 };
 
                 let majorId = "";
-                schools.map((s) => {
-                    if (s.name.en === data.school_en) {
-                        s.majors.map((m) => {
-                            if (m.name.en === data.major_en && m._id) majorId = m._id;
-                        })
-                    }
+                majors.find((m) => {
+                    if (m.name.en === data.major_en && m._id) majorId = m._id;
                 })
 
                 const mapData: Partial<User> = {
@@ -87,7 +83,7 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                     }
                 };
 
-                console.log(mapData);
+                // console.log(mapData);
                 return mapData;
             });
 
@@ -117,19 +113,16 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
 
     const renderCell = React.useCallback((item: User, columnKey: React.Key) => {
         const cellValue = item[columnKey as keyof typeof item];
-        const school = schools.map((s) => {
-            // if (s === )
-        }); 
 
-        console.log(jsonDa)
+        const major = majors.find((m) => m._id === item.metadata.major);
 
         switch (columnKey) {
             case "name":
                 return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last}`;
-            // case "school":
-            //     return item.metadata?.major?.school.name.en ?? null;
-            // case "major":
-            //     return item.metadata?.major?.name.en ?? null;
+            case "school":
+                return major.school.name.en ?? null;
+            case "major":
+                return major.name.en ?? null;
             case "actions":
                 return null;
             default:
