@@ -1,5 +1,5 @@
-import { divider, Select, SelectItem } from '@heroui/react';
-import { useEffect, useState } from 'react';
+import { useActivity } from '@/hooks/useActivity';
+import { Select, SelectItem } from '@heroui/react';
 
 interface SelectProps {
   selectedActivityIds: string[];
@@ -12,26 +12,7 @@ export default function Selectdropdown({
   setSelectActivityIds,
   forceVisible = false,
 }: SelectProps) {
-  const [activity, setActivity] = useState<{ id: string; name: string }[]>([]);
-
-  useEffect(() => {
-    const fecthActivity = async () => {
-      try {
-        const res = await fetch('http://localhost:8080/api/activities');
-        const json = await res.json();
-        const activityList = json.data.map((activity: any) => ({
-          id: activity._id,
-          name: activity.shortName.en,
-        }));
-
-        setActivity(activityList);
-      } catch (err) {
-        console.error('Fetch failed', err);
-      }
-    };
-
-    fecthActivity();
-  }, []);
+  const { activities } = useActivity();
 
   return (
     <Select
@@ -40,14 +21,25 @@ export default function Selectdropdown({
       placeholder="เลือกกิจกรรม"
       selectionMode="multiple"
       selectedKeys={new Set(selectedActivityIds)}
-      onSelectionChange={keys => {
+      onSelectionChange={(keys) => {
         const selected = Array.from(keys) as string[];
         setSelectActivityIds(selected);
       }}
     >
-      {activity.map(activity => (
-        <SelectItem key={activity.id}>{activity.name}</SelectItem>
+      {(activities ?? []).map((activity) => (
+        <SelectItem
+          key={activity._id}
+          textValue={activity?.shortName?.en} // 👈 ใช้อันนี้เพื่อให้แสดงเฉพาะ en ตอนเลือก
+        >
+          <div className="flex flex-col">
+            <span>{activity?.shortName?.en}</span>
+            <span className="text-sm text-default-500">
+              ( {activity?.shortName?.th} )
+            </span>
+          </div>
+        </SelectItem>
       ))}
     </Select>
+
   );
 }

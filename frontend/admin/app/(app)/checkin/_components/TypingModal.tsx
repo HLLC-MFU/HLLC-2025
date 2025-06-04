@@ -23,6 +23,8 @@ export function Typing({ isOpen, onClose }: TypingProps) {
   const { createcheckin } = useCheckin();
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
 
+  console.log( )
+
   const handleSubmit = () => {
     const trimmed = studentId.trim();
     if (!trimmed) return;
@@ -47,8 +49,6 @@ export function Typing({ isOpen, onClose }: TypingProps) {
     }
   };
 
-  console.log(studentId);
-  console.log('ค่าจากเลือกกิจกรรม addlink', selectedActivityIds);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} placement="center">

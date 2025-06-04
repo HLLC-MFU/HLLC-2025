@@ -20,6 +20,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
+import { CheckinModule } from './module/checkin/checkin.module';
+import { ActivitiesModule } from './module/activities/activities.module';
 
 @Module({
   imports: [
@@ -56,6 +58,8 @@ import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module'
     AppearancesModule,
     ReportsModule,
     SseModule,
+    CheckinModule,
+    ActivitiesModule
   ],
   providers: [
     {
