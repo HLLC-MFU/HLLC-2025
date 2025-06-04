@@ -1,3 +1,5 @@
+import { Lang } from './lang';
+
 export type Activities = {
     _id: string;
     name: Lang;
