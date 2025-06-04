@@ -44,7 +44,7 @@ export function TableLog() {
   const [page, setPage] = React.useState(1);
   const [isTypingModelOpen, setIsTypingModelOpen] = React.useState(false);
   const { checkin, fetchcheckin } = useCheckin();
-  const [activtyFilter, setActivityFilter] = React.useState<Set<string>>(new Set());
+  const [activityFilter, setActivityFilter] = React.useState<Set<string>>(new Set());
   const { activities } = useActivity();
 
   
@@ -90,14 +90,14 @@ export function TableLog() {
       );
     }
 
-    if (activtyFilter && activtyFilter.size > 0) {
+    if (activityFilter && activityFilter.size > 0) {
       filteredUsers = filteredUsers.filter(user =>
-        activtyFilter.has(user.activityId),
+        activityFilter.has(user.activityId),
       );
     }
 
     return filteredUsers;
-  }, [users, filterValue, activtyFilter]);
+  }, [users, filterValue, activityFilter]);
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
@@ -201,7 +201,7 @@ export function TableLog() {
               <DropdownMenu
                 aria-label="Activity Filter"
                 closeOnSelect={false}
-                selectedKeys={activtyFilter}
+                selectedKeys={activityFilter}
                 selectionMode="multiple"
                 onSelectionChange={(keys) => {
                   const selected = Array.from(keys) as string[];
@@ -257,12 +257,14 @@ export function TableLog() {
     );
   }, [
     filterValue,
-    activtyFilter,
+    activityFilter,
     visibleColumns,
     onRowsPerPageChange,
     users.length,
     onSearchChange,
     hasSearchFilter,
+    ///////////////////////////////////////////////////////////////////////
+    activities, // เพิ่มบรรทัดนี้ ถ้าค่า activities อัพเดต จะทำให้ topContent อัพเดต
   ]);
 
   const bottomContent = React.useMemo(() => {
