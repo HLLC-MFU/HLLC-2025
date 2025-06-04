@@ -1,28 +1,38 @@
+"use client";
 import { Card, CardBody } from "@heroui/react";
+import { ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { ReactNode } from "react";
 
+
 interface Props {
-    title?: string;
+    title: string;
     description: string;
     icon: ReactNode;
+    href: string;
 }
-export default function SettingsList({ title, description, icon }: Props) {
+export default function SettingsList({ title, description, icon, href }: Props) {
+    const router = useRouter();
     return (
-        <Card isHoverable isPressable className="justify-between">
-            <CardBody>
-                <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-gradient-to-r shadow-lg bg-gray-800 border">
-                        {icon && <span className="text-white">{icon}</span>}
+        <Card isHoverable isPressable shadow="none" className="border" onPress={() => router.push(href)}>
+            <CardBody className="justify-between">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-xl bg-gradient-to-r bg-gray-200 border">
+                            {icon && <span className="text-gray-500">{icon}</span>}
+                        </div>
+                        <div>
+                            <h1 className="text-lg font-semibold text-default-800 tracking-tight">
+                                {title}
+                            </h1>
+                            <p className="text-start text-xs text-default-500">{description}</p>
+                        </div>
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">
-                            {title}
-                        </h1>
-                        <p className="text-start text-sm text-default-500 font-medium">{description}</p>
+                        <ChevronRight />
                     </div>
                 </div>
             </CardBody>
-
         </Card>
     );
 }
