@@ -14,8 +14,8 @@ import { Search, ChevronDown, Plus } from 'lucide-react';
 import { useCheckin } from '@/hooks/useCheckin';
 import { useActivity } from '@/hooks/useActivity';
 
-import TopContent from './Topcontent';
-import BottomContent from './BottomContent';
+import TopContent from './Tablecomponents/Topcontent';
+import BottomContent from './Tablecomponents/BottomContent';
 
 export const columns = [
   { name: 'NAME', uid: 'name', sortable: true },

@@ -6,12 +6,6 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  Input,
-  Button,
-  DropdownTrigger,
-  Dropdown,
-  DropdownMenu,
-  DropdownItem,
   User,
   Pagination,
 } from "@heroui/react";
@@ -22,16 +16,11 @@ export const columns = [
   { name: "MAJOR", uid: "major", sortable: true },
 ];
 
-
 import { ChevronDown, Search } from 'lucide-react';
 import { useUsers } from "@/hooks/useUsers";
 import { useSchools } from "@/hooks/useSchool";
-
-
-export function capitalize(s) {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
-}
-
+import TopContent from "./Tablecomponents/TopContent";
+import BottomContent from "./Tablecomponents/BottomContent";
 
 const INITIAL_VISIBLE_COLUMNS = ["name", "major"];
 
@@ -54,12 +43,6 @@ export function TableInfo() {
   const [schoolFilter, setSchoolFilter] = React.useState<Set<string>>(
     new Set(),
   );
-
-
-  console.log("Users data: ", users);
-  console.log("Majors data: ", majors);
-  console.log("Schools data: ", schools);
-
 
   const pages = Math.ceil(users.length / rowsPerPage);
 
@@ -206,135 +189,6 @@ export function TableInfo() {
     }
   }, []);
 
-  const topContent = React.useMemo(() => {
-    return (
-      <div className="flex flex-col gap-4">
-        <div className="flex justify-between gap-3 items-end">
-          <Input
-            isClearable
-            classNames={{
-              base: "w-full sm:max-w-[44%]",
-              inputWrapper: "border-1",
-            }}
-            placeholder="Search by Student Id"
-            size="sm"
-            startContent={<Search className="text-default-300" />}
-            value={filterValue}
-            variant="bordered"
-            onClear={() => setFilterValue("")}
-            onValueChange={onSearchChange}
-          />
-          <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDown className="text-small" />}
-                  size="sm"
-                  variant="flat"
-                >
-                  Major
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                aria-label="Select Majors"
-                closeOnSelect={false}
-                selectedKeys={majorFilter}
-                selectionMode="multiple"
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys) as string[];
-                  setMajorFilter(new Set(selected));
-                }}
-              >
-                {(majors ?? [])
-                  .map((major) => (
-                    <DropdownItem key={major._id} className="capitalize">
-                      {capitalize(major.name.en)}
-                    </DropdownItem>
-                  ))}
-              </DropdownMenu>
-            </Dropdown>
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDown className="text-small" />}
-                  size="sm"
-                  variant="flat"
-                >
-                  School
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                aria-label="select schools"
-                closeOnSelect={false}
-                selectionMode="multiple"
-                selectedKeys={schoolFilter}
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys) as string[];
-                  setSchoolFilter(new Set(selected));
-                }}
-              >
-                {(schools ?? [])
-                  .map((school) => (
-                    <DropdownItem key={school._id} className="capitalize">
-                      {capitalize(school.name.en)}
-                    </DropdownItem>
-                  ))}
-              </DropdownMenu>
-
-            </Dropdown>
-          </div>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-default-400 text-small">Total {users.length} users</span>
-          <label className="flex items-center text-default-400 text-small">
-            Rows per page:
-            <select
-              className="bg-transparent outline-none text-default-400 text-small"
-              onChange={onRowsPerPageChange}
-            >
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="15">15</option>
-            </select>
-          </label>
-        </div>
-      </div>
-    );
-  }, [
-    filterValue,
-    majorFilter,
-    schoolFilter,
-    visibleColumns,
-    onSearchChange,
-    onRowsPerPageChange,
-    users.length,
-    hasSearchFilter,
-  ]);
-
-  const bottomContent = React.useMemo(() => {
-    return (
-      <div className="py-2 px-2 flex justify-between items-center">
-        <Pagination
-          showControls
-          classNames={{
-            cursor: "bg-foreground text-background",
-          }}
-          color="default"
-          isDisabled={hasSearchFilter}
-          page={page}
-          total={pages}
-          variant="light"
-          onChange={setPage}
-        />
-        <span className="text-small text-default-400">
-          {selectedKeys === "all"
-            ? "All items selected"
-            : `${selectedKeys.size} of ${items.length} selected`}
-        </span>
-      </div>
-    );
-  }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
-
   const classNames = React.useMemo(
     () => ({
       wrapper: ["max-h-[382px]", "max-w-3xl"],
@@ -359,7 +213,13 @@ export function TableInfo() {
       isCompact
       removeWrapper
       aria-label="Example table with custom cells, pagination and sorting"
-      bottomContent={bottomContent}
+      bottomContent={<BottomContent
+        page={page}
+        pages={pages}
+        setPage={setPage}
+        selectedKeys={selectedKeys}
+        items={filteredItems}
+        hasSearchFilter={hasSearchFilter} />}
       bottomContentPlacement="outside"
       checkboxesProps={{
         classNames: {
@@ -370,7 +230,19 @@ export function TableInfo() {
       selectedKeys={selectedKeys}
       selectionMode="multiple"
       sortDescriptor={sortDescriptor}
-      topContent={topContent}
+      topContent={<TopContent
+        filterValue={filterValue}
+        onSearchChange={onSearchChange}
+        onClear={() => setFilterValue("")}
+        majorFilter={majorFilter}
+        setMajorFilter={setMajorFilter}
+        schoolFilter={schoolFilter}
+        setSchoolFilter={setSchoolFilter}
+        majors={majors}
+        schools={schools}
+        usersLength={users.length}
+        onRowsPerPageChange={onRowsPerPageChange}
+      />}
       topContentPlacement="outside"
       onSelectionChange={(keys) => {
         if (keys === "all") {
