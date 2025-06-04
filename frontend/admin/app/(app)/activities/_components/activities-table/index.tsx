@@ -9,9 +9,9 @@ import {
 } from '@heroui/react';
 import { AnimatePresence } from 'framer-motion';
 import { Activities } from '@/types/activities';
-import { columns } from './activities-table/TableColumns';
-import { TableCell as TableCellComponent } from './activities-table/TableCell';
-import { ExpandedDetails } from './activities-table/ExpandedDetails';
+import { columns } from './TableColumns';
+import { TableCell as TableCellComponent } from './TableCell';
+import { ExpandedDetails } from './ExpandedDetails';
 
 interface ActivitiesTableProps {
   activities: Activities[];
@@ -95,4 +95,4 @@ export default function ActivitiesTable({
       </AnimatePresence>
     </div>
   );
-}
+} 
