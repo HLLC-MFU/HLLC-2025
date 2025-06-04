@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-const secret = 'pngwpeonhgperpongp';
+const secret = process.env.CRYPTO_SECRET || 'pngwpeonhgperpongp';
 const ivLength = 16;
 
 export function encryptItem(text: string): string {
