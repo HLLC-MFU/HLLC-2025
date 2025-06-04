@@ -1,0 +1,143 @@
+import { User } from "@/types/user";
+import { apiRequest } from "@/utils/api";
+import { useState, useEffect } from "react";
+
+export function useUsers() {
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // Fetch all users
+    const fetchUsers = async () => {
+        setLoading(true);
+        try {
+            setError(null);
+            const res = await apiRequest<{ data: User[] }>("/users?limit=0", "GET");
+            setUsers(Array.isArray(res.data?.data) ? res.data.data : []);
+        } catch (err: any) {
+            setError(err.message || "Failed to fetch users.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Create new user
+    const createUser = async (userData: Partial<User>) => {
+        try {
+            setLoading(true);
+            const res = await apiRequest<User>("/users", "POST", userData);
+            console.log("Create response: ", res);
+
+            if (res.data) {
+                await new Promise((resolve) => {
+                    setUsers((prev) => {
+                        const updated = [...prev, res.data as User];
+                        resolve(updated);
+                        return updated;
+                    });
+                });
+            }
+        } catch (err: any) {
+            setError(err.message || "Failed to create user.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Upload users
+    const uploadUser = async (userData: Partial<User>[]) => {
+        try {
+            setLoading(true);
+            const res = await apiRequest<User>("/users/upload", "POST", userData);
+            console.log("Upload response: ", res);
+
+            if (res.data) {
+                await new Promise((resolve) => {
+                    setUsers((prev) => {
+                        const updated = [...prev, res.data as User];
+                        resolve(updated);
+                        return updated;
+                    });
+                });
+            }
+
+            return res;
+        } catch (err: any) {
+            setError(err.message || "Failed to upload users.");
+        } finally {
+            setLoading(false)
+        }
+    };
+
+    // Update user 
+    const updateUser = async (id: string, userData: Partial<User>) => {
+        try {
+            setLoading(true);
+            const res = await apiRequest<User>(`/users/${id}`, "PATCH", userData);
+            console.log("Update response: ", res);
+
+            if (res.data) {
+                setUsers((prev) => prev.map((u) => (u._id === id ? res.data! : u)));
+            }
+        } catch (err: any) {
+            setError(err.message || "Failed to update user.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Delete user
+    const deleteUser = async (id: string) => {
+        try {
+            setLoading(true);
+            const res = await apiRequest(`/users/${id}`, "DELETE");
+            console.log("Delete response: ", res);
+
+            if (res.statusCode !== 200) {
+                throw new Error(res.message || "Failed to delete user.");
+            } else {
+                setUsers((prev) => prev.filter((u) => u._id !== id));
+            }
+        } catch (err: any) {
+            setError(err.message || "Failed to delete user.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Multiple delete
+    const deleteMultiple = async (ids: string[]) => {
+        try {
+            setLoading(true);
+
+            const res = await apiRequest("/users/multiple", "DELETE", ids);
+            console.log("Delete response: ", res);
+
+            if (res.statusCode !== 200) {
+                throw new Error(res.message || "Failed to delete user.");
+            } else {
+                setUsers((prev) => prev.filter((u) => !ids.includes(u._id)));
+            }
+        } catch (err: any) {
+            setError(err.message || "Failed to delete user.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    return {
+        users,
+        loading,
+        error,
+        fetchUsers,
+        createUser,
+        uploadUser,
+        updateUser,
+        deleteUser,
+        deleteMultiple,
+    };
+};

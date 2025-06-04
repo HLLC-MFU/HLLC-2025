@@ -1,6 +1,7 @@
 // stores/useProfile.ts
 import { create } from "zustand";
 import { apiRequest } from "@/utils/api";
+import { User, UserData } from "../types/user";
 
 interface ProfileStore {
   user: User | null;
@@ -15,9 +16,10 @@ const useProfile = create<ProfileStore>((set) => ({
 
   getProfile: async () => {
     try {
-      const res = await apiRequest<User>("/auth/profile");
+      const res = await apiRequest<User>("/users/profile");
       if (res.statusCode === 200 && res.data) {
         set({ user: res.data });
+        console.log(res.data);
         return res.data;
       } else {
         return null;

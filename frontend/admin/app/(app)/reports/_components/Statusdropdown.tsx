@@ -17,8 +17,8 @@ const STATUS_OPTIONS = [
 const getStatusColor = (status: Problem["status"]) => {
     switch (status) {
         case "Pending": return "danger";
-        case "In-Progress": return "warning";
-        case "Done": return "success";
+        case "In Progress": return "warning";
+        case "Resolved": return "success";
         default: return "danger";
     }
 };

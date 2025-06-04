@@ -1,30 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PopulateOptions, Types } from 'mongoose';
-
-// Entity & Document
 import { Report, ReportDocument } from './schemas/reports.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
-import {
-  ReportCategory,
-  ReportCategoryDocument,
-} from '../report_categories/schemas/report_categories.schemas';
-
-// DTO
-import { CreateReportDto } from './dto/create-report.dto';
-
-// Helpers
 import {
   queryAll,
   queryFindOne,
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
-import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
+import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { UpdateReportDto } from './dto/update-report.dto';
-
-const userSelectFields = 'username name';
+import { PopulateField } from 'src/pkg/types/query';
+import { CreateReportDto } from './dto/create-report.dto';
+import { ReportTypeDocument } from '../report-type/schemas/report-type.schema';
+import { ReportType } from '../report-type/schemas/report-type.schema';
 
 @Injectable()
 export class ReportsService {
@@ -35,9 +26,9 @@ export class ReportsService {
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
 
-    @InjectModel(ReportCategory.name)
-    private readonly categoryModel: Model<ReportCategoryDocument>,
-  ) { }
+    @InjectModel(ReportType.name)
+    private readonly reportTypeModel: Model<ReportTypeDocument>,
+  ) {}
 
   async create(createReportDto: CreateReportDto) {
     await findOrThrow(
@@ -46,9 +37,9 @@ export class ReportsService {
       'User not found',
     );
     await findOrThrow(
-      this.categoryModel,
+      this.reportTypeModel,
       createReportDto.category,
-      'Category not found',
+        'Report type not found',
     );
 
     const report = new this.reportModel({
@@ -58,39 +49,23 @@ export class ReportsService {
     });
 
     try {
-      const saved = await report.save();
-
-      const populateFields: PopulateOptions[] = [
-        { path: 'reporter', select: userSelectFields },
-        { path: 'category' },
-      ];
-
-      const populated = await this.reportModel
-        .findById(saved._id)
-        .populate(populateFields)
-        .lean()
-        .exec();
-
-      return {
-        message: 'Report created successfully',
-        createdId: saved._id,
-        data: populated,
-      };
+      return await report.save();
     } catch (error) {
-      handleMongoDuplicateError(error, 'reporter');
+      handleMongoDuplicateError(error, 'name');
     }
   }
 
   async findAll(query: Record<string, string>) {
     return queryAll<Report>({
       model: this.reportModel,
-      query,
+      query: {
+        ...query,
+        excluded:
+          'reporter.password,reporter.refreshToken,reporter.role,reporter.metadata,reporter.__v,__v',
+      },
       filterSchema: {},
-      buildPopulateFields: () =>
-        Promise.resolve([
-          { path: 'reporter', select: userSelectFields },
-          { path: 'category' },
-        ]),
+      populateFields: () =>
+        Promise.resolve([{ path: 'reporter' }, { path: 'category' }]),
     });
   }
 
@@ -105,11 +80,8 @@ export class ReportsService {
       filterSchema: {
         category: 'string',
       } as const,
-      buildPopulateFields: () =>
-        Promise.resolve([
-          { path: 'reporter', select: userSelectFields },
-          { path: 'category' },
-        ]),
+      populateFields: () =>
+        Promise.resolve([{ path: 'reporter' }, { path: 'category' }]),
     });
 
     const reportsWithoutCategory = result.data.map(
@@ -118,7 +90,7 @@ export class ReportsService {
 
     const category =
       result.data[0]?.category ||
-      (await this.categoryModel.findById(categoryId));
+      (await this.reportTypeModel.findById(categoryId));
 
     return {
       category,
@@ -127,8 +99,8 @@ export class ReportsService {
   }
 
   async findOne(id: string) {
-    const populateFields: PopulateOptions[] = [
-      { path: 'reporter', select: userSelectFields },
+    const populateFields: PopulateField[] = [
+      { path: 'reporter' },
       { path: 'category' },
     ];
     return queryFindOne<Report>(this.reportModel, { _id: id });
@@ -146,7 +118,7 @@ export class ReportsService {
     }
 
     const populateFields: PopulateOptions[] = [
-      { path: 'reporter', select: userSelectFields },
+      { path: 'reporter' },
       { path: 'category' },
     ];
 
@@ -171,5 +143,4 @@ export class ReportsService {
       deletedId: id,
     };
   }
-
 }

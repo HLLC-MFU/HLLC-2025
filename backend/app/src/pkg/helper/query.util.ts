@@ -4,7 +4,7 @@ import {
   SortOrder,
   UpdateQuery,
   FilterQuery,
-  PopulateOptions,
+  QueryOptions,
 } from 'mongoose';
 import { PaginatedResponse } from '../interceptors/response.interceptor';
 import {
@@ -13,6 +13,7 @@ import {
   PopulateField,
 } from '../types/query';
 import { NotFoundException } from '@nestjs/common';
+import { PopulateOptions } from 'mongoose';
 
 function parseSort(sortString?: string): Record<string, SortOrder> {
   if (!sortString) return {};
@@ -48,6 +49,37 @@ function parseFilters<T>(
   return filters as Record<keyof T | string, string | number | boolean>;
 }
 
+function buildPopulateWithExcludes(
+  rawPopulate: PopulateOptions[],
+  excludedNestedFields: string[],
+): PopulateOptions[] {
+  return rawPopulate.map((p) => {
+    const nestedExcludes = excludedNestedFields
+      .filter((f) => f.startsWith(`${p.path}.`))
+      .map((f) => f.slice(p.path.length + 1));
+
+    if (p.populate) {
+      const nestedPopulate = Array.isArray(p.populate)
+        ? p.populate
+        : [p.populate];
+      const filteredNestedPopulate = nestedPopulate.filter(
+        (item): item is PopulateOptions =>
+          typeof item === 'object' && item !== null,
+      );
+      p.populate = buildPopulateWithExcludes(
+        filteredNestedPopulate,
+        nestedExcludes,
+      );
+    }
+
+    const nestedSelects = nestedExcludes.map((f) => `-${f}`).join(' ');
+    const baseSelect = p.select ? `${p.select} -__v` : '-__v';
+    p.select = nestedSelects ? `${baseSelect} ${nestedSelects}` : baseSelect;
+
+    return p;
+  });
+}
+
 async function getLastUpdatedAt<T>(
   model: Model<HydratedDocument<T>>,
 ): Promise<string> {
@@ -63,6 +95,11 @@ async function getLastUpdatedAt<T>(
     : new Date().toISOString();
 }
 
+/**
+ *
+ * @param options
+ * @returns
+ */
 export async function queryAll<T>(
   options: QueryPaginationOptions<T>,
 ): Promise<PaginatedResponse<T> & { message: string }> {
@@ -70,114 +107,122 @@ export async function queryAll<T>(
     model,
     query = {},
     filterSchema,
-    buildPopulateFields,
+    populateFields,
     chunkSize = 1000,
     defaultLimit = 20,
   } = options;
 
   const { page = '1', limit, sort, excluded = '', ...rawFilters } = query;
-
-  const pageNum = parseInt(page, 10) || 1;
+  const pageNum = Math.max(parseInt(page, 10), 1);
   const limitNum = limit ? parseInt(limit, 10) : defaultLimit;
-  const excludedList = excluded.split(',').filter(Boolean);
+  const excludedFields = ['__v', ...excluded.split(',').filter(Boolean)];
+  const excludeSelect = excludedFields.map((f) => `-${f}`).join(' ');
 
-  const filters = parseFilters<T>(rawFilters, filterSchema);
-  const sortFields = parseSort(sort);
-  const populateFields = buildPopulateFields
-    ? await buildPopulateFields(excludedList)
-    : [];
+  const filters = parseFilters<T>(
+    rawFilters,
+    filterSchema,
+  ) as import('mongoose').RootFilterQuery<T>;
+  const sortBy = parseSort(sort);
 
-  const total = await model.countDocuments(
-    filters as import('mongoose').RootFilterQuery<T>,
-  );
-  const totalPages = limitNum > 0 ? Math.ceil(total / limitNum) : 1;
+  let populate: any[] = [];
+  if (populateFields) {
+    const rawPopulate = await populateFields(excludedFields);
+    populate = buildPopulateWithExcludes(rawPopulate, excludedFields); // 👈 ใช้ helper recursive
+  }
 
+  const totalPromise = model.countDocuments(filters);
+  const lastUpdatedAtPromise = getLastUpdatedAt(model);
   if (limitNum === 0) {
-    const totalChunks = Math.ceil(total / chunkSize);
-    const allData: T[] = [];
+    const total = await totalPromise;
+    const batchCount = Math.ceil(total / chunkSize);
 
-    for (let i = 0; i < totalChunks; i++) {
-      const chunkQuery = model
-        .find(filters as import('mongoose').RootFilterQuery<T>)
+    const allBatchPromises = Array.from({ length: batchCount }, (_, i) =>
+      model
+        .find(filters)
+        .select(excludeSelect)
         .skip(i * chunkSize)
         .limit(chunkSize)
-        .sort(sortFields);
+        .sort(sortBy)
+        .populate(populate)
+        .lean(),
+    );
 
-      populateFields.forEach((p) => {
-        chunkQuery.populate(p);
-      });
-
-      const chunk = (await chunkQuery) as T[];
-      allData.push(...chunk);
-    }
+    const allBatches = await Promise.all(allBatchPromises);
+    const allData = allBatches.flat();
 
     return {
-      data: allData,
+      data: allData as T[],
       meta: {
         total,
         page: 1,
         limit: total,
         totalPages: 1,
-        lastUpdatedAt: await getLastUpdatedAt(model),
+        lastUpdatedAt: await lastUpdatedAtPromise,
       },
-      message: 'Data fetched successfully',
+      message: `${model.modelName} fetched successfully`,
     };
   }
 
   const skip = (pageNum - 1) * limitNum;
-  const queryBuilder = model
-    .find(filters as import('mongoose').RootFilterQuery<T>)
+  const dataPromise = model
+    .find(filters)
+    .select(excludeSelect)
     .skip(skip)
     .limit(limitNum)
-    .sort(sortFields);
+    .sort(sortBy)
+    .populate(populate)
+    .lean();
 
-  populateFields.forEach((p) => {
-    queryBuilder.populate(p);
-  });
-
-  const [data, lastUpdatedAt] = await Promise.all([
-    queryBuilder as Promise<T[]>,
-    getLastUpdatedAt(model),
+  const [total, data, lastUpdatedAt] = await Promise.all([
+    totalPromise,
+    dataPromise,
+    lastUpdatedAtPromise,
   ]);
 
   return {
-    data,
+    data: data as T[],
     meta: {
       total,
       page: pageNum,
       limit: limitNum,
-      totalPages,
+      totalPages: Math.ceil(total / limitNum),
       lastUpdatedAt,
     },
-    message: 'Data fetched successfully',
+    message: `${model.modelName} fetched successfully`,
   };
 }
 
 /**
- * 
- * @param query 
- * @returns 
+ *
+ * @param query
+ * @returns
  * example: this.usersService.findOneByQuery({ username });
  */
 export async function queryFindOne<T>(
   model: Model<HydratedDocument<T>>,
   filter: FilterQuery<T>,
   populateFields?: PopulateField[],
-): Promise<HydratedDocument<T>> {
+): Promise<{ data: T[]; message: string }> {
+  // <- note: data is plain T[]
   const query = model.findOne(filter);
   populateFields?.forEach((p) => {
     query.populate(p);
   });
 
-  const result = await query;
+  const result = await query.lean({ virtuals: true });
 
   if (!result) {
-    throw new NotFoundException(`${filter._id ?? JSON.stringify(filter)} not found`);
+    throw new NotFoundException(
+      `${filter._id ?? JSON.stringify(filter)} not found`,
+    );
   }
 
-  return result;
+  const modelName = model.modelName ?? 'Document';
+  return {
+    data: [result as T], // no .toObject() needed, already plain
+    message: `${modelName} fetched successfully`,
+  };
 }
-
 
 export async function queryUpdateOne<T>(
   model: Model<HydratedDocument<T>>,
@@ -190,6 +235,43 @@ export async function queryUpdateOne<T>(
   if (!updated) {
     throw new NotFoundException(`Update failed, id ${id} not found`);
   }
+  return updated as T;
+}
+
+/**
+ *
+ * @param {Model<HydratedDocument<T>>} model - Mongoose model to query.
+ * @param {FilterQuery<T>} filter - Filter condition to find the document.
+ * @param {UpdateQuery<HydratedDocument<T>>} update - Update query for the document.
+ * @param {QueryOptions} [options={}] - Additional Mongoose update options (e.g., upsert, projection, runValidators).
+ * @returns {Promise<T>} - Updated document as a plain JavaScript object (lean).
+ * @example
+ * const updated = await queryUpdateOneByFilter<User>(
+ *   this.userModel,
+ *   { email: 'test@example.com' },
+ *   { $set: { name: 'Updated' } },
+ *   { upsert: true, runValidators: true }
+ * );
+ */
+export async function queryUpdateOneByFilter<T>(
+  model: Model<HydratedDocument<T>>,
+  filter: FilterQuery<T>,
+  update: UpdateQuery<HydratedDocument<T>>,
+  options: QueryOptions = {},
+): Promise<T> {
+  const updated = await model
+    .findOneAndUpdate(filter, update, {
+      new: true,
+      ...options,
+    })
+    .lean();
+
+  if (!updated) {
+    throw new NotFoundException(
+      `Update failed, filter: ${JSON.stringify(filter)} not found`,
+    );
+  }
+
   return updated as T;
 }
 
