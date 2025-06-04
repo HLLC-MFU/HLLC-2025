@@ -22,6 +22,7 @@ import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
+import { throwIfEmpty } from 'rxjs';
 
 @Injectable()
 export class UsersService {
@@ -256,15 +257,14 @@ export class UsersService {
    * @param uploadUserDto - The DTO containing user data to upload.
    * @returns An array of created User objects.
    */
-  async upload(uploadUserDto: UserUploadDirectDto): Promise<User[]> {
+  async upload(uploadUserDtos: UserUploadDirectDto[]): Promise<User[]> {
     const users = await Promise.all(
-      [uploadUserDto].map(async (userDto) => {
-        const userMajor = userDto.metadata?.major || uploadUserDto.metadata?.major;
+      uploadUserDtos.map(async (userDto) => {
+        const userMajor = userDto.metadata?.major;
         if (!userMajor) {
           throw new BadRequestException('Major is required');
         }
   
-        // Validate major exists in DB
         const userMajorRecord = await this.majorModel.findById(userMajor).lean();
         if (!userMajorRecord) {
           throw new NotFoundException('Major in database not found');
@@ -277,12 +277,11 @@ export class UsersService {
             last: userDto.name.last || '',
           },
           username: userDto.username,
-          password: '', // or null
-          role: new Types.ObjectId(uploadUserDto.role),
+          password: '', // password is intentionally blank
+          role: new Types.ObjectId(userDto.role),
           metadata: {
-            major: userMajor, // store under metadata.major
-            type: userDto.metadata?.type || null,
-            secret: null, // explicitly set to null
+            major: userMajor,       // ✅ only setting major
+            secret: null,           // ✅ explicitly set to null
           },
         };
       }),
@@ -301,6 +300,7 @@ export class UsersService {
       throw new BadRequestException(error);
     }
   }
+  
   
 
   async registerDeviceToken(
