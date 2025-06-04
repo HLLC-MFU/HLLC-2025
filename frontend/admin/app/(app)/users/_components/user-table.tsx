@@ -55,7 +55,7 @@ export default function UsersTable({
   users: User[];
   schools: School[];
 }) {
-  const { fetchUsers, createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
+  const { createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
 
   const [isAddOpen, setIsAddOpen] = React.useState<boolean>(false);
   const [isImportOpen, setIsImportOpen] = React.useState<boolean>(false);
@@ -173,14 +173,21 @@ export default function UsersTable({
   );
 
   const handleAdd = (user: Partial<User>) => {
-    if (actionText === "Add") createUser(user);
-    if (actionText === "Edit") updateUser(users[userIndex]._id, user);
+    if (actionText === "Add") {
+      createUser(user)
+    };
+    if (actionText === "Edit") {
+      updateUser(users[userIndex]._id, user)
+    };
     setIsAddOpen(false);
     AddToast({
       title: "Add Successfully",
       description: "Data has added successfully",
     });
-    fetchUsers();
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   const handleImport = (user: Partial<User>[]) => {
@@ -190,7 +197,10 @@ export default function UsersTable({
       title: "Import Successfully",
       description: "Data has imported successfully",
     });
-    fetchUsers();
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   const handleExport = (fileName?: string) => {
@@ -231,7 +241,6 @@ export default function UsersTable({
       title: "Export Successfully",
       description: "Data has exported successfully",
     });
-    fetchUsers();
   }
 
   const handleDelete = () => {
@@ -245,7 +254,10 @@ export default function UsersTable({
       title: "Delete Successfully",
       description: "Data has deleted successfully",
     });
-    fetchUsers();
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   return (

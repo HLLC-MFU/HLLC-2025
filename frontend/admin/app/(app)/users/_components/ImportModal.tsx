@@ -83,7 +83,6 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                     }
                 };
 
-                // console.log(mapData);
                 return mapData;
             });
 
