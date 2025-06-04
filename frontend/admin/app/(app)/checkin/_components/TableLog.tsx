@@ -47,6 +47,7 @@ export function TableLog() {
   const [activtyFilter, setActivityFilter] = React.useState<Set<string>>(new Set());
   const { activities } = useActivity();
 
+  
 
   const hasSearchFilter = Boolean(filterValue);
 
