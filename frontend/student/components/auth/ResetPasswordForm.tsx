@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Input, SizableText, YStack, XStack, Sheet, Label } from 'tamagui';
 import { PasswordInput } from '@/components/PasswordInput';
 import { ProvinceSelector } from '@/components/ProvinceSelector';
@@ -37,6 +37,57 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
   onReset,
   onClose,
 }) => {
+  const [errors, setErrors] = useState({
+    username: '',
+    password: '',
+    confirmPassword: '',
+    secret: '',
+  });
+
+  const validateForm = () => {
+    const newErrors = {
+      username: '',
+      password: '',
+      confirmPassword: '',
+      secret: '',
+    };
+    let isValid = true;
+
+    if (!username) {
+      newErrors.username = 'กรุณากรอกรหัสนักศึกษา';
+      isValid = false;
+    }
+
+    if (!password) {
+      newErrors.password = 'กรุณากรอกรหัสผ่านใหม่';
+      isValid = false;
+    }
+
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'กรุณายืนยันรหัสผ่านใหม่';
+      isValid = false;
+    }
+
+    if (!secret) {
+      newErrors.secret = 'กรุณาเลือกจังหวัด';
+      isValid = false;
+    }
+
+    if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'รหัสผ่านไม่ตรงกัน';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleReset = () => {
+    if (validateForm()) {
+      onReset();
+    }
+  };
+
   return (
     <Sheet.Frame padding="$4" flex={1}>
       <Sheet.Handle />
@@ -52,44 +103,60 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
 
         <YStack space="$3">
           <YStack space="$1">
-            <Label htmlFor="reset-username">รหัสนักศึกษา</Label>
+            <Label>รหัสนักศึกษา</Label>
             <Input
-              id="reset-username"
               height={50}
               width={'100%'}
               borderWidth={2}
               focusStyle={{ borderColor: '$colorFocus' }}
               placeholder="6xxxxxxx"
               value={username}
-              onChangeText={setUsername}
+              onChangeText={(text) => {
+                setUsername(text);
+                setErrors(prev => ({ ...prev, username: '' }));
+              }}
               style={{ backgroundColor: 'white' }}
               keyboardType="numeric"
-              maxLength={8}
+              maxLength={10}
             />
+            {errors.username ? (
+              <SizableText color="$red10" fontSize={12}>{errors.username}</SizableText>
+            ) : null}
           </YStack>
 
           <YStack space="$1">
-            <Label htmlFor="reset-password">รหัสผ่านใหม่</Label>
+            <Label>รหัสผ่านใหม่</Label>
             <PasswordInput
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => {
+                setPassword(text);
+                setErrors(prev => ({ ...prev, password: '' }));
+              }}
               placeholder="รหัสผ่านใหม่"
             />
+            {errors.password ? (
+              <SizableText color="$red10" fontSize={12}>{errors.password}</SizableText>
+            ) : null}
           </YStack>
 
           <YStack space="$1">
-            <Label htmlFor="reset-confirm-password">ยืนยันรหัสผ่านใหม่</Label>
+            <Label>ยืนยันรหัสผ่านใหม่</Label>
             <PasswordInput
               value={confirmPassword}
-              onChangeText={setConfirmPassword}
+              onChangeText={(text) => {
+                setConfirmPassword(text);
+                setErrors(prev => ({ ...prev, confirmPassword: '' }));
+              }}
               placeholder="ยืนยันรหัสผ่านใหม่"
             />
+            {errors.confirmPassword ? (
+              <SizableText color="$red10" fontSize={12}>{errors.confirmPassword}</SizableText>
+            ) : null}
           </YStack>
 
           <YStack space="$1">
-            <Label htmlFor="reset-secret">จังหวัด</Label>
+            <Label>จังหวัด</Label>
             <Button
-              id="reset-secret"
               width={'100%'}
               height={50}
               borderWidth={2}
@@ -99,11 +166,14 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
             >
               {secret ? provinces.find(p => p.name_en === secret)?.name_th : 'เลือกจังหวัด'}
             </Button>
+            {errors.secret ? (
+              <SizableText color="$red10" fontSize={12}>{errors.secret}</SizableText>
+            ) : null}
           </YStack>
 
           <Button 
             width="100%" 
-            onPress={onReset}
+            onPress={handleReset}
             disabled={isLoading}
             opacity={isLoading ? 0.7 : 1}
           >
@@ -117,7 +187,10 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
         onOpenChange={setIsProvinceSheetOpen}
         provinces={provinces}
         selectedProvince={secret}
-        onSelect={setSecret}
+        onSelect={(value) => {
+          setSecret(value);
+          setErrors(prev => ({ ...prev, secret: '' }));
+        }}
       />
     </Sheet.Frame>
   );

@@ -20,7 +20,7 @@ export default function LoginScreen() {
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [regSecret, setRegSecret] = useState('');
   const [resetUsername, setResetUsername] = useState('');
-  const [resetPassword, setResetPassword] = useState('');
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
   const [resetConfirmPassword, setResetConfirmPassword] = useState('');
   const [resetSecret, setResetSecret] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +32,7 @@ export default function LoginScreen() {
   const [isResetProvinceSheetOpen, setIsResetProvinceSheetOpen] = useState(false);
 
   // Hooks
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const { validateStudentId, validatePassword } = usePasswordValidation();
   const toast = useToastController();
   const shiftAnim = useRef(new Animated.Value(0)).current;
@@ -73,7 +73,9 @@ export default function LoginScreen() {
       username: regUsername,
       password: regPassword,
       confirmPassword: regConfirmPassword,
-      secret: regSecret,
+      metadata: {
+        secret: regSecret
+      }
     });
 
     if (success) {
@@ -85,54 +87,45 @@ export default function LoginScreen() {
   };
 
   const handleResetPassword = async () => {
-    if (!resetUsername || !resetPassword || !resetConfirmPassword || !resetSecret) {
+    if (!resetUsername || !resetPasswordValue || !resetConfirmPassword || !resetSecret) {
       toast.show('กรุณากรอกข้อมูลให้ครบ', { message: 'กรุณากรอกข้อมูลทุกช่อง', type: 'error' });
       return;
     }
 
-    if (!validateStudentId(resetUsername)) {
-      toast.show('รหัสนักศึกษาไม่ถูกต้อง', {
-        message: 'รหัสนักศึกษาต้องขึ้นต้นด้วย 6 ตามด้วยตัวเลข 7 หลัก',
-        type: 'error',
-      });
-      return;
-    }
-
-    if (!validatePassword(resetPassword)) {
-      toast.show('รหัสผ่านไม่ถูกต้อง', {
-        message: 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร ประกอบด้วยตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก และตัวเลข',
-        type: 'error',
-      });
-      return;
-    }
-
-    if (resetPassword !== resetConfirmPassword) {
+    if (resetPasswordValue !== resetConfirmPassword) {
       toast.show('รหัสผ่านไม่ตรงกัน', { message: 'กรุณากรอกรหัสผ่านให้ตรงกัน', type: 'error' });
       return;
     }
 
     try {
       setIsLoading(true);
-      const res = await apiRequest('/auth/reset-password', 'POST', {
+      const resetData = {
         username: resetUsername,
-        password: resetPassword,
+        password: resetPasswordValue,
         confirmPassword: resetConfirmPassword,
-        secret: resetSecret,
-      });
+        metadata: {
+          secret: resetSecret
+        }
+      };
 
-      if (res.statusCode === 200) {
+      const success = await resetPassword(resetData);
+
+      if (success) {
         toast.show('รีเซ็ตรหัสผ่านสำเร็จ', {
           message: 'คุณสามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้แล้ว',
           type: 'success',
         });
-        setIsForgotPasswordSheetOpen(false);
         setResetUsername('');
-        setResetPassword('');
+        setResetPasswordValue('');
         setResetConfirmPassword('');
         setResetSecret('');
+        setTimeout(() => {
+          setIsForgotPasswordSheetOpen(false);
+        }, 500);
       } else {
+        const error = useAuth.getState().error;
         toast.show('รีเซ็ตรหัสผ่านไม่สำเร็จ', {
-          message: res.message || 'กรุณาลองใหม่อีกครั้ง',
+          message: error || 'กรุณาลองใหม่อีกครั้ง',
           type: 'error',
         });
       }
@@ -205,8 +198,8 @@ export default function LoginScreen() {
         <ResetPasswordForm
           username={resetUsername}
           setUsername={setResetUsername}
-          password={resetPassword}
-          setPassword={setResetPassword}
+          password={resetPasswordValue}
+          setPassword={setResetPasswordValue}
           confirmPassword={resetConfirmPassword}
           setConfirmPassword={setResetConfirmPassword}
           secret={resetSecret}
