@@ -10,7 +10,6 @@ import {
   Patch,
   Post,
   Req,
-  BadRequestException,
 } from '@nestjs/common';
 
 import { UsersService } from './users.service';
@@ -21,10 +20,7 @@ import { CacheKey } from '@nestjs/cache-manager';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
-import { isValidObjectId } from 'mongoose';
 import { FastifyRequest } from 'fastify';
-import { UserUploadDirectDto } from './dto/upload.user.dto';
-
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('users')
@@ -35,38 +31,53 @@ export class UsersController {
   @Public()
   @CacheKey('users:invalidate')
   create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto)
+    return this.usersService.create(createUserDto);
   }
 
   @Get()
   @Permissions('users:read')
   @CacheKey('users')
-  async findAll(@Query() query: Record<string, any>) {
+  async findAll(@Query() query: Record<string, string>) {
+    return this.usersService.findAll(query);
+  }
+
+  @Get('by-query')
+  @Permissions('users:read')
+  @CacheKey('users:by-query')
+  async findAllByQuery(@Query() query: Record<string, string>) {
     return this.usersService.findAllByQuery(query);
   }
 
-  @Get('me')
-  async getProfile(@Req() req: FastifyRequest & { user?: { _id: string } }) {
-    const userId = req.user?._id;
-
-    if (!userId || !isValidObjectId(userId)) {
-      throw new BadRequestException('Invalid user ID');
-    }
-
-    return this.usersService.findOneByQuery({ _id: userId });
+  @Get('statistics')
+  @Permissions('users:read')
+  @CacheKey('users:statistics')
+  async getUserCountByRoles(): Promise<
+    Record<string, { registered: number; notRegistered: number }>
+  > {
+    return this.usersService.getUserCountByRoles();
   }
 
   @Get(':id')
   @Permissions('users:read:id')
   @CacheKey('users:$params.id')
+  @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
-  @Post('upload')
-  @Public()
-  upload(@Body() userUploadDirectDto: UserUploadDirectDto[]) {
-    return this.usersService.upload(userUploadDirectDto);
+  @Get('profile')
+  @CacheKey('users:$req.user')
+  getProfile(
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
+  ) {
+    const user = req.user as { _id?: string; id?: string };
+    const userId: string = user?._id ?? user?.id ?? '';
+    if (!userId) {
+      return null;
+    }
+    return this.usersService.findOneByQuery({
+      _id: userId,
+    });
   }
 
   @Patch(':id')
@@ -93,8 +104,8 @@ export class UsersController {
   // @CacheKey('users:read:id')
   @Public()
   registerDeviceToken(
-    @Param('id') id: string, 
-    @Body() registerTokenDto: Record<string, string>
+    @Param('id') id: string,
+    @Body() registerTokenDto: Record<string, string>,
   ) {
     return this.usersService.registerDeviceToken(id, registerTokenDto);
   }
@@ -103,7 +114,7 @@ export class UsersController {
   @Public()
   removeDeviceToken(
     @Param('id') id: string,
-    @Param('deviceToken') deviceToken: string
+    @Param('deviceToken') deviceToken: string,
   ) {
     return this.usersService.removeDeviceToken(id, deviceToken);
   }

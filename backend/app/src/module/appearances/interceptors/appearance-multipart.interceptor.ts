@@ -7,22 +7,36 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
-import { Observable } from 'rxjs';
+import { Observable, from } from 'rxjs';
 import { generateFilename, saveFileToUploadDir } from 'src/pkg/config/storage.config';
+import { MultipartFile, MultipartValue } from '@fastify/multipart';
+
+interface AppearanceDto {
+  colors: Record<string, string>;
+  assets: Record<string, string>;
+  [key: string]: string | Record<string, string>;
+}
+
+interface MultipartRequest extends FastifyRequest {
+  parts(): AsyncIterableIterator<MultipartFile | MultipartValue<string>>;
+}
 
 @Injectable()
-export class AppearanceMultipartInterceptor implements NestInterceptor {
+export class AppearanceMultipartInterceptor implements NestInterceptor<MultipartRequest, AppearanceDto> {
   constructor(private readonly maxSizeKbs = 500) {}
 
-  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
-    const req = context.switchToHttp().getRequest<FastifyRequest>();
-    const parts = (req as any).parts?.();
+  async intercept(
+    context: ExecutionContext,
+    next: CallHandler
+  ): Promise<Observable<AppearanceDto>> {
+    const req = context.switchToHttp().getRequest<MultipartRequest>();
+    const parts = req.parts?.();
 
     if (!parts) {
       throw new HttpException('multipart/form-data required', HttpStatus.BAD_REQUEST);
     }
 
-    const dto: any = {
+    const dto: AppearanceDto = {
       colors: {},
       assets: {}
     };
@@ -30,14 +44,16 @@ export class AppearanceMultipartInterceptor implements NestInterceptor {
     for await (const part of parts) {
       const keys = part.fieldname.match(/[^[\]]+/g);
       if (!keys) {
-        dto[part.fieldname] = part.value;
+        if (this.isField(part)) {
+          dto[part.fieldname] = part.value;
+        }
         continue;
       }
 
       const [fieldName, subField] = keys;
 
       // Handle file uploads (only for assets)
-      if (part.type === 'file') {
+      if (this.isFile(part)) {
         if (fieldName !== 'assets') {
           throw new HttpException(
             `Files can only be uploaded to assets fields, got: ${fieldName}`,
@@ -63,7 +79,7 @@ export class AppearanceMultipartInterceptor implements NestInterceptor {
       }
 
       // Handle color fields
-      if (part.type === 'field') {
+      if (this.isField(part)) {
         if (fieldName === 'colors' && subField) {
           // Validate hex color format
           const colorValue = part.value;
@@ -82,6 +98,14 @@ export class AppearanceMultipartInterceptor implements NestInterceptor {
     }
 
     req.body = dto;
-    return next.handle();
+    return from(Promise.resolve(dto));
+  }
+
+  private isFile(part: MultipartFile | MultipartValue<string>): part is MultipartFile {
+    return 'filename' in part;
+  }
+
+  private isField(part: MultipartFile | MultipartValue<string>): part is MultipartValue<string> {
+    return 'value' in part;
   }
 } 

@@ -9,25 +9,19 @@ import { RoleModule } from './module/role/role.module';
 import { AuthModule } from './module/auth/auth.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { GlobalCacheModule } from './pkg/cache/cache.module';
-import { ActivitiesModule } from './module/activities/activities.module';
-import { NotificationsModule } from './module/notifications/notifications.module';
 import * as redisStore from 'cache-manager-ioredis';
-import { CheckinModule } from './module/checkin/checkin.module';
-import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
-import { EvoucherTypeModule } from './module/evoucher-type/evoucher-type.module';
-import { EvoucherModule } from './module/evoucher/evoucher.module';
-import { EvoucherCodeModule } from './module/evoucher-code/evoucher-code.module';
-import { SponsorsModule } from './module/sponsors/sponsors.module';
-import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
-import { CampaignsModule } from './module/campaigns/campaigns.module';
 import { SseModule } from './module/sse/sse.module';
+import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
 import { ReportTypeModule } from './module/report-type/report-type.module';
 import { ReportsModule } from './module/reports/reports.module';
 import { AppearancesModule } from './module/appearances/appearances.module';
 import { SystemStatusModule } from './module/system-status/system-status.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
-import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
+import { SponsorsModule } from './module/sponsors/sponsors.module';
+import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
+import { CheckinModule } from './module/checkin/checkin.module';
+import { ActivitiesModule } from './module/activities/activities.module';
 
 @Module({
   imports: [
@@ -55,23 +49,17 @@ import { SystemStatusGuard } from './module/system-status/guards/system-status.g
     AuthModule,
     RoleModule,
     UsersModule,
-    CheckinModule,
     SchoolsModule,
-    MajorsModule,
-    ActivitiesModule,
-    ActivitiesTypeModule,
-    EvoucherTypeModule,
-    EvoucherModule,
-    EvoucherCodeModule,
     SponsorsModule,
     SponsorsTypeModule,
-    CampaignsModule,
-    NotificationsModule,
+    MajorsModule,
     ReportTypeModule,
     SystemStatusModule,
     AppearancesModule,
     ReportsModule,
-    SseModule
+    SseModule,
+    CheckinModule,
+    ActivitiesModule
   ],
   providers: [
     {
@@ -83,6 +71,5 @@ import { SystemStatusGuard } from './module/system-status/guards/system-status.g
       useClass: SystemStatusGuard,
     },
   ],
-
 })
-export class AppModule { }
+export class AppModule {}

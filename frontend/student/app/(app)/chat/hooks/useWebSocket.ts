@@ -6,7 +6,7 @@ import { getToken } from '@/utils/storage';
 
 // Use actual IP for Android, localhost for iOS
 const WS_BASE_URL = Platform.OS === 'android' 
-  ? 'ws://10.0.2.2:1334'  // Android emulator maps 10.0.2.2 to host machine's localhost
+  ? 'ws://10.0.2.2:1334'  
   : 'ws://localhost:1334';
 
 // Maximum number of messages to keep in memory
@@ -41,6 +41,9 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
   const [typing, setTyping] = useState<{ id: string; name?: string }[]>([]);
   
+  // Keep track of sent message IDs to prevent duplicates
+  const sentMessageIds = useRef<Set<string>>(new Set());
+  
   // Keep track of connection state
   const isConnecting = useRef(false);
   const connectionTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -72,14 +75,22 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     setConnectedUsers(prev => prev.filter(u => u.id !== userId));
   }, []);
 
-  // Add message with memory management
+  // Add message with memory management and deduplication
   const addMessage = useCallback((message: Message) => {
     setMessages(prev => {
+      // Check if message already exists
+      if (prev.some(msg => msg.id === message.id) || sentMessageIds.current.has(message.id)) {
+        return prev;
+      }
+      
       const newMessage = { 
         ...message, 
         id: message.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         timestamp: message.timestamp || new Date().toISOString()
       };
+      
+      // Add message ID to sent messages set
+      sentMessageIds.current.add(newMessage.id);
       
       const newMessages = [...prev, newMessage];
       return newMessages.slice(-MAX_MESSAGES);
@@ -117,12 +128,25 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
 
   // Connect function to avoid redundant code
   const connect = useCallback(async (roomId: string) => {
-    if (!roomId || !user?._id || isConnecting.current) return;
+    if (!roomId || !user?.data[0]._id) {
+      console.log('Cannot connect: missing roomId or userId', {
+        roomId,
+        userId: user?.data[0]._id
+      });
+      return;
+    }
+
+    // If already connecting or connected, don't try to connect again
+    if (isConnecting.current || (ws && ws.readyState === WebSocket.OPEN)) {
+      console.log('WebSocket already connecting or connected');
+      return;
+    }
 
     try {
       isConnecting.current = true;
       const token = await getToken('accessToken');
       if (!token) {
+        console.error('No access token found');
         throw new Error('No access token found');
       }
 
@@ -132,18 +156,20 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       const currentTime = Date.now();
       
       if (currentTime >= expirationTime) {
+        console.error('Token expired', {
+          expirationTime,
+          currentTime
+        });
         throw new Error('Token expired');
       }
 
-      // Only connect if not already connected
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        console.log('WebSocket already connected');
-        isConnecting.current = false;
-        return;
-      }
-
-      const wsUrl = `${WS_BASE_URL}/ws/${roomId}/${user._id}`;
-      console.log('Connecting to WebSocket:', wsUrl);
+      const wsUrl = `${WS_BASE_URL}/ws/${roomId}/${user?.data[0]._id}`;
+      console.log('Attempting to connect to WebSocket:', {
+        url: wsUrl,
+        roomId,
+        userId: user?.data[0]._id,
+        platform: Platform.OS
+      });
       
       // Close existing connection if any
       if (ws) {
@@ -164,7 +190,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       
       connectionTimeout.current = setTimeout(() => {
         if (socket.readyState !== WebSocket.OPEN) {
-          console.log('Connection timeout');
+          console.log('Connection timeout - socket state:', socket.readyState);
           socket.close();
           isConnecting.current = false;
           setError('Connection timeout');
@@ -172,7 +198,8 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       }, 5000);
       
       socket.onopen = () => {
-        console.log('WebSocket Connected');
+        console.log('WebSocket Connected successfully');
+        console.log('Connection state:', socket.readyState);
         setIsConnected(true);
         setError(null);
         reconnectAttempts.current = 0;
@@ -203,7 +230,11 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       };
 
       socket.onclose = (event) => {
-        console.log('WebSocket Disconnected', event.code, event.reason);
+        console.log('WebSocket Disconnected', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean
+        });
         setIsConnected(false);
         isConnecting.current = false;
         
@@ -222,7 +253,11 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       };
 
       socket.onerror = (error) => {
-        console.error('WebSocket Error:', error);
+        console.error('WebSocket Error:', {
+          error,
+          readyState: socket.readyState,
+          url: wsUrl
+        });
         setError('Failed to connect to chat server');
         isConnecting.current = false;
         
@@ -269,7 +304,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                     isRead: false,
                   };
                 } else {
-                  // Try to parse the message content if it's a JSON string
+                  // Parse message content
                   let messageContent = messageData.message;
                   let replyTo = undefined;
                   
@@ -299,33 +334,11 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                 }
 
                 console.log('Adding history message:', newMessage);
-                setMessages(prev => {
-                  // Check if message already exists
-                  if (prev.some(msg => msg.id === newMessage.id)) {
-                    return prev;
-                  }
-                  const updatedMessages = [...prev, newMessage];
-                  console.log('Updated messages after history:', updatedMessages);
-                  return updatedMessages;
-                });
+                addMessage(newMessage);
               } catch (parseError) {
                 console.error('Error parsing history message:', parseError);
               }
             }
-          } else if (data.eventType === 'sticker') {
-            const stickerData = data.payload;
-            const newMessage: Message = {
-              id: Date.now().toString(),
-              text: '',
-              senderId: stickerData.userId,
-              senderName: stickerData.userId,
-              type: 'sticker',
-              timestamp: new Date().toISOString(),
-              isRead: false,
-              stickerId: stickerData.stickerId,
-              image: stickerData.sticker
-            };
-            setMessages(prev => [...prev, newMessage]);
           } else if (data.eventType === 'message') {
             // Handle direct message
             try {
@@ -333,7 +346,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
               console.log('Received new message:', messageData);
 
               // Check if this is our own message (sent by us)
-              const isOwnMessage = messageData.userId === user?._id;
+              const isOwnMessage = messageData.userId === user?.data[0]._id;
               
               // Only add message if it's not our own (since we already added it via addMessage)
               if (!isOwnMessage) {
@@ -364,11 +377,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
                   replyTo: replyTo
                 };
                 console.log('Adding new message:', newMessage);
-                setMessages(prev => {
-                  const updatedMessages = [...prev, newMessage];
-                  console.log('Updated messages after new message:', updatedMessages);
-                  return updatedMessages;
-                });
+                addMessage(newMessage);
               }
             } catch (parseError) {
               console.error('Error parsing new message:', parseError);
@@ -394,10 +403,10 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         attemptReconnect();
       }, 3000);
     }
-  }, [roomId, user?._id, addMessage, attemptReconnect]);
+  }, [roomId, user?.data[0]._id, addMessage, attemptReconnect]);
 
   useEffect(() => {
-    if (roomId && user?._id && !isConnecting.current) {
+    if (roomId && user?.data[0]._id && !isConnecting.current) {
       connect(roomId);
     }
     
@@ -450,6 +459,12 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     }
 
     try {
+      // Generate a unique message ID
+      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Add message ID to sent messages set
+      sentMessageIds.current.add(messageId);
+      
       // Send message directly
       ws.send(message);
     } catch (error) {

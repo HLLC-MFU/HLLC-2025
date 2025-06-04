@@ -14,7 +14,8 @@ import {
   DollarSign,
   
   Palette,
-  Megaphone,
+  BellRing
+  
 } from "lucide-react";
 
 export const siteConfig = {
@@ -30,6 +31,7 @@ export const siteConfig = {
     {
       section: "User Management",
       items: [
+        { label: "Notification Management", href: '/NotifyHub', icon: BellRing },
         { label: "Checkin" , href: "/checkin", icon: CircleCheckBig},
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Users Management", href: "/users", icon: UserIcon },

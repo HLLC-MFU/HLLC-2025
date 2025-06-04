@@ -17,7 +17,7 @@ export class SponsorsController {
   }
 
   @Get()
-  findAll(@Query() query: Record<string, any>) {
+  findAll(@Query() query: Record<string, string>) {
     return this.sponsorsService.findAll(query);
   }
 

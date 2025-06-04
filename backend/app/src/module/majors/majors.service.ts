@@ -53,10 +53,7 @@ export class MajorsService {
       model: this.majorModel,
       query,
       filterSchema: {},
-      populateFields: (excluded) =>
-        Promise.resolve(
-          excluded.includes('school') ? [] : [{ path: 'school' }],
-        ),
+      populateFields: () => Promise.resolve([{ path: 'school' }]),
     });
   }
 
@@ -72,10 +69,6 @@ export class MajorsService {
   }
 
   async remove(id: string) {
-    await queryDeleteOne<Major>(this.majorModel, id);
-    return {
-      message: 'Major deleted successfully',
-      id,
-    }
+    return queryDeleteOne<Major>(this.majorModel, id);
   }
 }

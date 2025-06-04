@@ -18,4 +18,3 @@ export class Appearance {
 export const ApprearanceSchema = SchemaFactory.createForClass(Appearance);
 
 ApprearanceSchema.index({ school: 1 }, { unique: true });
-

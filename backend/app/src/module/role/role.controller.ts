@@ -15,7 +15,7 @@ import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
 
 @Controller('roles')
 export class RoleController {
-  constructor(private readonly roleService: RoleService) { }
+  constructor(private readonly roleService: RoleService) {}
 
   @Post()
   create(@Body() createRoleDto: CreateRoleDto) {
@@ -49,6 +49,4 @@ export class RoleController {
   remove(@Param('id') id: string) {
     return this.roleService.remove(id);
   }
-
-
 }

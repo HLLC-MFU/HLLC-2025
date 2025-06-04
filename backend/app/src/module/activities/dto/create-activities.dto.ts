@@ -1,50 +1,15 @@
-import { IsNotEmpty, IsString, IsObject, IsOptional, IsBoolean, IsArray } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsNotEmpty, IsArray, IsString, IsObject } from 'class-validator';
 
 import { Localization, Photo } from 'src/pkg/types/common';
-
-export class ActivityScopeDto {
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  major?: string[];
-
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  school?: string[];
-
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  user?: string[];
-}
-
-export class ActivityMetadataDto {
-  @IsBoolean()
-  @IsOptional()
-  isOpen?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  isProgressCount?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  isVisible?: boolean;
-
-  @IsOptional()
-  scope?: ActivityScopeDto;
-}
 
 export class CreateActivitiesDto {
   @IsObject()
   @IsNotEmpty()
-  name: Localization;
+  fullName: Localization;
 
-  @IsString()
+  @IsObject()
   @IsNotEmpty()
-  acronym: string;
+  shortName: Localization;
 
   @IsObject()
   @IsNotEmpty()
@@ -58,6 +23,10 @@ export class CreateActivitiesDto {
   @IsNotEmpty()
   type: string;
 
+  @IsString()
+  @IsNotEmpty()
+  createdBy: string;
+
   @IsObject()
   @IsNotEmpty()
   photo: Photo;
@@ -66,9 +35,11 @@ export class CreateActivitiesDto {
   @IsNotEmpty()
   location: string;
 
-  @IsOptional()
+  @IsArray()
+  @IsNotEmpty()
+  tags: string[];
+
   @IsObject()
   @IsNotEmpty()
-  @Type(() => ActivityMetadataDto)
-  metadata?: ActivityMetadataDto;
+  metadata: Record<string, any>;
 }

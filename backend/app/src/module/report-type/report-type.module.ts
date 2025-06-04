@@ -5,9 +5,13 @@ import { ReportType, ReportTypeSchema } from './schemas/report-type.schema';
 import { ReportTypeService } from './report-type.service';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: ReportType.name, schema: ReportTypeSchema }])],
+  imports: [
+    MongooseModule.forFeature([
+      { name: ReportType.name, schema: ReportTypeSchema },
+    ]),
+  ],
   exports: [ReportTypeService],
   controllers: [ReportTypeController],
   providers: [ReportTypeService],
 })
-export class ReportTypeModule { }
+export class ReportTypeModule {}

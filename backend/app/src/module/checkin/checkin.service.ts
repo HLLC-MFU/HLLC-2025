@@ -65,17 +65,15 @@ export class CheckinService {
   }
 
   async findAll(query: Record<string, string>) {
-    const populateFields: PopulateField[] = [
-      { path: 'user', select: userSelectFields },
-      { path: 'staff', select: userSelectFields },
-      { path: 'activities' },
-    ];
 
     return queryAll<Checkin>({
       model: this.checkinModel,
       query,
       filterSchema: {},
-      populateFields: (excluded) => Promise.resolve(populateFields),
+      populateFields: (excluded) =>
+        Promise.resolve(
+          excluded.includes('school') ? [] : [{ path: 'user' } , {path: 'activities'}] as PopulateField[],
+        ),
     });
   }
 
@@ -121,10 +119,6 @@ export class CheckinService {
   }
 
   async remove(id: string) {
-    await queryDeleteOne<Checkin>(this.checkinModel, id);
-    return {
-      message: 'Checkin deleted successfully',
-      id,
-    }
+    return queryDeleteOne<Checkin>(this.checkinModel, id);
   }
 }

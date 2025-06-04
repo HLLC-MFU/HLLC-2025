@@ -17,5 +17,5 @@ export class CreateSponsorDto {
 
     @IsObject()
     @IsOptional()
-    metadata?: Record<string, any>;
+    metadata?: Record<string, string>;
 }

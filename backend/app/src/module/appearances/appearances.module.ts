@@ -5,9 +5,13 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Appearance, ApprearanceSchema } from './schemas/apprearance.schema';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Appearance.name, schema: ApprearanceSchema }]),],
+  imports: [
+    MongooseModule.forFeature([
+      { name: Appearance.name, schema: ApprearanceSchema },
+    ]),
+  ],
   controllers: [AppearancesController],
   providers: [AppearancesService],
   exports: [MongooseModule],
 })
-export class AppearancesModule { }
+export class AppearancesModule {}

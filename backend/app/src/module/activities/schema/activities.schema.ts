@@ -1,81 +1,49 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types, Schema as MongooseSchema } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import { Localization, Photo } from 'src/pkg/types/common';
 
 export type ActivityDocument = HydratedDocument<Activities>;
 
-@Schema({ _id: false })
-class ActivityScope {
-  @Prop({ type: [MongooseSchema.Types.ObjectId], default: [] })
-  major: MongooseSchema.Types.ObjectId[];
-
-  @Prop({ type: [MongooseSchema.Types.ObjectId], default: [] })
-  school: MongooseSchema.Types.ObjectId[];
-
-  @Prop({ type: [MongooseSchema.Types.ObjectId], default: [] })
-  user: MongooseSchema.Types.ObjectId[];
-}
-
-@Schema({ _id: false })
-class ActivityMetadata {
-  @Prop({ default: true })
-  isOpen: boolean;
-  
-  @Prop({ default: false })
-  isProgressCount: boolean;
-
-  @Prop({ default: true })
-  isVisible: boolean;
-
-  @Prop({ type: ActivityScope, default: { major: [], school: [], user: [] } })
-  scope: ActivityScope;
-}
-
 @Schema({ timestamps: true })
 export class Activities {
-  @Prop({ type: Object, required: true })
-  name: Localization;
+  @Prop({ required: true, type: Object })
+  fullName: Localization;
 
-  @Prop({ required: true })
-  acronym: string;
+  @Prop({ required: true, type: Object })
+  shortName: Localization;
 
-  @Prop({ type: Object, required: true })
+  @Prop({ required: true, type: Object })
   fullDetails: Localization;
 
-  @Prop({ type: Object, required: true })
+  @Prop({ required: false, type: Object })
   shortDetails: Localization;
 
-  @Prop({ type: Types.ObjectId, ref: 'ActivitiesType', required: true })
-  type: Types.ObjectId;
+  @Prop({ required: true, type: String })
+  type: string;
 
-  @Prop({ type: Object, default: {} })
+  @Prop({ required: false, type: Object })
   photo: Photo;
 
-  @Prop({ type: Object, required: true })
-  location: Localization;
+  @Prop({ required: false, type: String })
+  location?: string;
 
-  @Prop({ type: ActivityMetadata, default: () => ({
-    isOpen: true,
-    isProgressCount: false,
-    isVisible: true,
-    scope: {}
-  })})
-  metadata: ActivityMetadata;
+  @Prop({ type: [String], default: [] })
+  tags: string[];
+
+  @Prop({ type: Object, default: {} })
+  metadata: Record<string, any>;
 }
 
 export const ActivitiesSchema = SchemaFactory.createForClass(Activities);
 
-// Indexes
+// Create indexes for better query performance
 ActivitiesSchema.index({ type: 1 });
-ActivitiesSchema.index({ acronym: 1 });
+ActivitiesSchema.index({ tags: 1 });
 ActivitiesSchema.index({
-  'name.th': 'text',
-  'name.en': 'text',
+  'fullName.th': 'text',
+  'fullName.en': 'text',
+  'shortName.th': 'text',
+  'shortName.en': 'text',
   'fullDetails.th': 'text',
   'fullDetails.en': 'text',
-  'shortDetails.th': 'text',
-  'shortDetails.en': 'text',
 });
-ActivitiesSchema.index({ 'metadata.scope.major': 1 });
-ActivitiesSchema.index({ 'metadata.scope.school': 1 });
-ActivitiesSchema.index({ 'metadata.scope.user': 1 });

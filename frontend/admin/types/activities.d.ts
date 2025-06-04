@@ -1,3 +1,5 @@
+import { Lang } from './lang';
+
 export type Activities = {
     _id: string;
     name: Lang;
@@ -7,6 +9,11 @@ export type Activities = {
     location: Lang;
     photo: Photo;
     metadata: metadata;
+}
+
+export type Type = {
+    _id: string;
+    name: string;
 }
 
 export type metadata = {
@@ -23,8 +30,6 @@ export type Scope = {
 }
 
 export type Photo = {
-    coverPhoto: string;
     bannerPhoto: string;
-    thumbnail: string;
     logoPhoto: string;
 }

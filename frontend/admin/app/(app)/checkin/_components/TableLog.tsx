@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Table,
   TableHeader,
@@ -14,13 +14,12 @@ import {
   DropdownItem,
   User,
   Pagination,
-  user,
 } from '@heroui/react';
 
 import { Typing } from './TypingModal';
 import { Search, ChevronDown, Plus } from 'lucide-react';
-import { useEffect } from 'react';
 import { useCheckin } from '@/hooks/useCheckin';
+import { useActivity } from '@/hooks/useActivity';
 
 export const columns = [
   { name: 'NAME', uid: 'name', sortable: true },
@@ -36,80 +35,57 @@ const INITIAL_VISIBLE_COLUMNS = ['name', 'activity'];
 export function TableLog() {
   const [filterValue, setFilterValue] = React.useState('');
   const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
-  const [visibleColumns, setVisibleColumns] = React.useState(
-    new Set(INITIAL_VISIBLE_COLUMNS),
-  );
+  const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = React.useState({
-    column: 'name',
+    column: 'activity',
     direction: 'ascending',
   });
   const [page, setPage] = React.useState(1);
   const [isTypingModelOpen, setIsTypingModelOpen] = React.useState(false);
   const { checkin, fetchcheckin } = useCheckin();
-  type Activity = { id: string; name: string };
-  const [activity, setActivity] = React.useState<Activity[]>();
-  const [activtyFilter, setActivityFilter] = React.useState<Set<string>>(
-    new Set(),
-  );
+  const [activtyFilter, setActivityFilter] = React.useState<Set<string>>(new Set());
+  const { activities } = useActivity();
+
 
   const hasSearchFilter = Boolean(filterValue);
 
   const headerColumns = React.useMemo(() => {
     if (visibleColumns === 'all') return columns;
-
-    return columns.filter(column =>
-      Array.from(visibleColumns).includes(column.uid),
-    );
+    return columns.filter(column => Array.from(visibleColumns).includes(column.uid));
   }, [visibleColumns]);
 
-  useEffect(() => {
-    const fecthActivity = async () => {
-      try {
-        const res = await fetch('http://localhost:8080/api/activities');
-        const json = await res.json();
-        const activityList = json.data.map((activity: any) => ({
-          id: activity._id,
-          name: activity.shortName.en,
-        }));
-
-        setActivity(activityList);
-        setActivityFilter(new Set(activityList.map((a: any) => a.id)));
-      } catch (err) {
-        console.error('Fetch failed', err);
-      }
-    };
-
-    fecthActivity();
-    fetchcheckin();
-
-    const interval = setInterval(fetchcheckin, 3000); // ทุก 10 วินาที
-
-    return () => clearInterval(interval);
-  }, []);
-
-  console.log(user);
-  console.log('ค่ากิจกรรมในหน้าตาราง', activity);
-
   const users = React.useMemo(() => {
-    return (Array.isArray(checkin) ? checkin : []).map(item => ({
-      id: item._id,
-      name: `${item.user.name.first} ${item.user.name.middle ?? ''} ${item.user.name.last}`.trim(),
-      studentid: item.user.username,
-      activityId: item.activities?.[0]?._id ?? '',
-      activity: item.activities?.[0]?.fullName?.en ?? '-',
-      activityth: item.activities?.[0]?.fullName?.th ?? '-',
-    }));
-  }, [checkin]);
+    const seen = new Set<string>();
 
-  console.log('ข้อมูลร่วมตาราง', checkin);
+    return (Array.isArray(checkin) ? checkin : [])
+      .map(item => {
+        const activity = item.activities?.[0];
+        return {
+          id: item._id,
+          name: `${item.user.name.first} ${item.user.name.middle ?? ''} ${item.user.name.last}`.trim(),
+          studentid: item.user.username,
+          avatar: item.user.avatar ?? '',
+          activityId: activity?._id ?? '',
+          activity: activity?.shortName.en ?? 'Unknown',
+          activityth: activity?.shortName.th ?? 'ไม่ทราบ',
+          userId: item.user._id,
+        };
+      })
+      .filter(user => {
+        const key = `${user.userId}_${user.activityId}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }, [checkin]);
 
   const filteredItems = React.useMemo(() => {
     let filteredUsers = [...users];
 
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter(user =>
-        user.name.toLowerCase().includes(filterValue.toLowerCase()),
+        user.studentid.toLowerCase().includes(filterValue.toLowerCase()),
       );
     }
 
@@ -127,7 +103,6 @@ export function TableLog() {
   const items = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
-
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
@@ -136,7 +111,6 @@ export function TableLog() {
       const first = a[sortDescriptor.column];
       const second = b[sortDescriptor.column];
       const cmp = first < second ? -1 : first > second ? 1 : 0;
-
       return sortDescriptor.direction === 'descending' ? -cmp : cmp;
     });
   }, [sortDescriptor, items]);
@@ -157,7 +131,7 @@ export function TableLog() {
         );
       case 'activity':
         return (
-          <div className="flex flex-col ">
+          <div className="flex flex-col">
             <p className="text-bold text-small capitalize">{cellValue}</p>
             <p className="text-bold text-tiny capitalize text-default-400">
               {user.activityth}
@@ -207,7 +181,7 @@ export function TableLog() {
           <Input
             isClearable
             className="w-full sm:max-w-[44%] "
-            placeholder="Search by name..."
+            placeholder="Search by StudentID..."
             startContent={<Search />}
             value={filterValue}
             onClear={() => onClear()}
@@ -224,16 +198,18 @@ export function TableLog() {
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
+                aria-label="Activity Filter"
                 closeOnSelect={false}
                 selectedKeys={activtyFilter}
                 selectionMode="multiple"
-                onSelectionChange={setActivityFilter}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys) as string[];
+                  setActivityFilter(new Set(selected));
+                }}
               >
-                {(activity ?? []).map(activty => (
-                  <DropdownItem key={activty.id} className="capitalize">
-                    {capitalize(activty.name)}
+                {(activities ?? []).map((activty) => (
+                  <DropdownItem key={String(activty._id)} className="capitalize">
+                    {capitalize(activty.shortName?.en ?? activty.name ?? 'Untitled')}
                   </DropdownItem>
                 ))}
               </DropdownMenu>

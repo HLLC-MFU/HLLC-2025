@@ -45,8 +45,13 @@ export class RoleInitializerService implements OnModuleInit {
           await existing.save();
         }
         // Update Administrator permissions if needed
-        else if (roleData.name === 'Administrator' && existing.permissions[0] !== '*') {
-          this.logger.log('Updating Administrator permissions to use wildcard (*)');
+        else if (
+          roleData.name === 'Administrator' &&
+          existing.permissions[0] !== '*'
+        ) {
+          this.logger.log(
+            'Updating Administrator permissions to use wildcard (*)',
+          );
           existing.permissions = roleData.permissions;
           await existing.save();
         }

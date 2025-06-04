@@ -4,11 +4,6 @@ import { Model, PopulateOptions, Types } from 'mongoose';
 import { Report, ReportDocument } from './schemas/reports.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import {
-  ReportType,
-  ReportTypeDocument,
-} from '../report-type/schemas/report-type.schema';
-import { CreateReportDto } from './dto/create-report.dto';
-import {
   queryAll,
   queryFindOne,
   queryUpdateOne,
@@ -18,6 +13,9 @@ import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { PopulateField } from 'src/pkg/types/query';
+import { CreateReportDto } from './dto/create-report.dto';
+import { ReportTypeDocument } from '../report-type/schemas/report-type.schema';
+import { ReportType } from '../report-type/schemas/report-type.schema';
 
 @Injectable()
 export class ReportsService {
@@ -30,7 +28,7 @@ export class ReportsService {
 
     @InjectModel(ReportType.name)
     private readonly reportTypeModel: Model<ReportTypeDocument>,
-  ) { }
+  ) {}
 
   async create(createReportDto: CreateReportDto) {
     await findOrThrow(
@@ -41,7 +39,7 @@ export class ReportsService {
     await findOrThrow(
       this.reportTypeModel,
       createReportDto.category,
-      'Category not found',
+        'Report type not found',
     );
 
     const report = new this.reportModel({
@@ -62,13 +60,12 @@ export class ReportsService {
       model: this.reportModel,
       query: {
         ...query,
-        excluded: 'reporter.password,reporter.refreshToken,reporter.role,reporter.metadata,reporter.__v,__v'
+        excluded:
+          'reporter.password,reporter.refreshToken,reporter.role,reporter.metadata,reporter.__v,__v',
       },
       filterSchema: {},
-      populateFields: async () => [
-        { path: 'reporter' },
-        { path: 'category' },
-      ],
+      populateFields: () =>
+        Promise.resolve([{ path: 'reporter' }, { path: 'category' }]),
     });
   }
 
@@ -83,10 +80,8 @@ export class ReportsService {
       filterSchema: {
         category: 'string',
       } as const,
-      populateFields: async () => [
-        { path: 'reporter' },
-        { path: 'category' },
-      ],
+      populateFields: () =>
+        Promise.resolve([{ path: 'reporter' }, { path: 'category' }]),
     });
 
     const reportsWithoutCategory = result.data.map(
@@ -105,7 +100,7 @@ export class ReportsService {
 
   async findOne(id: string) {
     const populateFields: PopulateField[] = [
-      { path: 'reporter',},
+      { path: 'reporter' },
       { path: 'category' },
     ];
     return queryFindOne<Report>(this.reportModel, { _id: id }, populateFields);
@@ -123,7 +118,7 @@ export class ReportsService {
     }
 
     const populateFields: PopulateOptions[] = [
-      { path: 'reporter'},
+      { path: 'reporter' },
       { path: 'category' },
     ];
 

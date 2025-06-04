@@ -21,7 +21,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 @UseGuards(PermissionsGuard)
 @Controller('appearances')
 export class AppearancesController {
-  constructor(private readonly appearancesService: AppearancesService) { }
+  constructor(private readonly appearancesService: AppearancesService) {}
 
   @UseInterceptors(new AppearanceMultipartInterceptor(500))
   @Post()
