@@ -16,6 +16,7 @@ export type Activities = {
 
 export type Photo = {
     bannerPhoto: string;
+    logoPhoto: string;
 };
 
 export type Metadata = {

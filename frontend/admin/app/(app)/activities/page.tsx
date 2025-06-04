@@ -10,7 +10,7 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
-  Divider
+  Chip,
 } from '@heroui/react';
 import { 
   Building2, 
@@ -18,25 +18,21 @@ import {
   Search, 
   School, 
   Calendar, 
-  MapPin, 
-  Users,
   Pencil,
   Trash2,
-  MoreVertical
+  MoreVertical,
 } from 'lucide-react';
 
-import { ActivityCard } from './_components/ActivityCard';
 import { ActivityModal } from './_components/ActivityModal';
 import { ActivityTypeModal } from './_components/ActivityTypeModal';
 import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
 import { PageHeader } from '@/components/ui/page-header';
 import { useActivities } from '@/hooks/useActivities';
 import { Activities, ActivityType } from '@/types/activities';
+import ActivitiesTable from "./_components/activities-table";
 
 export default function ActivitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<string>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activities | undefined>();
@@ -185,6 +181,95 @@ export default function ActivitiesPage() {
     }
   };
 
+  const columns = [
+    { name: "ACRONYM", uid: "acronym" },
+    { name: "NAME", uid: "name" },
+    { name: "VISIBLE", uid: "visible" },
+    { name: "PROGRESS COUNT", uid: "progressCount" },
+    { name: "OPEN", uid: "open" },
+    { name: "ACTIONS", uid: "actions" }
+  ];
+
+  const renderCell = (activity: Activities, columnKey: React.Key) => {
+    switch (columnKey) {
+      case "acronym":
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">{activity.acronym}</span>
+          </div>
+        );
+      case "name":
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium">{activity.name?.en}</span>
+            <span className="text-sm text-default-500">{activity.name?.th}</span>
+          </div>
+        );
+      case "visible":
+        return (
+          <Chip
+            size="sm"
+            color={activity.metadata?.isVisible ? "success" : "danger"}
+            variant="flat"
+          >
+            {activity.metadata?.isVisible ? "Visible" : "Hidden"}
+          </Chip>
+        );
+      case "progressCount":
+        return (
+          <Chip
+            size="sm"
+            color={activity.metadata?.isProgressCount ? "primary" : "default"}
+            variant="flat"
+          >
+            {activity.metadata?.isProgressCount ? "Enabled" : "Disabled"}
+          </Chip>
+        );
+      case "open":
+        return (
+          <Chip
+            size="sm"
+            color={activity.metadata?.isOpen ? "success" : "danger"}
+            variant="flat"
+          >
+            {activity.metadata?.isOpen ? "Open" : "Closed"}
+          </Chip>
+        );
+      case "actions":
+        return (
+          <div className="flex items-center gap-2">
+            <Dropdown>
+              <DropdownTrigger>
+                <Button isIconOnly size="sm" variant="light">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu>
+                <DropdownItem
+                  key="edit"
+                  startContent={<Pencil className="w-4 h-4" />}
+                  onPress={() => handleEditActivity(activity)}
+                >
+                  Edit Activity
+                </DropdownItem>
+                <DropdownItem
+                  key="delete"
+                  className="text-danger"
+                  color="danger"
+                  startContent={<Trash2 className="w-4 h-4" />}
+                  onPress={() => handleDeleteActivity(activity)}
+                >
+                  Delete Activity
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col min-h-screen">
@@ -253,46 +338,6 @@ export default function ActivitiesPage() {
                             <p className="text-lg font-medium">{type.name}</p>
                             <p className="text-small text-default-400">{typeActivities.length} activities</p>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              color="primary"
-                              size="sm"
-                              variant="flat"
-                              endContent={<Plus className="w-4 h-4" />}
-                              onPress={() => handleAddActivity(type._id)}
-                            >
-                              Add Activity
-                            </Button>
-                            <Dropdown>
-                              <DropdownTrigger>
-                                <Button 
-                                  isIconOnly
-                                  variant="light"
-                                  size="sm"
-                                >
-                                  <MoreVertical className="w-4 h-4" />
-                                </Button>
-                              </DropdownTrigger>
-                              <DropdownMenu>
-                                <DropdownItem
-                                  key="edit"
-                                  startContent={<Pencil className="w-4 h-4" />}
-                                  onPress={() => handleEditType(type)}
-                                >
-                                  Edit Type
-                                </DropdownItem>
-                                <DropdownItem
-                                  key="delete"
-                                  className="text-danger"
-                                  color="danger"
-                                  startContent={<Trash2 className="w-4 h-4" />}
-                                  onPress={() => handleDeleteType(type)}
-                                >
-                                  Delete Type
-                                </DropdownItem>
-                              </DropdownMenu>
-                            </Dropdown>
-                          </div>
                         </div>
                       }
                       classNames={{
@@ -304,6 +349,46 @@ export default function ActivitiesPage() {
                       }}
                     >
                       <div className="flex flex-col gap-6 pt-4">
+                        <div className="flex justify-end gap-2 mb-4">
+                          <Button
+                            color="primary"
+                            size="sm"
+                            variant="flat"
+                            endContent={<Plus className="w-4 h-4" />}
+                            onPress={() => handleAddActivity(type._id)}
+                          >
+                            Add Activity
+                          </Button>
+                          <Dropdown>
+                            <DropdownTrigger>
+                              <Button 
+                                isIconOnly
+                                variant="light"
+                                size="sm"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownTrigger>
+                            <DropdownMenu>
+                              <DropdownItem
+                                key="edit"
+                                startContent={<Pencil className="w-4 h-4" />}
+                                onPress={() => handleEditType(type)}
+                              >
+                                Edit Type
+                              </DropdownItem>
+                              <DropdownItem
+                                key="delete"
+                                className="text-danger"
+                                color="danger"
+                                startContent={<Trash2 className="w-4 h-4" />}
+                                onPress={() => handleDeleteType(type)}
+                              >
+                                Delete Type
+                              </DropdownItem>
+                            </DropdownMenu>
+                          </Dropdown>
+                        </div>
                         {typeActivities.length === 0 ? (
                           <div className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed rounded-xl bg-default-50">
                             <Calendar className="w-12 h-12 text-default-300 mb-4" />
@@ -311,16 +396,7 @@ export default function ActivitiesPage() {
                             <p className="text-sm text-default-400 text-center mb-4">Create your first activity in {type.name}</p>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {typeActivities.map((activity) => (
-                              <ActivityCard
-                                key={activity._id}
-                                activity={activity}
-                                onEdit={handleEditActivity}
-                                onDelete={handleDeleteActivity}
-                              />
-                            ))}
-                          </div>
+                          <ActivitiesTable activities={typeActivities} onEdit={handleEditActivity} onDelete={handleDeleteActivity} />
                         )}
                       </div>
                     </AccordionItem>
@@ -368,4 +444,4 @@ export default function ActivitiesPage() {
       />
     </>
   );
-} 
+}
