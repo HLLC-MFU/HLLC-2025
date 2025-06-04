@@ -6,7 +6,7 @@ interface AddToastProps {
     color?: "primary" | "default" | "secondary" | "success" | "warning" | "danger" | "foreground";
 }
 
-export default function AddToast({title, description, color}: AddToastProps) {
+export default function AddToast({title, description, color="success"}: AddToastProps) {
     return (
         addToast({
             title: title,

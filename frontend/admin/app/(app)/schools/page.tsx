@@ -1,6 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { addToast } from '@heroui/react';
+import { SchoolIcon } from 'lucide-react';
 
 import { SchoolList } from './_components/SchoolList';
 import { SchoolFilters } from './_components/SchoolFilters';
@@ -9,6 +10,7 @@ import { SchoolModal } from './_components/SchoolModal';
 import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
 import { useSchools } from '@/hooks/useSchool';
 import { School } from '@/types/school';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function SchoolsPage() {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -123,11 +125,9 @@ export default function SchoolsPage() {
 	};
 
 	return (
-		<div className="flex flex-col min-h-screen">
-			<div className="container mx-auto px-4">
-				<div className="flex items-center justify-between mb-8">
-					<h1 className="text-3xl font-bold">Schools & Majors Management</h1>
-				</div>
+		<>
+			<PageHeader description='The is Management Page' icon={<SchoolIcon />} />
+			<div className="flex flex-col min-h-screen">
 				<div className="flex flex-col gap-6">
 					<SchoolFilters
 						searchQuery={searchQuery}
@@ -150,38 +150,39 @@ export default function SchoolsPage() {
 						onEditSchool={handleEditSchool}
 					/>
 				</div>
+
+
+				<SchoolModal
+					isOpen={isModalOpen}
+					mode={modalMode}
+					school={
+						selectedSchool && '_id' in selectedSchool
+							? (selectedSchool as School)
+							: undefined
+					}
+					onClose={() => setIsModalOpen(false)}
+					onSuccess={handleSubmitSchool}
+				/>
+
+				<ConfirmationModal
+					body={
+						confirmationModalType === 'edit'
+							? `Are you sure you want to save the changes for "${selectedSchool?.name?.en}"?`
+							: `Are you sure you want to delete the school "${selectedSchool?.name?.en}"? The related majors in this school will be deleted. This action cannot be undone.`
+					}
+					confirmColor={confirmationModalType === 'edit' ? 'primary' : 'danger'}
+					confirmText={confirmationModalType === 'edit' ? 'Save' : 'Delete'}
+					isOpen={confirmationModalType !== null}
+					title={
+						confirmationModalType === 'edit' ? 'Save School' : 'Delete School'
+					}
+					onClose={() => {
+						setConfirmationModalType(null);
+						setSelectedSchool(undefined);
+					}}
+					onConfirm={handleConfirm}
+				/>
 			</div>
-
-			<SchoolModal
-				isOpen={isModalOpen}
-				mode={modalMode}
-				school={
-					selectedSchool && '_id' in selectedSchool
-						? (selectedSchool as School)
-						: undefined
-				}
-				onClose={() => setIsModalOpen(false)}
-				onSuccess={handleSubmitSchool}
-			/>
-
-			<ConfirmationModal
-				body={
-					confirmationModalType === 'edit'
-						? `Are you sure you want to save the changes for "${selectedSchool?.name?.en}"?`
-						: `Are you sure you want to delete the school "${selectedSchool?.name?.en}"? The related majors in this school will be deleted. This action cannot be undone.`
-				}
-				confirmColor={confirmationModalType === 'edit' ? 'primary' : 'danger'}
-				confirmText={confirmationModalType === 'edit' ? 'Save' : 'Delete'}
-				isOpen={confirmationModalType !== null}
-				title={
-					confirmationModalType === 'edit' ? 'Save School' : 'Delete School'
-				}
-				onClose={() => {
-					setConfirmationModalType(null);
-					setSelectedSchool(undefined);
-				}}
-				onConfirm={handleConfirm}
-			/>
-		</div>
+		</>
 	);
 }
