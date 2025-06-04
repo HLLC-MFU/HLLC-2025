@@ -27,15 +27,24 @@ export class ActivitiesService {
         new Types.ObjectId(scope.school)
       ],
       user: Array.isArray(scope.user)
-  ? scope.user.map(id => new Types.ObjectId(id))
-  : scope.user
-    ? [new Types.ObjectId(scope.user)]
-    : []
-
+        ? scope.user.map(id => new Types.ObjectId(id))
+        : scope.user
+          ? [new Types.ObjectId(scope.user)]
+          : []
+    };
+    
+    // Handle photo uploads
+    const photo = createActivitiesDto.photo || {};
+    const processedPhoto = {
+      coverPhoto: photo.bannerPhoto || '', // Use bannerPhoto filename as coverPhoto
+      bannerPhoto: photo.bannerPhoto || '', // Use bannerPhoto filename
+      thumbnail: photo.logoPhoto || '', // Use logoPhoto filename as thumbnail
+      logoPhoto: photo.logoPhoto || '', // Use logoPhoto filename
     };
 
     const activity = new this.activitiesModel({
       ...createActivitiesDto,
+      photo: processedPhoto,
       metadata: {
         isOpen: metadata.isOpen ?? true,
         isProgressCount: metadata.isProgressCount ?? false,
@@ -45,8 +54,11 @@ export class ActivitiesService {
     });
 
     try {
-      return await activity.save();
+      const savedActivity = await activity.save();
+      console.log('Activity created:', savedActivity);
+      return savedActivity;
     } catch (error) {
+      console.error('Error creating activity:', error);
       handleMongoDuplicateError(error, 'name');
     }
   }
@@ -93,11 +105,29 @@ export class ActivitiesService {
     if (updateActivityDto.metadata?.scope) {
       const scope = updateActivityDto.metadata.scope;
       const convertedScope = {
-        major: (scope.major || []).map(id => id.toString()),
-        school: (scope.school || []).map(id => id.toString()),
-        user: (scope.user || []).map(id => id.toString()),
+        major: Array.isArray(scope.major) 
+          ? scope.major.map(id => new Types.ObjectId(id))
+          : scope.major 
+            ? [new Types.ObjectId(scope.major)]
+            : [],
+        school: Array.isArray(scope.school)
+          ? scope.school.map(id => new Types.ObjectId(id))
+          : scope.school
+            ? [new Types.ObjectId(scope.school)]
+            : [],
+        user: Array.isArray(scope.user)
+          ? scope.user.map(id => new Types.ObjectId(id))
+          : scope.user
+            ? [new Types.ObjectId(scope.user)]
+            : []
       };
-      updateActivityDto.metadata.scope = convertedScope;
+
+      // Convert back to string[] for DTO
+      updateActivityDto.metadata.scope = {
+        major: convertedScope.major.map(id => id.toString()),
+        school: convertedScope.school.map(id => id.toString()),
+        user: convertedScope.user.map(id => id.toString())
+      };
     }
 
     const activity = await this.activitiesModel

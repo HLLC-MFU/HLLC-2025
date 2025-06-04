@@ -90,12 +90,11 @@ export default function ActivitiesPage() {
     setConfirmationModalType('delete');
   };
 
-  const handleSubmitActivity = (activityData: Partial<Activities>, mode: "add" | "edit") => {
+  const handleSubmitActivity = (formData: FormData, mode: "add" | "edit") => {
     if (mode === "edit" && selectedActivity && '_id' in selectedActivity && selectedActivity._id) {
-      setSelectedActivity({ ...selectedActivity, ...activityData });
-      setConfirmationModalType('edit');
+      updateActivity(selectedActivity._id, formData);
     } else {
-      createActivity(activityData);
+      createActivity(formData);
     }
     setIsModalOpen(false);
   };

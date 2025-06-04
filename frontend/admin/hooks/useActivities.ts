@@ -79,31 +79,27 @@ export function useActivities() {
     /**
      * Creates a new activity with the provided data.
      * This function sends a POST request to the API to create a new activity.
-     * @param {Partial<Activities>} activityData - The data for the new activity.
+     * @param {FormData} formData - The form data for the new activity.
      * @return {Promise<void>} A promise that resolves when the activity is created.
      * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
      * */
-    const createActivity = async (activityData: Partial<Activities>): Promise<void> => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            console.error('No auth token found');
-            localStorage.removeItem('token');
-            window.location.href = '/login';
-            return;
-        }
-
+    const createActivity = async (formData: FormData): Promise<void> => {
         try {
             setLoading(true);
-            console.log('Creating activity with data:', activityData);
+            console.log('Creating activity with form data');
+
+            // Log FormData content
+            console.log('FormData entries:');
+            formData.forEach((value, key) => {
+                console.log(`${key}:`, value);
+            });
 
             const res = await apiRequest<Activities>(
                 '/activities',
                 'POST',
-                activityData,
+                formData,
                 {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    }
+                    credentials: 'include',
                 }
             );
 
@@ -122,7 +118,6 @@ export function useActivities() {
             const errorMessage = err.message || 'Failed to create activity.';
 
             if (err.statusCode === 401) {
-                localStorage.removeItem('token');
                 window.location.href = '/login';
                 return;
             }
@@ -142,31 +137,65 @@ export function useActivities() {
      * Updates an existing activity with the provided data.
      * This function sends a PATCH request to the API to update the activity.
      * @param {string} id - The ID of the activity to update.
-     * @param {Partial<Activities>} activityData - The data to update the activity with.
+     * @param {FormData} formData - The form data to update the activity with.
      * @return {Promise<void>} A promise that resolves when the activity is updated.
      * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
      * */
     const updateActivity = async (
         id: string,
-        activityData: Partial<Activities>,
+        formData: FormData,
     ): Promise<void> => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            console.error('No auth token found');
-            localStorage.removeItem('token');
-            return;
-        }
-
         try {
             setLoading(true);
+
+            // Process scope data before sending
+            const majorIds = formData.getAll('metadata[scope][major][0]');
+            const schoolIds = formData.getAll('metadata[scope][school][0]');
+
+            // Remove existing scope entries
+            formData.delete('metadata[scope][major][0]');
+            formData.delete('metadata[scope][school][0]');
+
+            // Add processed scope data as array
+            if (majorIds.length > 0) {
+                majorIds.forEach(id => {
+                    formData.append('metadata[scope][major][]', id);
+                });
+            }
+            if (schoolIds.length > 0) {
+                schoolIds.forEach(id => {
+                    formData.append('metadata[scope][school][]', id);
+                });
+            }
+
+            // Process photo data
+            const bannerPhoto = formData.get('photo[bannerPhoto]');
+            const logoPhoto = formData.get('photo[logoPhoto]');
+
+            // Remove existing photo entries
+            formData.delete('photo[bannerPhoto]');
+            formData.delete('photo[logoPhoto]');
+
+            // Add processed photo data
+            if (bannerPhoto instanceof File) {
+                formData.append('photo[bannerPhoto]', bannerPhoto);
+            }
+            if (logoPhoto instanceof File) {
+                formData.append('photo[logoPhoto]', logoPhoto);
+            }
+
+            // Log FormData content
+            console.log('FormData entries for update:');
+            formData.forEach((value, key) => {
+                console.log(`${key}:`, value);
+            });
+
             const res = await apiRequest<Activities>(
                 `/activities/${id}`,
                 'PATCH',
-                activityData,
+                formData,
                 {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    }
+                    credentials: 'include',
                 }
             );
 
@@ -198,19 +227,10 @@ export function useActivities() {
      * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
      * */
     const deleteActivity = async (id: string): Promise<void> => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            console.error('No auth token found');
-            localStorage.removeItem('token');
-            return;
-        }
-
         try {
             setLoading(true);
             const res = await apiRequest(`/activities/${id}`, 'DELETE', undefined, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                }
+                credentials: 'include',
             });
 
             if (res.statusCode === 200) {
@@ -243,13 +263,6 @@ export function useActivities() {
      * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
      * */
     const createActivityType = async (typeData: Partial<ActivityType>): Promise<void> => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            console.error('No auth token found');
-            localStorage.removeItem('token');
-            return;
-        }
-
         try {
             setLoading(true);
             const res = await apiRequest<ActivityType>(
@@ -257,9 +270,7 @@ export function useActivities() {
                 'POST',
                 typeData,
                 {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    }
+                    credentials: 'include',
                 }
             );
 
@@ -295,13 +306,6 @@ export function useActivities() {
         id: string,
         typeData: Partial<ActivityType>,
     ): Promise<void> => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            console.error('No auth token found');
-            localStorage.removeItem('token');
-            return;
-        }
-
         try {
             setLoading(true);
             const res = await apiRequest<ActivityType>(
@@ -309,9 +313,7 @@ export function useActivities() {
                 'PATCH',
                 typeData,
                 {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    }
+                    credentials: 'include',
                 }
             );
 
@@ -343,19 +345,10 @@ export function useActivities() {
      * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
      * */
     const deleteActivityType = async (id: string): Promise<void> => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            console.error('No auth token found');
-            localStorage.removeItem('token');
-            return;
-        }
-
         try {
             setLoading(true);
             const res = await apiRequest(`/activities-type/${id}`, 'DELETE', undefined, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                }
+                credentials: 'include',
             });
 
             if (res.statusCode === 200) {
