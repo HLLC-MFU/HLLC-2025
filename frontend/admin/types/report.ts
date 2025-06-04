@@ -24,8 +24,7 @@ export interface Problem {
         th: string;
     };
     categoryId: string;
-    severity: 'low' | 'medium' | 'high' | 'critical';
-    status: 'open' | 'in-progress' | 'resolved';
+    status: 'Pending' | 'In Progress' | 'Resolved';
     createdAt: Date;
     updatedAt: Date;
 }

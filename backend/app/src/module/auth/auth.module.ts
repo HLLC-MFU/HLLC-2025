@@ -8,12 +8,14 @@ import { User, UserSchema } from '../users/schemas/user.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Role, RoleSchema } from '../role/schemas/role.schema';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { PermissionsGuard } from './guards/permissions.guard';
+import { DiscoveryModule } from '@nestjs/core';
 @Module({
   imports: [
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET'),
         signOptions: { expiresIn: '1h' },
       }),
@@ -23,9 +25,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       { name: User.name, schema: UserSchema },
       { name: Role.name, schema: RoleSchema },
     ]),
+    DiscoveryModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, PermissionsGuard],
+  exports: [AuthService, PermissionsGuard],
 })
 export class AuthModule {}

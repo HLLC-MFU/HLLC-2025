@@ -26,7 +26,7 @@ export default function HomeHero({ style }: HomeHeroProps) {
           }}
         >
           <Image
-            source={user?.theme.assets.background}
+            // source={user?.theme.assets.background}
             style={{ height: "100%" }}
             contentFit="cover"
             transition={500}
@@ -35,7 +35,7 @@ export default function HomeHero({ style }: HomeHeroProps) {
 
         {/* Avatar Image */}
         <Image
-          source={user?.major.school.photos.fourth}
+          // source={user?.major.school.photos.fourth}
           style={{ width: "120%", aspectRatio: 3 / 2, zIndex: 1 }}
           contentFit="contain"
           transition={500}

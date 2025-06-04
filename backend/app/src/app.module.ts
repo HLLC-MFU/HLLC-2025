@@ -9,10 +9,19 @@ import { RoleModule } from './module/role/role.module';
 import { AuthModule } from './module/auth/auth.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { GlobalCacheModule } from './pkg/cache/cache.module';
-import { ActivitiesModule } from './module/activities/activities.module';
 import * as redisStore from 'cache-manager-ioredis';
+import { SseModule } from './module/sse/sse.module';
+import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
+import { ReportTypeModule } from './module/report-type/report-type.module';
+import { ReportsModule } from './module/reports/reports.module';
+import { AppearancesModule } from './module/appearances/appearances.module';
+import { SystemStatusModule } from './module/system-status/system-status.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
+import { SponsorsModule } from './module/sponsors/sponsors.module';
+import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 import { CheckinModule } from './module/checkin/checkin.module';
-import { ActivitiesMajorModule } from './module/activities-major/activities-major.module';
+import { ActivitiesModule } from './module/activities/activities.module';
 
 @Module({
   imports: [
@@ -36,16 +45,31 @@ import { ActivitiesMajorModule } from './module/activities-major/activities-majo
       }),
       inject: [ConfigService],
     }),
-    UsersModule,
-    CheckinModule,
-    SchoolsModule,
-    MajorsModule,
-    RoleModule,
-    ActivitiesModule,
-    AuthModule,
     GlobalCacheModule,
-    ActivitiesMajorModule,
+    AuthModule,
+    RoleModule,
+    UsersModule,
+    SchoolsModule,
+    SponsorsModule,
+    SponsorsTypeModule,
+    MajorsModule,
+    ReportTypeModule,
+    SystemStatusModule,
+    AppearancesModule,
+    ReportsModule,
+    SseModule,
+    CheckinModule,
+    ActivitiesModule,
   ],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SystemStatusGuard,
+    },
+  ],
 })
 export class AppModule {}

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, SchemaTypes, Types } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -33,8 +33,8 @@ export class User {
   @Prop({ type: String || null, default: null })
   refreshToken: string | null;
 
-  @Prop({ type: Types.ObjectId, default: {} })
-  metadata: Record<string, any>;
+  @Prop({ type: Types.Map, of: SchemaTypes.Mixed, default: {} })
+  metadata: Record<string, string>;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
@@ -47,7 +47,15 @@ UserSchema.pre('save', async function (next) {
   }
   next();
 });
+UserSchema.virtual('major', {
+  ref: 'Major',
+  localField: 'metadata.major',
+  foreignField: '_id',
+  justOne: true,
+});
+UserSchema.set('toObject', { virtuals: true });
 UserSchema.set('toJSON', {
+  virtuals: true,
   transform: (doc, ret) => {
     delete ret.password;
     delete ret.refreshToken;

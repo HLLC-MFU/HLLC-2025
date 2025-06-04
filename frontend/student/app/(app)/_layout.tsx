@@ -1,59 +1,48 @@
-// app/(app)/_layout.tsx
-import {
-  View,
-  Dimensions,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
-import { SplashScreen, Stack } from "expo-router";
-
-import { Redirect } from "expo-router";
-import { BlurView } from "expo-blur";
-import { ImageBackground } from "expo-image";
-import useProfile from "@/hooks/useProfile";
-import { useEffect, useState } from "react";
-
+import { View, Dimensions, StyleSheet, ActivityIndicator } from 'react-native';
+import { SplashScreen, Stack, Tabs, usePathname } from 'expo-router';
+import { Redirect } from 'expo-router';
+import { BlurView } from 'expo-blur';
+import { ImageBackground } from 'expo-image';
+import useProfile from '@/hooks/useProfile';
+import { useEffect, useState } from 'react';
+import BottomNav from '@/components/global/BottomNav';
 
 export default function Layout() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
     getProfile().finally(() => {
       setLoading(false);
-      SplashScreen.hideAsync(); // ✅ ซ่อน splash หลังโหลดโปรไฟล์เสร็จ
+      SplashScreen.hideAsync(); // ✅ Hide splash after profile loaded
     });
   }, []);
 
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
+  if (!user) return <Redirect href="/(auth)/login" />;
 
-  if (!user) {
-    return <Redirect href="/(auth)/login" />;
-  }
+  // Check if we're in the chat room section
+  const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
+
   return (
     <View style={{ flex: 1 }}>
-      {/* 🔴 Background Layer */}
       <ImageBackground
         source={{ uri: user.theme?.assets?.background }}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
       >
-        <BlurView
-          intensity={100}
-          tint="dark"
-          style={StyleSheet.absoluteFill}
-        />
+        <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
       </ImageBackground>
 
-      {/* 🟢 Foreground Layer (Stack + Screen content) */}
-      <Stack
+      <Tabs
         screenOptions={{
+          sceneStyle: { backgroundColor: 'transparent' },
           headerShown: false,
-          presentation: "card", // ✅ ให้ animation สวย
-          contentStyle: {
-            backgroundColor: "transparent", // ✅ ให้ Stack โปร่งใส
-          },
+          tabBarActiveTintColor: '#3b82f6',
+          tabBarInactiveTintColor: '#64748b',
         }}
+        tabBar={props => !isChatRoute ? <BottomNav {...props} /> : null}
       />
     </View>
   );
