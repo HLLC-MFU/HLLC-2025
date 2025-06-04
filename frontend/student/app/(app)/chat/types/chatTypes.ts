@@ -37,16 +37,14 @@ export interface RoomName {
 
 export interface ChatRoom {
   id: string;
-  name: {
-    th_name: string;
-    en_name: string;
-  };
-  capacity: number;
-  image?: string;
+  name: string;
+  description: string;
   is_member: boolean;
-  creator: string;
-  created_at: string;
-  updated_at: string;
+  category?: string;
+  members_count?: number;
+  last_message?: string;
+  last_message_time?: string;
+  image_url?: string;
 }
 
 export interface RoomsResponse {

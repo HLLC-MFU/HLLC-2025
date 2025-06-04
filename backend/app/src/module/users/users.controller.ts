@@ -22,7 +22,6 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { FastifyRequest } from 'fastify';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
-
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('users')
@@ -33,20 +32,36 @@ export class UsersController {
   @Public()
   @CacheKey('users:invalidate')
   create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto)
+    return this.usersService.create(createUserDto);
+  }
+
+  @Post('upload')
+  @Public()
+  @CacheKey('users:invalidate')
+  upload(@Body() uploadUserDtos: UserUploadDirectDto[]) {
+    return this.usersService.upload(uploadUserDtos);
   }
 
   @Get()
   @Permissions('users:read')
   @CacheKey('users')
-  async findAll(@Query() query: Record<string, any>) {
+  async findAll(@Query() query: Record<string, string>) {
     return this.usersService.findAll(query);
+  }
+
+  @Get('by-query')
+  @Permissions('users:read')
+  @CacheKey('users:by-query')
+  async findAllByQuery(@Query() query: Record<string, string>) {
+    return this.usersService.findAllByQuery(query);
   }
 
   @Get('statistics')
   @Permissions('users:read')
   @CacheKey('users:statistics')
-  async getUserCountByRoles(): Promise<Record<string, number>> {
+  async getUserCountByRoles(): Promise<
+    Record<string, { registered: number; notRegistered: number }>
+  > {
     return this.usersService.getUserCountByRoles();
   }
 
@@ -63,17 +78,14 @@ export class UsersController {
   getProfile(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
-    const user = req.user as { _id?: string; id?: string } | undefined;
-    const userId: string | undefined = user?._id ?? user?.id;
+    const user = req.user as { _id?: string; id?: string };
+    const userId: string = user?._id ?? user?.id ?? '';
+    if (!userId) {
+      return null;
+    }
     return this.usersService.findOneByQuery({
       _id: userId,
     });
-  }
-
-  @Post('upload')
-  @Public()
-  upload(@Body() userUploadDirectDto: UserUploadDirectDto[]) {
-    return this.usersService.upload(userUploadDirectDto);
   }
 
   @Patch(':id')
@@ -100,8 +112,8 @@ export class UsersController {
   // @CacheKey('users:read:id')
   @Public()
   registerDeviceToken(
-    @Param('id') id: string, 
-    @Body() registerTokenDto: Record<string, string>
+    @Param('id') id: string,
+    @Body() registerTokenDto: Record<string, string>,
   ) {
     return this.usersService.registerDeviceToken(id, registerTokenDto);
   }
@@ -110,7 +122,7 @@ export class UsersController {
   @Public()
   removeDeviceToken(
     @Param('id') id: string,
-    @Param('deviceToken') deviceToken: string
+    @Param('deviceToken') deviceToken: string,
   ) {
     return this.usersService.removeDeviceToken(id, deviceToken);
   }

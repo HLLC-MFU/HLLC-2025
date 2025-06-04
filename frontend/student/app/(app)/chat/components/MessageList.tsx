@@ -18,14 +18,14 @@ interface MessageListProps {
   scrollToBottom: () => void;
 }
 
-const MessageList: React.FC<MessageListProps> = ({
+const MessageList = ({
   messages,
   userId,
   typing,
   flatListRef,
   onReply,
   scrollToBottom,
-}) => {
+}: MessageListProps) => {
   const renderItem = ({ item }: { item: Message[] }) => {
     if (item.length === 1 && (item[0].type === 'join' || item[0].type === 'leave')) {
       return <SystemMessage text={item[0].text} timestamp={item[0].timestamp} />;

@@ -7,10 +7,11 @@ import { AppearancesModule } from '../appearances/appearances.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: School.name, schema: SchoolSchema }]), AppearancesModule
+    MongooseModule.forFeature([{ name: School.name, schema: SchoolSchema }]),
+    AppearancesModule,
   ],
   controllers: [SchoolsController],
   providers: [SchoolsService],
   exports: [MongooseModule],
 })
-export class SchoolsModule { }
+export class SchoolsModule {}

@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsString } from 'class-validator';
+import { IsBoolean } from 'class-validator';
 
 export class CreateSystemStatusDto {
   @IsBoolean()

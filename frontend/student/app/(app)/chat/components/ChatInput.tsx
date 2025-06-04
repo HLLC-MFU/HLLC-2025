@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   Platform,
+  Animated,
+  Easing,
+  Keyboard,
+  Dimensions,
 } from 'react-native';
-import { Image as ImageIcon, Send, Smile } from 'lucide-react-native';
+import { Send, Plus, Smile } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 interface ChatInputProps {
   messageText: string;
@@ -21,7 +28,7 @@ interface ChatInputProps {
   showStickerPicker: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({
+const ChatInput = ({
   messageText,
   setMessageText,
   handleSendMessage,
@@ -32,110 +39,199 @@ const ChatInput: React.FC<ChatInputProps> = ({
   inputRef,
   setShowStickerPicker,
   showStickerPicker,
-}) => {
+}: ChatInputProps) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const anim = useRef(new Animated.Value(0)).current;
+  const hasText = messageText.trim().length > 0;
+  const isDisabled = !isMember || !isConnected;
+  const canSend = hasText && !isDisabled;
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: isFocused ? 1 : 0,
+      duration: 300,
+      easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+      useNativeDriver: false,
+    }).start();
+  }, [isFocused]);
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    setShowStickerPicker(false);
+  };
+
+  const handleSend = () => {
+    if (canSend) {
+      handleSendMessage();
+    }
+  };
+
+  const borderColor = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['rgba(255, 255, 255, 0.2)', '#667eea'],
+  });
+
+  const shadowOpacity = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.3],
+  });
+
   return (
     <View style={styles.container}>
-      <View style={styles.inputContainer}>
+      <Animated.View style={[styles.inputContainer, { borderColor, shadowOpacity }]}>
+        <LinearGradient
+          colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
+          style={styles.inputBackground}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+
         <TouchableOpacity
-          style={styles.iconButton}
+          style={[styles.button, isDisabled && styles.disabled]}
           onPress={handleImageUpload}
-          disabled={!isMember || !isConnected}
+          disabled={isDisabled}
+          activeOpacity={0.7}
         >
-          <ImageIcon
-            size={24}
-            color={isMember && isConnected ? '#0A84FF' : '#666'}
-          />
+          <View style={styles.buttonInner}>
+            <Plus size={20} color={isDisabled ? 'rgba(255, 255, 255, 0.3)' : '#fff'} strokeWidth={2.5} />
+          </View>
         </TouchableOpacity>
 
         <TextInput
           ref={inputRef}
-          style={styles.input}
+          style={[styles.input, isDisabled && styles.disabled]}
           value={messageText}
           onChangeText={(text) => {
             setMessageText(text);
             handleTyping();
           }}
-          placeholder="พิมพ์ข้อความ..."
-          placeholderTextColor="#666"
+          placeholder={isDisabled ? "กำลังเชื่อมต่อ..." : "พิมพ์ข้อความที่นี่..."}
+          placeholderTextColor={isDisabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.6)'}
           multiline
           maxLength={1000}
-          editable={isMember && isConnected}
-          onFocus={() => {
-            if (showStickerPicker) {
-              setShowStickerPicker(false);
-            }
-          }}
+          editable={!isDisabled}
+          onFocus={handleFocus}
+          onBlur={() => setIsFocused(false)}
+          textAlignVertical="center"
+          selectionColor="#667eea"
         />
 
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => setShowStickerPicker(!showStickerPicker)}
-          disabled={!isMember || !isConnected}
-        >
-          <Smile
-            size={24}
-            color={isMember && isConnected ? '#0A84FF' : '#666'}
-          />
-        </TouchableOpacity>
+        {hasText && (
+          <TouchableOpacity
+            style={[styles.button, styles.sendButton, !canSend && styles.disabled]}
+            onPress={handleSend}
+            disabled={!canSend}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={canSend ? ['#667eea', '#764ba2'] : ['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+              style={styles.buttonInner}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Send size={18} color={canSend ? '#fff' : 'rgba(255, 255, 255, 0.4)'} strokeWidth={2.5} />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
-          style={[
-            styles.sendButton,
-            (!messageText.trim() || !isMember || !isConnected) && styles.sendButtonDisabled,
-          ]}
-          onPress={handleSendMessage}
-          disabled={!messageText.trim() || !isMember || !isConnected}
+          style={[styles.button, showStickerPicker && styles.activeSticker, isDisabled && styles.disabled]}
+          onPress={() => setShowStickerPicker(!showStickerPicker)}
+          disabled={isDisabled}
+          activeOpacity={0.7}
         >
-          <Send
-            size={20}
-            color={messageText.trim() && isMember && isConnected ? '#fff' : '#666'}
-          />
+          <View style={[styles.buttonInner, showStickerPicker && styles.activeStickerInner]}>
+            <Smile
+              size={20}
+              color={showStickerPicker ? '#FFD700' : isDisabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.8)'}
+              strokeWidth={2}
+            />
+          </View>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
+
+      {!isConnected && (
+        <View style={styles.statusContainer}>
+          <View style={styles.statusDot} />
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#1A1A1A',
-    borderTopWidth: 1,
-    borderTopColor: '#2A2A2A',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
+  container: { position: 'relative' },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: '#2A2A2A',
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    borderRadius: 28,
+    padding: 6,
+    minHeight: 56,
+    borderWidth: 2,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 8,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  inputBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 26,
+  },
+  button: {
+    marginHorizontal: 4,
+  },
+  buttonInner: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   input: {
     flex: 1,
     color: '#fff',
     fontSize: 16,
-    maxHeight: 100,
-    paddingHorizontal: 8,
-    paddingTop: Platform.OS === 'ios' ? 8 : 0,
-    paddingBottom: Platform.OS === 'ios' ? 8 : 0,
-  },
-  iconButton: {
-    padding: 8,
+    lineHeight: 22,
+    maxHeight: 120,
+    paddingHorizontal: 4,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    minHeight: 44,
+    fontWeight: '400',
   },
   sendButton: {
-    backgroundColor: '#0A84FF',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  sendButtonDisabled: {
-    backgroundColor: '#2A2A2A',
+  activeSticker: {},
+  activeStickerInner: {
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  statusContainer: {
+    position: 'absolute',
+    top: -4,
+    right: 8,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FF6B6B',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
 });
 
-export default ChatInput; 
+export default ChatInput;

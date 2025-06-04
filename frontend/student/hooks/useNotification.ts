@@ -11,7 +11,7 @@ export function useNotification() {
   
   useEffect(() => {
     const fetchNotifications = async () => {
-      const res = await request(`/users/${user?.id}/notifications`, "GET");
+      const res = await request(`/users/${user?.data[0]._id}/notifications`, "GET");
       if (res) {
         // Sort notifications by timestamp in descending order (newest first)
         const sortedByTimestamp = [...res].sort(
@@ -28,7 +28,7 @@ export function useNotification() {
     };
 
     fetchNotifications();
-  }, [request, user?.id]); // Add request and user?.id to the dependency array
+  }, [request, user?.data[0]._id]); // Add request and user?.id to the dependency array
 
   return { notifications, loading, error };
 }

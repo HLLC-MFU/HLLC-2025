@@ -18,7 +18,7 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 @UseGuards(PermissionsGuard)
 @Controller('system-status')
 export class SystemStatusController {
-  constructor(private readonly systemStatusService: SystemStatusService) { }
+  constructor(private readonly systemStatusService: SystemStatusService) {}
 
   @Post()
   @Permissions('system:create')
@@ -35,13 +35,16 @@ export class SystemStatusController {
   @Get(':id')
   @Permissions('system:read')
   findOne(@Param('id') id: string) {
-    console.log('findOne', id)
+    console.log('findOne', id);
     return this.systemStatusService.findOne(id);
   }
 
   @Patch(':id')
   @Permissions('system:update')
-  update(@Param('id') id: string, @Body() updateSystemStatusDto: UpdateSystemStatusDto,) {
+  update(
+    @Param('id') id: string,
+    @Body() updateSystemStatusDto: UpdateSystemStatusDto,
+  ) {
     return this.systemStatusService.update(id, updateSystemStatusDto);
   }
 
