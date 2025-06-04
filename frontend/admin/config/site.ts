@@ -38,6 +38,12 @@ export const siteConfig = {
       ],
     },
     {
+      section: "Evoucher Management",
+      items: [
+        // { label: "Campaign", href: "/campaigns", icon: Megaphone },
+      ],
+    },
+    {
       section: "Settings",
       items: [
         { label: "Settings", href: "/settings", icon: SettingsIcon },

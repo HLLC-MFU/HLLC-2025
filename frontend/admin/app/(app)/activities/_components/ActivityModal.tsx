@@ -1,14 +1,15 @@
 "use client";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Textarea, Switch, Select, SelectItem, Divider } from "@heroui/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, createRef } from "react";
 import type { Activities, ActivityType } from "@/types/activities";
 import { useActivities } from "@/hooks/useActivities";
+import { Image, CheckCircle } from "lucide-react";
 
 interface ActivityModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (activity: Partial<Activities>, mode: "add" | "edit") => void;
+  onSuccess: (formData: FormData, mode: "add" | "edit") => void;
   activity?: Activities;
   mode: "add" | "edit";
 }
@@ -30,8 +31,10 @@ export function ActivityModal({
   const [shortDetailsTh, setShortDetailsTh] = useState("");
   const [locationEn, setLocationEn] = useState("");
   const [locationTh, setLocationTh] = useState("");
-  const [bannerPhoto, setBannerPhoto] = useState("");
-  const [logoPhoto, setLogoPhoto] = useState("");
+  const [bannerPhoto, setBannerPhoto] = useState<File | null>(null);
+  const [logoPhoto, setLogoPhoto] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState("");
+  const [logoPreview, setLogoPreview] = useState("");
   const [type, setType] = useState("");
   const [isOpen, setIsOpen] = useState(true);
   const [isProgressCount, setIsProgressCount] = useState(true);
@@ -39,6 +42,9 @@ export function ActivityModal({
   const [scopeMajor, setScopeMajor] = useState<string[]>([]);
   const [scopeSchool, setScopeSchool] = useState<string[]>([]);
   const [scopeUser, setScopeUser] = useState<string[]>([]);
+
+  const bannerInputRef = createRef<HTMLInputElement>();
+  const logoInputRef = createRef<HTMLInputElement>();
 
   useEffect(() => {
     if (activity) {
@@ -51,8 +57,8 @@ export function ActivityModal({
       setShortDetailsTh(activity.shortDetails?.th || "");
       setLocationEn(activity.location?.en || "");
       setLocationTh(activity.location?.th || "");
-      setBannerPhoto(activity.photo?.bannerPhoto || "");
-      setLogoPhoto(activity.photo?.logoPhoto || "");
+      setBannerPreview(activity.photo?.bannerPhoto || "");
+      setLogoPreview(activity.photo?.logoPhoto || "");
       setType(activity.type || "");
       setIsOpen(activity.metadata?.isOpen ?? true);
       setIsProgressCount(activity.metadata?.isProgressCount ?? true);
@@ -70,8 +76,10 @@ export function ActivityModal({
       setShortDetailsTh("");
       setLocationEn("");
       setLocationTh("");
-      setBannerPhoto("");
-      setLogoPhoto("");
+      setBannerPhoto(null);
+      setLogoPhoto(null);
+      setBannerPreview("");
+      setLogoPreview("");
       setType("");
       setIsOpen(true);
       setIsProgressCount(true);
@@ -82,34 +90,68 @@ export function ActivityModal({
     }
   }, [activity]);
 
-  const handleSubmit = () => {
-    if (!nameEn.trim() || !nameTh.trim() || !type) return;
+  const handleFileChange = (file: File | null, type: 'banner' | 'logo') => {
+    if (!file) return;
 
-    const updatedActivity: Partial<Activities> = {
-      ...activity,
-      name: { en: nameEn.trim(), th: nameTh.trim() },
-      acronym: acronym.trim() || nameEn.substring(0, 3).toUpperCase(),
-      fullDetails: { en: fullDetailsEn.trim(), th: fullDetailsTh.trim() },
-      shortDetails: { en: shortDetailsEn.trim(), th: shortDetailsTh.trim() },
-      location: { en: locationEn.trim(), th: locationTh.trim() },
-      type: type,
-      photo: {
-        bannerPhoto: bannerPhoto.trim(),
-        logoPhoto: logoPhoto.trim() || undefined
-      },
-      metadata: {
-        isOpen,
-        isProgressCount,
-        isVisible,
-        scope: {
-          major: scopeMajor,
-          school: scopeSchool,
-          user: scopeUser
-        }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (type === 'banner') {
+        setBannerPhoto(file);
+        setBannerPreview(reader.result as string);
+      } else {
+        setLogoPhoto(file);
+        setLogoPreview(reader.result as string);
       }
     };
+    reader.readAsDataURL(file);
+  };
 
-    onSuccess(updatedActivity, mode);
+  const handleSubmit = async () => {
+    if (!nameEn.trim() || !nameTh.trim() || !type) return;
+
+    const formData = new FormData();
+    
+    // Basic information
+    formData.append("name[en]", nameEn.trim());
+    formData.append("name[th]", nameTh.trim());
+    formData.append("acronym", acronym.trim() || nameEn.substring(0, 3).toUpperCase());
+    formData.append("type", type);
+
+    // Details
+    formData.append("fullDetails[en]", fullDetailsEn.trim());
+    formData.append("fullDetails[th]", fullDetailsTh.trim());
+    formData.append("shortDetails[en]", shortDetailsEn.trim());
+    formData.append("shortDetails[th]", shortDetailsTh.trim());
+
+    // Location
+    formData.append("location[en]", locationEn.trim());
+    formData.append("location[th]", locationTh.trim());
+
+    // Photos
+    if (bannerPhoto) {
+      formData.append("photo[bannerPhoto]", bannerPhoto);
+    }
+    if (logoPhoto) {
+      formData.append("photo[logoPhoto]", logoPhoto);
+    }
+
+    // Metadata
+    formData.append("metadata[isOpen]", String(isOpen));
+    formData.append("metadata[isProgressCount]", String(isProgressCount));
+    formData.append("metadata[isVisible]", String(isVisible));
+
+    // Scope
+    scopeMajor.forEach((major, index) => {
+      formData.append(`metadata[scope][major][${index}]`, major);
+    });
+    scopeSchool.forEach((school, index) => {
+      formData.append(`metadata[scope][school][${index}]`, school);
+    });
+    scopeUser.forEach((user, index) => {
+      formData.append(`metadata[scope][user][${index}]`, user);
+    });
+
+    onSuccess(formData, mode);
     onClose();
   };
 
@@ -230,19 +272,66 @@ export function ActivityModal({
 
             <div>
               <h3 className="text-sm font-medium mb-3">Photos</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Banner Photo URL"
-                  placeholder="Enter banner photo URL"
-                  value={bannerPhoto}
-                  onValueChange={setBannerPhoto}
-                />
-                <Input
-                  label="Logo Photo URL"
-                  placeholder="Enter logo photo URL"
-                  value={logoPhoto}
-                  onValueChange={setLogoPhoto}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h4 className="font-semibold capitalize text-lg">Banner Photo</h4>
+                  <div className="relative max-w-xs mx-auto">
+                    <label htmlFor="upload-banner" className="cursor-pointer block">
+                      <img
+                        src={bannerPreview || "http://localhost:8080/uploads/default-banner.jpg"}
+                        alt="Banner"
+                        className="w-full rounded-xl shadow-lg"
+                      />
+                    </label>
+                    <input
+                      id="upload-banner"
+                      ref={bannerInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileChange(file, 'banner');
+                      }}
+                      className="hidden"
+                    />
+                  </div>
+                  {bannerPhoto && (
+                    <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 p-2 rounded">
+                      <CheckCircle className="w-3 h-3" />
+                      <span>📁 {bannerPhoto.name}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-semibold capitalize text-lg">Logo Photo</h4>
+                  <div className="relative max-w-xs mx-auto">
+                    <label htmlFor="upload-logo" className="cursor-pointer block">
+                      <img
+                        src={logoPreview || "http://localhost:8080/uploads/default-logo.jpg"}
+                        alt="Logo"
+                        className="w-full rounded-xl shadow-lg"
+                      />
+                    </label>
+                    <input
+                      id="upload-logo"
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileChange(file, 'logo');
+                      }}
+                      className="hidden"
+                    />
+                  </div>
+                  {logoPhoto && (
+                    <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 p-2 rounded">
+                      <CheckCircle className="w-3 h-3" />
+                      <span>📁 {logoPhoto.name}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

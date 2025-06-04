@@ -54,6 +54,6 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
   app.useGlobalFilters(new MongoExceptionFilter());
-  void app.listen(process.env.PORT ?? 3000);
+  void app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 void bootstrap();

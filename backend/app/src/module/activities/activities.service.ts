@@ -30,6 +30,7 @@ export class ActivitiesService {
 
     const activity = new this.activitiesModel({
       ...createActivitiesDto,
+      photo: processedPhoto,
       metadata: {
         isOpen: metadata.isOpen === false ? false : true,
         isProgressCount: metadata.isProgressCount === true ? true : false,
@@ -39,8 +40,11 @@ export class ActivitiesService {
     });
 
     try {
-      return await activity.save();
+      const savedActivity = await activity.save();
+      console.log('Activity created:', savedActivity);
+      return savedActivity;
     } catch (error) {
+      console.error('Error creating activity:', error);
       handleMongoDuplicateError(error, 'name');
     }
   }
@@ -139,11 +143,29 @@ export class ActivitiesService {
     if (updateActivityDto.metadata?.scope) {
       const scope = updateActivityDto.metadata.scope;
       const convertedScope = {
-        major: (scope.major || []).map(id => id.toString()),
-        school: (scope.school || []).map(id => id.toString()),
-        user: (scope.user || []).map(id => id.toString()),
+        major: Array.isArray(scope.major) 
+          ? scope.major.map(id => new Types.ObjectId(id))
+          : scope.major 
+            ? [new Types.ObjectId(scope.major)]
+            : [],
+        school: Array.isArray(scope.school)
+          ? scope.school.map(id => new Types.ObjectId(id))
+          : scope.school
+            ? [new Types.ObjectId(scope.school)]
+            : [],
+        user: Array.isArray(scope.user)
+          ? scope.user.map(id => new Types.ObjectId(id))
+          : scope.user
+            ? [new Types.ObjectId(scope.user)]
+            : []
       };
-      updateActivityDto.metadata.scope = convertedScope;
+
+      // Convert back to string[] for DTO
+      updateActivityDto.metadata.scope = {
+        major: convertedScope.major.map(id => id.toString()),
+        school: convertedScope.school.map(id => id.toString()),
+        user: convertedScope.user.map(id => id.toString())
+      };
     }
 
     const activity = await this.activitiesModel
