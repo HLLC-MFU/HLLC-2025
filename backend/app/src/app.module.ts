@@ -59,7 +59,7 @@ import { ActivitiesModule } from './module/activities/activities.module';
     ReportsModule,
     SseModule,
     CheckinModule,
-    ActivitiesModule
+    ActivitiesModule,
   ],
   providers: [
     {
