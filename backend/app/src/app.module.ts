@@ -22,7 +22,6 @@ import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesModule } from './module/activities/activities.module';
-import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';;
 
 @Module({
   imports: [
@@ -48,7 +47,6 @@ import { ActivitiesTypeModule } from './module/activities-type/activities-type.m
     }),
     GlobalCacheModule,
     ActivitiesModule,
-    ActivitiesTypeModule,
     AuthModule,
     RoleModule,
     UsersModule,
@@ -62,7 +60,7 @@ import { ActivitiesTypeModule } from './module/activities-type/activities-type.m
     ReportsModule,
     SseModule,
     CheckinModule,
-    ActivitiesModule
+    ActivitiesModule,
   ],
   providers: [
     {

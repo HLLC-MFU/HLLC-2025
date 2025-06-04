@@ -6,6 +6,7 @@ import {
   Req,
   Query,
   Res,
+  Get,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
@@ -13,9 +14,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
 import { LoginDto } from './dto/login.dto';
 import { UserRequest } from 'src/pkg/types/users';
 import { FastifyReply } from 'fastify';
-import { RegisterDto } from './dto/register.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-
+import { Permissions } from './decorators/permissions.decorator';
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -52,21 +51,15 @@ export class AuthController {
     return this.authService.refreshToken(body.refreshToken);
   }
 
-  @Public()
-  @Post('register')
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
-  }
-
-  @Public()
-  @Post('reset-password')
-  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    return this.authService.resetPassword(resetPasswordDto);
-  }
-
   @Post('logout')
   @UseGuards(PermissionsGuard)
   async logout(@Req() req: UserRequest) {
     return this.authService.logout(req.user._id);
+  }
+
+  @Get('permissions')
+  @Permissions('permissions:read')
+  getAllPermissions() {
+    return this.authService.scanPermissions();
   }
 }
