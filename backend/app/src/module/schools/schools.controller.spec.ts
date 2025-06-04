@@ -50,7 +50,6 @@ describe('SchoolsController', () => {
           provide: SchoolsService,
           useValue: {
             findAll: jest.fn(),
-            findOne: jest.fn(),
           },
         },
       ],

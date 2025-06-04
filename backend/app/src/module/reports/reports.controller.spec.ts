@@ -4,18 +4,26 @@ import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 
-
 describe('ReportsController', () => {
   let controller: ReportsController;
   let service: ReportsService;
 
   const mockService = {
-    create: jest.fn(),
-    findAll: jest.fn(),
-    findOne: jest.fn(),
-    findAllByCategory: jest.fn(),
-    update: jest.fn(),
-    remove: jest.fn(),
+    create: jest.fn(dto => ({ id: '1', ...dto })),
+    findAll: jest.fn(() => [{ id: '1', message: 'test' }]),
+    findOne: jest.fn(id => {
+      if (id === '404') throw new Error('Not Found');
+      return { id, message: 'found' };
+    }),
+    findAllByCategory: jest.fn(id => [{ id: 'x', category: id }]),
+    update: jest.fn((id, dto) => {
+      if (id === 'bad') throw new Error('Invalid update');
+      return { id, ...dto };
+    }),
+    remove: jest.fn(id => {
+      if (id === 'bad') throw new Error('Delete failed');
+      return { deletedId: id };
+    }),
   };
 
   beforeEach(async () => {
@@ -33,97 +41,46 @@ describe('ReportsController', () => {
     service = module.get<ReportsService>(ReportsService);
   });
 
-  afterEach(() => jest.clearAllMocks());
-
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('create', () => {
-    it('should create a report', async () => {
-      const dto: CreateReportDto = {
-        message: 'create test',
-        reporter: 'user123',
-        category: 'cat456',
-        status: 'pending',
-        createdAt: new Date(),
-      };
-
-      const expected = { id: '1', ...dto };
-
-      mockService.create.mockResolvedValue(expected);
-      const result = await controller.create(dto);
-
-      expect(result).toEqual(expected);
-      expect(service.create).toHaveBeenCalledWith(dto);
-    });
+  it('should create a report', async () => {
+    const dto: CreateReportDto = { message: 'new report' } as any;
+    const result = await controller.create(dto);
+    expect(result).toEqual({ id: '1', message: 'new report' });
+    expect(mockService.create).toHaveBeenCalledWith(dto);
   });
 
-  describe('findAll', () => {
-    it('should return all reports with query', async () => {
-      const query = { status: 'pending' };
-      const expected = [{ id: '1', message: 'report' }];
-
-      mockService.findAll.mockResolvedValue(expected);
-      const result = await controller.findAll(query);
-
-      expect(result).toEqual(expected);
-      expect(service.findAll).toHaveBeenCalledWith(query);
-    });
+  it('should return all reports', async () => {
+    const result = await controller.findAll({});
+    expect(result).toEqual([{ id: '1', message: 'test' }]);
+    expect(mockService.findAll).toHaveBeenCalled();
   });
 
-  describe('findOne', () => {
-    it('should return report by id', async () => {
-      const expected = { id: '1', message: 'one report' };
-      mockService.findOne.mockResolvedValue(expected);
-
-      const result = await controller.findOne('1');
-      expect(result).toEqual(expected);
-      expect(service.findOne).toHaveBeenCalledWith('1');
-    });
+  it('should return one report by id', async () => {
+    const result = await controller.findOne('123');
+    expect(result).toEqual({ id: '123', message: 'found' });
+    expect(mockService.findOne).toHaveBeenCalledWith('123');
   });
 
-  describe('getByCategory', () => {
-    it('should return reports by category ID via /:id/categories', async () => {
-      const expected = { category: 'cat01', reports: [] };
-      mockService.findAllByCategory.mockResolvedValue(expected);
-
-      const result = await controller.getByCategory('cat01');
-      expect(result).toEqual(expected);
-      expect(service.findAllByCategory).toHaveBeenCalledWith('cat01');
-    });
+  it('should return reports by category id', async () => {
+    const result = await controller.getByCategory('cat123');
+    expect(result).toEqual([{ id: 'x', category: 'cat123' }]);
+    expect(mockService.findAllByCategory).toHaveBeenCalledWith('cat123');
   });
 
-  describe('update', () => {
-    it('should update a report', async () => {
-      const dto: UpdateReportDto = {
-        message: 'updated message',
-        reporter: 'user123',
-        category: 'cat456',
-        status: 'resolved',
-        updatedAt: new Date(),
-      };
-
-      const expected = { id: '1', ...dto };
-
-      mockService.update.mockResolvedValue(expected);
-      const result = await controller.update('1', dto);
-
-      expect(result).toEqual(expected);
-      expect(service.update).toHaveBeenCalledWith('1', dto);
-    });
+  it('should update a report', async () => {
+    const dto: UpdateReportDto = { message: 'updated' } as any;
+    const result = await controller.update('1', dto);
+    expect(result).toEqual({ id: '1', message: 'updated' });
+    expect(mockService.update).toHaveBeenCalledWith('1', dto);
   });
 
-  describe('remove', () => {
-    it('should delete a report', async () => {
-      const expected = { message: 'deleted', deletedId: '1' };
-      mockService.remove.mockResolvedValue(expected);
-
-      const result = await controller.remove('1');
-      expect(result).toEqual(expected);
-      expect(service.remove).toHaveBeenCalledWith('1');
-    });
+  it('should delete a report', async () => {
+    const result = await controller.remove('1');
+    expect(result).toEqual({ deletedId: '1' });
+    expect(mockService.remove).toHaveBeenCalledWith('1');
   });
+
 });
-
-

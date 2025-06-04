@@ -11,11 +11,9 @@ export class CreateReportDto {
 
   @IsString()
   @IsNotEmpty()
-  message: string;
+  massage: string;
 
   @IsString()
   @IsNotEmpty()
   status: string;
-
-  createdAt: Date;
 }
