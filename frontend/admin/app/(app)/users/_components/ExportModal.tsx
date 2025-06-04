@@ -1,17 +1,13 @@
 import React from "react"
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@heroui/react";
-import * as XLSX from 'xlsx'
-import { saveAs } from "file-saver";
-import { User } from "@/types/user";
 
 export interface ExportModalProps {
     isOpen: boolean;
     onClose: () => void;
-    data: User[];
-    onExportUsers: (fileName: string) => void;
+    onExport: (fileName: string) => void;
 }
 
-export default function ExportModal({ isOpen, onClose, onExportUsers }: ExportModalProps) {
+export default function ExportModal({ isOpen, onClose, onExport }: ExportModalProps) {
     const fileNameRef = React.useRef<HTMLInputElement>(null);
 
     return (
@@ -26,7 +22,7 @@ export default function ExportModal({ isOpen, onClose, onExportUsers }: ExportMo
                     className="w-full"
                     onSubmit={(e) => {
                         e.preventDefault();
-                        onExportUsers(fileNameRef.current?.value || "Data");
+                        onExport(fileNameRef.current?.value || "Data");
                     }}
                 >
                     <ModalHeader className="flex flex-col gap-1">Export File</ModalHeader>

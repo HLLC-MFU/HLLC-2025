@@ -2,18 +2,27 @@ import { addToast, Button, Form, getKeyValue, Input, Modal, ModalBody, ModalCont
 import React from "react";
 import * as XLSX from "xlsx";
 import { columns } from "./user-table";
-import saveAs from "file-saver";
 import { User } from "@/types/user";
 
 export interface ImportModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onImportUsers: (userData: Partial<User>[]) => void;
+    onImport: (userData: Partial<User>[]) => void;
     onExportTemplate: () => void;
 }
 
-export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTemplate }: ImportModalProps) {
-    const [fileData, setFileData] = React.useState<any[]>([]);
+interface JsonData {
+    role: string;
+    major: string;
+    type: string;
+    username: string;
+    first: string;
+    middle?: string;
+    last: string;
+}
+
+export default function ImportModal({ isOpen, onClose, onImport, onExportTemplate }: ImportModalProps) {
+    const [fileData, setFileData] = React.useState<User[]>([]);
     const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
 
@@ -41,42 +50,26 @@ export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTe
             const workbook = XLSX.read(data, { type: "array" });
             const worksheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[worksheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            const jsonData = XLSX.utils.sheet_to_json(worksheet) as JsonData[];
 
-            const dataForm = jsonData.map((item: any) => {
-                const data: any = {};
-                for (const key in item) {
-                    try {
-                        data[key] = JSON.parse(item[key]);
-                    } catch (error) {
-                        data[key] = item[key];
-                    };
-                };
-
-                const mapData: any = {};
-                mapData.username = item["username"];
-                mapData.role = item["role"];
-                mapData.name = {
-                    first: item["first"],
-                    middle: item["middle"],
-                    last: item["last"],
-                };
-                mapData.metadata = {
-                    school: {
-                        name: {
-                            en: item["school_en"],
-                            th: item["school_th"]
+            const dataForm = jsonData.map((item) => {
+                const mapData: User = {
+                    role: '',
+                    major: '',
+                    type: item["role"],
+                    users: [
+                        {
+                            studentId: item["username"],
+                            name: {
+                                first: item["first"],
+                                middle: item["middle"],
+                                last: item["last"],
+                            },
                         }
-                    },
-                    major: {
-                        name: {
-                            en: item["major_en"],
-                            th: item["major_th"]
-                        }
-                    }
+                    ]
                 };
 
-                return mapData
+                return mapData;
             });
 
             setFileData(dataForm);
@@ -98,28 +91,25 @@ export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTe
         setIsImportModalOpen(true);
     };
 
-    const handleConfirmImport = () => {
-        onImportUsers(fileData);
+    const handleImport = () => {
+        onImport(fileData);
         setIsPreviewModalOpen(false);
     };
 
-    const renderCell = React.useCallback((item: any, columnKey: React.Key) => {
+    const renderCell = React.useCallback((item: User, columnKey: React.Key) => {
         const cellValue = item[columnKey as keyof typeof item];
 
         switch (columnKey) {
             case "name":
-                return `${item.name.first} ${item.name.middle === null ? "" : item.name.middle} ${item.name.last}`;
+                return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last}`;
             case "school":
-                return item.metadata.school?.name?.en ?? null;
+                return item.metadata?.major?.school.name.en ?? null;
             case "major":
-                return item.metadata.major?.name?.en ?? null;
+                return item.metadata?.major?.name.en ?? null;
             case "actions":
                 return null;
             default:
-                if (typeof cellValue === "object" && cellValue !== null) {
-                    return JSON.stringify(cellValue);
-                }
-                return cellValue as React.ReactNode;
+                return cellValue;
         }
 
     }, [fileData]);
@@ -188,7 +178,8 @@ export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTe
                             </TableHeader>
                             <TableBody items={items}>
                                 {(item) => (
-                                    <TableRow key={item}>
+                                    // console.log(item),
+                                    <TableRow key={item.users[0]?.studentId}>
                                         {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
                                     </TableRow>
                                 )}
@@ -199,7 +190,7 @@ export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTe
                         <Button color="danger" variant="light" onPress={handleCancel}>
                             Cancel
                         </Button>
-                        <Button color="primary" onPress={handleConfirmImport}>
+                        <Button color="primary" onPress={handleImport}>
                             Confirm
                         </Button>
                     </ModalFooter>

@@ -7,11 +7,11 @@
   "bin": {
     "hllc": "./scripts/hllc.js"
   },
+  "dependencies": {
+    "hllc-2025": "file:"
+  },
   "devDependencies": {
     "cross-spawn": "^7.0.6",
     "inquirer": "^12.6.1"
-  },
-  "dependencies": {
-    "hllc-2025": "file:"
   }
 }
