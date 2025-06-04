@@ -6,76 +6,21 @@ import {
     AccordionItem,
 } from "@heroui/react";
 import EvoucherTable from './_components/Evoucher-table'
-
-
-const mockupData: Evoucher[] = [
-    {
-        discount: 10,
-        acronym: "EVA1",
-        type: { name: "Individual" },
-        sponsor: {
-            name: { en: "Sponsor A", th: "ผู้สนับสนุน A" },
-        },
-        detail: { en: "Discount on summer products", th: "ส่วนลดฤดูร้อน" },
-        expiration: new Date("2025-12-31"),
-    },
-    {
-        discount: 15,
-        acronym: "EVA2",
-        type: { name: "Global" },
-        sponsor: {
-            name: { en: "Sponsor A", th: "ผู้สนับสนุน A" },
-        },
-        detail: { en: "Special offer for new members", th: "ข้อเสนอพิเศษสำหรับสมาชิกใหม่" },
-        expiration: new Date("2025-10-31"),
-    },
-    {
-        discount: 20,
-        acronym: "EVB1",
-        type: { name: "Individual" },
-        sponsor: {
-            name: { en: "Sponsor B", th: "ผู้สนับสนุน B" },
-        },
-        detail: { en: "Back-to-school discount", th: "ส่วนลดกลับไปโรงเรียน" },
-        expiration: new Date("2025-09-30"),
-    },
-    {
-        discount: 25,
-        acronym: "EVB2",
-        type: { name: "Global" },
-        sponsor: {
-            name: { en: "Sponsor B", th: "ผู้สนับสนุน B" },
-        },
-        detail: { en: "Autumn special offer", th: "ข้อเสนอพิเศษฤดูใบไม้ร่วง" },
-        expiration: new Date("2025-11-15"),
-    },
-    {
-        discount: 30,
-        acronym: "EVB3",
-        type: { name: "Individual" },
-        sponsor: {
-            name: { en: "Sponsor B", th: "ผู้สนับสนุน B" },
-        },
-        detail: { en: "Winter wonderland", th: "มหัศจรรย์ฤดูหนาว" },
-        expiration: new Date("2025-12-01"),
-    },
-];
-
+import { PageHeader } from "@/components/ui/page-header";
+import { Ticket } from "lucide-react";
 import { Evoucher } from "@/types/evoucher";
-import AddModal from "./_components/AddModal";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
+import AddModal from "./_components/AddModal";
+import { useEvoucher } from "@/hooks/useEvoucher";
 
 export default function EvoucherPage() {
 
-    const [evouchers, setEvouchers] = React.useState<Evoucher[]>([]);
-
+    const { evouchers } = useEvoucher();
     const [actionText, setActionText] = React.useState<"Add" | "Edit">("Add");
     const [isAddOpen, setIsAddOpen] = React.useState<boolean>(false);
     const [isDeleteOpen, setIsDeleteOpen] = React.useState<boolean>(false);
 
-    React.useEffect(() => {
-        setEvouchers(mockupData);
-    }, []);
+    console.log(evouchers);
 
     const groupedEvouchers: Record<string, typeof evouchers> = {};
     evouchers.forEach((evoucher) => {
@@ -93,50 +38,49 @@ export default function EvoucherPage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen">
-            <div className="container mx-auto py-6">
-                <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-3xl font-bold">Evoucher Management</h1>
+        <>
+            <PageHeader description='This is Management Page' icon={<Ticket />} />
+            <div className="flex flex-col min-h-screen">
+                <div className="container mx-auto">
+                    <div className="flex flex-col gap-6">
+                        <Accordion variant="splitted" selectionMode="multiple">
+                            {Object.entries(groupedEvouchers).map(([sponsorName, sponsorEvouchers]) => (
+                                <AccordionItem
+                                    key={sponsorName}
+                                    aria-label={sponsorName}
+                                    title={sponsorName}
+                                    className="font-medium mb-2"
+                                >
+                                    <EvoucherTable
+                                        sponsorName={sponsorName}
+                                        evouchers={sponsorEvouchers}
+                                        setIsAddOpen={setIsAddOpen}
+                                        setIsDeleteOpen={setIsDeleteOpen}
+                                        setActionText={setActionText}
+                                    />
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
+                    </div>
                 </div>
 
-                <div className="flex flex-col gap-6">
-                    <Accordion variant="splitted" selectionMode="multiple">
-                        {Object.entries(groupedEvouchers).map(([sponsorName, sponsorEvouchers]) => (
-                            <AccordionItem
-                                key={sponsorName}
-                                aria-label={sponsorName}
-                                title={sponsorName}
-                                className="font-medium mb-2"
-                            >
-                                <EvoucherTable
-                                    sponsorName={sponsorName}
-                                    evouchers={sponsorEvouchers}
-                                    setIsAddOpen={setIsAddOpen}
-                                    setIsDeleteOpen={setIsDeleteOpen}
-                                    setActionText={setActionText}
-                                />
-                            </AccordionItem>
-                        ))}
-                    </Accordion>
-                </div>
+                <AddModal
+                    isOpen={isAddOpen}
+                    onClose={() => setIsAddOpen(false)}
+                    onAdd={handleAdd}
+                    title={actionText}
+                />
+
+                {/* Delete Modal */}
+                <ConfirmationModal
+                    isOpen={isDeleteOpen}
+                    onClose={() => setIsDeleteOpen(false)}
+                    onConfirm={handleDelete}
+                    title={"Delete evoucher"}
+                    body={"Are you sure you want to delete this item?"}
+                    confirmColor='danger'
+                />
             </div>
-
-            <AddModal
-                isOpen={isAddOpen}
-                onClose={() => setIsAddOpen(false)}
-                onAdd={handleAdd}
-                title={actionText}
-            />
-
-            {/* Delete Modal */}
-            <ConfirmationModal
-                isOpen={isDeleteOpen}
-                onClose={() => setIsDeleteOpen(false)}
-                onConfirm={handleDelete}
-                title={"Delete evoucher"}
-                body={"Are you sure you want to delete this item?"}
-                confirmColor='danger'
-            />
-        </div>
+        </>
     )
 }

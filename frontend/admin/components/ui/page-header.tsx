@@ -29,20 +29,20 @@ export function PageHeader({ title, right, icon, description }: PageHeaderProps)
                         </h1>
                         <p className="text-start text-sm text-default-500 font-medium">{description}</p>
                     </div>
-                    {right && <div className="mt-2 md:mt-0">{right}</div>}
                 </div>
+                {right && <div className="mt-2 md:mt-0">{right}</div>}
             </div>
             <div className="border py-3 px-4 rounded-lg bg-default-50 mb-4 mt-4">
-            <Breadcrumbs className="w-full"> 
-                <BreadcrumbItem href="/">
-                    Home
-                </BreadcrumbItem>
-                {items.map((item) => (
-                    <BreadcrumbItem key={item.href} href={item.href}>
-                        {item.name}
+                <Breadcrumbs className="w-full">
+                    <BreadcrumbItem href="/">
+                        Home
                     </BreadcrumbItem>
-                ))}
-            </Breadcrumbs>
+                    {items.map((item) => (
+                        <BreadcrumbItem key={item.href} href={item.href}>
+                            {item.name}
+                        </BreadcrumbItem>
+                    ))}
+                </Breadcrumbs>
             </div>
 
 

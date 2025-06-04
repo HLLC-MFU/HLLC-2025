@@ -41,7 +41,8 @@ const INITIAL_VISIBLE_COLUMNS = [
     "discount",
     "expiration",
     "type",
-    "actions"
+    "logo",
+    "actions",
 ];
 
 export default function EvoucherTable({
