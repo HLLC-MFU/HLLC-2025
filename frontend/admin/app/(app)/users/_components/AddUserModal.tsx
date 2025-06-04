@@ -1,95 +1,82 @@
 import React from "react";
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
 
-// Mockup data for schools
-import schoolsMockup from "@/public/mock/schools.json"
 import { User } from "@/types/user";
-
-export const schools = schoolsMockup;
+import { School } from "@/types/school";
 
 export interface AddModalProps {
-    title: "Add" | "Edit";
     isOpen: boolean;
     onClose: () => void;
-    data: User;
-    onAddUser: (userData: Partial<User>) => void;
+    onAdd: (user: Partial<User>) => void;
+    action: "Add" | "Edit";
+    user: Partial<User>;
+    roleId: string;
+    schools: School[];
 };
 
-export default function AddModal({ title, isOpen, onClose, data, onAddUser }: AddModalProps) {
-    const [studentIdValue, setStudentIdValue] = React.useState("");
-    const [firstNameValue, setFirstNameValue] = React.useState("");
-    const [middleNameValue, setMiddleNameValue] = React.useState("");
-    const [lastNameValue, setLastNameValue] = React.useState("");
-    const [schoolValue, setSchoolValue] = React.useState<Set<string>>(new Set<string>());
-    const [majorValue, setMajorValue] = React.useState<Set<string>>(new Set<string>());
-    const majorId = React.useRef<string>("");
+export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId, schools }: AddModalProps) {
+
+    const [username, setUsername] = React.useState("");
+    const [firstName, setFirstName] = React.useState("");
+    const [middleName, setMiddleName] = React.useState("");
+    const [lastName, setLastName] = React.useState("");
+    const [school, setSchool] = React.useState<Set<string>>(new Set<string>());
+    const [major, setMajor] = React.useState<Set<string>>(new Set<string>());
 
     React.useEffect(() => {
-        if (title === "Edit") {
-            setStudentIdValue(data.username);
-            setFirstNameValue(data.name.first);
-            setMiddleNameValue(data.name.middle || "");
-            setLastNameValue(data.name.last);
-            schools.map((school) => {
-                if (school.name.en === data.metadata?.school?.name.en) {
-                    setSchoolValue(new Set([school.name.en]));
-                    {
-                        school.majors.map((major) => {
-                            if (major.name.en === data.metadata?.major?.name.en) {
-                                setMajorValue(new Set([major.name.en]));
-                            }
-                        })
-                    }
-                }
-            })
+        if (action === "Edit") {
+            setUsername(user.username ?? "");
+            setFirstName(user.name?.first ?? "");
+            setMiddleName(user.name?.middle ?? "");
+            setLastName(user.name?.last ?? "");
+            setSchool(new Set([user.metadata?.major.school.name.en]));
+            setMajor(new Set([user.metadata?.major.name.en]));
         }
-        if (title === "Add") {
+        if (action === "Add") {
             onClear();
         }
-    }, [data, title]);
+    }, [isOpen, user, action]);
 
     const onClear = () => {
-        setStudentIdValue("");
-        setFirstNameValue("");
-        setMiddleNameValue("");
-        setLastNameValue("");
-        setSchoolValue(new Set<string>());
-        setMajorValue(new Set<string>());
+        setUsername("");
+        setFirstName("");
+        setMiddleName("");
+        setLastName("");
+        setSchool(new Set<string>());
+        setMajor(new Set<string>());
     }
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        schools.map((school) => {
-            if (school.name.en === [...schoolValue][0]) {
-                {
-                    school.majors.map((major) => {
-                        if (major.name.en === [...majorValue][0]) {
-                            majorId.current = major;
-                        }
-                    });
-                }
+        let majorId = "";
+        schools.map((s) => {
+            if (s.name.en === Array.from(school)[0]) {
+                s.majors.map((m) => {
+                    if (m.name.en === Array.from(major)[0] && m._id) majorId = m._id;
+                })
             }
         })
 
         const formData: Partial<User> = {
             name: {
-                first: firstNameValue,
-                middle: middleNameValue,
-                last: lastNameValue,
+                first: firstName,
+                middle: middleName,
+                last: lastName,
             },
-            username: studentIdValue,
-            // Mockup student role
-            role: "6836c4413f987112cc4bca1f",
+            username: username,
+            role: roleId,
             metadata: {
-                major: majorId.current?.id,
+                major: majorId
             }
         };
 
-        if (title === "Add") {
-            onAddUser(formData);
-        } else if (title === "Edit") {
-            onAddUser(formData);
+        console.log(formData);
+
+        if (action === "Add") {
+            onAdd(formData);
+        } else if (action === "Edit") {
+            onAdd(formData);
         } else {
             console.error("Fail to submit data");
         }
@@ -108,7 +95,7 @@ export default function AddModal({ title, isOpen, onClose, data, onAddUser }: Ad
                         className="w-full"
                         onSubmit={(e) => handleSubmit(e)}
                     >
-                        <ModalHeader className="flex flex-col gap-1">{title === "Add" ? "Add new file" : "Edit file"}</ModalHeader>
+                        <ModalHeader className="flex flex-col gap-1">{action === "Add" ? "Add new user" : "Edit user"}</ModalHeader>
                         <ModalBody className="w-full">
                             <Input
                                 isRequired
@@ -118,8 +105,8 @@ export default function AddModal({ title, isOpen, onClose, data, onAddUser }: Ad
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter your student ID" }
                                 }
-                                value={studentIdValue}
-                                onChange={(e) => setStudentIdValue(e.target.value)}
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                             />
                             <Input
                                 isRequired
@@ -129,15 +116,15 @@ export default function AddModal({ title, isOpen, onClose, data, onAddUser }: Ad
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter your first name" }
                                 }
-                                value={firstNameValue}
-                                onChange={(e) => setFirstNameValue(e.target.value)}
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
                             />
                             <Input
                                 label="Middle Name"
                                 type="string"
                                 placeholder="Enter Middle Name"
-                                value={middleNameValue}
-                                onChange={(e) => setMiddleNameValue(e.target.value)}
+                                value={middleName}
+                                onChange={(e) => setMiddleName(e.target.value)}
                             />
                             <Input
                                 isRequired
@@ -147,8 +134,8 @@ export default function AddModal({ title, isOpen, onClose, data, onAddUser }: Ad
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter your last name" }
                                 }
-                                value={lastNameValue}
-                                onChange={(e) => setLastNameValue(e.target.value)}
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
                             />
                             <Select
                                 isRequired
@@ -157,24 +144,25 @@ export default function AddModal({ title, isOpen, onClose, data, onAddUser }: Ad
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please select your school" }
                                 }
-                                selectedKeys={schoolValue}
-                                onSelectionChange={(keys) => setSchoolValue(keys as Set<string>)}
+                                selectedKeys={school}
+                                onSelectionChange={(keys) => setSchool(keys as Set<string>)}
                             >
-                                {schools.map((school) => (
-                                    <SelectItem key={school.name.en}>{school.name.en}</SelectItem>
+                                {schools.map((s) => (
+                                    <SelectItem key={s.name.en}>{s.name.en}</SelectItem>
                                 ))}
                             </Select>
                             <Select
+                                isRequired
                                 label="Major"
                                 placeholder="Select Major"
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please select your major" }
                                 }
-                                selectedKeys={majorValue}
-                                onSelectionChange={(keys) => setMajorValue(keys as Set<string>)}
+                                selectedKeys={major}
+                                onSelectionChange={(keys) => setMajor(keys as Set<string>)}
                             >
-                                {(schools.find((school) => school.name.en === Array.from(schoolValue)[0])?.majors || []).map((major) => (
-                                    <SelectItem key={major.name.en}>{major.name.en}</SelectItem>
+                                {(schools.find((s) => s.name.en === Array.from(school)[0])?.majors || []).map((m) => (
+                                    <SelectItem key={m.name.en}>{m.name.en}</SelectItem>
                                 ))}
                             </Select>
                         </ModalBody>

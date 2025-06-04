@@ -19,6 +19,8 @@ import { PopulateField } from 'src/pkg/types/query';
 
 const userSelectFields = 'name username ';
 
+
+
 @Injectable()
 export class CheckinService {
   constructor(
@@ -28,21 +30,19 @@ export class CheckinService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel(Activities.name)
     private readonly activitiesModel: Model<ActivityDocument>,
-  ) {}
+  ) { }
 
   async create(createCheckinDto: CreateCheckinDto) {
     let userId: Types.ObjectId;
 
     // หา user จาก username
-    const user = await this.userModel.findOne({
-      username: createCheckinDto.user,
-    });
+    const user = await this.userModel.findOne({ username: createCheckinDto.user });
     if (!user) throw new Error('User not found');
     userId = user._id;
 
     // ตรวจสอบ activities
     const activityIds = Array.isArray(createCheckinDto.activities)
-      ? createCheckinDto.activities.map((id) => new Types.ObjectId(id))
+      ? createCheckinDto.activities.map(id => new Types.ObjectId(id))
       : [];
 
     for (const id of activityIds) {
@@ -51,31 +51,29 @@ export class CheckinService {
 
     // สร้าง checkin ทีละ activity
     const checkins = await Promise.all(
-      activityIds.map((activityId) => {
+      activityIds.map(activityId => {
         const checkin = new this.checkinModel({
           user: userId,
           staff: new Types.ObjectId(createCheckinDto.staff),
           activities: activityId,
         });
         return checkin.save();
-      }),
+      })
     );
 
     return checkins;
   }
 
   async findAll(query: Record<string, string>) {
-    const populateFields: PopulateField[] = [
-      { path: 'user', select: userSelectFields },
-      { path: 'staff', select: userSelectFields },
-      { path: 'activities' },
-    ];
 
     return queryAll<Checkin>({
       model: this.checkinModel,
       query,
       filterSchema: {},
-      populateFields: () => Promise.resolve(populateFields),
+      populateFields: (excluded) =>
+        Promise.resolve(
+          excluded.includes('school') ? [] : [{ path: 'user' } , {path: 'activities'}] as PopulateField[],
+        ),
     });
   }
 
@@ -121,10 +119,6 @@ export class CheckinService {
   }
 
   async remove(id: string) {
-    await queryDeleteOne<Checkin>(this.checkinModel, id);
-    return {
-      message: 'Checkin deleted successfully',
-      id,
-    };
+    return queryDeleteOne<Checkin>(this.checkinModel, id);
   }
 }

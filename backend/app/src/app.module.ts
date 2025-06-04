@@ -20,6 +20,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
+import { CheckinModule } from './module/checkin/checkin.module';
+import { ActivitiesModule } from './module/activities/activities.module';
 import { EvoucherModule } from './module/evoucher/evoucher.module';
 import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
 import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
@@ -59,6 +61,8 @@ import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
     AppearancesModule,
     ReportsModule,
     SseModule,
+    CheckinModule,
+    ActivitiesModule,
     EvoucherModule,
     EvoucherCodeModule,
     EvoucherTypeModule
