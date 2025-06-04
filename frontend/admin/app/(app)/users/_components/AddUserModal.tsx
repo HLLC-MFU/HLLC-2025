@@ -2,8 +2,7 @@ import React from "react";
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
 
 import { User } from "@/types/user";
-import { useSchools } from "@/hooks/useSchool";
-import { useRoles } from "@/hooks/useRoles";
+import { School } from "@/types/school";
 
 export interface AddModalProps {
     isOpen: boolean;
@@ -11,14 +10,11 @@ export interface AddModalProps {
     onAdd: (user: Partial<User>) => void;
     action: "Add" | "Edit";
     user: Partial<User>;
-    role: string;
+    roleId: string;
+    schools: School[];
 };
 
-export default function AddModal({ isOpen, onClose, onAdd, action, user, role }: AddModalProps) {
-    const { schools } = useSchools();
-    const { roles } = useRoles();
-    console.log(roles);
-    console.log(role);
+export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId, schools }: AddModalProps) {
 
     const [username, setUsername] = React.useState("");
     const [firstName, setFirstName] = React.useState("");
@@ -62,12 +58,6 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, role }:
             }
         })
 
-        const roleId = roles.find((r) => {
-            if (r.name === role) return r._id;
-        });
-
-        console.log(roleId)
-
         const formData: Partial<User> = {
             name: {
                 first: firstName,
@@ -75,7 +65,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, role }:
                 last: lastName,
             },
             username: username,
-            // role: roleId,
+            role: roleId,
             metadata: {
                 major: majorId
             }
@@ -83,13 +73,13 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, role }:
 
         console.log(formData);
 
-        // if (action === "Add") {
-        //     onAdd(formData);
-        // } else if (action === "Edit") {
-        //     onAdd(formData);
-        // } else {
-        //     console.error("Fail to submit data");
-        // }
+        if (action === "Add") {
+            onAdd(formData);
+        } else if (action === "Edit") {
+            onAdd(formData);
+        } else {
+            console.error("Fail to submit data");
+        }
     };
 
     return (
