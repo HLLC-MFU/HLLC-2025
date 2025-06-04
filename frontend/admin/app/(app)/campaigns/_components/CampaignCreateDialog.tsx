@@ -12,6 +12,7 @@ import {
   Textarea,
   Select,
   SelectItem,
+  Alert,
 } from "@heroui/react";
 import { useState } from "react";
 
@@ -20,7 +21,7 @@ type CampaignStatus = "draft" | "active" | "completed";
 interface CampaignCreateDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (campaignData: Partial<Campaign>) => void;
+  onSuccess: (formData: FormData) => void;
 }
 
 export const CampaignCreateDialog = ({
@@ -28,18 +29,77 @@ export const CampaignCreateDialog = ({
   onClose,
   onSuccess,
 }: CampaignCreateDialogProps) => {
-  const [formData, setFormData] = useState<Partial<Campaign>>({
-    name: "",
-    description: "",
-    startDate: "",
-    endDate: "",
-    budget: 0,
-    status: "draft",
+  const [formData, setFormData] = useState({
+    nameTh: "",
+    nameEn: "",
+    detailTh: "",
+    detailEn: "",
+    startAt: "",
+    endAt: "",
+    budget: "0",
+    status: "draft" as CampaignStatus,
+    image: null as File | null,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<{
+    message: string;
+    details?: string;
+  } | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSuccess(formData);
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const data = new FormData();
+      
+      // Add name fields
+      data.append("name[th]", formData.nameTh);
+      data.append("name[en]", formData.nameEn);
+      
+      // Add detail fields
+      data.append("detail[th]", formData.detailTh);
+      data.append("detail[en]", formData.detailEn);
+      
+      // Add other fields
+      data.append("startAt", formData.startAt);
+      data.append("endAt", formData.endAt);
+      data.append("budget", formData.budget);
+      data.append("status", formData.status);
+      
+      // Add image if exists
+      if (formData.image) {
+        data.append("image", formData.image);
+      }
+
+      await onSuccess(data);
+      onClose();
+    } catch (error: any) {
+      console.error("Error creating campaign:", error);
+      
+      // Handle different error cases
+      let errorMessage = "เกิดข้อผิดพลาดในการสร้างแคมเปญ";
+      let errorDetails = "กรุณาลองใหม่อีกครั้ง";
+
+      if (error?.response?.status === 403) {
+        errorMessage = "ไม่มีสิทธิ์ในการสร้างแคมเปญ";
+        errorDetails = "กรุณาติดต่อผู้ดูแลระบบ";
+      } else if (error?.response?.status === 500) {
+        errorMessage = "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์";
+        errorDetails = "กรุณาลองใหม่อีกครั้งในภายหลัง";
+      } else if (error?.response?.data?.message) {
+        errorDetails = error.response.data.message;
+      } else if (error?.message) {
+        errorDetails = error.message;
+      }
+
+      setError({
+        message: errorMessage,
+        details: errorDetails
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -48,38 +108,72 @@ export const CampaignCreateDialog = ({
         <form onSubmit={handleSubmit}>
           <ModalHeader>Create New Campaign</ModalHeader>
           <ModalBody>
+            {error && (
+              <Alert
+                className="mb-4"
+                color="danger"
+                variant="flat"
+                onClose={() => setError(null)}
+              >
+                <div className="flex flex-col gap-1">
+                  <div>{error.message}</div>
+                  {error.details && (
+                    <div className="text-sm opacity-80">{error.details}</div>
+                  )}
+                </div>
+              </Alert>
+            )}
             <div className="flex flex-col gap-4">
-              <Input
-                label="Campaign Name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                isRequired
-              />
-              <Textarea
-                label="Description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-              />
+              <div className="flex gap-4">
+                <Input
+                  label="Campaign Name (TH)"
+                  value={formData.nameTh}
+                  onChange={(e) =>
+                    setFormData({ ...formData, nameTh: e.target.value })
+                  }
+                  isRequired
+                />
+                <Input
+                  label="Campaign Name (EN)"
+                  value={formData.nameEn}
+                  onChange={(e) =>
+                    setFormData({ ...formData, nameEn: e.target.value })
+                  }
+                  isRequired
+                />
+              </div>
+              <div className="flex gap-4">
+                <Textarea
+                  label="Description (TH)"
+                  value={formData.detailTh}
+                  onChange={(e) =>
+                    setFormData({ ...formData, detailTh: e.target.value })
+                  }
+                />
+                <Textarea
+                  label="Description (EN)"
+                  value={formData.detailEn}
+                  onChange={(e) =>
+                    setFormData({ ...formData, detailEn: e.target.value })
+                  }
+                />
+              </div>
               <div className="flex gap-4">
                 <Input
                   type="date"
                   label="Start Date"
-                  value={formData.startDate}
+                  value={formData.startAt}
                   onChange={(e) =>
-                    setFormData({ ...formData, startDate: e.target.value })
+                    setFormData({ ...formData, startAt: e.target.value })
                   }
                   isRequired
                 />
                 <Input
                   type="date"
                   label="End Date"
-                  value={formData.endDate}
+                  value={formData.endAt}
                   onChange={(e) =>
-                    setFormData({ ...formData, endDate: e.target.value })
+                    setFormData({ ...formData, endAt: e.target.value })
                   }
                   isRequired
                 />
@@ -87,15 +181,26 @@ export const CampaignCreateDialog = ({
               <Input
                 type="number"
                 label="Budget (THB)"
-                value={formData.budget?.toString()}
+                value={formData.budget}
                 onChange={(e) =>
-                  setFormData({ ...formData, budget: Number(e.target.value) })
+                  setFormData({ ...formData, budget: e.target.value })
                 }
                 isRequired
               />
+              <Input
+                type="file"
+                label="Campaign Image"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setFormData({ ...formData, image: file });
+                  }
+                }}
+                accept="image/*"
+              />
               <Select
                 label="Status"
-                selectedKeys={[formData.status as string]}
+                selectedKeys={[formData.status]}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -110,11 +215,16 @@ export const CampaignCreateDialog = ({
             </div>
           </ModalBody>
           <ModalFooter>
-            <Button color="default" variant="light" onPress={onClose}>
+            <Button color="danger" variant="light" onPress={onClose}>
               Cancel
             </Button>
-            <Button color="primary" type="submit">
-              Create Campaign
+            <Button 
+              color="primary" 
+              type="submit"
+              isLoading={isSubmitting}
+              isDisabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create Campaign"}
             </Button>
           </ModalFooter>
         </form>

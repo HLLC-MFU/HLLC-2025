@@ -27,7 +27,7 @@ export default function DeleteModal({ isOpen, onClose, data, userIndex, selected
         return selectedRows.slice(start, end);
     }, [page, selectedRows]);
 
-    const renderCell = React.useCallback((item: any, columnKey: React.Key) => {
+    const renderCell = React.useCallback((item: User, columnKey: React.Key) => {
         const cellValue = item[columnKey as keyof typeof item];
 
         switch (columnKey) {

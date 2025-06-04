@@ -13,6 +13,8 @@ import {
   ShieldAlert,
   Megaphone,
   Ticket,
+  Palette,
+  BellRing
   
 } from "lucide-react";
 
@@ -29,6 +31,7 @@ export const siteConfig = {
     {
       section: "User Management",
       items: [
+        { label: "Notification Management", href: '/NotifyHub', icon: BellRing },
         { label: "Checkin" , href: "/checkin", icon: CircleCheckBig},
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Users Management", href: "/users", icon: UserIcon },
@@ -47,6 +50,7 @@ export const siteConfig = {
       items: [
         { label: "Settings", href: "/settings", icon: SettingsIcon },
         { label: "Help & Feedback", href: "/help-feedback", icon: HelpCircleIcon },
+        { label: "Appearance", href: "/appearance", icon: Palette }
       ],
     },
     {

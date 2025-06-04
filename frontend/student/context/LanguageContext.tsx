@@ -13,7 +13,11 @@ const LanguageContext = createContext<LanguageContextType>({
   changeLanguage: () => {},
 });
 
-export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+type LanguageProviderProps = {
+  children: React.ReactNode;
+};
+
+export const LanguageProvider = ({ children }: LanguageProviderProps) => {
   const [language, setLanguage] = useState<"en" | "th">(i18n.language as "en" | "th");
 
   const changeLanguage = (lang: string) => {

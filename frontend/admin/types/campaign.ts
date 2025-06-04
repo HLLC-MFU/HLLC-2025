@@ -1,11 +1,20 @@
 export interface Campaign {
     _id: string;
-    name: string;
-    description: string;
-    startDate: string;
-    endDate: string;
+    name: {
+        th: string;
+        en: string;
+    };
+    detail: {
+        th: string;
+        en: string;
+    };
     budget: number;
+    image: {
+        filename: string;
+    };
     status: "draft" | "active" | "completed";
+    startAt: string;
+    endAt: string;
     createdAt: string;
     updatedAt: string;
 } 

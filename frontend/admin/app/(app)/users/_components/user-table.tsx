@@ -11,12 +11,21 @@ import {
 import { EllipsisVertical, Pen, Trash } from "lucide-react";
 import { User } from "@/types/user";
 import TableContent from "./TableContent";
+import AddModal from "./AddUserModal";
+import ExportModal from "./ExportModal";
+import ImportModal from "./ImportModal";
+import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
+import * as XLSX from "xlsx"
+import { saveAs } from "file-saver"
+import { useUsers } from "@/hooks/useUsers";
+import AddToast from "./AddToast";
+import { School } from "@/types/school";
 
 export const columns = [
   { name: "STUDENT ID", uid: "username", sortable: true },
-  { name: "NAME", uid: "name", sortable: true },
-  { name: "SCHOOL", uid: "school", sortable: true },
-  { name: "MAJOR", uid: "major", sortable: true },
+  { name: "NAME", uid: "name" },
+  { name: "SCHOOL", uid: "school" },
+  { name: "MAJOR", uid: "major" },
   { name: "ACTIONS", uid: "actions" },
 ];
 
@@ -34,13 +43,26 @@ const INITIAL_VISIBLE_COLUMNS = [
 
 export default function UsersTable({
   roleName,
+  roleId,
+  schools,
   users,
 }: {
   roleName: string;
+  roleId: string;
+  schools: School[];
   users: User[];
 }) {
+  const { fetchUsers, createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
+
+  const [isAddOpen, setIsAddOpen] = React.useState<boolean>(false);
+  const [isImportOpen, setIsImportOpen] = React.useState<boolean>(false);
+  const [isExportOpen, setIsExportOpen] = React.useState<boolean>(false);
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState<boolean>(false);
+  const [actionText, setActionText] = React.useState<"Add" | "Edit">("Add");
+  const [userIndex, setUserIndex] = React.useState<number>(0);
+
   const [filterValue, setFilterValue] = React.useState("");
-  const [selectedKeys, setSelectedKeys] = React.useState<"all" | Set<unknown>>(
+  const [selectedKeys, setSelectedKeys] = React.useState<"all" | Set<string | number>>(
     new Set([])
   );
   const [visibleColumns, setVisibleColumns] = React.useState(
@@ -56,7 +78,6 @@ export default function UsersTable({
   const hasSearchFilter = Boolean(filterValue);
 
   const headerColumns = React.useMemo(() => {
-    if (visibleColumns === "all") return columns;
     return columns.filter((column) =>
       Array.from(visibleColumns).includes(column.uid)
     );
@@ -66,7 +87,10 @@ export default function UsersTable({
     let filteredUsers = [...users ?? []];
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((user) =>
-        user.username.toLowerCase().includes(filterValue.toLowerCase())
+        user.username.toLowerCase().includes(filterValue.toLowerCase()) ||
+        `${user.name.first} ${user.name.middle ?? ""} ${user.name.last}`.toLowerCase().includes(filterValue.toLowerCase()) ||
+        user.metadata?.major.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
+        user.metadata?.major.school.name.en.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
     return filteredUsers;
@@ -85,9 +109,9 @@ export default function UsersTable({
       const first = a[sortDescriptor.column as keyof User];
       const second = b[sortDescriptor.column as keyof User];
 
-      if (first === null && second === null) return 0;
-      if (first === null) return sortDescriptor.direction === "descending" ? 1 : -1;
-      if (second === null) return sortDescriptor.direction === "descending" ? -1 : 1;
+      if (first === undefined && second === undefined) return 0;
+      if (first === undefined) return sortDescriptor.direction === "descending" ? 1 : -1;
+      if (second === undefined) return sortDescriptor.direction === "descending" ? -1 : 1;
 
       const cmp = first < second ? -1 : first > second ? 1 : 0;
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
@@ -96,14 +120,15 @@ export default function UsersTable({
 
   const renderCell = React.useCallback(
     (item: User, columnKey: React.Key, index: number) => {
+      const rowIndex = (page * rowsPerPage) - rowsPerPage + index;
       const cellValue = item[columnKey as keyof typeof item];
       switch (columnKey) {
         case "name":
           return `${item.name.first} ${item.name.middle ?? ""} ${item.name.last}`;
         case "school":
-          return item.metadata?.[0]?.school?.name?.en ?? "-";
+          return item.metadata?.major?.school?.name?.en ?? "-";
         case "major":
-          return item.metadata?.[0]?.major?.name?.en ?? "-";
+          return item.metadata?.major?.name?.en ?? "-";
         case "actions":
           return (
             <div className="relative flex justify-end items-center gap-2">
@@ -117,7 +142,7 @@ export default function UsersTable({
                   <DropdownItem
                     key="edit"
                     startContent={<Pen size="16px" />}
-                    onPress={() => alert("Edit clicked for: " + item.username)}
+                    onPress={() => { setActionText("Edit"); setIsAddOpen(true); setUserIndex(rowIndex); }}
                   >
                     Edit
                   </DropdownItem>
@@ -126,7 +151,7 @@ export default function UsersTable({
                     startContent={<Trash size="16px" />}
                     className="text-danger"
                     color="danger"
-                    onPress={() => alert("Delete clicked for: " + item.username)}
+                    onPress={() => { setIsDeleteOpen(true); setUserIndex(rowIndex); }}
                   >
                     Delete
                   </DropdownItem>
@@ -141,12 +166,93 @@ export default function UsersTable({
           return cellValue as React.ReactNode;
       }
     },
-    [page]
+    [page, selectedKeys]
   );
+
+  const handleAdd = (user: Partial<User>) => {
+    if (actionText === "Add") createUser(user);
+    if (actionText === "Edit") updateUser(users[userIndex]._id, user);
+    setIsAddOpen(false);
+    AddToast({
+      title: "Add Successfully",
+      description: "Data has added successfully",
+    });
+    fetchUsers();
+  };
+
+  const handleImport = (user: Partial<User>[]) => {
+    console.log(user);
+    // uploadUser(user)
+    setIsImportOpen(false);
+    AddToast({
+      title: "Import Successfully",
+      description: "Data has imported successfully",
+    });
+    fetchUsers();
+  };
+
+  const handleExport = (fileName?: string) => {
+    let temp = [];
+    if (fileName) {
+      temp = users.map((user) => ({
+        username: user.username,
+        first: user.name?.first,
+        middle: user.name?.middle ?? "",
+        last: user.name?.last,
+        role: user.role?.name,
+        school_en: user.metadata?.major.school.name.en ?? "",
+        major_en: user.metadata?.major.name.en ?? "",
+      }))
+    } else {
+      temp = [{
+        "username": [],
+        "first": [],
+        "middle": [],
+        "last": [],
+        "role": [],
+        "school_en": [],
+        "major_en": [],
+      }];
+    }
+    const worksheet = XLSX.utils.json_to_sheet(temp);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: 'array' })
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" })
+    if (fileName) {
+      saveAs(blob, `${fileName}.xlsx`)
+    } else {
+      saveAs(blob, "Template.xlsx")
+    }
+    setIsExportOpen(false);
+    AddToast({
+      title: "Export Successfully",
+      description: "Data has exported successfully",
+    });
+    fetchUsers();
+  }
+
+  const handleDelete = () => {
+    if (Array.from(selectedKeys).length > 0) {
+      deleteMultiple(Array.from(selectedKeys) as string[]);
+    } else {
+      deleteUser(users[userIndex]._id)
+    }
+    setIsDeleteOpen(false);
+    AddToast({
+      title: "Delete Successfully",
+      description: "Data has deleted successfully",
+    });
+    fetchUsers();
+  };
 
   return (
     <div>
       <TableContent
+        setIsAddOpen={setIsAddOpen}
+        setIsImportOpen={setIsImportOpen}
+        setIsExportOpen={setIsExportOpen}
+        setActionText={setActionText}
         filterValue={filterValue}
         visibleColumns={visibleColumns}
         columns={columns}
@@ -173,10 +279,42 @@ export default function UsersTable({
         headerColumns={headerColumns}
         sortedItems={sortedItems}
         renderCell={renderCell}
-        onRowsPerPageChange={(e) => {
-          setRowsPerPage(Number(e.target.value));
-          setPage(1);
-        }}
+      />
+
+      {/* Add and Edit  */}
+      <AddModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onAdd={handleAdd}
+        action={actionText}
+        user={users[userIndex]}
+        roleId={roleId}
+        schools={schools}
+      />
+
+      {/* Import */}
+      <ImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImport={handleImport}
+        onExportTemplate={() => handleExport()}
+      />
+
+      {/* Export */}
+      <ExportModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        onExport={handleExport}
+      />
+
+      {/* Delete */}
+      <ConfirmationModal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={handleDelete}
+        title={"Delete user"}
+        body={"Are you sure you want to delete this user?"}
+        confirmColor={'danger'}
       />
     </div>
   );

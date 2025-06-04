@@ -32,6 +32,14 @@ export class RoleController {
     return this.roleService.findOne(id);
   }
 
+  @Put(':id/metadata-schema')
+  updateMetadataSchema(
+    @Param('id') id: string,
+    @Body() dto: UpdateMetadataSchemaDto,
+  ) {
+    return this.roleService.updateMetadataSchema(id, dto);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.update(id, updateRoleDto);
@@ -40,14 +48,5 @@ export class RoleController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.roleService.remove(id);
-  }
-
-  // ✅ Endpoint สำหรับอัปเดต metadataSchema
-  @Put(':id/metadata-schema')
-  updateMetadataSchema(
-    @Param('id') id: string,
-    @Body() dto: UpdateMetadataSchemaDto,
-  ) {
-    return this.roleService.updateMetadataSchema(id, dto);
   }
 }

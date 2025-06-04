@@ -18,7 +18,7 @@ declare module 'fastify' {
 }
 
 interface Role {
-  permissions: string[]; // Can be encrypted or plain strings
+  permissions: string[];
 }
 
 interface User {
@@ -61,17 +61,14 @@ export class PermissionsGuard extends AuthGuard('jwt') {
     const user = request.user as User | undefined;
     if (!user) throw new ForbiddenException('User not found');
 
-    // Handle both encrypted and non-encrypted permissions
     const decryptedPermissions: string[] = user.role.permissions.map(
       (permission) => this.decryptPermission(permission),
     );
 
-    // If permissions include "*", bypass check
     if (decryptedPermissions.includes('*')) {
       return true;
     }
 
-    // Check required permissions
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
@@ -81,6 +78,7 @@ export class PermissionsGuard extends AuthGuard('jwt') {
       const fullPermissions = decryptedPermissions.filter(
         (p) => !p.endsWith(':id'),
       );
+
       let hasPermission = false;
 
       for (const perm of requiredPermissions) {
@@ -91,10 +89,16 @@ export class PermissionsGuard extends AuthGuard('jwt') {
 
         if (perm.endsWith(':id')) {
           const params = request.params as Record<string, unknown> | undefined;
-          const paramId =
-            typeof params?.['id'] === 'string'
+          const rawId =
+            params && typeof params['id'] !== 'undefined'
               ? params['id']
-              : params?.['id']?.toString?.();
+              : undefined;
+          const paramId =
+            typeof rawId === 'string'
+              ? rawId
+              : typeof rawId === 'number' || typeof rawId === 'bigint'
+                ? rawId.toString()
+                : undefined;
           if (paramId && paramId === user._id.toString()) {
             hasPermission = true;
             break;
@@ -107,7 +111,7 @@ export class PermissionsGuard extends AuthGuard('jwt') {
       }
     }
 
-    // Re-encrypt permissions only if they were encrypted before
+    // Re-encrypt only encrypted permissions
     user.role.permissions = user.role.permissions.map((permission) =>
       this.isEncrypted(permission)
         ? encryptItem(this.decryptPermission(permission))
@@ -120,7 +124,7 @@ export class PermissionsGuard extends AuthGuard('jwt') {
   handleRequest<TUser = any>(
     err: any,
     user: TUser,
-    context?: ExecutionContext, // Note the "?" here
+    context?: ExecutionContext,
   ): TUser {
     if (err || !user) {
       throw err || new UnauthorizedException('Unauthorized');
@@ -133,5 +137,4 @@ export class PermissionsGuard extends AuthGuard('jwt') {
 
     return user;
   }
-
 }
