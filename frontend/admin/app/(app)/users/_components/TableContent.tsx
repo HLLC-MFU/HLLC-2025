@@ -2,37 +2,39 @@ import BottomContent from "./BottomContent"
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react"
 import { User } from "@/types/user"
 import TopContent from "./TopContent"
-import { SetStateAction } from "react";
 
 interface TableContentProps {
+    setIsAddOpen: (value: boolean) => void;
+    setIsImportOpen: (value: boolean) => void;
+    setIsExportOpen: (value: boolean) => void;
+    setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
     visibleColumns: Set<string>;
-    columns: any[];
+    columns: Array<{ uid: string; name: string; sortable?: boolean }>;
     onSearchChange: (value: string) => void;
     onClear: () => void;
     setVisibleColumns: (columns: Set<string>) => void;
     capitalize: (value: string) => string;
-    setAddModalText: React.Dispatch<React.SetStateAction<"Add" | "Edit">>;
-    setIsAddModalOpen: (value: boolean) => void;
-    setIsImportModalOpen: (value: boolean) => void;
-    setIsExportModalOpen: (value: boolean) => void;
-    selectedKeys: "all" | Set<unknown>;
+    selectedKeys: "all" | Set<string | number>;
     filteredItems: User[];
     pages: number;
     page: number;
     setPage: (page: number) => void;
     onPreviousPage: () => void;
     onNextPage: () => void;
-    setSelectedKeys: (keys: "all" | Set<unknown>) => void;
-    sortDescriptor: any[];
-    setSortDescriptor: (sort: any) => void;
-    headerColumns: any[];
+    setSelectedKeys: (keys: "all" | Set<string | number>) => void;
+    sortDescriptor: { column: string | number; direction: "ascending" | "descending" };
+    setSortDescriptor: (sortDescriptor: { column: string | number; direction: "ascending" | "descending" }) => void;
+    headerColumns: Array<{ uid: string; name: string; sortable?: boolean }>;
     sortedItems: User[];
-    renderCell: (item: User, columnKey: React.Key, index: number) => any;
-    onRowsPerPageChange: (e: any) => void;
+    renderCell: (item: User, columnKey: React.Key, index: number) => string;
 }
 
 export default function TableContent({
+    setIsAddOpen,
+    setIsImportOpen,
+    setIsExportOpen,
+    setActionText,
     filterValue,
     visibleColumns,
     columns,
@@ -40,10 +42,6 @@ export default function TableContent({
     onClear,
     setVisibleColumns,
     capitalize,
-    setAddModalText,
-    setIsAddModalOpen,
-    setIsImportModalOpen,
-    setIsExportModalOpen,
     selectedKeys,
     filteredItems,
     pages,
@@ -57,7 +55,6 @@ export default function TableContent({
     headerColumns,
     sortedItems,
     renderCell,
-    onRowsPerPageChange,
 }: TableContentProps) {
     return (
         <Table
@@ -80,6 +77,10 @@ export default function TableContent({
             selectionMode="multiple"
             sortDescriptor={sortDescriptor}
             topContent={<TopContent
+                setIsAddOpen={setIsAddOpen}
+                setIsImportOpen={setIsImportOpen}
+                setIsExportOpen={setIsExportOpen}
+                setActionText={setActionText}
                 filterValue={filterValue}
                 visibleColumns={visibleColumns}
                 columns={columns}
@@ -87,11 +88,6 @@ export default function TableContent({
                 onClear={onClear}
                 setVisibleColumns={setVisibleColumns}
                 capitalize={capitalize}
-                setAddModalText={setAddModalText}
-                setIsAddModalOpen={setIsAddModalOpen}
-                setIsImportModalOpen={setIsImportModalOpen}
-                setIsExportModalOpen={setIsExportModalOpen}
-                onRowsPerPageChange={onRowsPerPageChange}
             />}
             topContentPlacement="outside"
             onSelectionChange={setSelectedKeys}
