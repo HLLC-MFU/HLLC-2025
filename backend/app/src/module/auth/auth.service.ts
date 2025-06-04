@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserDocument } from 'src/module/users/schemas/user.schema';
@@ -25,8 +25,12 @@ export class AuthService {
   ) {}
 
   async validateUser(username: string, pass: string): Promise<UserDocument> {
-    const user = await this.userModel.findOne({ username }).populate('role');
+    const user = await this.userModel.findOne({ username }).select('+password').populate('role');
     if (!user) throw new UnauthorizedException('User not found');
+
+    if (!user.password) {
+      throw new UnauthorizedException('User not registered');
+    }
 
     const isMatch = await bcrypt.compare(pass, user.password);
     if (!isMatch) throw new UnauthorizedException('Invalid password');
@@ -83,26 +87,36 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
-    const { username, password, confirmPassword, secret } = registerDto;
+    const { username, password, confirmPassword, metadata } = registerDto;
 
-    const user = await findOrThrow(
-      this.userModel,
-      { username },
-      'Username already exists',
-    );
-
-    if (user.password && user.metadata.secret) {
+    // First check if user exists
+    const existingUser = await this.userModel.findOne({ username }).select('+password').lean();
+    if (!existingUser) {
+      throw new NotFoundException('User not found. Please contact administrator to create your account first.');
+    }
+    if (existingUser.password) {
       throw new ConflictException(`Username ${username} is already registered`);
     }
 
     if (password !== confirmPassword) {
-      throw new BadRequestException(
-        'Password and confirm password do not match',
-      );
+      throw new BadRequestException('Password and confirm password do not match');
     }
 
-    user.password = await bcrypt.hash(password, 10);
-    user.metadata.secret = await bcrypt.hash(secret, 10);
+    // Get the user document (not lean) for saving
+    const user = await this.userModel.findOne({ username });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Set password (will be hashed by pre-save hook)
+    user.password = password;
+    
+    if (!user.metadata) user.metadata = {};
+    
+    user.metadata = {
+      ...user.metadata,
+      secret: await bcrypt.hash(metadata.secret, 10),
+    };
 
     await user.save();
 
@@ -127,13 +141,10 @@ export class AuthService {
         throw new UnauthorizedException('User not found');
       }
 
-      // Check if refresh token is valid
       const isMatch = await bcrypt.compare(oldRefreshToken, user.refreshToken);
       if (!isMatch) {
         throw new UnauthorizedException('Invalid refresh token');
       }
-
-      // Generate new tokens
       const newAccessToken = this.jwtService.sign(
         { sub: user._id.toString(), username: user.username },
         {
@@ -164,30 +175,29 @@ export class AuthService {
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    const { username, password, confirmPassword, secret } = resetPasswordDto;
+    const { username, password, confirmPassword, metadata } = resetPasswordDto;
 
-    const user = await findOrThrow(
-      this.userModel,
-      { username },
-      'User not found',
-    );
-
-    if (!user.metadata.secret) {
-      throw new BadRequestException('User has no secret set');
+    // First find the user
+    const user = await this.userModel.findOne({ username }).select('+password');
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
 
-    const isSecretValid = await bcrypt.compare(secret, user.metadata.secret);
+    if (!user.metadata?.secret) {
+      throw new BadRequestException('User has no secret set. Please register first.');
+    }
+
+    const isSecretValid = await bcrypt.compare(metadata.secret, user.metadata.secret);
     if (!isSecretValid) {
       throw new UnauthorizedException('Invalid secret');
     }
 
     if (password !== confirmPassword) {
-      throw new BadRequestException(
-        'Password and confirm password do not match',
-      );
+      throw new BadRequestException('Password and confirm password do not match');
     }
 
-    user.password = await bcrypt.hash(password, 10);
+    // Set new password (will be hashed by pre-save hook)
+    user.password = password;
     user.refreshToken = null;
     await user.save();
 
