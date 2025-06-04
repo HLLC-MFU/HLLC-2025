@@ -34,7 +34,7 @@ export class UserUploadDirectDto {
   username: string;
 
   @IsString()
-  password: string;
+  password?: string;
 
   @IsMongoId()
   @IsNotEmpty()

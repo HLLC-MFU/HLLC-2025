@@ -24,16 +24,16 @@ export class User {
   @Prop({ required: true, unique: true })
   username: string;
 
-  @Prop({ required: false })
+  @Prop({ required: false, select: false })
   password: string;
 
   @Prop({ required: true, type: Types.ObjectId, ref: 'Role' })
   role: Types.ObjectId;
 
-  @Prop({ type: String || null, default: null })
+  @Prop({ type: String || null, default: null, select: false })
   refreshToken: string | null;
 
-  @Prop({ type: Types.Map, of: SchemaTypes.Mixed, default: {} })
+  @Prop({ type: SchemaTypes.Mixed, default: {} })
   metadata: Record<string, string>;
 }
 
@@ -42,7 +42,8 @@ export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index({ updatedAt: -1 });
 
 UserSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
+  // Only hash password if it's being modified and isn't already hashed
+  if (this.isModified('password') && this.password && !this.password.startsWith('$2')) {
     this.password = await bcrypt.hash(this.password, 10);
   }
   next();
