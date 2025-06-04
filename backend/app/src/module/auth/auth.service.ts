@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Type } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserDocument } from 'src/module/users/schemas/user.schema';
@@ -7,9 +7,10 @@ import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
 import { FastifyReply } from 'fastify';
 import '@fastify/cookie';
-import { findOrThrow } from 'src/pkg/validator/model.validator';
-import { RegisterDto } from './dto/register.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+import { DiscoveryService, Reflector } from '@nestjs/core';
+import { PERMISSIONS_KEY } from '../auth/decorators/permissions.decorator';
+
+type Permission = string;
 
 interface LoginOptions {
   useCookie?: boolean;
@@ -22,6 +23,8 @@ export class AuthService {
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly discoveryService: DiscoveryService,
+    private readonly reflector: Reflector,
   ) {}
 
   async validateUser(username: string, pass: string): Promise<UserDocument> {
@@ -211,5 +214,44 @@ export class AuthService {
     user.refreshToken = null;
     await user.save();
     return { message: 'Logged out successfully' };
+  }
+
+  scanPermissions(): Permission[] {
+    const allPermissions = new Set<Permission>();
+
+    const controllers = this.discoveryService
+      .getControllers()
+      .map((wrapper: { instance?: unknown }) => wrapper?.instance)
+      .filter(
+        (
+          instance,
+        ): instance is object & { constructor: new (...args: any[]) => any } =>
+          !!instance,
+      );
+
+    for (const controller of controllers) {
+      const controllerType = controller.constructor as Type<unknown>;
+
+      const classPermissions =
+        this.reflector.get<Permission[]>(PERMISSIONS_KEY, controllerType) ?? [];
+      classPermissions.forEach((p) => allPermissions.add(p));
+
+      const prototype = Object.getPrototypeOf(controller) as object;
+      const methodNames = Object.getOwnPropertyNames(prototype).filter(
+        (key): key is keyof typeof prototype =>
+          key !== 'constructor' && typeof prototype[key] === 'function',
+      );
+
+      for (const methodName of methodNames) {
+        const method = prototype[methodName] as (...args: unknown[]) => unknown;
+
+        const methodPermissions =
+          this.reflector.get<Permission[]>(PERMISSIONS_KEY, method) ?? [];
+
+        methodPermissions.forEach((p) => allPermissions.add(p));
+      }
+    }
+
+    return [...allPermissions].sort();
   }
 }
