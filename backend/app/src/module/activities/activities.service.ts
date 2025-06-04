@@ -30,7 +30,7 @@ export class ActivitiesService {
 
     const activity = new this.activitiesModel({
       ...createActivitiesDto,
-      photo: processedPhoto,
+      photo: createActivitiesDto.photo,
       metadata: {
         isOpen: metadata.isOpen === false ? false : true,
         isProgressCount: metadata.isProgressCount === true ? true : false,

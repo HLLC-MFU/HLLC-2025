@@ -1,6 +1,6 @@
 import { Activities } from "@/types/activities";
-import { Card, CardBody, CardHeader, CardFooter, Button, Divider, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
-import { Building2, Calendar, EllipsisVertical, Eye, Pencil, Trash2 } from "lucide-react";
+import { Card, CardBody, CardHeader, CardFooter, Button, Divider, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Chip } from "@heroui/react";
+import { Building2, Calendar, EllipsisVertical, Eye, Pencil, Trash2, MapPin, Users, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface ActivityCardProps {
@@ -16,44 +16,85 @@ export function ActivityCard({ activity, onEdit, onDelete }: ActivityCardProps) 
         router.push(`/activities/${activity._id}`);
     };
 
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+    };
+
     return (
-        <div onClick={handleViewDetails} className="hover:cursor-pointer">        
-        <Card isHoverable className="h-full">
-            <CardHeader className="flex gap-3 p-4">
-                <Card
-                    radius="md"
-                    className="w-12 h-12 text-large items-center justify-center flex-shrink-0"
-                >
-                    {activity.acronym}
-                </Card>
-                <div className="flex flex-col items-start min-w-0 text-start">
+        <Card className="w-full">
+            <div className="relative w-full pt-[56.25%]">
+                <img
+                    src={activity.photo?.bannerPhoto 
+                        ? `http://localhost:8080/uploads/${activity.photo.bannerPhoto}`
+                        : "http://localhost:8080/uploads/default-banner.jpg"}
+                    alt={activity.name.en}
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                />
+                <div className="absolute top-4 right-4">
+                    <Chip 
+                        size="sm" 
+                        color={activity.metadata?.isOpen ? "success" : "danger"}
+                        variant="solid"
+                        className="text-white"
+                    >
+                        {activity.metadata?.isOpen ? "Open" : "Closed"}
+                    </Chip>
+                </div>
+            </div>
+
+            <CardHeader className="flex gap-3">
+                <div className="flex flex-col items-start min-w-0">
                     <p className="text-lg font-semibold truncate w-full">{activity.name.en}</p>
                     <p className="text-small text-default-500 truncate w-full">{activity.name.th}</p>
                 </div>
             </CardHeader>
-            <Divider />
-            <CardBody className="gap-4 p-4">
-                <div className="flex items-center gap-2">
-                    <Building2 className="text-default-500 flex-shrink-0" size={16} />
-                    <span className="text-sm text-default-500 truncate">{activity.acronym}</span>
+
+            <Divider/>
+
+            <CardBody className="gap-4">
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                        <Building2 className="text-default-500 flex-shrink-0" size={16} />
+                        <span className="text-sm text-default-500 truncate">{activity.acronym}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <MapPin className="text-default-500 flex-shrink-0" size={16} />
+                        <span className="text-sm text-default-500 truncate">{activity.location.en || 'No location'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Users className="text-default-500 flex-shrink-0" size={16} />
+                        <span className="text-sm text-default-500">
+                            {activity.metadata?.scope?.user?.length || 0} Participants
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Clock className="text-default-500 flex-shrink-0" size={16} />
+                        <span className="text-sm text-default-500">
+                            Created: {formatDate(activity.createdAt)}
+                        </span>
+                    </div>
+                    <div className="mt-2">
+                        <p className="text-sm text-default-500 line-clamp-3">
+                            {activity.shortDetails.en || 'No description available'}
+                        </p>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Calendar className="text-default-500 flex-shrink-0" size={16} />
-                    <span className="text-sm text-default-500">{activity.location.en}</span>
-                </div>
-                <p className="text-sm text-default-500 line-clamp-2">
-                    {activity.shortDetails.en}
-                </p>
             </CardBody>
-            <Divider />
-            <CardFooter className="flex justify-between p-4">
+
+            <Divider/>
+
+            <CardFooter className="justify-between">
                 <Button
-                    variant="light"
+                    variant="flat"
                     color="primary"
                     size="sm"
                     startContent={<Eye size={16} />}
                     onPress={handleViewDetails}
-                    className="flex-1 sm:flex-none"
                 >
                     View Details
                 </Button>
@@ -61,15 +102,13 @@ export function ActivityCard({ activity, onEdit, onDelete }: ActivityCardProps) 
                     <DropdownTrigger>
                         <Button
                             variant="light"
-                            color="primary"
                             isIconOnly
                             size="sm"
-                            className="flex-shrink-0"
                         >
                             <EllipsisVertical size={16} />
                         </Button>
                     </DropdownTrigger>
-                    <DropdownMenu aria-label="Activity Actions">
+                    <DropdownMenu>
                         <DropdownItem
                             key="edit"
                             startContent={<Pencil size={16} />}
@@ -90,6 +129,5 @@ export function ActivityCard({ activity, onEdit, onDelete }: ActivityCardProps) 
                 </Dropdown>
             </CardFooter>
         </Card>
-        </div>
     );
 }

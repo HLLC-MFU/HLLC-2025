@@ -1,82 +1,81 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { addToast } from '@heroui/react';
-import { Accordion, AccordionItem } from '@heroui/react';
+import { 
+  Accordion, 
+  AccordionItem, 
+  Button, 
+  Input,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Divider
+} from '@heroui/react';
+import { 
+  Building2, 
+  Plus, 
+  Search, 
+  School, 
+  Calendar, 
+  MapPin, 
+  Users,
+  Pencil,
+  Trash2,
+  MoreVertical
+} from 'lucide-react';
 
-import { ActivityList } from './_components/ActivityList';
+import { ActivityCard } from './_components/ActivityCard';
 import { ActivityModal } from './_components/ActivityModal';
+import { ActivityTypeModal } from './_components/ActivityTypeModal';
 import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
+import { PageHeader } from '@/components/ui/page-header';
 import { useActivities } from '@/hooks/useActivities';
 import { Activities, ActivityType } from '@/types/activities';
-import { Button, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, ButtonGroup } from '@heroui/react';
-import { SearchIcon, ArrowUpIcon, ArrowDownIcon, PlusIcon, Building2 } from 'lucide-react';
-
-const sortOptions = [
-  { name: "name", label: "Name" },
-  { name: "acronym", label: "Acronym" },
-  { name: "location", label: "Location" }
-];
 
 export default function ActivitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<
-    Activities | Partial<Activities> | undefined
-  >();
+  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<Activities | undefined>();
+  const [selectedType, setSelectedType] = useState<ActivityType | undefined>();
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [confirmationModalType, setConfirmationModalType] = useState<
-    'delete' | 'edit' | null
-  >(null);
+  const [confirmationModalType, setConfirmationModalType] = useState<'delete' | 'edit' | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<'activity' | 'type' | null>(null);
 
-  const { activities, activityTypes, loading, createActivity, updateActivity, deleteActivity } =
-    useActivities();
+  const {
+    activities,
+    activityTypes,
+    loading,
+    createActivity,
+    updateActivity,
+    deleteActivity,
+    createActivityType,
+    updateActivityType,
+    deleteActivityType,
+  } = useActivities();
 
-  const filteredAndSortedActivities = useMemo(() => {
+  const filteredActivities = useMemo(() => {
     if (!activities) return [];
 
-    let filtered = activities;
-
-    if (searchQuery.trim() !== '') {
-      const lower = searchQuery.toLowerCase();
-
-      filtered = activities.filter(
-        (a) =>
-          a.name?.en?.toLowerCase().includes(lower) ||
-          a.name?.th?.toLowerCase().includes(lower) ||
-          a.acronym?.toLowerCase().includes(lower) ||
-          a.location?.en?.toLowerCase().includes(lower) ||
-          a.location?.th?.toLowerCase().includes(lower),
+    return activities.filter((activity) => {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        activity.name?.en?.toLowerCase().includes(searchLower) ||
+        activity.name?.th?.toLowerCase().includes(searchLower) ||
+        activity.acronym?.toLowerCase().includes(searchLower) ||
+        activity.location?.en?.toLowerCase().includes(searchLower) ||
+        activity.location?.th?.toLowerCase().includes(searchLower)
       );
-    }
-
-    return filtered.sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortBy) {
-        case 'name':
-          comparison = (a.name?.en ?? '').localeCompare(b.name?.en ?? '');
-          break;
-        case 'acronym':
-          comparison = (a.acronym ?? '').localeCompare(b.acronym ?? '');
-          break;
-        case 'location':
-          comparison = (a.location?.en ?? '').localeCompare(b.location?.en ?? '');
-          break;
-      }
-
-      return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [activities, searchQuery, sortBy, sortDirection]);
+  }, [activities, searchQuery]);
 
-  // Group activities by type
   const groupedActivities = useMemo(() => {
-    if (!filteredAndSortedActivities) return {};
-
     const groups: Record<string, Activities[]> = {};
     
-    filteredAndSortedActivities.forEach((activity) => {
+    filteredActivities.forEach((activity) => {
       const typeId = activity.type || 'other';
       if (!groups[typeId]) {
         groups[typeId] = [];
@@ -85,28 +84,19 @@ export default function ActivitiesPage() {
     });
 
     return groups;
-  }, [filteredAndSortedActivities]);
+  }, [filteredActivities]);
 
-  // Get type name from type ID
-  const getTypeName = (typeId: string) => {
-    const type = activityTypes.find(t => t._id === typeId);
-    return type?.name || 'Other';
-  };
-
-  const toggleSortDirection = () => {
-    setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  };
-
-  const handleAddActivity = () => {
+  const handleAddActivity = (typeId: string) => {
     setModalMode('add');
     setSelectedActivity(undefined);
-    setIsModalOpen(true);
+    setSelectedActivity({ type: typeId } as Activities);
+    setIsActivityModalOpen(true);
   };
 
   const handleEditActivity = (activity: Activities) => {
     setModalMode('edit');
     setSelectedActivity(activity);
-    setIsModalOpen(true);
+    setIsActivityModalOpen(true);
   };
 
   const handleDeleteActivity = (activity: Activities) => {
@@ -114,147 +104,268 @@ export default function ActivitiesPage() {
     setConfirmationModalType('delete');
   };
 
-  const handleSubmitActivity = (formData: FormData, mode: "add" | "edit") => {
-    if (mode === "edit" && selectedActivity && '_id' in selectedActivity && selectedActivity._id) {
+  const handleEditType = (type: ActivityType) => {
+    setModalMode('edit');
+    setSelectedType(type);
+    setIsTypeModalOpen(true);
+  };
+
+  const handleDeleteType = (type: ActivityType) => {
+    setSelectedType(type);
+    setDeleteTarget('type');
+    setConfirmationModalType('delete');
+  };
+
+  const handleSubmitActivity = (formData: FormData, mode: 'add' | 'edit') => {
+    if (mode === 'edit' && selectedActivity) {
       updateActivity(selectedActivity._id, formData);
     } else {
       createActivity(formData);
     }
-    setIsModalOpen(false);
+    setIsActivityModalOpen(false);
   };
 
-  const handleConfirm = () => {
-    if (
-      confirmationModalType === 'delete' &&
-      selectedActivity &&
-      selectedActivity._id
-    ) {
-      deleteActivity(selectedActivity._id);
-    } else if (
-      confirmationModalType === 'edit' &&
-      selectedActivity &&
-      selectedActivity._id
-    ) {
-      updateActivity(selectedActivity._id, selectedActivity);
+  const handleSubmitType = async (typeData: Partial<ActivityType>) => {
+    try {
+      if (modalMode === 'edit' && selectedType) {
+        await updateActivityType(selectedType._id, typeData);
+        addToast({
+          title: 'Success',
+          description: 'Activity type updated successfully',
+          color: 'success'
+        });
+      } else {
+        await createActivityType(typeData);
+        addToast({
+          title: 'Success',
+          description: 'Activity type created successfully',
+          color: 'success'
+        });
+      }
+      setIsTypeModalOpen(false);
+    } catch (error) {
+      addToast({
+        title: 'Error',
+        description: 'Failed to save activity type. Please try again.',
+        color: 'danger'
+      });
     }
-    setConfirmationModalType(null);
-    setSelectedActivity(undefined);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmationModalType) return;
+
+    try {
+      if (deleteTarget === 'type' && selectedType) {
+        await deleteActivityType(selectedType._id);
+        addToast({
+          title: 'Success',
+          description: 'Activity type deleted successfully',
+          color: 'success'
+        });
+      } else if (deleteTarget === 'activity' && selectedActivity) {
+        await deleteActivity(selectedActivity._id);
+        addToast({
+          title: 'Success',
+          description: 'Activity deleted successfully',
+          color: 'success'
+        });
+      }
+    } catch (error) {
+      addToast({
+        title: 'Error',
+        description: 'Failed to delete. Please try again.',
+        color: 'danger'
+      });
+    } finally {
+      setConfirmationModalType(null);
+      setSelectedType(undefined);
+      setSelectedActivity(undefined);
+      setDeleteTarget(null);
+    }
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Activities Management</h1>
-        </div>
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-4">
+    <>
+      <div className="flex flex-col min-h-screen">
+        <PageHeader 
+          title="Activities Management" 
+          description="Manage your activities and activity types" 
+          icon={<School className="w-7 h-7" />} 
+        />
+        
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">Activity Types & Activities</h1>
+            <Button 
+              color="primary"
+              endContent={<Plus className="w-4 h-4" />}
+              onPress={() => {
+                setModalMode('add');
+                setSelectedType(undefined);
+                setIsTypeModalOpen(true);
+              }}
+              size="md"
+            >
+              New Activity Type
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <Input
                 isClearable
                 value={searchQuery}
                 onValueChange={setSearchQuery}
-                className="w-full"
+                className="w-full sm:max-w-[44%]"
                 placeholder="Search activities..."
-                startContent={<SearchIcon className="text-default-400" />}
+                startContent={<Search className="text-default-400 w-4 h-4" />}
+                size="sm"
               />
-              <div className="flex gap-2 sm:gap-3">
-                <ButtonGroup className="flex-1 sm:flex-none">
-                  <Dropdown>
-                    <DropdownTrigger>
-                      <Button variant="flat" className="w-full sm:w-auto">
-                        Sort by: {sortOptions.find(opt => opt.name === sortBy)?.label}
-                      </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu
-                      aria-label="Sort Options"
-                      onAction={(key) => setSortBy(key.toString())}
-                    >
-                      {sortOptions.map((option) => (
-                        <DropdownItem key={option.name} className="capitalize">
-                          {option.label}
-                        </DropdownItem>
-                      ))}
-                    </DropdownMenu>
-                  </Dropdown>
-                  <Button
-                    variant="flat"
-                    isIconOnly
-                    onPress={toggleSortDirection}
-                    className="flex-shrink-0"
-                  >
-                    {sortDirection === "asc" ? <ArrowUpIcon /> : <ArrowDownIcon />}
-                  </Button>
-                </ButtonGroup>
-                <Button
-                  color="primary"
-                  endContent={<PlusIcon />}
-                  onPress={handleAddActivity}
-                  className="flex-1 sm:flex-none"
-                >
-                  Add Activity
-                </Button>
-              </div>
             </div>
-          </div>
 
-          {activities?.length === 0 && !loading && (
-            <p className="text-center text-sm text-default-500">
-              No activities found. Please add a new activity.
-            </p>
-          )}
-
-          <Accordion variant="splitted">
-            {Object.entries(groupedActivities).map(([typeId, activities]) => (
-              <AccordionItem
-                key={typeId}
-                aria-label={getTypeName(typeId)}
-                startContent={<Building2 />}
-                title={`${getTypeName(typeId)} (${activities.length})`}
-                className="font-medium mb-2"
+            {activityTypes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed rounded-xl bg-default-50">
+                <Calendar className="w-12 h-12 text-default-300 mb-4" />
+                <p className="text-default-500 text-center mb-2">No activity types found</p>
+                <p className="text-sm text-default-400 text-center mb-4">Create your first activity type to get started</p>
+              </div>
+            ) : (
+              <Accordion 
+                variant="splitted"
+                defaultExpandedKeys={activityTypes.length > 0 ? [activityTypes[0]._id] : []}
+                selectionMode="multiple"
               >
-                <ActivityList
-                  isLoading={loading}
-                  activities={activities}
-                  onDeleteActivity={handleDeleteActivity}
-                  onEditActivity={handleEditActivity}
-                />
-              </AccordionItem>
-            ))}
-          </Accordion>
+                {activityTypes.map((type) => {
+                  const typeActivities = groupedActivities[type._id] || [];
+                  return (
+                    <AccordionItem
+                      key={type._id}
+                      aria-label={type.name}
+                      startContent={
+                        <div className="bg-primary/10 p-2 rounded-lg">
+                          <Building2 className="w-5 h-5 text-primary" />
+                        </div>
+                      }
+                      title={
+                        <div className="flex justify-between items-center w-full pr-4">
+                          <div>
+                            <p className="text-lg font-medium">{type.name}</p>
+                            <p className="text-small text-default-400">{typeActivities.length} activities</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              color="primary"
+                              size="sm"
+                              variant="flat"
+                              endContent={<Plus className="w-4 h-4" />}
+                              onPress={() => handleAddActivity(type._id)}
+                            >
+                              Add Activity
+                            </Button>
+                            <Dropdown>
+                              <DropdownTrigger>
+                                <Button 
+                                  isIconOnly
+                                  variant="light"
+                                  size="sm"
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownTrigger>
+                              <DropdownMenu>
+                                <DropdownItem
+                                  key="edit"
+                                  startContent={<Pencil className="w-4 h-4" />}
+                                  onPress={() => handleEditType(type)}
+                                >
+                                  Edit Type
+                                </DropdownItem>
+                                <DropdownItem
+                                  key="delete"
+                                  className="text-danger"
+                                  color="danger"
+                                  startContent={<Trash2 className="w-4 h-4" />}
+                                  onPress={() => handleDeleteType(type)}
+                                >
+                                  Delete Type
+                                </DropdownItem>
+                              </DropdownMenu>
+                            </Dropdown>
+                          </div>
+                        </div>
+                      }
+                      classNames={{
+                        base: "group-[.is-splitted]:bg-content1 group-[.is-splitted]:shadow-small rounded-lg mb-4",
+                        title: "font-medium text-large",
+                        subtitle: "text-small text-default-400",
+                        indicator: "text-default-400",
+                        content: "px-6 pb-6"
+                      }}
+                    >
+                      <div className="flex flex-col gap-6 pt-4">
+                        {typeActivities.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed rounded-xl bg-default-50">
+                            <Calendar className="w-12 h-12 text-default-300 mb-4" />
+                            <p className="text-default-500 text-center mb-2">No activities in this type yet</p>
+                            <p className="text-sm text-default-400 text-center mb-4">Create your first activity in {type.name}</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {typeActivities.map((activity) => (
+                              <ActivityCard
+                                key={activity._id}
+                                activity={activity}
+                                onEdit={handleEditActivity}
+                                onDelete={handleDeleteActivity}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            )}
+          </div>
         </div>
       </div>
 
       <ActivityModal
-        isOpen={isModalOpen}
+        isOpen={isActivityModalOpen}
         mode={modalMode}
-        activity={
-          selectedActivity && '_id' in selectedActivity
-            ? (selectedActivity as Activities)
-            : undefined
-        }
-        onClose={() => setIsModalOpen(false)}
+        activity={selectedActivity}
+        onClose={() => setIsActivityModalOpen(false)}
         onSuccess={handleSubmitActivity}
+      />
+
+      <ActivityTypeModal
+        isOpen={isTypeModalOpen}
+        mode={modalMode}
+        activityType={selectedType}
+        onClose={() => setIsTypeModalOpen(false)}
+        onSubmit={handleSubmitType}
       />
 
       <ConfirmationModal
         body={
-          confirmationModalType === 'edit'
-            ? `Are you sure you want to save the changes for "${selectedActivity?.name?.en}"?`
-            : `Are you sure you want to delete the activity "${selectedActivity?.name?.en}"? This action cannot be undone.`
+          deleteTarget === 'type'
+            ? `Are you sure you want to delete the activity type "${selectedType?.name}"? This will also delete all activities in this type.`
+            : `Are you sure you want to delete the activity "${selectedActivity?.name?.en}"?`
         }
-        confirmColor={confirmationModalType === 'edit' ? 'primary' : 'danger'}
-        confirmText={confirmationModalType === 'edit' ? 'Save' : 'Delete'}
-        isOpen={confirmationModalType !== null}
-        title={
-          confirmationModalType === 'edit' ? 'Save Activity' : 'Delete Activity'
-        }
+        confirmColor="danger"
+        confirmText="Delete"
+        isOpen={confirmationModalType === 'delete'}
+        title={deleteTarget === 'type' ? 'Delete Activity Type' : 'Delete Activity'}
         onClose={() => {
           setConfirmationModalType(null);
+          setSelectedType(undefined);
           setSelectedActivity(undefined);
+          setDeleteTarget(null);
         }}
-        onConfirm={handleConfirm}
+        onConfirm={handleConfirmDelete}
       />
-    </div>
+    </>
   );
 } 

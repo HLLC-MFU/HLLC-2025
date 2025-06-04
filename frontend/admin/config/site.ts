@@ -14,6 +14,7 @@ import {
   Palette,
   Megaphone,
   Trophy,
+  BellRing,
 } from "lucide-react";
 
 export const siteConfig = {

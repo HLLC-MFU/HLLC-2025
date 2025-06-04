@@ -15,6 +15,8 @@ import { LoginDto } from './dto/login.dto';
 import { UserRequest } from 'src/pkg/types/users';
 import { FastifyReply } from 'fastify';
 import { Permissions } from './decorators/permissions.decorator';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RegisterDto } from './dto/register.dto';
 @Controller('auth')
 export class AuthController {
   constructor(
