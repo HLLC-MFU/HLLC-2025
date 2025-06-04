@@ -20,19 +20,52 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
     };
 
     const handleSaveAsset = async (key: string) => {
-        if (!appearance) return;
+        if (!appearance) {
+            addToast({
+                title: "Appearance not loaded",
+                color: "danger",
+            });
+            console.error("Attempted to save asset but appearance is null");
+            return;
+        }
+        if (!appearance.school || !appearance.school._id) {
+            addToast({
+                title: "School not found for this appearance",
+                color: "danger",
+            });
+            console.error("Attempted to save asset but appearance.school or appearance.school._id is missing", appearance);
+            return;
+        }
+        console.log("Saving asset for appearance:", appearance, "school:", appearance.school);
 
         setUploadingAssets(prev => ({ ...prev, [key]: true }));
         try {
             const formData = new FormData();
 
-            Object.entries(appearance.assets).forEach(([assetKey, value]) => {
-                if (assetKey === key && assetDrafts[key]) {
-                    formData.append(`assets[${assetKey}]`, assetDrafts[key]!);
-                } else {
-                    formData.append(`assets[${assetKey}]`, value);
+            if (appearance.school && appearance.school._id) {
+                formData.append('school', appearance.school._id);
+            }
+
+            const allAssetKeys = Array.from(new Set([
+                ...Object.keys(appearance.assets || {}),
+                ...Object.keys(assetDrafts || {})
+            ]));
+
+            allAssetKeys.forEach((assetKey) => {
+                if (assetKey === 'background' && key !== 'background') return;
+                console.log("kuy", assetKey, key);
+                if (assetDrafts[assetKey]) {
+                    formData.append(`assets[${assetKey}]`, assetDrafts[assetKey]!);
+                } else if (appearance.assets[assetKey]) {
+                    formData.append(`assets[${assetKey}]`, appearance.assets[assetKey]);
                 }
             });
+
+            if (appearance.colors) {
+                Object.entries(appearance.colors).forEach(([colorKey, colorValue]) => {
+                    formData.append(`colors[${colorKey}]`, colorValue);
+                });
+            }
 
             const res = await fetch(`http://localhost:8080/api/appearances/${appearance._id}`, {
                 method: "PATCH",
@@ -46,7 +79,7 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
             }
 
             const json = await res.json();
-            const updatedAppearance = json.data;
+            const updatedAppearance = json.data || json;
 
             if (onAppearanceUpdate) {
                 onAppearanceUpdate(updatedAppearance);
