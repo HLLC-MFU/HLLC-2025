@@ -99,6 +99,27 @@ export function useSponsor() {
         }
     };
 
+    const createSponsorType = async (typeData: { name: string }): Promise<void> => {
+    try {
+        setLoading(true);
+        const res = await apiRequest('/sponsor-types', 'POST', typeData);
+        if (res.data) {
+            addToast({
+                title: 'Sponsor type created successfully!',
+                color: 'success',
+            });
+        }
+    } catch (err: any) {
+        addToast({
+            title: 'Failed to create sponsor type.',
+            color: 'danger',
+        });
+        setError(err.message || 'Failed to create sponsor type.');
+    } finally {
+        setLoading(false);
+    }
+};
+
     const editSponsor = async (sponsorData: Partial<Sponsor>): Promise<void> => {
         if (!sponsorData._id || !sponsorData.name) return;
         setLoading(true);
