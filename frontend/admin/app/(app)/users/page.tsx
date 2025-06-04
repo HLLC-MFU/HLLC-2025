@@ -15,7 +15,6 @@ export default function ManagementPage() {
   const { users } = useUsers();
   const { roles, createRole } = useRoles();
   const { schools } = useSchools();
-
   const [isRoleOpen, setIsRoleOpen] = React.useState(false);
 
   // 🟢 Group users by their role name

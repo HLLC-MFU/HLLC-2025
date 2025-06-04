@@ -181,7 +181,6 @@ export default function UsersTable({
   };
 
   const handleImport = (user: Partial<User>[]) => {
-    console.log(user);
     // uploadUser(user)
     setIsImportOpen(false);
     AddToast({
@@ -298,6 +297,8 @@ export default function UsersTable({
         onClose={() => setIsImportOpen(false)}
         onImport={handleImport}
         onExportTemplate={() => handleExport()}
+        roleId={roleId}
+        schools={schools}
       />
 
       {/* Export */}

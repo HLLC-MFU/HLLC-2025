@@ -1,14 +1,17 @@
-import { addToast, Button, Form, getKeyValue, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import React from "react";
 import * as XLSX from "xlsx";
 import { columns } from "./user-table";
 import { User } from "@/types/user";
+import { School } from "@/types/school";
 
 export interface ImportModalProps {
     isOpen: boolean;
     onClose: () => void;
     onImport: (userData: Partial<User>[]) => void;
     onExportTemplate: () => void;
+    roleId: string;
+    schools: School[];
 }
 
 interface JsonData {
@@ -21,7 +24,7 @@ interface JsonData {
     last: string;
 }
 
-export default function ImportModal({ isOpen, onClose, onImport, onExportTemplate }: ImportModalProps) {
+export default function ImportModal({ isOpen, onClose, onImport, onExportTemplate, roleId, schools }: ImportModalProps) {
     const [fileData, setFileData] = React.useState<User[]>([]);
     const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
@@ -52,23 +55,39 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
             const worksheet = workbook.Sheets[worksheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet) as JsonData[];
 
-            const dataForm = jsonData.map((item) => {
-                const mapData: User = {
-                    role: '',
-                    major: '',
-                    type: item["role"],
-                    users: [
-                        {
-                            studentId: item["username"],
-                            name: {
-                                first: item["first"],
-                                middle: item["middle"],
-                                last: item["last"],
-                            },
-                        }
-                    ]
+            const dataForm = jsonData.map((item: JsonData) => {
+                const data: JsonData = {};
+                for (const key in item) {
+                    try {
+                        data[key] = JSON.parse(item[key]);
+                    } catch (error) {
+                        data[key] = item[key];
+                    };
                 };
 
+                let majorId = "";
+                schools.map((s) => {
+                    if (s.name.en === data.school_en) {
+                        s.majors.map((m) => {
+                            if (m.name.en === data.major_en && m._id) majorId = m._id;
+                        })
+                    }
+                })
+
+                const mapData: Partial<User> = {
+                    name: {
+                        first: item["first"],
+                        middle: item["middle"],
+                        last: item["last"],
+                    },
+                    username: item["username"],
+                    role: roleId,
+                    metadata: {
+                        major: majorId
+                    }
+                };
+
+                console.log(mapData);
                 return mapData;
             });
 
@@ -76,7 +95,7 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
         };
 
         reader.readAsArrayBuffer(file);
-    };
+    }
 
     const handleNext = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -98,14 +117,19 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
 
     const renderCell = React.useCallback((item: User, columnKey: React.Key) => {
         const cellValue = item[columnKey as keyof typeof item];
+        const school = schools.map((s) => {
+            // if (s === )
+        }); 
+
+        console.log(jsonDa)
 
         switch (columnKey) {
             case "name":
                 return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last}`;
-            case "school":
-                return item.metadata?.major?.school.name.en ?? null;
-            case "major":
-                return item.metadata?.major?.name.en ?? null;
+            // case "school":
+            //     return item.metadata?.major?.school.name.en ?? null;
+            // case "major":
+            //     return item.metadata?.major?.name.en ?? null;
             case "actions":
                 return null;
             default:
@@ -178,8 +202,7 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                             </TableHeader>
                             <TableBody items={items}>
                                 {(item) => (
-                                    // console.log(item),
-                                    <TableRow key={item.users[0]?.studentId}>
+                                    <TableRow key={item.username}>
                                         {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
                                     </TableRow>
                                 )}
