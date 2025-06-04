@@ -45,7 +45,7 @@ export function useUsers() {
     };
 
     // Upload users
-    const uploadUser = async (userData: Partial<User>) => {
+    const uploadUser = async (userData: Partial<User>[]) => {
         try {
             setLoading(true);
             const res = await apiRequest<User>("/users/upload", "POST", userData);

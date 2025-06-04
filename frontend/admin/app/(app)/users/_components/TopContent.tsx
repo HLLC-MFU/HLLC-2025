@@ -1,23 +1,26 @@
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Select, SelectItem } from "@heroui/react";
-import { ChevronDownIcon, FileInput, FileOutput, PlusIcon, SearchIcon, UserRound } from "lucide-react";
+import { ChevronDownIcon, FileInput, FileOutput, Plus, SearchIcon, UserRound } from "lucide-react";
 import React from "react";
 
 interface TopContentProps {
+    setIsAddOpen: (value: boolean) => void;
+    setIsImportOpen: (value: boolean) => void;
+    setIsExportOpen: (value: boolean) => void;
+    setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
     visibleColumns: Set<string>;
-    columns: any[];
+    columns: Array<{ uid: string; name: string }>;
     onSearchChange: (value: string) => void;
     onClear: () => void;
     setVisibleColumns: (columns: Set<string>) => void;
     capitalize: (value: string) => string;
-    setAddModalText: React.Dispatch<React.SetStateAction<"Add" | "Edit">>;
-    setIsAddModalOpen: (value: boolean) => void;
-    setIsImportModalOpen: (value: boolean) => void;
-    setIsExportModalOpen: (value: boolean) => void;
-    onRowsPerPageChange: (e: any) => void;
 }
 
 export default function TopContent({
+    setIsAddOpen,
+    setIsImportOpen,
+    setIsExportOpen,
+    setActionText,
     filterValue,
     visibleColumns,
     columns,
@@ -25,11 +28,6 @@ export default function TopContent({
     onClear,
     setVisibleColumns,
     capitalize,
-    setAddModalText,
-    setIsAddModalOpen,
-    setIsImportModalOpen,
-    setIsExportModalOpen,
-    onRowsPerPageChange,
 }: TopContentProps) {
     return (
         <div className="flex flex-col gap-4">
@@ -37,7 +35,7 @@ export default function TopContent({
                 <Input
                     isClearable
                     className="w-full sm:max-w-[44%]"
-                    placeholder="Search by student id..."
+                    placeholder="Search user"
                     startContent={<SearchIcon />}
                     value={filterValue}
                     onClear={() => onClear()}
@@ -56,7 +54,7 @@ export default function TopContent({
                             closeOnSelect={false}
                             selectedKeys={visibleColumns}
                             selectionMode="multiple"
-                            onSelectionChange={(keys) => setVisibleColumns(new Set(Array.from(keys as any)))}
+                            onSelectionChange={(keys) => setVisibleColumns(new Set(Array.from(keys, String)))}
                         >
                             {columns.map((column) => (
                                 <DropdownItem key={column.uid} className="capitalize">
@@ -67,23 +65,16 @@ export default function TopContent({
                     </Dropdown>
                     <Dropdown>
                         <DropdownTrigger>
-                            <Button color="primary" endContent={<PlusIcon size={20} />}>Add new</Button>
+                            <Button color="primary" endContent={<Plus size={20} />}>Add new</Button>
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Static Actions">
-                            <DropdownItem onPress={() => { setAddModalText("Add"); setIsAddModalOpen(true); }} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
-                            <DropdownItem onPress={() => setIsImportModalOpen(true)} key="import" startContent={<FileInput size={16} />}>Import .xlsx file</DropdownItem>
+                            <DropdownItem onPress={() => { setActionText("Add"); setIsAddOpen(true); }} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
+                            <DropdownItem onPress={() => setIsImportOpen(true)} key="import" startContent={<FileInput size={16} />}>Import .xlsx file</DropdownItem>
                         </DropdownMenu>
                     </Dropdown >
-                    <Button color="success" className="text-white" endContent={<FileOutput size={20} />} onPress={() => setIsExportModalOpen(true)}>Export</Button>
+                    <Button color="success" className="text-white" endContent={<FileOutput size={20} />} onPress={() => setIsExportOpen(true)}>Export</Button>
                 </div>
             </div>
-            <label className="flex items-center text-default-400 text-small">
-                <Select className="max-w-xs" label="Rows per page:" defaultSelectedKeys={"5"} variant="underlined" onChange={onRowsPerPageChange}>
-                    <SelectItem key="5">5</SelectItem>
-                    <SelectItem key="10">10</SelectItem>
-                    <SelectItem key="15">15</SelectItem>
-                </Select>
-            </label>
         </div >
     );
 };
