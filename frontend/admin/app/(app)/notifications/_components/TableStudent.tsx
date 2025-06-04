@@ -103,7 +103,6 @@ export function TableInfo() {
       );
     }
 
-
     return filteredUsers;
   }, [formatted, filterValue, majorFilter, schoolFilter]);
 
@@ -132,7 +131,7 @@ export function TableInfo() {
 
       // กรอง majors ที่ belong กับ school ที่เลือก
       const filteredMajorIds = majors
-        .filter((m) => selectedSchoolIds.includes(m.school._id))
+        .filter((m) => selectedSchoolIds.includes(m.school._id ))
         .map((m) => m._id);
 
       // เซ็ตใหม่เฉพาะ major ของ school ที่เลือก
