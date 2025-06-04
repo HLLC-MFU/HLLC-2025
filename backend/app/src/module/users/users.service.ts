@@ -88,29 +88,40 @@ export class UsersService {
     const q = { ...query } as FilterQuery<User>;
   
     if (q.school) {
-      console.log('Searching for school:', q.school);
+      console.log('\n🏫 School search - Input school ID:', q.school);
       const majors = await this.majorModel
         .find({ school: new Types.ObjectId(q.school) })
         .select('_id')
         .lean();
   
-      console.log('Found majors:', majors);
+      console.log('Found majors for school:', {
+        schoolId: q.school,
+        majorCount: majors.length,
+        majorIds: majors.map(m => m._id.toString())
+      });
+      
       const majorIds = majors.map((m) => m._id.toString());
-      console.log('Major IDs:', majorIds);
       
       q['metadata.major'] = { $in: majorIds.map(id => new Types.ObjectId(id)) };
       delete q.school;
     }
   
-    console.log('Final query:', JSON.stringify(q, null, 2));
+    console.log('Final query to find users:', JSON.stringify(q, null, 2));
   
-    return queryAll<User>({
+    const result = await queryAll<User>({
       model: this.userModel,
       query: q,
       filterSchema: {},
       populateFields: (excluded) =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
     });
+
+    console.log('Query results:', {
+      totalUsers: result.data.length,
+      userMajors: result.data.map(u => u.metadata?.major?.toString())
+    });
+
+    return result;
   }
 
   async findOne(_id: string) {
