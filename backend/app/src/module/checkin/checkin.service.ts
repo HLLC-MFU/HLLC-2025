@@ -42,10 +42,10 @@ export class CheckinService {
       'Staff not found'
     )
   
-    for (const activityId of createCheckinDto.activities) {
+    for (const activity of createCheckinDto.activities) {
       await findOrThrow(
         this.activitiesModel,
-        new Types.ObjectId(activityId),
+        new Types.ObjectId(activity),
         'Activity not found'
       );
     }
@@ -53,7 +53,7 @@ export class CheckinService {
     const newCheckin = new this.checkinModel({
       user: new Types.ObjectId(createCheckinDto.user),
       staff: new Types.ObjectId(createCheckinDto.staff),
-      activities: createCheckinDto.activities.map(activityId => new Types.ObjectId(activityId)),
+      activities: createCheckinDto.activities.map(activity => new Types.ObjectId(activity)),
     });
     
     return newCheckin.save();
@@ -71,19 +71,22 @@ export class CheckinService {
       filterSchema: {},
       populateFields: (excluded) =>
         Promise.resolve(
-          excluded.includes('school') ? [] : [{ path: 'user' } , {path: 'activities'}] as PopulateField[],
+          excluded.includes('user') ? [] : [{ path: 'user' } , {path: 'activities'}] as PopulateField[],
         ),
     });
   }
   async findOne(id: string) {
-    return queryFindOne<Checkin>(this.checkinModel, { _id: id }, []);
+    return queryFindOne<Checkin>(this.checkinModel, { _id: id }, [
+      { path: 'user' },
+      { path: 'activities' },
+    ]);
   }
 
   async update(id: string, updateCheckinDto: UpdateCheckinDto) {
     if (updateCheckinDto.user) {
       await findOrThrow(
         this.userModel,
-        updateCheckinDto.user,
+        new Types.ObjectId(updateCheckinDto.user),
         'User not found',
       );
     }
@@ -91,17 +94,19 @@ export class CheckinService {
     if (updateCheckinDto.staff) {
       await findOrThrow(
         this.userModel,
-        updateCheckinDto.staff,
+        new Types.ObjectId(updateCheckinDto.staff),
         'Staff not found',
       );
     }
 
     if (updateCheckinDto.activities) {
-      await findOrThrow(
-        this.activitiesModel,
-        updateCheckinDto.activities,
-        'Activities not found',
-      );
+      for (const activity of updateCheckinDto.activities) {
+        await findOrThrow(
+          this.activitiesModel,
+          new Types.ObjectId(activity),
+          'Activity not found',
+        );
+      }
     }
     return queryUpdateOne<Checkin>(this.checkinModel, id, updateCheckinDto);
   }

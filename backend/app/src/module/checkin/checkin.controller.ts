@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   Request,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { CheckinService } from './checkin.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
@@ -18,7 +17,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { UserRequest } from 'src/pkg/types/users';
-
 
 @Controller('checkin')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -31,6 +29,7 @@ export class CheckinController {
     @Request() req: UserRequest,
     @Body() createCheckinDto: CreateCheckinDto,
   ) {
+
     createCheckinDto.staff = req.user._id;
 
     return this.checkinService.create(createCheckinDto);
