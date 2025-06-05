@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useState } from "react";
 import {
     Accordion,
     AccordionItem,
@@ -20,7 +20,7 @@ export default function EvoucherPage() {
     const { evouchers } = useEvoucher();
     const { evoucherType, createEvoucherType } = useEvoucherType();
     const { sponsors } = useSponsors();
-    const [isTypeOpen, setIsTypeOpen] = React.useState(false);
+    const [isTypeOpen, setIsTypeOpen] = useState(false);
 
     const groupedEvouchers: Record<string, Evoucher[]> = {};
     evouchers.forEach((evoucher) => {

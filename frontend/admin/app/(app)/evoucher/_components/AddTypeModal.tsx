@@ -1,4 +1,4 @@
-import React from "react";
+import React, { FormEvent, useRef } from "react";
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@heroui/react";
 import { EvoucherType } from "@/types/evoucher-type";
 
@@ -9,9 +9,9 @@ export type AddTypeProps = {
 }
 
 export default function AddTypeModal({ isOpen, onClose, onAddType }: AddTypeProps) {
-    const roleNameRef = React.useRef<HTMLInputElement>(null);
+    const roleNameRef = useRef<HTMLInputElement>(null);
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         const formData: Partial<EvoucherType> = {

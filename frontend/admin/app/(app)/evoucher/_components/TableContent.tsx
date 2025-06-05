@@ -5,6 +5,7 @@ import { Evoucher } from "@/types/evoucher";
 import { SortDescriptor } from "@heroui/react";
 import { EvoucherType } from "@/types/evoucher-type";
 import type { Selection } from "@react-types/shared";
+import { Key } from "react";
 
 export interface TableColumnType {
     uid: string;
@@ -19,10 +20,10 @@ export interface TableContentProps {
     setSortDescriptor: (descriptor: SortDescriptor) => void;
     headerColumns: TableColumnType[];
     sortedItems: Evoucher[];
-    renderCell: (evoucher: Evoucher, columnKey: React.Key) => any;
+    renderCell: (evoucher: Evoucher, columnKey: Key) => any;
     filterValue: string;
-    typeFilter: string;
-    setTypeFilter: (value: string) => void;
+    typeFilter: Selection;
+    setTypeFilter: (value: Selection) => void;
     EvoucherType: EvoucherType[];
     capitalize: (value: string) => string;
     visibleColumns: Set<string>;
@@ -38,7 +39,6 @@ export interface TableContentProps {
     onNextPage: () => void;
     onClear: () => void;
     onSearchChange: (value: string) => void;
-    onRowsPerPageChange: (e: any) => void;
 }
 
 export default function TableContent({
@@ -67,7 +67,6 @@ export default function TableContent({
     onNextPage,
     onClear,
     onSearchChange,
-    onRowsPerPageChange,
 }: TableContentProps) {
     return (
         <Table
@@ -96,7 +95,13 @@ export default function TableContent({
                 columns={columns}
                 onClear={onClear}
                 onSearchChange={onSearchChange}
-                onRowsPerPageChange={onRowsPerPageChange}
+                selectedKeys={selectedKeys}
+                filteredItems={filteredItems}
+                page={page}
+                pages={pages}
+                setPage={setPage}
+                onPreviousPage={onPreviousPage}
+                onNextPage={onNextPage}
             />}
             topContentPlacement="outside"
             selectedKeys={selectedKeys}

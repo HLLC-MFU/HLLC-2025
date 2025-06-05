@@ -4,28 +4,28 @@ import { ChevronDownIcon, PlusIcon, SearchIcon, Ticket } from "lucide-react";
 import { TableColumnType } from "./TableContent";
 import React from "react";
 import { EvoucherType } from "@/types/evoucher-type";
+import type { Selection } from "@react-types/shared";
 
 export interface TopContentProps {
     setIsAddOpen: (value: boolean) => void;
     setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
-    typeFilter: string;
-    setTypeFilter: (value: string) => void;
+    typeFilter: Selection;
+    setTypeFilter: (value: Selection) => void;
     EvoucherType: EvoucherType[];
     capitalize: (value: string) => string;
     visibleColumns: Set<string> | string[];
     setVisibleColumns: (columns: Set<string>) => void;
     columns: TableColumnType[];
-    selectedKeys?: Set<string> | string[];
-    filteredItems?: Evoucher[];
-    page?: number;
-    pages?: number;
-    setPage?: (page: number) => void;
-    onPreviousPage?: () => void;
-    onNextPage?: () => void;
+    selectedKeys: Selection;
+    filteredItems: Evoucher[];
+    page: number;
+    pages: number;
+    setPage: (page: number) => void;
+    onPreviousPage: () => void;
+    onNextPage: () => void;
     onClear: () => void;
     onSearchChange: (value: string) => void;
-    onRowsPerPageChange: (e: any) => void;
 }
 
 export default function TopContent({
@@ -41,7 +41,6 @@ export default function TopContent({
     columns,
     onClear,
     onSearchChange,
-    onRowsPerPageChange,
 }: TopContentProps) {
 
     return (
@@ -69,15 +68,7 @@ export default function TopContent({
                             closeOnSelect={false}
                             selectedKeys={typeFilter}
                             selectionMode="multiple"
-                            onSelectionChange={(keys) => {
-                                if (typeof keys === "string") {
-                                    setTypeFilter(keys);
-                                } else if (keys instanceof Set && keys.size > 0) {
-                                    setTypeFilter(Array.from(keys)[0] as string);
-                                } else {
-                                    setTypeFilter("");
-                                }
-                            }}
+                            onSelectionChange={setTypeFilter}
                         >
                             {EvoucherType.map((type) => (
                                 <DropdownItem key={type.name} className="capitalize">
@@ -115,7 +106,7 @@ export default function TopContent({
                             ))}
                         </DropdownMenu>
                     </Dropdown>
-                    <Button onPress={() => {setActionText("Add"); setIsAddOpen(true);}} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
+                    <Button onPress={() => { setActionText("Add"); setIsAddOpen(true); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
                 </div>
             </div>
         </div>

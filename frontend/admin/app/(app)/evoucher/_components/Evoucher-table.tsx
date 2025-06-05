@@ -1,5 +1,5 @@
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, SortDescriptor, Image, } from "@heroui/react";
-import React from "react";
+import React, { Key, useCallback, useMemo, useState } from "react";
 import { EllipsisVertical } from "lucide-react";
 import { Evoucher, Sponsor } from "@/types/evoucher";
 import TableContent from "./TableContent";
@@ -50,29 +50,29 @@ export default function EvoucherTable({
 }) {
     const { createEvoucher } = useEvoucher();
 
-    const [filterValue, setFilterValue] = React.useState("");
-    const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(new Set<string>());
-    const [visibleColumns, setVisibleColumns] = React.useState(
+    const [filterValue, setFilterValue] = useState("");
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set<string>());
+    const [visibleColumns, setVisibleColumns] = useState(
         new Set(INITIAL_VISIBLE_COLUMNS),
     );
-    const [typeFilter, setTypeFilter] = React.useState<"all" | string>("all");
-    const [rowsPerPage, setRowsPerPage] = React.useState(5);
-    const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    const [typeFilter, setTypeFilter] = useState<Selection>("all");
+    const [rowsPerPage, setRowsPerPage] = useState(5);
+    const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
         column: "acronym",
         direction: "ascending",
     });
-    const [page, setPage] = React.useState(1);
-    const [actionText, setActionText] = React.useState<"Add" | "Edit">("Add");
-    const [isAddOpen, setIsAddOpen] = React.useState<boolean>(false);
-    const [isDeleteOpen, setIsDeleteOpen] = React.useState<boolean>(false);
+    const [page, setPage] = useState(1);
+    const [actionText, setActionText] = useState<"Add" | "Edit">("Add");
+    const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
+    const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false);
 
     const hasSearchFilter = Boolean(filterValue);
 
-    const headerColumns = React.useMemo(() => {
+    const headerColumns = useMemo(() => {
         return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
     }, [visibleColumns]);
 
-    const filteredItems = React.useMemo(() => {
+    const filteredItems = useMemo(() => {
         let filteredEvoucher = [...evouchers];
 
         if (hasSearchFilter) {
@@ -94,16 +94,17 @@ export default function EvoucherTable({
         return filteredEvoucher;
     }, [evouchers, filterValue, typeFilter]);
 
+
     const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
-    const items = React.useMemo(() => {
+    const items = useMemo(() => {
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
 
         return filteredItems.slice(start, end);
     }, [page, filteredItems, rowsPerPage]);
 
-    const sortedItems = React.useMemo(() => {
+    const sortedItems = useMemo(() => {
         return [...items].sort((a: Evoucher, b: Evoucher) => {
             const first = a[sortDescriptor.column as keyof Evoucher] as number;
             const second = b[sortDescriptor.column as keyof Evoucher] as number;
@@ -113,7 +114,7 @@ export default function EvoucherTable({
         });
     }, [sortDescriptor, items]);
 
-    const renderCell = React.useCallback((evoucher: Evoucher, columnKey: React.Key) => {
+    const renderCell = useCallback((evoucher: Evoucher, columnKey: Key) => {
         const cellValue = evoucher[columnKey as keyof Evoucher];
 
         switch (columnKey) {
@@ -220,10 +221,6 @@ export default function EvoucherTable({
                 }}
                 onSearchChange={(val) => {
                     setFilterValue(val);
-                    setPage(1);
-                }}
-                onRowsPerPageChange={(e) => {
-                    setRowsPerPage(e.target.value);
                     setPage(1);
                 }}
             />
