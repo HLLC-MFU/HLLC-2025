@@ -2,13 +2,17 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"time"
 
+	ChatServicePkg "github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	MemberService "github.com/HLLC-MFU/HLLC-2025/backend/module/members/service"
+	roomKafka "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/model"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
+	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -33,13 +37,15 @@ type service struct {
 	repo          repository.RoomRepository
 	publisher     kafkaPublisher.Publisher
 	memberService MemberService.MemberService
+	chatService   ChatServicePkg.ChatService
 }
 
-func NewService(repo repository.RoomRepository, publisher kafkaPublisher.Publisher, memberService MemberService.MemberService) RoomService {
+func NewService(repo repository.RoomRepository, publisher kafkaPublisher.Publisher, memberService MemberService.MemberService, chatService ChatServicePkg.ChatService) RoomService {
 	return &service{
 		repo:          repo,
 		publisher:     publisher,
 		memberService: memberService,
+		chatService:   chatService,
 	}
 }
 
@@ -60,7 +66,7 @@ func (s *service) CreateRoom(ctx context.Context, room *model.Room) error {
 		return err
 	}
 
-	// 🔄 Setup Kafka topic asynchronously
+	//Setup Kafka topic asynchronously
 	go func(roomID primitive.ObjectID) {
 		topicName := "chat-room-" + roomID.Hex()
 
@@ -99,8 +105,7 @@ func (s *service) UpdateRoom(ctx context.Context, room *model.Room) error {
 
 	// Ensure creator is not lost
 	room.Creator = existing.Creator
-	room.CreatedAt = existing.CreatedAt // Optional: preserve created time too
-
+	room.CreatedAt = existing.CreatedAt
 	return s.repo.Update(ctx, room)
 }
 
@@ -111,6 +116,45 @@ func (s *service) DeleteRoom(ctx context.Context, id primitive.ObjectID) error {
 	}
 	if existing == nil {
 		return NewError("room not found")
+	}
+
+	// Delete all room members first
+	if err := s.memberService.DeleteRoomMembers(ctx, id); err != nil {
+		log.Printf("[Room Service] Error deleting room members: %v", err)
+	} else {
+		log.Printf("[Room Service] Successfully deleted all members for room: %s", id.Hex())
+	}
+
+	// Delete all chat messages, reactions, and read receipts for this room
+	if err := s.chatService.DeleteRoomMessages(ctx, id.Hex()); err != nil {
+		log.Printf("[Room Service] Error deleting chat messages for room %s: %v", id.Hex(), err)
+	} else {
+		log.Printf("[Room Service] Successfully deleted all chat messages for room: %s", id.Hex())
+	}
+
+	// Publish room deletion event to Kafka
+	event := roomKafka.RoomEvent{
+		Type:   "room_deleted",
+		RoomID: id.Hex(),
+	}
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("[Room Service] Error marshaling room deletion event: %v", err)
+	} else {
+		writer := kafka.NewWriter(kafka.WriterConfig{
+			Brokers:  []string{"localhost:9092"},
+			Topic:    "room-events",
+			Balancer: &kafka.LeastBytes{},
+		})
+		defer writer.Close()
+
+		if err := writer.WriteMessages(ctx, kafka.Message{
+			Value: eventBytes,
+		}); err != nil {
+			log.Printf("[Room Service] Error publishing room deletion event: %v", err)
+		} else {
+			log.Printf("[Room Service] Published room deletion event for room: %s", id.Hex())
+		}
 	}
 	return s.repo.Delete(ctx, id)
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { addToast } from '@heroui/react';
 import { useCheckin } from '@/hooks/useCheckin';
@@ -12,10 +12,20 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isRunningRef = useRef(false);
   const scannedSetRef = useRef<Set<string>>(new Set());
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 640); // sm breakpoint (640px)
+    };
+
+    handleResize(); // set initial
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const qrRegionId = 'qr-reader';
-
     let isMounted = true;
 
     const stopScanner = async () => {
@@ -31,7 +41,7 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
     };
 
     const startScanner = async () => {
-      if (selectedActivityIds.length === 0) return;
+      if (selectedActivityIds.length === 0 || !isMobile) return;
 
       const scanner = new Html5Qrcode(qrRegionId);
       scannerRef.current = scanner;
@@ -77,10 +87,9 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
       }
     };
 
-    // Prevent race condition
     (async () => {
       await stopScanner();
-      if (selectedActivityIds.length > 0) {
+      if (selectedActivityIds.length > 0 && isMobile) {
         await startScanner();
       }
     })();
@@ -89,7 +98,9 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
       isMounted = false;
       stopScanner();
     };
-  }, [selectedActivityIds]);
+  }, [selectedActivityIds, isMobile]);
+
+  if (!isMobile) return null;
 
   return (
     <div className="w-full max-w-sm mx-auto mb-4 sm:overflow-hidden sm:hidden">

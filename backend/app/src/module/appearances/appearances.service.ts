@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAppearanceDto } from './dto/create-appearance.dto';
 import { UpdateAppearanceDto } from './dto/update-appearance.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Appearance, ApprearanceDocument } from './schemas/apprearance.schema';
+import { Appearance, AppearanceDocument } from './schemas/apprearance.schema';
 import { Model } from 'mongoose';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
@@ -17,8 +17,8 @@ import {
 export class AppearancesService {
   constructor(
     @InjectModel(Appearance.name)
-    private apprearanceModel: Model<ApprearanceDocument>,
-  ) {}
+    private apprearanceModel: Model<AppearanceDocument>,
+  ) { }
 
   async create(createAppearanceDto: CreateAppearanceDto) {
     await throwIfExists(
@@ -54,6 +54,27 @@ export class AppearancesService {
   }
 
   async update(id: string, updateAppearanceDto: UpdateAppearanceDto) {
+    const existing = await this.apprearanceModel.findById(id);
+    if (!existing) {
+      throw new NotFoundException(`Appearance with id ${id} not found`);
+    }
+
+    // Merge assets if present
+    if (updateAppearanceDto.assets) {
+      updateAppearanceDto.assets = {
+        ...existing.assets,
+        ...updateAppearanceDto.assets
+      };
+    }
+
+    // Merge colors if present
+    if (updateAppearanceDto.colors) {
+      updateAppearanceDto.colors = {
+        ...existing.colors,
+        ...updateAppearanceDto.colors
+      };
+    }
+
     await queryUpdateOne<Appearance>(
       this.apprearanceModel,
       id,

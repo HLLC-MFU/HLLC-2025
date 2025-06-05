@@ -120,7 +120,7 @@ export class NotificationsService {
         to: '',
         sound: 'default',
         title: sendNotificationDto.title.th,
-        body: sendNotificationDto.body.th,
+        body: typeof sendNotificationDto.body === 'string' ? sendNotificationDto.body : sendNotificationDto.body?.th ?? '',
       },
     ];
 

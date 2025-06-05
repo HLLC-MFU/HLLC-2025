@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
@@ -14,6 +16,7 @@ import (
 	RoomRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/gofiber/websocket/v2"
 )
 
@@ -30,9 +33,16 @@ type ChatService interface {
 	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error)
 	SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error
 	SaveReaction(ctx context.Context, reaction *model.MessageReaction) error
-	SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error
 	SyncRoomMembers()
+	DeleteRoomMessages(ctx context.Context, roomID string) error
+	StartRoomConsumers()
+	NotifyOfflineUser(userID, roomID, fromUserID, message, eventType string)
 }
+
+const (
+	chatConsumerGroup = "chat-service-group"
+	deduplicationTTL  = time.Minute
+)
 
 type service struct {
 	repo      repository.ChatRepository
@@ -40,12 +50,21 @@ type service struct {
 	roomRepo  RoomRepository.RoomRepository
 }
 
+var (
+	notifiedMu sync.Mutex
+	notified   = make(map[string]time.Time) // key: userId:roomId:message
+)
+
 func NewService(repo repository.ChatRepository, publisher kafkaPublisher.Publisher, roomRepo RoomRepository.RoomRepository) ChatService {
-	return &service{
+	s := &service{
 		repo:      repo,
 		publisher: publisher,
 		roomRepo:  roomRepo,
 	}
+
+	s.StartRoomConsumers()
+
+	return s
 }
 
 func (s *service) InitChatHub() {
@@ -69,8 +88,37 @@ func (s *service) InitChatHub() {
 			case message := <-model.Broadcast:
 				log.Printf("[BROADCAST] Message from %s in room %s: %s", message.FROM.UserID, message.FROM.RoomID, message.MSG)
 
-				mentions := utils.ExtractMentions(message.MSG)
+				// Try to parse as a special message type (sticker/file)
+				var specialMsg map[string]interface{}
+				if err := json.Unmarshal([]byte(message.MSG), &specialMsg); err == nil {
+					// Check if it's a special message type
+					if msgType, ok := specialMsg["type"].(string); ok {
+						switch msgType {
+						case "sticker":
+							// Notify offline users about sticker
+							for userID, conn := range model.Clients[message.FROM.RoomID] {
+								if conn == nil {
+									notificationMsg := fmt.Sprintf("sent a sticker")
+									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg, "sticker")
+								}
+							}
+							continue
+						case "file":
+							fileName, _ := specialMsg["fileName"].(string)
+							// Notify offline users about file
+							for userID, conn := range model.Clients[message.FROM.RoomID] {
+								if conn == nil {
+									notificationMsg := fmt.Sprintf("sent a file: %s", fileName)
+									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg, "file")
+								}
+							}
+							continue
+						}
+					}
+				}
 
+				// Handle as regular text message
+				mentions := utils.ExtractMentions(message.MSG)
 				chatMsg := &model.ChatMessage{
 					RoomID:    message.FROM.RoomID,
 					UserID:    message.FROM.UserID,
@@ -79,33 +127,39 @@ func (s *service) InitChatHub() {
 					Timestamp: time.Now(),
 				}
 
-				payload := model.MessagePayload{
-					UserID:   chatMsg.UserID,
-					RoomID:   chatMsg.RoomID,
-					Message:  chatMsg.Message,
-					Mentions: chatMsg.Mentions,
-				}
-				event := model.ChatEvent{
-					EventType: "message",
-					Payload:   payload,
+				// Convert to Kafka message format and send to Kafka topic
+				kafkaMsg := chatMsg.ToKafkaMessage()
+				data, err := json.Marshal(kafkaMsg)
+				if err != nil {
+					log.Printf("[BROADCAST] Failed to marshal message: %v", err)
+					continue
 				}
 
-				for userID, conn := range model.Clients[chatMsg.RoomID] {
+				if err := s.publisher.SendMessage(chatMsg.RoomID, chatMsg.UserID, string(data)); err != nil {
+					log.Printf("[BROADCAST] Failed to send message to Kafka: %v", err)
+					continue
+				}
+
+				// Notify offline users
+				for userID, conn := range model.Clients[message.FROM.RoomID] {
 					if conn == nil {
-						if userID != chatMsg.UserID {
-							s.notifyOfflineUser(userID, chatMsg.RoomID, chatMsg.UserID, chatMsg.Message)
-						}
-						continue
+						s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG, "text")
 					}
+				}
 
-					if err := sendJSONMessage(conn, event); err != nil {
-						log.Printf("[WS] Failed to send to %s: %v", userID, err)
-						conn.Close()
-						model.Clients[chatMsg.RoomID][userID] = nil
-
-						if userID != chatMsg.UserID {
-							s.notifyOfflineUser(userID, chatMsg.RoomID, chatMsg.UserID, chatMsg.Message)
-						}
+				// Send acknowledgment back to sender
+				if conn, exists := model.Clients[chatMsg.RoomID][chatMsg.UserID]; exists && conn != nil {
+					ack := model.ChatEvent{
+						EventType: "message_ack",
+						Payload: model.MessagePayload{
+							UserID:   chatMsg.UserID,
+							RoomID:   chatMsg.RoomID,
+							Message:  chatMsg.Message,
+							Mentions: chatMsg.Mentions,
+						},
+					}
+					if err := sendJSONMessage(conn, ack); err != nil {
+						log.Printf("[BROADCAST] Failed to send acknowledgment to sender: %v", err)
 					}
 				}
 			}
@@ -121,12 +175,23 @@ func sendJSONMessage(conn *websocket.Conn, v interface{}) error {
 	return conn.WriteMessage(websocket.TextMessage, data)
 }
 
-func (s *service) notifyOfflineUser(userID, roomID, fromUserID, message string) {
+func (s *service) NotifyOfflineUser(userID, roomID, fromUserID, message, eventType string) {
+	key := userID + ":" + roomID + ":" + eventType + ":" + message
+	notifiedMu.Lock()
+	if t, exists := notified[key]; exists && time.Since(t) < deduplicationTTL {
+		notifiedMu.Unlock()
+		log.Printf("[Notify] Duplicate notification for %s, skipping", key)
+		return
+	}
+	notified[key] = time.Now()
+	notifiedMu.Unlock()
+
 	payload := map[string]string{
 		"userId":  userID,
 		"roomId":  roomID,
 		"from":    fromUserID,
 		"message": message,
+		"type":    eventType,
 	}
 	msg, _ := json.Marshal(payload)
 
@@ -138,15 +203,44 @@ func (s *service) notifyOfflineUser(userID, roomID, fromUserID, message string) 
 }
 
 func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {
+	// Try to get from Redis cache first
+	cachedMessages, err := redis.GetRecentMessages(roomID, int(limit))
+	if err == nil && len(cachedMessages) > 0 {
+		// Cache hit - enrich the messages with reactions and read receipts
+		var enriched []model.ChatMessageEnriched
+		for _, msg := range cachedMessages {
+			reactions, _ := s.repo.GetReactionsByMessageID(ctx, msg.ID)
+
+			var replyTo *model.ChatMessage
+			if msg.ReplyToID != nil {
+				replyTo, _ = s.repo.GetMessageByID(ctx, *msg.ReplyToID)
+			}
+
+			enriched = append(enriched, model.ChatMessageEnriched{
+				ChatMessage: msg,
+				Reactions:   reactions,
+				ReplyTo:     replyTo,
+			})
+		}
+		return enriched, nil
+	}
+
+	// Cache miss - get from MongoDB
 	rawMessages, err := s.repo.GetChatHistoryByRoom(ctx, roomID, limit)
 	if err != nil {
 		return nil, err
 	}
 
+	// Cache the results in Redis
+	for _, msg := range rawMessages {
+		if err := redis.SaveChatMessageToRoom(roomID, &msg); err != nil {
+			log.Printf("[Cache] Failed to cache message for room %s: %v", roomID, err)
+		}
+	}
+
 	var enriched []model.ChatMessageEnriched
 	for _, msg := range rawMessages {
 		reactions, _ := s.repo.GetReactionsByMessageID(ctx, msg.ID)
-		reads, _ := s.repo.GetReadReceiptsByMessageID(ctx, msg.ID)
 
 		var replyTo *model.ChatMessage
 		if msg.ReplyToID != nil {
@@ -154,10 +248,9 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 		}
 
 		enriched = append(enriched, model.ChatMessageEnriched{
-			ChatMessage:  msg,
-			Reactions:    reactions,
-			ReadReceipts: reads,
-			ReplyTo:      replyTo,
+			ChatMessage: msg,
+			Reactions:   reactions,
+			ReplyTo:     replyTo,
 		})
 	}
 
@@ -170,6 +263,12 @@ func (s *service) SaveChatMessage(ctx context.Context, msg *model.ChatMessage) e
 		return err
 	}
 	msg.ID = id
+
+	// Cache the new message in Redis
+	if err := redis.SaveChatMessageToRoom(msg.RoomID, msg); err != nil {
+		log.Printf("[Cache] Failed to cache new message for room %s: %v", msg.RoomID, err)
+	}
+
 	return nil
 }
 
@@ -209,6 +308,49 @@ func (s *service) SaveReaction(ctx context.Context, reaction *model.MessageReact
 	return s.repo.SaveReaction(ctx, reaction)
 }
 
-func (s *service) SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error {
-	return s.repo.SaveReadReceipt(ctx, receipt)
+// DeleteRoomMessages deletes all messages, reactions, and read receipts for a room
+func (s *service) DeleteRoomMessages(ctx context.Context, roomID string) error {
+	// Delete messages from MongoDB
+	if err := s.repo.DeleteMessagesByRoomID(ctx, roomID); err != nil {
+		return err
+	}
+
+	// Delete messages from Redis cache
+	if err := redis.DeleteRoomMessages(roomID); err != nil {
+		log.Printf("[DeleteRoomMessages] Failed to delete messages from Redis for room %s: %v", roomID, err)
+		// Don't return error here as messages are already deleted from MongoDB
+	}
+
+	// Delete reactions and read receipts
+	if err := s.repo.DeleteReactionsByRoomID(ctx, roomID); err != nil {
+		log.Printf("[DeleteRoomMessages] Failed to delete reactions for room %s: %v", roomID, err)
+	}
+
+	log.Printf("[DeleteRoomMessages] Successfully deleted all messages and related data for room: %s", roomID)
+	return nil
+}
+
+func (s *service) StartRoomConsumers() {
+	ctx := context.Background()
+	// Get all rooms (use a large limit to get all)
+	rooms, _, err := s.roomRepo.List(ctx, 1, 10000)
+	if err != nil {
+		log.Printf("[Kafka] Failed to list rooms for consumer startup: %v", err)
+		return
+	}
+	handler := NewChatMessageHandler(s)
+	for _, room := range rooms {
+		topic := "chat-room-" + room.ID.Hex()
+		consumer := kafkaPublisher.NewConsumer(
+			[]string{"localhost:9092"},
+			topic,
+			chatConsumerGroup,
+			handler,
+		)
+		go func(c *kafkaPublisher.Consumer, t string) {
+			if err := c.Start(); err != nil {
+				log.Printf("[Kafka] Failed to start consumer for topic %s: %v", t, err)
+			}
+		}(consumer, topic)
+	}
 }

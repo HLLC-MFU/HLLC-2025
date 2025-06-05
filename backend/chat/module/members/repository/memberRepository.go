@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/members/model"
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,6 +18,7 @@ type RoomMemberRepository interface {
 	GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error)
 	IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) (bool, error)
 	ListRoomMembers(ctx context.Context, page, limit int64) ([]*model.RoomMember, int64, error)
+	DeleteRoomMembers(ctx context.Context, roomID primitive.ObjectID) error
 }
 
 type roomMemberRepository struct {
@@ -48,8 +51,14 @@ func (r *roomMemberRepository) GetRoomMembers(ctx context.Context, roomID primit
 	var room model.RoomMember
 	err := r.dbConnect(ctx).Collection("room_members").FindOne(ctx, bson.M{"room_id": roomID}).Decode(&room)
 	if err != nil {
-		return nil, err
+		if err == mongo.ErrNoDocuments {
+			log.Printf("[GetRoomMembers] No members found for room %s - room may be empty", roomID.Hex())
+			return []primitive.ObjectID{}, nil // Return empty slice instead of error for empty rooms
+		}
+		log.Printf("[ERROR] Failed to get members for room %s: %v", roomID.Hex(), err)
+		return nil, fmt.Errorf("failed to get room members: %w", err)
 	}
+	log.Printf("[GetRoomMembers] Found %d members for room %s", len(room.UserIDs), roomID.Hex())
 	return room.UserIDs, nil
 }
 
@@ -79,4 +88,11 @@ func (r *roomMemberRepository) ListRoomMembers(ctx context.Context, page, limit 
 		return nil, 0, err
 	}
 	return roomMember, total, nil
+}
+
+// DeleteRoomMembers deletes all members for a room
+func (r *roomMemberRepository) DeleteRoomMembers(ctx context.Context, roomID primitive.ObjectID) error {
+	filter := bson.M{"room_id": roomID}
+	_, err := r.dbConnect(ctx).Collection("room_members").DeleteOne(ctx, filter)
+	return err
 }

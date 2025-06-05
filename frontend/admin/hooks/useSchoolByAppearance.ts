@@ -20,19 +20,17 @@ export function useSchoolByAppearance(id?: string) {
             if (res.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
                 // Ensure all required assets fields exist
                 const appearanceData = res.data.data[0];
-                const assets = appearanceData.assets || {};
-                
-                // Initialize missing asset fields if they don't exist
-                const updatedAssets: Record<string, string> = {
-                    background: assets.background || "",
-                    backpack: assets.backpack || "",
-                    appearance: assets.appearance || "",
-                };
 
-                setAppearance({
+                setAppearance(prev => ({
+                    ...prev,
                     ...appearanceData,
-                    assets: updatedAssets
-                });
+                    assets: {
+                        ...(prev?.assets || {}),
+                        ...appearanceData.assets
+                    }
+                }));
+
+
             } else {
                 setAppearance(null);
             }
