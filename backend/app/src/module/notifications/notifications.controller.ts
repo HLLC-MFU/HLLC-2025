@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, Headers, BadRequestException, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { CacheKey } from '@nestjs/cache-manager';
 import { Notification } from './schemas/notification.schema';
@@ -29,7 +40,10 @@ export class NotificationsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateNotificationDto: Partial<Notification>) {
+  update(
+    @Param('id') id: string,
+    @Body() updateNotificationDto: Partial<Notification>,
+  ) {
     return this.notificationsService.update(id, updateNotificationDto);
   }
 
@@ -40,12 +54,18 @@ export class NotificationsController {
 
   @Post('read')
   markAsRead(@Body() markAsReadDto: ReadNotificationDto) {
-    return this.notificationsService.markAsRead(markAsReadDto.userId, markAsReadDto.notificationId);
+    return this.notificationsService.markAsRead(
+      markAsReadDto.userId,
+      markAsReadDto.notificationId,
+    );
   }
 
   @Post('unread')
   markAsUnread(@Body() markAsUnreadDto: ReadNotificationDto) {
-    return this.notificationsService.markAsUnread(markAsUnreadDto.userId, markAsUnreadDto.notificationId);
+    return this.notificationsService.markAsUnread(
+      markAsUnreadDto.userId,
+      markAsUnreadDto.notificationId,
+    );
   }
 
   @Get('me')
@@ -57,4 +77,5 @@ export class NotificationsController {
       user?.school?._id,
     );
   }
+
 }

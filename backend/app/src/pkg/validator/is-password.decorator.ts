@@ -6,14 +6,14 @@ import {
 } from 'class-validator';
 
 export function IsPassword(validationOptions?: ValidationOptions) {
-  return function (object: Record<string, any>, propertyName: string) {
+  return function (object: Record<string, string>, propertyName: string) {
     registerDecorator({
       name: 'IsPassword',
       target: object.constructor,
       propertyName: propertyName,
       options: validationOptions,
       validator: {
-        validate(value: any) {
+        validate(value: string) {
           return isStrongPassword(value, {
             minLength: 8,
             minLowercase: 1,

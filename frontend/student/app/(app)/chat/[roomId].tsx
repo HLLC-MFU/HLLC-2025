@@ -99,7 +99,7 @@ export default function ChatRoomPage() {
           <View style={chatStyles.header}>
             <TouchableOpacity 
               style={chatStyles.backButton} 
-              onPress={() => router.back()}
+              onPress={() => router.replace('/chat')}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <ChevronLeft color="#fff" size={24} />

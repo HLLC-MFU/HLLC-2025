@@ -27,7 +27,7 @@ const useAuth = create<AuthStore>()(
         try {
           set({ loading: true, error: null });
 
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login?useCookie=true`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login?useCookies=true`, {
             method: 'POST',
             body: JSON.stringify({ username, password }),
             headers: { 'Content-Type': 'application/json' },

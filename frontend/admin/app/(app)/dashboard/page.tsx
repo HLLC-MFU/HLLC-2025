@@ -1,58 +1,83 @@
+'use client';
+import {
+  CircularProgressbar,
+  buildStyles
+} from "react-circular-progressbar";
+import { Users , Ticket  , ScanLine , Star  } from 'lucide-react';
+import { useCheckin } from "@/hooks/useCheckin";
+import { useUsers } from "@/hooks/useUsers";
+import { useSponsors } from "@/hooks/useSponsors";
 
-import { Link } from "@heroui/link";
-import { Snippet } from "@heroui/snippet";
-import { Code } from "@heroui/code";
-import { button as buttonStyles } from "@heroui/theme";
-
-import { siteConfig } from "@/config/site";
-import { title, subtitle } from "@/components/primitives";
-import { GithubIcon } from "@/components/icons";
+const icons = [
+  <ScanLine className="h-6 w-6 text-lime-600" />,
+  <Users className="h-6 w-6 text-amber-400" />,
+  <Ticket className="h-6 w-6 text-cyan-400" />,
+  <Star className="h-6 w-6 text-emerald-400" />,
+];
 
 export default function Dashboard() {
 
+  const { checkin } = useCheckin();
+  const { users } = useUsers();
+  const { sponsors } = useSponsors();
+
+  console.log("checkin", checkin);
+  console.log("User", users);
+  console.log("Sponsors", sponsors);
+
   return (
-    <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
-      <div className="inline-block max-w-xl text-center justify-center">
-        <span className={title()}>Make&nbsp;</span>
-        <span className={title({ color: "violet" })}>beautiful&nbsp;</span>
-        <br />
-        <span className={title()}>
-          websites regardless of your design experience.
-        </span>
-        <div className={subtitle({ class: "mt-4" })}>
-          Beautiful, fast and modern React UI library.
-        </div>
+    <div className="flex flex-col min-h-screen ">
+      <div className="flex py-6 px-8">
+        <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
       </div>
 
-      <div className="flex gap-3">
-        <Link
-          isExternal
-          className={buttonStyles({
-            color: "primary",
-            radius: "full",
-            variant: "shadow",
-          })}
-          href={siteConfig.links.docs}
-        >
-          Documentation
-        </Link>
-        <Link
-          isExternal
-          className={buttonStyles({ variant: "bordered", radius: "full" })}
-          href={siteConfig.links.github}
-        >
-          <GithubIcon size={20} />
-          GitHub
-        </Link>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-8">
+        {[{
+          title: "Total Checkin",
+          value: checkin.length,
+          progressColor: "#65a30d",
+          borderColor: "border-lime-600"
+        }, {
+          title: "Total User",
+          value: users.length,
+          progressColor: "#fbbf24",
+          borderColor: "border-amber-400"
+        }, {
+          title: "E-voucher",
+          value: 10,
+          progressColor: "#22d3ee",
+          borderColor: "border-cyan-400"
+        }, {
+          title: "Sponsor",
+          value: sponsors.length,
+          progressColor: "#34d399",
+          borderColor: "border-emerald-400"
+        }].map((item, idx) => (
+          <div
+            key={idx}
+            className={`w-full h-36 border-b-[8px] ${item.borderColor} rounded-2xl shadow-md flex justify-between items-center bg-white p-4 relative`}
+          >
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                {icons[idx]}
+                <span className="text-md font-medium text-gray-700">{item.title}</span>
+              </div>
+              <span className="text-2xl font-bold text-gray-900">{item.value}</span>
+            </div>
+            <div className="w-16 h-16">
+              <CircularProgressbar
+                value={item.value}
+                maxValue={6000}
+                styles={buildStyles({
+                  pathColor: item.progressColor,
+                  trailColor: "#e5e7eb"
+                })}
+              />
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="mt-8">
-        <Snippet hideCopyButton hideSymbol variant="bordered">
-          <span>
-            Get started by editing <Code color="primary">app/page.tsx</Code>
-          </span>
-        </Snippet>
-      </div>
-    </section>
+    </div>
   );
 }

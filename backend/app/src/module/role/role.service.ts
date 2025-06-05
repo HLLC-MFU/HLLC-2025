@@ -5,8 +5,9 @@ import { Role, RoleDocument } from './schemas/role.schema';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
-import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
+import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { encryptItem } from '../auth/utils/crypto';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class RoleService {
@@ -14,32 +15,35 @@ export class RoleService {
     @InjectModel(Role.name) private readonly roleModel: Model<RoleDocument>,
   ) {}
 
+  /**
+   * Creates a new role.
+   * permissions are encrypted before saving.
+   */
   async create(createRoleDto: CreateRoleDto): Promise<Role> {
-    // 🔍 ตรวจสอบซ้ำ
-    await throwIfExists(
-      this.roleModel,
-      { name: createRoleDto.name },
-      'Role name already exists',
-    );
-
-    // 🔐 Encrypt ทีละ permission (เก็บเป็น array ของ encrypted string)
-    const encryptedPermissions = createRoleDto.permissions?.map((perm) =>
-      encryptItem(perm),
-    );
-
-    const roleData: Partial<Role> = {
+    const role = new this.roleModel({
       name: createRoleDto.name,
       metadataSchema: createRoleDto.metadataSchema,
-      permissions: encryptedPermissions || [],
-    };
+      permissions: createRoleDto.permissions?.map(encryptItem) || [],
+    });
 
-    return this.roleModel.create(roleData);
+    try {
+      return await role.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name');
+    }
   }
-
+  /**
+   * Finds a role by name.
+   * Throws an error if the role already exists.
+   */
   async findAll(): Promise<Role[]> {
     return this.roleModel.find().lean();
   }
 
+  /**
+   * Finds a role by ID.
+   * Throws an error if the role does not exist.
+   */
   async findOne(id: string): Promise<Role> {
     return findOrThrow(this.roleModel, id, 'Role');
   }
@@ -47,7 +51,6 @@ export class RoleService {
   async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
 
-    // 🔐 ถ้ามี permissions ใหม่ → encrypt ทีละ item
     if (updateRoleDto.permissions && Array.isArray(updateRoleDto.permissions)) {
       role.permissions = updateRoleDto.permissions.map((perm) =>
         encryptItem(perm),
@@ -61,12 +64,20 @@ export class RoleService {
       role.metadataSchema = updateRoleDto.metadataSchema;
     }
 
-    return role.save();
+    try {
+      return await role.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name');
+    }
   }
 
-  async remove(id: string): Promise<void> {
-    await findOrThrow(this.roleModel, id, 'Role');
+  async remove(id: string) {
     await this.roleModel.findByIdAndDelete(id);
+
+    return {
+      message: 'Role deleted successfully',
+      id,
+    };
   }
 
   async updateMetadataSchema(
@@ -75,6 +86,10 @@ export class RoleService {
   ): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
     role.metadataSchema = dto.metadataSchema;
-    return role.save();
+    try {
+      return await role.save();
+    } catch (error) {
+      handleMongoDuplicateError(error, 'name');
+    }
   }
 }

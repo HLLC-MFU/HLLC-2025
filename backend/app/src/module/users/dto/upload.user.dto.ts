@@ -1,6 +1,6 @@
+// src/module/users/dto/user-upload-direct.dto.ts
 import { Type } from 'class-transformer';
 import {
-  IsArray,
   IsMongoId,
   IsNotEmpty,
   IsObject,
@@ -8,7 +8,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 class UserNameDto {
   @IsString()
@@ -24,7 +23,7 @@ class UserNameDto {
   last?: string;
 }
 
-class UserUploadDto {
+export class UserUploadDirectDto {
   @IsObject()
   @ValidateNested()
   @Type(() => UserNameDto)
@@ -32,32 +31,16 @@ class UserUploadDto {
 
   @IsString()
   @IsNotEmpty()
-  studentId: string;
+  username: string;
 
-  @IsOptional()
-  @IsMongoId()
-  major?: string;
-
-  @IsOptional()
   @IsString()
-  province?: string;
-}
-
-export class UploadUserDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => UserUploadDto)
-  users: UserUploadDto[];
-
-  @IsOptional()
-  @IsMongoId()
-  major?: string | Types.ObjectId;
+  password?: string;
 
   @IsMongoId()
   @IsNotEmpty()
-  role: string | Types.ObjectId;
+  role: string;
 
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string>;
 }

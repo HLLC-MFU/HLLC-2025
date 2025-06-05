@@ -12,9 +12,3 @@ type MessageReaction struct {
 	Reaction  string             `bson:"reaction"`
 	Timestamp time.Time          `bson:"timestamp"`
 }
-
-type MessageReadReceipt struct {
-	MessageID primitive.ObjectID `bson:"message_id"`
-	UserID    string             `bson:"user_id"`
-	Timestamp time.Time          `bson:"timestamp"`
-}

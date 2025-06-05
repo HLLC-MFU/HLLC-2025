@@ -1,40 +1,48 @@
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Textarea, Select, SelectItem } from "@heroui/react";
-import { useState, useEffect } from "react";
-import type { Category } from "@/types/report";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Input,
+  Textarea,
+  Select,
+  SelectItem,
+} from '@heroui/react';
+import { useState, useEffect } from 'react';
+import type { Category } from '@/types/report';
+import SendNotiButton from './SendNotiButton';
+import StatusDropdown from './Statusdropdown';
+
 
 interface CategoryModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSubmit: (category: Category) => void;
-    category?: Category;
-    mode: "add" | "edit";
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (category: Category) => void;
+  category?: Category;
+  mode: 'add' | 'edit';
 }
 
 export function CategoryModal({ isOpen, onClose, onSubmit, category, mode }: CategoryModalProps) {
-    const [nameEn, setNameEn] = useState("");
-    const [nameTh, setNameTh] = useState("");
-    const [descriptionEn, setDescriptionEn] = useState("");
-    const [descriptionTh, setDescriptionTh] = useState("");
-    const [color, setColor] = useState("#000000");
+  const [nameEn, setNameEn] = useState('');
+  const [nameTh, setNameTh] = useState('');
+  const [descriptionEn, setDescriptionEn] = useState('');
+  const [descriptionTh, setDescriptionTh] = useState('');
+  const [color, setColor] = useState('#000000');
 
-    useEffect(() => {
-        if (category) {
-            setNameEn(category.name.en);
-            setNameTh(category.name.th);
-            setDescriptionEn(category.description.en);
-            setDescriptionTh(category.description.th);
-            setColor(category.color);
-        } else {
-            setNameEn("");
-            setNameTh("");
-            setDescriptionEn("");
-            setDescriptionTh("");
-            setColor("#000000");
-        }
-    }, [category]);
+  useEffect(() => {
+    if (category) {
+      setNameEn(category.name.en);
+      setNameTh(category.name.th);
+    } else {
+      setNameEn('');
+      setNameTh('');
+    }
+  }, [category]);
 
-    const handleSubmit = () => {
-        if (!nameEn.trim() || !nameTh.trim()) return;
+  const handleSubmit = async () => {
+    if (!nameEn.trim() || !nameTh.trim()) return;
 
         const newCategory: Category = {
             id: category?.id || `category-${Date.now()}`,
@@ -75,31 +83,6 @@ export function CategoryModal({ isOpen, onClose, onSubmit, category, mode }: Cat
                                 placeholder="Enter category name in Thai"
                                 value={nameTh}
                                 onValueChange={setNameTh}
-                            />
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Textarea
-                                label="Description (English)"
-                                placeholder="Enter description in English"
-                                value={descriptionEn}
-                                onValueChange={setDescriptionEn}
-                                minRows={3}
-                            />
-                            <Textarea
-                                label="Description (Thai)"
-                                placeholder="Enter description in Thai"
-                                value={descriptionTh}
-                                onValueChange={setDescriptionTh}
-                                minRows={3}
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium">Category Color:</label>
-                            <input
-                                type="color"
-                                value={color}
-                                onChange={(e) => setColor(e.target.value)}
-                                className="w-10 h-10 rounded cursor-pointer"
                             />
                         </div>
                     </div>

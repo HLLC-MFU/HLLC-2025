@@ -33,12 +33,12 @@ interface CreateRoomFormData {
   image?: string;
 }
 
-const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
+const CreateRoomModal = ({
   visible,
   onClose,
   onSuccess,
   userId,
-}) => {
+}: CreateRoomModalProps) => {
   const { language } = useLanguage();
   const [formData, setFormData] = useState<CreateRoomFormData>({
     name: { thName: '', enName: '' },
