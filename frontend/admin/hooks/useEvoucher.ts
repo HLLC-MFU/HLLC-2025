@@ -1,8 +1,9 @@
-import { apiRequest } from "@/utils/api";
 import { useState, useEffect } from "react";
+import { apiRequest } from "@/utils/api";
+import { Evoucher } from "@/types/evoucher";
 
 export function useEvoucher() {
-    const [evouchers, setEvouchers] = useState<[]>([]);
+    const [evouchers, setEvouchers] = useState<Evoucher[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -11,7 +12,7 @@ export function useEvoucher() {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: [] }>("/evoucher?limit=0", "GET");
+            const res = await apiRequest<{ data: Evoucher[] }>("/evoucher?limit=0", "GET");
             setEvouchers(Array.isArray(res.data?.data) ? res.data.data : []);
         } catch (err) {
             setError(
@@ -24,32 +25,32 @@ export function useEvoucher() {
         }
     };
 
-    // // Create evoucher
-    // const createEvoucher = async (evoucherData: Partial<>) => {
-    //     try {
-    //         setLoading(true);
-    //         const res = await apiRequest<>("/evoucher", "POST", evoucherData);
-    //         console.log("Create response: ", res);
+    // Create evoucher
+    const createEvoucher = async (evoucherData: Partial<Evoucher>) => {
+        try {
+            setLoading(true);
+            const res = await apiRequest<Evoucher>("/evoucher", "POST", evoucherData);
+            console.log("Create response: ", res);
 
-    //         if (res.data) {
-    //             await new Promise((resolve) => {
-    //                 setEvouchers((prev) => {
-    //                     const updated = [...prev, res.data as ];
-    //                     resolve(updated);
-    //                     return updated;
-    //                 });
-    //             });
-    //         }
-    //     } catch (err) {
-    //         setError(
-    //             err && typeof err === 'object' && 'message' in err
-    //                 ? (err as { message?: string }).message || 'Failed to create evouchers.'
-    //                 : 'Failed to create evouchers.',
-    //         );
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
+            if (res.data) {
+                await new Promise((resolve) => {
+                    setEvouchers((prev) => {
+                        const updated = [...prev, res.data as Evoucher];
+                        resolve(updated);
+                        return updated;
+                    });
+                });
+            }
+        } catch (err) {
+            setError(
+                err && typeof err === 'object' && 'message' in err
+                    ? (err as { message?: string }).message || 'Failed to create evouchers.'
+                    : 'Failed to create evouchers.',
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         fetchEvouchers();
@@ -60,5 +61,6 @@ export function useEvoucher() {
         loading,
         error,
         fetchEvouchers,
+        createEvoucher,
     }
 }

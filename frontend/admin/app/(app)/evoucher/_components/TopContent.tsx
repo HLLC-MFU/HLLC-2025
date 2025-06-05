@@ -10,7 +10,7 @@ export interface TopContentProps {
     filterValue: string;
     typeFilter: string;
     setTypeFilter: (value: string) => void;
-    typeOptions: string[];
+    EvoucherType: string[];
     capitalize: (value: string) => string;
     visibleColumns: Set<string> | string[];
     setVisibleColumns: (columns: string[]) => void;
@@ -33,7 +33,7 @@ export default function TopContent({
     filterValue,
     typeFilter,
     setTypeFilter,
-    typeOptions,
+    EvoucherType,
     capitalize,
     visibleColumns,
     setVisibleColumns,
@@ -70,7 +70,7 @@ export default function TopContent({
                             selectionMode="multiple"
                             onSelectionChange={setTypeFilter}
                         >
-                            {typeOptions.map((type) => (
+                            {EvoucherType.map((type) => (
                                 <DropdownItem key={type.name} className="capitalize">
                                     {capitalize(type.name)}
                                 </DropdownItem>
@@ -101,13 +101,6 @@ export default function TopContent({
                     <Button onPress={() => {setActionText("Add"); setIsAddOpen(true);}} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
                 </div>
             </div>
-            <label className="flex items-center text-default-400 text-small">
-                <Select className="max-w-xs" label="Rows per page:" defaultSelectedKeys={"5"} variant="underlined" onChange={onRowsPerPageChange}>
-                    <SelectItem key="5">5</SelectItem>
-                    <SelectItem key="10">10</SelectItem>
-                    <SelectItem key="15">15</SelectItem>
-                </Select>
-            </label>
         </div>
     )
 };

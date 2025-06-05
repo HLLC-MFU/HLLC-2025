@@ -21,7 +21,7 @@ export interface TableContentProps {
     filterValue: string;
     typeFilter: string;
     setTypeFilter: (value: string) => void;
-    typeOptions: string[];
+    EvoucherType: string[];
     capitalize: (value: string) => string;
     visibleColumns: Set<string>;
     setVisibleColumns: (columns: string[]) => void;
@@ -51,7 +51,7 @@ export default function TableContent({
     filterValue,
     typeFilter,
     setTypeFilter,
-    typeOptions,
+    EvoucherType,
     capitalize,
     visibleColumns,
     setVisibleColumns,
@@ -87,7 +87,7 @@ export default function TableContent({
                 filterValue={filterValue}
                 typeFilter={typeFilter}
                 setTypeFilter={setTypeFilter}
-                typeOptions={typeOptions}
+                EvoucherType={EvoucherType}
                 capitalize={capitalize}
                 visibleColumns={visibleColumns}
                 setVisibleColumns={setVisibleColumns}
@@ -117,7 +117,7 @@ export default function TableContent({
             </TableHeader>
             <TableBody emptyContent={"No users found"} items={sortedItems}>
                 {(item) => (
-                    <TableRow key={item.acronym}>
+                    <TableRow key={item._id}>
                         {(columnKey) => <TableCell className="w-48">{renderCell(item, columnKey)}</TableCell>}
                     </TableRow>
                 )}

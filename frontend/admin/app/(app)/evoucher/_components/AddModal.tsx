@@ -5,24 +5,25 @@ import { Button, DateInput, Form, Input, Modal, ModalBody, ModalContent, ModalFo
 import schoolsMockup from "@/public/mock/schools.json"
 import { Evoucher } from "@/types/evoucher";
 import { Calendar } from "lucide-react";
+import { EvoucherType } from "@/types/evoucherType";
 
 export const schools = schoolsMockup;
 
 export interface AddModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAdd: (userData: Partial<Evoucher>) => void;
+    onAdd: (evoucherData: Partial<Evoucher>) => void;
+    type: EvoucherType[];
     title: string;
-    // data: Evoucher;
 };
 
-export default function AddModal({ isOpen, onClose, onAdd, title, }: AddModalProps) {
+export default function AddModal({ isOpen, onClose, onAdd, type, title, }: AddModalProps) {
     const [sponsor, setSponsor] = React.useState("");
     const [acronym, setAcronym] = React.useState("");
     const [detail, setDetail] = React.useState("");
     const [discount, setDiscount] = React.useState<number>(0);
     const [expiration, setExpiration] = React.useState<Date>();
-    const [type, setType] = React.useState<Set<string>>(new Set<string>());
+    const [selectedType, setSelectedType] = React.useState<Set<string>>(new Set<string>());
     const [cover, setCover] = React.useState("");
     const [banner, setBanner] = React.useState("");
     const [thumpnail, setThumpnail] = React.useState("");
@@ -48,24 +49,42 @@ export default function AddModal({ isOpen, onClose, onAdd, title, }: AddModalPro
         setDetail("");
         setDiscount(0);
         setExpiration(undefined);
-        setType(new Set());
+        setSelectedType(new Set());
     }
 
-    // const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    //     e.preventDefault();
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        
+        // const sponsorId = 
+        const typeId = type.find((t) => t.name === Array.from(selectedType)[0])?._id;
 
-    //     const formData: Partial<User> = {
-    //         
-    //     };
+        // console.log(sponsorId);
 
-    //     if (title === "Add") {
-    //         handleAdd(formData);
-    //     } else if (title === "Edit") {
-    //         handleAdd(formData);
-    //     } else {
-    //         console.error("Fail to submit data");
-    //     }
-    // };
+        // const formData: Partial<Evoucher> = {
+        //     acronym: acronym,
+        //     detail: {
+        //         th: detail,
+        //         en: detail,
+        //     },
+        //     discount: discount,
+        //     expiration: expiration,
+        //     sponsors: sponsorId,
+        //     type: typeId,
+        //     photo: {
+
+        //     },
+        // };
+
+        // console.log(formData);
+
+        // if (title === "Add") {
+        //     onAdd(formData);
+        // } else if (title === "Edit") {
+        //     onAdd(formData);
+        // } else {
+        //     console.error("Fail to submit data");
+        // }
+    };
 
     return (
         <>
@@ -78,7 +97,7 @@ export default function AddModal({ isOpen, onClose, onAdd, title, }: AddModalPro
                 <ModalContent>
                     <Form
                         className="w-full"
-                    // onSubmit={(e) => handleSubmit(e)}
+                        onSubmit={(e) => handleSubmit(e)}
                     >
                         <ModalHeader className="flex flex-col gap-1">{title === "Add" ? "Add evoucher" : "Edit evoucher"}</ModalHeader>
                         <ModalBody className="w-full">
@@ -88,7 +107,7 @@ export default function AddModal({ isOpen, onClose, onAdd, title, }: AddModalPro
                                 type="string"
                                 placeholder="Enter Sponsor name"
                                 errorMessage={
-                                    ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter sponsor name" }
+                                    ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter sponsor" }
                                 }
                                 value={sponsor}
                                 onChange={(e) => setSponsor(e.target.value)}
@@ -99,7 +118,7 @@ export default function AddModal({ isOpen, onClose, onAdd, title, }: AddModalPro
                                 type="string"
                                 placeholder="Enter Acronym"
                                 errorMessage={
-                                    ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter sponsor acronym" }
+                                    ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter acronym" }
                                 }
                                 value={acronym}
                                 onChange={(e) => setAcronym(e.target.value)}
@@ -126,7 +145,7 @@ export default function AddModal({ isOpen, onClose, onAdd, title, }: AddModalPro
                                 value={discount.toString()}
                                 onChange={(e) => setDiscount(Number(e.target.value))}
                             />
-                            <DateInput
+                            {/* <DateInput
                                 isRequired
                                 label="Expiration"
                                 granularity="second"
@@ -136,7 +155,7 @@ export default function AddModal({ isOpen, onClose, onAdd, title, }: AddModalPro
                                 }
                                 value={expiration}
                                 onChange={(e) => setExpiration(e.target.value)}
-                            />
+                            /> */}
                             <Select
                                 isRequired
                                 label="Type"
@@ -144,10 +163,12 @@ export default function AddModal({ isOpen, onClose, onAdd, title, }: AddModalPro
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please select sponsor type" }
                                 }
-                                selectedKeys={type}
-                                onSelectionChange={(keys) => setType(keys as Set<string>)}
+                                selectedKeys={selectedType}
+                                onSelectionChange={(keys) => setSelectedType(keys as Set<string>)}
                             >
-                                <SelectItem key=""></SelectItem>
+                                {type.map((t) => (
+                                    <SelectItem key={t.name}>{t.name}</SelectItem>
+                                ))}
                             </Select>
                         </ModalBody>
                         <ModalFooter className="self-end">
