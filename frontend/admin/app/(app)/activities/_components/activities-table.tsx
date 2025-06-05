@@ -42,7 +42,6 @@ export default function ActivitiesTable({
     <div className="w-full space-y-4 shadow-md rounded-xl overflow-hidden">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Activities</h2>
-        <Button color="primary" endContent={<Plus size={20} />}>Add new</Button>
       </div>
       <Table
         aria-label="Activities table"
