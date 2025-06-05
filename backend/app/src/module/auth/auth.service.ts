@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Type } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Type, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserDocument } from 'src/module/users/schemas/user.schema';
@@ -9,6 +9,8 @@ import { FastifyReply } from 'fastify';
 import '@fastify/cookie';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../auth/decorators/permissions.decorator';
+import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 type Permission = string;
 

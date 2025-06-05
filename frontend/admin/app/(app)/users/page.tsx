@@ -34,15 +34,15 @@ export default function ManagementPage() {
     groupedUsers[roleName].users.push(user);
   });
 
-  // 🟢 Icon mapping based on role
+  // Icon mapping based on role
   const roleIcons: Record<string, React.ReactNode> = {
     Administrator: <UserRoundCog />,
     User: <UserRound />,
     Mentee: <UserRoundSearch />,
   };
 
-  const handleAddRole = (RoleName: Partial<Role>) => {
-    createRole(RoleName);
+  const handleAddRole = (roleData: Partial<Role>) => {
+    createRole(roleData);
     setIsRoleOpen(false);
   };
 

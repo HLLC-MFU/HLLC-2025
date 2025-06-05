@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Bell, Ticket } from "lucide-react-native";
+import { Bell, Ticket, LogOut } from "lucide-react-native";
 import tinycolor from "tinycolor2";
 
 import { useActivities } from "@/hooks/useActivities";
@@ -15,6 +15,8 @@ import useProfile from "@/hooks/useProfile";
 import { useLanguage } from "@/context/LanguageContext";
 import NotificationModal from "./NotificationModal";
 import { useTranslation } from "react-i18next";
+import useAuth from "@/hooks/useAuth";
+import { router } from "expo-router";
 
 type Activity = {
   code: string;
@@ -26,6 +28,7 @@ export default function TopNav() {
   const { user } = useProfile();
   const { activities = [] }: { activities: Activity[] } = useActivities();
   const { language, changeLanguage } = useLanguage();
+  const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const [isNotificationVisible, setNotificationVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -67,6 +70,11 @@ export default function TopNav() {
     changeLanguage(language === "th" ? "en" : "th");
   };
 
+  const handleLogout = () => {
+    signOut();
+    router.replace("/login");
+  };
+
   return (
     <View>
       {/* === Top Navbar === */}
@@ -74,7 +82,7 @@ export default function TopNav() {
         {/* Left Info */}
         <View>
           <Text style={styles.subtitle}>{t("nav.welcome")}</Text>
-          <Text style={styles.username}>{user?.fullName ?? "Guest"}</Text>
+          <Text style={styles.username}>{user?.data[0].username ?? "Guest"}</Text>
           <View style={[styles.progressContainer, { backgroundColor: primaryColor }]}>
             <Text style={styles.progressText}>{t("nav.progress")}: {completedPercentage}%</Text>
           </View>
@@ -97,6 +105,13 @@ export default function TopNav() {
             style={[styles.langButton, { backgroundColor: fadedColor }]}
           >
             <Text style={[styles.langText, { color: primaryColor }]}>{language.toUpperCase()}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={[styles.iconButton, { backgroundColor: fadedColor, marginLeft: 8 }]}
+          >
+            <LogOut color={primaryColor} />
           </TouchableOpacity>
         </View>
       </View>

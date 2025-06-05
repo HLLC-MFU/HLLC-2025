@@ -69,7 +69,7 @@ export default function ActivityDetailPage() {
       await deleteActivity(activity._id);
       router.push('/activities');
     } else if (confirmationModalType === 'edit') {
-      await updateActivity(activity._id, selectedActivity);
+      await updateActivity(activity._id, selectedActivity as FormData);
     }
   };
 
@@ -181,7 +181,7 @@ export default function ActivityDetailPage() {
             : undefined
         }
         onClose={() => setIsModalOpen(false)}
-        onSuccess={handleSaveActivity}
+        onSuccess={handleSaveActivity as (formData: FormData, mode: 'add' | 'edit') => Promise<void>}
       />
 
       <ConfirmationModal

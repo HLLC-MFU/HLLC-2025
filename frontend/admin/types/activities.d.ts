@@ -16,7 +16,7 @@ export type Activities = {
 
 export type Photo = {
     bannerPhoto: string;
-    logoPhoto?: string;
+    logoPhoto: string;
 };
 
 export type Metadata = {
@@ -35,4 +35,5 @@ export type Scope = {
 export type ActivityType = {
     _id: string;
     name: string;
+    photo?: Photo;
 };
