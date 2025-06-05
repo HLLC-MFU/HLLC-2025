@@ -40,3 +40,8 @@ func TotalRoomMembers(roomID string) (int64, error) {
 func IsUserInRoom(roomID string, userID string) (bool, error) {
 	return core.GlobalRedis.Client.SIsMember(context.Background(), "room:"+roomID, userID).Result()
 }
+
+// DeleteRoomMembers deletes all members for a room from Redis
+func DeleteRoomMembers(roomID string) error {
+	return core.GlobalRedis.Client.Del(context.Background(), "room:"+roomID).Err()
+}

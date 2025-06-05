@@ -41,6 +41,7 @@ async function bootstrap() {
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
   await app.register(cookie);
@@ -50,10 +51,9 @@ async function bootstrap() {
     .setVersion('1.0')
 
     .build();
-
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
   app.useGlobalFilters(new MongoExceptionFilter());
-  void app.listen(process.env.PORT ?? 3000);
+  void app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 void bootstrap();

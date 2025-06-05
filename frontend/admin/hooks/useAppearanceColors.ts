@@ -23,6 +23,9 @@ export function useAppearanceColors({ appearance }: UseAppearanceColorsProps) {
 
         try {
             const formData = new FormData();
+            if (appearance.school && appearance.school._id) {
+                formData.append('school', appearance.school._id);
+            }
             Object.entries(colorDrafts).forEach(([key, value]) => {
                 formData.append(`colors[${key}]`, value);
             });
@@ -39,6 +42,9 @@ export function useAppearanceColors({ appearance }: UseAppearanceColorsProps) {
             }
 
             const json = await res.json();
+            if (Array.isArray(json.data)) {
+                return json.data[0];
+            }
             return json.data;
         } catch (err) {
             console.error("Error saving colors:", err);

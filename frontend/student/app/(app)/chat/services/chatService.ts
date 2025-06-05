@@ -1,13 +1,7 @@
 import { Platform } from "react-native";
 import { getToken } from "@/utils/storage";
 import { ChatRoom } from '../types/chatTypes';
-
-const BASE_URL =
-  Platform.OS === "android" ? "http://10.0.2.2:1334" : "http://localhost:1334";
-
-const WS_BASE_URL = Platform.OS === "android" ? "ws://10.0.2.2:1334" : "ws://localhost:1334";
-
-const API_BASE_URL = `${BASE_URL}/api/v1`;
+import { CHAT_BASE_URL, WS_BASE_URL, API_BASE_URL } from '../config/chatConfig';
 
 // Cache for room data
 const roomCache = new Map<string, { data: ChatRoom; timestamp: number }>();

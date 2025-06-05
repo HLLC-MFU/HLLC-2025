@@ -120,7 +120,7 @@ export class NotificationsService {
         to: '',
         sound: 'default',
         title: sendNotificationDto.title.th,
-        body: sendNotificationDto.body.th,
+        body: typeof sendNotificationDto.body === 'string' ? sendNotificationDto.body : sendNotificationDto.body?.th ?? '',
       },
     ];
 
@@ -140,16 +140,16 @@ export class NotificationsService {
 
   async getUserNotifications(
     userId: string,
-    schoolId: string,
     majorId: string,
+    schoolId: string,
   ) {
     const userNotifications = await this.notificationModel
       .find({
         $or: [
           { scope: 'global' },
-          { scope: 'school', targetId: new Types.ObjectId(userId) },
-          { scope: 'major', targetId: new Types.ObjectId(schoolId) },
-          { scope: 'individual', targetId: new Types.ObjectId(majorId) },
+          { scope: 'major', targetId: majorId },
+          { scope: 'school', targetId: schoolId },
+          { scope: 'individual', targetId: userId },
         ],
       })
       .sort({ createdAt: -1 })

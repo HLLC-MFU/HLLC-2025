@@ -48,7 +48,7 @@ export default function HomeScreen() {
               onPressRight={() => console.log('Pressed See All')}
             />
             <ScrollView
-              horizontal
+              horizontal 
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingRight: 16 }}
               style={{ gap: 12, flexGrow: 1, height: 200 }}

@@ -6,30 +6,34 @@ export type Activities = {
     acronym: string;
     fullDetails: Lang;
     shortDetails: Lang;
-    location: Lang;
+    type: string;
     photo: Photo;
-    metadata: metadata;
-}
+    location: Lang;
+    metadata: Metadata;
+    createdAt?: string;
+    updatedAt?: string;
+};
 
-export type Type = {
-    _id: string;
-    name: string;
-}
+export type Photo = {
+    bannerPhoto: string;
+    logoPhoto: string;
+};
 
-export type metadata = {
+export type Metadata = {
     isOpen: boolean;
-    isProgrssCount: boolean;
+    isProgressCount: boolean;
     isVisible: boolean;
     scope: Scope;
-}
+};
 
 export type Scope = {
     major: string[];
     school: string[];
     user: string[];
-}
+};
 
-export type Photo = {
-    bannerPhoto: string;
-    logoPhoto: string;
-}
+export type ActivityType = {
+    _id: string;
+    name: string;
+    photo?: Photo;
+};

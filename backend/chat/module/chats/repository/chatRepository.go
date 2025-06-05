@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,10 +17,11 @@ type ChatRepository interface {
 	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error)
 	Save(ctx context.Context, msg *model.ChatMessage) (primitive.ObjectID, error)
 	SaveReaction(ctx context.Context, reaction *model.MessageReaction) error
-	SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error
 	GetReactionsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReaction, error)
-	GetReadReceiptsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReadReceipt, error)
 	GetMessageByID(ctx context.Context, id primitive.ObjectID) (*model.ChatMessage, error)
+	DeleteMessagesByRoomID(ctx context.Context, roomID string) error
+	DeleteReactionsByRoomID(ctx context.Context, roomID string) error
+	DeleteReadReceiptsByRoomID(ctx context.Context, roomID string) error
 }
 type repository struct {
 	db *mongo.Client
@@ -89,10 +91,6 @@ func (r *repository) SaveReaction(ctx context.Context, reaction *model.MessageRe
 	return err
 }
 
-func (r *repository) SaveReadReceipt(ctx context.Context, receipt *model.MessageReadReceipt) error {
-	_, err := r.dbConnect(ctx).Collection("message_read_receipts").InsertOne(ctx, receipt)
-	return err
-}
 
 func (r *repository) GetReactionsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReaction, error) {
 	filter := bson.M{"message_id": messageID}
@@ -109,20 +107,6 @@ func (r *repository) GetReactionsByMessageID(ctx context.Context, messageID prim
 	return reactions, nil
 }
 
-func (r *repository) GetReadReceiptsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReadReceipt, error) {
-	filter := bson.M{"message_id": messageID}
-	cursor, err := r.dbConnect(ctx).Collection("message_read_receipts").Find(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var receipts []model.MessageReadReceipt
-	if err := cursor.All(ctx, &receipts); err != nil {
-		return nil, err
-	}
-	return receipts, nil
-}
 
 func (r *repository) GetMessageByID(ctx context.Context, id primitive.ObjectID) (*model.ChatMessage, error) {
 	var msg model.ChatMessage
@@ -132,4 +116,91 @@ func (r *repository) GetMessageByID(ctx context.Context, id primitive.ObjectID) 
 		return nil, nil
 	}
 	return &msg, err
+}
+
+// DeleteMessagesByRoomID deletes all messages for a room
+func (r *repository) DeleteMessagesByRoomID(ctx context.Context, roomID string) error {
+	filter := bson.M{"room_id": roomID}
+	_, err := r.dbConnect(ctx).Collection("chat_messages").DeleteMany(ctx, filter)
+	return err
+}
+
+// DeleteReactionsByRoomID deletes all reactions for messages in a room
+func (r *repository) DeleteReactionsByRoomID(ctx context.Context, roomID string) error {
+	// First get all message IDs for this room
+	var messageIDs []primitive.ObjectID
+	filter := bson.M{"room_id": roomID}
+	cursor, err := r.dbConnect(ctx).Collection("chat_messages").Find(ctx, filter, options.Find().SetProjection(bson.M{"_id": 1}))
+	if err != nil {
+		log.Printf("[DeleteReactionsByRoomID] Failed to find messages for room %s: %v", roomID, err)
+		return err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var msg struct {
+			ID primitive.ObjectID `bson:"_id"`
+		}
+		if err := cursor.Decode(&msg); err != nil {
+			log.Printf("[DeleteReactionsByRoomID] Failed to decode message ID: %v", err)
+			return err
+		}
+		messageIDs = append(messageIDs, msg.ID)
+	}
+
+	log.Printf("[DeleteReactionsByRoomID] Found %d messages for room %s", len(messageIDs), roomID)
+
+	if len(messageIDs) == 0 {
+		return nil
+	}
+
+	// Delete all reactions for these messages
+	reactionFilter := bson.M{"message_id": bson.M{"$in": messageIDs}}
+	result, err := r.dbConnect(ctx).Collection("message_reactions").DeleteMany(ctx, reactionFilter)
+	if err != nil {
+		log.Printf("[DeleteReactionsByRoomID] Failed to delete reactions: %v", err)
+		return err
+	}
+	log.Printf("[DeleteReactionsByRoomID] Deleted %d reactions for room %s", result.DeletedCount, roomID)
+	return nil
+}
+
+// DeleteReadReceiptsByRoomID deletes all read receipts for messages in a room
+func (r *repository) DeleteReadReceiptsByRoomID(ctx context.Context, roomID string) error {
+	// First get all message IDs for this room
+	var messageIDs []primitive.ObjectID
+	filter := bson.M{"room_id": roomID}
+	cursor, err := r.dbConnect(ctx).Collection("chat_messages").Find(ctx, filter, options.Find().SetProjection(bson.M{"_id": 1}))
+	if err != nil {
+		log.Printf("[DeleteReadReceiptsByRoomID] Failed to find messages for room %s: %v", roomID, err)
+		return err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var msg struct {
+			ID primitive.ObjectID `bson:"_id"`
+		}
+		if err := cursor.Decode(&msg); err != nil {
+			log.Printf("[DeleteReadReceiptsByRoomID] Failed to decode message ID: %v", err)
+			return err
+		}
+		messageIDs = append(messageIDs, msg.ID)
+	}
+
+	log.Printf("[DeleteReadReceiptsByRoomID] Found %d messages for room %s", len(messageIDs), roomID)
+
+	if len(messageIDs) == 0 {
+		return nil
+	}
+
+	// Delete all read receipts for these messages
+	receiptFilter := bson.M{"message_id": bson.M{"$in": messageIDs}}
+	result, err := r.dbConnect(ctx).Collection("message_read_receipts").DeleteMany(ctx, receiptFilter)
+	if err != nil {
+		log.Printf("[DeleteReadReceiptsByRoomID] Failed to delete read receipts: %v", err)
+		return err
+	}
+	log.Printf("[DeleteReadReceiptsByRoomID] Deleted %d read receipts for room %s", result.DeletedCount, roomID)
+	return nil
 }

@@ -15,7 +15,7 @@ type publisherImpl struct{}
 
 func (p *publisherImpl) SendMessage(topic, userID, message string) error {
 	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  []string{"localhost:9092"}, // แก้ให้ config ได้นะ
+		Brokers:  []string{"localhost:9092"},
 		Topic:    "chat-room-" + topic,
 		Balancer: &kafka.LeastBytes{},
 	})

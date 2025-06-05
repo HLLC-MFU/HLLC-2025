@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types, FilterQuery } from 'mongoose';
@@ -20,6 +21,8 @@ import { Major, MajorDocument } from '../majors/schemas/major.schema';
 
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
+import { UserUploadDirectDto } from './dto/upload.user.dto';
+import { throwIfEmpty } from 'rxjs';
 
 @Injectable()
 export class UsersService {
@@ -38,6 +41,7 @@ export class UsersService {
    */
   async create(createUserDto: CreateUserDto): Promise<User> {
     const role = await this.roleModel.findById(createUserDto.role).lean();
+    
     if (!role) {
       throw new NotFoundException('Role not found');
     }
@@ -85,30 +89,40 @@ export class UsersService {
     const q = { ...query } as FilterQuery<User>;
   
     if (q.school) {
-      console.log('Searching for school:', q.school);
+      console.log('\n🏫 School search - Input school ID:', q.school);
       const majors = await this.majorModel
         .find({ school: new Types.ObjectId(q.school) })
         .select('_id')
         .lean();
   
-      console.log('Found majors:', majors);
+      console.log('Found majors for school:', {
+        schoolId: q.school,
+        majorCount: majors.length,
+        majorIds: majors.map(m => m._id.toString())
+      });
+      
       const majorIds = majors.map((m) => m._id.toString());
-      console.log('Major IDs:', majorIds);
       
       q['metadata.major'] = { $in: majorIds.map(id => new Types.ObjectId(id)) };
       delete q.school;
     }
   
-    console.log('Final query:', JSON.stringify(q, null, 2));
+    console.log('Final query to find users:', JSON.stringify(q, null, 2));
   
-    return queryAll<User>({
+    const result = await queryAll<User>({
       model: this.userModel,
       query: q,
-      select: 'username name role metadata.major',
       filterSchema: {},
       populateFields: (excluded) =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
     });
+
+    console.log('Query results:', {
+      totalUsers: result.data.length,
+      userMajors: result.data.map(u => u.metadata?.major?.toString())
+    });
+
+    return result;
   }
 
   async findOne(_id: string) {
@@ -255,55 +269,51 @@ export class UsersService {
    * @param uploadUserDto - The DTO containing user data to upload.
    * @returns An array of created User objects.
    */
-  // async upload(uploadUserDto: UploadUserDto): Promise<User[]> {
-  //   const users: CreateUserDto[] = await Promise.all(
-  //     uploadUserDto.users.map(async (userDto) => {
-  //       const userMajor = userDto.major || uploadUserDto.major;
-
-  //       // ✅ Check major existence
-  //       if (userDto.major) {
-  //         const userMajorRecord = await this.majorModel
-  //           .findById(userDto.major)
-  //           .lean();
-  //         if (!userMajorRecord) {
-  //           throw new NotFoundException('Major in database not found');
-  //         }
-  //       }
-
-  //       return {
-  //         name: {
-  //           first: userDto.name.first,
-  //           last: userDto.name.last || '',
-  //         },
-  //         fullName: `${userDto.name.first} ${userDto.name.last || ''}`,
-  //         username: userDto.studentId,
-  //         password: '', // initially blank
-  //         secret: '', // initially blank
-  //         major: new Types.ObjectId(userMajor),
-  //         role: new Types.ObjectId(uploadUserDto.role),
-  //         metadata: {
-  //           type: uploadUserDto.metadata?.type ?? null,
-  //         },
-  //       };
-  //     }),
-  //   );
-
-  //   try {
-  //     const savedUsers = await Promise.all(
-  //       users.map(async (user) => {
-  //         const userDoc = new this.userModel(user);
-  //         return await userDoc.save();
-  //       }),
-  //     );
-
-  //     return savedUsers.map((user) => user.toObject());
-  //   } catch (error) {
-  //     if (error.code === 11000) {
-  //       throw new ConflictException('Username already exists');
-  //     }
-  //     throw error;
-  //   }
-  // }
+  async upload(uploadUserDtos: UserUploadDirectDto[]): Promise<User[]> {
+    const users = await Promise.all(
+      uploadUserDtos.map(async (userDto) => {
+        const userMajor = userDto.metadata?.major;
+        if (!userMajor) {
+          throw new BadRequestException('Major is required');
+        }
+  
+        const userMajorRecord = await this.majorModel.findById(userMajor).lean();
+        if (!userMajorRecord) {
+          throw new NotFoundException('Major in database not found');
+        }
+  
+        return {
+          name: {
+            first: userDto.name.first,
+            middle: userDto.name.middle || '',
+            last: userDto.name.last || '',
+          },
+          username: userDto.username,
+          password: '', // password is intentionally blank
+          role: new Types.ObjectId(userDto.role),
+          metadata: {
+            major: userMajor,       // ✅ only setting major
+            secret: null,           // ✅ explicitly set to null
+          },
+        };
+      }),
+    );
+  
+    try {
+      const savedUsers = await Promise.all(
+        users.map(async (user) => {
+          const userDoc = new this.userModel(user);
+          return await userDoc.save();
+        }),
+      );
+  
+      return savedUsers.map((user) => user.toObject());
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
+  }
+  
+  
 
   async registerDeviceToken(
     id: string,

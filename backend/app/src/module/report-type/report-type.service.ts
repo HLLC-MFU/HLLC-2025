@@ -67,7 +67,7 @@ export class ReportTypeService {
       .findByIdAndUpdate(
         id,
         updateReportTypeDto,
-        { new: true }, // ← ให้ return ค่าใหม่ที่อัปเดตแล้ว
+        { new: true }, 
       )
       .lean();
 
