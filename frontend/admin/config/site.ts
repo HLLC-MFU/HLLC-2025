@@ -10,9 +10,7 @@ import {
   Megaphone,
   Ticket,
   Palette,
-  BellRing
-  BellRing
-  
+  BellRing,
 } from "lucide-react";
 
 export const siteConfig = {
