@@ -21,4 +21,7 @@ func RegisterRoomRoutes(router fiber.Router, h *handler.RoomHTTPHandler, s *Stic
 	router.Get("/:roomId/members", h.GetRoomMembers)
 	router.Post("/:roomId/:userId/join", c.JoinRoom)
 	router.Post("/:roomId/:userId/leave", c.LeaveRoom)
+
+	// Cache Management
+	router.Delete("/:roomId/cache", c.ClearRoomCache)
 }

@@ -12,6 +12,7 @@ import { System } from "@/types/system";
 interface SystemCardProps {
     system: System;
     onClick: (system: System) => void;
+    
 }
 
 export function SystemCard({ system, onClick }: SystemCardProps) {

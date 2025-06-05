@@ -47,8 +47,8 @@ func (s *server) roomService() {
 	// Services
 	memService := memberServicePkg.NewMemberService(memRepo)
 	stkService := stickerServicePkg.NewStickerService(stkRepo)
-	roomService := service.NewService(roomRepo, publisher, memService)
 	chatService := chatServicePkg.NewService(chatRepo, publisher, roomRepo)
+	roomService := service.NewService(roomRepo, publisher, memService, chatService)
 
 	// Handlers
 	roomHandler := handler.NewHTTPHandler(roomService, memService, publisher, stkService)
@@ -56,20 +56,12 @@ func (s *server) roomService() {
 	chatHandler := chatHandlerPkg.NewHTTPHandler(chatService, memService, publisher, stkService, roomService)
 
 	// Middleware
-	s.app.Use(cors.New(cors.Config{
-		AllowCredentials: true,
-		AllowOrigins:     "http://localhost:3000",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowMethods:     "GET, POST, PUT, DELETE",
-	}))
+	s.app.Use(cors.New(s.config.FiberCORSConfig()))
 
 	// Route registration
-	api := s.app.Group("/api/v1")
+	api := s.api
 	public := api.Group("/rooms")
 	router.RegisterRoomRoutes(public, roomHandler, stickerHandler, chatHandler)
-
-	// Static & health
-	s.app.Static("/uploads", "./uploads")
 
 	s.app.Get("/ping", func(c *fiber.Ctx) error {
 		return c.SendString("pong")

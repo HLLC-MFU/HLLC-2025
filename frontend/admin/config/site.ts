@@ -2,10 +2,6 @@ import {
   HomeIcon,
   SchoolIcon,
   UserIcon,
-  LayoutDashboardIcon,
-  FolderIcon,
-  UsersIcon,
-  CalendarIcon,
   CircleCheckBig ,
   SettingsIcon,
   HelpCircleIcon,
@@ -14,8 +10,8 @@ import {
   Megaphone,
   Ticket,
   Palette,
-  BellRing
-  
+  BellRing,
+  University,
 } from "lucide-react";
 
 export const siteConfig = {
@@ -31,11 +27,12 @@ export const siteConfig = {
     {
       section: "User Management",
       items: [
-        { label: "Notification Management", href: '/NotifyHub', icon: BellRing },
+        { label: "Notification Management", href: '/notifications', icon: BellRing },
         { label: "Checkin" , href: "/checkin", icon: CircleCheckBig},
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Users Management", href: "/users", icon: UserIcon },
         { label: "Reports", href: "/reports", icon: ShieldAlert },
+        { label: "Activities", href: "/activities", icon: University },
       ],
     },
     {

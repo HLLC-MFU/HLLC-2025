@@ -10,6 +10,7 @@ go.work
 go.work.sum
 .env.production
 *.pb.go
+uploads/
 
 ## ======================================== EXPO ======================================== ##
 node_modules/
@@ -96,4 +97,5 @@ bun.lock
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+scripts/hllc.js
 scripts/hllc.js

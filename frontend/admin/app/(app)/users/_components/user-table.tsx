@@ -19,6 +19,7 @@ import * as XLSX from "xlsx"
 import { saveAs } from "file-saver"
 import { useUsers } from "@/hooks/useUsers";
 import AddToast from "./AddToast";
+import { Major } from "@/types/major";
 import { School } from "@/types/school";
 
 export const columns = [
@@ -44,13 +45,15 @@ const INITIAL_VISIBLE_COLUMNS = [
 export default function UsersTable({
   roleName,
   roleId,
-  schools,
+  majors,
   users,
+  schools
 }: {
   roleName: string;
   roleId: string;
-  schools: School[];
+  majors: Major[];
   users: User[];
+  schools: School[];
 }) {
   const { createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
 
@@ -305,6 +308,8 @@ export default function UsersTable({
         onClose={() => setIsImportOpen(false)}
         onImport={handleImport}
         onExportTemplate={() => handleExport()}
+        roleId={roleId}
+        majors={majors}
       />
 
       {/* Export */}

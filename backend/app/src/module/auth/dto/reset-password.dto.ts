@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
+
+class MetadataDto {
+  @IsString()
+  @IsNotEmpty()
+  secret: string;
+}
 
 export class ResetPasswordDto {
   @IsString()
@@ -13,7 +20,7 @@ export class ResetPasswordDto {
   @IsNotEmpty()
   confirmPassword: string;
 
-  @IsString()
-  @IsNotEmpty()
-  secret: string;
+  @ValidateNested()
+  @Type(() => MetadataDto)
+  metadata: MetadataDto;
 }

@@ -14,9 +14,10 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils"
 	MemberService "github.com/HLLC-MFU/HLLC-2025/backend/module/members/service"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
+	roomRedis "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 	RoomService "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/service"
 	stickerService "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
+	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
@@ -27,11 +28,11 @@ type ChatHTTPHandler struct {
 	service        service.ChatService
 	roomService    RoomService.RoomService
 	memberService  MemberService.MemberService
-	publisher      kafka.Publisher
+	publisher      kafkaPublisher.Publisher
 	stickerService stickerService.StickerService
 }
 
-func NewHTTPHandler(service service.ChatService, memberService MemberService.MemberService, publisher kafka.Publisher, stickerService stickerService.StickerService, roomService RoomService.RoomService) *ChatHTTPHandler {
+func NewHTTPHandler(service service.ChatService, memberService MemberService.MemberService, publisher kafkaPublisher.Publisher, stickerService stickerService.StickerService, roomService RoomService.RoomService) *ChatHTTPHandler {
 	return &ChatHTTPHandler{
 		service:        service,
 		memberService:  memberService,
@@ -39,12 +40,6 @@ func NewHTTPHandler(service service.ChatService, memberService MemberService.Mem
 		stickerService: stickerService,
 		roomService:    roomService,
 	}
-}
-
-type TypingEvent struct {
-	UserID string `json:"userId"`
-	RoomID string `json:"roomId"`
-	Typing bool   `json:"typing"`
 }
 
 type MentionPayload struct {
@@ -72,19 +67,36 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 		return
 	}
 
+	// Check MongoDB membership
 	isMember, err := h.memberService.IsUserInRoom(ctx, roomObjID, userID)
 	if err != nil {
-		log.Printf("[ERROR] Failed to check if user is in room: %v", err)
+		log.Printf("[ERROR] Failed to check MongoDB membership: %v", err)
 		conn.WriteMessage(websocket.TextMessage, []byte("Internal server error"))
 		conn.Close()
 		return
 	}
 
+	// Check Redis membership
+	isInRedis, err := roomRedis.IsUserInRoom(roomID, userID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to check Redis membership: %v", err)
+	}
+
+	log.Printf("[WS] Membership check - MongoDB: %v, Redis: %v", isMember, isInRedis)
+
 	if !isMember {
-		log.Printf("[WS] User %s is not a member of room %s", userID, roomID)
+		log.Printf("[WS] User %s is not a member of room %s in MongoDB", userID, roomID)
 		conn.WriteMessage(websocket.TextMessage, []byte("You are not a member of this room"))
 		conn.Close()
 		return
+	}
+
+	// If user is in MongoDB but not in Redis, add them to Redis
+	if isMember && !isInRedis {
+		log.Printf("[WS] User %s is in MongoDB but not in Redis, adding to Redis", userID)
+		if err := roomRedis.AddUserToRoom(roomID, userID); err != nil {
+			log.Printf("[ERROR] Failed to add user to Redis: %v", err)
+		}
 	}
 
 	client := model.ClientObject{
@@ -126,9 +138,6 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 		model.UnregisterClient(client)
 		log.Printf("[WS] User %s disconnected from room %s", userID, roomID)
 	}()
-
-	typingTimers := make(map[string]time.Time)
-	const typingTimeout = 5 * time.Second
 
 	for {
 		_, msg, err := conn.ReadMessage()
@@ -178,35 +187,6 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 			continue
 		}
 
-		if strings.HasPrefix(messageText, "/typing") {
-			if time.Since(typingTimers[userID]) > typingTimeout {
-				typingEvent := TypingEvent{UserID: userID, RoomID: roomID, Typing: true}
-				h.broadcastTypingEvent(roomID, typingEvent)
-				typingTimers[userID] = time.Now()
-
-				go func(userID, roomID string) {
-					time.Sleep(typingTimeout)
-					h.broadcastTypingEvent(roomID, TypingEvent{UserID: userID, RoomID: roomID, Typing: false})
-				}(userID, roomID)
-			}
-			continue
-		}
-
-		if strings.HasPrefix(messageText, "/read") {
-			parts := strings.Split(messageText, " ")
-			if len(parts) == 2 {
-				messageID := parts[1]
-				msgID, _ := primitive.ObjectIDFromHex(messageID)
-				_ = h.service.SaveReadReceipt(ctx, &model.MessageReadReceipt{
-					MessageID: msgID,
-					UserID:    userID,
-					Timestamp: time.Now(),
-				})
-				h.SendReadReceipt(roomID, userID, messageID)
-				continue
-			}
-		}
-
 		if strings.HasPrefix(messageText, "/react") {
 			parts := strings.Split(messageText, " ")
 			if len(parts) == 3 {
@@ -237,26 +217,7 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 		filteredMessage := utils.FilterProfanity(messageText)
 		mentions := extractMentions(filteredMessage)
 
-		// ✅ Create ChatMessage
-		chatMsg := &model.ChatMessage{
-			RoomID:    roomID,
-			UserID:    userID,
-			Message:   filteredMessage,
-			Mentions:  mentions,
-			Timestamp: time.Now(),
-		}
-
-		// ✅ Send to Kafka
-		msgJSON, err := json.Marshal(chatMsg)
-		if err != nil {
-			log.Printf("[Kafka] Failed to marshal chat message: %v", err)
-		} else {
-			if err := h.publisher.SendMessage(roomID, userID, string(msgJSON)); err != nil {
-				log.Printf("[Kafka] Failed to send chat message to Kafka: %v", err)
-			}
-		}
-
-		// ✅ Then broadcast to clients (optional — your consumer will also do this)
+		// Only broadcast to model.BroadcastMessage for text messages
 		model.BroadcastMessage(model.BroadcastObject{
 			MSG:  filteredMessage,
 			FROM: client,
@@ -284,10 +245,6 @@ func extractMentions(message string) []string {
 	return mentions
 }
 
-func (h *ChatHTTPHandler) broadcastTypingEvent(roomID string, event TypingEvent) {
-	h.broadcastEvent(roomID, "typing", event)
-}
-
 type ChatEvent struct {
 	EventType string      `json:"eventType"`
 	Payload   interface{} `json:"payload"`
@@ -309,8 +266,6 @@ func (h *ChatHTTPHandler) broadcastEvent(roomID, eventType string, data interfac
 		} else if from, ok := v["from"]; ok {
 			userID = from
 		}
-	case TypingEvent:
-		userID = v.UserID
 	case model.BroadcastObject:
 		if v.FROM.UserID != "" {
 			userID = v.FROM.UserID
@@ -337,10 +292,9 @@ func (h *ChatHTTPHandler) broadcastEvent(roomID, eventType string, data interfac
 
 		// Logic to skip self for typing/read/text, but allow for sticker/file
 		skipSelf := map[string]bool{
-			"typing":           true,
 			"read_receipt":     true,
 			"message_reaction": true,
-			"text":             true, // custom if needed
+			"text":             true,
 		}
 
 		if uid == userID && skipSelf[eventType] {
@@ -356,17 +310,6 @@ func (h *ChatHTTPHandler) broadcastEvent(roomID, eventType string, data interfac
 	}
 
 	log.Printf("[BROADCAST] Event %s from %s in room %s", eventType, userID, roomID)
-}
-
-func (h *ChatHTTPHandler) SendReadReceipt(roomID, userID, messageID string) {
-	readReceipt := map[string]string{
-		"userId":    userID,
-		"roomId":    roomID,
-		"messageId": messageID,
-		"status":    "read",
-	}
-
-	h.broadcastEvent(roomID, "read_receipt", readReceipt)
 }
 
 // Send Message Reaction
@@ -408,32 +351,47 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 		Image:     sticker.Image,
 		Timestamp: time.Now(),
 	}
-	if err := h.service.SaveChatMessage(c.Context(), msg); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save sticker message"})
-	}
 
-	stickerPayload := map[string]interface{}{
-		"type":      "sticker",
-		"userId":    userID,
-		"roomId":    roomIdStr,
-		"stickerId": sticker.ID.Hex(),
-		"image":     sticker.Image,
-		"timestamp": time.Now(),
-	}
-
-	jsonData, err := json.Marshal(stickerPayload)
+	// Convert to KafkaMessage format and send to chat-message-{roomID} topic
+	kafkaMsg := msg.ToKafkaMessage()
+	jsonData, err := json.Marshal(kafkaMsg)
 	if err == nil {
-		_ = h.publisher.SendMessage(roomIdStr, userID, string(jsonData))
+		if err := h.publisher.SendMessage(msg.RoomID, userID, string(jsonData)); err != nil {
+			log.Printf("[Kafka] Failed to send sticker message to chat-message-%s: %v", msg.RoomID, err)
+		}
 	} else {
 		log.Printf("[Kafka] Failed to marshal sticker payload: %v", err)
 	}
 
-	// Only broadcast once using structured event
+	// Broadcast to online users
 	h.broadcastEvent(roomIdStr, "sticker", map[string]string{
 		"userId":    userID,
 		"sticker":   sticker.Image,
 		"stickerId": sticker.ID.Hex(),
 	})
+
+	// After broadcasting sticker, notify offline users
+	stickerRoomObjID, err := primitive.ObjectIDFromHex(roomIdStr)
+	if err == nil {
+		members, err := h.memberService.GetRoomMembers(c.Context(), stickerRoomObjID)
+		if err == nil {
+			for _, member := range members {
+				memberID := member.Hex()
+				if memberID == userID {
+					continue // Don't notify sender
+				}
+				isOnline := false
+				if conns, exists := model.Clients[roomIdStr]; exists {
+					if conn, exists := conns[memberID]; exists && conn != nil {
+						isOnline = true
+					}
+				}
+				if !isOnline {
+					h.service.NotifyOfflineUser(memberID, roomIdStr, userID, "sent a sticker", "sticker")
+				}
+			}
+		}
+	}
 
 	return c.JSON(msg)
 }
@@ -443,31 +401,59 @@ func (h *ChatHTTPHandler) JoinRoom(c *fiber.Ctx) error {
 	roomIdStr := c.Params("roomId")
 	userID := c.Params("userId")
 
+	log.Printf("[JOIN] Attempting to join room %s with user %s", roomIdStr, userID)
+
 	roomID, err := primitive.ObjectIDFromHex(roomIdStr)
 	if err != nil {
+		log.Printf("[JOIN] Invalid room ID format: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid room ID",
 		})
 	}
 
-	// handle Room avaliable
+	// Check if room exists
 	room, err := h.roomService.GetRoom(c.Context(), roomID)
-	if err != nil || room == nil {
+	if err != nil {
+		log.Printf("[JOIN] Error checking room existence: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to check room existence",
+		})
+	}
+	if room == nil {
+		log.Printf("[JOIN] Room %s not found", roomIdStr)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "room not found",
 		})
 	}
+	log.Printf("[JOIN] Room %s exists with capacity %d", roomIdStr, room.Capacity)
 
-	// handle Capacity of room
+	// Check if user is already a member
+	isMember, err := h.memberService.IsUserInRoom(c.Context(), roomID, userID)
+	if err != nil {
+		log.Printf("[JOIN] Error checking if user is already a member: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to check membership status",
+		})
+	}
+	if isMember {
+		log.Printf("[JOIN] User %s is already a member of room %s", userID, roomIdStr)
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "already a member of the room",
+		})
+	}
+
+	// Check room capacity
 	memberCount, err := h.memberService.GetRoomMembers(context.Background(), roomID)
 	if err != nil {
-		log.Printf("[ERROR] Failed to get member count for room %s: %v", roomID.Hex(), err)
+		log.Printf("[JOIN] Error getting member count for room %s: %v", roomIdStr, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to check room capacity",
 		})
 	}
+	log.Printf("[JOIN] Room %s has %d members (capacity: %d)", roomIdStr, len(memberCount), room.Capacity)
 
 	if len(memberCount) >= room.Capacity {
+		log.Printf("[JOIN] Room %s is full (%d/%d members)", roomIdStr, len(memberCount), room.Capacity)
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"error": "room is full",
 		})
@@ -475,13 +461,13 @@ func (h *ChatHTTPHandler) JoinRoom(c *fiber.Ctx) error {
 
 	// Add User to Room
 	if err := h.memberService.AddUserToRoom(context.Background(), roomID, userID); err != nil {
-		log.Printf("[ERROR] Failed to add user %s to room %s: %v", userID, roomID.Hex(), err)
+		log.Printf("[JOIN] Failed to add user %s to room %s: %v", userID, roomIdStr, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to join room",
 		})
 	}
 
-	log.Printf("[JOIN] User %s joined room %s", userID, roomID.Hex())
+	log.Printf("[JOIN] Successfully added user %s to room %s", userID, roomIdStr)
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "joined room",
 	})
@@ -552,28 +538,18 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 		Timestamp: time.Now(),
 	}
 
-	if err := h.service.SaveChatMessage(c.Context(), msg); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save message"})
-	}
-
-	filePayload := map[string]interface{}{
-		"type":      "file",
-		"userId":    userId,
-		"roomId":    roomId,
-		"fileName":  msg.FileName,
-		"fileType":  msg.FileType,
-		"fileURL":   msg.FileURL,
-		"timestamp": time.Now(),
-	}
-
-	jsonData, err := json.Marshal(filePayload)
+	// Convert to KafkaMessage format and send to chat-message-{roomID} topic
+	kafkaMsg := msg.ToKafkaMessage()
+	jsonData, err := json.Marshal(kafkaMsg)
 	if err == nil {
-		_ = h.publisher.SendMessage(roomId, userId, string(jsonData))
+		if err := h.publisher.SendMessage(msg.RoomID, userId, string(jsonData)); err != nil {
+			log.Printf("[Kafka] Failed to send file message to chat-message-%s: %v", msg.RoomID, err)
+		}
 	} else {
 		log.Printf("[Kafka] Failed to marshal file payload: %v", err)
 	}
 
-	// Optional: send rich event payload
+	// Broadcast to online users
 	h.broadcastEvent(roomId, "file", map[string]string{
 		"userId":   userId,
 		"fileName": msg.FileName,
@@ -581,5 +557,47 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 		"fileType": msg.FileType,
 	})
 
+	// After broadcasting file, notify offline users
+	fileRoomObjID, err := primitive.ObjectIDFromHex(roomId)
+	if err == nil {
+		members, err := h.memberService.GetRoomMembers(c.Context(), fileRoomObjID)
+		if err == nil {
+			for _, member := range members {
+				memberID := member.Hex()
+				if memberID == userId {
+					continue // Don't notify sender
+				}
+				isOnline := false
+				if conns, exists := model.Clients[roomId]; exists {
+					if conn, exists := conns[memberID]; exists && conn != nil {
+						isOnline = true
+					}
+				}
+				if !isOnline {
+					h.service.NotifyOfflineUser(memberID, roomId, userId, fmt.Sprintf("sent a file: %s", msg.FileName), "file")
+				}
+			}
+		}
+	}
+
 	return c.Status(fiber.StatusOK).JSON(msg)
+}
+
+// ClearRoomCache clears all cached messages for a room from Redis
+func (h *ChatHTTPHandler) ClearRoomCache(c *fiber.Ctx) error {
+	roomIdStr := c.Params("roomId")
+
+	log.Printf("[CACHE] Attempting to clear cache for room %s", roomIdStr)
+
+	if err := redis.ClearRoomCache(roomIdStr); err != nil {
+		log.Printf("[CACHE] Failed to clear cache for room %s: %v", roomIdStr, err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to clear room cache",
+		})
+	}
+
+	log.Printf("[CACHE] Successfully cleared cache for room %s", roomIdStr)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "room cache cleared successfully",
+	})
 }

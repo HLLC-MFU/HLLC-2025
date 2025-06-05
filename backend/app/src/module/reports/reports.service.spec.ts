@@ -2,9 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ReportsService } from './reports.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
-// Mocks for external query functions
 jest.mock('src/pkg/helper/query.util', () => ({
   queryAll: jest.fn(),
   queryFindOne: jest.fn(),

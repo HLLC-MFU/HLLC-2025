@@ -1,4 +1,4 @@
-export interface Category {
+export interface ReportTypes {
     id: string;
     name: {
         en: string;
@@ -24,7 +24,7 @@ export interface Problem {
         th: string;
     };
     categoryId: string;
-    status: 'Pending' | 'In Progress' | 'Resolved';
+    status: "Pending" | "In-Progress" | "Done";
     createdAt: Date;
     updatedAt: Date;
 }

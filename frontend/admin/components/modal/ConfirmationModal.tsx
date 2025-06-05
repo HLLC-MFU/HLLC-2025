@@ -10,7 +10,7 @@ import {
 interface ConfirmationModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onConfirm: () => void;
+	onConfirm: (() => void | Promise<void>) | undefined;
 	title: string;
 	body: string;
 	confirmText?: string;
