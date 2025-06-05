@@ -1,74 +1,87 @@
-// hooks/useReports.ts
 import { useState, useEffect } from "react";
-import type { Problem } from "@/types/report";
+import { addToast } from "@heroui/react";
+import { Problem } from "@/types/report";
+import { useReportTypes } from "@/hooks/useReportTypes";
+import { apiRequest } from "@/utils/api";
 
 export function useReports() {
   const [problems, setProblems] = useState<Problem[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { reporttypes, loading: loadingCategories } = useReportTypes();
 
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8080/api/reports");
-      const data = await res.json();
-      const processed = data.data.map((report: any) => ({
-        ...report,
-        id: report._id,
-        categoryId: report.category?._id ?? '',
-        createdAt: new Date(report.createdAt ?? Date.now()),
-        updatedAt: new Date(report.updatedAt ?? Date.now()),
-        title: {
-          en: report.message,
-          th: report.message,
-        },
-        description: {
-          en: '',
-          th: '',
-        },
-        severity: 'medium',
-        status: report.status ?? 'Pending',
+      const res = await apiRequest<{
+        data: {
+          _id: string;
+          message: string;
+          status?: string;
+          createdAt?: string;
+          updatedAt?: string;
+          category?: { _id: string };
+        }[];
+      }>("/reports", "GET");
+
+      const data = (res.data?.data || []).map((r): Problem => ({
+        id: r._id,
+        categoryId: r.category?._id ?? "",
+        createdAt: new Date(r.createdAt ?? Date.now()),
+        updatedAt: new Date(r.updatedAt ?? Date.now()),
+        title: { en: r.message, th: r.message },
+        description: { en: "", th: "" },
+        status: (r.status as Problem["status"]) ?? "Pending",
       }));
-      setProblems(processed);
-    } catch (err) {
-      console.error("Error fetching reports:", err);
+
+      setProblems(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch reports");
+      addToast({ title: "Failed to fetch reports", color: "danger" });
     } finally {
       setLoading(false);
     }
   };
 
-  const updateStatus = async (id: string, newStatus: Problem["status"]) => {
-    await fetch(`http://localhost:8080/api/reports/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    });
-
-    setProblems(prev =>
-      prev.map(p =>
-        p.id === id ? { ...p, status: newStatus, updatedAt: new Date() } : p
-      )
-    );
+  const updateStatus = async (id: string, status: Problem["status"]) => {
+    setLoading(true);
+    try {
+      await apiRequest(`/reports/${id}`, "PATCH", { status });
+      setProblems((prev) =>
+        prev.map((p) =>
+          p.id === id ? { ...p, status, updatedAt: new Date() } : p
+        )
+      );
+      addToast({ title: "Status updated", color: "success" });
+    } catch (err: any) {
+      setError(err.message || "Failed to update status.");
+      addToast({ title: "Update failed", color: "danger" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addOrEditProblem = (problem: Problem) => {
-    setProblems(prev =>
-      prev.some(p => p.id === problem.id)
-        ? prev.map(p => (p.id === problem.id ? problem : p))
+    setProblems((prev) =>
+      prev.some((p) => p.id === problem.id)
+        ? prev.map((p) => (p.id === problem.id ? problem : p))
         : [...prev, problem]
     );
   };
 
   const removeByCategory = (categoryId: string) => {
-    setProblems(prev => prev.filter(p => p.categoryId !== categoryId));
+    setProblems((prev) => prev.filter((p) => p.categoryId !== categoryId));
   };
 
   useEffect(() => {
-    fetchReports();
-  }, []);
+    if (!loadingCategories) fetchReports();
+  }, [loadingCategories]);
 
   return {
     problems,
-    loading,
+    loading: loading || loadingCategories,
+    error,
+    fetchReports,
     updateStatus,
     addOrEditProblem,
     removeByCategory,

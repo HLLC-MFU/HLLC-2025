@@ -17,7 +17,6 @@ export default function SendNotiButton() {
                         title: "Notification Sent Successfully",
                         description: "Your notification has been sent successfully.",
                         color: "success",
-                        // endContent: <X />,
                         timeout: 5000,
                         shouldShowTimeoutProgress: true,
                         classNames: {

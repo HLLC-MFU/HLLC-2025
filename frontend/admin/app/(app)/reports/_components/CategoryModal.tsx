@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Modal,
   ModalContent,
@@ -6,23 +8,16 @@ import {
   ModalFooter,
   Button,
   Input,
-  Textarea,
-  Select,
-  SelectItem,
 } from '@heroui/react';
 import { useState, useEffect } from 'react';
 import type { ReportTypes } from '@/types/report';
-import SendNotiButton from './SendNotiButton';
-import StatusDropdown from './Statusdropdown';
-import error from 'next/error';
-
 
 interface ReportTypesModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (reporttypes: ReportTypes) => void;
-  onAdd: (reporttypes: Partial<ReportTypes>) => void;
-  onUpdate: (id: string, reporttypes: Partial<ReportTypes>) => void;
+  onAdd: (reporttypes: Partial<ReportTypes>) => Promise<any>;
+  onUpdate: (id: string, reporttypes: Partial<ReportTypes>) => Promise<any>;
   reporttypes?: ReportTypes;
   mode: 'add' | 'edit';
 }
@@ -60,17 +55,16 @@ export function CategoryModal({
     };
 
     try {
-      let saved: any;
+      let saved;
 
       if (mode === 'edit' && reporttypes?.id) {
-        saved = await onUpdate(reporttypes.id, payload); 
+        saved = await onUpdate(reporttypes.id, payload);
       } else {
-        saved = await onAdd(payload); 
+        saved = await onAdd(payload);
       }
 
-      
       if (!saved) {
-        console.warn("No reporttypes data returned from save");
+        console.warn('No reporttypes data returned from save');
         return;
       }
 
@@ -83,14 +77,14 @@ export function CategoryModal({
           en: '',
           th: '',
         },
-        color: '', 
+        color: '',
       };
 
-      onSubmit(updatedCategory); 
-      console.error('Error saving reporttypes:', error);
+      onSubmit(updatedCategory);
+      onClose();
+    } catch (err) {
+      console.error('Error saving reporttypes:', err);
     }
-
-    onClose();
   };
 
   return (
