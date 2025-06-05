@@ -14,10 +14,11 @@ export class MongoExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(MongoExceptionFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost): void {
-
     // ✅ เช็กว่า context เป็น HTTP
     if (host.getType() !== 'http') {
-      this.logger.warn('Non-HTTP context detected, skipping custom error handling');
+      this.logger.warn(
+        'Non-HTTP context detected, skipping custom error handling',
+      );
       return;
     }
 
@@ -50,7 +51,7 @@ export class MongoExceptionFilter implements ExceptionFilter {
       (exception as { code: number }).code === 11000
     ) {
       const duplicatedField = Object.keys(
-        (exception as { keyValue?: Record<string, unknown> }).keyValue || {},
+        (exception as { keyValue?: Record<string, string> }).keyValue || {},
       ).join(', ');
 
       response.status(HttpStatus.CONFLICT).send({
@@ -82,7 +83,9 @@ export class MongoExceptionFilter implements ExceptionFilter {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       message: 'Internal server error',
       error:
-        exception instanceof Error ? exception.message : 'Unknown error occurred',
+        exception instanceof Error
+          ? exception.message
+          : 'Unknown error occurred',
     });
   }
 }

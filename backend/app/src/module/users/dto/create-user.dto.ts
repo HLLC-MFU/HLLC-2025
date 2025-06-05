@@ -37,11 +37,7 @@ export class CreateUserDto {
   @IsNotEmpty()
   role: Types.ObjectId;
 
-  @IsNotEmpty()
-  major: Types.ObjectId;
-
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string>;
 }
-

@@ -83,3 +83,31 @@ func UnregisterClient(client ClientObject) {
 func BroadcastMessage(b BroadcastObject) {
 	Broadcast <- b
 }
+
+// KafkaMessage represents a message format specifically for Kafka, without MongoDB-specific fields
+type KafkaMessage struct {
+	RoomID    string    `json:"room_id"`
+	UserID    string    `json:"user_id"`
+	Message   string    `json:"message"`
+	Mentions  []string  `json:"mentions,omitempty"`
+	FileURL   string    `json:"file_url,omitempty"`
+	FileType  string    `json:"file_type,omitempty"`
+	FileName  string    `json:"file_name,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
+	Image     string    `json:"image,omitempty"`
+}
+
+// ToKafkaMessage converts a ChatMessage to KafkaMessage format
+func (m *ChatMessage) ToKafkaMessage() *KafkaMessage {
+	return &KafkaMessage{
+		RoomID:    m.RoomID,
+		UserID:    m.UserID,
+		Message:   m.Message,
+		Mentions:  m.Mentions,
+		FileURL:   m.FileURL,
+		FileType:  m.FileType,
+		FileName:  m.FileName,
+		Timestamp: m.Timestamp,
+		Image:     m.Image,
+	}
+}

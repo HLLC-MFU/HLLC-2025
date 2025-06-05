@@ -1,4 +1,4 @@
-import { IsObject, IsOptional } from 'class-validator';
+import { IsObject } from 'class-validator';
 
 export class UpdateMetadataSchemaDto {
   @IsObject()

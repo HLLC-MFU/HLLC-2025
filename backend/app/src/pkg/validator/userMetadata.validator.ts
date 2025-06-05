@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 
 export function userMetadataValidator(
-  metadata: Record<string, any>,
+  metadata: Record<string, string>,
   metadataSchema: Record<string, { type: string; required?: boolean }>,
 ) {
   for (const key in metadataSchema) {

@@ -16,20 +16,10 @@ func (s *server) stickerService() {
 
 	httpHandler := handler.NewHTTPHandler(stickerService)
 
-	s.app.Use(cors.New(cors.Config{
-		AllowCredentials: true,
-		AllowOrigins:     "http://localhost:3000",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowMethods:     "GET, POST, PUT, DELETE",
-	}))
+	s.app.Use(cors.New(s.config.FiberCORSConfig()))
 
 	// Set up HTTP routes
-	api := s.app.Group("/api/v1")
-
-	// Public routes (no auth required)
-	public := api.Group("/public/schools")
-	public.Get("/", httpHandler.ListStickers)
-	public.Get("/:id", httpHandler.GetSticker)
+	api := s.api
 
 	// Protected routes (auth required)
 	protected := api.Group("/stickers")
@@ -45,12 +35,9 @@ func (s *server) stickerService() {
 	admin.Patch("/:id", httpHandler.UpdateSticker)
 	admin.Delete("/:id", httpHandler.DeleteSticker)
 
-	// Set up health check
 	s.app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
 	})
-
-	s.app.Static("/uploads", "./uploads")
 
 	log.Printf("Sticker service initialized")
 }
