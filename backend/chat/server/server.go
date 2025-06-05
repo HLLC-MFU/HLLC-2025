@@ -49,6 +49,7 @@ func (s *server) Start() error {
 	s.chatService()
 	s.roomService()
 	s.stickerService()
+	s.schoolService()
 
 	// Start HTTP server
 	go func() {
