@@ -1,11 +1,13 @@
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, SortDescriptor, } from "@heroui/react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, SortDescriptor, Image, } from "@heroui/react";
 import React from "react";
 import { EllipsisVertical } from "lucide-react";
-import { Evoucher } from "@/types/evoucher";
+import { Evoucher, Sponsor } from "@/types/evoucher";
 import TableContent from "./TableContent";
-import AddModal from "./AddModal";
+import AddModal from "./AddEvoucherModal";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
-import { EvoucherType } from "@/types/evoucherType";
+import { EvoucherType } from "@/types/evoucher-type";
+import AddToast from "../../users/_components/AddToast";
+import { useEvoucher } from "@/hooks/useEvoucher";
 
 export const columns = [
     { name: "SPONSOR", uid: "sponsors", sortable: true },
@@ -40,11 +42,15 @@ export default function EvoucherTable({
     sponsorName,
     evouchers,
     EvoucherType,
+    sponsors,
 }: {
     sponsorName: string,
     evouchers: Evoucher[];
-    EvoucherType: EvoucherType;
+    EvoucherType: EvoucherType[];
+    sponsors: Sponsor[];
 }) {
+    const { createEvoucher } = useEvoucher();
+
     const [filterValue, setFilterValue] = React.useState("");
     const [selectedKeys, setSelectedKeys] = React.useState<"all" | Set<unknown>>(new Set([]));
     const [visibleColumns, setVisibleColumns] = React.useState(
@@ -113,8 +119,6 @@ export default function EvoucherTable({
     const renderCell = React.useCallback((evoucher: Evoucher, columnKey: React.Key) => {
         const cellValue = evoucher[columnKey as keyof Evoucher];
 
-        console.log(evoucher);
-
         switch (columnKey) {
             case "sponsors":
                 return cellValue.name.en;
@@ -135,12 +139,11 @@ export default function EvoucherTable({
             case "type":
                 return cellValue.name;
             case "cover":
-                const imageUrl = `/images/${evoucher.photo?.coverPhoto || "default.jpg"}`;
                 return (
-                    <img
-                        src={imageUrl}
+                    <Image
+                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo?.coverPhoto}`}
                         alt="Cover"
-                        className="w-24 h-16 object-cover rounded"
+                        width={100}
                     />
                 );
             case "actions":
@@ -164,8 +167,24 @@ export default function EvoucherTable({
         }
     }, []);
 
-    const handleAdd = () => {
-        setIsAddOpen(true);
+    const handleAdd = async (evoucher: FormData) => {
+        try {
+            const response = await createEvoucher(evoucher);
+            setIsAddOpen(false);
+
+            AddToast({
+                title: "Add Successfully",
+                description: "Data has been added successfully",
+            });
+
+            // if (response) window.location.reload();
+        } catch (error) {
+            AddToast({
+                title: "Failed to Add",
+                description: (error as Error)?.message || "An error occurred while adding data.",
+                color: "danger",
+            });
+        }
     };
 
     const handleDelete = () => {
@@ -219,6 +238,7 @@ export default function EvoucherTable({
                 onAdd={handleAdd}
                 title={actionText}
                 type={EvoucherType}
+                sponsors={sponsors}
             />
 
             {/* Delete evoucher modal */}

@@ -55,6 +55,7 @@ export default function ManagementPage() {
         <div className="flex flex-col gap-6">
           <Accordion variant="splitted">
             {[...Object.entries(groupedUsers).map(([roleName, data]) => (
+              console.log(roleName, data),
               <AccordionItem
                 key={roleName}
                 aria-label={roleName}

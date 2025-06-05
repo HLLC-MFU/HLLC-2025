@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/utils/api";
 import { Evoucher } from "@/types/evoucher";
+// import { cookies } from 'next/headers';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function useEvoucher() {
     const [evouchers, setEvouchers] = useState<Evoucher[]>([]);
@@ -13,7 +16,9 @@ export function useEvoucher() {
         setError(null);
         try {
             const res = await apiRequest<{ data: Evoucher[] }>("/evoucher?limit=0", "GET");
+
             setEvouchers(Array.isArray(res.data?.data) ? res.data.data : []);
+            return res;
         } catch (err) {
             setError(
                 err && typeof err === 'object' && 'message' in err
@@ -26,31 +31,36 @@ export function useEvoucher() {
     };
 
     // Create evoucher
-    const createEvoucher = async (evoucherData: Partial<Evoucher>) => {
+    const createEvoucher = async (evoucherData: FormData) => {
         try {
             setLoading(true);
-            const res = await apiRequest<Evoucher>("/evoucher", "POST", evoucherData);
-            console.log("Create response: ", res);
+            // const token = (await cookies()).get('accessToken')?.value;
 
-            if (res.data) {
-                await new Promise((resolve) => {
-                    setEvouchers((prev) => {
-                        const updated = [...prev, res.data as Evoucher];
-                        resolve(updated);
-                        return updated;
-                    });
-                });
+            const res = await fetch(`${API_BASE_URL}/evoucher`, {
+                method: "POST",
+                body: evoucherData,
+                credentials: "include"
+            });
+            const data = await res.json();
+            console.log("Create response:", res, data);
+
+            if (data && '_id' in data) {
+                setEvouchers((prev) => [...prev, data]);
             }
+
+            return res;
         } catch (err) {
-            setError(
+            const message =
                 err && typeof err === 'object' && 'message' in err
                     ? (err as { message?: string }).message || 'Failed to create evouchers.'
-                    : 'Failed to create evouchers.',
-            );
+                    : 'Failed to create evouchers.';
+            setError(message);
+            throw new Error(message);
         } finally {
             setLoading(false);
         }
     };
+
 
     useEffect(() => {
         fetchEvouchers();

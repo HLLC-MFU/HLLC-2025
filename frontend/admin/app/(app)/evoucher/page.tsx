@@ -10,17 +10,17 @@ import EvoucherTable from './_components/evoucher-table'
 import { PageHeader } from "@/components/ui/page-header";
 import { Plus, Ticket } from "lucide-react";
 import { Evoucher } from "@/types/evoucher";
-import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
-import AddModal from "./_components/AddModal";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import { useEvoucherType } from "@/hooks/useEvoucherType";
+import { useSponsors } from "@/hooks/useSponsors";
+import AddTypeModal from "./_components/AddTypeModal";
+import { EvoucherType } from "@/types/evoucher-type";
 
 export default function EvoucherPage() {
-
     const { evouchers } = useEvoucher();
-    const { evoucherType } = useEvoucherType();
-
-    // console.log(evouchers);
+    const { evoucherType, createEvoucherType } = useEvoucherType();
+    const { sponsors } = useSponsors();
+    const [isTypeOpen, setIsTypeOpen] = React.useState(false);
 
     const groupedEvouchers: Record<string, Evoucher[]> = {};
     evouchers.forEach((evoucher) => {
@@ -29,10 +29,15 @@ export default function EvoucherPage() {
         groupedEvouchers[sponsorName].push(evoucher);
     });
 
+    const handleAddType = (TypeName: Partial<EvoucherType>) => {
+        createEvoucherType(TypeName);
+        setIsTypeOpen(false);
+      };
+
     return (
         <>
             <PageHeader description='This is Management Page' icon={<Ticket />} right={
-                <Button color="primary" size="lg" endContent={<Plus size={20}/>}>New Type</Button>
+                <Button color="primary" size="lg" endContent={<Plus size={20}/>} onPress={() => setIsTypeOpen(true)}>New Type</Button>
             }/>
             <div className="flex flex-col min-h-screen">
                 <div className="container mx-auto">
@@ -49,6 +54,7 @@ export default function EvoucherPage() {
                                         sponsorName={sponsorName}
                                         evouchers={evouchers}
                                         EvoucherType={evoucherType}
+                                        sponsors={sponsors}
                                     />
                                 </AccordionItem>
                             ))}
@@ -56,6 +62,12 @@ export default function EvoucherPage() {
                     </div>
                 </div>
             </div>
+
+            <AddTypeModal 
+                isOpen={isTypeOpen}
+                onClose={() => setIsTypeOpen(false)}
+                onAddType={handleAddType}
+            />
         </>
     )
 }

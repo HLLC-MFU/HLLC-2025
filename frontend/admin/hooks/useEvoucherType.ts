@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/utils/api";
-import { EvoucherType } from "@/types/evoucherType";
+import { EvoucherType } from "@/types/evoucher-type";
 
 export function useEvoucherType() {
     const [evoucherType, setEvoucherType] = useState<EvoucherType[]>([]);
@@ -13,7 +13,9 @@ export function useEvoucherType() {
         setError(null);
         try {
             const res = await apiRequest<{ data: EvoucherType[] }>("/evoucher-type?limit=0", "GET");
+
             setEvoucherType(Array.isArray(res.data?.data) ? res.data.data : []);
+            return res;
         } catch (err) {
             setError(
                 err && typeof err === 'object' && 'message' in err
@@ -41,6 +43,7 @@ export function useEvoucherType() {
                     });
                 });
             }
+            return res;
         } catch (err) {
             setError(
                 err && typeof err === 'object' && 'message' in err
