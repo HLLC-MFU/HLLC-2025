@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Type } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Type, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserDocument } from 'src/module/users/schemas/user.schema';
@@ -9,6 +9,8 @@ import { FastifyReply } from 'fastify';
 import '@fastify/cookie';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../auth/decorators/permissions.decorator';
+import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 type Permission = string;
 
@@ -28,8 +30,12 @@ export class AuthService {
   ) {}
 
   async validateUser(username: string, pass: string): Promise<UserDocument> {
-    const user = await this.userModel.findOne({ username }).populate('role');
+    const user = await this.userModel.findOne({ username }).select('+password').populate('role');
     if (!user) throw new UnauthorizedException('User not found');
+
+    if (!user.password) {
+      throw new UnauthorizedException('User not registered');
+    }
 
     const isMatch = await bcrypt.compare(pass, user.password);
     if (!isMatch) throw new UnauthorizedException('Invalid password');
@@ -103,13 +109,10 @@ export class AuthService {
         throw new UnauthorizedException('User not found');
       }
 
-      // Check if refresh token is valid
       const isMatch = await bcrypt.compare(oldRefreshToken, user.refreshToken);
       if (!isMatch) {
         throw new UnauthorizedException('Invalid refresh token');
       }
-
-      // Generate new tokens
       const newAccessToken = this.jwtService.sign(
         { sub: user._id.toString(), username: user.username },
         {

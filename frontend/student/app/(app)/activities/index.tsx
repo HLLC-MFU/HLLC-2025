@@ -1,29 +1,34 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 
+
 export default function ActivitiesPage() {
- const router = useRouter();
+  const router = useRouter();
+  const { t } = useTranslation();
+
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Activities</Text>
+        <Text style={styles.title}>{t("activty.activities")}</Text>
       </View>
       <View style={styles.content}>
-        <Text style={styles.subtitle}>Coming soon...</Text>
+        <Text style={styles.subtitle}>{t("activty.subtitle")}</Text>
       </View>
       <TouchableOpacity
-          onPress={() => router.back()}
-          style={{
-            marginTop: 16,
-            paddingVertical: 10,
-            paddingHorizontal: 20,
-            backgroundColor: '#2563EB',
-            borderRadius: 8,
-          }}
-        >
-          <Text style={{ color: 'white', fontWeight: 'bold' }}>Go Back</Text>
-        </TouchableOpacity>
+        onPress={() => router.back()}
+        style={{
+          marginTop: 16,
+          paddingVertical: 10,
+          paddingHorizontal: 20,
+          backgroundColor: '#2563EB',
+          borderRadius: 8,
+        }}
+      >
+        <Text style={{ color: 'white', fontWeight: 'bold' }}>{t("activty.backward")}</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }

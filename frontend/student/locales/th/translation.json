@@ -6,5 +6,21 @@
     "home": {
         "activities": "กิจกรรม",
         "seeAll": "ดูทั้งหมด"
+    },
+    "activty": {
+        "activities": "กิจกรรม",
+        "subtitle": "กำลังมา เร็วๆนี้...",
+        "backward": "ย้อนกลับ"
+    },
+    "evoucher": {
+        "title": "คูปอง",
+        "subtitle": "กำลังมา เร็วๆนี้...",
+        "backward": "ย้อนกลับ"
+    },
+    "bottomNav": {
+        "home": "หน้าแรก",
+        "activity": "กิจกรรม",
+        "evoucher": "คูปอง",
+        "community": "ชุมชน"
     }
 }
