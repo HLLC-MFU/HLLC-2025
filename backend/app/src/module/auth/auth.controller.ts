@@ -15,6 +15,8 @@ import { LoginDto } from './dto/login.dto';
 import { UserRequest } from 'src/pkg/types/users';
 import { FastifyReply } from 'fastify';
 import { Permissions } from './decorators/permissions.decorator';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RegisterDto } from './dto/register.dto';
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -29,8 +31,6 @@ export class AuthController {
     @Res() res: FastifyReply,
   ) {
     const { username, password } = loginDto;
-    console.log(loginDto);
-    
     const user = await this.authService.validateUser(username, password);
 
     const useCookieBool = useCookie === 'true';
@@ -51,6 +51,18 @@ export class AuthController {
   @Post('refresh')
   async refresh(@Body() body: { refreshToken: string }) {
     return this.authService.refreshToken(body.refreshToken);
+  }
+
+  @Public()
+  @Post('register')
+  async register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 
   @Post('logout')
