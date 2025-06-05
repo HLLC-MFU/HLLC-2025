@@ -29,7 +29,6 @@ export class AuthController {
     @Res() res: FastifyReply,
   ) {
     const { username, password } = loginDto;
-    console.log(loginDto);
     
     const user = await this.authService.validateUser(username, password);
 
