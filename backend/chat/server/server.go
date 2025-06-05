@@ -50,6 +50,7 @@ func (s *server) Start() error {
 	s.roomService()
 	s.stickerService()
 	s.schoolService()
+	s.userService()
 
 	// Start HTTP server
 	go func() {
