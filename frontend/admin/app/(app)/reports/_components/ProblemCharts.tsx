@@ -22,7 +22,6 @@ interface PieLabelProps {
     percent: number;
 }
 
-// HeroUI color scheme
 const COLORS = {
     primary: '#006FEE',
     secondary: '#9353D3',
@@ -53,7 +52,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function ProblemCharts({ problems, reporttypes }: ProblemChartsProps) {
-    // Prepare data for reporttype distribution chart
     const reporttypeData: ChartData[] = reporttypes.map(reporttype => ({
         name: reporttype.name.en,
         count: problems.filter(p => p.categoryId === reporttype.id).length,
@@ -61,7 +59,6 @@ export function ProblemCharts({ problems, reporttypes }: ProblemChartsProps) {
     }));
 
 
-    // Prepare data for status distribution chart
     const statusData: ChartData[] = [
         { name: 'Pending', value: problems.filter(p => p.status === 'Pending').length },
         { name: 'In-Progress', value: problems.filter(p => p.status === 'In-Progress').length },
@@ -76,7 +73,7 @@ export function ProblemCharts({ problems, reporttypes }: ProblemChartsProps) {
         <Card className="bg-white mb-6">
             <CardBody>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Category Distribution Chart */}
+
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Problems by Category</h3>
                         <div className="h-[250px]">

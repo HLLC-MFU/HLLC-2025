@@ -1,5 +1,5 @@
 import { addToast, Button } from "@heroui/react";
-import { Bell, Send, X } from "lucide-react";
+import { Bell } from "lucide-react";
 
 export default function SendNotiButton() {
     return (
