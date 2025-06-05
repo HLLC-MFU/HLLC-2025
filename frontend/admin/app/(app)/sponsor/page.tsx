@@ -8,21 +8,19 @@ import { useSponsor } from "@/hooks/useSponsor";
 import { addToast } from "@heroui/react";
 
 import { SponsorFilters } from "./_components/SponsorFilters";
-import { SponsorModal } from "./_components/SponsorModal";
 import SponsorTable from "./_components/SponsorTable";
 import AddSponsorTypeModal from "./_components/AddSponsorTypeModal";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
+import { Sponsor } from "@/types/sponsor";
 
-import type { Sponsor } from "@/types/sponsor";
 
 export default function SponsorPage() {
-  const [sponsorTypes, setSponsorTypes] = useState<{ _id: string; name: string }[]>([]);
   const [isTypeOpen, setIsTypeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | Partial<Sponsor> | undefined>();
+  const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | Partial<Sponsor>>();
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [confirmationModalType, setConfirmationModalType] = useState<'delete' | 'edit' | null>(null);
 
@@ -32,18 +30,9 @@ export default function SponsorPage() {
     createSponsor,
     updateSponsor,
     deleteSponsor,
-    createSponsorType
+    sponsorTypes,
+    createSponsortype,
   } = useSponsor();
-
-  useEffect(() => {
-    fetchSponsorTypes();
-  }, []);
-
-  const fetchSponsorTypes = async () => {
-    const res = await fetch("http://localhost:8080/api/sponsors-type");
-    const data = await res.json();
-    setSponsorTypes(Array.isArray(data) ? data : []);
-  };
 
   const groupedSponsors: Record<string, Sponsor[]> = useMemo(() => {
     const groups: Record<string, Sponsor[]> = {};
@@ -53,7 +42,10 @@ export default function SponsorPage() {
     });
 
     sponsor?.forEach((s) => {
-      const typeName = typeof s.type === "object" ? s.type.name : s.type || "Unknown";
+      const typeName =
+        typeof s.type === "object" && s.type !== null && "name" in s.type
+          ? (s.type as { name: string }).name
+          : s.type || "Unknown";
       if (!groups[typeName]) groups[typeName] = [];
       groups[typeName].push(s);
     });
@@ -113,29 +105,50 @@ export default function SponsorPage() {
     setConfirmationModalType('delete');
   };
 
-  const handleSubmitSponsor = (sponsorData: Partial<Sponsor>) => {
+  const handleSubmitSponsor = (sponsorData: Partial<Sponsor> & { logoFile?: File | null }) => {
+    console.log(sponsorData);
+
     if (selectedSponsor && '_id' in selectedSponsor && selectedSponsor._id) {
       setSelectedSponsor({ ...selectedSponsor, ...sponsorData });
       setConfirmationModalType('edit');
     } else {
-      createSponsor(sponsorData);
-      addToast({
-        title: 'Sponsor added successfully!',
-        color: 'success',
+      const formData = new FormData();
+      Object.entries(sponsorData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (key === "logoFile" && value instanceof File) {
+            formData.append("logoPhoto", value); // name must match backend field
+          } else if (typeof value === "object") {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, value as string | Blob);
+          }
+        }
       });
+
+      createSponsor(formData);
       setIsModalOpen(false);
     }
   };
 
+
   const handleConfirm = () => {
     if (confirmationModalType === 'delete' && selectedSponsor?._id) {
       deleteSponsor(selectedSponsor._id);
-      addToast({
-        title: 'Sponsor deleted successfully!',
-        color: 'success',
-      });
+      
     } else if (confirmationModalType === 'edit' && selectedSponsor?._id) {
-      updateSponsor(selectedSponsor._id, selectedSponsor);
+      const formData = new FormData();
+      Object.entries(selectedSponsor).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (key === "logoFile" && value instanceof File) {
+            formData.append("logoPhoto", value); // name must match backend field
+          } else if (typeof value === "object") {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, value as string | Blob);
+          }
+        }
+      });
+      updateSponsor(selectedSponsor._id, formData);
       addToast({
         title: 'Sponsor updated successfully!',
         color: 'success',
@@ -147,8 +160,8 @@ export default function SponsorPage() {
   };
 
   const handleAddType = async (type: { name: string }) => {
-    await createSponsorType(type);
-    await fetchSponsorTypes();
+    console.log(type);
+    await createSponsortype(type);
     setIsTypeOpen(false);
   };
 
@@ -174,7 +187,12 @@ export default function SponsorPage() {
               <AccordionItem
                 key={type}
                 aria-label={type}
-                title={`${type} (${sponsors.length})`}
+                title={`${type}`}
+                subtitle={
+                  <p className="flex">
+                    Total sponsors : <span className="text-primary ml-1">{sponsors.length}</span>
+                  </p>
+                }
               >
                 <div className="flex flex-col gap-6">
                   <SponsorFilters
@@ -195,10 +213,21 @@ export default function SponsorPage() {
 
                   <div className="grid grid-cols-1 gap-4 py-6">
                     <SponsorTable
+                      type={type}
+                      sponsorTypes={sponsorTypes}
+                      isModalOpen={isModalOpen}
+                      onClose={() => setIsModalOpen(false)}
+                      modalMode={modalMode}
+                      selectedSponsor={selectedSponsor}
+                      handleSubmitSponsor={handleSubmitSponsor}
                       sponsors={filtered}
                       onEdit={handleEditSponsor}
                       onDelete={handleDeleteSponsor}
-                      onToggleShow={(s) => updateSponsor(s._id, { isShow: !s.isShow })}
+                      onToggleShow={(s) => {
+                        const formData = new FormData();
+                        formData.append("isShow", String(!s.isShow));
+                        updateSponsor(s._id, formData);
+                      }}
                     />
                   </div>
                 </div>
@@ -214,17 +243,6 @@ export default function SponsorPage() {
         onAddType={handleAddType}
       />
 
-      <SponsorModal
-        isOpen={isModalOpen}
-        mode={modalMode}
-        sponsor={
-          selectedSponsor && '_id' in selectedSponsor
-            ? (selectedSponsor as Sponsor)
-            : undefined
-        }
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={handleSubmitSponsor}
-      />
 
       <ConfirmationModal
         body={

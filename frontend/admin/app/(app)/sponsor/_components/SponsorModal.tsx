@@ -1,9 +1,12 @@
 "use client";
-import { Sponsor } from "@/types/sponsor";
+import { useSponsor } from "@/hooks/useSponsor";
+import { Sponsor, Type } from "@/types/sponsor";
 import { Button, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Textarea } from "@heroui/react";
 import { useState, useEffect } from "react";
 
 interface SponsorModalProps {
+  type: string;
+  sponsorTypes: Type[];
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (sponsor: Partial<Sponsor>, mode: "add" | "edit") => void;
@@ -12,19 +15,32 @@ interface SponsorModalProps {
 }
 
 export const show = [
-  {key: "show", label: "Show on list"},
-  {key: "hide", label: "Hide on list"},
+  { key: "show", label: "Show on list" },
+  { key: "hide", label: "Hide on list" },
 ];
 
 export function SponsorModal({
+  type,
+  sponsorTypes,
   isOpen,
   onClose,
   onSuccess,
   sponsor,
   mode
 }: SponsorModalProps) {
+  const { createSponsor, updateSponsor } = useSponsor();
   const [nameEn, setNameEn] = useState("");
   const [nameTh, setNameTh] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [isShow, setIsShow] = useState<boolean>(true);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setLogoFile(e.target.files[0]);
+    } else {
+      setLogoFile(null);
+    }
+  };
 
   useEffect(() => {
     if (sponsor) {
@@ -36,17 +52,39 @@ export function SponsorModal({
     }
   }, [sponsor]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!nameEn.trim() || !nameTh.trim()) return;
 
-    const updatedSponsor: Partial<Sponsor> = {
-      ...sponsor,
-      name: { en: nameEn.trim(), th: nameTh.trim() },
-    };
+    const typeId = sponsorTypes.find((s) => s.name === type)?._id;
+    if (!typeId) {
+      console.error("Invalid type selected:", type);
+      return;
+    }
 
-    onSuccess(updatedSponsor, mode);
-    onClose();
+    const formData = new FormData();
+    formData.append("name[en]", nameEn.trim());
+    formData.append("name[th]", nameTh.trim());
+    formData.append("type", typeId);
+    formData.append("isShow", String(isShow));
+    if (logoFile) {
+      if (logoFile) formData.append("photo.logoPhoto", logoFile);
+    }
+
+    try {
+      if (mode === "add") {
+        await createSponsor(formData);
+      } else if (mode === "edit" && sponsor?._id) {
+        await updateSponsor(sponsor._id, formData);
+      }
+
+      onSuccess(sponsor || {}, mode);
+      onClose();
+    } catch (err) {
+      console.error("Error in sponsor submission", err);
+    }
   };
+
+
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
@@ -83,6 +121,25 @@ export function SponsorModal({
                   <SelectItem key={show.key}>{show.label}</SelectItem>
                 ))}
               </Select>
+
+              <div className="flex flex-col w-full">
+                <label htmlFor="logo-upload" className="text-sm font-medium text-default-600 mb-1">
+                  Logo Image
+                </label>
+                <input
+                  id="logo-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="block w-full text-sm text-default-500
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-lg file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-primary file:text-white
+                              hover:file:bg-primary/90
+                              cursor-pointer"
+                />
+              </div>
             </div>
           </div>
         </ModalBody>

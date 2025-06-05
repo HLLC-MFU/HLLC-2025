@@ -4,7 +4,6 @@ import { Key } from "react";
 
 const sortOptions = [
     { name: "name", label: "Name" },
-    { name: "type", label: "Types" },
     { name: "isShow", label: "Show" }
 ]
 

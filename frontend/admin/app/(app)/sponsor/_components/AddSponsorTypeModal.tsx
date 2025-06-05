@@ -26,6 +26,7 @@ export default function AddSponsorTypeModal({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!typeNameRef.current?.value) return;
+
     onAddType({ name: typeNameRef.current.value });
   };
 

@@ -19,7 +19,7 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter(),
   );
-
+  
   await app.register(compression, {
     global: true,
     encodings: ['gzip', 'deflate'],
