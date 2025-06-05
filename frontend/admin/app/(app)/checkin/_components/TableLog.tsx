@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Table,
   TableHeader,
@@ -7,6 +7,7 @@ import {
   TableRow,
   TableCell,
   User,
+  Pagination,
 } from '@heroui/react';
 
 import { Typing } from './TypingModal';
@@ -36,6 +37,11 @@ export type UserType = {
 const INITIAL_VISIBLE_COLUMNS = ['name', 'activity'];
 
 export function TableLog() {
+
+  const { checkin, fetchcheckin } = useCheckin();
+
+  console.log(checkin);
+
   const [filterValue, setFilterValue] = React.useState('');
   const [selectedKeys] = React.useState(new Set([]));
   const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
@@ -46,7 +52,6 @@ export function TableLog() {
   });
   const [page, setPage] = React.useState(1);
   const [isTypingModelOpen, setIsTypingModelOpen] = React.useState(false);
-  const { checkin, fetchcheckin } = useCheckin();
   const [ activityFilter, setActivityFilter] = React.useState<Set<string>>(new Set());
   const { activities } = useActivity();
 
@@ -107,6 +112,13 @@ export function TableLog() {
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
+  useEffect(() => {
+    if (activities.length > 0) {
+      const allActivityIds = new Set(activities.map((a) => a._id));
+      setActivityFilter(allActivityIds);
+    }
+  }, [activities]);
+
   const sortedItems = React.useMemo(() => {
     return [...items].sort((a, b) => {
       const first = a[sortDescriptor.column as keyof UserType];
@@ -118,7 +130,6 @@ export function TableLog() {
 
   const renderCell = React.useCallback((user: UserType, columnKey: string) => {
     const cellValue = user[columnKey];
-
     switch (columnKey) {
       case 'name':
         return (
