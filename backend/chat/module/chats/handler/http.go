@@ -99,9 +99,16 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 		}
 	}
 
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte("Invalid user ID"))
+		conn.Close()
+		return
+	}
+
 	client := model.ClientObject{
 		RoomID: roomID,
-		UserID: userID,
+		UserID: userObjID,
 		Conn:   conn,
 	}
 	// 1. Try Redis first
@@ -195,7 +202,7 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 				msgID, _ := primitive.ObjectIDFromHex(messageID)
 				_ = h.service.SaveReaction(ctx, &model.MessageReaction{
 					MessageID: msgID,
-					UserID:    userID,
+					UserID:    userObjID,
 					Reaction:  reaction,
 					Timestamp: time.Now(),
 				})
@@ -267,8 +274,8 @@ func (h *ChatHTTPHandler) broadcastEvent(roomID, eventType string, data interfac
 			userID = from
 		}
 	case model.BroadcastObject:
-		if v.FROM.UserID != "" {
-			userID = v.FROM.UserID
+		if v.FROM.UserID != primitive.NilObjectID {
+			userID = v.FROM.UserID.Hex()
 		}
 	case ChatEvent:
 		if payload, ok := v.Payload.(map[string]interface{}); ok {
@@ -294,7 +301,7 @@ func (h *ChatHTTPHandler) broadcastEvent(roomID, eventType string, data interfac
 		skipSelf := map[string]bool{
 			"read_receipt":     true,
 			"message_reaction": true,
-			"text":             true,
+			"message":          true,
 		}
 
 		if uid == userID && skipSelf[eventType] {
@@ -344,9 +351,13 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 	}
 
 	// Save to chat DB
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user ID"})
+	}
 	msg := &model.ChatMessage{
 		RoomID:    roomIdStr,
-		UserID:    userID,
+		UserID:    userObjID,
 		StickerID: &sticker.ID,
 		Image:     sticker.Image,
 		Timestamp: time.Now(),
@@ -529,9 +540,13 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	}
 
 	// Save message with file reference
+	userObjID, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user ID"})
+	}
 	msg := &model.ChatMessage{
 		RoomID:    roomId,
-		UserID:    userId,
+		UserID:    userObjID,
 		FileURL:   publicURL,
 		FileName:  file.Filename,
 		FileType:  fileType,

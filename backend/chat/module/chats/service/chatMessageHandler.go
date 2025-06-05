@@ -64,13 +64,13 @@ func (h *ChatMessageHandler) HandleMessage(ctx context.Context, msg *model.ChatM
 
 		// Send to all clients in the room except sender
 		for userID, conn := range model.Clients[msg.RoomID] {
-			if userID == msg.UserID {
+			if userID == msg.UserID.Hex() {
 				continue // Skip sender
 			}
 
 			if conn == nil {
 				// Notify offline users
-				h.service.NotifyOfflineUser(userID, msg.RoomID, msg.UserID, msg.Message, "text")
+				h.service.NotifyOfflineUser(userID, msg.RoomID, msg.UserID.Hex(), msg.Message, "text")
 				continue
 			}
 
@@ -78,7 +78,7 @@ func (h *ChatMessageHandler) HandleMessage(ctx context.Context, msg *model.ChatM
 				log.Printf("[Message Handler] Failed to send to WebSocket client %s: %v", userID, err)
 				conn.Close()
 				model.Clients[msg.RoomID][userID] = nil
-				h.service.NotifyOfflineUser(userID, msg.RoomID, msg.UserID, msg.Message, "text")
+				h.service.NotifyOfflineUser(userID, msg.RoomID, msg.UserID.Hex(), msg.Message, "text")
 			}
 		}
 	}

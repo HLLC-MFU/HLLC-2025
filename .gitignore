@@ -10,6 +10,7 @@ go.work
 go.work.sum
 .env.production
 *.pb.go
+backend/chat/uploads/*
 
 ## ======================================== EXPO ======================================== ##
 node_modules/

@@ -8,7 +8,7 @@ import (
 
 type MessageReaction struct {
 	MessageID primitive.ObjectID `bson:"message_id"`
-	UserID    string             `bson:"user_id"`
+	UserID    primitive.ObjectID `bson:"user_id"`
 	Reaction  string             `bson:"reaction"`
 	Timestamp time.Time          `bson:"timestamp"`
 }

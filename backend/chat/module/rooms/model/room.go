@@ -7,7 +7,7 @@ import (
 
 type Room struct {
 	coreModel.Base `bson:",inline"`
-	ID             primitive.ObjectID      `bson:"_id" json:"id"`
+	ID             primitive.ObjectID      `bson:"_id,omitempty" json:"id"`
 	Name           coreModel.LocalizedName `bson:"name" json:"name"`
 	Capacity       int                     `bson:"capacity" json:"capacity"`
 	Image          string                  `bson:"image,omitempty" json:"image,omitempty"`

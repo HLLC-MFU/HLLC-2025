@@ -14,7 +14,7 @@ var _ = coreModel.Collection("rooms")
 type ChatMessage struct {
 	ID        primitive.ObjectID  `bson:"_id,omitempty" json:"id"`
 	RoomID    string              `bson:"room_id" json:"room_id"`
-	UserID    string              `bson:"user_id" json:"user_id"`
+	UserID    primitive.ObjectID  `bson:"user_id" json:"user_id"`
 	Message   string              `bson:"message" json:"message"`
 	Mentions  []string            `bson:"mentions,omitempty"`
 	ReplyToID *primitive.ObjectID `bson:"reply_to_id,omitempty" json:"reply_to_id,omitempty"`
@@ -32,10 +32,10 @@ type ChatEvent struct {
 }
 
 type MessagePayload struct {
-	UserID   string   `json:"userId"`
-	RoomID   string   `json:"roomId"`
-	Message  string   `json:"message"`
-	Mentions []string `json:"mentions"`
+	UserID   primitive.ObjectID `json:"userId"`
+	RoomID   string             `json:"roomId"`
+	Message  string             `json:"message"`
+	Mentions []string           `json:"mentions"`
 }
 
 var _ = coreModel.Collection("chat_messages")
@@ -55,7 +55,7 @@ var Unregister = make(chan ClientObject)
 
 type ClientObject struct {
 	RoomID string
-	UserID string
+	UserID primitive.ObjectID
 	Conn   *websocket.Conn
 }
 
@@ -68,15 +68,15 @@ func RegisterClient(client ClientObject) {
 	if Clients[client.RoomID] == nil {
 		Clients[client.RoomID] = make(map[string]*websocket.Conn)
 	}
-	Clients[client.RoomID][client.UserID] = client.Conn
+	Clients[client.RoomID][client.UserID.Hex()] = client.Conn
 	Register <- client
 }
 
 func UnregisterClient(client ClientObject) {
 	roomClients := Clients[client.RoomID]
 	if roomClients != nil {
-		roomClients[client.UserID] = nil
-		log.Printf("[UNREGISTER] %s left room %s", client.UserID, client.RoomID)
+		roomClients[client.UserID.Hex()] = nil
+		log.Printf("[UNREGISTER] %s left room %s", client.UserID.Hex(), client.RoomID)
 	}
 }
 
@@ -86,15 +86,15 @@ func BroadcastMessage(b BroadcastObject) {
 
 // KafkaMessage represents a message format specifically for Kafka, without MongoDB-specific fields
 type KafkaMessage struct {
-	RoomID    string    `json:"room_id"`
-	UserID    string    `json:"user_id"`
-	Message   string    `json:"message"`
-	Mentions  []string  `json:"mentions,omitempty"`
-	FileURL   string    `json:"file_url,omitempty"`
-	FileType  string    `json:"file_type,omitempty"`
-	FileName  string    `json:"file_name,omitempty"`
-	Timestamp time.Time `json:"timestamp"`
-	Image     string    `json:"image,omitempty"`
+	RoomID    string             `json:"room_id"`
+	UserID    primitive.ObjectID `json:"user_id"`
+	Message   string             `json:"message"`
+	Mentions  []string           `json:"mentions,omitempty"`
+	FileURL   string             `json:"file_url,omitempty"`
+	FileType  string             `json:"file_type,omitempty"`
+	FileName  string             `json:"file_name,omitempty"`
+	Timestamp time.Time          `json:"timestamp"`
+	Image     string             `json:"image,omitempty"`
 }
 
 // ToKafkaMessage converts a ChatMessage to KafkaMessage format

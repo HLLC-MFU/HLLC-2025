@@ -75,18 +75,18 @@ func (s *service) InitChatHub() {
 				if model.Clients[client.RoomID] == nil {
 					model.Clients[client.RoomID] = make(map[string]*websocket.Conn)
 				}
-				model.Clients[client.RoomID][client.UserID] = client.Conn
-				log.Printf("[REGISTER] %s joined room %s", client.UserID, client.RoomID)
+				model.Clients[client.RoomID][client.UserID.Hex()] = client.Conn
+				log.Printf("[REGISTER] %s joined room %s", client.UserID.Hex(), client.RoomID)
 
 			case client := <-model.Unregister:
 				if roomClients, exists := model.Clients[client.RoomID]; exists {
-					roomClients[client.UserID] = nil
+					roomClients[client.UserID.Hex()] = nil
 				}
-				roomRedis.RemoveUserFromRoom(client.RoomID, client.UserID)
-				log.Printf("[UNREGISTER] %s left room %s", client.UserID, client.RoomID)
+				roomRedis.RemoveUserFromRoom(client.RoomID, client.UserID.Hex())
+				log.Printf("[UNREGISTER] %s left room %s", client.UserID.Hex(), client.RoomID)
 
 			case message := <-model.Broadcast:
-				log.Printf("[BROADCAST] Message from %s in room %s: %s", message.FROM.UserID, message.FROM.RoomID, message.MSG)
+				log.Printf("[BROADCAST] Message from %s in room %s: %s", message.FROM.UserID.Hex(), message.FROM.RoomID, message.MSG)
 
 				// Try to parse as a special message type (sticker/file)
 				var specialMsg map[string]interface{}
@@ -99,7 +99,7 @@ func (s *service) InitChatHub() {
 							for userID, conn := range model.Clients[message.FROM.RoomID] {
 								if conn == nil {
 									notificationMsg := fmt.Sprintf("sent a sticker")
-									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg, "sticker")
+									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID.Hex(), notificationMsg, "sticker")
 								}
 							}
 							continue
@@ -109,7 +109,7 @@ func (s *service) InitChatHub() {
 							for userID, conn := range model.Clients[message.FROM.RoomID] {
 								if conn == nil {
 									notificationMsg := fmt.Sprintf("sent a file: %s", fileName)
-									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg, "file")
+									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID.Hex(), notificationMsg, "file")
 								}
 							}
 							continue
@@ -135,7 +135,7 @@ func (s *service) InitChatHub() {
 					continue
 				}
 
-				if err := s.publisher.SendMessage(chatMsg.RoomID, chatMsg.UserID, string(data)); err != nil {
+				if err := s.publisher.SendMessage(chatMsg.RoomID, chatMsg.UserID.Hex(), string(data)); err != nil {
 					log.Printf("[BROADCAST] Failed to send message to Kafka: %v", err)
 					continue
 				}
@@ -143,12 +143,12 @@ func (s *service) InitChatHub() {
 				// Notify offline users
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
 					if conn == nil {
-						s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG, "text")
+						s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID.Hex(), message.MSG, "text")
 					}
 				}
 
 				// Send acknowledgment back to sender
-				if conn, exists := model.Clients[chatMsg.RoomID][chatMsg.UserID]; exists && conn != nil {
+				if conn, exists := model.Clients[chatMsg.RoomID][chatMsg.UserID.Hex()]; exists && conn != nil {
 					ack := model.ChatEvent{
 						EventType: "message_ack",
 						Payload: model.MessagePayload{
@@ -343,7 +343,7 @@ func (s *service) StartRoomConsumers() {
 		topic := "chat-room-" + room.ID.Hex()
 		consumer := kafkaPublisher.NewConsumer(
 			[]string{"localhost:9092"},
-			topic,
+			[]string{topic},
 			chatConsumerGroup,
 			handler,
 		)
