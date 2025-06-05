@@ -17,10 +17,6 @@ import { Activities } from '../activities/schema/activities.schema';
 import { ActivityDocument } from '../activities/schema/activities.schema';
 import { PopulateField } from 'src/pkg/types/query';
 
-const userSelectFields = 'name username ';
-
-
-
 @Injectable()
 export class CheckinService {
   constructor(
@@ -33,42 +29,45 @@ export class CheckinService {
   ) { }
 
   async create(createCheckinDto: CreateCheckinDto) {
-    let userId: Types.ObjectId;
+    
+    await findOrThrow(
+      this.userModel,
+      new Types.ObjectId(createCheckinDto.user),
+      'User not found'
+    )
 
-    // หา user จาก username
-    const user = await this.userModel.findOne({ username: createCheckinDto.user });
-    if (!user) throw new Error('User not found');
-    userId = user._id;
-
-    // ตรวจสอบ activities
-    const activityIds = Array.isArray(createCheckinDto.activities)
-      ? createCheckinDto.activities.map(id => new Types.ObjectId(id))
-      : [];
-
-    for (const id of activityIds) {
-      await findOrThrow(this.activitiesModel, id, 'Activity not found');
+    await findOrThrow(
+      this.userModel,
+      new Types.ObjectId(createCheckinDto.staff),
+      'Staff not found'
+    )
+  
+    for (const activityId of createCheckinDto.activities) {
+      await findOrThrow(
+        this.activitiesModel,
+        new Types.ObjectId(activityId),
+        'Activity not found'
+      );
     }
-
-    // สร้าง checkin ทีละ activity
-    const checkins = await Promise.all(
-      activityIds.map(activityId => {
-        const checkin = new this.checkinModel({
-          user: userId,
-          staff: new Types.ObjectId(createCheckinDto.staff),
-          activities: activityId,
-        });
-        return checkin.save();
-      })
-    );
-
-    return checkins;
+  
+    const newCheckin = new this.checkinModel({
+      user: new Types.ObjectId(createCheckinDto.user),
+      staff: new Types.ObjectId(createCheckinDto.staff),
+      activities: createCheckinDto.activities.map(activityId => new Types.ObjectId(activityId)),
+    });
+    
+    return newCheckin.save();
   }
+  
 
   async findAll(query: Record<string, string>) {
 
     return queryAll<Checkin>({
       model: this.checkinModel,
-      query,
+      query: {
+        ...query,
+        excluded: 'user.password,user.refreshToken,user.role.permissions,user.role.metadataSchema',
+      },
       filterSchema: {},
       populateFields: (excluded) =>
         Promise.resolve(
@@ -76,19 +75,8 @@ export class CheckinService {
         ),
     });
   }
-
   async findOne(id: string) {
-    const populateFields: PopulateField[] = [
-      { path: 'user', select: userSelectFields },
-      { path: 'staff', select: userSelectFields },
-      { path: 'activities' },
-    ];
-
-    return queryFindOne<Checkin>(
-      this.checkinModel,
-      { _id: id },
-      populateFields,
-    );
+    return queryFindOne<Checkin>(this.checkinModel, { _id: id }, []);
   }
 
   async update(id: string, updateCheckinDto: UpdateCheckinDto) {
@@ -119,6 +107,12 @@ export class CheckinService {
   }
 
   async remove(id: string) {
-    return queryDeleteOne<Checkin>(this.checkinModel, id);
+    await findOrThrow(
+      this.checkinModel,
+      id,
+      'Checkin not found'
+    )
+
+    return await this.checkinModel.findByIdAndDelete(id);
   }
 }

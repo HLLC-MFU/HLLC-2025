@@ -17,17 +17,8 @@ import { UpdateCheckinDto } from './dto/update-checkin.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { UserRequest } from 'src/pkg/types/users';
 
-interface RequestWithUser extends Request {
-  user: {
-    _id: string;
-    permissions: string[];
-    role?: {
-      name: string;
-      permissions: string[];
-    };
-  };
-}
 
 @Controller('checkin')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -37,15 +28,9 @@ export class CheckinController {
   @Post()
   @Permissions('checkin:create')
   async create(
-    @Request() req: RequestWithUser,
+    @Request() req: UserRequest,
     @Body() createCheckinDto: CreateCheckinDto,
   ) {
-    // if (!req.user.permissions.includes('checkin:create')) {
-    //   throw new UnauthorizedException(
-    //     'You do not have permission to create check-ins',
-    //   );
-    // }
-
     createCheckinDto.staff = req.user._id;
 
     return this.checkinService.create(createCheckinDto);
