@@ -5,7 +5,7 @@ export type Sponsor = {
     name: Lang;
     // logo: Photo;
     logo: Photo;
-    type: String;
+    type: string;
     isShow: boolean;
 }
 
@@ -15,3 +15,8 @@ export type Photo = {
     thumbnail: string;
     logoPhoto: string;
 };
+
+export type Type = {
+    _id: string;
+    name: string;
+}

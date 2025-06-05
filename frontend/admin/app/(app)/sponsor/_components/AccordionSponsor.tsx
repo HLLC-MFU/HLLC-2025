@@ -6,7 +6,7 @@ export default function AccordionSponsor() {
 
   return (
     <Accordion variant="splitted">
-      <AccordionItem key="1" aria-label="Accordion 1" title="Accordion 1">
+      <AccordionItem aria-label="Accordion 1" title="Accordion 1">
         {defaultContent}
       </AccordionItem>
     </Accordion>

@@ -1,12 +1,53 @@
-import { Sponsor } from "@/types/sponsor";
+import { Sponsor, Type } from "@/types/sponsor";
 import { apiRequest } from "@/utils/api";
 import { addToast } from "@heroui/react";
 import { useEffect, useState } from "react";
 
+type SponsorType = { _id: string; name: string; createdAt?: string; updatedAt?: string };
+
 export function useSponsor() {
     const [sponsor, setSponsor] = useState<Sponsor[]>([]);
+    const [sponsorTypes, setSponsorTypes] = useState<SponsorType[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    
+    // const fetchSponsorTypes = async (): Promise<void> => {
+    //        setLoading(true);
+    //        setError(null);
+    //        try {
+    //            const res = await apiRequest<{ data: Type[]}>(
+    //                 '/sponsors-type?limit=0',
+    //                 'GET',
+    //            );
+              
+    //            setSponsorTypes(Array.isArray(res.data?.data) ? res.data.data : []);
+    //         } catch (err) {
+    //             addToast({
+    //                 title: 'Failed to fetch sponser type. Please try again. ',
+    //                 color: 'danger',
+    //             });
+    //             setError(
+    //                 err && typeof err === 'object' && 'message' in err
+    //                     ? (err as { message?: string}).message || 'Failed to fetch sponsor.'
+    //                     : 'Failed to fetch sponsor'
+    //             );
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //    };
+
+    const fetchSponsorTypes = async () => {
+        setLoading(true);
+        try {
+            setError(null);
+            const res = await apiRequest<{ data: Type[]}>('/sponsors-type?limit=0' , 'GET');
+            setSponsorTypes(Array.isArray(res.data?.data) ? res.data.data : []);
+        } catch (err: any) {
+            setError(err.message || 'Failed to fetch sponsor type');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchSponsor = async (): Promise<void> => {
         setLoading(true);
@@ -102,7 +143,7 @@ export function useSponsor() {
     const createSponsorType = async (typeData: { name: string }): Promise<void> => {
     try {
         setLoading(true);
-        const res = await apiRequest('/sponsor-types', 'POST', typeData);
+        const res = await apiRequest('/sponsors-type', 'POST', typeData);
         if (res.data) {
             addToast({
                 title: 'Sponsor type created successfully!',
@@ -119,6 +160,7 @@ export function useSponsor() {
         setLoading(false);
     }
 };
+
 
     const editSponsor = async (sponsorData: Partial<Sponsor>): Promise<void> => {
         if (!sponsorData._id || !sponsorData.name) return;
@@ -154,10 +196,12 @@ export function useSponsor() {
 
     useEffect(() => {
         fetchSponsor();
+        fetchSponsorTypes();
     }, []);
 
     return {
         sponsor,
+        sponsorTypes,
         loading,
         error,
         fetchSponsor,
@@ -165,5 +209,7 @@ export function useSponsor() {
         updateSponsor,
         deleteSponsor,
         editSponsor,
+        createSponsorType,
+        fetchSponsorTypes,
     };
 }

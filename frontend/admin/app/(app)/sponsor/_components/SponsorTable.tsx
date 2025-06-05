@@ -43,16 +43,7 @@ export default function SponsorTable({
         {sponsors.map((s) => (
           <TableRow key={s._id}>
             <TableCell>
-              <label htmlFor={`upload-${key}`} className="cursor-pointer block">
-                                    <img
-                                        src={
-                                            previewUrls[key] ||
-                                            `http://localhost:8080/uploads/${appearance.assets[key]}`
-                                        }
-                                        alt={key}
-                                        className="w-full rounded-xl shadow-lg"
-                                    />
-                                </label>
+              {s.name.th}
             </TableCell>
             <TableCell>{s.name.en}</TableCell>
             <TableCell>{s.name.th}</TableCell>

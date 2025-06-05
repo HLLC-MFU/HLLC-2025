@@ -11,11 +11,6 @@ interface SponsorModalProps {
   mode: "add" | "edit";
 }
 
-export const types = [
-  {key: "normal", label: "Normal"},
-  {key: "scan", label: "Scan"},
-];
-
 export const show = [
   {key: "show", label: "Show on list"},
   {key: "hide", label: "Hide on list"},
@@ -76,18 +71,6 @@ export function SponsorModal({
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Select
-                isRequired
-                className="max-w-xs"
-                defaultSelectedKeys={["normal"]}
-                items={types}
-                label="Select type"
-                placeholder="Select type"
-              >
-                {types.map((types) => (
-                  <SelectItem key={types.key}>{types.label}</SelectItem>
-                ))}
-              </Select>
               <Select
                 isRequired
                 className="max-w-xs"
