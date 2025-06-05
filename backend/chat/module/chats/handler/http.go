@@ -107,7 +107,7 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 	}
 
 	client := model.ClientObject{
-		RoomID: roomID,
+		RoomID: roomObjID,
 		UserID: userObjID,
 		Conn:   conn,
 	}
@@ -139,11 +139,11 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 	}
 
 	model.RegisterClient(client)
-	log.Printf("[WS] User %s (%s) connected to room %s", userID, username, roomID)
+	log.Printf("[WS] User %s (%s) connected to room %s", userID, username, roomObjID.Hex())
 
 	defer func() {
 		model.UnregisterClient(client)
-		log.Printf("[WS] User %s disconnected from room %s", userID, roomID)
+		log.Printf("[WS] User %s disconnected from room %s", userID, roomObjID.Hex())
 	}()
 
 	for {
@@ -290,9 +290,14 @@ func (h *ChatHTTPHandler) broadcastEvent(roomID, eventType string, data interfac
 		log.Printf("[ERROR] Failed to marshal %s event: %v", eventType, err)
 		return
 	}
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to convert room ID to ObjectID: %v", err)
+		return
+	}
 
 	// Send to all clients with optional sender inclusion
-	for uid, conn := range model.Clients[roomID] {
+	for uid, conn := range model.Clients[roomObjID] {
 		if conn == nil {
 			continue
 		}
@@ -312,11 +317,11 @@ func (h *ChatHTTPHandler) broadcastEvent(roomID, eventType string, data interfac
 		if err != nil {
 			log.Printf("[WS ERROR] Failed to send %s to user %s: %v", eventType, uid, err)
 			conn.Close()
-			delete(model.Clients[roomID], uid)
+			delete(model.Clients[roomObjID], uid)
 		}
 	}
 
-	log.Printf("[BROADCAST] Event %s from %s in room %s", eventType, userID, roomID)
+	log.Printf("[BROADCAST] Event %s from %s in room %s", eventType, userID, roomObjID.Hex())
 }
 
 // Send Message Reaction
@@ -332,7 +337,7 @@ func (h *ChatHTTPHandler) SendMessageReaction(roomID, userID, messageID, reactio
 }
 
 func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
-	roomIdStr := c.Params("roomId")
+	roomId := c.Params("roomId")
 	userID := c.Query("userId")
 
 	stickerID := c.Query("stickerId")
@@ -355,8 +360,12 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user ID"})
 	}
+	roomObjID, err := primitive.ObjectIDFromHex(roomId)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid room ID"})
+	}
 	msg := &model.ChatMessage{
-		RoomID:    roomIdStr,
+		RoomID:    roomObjID,
 		UserID:    userObjID,
 		StickerID: &sticker.ID,
 		Image:     sticker.Image,
@@ -367,7 +376,7 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 	kafkaMsg := msg.ToKafkaMessage()
 	jsonData, err := json.Marshal(kafkaMsg)
 	if err == nil {
-		if err := h.publisher.SendMessage(msg.RoomID, userID, string(jsonData)); err != nil {
+		if err := h.publisher.SendMessage(roomId, userID, string(jsonData)); err != nil {
 			log.Printf("[Kafka] Failed to send sticker message to chat-message-%s: %v", msg.RoomID, err)
 		}
 	} else {
@@ -375,14 +384,14 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 	}
 
 	// Broadcast to online users
-	h.broadcastEvent(roomIdStr, "sticker", map[string]string{
+	h.broadcastEvent(roomId, "sticker", map[string]string{
 		"userId":    userID,
 		"sticker":   sticker.Image,
 		"stickerId": sticker.ID.Hex(),
 	})
 
 	// After broadcasting sticker, notify offline users
-	stickerRoomObjID, err := primitive.ObjectIDFromHex(roomIdStr)
+	stickerRoomObjID, err := primitive.ObjectIDFromHex(roomId)
 	if err == nil {
 		members, err := h.memberService.GetRoomMembers(c.Context(), stickerRoomObjID)
 		if err == nil {
@@ -392,13 +401,13 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 					continue // Don't notify sender
 				}
 				isOnline := false
-				if conns, exists := model.Clients[roomIdStr]; exists {
+				if conns, exists := model.Clients[roomObjID]; exists {
 					if conn, exists := conns[memberID]; exists && conn != nil {
 						isOnline = true
 					}
 				}
 				if !isOnline {
-					h.service.NotifyOfflineUser(memberID, roomIdStr, userID, "sent a sticker", "sticker")
+					h.service.NotifyOfflineUser(memberID, roomId, userID, "sent a sticker", "sticker")
 				}
 			}
 		}
@@ -409,12 +418,12 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 
 // Join Room
 func (h *ChatHTTPHandler) JoinRoom(c *fiber.Ctx) error {
-	roomIdStr := c.Params("roomId")
+	roomId := c.Params("roomId")
 	userID := c.Params("userId")
 
-	log.Printf("[JOIN] Attempting to join room %s with user %s", roomIdStr, userID)
+	log.Printf("[JOIN] Attempting to join room %s with user %s", roomId, userID)
 
-	roomID, err := primitive.ObjectIDFromHex(roomIdStr)
+	roomID, err := primitive.ObjectIDFromHex(roomId)
 	if err != nil {
 		log.Printf("[JOIN] Invalid room ID format: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -431,12 +440,12 @@ func (h *ChatHTTPHandler) JoinRoom(c *fiber.Ctx) error {
 		})
 	}
 	if room == nil {
-		log.Printf("[JOIN] Room %s not found", roomIdStr)
+		log.Printf("[JOIN] Room %s not found", roomId)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "room not found",
 		})
 	}
-	log.Printf("[JOIN] Room %s exists with capacity %d", roomIdStr, room.Capacity)
+	log.Printf("[JOIN] Room %s exists with capacity %d", roomId, room.Capacity)
 
 	// Check if user is already a member
 	isMember, err := h.memberService.IsUserInRoom(c.Context(), roomID, userID)
@@ -447,7 +456,7 @@ func (h *ChatHTTPHandler) JoinRoom(c *fiber.Ctx) error {
 		})
 	}
 	if isMember {
-		log.Printf("[JOIN] User %s is already a member of room %s", userID, roomIdStr)
+		log.Printf("[JOIN] User %s is already a member of room %s", userID, roomId)
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"message": "already a member of the room",
 		})
@@ -456,15 +465,15 @@ func (h *ChatHTTPHandler) JoinRoom(c *fiber.Ctx) error {
 	// Check room capacity
 	memberCount, err := h.memberService.GetRoomMembers(context.Background(), roomID)
 	if err != nil {
-		log.Printf("[JOIN] Error getting member count for room %s: %v", roomIdStr, err)
+		log.Printf("[JOIN] Error getting member count for room %s: %v", roomId, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to check room capacity",
 		})
 	}
-	log.Printf("[JOIN] Room %s has %d members (capacity: %d)", roomIdStr, len(memberCount), room.Capacity)
+	log.Printf("[JOIN] Room %s has %d members (capacity: %d)", roomId, len(memberCount), room.Capacity)
 
 	if len(memberCount) >= room.Capacity {
-		log.Printf("[JOIN] Room %s is full (%d/%d members)", roomIdStr, len(memberCount), room.Capacity)
+		log.Printf("[JOIN] Room %s is full (%d/%d members)", roomId, len(memberCount), room.Capacity)
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"error": "room is full",
 		})
@@ -472,13 +481,13 @@ func (h *ChatHTTPHandler) JoinRoom(c *fiber.Ctx) error {
 
 	// Add User to Room
 	if err := h.memberService.AddUserToRoom(context.Background(), roomID, userID); err != nil {
-		log.Printf("[JOIN] Failed to add user %s to room %s: %v", userID, roomIdStr, err)
+		log.Printf("[JOIN] Failed to add user %s to room %s: %v", userID, roomId, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to join room",
 		})
 	}
 
-	log.Printf("[JOIN] Successfully added user %s to room %s", userID, roomIdStr)
+	log.Printf("[JOIN] Successfully added user %s to room %s", userID, roomId)
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "joined room",
 	})
@@ -486,10 +495,10 @@ func (h *ChatHTTPHandler) JoinRoom(c *fiber.Ctx) error {
 
 // Leave Room
 func (h *ChatHTTPHandler) LeaveRoom(c *fiber.Ctx) error {
-	roomIdStr := c.Params("roomId")
+	roomId := c.Params("roomId")
 	userID := c.Params("userId")
 
-	roomID, err := primitive.ObjectIDFromHex(roomIdStr)
+	roomID, err := primitive.ObjectIDFromHex(roomId)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid room ID",
@@ -544,8 +553,12 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user ID"})
 	}
+	roomObjID, err := primitive.ObjectIDFromHex(roomId)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid room ID"})
+	}
 	msg := &model.ChatMessage{
-		RoomID:    roomId,
+		RoomID:    roomObjID,
 		UserID:    userObjID,
 		FileURL:   publicURL,
 		FileName:  file.Filename,
@@ -557,7 +570,7 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	kafkaMsg := msg.ToKafkaMessage()
 	jsonData, err := json.Marshal(kafkaMsg)
 	if err == nil {
-		if err := h.publisher.SendMessage(msg.RoomID, userId, string(jsonData)); err != nil {
+		if err := h.publisher.SendMessage(roomId, userId, string(jsonData)); err != nil {
 			log.Printf("[Kafka] Failed to send file message to chat-message-%s: %v", msg.RoomID, err)
 		}
 	} else {
@@ -583,7 +596,7 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 					continue // Don't notify sender
 				}
 				isOnline := false
-				if conns, exists := model.Clients[roomId]; exists {
+				if conns, exists := model.Clients[fileRoomObjID]; exists {
 					if conn, exists := conns[memberID]; exists && conn != nil {
 						isOnline = true
 					}
@@ -600,18 +613,26 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 
 // ClearRoomCache clears all cached messages for a room from Redis
 func (h *ChatHTTPHandler) ClearRoomCache(c *fiber.Ctx) error {
-	roomIdStr := c.Params("roomId")
+	roomId := c.Params("roomId")
 
-	log.Printf("[CACHE] Attempting to clear cache for room %s", roomIdStr)
+	log.Printf("[CACHE] Attempting to clear cache for room %s", roomId)
 
-	if err := redis.ClearRoomCache(roomIdStr); err != nil {
-		log.Printf("[CACHE] Failed to clear cache for room %s: %v", roomIdStr, err)
+	roomObjID, err := primitive.ObjectIDFromHex(roomId)
+	if err != nil {
+		log.Printf("[CACHE] Failed to convert room ID to primitive.ObjectID: %v", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid room ID",
+		})
+	}
+
+	if err := redis.ClearRoomCache(roomObjID.Hex()); err != nil {
+		log.Printf("[CACHE] Failed to clear cache for room %s: %v", roomObjID.Hex(), err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to clear room cache",
 		})
 	}
 
-	log.Printf("[CACHE] Successfully cleared cache for room %s", roomIdStr)
+	log.Printf("[CACHE] Successfully cleared cache for room %s", roomObjID.Hex())
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "room cache cleared successfully",
 	})

@@ -82,7 +82,7 @@ func (s *service) InitChatHub() {
 				if roomClients, exists := model.Clients[client.RoomID]; exists {
 					roomClients[client.UserID.Hex()] = nil
 				}
-				roomRedis.RemoveUserFromRoom(client.RoomID, client.UserID.Hex())
+				roomRedis.RemoveUserFromRoom(client.RoomID.Hex(), client.UserID.Hex())
 				log.Printf("[UNREGISTER] %s left room %s", client.UserID.Hex(), client.RoomID)
 
 			case message := <-model.Broadcast:
@@ -99,7 +99,7 @@ func (s *service) InitChatHub() {
 							for userID, conn := range model.Clients[message.FROM.RoomID] {
 								if conn == nil {
 									notificationMsg := fmt.Sprintf("sent a sticker")
-									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID.Hex(), notificationMsg, "sticker")
+									s.NotifyOfflineUser(userID, message.FROM.RoomID.Hex(), message.FROM.UserID.Hex(), notificationMsg, "sticker")
 								}
 							}
 							continue
@@ -109,7 +109,7 @@ func (s *service) InitChatHub() {
 							for userID, conn := range model.Clients[message.FROM.RoomID] {
 								if conn == nil {
 									notificationMsg := fmt.Sprintf("sent a file: %s", fileName)
-									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID.Hex(), notificationMsg, "file")
+									s.NotifyOfflineUser(userID, message.FROM.RoomID.Hex(), message.FROM.UserID.Hex(), notificationMsg, "file")
 								}
 							}
 							continue
@@ -135,7 +135,7 @@ func (s *service) InitChatHub() {
 					continue
 				}
 
-				if err := s.publisher.SendMessage(chatMsg.RoomID, chatMsg.UserID.Hex(), string(data)); err != nil {
+				if err := s.publisher.SendMessage(chatMsg.RoomID.Hex(), chatMsg.UserID.Hex(), string(data)); err != nil {
 					log.Printf("[BROADCAST] Failed to send message to Kafka: %v", err)
 					continue
 				}
@@ -143,7 +143,7 @@ func (s *service) InitChatHub() {
 				// Notify offline users
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
 					if conn == nil {
-						s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID.Hex(), message.MSG, "text")
+						s.NotifyOfflineUser(userID, message.FROM.RoomID.Hex(), message.FROM.UserID.Hex(), message.MSG, "text")
 					}
 				}
 
@@ -265,8 +265,8 @@ func (s *service) SaveChatMessage(ctx context.Context, msg *model.ChatMessage) e
 	msg.ID = id
 
 	// Cache the new message in Redis
-	if err := redis.SaveChatMessageToRoom(msg.RoomID, msg); err != nil {
-		log.Printf("[Cache] Failed to cache new message for room %s: %v", msg.RoomID, err)
+	if err := redis.SaveChatMessageToRoom(msg.RoomID.Hex(), msg); err != nil {
+		log.Printf("[Cache] Failed to cache new message for room %s: %v", msg.RoomID.Hex(), err)
 	}
 
 	return nil
@@ -287,14 +287,14 @@ func (s *service) SyncRoomMembers() {
 		}
 
 		if len(memberIDs) > 0 {
-			if model.Clients[room.ID.Hex()] == nil {
-				model.Clients[room.ID.Hex()] = make(map[string]*websocket.Conn)
+			if model.Clients[room.ID] == nil {
+				model.Clients[room.ID] = make(map[string]*websocket.Conn)
 			}
 
 			for _, userID := range memberIDs {
 				userIDStr := userID.Hex()
-				if _, exists := model.Clients[room.ID.Hex()][userIDStr]; !exists {
-					model.Clients[room.ID.Hex()][userIDStr] = nil
+				if _, exists := model.Clients[room.ID][userIDStr]; !exists {
+					model.Clients[room.ID][userIDStr] = nil
 				}
 				log.Printf("[SYNC] User %s is a member of room %s", userIDStr, room.ID.Hex())
 			}

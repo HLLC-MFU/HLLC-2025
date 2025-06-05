@@ -13,7 +13,7 @@ var _ = coreModel.Collection("rooms")
 
 type ChatMessage struct {
 	ID        primitive.ObjectID  `bson:"_id,omitempty" json:"id"`
-	RoomID    string              `bson:"room_id" json:"room_id"`
+	RoomID    primitive.ObjectID  `bson:"room_id" json:"room_id"`
 	UserID    primitive.ObjectID  `bson:"user_id" json:"user_id"`
 	Message   string              `bson:"message" json:"message"`
 	Mentions  []string            `bson:"mentions,omitempty"`
@@ -33,7 +33,7 @@ type ChatEvent struct {
 
 type MessagePayload struct {
 	UserID   primitive.ObjectID `json:"userId"`
-	RoomID   string             `json:"roomId"`
+	RoomID   primitive.ObjectID `json:"roomId"`
 	Message  string             `json:"message"`
 	Mentions []string           `json:"mentions"`
 }
@@ -48,13 +48,13 @@ var _ = []interface{}{
 
 type mappedConns map[string]map[string]*websocket.Conn
 
-var Clients = make(mappedConns)
+var Clients = make(map[primitive.ObjectID]map[string]*websocket.Conn)
 var Register = make(chan ClientObject)
 var Broadcast = make(chan BroadcastObject)
 var Unregister = make(chan ClientObject)
 
 type ClientObject struct {
-	RoomID string
+	RoomID primitive.ObjectID
 	UserID primitive.ObjectID
 	Conn   *websocket.Conn
 }
@@ -76,7 +76,7 @@ func UnregisterClient(client ClientObject) {
 	roomClients := Clients[client.RoomID]
 	if roomClients != nil {
 		roomClients[client.UserID.Hex()] = nil
-		log.Printf("[UNREGISTER] %s left room %s", client.UserID.Hex(), client.RoomID)
+		log.Printf("[UNREGISTER] %s left room %s", client.UserID.Hex(), client.RoomID.Hex())
 	}
 }
 
@@ -86,7 +86,7 @@ func BroadcastMessage(b BroadcastObject) {
 
 // KafkaMessage represents a message format specifically for Kafka, without MongoDB-specific fields
 type KafkaMessage struct {
-	RoomID    string             `json:"room_id"`
+	RoomID    primitive.ObjectID `json:"room_id"`
 	UserID    primitive.ObjectID `json:"user_id"`
 	Message   string             `json:"message"`
 	Mentions  []string           `json:"mentions,omitempty"`

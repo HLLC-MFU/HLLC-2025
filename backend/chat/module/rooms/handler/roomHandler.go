@@ -107,9 +107,9 @@ func (h *RoomHTTPHandler) CreateRoom(c *fiber.Ctx) error {
 
 // handle Member
 func (h *RoomHTTPHandler) GetRoomMembers(c *fiber.Ctx) error {
-	roomIdStr := c.Params("roomId")
+	roomId := c.Params("roomId")
 
-	roomID, err := primitive.ObjectIDFromHex(roomIdStr)
+	roomID, err := primitive.ObjectIDFromHex(roomId)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid room ID",

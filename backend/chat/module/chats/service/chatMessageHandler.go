@@ -44,7 +44,7 @@ func (h *ChatMessageHandler) HandleMessage(ctx context.Context, msg *model.ChatM
 	}
 
 	// Cache in Redis
-	if err := redis.SaveChatMessageToRoom(msg.RoomID, msg); err != nil {
+	if err := redis.SaveChatMessageToRoom(msg.RoomID.Hex(), msg); err != nil {
 		log.Printf("[Message Handler] Failed to cache message in Redis: %v", err)
 		// Don't return error here as the message is already saved in MongoDB
 	}
@@ -70,7 +70,7 @@ func (h *ChatMessageHandler) HandleMessage(ctx context.Context, msg *model.ChatM
 
 			if conn == nil {
 				// Notify offline users
-				h.service.NotifyOfflineUser(userID, msg.RoomID, msg.UserID.Hex(), msg.Message, "text")
+				h.service.NotifyOfflineUser(userID, msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message, "text")
 				continue
 			}
 
@@ -78,7 +78,7 @@ func (h *ChatMessageHandler) HandleMessage(ctx context.Context, msg *model.ChatM
 				log.Printf("[Message Handler] Failed to send to WebSocket client %s: %v", userID, err)
 				conn.Close()
 				model.Clients[msg.RoomID][userID] = nil
-				h.service.NotifyOfflineUser(userID, msg.RoomID, msg.UserID.Hex(), msg.Message, "text")
+				h.service.NotifyOfflineUser(userID, msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message, "text")
 			}
 		}
 	}
