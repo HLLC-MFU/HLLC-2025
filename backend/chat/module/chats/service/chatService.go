@@ -206,7 +206,7 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 	// Try to get from Redis cache first
 	cachedMessages, err := redis.GetRecentMessages(roomID, int(limit))
 	if err == nil && len(cachedMessages) > 0 {
-		// Cache hit - enrich the messages with reactions and read receipts
+		// Cache hit - enrich the messages with reactions
 		var enriched []model.ChatMessageEnriched
 		for _, msg := range cachedMessages {
 			reactions, _ := s.repo.GetReactionsByMessageID(ctx, msg.ID)
@@ -305,7 +305,25 @@ func (s *service) SyncRoomMembers() {
 }
 
 func (s *service) SaveReaction(ctx context.Context, reaction *model.MessageReaction) error {
-	return s.repo.SaveReaction(ctx, reaction)
+
+	// Update the chat_messages collection to include the reaction
+	if err := s.repo.AddReactionToMessage(ctx, reaction.MessageID, reaction); err != nil {
+		log.Printf("[SaveReaction] Failed to update chat message with reaction: %v", err)
+		return err
+	}
+
+	// Send the reaction to Kafka chat-notifications topic
+	payload := map[string]string{
+		"userId":    reaction.UserID.Hex(),
+		"messageId": reaction.MessageID.Hex(),
+		"reaction":  reaction.Reaction,
+	}
+	msg, _ := json.Marshal(payload)
+	if err := s.publisher.SendMessageToTopic("chat-notifications", reaction.UserID.Hex(), string(msg)); err != nil {
+		log.Printf("[Kafka] Failed to send reaction to chat-notifications Kafka topic: %v", err)
+	}
+
+	return nil
 }
 
 // DeleteRoomMessages deletes all messages, reactions, and read receipts for a room
