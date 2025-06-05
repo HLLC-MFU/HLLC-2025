@@ -25,6 +25,8 @@ import { ActivitiesModule } from './module/activities/activities.module';
 import { EvoucherModule } from './module/evoucher/evoucher.module';
 import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
 import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
+import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
+import { NotificationsModule } from './module/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -49,6 +51,7 @@ import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
       inject: [ConfigService],
     }),
     GlobalCacheModule,
+    ActivitiesTypeModule,
     ActivitiesModule,
     AuthModule,
     RoleModule,
@@ -66,7 +69,8 @@ import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
     ActivitiesModule,
     EvoucherModule,
     EvoucherCodeModule,
-    EvoucherTypeModule
+    EvoucherTypeModule,
+    NotificationsModule,
   ],
   providers: [
     {

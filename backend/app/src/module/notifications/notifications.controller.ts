@@ -15,8 +15,8 @@ import { CacheKey } from '@nestjs/cache-manager';
 import { Notification } from './schemas/notification.schema';
 import { ReadNotificationDto } from './dto/notification-read.dto';
 import { CreateNotificationDto } from './dto/notification.dto';
-import { FastifyRequest } from 'fastify';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { UserRequest } from 'src/pkg/types/users';
 
 @UseGuards(PermissionsGuard)
 @Controller('notifications')
@@ -69,12 +69,13 @@ export class NotificationsController {
   }
 
   @Get('me')
-  getMyNotifications(@Req() req: FastifyRequest) {
+  getMyNotifications(@Req() req: UserRequest) {
     const user = req.user;
     return this.notificationsService.getUserNotifications(
-      user?._id,
-      user?.major?._id,
-      user?.school?._id,
+      user._id,
+      user.metadata.major._id,
+      user.metadata.school._id,
     );
   }
+
 }

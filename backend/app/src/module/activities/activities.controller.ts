@@ -17,10 +17,11 @@ import { UpdateActivityDto } from './dto/update-activities.dto';
 import { FastifyRequest } from 'fastify';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
-import { Permissions } from '../auth/decorators/permissions.decorator';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
+import { UserRequest } from 'src/pkg/types/users';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(PermissionsGuard)
 @Controller('activities')
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
@@ -33,54 +34,38 @@ export class ActivitiesController {
     return this.activitiesService.create(dto);
   }
 
-
-  // @Get('user')
-  // async getActivitiesForUserQuery(
-  //   @Query() query: Record<string, string>,
-  // ) {
-  //   return this.activitiesService.findAllUserQuery(query);
-  // }
-
   @Get('')
-  @Permissions('activities:read')
-  async getActivitiesForAdmin(
+  @UseGuards(JwtAuthGuard)
+  async findAll(
     @Query() query: Record<string, string>,
+    @Req() req: UserRequest,
   ) {
-    return this.activitiesService.findAll(query);
+    return this.activitiesService.findAll(query, req.user);
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   findOne(
     @Param('id') id: string,
-    @Req() req: FastifyRequest & { user?: { _id: string } },
+    @Req() req: UserRequest,
   ) {
-    const userId = req.user?._id;
-    return this.activitiesService.findOne(id, userId);
+    return this.activitiesService.findOne(id, req.user._id);
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(new MultipartInterceptor(500))
   update(
     @Param('id') id: string,
-    @Req() req: FastifyRequest,
+    @Req() req: UserRequest,
   ) {
     const dto = req.body as UpdateActivityDto;
     return this.activitiesService.update(id, dto);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.activitiesService.remove(id);
   }
-
-    // @Public()
-  // @Get()
-  // async getActivitiesForUser(
-  //   @Query() query: Record<string, string>,
-  //   @Req() req: FastifyRequest & { user?: { _id: string } },
-  // ) {
-  //   const userId = req.user?._id;
-  //   return this.activitiesService.findAllForUser(query, userId);
-  // }
-
 }
