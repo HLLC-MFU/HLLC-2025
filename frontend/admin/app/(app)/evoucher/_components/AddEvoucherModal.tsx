@@ -18,7 +18,7 @@ import { ZonedDateTime, toZoned, now } from "@internationalized/date";
 
 // Mockup data for schools
 import schoolsMockup from "@/public/mock/schools.json";
-import { Evoucher, Sponsor } from "@/types/evoucher";
+import { Sponsors } from "@/types/sponsors";
 import { EvoucherType } from "@/types/evoucher-type";
 
 export const schools = schoolsMockup;
@@ -29,7 +29,7 @@ export interface AddEvoucherProps {
     onAdd: (evoucherData: FormData) => void;
     type: EvoucherType[];
     title: string;
-    sponsors: Sponsor[];
+    sponsors: Sponsors[];
 }
 
 export default function AddModal({

@@ -1,7 +1,8 @@
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, SortDescriptor, Image, } from "@heroui/react";
 import React, { Key, useCallback, useMemo, useState } from "react";
 import { EllipsisVertical } from "lucide-react";
-import { Evoucher, Sponsor } from "@/types/evoucher";
+import { Evoucher } from "@/types/evoucher";
+import { Sponsors } from "@/types/sponsors";
 import TableContent from "./TableContent";
 import AddModal from "./AddEvoucherModal";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
@@ -46,7 +47,7 @@ export default function EvoucherTable({
     sponsorName: string,
     evouchers: Evoucher[];
     EvoucherType: EvoucherType[];
-    sponsors: Sponsor[];
+    sponsors: Sponsors[];
 }) {
     const { createEvoucher } = useEvoucher();
 
@@ -119,7 +120,7 @@ export default function EvoucherTable({
 
         switch (columnKey) {
             case "sponsors":
-                return (cellValue as Sponsor).name.en;
+                return (cellValue as Sponsors).name.en;
             case "discount":
                 return cellValue
             case "acronym":
