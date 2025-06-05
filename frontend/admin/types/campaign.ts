@@ -9,9 +9,7 @@ export interface Campaign {
         en: string;
     };
     budget: number;
-    image: {
-        filename: string;
-    };
+    image: string;
     status: "draft" | "active" | "completed";
     startAt: string;
     endAt: string;

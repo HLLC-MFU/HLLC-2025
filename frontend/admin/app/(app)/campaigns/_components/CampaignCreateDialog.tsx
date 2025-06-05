@@ -13,6 +13,7 @@ import {
   Select,
   SelectItem,
   Alert,
+  DateRangePicker,
 } from "@heroui/react";
 import { useState } from "react";
 
@@ -159,23 +160,20 @@ export const CampaignCreateDialog = ({
                 />
               </div>
               <div className="flex gap-4">
-                <Input
-                  type="date"
-                  label="Start Date"
-                  value={formData.startAt}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startAt: e.target.value })
-                  }
-                  isRequired
-                />
-                <Input
-                  type="date"
-                  label="End Date"
-                  value={formData.endAt}
-                  onChange={(e) =>
-                    setFormData({ ...formData, endAt: e.target.value })
-                  }
-                  isRequired
+                <DateRangePicker
+                  label="Campaign Duration"
+                  description="Please select campaign start and end dates"
+                  firstDayOfWeek="mon"
+                  className="w-full"
+                  onChange={(range) => {
+                    if (range) {
+                      setFormData({
+                        ...formData,
+                        startAt: range.start.toString(),
+                        endAt: range.end.toString()
+                      });
+                    }
+                  }}
                 />
               </div>
               <Input
