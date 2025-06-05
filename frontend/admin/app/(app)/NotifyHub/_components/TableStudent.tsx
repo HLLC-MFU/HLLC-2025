@@ -41,7 +41,7 @@ export function TableInfo() {
   const [visibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [sortDescriptor, setSortDescriptor] = React.useState({
-    column: "name",
+    column: "age",
     direction: "ascending",
   });
   const [page, setPage] = React.useState(1);
@@ -403,3 +403,4 @@ export function TableInfo() {
     </Table>
   );
 }
+

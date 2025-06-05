@@ -6,74 +6,97 @@ import (
 	"log"
 	"time"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	"github.com/segmentio/kafka-go"
 )
 
-func StartKafkaConsumer(brokerAddress string, topics []string, groupID string, chatService service.ChatService) {
+const (
+	roomConsumerGroup      = "room-service-group"
+	roomEventsTopic        = "room-events"
+	roomNotificationsTopic = "room-notifications"
+)
+
+// RoomEvent represents a room-related event
+type RoomEvent struct {
+	Type    string          `json:"type"`
+	RoomID  string          `json:"roomId"`
+	Payload json.RawMessage `json:"payload,omitempty"`
+}
+
+func StartKafkaConsumer(brokerAddress string, chatService service.ChatService) {
+	topics := []string{roomEventsTopic, roomNotificationsTopic}
+
 	for _, topic := range topics {
-		go consumeTopic(brokerAddress, topic, groupID, chatService)
+		go consumeRoomTopic(brokerAddress, topic, roomConsumerGroup, chatService)
 	}
 }
 
-func consumeTopic(brokerAddress, topic, groupID string, chatService service.ChatService) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("[Kafka Consumer] Panic recovered in topic %s: %v", topic, r)
-		}
-	}()
-
-	log.Printf("[Kafka Consumer] Starting consumer on topic: %s", topic)
-
-	r := kafka.NewReader(kafka.ReaderConfig{
+func consumeRoomTopic(brokerAddress, topic, groupID string, chatService service.ChatService) {
+	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:        []string{brokerAddress},
-		GroupID:        groupID,
 		Topic:          topic,
-		MinBytes:       1e3,
+		GroupID:        groupID,
+		MinBytes:       10e3,
 		MaxBytes:       10e6,
 		CommitInterval: time.Second,
 		StartOffset:    kafka.LastOffset,
+		ReadBackoffMin: 100 * time.Millisecond,
+		ReadBackoffMax: 1 * time.Second,
 	})
+	defer reader.Close()
+
+	log.Printf("[Room Kafka Consumer] Started consuming from topic: %s (group: %s)", topic, groupID)
 
 	for {
-		m, err := r.ReadMessage(context.Background())
+		// Read message with timeout
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		msg, err := reader.ReadMessage(ctx)
+		cancel()
+
 		if err != nil {
-			log.Printf("[Kafka Consumer] Read error on topic %s: %v", topic, err)
-			continue
+			switch {
+			case err == context.DeadlineExceeded:
+				continue
+			case err == context.Canceled:
+				log.Printf("[Room Kafka Consumer] Consumer canceled for topic: %s", topic)
+				return
+			case err.Error() == "EOF" || err.Error() == "connection refused":
+				log.Printf("[Room Kafka Consumer] Connection lost to broker, attempting to reconnect in 5s...")
+				time.Sleep(5 * time.Second)
+				continue
+			default:
+				log.Printf("[Room Kafka Consumer] Error reading message from topic %s: %v", topic, err)
+				time.Sleep(time.Second)
+				continue
+			}
 		}
 
-		log.Printf("[Kafka Consumer] Received from topic %s: %s", topic, string(m.Value))
+		// Handle room events
+		switch topic {
+		case roomEventsTopic:
+			var event RoomEvent
+			if err := json.Unmarshal(msg.Value, &event); err != nil {
+				log.Printf("[Room Kafka Consumer] Error unmarshaling room event: %v", err)
+				continue
+			}
 
-		var msg model.ChatMessage
-		if err := json.Unmarshal(m.Value, &msg); err != nil {
-			log.Printf("[Kafka Consumer] Failed to unmarshal message: %v", err)
-			continue
+			switch event.Type {
+			case "room_deleted":
+				log.Printf("[Room Kafka Consumer] Processing room deletion for room: %s", event.RoomID)
+				// Delete all messages for this room
+				if err := chatService.DeleteRoomMessages(context.Background(), event.RoomID); err != nil {
+					log.Printf("[Room Kafka Consumer] Error deleting messages for room %s: %v", event.RoomID, err)
+				} else {
+					log.Printf("[Room Kafka Consumer] Successfully deleted all messages for room: %s", event.RoomID)
+				}
+			case "room_created", "room_updated":
+				log.Printf("[Room Kafka Consumer] Processing room event: %s for room: %s", event.Type, event.RoomID)
+			default:
+				log.Printf("[Room Kafka Consumer] Unknown room event type: %s", event.Type)
+			}
+
+		case roomNotificationsTopic:
+			log.Printf("[Room Kafka Consumer] Processing room notification: %s", string(msg.Value))
 		}
-
-		// Save to Mongo
-		if err := chatService.SaveChatMessage(context.Background(), &msg); err != nil {
-			log.Printf("[Kafka Consumer] Failed to save message to MongoDB: %v", err)
-			continue
-		}
-		log.Printf("[Kafka Consumer] Saved to MongoDB: %+v", msg)
-
-		// Save to Redis
-		if err := redis.SaveChatMessageToRoom(msg.RoomID, &msg); err != nil {
-			log.Printf("[Kafka Consumer] Failed to save to Redis: %v", err)
-		} else {
-			log.Printf("[Kafka Consumer] Saved to Redis: room %s", msg.RoomID)
-		}
-
-		// Send to clients
-		model.BroadcastMessage(model.BroadcastObject{
-			MSG: msg.Message,
-			FROM: model.ClientObject{
-				RoomID: msg.RoomID,
-				UserID: msg.UserID,
-				Conn:   nil,
-			},
-		})
 	}
 }

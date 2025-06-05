@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 )
 
@@ -30,6 +31,12 @@ type Config struct {
 		Port     string
 		Password string
 		DB       int
+	}
+	CORS struct {
+		AllowOrigins     string
+		AllowHeaders     string
+		AllowMethods     string
+		AllowCredentials bool
 	}
 }
 
@@ -61,6 +68,12 @@ func LoadConfig(path string) *Config {
 	cfg.Redis.Port = getEnvOrFatal("REDIS_PORT")
 	cfg.Redis.Password = getEnvOrDefault("REDIS_PASSWORD", "")
 	cfg.Redis.DB = getEnvAsIntOrDefault("REDIS_DB", 0)
+
+	// CORS configuration
+	cfg.CORS.AllowOrigins = getEnvOrDefault("CORS_ALLOW_ORIGINS", "http://localhost:3000")
+	cfg.CORS.AllowHeaders = getEnvOrDefault("CORS_ALLOW_HEADERS", "Origin, Content-Type, Accept, Authorization")
+	cfg.CORS.AllowMethods = getEnvOrDefault("CORS_ALLOW_METHODS", "GET, POST, PUT, DELETE")
+	cfg.CORS.AllowCredentials = getEnvOrDefault("CORS_ALLOW_CREDENTIALS", "true") == "true"
 
 	return cfg
 }
@@ -98,4 +111,13 @@ func getEnvAsIntOrDefault(key string, defaultValue int) int {
 		log.Printf("Warning: Invalid value for %s, using default: %d", key, defaultValue)
 	}
 	return defaultValue
+}
+
+func (cfg *Config) FiberCORSConfig() cors.Config {
+	return cors.Config{
+		AllowCredentials: cfg.CORS.AllowCredentials,
+		AllowOrigins:     cfg.CORS.AllowOrigins,
+		AllowHeaders:     cfg.CORS.AllowHeaders,
+		AllowMethods:     cfg.CORS.AllowMethods,
+	}
 }

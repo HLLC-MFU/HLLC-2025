@@ -16,7 +16,7 @@ func CreateKafkaTopic(brokerAddress, topic string, partitions int) error {
 	}
 	defer conn.Close()
 
-	// Check if topic already exists
+	// Check topic already exists
 	partitionsInfo, err := conn.ReadPartitions()
 	if err != nil {
 		log.Printf("[Kafka Admin] Failed to read partitions: %v", err)
@@ -25,7 +25,7 @@ func CreateKafkaTopic(brokerAddress, topic string, partitions int) error {
 	for _, p := range partitionsInfo {
 		if p.Topic == topic {
 			log.Printf("[Kafka Admin] Topic '%s' already exists", topic)
-			return nil // Already exists, do nothing
+			return nil
 		}
 	}
 
@@ -64,11 +64,11 @@ func WaitUntilTopicReady(brokerAddress, topicName string, timeout time.Duration)
 
         for _, p := range partitions {
             if p.Topic == topicName {
-                return nil // ✅ Topic found
+                return nil
             }
         }
 
-        time.Sleep(500 * time.Millisecond) // wait a bit before retry
+        time.Sleep(500 * time.Millisecond)
     }
     return errors.New("timeout waiting for topic to be ready")
 }

@@ -19,6 +19,7 @@ import * as XLSX from "xlsx"
 import { saveAs } from "file-saver"
 import { useUsers } from "@/hooks/useUsers";
 import AddToast from "./AddToast";
+import { Major } from "@/types/major";
 import { School } from "@/types/school";
 
 export const columns = [
@@ -44,15 +45,17 @@ const INITIAL_VISIBLE_COLUMNS = [
 export default function UsersTable({
   roleName,
   roleId,
-  schools,
+  majors,
   users,
+  schools
 }: {
   roleName: string;
   roleId: string;
-  schools: School[];
+  majors: Major[];
   users: User[];
+  schools: School[];
 }) {
-  const { fetchUsers, createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
+  const { createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
 
   const [isAddOpen, setIsAddOpen] = React.useState<boolean>(false);
   const [isImportOpen, setIsImportOpen] = React.useState<boolean>(false);
@@ -169,26 +172,31 @@ export default function UsersTable({
     [page, selectedKeys]
   );
 
-  const handleAdd = (user: Partial<User>) => {
-    if (actionText === "Add") createUser(user);
-    if (actionText === "Edit") updateUser(users[userIndex]._id, user);
+  const handleAdd = async (user: Partial<User>) => {
+    let response;
+
+    if (actionText === "Add") response = await createUser(user);
+    if (actionText === "Edit") response = await updateUser(users[userIndex]._id, user);
     setIsAddOpen(false);
     AddToast({
       title: "Add Successfully",
       description: "Data has added successfully",
     });
-    fetchUsers();
+
+    if (response) window.location.reload();
   };
 
-  const handleImport = (user: Partial<User>[]) => {
-    console.log(user);
+  const handleImport = async (user: Partial<User>[]) => {
+    let response;
+
     // uploadUser(user)
     setIsImportOpen(false);
     AddToast({
       title: "Import Successfully",
       description: "Data has imported successfully",
     });
-    fetchUsers();
+    
+    if (response) window.location.reload();
   };
 
   const handleExport = (fileName?: string) => {
@@ -229,21 +237,23 @@ export default function UsersTable({
       title: "Export Successfully",
       description: "Data has exported successfully",
     });
-    fetchUsers();
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    let response;
+
     if (Array.from(selectedKeys).length > 0) {
-      deleteMultiple(Array.from(selectedKeys) as string[]);
+      response = await deleteMultiple(Array.from(selectedKeys) as string[]);
     } else {
-      deleteUser(users[userIndex]._id)
+      response = await deleteUser(users[userIndex]._id)
     }
     setIsDeleteOpen(false);
     AddToast({
       title: "Delete Successfully",
       description: "Data has deleted successfully",
     });
-    fetchUsers();
+    
+    if (response) window.location.reload();
   };
 
   return (
@@ -298,6 +308,8 @@ export default function UsersTable({
         onClose={() => setIsImportOpen(false)}
         onImport={handleImport}
         onExportTemplate={() => handleExport()}
+        roleId={roleId}
+        majors={majors}
       />
 
       {/* Export */}

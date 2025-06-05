@@ -10,8 +10,8 @@ export function useUsers() {
     // Fetch all users
     const fetchUsers = async () => {
         setLoading(true);
+        setError(null);
         try {
-            setError(null);
             const res = await apiRequest<{ data: User[] }>("/users?limit=0", "GET");
             setUsers(Array.isArray(res.data?.data) ? res.data.data : []);
         } catch (err: any) {
@@ -37,6 +37,8 @@ export function useUsers() {
                     });
                 });
             }
+
+            return res;
         } catch (err: any) {
             setError(err.message || "Failed to create user.");
         } finally {
@@ -79,6 +81,8 @@ export function useUsers() {
             if (res.data) {
                 setUsers((prev) => prev.map((u) => (u._id === id ? res.data! : u)));
             }
+
+            return res;
         } catch (err: any) {
             setError(err.message || "Failed to update user.");
         } finally {
@@ -98,6 +102,8 @@ export function useUsers() {
             } else {
                 setUsers((prev) => prev.filter((u) => u._id !== id));
             }
+
+            return res;
         } catch (err: any) {
             setError(err.message || "Failed to delete user.");
         } finally {
@@ -118,6 +124,8 @@ export function useUsers() {
             } else {
                 setUsers((prev) => prev.filter((u) => !ids.includes(u._id)));
             }
+            
+            return res;
         } catch (err: any) {
             setError(err.message || "Failed to delete user.");
         } finally {

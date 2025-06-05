@@ -20,9 +20,11 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
-import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
-import { ActivitiesModule } from './module/activities/activities.module';
 import { CheckinModule } from './module/checkin/checkin.module';
+import { ActivitiesModule } from './module/activities/activities.module';
+import { EvoucherModule } from './module/evoucher/evoucher.module';
+import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
+import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
 
 @Module({
   imports: [
@@ -48,7 +50,6 @@ import { CheckinModule } from './module/checkin/checkin.module';
     }),
     GlobalCacheModule,
     ActivitiesModule,
-    ActivitiesTypeModule,
     AuthModule,
     RoleModule,
     UsersModule,
@@ -63,6 +64,9 @@ import { CheckinModule } from './module/checkin/checkin.module';
     SseModule,
     CheckinModule,
     ActivitiesModule,
+    EvoucherModule,
+    EvoucherCodeModule,
+    EvoucherTypeModule
   ],
   providers: [
     {
@@ -75,4 +79,4 @@ import { CheckinModule } from './module/checkin/checkin.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

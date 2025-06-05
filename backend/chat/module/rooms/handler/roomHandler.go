@@ -74,7 +74,7 @@ func (h *RoomHTTPHandler) CreateRoom(c *fiber.Ctx) error {
 				"error": "failed to save image",
 			})
 		}
-		imagePath = fmt.Sprintf("%s/uploads/rooms/%s", c.BaseURL(), fileName)
+		imagePath = fileName
 	}
 
 	room := &model.Room{
@@ -185,7 +185,7 @@ func (h *RoomHTTPHandler) UpdateRoom(c *fiber.Ctx) error {
 		fileName := fmt.Sprintf("%s_%s", id.Hex(), file.Filename)
 		savePath := fmt.Sprintf("./uploads/rooms/%s", fileName)
 		if err := c.SaveFile(file, savePath); err == nil {
-			imagePath = fmt.Sprintf("%s/uploads/rooms/%s", c.BaseURL(), fileName)
+			imagePath = fileName
 		} else {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save image"})
 		}

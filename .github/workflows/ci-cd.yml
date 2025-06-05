@@ -1,0 +1,114 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [deployment]
+  pull_request:
+    branches: [deployment]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.22
+
+      - name: Set up PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install root dependencies
+        run: pnpm install
+
+      - name: Start essential services (Redis, Kafka, etc.)
+        run: docker-compose up -d redis zookeeper kafka kafdrop
+
+      - name: Wait for Redis
+        run: |
+          echo "Waiting for Redis..."
+          until docker exec hllc-2025 redis-cli ping | grep PONG; do sleep 1; done
+          echo "✅ Redis is ready."
+
+      - name: Wait for Zookeeper
+        run: |
+          until [ "$(docker inspect -f '{{.State.Health.Status}}' zookeeper)" == "healthy" ]; do sleep 2; done
+          echo "✅ Zookeeper is ready."
+
+      - name: Wait for Kafka
+        run: |
+          until [ "$(docker inspect -f '{{.State.Health.Status}}' kafka)" == "healthy" ]; do sleep 2; done
+          echo "✅ Kafka is ready."
+
+      - name: Wait for Kafdrop
+        run: |
+          until [ "$(docker inspect -f '{{.State.Health.Status}}' kafdrop)" == "healthy" ]; do sleep 2; done
+          echo "✅ Kafdrop is ready."
+
+  nestjs:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install and build NestJS backend
+        run: |
+          cd backend/app
+          pnpm install
+          pnpm build
+
+  gochat:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Go Chat Server
+        run: |
+          cd backend/chat
+          go mod tidy
+          go build main.go
+
+  admin-frontend:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Admin Frontend
+        run: |
+          cd frontend/admin
+          pnpm install
+          pnpm build
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [nestjs, gochat, admin-frontend]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Deploy all services
+        run: docker-compose up -d --build
+
+  deploy-staging:
+    runs-on: self-hosted
+    needs: docker
+    steps:
+      - name: Pull latest code
+        run: git pull origin deployment
+
+      - name: Docker Compose Up
+        run: docker-compose up -d --build

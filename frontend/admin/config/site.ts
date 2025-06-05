@@ -2,18 +2,14 @@ import {
   HomeIcon,
   SchoolIcon,
   UserIcon,
-  LayoutDashboardIcon,
-  FolderIcon,
-  UsersIcon,
-  CalendarIcon,
-  CircleCheckBig,
+  CircleCheckBig ,
   SettingsIcon,
   HelpCircleIcon,
   LogOutIcon,
   ShieldAlert,
-  Palette,
   Megaphone,
-  Trophy,
+  Ticket,
+  Palette,
   BellRing,
 } from "lucide-react";
 
@@ -30,10 +26,9 @@ export const siteConfig = {
     {
       section: "User Management",
       items: [
-        { label: "Notification Management", href: '/NotifyHub', icon: BellRing },
+        { label: "Notification Management", href: '/notifications', icon: BellRing },
         { label: "Checkin" , href: "/checkin", icon: CircleCheckBig},
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
-        { label: "Activities", href: "/activities", icon: Trophy },
         { label: "Users Management", href: "/users", icon: UserIcon },
         { label: "Reports", href: "/reports", icon: ShieldAlert },
       ],
@@ -41,7 +36,8 @@ export const siteConfig = {
     {
       section: "Evoucher Management",
       items: [
-        // { label: "Campaign", href: "/campaigns", icon: Megaphone },
+        { label: "Evoucher", href: "/evoucher", icon: Ticket },
+        { label: "Campaign", href: "/campaigns", icon: Megaphone },
       ],
     },
     {
