@@ -16,7 +16,7 @@ type Publisher interface {
 type publisherImpl struct{}
 
 func (p *publisherImpl) SendMessage(roomID, userID, message string) error {
-	topicName := "chat-room-" + roomID // ✅ ต้องเติมตรงนี้เสมอ
+	topicName := "chat-room-" + roomID
 
 	writer := kafka.NewWriter(kafka.WriterConfig{
 		Brokers:  []string{"localhost:9092"},
@@ -41,7 +41,6 @@ func GetPublisher() Publisher {
 	return &publisherImpl{}
 }
 
-// ใช้อันนี้ในการ create topic (admin)
 func EnsureKafkaTopic(brokerAddress, topicName string) error {
 	conn, err := kafka.Dial("tcp", brokerAddress)
 	if err != nil {
@@ -76,15 +75,14 @@ func EnsureKafkaTopic(brokerAddress, topicName string) error {
 	return nil
 }
 
-// ใช้อันนี้เพื่อ Force Kafka Broker ให้ยอมสร้าง Partition
 func ForceCreateTopic(brokerAddress, topicName string) error {
-	// First ensure topic exists
+
 	err := EnsureKafkaTopic(brokerAddress, topicName)
 	if err != nil {
 		return err
 	}
 
-	// Then check if the topic already has partitions (i.e., it's active)
+
 	conn, err := kafka.DialLeader(context.Background(), "tcp", brokerAddress, topicName, 0)
 	if err == nil {
 		conn.Close()
@@ -92,7 +90,6 @@ func ForceCreateTopic(brokerAddress, topicName string) error {
 		return nil
 	}
 
-	// If it doesn't exist yet, write dummy message to force partition creation
 	writer := kafka.NewWriter(kafka.WriterConfig{
 		Brokers:  []string{brokerAddress},
 		Topic:    topicName,
@@ -114,13 +111,11 @@ func ForceCreateTopic(brokerAddress, topicName string) error {
 	return nil
 }
 
-
 func (p *publisherImpl) SendMessageToTopic(topic, userID, message string) error {
-	// Ensure topic exists before writing (optional but useful)
+
 	err := EnsureKafkaTopic("localhost:9092", topic)
 	if err != nil {
 		log.Printf("[Kafka] Failed to ensure topic %s: %v", topic, err)
-		// optionally return here
 	}
 
 	writer := kafka.NewWriter(kafka.WriterConfig{

@@ -25,22 +25,22 @@ export const CampaignList = ({
 }: CampaignListProps) => {
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 bg-white/60 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg">
+      <div className="flex flex-col items-center justify-center h-64 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/20 shadow-lg">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-        <p className="text-gray-600 font-medium">Loading campaigns...</p>
-        <p className="text-gray-500 text-sm mt-2">Please wait while we fetch your data</p>
+        <p className="text-gray-600 dark:text-gray-300 font-medium">Loading campaigns...</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Please wait while we fetch your data</p>
       </div>
     );
   }
 
   if (campaigns.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 bg-white/60 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-          <Search className="w-8 h-8 text-gray-400" />
+      <div className="flex flex-col items-center justify-center h-64 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/20 shadow-lg">
+        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+          <Search className="w-8 h-8 text-gray-400 dark:text-gray-500" />
         </div>
-        <h3 className="text-xl font-semibold text-gray-700 mb-2">No campaigns found</h3>
-        <p className="text-gray-500 text-center max-w-md">
+        <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">No campaigns found</h3>
+        <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
           {searchQuery || statusFilter !== "all" 
             ? "Try adjusting your search or filter criteria" 
             : "Get started by creating your first campaign"}
@@ -66,7 +66,7 @@ export const CampaignList = ({
       {campaigns.map((campaign) => (
         <div 
           key={campaign._id} 
-          className="group relative bg-white/60 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 overflow-hidden min-h-[300px]"
+          className="group relative bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/20 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 overflow-hidden min-h-[300px]"
         >
           <CampaignPreview campaign={campaign} />
           
@@ -77,7 +77,7 @@ export const CampaignList = ({
                   e.stopPropagation();
                   onEditCampaign(campaign);
                 }}
-                className="p-2 bg-blue-500/90 backdrop-blur-sm text-white rounded-lg hover:bg-blue-600 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+                className="p-2 bg-blue-500/90 dark:bg-blue-600/90 backdrop-blur-sm text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
                 title="Edit Campaign"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,7 +89,7 @@ export const CampaignList = ({
                   e.stopPropagation();
                   onDeleteCampaign(campaign);
                 }}
-                className="p-2 bg-red-500/90 backdrop-blur-sm text-white rounded-lg hover:bg-red-600 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+                className="p-2 bg-red-500/90 dark:bg-red-600/90 backdrop-blur-sm text-white rounded-lg hover:bg-red-600 dark:hover:bg-red-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
                 title="Delete Campaign"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

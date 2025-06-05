@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"log"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/handler"
@@ -26,12 +25,13 @@ import (
 )
 
 func (s *server) chatService() {
-
 	publisher := kafkaUtil.GetPublisher()
 
-	staticTopics := []string{"chat-room", "chat-notifications"}
-	for _, topic := range staticTopics {
-		// Create or ensure Kafka topic
+	kafkaTopics := []string{
+		"chat-notifications",
+	}
+
+	for _, topic := range kafkaTopics {
 		if err := kafkaUtil.EnsureKafkaTopic("localhost:9092", topic); err != nil {
 			log.Fatalf("[Kafka] Ensure Topic %s error: %v", topic, err)
 		}
@@ -54,39 +54,20 @@ func (s *server) chatService() {
 	stickerService := stickerServicePkg.NewStickerService(stkRepo)
 
 	// Rooms logic
-	roomService := RoomService.NewService(roomRepo, publisher, memberService)
+	roomService := RoomService.NewService(roomRepo, publisher, memberService, chatService)
 
 	// Background services
 	chatService.SyncRoomMembers()
 	chatService.InitChatHub()
 
-	// Kafka consumer
-	kafkaConsumerGroup := "chat-group"
-	// Fetch rooms from DB
-
-	// Fetch rooms from DB
-	rooms, _, err := roomRepo.List(context.Background(), 1, 1000)
-	if err != nil {
-		log.Fatalf("Failed to fetch rooms: %v", err)
-	}
-
-	var topics []string
-	for _, room := range rooms {
-		topics = append(topics, "chat-room-"+room.ID.Hex())
-	}
-
-	roomKafka.StartKafkaConsumer("localhost:9092", topics, kafkaConsumerGroup, chatService)
+	// Start room-specific Kafka consumer
+	roomKafka.StartKafkaConsumer("localhost:9092", chatService)
 
 	// HTTP/WebSocket handler
 	httpHandler := handler.NewHTTPHandler(chatService, memberService, publisher, stickerService, roomService)
 
 	// Fiber Middleware
-	s.app.Use(cors.New(cors.Config{
-		AllowCredentials: true,
-		AllowOrigins:     "http://localhost:3000",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowMethods:     "GET, POST, PUT, DELETE",
-	}))
+	s.app.Use(cors.New(s.config.FiberCORSConfig()))
 
 	s.app.Use("/ws/:roomId/:userId", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
@@ -98,18 +79,13 @@ func (s *server) chatService() {
 	s.app.Get("/ws/:roomId/:userId", websocket.New(func(conn *websocket.Conn) {
 		roomID := conn.Params("roomId")
 		userID := conn.Params("userId")
-		username := userID // Replace this if you plan to fetch usernames
+		username := userID
 		httpHandler.HandleWebSocket(conn, userID, username, roomID)
 	}))
 
-	// Routes (using centralized router if applicable)
-	// router.RegisterChatRoutes(s.app.Group("/api/v1/rooms"), httpHandler)
-
-	// Health
 	s.app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
 	})
-	s.app.Static("/uploads", "./uploads")
 	s.app.Get("/ping", func(c *fiber.Ctx) error {
 		return c.SendString("pong")
 	})

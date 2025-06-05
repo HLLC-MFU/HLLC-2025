@@ -15,7 +15,7 @@ export function ColorConfirmationModal({ isOpen, onClose, onConfirm }: ColorConf
                     Confirm Change Color
                 </ModalHeader>
                 <ModalBody>
-                    <p>Are you sure you want to Change the Color ? This action cannot be undone.</p>
+                    <p>Are you sure you want to Change the Color ?</p>
                 </ModalBody>
                 <ModalFooter>
                     <Button color="danger" variant="light" onPress={onClose}>

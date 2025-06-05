@@ -30,7 +30,7 @@ export function ActivityModal({
     const [bannerPhoto, setBannerPhoto] = useState("");
     const [logoPhoto, setLogoPhoto] = useState("");
     const [isOpen, setIsOpen] = useState(activity?.metadata?.isOpen || true);
-    const [isProgrssCount, setIsProgrssCount] = useState(activity?.metadata?.isProgrssCount || true);
+    const [isProgressCount, setIsProgressCount] = useState(activity?.metadata?.isProgressCount || true);
     const [isVisible, setIsVisible] = useState(activity?.metadata?.isVisible || true);
     const [scopeMajor, setScopeMajor] = useState(activity?.metadata?.scope?.major || []);
     const [scopeSchool, setScopeSchool] = useState(activity?.metadata?.scope?.school || []);
@@ -66,7 +66,7 @@ export function ActivityModal({
             },
             metadata: {
                 isOpen: isOpen,
-                isProgrssCount: isProgrssCount,
+                isProgressCount: isProgressCount,
                 isVisible: isVisible,
                 scope: {
                     major: scopeMajor,

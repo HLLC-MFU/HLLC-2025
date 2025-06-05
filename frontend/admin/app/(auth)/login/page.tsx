@@ -33,16 +33,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-full w-full flex items-center justify-between overflow-y-hidden">
-      <div className="hidden md:flex h-full w-full p-8 max-w-[50%]">
+    <div className="h-full w-full flex items-center justify-between overflow-y-hidden p-8">
+      <div className="hidden md:flex h-full w-full max-w-[50%] relative">
         <Image
+          fill
           alt="Background"
-          className="w-100 rounded-xl"
-          height={1080} // Or appropriate height
+          className="object-cover rounded-xl"
           src="/images/background.png"
-          width={1920} // Or appropriate width
         />
       </div>
+
 
       <div className="flex flex-col w-full p-16 grow items-center">
         <Form className="gap-6 flex flex-col w-full max-w-lg grow" onSubmit={onSubmit}>
