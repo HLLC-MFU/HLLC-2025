@@ -10,7 +10,6 @@ import {
 } from '@heroui/react';
 
 import { Typing } from './TypingModal';
-import { Search, ChevronDown, Plus } from 'lucide-react';
 import { useCheckin } from '@/hooks/useCheckin';
 import { useActivity } from '@/hooks/useActivity';
 
