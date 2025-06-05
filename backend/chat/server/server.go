@@ -18,6 +18,7 @@ type server struct {
 	config *config.Config
 	db     *mongo.Client
 	redis  *core.RedisCache
+	api    fiber.Router
 }
 
 func NewServer(cfg *config.Config, db *mongo.Client) *server {
@@ -29,15 +30,21 @@ func NewServer(cfg *config.Config, db *mongo.Client) *server {
 
 	redis := core.RedisConnect(context.Background(), cfg)
 
+	api := app.Group("/api")
+
 	return &server{
 		app:    app,
 		config: cfg,
 		db:     db,
 		redis:  redis,
+		api:    api,
 	}
 }
 
 func (s *server) Start() error {
+	// Serve static files for uploads globally
+	s.app.Static("/uploads", "./uploads")
+
 	// Route service based on App Name
 	s.chatService()
 	s.roomService()
