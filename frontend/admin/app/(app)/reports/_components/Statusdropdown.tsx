@@ -9,17 +9,16 @@ interface StatusDropdownProps {
 }
 
 const STATUS_OPTIONS = [
-  { key: "Pending", label: "Pending", color: "danger", colorClass: "text-red-500" },
-  { key: "In Progress", label: "In Progress", color: "warning", colorClass: "text-yellow-500" },
-  { key: "Resolved", label: "Resolved", color: "success", colorClass: "text-green-500" },
+    { key: "Pending", label: "Pending", color: "danger", colorClass: "text-red-500" },
+    { key: "In-Progress", label: "In-Progress", color: "warning", colorClass: "text-yellow-500" },
+    { key: "Done", label: "Done", color: "success", colorClass: "text-green-500" },
 ];
-
 
 const getStatusColor = (status: Problem["status"]) => {
     switch (status) {
         case "Pending": return "danger";
-        case "In Progress": return "warning";
-        case "Resolved": return "success";
+        case "In-Progress": return "warning";
+        case "Done": return "success";
         default: return "danger";
     }
 };

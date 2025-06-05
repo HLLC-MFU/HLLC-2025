@@ -10,7 +10,7 @@ import { ReportTypeService } from './report-type.service';
       { name: ReportType.name, schema: ReportTypeSchema },
     ]),
   ],
-  exports: [ReportTypeService],
+  exports: [ReportTypeService, MongooseModule],
   controllers: [ReportTypeController],
   providers: [ReportTypeService],
 })
