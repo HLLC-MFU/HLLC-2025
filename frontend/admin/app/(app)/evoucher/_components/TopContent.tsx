@@ -3,17 +3,18 @@ import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, S
 import { ChevronDownIcon, PlusIcon, SearchIcon, Ticket } from "lucide-react";
 import { TableColumnType } from "./TableContent";
 import React from "react";
+import { EvoucherType } from "@/types/evoucher-type";
 
 export interface TopContentProps {
     setIsAddOpen: (value: boolean) => void;
-    setActionText: (value: string) => void;
+    setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
     typeFilter: string;
     setTypeFilter: (value: string) => void;
-    EvoucherType: string[];
+    EvoucherType: EvoucherType[];
     capitalize: (value: string) => string;
     visibleColumns: Set<string> | string[];
-    setVisibleColumns: (columns: string[]) => void;
+    setVisibleColumns: (columns: Set<string>) => void;
     columns: TableColumnType[];
     selectedKeys?: Set<string> | string[];
     filteredItems?: Evoucher[];
@@ -68,7 +69,15 @@ export default function TopContent({
                             closeOnSelect={false}
                             selectedKeys={typeFilter}
                             selectionMode="multiple"
-                            onSelectionChange={setTypeFilter}
+                            onSelectionChange={(keys) => {
+                                if (typeof keys === "string") {
+                                    setTypeFilter(keys);
+                                } else if (keys instanceof Set && keys.size > 0) {
+                                    setTypeFilter(Array.from(keys)[0] as string);
+                                } else {
+                                    setTypeFilter("");
+                                }
+                            }}
                         >
                             {EvoucherType.map((type) => (
                                 <DropdownItem key={type.name} className="capitalize">
@@ -89,7 +98,15 @@ export default function TopContent({
                             closeOnSelect={false}
                             selectedKeys={visibleColumns}
                             selectionMode="multiple"
-                            onSelectionChange={setVisibleColumns}
+                            onSelectionChange={(keys) => {
+                                if (typeof keys === "string") {
+                                    setVisibleColumns(new Set([keys]));
+                                } else if (keys instanceof Set) {
+                                    setVisibleColumns(keys as Set<string>);
+                                } else {
+                                    setVisibleColumns(new Set());
+                                }
+                            }}
                         >
                             {columns.map((column) => (
                                 <DropdownItem key={column.uid} className="capitalize">

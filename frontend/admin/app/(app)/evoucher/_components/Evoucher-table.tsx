@@ -8,6 +8,7 @@ import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { EvoucherType } from "@/types/evoucher-type";
 import AddToast from "../../users/_components/AddToast";
 import { useEvoucher } from "@/hooks/useEvoucher";
+import type { Selection } from "@react-types/shared";
 
 export const columns = [
     { name: "SPONSOR", uid: "sponsors", sortable: true },
@@ -20,7 +21,6 @@ export const columns = [
     { name: "BANNER", uid: "banner", },
     { name: "THUMPNAIL", uid: "thumpnail", },
     { name: "LOGO", uid: "logo", },
-    { name: "ACTIONS", uid: "actions", },
 ];
 
 export function capitalize(s: string) {
@@ -35,7 +35,6 @@ const INITIAL_VISIBLE_COLUMNS = [
     "expiration",
     "type",
     "cover",
-    "actions",
 ];
 
 export default function EvoucherTable({
@@ -52,7 +51,7 @@ export default function EvoucherTable({
     const { createEvoucher } = useEvoucher();
 
     const [filterValue, setFilterValue] = React.useState("");
-    const [selectedKeys, setSelectedKeys] = React.useState<"all" | Set<unknown>>(new Set([]));
+    const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(new Set<string>());
     const [visibleColumns, setVisibleColumns] = React.useState(
         new Set(INITIAL_VISIBLE_COLUMNS),
     );
@@ -70,8 +69,6 @@ export default function EvoucherTable({
     const hasSearchFilter = Boolean(filterValue);
 
     const headerColumns = React.useMemo(() => {
-        if (visibleColumns === "all") return columns;
-
         return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
     }, [visibleColumns]);
 
@@ -121,23 +118,23 @@ export default function EvoucherTable({
 
         switch (columnKey) {
             case "sponsors":
-                return cellValue.name.en;
+                return (cellValue as Sponsor).name.en;
             case "discount":
                 return cellValue
             case "acronym":
                 return cellValue;
             case "detail":
-                return cellValue.en;
+                return (cellValue as { en: string }).en;
             case "type":
-                return cellValue.name;
+                return (cellValue as { name: string }).name
             case "expiration":
-                return new Date(cellValue).toLocaleString("en-US", {
-                    dateStyle: 'long',
-                    timeStyle: 'short',
-                    timeZone: 'UTC'
-                });
-            case "type":
-                return cellValue.name;
+                if (typeof cellValue === "string" || cellValue instanceof Date) {
+                    return new Date(cellValue).toLocaleString("en-US", {
+                        dateStyle: 'long',
+                        timeStyle: 'short',
+                        timeZone: 'UTC'
+                    });
+                }
             case "cover":
                 return (
                     <Image
@@ -177,7 +174,7 @@ export default function EvoucherTable({
                 description: "Data has been added successfully",
             });
 
-            // if (response) window.location.reload();
+            if (response) window.location.reload();
         } catch (error) {
             AddToast({
                 title: "Failed to Add",
@@ -207,7 +204,7 @@ export default function EvoucherTable({
                 EvoucherType={EvoucherType}
                 capitalize={capitalize}
                 visibleColumns={visibleColumns}
-                setVisibleColumns={setVisibleColumns}
+                setVisibleColumns={(columns: Set<string>) => setVisibleColumns(new Set(columns))}
                 columns={columns}
                 selectedKeys={selectedKeys}
                 setSelectedKeys={setSelectedKeys}

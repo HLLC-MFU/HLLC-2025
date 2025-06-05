@@ -44,7 +44,7 @@ export default function AddModal({
     const [acronym, setAcronym] = React.useState("");
     const [detail, setDetail] = React.useState("");
     const [discount, setDiscount] = React.useState<number>(0);
-    const [expiration, setExpiration] = React.useState<ZonedDateTime>(
+    const [expiration, setExpiration] = React.useState<ZonedDateTime | null>(
         toZoned(now("Asia/Bangkok"), "Asia/Bangkok")
     );
     const [selectedType, setSelectedType] = React.useState<Set<string>>(new Set<string>());
@@ -75,7 +75,9 @@ export default function AddModal({
         const formData = new FormData();
         formData.append("acronym", acronym);
         formData.append("discount", discount.toString());
-        formData.append("expiration", expiration.toDate().toISOString());
+        if (expiration) {
+            formData.append("expiration", expiration.toDate().toISOString());
+        }
         formData.append("detail[th]", detail);
         formData.append("detail[en]", detail);
         if (sponsorId) formData.append("sponsors", sponsorId);
@@ -144,9 +146,9 @@ export default function AddModal({
                             type="number"
                             placeholder="Enter Discount"
                             errorMessage={({ validationDetails }) => {
-                                if (validationDetails.valueMissing) return "Please enter your discount";
+                                return "Please enter your discount";
                             }}
-                            value={discount.toString()}
+                            value={discount !== undefined ? discount.toString() : ""}
                             onChange={(e) => setDiscount(Number(e.target.value))}
                         />
                         <DateInput

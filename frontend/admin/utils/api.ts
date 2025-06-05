@@ -19,19 +19,15 @@ export async function apiRequest<T>(
     const token = (await cookies()).get('accessToken')?.value;
 
     const headers: HeadersInit = {
+      ...(body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     };
 
-    // Only set Content-Type for non-FormData requests
-    if (body && !(body instanceof FormData)) {
-      headers["Content-Type"] = "application/json";
-    }
-
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method,
       headers,
-      body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
+      body: body ? JSON.stringify(body) : undefined,
       ...options,
     });
 

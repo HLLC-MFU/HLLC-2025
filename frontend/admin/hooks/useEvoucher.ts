@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/utils/api";
 import { Evoucher } from "@/types/evoucher";
-// import { cookies } from 'next/headers';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -34,7 +33,6 @@ export function useEvoucher() {
     const createEvoucher = async (evoucherData: FormData) => {
         try {
             setLoading(true);
-            // const token = (await cookies()).get('accessToken')?.value;
 
             const res = await fetch(`${API_BASE_URL}/evoucher`, {
                 method: "POST",

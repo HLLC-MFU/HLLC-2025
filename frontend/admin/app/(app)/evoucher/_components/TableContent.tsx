@@ -3,6 +3,8 @@ import TopContent from "./TopContent";
 import BottomContent from "./BottomContent";
 import { Evoucher } from "@/types/evoucher";
 import { SortDescriptor } from "@heroui/react";
+import { EvoucherType } from "@/types/evoucher-type";
+import type { Selection } from "@react-types/shared";
 
 export interface TableColumnType {
     uid: string;
@@ -12,7 +14,7 @@ export interface TableColumnType {
 
 export interface TableContentProps {
     setIsAddOpen: (value: boolean) => void;
-    setActionText: (value: string) => void;
+    setActionText: (value: "Add" | "Edit") => void;
     sortDescriptor: SortDescriptor;
     setSortDescriptor: (descriptor: SortDescriptor) => void;
     headerColumns: TableColumnType[];
@@ -21,13 +23,13 @@ export interface TableContentProps {
     filterValue: string;
     typeFilter: string;
     setTypeFilter: (value: string) => void;
-    EvoucherType: string[];
+    EvoucherType: EvoucherType[];
     capitalize: (value: string) => string;
     visibleColumns: Set<string>;
-    setVisibleColumns: (columns: string[]) => void;
+    setVisibleColumns: (columns: Set<string>) => void;
     columns: TableColumnType[];
-    selectedKeys: Set<React.Key>;
-    setSelectedKeys: (keys: Set<React.Key>) => void;
+    selectedKeys: Selection;
+    setSelectedKeys: (keys: Selection) => void;
     filteredItems: Evoucher[];
     page: number;
     pages: number;
