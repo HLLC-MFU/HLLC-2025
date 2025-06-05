@@ -23,7 +23,7 @@ export function TableCell({
     case 'acronym':
       return (
         <div className="flex items-center">
-          <span className="font-medium text-sm uppercase">
+          <span className="text-sm font-semibold">
             {activity.acronym}
           </span>
         </div>
@@ -31,7 +31,7 @@ export function TableCell({
     case 'name':
       return (
         <div className="flex flex-col">
-          <span className="font-medium text-sm">{activity.name?.en}</span>
+          <span className="text-sm font-semibold">{activity.name?.en}</span>
           <span className="text-xs text-default-500">
             {activity.name?.th}
           </span>
@@ -90,7 +90,7 @@ export function TableCell({
       );
     case 'actions':
       return (
-        <div className="flex items-center justify-end gap-1">
+        <div className="relative flex justify-end items-center gap-2">
           <Button
             isIconOnly
             size="sm"
@@ -111,7 +111,7 @@ export function TableCell({
           <Dropdown>
             <DropdownTrigger>
               <Button isIconOnly size="sm" variant="light">
-                <MoreVertical size={16} />
+                <MoreVertical className="text-default-300" size={16} />
               </Button>
             </DropdownTrigger>
             <DropdownMenu aria-label="Activity Actions">

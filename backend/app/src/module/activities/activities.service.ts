@@ -30,7 +30,6 @@ export class ActivitiesService {
 
     const activity = new this.activitiesModel({
       ...createActivitiesDto,
-      photo: createActivitiesDto.photo,
       metadata: {
         isOpen: metadata.isOpen === false ? false : true,
         isProgressCount: metadata.isProgressCount === true ? true : false,
@@ -123,13 +122,11 @@ export class ActivitiesService {
       throw new NotFoundException('Access denied');
     }
 
-    const userQuery = await this.usersService.findAllByQuery({
-      metadata: { _id: new Types.ObjectId(userId).toString() } as Record<string, string>
-    });
+    const userQuery = await this.usersService.findOne(userId);
+    const user = userQuery?.data?.[0];
     
-    const user = userQuery.data[0];
     if (!user) {
-      throw new NotFoundException('Access denied');
+      throw new NotFoundException('User not found');
     }
 
     if (!(await this.isUserInScope(activity, userId))) {
@@ -219,24 +216,28 @@ export class ActivitiesService {
       }
     }
 
-    const userMajorId = user.metadata?.major?.toString();
-    if (userMajorId && Array.isArray(scope.major) && scope.major.length > 0) {
-      const majorMatch = scope.major.some(id => id.toString() === userMajorId);
-      if (majorMatch) {
-        return true;
+    const userMajor = user.metadata?.major;
+    if (userMajor && Array.isArray(scope.major) && scope.major.length > 0) {
+      const majorId = typeof userMajor === 'object' ? 
+        (userMajor as { _id?: string })._id?.toString() : 
+        userMajor.toString();
+      if (majorId) {
+        const majorMatch = scope.major.some(id => id.toString() === majorId);
+        if (majorMatch) {
+          return true;
+        }
       }
     }
 
     if (Array.isArray(scope.school) && scope.school.length > 0) {
-      const userResult = await this.usersService.findOneByQuery({ _id: userId });
-      const userMajor = userResult?.data?.[0]?.metadata?.major;
-      
-      if (!userMajor || typeof userMajor !== 'object') {
+      const userMajor = user.metadata?.major;
+      if (!userMajor) {
         return false;
       }
 
-      const majorId = (userMajor as any)._id?.toString();
-      const schoolId = (userMajor as any).school?._id?.toString();
+      const schoolId = typeof userMajor === 'object' ? 
+        (userMajor as { school?: { _id?: string } }).school?._id?.toString() : 
+        null;
 
       if (!schoolId) {
         return false;
@@ -246,7 +247,6 @@ export class ActivitiesService {
       if (schoolMatch) {
         return true;
       }
-      
     }
 
     return false;

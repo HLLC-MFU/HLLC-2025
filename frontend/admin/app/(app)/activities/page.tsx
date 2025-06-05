@@ -273,9 +273,10 @@ export default function ActivitiesPage() {
                         </div>
                       }
                       classNames={{
-                        base: "bg-white border border-default-200 rounded-xl shadow-sm mb-4",
+                        base: "bg-white rounded-xl shadow-md mb-4",
                         title: "font-medium text-large",
-                        content: "px-4 pb-4"
+                        content: "px-4 pb-4",
+                        trigger: "px-6 py-4",
                       }}
                     >
                       {typeActivities.length === 0 ? (

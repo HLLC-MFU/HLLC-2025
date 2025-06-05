@@ -115,7 +115,7 @@ export function ActivityModal({
       setBannerPreview("");
       setLogoPreview("");
       if (!type) {
-        setType("");
+      setType("");
       }
       setIsOpen(true);
       setIsProgressCount(true);
@@ -232,7 +232,7 @@ export function ActivityModal({
                   inputRef={bannerInputRef as React.RefObject<HTMLInputElement>}
                   aspectRatio="aspect-[21/9]"
                   maxSize="max-h-[300px]"
-                />
+                  />
                 <ImagePreview
                   label="Logo Photo"
                   preview={logoPreview}
@@ -265,7 +265,7 @@ export function ActivityModal({
               setLocationEn={setLocationEn}
               locationTh={locationTh}
               setLocationTh={setLocationTh}
-            />
+                  />
 
             <Divider />
 

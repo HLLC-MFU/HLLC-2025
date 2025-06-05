@@ -84,7 +84,48 @@ export function ExpandedDetails({ activity }: ExpandedDetailsProps) {
             </div>
           </div>
         </div>
-        <Divider />
+
+        <Divider className="my-6" />
+
+        {/* Photo Section */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium text-default-700">Photos</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Banner Photo */}
+            <div className="rounded-xl border border-default-200 bg-white p-4 shadow-sm">
+              <p className="text-xs text-default-500 mb-2">Banner Photo</p>
+              {activity.photo?.bannerPhoto ? (
+                <img 
+                  src={`http://localhost:8080/uploads/${activity.photo.bannerPhoto}`}
+                  alt="Banner"
+                  className="w-full h-[200px] object-cover rounded-lg"
+                />
+              ) : (
+                <div className="w-full h-[200px] bg-default-100 rounded-lg flex items-center justify-center">
+                  <p className="text-default-400">No banner photo</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Logo Photo */}
+            <div className="rounded-xl border border-default-200 bg-white p-4 shadow-sm">
+              <p className="text-xs text-default-500 mb-2">Logo Photo</p>
+              {activity.photo?.logoPhoto ? (
+                <img 
+                  src={`http://localhost:8080/uploads/${activity.photo.logoPhoto}`}
+                  alt="Logo"
+                  className="w-full h-[200px] object-contain rounded-lg"
+                />
+              ) : (
+                <div className="w-full h-[200px] bg-default-100 rounded-lg flex items-center justify-center">
+                  <p className="text-default-400">No logo photo</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <Divider className="my-6" />
 
         {/* Scope Section */}
         <div className="space-y-4">

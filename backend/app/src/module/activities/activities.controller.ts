@@ -19,6 +19,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { UserRequest } from 'src/pkg/types/users';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+
+@UseGuards(PermissionsGuard)
 @Controller('activities')
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
@@ -37,7 +40,6 @@ export class ActivitiesController {
     @Query() query: Record<string, string>,
     @Req() req: UserRequest,
   ) {
-    console.log('Request user in controller:', req.user);
     return this.activitiesService.findAll(query, req.user);
   }
 

@@ -7,11 +7,9 @@ import {
   TableRow,
   TableCell,
 } from '@heroui/react';
-import { AnimatePresence } from 'framer-motion';
 import { Activities } from '@/types/activities';
 import { columns } from './TableColumns';
 import { TableCell as TableCellComponent } from './TableCell';
-import { ExpandedDetails } from './ExpandedDetails';
 
 interface ActivitiesTableProps {
   activities: Activities[];
@@ -37,62 +35,55 @@ export default function ActivitiesTable({
   };
 
   return (
-    <div className="w-full space-y-4">
-      <Table
-        aria-label="Activities table"
-        removeWrapper
-        className="rounded-md overflow-hidden border border-default-200"
-        classNames={{
-          th: 'bg-default-100 text-default-800 font-medium text-xs py-3',
-          td: 'py-3',
-        }}
-      >
-        <TableHeader>
-          {columns.map((column) => (
-            <TableColumn
-              key={column.uid}
-              align={
-                ['actions', 'isOpen', 'isProgressCount', 'isVisible'].includes(
-                  column.uid,
-                )
-                  ? 'center'
-                  : 'start'
-              }
-            >
-              {column.name}
-            </TableColumn>
-          ))}
-        </TableHeader>
-        <TableBody emptyContent={'No activities found'}>
-          {activities.map((activity) => (
-            <TableRow
-              key={activity._id}
-              className="hover:bg-default-50 transition-colors"
-            >
-              {(columnKey) => (
-                <TableCell>
-                  <TableCellComponent
-                    activity={activity}
-                    columnKey={columnKey}
-                    expandedKeys={expandedKeys}
-                    onToggleExpand={handleToggleExpand}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                  />
-                </TableCell>
-              )}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      <AnimatePresence>
-        {activities
-          .filter((activity) => expandedKeys.has(activity._id))
-          .map((activity) => (
-            <ExpandedDetails key={`details-${activity._id}`} activity={activity} />
-          ))}
-      </AnimatePresence>
-    </div>
+    <Table
+      aria-label="Activities table"
+      removeWrapper
+      classNames={{
+        table: "w-full bg-white rounded-lg shadow-sm",
+        th: "bg-default-100 text-default-400 font-semibold text-sm py-3 first:rounded-tl-lg last:rounded-tr-lg border-b border-default-200",
+        td: "py-3 border-b border-default-100 last:border-b-0",
+        tr: "hover:bg-default-50 transition-colors",
+        wrapper: "max-h-[382px] shadow-lg rounded-lg overflow-hidden border border-default-200",
+        thead: "[&>tr]:first:shadow-none",
+        tbody: "before:content-[''] before:block before:h-0",
+      }}
+    >
+      <TableHeader>
+        {columns.map((column) => (
+          <TableColumn
+            key={column.uid}
+            align={
+              ['actions', 'isOpen', 'isProgressCount', 'isVisible'].includes(
+                column.uid,
+              )
+                ? 'center'
+                : 'start'
+            }
+          >
+            {column.name}
+          </TableColumn>
+        ))}
+      </TableHeader>
+      <TableBody emptyContent={'No activities found'}>
+        {activities.map((activity) => (
+          <TableRow
+            key={activity._id}
+          >
+            {(columnKey) => (
+              <TableCell>
+                <TableCellComponent
+                  activity={activity}
+                  columnKey={columnKey}
+                  expandedKeys={expandedKeys}
+                  onToggleExpand={handleToggleExpand}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              </TableCell>
+            )}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
-} 
+}

@@ -6,12 +6,14 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  Button,
 } from '@heroui/react';
 import { AnimatePresence } from 'framer-motion';
 import { Activities } from '@/types/activities';
 import { columns } from './activities-table/TableColumns';
 import { TableCell as TableCellComponent } from './activities-table/TableCell';
 import { ExpandedDetails } from './activities-table/ExpandedDetails';
+import { Plus } from 'lucide-react';
 
 interface ActivitiesTableProps {
   activities: Activities[];
@@ -37,13 +39,16 @@ export default function ActivitiesTable({
   };
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 shadow-md rounded-xl overflow-hidden">
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold">Activities</h2>
+        <Button color="primary" endContent={<Plus size={20} />}>Add new</Button>
+      </div>
       <Table
         aria-label="Activities table"
         removeWrapper
-        className="rounded-md overflow-hidden border border-default-200"
         classNames={{
-          th: 'bg-default-100 text-default-800 font-medium text-xs py-3',
+          th: 'bg-default-100 text-default-800 font-semibold text-xs py-3',
           td: 'py-3',
         }}
       >
