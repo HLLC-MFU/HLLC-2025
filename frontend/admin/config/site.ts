@@ -11,6 +11,8 @@ import {
   HelpCircleIcon,
   LogOutIcon,
   ShieldAlert,
+  Megaphone,
+  Ticket,
   Palette,
   BellRing
   
@@ -34,6 +36,13 @@ export const siteConfig = {
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Users Management", href: "/users", icon: UserIcon },
         { label: "Reports", href: "/reports", icon: ShieldAlert },
+      ],
+    },
+    {
+      section: "Evoucher Management",
+      items: [
+        { label: "Evoucher", href: "/evoucher", icon: Ticket },
+        { label: "Campaign", href: "/campaigns", icon: Megaphone },
       ],
     },
     {
