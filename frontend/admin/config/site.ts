@@ -11,6 +11,7 @@ import {
   Ticket,
   Palette,
   BellRing,
+  Activity,
 } from "lucide-react";
 
 export const siteConfig = {
@@ -31,6 +32,7 @@ export const siteConfig = {
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Users Management", href: "/users", icon: UserIcon },
         { label: "Reports", href: "/reports", icon: ShieldAlert },
+        { label: "Activities", href: "/activities", icon: Activity },
       ],
     },
     {
