@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from "react";
@@ -10,12 +9,14 @@ import AddRoleModal from "./_components/AddRoleModal";
 import { useRoles } from "@/hooks/useRoles";
 import { Role, User } from "@/types/user";
 import { useSchools } from "@/hooks/useSchool";
+import { PageHeader } from "@/components/ui/page-header";
+import { useMajors } from "@/hooks/useMajor";
 
 export default function ManagementPage() {
   const { users } = useUsers();
   const { roles, createRole } = useRoles();
   const { schools } = useSchools();
-
+  const { majors } = useMajors();
   const [isRoleOpen, setIsRoleOpen] = React.useState(false);
 
   // 🟢 Group users by their role name
@@ -46,13 +47,11 @@ export default function ManagementPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Users Management</h1>
-          <Button color="primary" endContent={<Plus size={20} />} onPress={() => setIsRoleOpen(true)}>New role</Button>
-        </div>
-
+    <>
+      <PageHeader description='This is Management Page' icon={<UserRound />} right={
+        <Button color="primary" size="lg" endContent={<Plus size={20}/>} className="mb-6" onPress={() => setIsRoleOpen(true)}>New Role</Button>
+      } />
+      <div className="flex flex-col min-h-screen">
         <div className="flex flex-col gap-6">
           <Accordion variant="splitted">
             {[...Object.entries(groupedUsers).map(([roleName, data]) => (
@@ -67,6 +66,7 @@ export default function ManagementPage() {
                 <UsersTable
                   roleName={roleName}
                   roleId={data.roleId}
+                  majors={majors}
                   schools={schools}
                   users={data.users}
                 />
@@ -84,6 +84,7 @@ export default function ManagementPage() {
                 <UsersTable
                   roleName={role.name}
                   roleId={role._id}
+                  majors={majors}
                   schools={schools}
                   users={[]}
                 />
@@ -91,13 +92,14 @@ export default function ManagementPage() {
             ))]}
           </Accordion>
         </div>
+
+        <AddRoleModal
+          isOpen={isRoleOpen}
+          onClose={() => setIsRoleOpen(false)}
+          onAddRole={handleAddRole}
+        />
       </div>
 
-      <AddRoleModal
-        isOpen={isRoleOpen}
-        onClose={() => setIsRoleOpen(false)}
-        onAddRole={handleAddRole}
-      />
-    </div>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schemas/user.schema';
 import { Major, MajorSchema } from '../majors/schemas/major.schema';
 import { Role, RoleSchema } from '../role/schemas/role.schema';
+
 @Module({
   imports: [
     MongooseModule.forFeature([

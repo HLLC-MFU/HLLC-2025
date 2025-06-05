@@ -11,8 +11,8 @@ import {
   HelpCircleIcon,
   LogOutIcon,
   ShieldAlert,
-  DollarSign,
-  
+  Megaphone,
+  Ticket,
   Palette,
   BellRing
   
@@ -39,9 +39,10 @@ export const siteConfig = {
       ],
     },
     {
-      section: "Sponsor",
+      section: "Evoucher Management",
       items: [
-        { label: "Sponsor", href: "/sponsor", icon: DollarSign },
+        { label: "Evoucher", href: "/evoucher", icon: Ticket },
+        { label: "Campaign", href: "/campaigns", icon: Megaphone },
       ],
     },
     {

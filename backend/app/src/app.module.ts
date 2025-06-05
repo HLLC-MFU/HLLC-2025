@@ -22,6 +22,9 @@ import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesModule } from './module/activities/activities.module';
+import { EvoucherModule } from './module/evoucher/evoucher.module';
+import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
+import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
 
 @Module({
   imports: [
@@ -59,7 +62,10 @@ import { ActivitiesModule } from './module/activities/activities.module';
     ReportsModule,
     SseModule,
     CheckinModule,
-    ActivitiesModule
+    ActivitiesModule,
+    EvoucherModule,
+    EvoucherCodeModule,
+    EvoucherTypeModule
   ],
   providers: [
     {
@@ -72,4 +78,4 @@ import { ActivitiesModule } from './module/activities/activities.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
