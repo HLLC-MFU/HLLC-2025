@@ -28,8 +28,12 @@ export class AuthService {
   ) {}
 
   async validateUser(username: string, pass: string): Promise<UserDocument> {
-    const user = await this.userModel.findOne({ username }).populate('role');
+    const user = await this.userModel.findOne({ username }).select('+password').populate('role');
     if (!user) throw new UnauthorizedException('User not found');
+
+    if (!user.password) {
+      throw new UnauthorizedException('User not registered');
+    }
 
     const isMatch = await bcrypt.compare(pass, user.password);
     if (!isMatch) throw new UnauthorizedException('Invalid password');
@@ -103,13 +107,10 @@ export class AuthService {
         throw new UnauthorizedException('User not found');
       }
 
-      // Check if refresh token is valid
       const isMatch = await bcrypt.compare(oldRefreshToken, user.refreshToken);
       if (!isMatch) {
         throw new UnauthorizedException('Invalid refresh token');
       }
-
-      // Generate new tokens
       const newAccessToken = this.jwtService.sign(
         { sub: user._id.toString(), username: user.username },
         {

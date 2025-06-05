@@ -17,7 +17,10 @@ import { FastifyReply } from 'fastify';
 import { Permissions } from './decorators/permissions.decorator';
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+  ) {}
+
   @Public()
   @Post('login')
   async login(
@@ -42,6 +45,7 @@ export class AuthController {
 
     return res.send({ tokens, user });
   }
+
 
   @Public()
   @Post('refresh')

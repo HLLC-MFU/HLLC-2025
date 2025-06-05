@@ -49,6 +49,7 @@ import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
       inject: [ConfigService],
     }),
     GlobalCacheModule,
+    ActivitiesModule,
     AuthModule,
     RoleModule,
     UsersModule,
