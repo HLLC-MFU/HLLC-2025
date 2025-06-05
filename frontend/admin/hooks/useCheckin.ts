@@ -13,7 +13,6 @@ export function useCheckin() {
         setError(null);
         try {
             const res = await apiRequest<{ data: Checkin[] }>("/checkin?limit=0", "GET");
-            const res = await apiRequest<{ data: Checkin[] }>("/checkin?limit=0", "GET");
             setCheckin(Array.isArray(res.data?.data) ? res.data.data : []);
         } catch (err: any) {
             setError(err.message || "Failed to fetch checkin data.");

@@ -1,7 +1,5 @@
 import { useActivity } from '@/hooks/useActivity';
 import { Select, SelectItem } from '@heroui/react';
-import { useActivity } from '@/hooks/useActivity';
-import { Select, SelectItem } from '@heroui/react';
 
 interface SelectProps {
   selectedActivityIds: string[];
