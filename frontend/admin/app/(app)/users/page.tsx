@@ -49,12 +49,13 @@ export default function ManagementPage() {
   return (
     <>
       <PageHeader description='This is Management Page' icon={<UserRound />} right={
-        <Button color="primary" size="lg" endContent={<Plus size={20}/>} className="mb-6" onPress={() => setIsRoleOpen(true)}>New Role</Button>
+        <Button color="primary" size="lg" endContent={<Plus size={20}/>} onPress={() => setIsRoleOpen(true)}>New Role</Button>
       } />
       <div className="flex flex-col min-h-screen">
         <div className="flex flex-col gap-6">
           <Accordion variant="splitted">
             {[...Object.entries(groupedUsers).map(([roleName, data]) => (
+              console.log(roleName, data),
               <AccordionItem
                 key={roleName}
                 aria-label={roleName}

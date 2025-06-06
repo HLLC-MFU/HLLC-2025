@@ -21,6 +21,7 @@
     "@heroui/switch": "2.2.17",
     "@heroui/system": "2.4.15",
     "@heroui/theme": "2.4.15",
+    "@internationalized/date": "3.8.1",
     "@react-aria/ssr": "3.9.8",
     "@react-aria/visually-hidden": "3.8.23",
     "clsx": "2.1.1",
@@ -38,7 +39,6 @@
     "react-qr-reader": "3.0.0-beta-1",
     "recharts": "^2.15.3",
     "xlsx": "^0.18.5",
-    "recharts": "^2.15.3",
     "react-select": "^5.10.1",
     "zustand": "^5.0.5"
   },

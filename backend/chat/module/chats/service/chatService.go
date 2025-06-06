@@ -75,18 +75,18 @@ func (s *service) InitChatHub() {
 				if model.Clients[client.RoomID] == nil {
 					model.Clients[client.RoomID] = make(map[string]*websocket.Conn)
 				}
-				model.Clients[client.RoomID][client.UserID] = client.Conn
-				log.Printf("[REGISTER] %s joined room %s", client.UserID, client.RoomID)
+				model.Clients[client.RoomID][client.UserID.Hex()] = client.Conn
+				log.Printf("[REGISTER] %s joined room %s", client.UserID.Hex(), client.RoomID)
 
 			case client := <-model.Unregister:
 				if roomClients, exists := model.Clients[client.RoomID]; exists {
-					roomClients[client.UserID] = nil
+					roomClients[client.UserID.Hex()] = nil
 				}
-				roomRedis.RemoveUserFromRoom(client.RoomID, client.UserID)
-				log.Printf("[UNREGISTER] %s left room %s", client.UserID, client.RoomID)
+				roomRedis.RemoveUserFromRoom(client.RoomID.Hex(), client.UserID.Hex())
+				log.Printf("[UNREGISTER] %s left room %s", client.UserID.Hex(), client.RoomID)
 
 			case message := <-model.Broadcast:
-				log.Printf("[BROADCAST] Message from %s in room %s: %s", message.FROM.UserID, message.FROM.RoomID, message.MSG)
+				log.Printf("[BROADCAST] Message from %s in room %s: %s", message.FROM.UserID.Hex(), message.FROM.RoomID, message.MSG)
 
 				// Try to parse as a special message type (sticker/file)
 				var specialMsg map[string]interface{}
@@ -99,7 +99,7 @@ func (s *service) InitChatHub() {
 							for userID, conn := range model.Clients[message.FROM.RoomID] {
 								if conn == nil {
 									notificationMsg := fmt.Sprintf("sent a sticker")
-									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg, "sticker")
+									s.NotifyOfflineUser(userID, message.FROM.RoomID.Hex(), message.FROM.UserID.Hex(), notificationMsg, "sticker")
 								}
 							}
 							continue
@@ -109,7 +109,7 @@ func (s *service) InitChatHub() {
 							for userID, conn := range model.Clients[message.FROM.RoomID] {
 								if conn == nil {
 									notificationMsg := fmt.Sprintf("sent a file: %s", fileName)
-									s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, notificationMsg, "file")
+									s.NotifyOfflineUser(userID, message.FROM.RoomID.Hex(), message.FROM.UserID.Hex(), notificationMsg, "file")
 								}
 							}
 							continue
@@ -135,7 +135,7 @@ func (s *service) InitChatHub() {
 					continue
 				}
 
-				if err := s.publisher.SendMessage(chatMsg.RoomID, chatMsg.UserID, string(data)); err != nil {
+				if err := s.publisher.SendMessage(chatMsg.RoomID.Hex(), chatMsg.UserID.Hex(), string(data)); err != nil {
 					log.Printf("[BROADCAST] Failed to send message to Kafka: %v", err)
 					continue
 				}
@@ -143,12 +143,12 @@ func (s *service) InitChatHub() {
 				// Notify offline users
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
 					if conn == nil {
-						s.NotifyOfflineUser(userID, message.FROM.RoomID, message.FROM.UserID, message.MSG, "text")
+						s.NotifyOfflineUser(userID, message.FROM.RoomID.Hex(), message.FROM.UserID.Hex(), message.MSG, "text")
 					}
 				}
 
 				// Send acknowledgment back to sender
-				if conn, exists := model.Clients[chatMsg.RoomID][chatMsg.UserID]; exists && conn != nil {
+				if conn, exists := model.Clients[chatMsg.RoomID][chatMsg.UserID.Hex()]; exists && conn != nil {
 					ack := model.ChatEvent{
 						EventType: "message_ack",
 						Payload: model.MessagePayload{
@@ -206,7 +206,7 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 	// Try to get from Redis cache first
 	cachedMessages, err := redis.GetRecentMessages(roomID, int(limit))
 	if err == nil && len(cachedMessages) > 0 {
-		// Cache hit - enrich the messages with reactions and read receipts
+		// Cache hit - enrich the messages with reactions
 		var enriched []model.ChatMessageEnriched
 		for _, msg := range cachedMessages {
 			reactions, _ := s.repo.GetReactionsByMessageID(ctx, msg.ID)
@@ -265,8 +265,8 @@ func (s *service) SaveChatMessage(ctx context.Context, msg *model.ChatMessage) e
 	msg.ID = id
 
 	// Cache the new message in Redis
-	if err := redis.SaveChatMessageToRoom(msg.RoomID, msg); err != nil {
-		log.Printf("[Cache] Failed to cache new message for room %s: %v", msg.RoomID, err)
+	if err := redis.SaveChatMessageToRoom(msg.RoomID.Hex(), msg); err != nil {
+		log.Printf("[Cache] Failed to cache new message for room %s: %v", msg.RoomID.Hex(), err)
 	}
 
 	return nil
@@ -287,14 +287,14 @@ func (s *service) SyncRoomMembers() {
 		}
 
 		if len(memberIDs) > 0 {
-			if model.Clients[room.ID.Hex()] == nil {
-				model.Clients[room.ID.Hex()] = make(map[string]*websocket.Conn)
+			if model.Clients[room.ID] == nil {
+				model.Clients[room.ID] = make(map[string]*websocket.Conn)
 			}
 
 			for _, userID := range memberIDs {
 				userIDStr := userID.Hex()
-				if _, exists := model.Clients[room.ID.Hex()][userIDStr]; !exists {
-					model.Clients[room.ID.Hex()][userIDStr] = nil
+				if _, exists := model.Clients[room.ID][userIDStr]; !exists {
+					model.Clients[room.ID][userIDStr] = nil
 				}
 				log.Printf("[SYNC] User %s is a member of room %s", userIDStr, room.ID.Hex())
 			}
@@ -305,7 +305,25 @@ func (s *service) SyncRoomMembers() {
 }
 
 func (s *service) SaveReaction(ctx context.Context, reaction *model.MessageReaction) error {
-	return s.repo.SaveReaction(ctx, reaction)
+
+	// Update the chat_messages collection to include the reaction
+	if err := s.repo.AddReactionToMessage(ctx, reaction.MessageID, reaction); err != nil {
+		log.Printf("[SaveReaction] Failed to update chat message with reaction: %v", err)
+		return err
+	}
+
+	// Send the reaction to Kafka chat-notifications topic
+	payload := map[string]string{
+		"userId":    reaction.UserID.Hex(),
+		"messageId": reaction.MessageID.Hex(),
+		"reaction":  reaction.Reaction,
+	}
+	msg, _ := json.Marshal(payload)
+	if err := s.publisher.SendMessageToTopic("chat-notifications", reaction.UserID.Hex(), string(msg)); err != nil {
+		log.Printf("[Kafka] Failed to send reaction to chat-notifications Kafka topic: %v", err)
+	}
+
+	return nil
 }
 
 // DeleteRoomMessages deletes all messages, reactions, and read receipts for a room
@@ -343,7 +361,7 @@ func (s *service) StartRoomConsumers() {
 		topic := "chat-room-" + room.ID.Hex()
 		consumer := kafkaPublisher.NewConsumer(
 			[]string{"localhost:9092"},
-			topic,
+			[]string{topic},
 			chatConsumerGroup,
 			handler,
 		)

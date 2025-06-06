@@ -1,90 +1,84 @@
-import { Button, Chip, ChipProps, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, SortDescriptor, } from "@heroui/react";
-import React from "react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, SortDescriptor, Image, } from "@heroui/react";
+import React, { Key, useCallback, useMemo, useState } from "react";
 import { EllipsisVertical } from "lucide-react";
 import { Evoucher } from "@/types/evoucher";
+import { Sponsors } from "@/types/sponsors";
 import TableContent from "./TableContent";
-import AddModal from "./AddModal";
+import AddModal from "./AddEvoucherModal";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
+import { EvoucherType } from "@/types/evoucher-type";
+import AddToast from "../../users/_components/AddToast";
+import { useEvoucher } from "@/hooks/useEvoucher";
+import type { Selection } from "@react-types/shared";
 
 export const columns = [
-    { name: "SPONSOR", uid: "sponsor" },
+    { name: "SPONSOR", uid: "sponsors", sortable: true },
     { name: "ACRONYM", uid: "acronym", sortable: true },
-    { name: "DETAIL", uid: "detail" },
+    { name: "DETAIL", uid: "detail", },
     { name: "DISCOUNT", uid: "discount", sortable: true },
     { name: "EXPIRATION", uid: "expiration", sortable: true },
-    { name: "TYPE", uid: "type" },
+    { name: "TYPE", uid: "type", sortable: true },
     { name: "COVER", uid: "cover", },
     { name: "BANNER", uid: "banner", },
     { name: "THUMPNAIL", uid: "thumpnail", },
     { name: "LOGO", uid: "logo", },
-    { name: "ACTIONS", uid: "actions", },
 ];
 
 export function capitalize(s: string) {
     return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
 
-export const typeOptions = [
-    { name: "Global" },
-    { name: "Individual" },
-];
-
-const typeColorMap: Record<string, ChipProps["color"]> = {
-    Global: "success",
-    Individual: "warning",
-};
-
 const INITIAL_VISIBLE_COLUMNS = [
-    "sponsor",
+    "sponsors",
     "acronym",
     "detail",
     "discount",
     "expiration",
     "type",
-    "logo",
-    "actions",
+    "cover",
 ];
 
 export default function EvoucherTable({
     sponsorName,
     evouchers,
-    setIsAddOpen,
-    setIsDeleteOpen,
-    setActionText,
+    EvoucherType,
+    sponsors,
 }: {
     sponsorName: string,
     evouchers: Evoucher[];
-    setIsAddOpen: (value: boolean) => void;
-    setIsDeleteOpen: (value: boolean) => void;
-    setActionText: (value: string) => void;
+    EvoucherType: EvoucherType[];
+    sponsors: Sponsors[];
 }) {
-    const [filterValue, setFilterValue] = React.useState("");
-    const [selectedKeys, setSelectedKeys] = React.useState<"all" | Set<unknown>>(new Set([]));
-    const [visibleColumns, setVisibleColumns] = React.useState(
+    const { createEvoucher } = useEvoucher();
+
+    const [filterValue, setFilterValue] = useState("");
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set<string>());
+    const [visibleColumns, setVisibleColumns] = useState(
         new Set(INITIAL_VISIBLE_COLUMNS),
     );
-    const [typeFilter, setTypeFilter] = React.useState<"all" | string>("all");
-    const [rowsPerPage, setRowsPerPage] = React.useState(5);
-    const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    const [typeFilter, setTypeFilter] = useState<Selection>("all");
+    const [rowsPerPage, setRowsPerPage] = useState(5);
+    const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
         column: "acronym",
         direction: "ascending",
     });
-    const [page, setPage] = React.useState(1);
+    const [page, setPage] = useState(1);
+    const [actionText, setActionText] = useState<"Add" | "Edit">("Add");
+    const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
+    const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false);
 
     const hasSearchFilter = Boolean(filterValue);
 
-    const headerColumns = React.useMemo(() => {
-        if (visibleColumns === "all") return columns;
-
+    const headerColumns = useMemo(() => {
         return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
     }, [visibleColumns]);
 
-    const filteredItems = React.useMemo(() => {
+    const filteredItems = useMemo(() => {
         let filteredEvoucher = [...evouchers];
 
         if (hasSearchFilter) {
             filteredEvoucher = filteredEvoucher.filter((evoucher) =>
-                evoucher.sponsor.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
+                evoucher.sponsors.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
                 evoucher.type.name.toLowerCase().includes(filterValue.toLowerCase()) ||
                 evoucher.discount.toString().includes(filterValue.toLowerCase()) ||
                 evoucher.acronym.toLowerCase().includes(filterValue.toLowerCase()) ||
@@ -92,7 +86,7 @@ export default function EvoucherTable({
                 evoucher.expiration.toString().includes(filterValue.toLowerCase())
             );
         }
-        if (typeFilter !== "all" && Array.from(typeFilter).length !== typeOptions.length) {
+        if (typeFilter !== "all" && Array.from(typeFilter).length !== EvoucherType.length) {
             filteredEvoucher = filteredEvoucher.filter((evoucher) =>
                 Array.from(typeFilter).includes(evoucher.type.name),
             );
@@ -101,16 +95,17 @@ export default function EvoucherTable({
         return filteredEvoucher;
     }, [evouchers, filterValue, typeFilter]);
 
+
     const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
-    const items = React.useMemo(() => {
+    const items = useMemo(() => {
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
 
         return filteredItems.slice(start, end);
     }, [page, filteredItems, rowsPerPage]);
 
-    const sortedItems = React.useMemo(() => {
+    const sortedItems = useMemo(() => {
         return [...items].sort((a: Evoucher, b: Evoucher) => {
             const first = a[sortDescriptor.column as keyof Evoucher] as number;
             const second = b[sortDescriptor.column as keyof Evoucher] as number;
@@ -120,28 +115,36 @@ export default function EvoucherTable({
         });
     }, [sortDescriptor, items]);
 
-    const renderCell = React.useCallback((evoucher: Evoucher, columnKey: React.Key) => {
+    const renderCell = useCallback((evoucher: Evoucher, columnKey: Key) => {
         const cellValue = evoucher[columnKey as keyof Evoucher];
 
         switch (columnKey) {
-            case "sponsor":
-                return cellValue.name.en;
+            case "sponsors":
+                return (cellValue as Sponsors).name.en;
+            case "discount":
+                return cellValue
+            case "acronym":
+                return cellValue;
             case "detail":
-                return cellValue.en;
+                return (cellValue as { en: string }).en;
             case "type":
-                return cellValue.name;
+                return (cellValue as { name: string }).name
             case "expiration":
-                return cellValue.toLocaleString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "2-digit",
-                });
-            case "type":
+                if (typeof cellValue === "string" || cellValue instanceof Date) {
+                    return new Date(cellValue).toLocaleString("en-US", {
+                        dateStyle: 'long',
+                        timeStyle: 'short',
+                        timeZone: 'UTC'
+                    });
+                }
+            case "cover":
                 return (
-                    <Chip color={typeColorMap[cellValue.name]} size="sm" variant="flat">
-                        {cellValue.name}
-                    </Chip>
-                )
+                    <Image
+                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo?.coverPhoto}`}
+                        alt="Cover"
+                        width={100}
+                    />
+                );
             case "actions":
                 return (
                     <div className="relative flex justify-end items-center gap-2">
@@ -152,16 +155,40 @@ export default function EvoucherTable({
                                 </Button>
                             </DropdownTrigger>
                             <DropdownMenu>
-                                <DropdownItem key="edit" onPress={() => {setActionText("Edit"); setIsAddOpen(true);}}>Edit</DropdownItem>
+                                <DropdownItem key="edit" onPress={() => { setActionText("Edit"); setIsAddOpen(true); }}>Edit</DropdownItem>
                                 <DropdownItem key="delete" onPress={() => setIsDeleteOpen(true)}>Delete</DropdownItem>
                             </DropdownMenu>
                         </Dropdown>
                     </div>
                 );
             default:
-                return cellValue;
+                return cellValue || "";
         }
     }, []);
+
+    const handleAdd = async (evoucher: FormData) => {
+        try {
+            const response = await createEvoucher(evoucher);
+            setIsAddOpen(false);
+
+            AddToast({
+                title: "Add Successfully",
+                description: "Data has been added successfully",
+            });
+
+            if (response) window.location.reload();
+        } catch (error) {
+            AddToast({
+                title: "Failed to Add",
+                description: (error as Error)?.message || "An error occurred while adding data.",
+                color: "danger",
+            });
+        }
+    };
+
+    const handleDelete = () => {
+        setIsDeleteOpen(true);
+    };
 
     return (
         <div>
@@ -176,10 +203,10 @@ export default function EvoucherTable({
                 filterValue={filterValue}
                 typeFilter={typeFilter}
                 setTypeFilter={setTypeFilter}
-                typeOptions={typeOptions}
+                EvoucherType={EvoucherType}
                 capitalize={capitalize}
                 visibleColumns={visibleColumns}
-                setVisibleColumns={setVisibleColumns}
+                setVisibleColumns={(columns: Set<string>) => setVisibleColumns(new Set(columns))}
                 columns={columns}
                 selectedKeys={selectedKeys}
                 setSelectedKeys={setSelectedKeys}
@@ -197,10 +224,26 @@ export default function EvoucherTable({
                     setFilterValue(val);
                     setPage(1);
                 }}
-                onRowsPerPageChange={(e) => {
-                    setRowsPerPage(e.target.value);
-                    setPage(1);
-                }}
+            />
+
+            {/* Add evoucher modal */}
+            <AddModal
+                isOpen={isAddOpen}
+                onClose={() => setIsAddOpen(false)}
+                onAdd={handleAdd}
+                title={actionText}
+                type={EvoucherType}
+                sponsors={sponsors}
+            />
+
+            {/* Delete evoucher modal */}
+            <ConfirmationModal
+                isOpen={isDeleteOpen}
+                onClose={() => setIsDeleteOpen(false)}
+                onConfirm={handleDelete}
+                title={"Delete evoucher"}
+                body={"Are you sure you want to delete this item?"}
+                confirmColor='danger'
             />
         </div>
     )

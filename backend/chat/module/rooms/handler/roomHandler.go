@@ -13,6 +13,7 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/service"
 	stickerService "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
+	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 
 	coreModel "github.com/HLLC-MFU/HLLC-2025/backend/pkg/core/model"
 	"github.com/gofiber/fiber/v2"
@@ -24,14 +25,20 @@ type RoomHTTPHandler struct {
 	memberService  MemberService.MemberService
 	publisher      kafka.Publisher
 	stickerService stickerService.StickerService
+	userService    userService.UserService
 }
 
-func NewHTTPHandler(service service.RoomService, memberService MemberService.MemberService, publisher kafka.Publisher, stickerService stickerService.StickerService) *RoomHTTPHandler {
+func NewHTTPHandler(service service.RoomService,
+	memberService MemberService.MemberService,
+	publisher kafka.Publisher,
+	stickerService stickerService.StickerService,
+	userService userService.UserService) *RoomHTTPHandler {
 	return &RoomHTTPHandler{
 		service:        service,
 		memberService:  memberService,
 		publisher:      publisher,
 		stickerService: stickerService,
+		userService:    userService,
 	}
 }
 
@@ -100,25 +107,42 @@ func (h *RoomHTTPHandler) CreateRoom(c *fiber.Ctx) error {
 
 // handle Member
 func (h *RoomHTTPHandler) GetRoomMembers(c *fiber.Ctx) error {
-	roomIdStr := c.Params("roomId")
+	roomId := c.Params("roomId")
 
-	roomID, err := primitive.ObjectIDFromHex(roomIdStr)
+	roomID, err := primitive.ObjectIDFromHex(roomId)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid room ID",
 		})
 	}
 
-	members, err := h.memberService.GetRoomMembers(context.Background(), roomID)
+	// ดึง RoomMember document
+	userIDs, err := h.memberService.GetRoomMembers(context.Background(), roomID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to get room members",
 		})
 	}
 
+	var users []fiber.Map
+
+	for _, userID := range userIDs {
+		user, err := h.userService.GetById(c.Context(), userID)
+		if err != nil || user == nil {
+			continue
+		}
+
+		users = append(users, fiber.Map{
+			"user_id": userID.Hex(),
+			"user":    user,
+		})
+	}
+
 	return c.JSON(fiber.Map{
-		"members": members,
+		"room_id": roomID.Hex(),
+		"members": users,
 	})
+
 }
 
 func (h *RoomHTTPHandler) GetRoom(c *fiber.Ctx) error {
@@ -140,7 +164,24 @@ func (h *RoomHTTPHandler) GetRoom(c *fiber.Ctx) error {
 			"error": "room not found ",
 		})
 	}
-	return c.JSON(room)
+
+	creator, err := h.userService.GetById(c.Context(), room.Creator)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to get creator",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"created_at": room.CreatedAt,
+		"updated_at": room.UpdatedAt,
+		"id":         room.ID.Hex(),
+		"name":       room.Name,
+		"capacity":   room.Capacity,
+		"image":      room.Image,
+		"creator_id": room.Creator.Hex(),
+		"creator":    creator,
+	})
 }
 
 func (h *RoomHTTPHandler) ListRooms(c *fiber.Ctx) error {
@@ -154,8 +195,27 @@ func (h *RoomHTTPHandler) ListRooms(c *fiber.Ctx) error {
 		})
 	}
 
+	// Populate creator object
+	var result []map[string]interface{}
+	for _, room := range rooms {
+		creator, err := h.userService.GetById(c.Context(), room.Creator)
+		if err != nil {
+			creator = nil
+		}
+		result = append(result, map[string]interface{}{
+			"created_at": room.CreatedAt,
+			"updated_at": room.UpdatedAt,
+			"id":         room.ID.Hex(),
+			"name":       room.Name,
+			"capacity":   room.Capacity,
+			"image":      room.Image,
+			"creator_id": room.Creator.Hex(),
+			"creator":    creator,
+		})
+	}
+
 	return c.JSON(fiber.Map{
-		"rooms": rooms,
+		"rooms": result,
 		"total": total,
 		"page":  page,
 		"limit": limit,

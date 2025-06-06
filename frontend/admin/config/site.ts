@@ -18,6 +18,7 @@ import {
   Ticket,
   Palette,
   BellRing,
+  DollarSignIcon,
   University,
 } from "lucide-react";
 
@@ -53,6 +54,12 @@ export const siteConfig = {
       ],
     },
     {
+      section: "Sponsor",
+      items: [
+        { label: "Sponosr", href: "/sponsor", icon: DollarSignIcon },
+      ],
+    },
+    {
       section: "Settings",
       items: [
         { label: "Settings", href: "/settings", icon: SettingsIcon },
@@ -60,6 +67,7 @@ export const siteConfig = {
         { label: "Appearance", href: "/appearance", icon: Palette }
       ],
     },
+
     {
       section: "Account",
       items: [

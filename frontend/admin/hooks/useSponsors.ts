@@ -1,30 +1,37 @@
 import { Sponsors } from "@/types/sponsors";
 import { apiRequest } from "@/utils/api";
-import { useState, useEffect } from "react";
-
+import { useEffect, useState } from "react";
 
 export function useSponsors() {
     const [sponsors, setSponsors] = useState<Sponsors[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null)
 
+    // Fetch all sponsors
     const fetchSponsors = async () => {
         setLoading(true);
+        setError(null);
         try {
-            setError(null);
             const res = await apiRequest<{ data: Sponsors[] }>("/sponsors?limit=0", "GET");
+
             setSponsors(Array.isArray(res.data?.data) ? res.data.data : []);
-        } catch (err: any) {
-            setError(err.message || "Failed to fetch sponsors.");
+            return res;
+        } catch (err) {
+            setError(
+                err && typeof err === 'object' && 'message' in err
+                    ? (err as { message?: string }).message || 'Failed to fetch sponsors.'
+                    : 'Failed to fetch sponsors.',
+            );
         } finally {
             setLoading(false);
         }
-    }
+    };
 
-    const createSponsor = async (sponsorData: Partial<Sponsors>) => {
+    // Create sponsor
+    const createSponsor = async (sponsorsData: Partial<Sponsors>) => {
         try {
             setLoading(true);
-            const res = await apiRequest<Sponsors>("/sponsors", "POST", sponsorData);
+            const res = await apiRequest<Sponsors>("/sponsors", "POST", sponsorsData);
             console.log("Create response: ", res);
 
             if (res.data) {
@@ -36,15 +43,27 @@ export function useSponsors() {
                     });
                 });
             }
-        } catch (err: any) {
-            setError(err.message || "Failed to create sponsor.");
+            return res;
+        } catch (err) {
+            setError(
+                err && typeof err === 'object' && 'message' in err
+                    ? (err as { message?: string }).message || 'Failed to create sponsors.'
+                    : 'Failed to create sponsors.',
+            );
         } finally {
             setLoading(false);
         }
-    }
+    };
 
     useEffect(() => {
         fetchSponsors();
     }, []);
-    return{ sponsors, loading, error, fetchSponsors, createSponsor };
+
+    return {
+        sponsors,
+        loading,
+        error,
+        fetchSponsors,
+        createSponsor,
+    };
 }

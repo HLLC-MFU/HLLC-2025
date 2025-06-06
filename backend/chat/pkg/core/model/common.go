@@ -12,16 +12,16 @@ type Base struct {
 
 // LocalizedName represents a name in multiple languages
 type LocalizedName struct {
-	Th string `bson:"th_name" json:"th" validate:"required"`
-	En string `bson:"en_name" json:"en" validate:"required"`
+	Th string `bson:"th" json:"th" validate:"required"`
+	En string `bson:"en" json:"en" validate:"required"`
 }
 
 // Photos represents a collection of photos for an entity
-type Photos struct {
-	CoverPhoto     string `bson:"cover_photo" json:"cover_photo"`
-	BannerPhoto    string `bson:"banner_photo" json:"banner_photo"`
-	ThumbnailPhoto string `bson:"thumbnail_photo" json:"thumbnail_photo"`
-	LogoPhoto      string `bson:"logo_photo" json:"logo_photo"`
+type Photo struct {
+	CoverPhoto     string `bson:"coverPhoto" json:"coverPhoto"`
+	BannerPhoto    string `bson:"bannerPhoto" json:"bannerPhoto"`
+	ThumbnailPhoto string `bson:"thumbnailPhoto" json:"thumbnailPhoto"`
+	LogoPhoto      string `bson:"logoPhoto" json:"logoPhoto"`
 }
 
 // Decorator for MongoDB collection name
