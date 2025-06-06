@@ -6,7 +6,7 @@ import {
     AccordionItem,
     Button,
 } from "@heroui/react";
-import EvoucherTable from './_components/evoucher-table'
+import EvoucherTable from './_components/EvoucherTable'
 import { PageHeader } from "@/components/ui/page-header";
 import { Plus, Ticket } from "lucide-react";
 import { Evoucher } from "@/types/evoucher";
