@@ -23,5 +23,3 @@ export class NotificationRead extends Document {
 
 export const NotificationReadSchema =
   SchemaFactory.createForClass(NotificationRead);
-
-NotificationReadSchema.index({ userId: 1 });

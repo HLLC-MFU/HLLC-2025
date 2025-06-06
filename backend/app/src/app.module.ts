@@ -32,6 +32,7 @@ import { NotificationsModule } from './module/notifications/notifications.module
   imports: [
     ConfigModule.forRoot({
       load: [configuration],
+      envFilePath: '.env.production',
       isGlobal: true,
     }),
     MongooseModule.forRootAsync({

@@ -71,20 +71,18 @@ export class AuthService {
       };
       reply.setCookie('accessToken', accessToken, {
         httpOnly: true,
-        secure: false,
+        secure: true,
         sameSite: 'lax',
         path: '/',
         maxAge: 60 * 60,
-        domain: 'localhost',
       });
 
       reply.setCookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: false,
+        secure: true,
         sameSite: 'lax',
         path: '/',
         maxAge: 60 * 60 * 24 * 7,
-        domain: 'localhost',
       });
     }
 
