@@ -5,11 +5,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type Room struct {
+type School struct {
 	coreModel.Base `bson:",inline"`
 	ID             primitive.ObjectID      `bson:"_id,omitempty" json:"id"`
 	Name           coreModel.LocalizedName `bson:"name" json:"name"`
-	Capacity       int                     `bson:"capacity" json:"capacity"`
-	Image          string                  `bson:"image,omitempty" json:"image,omitempty"`
-	Creator        primitive.ObjectID      `bson:"creator_id" json:"creator_id"`
+	Acronym        string                  `bson:"acronym" json:"acronym"`
+	Detail         coreModel.LocalizedName `bson:"detail" json:"detail"`
+	Photo          coreModel.Photo         `bson:"photo" json:"photo"`
 }

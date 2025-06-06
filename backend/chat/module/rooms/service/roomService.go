@@ -11,6 +11,7 @@ import (
 	roomKafka "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/model"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
+	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -38,14 +39,16 @@ type service struct {
 	publisher     kafkaPublisher.Publisher
 	memberService MemberService.MemberService
 	chatService   ChatServicePkg.ChatService
+	userService   userService.UserService
 }
 
-func NewService(repo repository.RoomRepository, publisher kafkaPublisher.Publisher, memberService MemberService.MemberService, chatService ChatServicePkg.ChatService) RoomService {
+func NewService(repo repository.RoomRepository, publisher kafkaPublisher.Publisher, memberService MemberService.MemberService, chatService ChatServicePkg.ChatService, userService userService.UserService) RoomService {
 	return &service{
 		repo:          repo,
 		publisher:     publisher,
 		memberService: memberService,
 		chatService:   chatService,
+		userService:   userService,
 	}
 }
 

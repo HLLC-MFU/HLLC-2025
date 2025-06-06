@@ -16,12 +16,12 @@ type ChatRepository interface {
 	SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error
 	GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error)
 	Save(ctx context.Context, msg *model.ChatMessage) (primitive.ObjectID, error)
-	SaveReaction(ctx context.Context, reaction *model.MessageReaction) error
 	GetReactionsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReaction, error)
 	GetMessageByID(ctx context.Context, id primitive.ObjectID) (*model.ChatMessage, error)
 	DeleteMessagesByRoomID(ctx context.Context, roomID string) error
 	DeleteReactionsByRoomID(ctx context.Context, roomID string) error
 	DeleteReadReceiptsByRoomID(ctx context.Context, roomID string) error
+	AddReactionToMessage(ctx context.Context, messageID primitive.ObjectID, reaction *model.MessageReaction) error
 }
 type repository struct {
 	db *mongo.Client
@@ -86,12 +86,6 @@ func (r *repository) Save(ctx context.Context, msg *model.ChatMessage) (primitiv
 	return res.InsertedID.(primitive.ObjectID), nil
 }
 
-func (r *repository) SaveReaction(ctx context.Context, reaction *model.MessageReaction) error {
-	_, err := r.dbConnect(ctx).Collection("message_reactions").InsertOne(ctx, reaction)
-	return err
-}
-
-
 func (r *repository) GetReactionsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReaction, error) {
 	filter := bson.M{"message_id": messageID}
 	cursor, err := r.dbConnect(ctx).Collection("message_reactions").Find(ctx, filter)
@@ -106,7 +100,6 @@ func (r *repository) GetReactionsByMessageID(ctx context.Context, messageID prim
 	}
 	return reactions, nil
 }
-
 
 func (r *repository) GetMessageByID(ctx context.Context, id primitive.ObjectID) (*model.ChatMessage, error) {
 	var msg model.ChatMessage
@@ -203,4 +196,13 @@ func (r *repository) DeleteReadReceiptsByRoomID(ctx context.Context, roomID stri
 	}
 	log.Printf("[DeleteReadReceiptsByRoomID] Deleted %d read receipts for room %s", result.DeletedCount, roomID)
 	return nil
+}
+
+func (r *repository) AddReactionToMessage(ctx context.Context, messageID primitive.ObjectID, reaction *model.MessageReaction) error {
+	update := bson.M{
+		"$push": bson.M{"reactions": reaction},
+	}
+	filter := bson.M{"_id": messageID}
+	_, err := r.dbConnect(ctx).Collection("chat_messages").UpdateOne(ctx, filter, update)
+	return err
 }
