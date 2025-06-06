@@ -70,24 +70,24 @@ export function TableLog() {
     const seen = new Set<string>();
 
     return (Array.isArray(checkin) ? checkin : [])
-      .map((item) => {
-        const activity = item.activities?.[0];
-        return {
-          id: item._id,
-          name: `${item.user.name.first} ${item.user.name.middle ?? ''} ${item.user.name.last}`.trim(),
-          studentid: item.user.username,
-          activityId: activity?._id ?? '',
-          activity: activity?.name?.en ?? 'Unknown',
-          activityth: activity?.name.th ?? 'ไม่ทราบ',
-          userId: item.user._id,
-        };
-      })
-      .filter((user) => {
-        const key = `${user.userId}_${user.activityId}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+  .flatMap((item) => {
+    return (item.activities || []).map((activity) => ({
+      id: item._id,
+      name: `${item.user.name.first} ${item.user.name.middle ?? ''} ${item.user.name.last}`.trim(),
+      studentid: item.user._id.toString(),
+      activityId: activity?._id.toString(),
+      activity: activity?.name?.en ?? 'Unknown',
+      activityth: activity?.name?.th ?? 'ไม่ทราบ',
+      userId: item.user._id,
+    }));
+  })
+  .filter((user) => {
+    const key = `${user.userId}_${user.activityId}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
   }, [checkin]);
 
   const filteredItems = useMemo(() => {
