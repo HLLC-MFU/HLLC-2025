@@ -23,6 +23,8 @@ import (
 	chatHandlerPkg "github.com/HLLC-MFU/HLLC-2025/backend/module/chats/handler"
 	chatRepoPkg "github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	chatServicePkg "github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
+	userRepoPkg "github.com/HLLC-MFU/HLLC-2025/backend/module/users/repository"
+	userServicePkg "github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -43,15 +45,17 @@ func (s *server) roomService() {
 	memRepo := memberRepo.NewRoomMemberRepository(s.db)
 	stkRepo := stickerRepo.NewStickerRepository(s.db)
 	chatRepo := chatRepoPkg.NewRepository(s.db)
+	userRepo := userRepoPkg.NewUserRepository(s.db)
 
 	// Services
 	memService := memberServicePkg.NewMemberService(memRepo)
 	stkService := stickerServicePkg.NewStickerService(stkRepo)
 	chatService := chatServicePkg.NewService(chatRepo, publisher, roomRepo)
-	roomService := service.NewService(roomRepo, publisher, memService, chatService)
+	userService := userServicePkg.NewUserService(userRepo)
+	roomService := service.NewService(roomRepo, publisher, memService, chatService, userService)
 
 	// Handlers
-	roomHandler := handler.NewHTTPHandler(roomService, memService, publisher, stkService)
+	roomHandler := handler.NewHTTPHandler(roomService, memService, publisher, stkService, userService)
 	stickerHandler := stickerHandler.NewHTTPHandler(stkService)
 	chatHandler := chatHandlerPkg.NewHTTPHandler(chatService, memService, publisher, stkService, roomService)
 

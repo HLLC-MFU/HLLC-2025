@@ -1,33 +1,34 @@
 import { Lang } from "./lang";
-import { Campaign } from "./campaign";
 
 export type Evoucher = {
+    _id: string;
     discount: number;
     acronym: string;
     type: Type;
-    sponsor: Sponsor;
-    campaign?: Campaign;
+    sponsors: Sponsor;
     detail: Lang;
     expiration: Date;
-    photo?: Photo;
-    metadata?: Record<string, any>;
-};
-
-export type Sponsor = {
-    name: Lang;
-    photo?: Photo;
-    type?: Type;
-    isShow?: boolean;
-    metadata?: Record<string, any>;
+    photo: Photo;
 };
 
 export type Type = {
+    _id: string;
     name: string;
 };
 
+export type Sponsor = {
+    _id: string;
+    name: Lang;
+    photo: {
+        logoPhoto: string;
+    };
+    type: string;
+    isShow: boolean;
+};
+
 export type Photo = {
-    coverPhoto: string;
-    bannerPhoto: string;
-    thumbnail: string;
-    logoPhoto: string;
+    coverPhoto?: string;
+    bannerPhoto?: string;
+    thumbnail?: string;
+    logoPhoto?: string;
 };
