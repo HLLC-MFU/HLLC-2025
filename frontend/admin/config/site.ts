@@ -11,7 +11,9 @@ import {
   HelpCircleIcon,
   LogOutIcon,
   ShieldAlert,
+<<<<<<<<< Temporary merge branch 1
   
+=========
   Megaphone,
   Ticket,
   Palette,
@@ -32,6 +34,10 @@ export const siteConfig = {
     {
       section: "User Management",
       items: [
+<<<<<<<<< Temporary merge branch 1
+=========
+        { label: "Notification Management", href: '/notifications', icon: BellRing },
+>>>>>>>>> Temporary merge branch 2
         { label: "Checkin" , href: "/checkin", icon: CircleCheckBig},
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Users Management", href: "/users", icon: UserIcon },
