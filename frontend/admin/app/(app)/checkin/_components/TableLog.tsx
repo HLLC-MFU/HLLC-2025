@@ -45,7 +45,7 @@ export function TableLog() {
     new Set(INITIAL_VISIBLE_COLUMNS),
   );
   const [rowsPerPage] = useState(5);
-  useState<{ column: string; direction: 'ascending' | 'descending' }>({
+  const [sortDescriptor, setSortDescriptor] = useState<{ column: string; direction: 'ascending' | 'descending' }>({
     column: 'activity',
     direction: 'ascending',
   });
@@ -53,10 +53,6 @@ export function TableLog() {
   const [isTypingModelOpen, setIsTypingModelOpen] = useState(false);
   const [activityFilter, setActivityFilter] = useState<Set<string>>(new Set());
   const { activities } = useActivities();
-  const [sortDescriptor, setSortDescriptor] = useState<{ column: string; direction: 'ascending' | 'descending' }>({
-    column: 'activity',
-    direction: 'ascending',
-  });
 
   const hasSearchFilter = Boolean(filterValue);
 
