@@ -19,7 +19,7 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter(),
   );
-  
+
   await app.register(compression, {
     global: true,
     encodings: ['gzip', 'deflate'],
@@ -31,11 +31,11 @@ async function bootstrap() {
       fileSize: 500 * 1024,
     },
   });
-  app.register(fastifyStatic, {
+  await app.register(fastifyStatic, {
     root: path.join(__dirname, '..', 'uploads'),
     prefix: '/uploads/',
   });
-  
+
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',

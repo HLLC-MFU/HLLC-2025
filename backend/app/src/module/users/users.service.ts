@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ConflictException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types, FilterQuery } from 'mongoose';
@@ -18,11 +17,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 
-
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateMetadataSchema } from 'src/pkg/helper/validateMetadataSchema';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
-import { throwIfEmpty } from 'rxjs';
 
 @Injectable()
 export class UsersService {
@@ -41,7 +38,7 @@ export class UsersService {
    */
   async create(createUserDto: CreateUserDto): Promise<User> {
     const role = await this.roleModel.findById(createUserDto.role).lean();
-    
+
     if (!role) {
       throw new NotFoundException('Role not found');
     }
@@ -67,13 +64,13 @@ export class UsersService {
       populateFields: () =>
         Promise.resolve([
           { path: 'role' },
-          { 
+          {
             path: 'metadata.major',
             model: 'Major',
-            populate: { 
+            populate: {
               path: 'school',
-            }
-          }
+            },
+          },
         ]),
     });
   }
@@ -87,28 +84,30 @@ export class UsersService {
    */
   async findAllByQuery(query: Partial<User> & { school?: string }) {
     const q = { ...query } as FilterQuery<User>;
-  
+
     if (q.school) {
       console.log('\n🏫 School search - Input school ID:', q.school);
       const majors = await this.majorModel
         .find({ school: new Types.ObjectId(q.school) })
         .select('_id')
         .lean();
-  
+
       console.log('Found majors for school:', {
         schoolId: q.school,
         majorCount: majors.length,
-        majorIds: majors.map(m => m._id.toString())
+        majorIds: majors.map((m) => m._id.toString()),
       });
-      
+
       const majorIds = majors.map((m) => m._id.toString());
-      
-      q['metadata.major'] = { $in: majorIds.map(id => new Types.ObjectId(id)) };
+
+      q['metadata.major'] = {
+        $in: majorIds.map((id) => new Types.ObjectId(id)),
+      };
       delete q.school;
     }
-  
+
     console.log('Final query to find users:', JSON.stringify(q, null, 2));
-  
+
     const result = await queryAll<User>({
       model: this.userModel,
       query: q,
@@ -119,7 +118,7 @@ export class UsersService {
 
     console.log('Query results:', {
       totalUsers: result.data.length,
-      userMajors: result.data.map(u => u.metadata?.major?.toString())
+      userMajors: result.data.map((u) => u.metadata?.major?.toString()),
     });
 
     return result;
@@ -276,12 +275,14 @@ export class UsersService {
         if (!userMajor) {
           throw new BadRequestException('Major is required');
         }
-  
-        const userMajorRecord = await this.majorModel.findById(userMajor).lean();
+
+        const userMajorRecord = await this.majorModel
+          .findById(userMajor)
+          .lean();
         if (!userMajorRecord) {
           throw new NotFoundException('Major in database not found');
         }
-  
+
         return {
           name: {
             first: userDto.name.first,
@@ -292,13 +293,13 @@ export class UsersService {
           password: '', // password is intentionally blank
           role: new Types.ObjectId(userDto.role),
           metadata: {
-            major: userMajor,       // ✅ only setting major
-            secret: null,           // ✅ explicitly set to null
+            major: userMajor, // ✅ only setting major
+            secret: null, // ✅ explicitly set to null
           },
         };
       }),
     );
-  
+
     try {
       const savedUsers = await Promise.all(
         users.map(async (user) => {
@@ -306,14 +307,12 @@ export class UsersService {
           return await userDoc.save();
         }),
       );
-  
+
       return savedUsers.map((user) => user.toObject());
     } catch (error) {
       throw new BadRequestException(error);
     }
   }
-  
-  
 
   async registerDeviceToken(
     id: string,

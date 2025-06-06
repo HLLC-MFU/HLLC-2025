@@ -8,7 +8,7 @@ export type NotificationReadDocument = HydratedDocument<NotificationRead>;
   timestamps: true,
   versionKey: false,
 })
-export class NotificationRead extends Document {
+export class NotificationRead {
   @Prop({
     type: SchemaTypes.ObjectId,
     ref: 'User',
@@ -23,5 +23,3 @@ export class NotificationRead extends Document {
 
 export const NotificationReadSchema =
   SchemaFactory.createForClass(NotificationRead);
-
-NotificationReadSchema.index({ userId: 1 });
