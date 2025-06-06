@@ -36,21 +36,17 @@ func (h *StickerHTTPHandler) CreateSticker(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "image is required"})
 	}
 
-	// ✅ Save image
 	filename := fmt.Sprintf("sticker_%d_%s", time.Now().Unix(), file.Filename)
 	savePath := fmt.Sprintf("./uploads/stickers/%s", filename)
 	if err := c.SaveFile(file, savePath); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save file"})
 	}
 
-	// ✅ Generate public URL for image
-	imageURL := fmt.Sprintf("%s/uploads/stickers/%s", c.BaseURL(), filename)
+	imageURL := filename
 
-	// ✅ Extract and bind manually
 	thName := c.FormValue("name[th]")
 	enName := c.FormValue("name[en]")
 
-	// ✅ Create sticker struct
 	sticker := &model.Sticker{
 		ID: primitive.NewObjectID(),
 		Name: coreModel.LocalizedName{
@@ -117,7 +113,6 @@ func (h *StickerHTTPHandler) UpdateSticker(c *fiber.Ctx) error {
 		})
 	}
 
-	// ✅ Get existing sticker to preserve current image
 	existing, err := h.service.GetSticker(c.Context(), id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -130,18 +125,16 @@ func (h *StickerHTTPHandler) UpdateSticker(c *fiber.Ctx) error {
 		})
 	}
 
-	// ✅ Extract new form values
 	thName := c.FormValue("name[th]")
 	enName := c.FormValue("name[en]")
-	image := existing.Image // default to existing image
+	image := existing.Image
 
-	// ✅ Check if a new file is uploaded
 	file, err := c.FormFile("image")
 	if err == nil && file != nil {
 		filename := fmt.Sprintf("sticker_%d_%s", time.Now().Unix(), file.Filename)
 		savePath := fmt.Sprintf("./uploads/stickers/%s", filename)
 		if saveErr := c.SaveFile(file, savePath); saveErr == nil {
-			image = fmt.Sprintf("%s/files/stickers/%s", c.BaseURL(), filename)
+			image = filename
 		} else {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "failed to save file",
@@ -149,7 +142,6 @@ func (h *StickerHTTPHandler) UpdateSticker(c *fiber.Ctx) error {
 		}
 	}
 
-	// ✅ Create updated sticker object
 	sticker := &model.Sticker{
 		ID: id,
 		Name: coreModel.LocalizedName{
@@ -159,7 +151,6 @@ func (h *StickerHTTPHandler) UpdateSticker(c *fiber.Ctx) error {
 		Image: image,
 	}
 
-	// ✅ Update in database
 	if err := h.service.UpdateSticker(c.Context(), sticker); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),

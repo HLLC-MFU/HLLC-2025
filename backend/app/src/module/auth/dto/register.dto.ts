@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class MetadataDto {
+  @IsString()
+  @IsNotEmpty()
+  secret: string;
+}
 
 export class RegisterDto {
   @IsString()
@@ -13,7 +20,7 @@ export class RegisterDto {
   @IsNotEmpty()
   confirmPassword: string;
 
-  @IsString()
-  @IsNotEmpty()
-  secret: string;
+  @ValidateNested()
+  @Type(() => MetadataDto)
+  metadata: MetadataDto;
 }

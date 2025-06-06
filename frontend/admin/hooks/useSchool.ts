@@ -16,7 +16,7 @@ export function useSchools() {
 	 * @return {Promise<void>} A promise that resolves when the schools are fetched.
 	 * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
 	 * */
-	const fetchSchools = async (): Promise<void> => {
+	const fetchSchools = async () => {
 		setLoading(true);
 		setError(null);
 		try {
@@ -49,7 +49,7 @@ export function useSchools() {
 	 * @return {Promise<void>} A promise that resolves when the school is created.
 	 * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
 	 * */
-	const createSchool = async (schoolData: Partial<School>): Promise<void> => {
+	const createSchool = async (schoolData: Partial<School>) => {
 		try {
 			setLoading(true);
 			const res = await apiRequest<School>('/schools', 'POST', schoolData);

@@ -6,6 +6,7 @@ import {
   Req,
   Query,
   Res,
+  Get,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
@@ -13,10 +14,15 @@ import { PermissionsGuard } from './guards/permissions.guard';
 import { LoginDto } from './dto/login.dto';
 import { UserRequest } from 'src/pkg/types/users';
 import { FastifyReply } from 'fastify';
-
+import { Permissions } from './decorators/permissions.decorator';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RegisterDto } from './dto/register.dto';
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+  ) {}
+
   @Public()
   @Post('login')
   async login(
@@ -25,6 +31,7 @@ export class AuthController {
     @Res() res: FastifyReply,
   ) {
     const { username, password } = loginDto;
+    
     const user = await this.authService.validateUser(username, password);
 
     const useCookieBool = useCookie === 'true';
@@ -40,6 +47,7 @@ export class AuthController {
     return res.send({ tokens, user });
   }
 
+
   @Public()
   @Post('refresh')
   async refresh(@Body() body: { refreshToken: string }) {
@@ -50,5 +58,11 @@ export class AuthController {
   @UseGuards(PermissionsGuard)
   async logout(@Req() req: UserRequest) {
     return this.authService.logout(req.user._id);
+  }
+
+  @Get('permissions')
+  @Permissions('permissions:read')
+  getAllPermissions() {
+    return this.authService.scanPermissions();
   }
 }

@@ -67,7 +67,7 @@ const TEXT_COLORS: Record<string, TextStyle> = {
   danger: { color: "white" },
 };
 
-const Button: React.FC<ButtonProps> = ({
+const Button = ({
   children,
   onPress,
   variant = "solid",
@@ -89,7 +89,7 @@ const Button: React.FC<ButtonProps> = ({
   padding,
   margin,
   opacity,
-}) => {
+}:ButtonProps) => {
   const customBackgroundColor = color in DEFAULT_COLORS ? DEFAULT_COLORS[color] : { backgroundColor: color };
   const textColor = color in TEXT_COLORS ? TEXT_COLORS[color] : { color: "white" };
   const borderStyle: ViewStyle = outlined ? { borderWidth: borderWidth || 2, borderColor: borderColor || customBackgroundColor.backgroundColor } : {};

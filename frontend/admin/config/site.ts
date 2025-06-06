@@ -12,6 +12,11 @@ import {
   LogOutIcon,
   ShieldAlert,
   
+  Megaphone,
+  Ticket,
+  Palette,
+  BellRing,
+  University,
 } from "lucide-react";
 
 export const siteConfig = {
@@ -31,6 +36,14 @@ export const siteConfig = {
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Users Management", href: "/users", icon: UserIcon },
         { label: "Reports", href: "/reports", icon: ShieldAlert },
+        { label: "Activities", href: "/activities", icon: University },
+      ],
+    },
+    {
+      section: "Evoucher Management",
+      items: [
+        { label: "Evoucher", href: "/evoucher", icon: Ticket },
+        { label: "Campaign", href: "/campaigns", icon: Megaphone },
       ],
     },
     {
@@ -38,6 +51,7 @@ export const siteConfig = {
       items: [
         { label: "Settings", href: "/settings", icon: SettingsIcon },
         { label: "Help & Feedback", href: "/help-feedback", icon: HelpCircleIcon },
+        { label: "Appearance", href: "/appearance", icon: Palette }
       ],
     },
     {

@@ -34,7 +34,7 @@ export class UserUploadDirectDto {
   username: string;
 
   @IsString()
-  password: string;
+  password?: string;
 
   @IsMongoId()
   @IsNotEmpty()
@@ -42,5 +42,5 @@ export class UserUploadDirectDto {
 
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string>;
 }

@@ -1,19 +1,31 @@
-import { addToast, Button, Form, getKeyValue, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import React from "react";
 import * as XLSX from "xlsx";
 import { columns } from "./user-table";
-import saveAs from "file-saver";
 import { User } from "@/types/user";
+import { Major } from "@/types/major";
 
 export interface ImportModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onImportUsers: (userData: Partial<User>[]) => void;
+    onImport: (userData: Partial<User>[]) => void;
     onExportTemplate: () => void;
+    roleId: string;
+    majors: Major[];
 }
 
-export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTemplate }: ImportModalProps) {
-    const [fileData, setFileData] = React.useState<any[]>([]);
+interface JsonData {
+    role: string;
+    major: string;
+    type: string;
+    username: string;
+    first: string;
+    middle?: string;
+    last: string;
+}
+
+export default function ImportModal({ isOpen, onClose, onImport, onExportTemplate, roleId, majors }: ImportModalProps) {
+    const [fileData, setFileData] = React.useState<User[]>([]);
     const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
 
@@ -41,10 +53,10 @@ export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTe
             const workbook = XLSX.read(data, { type: "array" });
             const worksheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[worksheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            const jsonData = XLSX.utils.sheet_to_json(worksheet) as JsonData[];
 
-            const dataForm = jsonData.map((item: any) => {
-                const data: any = {};
+            const dataForm = jsonData.map((item: JsonData) => {
+                const data: JsonData = {};
                 for (const key in item) {
                     try {
                         data[key] = JSON.parse(item[key]);
@@ -53,37 +65,32 @@ export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTe
                     };
                 };
 
-                const mapData: any = {};
-                mapData.username = item["username"];
-                mapData.role = item["role"];
-                mapData.name = {
-                    first: item["first"],
-                    middle: item["middle"],
-                    last: item["last"],
-                };
-                mapData.metadata = {
-                    school: {
-                        name: {
-                            en: item["school_en"],
-                            th: item["school_th"]
-                        }
+                let majorId = "";
+                majors.find((m) => {
+                    if (m.name.en === data.major_en && m._id) majorId = m._id;
+                })
+
+                const mapData: Partial<User> = {
+                    name: {
+                        first: item["first"],
+                        middle: item["middle"],
+                        last: item["last"],
                     },
-                    major: {
-                        name: {
-                            en: item["major_en"],
-                            th: item["major_th"]
-                        }
+                    username: item["username"],
+                    role: roleId,
+                    metadata: {
+                        major: majorId
                     }
                 };
 
-                return mapData
+                return mapData;
             });
 
             setFileData(dataForm);
         };
 
         reader.readAsArrayBuffer(file);
-    };
+    }
 
     const handleNext = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -98,28 +105,27 @@ export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTe
         setIsImportModalOpen(true);
     };
 
-    const handleConfirmImport = () => {
-        onImportUsers(fileData);
+    const handleImport = () => {
+        onImport(fileData);
         setIsPreviewModalOpen(false);
     };
 
-    const renderCell = React.useCallback((item: any, columnKey: React.Key) => {
+    const renderCell = React.useCallback((item: User, columnKey: React.Key) => {
         const cellValue = item[columnKey as keyof typeof item];
+
+        const major = majors.find((m) => m._id === item.metadata.major);
 
         switch (columnKey) {
             case "name":
-                return `${item.name.first} ${item.name.middle === null ? "" : item.name.middle} ${item.name.last}`;
+                return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last}`;
             case "school":
-                return item.metadata.school?.name?.en ?? null;
+                return major.school.name.en ?? null;
             case "major":
-                return item.metadata.major?.name?.en ?? null;
+                return major.name.en ?? null;
             case "actions":
                 return null;
             default:
-                if (typeof cellValue === "object" && cellValue !== null) {
-                    return JSON.stringify(cellValue);
-                }
-                return cellValue as React.ReactNode;
+                return cellValue;
         }
 
     }, [fileData]);
@@ -188,7 +194,7 @@ export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTe
                             </TableHeader>
                             <TableBody items={items}>
                                 {(item) => (
-                                    <TableRow key={item}>
+                                    <TableRow key={item.username}>
                                         {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
                                     </TableRow>
                                 )}
@@ -199,7 +205,7 @@ export default function ImportModal({ isOpen, onClose, onImportUsers, onExportTe
                         <Button color="danger" variant="light" onPress={handleCancel}>
                             Cancel
                         </Button>
-                        <Button color="primary" onPress={handleConfirmImport}>
+                        <Button color="primary" onPress={handleImport}>
                             Confirm
                         </Button>
                     </ModalFooter>

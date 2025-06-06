@@ -67,9 +67,15 @@ const RoomListItem = ({ room, language, onPress, index }: RoomListItemProps) => 
         </View>
         
         <View style={styles.roomListInfo}>
-          <Text style={styles.roomName}>
+          <Text style={styles.roomName} numberOfLines={1} ellipsizeMode="tail">
             {language === 'th' ? room.name?.th || 'Unnamed' : room.name?.en || 'Unnamed'}
           </Text>
+          {/* Category/Tag */}
+          {room.category && (
+            <View style={styles.categoryTagContainer}>
+              <Text style={styles.categoryTagText} numberOfLines={1} ellipsizeMode="tail">{room.category}</Text>
+            </View>
+          )}
           
           <View style={styles.roomExtraInfo}>
             <View style={styles.roomStats}>
@@ -100,26 +106,27 @@ const styles = StyleSheet.create({
   roomListItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(30, 30, 30, 0.7)',
-    borderRadius: 16,
-    marginBottom: 12,
+    padding: 14,
+    backgroundColor: '#f0f4ff',
+    borderRadius: 18,
+    marginBottom: 10,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: '#a5b4fc',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.12,
     shadowRadius: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: '#e0e7ff',
+    minHeight: 80,
   },
   roomAvatarContainer: {
     position: 'relative',
     marginRight: 16,
   },
   roomAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -162,10 +169,10 @@ const styles = StyleSheet.create({
     right: 0,
   },
   unreadBadge: {
-    backgroundColor: '#FF5252',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    backgroundColor: '#6366f1',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
@@ -178,12 +185,30 @@ const styles = StyleSheet.create({
   roomName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#22223b',
+    maxWidth: 140,
   },
   roomAvatarText: {
     color: '#fff',
     fontSize: 22,
     fontWeight: 'bold',
+  },
+  categoryTagContainer: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#e0e7ff',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginTop: 2,
+    marginBottom: 2,
+    maxWidth: 90,
+  },
+  categoryTagText: {
+    color: '#6366f1',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    maxWidth: 80,
   },
 });
 

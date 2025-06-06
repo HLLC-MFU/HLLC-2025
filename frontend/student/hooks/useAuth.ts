@@ -11,13 +11,36 @@ interface TokenResponse {
     accessToken: string;
     refreshToken: string;
   };
-  user: any;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+    createdAt: string;
+    updatedAt: string;
+  };
 }
 
 interface AuthStore {
   loading: boolean;
   error: string | null;
   signIn: (username: string, password: string) => Promise<boolean>;
+  signUp: (userData: {
+    username: string;
+    password: string;
+    confirmPassword: string;
+    metadata: {
+      secret: string;
+    };
+  }) => Promise<boolean>;
+  resetPassword: (userData: {
+    username: string;
+    password: string;
+    confirmPassword: string;
+    metadata: {
+      secret: string;
+    };
+  }) => Promise<boolean>;
   signOut: () => void;
   refreshSession: () => Promise<boolean>;
 }
@@ -36,7 +59,6 @@ const useAuth = create<AuthStore>()(
             username,
             password,
           });
-          console.log('Login log', res);
 
           if (res.statusCode === 201 && res.data) {
             await saveToken('accessToken', res.data.tokens.accessToken);
@@ -45,21 +67,66 @@ const useAuth = create<AuthStore>()(
             const user = await getProfile();
             if (user) {
               router.replace("/");
-              return true; // ✅ Login successful
+              return true;
             }
           }
 
           set({ error: res.message });
-          return false; // ❌ Login failed
+          return false;
         } catch (err) {
-          console.error('Login error:', err);
           set({ error: (err as Error).message });
-          return false; // ❌ Login failed
+          return false;
         } finally {
           set({ loading: false });
         }
       },
 
+      signUp: async (userData) => {
+        try {
+          set({ loading: true, error: null });
+
+          const res = await apiRequest<TokenResponse>('/auth/register', 'POST', userData);
+
+          if (res.statusCode === 201 && res.data?.tokens) {
+            await saveToken('accessToken', res.data.tokens.accessToken);
+            await saveToken('refreshToken', res.data.tokens.refreshToken);
+            const { getProfile } = useProfile.getState();
+            const user = await getProfile();
+            if (user) {
+              router.replace("/");
+              return true;
+            }
+          }
+
+          set({ error: res.message || 'Registration failed' });
+          return false;
+        } catch (err) {
+          set({ error: (err as Error).message });
+          return false;
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      resetPassword: async (userData) => {
+        try {
+          set({ loading: true, error: null });
+
+          const res = await apiRequest<{ message: string }>('/auth/reset-password', 'POST', userData);
+
+          if ((res.statusCode === 200 || res.statusCode === 201) && res.data?.message === 'Password reset successfully') {
+            return true;
+          }
+
+          set({ error: res.message || 'Reset password failed' });
+          return false;
+        } catch (err) {
+          set({ error: (err as Error).message });
+          return false;
+        } finally {
+          set({ loading: false });
+        }
+      },
 
       signOut: () => {
         removeToken('accessToken');
@@ -85,7 +152,6 @@ const useAuth = create<AuthStore>()(
 
           return false;
         } catch (err) {
-          console.error('Refresh session failed', err);
           return false;
         }
       },

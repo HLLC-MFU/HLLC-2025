@@ -1,10 +1,22 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Notification, NotificationDocument } from './schemas/notification.schema';
+import {
+  Notification,
+  NotificationDocument,
+} from './schemas/notification.schema';
 import { Model, Types } from 'mongoose';
 import { Expo } from 'expo-server-sdk';
-import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne, queryUpdateOneByFilter } from 'src/pkg/helper/query.util';
-import { NotificationRead, NotificationReadDocument } from './schemas/notification-reads.schema';
+import {
+  queryAll,
+  queryDeleteOne,
+  queryFindOne,
+  queryUpdateOne,
+  queryUpdateOneByFilter,
+} from 'src/pkg/helper/query.util';
+import {
+  NotificationRead,
+  NotificationReadDocument,
+} from './schemas/notification-reads.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { SseService } from '../sse/sse.service';
 import { CreateNotificationDto } from './dto/notification.dto';
@@ -35,10 +47,12 @@ export class NotificationsService {
       type: 'REFETCH_NOTIFICATIONS',
     });
 
-    return (await this.notificationModel.create({
-      ...createNotificationDto,
-      scope,
-    })).toObject();
+    return (
+      await this.notificationModel.create({
+        ...createNotificationDto,
+        scope,
+      })
+    ).toObject();
   }
 
   async findAll(query: Record<string, string>) {
@@ -53,7 +67,11 @@ export class NotificationsService {
   }
 
   async update(id: string, updateNotificationDto: Partial<Notification>) {
-    return queryUpdateOne<Notification>(this.notificationModel, id, updateNotificationDto);
+    return queryUpdateOne<Notification>(
+      this.notificationModel,
+      id,
+      updateNotificationDto,
+    );
   }
 
   async remove(id: string) {
@@ -65,10 +83,17 @@ export class NotificationsService {
     await this.checkNotiExists(notificationId);
 
     const filter = { userId: new Types.ObjectId(userId) };
-    const update = { $addToSet: { readNotifications: new Types.ObjectId(notificationId) } };
+    const update = {
+      $addToSet: { readNotifications: new Types.ObjectId(notificationId) },
+    };
     const options = { upsert: true };
 
-    return await queryUpdateOneByFilter<NotificationRead>(this.notificationReadModel, filter, update, options);
+    return await queryUpdateOneByFilter<NotificationRead>(
+      this.notificationReadModel,
+      filter,
+      update,
+      options,
+    );
   }
 
   async markAsUnread(userId: string, notificationId: string) {
@@ -76,20 +101,26 @@ export class NotificationsService {
     await this.checkNotiExists(notificationId);
 
     const filter = { userId: new Types.ObjectId(userId) };
-    const update = { $pull: { readNotifications: new Types.ObjectId(notificationId) } };
+    const update = {
+      $pull: { readNotifications: new Types.ObjectId(notificationId) },
+    };
 
-    await queryUpdateOneByFilter<NotificationRead>(this.notificationReadModel, filter, update);
+    await queryUpdateOneByFilter<NotificationRead>(
+      this.notificationReadModel,
+      filter,
+      update,
+    );
   }
 
   async sendNotification(sendNotificationDto: Notification) {
     const expo = new Expo();
-    
+
     const messages = [
       {
-        to: "",
+        to: '',
         sound: 'default',
         title: sendNotificationDto.title.th,
-        body: sendNotificationDto.body,
+        body: typeof sendNotificationDto.body === 'string' ? sendNotificationDto.body : sendNotificationDto.body?.th ?? '',
       },
     ];
 
@@ -107,23 +138,33 @@ export class NotificationsService {
     if (!exists) throw new NotFoundException('Notification not found');
   }
 
-  async getUserNotifications(userId: string, schoolId: string, majorId: string) {
-    const userNotifications = await this.notificationModel.find({
-      $or: [
-        { scope: 'global' },
-        { scope: 'school', targetId: new Types.ObjectId(userId) },
-        { scope: 'major', targetId: new Types.ObjectId(schoolId) },
-        { scope: 'individual', targetId: new Types.ObjectId(majorId) },
-      ],
-    }).sort({ createdAt: -1 }).lean();
+  async getUserNotifications(
+    userId: string,
+    majorId: string,
+    schoolId: string,
+  ) {
+    const userNotifications = await this.notificationModel
+      .find({
+        $or: [
+          { scope: 'global' },
+          { scope: 'major', targetId: majorId },
+          { scope: 'school', targetId: schoolId },
+          { scope: 'individual', targetId: userId },
+        ],
+      })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    const readDocument = await this.notificationReadModel.findOne({ userId: userId }).lean();
-    const readNotificationIds = (readDocument?.readNotifications ?? []).map((id) => id.toString());
-    
+    const readDocument = await this.notificationReadModel
+      .findOne({ userId: userId })
+      .lean();
+    const readNotificationIds = (readDocument?.readNotifications ?? []).map(
+      (id) => id.toString(),
+    );
+
     return userNotifications.map((notification) => ({
       ...notification,
       isRead: readNotificationIds.includes(notification._id.toString()),
     }));
   }
-
 }
