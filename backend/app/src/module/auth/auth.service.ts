@@ -18,6 +18,8 @@ import { DiscoveryService, Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../auth/decorators/permissions.decorator';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RoleDocument } from '../role/schemas/role.schema';
+import { decryptItem } from './utils/crypto';
 
 type Permission = string;
 
@@ -41,14 +43,25 @@ export class AuthService {
       .findOne({ username })
       .select('+password')
       .populate('role');
-    if (!user) throw new UnauthorizedException('User not found');
 
-    if (!user.password) {
-      throw new UnauthorizedException('User not registered');
-    }
+    if (!user) throw new UnauthorizedException('User not found');
+    if (!user.password) throw new UnauthorizedException('User not registered');
 
     const isMatch = await bcrypt.compare(pass, user.password);
     if (!isMatch) throw new UnauthorizedException('Invalid password');
+
+    // Decrypt role.permissions before returning
+    let role: RoleDocument | null = null;
+    if (
+      user.role &&
+      typeof user.role === 'object' &&
+      'permissions' in user.role
+    ) {
+      role = user.role as unknown as RoleDocument;
+      if (role.permissions) {
+        role.permissions = role.permissions.map(decryptItem);
+      }
+    }
 
     return user;
   }
