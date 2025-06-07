@@ -1,4 +1,11 @@
-import { Injectable, UnauthorizedException, Type, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  Type,
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserDocument } from 'src/module/users/schemas/user.schema';
@@ -30,7 +37,10 @@ export class AuthService {
   ) {}
 
   async validateUser(username: string, pass: string): Promise<UserDocument> {
-    const user = await this.userModel.findOne({ username }).select('+password').populate('role');
+    const user = await this.userModel
+      .findOne({ username })
+      .select('+password')
+      .populate('role');
     if (!user) throw new UnauthorizedException('User not found');
 
     if (!user.password) {
@@ -95,16 +105,23 @@ export class AuthService {
     const { username, password, confirmPassword, metadata } = registerDto;
 
     // First check if user exists
-    const existingUser = await this.userModel.findOne({ username }).select('+password').lean();
+    const existingUser = await this.userModel
+      .findOne({ username })
+      .select('+password')
+      .lean();
     if (!existingUser) {
-      throw new NotFoundException('User not found. Please contact administrator to create your account first.');
+      throw new NotFoundException(
+        'User not found. Please contact administrator to create your account first.',
+      );
     }
     if (existingUser.password) {
       throw new ConflictException(`Username ${username} is already registered`);
     }
 
     if (password !== confirmPassword) {
-      throw new BadRequestException('Password and confirm password do not match');
+      throw new BadRequestException(
+        'Password and confirm password do not match',
+      );
     }
 
     // Get the user document (not lean) for saving
@@ -115,9 +132,9 @@ export class AuthService {
 
     // Set password (will be hashed by pre-save hook)
     user.password = password;
-    
+
     if (!user.metadata) user.metadata = {};
-    
+
     user.metadata = {
       ...user.metadata,
       secret: await bcrypt.hash(metadata.secret, 10),
@@ -189,16 +206,23 @@ export class AuthService {
     }
 
     if (!user.metadata?.secret) {
-      throw new BadRequestException('User has no secret set. Please register first.');
+      throw new BadRequestException(
+        'User has no secret set. Please register first.',
+      );
     }
 
-    const isSecretValid = await bcrypt.compare(metadata.secret, user.metadata.secret);
+    const isSecretValid = await bcrypt.compare(
+      metadata.secret,
+      user.metadata.secret,
+    );
     if (!isSecretValid) {
       throw new UnauthorizedException('Invalid secret');
     }
 
     if (password !== confirmPassword) {
-      throw new BadRequestException('Password and confirm password do not match');
+      throw new BadRequestException(
+        'Password and confirm password do not match',
+      );
     }
 
     // Set new password (will be hashed by pre-save hook)
@@ -209,12 +233,28 @@ export class AuthService {
     return { message: 'Password reset successfully' };
   }
 
-  async logout(userId: string) {
+  async logout(userId: string, response?: FastifyReply) {
     const user = await this.userModel.findById(userId);
     if (!user) throw new UnauthorizedException('User not found');
 
     user.refreshToken = null;
     await user.save();
+
+    if (response) {
+      response.clearCookie('accessToken', {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'lax',
+        path: '/',
+      });
+      response.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'lax',
+        path: '/',
+      });
+    }
+
     return { message: 'Logged out successfully' };
   }
 
