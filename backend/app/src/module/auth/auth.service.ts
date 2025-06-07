@@ -42,7 +42,7 @@ export class AuthService {
     const user = await this.userModel
       .findOne({ username })
       .select('+password')
-      .populate('role');
+      .populate('role', 'name permissions');
 
     if (!user) throw new UnauthorizedException('User not found');
     if (!user.password) throw new UnauthorizedException('User not registered');
@@ -72,17 +72,18 @@ export class AuthService {
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = { sub: user._id.toString(), username: user.username };
 
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('JWT_EXPIRATION'),
-    });
-
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-    });
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('JWT_EXPIRATION'),
+      }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      }),
+    ]);
 
     user.refreshToken = await bcrypt.hash(refreshToken, 10);
-    await user.save();
+    (await user.save()).toObject({ virtuals: true });
 
     if (options?.useCookie && options.response) {
       const reply = options.response as FastifyReply & {
