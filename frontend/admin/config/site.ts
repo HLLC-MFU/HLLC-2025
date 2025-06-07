@@ -43,12 +43,12 @@ export const siteConfig = {
         { label: "Campaign", href: "/campaigns", icon: Megaphone },
       ],
     },
-    {
-      section: "Sponsor",
-      items: [
-        { label: "Sponosr", href: "/sponsor", icon: DollarSignIcon },
-      ],
-    },
+    // {
+    //   section: "Sponsor",
+    //   items: [
+    //     { label: "Sponosr", href: "/sponsor", icon: DollarSignIcon },
+    //   ],
+    // },
     {
       section: "Settings",
       items: [
