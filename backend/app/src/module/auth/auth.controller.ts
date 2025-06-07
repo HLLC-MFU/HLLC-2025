@@ -19,9 +19,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RegisterDto } from './dto/register.dto';
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Public()
   @Post('login')
@@ -46,7 +44,6 @@ export class AuthController {
     return res.send({ tokens, user });
   }
 
-
   @Public()
   @Post('refresh')
   async refresh(@Body() body: { refreshToken: string }) {
@@ -67,8 +64,11 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(PermissionsGuard)
-  async logout(@Req() req: UserRequest) {
-    return this.authService.logout(req.user._id);
+  async logout(
+    @Req() req: UserRequest,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    return this.authService.logout(req.user._id, res);
   }
 
   @Get('permissions')

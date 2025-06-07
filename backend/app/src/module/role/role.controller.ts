@@ -25,6 +25,7 @@ export class RoleController {
   }
 
   @Get()
+  @Public()
   findAll() {
     return this.roleService.findAll();
   }

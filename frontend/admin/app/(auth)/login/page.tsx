@@ -1,57 +1,62 @@
 "use client";
 
-import type React from "react";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { User, EyeClosed, Eye, Lock } from "lucide-react";
 import { Button, Checkbox, Form, Input } from "@heroui/react";
-import Image from "next/image";
 
 import useAuth from "@/hooks/useAuth";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const [isVisible, setIsVisible] = useState(false);
-  const toggleVisibility = () => setIsVisible(!isVisible);
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isVisible, setIsVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const toggleVisibility = () => setIsVisible((prev) => !prev);
+
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
     try {
-      event.preventDefault();
-      setIsLoading(true);
       await signIn(username, password);
       router.push("/");
     } catch (error) {
-      console.error(error);
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="h-full w-full flex items-center justify-between overflow-y-hidden p-8">
-      <div className="hidden md:flex h-full w-full max-w-[50%] relative">
+    <div className="h-full w-full relative md:flex items-center justify-between overflow-y-hidden md:p-2">
+      <div className="absolute inset-0 md:relative md:flex h-full w-full grow">
         <Image
           fill
           alt="Background"
-          className="object-cover rounded-xl"
-          src="/ihX0S043/images/background.png"
+          className="object-cover md:rounded-[24px]"
+          src="/images/background.png"
         />
       </div>
 
-
-      <div className="flex flex-col w-full p-16 grow items-center">
-        <Form className="gap-6 flex flex-col w-full max-w-lg grow" onSubmit={onSubmit}>
-          <div className="w-full text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
-            <p className="mt-2 text-muted-foreground">Sign in to access your account</p>
+      <div className="flex flex-col w-full h-full items-center justify-center p-4 md:p-0 md:max-w-[35%] md:px-12">
+        <Form
+          className="gap-6 flex flex-col w-full max-w-lg z-50 px-8 py-16 justify-center bg-black/25 md:bg-transparent text-white md:text-black rounded-2xl backdrop-blur-md"
+          onSubmit={onSubmit}
+        >
+          <div className="text-center w-full">
+            <h2 className="text-3xl font-bold">Welcome back</h2>
+            <p className="mt-2 text-muted-foreground">
+              Sign in to access your account
+            </p>
           </div>
 
           <Input
+            color="primary"
             label="Username"
             labelPlacement="outside"
             placeholder="John.doe"
@@ -59,23 +64,26 @@ export default function LoginPage() {
               <User className="text-2xl text-default-400 flex-shrink-0" />
             }
             type="text"
+            value={username}
+            variant="underlined"
             onChange={(e) => setUsername(e.target.value)}
           />
 
           <Input
+            color="primary"
             endContent={
-              <div
-                className="cursor-pointer"
-                role="button"
-                tabIndex={0}
+              <button
+                aria-label="Toggle password visibility"
+                className="focus:outline-none"
+                type="button"
                 onClick={toggleVisibility}
               >
                 {isVisible ? (
-                  <Eye className="text-2xl text-default-400" />
+                  <Eye className="text-2xl text-default-400 pointer-events-none" />
                 ) : (
-                  <EyeClosed className="text-2xl text-default-400" />
+                  <EyeClosed className="text-2xl text-default-400 pointer-events-none" />
                 )}
-              </div>
+              </button>
             }
             label="Password"
             labelPlacement="outside"
@@ -84,19 +92,18 @@ export default function LoginPage() {
               <Lock className="text-2xl text-default-400 flex-shrink-0" />
             }
             type={isVisible ? "text" : "password"}
+            value={password}
+            variant="underlined"
             onChange={(e) => setPassword(e.target.value)}
           />
 
           <Checkbox defaultSelected>Remember me</Checkbox>
+
           <Button className="w-full" color="primary" isLoading={isLoading} type="submit">
             Login
           </Button>
         </Form>
       </div>
-
-      <div className="absolute bottom-16 -left-16 w-64 h-64 rounded-full bg-purple-700/30 blur-3xl" />
-      <div className="absolute top-1/4 right-16 w-72 h-72 rounded-full bg-pink-600/20 blur-3xl" />
-      <div className="absolute bottom-1/3 left-1/4 w-48 h-48 rounded-full bg-amber-500/20 blur-3xl" />
     </div>
   );
 }
