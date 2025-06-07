@@ -84,4 +84,4 @@ import { NotificationsModule } from './module/notifications/notifications.module
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

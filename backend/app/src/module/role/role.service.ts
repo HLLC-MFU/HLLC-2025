@@ -7,7 +7,6 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { encryptItem } from '../auth/utils/crypto';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class RoleService {
@@ -25,12 +24,7 @@ export class RoleService {
       metadataSchema: createRoleDto.metadataSchema,
       permissions: createRoleDto.permissions?.map(encryptItem) || [],
     });
-
-    try {
-      return await role.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
+    return await role.save();
   }
   /**
    * Finds a role by name.
@@ -64,11 +58,7 @@ export class RoleService {
       role.metadataSchema = updateRoleDto.metadataSchema;
     }
 
-    try {
-      return await role.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
+    return await role.save();
   }
 
   async remove(id: string) {
@@ -86,10 +76,7 @@ export class RoleService {
   ): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
     role.metadataSchema = dto.metadataSchema;
-    try {
-      return await role.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
+
+    return await role.save();
   }
 }
