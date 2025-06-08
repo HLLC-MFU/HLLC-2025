@@ -103,11 +103,11 @@ export const Sidebar = () => {
                         className={clsx(
                           "relative flex items-center gap-3 p-2 rounded-md transition-all duration-200 ease-in-out w-full font-semibold",
                           collapsed ? "justify-center" : "justify-start",
-
                           isActive
                             ? "bg-primary-50 text-primary font-bold shadow-primary-50 shadow-lg"
                             : "hover:bg-default-100 text-default-700"
                         )}
+                        isIconOnly={collapsed}
                         variant={isActive ? "shadow" : "light"}
                         onPress={() => handleClick(item.href)}
                       >

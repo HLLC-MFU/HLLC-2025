@@ -2,7 +2,7 @@ import {
   HomeIcon,
   SchoolIcon,
   UserIcon,
-  CircleCheckBig ,
+  CircleCheckBig,
   SettingsIcon,
   HelpCircleIcon,
   LogOutIcon,
@@ -28,32 +28,27 @@ export const siteConfig = {
     {
       section: "User Management",
       items: [
-        { label: "Notification Management", href: '/notifications', icon: BellRing },
-        { label: "Checkin" , href: "/checkin", icon: CircleCheckBig},
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon },
         { label: "Users Management", href: "/users", icon: UserIcon },
-        { label: "Reports", href: "/reports", icon: ShieldAlert },
         { label: "Activities", href: "/activities", icon: University },
+        { label: "Checkin", href: "/checkin", icon: CircleCheckBig },
+        { label: "Notification Management", href: '/notifications', icon: BellRing },
+        { label: "Reports", href: "/reports", icon: ShieldAlert },
       ],
     },
     {
-      section: "Evoucher Management",
-      items: [
-        { label: "Evoucher", href: "/evoucher", icon: Ticket },
-        { label: "Campaign", href: "/campaigns", icon: Megaphone },
-      ],
-    },
-    {
-      section: "Sponsor",
+      section: "Sponsor & Evoucher",
       items: [
         { label: "Sponosr", href: "/sponsor", icon: DollarSignIcon },
+        { label: "Evoucher", href: "/evoucher", icon: Ticket },
+        { label: "Campaign", href: "/campaigns", icon: Megaphone },
       ],
     },
     {
       section: "Settings",
       items: [
         { label: "Settings", href: "/settings", icon: SettingsIcon },
-        { label: "Help & Feedback", href: "/help-feedback", icon: HelpCircleIcon },
+        // { label: "Help & Feedback", href: "/help-feedback", icon: HelpCircleIcon },
         { label: "Appearance", href: "/appearance", icon: Palette }
       ],
     },
