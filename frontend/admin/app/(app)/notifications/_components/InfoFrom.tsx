@@ -67,14 +67,13 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-row justify-between">
-        <h1 className="text-3xl font-bold  justify-center ">
+        <h1 className="text-xl font-bold  justify-center ">
           Information Info
         </h1>
         <div className="w-52 h-full">
           <Select
             className="w-52 bg-white border border-gray-300 rounded-xl"
             label="Select Icons"
-            size="md"
             selectedKeys={selected ? [selected.name] : []}
             onSelectionChange={keys => {
               const name = Array.from(keys)[0];
