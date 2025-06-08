@@ -186,7 +186,7 @@ export function TableLog() {
   }, []);
 
   return (
-    <div className=" flex justify-center items-center py-6">
+    <div className=" flex justify-center items-center">
       <Table
         isHeaderSticky
         aria-label="Example table with custom cells, pagination and sorting"

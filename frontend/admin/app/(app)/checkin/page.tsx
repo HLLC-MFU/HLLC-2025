@@ -13,16 +13,17 @@ export default function checkin() {
   return (
     <>
       <PageHeader description='This is Management Page' icon={<UserRound />} />
-
-      <div className="flex justify-center items-center">
+      <div className='gap-4'>
+        <div className="flex justify-center items-center">
           <Selectdropdown
             selectedActivityIds={selectedActivityIds}
             setSelectActivityIds={setSelectedActivityIds}
             forceVisible={forceVisible}
           />
         </div>
-      <QrCodeScanner selectedActivityIds={selectedActivityIds} />
-      <TableLog />
+        <QrCodeScanner selectedActivityIds={selectedActivityIds} />
+        <TableLog />
+      </div>
 
     </>
   );
