@@ -9,28 +9,51 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { BellRing } from "lucide-react"
 import { useNotification } from '@/hooks/useNotification';
+import type { Notification } from '@/types/student';
 
 export const language = [
   { key: 'en', label: 'EN' },
   { key: 'th', label: 'TH' },
 ];
 
+
+
 export default function NotiManage() {
   const [selectLanguagePreview, setSelectLanguagePreview] = useState<'en' | 'th'>('en');
   const [selectLanguageNotification, setSelectLanguageNotification] = useState<'en' | 'th'>('en');
   const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
+  const [scope, setScope] = useState<'global' | { type: 'individual'; id: string[] }[]>('global');
   const { createNotification } = useNotification()
 
-
   const handleSubmit = () => {
+
     if (infoData) {
-      const { icon, ...rest } = infoData;
-      createNotification({
-        ...rest,
-        icon: typeof icon === 'string' ? icon : undefined,
-      });
+      const payload: Notification = {
+        title: infoData.title,
+        subtitle: infoData.subtitle,
+        body: infoData.body,
+        icon:
+          typeof infoData.icon === 'function'
+            ? infoData.icon.displayName || infoData.icon.name || 'default'
+            : 'default',
+
+        image: infoData.imageUrl ?? '',
+        scope,
+      };
+      // เฉพาะเมื่อมี redirect.link จริง
+      if (infoData.redirect.link.trim() !== '') {
+        payload.redirectButton = {
+          label: {
+            en: infoData.redirect.en,
+            th: infoData.redirect.th
+          },
+          url: infoData.redirect.link
+        };
+      }
+
+      createNotification(payload);
     }
-  };
+  }
 
   console.log('ข้อมูลหน้าบ้าน', infoData);
   return (
@@ -46,7 +69,7 @@ export default function NotiManage() {
             <div className="flex flex-col w-full gap-6">
               <div className="flex flex-col w-full px-5 py-6 gap-6  rounded-2xl border border-gray-300 shadow-md">
                 <h1 className="text-2xl font-bold ">Preview</h1>
-                <SelectStudent />
+                <SelectStudent onScopeChange={setScope} />
               </div>
               <div className="flex flex-col w-full px-5 py-6 gap-6 rounded-2xl border border-gray-300 shadow-md">
                 <Informationinfo onChange={setInfoData} />

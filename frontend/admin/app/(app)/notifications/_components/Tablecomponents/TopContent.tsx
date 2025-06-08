@@ -64,6 +64,7 @@ export default function TopContent({
                 const selected = Array.from(keys) as string[];
                 setMajorFilter(new Set(selected));
               }}
+              className="max-h-48 overflow-y-auto"
             >
               {(majors ?? []).map((major) => (
                 <DropdownItem key={major._id} className="capitalize">
@@ -92,6 +93,7 @@ export default function TopContent({
                 const selected = Array.from(keys) as string[];
                 setSchoolFilter(new Set(selected));
               }}
+              className="max-h-48 overflow-y-auto"
             >
               {(schools ?? []).map((school) => (
                 <DropdownItem key={school._id} className="capitalize">

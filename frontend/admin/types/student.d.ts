@@ -23,7 +23,7 @@ export type Notification = {
     subtitle: Lang
     body: Lang
     icon: string
-    image: string
+    image?: string
     redirectButton? : {
         label: Lang
         url: string

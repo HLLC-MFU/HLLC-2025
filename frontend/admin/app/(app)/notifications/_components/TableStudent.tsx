@@ -8,6 +8,7 @@ import {
   TableCell,
   User,
   SortDescriptor,
+  Selection
 } from "@heroui/react";
 import { useMajors } from "@/hooks/useMajor";
 import { useUsers } from "@/hooks/useUsers";
@@ -15,9 +16,13 @@ import { useSchools } from "@/hooks/useSchool";
 import TopContent from "./Tablecomponents/TopContent";
 import BottomContent from "./Tablecomponents/BottomContent";
 import { FormattedUser } from "@/types/Notification/FomattedUser";
-import { INITIAL_VISIBLE_COLUMNS , columns } from "@/types/Notification/TableNotification";
+import { INITIAL_VISIBLE_COLUMNS, columns } from "@/types/Notification/TableNotification";
 
-export function TableInfo() {
+export function TableInfo({
+  onSelectionChange,
+}: {
+  onSelectionChange?: (ids: string[]) => void;
+}) {
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(new Set<string>());
   const [visibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
@@ -30,13 +35,27 @@ export function TableInfo() {
   const { users } = useUsers();
   const { majors } = useMajors();
   const { schools } = useSchools();
-  const [majorFilter, setMajorFilter] = React.useState<Set<string>>( new Set(),);
-  const [schoolFilter, setSchoolFilter] = React.useState<Set<string>>( new Set(),);
+  const [majorFilter, setMajorFilter] = React.useState<Set<string>>(new Set(),);
+  const [schoolFilter, setSchoolFilter] = React.useState<Set<string>>(new Set(),);
   const pages = Math.ceil(users.length / rowsPerPage);
   const hasSearchFilter = Boolean(filterValue);
   const headerColumns = React.useMemo(() => {
     return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
   }, [visibleColumns]);
+
+  const handleSelectionChange = (keys: Selection) => {
+    let selected: string[] = [];
+
+    if (keys === 'all') {
+      selected = filteredItems.map((user) => user.id);
+    } else {
+      selected = Array.from(keys).map(String); // keys เป็น Set<Key>
+    }
+
+    setSelectedKeys(new Set(selected));
+    onSelectionChange?.(selected);
+  };
+
 
 
   const formatted = React.useMemo(() => {
@@ -227,14 +246,7 @@ export function TableInfo() {
         onRowsPerPageChange={onRowsPerPageChange}
       />}
       topContentPlacement="outside"
-      onSelectionChange={(keys) => {
-        if (keys === "all") {
-          const filteredIds = filteredItems.map(user => user.id);
-          setSelectedKeys(new Set(filteredIds));
-        } else {
-          setSelectedKeys(new Set(Array.from(keys as Set<unknown>).map(String)));
-        }
-      }}  
+      onSelectionChange={handleSelectionChange}
       onSortChange={setSortDescriptor}
     >
       <TableHeader columns={headerColumns}>
