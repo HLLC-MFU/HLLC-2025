@@ -1,11 +1,12 @@
 'use client';
-import { SendHorizontal } from 'lucide-react';
+import { BellIcon, SendHorizontal } from 'lucide-react';
 import { Button, Select, SelectItem } from '@heroui/react';
 import { SelectStudent } from './_components/Selectstudentinfo';
 import { Informationinfo } from './_components/InfoFrom';
 import { PreviewApp, PreviewOutApp } from './_components/Preview';
 import { InformationInfoData } from './_components/InfoFrom';
 import { useState } from 'react';
+import { PageHeader } from '@/components/ui/page-header';
 
 export const language = [
   { key: 'en', label: 'EN' },
@@ -19,17 +20,14 @@ export default function NotiManage() {
 
   console.log('ข้อมูลหน้าบ้าน', infoData);
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex py-1 px-8">
-        {/* Heder Text */}
-        <h1 className="text-3xl font-bold">Notification Management</h1>
-      </div>
-      <div className="flex flex-row  px-4 py-6">
-        <div className="flex px-4 py-6 gap-6 min-h-screen w-1/2">
+    <>
+			<PageHeader description='Create, manage, and view system notifications for specific users or roles.' icon={<BellIcon />} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
           <div id="Notification Info" className="flex row-span-2 w-full">
             <div className="flex flex-col w-full gap-6">
               <div className="flex flex-col w-full px-5 py-6 gap-6 bg-white rounded-2xl border border-gray-300 shadow-md">
-                <h1 className="text-3xl font-bold ">Preview</h1>
+                <h1 className="text-xl font-bold ">Preview</h1>
                 <SelectStudent />
               </div>
               <div className="flex flex-col w-full px-5 py-6 gap-6 bg-white rounded-2xl border border-gray-300 shadow-md">
@@ -38,13 +36,13 @@ export default function NotiManage() {
             </div>
           </div>
         </div>
-        <div className="flex flex-col px-4 py-6 gap-6 w-1/2">
+        <div>
           <div
             id="Preview (Application)"
             className="flex flex-col bg-white rounded-2xl border border-gray-300 p-6 gap-6 shadow-md items-end"
           >
             <div className="flex flex-row justify-between w-full">
-              <h1 className="text-3xl font-bold ">Preview In Application</h1>
+              <h1 className="text-xl font-bold ">Preview In Application</h1>
               <Select
                 className="w-56"
                 value={selectLanguagePreview}
@@ -76,7 +74,7 @@ export default function NotiManage() {
             className="flex flex-col bg-white rounded-2xl border border-gray-300 h-96 p-6 gap-6 shadow-md items-end"
           >
             <div className="flex flex-row justify-between w-full">
-              <h1 className="text-3xl font-bold ">Preview Notfication</h1>
+              <h1 className="text-xl font-bold ">Preview Notfication</h1>
               <Select
                 className="w-56"
                 value={selectLanguageNotification}
@@ -97,6 +95,6 @@ export default function NotiManage() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
