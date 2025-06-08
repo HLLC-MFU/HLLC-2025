@@ -2,13 +2,13 @@
 import { useSponsors } from "@/hooks/useSponsors";
 import { useSponsorsType } from "@/hooks/useSponsorsType";
 import { Sponsors } from "@/types/sponsors";
-import { SponsorsType } from "@/types/sponsors-type";
+import { SponsorType } from "@/types/sponsors-type";
 import { Button, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Textarea } from "@heroui/react";
 import { useState, useEffect } from "react";
 
 interface SponsorModalProps {
   type: string;
-  sponsorTypes: SponsorsType[];
+  sponsorTypes: SponsorType[];
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (sponsor: Partial<Sponsors>, mode: "add" | "edit") => void;
@@ -30,7 +30,7 @@ export function SponsorModal({
   sponsor,
   mode
 }: SponsorModalProps) {
-  const { createSponsorsType, updateSponsorsType } = useSponsorsType();
+  const { createSponsors, updateSponsors } = useSponsors();
   const [nameEn, setNameEn] = useState("");
   const [nameTh, setNameTh] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -63,20 +63,20 @@ export function SponsorModal({
       return;
     }
 
-    const formData = new FormData();
-    formData.append("name[en]", nameEn.trim());
-    formData.append("name[th]", nameTh.trim());
-    formData.append("type", typeId);
-    formData.append("isShow", String(isShow));
+    const sponsorsData = new FormData();
+    sponsorsData.append("name[en]", nameEn.trim());
+    sponsorsData.append("name[th]", nameTh.trim());
+    sponsorsData.append("type", typeId);
+    sponsorsData.append("isShow", String(isShow));
     if (logoFile) {
-      if (logoFile) formData.append("photo.logoPhoto", logoFile);
+      if (logoFile) sponsorsData.append("photo.logoPhoto", logoFile);
     }
 
     try {
       if (mode === "add") {
-        await createSponsors(formData);
+        await createSponsors(sponsorsData);
       } else if (mode === "edit" && sponsor?._id) {
-        await updateSponsors(sponsor._id, formData);
+        await updateSponsors(sponsor._id, sponsorsData);
       }
 
       onSuccess(sponsor || {}, mode);

@@ -29,7 +29,7 @@ export function useSponsors() {
     };
 
     // Create sponsor
-    const createSponsors = async (sponsorsData: Partial<Sponsors>) => {
+    const createSponsors = async (sponsorsData: Partial<Sponsors> | FormData) => {
         try {
             setLoading(true);
             const res = await apiRequest<Sponsors>("/sponsors", "POST", sponsorsData);
@@ -58,7 +58,7 @@ export function useSponsors() {
 
     const updateSponsors = async (
 		id: string,
-		sponsorsData: Partial<Sponsors>,
+		sponsorsData: Partial<Sponsors> | FormData,
 	): Promise<void> => {
 		try {
 			setLoading(true);

@@ -15,11 +15,11 @@ import {
 } from "@heroui/react";
 import { EllipsisVertical, Pen, Pencil, Trash, Trash2 } from "lucide-react";
 import type { Sponsors } from "@/types/sponsors";
-import type { SponsorsType } from "@/types/sponsors-type";
+import type { SponsorType } from "@/types/sponsors-type";
 import { SponsorModal } from "./SponsorModal";
 interface SponsorTableProps {
   type: string;
-  sponsorTypes: SponsorsType[];
+  sponsorTypes: SponsorType[];
   isModalOpen: boolean;
   onClose: () => void;
   modalMode: "edit" | "add";
@@ -63,12 +63,8 @@ export default function SponsorTable({
           {sponsors.map((s) => (
             <TableRow key={s._id}>
               <TableCell>
-                {s.photo?.logoPhoto ? (
-                  <img
-                    src={`http://localhost:8080/uploads/${s.photo.logoPhoto}`}
-                    alt={s.name.en}
-                    className="h-10 w-10 object-contain rounded"
-                  />
+                {s.photo ? (
+                  <img src={`http://localhost:8080/uploads/${s.photo}`} alt={s.name.en} className="h-10 w-10 object-contain rounded" />
                 ) : (
                   <span className="text-default-500 italic">No Logo</span>
                 )}
