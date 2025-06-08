@@ -9,13 +9,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { Href } from "@react-types/shared";
 
 import { siteConfig } from "@/config/site";
+import { useProfile } from "@/hooks/useProfile";
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const router = useRouter()
   const pathname = usePathname();
-    const handleClick = (href: Href) => {
+  const user = useProfile((state) => state.user);
+  const handleClick = (href: Href) => {
     router.push(href)
   }
 
@@ -60,7 +62,7 @@ export const Sidebar = () => {
                 size="sm"
                 src="/logo.png"
               />
-              <span className="font-semibold text-default-900">HLLC Admin</span>
+              <span className="font-semibold text-default-900">{user?.name.first} {user?.name.middle} {user?.name.last}</span>
             </div>
           )}
           <Button
@@ -143,15 +145,17 @@ export const Sidebar = () => {
                     src="https://i.pravatar.cc/150?u=a042581f4e29026024d"
                   />
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium">John Doe</span>
-                    <span className="text-xs text-default-500">Administrator</span>
+                    <span className="text-sm font-medium">{user?.name.first} {user?.name.middle} {user?.name.last}</span>
+                    <span className="text-xs text-default-500">{user?.role.name}</span>
                   </div>
                 </div>
               </DropdownTrigger>
               <DropdownMenu aria-label="User menu">
                 <DropdownItem key="profile">Profile</DropdownItem>
                 <DropdownItem key="settings">Settings</DropdownItem>
-                <DropdownItem key="logout" className="text-danger" color="danger">
+                <DropdownItem key="logout" className="text-danger" color="danger" onPress={() => {
+                  router.push("/logout");
+                }} >
                   Log Out
                 </DropdownItem>
               </DropdownMenu>
