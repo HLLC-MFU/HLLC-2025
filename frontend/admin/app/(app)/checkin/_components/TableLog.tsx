@@ -78,7 +78,7 @@ export function TableLog() {
           studentid: item.user.username,
           activityId: activity?._id ?? '',
           activity: activity?.name?.en ?? 'Unknown',
-          activityth: activity?.name.th ?? 'ไม่ทราบ',
+          activityth: activity?.name?.th ?? 'ไม่ทราบ',
           userId: item.user._id,
         };
       })
@@ -186,7 +186,7 @@ export function TableLog() {
   }, []);
 
   return (
-    <div className="container mx-auto flex justify-center items-center px-4 py-6">
+    <div className=" flex justify-center items-center py-6">
       <Table
         isHeaderSticky
         aria-label="Example table with custom cells, pagination and sorting"
