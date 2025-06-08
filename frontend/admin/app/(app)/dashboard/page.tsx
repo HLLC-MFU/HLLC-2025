@@ -28,7 +28,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col min-h-screen ">
       <div className="flex py-6 px-8">
-        <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-8">
@@ -55,14 +55,14 @@ export default function Dashboard() {
         }].map((item, idx) => (
           <div
             key={idx}
-            className={`w-full h-36 border-b-[8px] ${item.borderColor} rounded-2xl shadow-md flex justify-between items-center bg-white p-4 relative`}
+            className={`w-full h-36 border-b-[8px] ${item.borderColor} rounded-2xl shadow-md flex justify-between items-center  p-4 relative`}
           >
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 {icons[idx]}
-                <span className="text-md font-medium text-gray-700">{item.title}</span>
+                <span className="text-md font-medium ">{item.title}</span>
               </div>
-              <span className="text-2xl font-bold text-gray-900">{item.value}</span>
+              <span className="text-2xl font-bold ">{item.value}</span>
             </div>
             <div className="w-16 h-16">
               <CircularProgressbar

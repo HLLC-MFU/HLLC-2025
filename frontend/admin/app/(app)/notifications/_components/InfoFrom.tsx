@@ -67,14 +67,14 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-row justify-between">
-        <h1 className="text-3xl font-bold  justify-center ">
+        <h1 className="text-2xl font-bold  justify-center ">
           Information Info
         </h1>
-        <div className="w-52 h-full">
+        <div className=" w-full max-w-[9rem] h-full">
           <Select
-            className="w-52 bg-white border border-gray-300 rounded-xl"
+            className=" border border-gray-300 rounded-lg"
             label="Select Icons"
-            size="md"
+            size="sm"
             selectedKeys={selected ? [selected.name] : []}
             onSelectionChange={keys => {
               const name = Array.from(keys)[0];
@@ -106,7 +106,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
       </div>
 
       {/* Title */}
-      <h1 className="text-xl font-bold"> Title </h1>
+      <h1 className="text-lg font-bold"> Title </h1>
       <div className="flex flex-row justify-between gap-5">
         <Input
           label="English"
@@ -128,7 +128,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
       </div>
 
       {/* Subtitle */}
-      <h1 className="text-xl font-bold"> Subtitle</h1>
+      <h1 className="text-lg font-bold"> Subtitle</h1>
       <div className="flex flex-row justify-between gap-5">
         <Input
           label="English"
@@ -149,7 +149,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         />
       </div>
 
-      <h1 className="text-xl font-bold"> Description </h1>
+      <h1 className="text-lg font-bold"> Description </h1>
       <div className="flex flex-row justify-between gap-5 items-stretch">
         <div className="w-full h-full">
           <Textarea
@@ -173,7 +173,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         </div>
       </div>
 
-      <h1 className="text-xl font-bold"> Redirect (Optional) </h1>
+      <h1 className="text-lg font-bold"> Redirect (Optional) </h1>
       <div className="grid grid-cols-2 justify-between gap-5">
         <Input
           label="English"
@@ -202,7 +202,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         />
       </div>
 
-      <h1 className="text-xl font-bold"> Imange (Optional) </h1>
+      <h1 className="text-lg font-bold"> Imange (Optional) </h1>
       <ImageUploader onChange={(file, url) => setImageUrl(url)} />
     </div>
   );

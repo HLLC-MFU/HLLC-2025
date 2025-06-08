@@ -6,6 +6,9 @@ import { Informationinfo } from './_components/InfoFrom';
 import { PreviewApp, PreviewOutApp } from './_components/Preview';
 import { InformationInfoData } from './_components/InfoFrom';
 import { useState } from 'react';
+import { PageHeader } from '@/components/ui/page-header';
+import { BellRing } from "lucide-react"
+import { useNotification } from '@/hooks/useNotification';
 
 export const language = [
   { key: 'en', label: 'EN' },
@@ -13,40 +16,53 @@ export const language = [
 ];
 
 export default function NotiManage() {
-  const [selectLanguagePreview, setSelectLanguagePreview] = useState< 'en' | 'th' >('en');
-  const [selectLanguageNotification, setSelectLanguageNotification] = useState< 'en' | 'th' >('en');
+  const [selectLanguagePreview, setSelectLanguagePreview] = useState<'en' | 'th'>('en');
+  const [selectLanguageNotification, setSelectLanguageNotification] = useState<'en' | 'th'>('en');
   const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
+  const { createNotification } = useNotification()
+
+
+  const handleSubmit = () => {
+    if (infoData) {
+      const { icon, ...rest } = infoData;
+      createNotification({
+        ...rest,
+        icon: typeof icon === 'string' ? icon : undefined,
+      });
+    }
+  };
 
   console.log('ข้อมูลหน้าบ้าน', infoData);
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="flex py-1 px-8">
-        {/* Heder Text */}
-        <h1 className="text-3xl font-bold">Notification Management</h1>
-      </div>
-      <div className="flex flex-row  px-4 py-6">
-        <div className="flex px-4 py-6 gap-6 min-h-screen w-1/2">
+      < PageHeader
+        title='Notifications Management'
+        description='Manage notification types from the mobile system'
+        icon={<BellRing className=' w-7 h-7' />}
+      />
+      <div className="flex flex-row">
+        <div className="flex px-4  gap-6 min-h-screen w-1/2">
           <div id="Notification Info" className="flex row-span-2 w-full">
             <div className="flex flex-col w-full gap-6">
-              <div className="flex flex-col w-full px-5 py-6 gap-6 bg-white rounded-2xl border border-gray-300 shadow-md">
-                <h1 className="text-3xl font-bold ">Preview</h1>
+              <div className="flex flex-col w-full px-5 py-6 gap-6  rounded-2xl border border-gray-300 shadow-md">
+                <h1 className="text-2xl font-bold ">Preview</h1>
                 <SelectStudent />
               </div>
-              <div className="flex flex-col w-full px-5 py-6 gap-6 bg-white rounded-2xl border border-gray-300 shadow-md">
+              <div className="flex flex-col w-full px-5 py-6 gap-6 rounded-2xl border border-gray-300 shadow-md">
                 <Informationinfo onChange={setInfoData} />
               </div>
             </div>
           </div>
         </div>
-        <div className="flex flex-col px-4 py-6 gap-6 w-1/2">
+        <div className="flex flex-col px-4  gap-6 w-1/2">
           <div
             id="Preview (Application)"
-            className="flex flex-col bg-white rounded-2xl border border-gray-300 p-6 gap-6 shadow-md items-end"
+            className="flex flex-col  rounded-2xl border border-gray-300 p-6 gap-6 shadow-md items-end"
           >
             <div className="flex flex-row justify-between w-full">
-              <h1 className="text-3xl font-bold ">Preview In Application</h1>
+              <h1 className="text-2xl font-bold ">Preview In Application</h1>
               <Select
-                className="w-56"
+                className="max-w-[9rem]"
                 value={selectLanguagePreview}
                 items={language}
                 label="Language"
@@ -65,20 +81,21 @@ export default function NotiManage() {
             <Button
               color="primary"
               endContent={<SendHorizontal />}
-              className="p-4"
+              className="p-5"
               size="md"
+              onPress={handleSubmit}
             >
-              <p className=" text-xl font-medium">Post</p>
+              <p className=" text-lg font-medium">Post</p>
             </Button>
           </div>
           <div
             id="Preview (Application)"
-            className="flex flex-col bg-white rounded-2xl border border-gray-300 h-96 p-6 gap-6 shadow-md items-end"
+            className="flex flex-col rounded-2xl border border-gray-300 h-96 p-6 gap-6 shadow-md items-end"
           >
             <div className="flex flex-row justify-between w-full">
-              <h1 className="text-3xl font-bold ">Preview Notfication</h1>
+              <h1 className="text-2xl font-bold ">Preview Notfication</h1>
               <Select
-                className="w-56"
+                className="max-w-[9rem]"
                 value={selectLanguageNotification}
                 items={language}
                 label="Language"

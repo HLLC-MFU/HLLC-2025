@@ -7,29 +7,22 @@ import {
   TableRow,
   TableCell,
   User,
-  Pagination,
+  SortDescriptor,
 } from "@heroui/react";
 import { useMajors } from "@/hooks/useMajor";
-
-export const columns = [
-  { name: "NAME", uid: "name", sortable: true },
-  { name: "MAJOR", uid: "major", sortable: true },
-];
-
-import { ChevronDown, Search } from 'lucide-react';
 import { useUsers } from "@/hooks/useUsers";
 import { useSchools } from "@/hooks/useSchool";
 import TopContent from "./Tablecomponents/TopContent";
 import BottomContent from "./Tablecomponents/BottomContent";
-
-const INITIAL_VISIBLE_COLUMNS = ["name", "major"];
+import { FormattedUser } from "@/types/Notification/FomattedUser";
+import { INITIAL_VISIBLE_COLUMNS , columns } from "@/types/Notification/TableNotification";
 
 export function TableInfo() {
   const [filterValue, setFilterValue] = React.useState("");
-  const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
+  const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(new Set<string>());
   const [visibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
-  const [sortDescriptor, setSortDescriptor] = React.useState({
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: "name",
     direction: "ascending",
   });
@@ -37,20 +30,11 @@ export function TableInfo() {
   const { users } = useUsers();
   const { majors } = useMajors();
   const { schools } = useSchools();
-  const [majorFilter, setMajorFilter] = React.useState<Set<string>>(
-    new Set(),
-  );
-  const [schoolFilter, setSchoolFilter] = React.useState<Set<string>>(
-    new Set(),
-  );
-
+  const [majorFilter, setMajorFilter] = React.useState<Set<string>>( new Set(),);
+  const [schoolFilter, setSchoolFilter] = React.useState<Set<string>>( new Set(),);
   const pages = Math.ceil(users.length / rowsPerPage);
-
   const hasSearchFilter = Boolean(filterValue);
-
   const headerColumns = React.useMemo(() => {
-    if (visibleColumns === "all") return columns;
-
     return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
   }, [visibleColumns]);
 
@@ -115,7 +99,7 @@ export function TableInfo() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a, b) => {
+    return [...items].sort((a: any, b: any) => {
       const first = a[sortDescriptor.column];
       const second = b[sortDescriptor.column];
       const cmp = first < second ? -1 : first > second ? 1 : 0;
@@ -131,8 +115,9 @@ export function TableInfo() {
 
       // กรอง majors ที่ belong กับ school ที่เลือก
       const filteredMajorIds = majors
-        .filter((m) => selectedSchoolIds.includes(m.school._id ))
-        .map((m) => m._id);
+        .filter((m) => selectedSchoolIds.includes(m.school))
+        .map((m) => m._id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
 
       // เซ็ตใหม่เฉพาะ major ของ school ที่เลือก
       setMajorFilter(new Set(filteredMajorIds));
@@ -144,9 +129,8 @@ export function TableInfo() {
 
   }, [schoolFilter, majors]);
 
-
-  const renderCell = React.useCallback((user, columnKey) => {
-    const cellValue = columnKey === "name" ? user.name.full : user[columnKey];
+  const renderCell = React.useCallback((user: FormattedUser, columnKey: keyof FormattedUser | "name" | "major") => {
+    const cellValue = columnKey === "name" ? user.name : user[columnKey as keyof FormattedUser];
 
     switch (columnKey) {
       case "name":
@@ -174,12 +158,12 @@ export function TableInfo() {
     }
   }, []);
 
-  const onRowsPerPageChange = React.useCallback((e) => {
+  const onRowsPerPageChange = React.useCallback((e: any) => {
     setRowsPerPage(Number(e.target.value));
     setPage(1);
   }, []);
 
-  const onSearchChange = React.useCallback((value) => {
+  const onSearchChange = React.useCallback((value: string) => {
     if (value) {
       setFilterValue(value);
       setPage(1);
@@ -248,9 +232,9 @@ export function TableInfo() {
           const filteredIds = filteredItems.map(user => user.id);
           setSelectedKeys(new Set(filteredIds));
         } else {
-          setSelectedKeys(keys);
+          setSelectedKeys(new Set(Array.from(keys as Set<unknown>).map(String)));
         }
-      }}
+      }}  
       onSortChange={setSortDescriptor}
     >
       <TableHeader columns={headerColumns}>
