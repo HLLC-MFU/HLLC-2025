@@ -85,28 +85,27 @@ export class UsersService {
   async findAllByQuery(query: Partial<User> & { school?: string }) {
     const q = { ...query } as FilterQuery<User>;
 
-    if (q.school) {
-      console.log('\n🏫 School search - Input school ID:', q.school);
+    if (
+      q.school &&
+      typeof q.school === 'string' &&
+      Types.ObjectId.isValid(q.school)
+    ) {
       const majors = await this.majorModel
         .find({ school: new Types.ObjectId(q.school) })
         .select('_id')
         .lean();
 
-      console.log('Found majors for school:', {
-        schoolId: q.school,
-        majorCount: majors.length,
-        majorIds: majors.map((m) => m._id.toString()),
-      });
-
       const majorIds = majors.map((m) => m._id.toString());
 
       q['metadata.major'] = {
-        $in: majorIds.map((id) => new Types.ObjectId(id)),
+        $in: majorIds
+          .filter((id) => typeof id === 'string' && Types.ObjectId.isValid(id))
+          .map((id) => new Types.ObjectId(id)),
       };
       delete q.school;
+    } else if (q.school) {
+      throw new BadRequestException('Invalid school ID');
     }
-
-    console.log('Final query to find users:', JSON.stringify(q, null, 2));
 
     const result = await queryAll<User>({
       model: this.userModel,
@@ -114,11 +113,6 @@ export class UsersService {
       filterSchema: {},
       populateFields: (excluded) =>
         Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
-    });
-
-    console.log('Query results:', {
-      totalUsers: result.data.length,
-      userMajors: result.data.map((u) => u.metadata?.major?.toString()),
     });
 
     return result;
