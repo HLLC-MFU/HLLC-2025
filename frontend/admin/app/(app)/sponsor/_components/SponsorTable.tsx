@@ -14,21 +14,21 @@ import {
   DropdownItem,
 } from "@heroui/react";
 import { EllipsisVertical, Pen, Pencil, Trash, Trash2 } from "lucide-react";
-import type { Sponsor, Type } from "@/types/sponsor";
+import type { Sponsors } from "@/types/sponsors";
+import type { SponsorsType } from "@/types/sponsors-type";
 import { SponsorModal } from "./SponsorModal";
-
 interface SponsorTableProps {
   type: string;
-  sponsorTypes: Type[];
+  sponsorTypes: SponsorsType[];
   isModalOpen: boolean;
   onClose: () => void;
   modalMode: "edit" | "add";
-  selectedSponsor?: Sponsor | Partial<Sponsor>;
-  handleSubmitSponsor: (sponsorData: Partial<Sponsor>) => void;
-  sponsors: Sponsor[];
-  onEdit: (s: Sponsor) => void;
-  onDelete: (s: Sponsor) => void;
-  onToggleShow: (s: Sponsor) => void;
+  selectedSponsor?: Sponsors | Partial<Sponsors>;
+  handleSubmitSponsor: (sponsorData: Partial<Sponsors>) => void;
+  sponsors: Sponsors[];
+  onEdit: (s: Sponsors) => void;
+  onDelete: (s: Sponsors) => void;
+  onToggleShow: (s: Sponsors) => void;
 }
 
 export default function SponsorTable({
@@ -131,7 +131,7 @@ export default function SponsorTable({
         mode={modalMode}
         sponsor={
           selectedSponsor && '_id' in selectedSponsor
-            ? (selectedSponsor as Sponsor)
+            ? (selectedSponsor as Sponsors)
             : undefined
         }
         onClose={onClose}

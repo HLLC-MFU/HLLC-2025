@@ -4,14 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Accordion, AccordionItem, Button } from "@heroui/react";
 import { Plus } from "lucide-react";
 
-import { useSponsor } from "@/hooks/useSponsor";
+import { useSponsors } from "@/hooks/useSponsors";
 import { addToast } from "@heroui/react";
 
 import { SponsorFilters } from "./_components/SponsorFilters";
 import SponsorTable from "./_components/SponsorTable";
 import AddSponsorTypeModal from "./_components/AddSponsorTypeModal";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
-import { Sponsor } from "@/types/sponsor";
+import { Sponsors } from "@/types/sponsors";
+import { useSponsorsType } from "@/hooks/useSponsorsType";
 
 
 export default function SponsorPage() {
@@ -20,28 +21,34 @@ export default function SponsorPage() {
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | Partial<Sponsor>>();
+  const [selectedSponsor, setSelectedSponsor] = useState<Sponsors | Partial<Sponsors>>();
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [confirmationModalType, setConfirmationModalType] = useState<'delete' | 'edit' | null>(null);
 
   const {
-    sponsor,
-    loading,
-    createSponsor,
-    updateSponsor,
-    deleteSponsor,
-    sponsorTypes,
-    createSponsortype,
-  } = useSponsor();
+    sponsors,
+    loading: sponsorsLoading,
+    createSponsors,
+    updateSponsors,
+    deleteSponsors,
+  } = useSponsors();
 
-  const groupedSponsors: Record<string, Sponsor[]> = useMemo(() => {
-    const groups: Record<string, Sponsor[]> = {};
+  const {
+    sponsorsType,
+    loading: typeLoading,
+    createSponsorsType,
+    updateSponsorsType,
+    deleteSponsorsType,
+  } = useSponsorsType();
 
-    sponsorTypes.forEach((type) => {
+  const groupedSponsors: Record<string, Sponsors[]> = useMemo(() => {
+    const groups: Record<string, Sponsors[]> = {};
+
+    sponsorsType.forEach((type) => {
       groups[type.name] = [];
     });
 
-    sponsor?.forEach((s) => {
+    sponsors?.forEach((s) => {
       const typeName =
         typeof s.type === "object" && s.type !== null && "name" in s.type
           ? (s.type as { name: string }).name
@@ -51,9 +58,9 @@ export default function SponsorPage() {
     });
 
     return groups;
-  }, [sponsor, sponsorTypes]);
+  }, [sponsors, sponsorsType]);
 
-  const getFilteredSortedSponsors = (sponsors: Sponsor[]): Sponsor[] => {
+  const getFilteredSortedSponsors = (sponsors: Sponsors[]): Sponsors[] => {
     let filtered = [...sponsors];
 
     if (searchQuery.trim() !== '') {
@@ -94,26 +101,26 @@ export default function SponsorPage() {
     setIsModalOpen(true);
   };
 
-  const handleEditSponsor = (sponsor: Sponsor) => {
+  const handleEditSponsor = (sponsor: Sponsors) => {
     setModalMode('edit');
     setSelectedSponsor(sponsor);
     setIsModalOpen(true);
   };
 
-  const handleDeleteSponsor = (sponsor: Sponsor) => {
+  const handleDeleteSponsor = (sponsor: Sponsors) => {
     setSelectedSponsor(sponsor);
     setConfirmationModalType('delete');
   };
 
-  const handleSubmitSponsor = (sponsorData: Partial<Sponsor> & { logoFile?: File | null }) => {
-    console.log(sponsorData);
+  const handleSubmitSponsor = (sponsorsData: Partial<Sponsors> & { logoFile?: File | null }) => {
+    console.log(sponsorsData);
 
     if (selectedSponsor && '_id' in selectedSponsor && selectedSponsor._id) {
-      setSelectedSponsor({ ...selectedSponsor, ...sponsorData });
+      setSelectedSponsor({ ...selectedSponsor, ...sponsorsData });
       setConfirmationModalType('edit');
     } else {
       const formData = new FormData();
-      Object.entries(sponsorData).forEach(([key, value]) => {
+      Object.entries(sponsorsData).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           if (key === "logoFile" && value instanceof File) {
             formData.append("logoPhoto", value); // name must match backend field
@@ -125,15 +132,15 @@ export default function SponsorPage() {
         }
       });
 
-      createSponsor(formData);
+      createSponsors(sponsorsData);
       setIsModalOpen(false);
     }
   };
 
 
-  const handleConfirm = () => {
+  const handleConfirm = (sponsorsData: Partial<Sponsors> & { logoFile?: File | null }) => {
     if (confirmationModalType === 'delete' && selectedSponsor?._id) {
-      deleteSponsor(selectedSponsor._id);
+      deleteSponsors(selectedSponsor._id);
       
     } else if (confirmationModalType === 'edit' && selectedSponsor?._id) {
       const formData = new FormData();
@@ -148,7 +155,7 @@ export default function SponsorPage() {
           }
         }
       });
-      updateSponsor(selectedSponsor._id, formData);
+      updateSponsors(selectedSponsor._id, sponsorsData);
       addToast({
         title: 'Sponsor updated successfully!',
         color: 'success',
@@ -161,7 +168,7 @@ export default function SponsorPage() {
 
   const handleAddType = async (type: { name: string }) => {
     console.log(type);
-    await createSponsortype(type);
+    await createSponsorsType(type);
     setIsTypeOpen(false);
   };
 
@@ -205,7 +212,7 @@ export default function SponsorPage() {
                     onSortDirectionToggle={toggleSortDirection}
                   />
 
-                  {filtered.length === 0 && !loading && (
+                  {filtered.length === 0 && !sponsorsLoading && (
                     <p className="text-center text-sm text-default-500">
                       No sponsors found. Please add a new sponsor.
                     </p>
@@ -214,7 +221,7 @@ export default function SponsorPage() {
                   <div className="grid grid-cols-1 gap-4 py-6">
                     <SponsorTable
                       type={type}
-                      sponsorTypes={sponsorTypes}
+                      sponsorTypes={sponsorsType}
                       isModalOpen={isModalOpen}
                       onClose={() => setIsModalOpen(false)}
                       modalMode={modalMode}
@@ -224,9 +231,7 @@ export default function SponsorPage() {
                       onEdit={handleEditSponsor}
                       onDelete={handleDeleteSponsor}
                       onToggleShow={(s) => {
-                        const formData = new FormData();
-                        formData.append("isShow", String(!s.isShow));
-                        updateSponsor(s._id, formData);
+                        updateSponsors(s._id, { isShow: !s.isShow });
                       }}
                     />
                   </div>
@@ -260,7 +265,7 @@ export default function SponsorPage() {
           setConfirmationModalType(null);
           setSelectedSponsor(undefined);
         }}
-        onConfirm={handleConfirm}
+        onConfirm={() => handleConfirm(selectedSponsor as Partial<Sponsors> & { logoFile?: File | null })}
       />
     </div>
   );

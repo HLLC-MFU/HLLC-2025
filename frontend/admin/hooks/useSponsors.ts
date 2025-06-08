@@ -1,5 +1,6 @@
 import { Sponsors } from "@/types/sponsors";
 import { apiRequest } from "@/utils/api";
+import { addToast } from "@heroui/react";
 import { useEffect, useState } from "react";
 
 export function useSponsors() {
@@ -28,7 +29,7 @@ export function useSponsors() {
     };
 
     // Create sponsor
-    const createSponsor = async (sponsorsData: Partial<Sponsors>) => {
+    const createSponsors = async (sponsorsData: Partial<Sponsors>) => {
         try {
             setLoading(true);
             const res = await apiRequest<Sponsors>("/sponsors", "POST", sponsorsData);
@@ -55,6 +56,53 @@ export function useSponsors() {
         }
     };
 
+    const updateSponsors = async (
+		id: string,
+		sponsorsData: Partial<Sponsors>,
+	): Promise<void> => {
+		try {
+			setLoading(true);
+			const res = await apiRequest<Sponsors>(
+				`/sponsors/${id}`,
+				'PATCH',
+				sponsorsData,
+			);
+
+			if (res.data) {
+				setSponsors((prev) => prev.map((s) => (s._id === id ? res.data! : s)));
+				addToast({
+					title: 'Sponsors updated successfully!',
+					color: 'success',
+				});
+			}
+		} catch (err: any) {
+			setError(err.message || 'Failed to update sponsors.');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+    const deleteSponsors = async (id: string): Promise<void> => {
+		try {
+			setLoading(true);
+			const res = await apiRequest(`/sponsors/${id}`, 'DELETE');
+
+			if (res.statusCode === 200) {
+				setSponsors((prev) => prev.filter((s) => s._id !== id));
+				addToast({
+					title: 'Sponsors deleted successfully!',
+					color: 'success',
+				});
+			} else {
+				throw new Error(res.message || 'Failed to delete sponsors.');
+			}
+		} catch (err: any) {
+			setError(err.message || 'Failed to delete sponsors.');
+		} finally {
+			setLoading(false);
+		}
+	};
+
     useEffect(() => {
         fetchSponsors();
     }, []);
@@ -64,6 +112,8 @@ export function useSponsors() {
         loading,
         error,
         fetchSponsors,
-        createSponsor,
+        createSponsors,
+        updateSponsors,
+        deleteSponsors,
     };
 }

@@ -1,16 +1,18 @@
 "use client";
-import { useSponsor } from "@/hooks/useSponsor";
-import { Sponsor, Type } from "@/types/sponsor";
+import { useSponsors } from "@/hooks/useSponsors";
+import { useSponsorsType } from "@/hooks/useSponsorsType";
+import { Sponsors } from "@/types/sponsors";
+import { SponsorsType } from "@/types/sponsors-type";
 import { Button, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Textarea } from "@heroui/react";
 import { useState, useEffect } from "react";
 
 interface SponsorModalProps {
   type: string;
-  sponsorTypes: Type[];
+  sponsorTypes: SponsorsType[];
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (sponsor: Partial<Sponsor>, mode: "add" | "edit") => void;
-  sponsor?: Sponsor;
+  onSuccess: (sponsor: Partial<Sponsors>, mode: "add" | "edit") => void;
+  sponsor?: Sponsors;
   mode: "add" | "edit";
 }
 
@@ -28,7 +30,7 @@ export function SponsorModal({
   sponsor,
   mode
 }: SponsorModalProps) {
-  const { createSponsor, updateSponsor } = useSponsor();
+  const { createSponsorsType, updateSponsorsType } = useSponsorsType();
   const [nameEn, setNameEn] = useState("");
   const [nameTh, setNameTh] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -72,9 +74,9 @@ export function SponsorModal({
 
     try {
       if (mode === "add") {
-        await createSponsor(formData);
+        await createSponsors(formData);
       } else if (mode === "edit" && sponsor?._id) {
-        await updateSponsor(sponsor._id, formData);
+        await updateSponsors(sponsor._id, formData);
       }
 
       onSuccess(sponsor || {}, mode);
