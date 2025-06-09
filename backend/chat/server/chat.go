@@ -6,19 +6,16 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
-
 	memberRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/members/repository"
 	memberService "github.com/HLLC-MFU/HLLC-2025/backend/module/members/service"
-
-	stickerRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/repository"
-	stickerServicePkg "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
-
 	roomKafka "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
-
 	RoomRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
 	RoomService "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/service"
+	stickerRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/repository"
+	stickerServicePkg "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
+	userRepoPkg "github.com/HLLC-MFU/HLLC-2025/backend/module/users/repository"
+	userServicePkg "github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 	kafkaUtil "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/websocket/v2"
@@ -53,8 +50,12 @@ func (s *server) chatService() {
 	stkRepo := stickerRepo.NewStickerRepository(s.db)
 	stickerService := stickerServicePkg.NewStickerService(stkRepo)
 
+	// Users logic
+	userRepo := userRepoPkg.NewUserRepository(s.db)
+	userService := userServicePkg.NewUserService(userRepo)
+
 	// Rooms logic
-	roomService := RoomService.NewService(roomRepo, publisher, memberService, chatService)
+	roomService := RoomService.NewService(roomRepo, publisher, memberService, chatService, userService)
 
 	// Background services
 	chatService.SyncRoomMembers()

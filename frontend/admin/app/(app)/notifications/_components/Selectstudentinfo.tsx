@@ -7,7 +7,7 @@ export function SelectStudent() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Switch size="lg" isSelected={showSelect} onValueChange={setShowSelect}>
+      <Switch size="md" isSelected={showSelect} onValueChange={setShowSelect}>
         All Student
       </Switch>
 

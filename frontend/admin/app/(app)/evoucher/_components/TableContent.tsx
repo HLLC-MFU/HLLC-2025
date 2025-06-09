@@ -3,6 +3,9 @@ import TopContent from "./TopContent";
 import BottomContent from "./BottomContent";
 import { Evoucher } from "@/types/evoucher";
 import { SortDescriptor } from "@heroui/react";
+import { EvoucherType } from "@/types/evoucher-type";
+import type { Selection } from "@react-types/shared";
+import { Key } from "react";
 
 export interface TableColumnType {
     uid: string;
@@ -12,22 +15,22 @@ export interface TableColumnType {
 
 export interface TableContentProps {
     setIsAddOpen: (value: boolean) => void;
-    setActionText: (value: string) => void;
+    setActionText: (value: "Add" | "Edit") => void;
     sortDescriptor: SortDescriptor;
     setSortDescriptor: (descriptor: SortDescriptor) => void;
     headerColumns: TableColumnType[];
     sortedItems: Evoucher[];
-    renderCell: (evoucher: Evoucher, columnKey: React.Key) => any;
+    renderCell: (evoucher: Evoucher, columnKey: Key) => any;
     filterValue: string;
-    typeFilter: string;
-    setTypeFilter: (value: string) => void;
-    typeOptions: string[];
+    typeFilter: Selection;
+    setTypeFilter: (value: Selection) => void;
+    EvoucherType: EvoucherType[];
     capitalize: (value: string) => string;
     visibleColumns: Set<string>;
-    setVisibleColumns: (columns: string[]) => void;
+    setVisibleColumns: (columns: Set<string>) => void;
     columns: TableColumnType[];
-    selectedKeys: Set<React.Key>;
-    setSelectedKeys: (keys: Set<React.Key>) => void;
+    selectedKeys: Selection;
+    setSelectedKeys: (keys: Selection) => void;
     filteredItems: Evoucher[];
     page: number;
     pages: number;
@@ -36,7 +39,6 @@ export interface TableContentProps {
     onNextPage: () => void;
     onClear: () => void;
     onSearchChange: (value: string) => void;
-    onRowsPerPageChange: (e: any) => void;
 }
 
 export default function TableContent({
@@ -51,7 +53,7 @@ export default function TableContent({
     filterValue,
     typeFilter,
     setTypeFilter,
-    typeOptions,
+    EvoucherType,
     capitalize,
     visibleColumns,
     setVisibleColumns,
@@ -65,7 +67,6 @@ export default function TableContent({
     onNextPage,
     onClear,
     onSearchChange,
-    onRowsPerPageChange,
 }: TableContentProps) {
     return (
         <Table
@@ -87,14 +88,20 @@ export default function TableContent({
                 filterValue={filterValue}
                 typeFilter={typeFilter}
                 setTypeFilter={setTypeFilter}
-                typeOptions={typeOptions}
+                EvoucherType={EvoucherType}
                 capitalize={capitalize}
                 visibleColumns={visibleColumns}
                 setVisibleColumns={setVisibleColumns}
                 columns={columns}
                 onClear={onClear}
                 onSearchChange={onSearchChange}
-                onRowsPerPageChange={onRowsPerPageChange}
+                selectedKeys={selectedKeys}
+                filteredItems={filteredItems}
+                page={page}
+                pages={pages}
+                setPage={setPage}
+                onPreviousPage={onPreviousPage}
+                onNextPage={onNextPage}
             />}
             topContentPlacement="outside"
             selectedKeys={selectedKeys}
@@ -117,7 +124,7 @@ export default function TableContent({
             </TableHeader>
             <TableBody emptyContent={"No users found"} items={sortedItems}>
                 {(item) => (
-                    <TableRow key={item.acronym}>
+                    <TableRow key={item._id}>
                         {(columnKey) => <TableCell className="w-48">{renderCell(item, columnKey)}</TableCell>}
                     </TableRow>
                 )}
