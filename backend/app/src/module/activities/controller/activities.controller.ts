@@ -15,11 +15,10 @@ import { ActivitiesService } from '../service/activities.service';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
 import { UpdateActivityDto } from '../dto/activities/update-activities.dto';
 import { FastifyRequest } from 'fastify';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { Public } from '../../auth/decorators/public.decorator';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { UserRequest } from 'src/pkg/types/users';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { Permissions } from '../../auth/decorators/permissions.decorator';
 
 @UseGuards(PermissionsGuard)
 @Controller('activities')
@@ -27,7 +26,7 @@ export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
-  @Public()
+  @Permissions('activities:create')
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Req() req: FastifyRequest) {
     const dto = req.body as CreateActivitiesDto;
@@ -35,7 +34,7 @@ export class ActivitiesController {
   }
 
   @Get('')
-  @UseGuards(JwtAuthGuard)
+  @Permissions('activities:read')
   async findAll(
     @Query() query: Record<string, string>,
     @Req() req: UserRequest,
@@ -44,7 +43,7 @@ export class ActivitiesController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  @Permissions('activities:read')
   findOne(
     @Param('id') id: string,
     @Req() req: UserRequest,
@@ -53,7 +52,7 @@ export class ActivitiesController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @Permissions('activities:update')
   @UseInterceptors(new MultipartInterceptor(500))
   update(
     @Param('id') id: string,
@@ -64,7 +63,7 @@ export class ActivitiesController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @Permissions('activities:delete')
   remove(@Param('id') id: string) {
     return this.activitiesService.remove(id);
   }

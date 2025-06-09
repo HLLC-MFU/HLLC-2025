@@ -57,13 +57,12 @@ export class ActivitiesService {
       model: this.activitiesModel,
       query: {
         ...query,
-        excluded: 'user.password, user.refreshToken, metadata.secret ,__v',
+        excluded: 'user.password,user.refreshToken,metadata.secret,__v',
       },
       filterSchema: {},
       populateFields: () => Promise.resolve([
         {
           path: 'type',
-          select: 'name',
         }
       ]),
     });
