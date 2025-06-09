@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -6,38 +6,55 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  User,
+  User as UserComponent,
+  Button,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Select,
+  SelectItem,
+  Chip,
+  Tooltip,
+  addToast,
 } from '@heroui/react';
+import { Plus, User, Calendar } from 'lucide-react';
 
 import { Typing } from './TypingModal';
 import { useCheckin } from '@/hooks/useCheckin';
 import { useActivities } from '@/hooks/useActivities';
+import { useUsers } from '@/hooks/useUsers';
 
 import TopContent from './Tablecomponents/Topcontent';
 import BottomContent from './Tablecomponents/BottomContent';
+import type { Checkin, Activity } from '@/types/checkin';
+
+interface TableItem {
+  id: string;
+  name: string;
+  studentid: string;
+  activityId: string;
+  activityNameEn: string;
+  activityNameTh: string;
+  userId: string;
+}
 
 export const columns = [
   { name: 'NAME', uid: 'name', sortable: true },
   { name: 'ACTIVITY', uid: 'activity', sortable: true },
 ];
 
-export type UserType = {
-  id: string;
-  name: string;
-  studentid: string;
-  activityId: string;
-  activity: string;
-  activityth: string;
-  userId: string;
-  [key: string]: string;
-};
-
 const INITIAL_VISIBLE_COLUMNS = ['name', 'activity'];
 
 export function TableLog() {
-  const { checkin, fetchcheckin } = useCheckin();
-
-  console.log(checkin);
+  const { checkin, fetchcheckin, createcheckin, loading } = useCheckin();
+  const { activities } = useActivities();
+  const { users } = useUsers();
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [filterValue, setFilterValue] = useState('');
   const [selectedKeys] = useState(new Set([]));
@@ -52,25 +69,30 @@ export function TableLog() {
   const [page, setPage] = useState(1);
   const [isTypingModelOpen, setIsTypingModelOpen] = useState(false);
   const [activityFilter, setActivityFilter] = useState<Set<string>>(new Set());
-  const { activities } = useActivities();
   const [sortDescriptor, setSortDescriptor] = useState<{ column: string; direction: 'ascending' | 'descending' }>({
     column: 'activity',
     direction: 'ascending',
   });
-
   const hasSearchFilter = Boolean(filterValue);
-
   const headerColumns = useMemo(() => {
     return columns.filter((column) =>
       Array.from(visibleColumns).includes(column.uid),
     );
   }, [visibleColumns]);
 
-  const users = useMemo(() => {
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery) return users;
+    return users.filter(user => 
+      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      `${user.name.first} ${user.name.last}`.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [users, searchQuery]);
+
+  const usersMemo = useMemo(() => {
     const seen = new Set<string>();
 
     return (Array.isArray(checkin) ? checkin : [])
-      .map((item) => {
+      .map((item: Checkin) => {
         const activity = item.activities?.[0];
         return {
           id: item._id,
@@ -91,7 +113,7 @@ export function TableLog() {
   }, [checkin]);
 
   const filteredItems = useMemo(() => {
-    let filteredUsers = [...users];
+    let filteredUsers = [...usersMemo];
 
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((user) =>
@@ -106,7 +128,7 @@ export function TableLog() {
     }
 
     return filteredUsers;
-  }, [users, filterValue, activityFilter]);
+  }, [usersMemo, filterValue, activityFilter]);
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
@@ -124,33 +146,33 @@ export function TableLog() {
   }, [activities]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a : UserType, b : UserType) => {
-      const first = a[sortDescriptor.column as keyof UserType];
-      const second = b[sortDescriptor.column as keyof UserType];
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof typeof a];
+      const second = b[sortDescriptor.column as keyof typeof b];
       const cmp = first! < second! ? -1 : first! > second! ? 1 : 0;
       return sortDescriptor.direction === 'descending' ? -cmp : cmp;
     });
   }, [sortDescriptor, items]);
 
-  const renderCell = useCallback((user: UserType, columnKey: string) => {
-    const cellValue = user[columnKey];
+  const renderCell = useCallback((item: TableItem, columnKey: string) => {
+    const cellValue = item[columnKey as keyof TableItem] ?? '';
     switch (columnKey) {
       case 'name':
         return (
-          <User
+          <UserComponent
             avatarProps={{ radius: 'lg', src: '' }}
-            description={user.studentid}
-            name={cellValue}
+            description={item.studentid}
+            name={item.name}
           >
-            {user.name}
-          </User>
+            {item.name}
+          </UserComponent>
         );
       case 'activity':
         return (
           <div className="flex flex-col">
-            <p className="text-bold text-small capitalize">{cellValue}</p>
+            <p className="text-bold text-small capitalize">{item.activityNameEn}</p>
             <p className="text-bold text-tiny capitalize text-default-400">
-              {user.activityth}
+              {item.activityNameTh}
             </p>
           </div>
         );
@@ -171,19 +193,47 @@ export function TableLog() {
     }
   }, [page]);
 
-  const onSearchChange = useCallback((value: string) => {
-    if (value) {
-      setFilterValue(value);
-      setPage(1);
-    } else {
-      setFilterValue('');
-    }
-  }, []);
+  const resetModalState = () => {
+    setSelectedUserId('');
+    setSelectedActivityIds([]);
+    setSearchQuery('');
+  };
 
-  const onClear = useCallback(() => {
-    setFilterValue('');
-    setPage(1);
-  }, []);
+  const handleCloseModal = () => {
+    resetModalState();
+    setIsManualModalOpen(false);
+  };
+
+  const handleManualCheckin = async () => {
+    if (!selectedUserId) {
+      addToast({
+        title: "Error",
+        description: "Please select a user",
+        color: "danger"
+      });
+      return;
+    }
+
+    if (selectedActivityIds.length === 0) {
+      addToast({
+        title: "Error",
+        description: "Please select at least one activity",
+        color: "danger"
+      });
+      return;
+    }
+
+    try {
+      await createcheckin({
+        user: selectedUserId,
+        activities: selectedActivityIds,
+      });
+      handleCloseModal();
+      await fetchcheckin();
+    } catch (err) {
+      console.error('Manual checkin error:', err);
+    }
+  };
 
   return (
     <div className=" flex justify-center items-center">
@@ -248,13 +298,14 @@ export function TableLog() {
         </TableBody>
       </Table>
 
-      <Typing
-        isOpen={isTypingModelOpen}
-        onClose={() => {
-          fetchcheckin();
-          setIsTypingModelOpen(false);
-        }}
-      />
+        <Typing
+          isOpen={isTypingModelOpen}
+          onClose={() => {
+            fetchcheckin();
+            setIsTypingModelOpen(false);
+          }}
+        />
+      </div>
     </div>
   );
 }
