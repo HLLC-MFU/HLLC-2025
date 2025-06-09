@@ -11,15 +11,15 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ActivitiesService } from './activities.service';
-import { CreateActivitiesDto } from './dto/create-activities.dto';
-import { UpdateActivityDto } from './dto/update-activities.dto';
+import { ActivitiesService } from '../service/activities.service';
+import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
+import { UpdateActivityDto } from '../dto/activities/update-activities.dto';
 import { FastifyRequest } from 'fastify';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Public } from '../auth/decorators/public.decorator';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { Public } from '../../auth/decorators/public.decorator';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { UserRequest } from 'src/pkg/types/users';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 
 @UseGuards(PermissionsGuard)
 @Controller('activities')
@@ -40,7 +40,7 @@ export class ActivitiesController {
     @Query() query: Record<string, string>,
     @Req() req: UserRequest,
   ) {
-    return this.activitiesService.findAll(query, req.user);
+    return this.activitiesService.findAll(query);
   }
 
   @Get(':id')
@@ -49,7 +49,7 @@ export class ActivitiesController {
     @Param('id') id: string,
     @Req() req: UserRequest,
   ) {
-    return this.activitiesService.findOne(id, req.user._id);
+    return this.activitiesService.findOne(id);
   }
 
   @Patch(':id')

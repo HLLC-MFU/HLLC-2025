@@ -75,49 +75,6 @@ export class UsersService {
     });
   }
 
-  /**
-   * Find all users with optional filtering by school or major
-   * @param query Query parameters that can include school ID or other user fields
-   * @returns List of users with populated role, major, and school information
-   * example: this.usersService.findAllByQuery({ school: '...' });
-   * example: this.usersService.findAllByQuery({ metadata: { major: '...' } });
-   */
-  async findAllByQuery(query: Partial<User> & { school?: string }) {
-    const q = { ...query } as FilterQuery<User>;
-
-    if (
-      q.school &&
-      typeof q.school === 'string' &&
-      Types.ObjectId.isValid(q.school)
-    ) {
-      const majors = await this.majorModel
-        .find({ school: new Types.ObjectId(q.school) })
-        .select('_id')
-        .lean();
-
-      const majorIds = majors.map((m) => m._id.toString());
-
-      q['metadata.major'] = {
-        $in: majorIds
-          .filter((id) => typeof id === 'string' && Types.ObjectId.isValid(id))
-          .map((id) => new Types.ObjectId(id)),
-      };
-      delete q.school;
-    } else if (q.school) {
-      throw new BadRequestException('Invalid school ID');
-    }
-
-    const result = await queryAll<User>({
-      model: this.userModel,
-      query: q,
-      filterSchema: {},
-      populateFields: (excluded) =>
-        Promise.resolve(excluded.includes('role') ? [] : [{ path: 'role' }]),
-    });
-
-    return result;
-  }
-
   async findOne(_id: string) {
     return queryFindOne<User>(this.userModel, { _id }, []);
   }
