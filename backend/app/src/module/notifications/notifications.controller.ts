@@ -9,6 +9,7 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { CacheKey } from '@nestjs/cache-manager';
@@ -17,6 +18,8 @@ import { ReadNotificationDto } from './dto/notification-read.dto';
 import { CreateNotificationDto } from './dto/notification.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { UserRequest } from 'src/pkg/types/users';
+import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
+import { FastifyRequest } from 'fastify';
 
 @UseGuards(PermissionsGuard)
 @Controller('notifications')
@@ -25,8 +28,10 @@ export class NotificationsController {
 
   @Post()
   @CacheKey('notifcations')
-  create(@Body() createNotificationDto: CreateNotificationDto) {
-    return this.notificationsService.create(createNotificationDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  create(@Req() req: FastifyRequest) {
+    const dto = req.body as CreateNotificationDto
+    return this.notificationsService.create(dto);
   }
 
   @Get()
