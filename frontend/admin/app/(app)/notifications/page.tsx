@@ -1,6 +1,6 @@
 'use client';
 import { BellIcon, SendHorizontal } from 'lucide-react';
-import { Button, Select, SelectItem } from '@heroui/react';
+import { Button, form, Select, SelectItem } from '@heroui/react';
 import { SelectStudent } from './_components/Selectstudentinfo';
 import { Informationinfo } from './_components/InfoFrom';
 import { PreviewApp, PreviewOutApp } from './_components/Preview';
@@ -8,7 +8,8 @@ import { InformationInfoData } from './_components/InfoFrom';
 import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { useNotification } from '@/hooks/useNotification';
-import type { Notification } from '@/types/student';
+import type { Notification } from '@/types/Notification';
+import { fromDate } from '@internationalized/date';
 
 export const language = [
   { key: 'en', label: 'EN' },
@@ -25,36 +26,32 @@ export default function NotiManage() {
   const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
   const [scope, setScope] = useState<SelectionScope>('global');
   const { createNotification } = useNotification()
-  
 
-  const handleSubmit = () => {
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
     if (infoData) {
-
-      const payload: Notification = {
-        title: infoData.title,
-        subtitle: infoData.subtitle,
-        body: infoData.body,
-        icon:
-          typeof infoData.icon === 'function'
-            ? infoData.icon.displayName || infoData.icon.name || 'default'
-            : 'default',
-
-        image: infoData.imageUrl ?? '',
-        scope,
-      };
-      // เฉพาะเมื่อมี redirect.link จริง
-      if (infoData.redirect.link.trim() !== '') {
-        payload.redirectButton = {
-          label: {
-            en: infoData.redirect.en,
-            th: infoData.redirect.th
-          },
-          url: infoData.redirect.link
-        };
+      const formData = new FormData();
+      formData.append("title[Th]", infoData.title.th)
+      formData.append("title[En]", infoData.title.en)
+      formData.append("subtitle[Th]", infoData.subtitle.th)
+      formData.append("subtitle[En]", infoData.subtitle.en)
+      formData.append("body[Th]", infoData.body.th)
+      formData.append("body[En]", infoData.body.en)
+      formData.append("scope", typeof scope === 'string' ? scope : JSON.stringify(scope))
+      if (typeof infoData.icon === 'string') {
+        formData.append("icon", infoData.icon)
       }
-
-      createNotification(payload);
+      if (infoData.imageFile) {
+        formData.append("image", infoData.imageFile);
+      }
+      if (infoData.redirect?.link?.trim() !== '') {
+        formData.append("redirectButton[label][En]", infoData.redirect.en)
+        formData.append("redirectButton[label][Th]", infoData.redirect.th)
+        formData.append("redirectButton[url]", infoData.redirect.link)
+      }
+      createNotification(formData)
     }
   }
 
@@ -104,7 +101,13 @@ export default function NotiManage() {
               endContent={<SendHorizontal />}
               className="p-5"
               size="md"
-              onPress={handleSubmit}
+              onPress={() => {
+                // Simulate a form submit event for handleSubmit
+                const fakeEvent = {
+                  preventDefault: () => { },
+                } as unknown as React.FormEvent<HTMLFormElement>;
+                handleSubmit(fakeEvent);
+              }}
             >
               <p className=" text-lg font-medium">Post</p>
             </Button>

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react"
-import { Student, Notification } from "@/types/student"
+import { Notification } from "@/types/Notification"
 import { apiRequest } from "@/utils/api"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function useNotification() {
     const [notification, setNotification] = useState<Notification[]>([])
@@ -22,21 +24,23 @@ export function useNotification() {
     };
 
     // ➕ Create new Notification
-    const createNotification = async (NotificationData: Partial<Notification>) => {
+    const createNotification = async (NotificationData: FormData) => {
+
         try {
             setLoading(true);
-            const res = await apiRequest<Notification>("/notifications", "POST", NotificationData);
-            console.log("Create response:", res);
 
-            if (res.data) {
-                await new Promise((resolve) => {
-                    setNotification((prev) => {
-                        const updated = [...prev, res.data as Notification];
-                        resolve(updated);
-                        return updated;
-                    });
-                });
+            const res = await fetch(`${API_BASE_URL}/notifications`, {
+                method: "POST",
+                body: NotificationData,
+                credentials: "include"
+            });
+            const data = await res.json();
+            console.log("Create response:", res, data);
+            
+            if (data && '_id' in data) {
+                setNotification((prev) => [...prev, data]);
             }
+            return res;
         } catch (err: any) {
             setError(err.message || "Failed to create school.");
         } finally {

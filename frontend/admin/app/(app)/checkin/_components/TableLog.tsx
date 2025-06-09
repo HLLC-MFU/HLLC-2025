@@ -77,8 +77,8 @@ export function TableLog() {
           name: `${item.user.name.first} ${item.user.name.middle ?? ''} ${item.user.name.last}`.trim(),
           studentid: item.user.username,
           activityId: activity?._id ?? '',
-          activity: activity?.name?.en ?? 'Unknown',
-          activityth: activity?.name?.th ?? 'ไม่ทราบ',
+          activity: activity?.shortName?.en ?? 'Unknown',
+          activityth: activity?.shortName?.th ?? 'ไม่ทราบ',
           userId: item.user._id,
         };
       })
@@ -124,9 +124,9 @@ export function TableLog() {
   }, [activities]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a : UserType, b : UserType) => {
-      const first = a[sortDescriptor.column as keyof UserType];
-      const second = b[sortDescriptor.column as keyof UserType];
+    return [...items].sort((a : any, b : any) => {
+      const first = a[sortDescriptor.column ];
+      const second = b[sortDescriptor.column ];
       const cmp = first! < second! ? -1 : first! > second! ? 1 : 0;
       return sortDescriptor.direction === 'descending' ? -cmp : cmp;
     });

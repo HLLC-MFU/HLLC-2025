@@ -1,18 +1,5 @@
 import { Lang } from './lang'
 
-export type Student = {
-    _id: string;
-    name: {
-        first: string;
-        middle?: string; // ใส่ ? ถ้า middle อาจไม่มี
-        last: string;
-    };
-    username: string;
-    metadata: {
-        major: string;
-    };
-}
-
 type Target = {
     type: 'school' | 'major' | 'individual';
     id: string[]

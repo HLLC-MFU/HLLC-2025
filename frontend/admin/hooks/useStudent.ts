@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiRequest } from "@/utils/api";
-import { Student } from '../types/student'; // Adjust the import path as necessary
+import { Student } from '../types/Notification'; // Adjust the import path as necessary
 
 export function useStudent() {
     const [students, setStudents] = useState<Student[]>([]);
