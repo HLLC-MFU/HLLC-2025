@@ -63,8 +63,13 @@ export default function SponsorTable({
           {sponsors.map((s) => (
             <TableRow key={s._id}>
               <TableCell>
-                {s.photo ? (
-                  <img src={`http://localhost:8080/uploads/${s.photo}`} alt={s.name.en} className="h-10 w-10 object-contain rounded" />
+                {s.photo && typeof s.photo === "string" ? (
+                  <img
+                    src={`http://localhost:8080/uploads/${s.photo}`}
+                    alt={s.name.en}
+                    className="h-10 w-10 object-contain rounded"
+                    onError={(e) => e.currentTarget.src = "/placeholder.png"}
+                  />
                 ) : (
                   <span className="text-default-500 italic">No Logo</span>
                 )}

@@ -112,42 +112,37 @@ export default function SponsorPage() {
     setConfirmationModalType('delete');
   };
 
-  const handleSubmitSponsor = (sponsorsData: Partial<Sponsors> & { logoFile?: File | null }) => {
-    console.log(sponsorsData);
+  const handleSubmitSponsor = async (sponsorsData: Partial<Sponsors>) => {
+    let response;
+    const formData = new FormData();
 
-    if (selectedSponsor && '_id' in selectedSponsor && selectedSponsor._id) {
-      setSelectedSponsor({ ...selectedSponsor, ...sponsorsData });
-      setConfirmationModalType('edit');
-    } else {
-      const formData = new FormData();
-      Object.entries(sponsorsData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (key === "logoFile" && value instanceof File) {
-            formData.append("logoPhoto", value); // name must match backend field
-          } else if (typeof value === "object") {
-            formData.append(key, JSON.stringify(value));
-          } else {
-            formData.append(key, value as string | Blob);
-          }
-        }
-      });
-
-      createSponsors(sponsorsData);
-      setIsModalOpen(false);
+    if (sponsorsData.name) {
+      if (sponsorsData.name.th) formData.append('name[th]', sponsorsData.name.th);
+      if (sponsorsData.name.en) formData.append('name[en]', sponsorsData.name.en);
     }
-  };
 
+    // 🔁 Access file directly from file input element
+    const input = document.querySelector<HTMLInputElement>('#photo-input');
+    const file = input?.files?.[0];
+    if (file) {
+      formData.append('photo', file);
+    }
 
-  const handleConfirm = (sponsorsData: Partial<Sponsors> & { logoFile?: File | null }) => {
-    if (confirmationModalType === 'delete' && selectedSponsor?._id) {
-      deleteSponsors(selectedSponsor._id);
-      
-    } else if (confirmationModalType === 'edit' && selectedSponsor?._id) {
+    if (sponsorsData.type && sponsorsData.type !== "") {
+      formData.append('type', sponsorsData.type);
+    }
+    if (typeof sponsorsData.isShow === 'boolean') {
+      formData.append('isShow', String(sponsorsData.isShow));
+    }
+
+    if (modalMode === "add") {
+      response = await createSponsors(formData);  // ✅ สร้าง response
+    } else if (modalMode === "edit" && selectedSponsor?._id) {
       const formData = new FormData();
       Object.entries(selectedSponsor).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          if (key === "logoFile" && value instanceof File) {
-            formData.append("logoPhoto", value); // name must match backend field
+          if (key === "photo" && value instanceof File) {
+            formData.append("photo", value); // name must match backend field
           } else if (typeof value === "object") {
             formData.append(key, JSON.stringify(value));
           } else {
@@ -155,13 +150,19 @@ export default function SponsorPage() {
           }
         }
       });
-      updateSponsors(selectedSponsor._id, sponsorsData);
-      addToast({
-        title: 'Sponsor updated successfully!',
-        color: 'success',
-      });
+      console.log(formData);
+      response = updateSponsors(selectedSponsor._id, formData);
     }
+    setIsModalOpen(false);
 
+    if (response) window.location.reload();
+  };
+
+  const handleConfirm = () => {
+    if (selectedSponsor?._id) {
+      deleteSponsors(selectedSponsor._id);
+
+    }
     setConfirmationModalType(null);
     setSelectedSponsor(undefined);
   };
@@ -231,7 +232,9 @@ export default function SponsorPage() {
                       onEdit={handleEditSponsor}
                       onDelete={handleDeleteSponsor}
                       onToggleShow={(s) => {
-                        updateSponsors(s._id, { isShow: !s.isShow });
+                        const formData = new FormData();
+                        formData.append('isShow', String(!s.isShow));
+                        updateSponsors(s._id, formData);
                       }}
                     />
                   </div>
@@ -265,7 +268,7 @@ export default function SponsorPage() {
           setConfirmationModalType(null);
           setSelectedSponsor(undefined);
         }}
-        onConfirm={() => handleConfirm(selectedSponsor as Partial<Sponsors> & { logoFile?: File | null })}
+        onConfirm={() => handleConfirm()}
       />
     </div>
   );
