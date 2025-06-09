@@ -31,6 +31,7 @@ export default function SponsorPage() {
     createSponsors,
     updateSponsors,
     deleteSponsors,
+    fetchSponsors, // <-- Add this line if your hook provides it
   } = useSponsors();
 
   const {
@@ -136,7 +137,7 @@ export default function SponsorPage() {
     }
 
     if (modalMode === "add") {
-      response = await createSponsors(formData);  // ✅ สร้าง response
+      response = await createSponsors(formData);
     } else if (modalMode === "edit" && selectedSponsor?._id) {
       const formData = new FormData();
       Object.entries(selectedSponsor).forEach(([key, value]) => {
@@ -155,7 +156,9 @@ export default function SponsorPage() {
     }
     setIsModalOpen(false);
 
-    if (response) window.location.reload();
+    if (response) {
+      await fetchSponsors();
+    }
   };
 
   const handleConfirm = () => {

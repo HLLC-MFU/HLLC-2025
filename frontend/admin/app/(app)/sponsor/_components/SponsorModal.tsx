@@ -48,6 +48,7 @@ export function SponsorModal({
     if (sponsor) {
       setNameEn(sponsor.name.en);
       setNameTh(sponsor.name.th);
+      setIsShow(sponsor.isShow);
     } else {
       setNameEn("");
       setNameTh("");
@@ -69,7 +70,7 @@ export function SponsorModal({
     sponsorsData.append("type", typeId);
     sponsorsData.append("isShow", String(isShow));
     if (logoFile) {
-      if (logoFile) sponsorsData.append("photo.logoPhoto", logoFile);
+      if (logoFile) sponsorsData.append("photo", logoFile);
     }
 
     try {
@@ -112,10 +113,14 @@ export function SponsorModal({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
-                isRequired
+                isRequired  
                 className="max-w-xs"
-                defaultSelectedKeys={["show"]}
+                selectedKeys={[isShow ? "show" : "hide"]}
                 items={show}
+                onChange={(e) => {
+                  const value = (e.target as HTMLSelectElement).value;
+                  setIsShow(value === "show");
+                }}
                 label="Show"
                 placeholder="Select show"
               >

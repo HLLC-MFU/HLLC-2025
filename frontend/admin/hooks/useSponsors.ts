@@ -60,33 +60,42 @@ export function useSponsors() {
     }
   };
 
-  const updateSponsors = async (
-    id: string,
-    sponsorsData: FormData,
-  ): Promise<void> => {
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/sponsors/${id}`, {
-        method: 'PATCH',
-        body: sponsorsData,
-        credentials: "include"
-      });
-      const data = await res.json();
-      console.log("Update response:", res, data);
+ const updateSponsors = async (
+  id: string,
+  sponsorsData: FormData,
+): Promise<void> => {
+  if (!id) {
+    console.error("Invalid sponsor ID");
+    return;
+  }
 
-      if (data) {
-        setSponsors((prev) => prev.map((s) => (s._id === id ? data! : s)));
-        addToast({
-          title: 'Sponsors updated successfully!',
-          color: 'success',
-        });
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to update sponsors.');
-    } finally {
-      setLoading(false);
+  // Optionally remove _id from FormData
+  sponsorsData.delete('_id'); // Prevent conflict if _id is present but empty
+
+  try {
+    setLoading(true);
+    const res = await fetch(`${API_BASE_URL}/sponsors/${id}`, {
+      method: 'PATCH',
+      body: sponsorsData,
+      credentials: "include"
+    });
+    const data = await res.json();
+    console.log("Update response:", res, data);
+
+    if (data) {
+      setSponsors((prev) => prev.map((s) => (s._id === id ? data : s)));
+      addToast({
+        title: 'Sponsors updated successfully!',
+        color: 'success',
+      });
     }
-  };
+  } catch (err: any) {
+    setError(err.message || 'Failed to update sponsors.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const deleteSponsors = async (id: string): Promise<void> => {
     try {

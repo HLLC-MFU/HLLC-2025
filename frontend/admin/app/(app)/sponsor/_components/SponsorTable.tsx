@@ -84,9 +84,8 @@ export default function SponsorTable({
               <TableCell className="text-center">
                 <Chip
                   color={s.isShow ? "primary" : "danger"}
-                  variant="faded"
+                  variant="solid"
                   className="cursor-pointer select-none"
-                  onClick={() => onToggleShow(s)}
                 >
                   {s.isShow ? "Show" : "Hide"}
                 </Chip>
