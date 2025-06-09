@@ -27,7 +27,7 @@ export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
-  @Public()
+  @Permissions('activities:create')
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Req() req: FastifyRequest) {
     const dto = req.body as CreateActivitiesDto;

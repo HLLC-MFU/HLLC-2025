@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Activities, ActivityDocument } from '../schema/activities.schema';
@@ -20,6 +20,20 @@ export class ActivitiesService {
     const metadata = createActivitiesDto.metadata || {};
     const scope = metadata.scope || {};
     
+    // Validate start and end times if provided
+    if (metadata.startAt && metadata.endAt) {
+      const startAt = new Date(metadata.startAt);
+      const endAt = new Date(metadata.endAt);
+      
+      if (isNaN(startAt.getTime()) || isNaN(endAt.getTime())) {
+        throw new BadRequestException('Invalid date format for startAt or endAt');
+      }
+      
+      if (startAt >= endAt) {
+        throw new BadRequestException('startAt must be before endAt');
+      }
+    }
+
     const processedScope = {
       major: this.processFormDataArray(scope.major || []),
       school: this.processFormDataArray(scope.school || []),
@@ -35,10 +49,12 @@ export class ActivitiesService {
         isProgressCount: metadata.isProgressCount === true ? true : false,
         isVisible: metadata.isVisible === false ? false : true,
         scope: convertedScope,
+        startAt: metadata.startAt,
+        endAt: metadata.endAt
       },
     });
 
-    return activity;
+    return await activity.save();
   }
 
   private processFormDataArray(value: string | string[] | null ): string[] {

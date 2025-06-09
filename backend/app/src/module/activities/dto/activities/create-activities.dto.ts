@@ -36,6 +36,14 @@ export class ActivityMetadataDto {
   @IsOptional()
   @Type(() => ActivityScopeDto)
   scope?: ActivityScopeDto;
+
+  @IsOptional()
+  @Type(() => Date)
+  startAt?: Date;
+
+  @IsOptional()
+  @Type(() => Date)
+  endAt?: Date;
 }
 
 export class CreateActivitiesDto {
