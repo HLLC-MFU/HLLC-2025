@@ -4,7 +4,7 @@ import { UsersController } from './users.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schemas/user.schema';
 import { Major, MajorSchema } from '../majors/schemas/major.schema';
-import { Role, RoleSchema } from '../role/schemas/role.schema';3
+import { Role, RoleSchema } from '../role/schemas/role.schema';
 import { Activities, ActivitiesSchema } from '../activities/schema/activities.schema';
 import { ActivitiesService } from '../activities/service/activities.service';
 
