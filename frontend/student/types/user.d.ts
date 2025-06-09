@@ -1,9 +1,11 @@
+import { ILanguage } from './languages';
+
 type User = {
     _id: string;
     id: string;
     name: {
-        first: ILanguage;
-        last: ILanguage;
+        first: string;
+        last: string;
     };
     username: string;
     major: Major;

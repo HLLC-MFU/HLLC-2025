@@ -5,7 +5,8 @@
     },
     "home": {
         "activities": "กิจกรรม",
-        "seeAll": "ดูทั้งหมด"
+        "seeAll": "ดูทั้งหมด",
+        "Upcoming": "กำลังมา"
     },
     "activty": {
         "activities": "กิจกรรม",

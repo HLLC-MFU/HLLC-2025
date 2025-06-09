@@ -1,28 +1,22 @@
 export type Activity = {
-    id: string;
+    _id: string;
     name: ILanguage;
-    shortName: ILanguage;
-    code: string;
-    type: number;
-    description: ILanguage;
-    shortDesc: ILanguage;
-    banner: string;
-    icon: string;
-    open: boolean;  
-    progress: boolean;
-    show: boolean;
-    item: ActivityItem;
-    checkInAt: string;
-    takeAssessmentAt: string;
+    shortDetails: ILanguage;
+    fullDetails: ILanguage;
     location: ILanguage;
-    datetime: {
-        start: string;
-        end: string;
-    }
-    status: {
-        step: number
-        message: string
-    }
+    metadata: {
+        isOpen: boolean;
+        isProgressCount: boolean;
+        isVisible: boolean;
+    };
+    acronym: string;
+    type: string;
+    photo: {
+        bannerPhoto: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
 }
 
 export type ActivityItem = {
