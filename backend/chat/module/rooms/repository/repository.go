@@ -24,6 +24,8 @@ type RoomRepository interface {
 	Delete(ctx context.Context, id primitive.ObjectID) error
 
 	ExistsByID(ctx context.Context, id primitive.ObjectID) (bool, error)
+
+	FilterRooms(ctx context.Context, filter bson.M) ([]*model.Room, error)
 }
 
 type repository struct {
@@ -108,4 +110,18 @@ func (r *repository) ExistsByID(ctx context.Context, id primitive.ObjectID) (boo
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (r *repository) FilterRooms(ctx context.Context, filter bson.M) ([]*model.Room, error) {
+	cursor, err := r.dbConnect(ctx).Collection("rooms").Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var rooms []*model.Room
+	if err := cursor.All(ctx, &rooms); err != nil {
+		return nil, err
+	}
+	return rooms, nil
 }

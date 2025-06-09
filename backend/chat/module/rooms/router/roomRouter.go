@@ -16,7 +16,7 @@ func RegisterRoomRoutes(router fiber.Router, h *handler.RoomHTTPHandler, s *Stic
 	router.Delete("/:id", h.DeleteRoom)
 	router.Post("/upload", c.UploadFile)
 	router.Post("/:roomId/stickers", c.SendSticker)
-
+	router.Get("/:userId/members", h.ListMemberRooms)
 	// Member Management
 	router.Get("/:roomId/members", h.GetRoomMembers)
 	router.Post("/:roomId/:userId/join", c.JoinRoom)

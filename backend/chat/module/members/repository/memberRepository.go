@@ -19,6 +19,7 @@ type RoomMemberRepository interface {
 	IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) (bool, error)
 	ListRoomMembers(ctx context.Context, page, limit int64) ([]*model.RoomMember, int64, error)
 	DeleteRoomMembers(ctx context.Context, roomID primitive.ObjectID) error
+	GetDB() *mongo.Database
 }
 
 type roomMemberRepository struct {
@@ -95,4 +96,8 @@ func (r *roomMemberRepository) DeleteRoomMembers(ctx context.Context, roomID pri
 	filter := bson.M{"room_id": roomID}
 	_, err := r.dbConnect(ctx).Collection("room_members").DeleteOne(ctx, filter)
 	return err
+}
+
+func (r *roomMemberRepository) GetDB() *mongo.Database {
+	return r.dbConnect(context.TODO())
 }
