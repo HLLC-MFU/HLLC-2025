@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function ImageUploader({
   onChange,
@@ -11,19 +11,31 @@ export function ImageUploader({
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const url = URL.createObjectURL(file);
       setImage(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      onChange?.(file, URL.createObjectURL(file));
+      setPreviewUrl(url);
+      onChange?.(file, url);
     }
   };
+
   const handleRemoveImage = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setImage(null);
     setPreviewUrl(null);
     onChange?.(null, '');
   };
 
+  // Cleanup on unmount/change
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   return (
-    <div className="w-full  p-4 shadow flex flex-col items-start gap-4 rounded-lg">
+    <div className="w-full p-4 shadow flex flex-col items-start gap-4 rounded-lg">
       <label className="text-sm font-medium">Upload Image</label>
       <input
         type="file"
@@ -45,7 +57,6 @@ export function ImageUploader({
             Remove
           </button>
         </div>
-
       )}
     </div>
   );

@@ -1,5 +1,5 @@
 import { Input, Textarea } from '@heroui/input';
-import { Select, SelectItem } from '@heroui/react';
+import { image, Select, SelectItem } from '@heroui/react';
 import { Star, School, BookMarked, CircleCheckBig } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ImageUploader } from './imageupload';
@@ -34,6 +34,7 @@ export type InformationInfoData = {
   body: { en: string; th: string };
   redirect: { en: string; th: string; link: string };
   imageUrl?: string;
+  imageFile?: File;
 };
 
 type InformationinfoProps = {
@@ -41,8 +42,9 @@ type InformationinfoProps = {
 };
 
 export function Informationinfo({ onChange }: InformationinfoProps) {
-  const [selected, setSelected] = useState<(typeof icons)[0] | undefined>( undefined,);
+  const [selected, setSelected] = useState<(typeof icons)[0] | undefined>(undefined,);
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [imageFile, setImageFile] = useState<File | undefined>(undefined);
   const [title, setTitle] = useState({ en: '', th: '' });
   const [subtitle, setSubtitle] = useState({ en: '', th: '' });
   const [body, setBody] = useState({ en: '', th: '' });
@@ -55,7 +57,8 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
       subtitle,
       body,
       redirect,
-      imageUrl
+      imageUrl,
+      imageFile
     };
     if (onChange) {
       onChange(data); // 🔁 ส่งข้อมูลออกทุกครั้งที่เปลี่ยน
@@ -201,7 +204,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
       </div>
 
       <h1 className="text-lg font-bold"> Imange (Optional) </h1>
-      <ImageUploader onChange={(file, url) => setImageUrl(url)} />
+      <ImageUploader onChange={(file, url) => { setImageUrl(url); setImageFile(file ?? undefined); }} />
     </div>
   );
 }

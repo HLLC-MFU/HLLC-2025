@@ -18,10 +18,12 @@ import BottomContent from "./Tablecomponents/BottomContent";
 import { FormattedUser } from "@/types/Notification/FomattedUser";
 import { INITIAL_VISIBLE_COLUMNS, columns } from "@/types/Notification/TableNotification";
 
+type SelectionScope = { type: "school" | "major" | "individual"; id: string[] };
+
 export function TableInfo({
   onSelectionChange,
 }: {
-  onSelectionChange?: (ids: string[]) => void;
+  onSelectionChange?: (scope: SelectionScope[]) => void;
 }) {
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(new Set<string>());
@@ -43,20 +45,48 @@ export function TableInfo({
     return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
   }, [visibleColumns]);
 
-  const handleSelectionChange = (keys: Selection) => {
-    let selected: string[] = [];
 
-    if (keys === 'all') {
-      selected = filteredItems.map((user) => user.id);
+
+  const handleSelectionChange = (keys: Selection) => {
+    let selectedIds: string[] = [];
+
+    if (keys === "all") {
+      selectedIds = filteredItems.map((user) => user.id);
     } else {
-      selected = Array.from(keys).map(String); // keys เป็น Set<Key>
+      selectedIds = Array.from(keys).map(String);
     }
 
-    setSelectedKeys(new Set(selected));
-    onSelectionChange?.(selected);
+    setSelectedKeys(new Set(selectedIds));
+
+    if (onSelectionChange) {
+      const selectedUsers = filteredItems.filter((user) =>
+        selectedIds.includes(user.id)
+      );
+
+      const allMajorIds = selectedUsers.map(u => u.majorId);
+      const allSchoolIds = selectedUsers.map(u => u.schoolId);
+
+      const uniqueMajorIds = Array.from(new Set(allMajorIds));
+      const uniqueSchoolIds = Array.from(new Set(allSchoolIds));
+
+      const scope: SelectionScope[] = [];
+
+      // ✅ 1. ทุกคน major เดียวกัน
+      if (uniqueMajorIds.length === 1) {
+        scope.push({ type: "major", id: [uniqueMajorIds[0]] });
+
+        // ✅ 2. ไม่ใช่ major เดียวกัน แต่ school เดียวกัน
+      } else if (uniqueSchoolIds.length === 1) {
+        scope.push({ type: "school", id: [uniqueSchoolIds[0]] });
+
+        // ❌ 3. กระจัดกระจาย
+      } else {
+        scope.push({ type: "individual", id: selectedIds });
+      }
+
+      onSelectionChange(scope);
+    }
   };
-
-
 
   const formatted = React.useMemo(() => {
     return (Array.isArray(users) ? users : [])

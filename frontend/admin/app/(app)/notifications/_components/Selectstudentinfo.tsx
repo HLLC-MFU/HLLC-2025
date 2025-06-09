@@ -2,37 +2,38 @@ import { Switch } from '@heroui/react';
 import React, { useState } from 'react';
 import { TableInfo } from './TableStudent';
 
+type SelectionScope = { type: 'major' | 'school' | 'individual'; id: string[] };
+
 export function SelectStudent({
   onScopeChange,
 }: {
-  onScopeChange?: (scope: 'global' | { type: 'individual'; id: string[] }[]) => void;
+  onScopeChange?: (scope: 'global' | SelectionScope[]) => void;
 }) {
   const [showSelect, setShowSelect] = useState(true);
+  const [tableKey, setTableKey] = useState(0); 
 
   const handleToggle = (val: boolean) => {
     setShowSelect(val);
+
     if (val) {
+      setTableKey((prev) => prev + 1); 
       onScopeChange?.('global');
     } else {
-      onScopeChange?.([]); // ยังไม่มี user ถูกเลือก
+      onScopeChange?.([]); 
     }
   };
 
   return (
     <div className="flex flex-col gap-5">
-      <Switch size="md" isSelected={showSelect} onValueChange={setShowSelect}>
+      <Switch size="md" isSelected={showSelect} onValueChange={handleToggle}>
         All Student
       </Switch>
 
       {!showSelect && (
         <TableInfo
-          onSelectionChange={(ids) => {
-            onScopeChange?.([
-              {
-                type: 'individual',
-                id: ids,
-              },
-            ]);
+          key={tableKey} 
+          onSelectionChange={(scope) => {
+            onScopeChange?.(scope);
           }}
         />
       )}

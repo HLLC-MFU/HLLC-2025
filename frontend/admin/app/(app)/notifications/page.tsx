@@ -7,7 +7,6 @@ import { PreviewApp, PreviewOutApp } from './_components/Preview';
 import { InformationInfoData } from './_components/InfoFrom';
 import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
-import { BellRing } from "lucide-react"
 import { useNotification } from '@/hooks/useNotification';
 import type { Notification } from '@/types/student';
 
@@ -16,18 +15,22 @@ export const language = [
   { key: 'th', label: 'TH' },
 ];
 
-
+type SelectionScope =
+  | 'global'
+  | { type: 'individual' | 'school' | 'major'; id: string[] }[];
 
 export default function NotiManage() {
   const [selectLanguagePreview, setSelectLanguagePreview] = useState<'en' | 'th'>('en');
   const [selectLanguageNotification, setSelectLanguageNotification] = useState<'en' | 'th'>('en');
   const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
-  const [scope, setScope] = useState<'global' | { type: 'individual'; id: string[] }[]>('global');
+  const [scope, setScope] = useState<SelectionScope>('global');
   const { createNotification } = useNotification()
+  
 
   const handleSubmit = () => {
 
     if (infoData) {
+
       const payload: Notification = {
         title: infoData.title,
         subtitle: infoData.subtitle,
@@ -58,7 +61,7 @@ export default function NotiManage() {
   console.log('ข้อมูลหน้าบ้าน', infoData);
   return (
     <>
-			<PageHeader description='Create, manage, and view system notifications for specific users or roles.' icon={<BellIcon />} />
+      <PageHeader description='Create, manage, and view system notifications for specific users or roles.' icon={<BellIcon />} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <div id="Notification Info" className="flex row-span-2 w-full">
