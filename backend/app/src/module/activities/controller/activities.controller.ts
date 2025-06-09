@@ -19,6 +19,7 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 import { UserRequest } from 'src/pkg/types/users';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
+import { Public } from '../../auth/decorators/public.decorator';
 
 @UseGuards(PermissionsGuard)
 @Controller('activities')
@@ -26,7 +27,7 @@ export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
-  @Permissions('activities:create')
+  @Public()
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Req() req: FastifyRequest) {
     const dto = req.body as CreateActivitiesDto;
@@ -37,7 +38,6 @@ export class ActivitiesController {
   @Permissions('activities:read')
   async findAll(
     @Query() query: Record<string, string>,
-    @Req() req: UserRequest,
   ) {
     return this.activitiesService.findAll(query);
   }
