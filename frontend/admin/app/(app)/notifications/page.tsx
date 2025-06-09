@@ -73,7 +73,7 @@ export default function NotiManage() {
             </div>
           </div>
         </div>
-        <div className="flex flex-col px-4  gap-6 w-1/2">
+        <div className="flex flex-col px-4 gap-6 w-full">
           <div
             id="Preview (Application)"
             className="flex flex-col  rounded-2xl border border-gray-300 p-6 gap-6 shadow-md items-end"
