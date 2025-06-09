@@ -3,10 +3,11 @@ import {
   CircularProgressbar,
   buildStyles
 } from "react-circular-progressbar";
-import { Users , Ticket  , ScanLine , Star  } from 'lucide-react';
+import { Users, Ticket, ScanLine, Star, LayoutDashboard } from 'lucide-react';
 import { useCheckin } from "@/hooks/useCheckin";
 import { useUsers } from "@/hooks/useUsers";
 import { useSponsors } from "@/hooks/useSponsors";
+import { PageHeader } from "@/components/ui/page-header";
 
 const icons = [
   <ScanLine className="h-6 w-6 text-lime-600" />,
@@ -21,17 +22,10 @@ export default function Dashboard() {
   const { users } = useUsers();
   const { sponsors } = useSponsors();
 
-  console.log("checkin", checkin);
-  console.log("User", users);
-  console.log("Sponsors", sponsors);
-
   return (
-    <div className="flex flex-col min-h-screen ">
-      <div className="flex py-6 px-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-8">
+    <>
+      <PageHeader description='System overview — quickly access key modules, recent activity, and system statistics.' icon={<LayoutDashboard />} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[{
           title: "Total Checkin",
           value: checkin.length,
@@ -77,7 +71,6 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
-
-    </div>
+    </>
   );
 }

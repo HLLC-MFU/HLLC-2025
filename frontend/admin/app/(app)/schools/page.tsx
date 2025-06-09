@@ -126,7 +126,7 @@ export default function SchoolsPage() {
 
 	return (
 		<>
-			<PageHeader description='The is Management Page' icon={<SchoolIcon />} />
+			<PageHeader description='Manage schools and their associated majors in one place.' icon={<SchoolIcon />} />
 			<div className="flex flex-col min-h-screen">
 				<div className="flex flex-col gap-6">
 					<SchoolFilters

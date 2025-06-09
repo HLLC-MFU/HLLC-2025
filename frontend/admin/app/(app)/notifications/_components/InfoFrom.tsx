@@ -65,7 +65,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-row justify-between">
-        <h1 className="text-2xl font-bold  justify-center ">
+        <h1 className="text-xl font-bold  justify-center ">
           Information Info
         </h1>
         <div className=" w-full max-w-[9rem] h-full">
