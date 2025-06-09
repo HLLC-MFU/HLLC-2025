@@ -58,7 +58,6 @@ export default function NotiManage() {
     }
   }
 
-  console.log('ข้อมูลหน้าบ้าน', infoData);
   return (
     <>
       <PageHeader description='Create, manage, and view system notifications for specific users or roles.' icon={<BellIcon />} />
