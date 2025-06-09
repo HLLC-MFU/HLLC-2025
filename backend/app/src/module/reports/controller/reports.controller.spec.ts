@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReportsController } from './reports.controller';
-import { ReportsService } from './reports.service';
-import { CreateReportDto } from './dto/create-report.dto';
-import { UpdateReportDto } from './dto/update-report.dto';
+import { ReportsService } from '../service/reports.service';
+import { CreateReportDto } from '../dto/reports/create-report.dto';
+import { UpdateReportDto } from '../dto/reports/update-report.dto';
 
 describe('ReportsController', () => {
   let controller: ReportsController;
@@ -52,7 +52,7 @@ describe('ReportsController', () => {
         reporter: 'userId123',
         category: 'categoryId123',
         status: 'pending',
-        updatedAt: new Date(),
+        createdAt: new Date(),
       };
       const result = await controller.create(dto);
       expect(result).toEqual({
@@ -61,7 +61,7 @@ describe('ReportsController', () => {
         reporter: 'userId123',
         category: 'categoryId123',
         status: 'pending',
-        updatedAt: dto.updatedAt,
+        createdAt: new Date(),
       });
       expect(mockService.create).toHaveBeenCalledWith(dto);
     });
@@ -93,7 +93,7 @@ describe('ReportsController', () => {
 
   describe('update', () => {
     it('should update a report', async () => {
-      const dto: UpdateReportDto = { message: 'updated' };
+      const dto: UpdateReportDto = { message: 'updated', updatedAt: new Date() };
       const result = await controller.update('1', dto);
       expect(result).toEqual({ id: '1', message: 'updated' });
       expect(mockService.update).toHaveBeenCalledWith('1', dto);

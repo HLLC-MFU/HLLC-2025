@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateReportTypeDto } from './dto/create-type.dto';
+import { CreateReportTypeDto } from '../dto/reports-type/create-type.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { ReportType, ReportTypeDocument } from './schemas/report-type.schema';
+import { ReportType, ReportTypeDocument } from '../schemas/report-type.schema';
 import { Model } from 'mongoose';
 import {
   queryDeleteOne,
@@ -10,7 +10,7 @@ import {
 } from 'src/pkg/helper/query.util';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { UpdateReportTypeDto } from './dto/update-report_category.dto';
+import { UpdateReportTypeDto } from '../dto/reports-type/update-type.dto';
 
 @Injectable()
 export class ReportTypeService {

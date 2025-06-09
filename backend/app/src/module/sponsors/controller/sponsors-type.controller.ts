@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
-import { SponsorsTypeService } from "./sponsors-type.service";
-import { CreateSponsorsTypeDto } from "./dto/create-sponsors-type.dto";
-import { UpdateSponsorsTypeDto } from "./dto/update-sponsors-type.dto";
+import { SponsorsTypeService } from "../service/sponsors-type.service";
+import { CreateSponsorsTypeDto } from "../dto/sponsers-type/create-sponsors-type.dto";
+import { UpdateSponsorsTypeDto } from "../dto/sponsers-type/update-sponsors-type.dto";
 
 @Controller('sponsors-type')
 export class SponsorsTypeController {

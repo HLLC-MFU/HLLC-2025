@@ -1,7 +1,7 @@
 import { Controller, Delete, Get, Param, Patch, Post, Query, Req, UseInterceptors } from '@nestjs/common';
-import { SponsorsService } from './sponsors.service';
-import { CreateSponsorDto } from './dto/create-sponsor.dto';
-import { UpdateSponsorDto } from './dto/update-sponsor.dto';
+import { SponsorsService } from '../service/sponsors.service';
+import { CreateSponsorDto } from '../dto/sponsers/create-sponsor.dto';
+import { UpdateSponsorDto } from '../dto/sponsers/update-sponsor.dto';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
 

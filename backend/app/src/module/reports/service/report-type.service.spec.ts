@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReportTypeService } from './report-type.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { ReportType } from './schemas/report-type.schema';
+import { ReportType } from '../schemas/report-type.schema';
 import { NotFoundException } from '@nestjs/common';
 import {
   queryAll,
@@ -10,8 +10,8 @@ import {
 } from 'src/pkg/helper/query.util';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { CreateReportTypeDto } from './dto/create-type.dto';
-import { UpdateReportTypeDto } from './dto/update-report_category.dto';
+import { CreateReportTypeDto } from '../dto/reports-type/create-type.dto';
+import { UpdateReportTypeDto } from '../dto/reports-type/update-type.dto';
 
 jest.mock('src/pkg/helper/query.util', () => ({
   queryAll: jest.fn(),

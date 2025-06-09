@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { SponsorsTypeService } from './sponsors-type.service';
-import { SponsorsTypeController } from './sponsors-type.controller';
+import { SponsorsTypeService } from './service/sponsors-type.service';
+import { SponsorsTypeController } from './controller/sponsors-type.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SponsorsTypeSchema } from './schema/sponsors-type.schema';
 import { SponsorsType } from './schema/sponsors-type.schema';

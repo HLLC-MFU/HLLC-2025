@@ -1,19 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SponsorsService } from './sponsors.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { Sponsors } from './schema/sponsors.schema';
-import { SponsorsType } from '../sponsors-type/schema/sponsors-type.schema';
-import { CreateSponsorDto } from './dto/create-sponsor.dto';
-import { UpdateSponsorDto } from './dto/update-sponsor.dto';
+import { Sponsors } from '../schema/sponsors.schema';
+import { SponsorsType } from '../schema/sponsors-type.schema';
+import { CreateSponsorDto } from '../dto/sponsers/create-sponsor.dto';
+import { UpdateSponsorDto } from '../dto/sponsers/update-sponsor.dto';
 import { Types } from 'mongoose';
 
 jest.mock('src/pkg/helper/query.util', () => ({
     queryAll: jest.fn(),
     queryFindOne: jest.fn(),
 }));
+
 jest.mock('src/pkg/validator/model.validator', () => ({
     findOrThrow: jest.fn(),
 }));
+
 jest.mock('src/pkg/helper/helpers', () => ({
     handleMongoDuplicateError: jest.fn(),
 }));
@@ -38,16 +40,17 @@ describe('SponsorsService', () => {
 
     const createSponsorDto: CreateSponsorDto = {
         name: { th: 'สปอนเซอร์', en: 'Sponsor' },
-        photo: {  
+        photo: {
             coverPhoto: '',
             bannerPhoto: '',
             thumbnail: '',
-            logoPhoto: 'G:\ความทรงจำมหาวิทยาลัย\My rose', },
+            logoPhoto: 'G:\ความทรงจำมหาวิทยาลัย\My rose',
+        },
         type: mockObjectId,
         metadata: { key: 'value' },
     };
 
-    
+
 
     const updateSponsorDto: UpdateSponsorDto = {
         name: { th: 'อัปเดต', en: 'Updated' },
@@ -59,7 +62,7 @@ describe('SponsorsService', () => {
         },
         type: mockObjectId,
         metadata: { level: 'gold' },
-        updatedAt:new Date,
+        updatedAt: new Date,
     };
 
     beforeEach(async () => {
@@ -179,8 +182,8 @@ describe('SponsorsService', () => {
     describe('update()', () => {
         it('should update sponsor if exists and type is valid', async () => {
             const _id = 's1';
-            (findOrThrow as jest.Mock).mockResolvedValueOnce(true); // for sponsor exists
-            (findOrThrow as jest.Mock).mockResolvedValueOnce(true); // for type exists
+            (findOrThrow as jest.Mock).mockResolvedValueOnce(true);
+            (findOrThrow as jest.Mock).mockResolvedValueOnce(true);
             mockSponsorsModel.findByIdAndUpdate.mockResolvedValue({ _id, ...updateSponsorDto });
 
             const result = await service.update(_id, updateSponsorDto);
