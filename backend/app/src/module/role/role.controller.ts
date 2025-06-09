@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   Put,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -51,5 +53,39 @@ export class RoleController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.roleService.remove(id);
+  }
+
+  /**
+   * ตรวจสอบว่า role สามารถ scan อีก role ได้หรือไม่
+   * GET /roles/can-scan?scanner=mentor&target=student
+   */
+  @Get('can-scan')
+  async checkCanScan(
+    @Query('scanner') scannerRole: string,
+    @Query('target') targetRole: string,
+  ) {
+    if (!scannerRole || !targetRole) {
+      throw new BadRequestException('Scanner role and target role are required');
+    }
+
+    const canScan = await this.roleService.canScan(scannerRole, targetRole);
+    return {
+      scanner: scannerRole,
+      target: targetRole,
+      canScan,
+    };
+  }
+
+  /**
+   * ดึงรายชื่อ roles ที่สามารถ scan ได้
+   * GET /roles/mentor/scannable-roles
+   */
+  @Get(':roleName/scannable-roles')
+  async getScannableRoles(@Param('roleName') roleName: string) {
+    const roles = await this.roleService.getCanScanRoles(roleName);
+    return {
+      role: roleName,
+      canScan: roles,
+    };
   }
 }

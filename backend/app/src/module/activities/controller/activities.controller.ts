@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Body,
   Patch,
   Param,
   Delete,
@@ -19,7 +18,6 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 import { UserRequest } from 'src/pkg/types/users';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
-import { Public } from '../../auth/decorators/public.decorator';
 
 @UseGuards(PermissionsGuard)
 @Controller('activities')
@@ -46,7 +44,6 @@ export class ActivitiesController {
   @Permissions('activities:read')
   findOne(
     @Param('id') id: string,
-    @Req() req: UserRequest,
   ) {
     return this.activitiesService.findOne(id);
   }

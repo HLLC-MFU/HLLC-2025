@@ -56,16 +56,28 @@ export class Role {
       required?: boolean;
     }
   >;
+
+  /**
+   * ใช้สำหรับ config scan
+   * เช่น ใครสามารถ scan role ไหนได้บ้าง
+   */
+  @Prop({ type: Object, default: {} })
+  metadataScanned: Record<
+    string,
+    {
+      scan?: boolean;
+      canScan?: string[];
+    }
+  >;
 }
 
 export const RoleSchema = SchemaFactory.createForClass(Role);
 /**
- * Remove __v and metadataSchema from the JSON representation
+ * Remove __v from the JSON representation
  */
 RoleSchema.set('toJSON', {
   transform: (doc, ret) => {
     delete ret.__v;
-    delete ret.metadataSchema;
     return ret;
   },
 });
