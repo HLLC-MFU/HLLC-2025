@@ -4,6 +4,7 @@ import { MessageBubbleProps } from '../types/chatTypes';
 import Avatar from './Avatar';
 import { formatTime } from '../utils/timeUtils';
 import { Reply } from 'lucide-react-native';
+import { API_BASE_URL } from '../config/chatConfig';
 
 const MessageBubble = memo(({ 
   message, 
@@ -26,30 +27,53 @@ const MessageBubble = memo(({
 
   const renderContent = () => {
     if (message.stickerId) {
+      const stickerUrl = message.image?.startsWith('http') 
+        ? message.image 
+        : `${API_BASE_URL}/stickers/${message.image}`;
+        
       return (
         <Image 
-          source={{ uri: message.image }} 
+          source={{ uri: stickerUrl }} 
           style={styles.stickerImage}
           resizeMode="contain"
+          onError={(e) => {
+            console.error('Error loading sticker in message:', e.nativeEvent.error);
+            // Try fallback URL
+            const fallbackUrl = `${API_BASE_URL}/stickers/images/${message.image}`;
+            console.log('Trying fallback sticker URL:', fallbackUrl);
+            Image.prefetch(fallbackUrl).catch(err => 
+              console.error('Fallback sticker load failed:', err)
+            );
+          }}
         />
       );
     }
 
     if (message.fileUrl) {
-      if (message.fileType === 'image') {
+      if (message.fileType?.startsWith('image/')) {
+        const imageUrl = message.fileUrl?.startsWith('http') 
+          ? message.fileUrl 
+          : `${API_BASE_URL}/uploads/${message.fileUrl}`;
+          
         return (
           <TouchableOpacity 
             onPress={() => {
               // TODO: Implement image preview
-              console.log('Preview image:', message.fileUrl);
+              console.log('Preview image:', imageUrl);
             }}
           >
             <Image 
-              source={{ uri: message.fileUrl }} 
+              source={{ uri: imageUrl }} 
               style={styles.messageImage}
               resizeMode="cover"
-              onError={(error) => {
-                console.error('Error loading image:', error.nativeEvent.error);
+              onError={(e) => {
+                console.error('Error loading image in message:', e.nativeEvent.error);
+                // Try fallback URL
+                const fallbackUrl = `${API_BASE_URL}/uploads/images/${message.fileUrl}`;
+                console.log('Trying fallback image URL:', fallbackUrl);
+                Image.prefetch(fallbackUrl).catch(err => 
+                  console.error('Fallback image load failed:', err)
+                );
               }}
             />
           </TouchableOpacity>
@@ -57,7 +81,7 @@ const MessageBubble = memo(({
       }
       return (
         <View style={styles.fileContainer}>
-          <Text style={styles.fileName}>{message.fileName}</Text>
+          <Text style={styles.fileName}>{message.fileName || 'ไฟล์แนบ'}</Text>
         </View>
       );
     }

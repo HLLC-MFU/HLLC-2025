@@ -11,7 +11,7 @@ export const WS_BASE_URL = Platform.OS === 'android'
   : 'ws://localhost:1334';
 
 // API endpoint base URL
-export const API_BASE_URL = `${CHAT_BASE_URL}/api/v1`;
+export const API_BASE_URL = `${CHAT_BASE_URL}/api`;
 
 // WebSocket endpoint
 export const getWebSocketUrl = (roomId: string, userId: string) => 

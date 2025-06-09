@@ -103,7 +103,6 @@ const ChatInput = ({
           value={messageText}
           onChangeText={(text) => {
             setMessageText(text);
-            handleTyping();
           }}
           placeholder={isDisabled ? "กำลังเชื่อมต่อ..." : "พิมพ์ข้อความที่นี่..."}
           placeholderTextColor={isDisabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.6)'}
@@ -160,7 +159,10 @@ const ChatInput = ({
 };
 
 const styles = StyleSheet.create({
-  container: { position: 'relative' },
+  container: { 
+    position: 'relative' ,
+    marginBottom: 30,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',

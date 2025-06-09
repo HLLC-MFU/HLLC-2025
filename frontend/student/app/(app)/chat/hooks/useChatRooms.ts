@@ -2,52 +2,71 @@ import { useState, useCallback, useMemo } from 'react';
 import { chatService } from '../services/chatService';
 import { ChatRoom } from '../types/chatTypes';
 
+interface ChatRoomsState {
+  rooms: ChatRoom[];
+  loading: boolean;
+  refreshing: boolean;
+  error: string | null;
+  activeTab: 'my' | 'discover';
+  selectedCategory: string;
+}
+
 export const useChatRooms = () => {
-  const [rooms, setRooms] = useState<ChatRoom[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'my' | 'discover'>('discover');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [state, setState] = useState<ChatRoomsState>({
+    rooms: [],
+    loading: true,
+    refreshing: false,
+    error: null,
+    activeTab: 'discover',
+    selectedCategory: 'All'
+  });
+
+  const updateState = useCallback((updates: Partial<ChatRoomsState>) => {
+    setState(prev => ({ ...prev, ...updates }));
+  }, []);
 
   const loadRooms = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
+      updateState({ loading: true, error: null });
       const allRooms = await chatService.getRooms();
-      setRooms(allRooms);
+      updateState({ rooms: allRooms });
     } catch (err) {
       console.error('Error loading rooms:', err);
-      setError('Failed to load chat rooms');
-      setRooms([]);
+      updateState({ 
+        error: 'Failed to load chat rooms',
+        rooms: []
+      });
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      updateState({ 
+        loading: false,
+        refreshing: false
+      });
     }
-  }, []);
+  }, [updateState]);
 
-  const myRooms = useMemo(() => rooms.filter(r => r.is_member), [rooms]);
-  const discoverRooms = useMemo(() => rooms.filter(r => !r.is_member), [rooms]);
+  const myRooms = useMemo(() => 
+    state.rooms.filter(r => r.is_member), 
+    [state.rooms]
+  );
+
+  const discoverRooms = useMemo(() => 
+    state.rooms.filter(r => !r.is_member), 
+    [state.rooms]
+  );
 
   const filteredRooms = useMemo(() => {
-    const baseRooms = activeTab === 'my' ? myRooms : discoverRooms;
-    return baseRooms.filter(room => {
-      const matchesCategory = selectedCategory === 'All' || room.category === selectedCategory;
-      return matchesCategory;
-    });
-  }, [activeTab, myRooms, discoverRooms, selectedCategory]);
+    const baseRooms = state.activeTab === 'my' ? myRooms : discoverRooms;
+    return baseRooms.filter(room => 
+      state.selectedCategory === 'All' || room.category === state.selectedCategory
+    );
+  }, [state.activeTab, state.selectedCategory, myRooms, discoverRooms]);
 
   return {
-    rooms,
-    loading,
-    refreshing,
-    error,
-    activeTab,
-    selectedCategory,
+    ...state,
     filteredRooms,
-    setActiveTab,
-    setSelectedCategory,
-    loadRooms,
-    setRefreshing,
+    setActiveTab: (tab: 'my' | 'discover') => updateState({ activeTab: tab }),
+    setSelectedCategory: (category: string) => updateState({ selectedCategory: category }),
+    setRefreshing: (refreshing: boolean) => updateState({ refreshing }),
+    loadRooms
   };
 }; 

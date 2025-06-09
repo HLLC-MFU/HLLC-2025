@@ -84,6 +84,38 @@ async function getAuthHeaders() {
 }
 
 class ChatService {
+  async getRoomWithMembers(roomId: string): Promise<{ room: ChatRoom, members: any[] } | null> {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/members`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch room members');
+      }
+
+      const data = await response.json();
+      const roomResponse = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {
+        headers,
+      });
+
+      if (!roomResponse.ok) {
+        throw new Error('Failed to fetch room data');
+      }
+
+      const roomData = await roomResponse.json();
+      
+      return {
+        room: roomData,
+        members: data.members || []
+      };
+    } catch (error) {
+      console.error('Error fetching room with members:', error);
+      return null;
+    }
+  }
+
   async getRooms(): Promise<ChatRoom[]> {
     try {
       // Check cache first
@@ -517,7 +549,10 @@ class ChatService {
     }
   }
 
-  async getRoomsWithMembers(): Promise<{ rooms: { room: ChatRoom, members: string[] }[] }> {
+  async getRoomsWithMembers(): Promise<{
+    members: any;
+    rooms: { room: ChatRoom, members: string[] }[];
+  }> {
     try {
       const headers = await getAuthHeaders();
       const response = await fetch(`${API_BASE_URL}/rooms/with-members`, {
@@ -528,10 +563,14 @@ class ChatService {
         throw new Error('Failed to fetch rooms with members');
       }
 
-      return await response.json();
+      const data = await response.json();
+      return {
+        members: data.members || [],
+        rooms: data.rooms || []
+      };
     } catch (error) {
       console.error('Error fetching rooms with members:', error);
-      return { rooms: [] };
+      return { members: [], rooms: [] };
     }
   }
 
