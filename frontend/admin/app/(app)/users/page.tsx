@@ -51,9 +51,9 @@ export default function ManagementPage() {
       <PageHeader description='This is Management Page' icon={<UserRound />} right={
         <Button color="primary" size="lg" endContent={<Plus size={20}/>} onPress={() => setIsRoleOpen(true)}>New Role</Button>
       } />
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col">
         <div className="flex flex-col gap-6">
-          <Accordion variant="splitted">
+          <Accordion variant="splitted" className="px-0">
             {[...Object.entries(groupedUsers).map(([roleName, data]) => (
               console.log(roleName, data),
               <AccordionItem
@@ -83,7 +83,7 @@ export default function ManagementPage() {
               >
                 {/* ✅ Pass the users in this role to AdminPage */}
                 <UsersTable
-                  roleName={role.name}
+                  roleName={role.name ?? "Unknown"}
                   roleId={role._id}
                   majors={majors}
                   schools={schools}

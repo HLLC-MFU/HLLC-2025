@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 
 import { apiRequest } from "@/utils/api";
 import { getToken, saveToken, removeToken } from "@/utils/storage";
+import { useProfile } from "./useProfile";
 
 interface AuthStore {
   loading: boolean;
@@ -36,13 +37,21 @@ const useAuth = create<AuthStore>()(
           });
 
           if (res.status === 201) {
+            const data = await res.json();
+
+            if (data?.user) {
+              useProfile.getState().setUser(data.user);
+            }
+
             addToast({
               title: "Login successful",
               color: "success",
               description: "You have successfully logged in.",
               variant: "solid",
             });
+
             redirect("/");
+            return true;
           } else {
             set({ error: res.statusText });
             addToast({
@@ -79,12 +88,15 @@ const useAuth = create<AuthStore>()(
 
           return;
         }
+
         addToast({
           title: "Logged out",
           color: "success",
           description: "You have successfully logged out.",
           variant: "solid",
         });
+
+        useProfile.getState().clearUser();
 
         removeToken("accessToken");
         removeToken("refreshToken");
