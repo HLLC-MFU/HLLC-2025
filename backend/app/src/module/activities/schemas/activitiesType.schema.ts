@@ -9,4 +9,5 @@ export class ActivitiesType {
   name: string;
 }
 
-export const ActivitiesTypeSchema = SchemaFactory.createForClass(ActivitiesType);
+export const ActivitiesTypeSchema =
+  SchemaFactory.createForClass(ActivitiesType);

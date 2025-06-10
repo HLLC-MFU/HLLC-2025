@@ -7,14 +7,13 @@ import { Model, Types } from 'mongoose';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import {
   queryAll,
-  queryDeleteOne,
   queryFindOne,
   queryUpdateOne,
 } from 'src/pkg/helper/query.util';
 import { User } from '../users/schemas/user.schema';
 import { UserDocument } from '../users/schemas/user.schema';
-import { Activities } from '../activities/schema/activities.schema';
-import { ActivityDocument } from '../activities/schema/activities.schema';
+import { Activities } from '../activities/schemas/activities.schema';
+import { ActivityDocument } from '../activities/schemas/activities.schema';
 import { PopulateField } from 'src/pkg/types/query';
 
 @Injectable()
@@ -26,52 +25,54 @@ export class CheckinService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel(Activities.name)
     private readonly activitiesModel: Model<ActivityDocument>,
-  ) { }
+  ) {}
 
   async create(createCheckinDto: CreateCheckinDto) {
-    
     await findOrThrow(
       this.userModel,
       new Types.ObjectId(createCheckinDto.user),
-      'User not found'
-    )
+      'User not found',
+    );
 
     await findOrThrow(
       this.userModel,
       new Types.ObjectId(createCheckinDto.staff),
-      'Staff not found'
-    )
-  
+      'Staff not found',
+    );
+
     for (const activity of createCheckinDto.activities) {
       await findOrThrow(
         this.activitiesModel,
         new Types.ObjectId(activity),
-        'Activity not found'
+        'Activity not found',
       );
     }
-  
+
     const newCheckin = new this.checkinModel({
       user: new Types.ObjectId(createCheckinDto.user),
       staff: new Types.ObjectId(createCheckinDto.staff),
-      activities: createCheckinDto.activities.map(activity => new Types.ObjectId(activity)),
+      activities: createCheckinDto.activities.map(
+        (activity) => new Types.ObjectId(activity),
+      ),
     });
-    
+
     return newCheckin.save();
   }
-  
 
   async findAll(query: Record<string, string>) {
-
     return queryAll<Checkin>({
       model: this.checkinModel,
       query: {
         ...query,
-        excluded: 'user.password,user.refreshToken,user.role.permissions,user.role.metadataSchema',
+        excluded:
+          'user.password,user.refreshToken,user.role.permissions,user.role.metadataSchema',
       },
       filterSchema: {},
       populateFields: (excluded) =>
         Promise.resolve(
-          excluded.includes('user') ? [] : [{ path: 'user' } , {path: 'activities'}] as PopulateField[],
+          excluded.includes('user')
+            ? []
+            : ([{ path: 'user' }, { path: 'activities' }] as PopulateField[]),
         ),
     });
   }
@@ -112,11 +113,7 @@ export class CheckinService {
   }
 
   async remove(id: string) {
-    await findOrThrow(
-      this.checkinModel,
-      id,
-      'Checkin not found'
-    )
+    await findOrThrow(this.checkinModel, id, 'Checkin not found');
 
     return await this.checkinModel.findByIdAndDelete(id);
   }

@@ -21,7 +21,7 @@ import { UserRequest } from 'src/pkg/types/users';
 @Controller('checkin')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class CheckinController {
-  constructor(private readonly checkinService: CheckinService) { }
+  constructor(private readonly checkinService: CheckinService) {}
 
   @Post()
   @Permissions('checkin:create')
@@ -29,7 +29,6 @@ export class CheckinController {
     @Request() req: UserRequest,
     @Body() createCheckinDto: CreateCheckinDto,
   ) {
-
     createCheckinDto.staff = req.user._id;
 
     return this.checkinService.create(createCheckinDto);
