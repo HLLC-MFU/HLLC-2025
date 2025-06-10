@@ -49,24 +49,56 @@ export function useSchools() {
 	 * @return {Promise<void>} A promise that resolves when the school is created.
 	 * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
 	 * */
-	const createSchool = async (schoolData: Partial<School>) => {
+	const createSchool = async (schoolData: Partial<School>): Promise<void> => {
 		try {
 			setLoading(true);
-			const res = await apiRequest<School>('/schools', 'POST', schoolData);
+
+			const form = new FormData();
+
+			for (const key in schoolData) {
+				const value = schoolData[key as keyof School];
+
+				if (value !== undefined && value !== null) {
+					if (typeof value === "object" && !(value instanceof File)) {
+						const nested = value as Record<string, string | number | boolean>;
+						for (const subKey in nested) {
+							const subValue = nested[subKey];
+							if (subValue !== undefined && subValue !== null) {
+								form.append(`${key}[${subKey}]`, String(subValue));
+							}
+						}
+					} else {
+						form.append(key, String(value));
+					}
+				}
+			}
+
+			const res = await apiRequest<School>("/schools", "POST", form);
 
 			if (res.data) {
-				setSchools((prev) => [...prev, res.data as School]);
+				if (res.data) {
+					if (res.data) {
+						setSchools((prev) => res.data ? [...prev, res.data] : prev);
+					}
+				}
 				addToast({
-					title: 'School created successfully!',
-					color: 'success',
+					title: "School created successfully!",
+					color: "success",
 				});
 			}
-		} catch (err: any) {
-			setError(err.message || 'Failed to create school.');
+		} catch (err: unknown) {
+			if (err instanceof Error) {
+				setError(err.message);
+			} else {
+				setError("Failed to create school.");
+			}
 		} finally {
 			setLoading(false);
 		}
 	};
+
+
+
 
 	/**
 	 * Updates an existing school with the provided data.
@@ -228,9 +260,9 @@ export function useSchools() {
 				prev.map((s) =>
 					s._id === schoolId
 						? {
-								...s,
-								majors: (s.majors ?? []).filter((m) => m._id !== majorId),
-							}
+							...s,
+							majors: (s.majors ?? []).filter((m) => m._id !== majorId),
+						}
 						: s,
 				),
 			);

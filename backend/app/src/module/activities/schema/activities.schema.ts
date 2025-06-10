@@ -64,18 +64,3 @@ export class Activities {
 }
 
 export const ActivitiesSchema = SchemaFactory.createForClass(Activities);
-
-// Indexes
-// ActivitiesSchema.index({ type: 1 });
-// ActivitiesSchema.index({ acronym: 1 });
-// ActivitiesSchema.index({
-//   'name.th': 'text',
-//   'name.en': 'text',
-//   'fullDetails.th': 'text',
-//   'fullDetails.en': 'text',
-//   'shortDetails.th': 'text',
-//   'shortDetails.en': 'text',
-// });
-// ActivitiesSchema.index({ 'metadata.scope.major': 1 });
-// ActivitiesSchema.index({ 'metadata.scope.school': 1 });
-// ActivitiesSchema.index({ 'metadata.scope.user': 1 });

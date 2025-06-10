@@ -1,5 +1,6 @@
 "use server";
-import { cookies } from 'next/headers';
+
+import { cookies } from "next/headers";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -12,22 +13,29 @@ export interface ApiResponse<T> {
 export async function apiRequest<T>(
   endpoint: string,
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
-  body?: object,
+  body?: object | FormData,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   try {
-    const token = (await cookies()).get('accessToken')?.value;
+    const token = (await cookies()).get("accessToken")?.value;
+    const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
     const headers: HeadersInit = {
-      ...(body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
+      // Only set Content-Type for JSON. DO NOT set it for FormData!
+      ...(!isFormData && body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
     };
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      credentials: "include",
+      body: body
+        ? isFormData
+          ? (body as FormData)
+          : JSON.stringify(body)
+        : undefined,
       ...options,
     });
 
