@@ -50,6 +50,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
         e.preventDefault();
 
         let majorId = "";
+
         schools.map((s) => {
             if (s.name.en === Array.from(school)[0]) {
                 s.majors.map((m) => {
@@ -99,51 +100,51 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                         <ModalBody className="w-full">
                             <Input
                                 isRequired
-                                label="Student ID"
-                                type="string"
-                                placeholder="Enter Student ID"
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter your student ID" }
                                 }
+                                label="Student ID"
+                                placeholder="Enter Student ID"
+                                type="string"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                             />
                             <Input
                                 isRequired
-                                label="First Name"
-                                type="string"
-                                placeholder="Enter First Name"
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter your first name" }
                                 }
+                                label="First Name"
+                                placeholder="Enter First Name"
+                                type="string"
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
                             />
                             <Input
                                 label="Middle Name"
-                                type="string"
                                 placeholder="Enter Middle Name"
+                                type="string"
                                 value={middleName}
                                 onChange={(e) => setMiddleName(e.target.value)}
                             />
                             <Input
                                 isRequired
-                                label="Last Name"
-                                type="string"
-                                placeholder="Enter Last Name"
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter your last name" }
                                 }
+                                label="Last Name"
+                                placeholder="Enter Last Name"
+                                type="string"
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
                             />
                             <Select
                                 isRequired
-                                label="School"
-                                placeholder="Select School"
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please select your school" }
                                 }
+                                label="School"
+                                placeholder="Select School"
                                 selectedKeys={school}
                                 onSelectionChange={(keys) => setSchool(keys as Set<string>)}
                             >
@@ -153,11 +154,11 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                             </Select>
                             <Select
                                 isRequired
-                                label="Major"
-                                placeholder="Select Major"
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please select your major" }
                                 }
+                                label="Major"
+                                placeholder="Select Major"
                                 selectedKeys={major}
                                 onSelectionChange={(keys) => setMajor(keys as Set<string>)}
                             >

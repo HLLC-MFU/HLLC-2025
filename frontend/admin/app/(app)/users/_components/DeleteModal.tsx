@@ -1,6 +1,8 @@
 import React from 'react'
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
-import { columns } from './user-table';
+
+import { columns } from './UserTable';
+
 import { User } from '@/types/user';
 
 export interface DeleteModalProps {
@@ -24,6 +26,7 @@ export default function DeleteModal({ isOpen, onClose, data, userIndex, selected
     const items = React.useMemo(() => {
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
+
         return selectedRows.slice(start, end);
     }, [page, selectedRows]);
 
@@ -43,17 +46,18 @@ export default function DeleteModal({ isOpen, onClose, data, userIndex, selected
                 if (typeof cellValue === "object" && cellValue !== null) {
                     return JSON.stringify(cellValue);
                 }
+
                 return cellValue as React.ReactNode;
         }
     }, [selectedRows]);
 
     return (
         <Modal
+            className="w-full max-w-4xl"
             isDismissable={false}
             isKeyboardDismissDisabled={true}
             isOpen={isOpen}
             onClose={onClose}
-            className="w-full max-w-4xl"
         >
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1">Delete</ModalHeader>
@@ -65,11 +69,11 @@ export default function DeleteModal({ isOpen, onClose, data, userIndex, selected
                                 isCompact
                                 showControls
                                 showShadow
+                                className="flex w-full justify-center"
                                 color="primary"
                                 page={page}
                                 total={pages}
                                 onChange={(page) => setPage(page)}
-                                className="flex w-full justify-center"
                             />
                         }
                     >
