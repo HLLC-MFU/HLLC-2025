@@ -1,11 +1,16 @@
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Select, SelectItem } from "@heroui/react";
 import { ChevronDownIcon, FileInput, FileOutput, Plus, SearchIcon, UserRound } from "lucide-react";
-import React from "react";
+import React, { SetStateAction } from "react";
 
-interface TopContentProps {
-    setIsAddOpen: (value: boolean) => void;
-    setIsImportOpen: (value: boolean) => void;
-    setIsExportOpen: (value: boolean) => void;
+type ModalState = {
+    add: boolean;
+    import: boolean;
+    export: boolean;
+    confirm: boolean;
+}
+
+type TopContentProps = {
+    setModal: (value: SetStateAction<ModalState>) => void;
     setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
     visibleColumns: Set<string>;
@@ -17,9 +22,7 @@ interface TopContentProps {
 }
 
 export default function TopContent({
-    setIsAddOpen,
-    setIsImportOpen,
-    setIsExportOpen,
+    setModal,
     setActionText,
     filterValue,
     visibleColumns,
@@ -68,11 +71,11 @@ export default function TopContent({
                             <Button color="primary" endContent={<Plus size={20} />}>Add new</Button>
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Static Actions">
-                            <DropdownItem onPress={() => { setActionText("Add"); setIsAddOpen(true); }} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
-                            <DropdownItem onPress={() => setIsImportOpen(true)} key="import" startContent={<FileInput size={16} />}>Import .xlsx file</DropdownItem>
+                            <DropdownItem onPress={() => { setActionText("Add"); setModal(prev => ({...prev, add: true})); }} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
+                            <DropdownItem onPress={() => setModal(prev => ({...prev, import: true}))} key="import" startContent={<FileInput size={16} />}>Import .xlsx file</DropdownItem>
                         </DropdownMenu>
                     </Dropdown >
-                    <Button color="success" className="text-white" endContent={<FileOutput size={20} />} onPress={() => setIsExportOpen(true)}>Export</Button>
+                    <Button color="success" className="text-white" endContent={<FileOutput size={20} />} onPress={() => setModal(prev => ({...prev, export: true}))}>Export</Button>
                 </div>
             </div>
         </div >

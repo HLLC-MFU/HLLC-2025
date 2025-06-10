@@ -5,13 +5,13 @@ export type User = {
     name: UserName;
     username: string;
     role: Role;
-    metadata?: Metadata[];
+    metadata?: Metadata;
 };
 
 export type UserName = {
     first: string;
     middle?: string;
-    last: string;
+    last?: string;
 };
 
 export type Role = {

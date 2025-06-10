@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useCallback, useMemo, Key, ReactNode, } from "react";
 import {
   Button,
   DropdownTrigger,
@@ -8,8 +8,9 @@ import {
   DropdownMenu,
   DropdownItem,
   addToast,
+  SortDescriptor,
 } from "@heroui/react";
-import { EllipsisVertical, Pen, Trash } from "lucide-react";
+import { EllipsisVertical, Pen, RotateCcw, Trash } from "lucide-react";
 import * as XLSX from "xlsx"
 import { saveAs } from "file-saver"
 
@@ -56,38 +57,41 @@ export default function UsersTable({
   users: User[];
   schools: School[];
 }) {
-  const { createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
+  const { fetchUsers, createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
 
-  const [isAddOpen, setIsAddOpen] = React.useState<boolean>(false);
-  const [isImportOpen, setIsImportOpen] = React.useState<boolean>(false);
-  const [isExportOpen, setIsExportOpen] = React.useState<boolean>(false);
-  const [isDeleteOpen, setIsDeleteOpen] = React.useState<boolean>(false);
-  const [actionText, setActionText] = React.useState<"Add" | "Edit">("Add");
-  const [userIndex, setUserIndex] = React.useState<number>(0);
+  const [modal, setModal] = useState({
+    add: false,
+    import: false,
+    export: false,
+    confirm: false,
+  });
+  const [actionText, setActionText] = useState<"Add" | "Edit">("Add");
+  const [confirmText, setConfirmText] = useState<"Delete" | "Reset">("Delete")
+  const [userIndex, setUserIndex] = useState<number>(0);
 
-  const [filterValue, setFilterValue] = React.useState("");
-  const [selectedKeys, setSelectedKeys] = React.useState<"all" | Set<string | number>>(
+  const [filterValue, setFilterValue] = useState("");
+  const [selectedKeys, setSelectedKeys] = useState<"all" | Set<string | number>>(
     new Set([])
   );
-  const [visibleColumns, setVisibleColumns] = React.useState(
+  const [visibleColumns, setVisibleColumns] = useState(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
-  const [sortDescriptor, setSortDescriptor] = React.useState({
+  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "username",
     direction: "ascending" as "ascending" | "descending",
   });
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = useState(1);
 
   const hasSearchFilter = Boolean(filterValue);
 
-  const headerColumns = React.useMemo(() => {
+  const headerColumns = useMemo(() => {
     return columns.filter((column) =>
       Array.from(visibleColumns).includes(column.uid)
     );
   }, [visibleColumns]);
 
-  const filteredItems = React.useMemo(() => {
+  const filteredItems = useMemo(() => {
     let filteredUsers = [...users ?? []];
 
     if (hasSearchFilter) {
@@ -104,14 +108,14 @@ export default function UsersTable({
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage);
 
-  const items = React.useMemo(() => {
+  const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
 
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
-  const sortedItems = React.useMemo(() => {
+  const sortedItems = useMemo(() => {
     return [...items].sort((a, b) => {
       const first = a[sortDescriptor.column as keyof User];
       const second = b[sortDescriptor.column as keyof User];
@@ -126,8 +130,8 @@ export default function UsersTable({
     });
   }, [sortDescriptor, items]);
 
-  const renderCell = React.useCallback(
-    (item: User, columnKey: React.Key, index: number) => {
+  const renderCell = useCallback(
+    (item: User, columnKey: Key, index: number) => {
       const rowIndex = (page * rowsPerPage) - rowsPerPage + index;
       const cellValue = item[columnKey as keyof typeof item];
 
@@ -151,16 +155,25 @@ export default function UsersTable({
                   <DropdownItem
                     key="edit"
                     startContent={<Pen size="16px" />}
-                    onPress={() => { setActionText("Edit"); setIsAddOpen(true); setUserIndex(rowIndex); }}
+                    onPress={() => { setActionText("Edit"); setModal(prev => ({...prev, add: true})); setUserIndex(rowIndex); }}
                   >
                     Edit
+                  </DropdownItem>
+                  <DropdownItem
+                    key="reset"
+                    className="text-danger"
+                    color="danger"
+                    startContent={<RotateCcw size="16px" />}
+                    onPress={() => { setConfirmText("Reset"); setModal(prev => ({...prev, confirm: true})); setUserIndex(rowIndex) }}
+                  >
+                    Reset Password
                   </DropdownItem>
                   <DropdownItem
                     key="delete"
                     className="text-danger"
                     color="danger"
                     startContent={<Trash size="16px" />}
-                    onPress={() => { setIsDeleteOpen(true); setUserIndex(rowIndex); }}
+                    onPress={() => { setConfirmText("Delete"); setModal(prev => ({...prev, confirm: true})); setUserIndex(rowIndex); }}
                   >
                     Delete
                   </DropdownItem>
@@ -173,7 +186,7 @@ export default function UsersTable({
             return JSON.stringify(cellValue);
           }
 
-          return cellValue as React.ReactNode;
+          return cellValue as ReactNode;
       }
     },
     [page, selectedKeys]
@@ -184,26 +197,32 @@ export default function UsersTable({
 
     if (actionText === "Add") response = await createUser(user);
     if (actionText === "Edit") response = await updateUser(users[userIndex]._id, user);
-    setIsAddOpen(false);
-    addToast({
-      title: "Add Successfully",
-      description: "Data has added successfully",
-    });
+    setModal(prev => ({...prev, add: false}));
 
-    if (response) window.location.reload();
+    if (response) {
+      await fetchUsers();
+      addToast({
+        title: "Add Successfully",
+        description: "Data has added successfully",
+        color: "success"
+      });
+    }
   };
 
   const handleImport = async (user: Partial<User>[]) => {
     let response;
 
     // uploadUser(user)
-    setIsImportOpen(false);
-    addToast({
-      title: "Import Successfully",
-      description: "Data has imported successfully",
-    });
-    
-    if (response) window.location.reload();
+    setModal(prev => ({...prev, import: false}));
+
+    if (response) {
+      await fetchUsers();
+      addToast({
+        title: "Import Successfully",
+        description: "Data has imported successfully",
+        color: "success"
+      });
+    }
   };
 
   const handleExport = (fileName?: string) => {
@@ -242,28 +261,37 @@ export default function UsersTable({
     } else {
       saveAs(blob, "Template.xlsx")
     }
-    setIsExportOpen(false);
+    setModal(prev => ({...prev, export: false}));
     addToast({
       title: "Export Successfully",
       description: "Data has exported successfully",
+      color: "success"
     });
   }
 
-  const handleDelete = async () => {
+  const handleConfirm = async () => {
     let response;
 
-    if (Array.from(selectedKeys).length > 0) {
-      response = await deleteMultiple(Array.from(selectedKeys) as string[]);
+    if (confirmText === "Delete") {
+      if (Array.from(selectedKeys).length > 0) {
+        response = await deleteMultiple(Array.from(selectedKeys) as string[]);
+      } else {
+        response = await deleteUser(users[userIndex]._id)
+      }
+      setModal(prev => ({...prev, confirm: false}));
     } else {
-      response = await deleteUser(users[userIndex]._id)
+
+      setModal(prev => ({...prev, confirm: false}));
     }
-    setIsDeleteOpen(false);
-    addToast({
-      title: "Delete Successfully",
-      description: "Data has deleted successfully",
-    });
-    
-    if (response) window.location.reload();
+
+    if (response) {
+      await fetchUsers();
+      addToast({
+        title: `${confirmText} Successfully`,
+        description: `Data has ${confirmText.toLowerCase()} successfully`,
+        color: "success"
+      });
+    }
   };
 
   return (
@@ -279,9 +307,7 @@ export default function UsersTable({
         renderCell={renderCell}
         selectedKeys={selectedKeys}
         setActionText={setActionText}
-        setIsAddOpen={setIsAddOpen}
-        setIsExportOpen={setIsExportOpen}
-        setIsImportOpen={setIsImportOpen}
+        setModal={setModal}
         setPage={setPage}
         setSelectedKeys={setSelectedKeys}
         setSortDescriptor={setSortDescriptor}
@@ -304,39 +330,39 @@ export default function UsersTable({
       {/* Add and Edit  */}
       <AddModal
         action={actionText}
-        isOpen={isAddOpen}
+        isOpen={modal.add}
         roleId={roleId}
         schools={schools}
         user={users[userIndex]}
         onAdd={handleAdd}
-        onClose={() => setIsAddOpen(false)}
+        onClose={() => setModal(prev => ({...prev, add: false}))}
       />
 
       {/* Import */}
       <ImportModal
-        isOpen={isImportOpen}
+        isOpen={modal.import}
         majors={majors}
         roleId={roleId}
-        onClose={() => setIsImportOpen(false)}
+        onClose={() => setModal(prev => ({...prev, import: false}))}
         onExportTemplate={() => handleExport()}
         onImport={handleImport}
       />
 
       {/* Export */}
       <ExportModal
-        isOpen={isExportOpen}
-        onClose={() => setIsExportOpen(false)}
+        isOpen={modal.export}
+        onClose={() => setModal(prev => ({...prev, export: false}))}
         onExport={handleExport}
       />
 
-      {/* Delete */}
+      {/* Delete & Reset */}
       <ConfirmationModal
-        body={"Are you sure you want to delete this user?"}
+        body={`Are you sure you want to ${confirmText.toLowerCase()} this user?`}
         confirmColor={'danger'}
-        isOpen={isDeleteOpen}
-        title={"Delete user"}
-        onClose={() => setIsDeleteOpen(false)}
-        onConfirm={handleDelete}
+        isOpen={modal.confirm}
+        title={`${confirmText} user`}
+        onClose={() => setModal(prev => ({...prev, confirm: false}))}
+        onConfirm={handleConfirm}
       />
     </div>
   );

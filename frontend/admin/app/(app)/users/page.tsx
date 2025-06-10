@@ -9,7 +9,8 @@ import AddRoleModal from "./_components/AddRoleModal";
 
 import { useUsers } from "@/hooks/useUsers";
 import { useRoles } from "@/hooks/useRoles";
-import { Role, User } from "@/types/user";
+import { User } from "@/types/user";
+import { Role } from "@/types/role";
 import { useSchools } from "@/hooks/useSchool";
 import { PageHeader } from "@/components/ui/page-header";
 import { useMajors } from "@/hooks/useMajor";
@@ -85,8 +86,17 @@ export default function ManagementPage() {
                   key={role._id}
                   aria-label={String(roleName)}
                   className="font-medium mb-2"
-                  startContent={roleIcons[roleName] || <UserRound />}
-                  title={`${roleName} (${roleUsers.length})`}
+                  startContent={
+                    <div className="p-3 rounded-xl bg-gradient-to-r bg-gray-200 border">
+                      <span className="text-gray-500">{roleIcons[roleName] || <UserRound />}</span>   
+                    </div>
+                  }
+                  title={roleName}
+                  subtitle={
+                    <p className="flex">
+                      Total : <span className="text-primary ml-1">{roleUsers.length}</span>
+                    </p>
+                  }
                 >
                   <UsersTable
                     majors={majors}

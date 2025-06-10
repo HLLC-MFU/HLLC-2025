@@ -1,5 +1,5 @@
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
-import React from "react";
+import React, { ChangeEvent, FormEvent, Key, useCallback, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 
 import { columns } from "./UserTable";
@@ -8,7 +8,7 @@ import { User } from "@/types/user";
 import { Major } from "@/types/school";
 
 
-export interface ImportModalProps {
+type ImportModalProps = {
     isOpen: boolean;
     onClose: () => void;
     onImport: (userData: Partial<User>[]) => void;
@@ -17,7 +17,7 @@ export interface ImportModalProps {
     majors: Major[];
 }
 
-interface JsonData {
+type JsonData = {
     role: string;
     major: string;
     type: string;
@@ -27,24 +27,37 @@ interface JsonData {
     last: string;
 }
 
-export default function ImportModal({ isOpen, onClose, onImport, onExportTemplate, roleId, majors }: ImportModalProps) {
-    const [fileData, setFileData] = React.useState<User[]>([]);
-    const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
-    const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
+type UserForm = {
+    name: {
+        first: string,
+        middle: string,
+        last: string,
+    },
+    username: string,
+    role: string,
+    metadata: {
+        major: string
+    }
+}
 
-    const [page, setPage] = React.useState(1);
+export default function ImportModal({ isOpen, onClose, onImport, onExportTemplate, roleId, majors }: ImportModalProps) {
+    const [field, setField] = useState<User[]>([]);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+
+    const [page, setPage] = useState(1);
     const rowsPerPage = 6;
 
-    const pages = Math.ceil(fileData.length / rowsPerPage);
+    const pages = Math.ceil(field.length / rowsPerPage);
 
-    const items = React.useMemo(() => {
+    const items = useMemo(() => {
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
 
-        return fileData.slice(start, end);
-    }, [page, fileData]);
+        return field.slice(start, end);
+    }, [page, field]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
 
         if (!file) return;
@@ -59,9 +72,8 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
             const worksheet = workbook.Sheets[worksheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet) as JsonData[];
 
-            const dataForm = jsonData.map((item: JsonData) => {
+            const formData = jsonData.map((item: JsonData) => {
                 const data: JsonData = {};
-
                 for (const key in item) {
                     try {
                         data[key] = JSON.parse(item[key]);
@@ -70,35 +82,31 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                     };
                 };
 
-                let majorId = "";
+                const majorId = majors.find(m => m.name.en === data.major)?._id;
 
-                majors.find((m) => {
-                    if (m.name.en === data.major_en && m._id) majorId = m._id;
-                })
-
-                const mapData: Partial<User> = {
+                const mapData: UserForm = {
                     name: {
                         first: item["first"],
-                        middle: item["middle"],
+                        middle: item["middle"] ?? "",
                         last: item["last"],
                     },
                     username: item["username"],
                     role: roleId,
                     metadata: {
-                        major: majorId
+                        major: majorId ?? ""
                     }
                 };
 
                 return mapData;
             });
 
-            setFileData(dataForm);
+            setField(formData);
         };
 
         reader.readAsArrayBuffer(file);
     }
 
-    const handleNext = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleNext = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         setIsPreviewModalOpen(true);
@@ -112,11 +120,11 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
     };
 
     const handleImport = () => {
-        onImport(fileData);
+        onImport(field);
         setIsPreviewModalOpen(false);
     };
 
-    const renderCell = React.useCallback((item: User, columnKey: React.Key) => {
+    const renderCell = useCallback((item: User, columnKey: Key) => {
         const cellValue = item[columnKey as keyof typeof item];
 
         const major = majors.find((m) => m._id === item.metadata.major);
@@ -125,16 +133,16 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
             case "name":
                 return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last}`;
             case "school":
-                return major.school.name.en ?? null;
+                return major?.school.name.en ?? "-";
             case "major":
-                return major.name.en ?? null;
+                return major?.name.en ?? "-";
             case "actions":
                 return null;
             default:
                 return cellValue;
         }
 
-    }, [fileData]);
+    }, [field]);
 
     return (
         <>

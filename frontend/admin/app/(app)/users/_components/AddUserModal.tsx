@@ -1,10 +1,9 @@
-import React from "react";
+import React, { FormEvent, useEffect, useState } from "react";
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
-
 import { User } from "@/types/user";
 import { School } from "@/types/school";
 
-export interface AddModalProps {
+type AddModalProps = {
     isOpen: boolean;
     onClose: () => void;
     onAdd: (user: Partial<User>) => void;
@@ -14,65 +13,72 @@ export interface AddModalProps {
     schools: School[];
 };
 
+type UserForm = {
+    name: {
+        first: string,
+        middle: string,
+        last: string,
+    },
+    username: string,
+    role: string,
+    metadata: {
+        major: string
+    }
+}
+
 export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId, schools }: AddModalProps) {
+    const resetField: UserForm = {
+        name: {
+            first: "",
+            middle: "",
+            last: "",
+        },
+        username: "",
+        role: "",
+        metadata: {
+            major: ""
+        }
+    };
+    const [field, setField] = useState<UserForm>(resetField);
+    const [school, setSchool] = useState<Set<string>>(new Set<string>());
+    const [major, setMajor] = useState<Set<string>>(new Set<string>());
 
-    const [username, setUsername] = React.useState("");
-    const [firstName, setFirstName] = React.useState("");
-    const [middleName, setMiddleName] = React.useState("");
-    const [lastName, setLastName] = React.useState("");
-    const [school, setSchool] = React.useState<Set<string>>(new Set<string>());
-    const [major, setMajor] = React.useState<Set<string>>(new Set<string>());
+    const schoolData = schools.find(s => s.name.en === Array.from(school)[0]);
+    const majorData = schoolData?.majors.find(m => m.name.en === Array.from(major)[0]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (action === "Edit") {
-            setUsername(user.username ?? "");
-            setFirstName(user.name?.first ?? "");
-            setMiddleName(user.name?.middle ?? "");
-            setLastName(user.name?.last ?? "");
-            setSchool(new Set([user.metadata?.major.school.name.en]));
+            setField({
+                name: {
+                    first: user.name?.first!,
+                    middle: user.name?.middle ?? "",
+                    last: user.name?.last!,
+                },
+                username: user.username!,
+                role: roleId,
+                metadata: {
+                    major: user.metadata?.major._id ?? ""
+                }
+            });
+            setSchool(new Set([user.metadata?.major?.school.name.en]));
             setMajor(new Set([user.metadata?.major.name.en]));
         }
         if (action === "Add") {
-            onClear();
+            setField(resetField);
         }
     }, [isOpen, user, action]);
-
-    const onClear = () => {
-        setUsername("");
-        setFirstName("");
-        setMiddleName("");
-        setLastName("");
-        setSchool(new Set<string>());
-        setMajor(new Set<string>());
-    }
-
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        let majorId = "";
-
-        schools.map((s) => {
-            if (s.name.en === Array.from(school)[0]) {
-                s.majors.map((m) => {
-                    if (m.name.en === Array.from(major)[0] && m._id) majorId = m._id;
-                })
-            }
-        })
-
         const formData: Partial<User> = {
-            name: {
-                first: firstName,
-                middle: middleName,
-                last: lastName,
-            },
-            username: username,
+            name: field.name,
+            username: field.username,
             role: roleId,
             metadata: {
-                major: majorId
+                major: majorData?._id ?? ""
             }
         };
-
-        console.log(formData);
 
         if (action === "Add") {
             onAdd(formData);
@@ -89,7 +95,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                 isDismissable={false}
                 isKeyboardDismissDisabled={true}
                 isOpen={isOpen}
-                onClose={() => { onClose(); onClear(); }}
+                onClose={() => { onClose(); setField(resetField); }}
             >
                 <ModalContent>
                     <Form
@@ -106,8 +112,8 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                                 label="Student ID"
                                 placeholder="Enter Student ID"
                                 type="string"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                value={field.username}
+                                onChange={(e) => setField(prev => ({ ...prev, username: e.target.value }))}
                             />
                             <Input
                                 isRequired
@@ -117,15 +123,15 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                                 label="First Name"
                                 placeholder="Enter First Name"
                                 type="string"
-                                value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
+                                value={field.name.first}
+                                onChange={(e) => setField(prev => ({ ...prev, name: { ...prev.name, first: e.target.value } }))}
                             />
                             <Input
                                 label="Middle Name"
                                 placeholder="Enter Middle Name"
                                 type="string"
-                                value={middleName}
-                                onChange={(e) => setMiddleName(e.target.value)}
+                                value={field.name.middle}
+                                onChange={(e) => setField(prev => ({ ...prev, name: { ...prev.name, middle: e.target.value } }))}
                             />
                             <Input
                                 isRequired
@@ -135,8 +141,8 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                                 label="Last Name"
                                 placeholder="Enter Last Name"
                                 type="string"
-                                value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}
+                                value={field.name.last}
+                                onChange={(e) => setField(prev => ({ ...prev, name: { ...prev.name, last: e.target.value } }))}
                             />
                             <Select
                                 isRequired
@@ -168,7 +174,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                             </Select>
                         </ModalBody>
                         <ModalFooter className="self-end">
-                            <Button color="danger" variant="light" onPress={() => { onClose(); onClear(); }}>
+                            <Button color="danger" variant="light" onPress={() => { onClose(); setField(resetField); }}>
                                 Cancel
                             </Button>
                             <Button color="primary" type="submit">

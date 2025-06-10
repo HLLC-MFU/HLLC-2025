@@ -1,7 +1,7 @@
 import { User } from "@/types/user";
 import { Button, Pagination } from "@heroui/react";
 
-interface BottomContentProps {
+type BottomContentProps = {
     selectedKeys: "all" | Set<unknown>;
     filteredItems: User[];
     pages: number;
