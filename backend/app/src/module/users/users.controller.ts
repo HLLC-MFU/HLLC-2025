@@ -24,6 +24,7 @@ import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { FastifyRequest } from 'fastify';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
 import { ActivitiesService } from '../activities/service/activities.service';
+import { EvoucherCodeService } from '../evoucher/service/evoucher-code.service';
 
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
@@ -32,6 +33,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly activitiesService: ActivitiesService,
+    private readonly evoucherCodeService: EvoucherCodeService,
   ) {}
 
   @Post()
@@ -64,27 +66,21 @@ export class UsersController {
     return this.usersService.getUserCountByRoles();
   }
 
-  @Get(':id')
-  @Permissions('users:read:id')
-  @CacheKey('users:$params.id')
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
-  }
 
   @Get('profile')
+  @Public()
   @CacheKey('users:$req.user')
   getProfile(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
-    const user = req.user as { _id?: string; id?: string };
-    const userId: string = user?._id ?? user?.id ?? '';
+    const user = req.user;
+    const userId: string | undefined = user?._id ?? user?.id;
+
     if (!userId) {
-      return null;
+      throw new UnauthorizedException('User not found');
     }
-    return this.usersService.findOneByQuery({
-      _id: userId,
-    });
+
+    return this.usersService.findOne(userId);
   }
 
   @Get('activities')
@@ -100,6 +96,13 @@ export class UsersController {
     }
 
     return this.activitiesService.findActivitiesByUserId(userId);
+  }
+
+  @Get(':id')
+  @Permissions('users:read:id')
+  @CacheKey('users:$params.id')
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
   }
 
   @Patch(':id')
@@ -140,5 +143,50 @@ export class UsersController {
     @Param('deviceToken') deviceToken: string,
   ) {
     return this.usersService.removeDeviceToken(id, deviceToken);
+  }
+
+  // Evoucher-related endpoints
+  @Get('evouchers/available')
+  @Public()
+  @CacheKey('users:evouchers:available:$req.user')
+  getAvailableEvouchers(
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
+  ) {
+    const user = req.user;
+    const userId = user?._id ?? user?.id;
+    
+    // If user is not authenticated, show all public evouchers
+    // If user is authenticated, show evouchers they can claim
+    return this.evoucherCodeService.getPublicAvailableEvouchersForUser(userId);
+  }
+
+  @Post('evouchers/claim/:evoucherId')
+  claimEvoucher(
+    @Param('evoucherId') evoucherId: string,
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
+  ) {
+    const user = req.user;
+    const userId = user?._id ?? user?.id;
+
+    if (!userId) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return this.evoucherCodeService.claimEvoucher(userId, evoucherId);
+  }
+
+  @Get('evouchers/my-codes')
+  @CacheKey('users:evouchers:codes:$req.user')
+  getMyEvoucherCodes(
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
+  ) {
+    const user = req.user;
+    const userId = user?._id ?? user?.id;
+
+    if (!userId) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return this.evoucherCodeService.getUserEvoucherCodes(userId);
   }
 }

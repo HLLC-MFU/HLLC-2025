@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -11,6 +11,7 @@ import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
 import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
+import { isExpired, toThaiTime } from 'src/pkg/helper/date.util';
 
 @Injectable()
 export class EvoucherCodeService {
@@ -28,8 +29,8 @@ export class EvoucherCodeService {
       'Evoucher not found'
     );
 
-    // Check if evoucher is expired
-    if (new Date() > new Date(evoucher.expiration)) {
+    // Check if evoucher is expired using Thai timezone
+    if (isExpired(evoucher.expiration)) {
       throw new BadRequestException('Cannot create code for expired evoucher');
     }
 
@@ -60,8 +61,6 @@ export class EvoucherCodeService {
       handleMongoDuplicateError(error, 'code');
     }
   }
-
-
 
   async findAll(query: Record<string, string>) {
     return await queryAll<EvoucherCode>({
@@ -123,13 +122,10 @@ export class EvoucherCodeService {
     return codes.filter((c) => !c.exists && c.available);
   }
 
-
-
   async update(id: string, updateEvoucherCodeDto: UpdateEvoucherCodeDto) {
     const existingCode = await this.evoucherCodeModel.findById(id);
     const voucherCode = await findOrThrow(this.evoucherCodeModel, id, 'Voucher code');
     const evoucher = await findOrThrow(this.evoucherModel, voucherCode.evoucher, 'Evoucher');
-
 
     if (!existingCode) {
       throw new BadRequestException('Voucher code not found');
@@ -145,16 +141,12 @@ export class EvoucherCodeService {
       throw new BadRequestException('Cannot reuse a used voucher code');
     }
 
-    console.log('NOW:', new Date(Date.now()).toISOString());
-    console.log('EXPIRATION:', new Date(evoucher.expiration).toISOString());
-
-    if (Date.now() > new Date(evoucher.expiration).getTime()) {
+    if (isExpired(evoucher.expiration)) {
       throw new BadRequestException('Voucher code has expired');
     }
 
     return await queryUpdateOne<EvoucherCode>(this.evoucherCodeModel, id, updateEvoucherCodeDto);
   }
-
 
   async remove(id: string) {
     await queryDeleteOne<EvoucherCode>(this.evoucherCodeModel, id);
@@ -163,27 +155,6 @@ export class EvoucherCodeService {
       id,
     }
   }
-
-  // async useVoucher(id: string, user: string) {
-  //   const voucherCode = await findOrThrow(this.evoucherCodeModel, id, 'Voucher code');
-  //   const evoucher = await findOrThrow(this.evoucherModel, voucherCode.evoucher, 'Evoucher');
-
-  //   if (voucherCode.isUsed) {
-  //     throw new BadRequestException('Voucher code has already been used');
-  //   }
-
-  //   if (Date.now() > new Date(evoucher.expiration).getTime()) {
-  //     throw new BadRequestException('Voucher code has expired');
-  //   }
-
-  //   if (voucherCode.user && voucherCode.user.toString() !== user) {
-  //     throw new BadRequestException('This voucher code is not assigned to you');
-  //   }
-
-  //   voucherCode.isUsed = true;
-  //   return await voucherCode.save();
-  // }
-
 
   private async generateNextCode(acronym: string): Promise<string> {
     const latest = await this.evoucherCodeModel
@@ -198,7 +169,7 @@ export class EvoucherCodeService {
   async generateEvoucherCodes(dto: CreateEvoucherCodeDto & { count: number }) {
     const evoucher = await findOrThrow(this.evoucherModel, dto.evoucher, 'Evoucher');
 
-    if (new Date() > new Date(evoucher.expiration)) {
+    if (isExpired(evoucher.expiration)) {
       throw new BadRequestException('Cannot generate code for expired evoucher');
     }
 
@@ -243,5 +214,157 @@ export class EvoucherCodeService {
     });
 
     return !!usedVoucher;
+  }
+
+  // New method to get available evouchers for public view (based on type)
+  async getPublicAvailableEvouchersForUser(userId?: string): Promise<any[]> {
+    const evouchers = await this.evoucherModel
+      .find({})
+      .populate('type')
+      .populate('sponsors')
+      .lean();
+
+    const result = await Promise.all(
+      evouchers.map(async (evoucher: any) => {
+        // Check if evoucher is expired
+        const expired = isExpired(evoucher.expiration);
+
+        // Check if user already has this evoucher (if userId provided)
+        let userHasEvoucher = false;
+        if (userId) {
+          const existingCode = await this.evoucherCodeModel.exists({
+            user: userId,
+            evoucher: evoucher._id,
+          });
+          userHasEvoucher = !!existingCode;
+        }
+
+        // Check if evoucher type is claimable from schema field
+        const isClaimable = evoucher.type && evoucher.type.isClaimable;
+
+        // For global/claimable types, show even if no codes exist yet (will auto-generate)
+        // For other types, check if codes are available
+        let availableCount = 0;
+        if (isClaimable) {
+          // For claimable types, always consider as available if not expired and user doesn't have it
+          availableCount = userHasEvoucher ? 0 : 1;
+        } else {
+          // For non-claimable types, check actual codes
+          availableCount = await this.evoucherCodeModel.countDocuments({
+            evoucher: evoucher._id,
+            user: null,
+            isUsed: false
+          });
+        }
+
+        const canClaim = isClaimable && !userHasEvoucher && !expired;
+
+        return {
+          ...evoucher,
+          isClaimable,
+          userHasEvoucher,
+          availableCount,
+          expired,
+          canClaim
+        };
+      })
+    );
+
+    return result.filter(e => e.canClaim || (!userId && e.isClaimable && !e.expired && e.availableCount > 0));
+  }
+
+  // New method to claim an evoucher
+  async claimEvoucher(userId: string, evoucherId: string) {
+    const user = await findOrThrow(this.userModel, userId, 'User not found');
+    const evoucher = await this.evoucherModel.findById(evoucherId).populate('type') as any;
+
+    if (!evoucher) {
+      throw new BadRequestException('Evoucher not found');
+    }
+
+    // Check if evoucher is expired
+    if (isExpired(evoucher.expiration)) {
+      throw new BadRequestException('Evoucher has expired');
+    }
+
+    // Check if evoucher type is claimable from schema field
+    const isClaimable = evoucher.type && evoucher.type.isClaimable;
+    
+    if (!isClaimable) {
+      throw new BadRequestException('This evoucher type is not available for public claiming');
+    }
+
+    // Check if user already has this evoucher
+    const existingCode = await this.evoucherCodeModel.findOne({
+      user: userId,
+      evoucher: evoucherId
+    });
+
+    if (existingCode) {
+      throw new BadRequestException('You already have this evoucher');
+    }
+
+    // Try to find an available code first
+    let availableCode = await this.evoucherCodeModel.findOneAndUpdate(
+      { 
+        evoucher: evoucherId, 
+        user: null, 
+        isUsed: false 
+      },
+      { 
+        user: new Types.ObjectId(userId) 
+      },
+      { 
+        new: true 
+      }
+    ).populate('evoucher');
+
+    // If no available code exists, generate a new one for claimable types
+    if (!availableCode && isClaimable) {
+      const generatedCode = await this.generateNextCode(evoucher.acronym);
+      
+      const newEvoucherCode = new this.evoucherCodeModel({
+        code: generatedCode,
+        evoucher: new Types.ObjectId(evoucherId),
+        user: new Types.ObjectId(userId),
+        isUsed: false,
+        metadata: {
+          expiration: evoucher.expiration
+        }
+      });
+
+      try {
+        availableCode = await newEvoucherCode.save();
+        await availableCode.populate('evoucher');
+      } catch (error) {
+        handleMongoDuplicateError(error, 'code');
+      }
+    }
+
+    if (!availableCode) {
+      throw new BadRequestException('No available codes for this evoucher');
+    }
+
+    return availableCode;
+  }
+
+  // New method to get user's evoucher codes
+  async getUserEvoucherCodes(userId: string) {
+    const codes = await this.evoucherCodeModel
+      .find({ user: userId })
+      .populate({
+        path: 'evoucher',
+        populate: [
+          { path: 'type' },
+          { path: 'sponsors' }
+        ]
+      })
+      .lean();
+
+    return codes.map((code: any) => ({
+      ...code,
+      expired: code.metadata?.expiration ? isExpired(code.metadata.expiration) : false,
+      canUse: !code.isUsed && !isExpired(code.metadata?.expiration || code.evoucher?.expiration)
+    }));
   }
 }
