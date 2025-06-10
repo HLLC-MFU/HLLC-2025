@@ -14,30 +14,40 @@ import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
-import { Public } from '../auth/decorators/public.decorator';
-
+import { CacheKey } from '@nestjs/cache-manager';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { UpdatePermissionsDto } from './dto/update-permissions.dto';
+@UseGuards(PermissionsGuard)
+@UseInterceptors(AutoCacheInterceptor)
 @Controller('roles')
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
   @Post()
-  @Public()
+  @CacheKey('roles:invalidate')
+  @Permissions('roles:create')
   create(@Body() createRoleDto: CreateRoleDto) {
     return this.roleService.create(createRoleDto);
   }
 
   @Get()
-  @Public()
+  @Permissions('roles:read')
+  @CacheKey('roles:read')
   findAll() {
     return this.roleService.findAll();
   }
 
   @Get(':id')
+  @Permissions('roles:read:id')
   findOne(@Param('id') id: string) {
     return this.roleService.findOne(id);
   }
 
   @Put(':id/metadata-schema')
+  @Permissions('roles:update:metadata-schema')
+  @CacheKey('roles:invalidate')
   updateMetadataSchema(
     @Param('id') id: string,
     @Body() dto: UpdateMetadataSchemaDto,
@@ -46,11 +56,24 @@ export class RoleController {
   }
 
   @Patch(':id')
+  @Permissions('roles:update')
+  @CacheKey('roles:invalidate')
   update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.update(id, updateRoleDto);
   }
 
+  @Patch(':id/permissions')
+  @CacheKey('roles:invalidate')
+  async updatePermissions(
+    @Param('id') id: string,
+    @Body() dto: UpdatePermissionsDto,
+  ) {
+    return this.roleService.updatePermissions(id, dto.permissions);
+  }
+
   @Delete(':id')
+  @Permissions('roles:delete')
+  @CacheKey('roles:invalidate')
   remove(@Param('id') id: string) {
     return this.roleService.remove(id);
   }

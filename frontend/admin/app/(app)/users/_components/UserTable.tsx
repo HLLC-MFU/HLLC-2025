@@ -24,7 +24,7 @@ import { useUsers } from "@/hooks/useUsers";
 import { Major, School } from "@/types/school";
 
 export const columns = [
-  { name: "STUDENT ID", uid: "username", sortable: true },
+  { name: "USERNAME", uid: "username", sortable: true },
   { name: "NAME", uid: "name" },
   { name: "SCHOOL", uid: "school" },
   { name: "MAJOR", uid: "major" },
@@ -44,19 +44,17 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export default function UsersTable({
-  roleName,
   roleId,
   majors,
   users,
   schools
 }: {
-  roleName: string;
   roleId: string;
   majors: Major[];
   users: User[];
   schools: School[];
 }) {
-  const { createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
+  const { createUser, updateUser, deleteUser, deleteMultiple } = useUsers();
 
   const [isAddOpen, setIsAddOpen] = React.useState<boolean>(false);
   const [isImportOpen, setIsImportOpen] = React.useState<boolean>(false);

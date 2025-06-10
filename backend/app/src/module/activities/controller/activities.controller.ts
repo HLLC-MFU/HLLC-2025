@@ -51,10 +51,7 @@ export class ActivitiesController {
   @Patch(':id')
   @Permissions('activities:update')
   @UseInterceptors(new MultipartInterceptor(500))
-  update(
-    @Param('id') id: string,
-    @Req() req: UserRequest,
-  ) {
+  update(@Param('id') id: string, @Req() req: UserRequest) {
     const dto = req.body as UpdateActivityDto;
     return this.activitiesService.update(id, dto);
   }
