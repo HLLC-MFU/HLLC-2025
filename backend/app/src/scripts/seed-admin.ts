@@ -3,7 +3,8 @@
  *
  * การใช้งาน:
  * 1. cd backend
- * 2. pnpm exec ts-node src/scripts/seed-admin.ts
+ * 2. cd app
+ * 3. pnpm exec ts-node src/scripts/seed-admin.ts
  */
 
 import { MongoClient, ObjectId } from 'mongodb';

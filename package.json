@@ -12,7 +12,10 @@
     "hllc-2025": "file:"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "cross-spawn": "^7.0.6",
-    "inquirer": "^12.6.1"
+    "inquirer": "^12.6.1",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.3.4"
   }
 }
