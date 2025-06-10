@@ -45,15 +45,19 @@ export function SponsorModal({
   };
 
   useEffect(() => {
-    if (sponsor) {
-      setNameEn(sponsor.name.en);
-      setNameTh(sponsor.name.th);
-      setIsShow(sponsor.isShow);
-    } else {
+    if (sponsor && mode === "edit") {
+      setNameEn(sponsor.name?.en || "");
+      setNameTh(sponsor.name?.th || "");
+      setIsShow(sponsor.isShow ?? true);
+      setLogoFile(null);
+    } else if (mode === "add") {
       setNameEn("");
       setNameTh("");
+      setIsShow(true);
+      setLogoFile(null);
     }
-  }, [sponsor]);
+  }, [sponsor, mode, isOpen]);
+
 
   const handleSubmit = async () => {
     if (!nameEn.trim() || !nameTh.trim()) return;
@@ -113,7 +117,7 @@ export function SponsorModal({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
-                isRequired  
+                isRequired
                 className="max-w-xs"
                 selectedKeys={[isShow ? "show" : "hide"]}
                 items={show}
@@ -139,13 +143,23 @@ export function SponsorModal({
                   accept="image/*"
                   onChange={handleFileChange}
                   className="block w-full text-sm text-default-500
-                              file:mr-4 file:py-2 file:px-4
-                              file:rounded-lg file:border-0
-                              file:text-sm file:font-semibold
-                              file:bg-primary file:text-white
-                              hover:file:bg-primary/90
-                              cursor-pointer"
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-lg file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-primary file:text-white
+                            hover:file:bg-primary/90
+                            cursor-pointer"
                 />
+                {mode === "edit" && sponsor?.photo && !logoFile && (
+                  <p className="mt-2 text-sm text-default-500 italic">
+                    Current file: <span className="font-medium">{sponsor.photo}</span>
+                  </p>
+                )}
+                {logoFile && (
+                  <p className="mt-2 text-sm text-default-500 italic">
+                    Selected file: <span className="font-medium">{logoFile.name}</span>
+                  </p>
+                )}
               </div>
             </div>
           </div>

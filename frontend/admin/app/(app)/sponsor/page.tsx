@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Accordion, AccordionItem, Button } from "@heroui/react";
-import { Plus } from "lucide-react";
+import { DollarSignIcon, Plus, UserRound, UserRoundCog, UserRoundSearch } from "lucide-react";
 
 import { useSponsors } from "@/hooks/useSponsors";
 import { addToast } from "@heroui/react";
@@ -13,11 +13,12 @@ import AddSponsorTypeModal from "./_components/AddSponsorTypeModal";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { Sponsors } from "@/types/sponsors";
 import { useSponsorsType } from "@/hooks/useSponsorsType";
+import { PageHeader } from "@/components/ui/page-header";
 
 
 export default function SponsorPage() {
   const [isTypeOpen, setIsTypeOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,7 +32,7 @@ export default function SponsorPage() {
     createSponsors,
     updateSponsors,
     deleteSponsors,
-    fetchSponsors, // <-- Add this line if your hook provides it
+    fetchSponsors,
   } = useSponsors();
 
   const {
@@ -61,15 +62,19 @@ export default function SponsorPage() {
     return groups;
   }, [sponsors, sponsorsType]);
 
-  const getFilteredSortedSponsors = (sponsors: Sponsors[]): Sponsors[] => {
-    let filtered = [...sponsors];
+  const handleSearchQueryChange = (type: string, value: string) => {
+    setSearchQueries((prev) => ({ ...prev, [type]: value }));
+  };
 
-    if (searchQuery.trim() !== '') {
-      const lower = searchQuery.toLowerCase();
+  const getFilteredSortedSponsors = (sponsors: Sponsors[], type: string): Sponsors[] => {
+    let filtered = [...sponsors];
+    const search = searchQueries[type]?.toLowerCase() ?? '';
+
+    if (search.trim() !== '') {
       filtered = filtered.filter(
         (s) =>
-          s.name?.en?.toLowerCase().includes(lower) ||
-          s.name?.th?.toLowerCase().includes(lower)
+          s.name?.en?.toLowerCase().includes(search) ||
+          s.name?.th?.toLowerCase().includes(search)
       );
     }
 
@@ -176,23 +181,36 @@ export default function SponsorPage() {
     setIsTypeOpen(false);
   };
 
+  const roleIcons: Record<string, React.ReactNode> = {
+    Administrator: <UserRoundCog />,
+    User: <UserRound />,
+    Mentee: <UserRoundSearch />,
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Sponsor Management</h1>
-          <Button
-            color="primary"
-            endContent={<Plus size={20} />}
-            onPress={() => setIsTypeOpen(true)}
-          >
-            New sponsor type
-          </Button>
-        </div>
+      <div className="container mx-auto">
+        <PageHeader
+          title="Sponsor Management"
+          description="This is Sponsor page"
+          icon={<DollarSignIcon />}
+          right={
+             <div className="w-full sm:w-auto">
+            <Button
+              color="primary"
+              endContent={<Plus size={20} />}
+              size="lg"
+              onPress={() => setIsTypeOpen(true)}
+            >
+              New sponsor type
+            </Button>
+            </div>
+          }
+        />
 
         <Accordion variant="splitted">
           {Object.entries(groupedSponsors).map(([type, sponsors]) => {
-            const filtered = getFilteredSortedSponsors(sponsors);
+            const filtered = getFilteredSortedSponsors(sponsors, type);
 
             return (
               <AccordionItem
@@ -205,13 +223,14 @@ export default function SponsorPage() {
                   </p>
                 }
               >
-                <div className="flex flex-col gap-6">
+
+                <div className="flex flex-col gap-6 p-4 sm:p-6 w-ful overflow-x-auto">
                   <SponsorFilters
-                    searchQuery={searchQuery}
+                    searchQuery={searchQueries[type] ?? ""}
                     sortBy={sortBy}
                     sortDirection={sortDirection}
                     onAddSponsor={handleAddSponsor}
-                    onSearchQueryChange={setSearchQuery}
+                    onSearchQueryChange={(v) => handleSearchQueryChange(type, v)}
                     onSortByChange={setSortBy}
                     onSortDirectionToggle={toggleSortDirection}
                   />
@@ -222,7 +241,7 @@ export default function SponsorPage() {
                     </p>
                   )}
 
-                  <div className="grid grid-cols-1 gap-4 py-6">
+                  <div className="w-full overflow-x-auto">
                     <SponsorTable
                       type={type}
                       sponsorTypes={sponsorsType}

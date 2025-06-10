@@ -28,7 +28,7 @@ export function SponsorFilters({
 }: SponsorFiltersProps) {
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <Input
                     isClearable
                     value={searchQuery}
