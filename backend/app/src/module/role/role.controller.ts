@@ -9,6 +9,8 @@ import {
   Put,
   Query,
   BadRequestException,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -19,6 +21,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { UpdatePermissionsDto } from './dto/update-permissions.dto';
+
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('roles')
