@@ -20,6 +20,7 @@ import {
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { SseService } from '../sse/sse.service';
 import { CreateNotificationDto } from './dto/notification.dto';
+import { KafkaService } from '../kafka/kafka.service';
 
 @Injectable()
 export class NotificationsService {
@@ -31,7 +32,17 @@ export class NotificationsService {
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
     private readonly sseService: SseService,
+    private readonly kafka: KafkaService
   ) {}
+
+  async registerKafka() {
+    await this.kafka.registerHandler('chat-notifications', this.handleChatNotification.bind(this));
+  }
+
+  private async handleChatNotification(payload: ChatNotificationPayload) {
+    console.log('[Notification]', payload);
+    // TODO: implement out-app notification
+  }
 
   async create(createNotificationDto: CreateNotificationDto) {
     let scope: 'global' | { id: Types.ObjectId[]; type: string }[] = 'global';
@@ -126,6 +137,7 @@ export class NotificationsService {
 
     const ticketChunk = await expo.sendPushNotificationsAsync(messages);
     console.log('Push ticket:', ticketChunk);
+    // TODO: implement out-app notification send
   }
 
   private async checkUserExists(userId: string): Promise<void> {
