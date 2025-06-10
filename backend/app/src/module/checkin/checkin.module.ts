@@ -3,10 +3,13 @@ import { CheckinService } from './checkin.service';
 import { CheckinController } from './checkin.controller';
 import { Checkin, CheckinSchema } from './schema/checkin.schema';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User } from '../users/schemas/user.schema';
-import { ActivitiesSchema } from '../activities/schema/activities.schema';
-import { UserSchema } from '../users/schemas/user.schema';
-import { Activities } from '../activities/schema/activities.schema';
+import { User, UserSchema } from '../users/schemas/user.schema';
+import { Activities, ActivitiesSchema } from '../activities/schema/activities.schema';
+import { Role, RoleSchema } from '../role/schemas/role.schema';
+import { Major, MajorSchema } from '../majors/schemas/major.schema';
+import { ActivitiesService } from '../activities/service/activities.service';
+import { UsersService } from '../users/users.service';
+import { RoleService } from '../role/role.service';
 
 @Module({
   imports: [
@@ -23,10 +26,18 @@ import { Activities } from '../activities/schema/activities.schema';
         name: Activities.name,
         schema: ActivitiesSchema,
       },
+      {
+        name: Role.name,
+        schema: RoleSchema,
+      },
+      {
+        name: Major.name,
+        schema: MajorSchema,
+      }
     ]),
   ],
   exports: [MongooseModule],
   controllers: [CheckinController],
-  providers: [CheckinService],
+  providers: [CheckinService, ActivitiesService, UsersService, RoleService],
 })
 export class CheckinModule {}

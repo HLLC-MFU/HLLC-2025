@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ActivitiesTypeService } from './activities-type.service';
-import { ActivitiesTypeController } from './activities-type.controller';
+import { ActivitiesTypeService } from './service/activities-type.service';
+import { ActivitiesTypeController } from './controller/activities-type.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ActivitiesType, ActivitiesTypeSchema } from './schema/activitiesType.schema';
 
