@@ -1,7 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { ActivitiesTypeService } from './activities-type.service';
-import { CreateActivitiesTypeDto } from './dto/create-activities-type.dto';
-import { UpdateActivitiesTypeDto } from './dto/update-activities-type.dto';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
+import { ActivitiesTypeService } from '../services/activities-type.service';
+import { CreateActivitiesTypeDto } from '../dto/activities-type/create-activities-type.dto';
+import { UpdateActivitiesTypeDto } from '../dto/activities-type/update-activities-type.dto';
 
 @Controller('activities-type')
 export class ActivitiesTypeController {
@@ -23,7 +32,10 @@ export class ActivitiesTypeController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateActivitiesTypeDto: UpdateActivitiesTypeDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateActivitiesTypeDto: UpdateActivitiesTypeDto,
+  ) {
     return this.activitiesTypeService.update(id, updateActivitiesTypeDto);
   }
 

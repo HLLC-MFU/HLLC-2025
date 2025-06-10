@@ -4,9 +4,9 @@ import { CheckinController } from './checkin.controller';
 import { Checkin, CheckinSchema } from './schema/checkin.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User } from '../users/schemas/user.schema';
-import { ActivitiesSchema } from '../activities/schema/activities.schema';
+import { ActivitiesSchema } from '../activities/schemas/activities.schema';
 import { UserSchema } from '../users/schemas/user.schema';
-import { Activities } from '../activities/schema/activities.schema';
+import { Activities } from '../activities/schemas/activities.schema';
 
 @Module({
   imports: [
