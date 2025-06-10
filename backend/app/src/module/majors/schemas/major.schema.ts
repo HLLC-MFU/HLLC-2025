@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import mongoose, { HydratedDocument, Types } from 'mongoose';
 import { Localization } from 'src/pkg/types/common';
 
 export type MajorDocument = HydratedDocument<Major>;
@@ -15,7 +15,7 @@ export class Major {
   @Prop({ required: true, type: Object })
   detail: Localization;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'School' })
+  @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'School' })
   school: Types.ObjectId;
 }
 

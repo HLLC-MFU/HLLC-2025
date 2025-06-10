@@ -16,7 +16,7 @@ export function useSchools() {
 	 * @return {Promise<void>} A promise that resolves when the schools are fetched.
 	 * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
 	 * */
-	const fetchSchools = async () => {
+	const fetchSchools = async (): Promise<void> => {
 		setLoading(true);
 		setError(null);
 		try {
@@ -61,8 +61,10 @@ export function useSchools() {
 				if (value !== undefined && value !== null) {
 					if (typeof value === "object" && !(value instanceof File)) {
 						const nested = value as Record<string, string | number | boolean>;
+
 						for (const subKey in nested) {
 							const subValue = nested[subKey];
+
 							if (subValue !== undefined && subValue !== null) {
 								form.append(`${key}[${subKey}]`, String(subValue));
 							}
@@ -185,6 +187,11 @@ export function useSchools() {
 				addToast({
 					title: 'Major added successfully!',
 					color: 'success',
+				});
+			} else {
+				addToast({
+					title: res.message || 'Failed to add major.',
+					color: 'danger',
 				});
 			}
 		} catch (err: any) {
