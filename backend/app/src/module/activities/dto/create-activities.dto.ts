@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString, IsObject, IsOptional, IsBoolean, IsArray } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsObject,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 import { Localization, Photo } from 'src/pkg/types/common';

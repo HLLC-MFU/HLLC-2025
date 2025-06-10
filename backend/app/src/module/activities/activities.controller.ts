@@ -45,20 +45,14 @@ export class ActivitiesController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  findOne(
-    @Param('id') id: string,
-    @Req() req: UserRequest,
-  ) {
+  findOne(@Param('id') id: string, @Req() req: UserRequest) {
     return this.activitiesService.findOne(id, req.user._id);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(new MultipartInterceptor(500))
-  update(
-    @Param('id') id: string,
-    @Req() req: UserRequest,
-  ) {
+  update(@Param('id') id: string, @Req() req: UserRequest) {
     const dto = req.body as UpdateActivityDto;
     return this.activitiesService.update(id, dto);
   }
