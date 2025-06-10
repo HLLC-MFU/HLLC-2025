@@ -6,23 +6,27 @@ import { useUsers } from "@/hooks/useUsers";
 import { useSponsors } from "@/hooks/useSponsors";
 import { PageHeader } from "@/components/ui/page-header";
 import { useEvoucher } from "@/hooks/useEvoucher";
-import { useActivities } from "@/hooks/useActivities";
 import { useReports } from "@/hooks/useReports";
 import { useReportTypes } from "@/hooks/useReportTypes";
 import { ReportCharts } from "./_components/ReportCharts";
 import Overview from "./_components/Overview";
 import Charts from "./_components/TimeLineCharts";
+import { useUserStatistics } from "@/hooks/useUsersytem";
+import { useActivities } from "@/hooks/useActivities";
+import { UseruseSystem } from "@/types/user-stats"
 
 
 export default function Dashboard() {
 
   const { checkin, loading } = useCheckin();
-  const { users } = useUsers();
   const { activities } = useActivities();
   const { sponsors } = useSponsors();
   const { evouchers } = useEvoucher();
   const { problems } = useReports();
   const { reporttypes } = useReportTypes();
+  const { Userstats } = useUserStatistics();
+
+  console.log(Userstats)
 
   return (
     <>
@@ -35,12 +39,13 @@ export default function Dashboard() {
       </div>
       <Overview
         checkin={checkin}
-        Users={users}
+        Userstats={Userstats ?? {} as UseruseSystem}
         Activities={activities}
         Evouchers={evouchers}
         Sponsors={sponsors}
         isLoading={loading}
       />
+
       <h1 className=" text-2xl font-semibold my-6"> TimeLine </h1>
       <div className="w-full h-96 p-4 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 bg-muted flex items-center justify-center">
         <Charts />
