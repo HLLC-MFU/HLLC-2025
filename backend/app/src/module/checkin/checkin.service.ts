@@ -146,12 +146,12 @@ export class CheckinService {
     const [userResult, staff] = await Promise.all([
       this.usersService.findOneByQuery({ _id: userId }),
       this.userModel.findById(new Types.ObjectId(staffId))
-        .populate('role', 'name')
+        .populate('role', 'name metadataScanned')
         .lean()
     ]);
 
     const user = userResult?.data?.[0] as unknown as UserWithRole;
-    const staffData = staff as unknown as UserWithRole;
+    const staffData = staff as unknown as UserWithRole & { role: { metadataScanned?: Record<string, any> } };
 
     if (!user?.role?.name || !staffData?.role?.name) {
       throw new BadRequestException('User or staff not found or missing role');
@@ -162,6 +162,28 @@ export class CheckinService {
       throw new UnauthorizedException(
         `Staff with role "${staffData.role.name}" is not allowed to scan users with role "${user.role.name}"`
       );
+    }
+
+    // Check staff's scanning scope
+    const staffScanConfig = staffData.role.metadataScanned?.['default'];
+    if (staffScanConfig?.scope) {
+      const staffScope = staffScanConfig.scope;
+      const userMajorId = user.metadata?.major?._id?.toString();
+      const userSchoolId = user.metadata?.major?.school?._id?.toString();
+
+      if (staffScope.type === 'major' && staffScope.values?.length > 0) {
+        if (!userMajorId || !staffScope.values.includes(userMajorId)) {
+          throw new UnauthorizedException(
+            'Staff is not authorized to scan users from this major'
+          );
+        }
+      } else if (staffScope.type === 'school' && staffScope.values?.length > 0) {
+        if (!userSchoolId || !staffScope.values.includes(userSchoolId)) {
+          throw new UnauthorizedException(
+            'Staff is not authorized to scan users from this school'
+          );
+        }
+      }
     }
 
     return { user, staffRole: staffData.role.name };

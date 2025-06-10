@@ -67,6 +67,10 @@ export class Role {
     {
       scan?: boolean;
       canScan?: string[];
+      scope?: {
+        type: 'major' | 'school'; // major or school
+        values?: string[]; // major or school id
+      }
     }
   >;
 }

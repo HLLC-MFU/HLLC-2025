@@ -34,6 +34,7 @@ export class RoleService {
       [this.SCAN_CONFIG_KEY]: {
         scan: hasCanScan,
         canScan: scanConfig?.canScan || [],
+        scope: scanConfig?.scope || {},
       },
     };
     
@@ -72,40 +73,47 @@ export class RoleService {
 
   async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
-
+  
     const scanConfig = updateRoleDto.metadataScanned?.[this.SCAN_CONFIG_KEY];
-    if (scanConfig?.canScan && scanConfig.canScan.length > 0) {
+    if (scanConfig?.canScan?.length) {
       await this.validateCanScanRoles(scanConfig.canScan);
     }
-
-    if (updateRoleDto.permissions && Array.isArray(updateRoleDto.permissions)) {
-      role.permissions = updateRoleDto.permissions.map((perm) =>
-        encryptItem(perm),
-      );
+  
+    if (updateRoleDto.permissions?.length) {
+      role.permissions = updateRoleDto.permissions.map(encryptItem);
     }
-
+  
     if (updateRoleDto.name) {
       role.name = updateRoleDto.name;
     }
-
+  
     if (updateRoleDto.metadataSchema) {
       role.metadataSchema = updateRoleDto.metadataSchema;
     }
-
+  
     if (updateRoleDto.metadataScanned) {
-      const currentConfig = role.metadataScanned[this.SCAN_CONFIG_KEY] || { scan: false, canScan: [] };
+      const currentConfig = role.metadataScanned[this.SCAN_CONFIG_KEY] || {
+        scan: false,
+        canScan: [],
+        scope: {
+          type: undefined,
+          values: [],
+        },
+      };
       const newConfig = updateRoleDto.metadataScanned[this.SCAN_CONFIG_KEY] || {};
-
+  
       role.metadataScanned = {
         [this.SCAN_CONFIG_KEY]: {
           scan: newConfig.scan ?? currentConfig.scan,
           canScan: newConfig.canScan ?? currentConfig.canScan,
+          scope: newConfig.scope ?? currentConfig.scope,
         },
       };
     }
-
+  
     return await role.save();
   }
+  
 
   async remove(id: string) {
     const roleToDelete = await this.findOne(id);
@@ -159,13 +167,82 @@ export class RoleService {
     }
 
     const scanConfig = scannerRole.metadataScanned[this.SCAN_CONFIG_KEY];
-    
+    console.log('SCAN CONFIG:', scanConfig);
+    console.log('TARGET ROLE:', targetRoleName);
+    console.log('SCANNER ROLE:', scannerRoleName);
+
     if (!scanConfig?.scan) {
+      console.log('SCAN CONFIG NOT FOUND');
       return false;
     }
 
     const canScanRoles = scanConfig.canScan || [];
+    console.log('CAN SCAN ROLES:', canScanRoles);
+    console.log('TARGET ROLE:', targetRoleName);
+    console.log('CAN SCAN ROLES INCLUDES TARGET ROLE:', canScanRoles.includes(targetRoleName));
     return canScanRoles.includes(targetRoleName);
+  }
+
+  /**
+   * Validates if a scanner role can scan a user based on scope restrictions
+   * @param scannerRoleName - Name of the scanner role
+   * @param userMajorId - User's major ID
+   * @param userSchoolId - User's school ID
+   * @returns boolean indicating if scanning is allowed
+   */
+  async validateScanScope(
+    scannerRoleName: string,
+    userMajorId?: string,
+    userSchoolId?: string,
+  ): Promise<boolean> {
+    const scannerRole = await this.findByName(scannerRoleName);
+    if (!scannerRole) {
+      throw new NotFoundException(`Scanner role "${scannerRoleName}" not found`);
+    }
+
+    const scanConfig = scannerRole.metadataScanned[this.SCAN_CONFIG_KEY];
+    if (!scanConfig?.scan || !scanConfig.scope) {
+      // If no scope restrictions, allow scanning
+      return true;
+    }
+
+    const { type, values = [] } = scanConfig.scope;
+
+    if (type === 'major' && values.length > 0) {
+      return userMajorId ? values.includes(userMajorId) : false;
+    }
+
+    if (type === 'school' && values.length > 0) {
+      return userSchoolId ? values.includes(userSchoolId) : false;
+    }
+
+    // If no specific scope type or values are set, allow scanning
+    return true;
+  }
+
+  /**
+   * Gets the scanning scope configuration for a role
+   * @param roleName - Name of the role
+   * @returns The scope configuration or null if not found
+   */
+  async getScanScope(roleName: string): Promise<{
+    type?: 'major' | 'school';
+    values?: string[];
+  } | null> {
+    const role = await this.findByName(roleName);
+    if (!role) {
+      throw new NotFoundException(`Role "${roleName}" not found`);
+    }
+
+    const scanConfig = role.metadataScanned[this.SCAN_CONFIG_KEY];
+    if (!scanConfig?.scan || !scanConfig.scope) {
+      return null;
+    }
+
+    return {
+      type: scanConfig.scope.type,
+      values: scanConfig.scope.values || [],
+    };
   }
 
   async getCanScanRoles(roleName: string): Promise<string[]> {
@@ -176,9 +253,14 @@ export class RoleService {
 
     const scanConfig = role.metadataScanned[this.SCAN_CONFIG_KEY];
     if (!scanConfig?.scan) {
+      console.log('SCAN CONFIG NOT FOUND');
       return [];
     }
 
+    console.log('SCAN CONFIG FOUND');
+    console.log('CAN SCAN ROLES:', scanConfig.canScan);
+    console.log('TARGET ROLE:', roleName);
+    console.log('CAN SCAN ROLES INCLUDES TARGET ROLE:', scanConfig.canScan?.includes(roleName));
     return scanConfig.canScan || [];
   }
 }
