@@ -41,7 +41,7 @@ export default function AddRoleModal({ isOpen, onClose, onAddRole }: AddRoleProp
         e.preventDefault();
 
         const metadataSchema: Role["metadataSchema"] = fields.reduce((acc, field) => {
-            acc[field.key] = {
+            acc[field.label] = {
                 type: field.type,
                 label: field.label,
                 required: field.required,
