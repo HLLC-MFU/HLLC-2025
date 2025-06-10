@@ -29,6 +29,12 @@ class ActivityMetadata {
 
   @Prop({ type: ActivityScope, default: { major: [], school: [], user: [] } })
   scope: ActivityScope;
+
+  @Prop({ type: Date })
+  startAt: Date;
+
+  @Prop({ type: Date })
+  endAt: Date;
 }
 
 @Schema({ timestamps: true })

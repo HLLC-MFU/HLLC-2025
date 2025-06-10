@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   Put,
+  Query,
+  BadRequestException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -19,6 +21,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { UpdatePermissionsDto } from './dto/update-permissions.dto';
+
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('roles')
@@ -76,5 +79,39 @@ export class RoleController {
   @CacheKey('roles:invalidate')
   remove(@Param('id') id: string) {
     return this.roleService.remove(id);
+  }
+
+  /**
+   * ตรวจสอบว่า role สามารถ scan อีก role ได้หรือไม่
+   * GET /roles/can-scan?scanner=mentor&target=student
+   */
+  @Get('can-scan')
+  async checkCanScan(
+    @Query('scanner') scannerRole: string,
+    @Query('target') targetRole: string,
+  ) {
+    if (!scannerRole || !targetRole) {
+      throw new BadRequestException('Scanner role and target role are required');
+    }
+
+    const canScan = await this.roleService.canScan(scannerRole, targetRole);
+    return {
+      scanner: scannerRole,
+      target: targetRole,
+      canScan,
+    };
+  }
+
+  /**
+   * ดึงรายชื่อ roles ที่สามารถ scan ได้
+   * GET /roles/mentor/scannable-roles
+   */
+  @Get(':roleName/scannable-roles')
+  async getScannableRoles(@Param('roleName') roleName: string) {
+    const roles = await this.roleService.getCanScanRoles(roleName);
+    return {
+      role: roleName,
+      canScan: roles,
+    };
   }
 }
