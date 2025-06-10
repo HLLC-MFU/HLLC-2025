@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Accordion, AccordionItem, Button } from "@heroui/react";
-import { DollarSignIcon, Plus, UserRound, UserRoundCog, UserRoundSearch } from "lucide-react";
+import { DollarSignIcon, Plus } from "lucide-react";
 
 import { useSponsors } from "@/hooks/useSponsors";
-import { addToast } from "@heroui/react";
-
 import { SponsorFilters } from "./_components/SponsorFilters";
 import SponsorTable from "./_components/SponsorTable";
 import AddSponsorTypeModal from "./_components/AddSponsorTypeModal";
@@ -15,16 +13,15 @@ import { Sponsors } from "@/types/sponsors";
 import { useSponsorsType } from "@/hooks/useSponsorsType";
 import { PageHeader } from "@/components/ui/page-header";
 
-
 export default function SponsorPage() {
   const [isTypeOpen, setIsTypeOpen] = useState(false);
   const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
-  const [sortBy, setSortBy] = useState<string>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSponsor, setSelectedSponsor] = useState<Sponsors | Partial<Sponsors>>();
-  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [confirmationModalType, setConfirmationModalType] = useState<'delete' | 'edit' | null>(null);
+  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
+  const [confirmationModalType, setConfirmationModalType] = useState<"delete" | "edit" | null>(null);
 
   const {
     sponsors,
@@ -37,13 +34,10 @@ export default function SponsorPage() {
 
   const {
     sponsorsType,
-    loading: typeLoading,
     createSponsorsType,
-    updateSponsorsType,
-    deleteSponsorsType,
   } = useSponsorsType();
 
-  const groupedSponsors: Record<string, Sponsors[]> = useMemo(() => {
+  const groupedSponsors = useMemo(() => {
     const groups: Record<string, Sponsors[]> = {};
 
     sponsorsType.forEach((type) => {
@@ -68,9 +62,9 @@ export default function SponsorPage() {
 
   const getFilteredSortedSponsors = (sponsors: Sponsors[], type: string): Sponsors[] => {
     let filtered = [...sponsors];
-    const search = searchQueries[type]?.toLowerCase() ?? '';
+    const search = searchQueries[type]?.toLowerCase() ?? "";
 
-    if (search.trim() !== '') {
+    if (search.trim() !== "") {
       filtered = filtered.filter(
         (s) =>
           s.name?.en?.toLowerCase().includes(search) ||
@@ -80,42 +74,40 @@ export default function SponsorPage() {
 
     return filtered.sort((a, b) => {
       let comparison = 0;
-
       switch (sortBy) {
-        case 'name':
-          comparison = (a.name?.en ?? '').localeCompare(b.name?.en ?? '');
+        case "name":
+          comparison = (a.name?.en ?? "").localeCompare(b.name?.en ?? "");
           break;
-        case 'type':
-          comparison = String(a.type ?? '').localeCompare(String(b.type ?? ''));
+        case "type":
+          comparison = String(a.type ?? "").localeCompare(String(b.type ?? ""));
           break;
-        case 'isShow':
+        case "isShow":
           comparison = Number(a.isShow ?? 0) - Number(b.isShow ?? 0);
           break;
       }
-
-      return sortDirection === 'asc' ? comparison : -comparison;
+      return sortDirection === "asc" ? comparison : -comparison;
     });
   };
 
   const toggleSortDirection = () => {
-    setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
   const handleAddSponsor = () => {
-    setModalMode('add');
+    setModalMode("add");
     setSelectedSponsor(undefined);
     setIsModalOpen(true);
   };
 
   const handleEditSponsor = (sponsor: Sponsors) => {
-    setModalMode('edit');
+    setModalMode("edit");
     setSelectedSponsor(sponsor);
     setIsModalOpen(true);
   };
 
   const handleDeleteSponsor = (sponsor: Sponsors) => {
     setSelectedSponsor(sponsor);
-    setConfirmationModalType('delete');
+    setConfirmationModalType("delete");
   };
 
   const handleSubmitSponsor = async (sponsorsData: Partial<Sponsors>) => {
@@ -123,68 +115,45 @@ export default function SponsorPage() {
     const formData = new FormData();
 
     if (sponsorsData.name) {
-      if (sponsorsData.name.th) formData.append('name[th]', sponsorsData.name.th);
-      if (sponsorsData.name.en) formData.append('name[en]', sponsorsData.name.en);
+      if (sponsorsData.name.th) formData.append("name[th]", sponsorsData.name.th);
+      if (sponsorsData.name.en) formData.append("name[en]", sponsorsData.name.en);
     }
 
-    // 🔁 Access file directly from file input element
-    const input = document.querySelector<HTMLInputElement>('#photo-input');
+    const input = document.querySelector<HTMLInputElement>("#photo-input");
     const file = input?.files?.[0];
     if (file) {
-      formData.append('photo', file);
+      formData.append("photo", file);
     }
 
     if (sponsorsData.type && sponsorsData.type !== "") {
-      formData.append('type', sponsorsData.type);
+      formData.append("type", sponsorsData.type);
     }
-    if (typeof sponsorsData.isShow === 'boolean') {
-      formData.append('isShow', String(sponsorsData.isShow));
+    if (typeof sponsorsData.isShow === "boolean") {
+      formData.append("isShow", String(sponsorsData.isShow));
     }
 
     if (modalMode === "add") {
       response = await createSponsors(formData);
     } else if (modalMode === "edit" && selectedSponsor?._id) {
-      const formData = new FormData();
-      Object.entries(selectedSponsor).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (key === "photo" && value instanceof File) {
-            formData.append("photo", value); // name must match backend field
-          } else if (typeof value === "object") {
-            formData.append(key, JSON.stringify(value));
-          } else {
-            formData.append(key, value as string | Blob);
-          }
-        }
-      });
-      console.log(formData);
       response = updateSponsors(selectedSponsor._id, formData);
     }
-    setIsModalOpen(false);
 
-    if (response) {
-      await fetchSponsors();
-    }
+    setIsModalOpen(false);
+    if (response) await fetchSponsors();
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (selectedSponsor?._id) {
-      deleteSponsors(selectedSponsor._id);
-
+      await deleteSponsors(selectedSponsor._id);
+      await fetchSponsors();
     }
     setConfirmationModalType(null);
     setSelectedSponsor(undefined);
   };
 
   const handleAddType = async (type: { name: string }) => {
-    console.log(type);
     await createSponsorsType(type);
     setIsTypeOpen(false);
-  };
-
-  const roleIcons: Record<string, React.ReactNode> = {
-    Administrator: <UserRoundCog />,
-    User: <UserRound />,
-    Mentee: <UserRoundSearch />,
   };
 
   return (
@@ -195,15 +164,15 @@ export default function SponsorPage() {
           description="This is Sponsor page"
           icon={<DollarSignIcon />}
           right={
-             <div className="w-full sm:w-auto">
-            <Button
-              color="primary"
-              endContent={<Plus size={20} />}
-              size="lg"
-              onPress={() => setIsTypeOpen(true)}
-            >
-              New sponsor type
-            </Button>
+            <div className="w-full sm:w-auto">
+              <Button
+                color="primary"
+                endContent={<Plus size={20} />}
+                size="lg"
+                onPress={() => setIsTypeOpen(true)}
+              >
+                New sponsor type
+              </Button>
             </div>
           }
         />
@@ -219,12 +188,12 @@ export default function SponsorPage() {
                 title={`${type}`}
                 subtitle={
                   <p className="flex">
-                    Total sponsors : <span className="text-primary ml-1">{sponsors.length}</span>
+                    Total sponsors:{" "}
+                    <span className="text-primary ml-1">{sponsors.length}</span>
                   </p>
                 }
               >
-
-                <div className="flex flex-col gap-6 p-4 sm:p-6 w-ful overflow-x-auto">
+                <div className="flex flex-col gap-6 p-4 sm:p-6 w-full overflow-x-auto">
                   <SponsorFilters
                     searchQuery={searchQueries[type] ?? ""}
                     sortBy={sortBy}
@@ -255,7 +224,7 @@ export default function SponsorPage() {
                       onDelete={handleDeleteSponsor}
                       onToggleShow={(s) => {
                         const formData = new FormData();
-                        formData.append('isShow', String(!s.isShow));
+                        formData.append("isShow", String(!s.isShow));
                         updateSponsors(s._id, formData);
                       }}
                     />
@@ -273,24 +242,23 @@ export default function SponsorPage() {
         onAddType={handleAddType}
       />
 
-
       <ConfirmationModal
         body={
-          confirmationModalType === 'edit'
+          confirmationModalType === "edit"
             ? `Are you sure you want to save the changes for "${selectedSponsor?.name?.en}"?`
             : `Are you sure you want to delete the sponsor "${selectedSponsor?.name?.en}"? This action cannot be undone.`
         }
-        confirmColor={confirmationModalType === 'edit' ? 'primary' : 'danger'}
-        confirmText={confirmationModalType === 'edit' ? 'Save' : 'Delete'}
+        confirmColor={confirmationModalType === "edit" ? "primary" : "danger"}
+        confirmText={confirmationModalType === "edit" ? "Save" : "Delete"}
         isOpen={confirmationModalType !== null}
         title={
-          confirmationModalType === 'edit' ? 'Save Sponsor' : 'Delete Sponsor'
+          confirmationModalType === "edit" ? "Save Sponsor" : "Delete Sponsor"
         }
         onClose={() => {
           setConfirmationModalType(null);
           setSelectedSponsor(undefined);
         }}
-        onConfirm={() => handleConfirm()}
+        onConfirm={handleConfirm}
       />
     </div>
   );

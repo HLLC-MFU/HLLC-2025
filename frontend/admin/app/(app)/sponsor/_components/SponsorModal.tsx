@@ -1,10 +1,21 @@
 "use client";
+
+import { useState, useEffect } from "react";
+import {
+  Button,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Select,
+  SelectItem,
+} from "@heroui/react";
+
 import { useSponsors } from "@/hooks/useSponsors";
-import { useSponsorsType } from "@/hooks/useSponsorsType";
 import { Sponsors } from "@/types/sponsors";
 import { SponsorType } from "@/types/sponsors-type";
-import { Button, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Textarea } from "@heroui/react";
-import { useState, useEffect } from "react";
 
 interface SponsorModalProps {
   type: string;
@@ -16,7 +27,7 @@ interface SponsorModalProps {
   mode: "add" | "edit";
 }
 
-export const show = [
+const showOptions = [
   { key: "show", label: "Show on list" },
   { key: "hide", label: "Hide on list" },
 ];
@@ -28,20 +39,18 @@ export function SponsorModal({
   onClose,
   onSuccess,
   sponsor,
-  mode
+  mode,
 }: SponsorModalProps) {
   const { createSponsors, updateSponsors } = useSponsors();
+
   const [nameEn, setNameEn] = useState("");
   const [nameTh, setNameTh] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [isShow, setIsShow] = useState<boolean>(true);
+  const [isShow, setIsShow] = useState(true);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setLogoFile(e.target.files[0]);
-    } else {
-      setLogoFile(null);
-    }
+    const file = e.target.files?.[0] ?? null;
+    setLogoFile(file);
   };
 
   useEffect(() => {
@@ -50,7 +59,7 @@ export function SponsorModal({
       setNameTh(sponsor.name?.th || "");
       setIsShow(sponsor.isShow ?? true);
       setLogoFile(null);
-    } else if (mode === "add") {
+    } else {
       setNameEn("");
       setNameTh("");
       setIsShow(true);
@@ -58,40 +67,32 @@ export function SponsorModal({
     }
   }, [sponsor, mode, isOpen]);
 
-
   const handleSubmit = async () => {
     if (!nameEn.trim() || !nameTh.trim()) return;
 
     const typeId = sponsorTypes.find((s) => s.name === type)?._id;
-    if (!typeId) {
-      console.error("Invalid type selected:", type);
-      return;
-    }
+    if (!typeId) return;
 
-    const sponsorsData = new FormData();
-    sponsorsData.append("name[en]", nameEn.trim());
-    sponsorsData.append("name[th]", nameTh.trim());
-    sponsorsData.append("type", typeId);
-    sponsorsData.append("isShow", String(isShow));
-    if (logoFile) {
-      if (logoFile) sponsorsData.append("photo", logoFile);
-    }
+    const formData = new FormData();
+    formData.append("name[en]", nameEn.trim());
+    formData.append("name[th]", nameTh.trim());
+    formData.append("type", typeId);
+    formData.append("isShow", String(isShow));
+    if (logoFile) formData.append("photo", logoFile);
 
     try {
       if (mode === "add") {
-        await createSponsors(sponsorsData);
-      } else if (mode === "edit" && sponsor?._id) {
-        await updateSponsors(sponsor._id, sponsorsData);
+        await createSponsors(formData);
+      } else if (sponsor?._id) {
+        await updateSponsors(sponsor._id, formData);
       }
 
       onSuccess(sponsor || {}, mode);
       onClose();
     } catch (err) {
-      console.error("Error in sponsor submission", err);
+      console.error("Sponsor submission error:", err);
     }
   };
-
-
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
@@ -115,26 +116,29 @@ export function SponsorModal({
                 onValueChange={setNameTh}
               />
             </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
                 isRequired
                 className="max-w-xs"
                 selectedKeys={[isShow ? "show" : "hide"]}
-                items={show}
-                onChange={(e) => {
-                  const value = (e.target as HTMLSelectElement).value;
-                  setIsShow(value === "show");
-                }}
+                items={showOptions}
+                onChange={(e) =>
+                  setIsShow((e.target as HTMLSelectElement).value === "show")
+                }
                 label="Show"
                 placeholder="Select show"
               >
-                {show.map((show) => (
-                  <SelectItem key={show.key}>{show.label}</SelectItem>
+                {showOptions.map((item) => (
+                  <SelectItem key={item.key}>{item.label}</SelectItem>
                 ))}
               </Select>
 
               <div className="flex flex-col w-full">
-                <label htmlFor="logo-upload" className="text-sm font-medium text-default-600 mb-1">
+                <label
+                  htmlFor="logo-upload"
+                  className="text-sm font-medium text-default-600 mb-1"
+                >
                   Logo Image
                 </label>
                 <input
@@ -143,21 +147,23 @@ export function SponsorModal({
                   accept="image/*"
                   onChange={handleFileChange}
                   className="block w-full text-sm text-default-500
-                            file:mr-4 file:py-2 file:px-4
-                            file:rounded-lg file:border-0
-                            file:text-sm file:font-semibold
-                            file:bg-primary file:text-white
-                            hover:file:bg-primary/90
-                            cursor-pointer"
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-lg file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-primary file:text-white
+                    hover:file:bg-primary/90
+                    cursor-pointer"
                 />
                 {mode === "edit" && sponsor?.photo && !logoFile && (
                   <p className="mt-2 text-sm text-default-500 italic">
-                    Current file: <span className="font-medium">{sponsor.photo}</span>
+                    Current file:{" "}
+                    <span className="font-medium">{sponsor.photo}</span>
                   </p>
                 )}
                 {logoFile && (
                   <p className="mt-2 text-sm text-default-500 italic">
-                    Selected file: <span className="font-medium">{logoFile.name}</span>
+                    Selected file:{" "}
+                    <span className="font-medium">{logoFile.name}</span>
                   </p>
                 )}
               </div>

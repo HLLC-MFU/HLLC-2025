@@ -45,6 +45,10 @@ export function useSponsors() {
 
       if (data && '_id' in data) {
         setSponsors((prev) => [...prev, data]);
+        addToast({
+        title: 'Sponsors add successfully!',
+        color: 'success',
+      });
       }
 
       return res;
