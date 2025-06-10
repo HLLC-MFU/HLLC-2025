@@ -48,7 +48,6 @@ export default function SponsorTable({
     <>
       <Table
         aria-label="Sponsor Table"
-        selectionMode="multiple"
         className="min-w-full"
       >
         <TableHeader>
