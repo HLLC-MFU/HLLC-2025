@@ -13,7 +13,6 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 export class PostTestAnswerController {
   constructor(private readonly postTestAnswerService: PostTestAnswerService) {}
 
-  @UseInterceptors(new MultipartInterceptor())
   @Post()
   @Permissions('post-test-answers:create')
   create(@Body() createPostTestAnswerDto: CreatePostTestAnswerDto) {
@@ -32,7 +31,6 @@ export class PostTestAnswerController {
     return this.postTestAnswerService.findOne(id);
   }
 
-  @UseInterceptors(new MultipartInterceptor())
   @Patch(':id')
   @Permissions('post-test-answers:update')
   update(@Param('id') id: string, @Body() updatePostTestAnswerDto: UpdatePostTestAnswerDto) {

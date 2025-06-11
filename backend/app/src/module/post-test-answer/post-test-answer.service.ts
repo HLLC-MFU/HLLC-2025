@@ -1,29 +1,46 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePostTestAnswerDto } from './dto/create-post-test-answer.dto';
 import { UpdatePostTestAnswerDto } from './dto/update-post-test-answer.dto';
 import { PostTestAnswer, PostTestAnswerDocument } from './schema/post-test-answer.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne, queryUpdateOneByFilter } from 'src/pkg/helper/query.util';
+import { User, UserDocument } from '../users/schemas/user.schema';
 
 @Injectable()
 export class PostTestAnswerService {
 
-  constructor(@InjectModel(PostTestAnswer.name) private PostTestAnswerModel: Model<PostTestAnswerDocument>) { }
+  constructor(
+    @InjectModel(PostTestAnswer.name)
+    private PostTestAnswerModel: Model<PostTestAnswerDocument>,
+
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
+  ) { }
 
   async create(createPostTestAnswerDto: CreatePostTestAnswerDto) {
+    const { user, values } = createPostTestAnswerDto
 
-    const exists = await this.PostTestAnswerModel.exists({_id: createPostTestAnswerDto.user})
-    if (!exists) throw new NotFoundException('User not found')
+    const userexists = await this.userModel.exists({ _id: user })
+    if (!userexists) throw new NotFoundException('User not found')
 
-    const filter = { user: new Types.ObjectId(createPostTestAnswerDto.user)}
-    const answerToInsert = createPostTestAnswerDto.values.map(values =>({
+    const filter = { user: new Types.ObjectId(user) }
+
+    const existingvalues = new Set(
+      (await this.PostTestAnswerModel.findOne(filter).select('values.posttest').lean())?.values.map(v => v.posttest.toString()) ?? []
+    );
+
+    const newValues = values.filter( a => !existingvalues.has(a.posttest));
+    if (!newValues.length) throw new BadRequestException('Post-Test answers already exist for this user');
+
+    const answerToInsert = newValues.map(values => ({
       posttest: new Types.ObjectId(values.posttest),
       value: values.value
     }))
+
     const update = {
       $addToSet: {
-        value: { $each: answerToInsert }
+        values: { $each: answerToInsert }
       }
     }
 
@@ -31,7 +48,8 @@ export class PostTestAnswerService {
     return await queryUpdateOneByFilter<PostTestAnswer>(
       this.PostTestAnswerModel,
       filter,
-      update
+      update,
+      { upsert: true }
     );
   }
 
