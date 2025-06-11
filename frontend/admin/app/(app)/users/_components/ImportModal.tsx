@@ -1,11 +1,9 @@
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import React, { ChangeEvent, FormEvent, Key, useCallback, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
-
 import { columns } from "./UserTable";
-
 import { User } from "@/types/user";
-import { Major } from "@/types/school";
+import { Major } from "@/types/major";
 
 
 type ImportModalProps = {
@@ -20,7 +18,6 @@ type ImportModalProps = {
 type JsonData = {
     role: string;
     major: string;
-    type: string;
     username: string;
     first: string;
     middle?: string;
@@ -73,18 +70,8 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
             const jsonData = XLSX.utils.sheet_to_json(worksheet) as JsonData[];
 
             const formData = jsonData.map((item: JsonData) => {
-                const data: JsonData = {};
-                for (const key in item) {
-                    try {
-                        data[key] = JSON.parse(item[key]);
-                    } catch (error) {
-                        data[key] = item[key];
-                    };
-                };
-
-                const majorId = majors.find(m => m.name.en === data.major)?._id;
-
-                const mapData: UserForm = {
+                const major = majors.find(m => m.name.en === item.major);
+                const mapData: User = {
                     name: {
                         first: item["first"],
                         middle: item["middle"] ?? "",
@@ -93,7 +80,7 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                     username: item["username"],
                     role: roleId,
                     metadata: {
-                        major: majorId ?? ""
+                        major: major?._id ?? ""
                     }
                 };
 
@@ -126,22 +113,19 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
 
     const renderCell = useCallback((item: User, columnKey: Key) => {
         const cellValue = item[columnKey as keyof typeof item];
-
-        const major = majors.find((m) => m._id === item.metadata.major);
-
+        const major = majors.find((m) => m._id === String(item.metadata?.major));
         switch (columnKey) {
             case "name":
-                return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last}`;
+                if (typeof cellValue === "object" && cellValue !== null && 'first' in cellValue) {
+                    return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last ?? ""}`;
+                }
             case "school":
                 return major?.school.name.en ?? "-";
             case "major":
                 return major?.name.en ?? "-";
             case "actions":
                 return null;
-            default:
-                return cellValue;
         }
-
     }, [field]);
 
     return (

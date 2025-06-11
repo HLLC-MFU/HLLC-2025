@@ -1,7 +1,8 @@
 export type Role = {
-    name: string;
-    permissions?: string[];
-    metadataSchema?: MetadataSchema;
+  _id: string;
+  name: string;
+  permissions?: string[];
+  metadataSchema?: MetadataSchema;
 };
 
 export type MetadataSchema = {

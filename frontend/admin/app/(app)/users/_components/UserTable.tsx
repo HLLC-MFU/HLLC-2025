@@ -22,7 +22,8 @@ import ImportModal from "./ImportModal";
 import { User } from "@/types/user";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { useUsers } from "@/hooks/useUsers";
-import { Major, School } from "@/types/school";
+import { School } from "@/types/school";
+import { Major } from "@/types/major";
 
 export const columns = [
   { name: "USERNAME", uid: "username", sortable: true },
@@ -96,8 +97,8 @@ export default function UsersTable({
       filteredUsers = filteredUsers.filter((user) =>
         user.username.toLowerCase().includes(filterValue.toLowerCase()) ||
         `${user.name.first} ${user.name.middle ?? ""} ${user.name.last ?? ""}`.toLowerCase().includes(filterValue.toLowerCase()) ||
-        user.metadata?.major.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
-        user.metadata?.major.school.name.en.toLowerCase().includes(filterValue.toLowerCase())
+        user.metadata?.major?.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
+        user.metadata?.major?.school.name.en.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
 
@@ -207,10 +208,10 @@ export default function UsersTable({
     }
   };
 
-  const handleImport = async (user: Partial<User>[]) => {
+  const handleImport = async (users: Partial<User>[]) => {
     let response;
 
-    // uploadUser(user)
+    response = await uploadUser(users)
     setModal(prev => ({...prev, import: false}));
 
     if (response) {
@@ -233,8 +234,8 @@ export default function UsersTable({
         middle: user.name?.middle ?? "",
         last: user.name?.last ?? "",
         role: user.role?.name,
-        school_en: user.metadata?.major.school.name.en ?? "",
-        major_en: user.metadata?.major.name.en ?? "",
+        school: user.metadata?.major?.school.name.en ?? "",
+        major: user.metadata?.major?.name.en ?? "",
       }))
     } else {
       temp = [{
@@ -243,8 +244,8 @@ export default function UsersTable({
         "middle": [],
         "last": [],
         "role": [],
-        "school_en": [],
-        "major_en": [],
+        "school": [],
+        "major": [],
       }];
     }
     const worksheet = XLSX.utils.json_to_sheet(temp);
@@ -331,6 +332,7 @@ export default function UsersTable({
         isOpen={modal.add}
         roleId={roleId}
         schools={schools}
+        majors={majors}
         user={users[userIndex]}
         onAdd={handleAdd}
         onClose={() => setModal(prev => ({...prev, add: false}))}
@@ -358,7 +360,7 @@ export default function UsersTable({
         body={`Are you sure you want to ${confirmText.toLowerCase()} this user?`}
         confirmColor={'danger'}
         isOpen={modal.confirm}
-        title={`${confirmText} user`}
+        title={`${confirmText} user`} 
         onClose={() => setModal(prev => ({...prev, confirm: false}))}
         onConfirm={handleConfirm}
       />

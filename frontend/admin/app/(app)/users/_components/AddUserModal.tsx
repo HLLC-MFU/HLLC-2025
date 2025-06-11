@@ -2,6 +2,7 @@ import React, { FormEvent, useEffect, useState } from "react";
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
 import { User } from "@/types/user";
 import { School } from "@/types/school";
+import { Major } from "@/types/major";
 
 type AddModalProps = {
     isOpen: boolean;
@@ -11,6 +12,7 @@ type AddModalProps = {
     user: Partial<User>;
     roleId: string;
     schools: School[];
+    majors: Major[];
 };
 
 type UserForm = {
@@ -26,7 +28,7 @@ type UserForm = {
     }
 }
 
-export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId, schools }: AddModalProps) {
+export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId, schools, majors }: AddModalProps) {
     const resetField: UserForm = {
         name: {
             first: "",
@@ -43,8 +45,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
     const [school, setSchool] = useState<Set<string>>(new Set<string>());
     const [major, setMajor] = useState<Set<string>>(new Set<string>());
 
-    const schoolData = schools.find(s => s.name.en === Array.from(school)[0]);
-    const majorData = schoolData?.majors.find(m => m.name.en === Array.from(major)[0]);
+    const majorData = majors.find(m => m.name.en === Array.from(major)[0]);
 
     useEffect(() => {
         if (action === "Edit") {
@@ -57,24 +58,27 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                 username: user.username!,
                 role: roleId,
                 metadata: {
-                    major: user.metadata?.major._id ?? ""
+                    major: user.metadata?.major?._id ?? ""
                 }
             });
-            setSchool(new Set([user.metadata?.major?.school.name.en]));
-            setMajor(new Set([user.metadata?.major.name.en]));
+            if (user.metadata?.major?.school) {
+                setSchool(new Set([user.metadata.major.school.name.en]));
+                setMajor(new Set([user.metadata.major.name.en]));
+            }
         }
         if (action === "Add") {
             setField(resetField);
+            setField(prev => ({ ...prev, role: roleId }))
         }
     }, [isOpen, user, action]);
-    
+
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const formData: Partial<User> = {
+        const formData: User = {
             name: field.name,
             username: field.username,
-            role: roleId,
+            role: field.role,
             metadata: {
                 major: majorData?._id ?? ""
             }
@@ -168,7 +172,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                                 selectedKeys={major}
                                 onSelectionChange={(keys) => setMajor(keys as Set<string>)}
                             >
-                                {(schools.find((s) => s.name.en === Array.from(school)[0])?.majors || []).map((m) => (
+                                {(majors.filter((m) => m.school.name.en === Array.from(school)[0])).map((m) => (
                                     <SelectItem key={m.name.en}>{m.name.en}</SelectItem>
                                 ))}
                             </Select>

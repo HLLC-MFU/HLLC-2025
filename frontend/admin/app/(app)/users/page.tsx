@@ -48,39 +48,39 @@ export default function ManagementPage() {
   return (
     <>
       <PageHeader
-      description="Manage users, roles, and relative data."
-      icon={<UserRound />}
-      right={
-        <Button
-        color="primary"
-        endContent={<Plus size={20} />}
-        size="lg"
-        onPress={() => setIsRoleOpen(true)}
-        >
-        New Role
-        </Button>
-      }
-      title="User Management"
+        description="Manage users, roles, and relative data."
+        icon={<UserRound />}
+        right={
+          <Button
+            color="primary"
+            endContent={<Plus size={20} />}
+            size="lg"
+            onPress={() => setIsRoleOpen(true)}
+          >
+            New Role
+          </Button>
+        }
+        title="User Management"
       />
 
       <div className="flex flex-col gap-6">
-      <Accordion className="px-0" variant="splitted">
-        {isLoading ? (
-        Array.from({ length: 3 }).map((_, index) => (
-          <AccordionItem
-          key={`skeleton-${index}`}
-          aria-label={`Loading ${index}`}
-          title={
-            <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
-          }
-          >
-          <div className="h-[100px] w-full bg-gray-100 rounded-md animate-pulse" />
-          </AccordionItem>
-        ))
-        ) : (
-        roles.map((role) => {
-          const roleName = role.name ?? "Unnamed";
-          const roleUsers = groupedByRoleId[role._id] || [];
+        <Accordion className="px-0" variant="splitted">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <AccordionItem
+                key={`skeleton-${index}`}
+                aria-label={`Loading ${index}`}
+                title={
+                  <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
+                }
+              >
+                <div className="h-[100px] w-full bg-gray-100 rounded-md animate-pulse" />
+              </AccordionItem>
+            ))
+          ) : (
+            roles.map((role) => {
+              const roleName = role.name ?? "Unnamed";
+              const roleUsers = groupedByRoleId[role._id] || [];
 
               return (
                 <AccordionItem
@@ -89,7 +89,7 @@ export default function ManagementPage() {
                   className="font-medium mb-2"
                   startContent={
                     <div className="p-3 rounded-xl bg-gradient-to-r bg-gray-200 border">
-                      <span className="text-gray-500">{roleIcons[roleName] || <UserRound />}</span>   
+                      <span className="text-gray-500">{roleIcons[roleName] || <UserRound />}</span>
                     </div>
                   }
                   title={roleName}
@@ -102,7 +102,6 @@ export default function ManagementPage() {
                   <UsersTable
                     majors={majors}
                     roleId={role._id}
-                    roleName={roleName}
                     schools={schools}
                     users={roleUsers}
                   />
@@ -112,11 +111,11 @@ export default function ManagementPage() {
           )}
         </Accordion>
 
-      <AddRoleModal
-        isOpen={isRoleOpen}
-        onAddRole={handleAddRole}
-        onClose={() => setIsRoleOpen(false)}
-      />
+        <AddRoleModal
+          isOpen={isRoleOpen}
+          onAddRole={handleAddRole}
+          onClose={() => setIsRoleOpen(false)}
+        />
       </div>
     </>
   );
