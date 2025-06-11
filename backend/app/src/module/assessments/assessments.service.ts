@@ -4,7 +4,6 @@ import { UpdateAssessmentDto } from './dto/update-assessment.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Assessment, AssessmentDocument } from './schema/assessment.schema';
-import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
 
@@ -16,12 +15,6 @@ export class AssessmentsService {
   ) { }
 
   async create(createAssessmentDto: CreateAssessmentDto) {
-    await throwIfExists(
-      this.assessmentModel,
-      { question: createAssessmentDto.question },
-      'Assessment already exists',
-    );
-
     const assessment = new this.assessmentModel({
       ...createAssessmentDto,
     });
