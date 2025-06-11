@@ -1,25 +1,27 @@
-import { Request } from 'express';
 import {
   Controller,
   Post,
   Body,
   Req,
   BadRequestException,
+  Patch,
+  Param,
 } from '@nestjs/common';
 import { CheckinService } from './checkin.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { Checkin } from './schema/checkin.schema';
 import { FastifyRequest } from 'fastify';
+import { Activities } from '../activities/schemas/activities.schema';
 
 @Controller('checkins')
 export class CheckinController {
-  constructor(private readonly checkinService: CheckinService) {}
+  constructor(private readonly checkinService: CheckinService) { }
 
   @Post()
   async create(
     @Body() createCheckinDto: CreateCheckinDto,
     @Req() req: FastifyRequest & { user?: { _id?: string } },
-  ): Promise<Checkin> {
+  ): Promise<Checkin[]> {
     try {
       const user = req.user as { _id?: string } | undefined;
       const staffId = user?._id;

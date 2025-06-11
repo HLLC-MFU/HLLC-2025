@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
   UnauthorizedException,
+  Body,
 } from '@nestjs/common';
 import { ActivitiesService } from '../services/activities.service';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
@@ -20,6 +21,7 @@ import { UserRequest } from 'src/pkg/types/users';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { CacheKey } from '@nestjs/cache-manager';
+import { Activities } from '../schemas/activities.schema';
 
 @UseGuards(PermissionsGuard)
 @Controller('activities')

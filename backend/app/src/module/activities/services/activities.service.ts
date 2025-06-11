@@ -24,6 +24,7 @@ export class ActivitiesService {
     @InjectModel(Activities.name)
     private activitiesModel: Model<ActivityDocument>,
     private usersService: UsersService,
+    
   ) {}
 
   async create(createActivitiesDto: CreateActivitiesDto) {
