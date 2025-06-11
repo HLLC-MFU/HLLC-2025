@@ -7,8 +7,6 @@ import {
   Param,
   Delete,
   Put,
-  Query,
-  BadRequestException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
