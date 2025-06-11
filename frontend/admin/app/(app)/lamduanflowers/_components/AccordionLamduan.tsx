@@ -1,7 +1,6 @@
 import { Accordion, AccordionItem } from "@heroui/react";
 import TableLamduanFlowers from "./TableLamduanFlowers";
 import { Flower2, Settings } from "lucide-react";
-import { LamduanFilters } from "./LamduanFlowersFilters";
 import { useState } from "react";
 
 export default function AccordionLamduan() {
@@ -35,10 +34,6 @@ export default function AccordionLamduan() {
                 }
             >
                 <div className="flex flex-col gap-6">
-                <LamduanFilters
-                    searchQuery={searchQuery}
-                    onSearchQueryChange={setSearchQuery}
-                />
                 <TableLamduanFlowers />
                 </div>
             </AccordionItem>
