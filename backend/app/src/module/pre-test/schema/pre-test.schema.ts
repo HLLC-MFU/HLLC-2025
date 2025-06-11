@@ -13,7 +13,7 @@ export class PreTest {
     @Prop({ required: true, type: Object, unique: true})
     question: Localization
 
-    @Prop({ required: true, type: Number, default: 1})
+    @Prop({ required: true, type: Number, default: 1, unique: true})
     order: number;
 
     @Prop({ type: String, default: null})

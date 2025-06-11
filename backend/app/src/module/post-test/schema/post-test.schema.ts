@@ -14,7 +14,7 @@ export class PostTest {
     @Prop({ require: true, type: Object, unique: true })
     question: Localization;
 
-    @Prop({ require: true, type: Number, default: 1 })
+    @Prop({ require: true, type: Number, default: 1, unique:true })
     order: number;
 
     @Prop({ type: String, default: null })
