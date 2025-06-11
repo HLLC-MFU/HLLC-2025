@@ -27,6 +27,7 @@ import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
 import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
 import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
+import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
 
 @Module({
   imports: [
@@ -70,7 +71,8 @@ import { NotificationsModule } from './module/notifications/notifications.module
     EvoucherModule,
     EvoucherCodeModule,
     EvoucherTypeModule,
-    NotificationsModule,
+    NotificationsModule, 
+    LamduanFlowersModule,
   ],
   providers: [
     {
