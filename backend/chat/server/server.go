@@ -51,6 +51,7 @@ func (s *server) Start() error {
 	s.stickerService()
 	s.schoolService()
 	s.userService()
+	s.majorService()
 
 	// Start HTTP server
 	go func() {
