@@ -35,16 +35,10 @@ export function useSponsors() {
     try {
       setLoading(true);
 
-      const res = await fetch(`${API_BASE_URL}/sponsors`, {
-        method: "POST",
-        body: sponsorData,
-        credentials: "include"
-      });
-      const data = await res.json();
-      console.log("Create response:", res, data);
+      const res = await apiRequest<Sponsors>('/sponsors' , 'POST' , sponsorData);
 
-      if (data && '_id' in data) {
-        setSponsors((prev) => [...prev, data]);
+      if (res.data) {
+        setSponsors((prev) => [...prev, res.data as Sponsors]);
         addToast({
         title: 'Sponsors add successfully!',
         color: 'success',
@@ -52,17 +46,12 @@ export function useSponsors() {
       }
 
       return res;
-    } catch (err) {
-      const message =
-        err && typeof err === 'object' && 'message' in err
-          ? (err as { message?: string }).message || 'Failed to create evouchers.'
-          : 'Failed to create sponsors.';
-      setError(message);
-      throw new Error(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    } catch (err: any) {
+            setError(err.message || 'Failed to create sponsors type.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
  const updateSponsors = async (
   id: string,
