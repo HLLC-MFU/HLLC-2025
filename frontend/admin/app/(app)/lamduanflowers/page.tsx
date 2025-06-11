@@ -2,6 +2,7 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { Accordion, AccordionItem } from "@heroui/react";
 import { Flower } from "lucide-react";
+import AccordionLamduan from "./_components/AccordionLamduan";
 
 export default function LamduanflowersPage() {
     return(
@@ -10,9 +11,7 @@ export default function LamduanflowersPage() {
             <div className="flex flex-col min-h-screen">
                 <div className="container mx-auto">
                     <div className="flex flex-col gap-6">
-                        <Accordion variant="splitted">
-                            <AccordionItem></AccordionItem>
-                        </Accordion>
+                        <AccordionLamduan/>
                     </div>
                 </div>
             </div>
