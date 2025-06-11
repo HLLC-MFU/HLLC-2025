@@ -1,27 +1,50 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAssessmentAnswerDto } from './dto/create-assessment-answer.dto';
 import { UpdateAssessmentAnswerDto } from './dto/update-assessment-answer.dto';
 import { AssessmentAnswer, AssessmentAnswerDocument } from './schema/assessment-answer.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
-
+import { Model, Types } from 'mongoose';
+import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne, queryUpdateOneByFilter } from 'src/pkg/helper/query.util';
+import { User, UserDocument } from '../users/schemas/user.schema';
 @Injectable()
 export class AssessmentAnswersService {
-  constructor(@InjectModel(AssessmentAnswer.name) private assessmentAnswerModel: Model<AssessmentAnswerDocument>,) { }
+  constructor(
+    @InjectModel(AssessmentAnswer.name)
+    private assessmentAnswerModel: Model<AssessmentAnswerDocument>,
+
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
+  ) { }
+
 
   async create(createAssessmentAnswerDto: CreateAssessmentAnswerDto) {
-    const assessmentAnswer = new this.assessmentAnswerModel({
-      ...createAssessmentAnswerDto,
-    });
+    const { user, answers } = createAssessmentAnswerDto;
 
-    try {
-      return await assessmentAnswer.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'assessment-answers');
-    }
+    const userExists = await this.userModel.exists({ _id: user });
+    if (!userExists) throw new NotFoundException('User not found');
+
+    const filter = { user: new Types.ObjectId(user) };
+
+    const existingAssessments = new Set(
+      (await this.assessmentAnswerModel.findOne(filter).select('answers.assessment').lean())
+        ?.answers.map(a => a.assessment.toString()) ?? []
+    );
+
+    const newAnswers = answers.filter(a => !existingAssessments.has(a.assessment));
+    if (!newAnswers.length) throw new BadRequestException('Assessment answers already exist for this user');
+
+    const update = {
+      $addToSet: { answers: { $each: newAnswers.map(a => ({ assessment: new Types.ObjectId(a.assessment), answer: a.answer })) } }
+    };
+
+    return await queryUpdateOneByFilter<AssessmentAnswer>(
+      this.assessmentAnswerModel,
+      filter,
+      update,
+      { upsert: true }
+    );
   }
+
 
   async findAll(query: Record<string, string>) {
     return queryAll<AssessmentAnswer>({
