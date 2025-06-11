@@ -24,21 +24,8 @@ type JsonData = {
     last: string;
 }
 
-type UserForm = {
-    name: {
-        first: string,
-        middle: string,
-        last: string,
-    },
-    username: string,
-    role: string,
-    metadata: {
-        major: string
-    }
-}
-
 export default function ImportModal({ isOpen, onClose, onImport, onExportTemplate, roleId, majors }: ImportModalProps) {
-    const [field, setField] = useState<User[]>([]);
+    const [field, setField] = useState<Partial<User>[]>([]);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
@@ -71,7 +58,7 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
 
             const formData = jsonData.map((item: JsonData) => {
                 const major = majors.find(m => m.name.en === item.major);
-                const mapData: User = {
+                const mapData: Partial<User> = {
                     name: {
                         first: item["first"],
                         middle: item["middle"] ?? "",
@@ -111,22 +98,25 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
         setIsPreviewModalOpen(false);
     };
 
-    const renderCell = useCallback((item: User, columnKey: Key) => {
-        const cellValue = item[columnKey as keyof typeof item];
-        const major = majors.find((m) => m._id === String(item.metadata?.major));
-        switch (columnKey) {
-            case "name":
-                if (typeof cellValue === "object" && cellValue !== null && 'first' in cellValue) {
-                    return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last ?? ""}`;
-                }
-            case "school":
-                return major?.school.name.en ?? "-";
-            case "major":
-                return major?.name.en ?? "-";
-            case "actions":
-                return null;
-        }
-    }, [field]);
+    const renderCell = useCallback(
+        (item: User, columnKey: Key) => {
+            const cellValue = item[columnKey as keyof typeof item];
+            const major = majors.find((m) => m._id === String(item.metadata?.major));
+
+            switch (columnKey) {
+                case "name":
+                    if (typeof cellValue === "object" && cellValue !== null && 'first' in cellValue) {
+                        return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last ?? ""}`;
+                    }
+                case "school":
+                    return major?.school.name.en ?? "-";
+                case "major":
+                    return major?.name.en ?? "-";
+                case "actions":
+                    return null;
+            }
+        }, [field]
+    );
 
     return (
         <>
@@ -192,8 +182,8 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                             </TableHeader>
                             <TableBody items={items}>
                                 {(item) => (
-                                    <TableRow key={item.username}>
-                                        {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                                    <TableRow key={item._id}>
+                                        {(columnKey) => <TableCell>{renderCell(item as User, columnKey)}</TableCell>}
                                     </TableRow>
                                 )}
                             </TableBody>

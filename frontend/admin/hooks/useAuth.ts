@@ -15,6 +15,7 @@ interface AuthStore {
   error: string | null;
   signIn: (username: string, password: string) => Promise<boolean>;
   signOut: () => void;
+  removePassword: (username: string) => Promise<boolean>;
   refreshSession: () => Promise<boolean>;
   isLoggedIn: () => boolean;
   ensureValidSession: () => Promise<boolean>;
@@ -102,6 +103,43 @@ const useAuth = create<AuthStore>()(
 
         removeToken("accessToken");
         removeToken("refreshToken");
+      },
+
+      removePassword: async (username) => {
+        try {
+          console.log({ username })
+          set({ loading: true, error: null });
+
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/remove-password`, {
+            method: 'POST',
+            body: JSON.stringify({ username }),
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+          });
+
+          if (res.status === 200 || res.status === 201) {
+            addToast({
+              title: `Reset password successfully`,
+              description: `Reset password successfully`,
+              color: "success",
+            });
+            return true;
+          } else {
+            addToast({
+                title: `Remove password failed`,
+                description: `Failed to reset password`,
+                color: "danger",
+                variant: "solid",
+              });
+            return false;
+          }
+
+        } catch (err) {
+          set({ error: (err as Error).message });
+          return false;
+        } finally {
+          set({ loading: false });
+        }
       },
 
       refreshSession: async () => {

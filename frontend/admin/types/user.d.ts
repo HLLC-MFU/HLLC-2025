@@ -10,8 +10,8 @@ export type User = {
         last?: string;
     };
     username: string;
-    role: Role;
+    role: Role | string;
     metadata?: {
-        major?: Major
+        major?: Major | string;
     };
 };

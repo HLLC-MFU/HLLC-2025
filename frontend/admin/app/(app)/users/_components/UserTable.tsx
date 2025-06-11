@@ -24,6 +24,7 @@ import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { useUsers } from "@/hooks/useUsers";
 import { School } from "@/types/school";
 import { Major } from "@/types/major";
+import useAuth from "@/hooks/useAuth";
 
 export const columns = [
   { name: "USERNAME", uid: "username", sortable: true },
@@ -57,6 +58,7 @@ export default function UsersTable({
   schools: School[];
 }) {
   const { fetchUsers, createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
+  const { removePassword } = useAuth();
 
   const [modal, setModal] = useState({
     add: false,
@@ -66,7 +68,7 @@ export default function UsersTable({
   });
   const [actionText, setActionText] = useState<"Add" | "Edit">("Add");
   const [confirmText, setConfirmText] = useState<"Delete" | "Reset">("Delete")
-  const [userIndex, setUserIndex] = useState<number>(0);
+  const [userAction, setUserAction] = useState<User>(users[0]);
 
   const [filterValue, setFilterValue] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<"all" | Set<string | number>>(
@@ -95,11 +97,12 @@ export default function UsersTable({
 
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((user) =>
+        typeof user.metadata?.major === "object" && (
         user.username.toLowerCase().includes(filterValue.toLowerCase()) ||
         `${user.name.first} ${user.name.middle ?? ""} ${user.name.last ?? ""}`.toLowerCase().includes(filterValue.toLowerCase()) ||
         user.metadata?.major?.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
         user.metadata?.major?.school.name.en.toLowerCase().includes(filterValue.toLowerCase())
-      );
+      ));
     }
 
     return filteredUsers;
@@ -130,17 +133,16 @@ export default function UsersTable({
   }, [sortDescriptor, items]);
 
   const renderCell = useCallback(
-    (item: User, columnKey: Key, index: number) => {
-      const rowIndex = (page * rowsPerPage) - rowsPerPage + index;
+    (item: User, columnKey: Key) => {
       const cellValue = item[columnKey as keyof typeof item];
 
       switch (columnKey) {
         case "name":
           return `${item.name.first} ${item.name.middle ?? ""} ${item.name.last ?? ""}`;
         case "school":
-          return item.metadata?.major?.school?.name?.en ?? "-";
+          if (typeof item.metadata?.major === "object") return item.metadata?.major?.school?.name?.en ?? "-";
         case "major":
-          return item.metadata?.major?.name?.en ?? "-";
+          if (typeof item.metadata?.major === "object") return item.metadata?.major?.name?.en ?? "-";
         case "actions":
           return (
             <div className="relative flex justify-end items-center gap-2">
@@ -154,7 +156,7 @@ export default function UsersTable({
                   <DropdownItem
                     key="edit"
                     startContent={<Pen size="16px" />}
-                    onPress={() => { setActionText("Edit"); setModal(prev => ({...prev, add: true})); setUserIndex(rowIndex); }}
+                    onPress={() => { setActionText("Edit"); setModal(prev => ({...prev, add: true})); setUserAction(item) }}
                   >
                     Edit
                   </DropdownItem>
@@ -163,7 +165,7 @@ export default function UsersTable({
                     className="text-danger"
                     color="danger"
                     startContent={<RotateCcw size="16px" />}
-                    onPress={() => { setConfirmText("Reset"); setModal(prev => ({...prev, confirm: true})); setUserIndex(rowIndex) }}
+                    onPress={() => { setConfirmText("Reset"); setModal(prev => ({...prev, confirm: true})); setUserAction(item) }}
                   >
                     Reset Password
                   </DropdownItem>
@@ -172,7 +174,7 @@ export default function UsersTable({
                     className="text-danger"
                     color="danger"
                     startContent={<Trash size="16px" />}
-                    onPress={() => { setConfirmText("Delete"); setModal(prev => ({...prev, confirm: true})); setUserIndex(rowIndex); }}
+                    onPress={() => { setConfirmText("Delete"); setModal(prev => ({...prev, confirm: true})); setUserAction(item); }}
                   >
                     Delete
                   </DropdownItem>
@@ -195,7 +197,7 @@ export default function UsersTable({
     let response;
 
     if (actionText === "Add") response = await createUser(user);
-    if (actionText === "Edit") response = await updateUser(users[userIndex]._id, user);
+    if (actionText === "Edit") response = await updateUser(userAction._id, user);
     setModal(prev => ({...prev, add: false}));
 
     if (response) {
@@ -228,7 +230,8 @@ export default function UsersTable({
     let temp = [];
 
     if (fileName) {
-      temp = users.map((user) => ({
+      temp = users.map((user) => (
+        typeof user.metadata?.major === "object" && typeof user.role === "object" && {
         username: user.username,
         first: user.name?.first,
         middle: user.name?.middle ?? "",
@@ -275,11 +278,11 @@ export default function UsersTable({
       if (Array.from(selectedKeys).length > 0) {
         response = await deleteMultiple(Array.from(selectedKeys) as string[]);
       } else {
-        response = await deleteUser(users[userIndex]._id)
+        response = await deleteUser(userAction._id)
       }
       setModal(prev => ({...prev, confirm: false}));
     } else {
-
+      await removePassword(userAction.username);
       setModal(prev => ({...prev, confirm: false}));
     }
 
@@ -333,7 +336,7 @@ export default function UsersTable({
         roleId={roleId}
         schools={schools}
         majors={majors}
-        user={users[userIndex]}
+        user={userAction}
         onAdd={handleAdd}
         onClose={() => setModal(prev => ({...prev, add: false}))}
       />
@@ -360,7 +363,7 @@ export default function UsersTable({
         body={`Are you sure you want to ${confirmText.toLowerCase()} this user?`}
         confirmColor={'danger'}
         isOpen={modal.confirm}
-        title={`${confirmText} user`} 
+        title={`${confirmText} user ${userAction.username}`} 
         onClose={() => setModal(prev => ({...prev, confirm: false}))}
         onConfirm={handleConfirm}
       />

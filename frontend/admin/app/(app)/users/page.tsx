@@ -27,7 +27,7 @@ export default function ManagementPage() {
   const groupedByRoleId: Record<string, User[]> = {};
 
   users.forEach((user) => {
-    const roleId = user.role?._id;
+    const roleId = typeof user.role === "object" && user.role?._id;
 
     if (!roleId) return;
     if (!groupedByRoleId[roleId]) groupedByRoleId[roleId] = [];

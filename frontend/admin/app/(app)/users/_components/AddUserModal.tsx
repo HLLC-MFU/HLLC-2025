@@ -3,6 +3,7 @@ import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, Modal
 import { User } from "@/types/user";
 import { School } from "@/types/school";
 import { Major } from "@/types/major";
+import { Role } from "@/types/role";
 
 type AddModalProps = {
     isOpen: boolean;
@@ -48,7 +49,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
     const majorData = majors.find(m => m.name.en === Array.from(major)[0]);
 
     useEffect(() => {
-        if (action === "Edit") {
+        if (action === "Edit" && typeof user.metadata?.major === "object") {
             setField({
                 name: {
                     first: user.name?.first!,
@@ -61,7 +62,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                     major: user.metadata?.major?._id ?? ""
                 }
             });
-            if (user.metadata?.major?.school) {
+            if (typeof user.metadata?.major === "object" && user.metadata?.major?.school) {
                 setSchool(new Set([user.metadata.major.school.name.en]));
                 setMajor(new Set([user.metadata.major.name.en]));
             }
@@ -75,7 +76,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const formData: User = {
+        const formData: Partial<User> = {
             name: field.name,
             username: field.username,
             role: field.role,
