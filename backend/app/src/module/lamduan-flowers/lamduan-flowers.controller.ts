@@ -1,34 +1,39 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, Query, Req } from '@nestjs/common';
 import { LamduanFlowersService } from './lamduan-flowers.service';
 import { CreateLamduanFlowerDto } from './dto/create-lamduan-flower.dto';
 import { UpdateLamduanFlowerDto } from './dto/update-lamduan-flower.dto';
+import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
+import { FastifyRequest } from 'fastify';
 
 @Controller('lamduan-flowers')
 export class LamduanFlowersController {
   constructor(private readonly lamduanFlowersService: LamduanFlowersService) {}
 
   @Post()
+  @UseInterceptors(new MultipartInterceptor(500))
   create(@Body() createLamduanFlowerDto: CreateLamduanFlowerDto) {
     return this.lamduanFlowersService.create(createLamduanFlowerDto);
   }
 
   @Get()
-  findAll() {
-    return this.lamduanFlowersService.findAll();
+  findAll(@Query() query: Record<string, string>) {
+    return this.lamduanFlowersService.findAll(query);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.lamduanFlowersService.findOne(+id);
+    return this.lamduanFlowersService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateLamduanFlowerDto: UpdateLamduanFlowerDto) {
-    return this.lamduanFlowersService.update(+id, updateLamduanFlowerDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  update(@Param('id') id: string, @Req() req: FastifyRequest) {
+    const dto = req.body as UpdateLamduanFlowerDto;
+    return this.lamduanFlowersService.update(id, dto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.lamduanFlowersService.remove(+id);
+    return this.lamduanFlowersService.remove(id);
   }
 }

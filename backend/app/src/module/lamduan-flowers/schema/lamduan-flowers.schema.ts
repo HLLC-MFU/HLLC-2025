@@ -1,10 +1,19 @@
-import { Prop, Schema } from "@nestjs/mongoose";
-import { Types } from "mongoose";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { HydratedDocument, Types } from "mongoose";
+import { Localization, Photo } from "src/pkg/types/common";
 
+export type LamduanFlowersDocument = HydratedDocument<LamduanFlowers>;
 @Schema({})
 export class LamduanFlowers {
 
-    @Prop({ required: true , type: Types.ObjectId , ref: 'User'})
+    @Prop({ required: true, type: Types.ObjectId, ref: "User" })
     user : Types.ObjectId;
 
+    @Prop({ required: true , type: Object })
+    comment : Localization;
+
+    @Prop({ required: true , type: Object })
+    photo : Photo;
 }
+
+export const LamduanFlowersSchema = SchemaFactory.createForClass(LamduanFlowers)
