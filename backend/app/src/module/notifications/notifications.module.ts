@@ -13,6 +13,7 @@ import {
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { SseModule } from '../sse/sse.module';
 import { KafkaModule } from '../kafka/kafka.module';
+import { PushNotificationService } from './push-notifications.service';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { KafkaModule } from '../kafka/kafka.module';
     KafkaModule,
   ],
   controllers: [NotificationsController],
-  providers: [NotificationsService],
-  exports: [NotificationsService],
+  providers: [NotificationsService, PushNotificationService],
+  exports: [NotificationsService, PushNotificationService],
 })
 export class NotificationsModule {}

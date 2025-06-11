@@ -1,8 +1,8 @@
 import { Module, OnModuleInit } from "@nestjs/common";
 import { NotificationsModule } from "../notifications/notifications.module";
-import { NotificationsService } from "../notifications/notifications.service";
 import { KafkaModule } from "./kafka.module";
 import { KafkaService } from "./kafka.service";
+import { PushNotificationService } from "../notifications/push-notifications.service";
 
 @Module({
   imports: [KafkaModule, NotificationsModule],
@@ -11,11 +11,13 @@ export class KafkaBootstrapModule implements OnModuleInit
  {
   constructor(
     private readonly kafka: KafkaService,
-    private readonly noti: NotificationsService,
+    private readonly pushNotification: PushNotificationService,
   ) {}
 
   async onModuleInit() {
-    await this.noti.registerKafka();
-    await this.kafka.start();
+    await this.pushNotification.registerKafka();
+    // await this.kafka.start();
+    //! ↑ Don't uncomment this, Kafka pipe is too long to connect (30s ++)
+    //! Wait for fix kafka connection
   }
 }

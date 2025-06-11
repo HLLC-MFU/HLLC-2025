@@ -5,7 +5,6 @@ import {
   NotificationDocument,
 } from './schemas/notification.schema';
 import { Model, Types } from 'mongoose';
-import { Expo } from 'expo-server-sdk';
 import {
   queryAll,
   queryDeleteOne,
@@ -19,8 +18,9 @@ import {
 } from './schemas/notification-reads.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { SseService } from '../sse/sse.service';
-import { CreateNotificationDto } from './dto/notification.dto';
-import { KafkaService } from '../kafka/kafka.service';
+import { CreateNotificationDto } from './dto/create-notification.dto';
+import { ReadNotificationDto } from './dto/read-notification.dto';
+import { UserRequest } from 'src/pkg/types/users';
 
 @Injectable()
 export class NotificationsService {
@@ -32,17 +32,7 @@ export class NotificationsService {
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
     private readonly sseService: SseService,
-    private readonly kafka: KafkaService
   ) {}
-
-  async registerKafka() {
-    await this.kafka.registerHandler('chat-notifications', this.handleChatNotification.bind(this));
-  }
-
-  private async handleChatNotification(payload: ChatNotificationPayload) {
-    console.log('[Notification]', payload);
-    // TODO: implement out-app notification
-  }
 
   async create(createNotificationDto: CreateNotificationDto) {
     let scope: 'global' | { id: Types.ObjectId[]; type: string }[] = 'global';
@@ -89,15 +79,31 @@ export class NotificationsService {
     return await queryDeleteOne<Notification>(this.notificationModel, id);
   }
 
-  async markAsRead(userId: string, notificationId: string) {
-    await this.checkUserExists(userId);
-    await this.checkNotiExists(notificationId);
+  /**
+   * Marks a notification as **read** or **unread** for a specific user.
+   *
+   * @param dto - DTO containing **userId** and **notificationId**.
+   * @param read - boolean flag to mark as **read** or **unread**.
+   * @returns Updated NotificationRead document.
+   * @throws NotFoundException if the user or notification **does not exist**.
+   */
+  async markNotification(
+    dto: ReadNotificationDto,
+    read: boolean,
+  ) {
 
-    const filter = { userId: new Types.ObjectId(userId) };
-    const update = {
-      $addToSet: { readNotifications: new Types.ObjectId(notificationId) },
-    };
-    const options = { upsert: true };
+    const userExists = await this.userModel.exists({ _id: dto.userId });
+    if (!userExists) throw new NotFoundException('User not found');
+
+    const notificationsExists = await this.notificationModel.exists({ _id: dto.notificationId });
+    if (!notificationsExists) throw new NotFoundException('Notification not found');
+
+    const filter = { userId: new Types.ObjectId(dto.userId) };
+    const update = read
+      ? { $addToSet: { readNotifications: new Types.ObjectId(dto.notificationId) } }
+      : { $pull: { readNotifications: new Types.ObjectId(dto.notificationId) } };
+
+    const options = read ? { upsert: true } : undefined;
 
     return await queryUpdateOneByFilter<NotificationRead>(
       this.notificationReadModel,
@@ -107,68 +113,21 @@ export class NotificationsService {
     );
   }
 
-  async markAsUnread(userId: string, notificationId: string) {
-    await this.checkUserExists(userId);
-    await this.checkNotiExists(notificationId);
-
-    const filter = { userId: new Types.ObjectId(userId) };
-    const update = {
-      $pull: { readNotifications: new Types.ObjectId(notificationId) },
-    };
-
-    await queryUpdateOneByFilter<NotificationRead>(
-      this.notificationReadModel,
-      filter,
-      update,
-    );
-  }
-
-  async sendNotification(sendNotificationDto: Notification) {
-    const expo = new Expo();
-
-    const messages = [
-      {
-        to: '',
-        sound: 'default',
-        title: sendNotificationDto.title.th,
-        body: typeof sendNotificationDto.body === 'string' ? sendNotificationDto.body : sendNotificationDto.body?.th ?? '',
-      },
-    ];
-
-    const ticketChunk = await expo.sendPushNotificationsAsync(messages);
-    console.log('Push ticket:', ticketChunk);
-    // TODO: implement out-app notification send
-  }
-
-  private async checkUserExists(userId: string): Promise<void> {
-    const exists = await this.userModel.exists({ _id: userId });
-    if (!exists) throw new NotFoundException('User not found');
-  }
-
-  private async checkNotiExists(notiId: string): Promise<void> {
-    const exists = await this.notificationModel.exists({ _id: notiId });
-    if (!exists) throw new NotFoundException('Notification not found');
-  }
-
-  async getUserNotifications(
-    userId: string,
-    majorId: string,
-    schoolId: string,
-  ) {
+  async getUserNotifications(user: UserRequest["user"]) {
     const userNotifications = await this.notificationModel
       .find({
         $or: [
           { scope: 'global' },
-          { scope: 'major', targetId: majorId },
-          { scope: 'school', targetId: schoolId },
-          { scope: 'individual', targetId: userId },
+          { scope: 'major', targetId: user.metadata.major },
+          { scope: 'school', targetId: user.metadata.school },
+          { scope: 'individual', targetId: user._id },
         ],
       })
       .sort({ createdAt: -1 })
       .lean();
 
     const readDocument = await this.notificationReadModel
-      .findOne({ userId: userId })
+      .findOne({ userId: user._id })
       .lean();
     const readNotificationIds = (readDocument?.readNotifications ?? []).map(
       (id) => id.toString(),
