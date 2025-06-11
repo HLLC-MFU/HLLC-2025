@@ -11,7 +11,6 @@ import { CreateEvoucherDto } from '../dto/evouchers/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/evouchers/update-evoucher.dto';
 import { EvoucherType, EvoucherTypeDocument } from '../schema/evoucher-type.schema';
 import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
-import { fromThaiTime } from 'src/pkg/helper/date.util';
 
 @Injectable()
 export class EvoucherService {
@@ -43,7 +42,7 @@ export class EvoucherService {
       ...createEvoucherDto,
       type: new Types.ObjectId(createEvoucherDto.type),
       sponsors: new Types.ObjectId(createEvoucherDto.sponsors),
-      expiration: fromThaiTime(createEvoucherDto.expiration),
+      expiration: createEvoucherDto.expiration,
     });
 
     try {

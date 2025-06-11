@@ -6,7 +6,7 @@ import { UserSchema } from '../users/schemas/user.schema';
 import { EvoucherCodeController } from './controller/evoucher-code.controller';
 import { Evoucher, EvoucherSchema } from './schema/evoucher.schema';
 import { EvoucherCodeService } from './service/evoucher-code.service';
-
+import { EvoucherType, EvoucherTypeSchema } from './schema/evoucher-type.schema';
 
 @Module({
   imports: [
@@ -22,6 +22,10 @@ import { EvoucherCodeService } from './service/evoucher-code.service';
       {
         name: User.name,
         schema: UserSchema
+      },
+      {
+        name: EvoucherType.name,
+        schema: EvoucherTypeSchema
       }
     ]),
   ],

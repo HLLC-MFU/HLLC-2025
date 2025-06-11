@@ -10,6 +10,7 @@ import { ActivitiesService } from '../activities/service/activities.service';
 import { EvoucherCode, EvoucherCodeSchema } from '../evoucher/schema/evoucher-code.schema';
 import { Evoucher, EvoucherSchema } from '../evoucher/schema/evoucher.schema';
 import { EvoucherCodeService } from '../evoucher/service/evoucher-code.service';
+import { EvoucherType, EvoucherTypeSchema } from '../evoucher/schema/evoucher-type.schema';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { EvoucherCodeService } from '../evoucher/service/evoucher-code.service';
       { name: Activities.name, schema: ActivitiesSchema },
       { name: EvoucherCode.name, schema: EvoucherCodeSchema },
       { name: Evoucher.name, schema: EvoucherSchema },
+      { name: EvoucherType.name, schema: EvoucherTypeSchema },
     ]),
   ],
   controllers: [UsersController],
