@@ -12,6 +12,7 @@ import {
   Ticket,
   ShieldAlert,
   LogOutIcon,
+  Flower,
 } from "lucide-react";
 
 import type { NavSection } from "@/types/nav";
@@ -48,6 +49,12 @@ export const siteConfig: {
         { label: "Sponsor", href: "/sponsor", icon: DollarSignIcon, permission: "sponsor:read" },
         { label: "Evoucher", href: "/evoucher", icon: Ticket, permission: "evoucher:read" },
         { label: "Campaign", href: "/campaigns", icon: Megaphone, permission: "campaigns:read" },
+      ],
+    },
+    {
+      section: "Lamduan",
+      items: [
+        { label: "Lamduan flowers" , href: "/lamduanflowers" , icon: Flower , permission:"lamduanflowers:read"},
       ],
     },
     {
