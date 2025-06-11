@@ -1,22 +1,23 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument, SchemaTypes, Types } from "mongoose";
 import { AssessmentTypes } from "../enum/assessmentTypes.enum";
+import { Localization } from "src/pkg/types/common";
 
 export type AssessmentDocument = HydratedDocument<Assessment>;
 
 @Schema({ timestamps: true })
 export class Assessment {
 
-    @Prop({ require: true, type: String, unique: true })
-    question: string;
+    @Prop({ required: true, type: Object, })
+    question: Localization;
 
-    @Prop({ require: true, type: String, enum: AssessmentTypes })
+    @Prop({ required: true, type: String, enum: AssessmentTypes })
     type: AssessmentTypes;
 
-    @Prop({ require: true, type: SchemaTypes.ObjectId, ref: 'Activities' })
+    @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'Activities' })
     activity: Types.ObjectId;
 
-    @Prop({ require: true, type: Number, default: 1})
+    @Prop({ required: true, type: Number, default: 1 })
     order: number;
 
     @Prop({ type: String, default: null })
@@ -24,3 +25,6 @@ export class Assessment {
 }
 
 export const AssessmentSchema = SchemaFactory.createForClass(Assessment);
+
+AssessmentSchema.index({ activity: 1, question: 1 }, { unique: true });
+AssessmentSchema.index({ activity: 1, order: 1 }, { unique: true });

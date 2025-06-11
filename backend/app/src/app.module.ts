@@ -28,6 +28,7 @@ import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
 import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
 import { AssessmentsModule } from './module/assessments/assessments.module';
+import { AssessmentAnswersModule } from './module/assessment-answers/assessment-answers.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { AssessmentsModule } from './module/assessments/assessments.module';
     EvoucherTypeModule,
     NotificationsModule,
     AssessmentsModule,
+    AssessmentAnswersModule,
   ],
   providers: [
     {
