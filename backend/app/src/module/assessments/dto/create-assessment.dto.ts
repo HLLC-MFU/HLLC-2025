@@ -19,8 +19,4 @@ export class CreateAssessmentDto {
     @IsNumber()
     @IsOptional()
     order: number;
-
-    @IsOptional()
-    @IsNotEmpty()
-    banner: string;
 }
