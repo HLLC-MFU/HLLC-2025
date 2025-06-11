@@ -1,11 +1,11 @@
-import { Sponsor } from "@/types/sponsor";
+import { Sponsors } from "@/types/sponsors";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from "@heroui/react";
 
 interface DeleteConfirmationModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
-    sponsor?:Sponsor;
+    sponsor?:Sponsors;
 }
 
 export function DeleteConfirmationModal({ isOpen , onClose , onConfirm , sponsor}: DeleteConfirmationModalProps) {
