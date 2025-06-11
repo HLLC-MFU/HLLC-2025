@@ -81,10 +81,12 @@ export class EvoucherCodeService {
   //================= Claim Logic =================
   async claimEvoucher(userId: string, evoucherId: string) {
     await findOrThrow(this.userModel, userId, 'User not found');
-    const evoucher = await this.evoucherModel.findById(evoucherId).populate('type') as any;
+    const evoucher = await this.evoucherModel.findById(evoucherId).populate('type');
     if (!evoucher) throw new BadRequestException('Evoucher not found');
     if (new Date() > new Date(evoucher.expiration)) throw new BadRequestException('Evoucher expired');
-    if (!evoucher.type?.isClaimable) throw new BadRequestException('This type is not claimable');
+    if (!evoucher.type || !('isClaimable' in evoucher.type) || !evoucher.type.isClaimable) {
+      throw new BadRequestException('This type is not claimable');
+    }
 
     const exists = await this.evoucherCodeModel.findOne({ user: userId, evoucher: evoucherId });
     if (exists) throw new BadRequestException('You already have this evoucher');
@@ -121,7 +123,7 @@ export class EvoucherCodeService {
       .lean();
 
     const result = await Promise.all(
-      evouchers.map(async (evoucher: any) => {
+      evouchers.map(async (evoucher: EvoucherDocument) => {
         const expired = new Date() > new Date(evoucher.expiration);
         let userHas = false;
 
@@ -131,7 +133,7 @@ export class EvoucherCodeService {
         }
 
         let availableCount = 0;
-        if (evoucher.type?.isClaimable) {
+        if (evoucher.type && 'isClaimable' in evoucher.type && evoucher.type.isClaimable) {
           availableCount = userHas ? 0 : 1;
         } else {
           availableCount = await this.evoucherCodeModel.countDocuments({
@@ -139,8 +141,8 @@ export class EvoucherCodeService {
           });
         }
 
-        const canClaim = evoucher.type?.isClaimable && !userHas && !expired;
-        return { ...evoucher, isClaimable: evoucher.type?.isClaimable, userHas, availableCount, expired, canClaim };
+        const canClaim = evoucher.type && 'isClaimable' in evoucher.type && evoucher.type.isClaimable && !userHas && !expired;
+        return { ...evoucher, isClaimable: evoucher.type && 'isClaimable' in evoucher.type && evoucher.type.isClaimable, userHas, availableCount, expired, canClaim };
       })
     );
     return result.filter(e => e.canClaim || (!userId && e.isClaimable && !e.expired && e.availableCount > 0));
@@ -153,10 +155,10 @@ export class EvoucherCodeService {
       .populate({ path: 'evoucher', populate: [{ path: 'type' }, { path: 'sponsors' }] })
       .lean();
 
-    return codes.map((code: any) => ({
+    return codes.map((code: EvoucherCodeDocument) => ({
       ...code,
       expired: code.metadata?.expiration ? (new Date() > new Date(code.metadata.expiration)) : false,
-      canUse: !code.isUsed && !(new Date() > new Date(code.metadata?.expiration || code.evoucher?.expiration))
+      canUse: !code.isUsed && !(new Date() > new Date(code.metadata?.expiration || (code.evoucher as unknown as { expiration: string })?.expiration))
     }));
   }
 

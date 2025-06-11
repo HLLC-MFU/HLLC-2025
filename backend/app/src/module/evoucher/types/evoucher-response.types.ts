@@ -54,7 +54,7 @@ export interface UserEvoucherCodeResponse {
   isUsed: boolean;
   expired: boolean;
   canUse: boolean;
-  metadata: Record<string, any>;
+  metadata: Record<string, string>;
   createdAt: Date;
   updatedAt: Date;
 } 
