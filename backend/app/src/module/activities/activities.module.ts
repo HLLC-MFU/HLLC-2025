@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ActivitiesService } from './service/activities.service';
-import { ActivitiesController } from './controller/activities.controller';
+import { ActivitiesService } from './services/activities.service';
+import { ActivitiesController } from './controllers/activities.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Activities, ActivitiesSchema } from './schema/activities.schema';
-import { ActivitiesType, ActivitiesTypeSchema } from './schema/activitiesType.schema';
+import { Activities, ActivitiesSchema } from './schemas/activities.schema';
+import { ActivitiesType, ActivitiesTypeSchema } from './schemas/activitiesType.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { Major, MajorSchema } from '../majors/schemas/major.schema';
 import { School, SchoolSchema } from '../schools/schemas/school.schema';
