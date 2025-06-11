@@ -43,7 +43,11 @@ UserSchema.index({ updatedAt: -1 });
 
 UserSchema.pre('save', async function (next) {
   // Only hash password if it's being modified and isn't already hashed
-  if (this.isModified('password') && this.password && !this.password.startsWith('$2b$')) {
+  if (
+    this.isModified('password') &&
+    this.password &&
+    !this.password.startsWith('$2b$')
+  ) {
     this.password = await bcrypt.hash(this.password, 10);
   }
   next();

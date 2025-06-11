@@ -210,6 +210,19 @@ export class AuthService {
     }
   }
 
+  async removePassword(username: string) {
+    const user = await this.userModel.findOne({ username }).select('+password');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (!user.password) {
+      throw new BadRequestException('User has no password set');
+    }
+    user.password = '';
+    user.refreshToken = null;
+    user.metadata.secret = '';
+  }
+
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
     const { username, password, confirmPassword, metadata } = resetPasswordDto;
 

@@ -28,10 +28,10 @@ export default function ExportModal({ isOpen, onClose, onExport }: ExportModalPr
                     <ModalHeader className="flex flex-col gap-1">Export File</ModalHeader>
                     <ModalBody className="w-full">
                         <Input
-                            type="string"
+                            ref={fileNameRef}
                             label="File Name"
                             placeholder={fileNameRef.current?.value || "Data"}
-                            ref={fileNameRef}
+                            type="string"
                         />
                     </ModalBody>
                     <ModalFooter className="w-full">
