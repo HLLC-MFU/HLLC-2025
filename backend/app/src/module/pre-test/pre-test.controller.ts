@@ -8,7 +8,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 
 @UseGuards(PermissionsGuard)
-@ApiTags('post-tests')
+@ApiTags('pre-tests')
 @Controller('pre-tests')
 export class PreTestController {
   constructor(private readonly preTestService: PreTestService) { }

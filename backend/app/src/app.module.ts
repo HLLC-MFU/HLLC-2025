@@ -30,6 +30,7 @@ import { NotificationsModule } from './module/notifications/notifications.module
 import { AssessmentsModule } from './module/assessments/assessments.module';
 import { PosttestModule } from './module/post-test/post-test.module';
 import { PreTestModule } from './module/pre-test/pre-test.module';
+import { PostTestAnswerModule } from './module/post-test-answer/post-test-answer.module';
 
 @Module({
   imports: [
@@ -76,7 +77,8 @@ import { PreTestModule } from './module/pre-test/pre-test.module';
     NotificationsModule,
     AssessmentsModule,
     PosttestModule,
-    PreTestModule
+    PostTestAnswerModule,
+    PreTestModule,
   ],
   providers: [
     {

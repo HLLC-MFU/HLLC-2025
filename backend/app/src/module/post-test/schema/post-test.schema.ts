@@ -3,10 +3,10 @@ import { HydratedDocument, SchemaTypes, Types } from "mongoose";
 import { PosttestTypes } from "../enum/Post-testTypes.enum";
 import { Localization } from "src/pkg/types/common";
 
-export type posttestDocument = HydratedDocument<PostTest>
+export type posttestDocument = HydratedDocument<Posttest>
 
 @Schema({ timestamps: true })
-export class PostTest {
+export class Posttest {
 
     @Prop({ require: true, type: String, enum: PosttestTypes })
     type: PosttestTypes;
@@ -21,4 +21,4 @@ export class PostTest {
     banner: string;
 }
 
-export const PosttestSchema = SchemaFactory.createForClass(PostTest)
+export const PosttestSchema = SchemaFactory.createForClass(Posttest)
