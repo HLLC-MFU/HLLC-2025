@@ -8,7 +8,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 
 @UseGuards(PermissionsGuard)
-@ApiTags('post-tests')
+@ApiTags('pre-tests')
 @Controller('pre-tests')
 export class PreTestController {
   constructor(private readonly preTestService: PreTestService) { }
@@ -40,7 +40,7 @@ export class PreTestController {
   }
 
   @Delete(':id')
-  @Permissions('pre-tests:dalete')
+  @Permissions('pre-tests:delete')
   remove(@Param('id') id: string) {
     return this.preTestService.remove(id);
   }

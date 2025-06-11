@@ -79,7 +79,7 @@ import { AssessmentAnswersModule } from './module/assessment-answers/assessment-
     KafkaBootstrapModule,
     AssessmentsModule,
     PosttestModule,
-    PreTestModule
+    PreTestModule,
     AssessmentAnswersModule,
   ],
   providers: [
