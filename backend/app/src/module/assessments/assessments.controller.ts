@@ -1,11 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { AssessmentsService } from './assessments.service';
 import { CreateAssessmentDto } from './dto/create-assessment.dto';
 import { UpdateAssessmentDto } from './dto/update-assessment.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 
 @UseGuards(PermissionsGuard)
 @ApiTags('assessments')
@@ -13,7 +12,6 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 export class AssessmentsController {
   constructor(private readonly assessmentsService: AssessmentsService) { }
 
-  @UseInterceptors(new MultipartInterceptor())
   @Post()
   @Permissions('assessments:create')
   create(@Body() createAssessmentDto: CreateAssessmentDto) {
@@ -32,7 +30,6 @@ export class AssessmentsController {
     return this.assessmentsService.findOne(id);
   }
 
-  @UseInterceptors(new MultipartInterceptor())
   @Patch(':id')
   @Permissions('assessments:update')
   update(@Param('id') id: string, @Body() updateAssessmentDto: UpdateAssessmentDto) {
