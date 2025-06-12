@@ -13,6 +13,7 @@ import { Major, MajorSchema } from '../majors/schemas/major.schema';
 import { ActivitiesService } from '../activities/services/activities.service';
 import { UsersService } from '../users/users.service';
 import { RoleService } from '../role/role.service';
+import { SseModule } from '../sse/sse.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { RoleService } from '../role/role.service';
         schema: MajorSchema,
       },
     ]),
+    SseModule
   ],
   exports: [MongooseModule],
   controllers: [CheckinController],

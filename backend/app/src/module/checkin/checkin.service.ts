@@ -8,6 +8,7 @@ import { Checkin } from './schema/checkin.schema';
 import { Role } from '../role/schemas/role.schema';
 import { Activities } from 'src/module/activities/schemas/activities.schema';
 import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
+import { SseService } from '../sse/sse.service';
 
 @Injectable()
 export class CheckinService {
@@ -17,6 +18,7 @@ export class CheckinService {
     @InjectModel(Role.name) private readonly roleModel: Model<Role>,
     @InjectModel(Activities.name)
     private readonly activityModel: Model<Activities>,
+    private readonly sseService: SseService,
   ) { }
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
@@ -82,6 +84,10 @@ export class CheckinService {
         doc.staff = staffObjectId;
       }
       return doc;
+    });
+
+    this.sseService.sendToUser(userId ,{
+      type: 'REFETCH_ACTIVITIES',
     });
 
     return this.checkinModel.insertMany(docs) as unknown as Checkin[];
