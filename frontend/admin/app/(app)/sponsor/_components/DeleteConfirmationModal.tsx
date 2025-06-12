@@ -5,11 +5,11 @@ interface DeleteConfirmationModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
-    sponsor?:Sponsors;
+    sponsor?: Sponsors;
 }
 
-export function DeleteConfirmationModal({ isOpen , onClose , onConfirm , sponsor}: DeleteConfirmationModalProps) {
-    return(
+export function DeleteConfirmationModal({ isOpen, onClose, onConfirm, sponsor }: DeleteConfirmationModalProps) {
+    return (
         <Modal isOpen={isOpen} onClose={onClose}>
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1">
