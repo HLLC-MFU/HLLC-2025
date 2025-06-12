@@ -5,8 +5,8 @@ import { LamduanFlowers, LamduanFlowersDocument } from './schema/lamduan-flowers
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import { User, UserDocument } from '../users/schemas/user.schema';
 
 @Injectable()
 export class LamduanFlowersService {
@@ -14,11 +14,13 @@ export class LamduanFlowersService {
   constructor(
     @InjectModel(LamduanFlowers.name)
     private lamduanflowersModel: Model<LamduanFlowersDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>
   ){ }
 
   async create(createLamduanFlowerDto: CreateLamduanFlowerDto) {
+
     await findOrThrow(
-      this.lamduanflowersModel,
+      this.userModel,
       createLamduanFlowerDto.user,
       'User Id not found'
     )
@@ -28,19 +30,15 @@ export class LamduanFlowersService {
       user: new Types.ObjectId(createLamduanFlowerDto.user)
     });
 
-    try{
       return await lamduanFlowers.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name')
-    }
   }
 
   async findAll(query: Record<string, string>) {
     return queryAll<LamduanFlowers>({
       model: this.lamduanflowersModel,
       query: {
-        // ...query,
-        // excluded: 'user.password, '
+        ...query,
+        excluded: 'user.refreshToken ,user.role.permissions,user.role.metadataSchema, user.metadata.secret'
       },
       filterSchema: {},
       populateFields: () => Promise.resolve([
@@ -72,9 +70,5 @@ export class LamduanFlowersService {
       this.lamduanflowersModel,
       id
     )
-    return {
-      message: 'User deleted successfully',
-      id,
-    }
   }
 }

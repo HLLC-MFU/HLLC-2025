@@ -7,7 +7,6 @@ export class CreateLamduanFlowerDto {
     @IsNotEmpty()
     user: string;
 
-
     @IsMongoId()
     @IsNotEmpty()
     comment: Localization

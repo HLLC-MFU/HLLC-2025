@@ -12,10 +12,10 @@ import { User, UserSchema } from '../users/schemas/user.schema';
       schema: LamduanFlowersSchema
     },
     {
-      name: User.name,
-      schema: UserSchema
+        name: User.name,
+        schema: UserSchema
     }
-  ])
+  ]),
   ],
   exports: [MongooseModule],
   controllers: [LamduanFlowersController],
