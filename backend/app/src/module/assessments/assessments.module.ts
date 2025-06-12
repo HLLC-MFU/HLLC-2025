@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AssessmentsService } from './assessments.service';
-import { AssessmentsController } from './assessments.controller';
+import { AssessmentsService } from './service/assessments.service';
+import { AssessmentsController } from './controller/assessments.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Assessment, AssessmentSchema } from './schema/assessment.schema';
 import { ActivitiesModule } from '../activities/activities.module';
