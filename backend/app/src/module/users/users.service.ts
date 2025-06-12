@@ -47,6 +47,7 @@ export class UsersService {
 
     const newUser = new this.userModel({
       ...createUserDto,
+      role: new Types.ObjectId(createUserDto.role),
       metadata: createUserDto.metadata,
     });
 

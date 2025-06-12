@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Role, RoleDocument, Permission } from './schemas/role.schema';
@@ -11,6 +11,7 @@ export class RoleInitializerService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    Logger.debug('Initializing roles...');
     await this.createAdminRole();
   }
 

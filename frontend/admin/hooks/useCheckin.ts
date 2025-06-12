@@ -13,7 +13,7 @@ export function useCheckin() {
         setError(null);
         try {
             console.log("Fetching checkins...");
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/checkin?limit=0`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/checkin`, {
                 method: 'GET',
                 credentials: 'include',
                 headers: {

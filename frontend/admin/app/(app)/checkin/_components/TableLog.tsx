@@ -306,6 +306,5 @@ export function TableLog() {
           }}
         />
       </div>
-    </div>
   );
 }

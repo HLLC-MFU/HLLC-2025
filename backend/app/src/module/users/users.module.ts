@@ -7,6 +7,7 @@ import { Major, MajorSchema } from '../majors/schemas/major.schema';
 import { Role, RoleSchema } from '../role/schemas/role.schema';
 import { Activities, ActivitiesSchema } from '../activities/schemas/activities.schema';
 import { ActivitiesService } from '../activities/services/activities.service';
+import { UserInitializerService } from './users.initializer.service';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { ActivitiesService } from '../activities/services/activities.service';
     ]),
   ],
   controllers: [UsersController],
-  providers: [UsersService, ActivitiesService],
+  providers: [UsersService, ActivitiesService, UserInitializerService],
   exports: [UsersService, MongooseModule],
 })
 export class UsersModule {}

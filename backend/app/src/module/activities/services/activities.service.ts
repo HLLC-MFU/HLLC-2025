@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { FilterQuery, Model, Types } from 'mongoose';
 
 import { queryAll } from 'src/pkg/helper/query.util';
 import { UsersService } from '../../users/users.service';
@@ -88,6 +88,23 @@ export class ActivitiesService {
             path: 'type',
           },
         ]),
+    });
+  }
+
+  async findCanCheckinActivities(){
+    const currentDate = new Date();
+    const query = {
+      'metadata.isOpen': true,
+      'metadata.isVisible': true,
+      'metadata.checkinStartAt': { $lte: currentDate },
+      'metadata.endAt': { $gte: currentDate },
+    };
+
+    return queryAll<Activities>({
+      model: this.activitiesModel,
+      query: query as FilterQuery<Activities>,
+      filterSchema: {},
+      populateFields: () => Promise.resolve([{ path: 'type' }]),
     });
   }
 

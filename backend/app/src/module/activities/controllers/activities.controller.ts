@@ -22,6 +22,7 @@ import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { CacheKey } from '@nestjs/cache-manager';
 import { Activities } from '../schemas/activities.schema';
+import { PaginatedResponse } from 'src/pkg/interceptors/response.interceptor';
 
 @UseGuards(PermissionsGuard)
 @Controller('activities')
@@ -40,6 +41,12 @@ export class ActivitiesController {
   @Permissions('activities:read')
   async findAll(@Query() query: Record<string, string>) {
     return this.activitiesService.findAll(query);
+  }
+
+  @Get('canCheckin')
+  @Permissions('activities:read')
+  async canCheckin(): Promise<PaginatedResponse<Activities> & { message: string }> {
+    return this.activitiesService.findCanCheckinActivities();
   }
 
   @Get('users')
