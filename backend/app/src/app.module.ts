@@ -29,7 +29,7 @@ import { ActivitiesTypeModule } from './module/activities-type/activities-type.m
 import { NotificationsModule } from './module/notifications/notifications.module';
 import { KafkaBootstrapModule } from './module/kafka/kafka-bootstrap.module';
 import { AssessmentsModule } from './module/assessments/assessments.module';
-import { AssessmentAnswersModule } from './module/assessment-answers/assessment-answers.module';
+import { AssessmentAnswersModule } from './module/assessments/assessment-answers.module';
 
 @Module({
   imports: [
