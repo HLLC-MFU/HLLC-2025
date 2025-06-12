@@ -23,11 +23,14 @@ import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { CacheKey } from '@nestjs/cache-manager';
 import { Activities } from '../schemas/activities.schema';
 import { PaginatedResponse } from 'src/pkg/interceptors/response.interceptor';
+import { Public } from 'src/module/auth/decorators/public.decorator';
+import { AuthGuard } from '@nestjs/passport';
+import { Types } from 'mongoose';
 
 @UseGuards(PermissionsGuard)
 @Controller('activities')
 export class ActivitiesController {
-  constructor(private readonly activitiesService: ActivitiesService) {}
+  constructor(private readonly activitiesService: ActivitiesService) { }
 
   @Post()
   @Permissions('activities:create')
@@ -50,21 +53,9 @@ export class ActivitiesController {
   }
 
   @Get('users')
-  @Permissions('activities:read')
   @CacheKey('activities:$req.user.id')
-  getActivitiesByUser(
-    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
-  ) {
-    let userId: string | undefined;
-    if (req.user && typeof req.user === 'object') {
-      userId =
-        (req.user as { _id?: string; id?: string })._id ||
-        (req.user as { id?: string }).id;
-    }
-    if (!userId) {
-      throw new UnauthorizedException('User ID is required');
-    }
-    return this.activitiesService.findActivitiesByUserId(userId);
+  getActivitiesByUser(@Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
+    return this.activitiesService.findActivitiesByUserId(req.user._id);
   }
 
   @Get(':id')

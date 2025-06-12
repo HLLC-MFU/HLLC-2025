@@ -12,8 +12,6 @@ export default function BottomNav() {
   const { t } = useTranslation();
 
   useEffect(() => {
-    console.log('Current Router Object:', router);
-    console.log('Current Pathname:', pathname);
   }, [pathname]);
 
   const tabs = [

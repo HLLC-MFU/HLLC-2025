@@ -45,7 +45,6 @@ export default function HomeScreen() {
             <SectionHeader
               title={t('home.activities')}
               rightText={t('home.seeAll')}
-              onPressRight={() => console.log('Pressed See All')}
             />
             <ScrollView
               horizontal 
