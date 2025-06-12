@@ -33,6 +33,7 @@ import { AssessmentAnswersModule } from './module/assessment-answers/assessment-
 import { PosttestModule } from './module/post-test/post-test.module';
 import { PreTestModule } from './module/pre-test/pre-test.module';
 import { PostTestAnswerModule } from './module/post-test-answer/post-test-answer.module';
+import { PreTestAnswerModule } from './module/pre-test-answer/pre-test-answer.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { PostTestAnswerModule } from './module/post-test-answer/post-test-answer
     PosttestModule,
     PostTestAnswerModule,
     PreTestModule,
+    PreTestAnswerModule
   ],
   providers: [
     {

@@ -6,7 +6,7 @@ import { PreTest, PreTestDocument } from './schema/pre-test.schema';
 import { Model } from 'mongoose';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { queryAll, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
 
 @Injectable()
 export class PreTestService {
@@ -50,8 +50,9 @@ export class PreTestService {
   }
 
   async remove(id: string) {
+    await queryDeleteOne<PreTest>(this.PreTestModel, id)
     return {
-      message: "Posttest deleted successfully",
+      message: "Pretest deleted successfully",
       id,
     }
   }

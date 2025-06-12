@@ -1,5 +1,7 @@
-import { Prop, Schema } from "@nestjs/mongoose";
-import { Types } from "mongoose";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { HydratedDocument, Types } from "mongoose";
+
+export type PreTestAnswerDocument = HydratedDocument<PreTestAnswer>
 
 @Schema()
 class Answer{
@@ -20,3 +22,4 @@ export class PreTestAnswer {
     values: Answer[]
 }
 
+export const PreTestAnswerSchema = SchemaFactory.createForClass(PreTestAnswer)
