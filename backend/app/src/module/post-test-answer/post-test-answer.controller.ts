@@ -4,7 +4,6 @@ import { CreatePostTestAnswerDto } from './dto/create-post-test-answer.dto';
 import { UpdatePostTestAnswerDto } from './dto/update-post-test-answer.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
-import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 
 @UseGuards(PermissionsGuard)
