@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { ActivitiesTypeService } from './activities-type.service';
-import { CreateActivitiesTypeDto } from './dto/create-activities-type.dto';
-import { UpdateActivitiesTypeDto } from './dto/update-activities-type.dto';
+import { ActivitiesTypeService } from '../services/activities-type.service';
+import { CreateActivitiesTypeDto } from '../dto/activities-type/create-activities-type.dto';
+import { UpdateActivitiesTypeDto } from '../dto/activities-type/update-activities-type.dto';
 
 @Controller('activities-type')
 export class ActivitiesTypeController {

@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsBoolean,
   IsArray,
+  IsISO8601,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -43,6 +44,21 @@ export class ActivityMetadataDto {
   @IsOptional()
   @Type(() => ActivityScopeDto)
   scope?: ActivityScopeDto;
+
+  @IsOptional()
+  @IsISO8601()
+  @Type(() => Date)
+  startAt?: Date;
+
+  @IsOptional()
+  @IsISO8601()
+  @Type(() => Date)
+  endAt?: Date;
+
+  @IsISO8601()
+  @IsOptional()
+  @Type(() => Date)
+  checkinStartAt?: Date;
 }
 
 export class CreateActivitiesDto {

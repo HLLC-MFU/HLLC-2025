@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
-import { ActivitiesService } from './activities.service';
-import { ActivitiesController } from './activities.controller';
+import { ActivitiesService } from './services/activities.service';
+import { ActivitiesController } from './controllers/activities.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Activities, ActivitiesSchema } from './schema/activities.schema';
-import { ActivitiesType, ActivitiesTypeSchema } from '../activities-type/schema/activitiesType.schema';
+import { Activities, ActivitiesSchema } from './schemas/activities.schema';
+import { ActivitiesType, ActivitiesTypeSchema } from './schemas/activitiesType.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { Major, MajorSchema } from '../majors/schemas/major.schema';
 import { School, SchoolSchema } from '../schools/schemas/school.schema';
 import { Role, RoleSchema } from '../role/schemas/role.schema';
-import { UsersModule } from '../users/users.module';
+import { UsersService } from '../users/users.service';
 
 @Module({
   imports: [
@@ -20,10 +20,9 @@ import { UsersModule } from '../users/users.module';
       { name: School.name, schema: SchoolSchema },
       { name: Role.name, schema: RoleSchema },
     ]),
-    UsersModule,
   ],
   controllers: [ActivitiesController],
-  providers: [ActivitiesService],
-  exports: [MongooseModule],
+  providers: [ActivitiesService, UsersService],
+  exports: [MongooseModule, ActivitiesService],
 })
 export class ActivitiesModule {}
