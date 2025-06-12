@@ -6,6 +6,8 @@ import { PosttestAnswer, PosttestAnswerDocument } from '../schema/posttest-answe
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { CreatePosttestAnswerDto } from '../dto/posttest-answer/create-posttest-answer.dto';
 import { UpdatePosttestAnswerDto } from '../dto/posttest-answer/update-posttest-answer.dto';
+import { PrepostQuestion, PrepostQuestionDocument } from '../schema/prepost-question.schema';
+import { PrepostQuestionTypes } from '../enum/prepost-question-typs.enum';
 
 @Injectable()
 export class PosttestAnswerService {
@@ -16,35 +18,59 @@ export class PosttestAnswerService {
 
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
+
+    @InjectModel(PrepostQuestion.name)
+    private prepostQuestionModel: Model<PrepostQuestionDocument>
+
   ) { }
 
   async create(createPostTestAnswerDto: CreatePosttestAnswerDto) {
-    const { user, answers } = createPostTestAnswerDto
+    const { user, answers } = createPostTestAnswerDto;
 
-    const userExists = await this.userModel.exists({ _id: user })
-    if (!userExists) throw new NotFoundException('User not found')
+    const userExists = await this.userModel.exists({ _id: user });
+    if (!userExists) throw new NotFoundException('User not found');
 
-    const filter = { user: new Types.ObjectId(user) }
+    const filter = { user: new Types.ObjectId(user) };
 
-    const existinganswers = new Set(
-      (await this.posttestAnswerModel.findOne(filter).select('answers.question').lean())
-      ?.answers.map(v => v.question.toString()) ?? []
+    const questionIds = answers.map(a => new Types.ObjectId(a.posttest));
+
+    const validQuestions = await this.prepostQuestionModel.find({
+      _id: { $in: questionIds },
+      displaytype: { $in: [PrepostQuestionTypes.Both, PrepostQuestionTypes.Post] }
+    }).select('_id').lean();
+
+    const validQuestionIds = new Set(validQuestions.map(q => q._id.toString()));
+
+    const invalidQuestions = answers.filter(a => !validQuestionIds.has(a.posttest));
+    if (invalidQuestions.length > 0) {
+      throw new BadRequestException('Type of display question in not Both or Post');
+    }
+
+
+    const existingAnswers = new Set(
+      (
+        await this.posttestAnswerModel
+          .findOne(filter)
+          .select('answers.posttest')
+          .lean()
+      )?.answers.map(v => v.posttest.toString()) ?? []
     );
 
-    const newAnswers = answers.filter( a => !existinganswers.has(a.question));
-    if (!newAnswers.length) throw new BadRequestException('Post-Test answers already exist for this user');
+    const newAnswers = answers.filter(a => !existingAnswers.has(a.posttest));
+    if (!newAnswers.length) {
+      throw new BadRequestException('Post-Test answers already exist for this user');
+    }
 
-    const answerToInsert = newAnswers.map(answers => ({
-      question: new Types.ObjectId(answers.question),
-      answer: answers.answer
-    }))
+    const answerToInsert = newAnswers.map(a => ({
+      posttest: new Types.ObjectId(a.posttest),
+      answer: a.answer
+    }));
 
     const update = {
       $addToSet: {
         answers: { $each: answerToInsert }
       }
-    }
-
+    };
 
     return await queryUpdateOneByFilter<PosttestAnswer>(
       this.posttestAnswerModel,
@@ -53,6 +79,7 @@ export class PosttestAnswerService {
       { upsert: true }
     );
   }
+
 
   async findAll(query: Record<string, string>) {
     return await queryAll<PosttestAnswer>({

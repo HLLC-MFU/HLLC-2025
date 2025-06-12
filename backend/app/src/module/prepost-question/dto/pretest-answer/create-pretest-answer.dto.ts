@@ -16,7 +16,7 @@ export class CreatePretestAnswerDto {
 class Answer {
     @IsMongoId()
     @IsNotEmpty()
-    question:string;
+    pretest:string;
 
     @IsString()
     @IsNotEmpty()

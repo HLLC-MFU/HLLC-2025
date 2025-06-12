@@ -6,8 +6,8 @@ export type PretestAnswerDocument = HydratedDocument<PretestAnswer>
 @Schema({_id: false})
 class Answer{
 
-    @Prop({ required:true, type: Types.ObjectId, ref:'Question', unique:true})
-    question: Types.ObjectId
+    @Prop({ required:true, type: Types.ObjectId, ref:'PrepostQuestion', unique:true})
+    pretest: Types.ObjectId
 
     @Prop({ required:true, type: String})
     answer: string

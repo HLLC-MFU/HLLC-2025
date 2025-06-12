@@ -14,7 +14,7 @@ export class CreatePosttestAnswerDto {
 class Answer {
     @IsMongoId()
     @IsNotEmpty()
-    question: string;   
+    posttest: string;   
 
     @IsString()
     @IsNotEmpty()
