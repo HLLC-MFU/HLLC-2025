@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { PosttestAnswerService } from './posttest-answer.service';
-import { PostTestAnswerController } from './posttest-answer.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { PosttestAnswer, PosttestAnswerSchema } from './schema/posttest-answer.schema';
+import { PosttestAnswer, PosttestAnswerSchema } from '../prepost-question/schema/posttest-answer.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
+import { PostTestAnswerController } from './controller/posttest-answer.controller';
+import { PosttestAnswerService } from './service/posttest-answer.service';
 
 @Module({
   imports: [MongooseModule.forFeature([

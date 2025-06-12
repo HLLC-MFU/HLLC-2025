@@ -18,9 +18,11 @@ export class PrepostQuestion {
     @Prop({ require: true, type: Object, unique: true })
     question: Localization;
 
-    @Prop({ require: true, type: Number, default: 1, unique: true })
+    @Prop({ require: true, type: Number, default: 1, unique:true})
     order: number;
 
 }
 
 export const PrepostQuestionSchema = SchemaFactory.createForClass(PrepostQuestion)
+
+

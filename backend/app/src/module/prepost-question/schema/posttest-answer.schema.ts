@@ -3,11 +3,11 @@ import { HydratedDocument, Types } from "mongoose";
 
 export type PosttestAnswerDocument = HydratedDocument<PosttestAnswer>;
 
-@Schema()
+@Schema({_id: false})
 class Answer{
 
-    @Prop({ required: true, type: Types.ObjectId, ref:'Posttest', unique: true})
-    posttest: Types.ObjectId
+    @Prop({ required: true, type: Types.ObjectId, ref:'Question', unique: true})
+    question: Types.ObjectId
 
     @Prop({ required: true, type: String})
     answer: string

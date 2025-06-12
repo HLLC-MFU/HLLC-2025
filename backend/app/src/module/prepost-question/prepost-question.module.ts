@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PrepostQuestionService } from './prepost-question.service';
-import { PrepostQuestionController } from './prepost-question.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PrepostQuestion, PrepostQuestionSchema } from './schema/prepost-question.schema';
+import { PrepostQuestionController } from './controller/prepost-question.controller';
+import { PrepostQuestionService } from './service/prepost-question.service';
 
 @Module({
   imports: [

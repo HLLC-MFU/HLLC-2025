@@ -1,24 +1,23 @@
-import { Type } from "class-transformer";
 import { IsMongoId, IsNotEmpty, IsString, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
 
-export class CreatePretestAnswerDto {
-
+export class CreatePosttestAnswerDto {
     @IsMongoId()
     @IsNotEmpty()
-    user: string;
+    user: string;  
 
     @ValidateNested({ each: true })
     @Type(() => Answer)
     answers: Answer[];
-    
 }
 
-class Answer{
+class Answer {
     @IsMongoId()
     @IsNotEmpty()
-    pretest: string;
+    question: string;   
 
     @IsString()
     @IsNotEmpty()
     answer: string;
 }
+

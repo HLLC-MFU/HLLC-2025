@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { CreatePrepostQuestiontDto } from './dto/create-prepost-question.dto';
-import { UpdatePrepostQuestiontDto } from './dto/update-prepost-qustion.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { PrepostQuestion, PrepostQuestionDocument } from './schema/prepost-question.schema';
 import { Model } from 'mongoose';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import { CreatePrepostQuestiontDto } from '../dto/prepost-question/create-prepost-question.dto';
+import { UpdatePrepostQuestiontDto } from '../dto/prepost-question/update-prepost-qustion.dto';
+import { PrepostQuestion, PrepostQuestionDocument } from '../schema/prepost-question.schema';
 
 @Injectable()
 export class PrepostQuestionService {
@@ -18,7 +18,7 @@ export class PrepostQuestionService {
     await throwIfExists(
       this.PrepostQuestionmodel,
       { question: createPrepostQuestiontDto.question },
-      'Question is already exists'
+      'PrepostQuestion is already exists'
     )
 
     const posttest = new this.PrepostQuestionmodel({
@@ -45,15 +45,15 @@ export class PrepostQuestionService {
     return result
   }
 
-  async update(id: string, updatePosttestDto: UpdatePrepostQuestiontDto) {
-    updatePosttestDto.updatedAt = new Date()
-    return queryUpdateOne<PrepostQuestion>(this.PrepostQuestionmodel, id, updatePosttestDto)
+  async update(id: string, updatePrepostQuestiontDto: UpdatePrepostQuestiontDto) {
+    updatePrepostQuestiontDto.updatedAt = new Date()
+    return queryUpdateOne<PrepostQuestion>(this.PrepostQuestionmodel, id, updatePrepostQuestiontDto)
   }
 
   async remove(id: string) {
     await queryDeleteOne<PrepostQuestion>(this.PrepostQuestionmodel, id)
     return { 
-      message: "Posttest deleted successfully",
+      message: "PrepostQuestion deleted successfully",
       id,
     }
   }

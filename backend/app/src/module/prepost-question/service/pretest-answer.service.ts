@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { CreatePretestAnswerDto } from './dto/create-pretest-answer.dto';
-import { UpdatePretestAnswerDto } from './dto/update-pretest-answer.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { PretestAnswer, PretestAnswerDocument } from './schema/pre-test-answer.schema';
 import { Model, Types } from 'mongoose';
-import { User, UserDocument } from '../users/schemas/user.schema';
+import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne, queryUpdateOneByFilter } from 'src/pkg/helper/query.util';
+import { CreatePretestAnswerDto } from '../dto/pretest-answer/create-pretest-answer.dto';
+import { UpdatePretestAnswerDto } from '../dto/pretest-answer/update-pretest-answer.dto';
+import { PretestAnswer, PretestAnswerDocument } from '../schema/pretest-answer.schema';
 
 @Injectable()
 export class PretestAnswerService {
@@ -27,14 +27,14 @@ export class PretestAnswerService {
     const filter = { user: new Types.ObjectId(user)}
 
     const existinganswers = new Set(
-      ( await this.pretestAnswerModel.findOne(filter).select('answers.pretest').lean())?.answers.map(v => v.pretest.toString()) ?? []
+      ( await this.pretestAnswerModel.findOne(filter).select('answers.question').lean())?.answers.map(v => v.question.toString()) ?? []
     )
 
-    const newAnswers = answers.filter( a => !existinganswers.has(a.pretest));
+    const newAnswers = answers.filter( a => !existinganswers.has(a.question));
     if (!newAnswers.length) throw new BadRequestException('Pre-Test answer already exist for this user')
     
     const answerToInsert = newAnswers.map(answers => ({
-      pretest: new Types.ObjectId(answers.pretest),
+      question: new Types.ObjectId(answers.question),
       answer: answers.answer
     }))
 

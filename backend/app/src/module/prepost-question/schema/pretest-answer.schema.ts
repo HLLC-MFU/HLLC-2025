@@ -3,17 +3,17 @@ import { HydratedDocument, Types } from "mongoose";
 
 export type PretestAnswerDocument = HydratedDocument<PretestAnswer>
 
-@Schema()
+@Schema({_id: false})
 class Answer{
 
-    @Prop({ required:true, type: Types.ObjectId, ref:'', unique:true})
-    pretest: Types.ObjectId
+    @Prop({ required:true, type: Types.ObjectId, ref:'Question', unique:true})
+    question: Types.ObjectId
 
     @Prop({ required:true, type: String})
     answer: string
 }
 
-@Schema({ timestamps: true , collection: "Pre-test-answer"})
+@Schema({ timestamps: true , collection: "pre-test-answer"})
 export class PretestAnswer {
     @Prop({ required:true, type:Types.ObjectId, ref: 'User'})
     user: Types.ObjectId
