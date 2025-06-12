@@ -1,13 +1,13 @@
 import { useReducer, useCallback } from 'react';
-import { Question, AssessmentResult, AssessmentStats, ActivityProgress, AssessmentType } from '@/types/assessment';
-import { mockQuestions, mockResults, mockStats, mockActivityProgress } from '@/mocks/assessmentData';
+import { Question, ActivityProgress } from '@/types/assessment';
+
+// API base URL - should be configured in environment variables
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Types for our state
 interface AssessmentState {
   data: {
     questions: Question[];
-    results: AssessmentResult[];
-    stats: AssessmentStats;
     activityProgress: ActivityProgress[];
   };
   loading: boolean;
@@ -25,17 +25,6 @@ type AssessmentAction =
 const initialState: AssessmentState = {
   data: {
     questions: [],
-    results: [],
-    stats: {
-      totalQuestions: 0,
-      totalAttempts: 0,
-      averageScore: 0,
-      completionRate: 0,
-      averageTimeSpent: 0,
-      totalStudents: 0,
-      difficultyDistribution: { easy: 0, medium: 0, hard: 0 },
-      questionTypeDistribution: { "multiple-choice": 0, "true-false": 0, "short-answer": 0 }
-    } as AssessmentStats,
     activityProgress: [],
   },
   loading: false,
@@ -62,79 +51,96 @@ function assessmentReducer(state: AssessmentState, action: AssessmentAction): As
   }
 }
 
-// Mock service functions
+// API service functions
 const assessmentService = {
-  async fetchQuestions(type?: AssessmentType) {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return type 
-      ? mockQuestions.filter(q => q.assessmentType === type)
-      : mockQuestions;
+  async fetchQuestions(activityId: string) {
+    const response = await fetch(`${API_BASE_URL}/assessments/${activityId}/activity`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch activity questions: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data || [];
   },
 
-  async createQuestion(questionData: Partial<Question>) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const newQuestion: Question = {
-      _id: `q${mockQuestions.length + 1}`,
-      text: questionData.text || "",
-      type: questionData.type || "multiple-choice",
-      options: questionData.options || [],
-      correctAnswer: questionData.correctAnswer || 0,
-      difficulty: questionData.difficulty || "easy",
-      assessmentType: questionData.assessmentType || "pretest",
-      explanation: questionData.explanation || "",
-      isActive: questionData.isActive !== undefined ? questionData.isActive : true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    mockQuestions.push(newQuestion);
-    return newQuestion;
+  async createQuestion(activityId: string, questionData: Partial<Question>) {
+    const response = await fetch(`${API_BASE_URL}/assessments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        ...questionData,
+        activity: activityId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create activity question: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data;
   },
 
   async updateQuestion(questionId: string, questionData: Partial<Question>) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const index = mockQuestions.findIndex(q => q._id === questionId);
-    if (index === -1) throw new Error("Question not found");
-    
-    const updatedQuestion = {
-      ...mockQuestions[index],
-      ...questionData,
-      updatedAt: new Date().toISOString(),
-    };
-    mockQuestions[index] = updatedQuestion;
-    return updatedQuestion;
+    const response = await fetch(`${API_BASE_URL}/assessments/${questionId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(questionData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update activity question: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data;
   },
 
   async deleteQuestion(questionId: string) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const index = mockQuestions.findIndex(q => q._id === questionId);
-    if (index === -1) throw new Error("Question not found");
-    mockQuestions.splice(index, 1);
-    return questionId;
+    const response = await fetch(`${API_BASE_URL}/assessments/${questionId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete activity question: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.id;
   },
 
-  async fetchResults(type: AssessmentType) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return mockResults.filter(r => r.assessmentType === type);
-  },
+  async fetchActivityProgress(activityId: string) {
+    const response = await fetch(`${API_BASE_URL}/assessments/${activityId}/progress`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
 
-  async fetchStats(type: AssessmentType) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return mockStats[type] || {
-      totalQuestions: 0,
-      totalAttempts: 0,
-      averageScore: 0,
-      completionRate: 0,
-      averageTimeSpent: 0,
-      totalStudents: 0,
-      difficultyDistribution: { easy: 0, medium: 0, hard: 0 },
-      questionTypeDistribution: { "multiple-choice": 0, "true-false": 0, "short-answer": 0 }
-    };
-  },
+    if (!response.ok) {
+      throw new Error(`Failed to fetch activity progress: ${response.statusText}`);
+    }
 
-  async fetchActivityProgress() {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return mockActivityProgress;
+    const data = await response.json();
+    return data.data || [];
   },
 };
 
@@ -162,15 +168,15 @@ export function useAssessment() {
   }, []);
 
   // Question operations
-  const fetchQuestions = useCallback((type?: AssessmentType) => 
-    handleFetch(() => assessmentService.fetchQuestions(type), 'questions'), 
+  const fetchQuestions = useCallback((activityId: string) => 
+    handleFetch(() => assessmentService.fetchQuestions(activityId), 'questions'), 
     [handleFetch]
   );
 
-  const createQuestion = useCallback(async (questionData: Partial<Question>) => {
+  const createQuestion = useCallback(async (activityId: string, questionData: Partial<Question>) => {
     dispatch({ type: 'FETCH_START' });
     try {
-      const newQuestion = await assessmentService.createQuestion(questionData);
+      const newQuestion = await assessmentService.createQuestion(activityId, questionData);
       dispatch({ 
         type: 'FETCH_SUCCESS', 
         payload: { 
@@ -228,19 +234,9 @@ export function useAssessment() {
     }
   }, [state.data.questions]);
 
-  // Results and stats operations
-  const fetchResults = useCallback((type: AssessmentType) => 
-    handleFetch(() => assessmentService.fetchResults(type), 'results'), 
-    [handleFetch]
-  );
-
-  const fetchStats = useCallback((type: AssessmentType) => 
-    handleFetch(() => assessmentService.fetchStats(type), 'stats'), 
-    [handleFetch]
-  );
-
-  const fetchActivityProgress = useCallback(() => 
-    handleFetch(() => assessmentService.fetchActivityProgress(), 'activityProgress'), 
+  // Activity progress operations
+  const fetchActivityProgress = useCallback((activityId: string) => 
+    handleFetch(() => assessmentService.fetchActivityProgress(activityId), 'activityProgress'), 
     [handleFetch]
   );
 
@@ -256,9 +252,7 @@ export function useAssessment() {
     updateQuestion,
     deleteQuestion,
 
-    // Results and stats operations
-    fetchResults,
-    fetchStats,
+    // Activity progress operations
     fetchActivityProgress,
   };
 } 

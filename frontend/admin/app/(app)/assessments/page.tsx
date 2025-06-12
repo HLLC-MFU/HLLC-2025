@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Accordion, AccordionItem, Button } from "@heroui/react";
+import { useState, useEffect } from "react";
+import { Accordion, AccordionItem, Button, addToast } from "@heroui/react";
 import { BookOpenCheck, FileQuestion, Activity, Plus, ClipboardList } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import QuestionTable from "./_components/question-table";
@@ -10,63 +10,177 @@ import ActivityDashboard from "./_components/activity-dashboard";
 import AssessmentOverviewDashboard from "./_components/assessment-overview-dashboard";
 import { Question, AssessmentType } from "@/types/assessment";
 import { useAssessment } from "@/hooks/useAssessment";
+import { usePostTest } from "@/hooks/usePostTest";
+import { usePreTest } from "@/hooks/usePreTest";
+import QuestionPreviewModal from "./_components/question-preview-modal";
 
 export default function AssessmentsPage() {
     const [isAddQuestionOpen, setIsAddQuestionOpen] = useState(false);
-    const [selectedQuestion, setSelectedQuestion] = useState<Question | undefined>();
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
     const [selectedType, setSelectedType] = useState<AssessmentType>("pretest");
 
+    // Use usePreTest for pretest
     const {
-        questions,
-        loading,
-        error,
-        createQuestion,
-        updateQuestion,
-        deleteQuestion,
-        fetchQuestions,
+        questions: pretestQuestions,
+        loading: pretestLoading,
+        error: pretestError,
+        createQuestion: createPretestQuestion,
+        updateQuestion: updatePretestQuestion,
+        deleteQuestion: deletePretestQuestion,
+        fetchQuestions: fetchPretestQuestions,
+        answers: pretestAnswers,
+        fetchAnswers: fetchPretestAnswers,
+    } = usePreTest();
+
+    // Use useAssessment only for activity
+    const {
+        questions: activityQuestions,
+        loading: activityLoading,
+        error: activityError,
+        createQuestion: createActivityQuestion,
+        updateQuestion: updateActivityQuestion,
+        deleteQuestion: deleteActivityQuestion,
+        fetchQuestions: fetchActivityQuestions,
     } = useAssessment();
+
+    // Use usePostTest for posttest
+    const {
+        questions: posttestQuestions,
+        loading: posttestLoading,
+        error: posttestError,
+        createQuestion: createPosttestQuestion,
+        updateQuestion: updatePosttestQuestion,
+        deleteQuestion: deletePosttestQuestion,
+        fetchQuestions: fetchPosttestQuestions,
+        answers: posttestAnswers,
+        fetchAnswers: fetchPosttestAnswers,
+    } = usePostTest();
+
+    // Fetch questions and answers when component mounts
+    useEffect(() => {
+        fetchPretestQuestions();
+        fetchPosttestQuestions();
+        fetchPretestAnswers();
+        fetchPosttestAnswers();
+        // fetchActivityQuestions("activity");
+    }, []);
 
     const handleAddQuestion = async (questionData: Partial<Question>) => {
         try {
+            // Log the current state for debugging
+            console.log('Current state:', {
+                selectedType,
+                selectedQuestion,
+                isPosttestQuestion: selectedQuestion ? posttestQuestions.some(q => q._id === selectedQuestion._id) : false,
+                isPretestQuestion: selectedQuestion ? pretestQuestions.some(q => q._id === selectedQuestion._id) : false,
+                isActivityQuestion: selectedQuestion ? activityQuestions.some(q => q._id === selectedQuestion._id) : false
+            });
+
             if (selectedQuestion) {
-                await updateQuestion(selectedQuestion._id, {
-                    ...questionData,
-                    assessmentType: selectedType,
-                });
+                // Check which type of question we're dealing with
+                const isPosttestQuestion = posttestQuestions.some(q => q._id === selectedQuestion._id);
+                const isPretestQuestion = pretestQuestions.some(q => q._id === selectedQuestion._id);
+                const isActivityQuestion = activityQuestions.some(q => q._id === selectedQuestion._id);
+
+                if (isPosttestQuestion || selectedType === "posttest") {
+                    await updatePosttestQuestion(selectedQuestion._id, questionData);
+                } else if (isPretestQuestion || selectedType === "pretest") {
+                    await updatePretestQuestion(selectedQuestion._id, questionData);
+                } else if (isActivityQuestion || selectedType === "activity") {
+                    await updateActivityQuestion(selectedQuestion._id, {
+                        ...questionData,
+                        assessmentType: "activity",
+                    });
+                }
             } else {
-                await createQuestion({
-                    ...questionData,
-                    assessmentType: selectedType,
-                });
+                if (selectedType === "posttest") {
+                    await createPosttestQuestion(questionData);
+                } else if (selectedType === "pretest") {
+                    await createPretestQuestion(questionData);
+                } else if (selectedType === "activity") {
+                    await createActivityQuestion("activity", {
+                        ...questionData,
+                        assessmentType: "activity",
+                    });
+                }
             }
             setIsAddQuestionOpen(false);
-            setSelectedQuestion(undefined);
+            setSelectedQuestion(null);
             // Refresh questions for the current type
-            fetchQuestions(selectedType);
+            if (selectedType === "posttest") {
+                await fetchPosttestQuestions();
+            } else if (selectedType === "pretest") {
+                await fetchPretestQuestions();
+            } else if (selectedType === "activity") {
+                await fetchActivityQuestions("activity");
+            }
         } catch (err) {
             console.error("Failed to save question:", err);
+            // Show error toast with more details
+            addToast({
+                title: err instanceof Error ? err.message : "Failed to save question",
+                description: `Type: ${selectedType}, Action: ${selectedQuestion ? 'Update' : 'Create'}`,
+                color: "danger",
+            });
         }
     };
 
     const handleEditQuestion = (question: Question) => {
         setSelectedQuestion(question);
-        setSelectedType(question.assessmentType);
+        // Check which type of question we're dealing with
+        const isPosttestQuestion = posttestQuestions.some(q => q._id === question._id);
+        const isPretestQuestion = pretestQuestions.some(q => q._id === question._id);
+        const isActivityQuestion = activityQuestions.some(q => q._id === question._id);
+
+        if (isPosttestQuestion) {
+            setSelectedType("posttest");
+        } else if (isPretestQuestion) {
+            setSelectedType("pretest");
+        } else if (isActivityQuestion) {
+            setSelectedType("activity");
+        } else {
+            setSelectedType(question.assessmentType || "pretest");
+        }
         setIsAddQuestionOpen(true);
     };
 
     const handleDeleteQuestion = async (questionId: string) => {
         try {
-            await deleteQuestion(questionId);
-            // Refresh questions for the current type
-            fetchQuestions(selectedType);
+            // Check which type of question we're dealing with
+            const isPosttestQuestion = posttestQuestions.some(q => q._id === questionId);
+            const isPretestQuestion = pretestQuestions.some(q => q._id === questionId);
+            const isActivityQuestion = activityQuestions.some(q => q._id === questionId);
+
+            if (isPosttestQuestion || selectedType === "posttest") {
+                await deletePosttestQuestion(questionId);
+                await fetchPosttestQuestions();
+            } else if (isPretestQuestion || selectedType === "pretest") {
+                await deletePretestQuestion(questionId);
+                await fetchPretestQuestions();
+            } else if (isActivityQuestion || selectedType === "activity") {
+                await deleteActivityQuestion(questionId);
+                await fetchActivityQuestions("activity");
+            }
         } catch (err) {
             console.error("Failed to delete question:", err);
+            // Show error toast
+            addToast({
+                title: err instanceof Error ? err.message : "Failed to delete question",
+                color: "danger",
+            });
         }
     };
 
     const handleViewQuestion = (question: Question) => {
-        // TODO: Implement view question details
-        console.log("Viewing question:", question);
+        setSelectedQuestion(question);
+        setIsPreviewOpen(true);
+    };
+
+    const handleAddNewQuestion = (type: AssessmentType) => {
+        setSelectedType(type);
+        setSelectedQuestion(null);
+        setIsAddQuestionOpen(true);
     };
 
     // Icon mapping for different sections
@@ -80,24 +194,24 @@ export default function AssessmentsPage() {
         activityQuestions: <ClipboardList />,
     };
 
+    const getQuestionsForType = (type: AssessmentType): Question[] => {
+        switch (type) {
+            case "pretest":
+                return pretestQuestions;
+            case "posttest":
+                return posttestQuestions;
+            case "activity":
+                return activityQuestions.filter(q => q.assessmentType === "activity");
+            default:
+                return [];
+        }
+    };
+
     return (
         <>
             <PageHeader
                 description='Manage and monitor student assessments — create, review, and track assessment results and progress.'
                 icon={<BookOpenCheck />}
-                right={
-                    <Button
-                        color="primary"
-                        size="lg"
-                        endContent={<Plus size={20} />}
-                        onPress={() => {
-                            setSelectedQuestion(undefined);
-                            setIsAddQuestionOpen(true);
-                        }}
-                    >
-                        Add Question
-                    </Button>
-                }
             />
             <div className="flex flex-col">
                 <div className="flex flex-col gap-6">
@@ -105,12 +219,16 @@ export default function AssessmentsPage() {
                         {/* Pretest Dashboard */}
                         <AccordionItem
                             key="pretest"
-                            aria-label="Pretest Assessment"
+                            aria-label="Pretest Result"
                             startContent={sectionIcons.pretest}
-                            title="Pretest Assessment"
+                            title="Pretest Result"
                             className="font-medium mb-2"
                         >
-                            <AssessmentOverviewDashboard type="pretest" />
+                            <AssessmentOverviewDashboard 
+                                type="pretest" 
+                                answers={pretestAnswers}
+                                loading={pretestLoading}
+                            />
                         </AccordionItem>
 
                         {/* Pretest Questions Management */}
@@ -122,23 +240,28 @@ export default function AssessmentsPage() {
                             className="font-medium mb-2"
                         >
                             <QuestionTable
-                                questions={questions.filter(q => q.assessmentType === "pretest")}
+                                questions={pretestQuestions}
                                 type="pretest"
                                 onEdit={handleEditQuestion}
                                 onDelete={handleDeleteQuestion}
                                 onView={handleViewQuestion}
+                                onAdd={() => handleAddNewQuestion("pretest")}
                             />
                         </AccordionItem>
 
                         {/* Posttest Dashboard */}
                         <AccordionItem
                             key="posttest"
-                            aria-label="Posttest Assessment"
+                            aria-label="Posttest Result"
                             startContent={sectionIcons.posttest}
-                            title="Posttest Assessment"
+                            title="Posttest Result"
                             className="font-medium mb-2"
                         >
-                            <AssessmentOverviewDashboard type="posttest" />
+                            <AssessmentOverviewDashboard 
+                                type="posttest" 
+                                answers={posttestAnswers}
+                                loading={posttestLoading}
+                            />
                         </AccordionItem>
 
                         {/* Posttest Questions Management */}
@@ -150,11 +273,12 @@ export default function AssessmentsPage() {
                             className="font-medium mb-2"
                         >
                             <QuestionTable
-                                questions={questions.filter(q => q.assessmentType === "posttest")}
+                                questions={posttestQuestions}
                                 type="posttest"
                                 onEdit={handleEditQuestion}
                                 onDelete={handleDeleteQuestion}
                                 onView={handleViewQuestion}
+                                onAdd={() => handleAddNewQuestion("posttest")}
                             />
                         </AccordionItem>
 
@@ -178,11 +302,12 @@ export default function AssessmentsPage() {
                             className="font-medium mb-2"
                         >
                             <QuestionTable
-                                questions={questions.filter(q => q.assessmentType === "activity")}
+                                questions={activityQuestions.filter(q => q.assessmentType === "activity")}
                                 type="activity"
                                 onEdit={handleEditQuestion}
                                 onDelete={handleDeleteQuestion}
                                 onView={handleViewQuestion}
+                                onAdd={() => handleAddNewQuestion("activity")}
                             />
                         </AccordionItem>
                     </Accordion>
@@ -192,11 +317,20 @@ export default function AssessmentsPage() {
                     isOpen={isAddQuestionOpen}
                     onClose={() => {
                         setIsAddQuestionOpen(false);
-                        setSelectedQuestion(undefined);
+                        setSelectedQuestion(null);
                     }}
                     onSubmit={handleAddQuestion}
                     question={selectedQuestion}
                     type={selectedType}
+                    questions={getQuestionsForType(selectedType)}
+                />
+                <QuestionPreviewModal
+                    isOpen={isPreviewOpen}
+                    onClose={() => {
+                        setIsPreviewOpen(false);
+                        setSelectedQuestion(null);
+                    }}
+                    question={selectedQuestion}
                 />
             </div>
         </>

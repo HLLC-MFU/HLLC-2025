@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Modal,
   ModalContent,
@@ -14,17 +14,29 @@ import {
   SelectItem,
   Chip,
   Divider,
+  Image,
 } from "@heroui/react";
-import { Question, AssessmentType, QuestionDifficulty } from "@/types/assessment";
-import { Plus, X } from "lucide-react";
+import { Question, AssessmentType, QuestionType } from "@/types/assessment";
+import { Plus, X, Upload } from "lucide-react";
 
 interface QuestionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (questionData: Partial<Question>) => void;
-  question?: Question;
+  question: Question | null;
   type: AssessmentType;
+  questions: Question[];
 }
+
+type ChipColor = "primary" | "secondary" | "success" | "warning" | "danger" | "default";
+
+const QUESTION_TYPES: { value: QuestionType; label: string; color: ChipColor }[] = [
+  { value: "text", label: "Text", color: "primary" },
+  { value: "rating", label: "Rating", color: "success" },
+  { value: "dropdown", label: "Dropdown", color: "warning" },
+  { value: "checkbox", label: "Checkbox", color: "danger" },
+  { value: "radio", label: "Radio", color: "secondary" },
+];
 
 export default function QuestionModal({
   isOpen,
@@ -32,57 +44,152 @@ export default function QuestionModal({
   onSubmit,
   question,
   type,
+  questions,
 }: QuestionModalProps) {
   const [formData, setFormData] = useState<Partial<Question>>({
-    text: "",
-    options: [""],
-    correctAnswer: 0,
-    difficulty: "medium",
+    type: "text",
+    question: {
+      en: "",
+      th: "",
+    },
+    order: 1,
+    banner: null,
     assessmentType: type,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (question) {
       setFormData({
-        text: question.text,
-        options: question.options || [""],
-        correctAnswer: question.correctAnswer,
-        difficulty: question.difficulty,
-        assessmentType: question.assessmentType,
+        type: question.type,
+        question: question.question,
+        order: question.order,
+        banner: question.banner,
+        assessmentType: question.assessmentType || type,
       });
+      // Set preview URL if banner exists
+      if (question.banner) {
+        setPreviewUrl(question.banner);
+      }
     } else {
       setFormData({
-        text: "",
-        options: [""],
-        correctAnswer: 0,
-        difficulty: "medium",
+        type: "text",
+        question: {
+          en: "",
+          th: "",
+        },
+        order: 1,
+        banner: null,
         assessmentType: type,
       });
+      setPreviewUrl(null);
     }
     setErrors({});
   }, [question, type]);
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, banner: 'Please upload an image file' }));
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, banner: 'File size must be less than 5MB' }));
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      // Remove banner error if it exists
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.banner;
+        return newErrors;
+      });
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Upload file
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      const data = await response.json();
+      
+      // Update form data with the uploaded file URL
+      setFormData(prev => ({
+        ...prev,
+        banner: data.url,
+      }));
+      setPreviewUrl(data.url);
+    } catch (error) {
+      console.error('File upload error:', error);
+      setErrors(prev => ({ 
+        ...prev, 
+        banner: 'Failed to upload file. Please try again.' 
+      }));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveBanner = () => {
+    setFormData(prev => ({
+      ...prev,
+      banner: null,
+    }));
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.text?.trim()) {
-      newErrors.text = "Question text is required";
+    if (!formData.question?.en?.trim()) {
+      newErrors.questionEn = "English question is required";
     }
 
-    if (formData.options) {
-      const emptyOptions = formData.options.filter(opt => !opt.trim());
-      if (emptyOptions.length > 0) {
-        newErrors.options = "All options must be filled";
-      }
-      if (formData.options.length < 2) {
-        newErrors.options = "At least 2 options are required";
+    if (!formData.question?.th?.trim()) {
+      newErrors.questionTh = "Thai question is required";
+    }
+
+    if (formData.order === undefined || formData.order < 1) {
+      newErrors.order = "Order must be at least 1";
+    } else {
+      // Check if the order number already exists
+      const isOrderExists = questions.some(q => {
+        // Skip checking against the current question when editing
+        if (question && q._id === question._id) {
+          return false;
+        }
+        return q.order === formData.order;
+      });
+
+      if (isOrderExists) {
+        newErrors.order = "This order number is already in use. Please choose a different number.";
       }
     }
 
-    if (formData.correctAnswer === undefined || formData.correctAnswer < 0) {
-      newErrors.correctAnswer = "Please select a correct answer";
+    if (!formData.type) {
+      newErrors.type = "Question type is required";
     }
 
     setErrors(newErrors);
@@ -95,28 +202,6 @@ export default function QuestionModal({
     }
   };
 
-  const handleAddOption = () => {
-    setFormData(prev => ({
-      ...prev,
-      options: [...(prev.options || []), ""],
-    }));
-  };
-
-  const handleRemoveOption = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      options: prev.options?.filter((_, i) => i !== index),
-      correctAnswer: prev.correctAnswer === index ? 0 : prev.correctAnswer,
-    }));
-  };
-
-  const handleOptionChange = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      options: prev.options?.map((opt, i) => (i === index ? value : opt)),
-    }));
-  };
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
       <ModalContent>
@@ -127,130 +212,157 @@ export default function QuestionModal({
         </ModalHeader>
         <ModalBody>
           <div className="space-y-6">
-            {/* Question Text */}
+            {/* Question Type */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Question Text
-              </label>
-              <Textarea
-                placeholder="Enter your question..."
-                value={formData.text}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, text: e.target.value }))
-                }
-                minRows={3}
-                isInvalid={!!errors.text}
-                errorMessage={errors.text}
-              />
-            </div>
-
-            {/* Difficulty */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Difficulty Level
+                Question Type
               </label>
               <Select
-                selectedKeys={[formData.difficulty || "medium"]}
+                selectedKeys={[formData.type || "text"]}
                 onSelectionChange={(keys) => {
-                  const selected = Array.from(keys)[0] as QuestionDifficulty;
+                  const selected = Array.from(keys)[0] as QuestionType;
                   setFormData((prev) => ({
                     ...prev,
-                    difficulty: selected,
+                    type: selected,
                   }));
                 }}
+                aria-label="Select question type"
+                isInvalid={!!errors.type}
+                errorMessage={errors.type}
               >
-                <SelectItem key="easy">
-                  <div className="flex items-center gap-2">
-                    <Chip size="sm" color="success" variant="flat">
-                      Easy
-                    </Chip>
-                  </div>
-                </SelectItem>
-                <SelectItem key="medium">
-                  <div className="flex items-center gap-2">
-                    <Chip size="sm" color="warning" variant="flat">
-                      Medium
-                    </Chip>
-                  </div>
-                </SelectItem>
-                <SelectItem key="hard">
-                  <div className="flex items-center gap-2">
-                    <Chip size="sm" color="danger" variant="flat">
-                      Hard
-                    </Chip>
-                  </div>
-                </SelectItem>
+                {QUESTION_TYPES.map((type) => (
+                  <SelectItem
+                    key={type.value}
+                    textValue={type.label}
+                    aria-label={type.label}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Chip size="sm" color={type.color} variant="flat">
+                        {type.label}
+                      </Chip>
+                    </div>
+                  </SelectItem>
+                ))}
               </Select>
+            </div>
+
+            {/* Question Order */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Order
+              </label>
+              <Input
+                type="number"
+                min={1}
+                value={formData.order?.toString() || "1"}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    order: parseInt(e.target.value) || 1,
+                  }))
+                }
+                isInvalid={!!errors.order}
+                errorMessage={errors.order}
+              />
             </div>
 
             <Divider />
 
-            {/* Options */}
+            {/* Banner Upload */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium">
-                  Answer Options
-                </label>
-                <Button
-                  size="sm"
-                  variant="light"
-                  startContent={<Plus size={16} />}
-                  onPress={handleAddOption}
-                >
-                  Add Option
-                </Button>
-              </div>
-              {errors.options && (
-                <p className="text-danger text-sm mb-2">{errors.options}</p>
-              )}
-              <div className="space-y-2">
-                {formData.options?.map((option, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      placeholder={`Option ${index + 1}`}
-                      value={option}
-                      onChange={(e) => handleOptionChange(index, e.target.value)}
-                      startContent={
-                        <div className="flex items-center">
-                          <input
-                            type="radio"
-                            name="correctAnswer"
-                            checked={formData.correctAnswer === index}
-                            onChange={() =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                correctAnswer: index,
-                              }))
-                            }
-                            className="mr-2"
-                          />
-                          <span className="text-sm font-medium">
-                            {String.fromCharCode(65 + index)}.
-                          </span>
-                        </div>
-                      }
-                      endContent={
-                        formData.options && formData.options.length > 2 ? (
-                          <Button
-                            isIconOnly
-                            size="sm"
-                            variant="light"
-                            color="danger"
-                            onPress={() => handleRemoveOption(index)}
-                          >
-                            <X size={16} />
-                          </Button>
-                        ) : null
-                      }
+              <label className="block text-sm font-medium mb-2">
+                Banner Image (Optional)
+              </label>
+              <div className="space-y-4">
+                {previewUrl && (
+                  <div className="relative w-full max-w-md">
+                    <Image
+                      src={previewUrl}
+                      alt="Banner preview"
+                      className="rounded-lg"
+                      width={400}
+                      height={200}
+                      style={{ objectFit: 'cover' }}
                     />
+                    <Button
+                      isIconOnly
+                      color="danger"
+                      variant="flat"
+                      className="absolute top-2 right-2"
+                      onPress={handleRemoveBanner}
+                    >
+                      <X size={16} />
+                    </Button>
                   </div>
-                ))}
-              </div>
-              {errors.correctAnswer && (
-                <p className="text-danger text-sm mt-2">
-                  {errors.correctAnswer}
+                )}
+                <div className="flex items-center gap-4">
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    isDisabled={isUploading}
+                    className="flex-1"
+                  />
+                  {isUploading && (
+                    <Chip color="primary" variant="flat">
+                      Uploading...
+                    </Chip>
+                  )}
+                </div>
+                {errors.banner && (
+                  <p className="text-danger text-sm mt-1">{errors.banner}</p>
+                )}
+                <p className="text-sm text-default-500">
+                  Supported formats: JPG, PNG, GIF. Max size: 5MB
                 </p>
-              )}
+              </div>
+            </div>
+
+            {/* Question Text (EN) */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Question Text (English)
+              </label>
+              <Textarea
+                placeholder="Enter your question in English..."
+                value={formData.question?.en || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    question: {
+                      ...prev.question!,
+                      en: e.target.value,
+                    },
+                  }))
+                }
+                minRows={3}
+                isInvalid={!!errors.questionEn}
+                errorMessage={errors.questionEn}
+              />
+            </div>
+
+            {/* Question Text (TH) */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Question Text (Thai)
+              </label>
+              <Textarea
+                placeholder="Enter your question in Thai..."
+                value={formData.question?.th || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    question: {
+                      ...prev.question!,
+                      th: e.target.value,
+                    },
+                  }))
+                }
+                minRows={3}
+                isInvalid={!!errors.questionTh}
+                errorMessage={errors.questionTh}
+              />
             </div>
           </div>
         </ModalBody>
@@ -258,7 +370,11 @@ export default function QuestionModal({
           <Button variant="light" onPress={onClose}>
             Cancel
           </Button>
-          <Button color="primary" onPress={handleSubmit}>
+          <Button 
+            color="primary" 
+            onPress={handleSubmit}
+            isDisabled={isUploading}
+          >
             {question ? "Save Changes" : "Add Question"}
           </Button>
         </ModalFooter>

@@ -20,511 +20,535 @@ import {
   SelectItem,
   Button,
   Input,
+  Pagination,
 } from "@heroui/react";
-import { AssessmentType } from "@/types/assessment";
-import { useAssessment } from "@/hooks/useAssessment";
-import { mockUserStats, mockSkillQuestions } from "@/mocks/assessmentData";
-import { Users, UserCheck, FileCheck, Clock, Award, TrendingUp, Filter, X } from "lucide-react";
-
-interface AssessmentOverviewDashboardProps {
-  type: AssessmentType;
-}
+import { 
+    AssessmentType, 
+    TestAnswer,
+    AssessmentOverviewDashboardProps,
+    StudentDetail,
+    UserDetails,
+    ScoreDistribution,
+    DifficultyDistribution,
+    QuestionTypeDistribution,
+    AssessmentStats,
+    ChipColor,
+    MockFilterData
+} from "@/types/assessment";
+import { Users, UserCheck, FileCheck, Clock, Award, TrendingUp, Filter, X, Search, Download } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 // Mock data for filters - In real app, this would come from an API
-const mockUserTypes = ["All", "Student", "Teacher", "Admin"];
-const mockSchools = ["All", "School of Engineering", "School of Science", "School of Arts", "School of Business"];
-const mockMajors = ["All", "Computer Science", "Electrical Engineering", "Mechanical Engineering", "Business Administration", "Arts & Design"];
+const mockFilterData: MockFilterData = {
+    userTypes: ["All", "Student", "Teacher", "Admin"],
+    schools: ["All", "School of Engineering", "School of Science", "School of Arts", "School of Business"],
+    majors: ["All", "Computer Science", "Electrical Engineering", "Mechanical Engineering", "Business Administration", "Arts & Design"]
+};
 
-export default function AssessmentOverviewDashboard({ type }: AssessmentOverviewDashboardProps) {
-  const { questions, results, stats, loading, error, fetchQuestions, fetchResults, fetchStats } = useAssessment();
-  
-  // Filter states
-  const [userType, setUserType] = useState("All");
-  const [school, setSchool] = useState("All");
-  const [major, setMajor] = useState("All");
-  const [searchQuery, setSearchQuery] = useState("");
+export default function AssessmentOverviewDashboard({ 
+    type, 
+    answers,
+    loading 
+}: AssessmentOverviewDashboardProps) {
+    // Filter states
+    const [userType, setUserType] = useState("All");
+    const [school, setSchool] = useState("All");
+    const [major, setMajor] = useState("All");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [page, setPage] = useState(1);
+    const rowsPerPage = 10;
 
-  // Access all mock skill questions for table headers
-  const allSkillQuestions = useMemo(() => {
-    return [...mockSkillQuestions.lifeSkills, ...mockSkillQuestions.coreSkills];
-  }, []);
+    // Calculate statistics from answers
+    const stats = useMemo(() => ({
+        totalStudents: new Set(answers.map(a => a.userId)).size,
+        totalAttempts: answers.length,
+        averageScore: calculateAverageScore(answers),
+        completionRate: calculateCompletionRate(answers),
+        averageTimeSpent: calculateAverageTimeSpent(answers),
+        difficultyDistribution: calculateDifficultyDistribution(answers),
+        questionTypeDistribution: calculateQuestionTypeDistribution(answers),
+        scoreDistribution: calculateScoreDistribution(answers),
+        studentDetails: calculateStudentDetails(answers),
+    }), [answers]);
 
-  useEffect(() => {
-    fetchQuestions(type);
-    fetchResults(type);
-    fetchStats(type);
-  }, [type]);
+    // Filter answers based on selected filters
+    const filteredAnswers = useMemo(() => {
+        return answers.filter(answer => {
+            const matchesUserType = userType === "All" || answer.user?.userType === userType;
+            const matchesSchool = school === "All" || answer.user?.school === school;
+            const matchesMajor = major === "All" || answer.user?.major === major;
+            const matchesSearch = searchQuery === "" || 
+                (answer.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                answer.userId.toLowerCase().includes(searchQuery.toLowerCase()));
+            return matchesUserType && matchesSchool && matchesMajor && matchesSearch;
+        });
+    }, [answers, userType, school, major, searchQuery]);
 
-  // Filter results based on selected filters
-  const filteredResults = useMemo(() => {
-    return results
-      .filter(r => r.assessmentType === type)
-      .filter(r => {
-        const matchesUserType = userType === "All" || r.userType === userType;
-        const matchesSchool = school === "All" || r.school === school;
-        const matchesMajor = major === "All" || r.major === major;
-        const matchesSearch = searchQuery === "" || 
-          r.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          r.userId.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesUserType && matchesSchool && matchesMajor && matchesSearch;
-      });
-  }, [results, type, userType, school, major, searchQuery]);
+    // Paginate student details
+    const paginatedStudentDetails = useMemo(() => {
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        return stats.studentDetails.slice(start, end);
+    }, [stats.studentDetails, page]);
 
-  // Reset all filters
-  const handleResetFilters = () => {
-    setUserType("All");
-    setSchool("All");
-    setMajor("All");
-    setSearchQuery("");
-  };
+    // Function to convert data to CSV format
+    const convertToCSV = (data: any[]) => {
+        const headers = [
+            "Student ID",
+            "Name",
+            "School",
+            "Major",
+            "Score",
+            "Time Spent (min)",
+            "Status",
+            "Completed Questions",
+            "Last Updated"
+        ];
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <Spinner size="lg" color="primary" />
-      </div>
-    );
-  }
+        const rows = data.map(student => [
+            student.userId,
+            student.name || "N/A",
+            student.school || "N/A",
+            student.major || "N/A",
+            `${student.score}%`,
+            student.timeSpent,
+            student.completed ? "Completed" : "In Progress",
+            student.completedQuestions || 0,
+            new Date().toLocaleDateString()
+        ]);
 
-  if (error) {
-    return (
-      <div className="p-6 bg-danger-50 text-danger rounded-lg border border-danger-200">
-        <p className="font-medium">Error loading dashboard data</p>
-        <p className="text-sm mt-1">{error}</p>
-      </div>
-    );
-  }
+        return [headers, ...rows]
+            .map(row => row.map(cell => `"${cell}"`).join(","))
+            .join("\n");
+    };
 
-  const filteredQuestions = questions.filter(q => q.assessmentType === type);
+    // Function to download CSV
+    const downloadCSV = () => {
+        const csv = convertToCSV(stats.studentDetails);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `${type}-assessment-results-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = "hidden";
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
-  // Calculate statistics based on filtered results
-  const totalQuestions = filteredQuestions.length;
-  const totalAttempts = filteredResults.length;
-  const uniqueStudents = new Set(filteredResults.map(r => r.userId)).size;
-  const averageScore = filteredResults.reduce((acc, curr) => acc + curr.score, 0) / (totalAttempts || 1);
-  const completionRate = uniqueStudents / ((stats?.totalStudents || 0) > 0 ? (stats?.totalStudents || 1) : 1);
-
-  // Calculate difficulty distribution
-  const difficultyDistribution = {
-    easy: filteredQuestions.filter(q => q.difficulty === "easy").length,
-    medium: filteredQuestions.filter(q => q.difficulty === "medium").length,
-    hard: filteredQuestions.filter(q => q.difficulty === "hard").length,
-  };
-
-  const getProgressColor = (value: number, type: "success" | "warning" | "danger" = "success") => {
-    if (type === "success") {
-      return value >= 70 ? "success" : value >= 50 ? "warning" : "danger";
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Spinner size="lg" />
+            </div>
+        );
     }
-    if (type === "warning") {
-      return value >= 50 ? "success" : value >= 30 ? "warning" : "danger";
-    }
-    return value >= 30 ? "success" : value >= 15 ? "warning" : "danger";
-  };
 
-  return (
-    <div className="space-y-8">
-      {/* Filter Section */}
-      <Card>
-        <CardHeader className="flex items-center gap-2 pb-2">
-          <Filter className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold">Filters</h3>
-        </CardHeader>
-        <Divider />
-        <CardBody>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">User Type</label>
-              <Select
-                selectedKeys={[userType]}
-                onSelectionChange={(keys) => setUserType(Array.from(keys)[0] as string)}
-                className="w-full"
-              >
-                {mockUserTypes.map((type) => (
-                  <SelectItem key={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">School</label>
-              <Select
-                selectedKeys={[school]}
-                onSelectionChange={(keys) => setSchool(Array.from(keys)[0] as string)}
-                className="w-full"
-              >
-                {mockSchools.map((s) => (
-                  <SelectItem key={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Major</label>
-              <Select
-                selectedKeys={[major]}
-                onSelectionChange={(keys) => setMajor(Array.from(keys)[0] as string)}
-                className="w-full"
-              >
-                {mockMajors.map((m) => (
-                  <SelectItem key={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Search</label>
-              <Input
-                placeholder="Search by name or ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <div className="flex items-end">
-              <Button
-                variant="flat"
-                color="danger"
-                startContent={<X size={16} />}
-                onPress={handleResetFilters}
-                className="w-full"
-              >
-                Reset Filters
-              </Button>
-            </div>
-          </div>
-          {/* Active Filters Display */}
-          {(userType !== "All" || school !== "All" || major !== "All" || searchQuery) && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {userType !== "All" && (
-                <Chip
-                  onClose={() => setUserType("All")}
-                  variant="flat"
-                  color="primary"
-                >
-                  User Type: {userType}
-                </Chip>
-              )}
-              {school !== "All" && (
-                <Chip
-                  onClose={() => setSchool("All")}
-                  variant="flat"
-                  color="primary"
-                >
-                  School: {school}
-                </Chip>
-              )}
-              {major !== "All" && (
-                <Chip
-                  onClose={() => setMajor("All")}
-                  variant="flat"
-                  color="primary"
-                >
-                  Major: {major}
-                </Chip>
-              )}
-              {searchQuery && (
-                <Chip
-                  onClose={() => setSearchQuery("")}
-                  variant="flat"
-                  color="primary"
-                >
-                  Search: {searchQuery}
-                </Chip>
-              )}
-            </div>
-          )}
-        </CardBody>
-      </Card>
-
-      {/* User Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-primary-50 to-primary-100 border-primary-200">
-          <CardBody className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-primary-100">
-                <Users className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-primary-700">Total Users</p>
-                <h3 className="text-2xl font-bold mt-1">{mockUserStats.totalUsers.toLocaleString()}</h3>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-success-50 to-success-100 border-success-200">
-          <CardBody className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-success-100">
-                <UserCheck className="w-6 h-6 text-success" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-success-700">Registered Users</p>
-                <h3 className="text-2xl font-bold mt-1">{mockUserStats.registeredUsers.toLocaleString()}</h3>
-                <Progress
-                  value={(mockUserStats.registeredUsers / mockUserStats.totalUsers) * 100}
-                  className="mt-3"
-                  color="success"
-                  size="sm"
-                />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-warning-50 to-warning-100 border-warning-200">
-          <CardBody className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-warning-100">
-                <FileCheck className="w-6 h-6 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-warning-700">Submitted Assessments</p>
-                <h3 className="text-2xl font-bold mt-1">{mockUserStats.submittedAssessments.toLocaleString()}</h3>
-                <Progress
-                  value={(mockUserStats.submittedAssessments / mockUserStats.registeredUsers) * 100}
-                  className="mt-3"
-                  color="warning"
-                  size="sm"
-                />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-info-50 to-info-100 border-info-200">
-          <CardBody className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-info-100">
-                <Award className="w-6 h-6 text-info" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-info-700">Completion Rate</p>
-                <h3 className="text-2xl font-bold mt-1">{(completionRate * 100).toFixed(1)}%</h3>
-                <Progress
-                  value={completionRate * 100}
-                  className="mt-3"
-                  color={getProgressColor(completionRate * 100)}
-                  size="sm"
-                />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Life Skills Assessment */}
-        <Card>
-          <CardHeader className="flex items-center gap-2 pb-2">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-semibold">Life Skills Assessment</h3>
-          </CardHeader>
-          <Divider />
-          <CardBody>
-            <div className="space-y-6">
-              {mockSkillQuestions.lifeSkills.map((question) => (
-                <div key={question.id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Tooltip content={question.text}>
-                      <span className="text-sm line-clamp-1">{question.text}</span>
-                    </Tooltip>
-                    <Chip
-                      size="sm"
-                      color={getProgressColor(question.averageScore * 20)}
-                      variant="flat"
-                    >
-                      {question.averageScore.toFixed(2)}
-                    </Chip>
-                  </div>
-                  <Progress
-                    value={(question.averageScore / 5) * 100}
-                    color={getProgressColor(question.averageScore * 20)}
-                    size="sm"
-                    className="h-2"
-                  />
-                </div>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
-
-        {/* Core Skills Assessment */}
-        <Card>
-          <CardHeader className="flex items-center gap-2 pb-2">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-semibold">Core Skills Assessment</h3>
-          </CardHeader>
-          <Divider />
-          <CardBody>
-            <div className="space-y-6">
-              {mockSkillQuestions.coreSkills.map((skill) => (
-                <div key={skill.id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Tooltip content={skill.text}>
-                      <span className="text-sm line-clamp-1">{skill.text}</span>
-                    </Tooltip>
-                    <Chip
-                      size="sm"
-                      color={getProgressColor(skill.averageScore * 20)}
-                      variant="flat"
-                    >
-                      {skill.averageScore.toFixed(2)}
-                    </Chip>
-                  </div>
-                  <Progress
-                    value={(skill.averageScore / 5) * 100}
-                    color={getProgressColor(skill.averageScore * 20)}
-                    size="sm"
-                    className="h-2"
-                  />
-                </div>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Question Performance */}
-      <Card>
-        <CardHeader className="flex items-center gap-2 pb-2">
-          <TrendingUp className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold">Question Performance</h3>
-        </CardHeader>
-        <Divider />
-        <CardBody>
-          <div className="space-y-6">
-            {filteredQuestions.map((question) => {
-              const questionResults = filteredResults.filter(r => r.questionId === question._id);
-              const correctAnswers = questionResults.filter(r => r.isCorrect).length;
-              const averageScore = questionResults.length > 0
-                ? (correctAnswers / questionResults.length) * 100
-                : 0;
-
-              return (
-                <div key={question._id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Tooltip content={question.text}>
-                      <span className="text-sm line-clamp-1">{question.text}</span>
-                    </Tooltip>
-                    <div className="flex items-center gap-2">
-                      <Chip
-                        size="sm"
-                        color={getProgressColor(averageScore)}
-                        variant="flat"
-                      >
-                        {averageScore.toFixed(1)}%
-                      </Chip>
-                      <Chip
-                        size="sm"
-                        color={getDifficultyColor(question.difficulty)}
-                        variant="flat"
-                      >
-                        {question.difficulty}
-                      </Chip>
+    return (
+        <div className="space-y-6">
+            {/* Filter Section */}
+            <Card>
+                <CardHeader className="flex items-center gap-2 pb-2">
+                    <Filter className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Filters</h3>
+                </CardHeader>
+                <Divider />
+                <CardBody>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-2">User Type</label>
+                            <Select
+                                selectedKeys={[userType]}
+                                onSelectionChange={(keys) => setUserType(Array.from(keys)[0] as string)}
+                                className="w-full"
+                            >
+                                {mockFilterData.userTypes.map((type) => (
+                                    <SelectItem key={type}>{type}</SelectItem>
+                                ))}
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">School</label>
+                            <Select
+                                selectedKeys={[school]}
+                                onSelectionChange={(keys) => setSchool(Array.from(keys)[0] as string)}
+                                className="w-full"
+                            >
+                                {mockFilterData.schools.map((s) => (
+                                    <SelectItem key={s}>{s}</SelectItem>
+                                ))}
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Major</label>
+                            <Select
+                                selectedKeys={[major]}
+                                onSelectionChange={(keys) => setMajor(Array.from(keys)[0] as string)}
+                                className="w-full"
+                            >
+                                {mockFilterData.majors.map((m) => (
+                                    <SelectItem key={m}>{m}</SelectItem>
+                                ))}
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Search</label>
+                            <Input
+                                placeholder="Search by name or ID..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                startContent={<Search className="text-default-400" size={20} />}
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="flex items-end">
+                            <Button
+                                variant="flat"
+                                color="danger"
+                                startContent={<X size={16} />}
+                                onPress={() => {
+                                    setUserType("All");
+                                    setSchool("All");
+                                    setMajor("All");
+                                    setSearchQuery("");
+                                }}
+                                className="w-full"
+                            >
+                                Reset Filters
+                            </Button>
+                        </div>
                     </div>
-                  </div>
-                  <Progress
-                    value={averageScore}
-                    color={getProgressColor(averageScore)}
-                    size="sm"
-                    className="h-2"
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </CardBody>
-      </Card>
+                </CardBody>
+            </Card>
 
-      {/* Student Results Table */}
-      <Card>
-        <CardHeader className="flex items-center justify-between pb-2">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-semibold">Student Results</h3>
-          </div>
-          <Chip color="primary" variant="flat">
-            {filteredResults.filter(result => result.skillAnswers && Object.keys(result.skillAnswers).length > 0).length} Results
-          </Chip>
-        </CardHeader>
-        <Divider />
-        <CardBody>
-          <div className="overflow-x-auto">
-            <Table
-              aria-label="Student assessment results"
-              classNames={{
-                wrapper: "min-h-[400px]",
-              }}
-            >
-              <TableHeader>
-                <TableColumn key="studentId">Student ID</TableColumn>
-                <TableColumn key="name">Name</TableColumn>
-                <TableColumn key="school">School</TableColumn>
-                <TableColumn key="major">Major</TableColumn>
-                <TableColumn key="submit">Submit</TableColumn>
-                {allSkillQuestions.map((skill) => (
-                  <TableColumn key={skill.id} className="text-center">
-                    <Tooltip content={skill.text}>
-                      <span className="line-clamp-2 text-sm">{skill.text}</span>
-                    </Tooltip>
-                  </TableColumn>
-                ))}
-              </TableHeader>
-              <TableBody
-                emptyContent={
-                  <div className="py-8 text-center text-default-400">
-                    {searchQuery || userType !== "All" || school !== "All" || major !== "All"
-                      ? "No results match your filters"
-                      : "No assessment results available"}
-                  </div>
-                }
-              >
-                {filteredResults
-                  .filter(result => result.skillAnswers && Object.keys(result.skillAnswers).length > 0) // Only show entries with skill answers
-                  .map((result) => (
-                    <TableRow key={result._id}>
-                      <TableCell key="userId">{result.userId}</TableCell>
-                      <TableCell key="userName">{result.userName}</TableCell>
-                      <TableCell key="school">{result.school || "N/A"}</TableCell>
-                      <TableCell key="major">{result.major || "N/A"}</TableCell>
-                      <TableCell key="submitted">
-                        <Chip
-                          size="sm"
-                          color={result.submitted ? "success" : "danger"}
-                          variant="flat"
-                        >
-                          {result.submitted ? "true" : "false"}
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <p className="text-sm font-medium">Total Students</p>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardBody>
+                        <div className="text-2xl font-bold">{stats.totalStudents}</div>
+                        <Progress
+                            value={stats.completionRate}
+                            className="mt-2"
+                            color={getProgressColor(stats.completionRate)}
+                            size="sm"
+                        />
+                    </CardBody>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <p className="text-sm font-medium">Completion Rate</p>
+                        <UserCheck className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardBody>
+                        <div className="text-2xl font-bold">{stats.completionRate}%</div>
+                        <Progress
+                            value={stats.completionRate}
+                            className="mt-2"
+                            color={getProgressColor(stats.completionRate)}
+                            size="sm"
+                        />
+                    </CardBody>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <p className="text-sm font-medium">Average Score</p>
+                        <Award className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardBody>
+                        <div className="text-2xl font-bold">{stats.averageScore}%</div>
+                        <Progress
+                            value={stats.averageScore}
+                            className="mt-2"
+                            color={getProgressColor(stats.averageScore)}
+                            size="sm"
+                        />
+                    </CardBody>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <p className="text-sm font-medium">Average Time</p>
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardBody>
+                        <div className="text-2xl font-bold">{stats.averageTimeSpent} min</div>
+                        <div className="text-sm text-default-400 mt-1">
+                            Per student
+                        </div>
+                    </CardBody>
+                </Card>
+            </div>
+
+            {/* Score Distribution Chart */}
+            <Card>
+                <CardHeader className="flex items-center gap-2 pb-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Score Distribution</h3>
+                </CardHeader>
+                <Divider />
+                <CardBody>
+                    <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats.scoreDistribution}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="range" />
+                                <YAxis />
+                                <RechartsTooltip />
+                                <Bar dataKey="count" fill="#0070F0" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </CardBody>
+            </Card>
+
+            {/* Student Details Table */}
+            <Card>
+                <CardHeader className="flex items-center justify-between pb-2">
+                    <div className="flex items-center gap-2">
+                        <Users className="w-5 h-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Student Details</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Chip color="primary" variant="flat">
+                            {filteredAnswers.length} Students
                         </Chip>
-                      </TableCell>
-                      {allSkillQuestions.map((skill) => (
-                        <TableCell key={skill.id} className="text-center">
-                          {result.skillAnswers[skill.id] !== undefined ? result.skillAnswers[skill.id] : '-'}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardBody>
-      </Card>
-    </div>
-  );
+                        <Button
+                            color="primary"
+                            variant="flat"
+                            startContent={<Download className="w-4 h-4" />}
+                            onPress={downloadCSV}
+                            isDisabled={stats.studentDetails.length === 0}
+                        >
+                            Export CSV
+                        </Button>
+                    </div>
+                </CardHeader>
+                <Divider />
+                <CardBody>
+                    <Table aria-label="Student assessment details">
+                        <TableHeader>
+                            <TableColumn>Student ID</TableColumn>
+                            <TableColumn>Name</TableColumn>
+                            <TableColumn>School</TableColumn>
+                            <TableColumn>Major</TableColumn>
+                            <TableColumn>Score</TableColumn>
+                            <TableColumn>Time Spent</TableColumn>
+                            <TableColumn>Status</TableColumn>
+                        </TableHeader>
+                        <TableBody
+                            emptyContent={
+                                <div className="py-8 text-center text-default-400">
+                                    {searchQuery || userType !== "All" || school !== "All" || major !== "All"
+                                        ? "No students match your filters"
+                                        : "No student data available"}
+                                </div>
+                            }
+                        >
+                            {paginatedStudentDetails.map((student) => (
+                                <TableRow key={student.userId}>
+                                    <TableCell>{student.userId}</TableCell>
+                                    <TableCell>{student.name || "N/A"}</TableCell>
+                                    <TableCell>{student.school || "N/A"}</TableCell>
+                                    <TableCell>{student.major || "N/A"}</TableCell>
+                                    <TableCell>
+                                        <Chip
+                                            size="sm"
+                                            color={getProgressColor(student.score)}
+                                            variant="flat"
+                                        >
+                                            {student.score}%
+                                        </Chip>
+                                    </TableCell>
+                                    <TableCell>{student.timeSpent} min</TableCell>
+                                    <TableCell>
+                                        <Chip
+                                            size="sm"
+                                            color={student.completed ? "success" : "warning"}
+                                            variant="flat"
+                                        >
+                                            {student.completed ? "Completed" : "In Progress"}
+                                        </Chip>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    {stats.studentDetails.length > rowsPerPage && (
+                        <div className="flex justify-center mt-4">
+                            <Pagination
+                                total={Math.ceil(stats.studentDetails.length / rowsPerPage)}
+                                page={page}
+                                onChange={setPage}
+                                showControls
+                            />
+                        </div>
+                    )}
+                </CardBody>
+            </Card>
+        </div>
+    );
+}
+
+// Helper functions to calculate statistics
+function calculateAverageScore(answers: TestAnswer[]): number {
+    if (answers.length === 0) return 0;
+    const scores = answers.map(a => {
+        if (typeof a.answer === 'number') return a.answer;
+        if (Array.isArray(a.answer)) return a.answer.length;
+        return 0;
+    });
+    return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100);
+}
+
+function calculateCompletionRate(answers: TestAnswer[]): number {
+    if (answers.length === 0) return 0;
+    const uniqueUsers = new Set(answers.map(a => a.userId)).size;
+    // Assuming each user should answer 10 questions
+    const expectedAnswers = uniqueUsers * 10;
+    return Math.round((answers.length / expectedAnswers) * 100);
+}
+
+function calculateAverageTimeSpent(answers: TestAnswer[]): number {
+    if (answers.length === 0) return 0;
+    const times = answers.map(a => {
+        const created = new Date(a.createdAt).getTime();
+        const updated = new Date(a.updatedAt).getTime();
+        return (updated - created) / (1000 * 60); // Convert to minutes
+    });
+    return Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+}
+
+function calculateScoreDistribution(answers: TestAnswer[]): ScoreDistribution[] {
+    const ranges = [
+        { min: 0, max: 20, label: "0-20%" },
+        { min: 21, max: 40, label: "21-40%" },
+        { min: 41, max: 60, label: "41-60%" },
+        { min: 61, max: 80, label: "61-80%" },
+        { min: 81, max: 100, label: "81-100%" },
+    ];
+
+    // Calculate scores for each user
+    const userScores = new Map<string, number[]>();
+    answers.forEach(answer => {
+        const score = typeof answer.answer === 'number' ? answer.answer :
+                     Array.isArray(answer.answer) ? answer.answer.length : 0;
+        const scores = userScores.get(answer.userId) || [];
+        scores.push(score);
+        userScores.set(answer.userId, scores);
+    });
+
+    // Calculate average score for each user
+    const averageScores = Array.from(userScores.values()).map(scores => 
+        Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100)
+    );
+
+    // Count scores in each range
+    return ranges.map(range => ({
+        range: range.label,
+        count: averageScores.filter(score => score >= range.min && score <= range.max).length
+    }));
+}
+
+function calculateStudentDetails(answers: TestAnswer[]): StudentDetail[] {
+    const userDetails = new Map<string, UserDetails>();
+
+    // Collect all answers for each user
+    answers.forEach(answer => {
+        const details = userDetails.get(answer.userId) || {
+            userId: answer.userId,
+            name: answer.user?.name || "N/A",
+            school: answer.user?.school,
+            major: answer.user?.major,
+            scores: [],
+            timeSpent: [],
+            answerCount: 0,
+            lastUpdated: new Date(answer.updatedAt)
+        };
+
+        const score = typeof answer.answer === 'number' ? answer.answer :
+                     Array.isArray(answer.answer) ? answer.answer.length : 0;
+        details.scores.push(score);
+
+        const timeSpent = (new Date(answer.updatedAt).getTime() - new Date(answer.createdAt).getTime()) / (1000 * 60);
+        details.timeSpent.push(timeSpent);
+        details.answerCount++;
+
+        // Update lastUpdated if this answer is more recent
+        const answerDate = new Date(answer.updatedAt);
+        if (answerDate > details.lastUpdated) {
+            details.lastUpdated = answerDate;
+        }
+
+        userDetails.set(answer.userId, details);
+    });
+
+    // Calculate final statistics for each user
+    return Array.from(userDetails.values()).map(details => ({
+        userId: details.userId,
+        name: details.name,
+        school: details.school,
+        major: details.major,
+        score: Math.round((details.scores.reduce((a, b) => a + b, 0) / details.scores.length) * 100),
+        timeSpent: Math.round(details.timeSpent.reduce((a, b) => a + b, 0) / details.timeSpent.length),
+        completed: details.answerCount >= 10, // Assuming 10 questions is complete
+        completedQuestions: details.answerCount,
+        lastUpdated: details.lastUpdated
+    }));
+}
+
+function calculateDifficultyDistribution(answers: TestAnswer[]): DifficultyDistribution {
+    const difficulties = answers.reduce((acc, curr) => {
+        const difficulty = curr.question?.difficulty || "medium";
+        acc[difficulty] = (acc[difficulty] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    return {
+        easy: difficulties.easy || 0,
+        medium: difficulties.medium || 0,
+        hard: difficulties.hard || 0
+    };
+}
+
+function calculateQuestionTypeDistribution(answers: TestAnswer[]): QuestionTypeDistribution {
+    const types = answers.reduce((acc, curr) => {
+        const type = curr.question?.type || "text";
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    return {
+        text: types.text || 0,
+        rating: types.rating || 0,
+        dropdown: types.dropdown || 0,
+        checkbox: types.checkbox || 0,
+        radio: types.radio || 0
+    };
+}
+
+function getProgressColor(value: number): "success" | "warning" | "danger" {
+    if (value >= 70) return "success";
+    if (value >= 40) return "warning";
+    return "danger";
 }
 
 function getDifficultyColor(difficulty: string) {
-  switch (difficulty) {
-    case "easy":
-      return "success";
-    case "medium":
-      return "warning";
-    case "hard":
-      return "danger";
-    default:
-      return "default";
-  }
+    switch (difficulty) {
+        case "easy":
+            return "success";
+        case "medium":
+            return "warning";
+        case "hard":
+            return "danger";
+        default:
+            return "default";
+    }
 } 
