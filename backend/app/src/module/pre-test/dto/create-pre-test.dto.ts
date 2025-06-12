@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsNumber, IsObject, IsString } from "class-validator";
-import { PretestType } from "../enum/Pretesttype.enum";
+import { PretestType } from "../enum/PretestType.enum";
 import { Localization } from "src/pkg/types/common";
 
 export class CreatePreTestDto {
@@ -15,9 +15,5 @@ export class CreatePreTestDto {
     @IsNumber()
     @IsNotEmpty()
     order: number
-
-    @IsString()
-    @IsNotEmpty()
-    banner: string
     
 }

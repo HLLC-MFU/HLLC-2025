@@ -5,7 +5,6 @@ import { UpdatePreTestDto } from './dto/update-pre-test.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 
 @UseGuards(PermissionsGuard)
 @ApiTags('pre-tests')
@@ -13,7 +12,6 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 export class PreTestController {
   constructor(private readonly preTestService: PreTestService) { }
 
-  @UseInterceptors(new MultipartInterceptor())
   @Post()
   @Permissions('pre-tests:create')
   create(@Body() createPreTestDto: CreatePreTestDto) {
@@ -32,7 +30,6 @@ export class PreTestController {
     return this.preTestService.findOne(id);
   }
 
-  @UseInterceptors(new MultipartInterceptor())
   @Patch(':id')
   @Permissions('pre-tests:update')
   update(@Param('id') id: string, @Body() updatePreTestDto: UpdatePreTestDto) {

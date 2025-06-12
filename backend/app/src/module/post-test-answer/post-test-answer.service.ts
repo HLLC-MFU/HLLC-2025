@@ -19,28 +19,29 @@ export class PostTestAnswerService {
   ) { }
 
   async create(createPostTestAnswerDto: CreatePostTestAnswerDto) {
-    const { user, values } = createPostTestAnswerDto
+    const { user, answers } = createPostTestAnswerDto
 
-    const userexists = await this.userModel.exists({ _id: user })
-    if (!userexists) throw new NotFoundException('User not found')
+    const userExists = await this.userModel.exists({ _id: user })
+    if (!userExists) throw new NotFoundException('User not found')
 
     const filter = { user: new Types.ObjectId(user) }
 
-    const existingvalues = new Set(
-      (await this.PostTestAnswerModel.findOne(filter).select('values.posttest').lean())?.values.map(v => v.posttest.toString()) ?? []
+    const existinganswers = new Set(
+      (await this.PostTestAnswerModel.findOne(filter).select('answers.posttest').lean())
+      ?.answers.map(v => v.posttest.toString()) ?? []
     );
 
-    const newValues = values.filter( a => !existingvalues.has(a.posttest));
-    if (!newValues.length) throw new BadRequestException('Post-Test answers already exist for this user');
+    const newAnswers = answers.filter( a => !existinganswers.has(a.posttest));
+    if (!newAnswers.length) throw new BadRequestException('Post-Test answers already exist for this user');
 
-    const answerToInsert = newValues.map(values => ({
-      posttest: new Types.ObjectId(values.posttest),
-      value: values.value
+    const answerToInsert = newAnswers.map(answers => ({
+      posttest: new Types.ObjectId(answers.posttest),
+      answer: answers.answer
     }))
 
     const update = {
       $addToSet: {
-        values: { $each: answerToInsert }
+        answers: { $each: answerToInsert }
       }
     }
 
@@ -54,22 +55,23 @@ export class PostTestAnswerService {
   }
 
   async findAll(query: Record<string, string>) {
-    return queryAll<PostTestAnswer>({
+    return await queryAll<PostTestAnswer>({
       model: this.PostTestAnswerModel,
       query,
       filterSchema: {}
     })
   }
 
-  findOne(id: string): Promise<{ data: PostTestAnswer[] | null; message: string }> {
-    return queryFindOne(this.PostTestAnswerModel, { _id: id })
+  async findOne(id: string): Promise<{ data: PostTestAnswer[] | null; message: string }> {
+    return await queryFindOne(this.PostTestAnswerModel, { _id: id })
   }
 
-  update(id: string, updatePostTestAnswerDto: UpdatePostTestAnswerDto) {
-    return queryUpdateOne(this.PostTestAnswerModel, id, updatePostTestAnswerDto)
+  async update(id: string, updatePostTestAnswerDto: UpdatePostTestAnswerDto) {
+    updatePostTestAnswerDto.updateAt = new Date();
+    return await queryUpdateOne(this.PostTestAnswerModel, id, updatePostTestAnswerDto)
   }
 
-  remove(id: string) {
-    return queryDeleteOne(this.PostTestAnswerModel, id)
+  async remove(id: string) {
+    return await queryDeleteOne(this.PostTestAnswerModel, id)
   }
 }

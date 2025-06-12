@@ -10,7 +10,7 @@ class Answer{
     posttest: Types.ObjectId
 
     @Prop({ required: true, type: String})
-    value: string
+    answer: string
 }
 
 @Schema({ timestamps: true, collection: "post-test-answer"})
@@ -20,7 +20,7 @@ export class PostTestAnswer {
     user: Types.ObjectId
 
     @Prop({ required: true, type: [Answer]})
-    values: Answer[]
+    answers: Answer[]
 }
 
 export const PostTestAnswerSchema = SchemaFactory.createForClass(PostTestAnswer)

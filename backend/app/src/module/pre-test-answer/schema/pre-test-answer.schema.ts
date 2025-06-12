@@ -10,16 +10,16 @@ class Answer{
     pretest: Types.ObjectId
 
     @Prop({ required:true, type: String})
-    value: string
+    answer: string
 }
 
-@Schema({ timestamps: true})
+@Schema({ timestamps: true , collection: "Pre-test-answer"})
 export class PreTestAnswer {
     @Prop({ required:true, type:Types.ObjectId, ref: 'User'})
     user: Types.ObjectId
 
     @Prop({ required:true, type:[Answer]})
-    values: Answer[]
+    answers: Answer[]
 }
 
 export const PreTestAnswerSchema = SchemaFactory.createForClass(PreTestAnswer)

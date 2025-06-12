@@ -10,7 +10,7 @@ export class CreatePreTestAnswerDto {
 
     @ValidateNested({ each: true })
     @Type(() => Answer)
-    values: Answer[];
+    answers: Answer[];
     
 }
 
@@ -21,5 +21,5 @@ class Answer{
 
     @IsString()
     @IsNotEmpty()
-    value: string;
+    answer: string;
 }

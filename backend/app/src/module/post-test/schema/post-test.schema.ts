@@ -5,7 +5,7 @@ import { Localization } from "src/pkg/types/common";
 
 export type posttestDocument = HydratedDocument<Posttest>
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true , collection: "Post-Test"})
 export class Posttest {
 
     @Prop({ require: true, type: String, enum: PosttestTypes })
@@ -17,8 +17,6 @@ export class Posttest {
     @Prop({ require: true, type: Number, default: 1, unique:true })
     order: number;
 
-    @Prop({ type: String, default: null })
-    banner: string;
 }
 
 export const PosttestSchema = SchemaFactory.createForClass(Posttest)

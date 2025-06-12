@@ -5,7 +5,6 @@ import { UpdatePosttestDto } from './dto/update-post-test.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 
 @UseGuards(PermissionsGuard)
 @ApiTags('post-tests')
@@ -13,7 +12,6 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 export class PosttestController {
   constructor(private readonly posttestService: PosttestService) {}
 
-  @UseInterceptors(new MultipartInterceptor())
   @Post()
   @Permissions('post-tests:create')
   create(@Body() createPosttestDto: CreatePosttestDto) {
@@ -32,7 +30,6 @@ export class PosttestController {
     return this.posttestService.findOne(id);
   }
 
-  @UseInterceptors(new MultipartInterceptor())
   @Patch(':id')
   @Permissions('post-tests:update')
   update(@Param('id') id: string, @Body() updatePosttestDto: UpdatePosttestDto) {

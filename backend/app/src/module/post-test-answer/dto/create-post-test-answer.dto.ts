@@ -8,7 +8,7 @@ export class CreatePostTestAnswerDto {
 
     @ValidateNested({ each: true })
     @Type(() => Answer)
-    values: Answer[];
+    answers: Answer[];
 }
 
 class Answer {
@@ -18,6 +18,6 @@ class Answer {
 
     @IsString()
     @IsNotEmpty()
-    value: string;
+    answer: string;
 }
 

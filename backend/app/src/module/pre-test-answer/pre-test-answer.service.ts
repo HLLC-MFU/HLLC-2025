@@ -19,28 +19,28 @@ export class PreTestAnswerService {
   ) { }
 
   async create(createPreTestAnswerDto: CreatePreTestAnswerDto) {
-    const { user, values } = createPreTestAnswerDto
+    const { user, answers } = createPreTestAnswerDto
 
     const userexists = await this.userModel.exists({ _id: user})
     if (!userexists) throw new NotFoundException('User not found')
 
     const filter = { user: new Types.ObjectId(user)}
 
-    const existingvalues = new Set(
-      ( await this.PretestAnswerModel.findOne(filter).select('values.pretest').lean())?.values.map(v => v.pretest.toString()) ?? []
+    const existinganswers = new Set(
+      ( await this.PretestAnswerModel.findOne(filter).select('answers.pretest').lean())?.answers.map(v => v.pretest.toString()) ?? []
     )
 
-    const newValues = values.filter( a => !existingvalues.has(a.pretest));
-    if (!newValues.length) throw new BadRequestException('Pre-Test answer already exist for this user')
+    const newAnswers = answers.filter( a => !existinganswers.has(a.pretest));
+    if (!newAnswers.length) throw new BadRequestException('Pre-Test answer already exist for this user')
     
-    const answerToInsert = newValues.map(values => ({
-      pretest: new Types.ObjectId(values.pretest),
-      value: values.value
+    const answerToInsert = newAnswers.map(answers => ({
+      pretest: new Types.ObjectId(answers.pretest),
+      answer: answers.answer
     }))
 
     const update = {
       $addToSet: {
-        values: { $each: answerToInsert}
+        answers: { $each: answerToInsert}
       }
     }
     return await queryUpdateOneByFilter<PreTestAnswer>(

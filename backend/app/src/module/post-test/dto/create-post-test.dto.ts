@@ -15,7 +15,4 @@ export class CreatePosttestDto {
   @IsNotEmpty()
   order: number
 
-  @IsOptional()
-  @IsNotEmpty()
-  banner: string;
 }
