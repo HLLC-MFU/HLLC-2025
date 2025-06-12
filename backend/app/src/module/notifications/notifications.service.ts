@@ -43,7 +43,7 @@ export class NotificationsService {
       }));
     }
 
-    this.sseService.notify({
+    this.sseService.broadcast({
       type: 'REFETCH_NOTIFICATIONS',
     });
 
