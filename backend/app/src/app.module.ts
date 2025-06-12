@@ -30,10 +30,10 @@ import { NotificationsModule } from './module/notifications/notifications.module
 import { KafkaBootstrapModule } from './module/kafka/kafka-bootstrap.module';
 import { AssessmentsModule } from './module/assessments/assessments.module';
 import { AssessmentAnswersModule } from './module/assessment-answers/assessment-answers.module';
-import { PosttestModule } from './module/post-test/post-test.module';
-import { PreTestModule } from './module/pre-test/pre-test.module';
-import { PostTestAnswerModule } from './module/post-test-answer/post-test-answer.module';
-import { PreTestAnswerModule } from './module/pre-test-answer/pre-test-answer.module';
+import { PosttestModule } from './module/prepost-question/prepost-question.module';
+import { PretestModule } from './module/pretest/pretest.module';
+import { PosttestAnswerModule } from './module/posttest-answer/posttest-answer.module';
+import { PretestAnswerModule } from './module/pretest-answer/pretest-answer.module';
 
 @Module({
   imports: [
@@ -82,9 +82,9 @@ import { PreTestAnswerModule } from './module/pre-test-answer/pre-test-answer.mo
     AssessmentsModule,
     AssessmentAnswersModule,
     PosttestModule,
-    PostTestAnswerModule,
-    PreTestModule,
-    PreTestAnswerModule
+    PosttestAnswerModule,
+    PretestModule,
+    PretestAnswerModule
   ],
   providers: [
     {
