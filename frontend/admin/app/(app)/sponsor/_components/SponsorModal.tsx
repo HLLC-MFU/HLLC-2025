@@ -151,9 +151,13 @@ export function SponsorModal({
                 className="w-full"
                 selectedKeys={[isShow ? "show" : "hide"]}
                 items={showOptions}
-                onChange={(e) => {
-                  const selectedValue = (e.target as HTMLSelectElement).value;
-                  setIsShow(selectedValue === "show");
+                onSelectionChange={(keys) => {
+                  const key = Array.from(keys)[0];
+                  if (key === "show") {
+                    setIsShow(true);
+                  } else if (key === "hide") {
+                    setIsShow(false);
+                  }
                 }}
                 label="Show"
                 placeholder="Select show"
