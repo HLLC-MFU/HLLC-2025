@@ -27,6 +27,9 @@ import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
 import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
 import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
+import { KafkaBootstrapModule } from './module/kafka/kafka-bootstrap.module';
+import { AssessmentsModule } from './module/assessments/assessments.module';
+import { AssessmentAnswersModule } from './module/assessment-answers/assessment-answers.module';
 
 @Module({
   imports: [
@@ -71,6 +74,9 @@ import { NotificationsModule } from './module/notifications/notifications.module
     EvoucherCodeModule,
     EvoucherTypeModule,
     NotificationsModule,
+    KafkaBootstrapModule,
+    AssessmentsModule,
+    AssessmentAnswersModule,
   ],
   providers: [
     {

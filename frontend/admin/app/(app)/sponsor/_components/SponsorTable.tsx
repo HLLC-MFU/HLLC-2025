@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Table,
   TableHeader,
@@ -13,22 +12,23 @@ import {
   DropdownMenu,
   DropdownItem,
 } from "@heroui/react";
-import { EllipsisVertical, Pen, Pencil, Trash, Trash2 } from "lucide-react";
-import type { Sponsor, Type } from "@/types/sponsor";
+import { EllipsisVertical, Pen, Trash } from "lucide-react";
+import type { Sponsors } from "@/types/sponsors";
+import type { SponsorType } from "@/types/sponsors-type";
 import { SponsorModal } from "./SponsorModal";
 
 interface SponsorTableProps {
   type: string;
-  sponsorTypes: Type[];
+  sponsorTypes: SponsorType[];
   isModalOpen: boolean;
   onClose: () => void;
   modalMode: "edit" | "add";
-  selectedSponsor?: Sponsor | Partial<Sponsor>;
-  handleSubmitSponsor: (sponsorData: Partial<Sponsor>) => void;
-  sponsors: Sponsor[];
-  onEdit: (s: Sponsor) => void;
-  onDelete: (s: Sponsor) => void;
-  onToggleShow: (s: Sponsor) => void;
+  selectedSponsor?: Sponsors | Partial<Sponsors>;
+  handleSubmitSponsor: (sponsorData: Partial<Sponsors>) => void;
+  sponsors: Sponsors[];
+  onEdit: (s: Sponsors) => void;
+  onDelete: (s: Sponsors) => void;
+  onToggleShow: (s: Sponsors) => void;
 }
 
 export default function SponsorTable({
@@ -42,15 +42,10 @@ export default function SponsorTable({
   sponsors,
   onEdit,
   onDelete,
-  onToggleShow,
 }: SponsorTableProps) {
   return (
     <>
-      <Table
-        aria-label="Sponsor Table"
-        selectionMode="multiple"
-        className="min-w-full"
-      >
+      <Table aria-label="Sponsor Table" className="min-w-full">
         <TableHeader>
           <TableColumn>logo</TableColumn>
           <TableColumn>ชื่อ Sponsor (EN)</TableColumn>
@@ -60,34 +55,36 @@ export default function SponsorTable({
           <TableColumn className="text-center">Actions</TableColumn>
         </TableHeader>
         <TableBody>
-          {sponsors.map((s) => (
-            <TableRow key={s._id}>
+          {sponsors.map((sponsor) => (
+            <TableRow key={sponsor._id}>
               <TableCell>
-                {s.photo?.logoPhoto ? (
+                {sponsor.photo && typeof sponsor.photo === "string" ? (
                   <img
-                    src={`http://localhost:8080/uploads/${s.photo.logoPhoto}`}
-                    alt={s.name.en}
+                    src={`http://localhost:8080/uploads/${sponsor.photo}`}
+                    alt={sponsor.name.en}
                     className="h-10 w-10 object-contain rounded"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.png";
+                    }}
                   />
                 ) : (
                   <span className="text-default-500 italic">No Logo</span>
                 )}
               </TableCell>
-              <TableCell>{s.name.en}</TableCell>
-              <TableCell>{s.name.th}</TableCell>
+              <TableCell>{sponsor.name.en}</TableCell>
+              <TableCell>{sponsor.name.th}</TableCell>
               <TableCell>
-                {typeof s.type === "object" && s.type !== null
-                  ? (s.type as { name: string }).name
-                  : s.type}
+                {typeof sponsor.type === "object" && sponsor.type !== null
+                  ? (sponsor.type as { name: string }).name
+                  : sponsor.type}
               </TableCell>
               <TableCell className="text-center">
                 <Chip
-                  color={s.isShow ? "primary" : "danger"}
-                  variant="faded"
+                  color={sponsor.isShow ? "primary" : "danger"}
+                  variant="solid"
                   className="cursor-pointer select-none"
-                  onClick={() => onToggleShow(s)}
                 >
-                  {s.isShow ? "Show" : "Hide"}
+                  {sponsor.isShow ? "Show" : "Hide"}
                 </Chip>
               </TableCell>
               <TableCell className="text-center">
@@ -101,17 +98,17 @@ export default function SponsorTable({
                     <DropdownMenu>
                       <DropdownItem
                         key="edit"
-                        startContent={<Pen size="16px" />}
-                        onPress={() => onEdit(s)}
+                        startContent={<Pen size={16} />}
+                        onPress={() => onEdit(sponsor)}
                       >
                         Edit
                       </DropdownItem>
                       <DropdownItem
                         key="delete"
-                        startContent={<Trash size="16px" />}
+                        startContent={<Trash size={16} />}
                         className="text-danger"
                         color="danger"
-                        onPress={() => onDelete(s)}
+                        onPress={() => onDelete(sponsor)}
                       >
                         Delete
                       </DropdownItem>
@@ -130,8 +127,8 @@ export default function SponsorTable({
         isOpen={isModalOpen}
         mode={modalMode}
         sponsor={
-          selectedSponsor && '_id' in selectedSponsor
-            ? (selectedSponsor as Sponsor)
+          selectedSponsor && "_id" in selectedSponsor
+            ? (selectedSponsor as Sponsors)
             : undefined
         }
         onClose={onClose}
