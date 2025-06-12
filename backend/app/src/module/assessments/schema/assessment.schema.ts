@@ -19,9 +19,6 @@ export class Assessment {
 
     @Prop({ required: true, type: Number, default: 1 })
     order: number;
-
-    @Prop({ type: String, default: null })
-    banner: string;
 }
 
 export const AssessmentSchema = SchemaFactory.createForClass(Assessment);
