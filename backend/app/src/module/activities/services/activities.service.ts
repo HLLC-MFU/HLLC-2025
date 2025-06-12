@@ -17,6 +17,7 @@ import {
   parseScope,
   parseStringArray,
 } from '../utils/scope.util';
+import { Checkin, CheckinDocument } from 'src/module/checkin/schema/checkin.schema';
 
 @Injectable()
 export class ActivitiesService {
@@ -24,8 +25,9 @@ export class ActivitiesService {
     @InjectModel(Activities.name)
     private activitiesModel: Model<ActivityDocument>,
     private usersService: UsersService,
-    
-  ) {}
+    @InjectModel(Checkin.name)
+    private readonly checkinsModel: Model<Checkin>,
+  ) { }
 
   async create(createActivitiesDto: CreateActivitiesDto) {
     const metadata = createActivitiesDto.metadata || {};
@@ -91,7 +93,7 @@ export class ActivitiesService {
     });
   }
 
-  async findCanCheckinActivities(){
+  async findCanCheckinActivities() {
     const currentDate = new Date();
     const query = {
       'metadata.isOpen': true,
@@ -127,6 +129,15 @@ export class ActivitiesService {
       throw new NotFoundException('User not found');
     }
 
+    const now = new Date();
+
+    // ✅ Step 1: Fetch check-ins for this user
+    const userCheckins = await this.checkinsModel.find({ user: user._id }).lean();
+
+    const checkinMap = new Set(
+      userCheckins.map((c) => c.activity.toString()),
+    );
+
     const result = await queryAll<Activities>({
       model: this.activitiesModel,
       query: {
@@ -141,20 +152,57 @@ export class ActivitiesService {
       populateFields: () => Promise.resolve([{ path: 'type' }]),
     });
 
-    const filteredData = result.data.filter((activity) =>
-      isUserInScope(user, activity as ActivityDocument),
-    );
+    const mapped = result.data
+      .filter((activity) => isUserInScope(user, activity as ActivityDocument))
+      .map((activity) => {
+        const meta = activity.metadata;
+        const activityId = (activity as any)._id.toString();
+        const hasCheckedIn = checkinMap.has(activityId);
+
+        let status = 0;
+        let message = 'Not yet open for check-in';
+
+        const checkinStart = new Date(meta.checkinStartAt);
+        const end = new Date(meta.endAt);
+
+        if (!meta.isOpen || now < checkinStart) {
+          status = 0;
+          message = 'Not yet open for check-in';
+        } else if (now > end) {
+          status = 3;
+          message = 'Activity has ended';
+        } else if (hasCheckedIn) {
+          status = 2;
+          message = 'You have already checked in';
+        } else if (now >= checkinStart && now <= end) {
+          status = 1;
+          message = 'Check-in available now';
+        } else if (now > end && !hasCheckedIn) {
+          status = -1;
+          message = 'You missed the check-in time';
+        }
+
+        return {
+          ...(typeof (activity as any).toObject === 'function'
+            ? (activity as any).toObject()
+            : activity),
+          checkinStatus: status,
+          checkinMessage: message,
+        };
+      });
 
     return {
       ...result,
-      data: filteredData,
+      data: mapped,
       meta: {
         ...result.meta,
-        total: filteredData.length,
-        totalPages: Math.ceil(filteredData.length / Number(query.limit || 20)),
+        total: mapped.length,
+        totalPages: Math.ceil(mapped.length / Number(query.limit || 20)),
       },
     };
   }
+
+
 
   async update(id: string, updateActivityDto: UpdateActivityDto) {
     if (updateActivityDto.metadata?.scope) {

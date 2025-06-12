@@ -1,144 +1,127 @@
-import { useEffect, useState } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  StyleSheet,
-} from "react-native";
-import { Image, ImageBackground } from "expo-image";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft } from "lucide-react-native";
-import { apiRequest, ApiResponse } from "@/utils/api";
-import { Activity } from "@/types/activities";
-import { BlurView } from "expo-blur";
 
-import useProfile from "@/hooks/useProfile";
-import { useActivities } from "@/hooks/useActivities";
-import { useLanguage } from "@/context/LanguageContext";
 
-export default function ActivityDetailScreen() {
-  const { language } = useLanguage();
-  const { user } = useProfile();
-  const router = useRouter();
+import { router, useLocalSearchParams } from "expo-router"
+import { useActivityStore } from "@/stores/activityStore"
+import { Linking, Text, TouchableOpacity, View } from "react-native"
+import { Image } from "expo-image"
+import { LinearGradient } from "expo-linear-gradient"
+import { DateBadge } from "./_components/date-badge"
+import { WebView } from 'react-native-webview'
+import { Button, Separator } from "tamagui"
+import { ArrowLeft, Compass } from "@tamagui/lucide-icons"
 
-  // 🧠 ปลอดภัยจาก id แบบ array
-  const rawId = useLocalSearchParams().id;
-  const id =
-    typeof rawId === "string"
-      ? rawId
-      : Array.isArray(rawId)
-      ? rawId[0]
-      : undefined;
 
-  const { activities } = useActivities();
-  const cachedActivity = activities.find((a) => a.id === id); // ✅ ค้นจาก Zustand cache
-
-  const [activity, setActivity] = useState<Activity | null>(
-    cachedActivity || null
-  );
-  const [loading, setLoading] = useState(!cachedActivity); // ✅ ถ้ามีข้อมูลแล้วไม่โหลดใหม่
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (activity || !id || !user?.id) return;
-
-    const loadActivity = async () => {
-      setLoading(true);
-      const res: ApiResponse<Activity> = await apiRequest(
-        `/users/${user.id}/activities/${id}`
-      );
-      if (res.statusCode === 200 && res.data) {
-        setActivity(res.data);
-      } else {
-        setError(res.message || "Failed to load activity.");
-      }
-      setLoading(false);
-    };
-
-    loadActivity();
-  }, [id, user?.id, activity]);
-
-  if (loading) {
-    return (
-      <SafeAreaView
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-      >
-        <ActivityIndicator size="large" color="#888" />
-      </SafeAreaView>
-    );
-  }
+export default function ActivityDetailPage() {
+  const { id } = useLocalSearchParams()
+  const activity = useActivityStore((s) => s.selectedActivity)
 
   if (!activity) {
-    return (
-      <SafeAreaView
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-      >
-        <Text style={{ color: "red", fontSize: 16 }}>ไม่พบข้อมูลกิจกรรม</Text>
-      </SafeAreaView>
-    );
+    return <Text>No activity data found.</Text>
   }
 
   return (
-    <ImageBackground
-      source={{ uri: user?.theme?.assets?.background }}
-      style={StyleSheet.absoluteFill}
-      contentFit="cover"
-    >
-      <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
-      <SafeAreaView
-        style={{
-          paddingTop: 16,
-          paddingHorizontal: 16,
-          zIndex: 99,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          width: "100%",
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft color={"white"} />
-        </TouchableOpacity>
-        <Text style={{ color: "white", fontSize: 18, fontWeight: "bold" }}>
-          Activity Details
-        </Text>
-        <ArrowLeft color={"transparent"} />
-      </SafeAreaView>
+    <View style={{ flex: 1, backgroundColor: "white" }}>
+      <View style={{ position: "relative", width: "100%", aspectRatio: 4 / 3 }}>
 
-      <SafeAreaView
-        style={{ flex: 1, paddingHorizontal: 16, marginTop: 0, gap: 16 }}
-      >
-        <Image
-          source={{ uri: activity.banner }}
-          style={{ width: "100%", aspectRatio: 16 / 9, borderRadius: 16 }}
-          contentFit="cover"
-        />
+        <View style={{ position: 'relative', width: '100%', aspectRatio: 4 / 3 }}>
+          {/* Banner Image */}
+          <Image
+            source={
+              activity.photo.banner
+                ? { uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.banner}` }
+                : null
+            }
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+          />
 
-        <BlurView
-          intensity={60}
-          tint="light"
+          {/* Back Button */}
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              position: 'absolute',
+              top: 60, // or use SafeAreaInsets for dynamic padding
+              left: 16,
+              backgroundColor: 'rgba(255,255,255,0.7)',
+              padding: 8,
+              borderRadius: 999,
+            }}
+          >
+            <ArrowLeft color="#333" size={20} />
+          </TouchableOpacity>
+        </View>
+        <LinearGradient
+          colors={["transparent", "rgb(255, 255, 255)255, rgba(255, 255, 255, 0.8)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          locations={[0, 0.8, 1]}
+          pointerEvents="none"
           style={{
-            width: "100%",
-            padding: 16,
-            borderRadius: 16,
-            backgroundColor: "rgba(255, 255, 255, 0.25)",
-            overflow: "hidden",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 10,
-            elevation: 5,
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: "40%",
           }}
-        >
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>
-            {activity.name[language]}
-          </Text>
-          <Text style={{ fontSize: 16, marginTop: 8 }}>
-            {activity.description[language]}
-          </Text>
-        </BlurView>
-      </SafeAreaView>
-    </ImageBackground>
-  );
+        />
+      </View>
+      <View>
+
+      </View>
+      <View style={{ padding: 16, gap: 16 }}>
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <View>
+            <Text style={{
+              textTransform
+                : 'uppercase', fontSize: 16, fontWeight: 'thin', color: '#555'
+            }}>Activity</Text>
+            <Text style={{ textTransform: 'uppercase', fontSize: 24, fontWeight: 'bold', color: '#777' }}>{activity.name.en}</Text>
+            <Text style={{
+              textTransform
+                : 'uppercase', fontSize: 16, fontWeight: 'thin', color: '#555'
+            }}>Start At{' '}
+              {new Date(activity.metadata.startAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}</Text>
+            <Text style={{
+              textTransform
+                : 'uppercase', fontSize: 16, fontWeight: 'thin', color: '#555'
+            }}>{activity.location.en}</Text>
+            <Text style={{
+              textTransform
+                : 'uppercase', fontSize: 12, fontWeight: 'thin', color: '#555'
+            }}>{activity.checkinMessage}</Text>
+          </View>
+          <View>
+            <Text style={{ fontSize: 14, color: '#777', marginTop: 4 }}><DateBadge date={activity.metadata.startAt} /></Text>
+          </View>
+        </View>
+        <Separator />
+
+        <View>
+          <Text style={{ fontSize: 16, color: '#555', textAlign: 'justify', }}>{"     "}{activity.fullDetails.en}</Text>
+        </View>
+        <Separator />
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+          <Button
+            onPress={() =>
+              Linking.openURL('https://maps.app.goo.gl/CWfVTpiP9Xu9BZx4A')
+            }
+            style={{
+              paddingVertical: 8,
+              paddingHorizontal: 16,
+              borderRadius: 8,
+            }}
+          ><Compass /> Get Direction</Button>
+        </View>
+
+      </View>
+
+    </View>
+  )
 }

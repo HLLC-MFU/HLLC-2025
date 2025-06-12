@@ -20,25 +20,36 @@ export class CheckinService {
   ) { }
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
-    const { staff: staffId, user: userId, activities } = createCheckinDto;
+    const { staff: staffId, user: username, activities } = createCheckinDto;
 
-    if (!Types.ObjectId.isValid(userId)) {
-      throw new BadRequestException('Invalid user ID');
+    if (!username || typeof username !== 'string') {
+      throw new BadRequestException('Invalid username');
     }
+
+    const userDoc = await this.userModel.findOne({ username }).select('_id');
+    if (!userDoc) {
+      throw new BadRequestException('User not found');
+    }
+
+    const userObjectId = userDoc._id;
+    const staffObjectId = staffId ? new Types.ObjectId(staffId) : undefined;
 
     if (!Array.isArray(activities) || activities.length === 0) {
       throw new BadRequestException('Activities must be a non-empty array');
     }
-
-    const userObjectId = new Types.ObjectId(userId);
-    const staffObjectId = staffId ? new Types.ObjectId(staffId) : undefined;
 
     if (staffObjectId) {
       if (!staffId || !Types.ObjectId.isValid(staffId)) {
         throw new BadRequestException('Invalid staff ID');
       }
 
-      const isAllowed = await isCheckinAllowed(staffId, userId, this.userModel, this.roleModel);
+      const isAllowed = await isCheckinAllowed(
+        staffId,
+        userObjectId.toString(),
+        this.userModel,
+        this.roleModel,
+      );
+
       if (!isAllowed) {
         throw new BadRequestException(
           'User is not allowed to be checked in by this staff',
@@ -69,21 +80,14 @@ export class CheckinService {
         'User already checked in to all activities',
       );
     }
-    const docs = filtered.map((activityId) => {
-      const doc: {
-        user: Types.ObjectId;
-        activity: Types.ObjectId;
-        staff?: Types.ObjectId;
-      } = {
-        user: userObjectId,
-        activity: activityId,
-      };
-      if (staffObjectId) {
-        doc.staff = staffObjectId;
-      }
-      return doc;
-    });
+
+    const docs = filtered.map((activityId) => ({
+      user: userObjectId,
+      activity: activityId,
+      ...(staffObjectId && { staff: staffObjectId }),
+    }));
 
     return this.checkinModel.insertMany(docs) as unknown as Checkin[];
   }
+
 }

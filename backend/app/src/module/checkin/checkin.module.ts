@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { CheckinService } from './checkin.service';
 import { CheckinController } from './checkin.controller';
 import { Checkin, CheckinSchema } from './schema/checkin.schema';
@@ -13,6 +13,7 @@ import { Major, MajorSchema } from '../majors/schemas/major.schema';
 import { ActivitiesService } from '../activities/services/activities.service';
 import { UsersService } from '../users/users.service';
 import { RoleService } from '../role/role.service';
+import { ActivitiesModule } from '../activities/activities.module';
 
 @Module({
   imports: [
@@ -38,9 +39,10 @@ import { RoleService } from '../role/role.service';
         schema: MajorSchema,
       },
     ]),
+    forwardRef(() => ActivitiesModule)
   ],
   exports: [MongooseModule],
   controllers: [CheckinController],
-  providers: [CheckinService, ActivitiesService, UsersService, RoleService],
+  providers: [CheckinService, UsersService, RoleService],
 })
 export class CheckinModule {}

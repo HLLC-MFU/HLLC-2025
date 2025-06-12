@@ -9,8 +9,6 @@ import {
   Req,
   UseGuards,
   UseInterceptors,
-  UnauthorizedException,
-  Body,
 } from '@nestjs/common';
 import { ActivitiesService } from '../services/activities.service';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
@@ -53,7 +51,6 @@ export class ActivitiesController {
   }
 
   @Get('users')
-  @CacheKey('activities:$req.user.id')
   getActivitiesByUser(@Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
     return this.activitiesService.findActivitiesByUserId(req.user._id);
   }
