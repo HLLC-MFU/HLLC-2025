@@ -98,11 +98,11 @@ export default function UsersTable({
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((user) =>
         typeof user.metadata?.major === "object" && (
-        user.username.toLowerCase().includes(filterValue.toLowerCase()) ||
-        `${user.name.first} ${user.name.middle ?? ""} ${user.name.last ?? ""}`.toLowerCase().includes(filterValue.toLowerCase()) ||
-        user.metadata?.major?.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
-        user.metadata?.major?.school.name.en.toLowerCase().includes(filterValue.toLowerCase())
-      ));
+          user.username.toLowerCase().includes(filterValue.toLowerCase()) ||
+          `${user.name.first} ${user.name.middle ?? ""} ${user.name.last ?? ""}`.toLowerCase().includes(filterValue.toLowerCase()) ||
+          user.metadata?.major?.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
+          user.metadata?.major?.school.name.en.toLowerCase().includes(filterValue.toLowerCase())
+        ));
     }
 
     return filteredUsers;
@@ -156,7 +156,7 @@ export default function UsersTable({
                   <DropdownItem
                     key="edit"
                     startContent={<Pen size="16px" />}
-                    onPress={() => { setActionText("Edit"); setModal(prev => ({...prev, add: true})); setUserAction(item) }}
+                    onPress={() => { setActionText("Edit"); setModal(prev => ({ ...prev, add: true })); setUserAction(item) }}
                   >
                     Edit
                   </DropdownItem>
@@ -165,7 +165,7 @@ export default function UsersTable({
                     className="text-danger"
                     color="danger"
                     startContent={<RotateCcw size="16px" />}
-                    onPress={() => { setConfirmText("Reset"); setModal(prev => ({...prev, confirm: true})); setUserAction(item) }}
+                    onPress={() => { setConfirmText("Reset"); setModal(prev => ({ ...prev, confirm: true })); setUserAction(item) }}
                   >
                     Reset Password
                   </DropdownItem>
@@ -174,7 +174,7 @@ export default function UsersTable({
                     className="text-danger"
                     color="danger"
                     startContent={<Trash size="16px" />}
-                    onPress={() => { setConfirmText("Delete"); setModal(prev => ({...prev, confirm: true})); setUserAction(item); }}
+                    onPress={() => { setConfirmText("Delete"); setModal(prev => ({ ...prev, confirm: true })); setUserAction(item); }}
                   >
                     Delete
                   </DropdownItem>
@@ -194,11 +194,13 @@ export default function UsersTable({
   );
 
   const handleAdd = async (user: Partial<User>) => {
-    let response;
+    const response = actionText === "Add"
+      ? await createUser(user)
+      : actionText === "Edit"
+        ? await updateUser(userAction._id, user)
+        : null;
 
-    if (actionText === "Add") response = await createUser(user);
-    if (actionText === "Edit") response = await updateUser(userAction._id, user);
-    setModal(prev => ({...prev, add: false}));
+    setModal(prev => ({ ...prev, add: false }));
 
     if (response) {
       await fetchUsers();
@@ -211,10 +213,8 @@ export default function UsersTable({
   };
 
   const handleImport = async (users: Partial<User>[]) => {
-    let response;
-
-    response = await uploadUser(users)
-    setModal(prev => ({...prev, import: false}));
+    const response = await uploadUser(users)
+    setModal(prev => ({ ...prev, import: false }));
 
     if (response) {
       await fetchUsers();
@@ -227,21 +227,18 @@ export default function UsersTable({
   };
 
   const handleExport = (fileName?: string) => {
-    let temp = [];
-
-    if (fileName) {
-      temp = users.map((user) => (
+    const temp = fileName
+      ? users.map((user) => (
         typeof user.metadata?.major === "object" && typeof user.role === "object" && {
-        username: user.username,
-        first: user.name?.first,
-        middle: user.name?.middle ?? "",
-        last: user.name?.last ?? "",
-        role: user.role?.name,
-        school: user.metadata?.major?.school.name.en ?? "",
-        major: user.metadata?.major?.name.en ?? "",
-      }))
-    } else {
-      temp = [{
+          username: user.username,
+          first: user.name?.first,
+          middle: user.name?.middle ?? "",
+          last: user.name?.last ?? "",
+          role: user.role?.name,
+          school: user.metadata?.major?.school.name.en ?? "",
+          major: user.metadata?.major?.name.en ?? "",
+        }))
+      : [{
         "username": [],
         "first": [],
         "middle": [],
@@ -250,7 +247,7 @@ export default function UsersTable({
         "school": [],
         "major": [],
       }];
-    }
+
     const worksheet = XLSX.utils.json_to_sheet(temp);
     const workbook = XLSX.utils.book_new();
 
@@ -263,7 +260,7 @@ export default function UsersTable({
     } else {
       saveAs(blob, "Template.xlsx")
     }
-    setModal(prev => ({...prev, export: false}));
+    setModal(prev => ({ ...prev, export: false }));
     addToast({
       title: "Export Successfully",
       description: "Data has exported successfully",
@@ -272,19 +269,16 @@ export default function UsersTable({
   }
 
   const handleConfirm = async () => {
-    let response;
+    let response = null;
 
     if (confirmText === "Delete") {
-      if (Array.from(selectedKeys).length > 0) {
-        response = await deleteMultiple(Array.from(selectedKeys) as string[]);
-      } else {
-        response = await deleteUser(userAction._id)
-      }
-      setModal(prev => ({...prev, confirm: false}));
+      response = Array.from(selectedKeys).length > 0
+        ? await deleteMultiple(Array.from(selectedKeys) as string[])
+        : await deleteUser(userAction._id);
     } else {
       await removePassword(userAction.username);
-      setModal(prev => ({...prev, confirm: false}));
     }
+    setModal(prev => ({ ...prev, confirm: false }));
 
     if (response) {
       await fetchUsers();
@@ -338,7 +332,7 @@ export default function UsersTable({
         majors={majors}
         user={userAction}
         onAdd={handleAdd}
-        onClose={() => setModal(prev => ({...prev, add: false}))}
+        onClose={() => setModal(prev => ({ ...prev, add: false }))}
       />
 
       {/* Import */}
@@ -346,7 +340,7 @@ export default function UsersTable({
         isOpen={modal.import}
         majors={majors}
         roleId={roleId}
-        onClose={() => setModal(prev => ({...prev, import: false}))}
+        onClose={() => setModal(prev => ({ ...prev, import: false }))}
         onExportTemplate={() => handleExport()}
         onImport={handleImport}
       />
@@ -354,7 +348,7 @@ export default function UsersTable({
       {/* Export */}
       <ExportModal
         isOpen={modal.export}
-        onClose={() => setModal(prev => ({...prev, export: false}))}
+        onClose={() => setModal(prev => ({ ...prev, export: false }))}
         onExport={handleExport}
       />
 
@@ -363,8 +357,8 @@ export default function UsersTable({
         body={`Are you sure you want to ${confirmText.toLowerCase()} this user?`}
         confirmColor={'danger'}
         isOpen={modal.confirm}
-        title={`${confirmText} user ${userAction.username}`} 
-        onClose={() => setModal(prev => ({...prev, confirm: false}))}
+        title={`${confirmText} user ${userAction.username}`}
+        onClose={() => setModal(prev => ({ ...prev, confirm: false }))}
         onConfirm={handleConfirm}
       />
     </div>

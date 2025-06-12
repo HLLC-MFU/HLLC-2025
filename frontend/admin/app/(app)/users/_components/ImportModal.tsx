@@ -5,7 +5,6 @@ import { columns } from "./UserTable";
 import { User } from "@/types/user";
 import { Major } from "@/types/major";
 
-
 type ImportModalProps = {
     isOpen: boolean;
     onClose: () => void;

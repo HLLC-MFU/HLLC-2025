@@ -107,7 +107,6 @@ const useAuth = create<AuthStore>()(
 
       removePassword: async (username) => {
         try {
-          console.log({ username })
           set({ loading: true, error: null });
 
           const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/remove-password`, {
