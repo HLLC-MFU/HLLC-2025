@@ -5,7 +5,6 @@ import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne, queryUpdateOneB
 import { PosttestAnswer, PosttestAnswerDocument } from '../schema/posttest-answer.schema';
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { CreatePosttestAnswerDto } from '../dto/posttest-answer/create-posttest-answer.dto';
-import { UpdatePosttestAnswerDto } from '../dto/posttest-answer/update-posttest-answer.dto';
 import { PrepostQuestion, PrepostQuestionDocument } from '../schema/prepost-question.schema';
 import { PrepostQuestionTypes } from '../enum/prepost-question-types.enum';
 
@@ -36,7 +35,7 @@ export class PosttestAnswersService {
 
     const validQuestions = await this.prepostQuestionModel.find({
       _id: { $in: questionIds },
-      displaytype: { $in: [PrepostQuestionTypes.Both, PrepostQuestionTypes.Post] }
+      displaytype: { $in: [PrepostQuestionTypes.BOTH, PrepostQuestionTypes.POST] }
     }).select('_id').lean();
 
     const validQuestionIds = new Set(validQuestions.map(q => q._id.toString()));

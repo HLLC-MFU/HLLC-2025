@@ -13,7 +13,7 @@ class Answer{
     answer: string
 }
 
-@Schema({ timestamps: true , collection: "pre-test-answer"})
+@Schema({ timestamps: true , collection: "pretest-answer"})
 export class PretestAnswer {
     @Prop({ required:true, type:Types.ObjectId, ref: 'User'})
     user: Types.ObjectId

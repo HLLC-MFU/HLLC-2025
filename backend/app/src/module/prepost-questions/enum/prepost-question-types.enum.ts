@@ -1,5 +1,5 @@
 export enum PrepostQuestionTypes {
-    Both = 'both',
-    Pre = 'pretest',
-    Post = 'posttest'
+    BOTH = 'both',
+    PRE = 'pretest',
+    POST = 'posttest'
 }

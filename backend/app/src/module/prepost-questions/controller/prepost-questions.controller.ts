@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, UseInterceptors, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PermissionsGuard } from 'src/module/auth/guards/permissions.guard';
 import { CreatePrepostQuestiontDto } from '../dto/prepost-question/create-prepost-question.dto';

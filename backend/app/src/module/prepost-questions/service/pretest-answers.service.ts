@@ -4,7 +4,6 @@ import { Model, Types } from 'mongoose';
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne, queryUpdateOneByFilter } from 'src/pkg/helper/query.util';
 import { CreatePretestAnswerDto } from '../dto/pretest-answer/create-pretest-answer.dto';
-import { UpdatePretestAnswerDto } from '../dto/pretest-answer/update-pretest-answer.dto';
 import { PretestAnswer, PretestAnswerDocument } from '../schema/pretest-answer.schema';
 import { PrepostQuestion, PrepostQuestionDocument } from '../schema/prepost-question.schema';
 import { PrepostQuestionTypes } from '../enum/prepost-question-types.enum';
@@ -36,7 +35,7 @@ export class PretestAnswersService {
 
     const validQuestions = await this.prepostQuestionModel.find({
       _id: { $in: questionIds },
-      displaytype: { $in: [PrepostQuestionTypes.Both, PrepostQuestionTypes.Pre] }
+      displaytype: { $in: [PrepostQuestionTypes.BOTH, PrepostQuestionTypes.PRE] }
     }).select('_id').lean();
 
     const validQuestionIds = new Set(validQuestions.map(q => q._id.toString()));

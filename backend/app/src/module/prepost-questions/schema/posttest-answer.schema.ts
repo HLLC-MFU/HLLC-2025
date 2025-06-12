@@ -13,7 +13,7 @@ class Answer{
     answer: string
 }
 
-@Schema({ timestamps: true, collection: "post-test-answer"})
+@Schema({ timestamps: true, collection: "posttest-answer"})
 export class PosttestAnswer {
 
     @Prop({ required: true, type: Types.ObjectId, ref: 'User'})
