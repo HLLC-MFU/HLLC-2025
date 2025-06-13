@@ -1,5 +1,5 @@
 import { Input, Textarea } from '@heroui/input';
-import { Select, SelectItem } from '@heroui/react';
+import { image, Select, SelectItem } from '@heroui/react';
 import { Star, School, BookMarked, CircleCheckBig } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ImageUploader } from './imageupload';
@@ -31,8 +31,10 @@ export type InformationInfoData = {
   icon?: React.ElementType;
   title: { en: string; th: string };
   subtitle: { en: string; th: string };
-  description: { en: string; th: string };
+  body: { en: string; th: string };
   redirect: { en: string; th: string; link: string };
+  imageUrl?: string;
+  imageFile?: File;
 };
 
 type InformationinfoProps = {
@@ -40,14 +42,12 @@ type InformationinfoProps = {
 };
 
 export function Informationinfo({ onChange }: InformationinfoProps) {
-  const [selected, setSelected] = useState<(typeof icons)[0] | undefined>(
-    undefined,
-  );
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-
+  const [selected, setSelected] = useState<(typeof icons)[0] | undefined>(undefined,);
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [imageFile, setImageFile] = useState<File | undefined>(undefined);
   const [title, setTitle] = useState({ en: '', th: '' });
   const [subtitle, setSubtitle] = useState({ en: '', th: '' });
-  const [description, setDescription] = useState({ en: '', th: '' });
+  const [body, setBody] = useState({ en: '', th: '' });
   const [redirect, setRedirect] = useState({ en: '', th: '', link: '' });
 
   useEffect(() => {
@@ -55,14 +55,15 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
       icon: selected?.icon,
       title,
       subtitle,
-      description,
+      body,
       redirect,
-      imageUrl
+      imageUrl,
+      imageFile
     };
     if (onChange) {
       onChange(data); // 🔁 ส่งข้อมูลออกทุกครั้งที่เปลี่ยน
     }
-  }, [selected, title, subtitle, description, redirect, imageUrl, onChange]);
+  }, [selected, title, subtitle, body, redirect, imageUrl, onChange]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -70,10 +71,11 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         <h1 className="text-xl font-bold  justify-center ">
           Information Info
         </h1>
-        <div className="w-52 h-full">
+        <div className=" w-full max-w-[9rem] h-full">
           <Select
-            className="w-52 bg-white border border-gray-300 rounded-xl"
+            className=" border border-gray-300 rounded-lg"
             label="Select Icons"
+            size="sm"
             selectedKeys={selected ? [selected.name] : []}
             onSelectionChange={keys => {
               const name = Array.from(keys)[0];
@@ -105,7 +107,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
       </div>
 
       {/* Title */}
-      <h1 className="text-xl font-bold"> Title </h1>
+      <h1 className="text-lg font-bold"> Title </h1>
       <div className="flex flex-row justify-between gap-5">
         <Input
           label="English"
@@ -127,7 +129,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
       </div>
 
       {/* Subtitle */}
-      <h1 className="text-xl font-bold"> Subtitle</h1>
+      <h1 className="text-lg font-bold"> Subtitle</h1>
       <div className="flex flex-row justify-between gap-5">
         <Input
           label="English"
@@ -148,15 +150,15 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         />
       </div>
 
-      <h1 className="text-xl font-bold"> Description </h1>
+      <h1 className="text-lg font-bold"> Description </h1>
       <div className="flex flex-row justify-between gap-5 items-stretch">
         <div className="w-full h-full">
           <Textarea
             label="English"
             className="bg-white border border-gray-300 rounded-xl "
-            value={description.en}
+            value={body.en}
             onChange={e =>
-              setDescription({ ...description, en: e.target.value })
+              setBody({ ...body, en: e.target.value })
             }
           />
         </div>
@@ -164,15 +166,15 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
           <Textarea
             label="Thai"
             className="bg-white border border-gray-300 rounded-xl "
-            value={description.th}
+            value={body.th}
             onChange={e =>
-              setDescription({ ...description, th: e.target.value })
+              setBody({ ...body, th: e.target.value })
             }
           />
         </div>
       </div>
 
-      <h1 className="text-xl font-bold"> Redirect (Optional) </h1>
+      <h1 className="text-lg font-bold"> Redirect (Optional) </h1>
       <div className="grid grid-cols-2 justify-between gap-5">
         <Input
           label="English"
@@ -201,8 +203,8 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         />
       </div>
 
-      <h1 className="text-xl font-bold"> Imange (Optional) </h1>
-      <ImageUploader onChange={(file, url) => setImageUrl(url)} />
+      <h1 className="text-lg font-bold"> Imange (Optional) </h1>
+      <ImageUploader onChange={(file, url) => { setImageUrl(url); setImageFile(file ?? undefined); }} />
     </div>
   );
 }

@@ -1,50 +1,86 @@
 'use client';
 import { BellIcon, SendHorizontal } from 'lucide-react';
-import { Button, Select, SelectItem } from '@heroui/react';
+import { Button, form, Select, SelectItem } from '@heroui/react';
 import { SelectStudent } from './_components/Selectstudentinfo';
 import { Informationinfo } from './_components/InfoFrom';
 import { PreviewApp, PreviewOutApp } from './_components/Preview';
 import { InformationInfoData } from './_components/InfoFrom';
 import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
+import { useNotification } from '@/hooks/useNotification';
+import type { Notification } from '@/types/Notification';
+import { fromDate } from '@internationalized/date';
 
 export const language = [
   { key: 'en', label: 'EN' },
   { key: 'th', label: 'TH' },
 ];
 
-export default function NotiManage() {
-  const [selectLanguagePreview, setSelectLanguagePreview] = useState< 'en' | 'th' >('en');
-  const [selectLanguageNotification, setSelectLanguageNotification] = useState< 'en' | 'th' >('en');
-  const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
+type SelectionScope =
+  | 'global'
+  | { type: 'individual' | 'school' | 'major'; id: string[] }[];
 
-  console.log('ข้อมูลหน้าบ้าน', infoData);
+export default function NotiManage() {
+  const [selectLanguagePreview, setSelectLanguagePreview] = useState<'en' | 'th'>('en');
+  const [selectLanguageNotification, setSelectLanguageNotification] = useState<'en' | 'th'>('en');
+  const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
+  const [scope, setScope] = useState<SelectionScope>('global');
+  const { createNotification } = useNotification()
+
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (infoData) {
+      const formData = new FormData();
+      formData.append("title[Th]", infoData.title.th)
+      formData.append("title[En]", infoData.title.en)
+      formData.append("subtitle[Th]", infoData.subtitle.th)
+      formData.append("subtitle[En]", infoData.subtitle.en)
+      formData.append("body[Th]", infoData.body.th)
+      formData.append("body[En]", infoData.body.en)
+      formData.append("scope", typeof scope === 'string' ? scope : JSON.stringify(scope))
+      if (typeof infoData.icon === 'string') {
+        formData.append("icon", infoData.icon)
+      }
+      if (infoData.imageFile) {
+        formData.append("image", infoData.imageFile);
+      }
+      if (infoData.redirect?.link?.trim() !== '') {
+        formData.append("redirectButton[label][En]", infoData.redirect.en)
+        formData.append("redirectButton[label][Th]", infoData.redirect.th)
+        formData.append("redirectButton[url]", infoData.redirect.link)
+      }
+      createNotification(formData)
+    }
+  }
+
   return (
     <>
-			<PageHeader description='Create, manage, and view system notifications for specific users or roles.' icon={<BellIcon />} />
+      <PageHeader description='Create, manage, and view system notifications for specific users or roles.' icon={<BellIcon />} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <div id="Notification Info" className="flex row-span-2 w-full">
             <div className="flex flex-col w-full gap-6">
-              <div className="flex flex-col w-full px-5 py-6 gap-6 bg-white rounded-2xl border border-gray-300 shadow-md">
-                <h1 className="text-xl font-bold ">Preview</h1>
-                <SelectStudent />
+              <div className="flex flex-col w-full px-5 py-6 gap-6  rounded-2xl border border-gray-300 shadow-md">
+                <h1 className="text-2xl font-bold ">Preview</h1>
+                <SelectStudent onScopeChange={setScope} />
               </div>
-              <div className="flex flex-col w-full px-5 py-6 gap-6 bg-white rounded-2xl border border-gray-300 shadow-md">
+              <div className="flex flex-col w-full px-5 py-6 gap-6 rounded-2xl border border-gray-300 shadow-md">
                 <Informationinfo onChange={setInfoData} />
               </div>
             </div>
           </div>
         </div>
-        <div>
+        <div className="flex flex-col px-4 gap-6 w-full">
           <div
             id="Preview (Application)"
-            className="flex flex-col bg-white rounded-2xl border border-gray-300 p-6 gap-6 shadow-md items-end"
+            className="flex flex-col  rounded-2xl border border-gray-300 p-6 gap-6 shadow-md items-end"
           >
             <div className="flex flex-row justify-between w-full">
               <h1 className="text-xl font-bold ">Preview In Application</h1>
               <Select
-                className="w-56"
+                className="max-w-[9rem]"
                 value={selectLanguagePreview}
                 items={language}
                 label="Language"
@@ -63,20 +99,27 @@ export default function NotiManage() {
             <Button
               color="primary"
               endContent={<SendHorizontal />}
-              className="p-4"
+              className="p-5"
               size="md"
+              onPress={() => {
+                // Simulate a form submit event for handleSubmit
+                const fakeEvent = {
+                  preventDefault: () => { },
+                } as unknown as React.FormEvent<HTMLFormElement>;
+                handleSubmit(fakeEvent);
+              }}
             >
-              <p className=" text-xl font-medium">Post</p>
+              <p className=" text-lg font-medium">Post</p>
             </Button>
           </div>
           <div
             id="Preview (Application)"
-            className="flex flex-col bg-white rounded-2xl border border-gray-300 h-96 p-6 gap-6 shadow-md items-end"
+            className="flex flex-col rounded-2xl border border-gray-300 h-96 p-6 gap-6 shadow-md items-end"
           >
             <div className="flex flex-row justify-between w-full">
               <h1 className="text-xl font-bold ">Preview Notfication</h1>
               <Select
-                className="w-56"
+                className="max-w-[9rem]"
                 value={selectLanguageNotification}
                 items={language}
                 label="Language"

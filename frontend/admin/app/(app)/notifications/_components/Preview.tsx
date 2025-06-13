@@ -32,7 +32,7 @@ export function PreviewApp({ info, lang }: { info: any; lang: 'en' | 'th' }) {
   });
 
   return (
-    <div className="w-full h-[400px] flex bg-cover bg-center bg-[url('/Bg_test1.png')] justify-center items-center rounded-2xl">
+    <div className="w-full h-[350px] flex bg-cover bg-center bg-[url('/Bg_test1.png')] justify-center items-center rounded-2xl">
       <Card className="w-[90%] h-[80%] ">
         <CardHeader className="flex gap-3">
           <div className="flex flex-col w-full">
@@ -41,16 +41,16 @@ export function PreviewApp({ info, lang }: { info: any; lang: 'en' | 'th' }) {
                 {SelectedIcon && (
                   <SelectedIcon className="w-6 h-6 text-black" />
                 )}
-                <p className="text-2xl font-medium truncate">
+                <p className="text-xl font-medium truncate">
                   {info?.title?.[lang] || 'Title'}
                 </p>
               </div>
-              <p className="absolute top-5 right-5 text-sm text-gray-500 whitespace-nowrap">
+              <p className="absolute top-4 right-5 text-sm text-gray-500 whitespace-nowrap">
                 {dateString} | {timeString}
               </p>
             </div>
             <div className="pr-36">
-              <p className="text-xl text-default-500 whitespace-pre-wrap break-words">
+              <p className="text-lg text-default-500 whitespace-pre-wrap break-words">
                 {info?.subtitle?.[lang] || 'Subtitle'}
               </p>
             </div>
@@ -60,7 +60,7 @@ export function PreviewApp({ info, lang }: { info: any; lang: 'en' | 'th' }) {
         <CardBody className="relative pt-4 pb-16 pr-24 overflow-auto">
           <div className="pr-8">
             {/* เพิ่ม padding ขวาให้ห่างจากรูป */}
-            <p className="whitespace-pre-wrap break-words">
+            <p className=" text-base whitespace-pre-wrap break-words">
               {info?.description?.[lang] || 'Description'}
             </p>
           </div>
@@ -101,7 +101,7 @@ export function PreviewOutApp({
   info: any;
   lang: 'en' | 'th';
 }) {
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState(new Date()); 
   const SelectedIcon = info?.icon;
 
   useEffect(() => {
@@ -138,17 +138,17 @@ export function PreviewOutApp({
                   {SelectedIcon && (
                     <SelectedIcon className="w-6 h-6 text-black shrink-0" />
                   )}
-                  <p className="text-2xl font-medium truncate">
+                  <p className="text-xl font-medium truncate">
                     {info?.title?.[lang] || 'Title'}
                   </p>
                 </div>
 
                 {/* Subtitle */}
-                <p className="text-xl text-default-500 break-words whitespace-pre-wrap">
+                <p className="text-lg text-default-500 break-words whitespace-pre-wrap">
                   {info?.subtitle?.[lang] || 'Subtitle'}
                 </p>
               </div>
-              <p className="absolute top-5 right-5 text-sm text-gray-500 ">
+              <p className="absolute top-4 right-5 text-sm text-gray-500 ">
                 {dateString} | {timeString}{' '}
               </p>
             </div>
