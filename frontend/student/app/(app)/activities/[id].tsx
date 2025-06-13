@@ -1,61 +1,40 @@
-
-
-import { router, useLocalSearchParams } from "expo-router"
-import { useActivityStore } from "@/stores/activityStore"
-import { Linking, Text, TouchableOpacity, View } from "react-native"
-import { Image } from "expo-image"
-import { LinearGradient } from "expo-linear-gradient"
-import { DateBadge } from "./_components/date-badge"
-import { WebView } from 'react-native-webview'
-import { Button, Separator } from "tamagui"
-import { ArrowLeft, Compass } from "@tamagui/lucide-icons"
+import { router } from "expo-router";
+import { useActivityStore } from "@/stores/activityStore";
+import { Linking, Text, TouchableOpacity, View } from "react-native";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { DateBadge } from "./_components/date-badge";
+import { Button, Separator } from "tamagui";
+import { ArrowLeft, Compass } from "@tamagui/lucide-icons";
+import { SharedElement, SharedElementCompatRoute } from "react-navigation-shared-element";
+import { CheckinStatusChip } from "./_components/checkin-status-chip";
 
 
 export default function ActivityDetailPage() {
-  const { id } = useLocalSearchParams()
-  const activity = useActivityStore((s) => s.selectedActivity)
+  const activity = useActivityStore((s) => s.selectedActivity);
 
   if (!activity) {
-    return <Text>No activity data found.</Text>
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ fontSize: 16, color: "#999" }}>No activity data found.</Text>
+      </View>
+    );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "white" }}>
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+      {/* Image Section */}
       <View style={{ position: "relative", width: "100%", aspectRatio: 4 / 3 }}>
-
-        <View style={{ position: 'relative', width: '100%', aspectRatio: 4 / 3 }}>
-          {/* Banner Image */}
+        <SharedElement id={`activity-image-${activity._id}`} style={{ width: "100%", height: "100%" }}>
           <Image
-            source={
-              activity.photo.banner
-                ? { uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.banner}` }
-                : null
-            }
-            style={{ width: '100%', height: '100%' }}
+            source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.banner}` }}
             contentFit="cover"
+            style={{ width: "100%", height: "100%" }}
           />
+        </SharedElement>
 
-          {/* Back Button */}
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={{
-              position: 'absolute',
-              top: 60, // or use SafeAreaInsets for dynamic padding
-              left: 16,
-              backgroundColor: 'rgba(255,255,255,0.7)',
-              padding: 8,
-              borderRadius: 999,
-            }}
-          >
-            <ArrowLeft color="#333" size={20} />
-          </TouchableOpacity>
-        </View>
         <LinearGradient
-          colors={["transparent", "rgb(255, 255, 255)255, rgba(255, 255, 255, 0.8)"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          locations={[0, 0.8, 1]}
-          pointerEvents="none"
+          colors={["transparent", "#ffffff80", "#ffffff"]}
           style={{
             position: "absolute",
             bottom: 0,
@@ -63,65 +42,89 @@ export default function ActivityDetailPage() {
             right: 0,
             height: "40%",
           }}
+          pointerEvents="none"
         />
-      </View>
-      <View>
 
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            position: "absolute",
+            top: 60,
+            left: 16,
+            backgroundColor: "rgba(255,255,255,0.85)",
+            padding: 8,
+            borderRadius: 999,
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          }}
+        >
+          <ArrowLeft color="#333" size={20} />
+        </TouchableOpacity>
       </View>
-      <View style={{ padding: 16, gap: 16 }}>
-        <View style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          <View>
-            <Text style={{
-              textTransform
-                : 'uppercase', fontSize: 16, fontWeight: 'thin', color: '#555'
-            }}>Activity</Text>
-            <Text style={{ textTransform: 'uppercase', fontSize: 24, fontWeight: 'bold', color: '#777' }}>{activity.name.en}</Text>
-            <Text style={{
-              textTransform
-                : 'uppercase', fontSize: 16, fontWeight: 'thin', color: '#555'
-            }}>Start At{' '}
-              {new Date(activity.metadata.startAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}</Text>
-            <Text style={{
-              textTransform
-                : 'uppercase', fontSize: 16, fontWeight: 'thin', color: '#555'
-            }}>{activity.location.en}</Text>
-            <Text style={{
-              textTransform
-                : 'uppercase', fontSize: 12, fontWeight: 'thin', color: '#555'
-            }}>{activity.checkinMessage}</Text>
-          </View>
-          <View>
-            <Text style={{ fontSize: 14, color: '#777', marginTop: 4 }}><DateBadge date={activity.metadata.startAt} /></Text>
-          </View>
+
+      {/* Content Section */}
+      <View style={{ padding: 20, gap: 20 }}>
+        {/* Title & Info */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <View style={{ gap: 6 }}>
+          <Text style={{ fontSize: 13, color: "#888", textTransform: "uppercase" }}>Activity</Text>
+          <Text style={{ fontSize: 24, fontWeight: "700", color: "#222" }}>{activity.name.en}</Text>
+
+          <Text style={{ fontSize: 15, color: "#666" }}>
+            Start at{" "}
+            {new Date(activity.metadata.startAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+          <Text style={{ fontSize: 15, color: "#666" }}>{activity.location.en}</Text>
+          <CheckinStatusChip status={activity.checkinStatus} />
         </View>
+
+        <View style={{ flexDirection: "column", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <DateBadge date={activity.metadata.startAt} />
+
+        </View>
+        </View>
+
+
         <Separator />
 
+        {/* Description */}
         <View>
-          <Text style={{ fontSize: 16, color: '#555', textAlign: 'justify', }}>{"     "}{activity.fullDetails.en}</Text>
+          <Text style={{ fontSize: 16, lineHeight: 24, color: "#444", textAlign: "justify" }}>
+            {activity.fullDetails.en}
+          </Text>
         </View>
+
         <Separator />
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-          <Button
-            onPress={() =>
-              Linking.openURL('https://maps.app.goo.gl/CWfVTpiP9Xu9BZx4A')
-            }
-            style={{
-              paddingVertical: 8,
-              paddingHorizontal: 16,
-              borderRadius: 8,
-            }}
-          ><Compass /> Get Direction</Button>
-        </View>
 
+        {/* Action Button */}
+        <Button
+          onPress={() => Linking.openURL("https://maps.app.goo.gl/CWfVTpiP9Xu9BZx4A")}
+          icon={Compass}
+          style={{
+            borderRadius: 12,
+            paddingVertical: 10,
+            paddingHorizontal: 20,
+          }}
+        >
+          Get Direction
+        </Button>
       </View>
-
     </View>
-  )
+  );
 }
+
+ActivityDetailPage.sharedElements = (route: SharedElementCompatRoute) => {
+  const { id } = route.params ?? {};
+  return [
+    {
+      id: `activity-image-${id}`,
+      animation: "move",
+      resize: "clip",
+      align: "center-top",
+    },
+  ];
+};

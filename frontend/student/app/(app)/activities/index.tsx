@@ -33,8 +33,7 @@ export default function ActivitiesPage() {
   const fetchActivities = async () => {
     setLoading(true)
     try {
-      const response = await apiRequest("/activities/users", "GET")
-      console.log("Fetched activities:", response.data?.data)
+      const response = await apiRequest("/activities/users", "GET") as { data?: { data?: UserActivity[] } }
       const apiData = response.data?.data || []
       setActivities(apiData)
     } catch (error) {

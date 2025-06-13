@@ -138,6 +138,7 @@ export class ActivitiesService {
       userCheckins.map((c) => c.activity.toString()),
     );
 
+    // ✅ Step 2: Fetch activities (without populate)
     const result = await queryAll<Activities>({
       model: this.activitiesModel,
       query: {
@@ -168,7 +169,10 @@ export class ActivitiesService {
         if (!meta.isOpen || now < checkinStart) {
           status = 0;
           message = 'Not yet open for check-in';
-        } else if (now > end) {
+        } else if (now > end && !hasCheckedIn) {
+          status = -1;
+          message = 'You missed the check-in time';
+        } else if (now > end && hasCheckedIn) {
           status = 3;
           message = 'Activity has ended';
         } else if (hasCheckedIn) {
@@ -177,9 +181,6 @@ export class ActivitiesService {
         } else if (now >= checkinStart && now <= end) {
           status = 1;
           message = 'Check-in available now';
-        } else if (now > end && !hasCheckedIn) {
-          status = -1;
-          message = 'You missed the check-in time';
         }
 
         return {
