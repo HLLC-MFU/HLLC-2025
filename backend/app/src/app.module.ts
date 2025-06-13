@@ -29,9 +29,10 @@ import { ActivitiesTypeModule } from './module/activities-type/activities-type.m
 import { NotificationsModule } from './module/notifications/notifications.module';
 import { KafkaBootstrapModule } from './module/kafka/kafka-bootstrap.module';
 import { AssessmentsModule } from './module/assessments/assessments.module';
-import { PosttestModule } from './module/post-test/post-test.module';
-import { PreTestModule } from './module/pre-test/pre-test.module';
-import { AssessmentAnswersModule } from './module/assessment-answers/assessment-answers.module';
+import { AssessmentAnswersModule } from './module/assessments/assessment-answers.module';
+import { PrepostQuestionsModule } from './module/prepost-questions/prepost-question.module';
+import { PosttestAnswersModule } from './module/prepost-questions/posttest-answer.module';
+import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
 
 @Module({
   imports: [
@@ -78,9 +79,10 @@ import { AssessmentAnswersModule } from './module/assessment-answers/assessment-
     NotificationsModule,
     KafkaBootstrapModule,
     AssessmentsModule,
-    PosttestModule,
-    PreTestModule,
     AssessmentAnswersModule,
+    PrepostQuestionsModule,
+    PosttestAnswersModule,
+    PretestAnswersModule
   ],
   providers: [
     {
