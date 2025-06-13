@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ObjectId, Types } from 'mongoose';
+import { Model } from 'mongoose';
 
 import { Report, ReportDocument } from '../schemas/reports.schema';
 import { User, UserDocument } from '../../users/schemas/user.schema';
