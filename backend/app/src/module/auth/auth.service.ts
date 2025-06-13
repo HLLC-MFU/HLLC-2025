@@ -36,21 +36,26 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly discoveryService: DiscoveryService,
     private readonly reflector: Reflector,
-  ) {}
+  ) { }
 
-  async validateUser(username: string, pass: string): Promise<UserDocument> {
-    const user = await this.userModel
-      .findOne({ username })
-      .select('+password')
-      .populate('role', 'name permissions');
+  async validateUser(username: string, pass: string) {
+    const userDoc = await this.userModel
+      .findOne({ username }, '+password')
+      .populate({
+        path: 'role',
+        select: 'name permissions metadataSchema',
+      })
+      .select('username name password metadata.major')
+      .lean();
 
-    if (!user) throw new UnauthorizedException('User not found');
-    if (!user.password) throw new UnauthorizedException('User not registered');
 
-    const isMatch = await bcrypt.compare(pass, user.password);
+    if (!userDoc) throw new UnauthorizedException('User not found');
+    if (!userDoc.password) throw new UnauthorizedException('User not registered');
+
+    const isMatch = await bcrypt.compare(pass, userDoc.password);
     if (!isMatch) throw new UnauthorizedException('Invalid password');
 
-    // Decrypt role.permissions before returning
+    const { password, ...user } = userDoc;
     let role: RoleDocument | null = null;
     if (
       user.role &&
@@ -67,10 +72,17 @@ export class AuthService {
   }
 
   async login(
-    user: UserDocument,
+    user: Partial<UserDocument>,
     options?: LoginOptions,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const payload = { sub: user._id.toString(), username: user.username };
+    if (!user._id || !user.username) {
+      throw new Error('Invalid user object passed to login()');
+    }
+
+    const payload = {
+      sub: user._id.toString(),
+      username: user.username,
+    };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
@@ -82,17 +94,13 @@ export class AuthService {
       }),
     ]);
 
-    user.refreshToken = await bcrypt.hash(refreshToken, 10);
-    (await user.save()).toObject({ virtuals: true });
+    await this.userModel.updateOne(
+      { _id: user._id },
+      { $set: { refreshToken: await bcrypt.hash(refreshToken, 10) } },
+    );
 
     if (options?.useCookie && options.response) {
-      const reply = options.response as FastifyReply & {
-        setCookie: (
-          name: string,
-          value: string,
-          options?: Record<string, string>,
-        ) => FastifyReply;
-      };
+      const reply = options.response as FastifyReply;
       reply.setCookie('accessToken', accessToken, {
         httpOnly: true,
         secure: true,
@@ -115,8 +123,7 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     const { username, password, confirmPassword, metadata } = registerDto;
-
-    // First check if user exists
+    
     const existingUser = await this.userModel
       .findOne({ username })
       .select('+password')
@@ -206,6 +213,19 @@ export class AuthService {
       console.error(err); // For debugging, remove in production
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+
+  async removePassword(username: string) {
+    const user = await this.userModel.findOne({ username }).select('+password');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (!user.password) {
+      throw new BadRequestException('User has no password set');
+    }
+    user.password = '';
+    user.refreshToken = null;
+    user.metadata.secret = '';
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {

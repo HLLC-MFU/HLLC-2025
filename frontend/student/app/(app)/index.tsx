@@ -7,9 +7,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import HomeHero from "@/components/home/Hero";
-import FAB from "@/components/FAB";
-import { QrCode, MessageSquare } from "lucide-react-native";
-
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import TopNav from '@/components/global/TopNav';
 import HomeActivityCard from '@/components/home/ActivityCard';
@@ -38,45 +36,9 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1 }}>
       <TopNav />
-      <SafeAreaView style={{ flex: 1, top: -36 }}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <HomeHero style={{ paddingHorizontal: 16 }} />
-          <View style={{ top: -60, width: '100%', gap: 16 }}>
-            <SectionHeader
-              title={t('home.activities')}
-              rightText={t('home.seeAll')}
-              onPressRight={() => console.log('Pressed See All')}
-            />
-            <ScrollView
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingRight: 16 }}
-              style={{ gap: 12, flexGrow: 1, height: 200 }}
-            >
-              <View style={{ width: 16 }}></View>
-              {activities
-                .filter(
-                  activity =>
-                    activity.code !== 'LAMDUAN' && activity.code !== 'KHANTOKE',
-                )
-                .map(activity => (
-                  <HomeActivityCard
-                    key={activity.id}
-                    activity={activity}
-                    lang={language}
-                    onPress={() =>
-                      router.push({
-                        pathname: `/activities/[id]`,
-                        params: { id: activity.id },
-                      })
-                    }
-                    style={{ width: width * 0.85, marginRight: 16 }}
-                  />
-                ))}
-            </ScrollView>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+      <View style={{ top: 36, paddingHorizontal: 16, paddingBottom: 16 }}>
+        <HomeHero />
+      </View>
     </View>
   );
 }

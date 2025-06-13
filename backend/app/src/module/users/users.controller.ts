@@ -22,21 +22,26 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { FastifyRequest } from 'fastify';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
+import { ActivitiesService } from '../activities/services/activities.service';
+
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly activitiesService: ActivitiesService,
+  ) {}
 
   @Post()
-  @Public()
+  @Permissions('users:create')
   @CacheKey('users:invalidate')
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Post('upload')
-  @Public()
+  @Permissions('users:upload')
   @CacheKey('users:invalidate')
   upload(@Body() uploadUserDtos: UserUploadDirectDto[]) {
     return this.usersService.upload(uploadUserDtos);
@@ -47,13 +52,6 @@ export class UsersController {
   @CacheKey('users')
   async findAll(@Query() query: Record<string, string>) {
     return this.usersService.findAll(query);
-  }
-
-  @Get('by-query')
-  @Permissions('users:read')
-  @CacheKey('users:by-query')
-  async findAllByQuery(@Query() query: Record<string, string>) {
-    return this.usersService.findAllByQuery(query);
   }
 
   @Get('statistics')
@@ -90,13 +88,14 @@ export class UsersController {
 
   @Patch(':id')
   @CacheKey('users:invalidate')
+  @Permissions('users:update')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   @CacheKey('users:invalidate')
-  @Public()
+  @Permissions('users:delete:id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
