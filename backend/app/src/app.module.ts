@@ -27,6 +27,12 @@ import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
 import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
 import { ActivitiesTypeModule } from './module/activities/activities-type.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
+import { KafkaBootstrapModule } from './module/kafka/kafka-bootstrap.module';
+import { AssessmentsModule } from './module/assessments/assessments.module';
+import { AssessmentAnswersModule } from './module/assessments/assessment-answers.module';
+import { PrepostQuestionsModule } from './module/prepost-questions/prepost-question.module';
+import { PosttestAnswersModule } from './module/prepost-questions/posttest-answer.module';
+import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
 
 @Module({
   imports: [
@@ -71,6 +77,12 @@ import { NotificationsModule } from './module/notifications/notifications.module
     EvoucherCodeModule,
     EvoucherTypeModule,
     NotificationsModule,
+    KafkaBootstrapModule,
+    AssessmentsModule,
+    AssessmentAnswersModule,
+    PrepostQuestionsModule,
+    PosttestAnswersModule,
+    PretestAnswersModule
   ],
   providers: [
     {
