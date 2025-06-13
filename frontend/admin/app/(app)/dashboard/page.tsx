@@ -2,7 +2,6 @@
 import { Button } from "@heroui/react";
 import { LayoutDashboard } from 'lucide-react';
 import { useCheckin } from "@/hooks/useCheckin";
-import { useUsers } from "@/hooks/useUsers";
 import { useSponsors } from "@/hooks/useSponsors";
 import { PageHeader } from "@/components/ui/page-header";
 import { useEvoucher } from "@/hooks/useEvoucher";
@@ -24,9 +23,10 @@ export default function Dashboard() {
   const { evouchers } = useEvoucher();
   const { problems } = useReports();
   const { reporttypes } = useReportTypes();
-  const { Userstats } = useUserStatistics();
+  const { Userstats } = useUserStatistics();  
 
-  console.log(Userstats)
+  console.log("จำนวนปัญหา" , problems)
+  console.log("ประเภทปัญหา" , reporttypes)
 
   return (
     <>

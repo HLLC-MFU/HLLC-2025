@@ -12,13 +12,6 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 
-// interface  Chartsprop {
-//     Checkin: Checkin[];
-//     Activities: Activities[];   
-// }
-// export default function Charts({Checkin , Activities}: Chartsprop)
-
-
 const Data = [
     {
         id: 1,

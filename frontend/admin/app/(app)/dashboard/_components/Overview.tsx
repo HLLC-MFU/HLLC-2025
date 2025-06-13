@@ -42,8 +42,7 @@ export default function Overview({ checkin, Activities, Userstats, Evouchers, Sp
     const Evoucherstotle = Evouchers.length;
     const activityTotal = Activities.length;
     const sponsorTotal = Sponsors.length;
-
-    console.log(Userstats);
+    
     if (isLoading) return <p>Loading...</p>;
     return (
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 my-6">
