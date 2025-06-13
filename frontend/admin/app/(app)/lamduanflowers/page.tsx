@@ -7,7 +7,7 @@ import AccordionLamduan from "./_components/AccordionLamduan";
 export default function LamduanflowersPage() {
     return(
         <>
-            <PageHeader description='This is Lamduan lowers Page' icon={<Flower/>}/>
+            <PageHeader description='This is Lamduan Flowers Page' icon={<Flower/>}/>
             <div className="flex flex-col min-h-screen">
                 <div className="container mx-auto">
                     <div className="flex flex-col gap-6">
