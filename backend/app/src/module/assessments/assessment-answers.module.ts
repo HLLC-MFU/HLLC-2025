@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { AssessmentAnswersService } from './assessment-answers.service';
-import { AssessmentAnswersController } from './assessment-answers.controller';
+import { AssessmentAnswersService } from './service/assessment-answers.service';
+import { AssessmentAnswersController } from '../assessments/controller/assessment-answers.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { AssessmentAnswer, AssessmentAnswerSchema } from './schema/assessment-answer.schema';
+import { AssessmentAnswer, AssessmentAnswerSchema } from '../assessments/schema/assessment-answer.schema';
 import { Assessment, AssessmentSchema } from '../assessments/schema/assessment.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 
