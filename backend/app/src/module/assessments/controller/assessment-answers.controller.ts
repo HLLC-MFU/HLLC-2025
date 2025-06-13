@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
-import { AssessmentAnswersService } from './assessment-answers.service';
-import { CreateAssessmentAnswerDto } from './dto/create-assessment-answer.dto';
-import { UpdateAssessmentAnswerDto } from './dto/update-assessment-answer.dto';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { AssessmentAnswersService } from '../service/assessment-answers.service';
+import { CreateAssessmentAnswerDto } from '../dto/assessment-answers/create-assessment-answer.dto';
+import { UpdateAssessmentAnswerDto } from '../dto/assessment-answers/update-assessment-answer.dto';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
-import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Permissions } from '../../auth/decorators/permissions.decorator';
 
 @UseGuards(PermissionsGuard)
 @ApiTags('assessment-answers')
@@ -28,12 +28,6 @@ export class AssessmentAnswersController {
   @Permissions('assessment-answers:read')
   findOne(@Param('id') id: string) {
     return this.assessmentAnswersService.findOne(id);
-  }
-
-  @Patch(':id')
-  @Permissions('assessment-answers:update')
-  update(@Param('id') id: string, @Body() updateAssessmentAnswerDto: UpdateAssessmentAnswerDto) {
-    return this.assessmentAnswersService.update(id, updateAssessmentAnswerDto);
   }
 
   @Delete(':id')

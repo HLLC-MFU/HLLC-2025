@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
-import { AssessmentsService } from './assessments.service';
-import { CreateAssessmentDto } from './dto/create-assessment.dto';
-import { UpdateAssessmentDto } from './dto/update-assessment.dto';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, UseInterceptors } from '@nestjs/common';
+import { CreateAssessmentDto } from '../dto/assessments/create-assessment.dto';
+import { UpdateAssessmentDto } from '../dto/assessments/update-assessment.dto';
+import { AssessmentsService } from '../service/assessments.service';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
-import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Permissions } from '../../auth/decorators/permissions.decorator';
+
 
 @UseGuards(PermissionsGuard)
 @ApiTags('assessments')
