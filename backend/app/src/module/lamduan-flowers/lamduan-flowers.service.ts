@@ -38,7 +38,6 @@ export class LamduanFlowersService {
       model: this.lamduanflowersModel,
       query: {
         ...query,
-        excluded: 'user.refreshToken ,user.role.permissions,user.role.metadataSchema, user.metadata.secret'
       },
       filterSchema: {},
       populateFields: () => Promise.resolve([
