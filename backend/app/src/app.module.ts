@@ -29,8 +29,10 @@ import { ActivitiesTypeModule } from './module/activities-type/activities-type.m
 import { NotificationsModule } from './module/notifications/notifications.module';
 import { KafkaBootstrapModule } from './module/kafka/kafka-bootstrap.module';
 import { AssessmentsModule } from './module/assessments/assessments.module';
-import { AssessmentAnswersModule } from './module/assessment-answers/assessment-answers.module';
-import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
+import { AssessmentAnswersModule } from './module/assessments/assessment-answers.module';
+import { PrepostQuestionsModule } from './module/prepost-questions/prepost-question.module';
+import { PosttestAnswersModule } from './module/prepost-questions/posttest-answer.module';
+import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
 
 @Module({
   imports: [
@@ -78,7 +80,9 @@ import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.m
     KafkaBootstrapModule,
     AssessmentsModule,
     AssessmentAnswersModule,
-    LamduanFlowersModule,
+    PrepostQuestionsModule,
+    PosttestAnswersModule,
+    PretestAnswersModule
   ],
   providers: [
     {

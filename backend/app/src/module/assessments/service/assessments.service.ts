@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAssessmentDto } from './dto/create-assessment.dto';
-import { UpdateAssessmentDto } from './dto/update-assessment.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Assessment, AssessmentDocument } from './schema/assessment.schema';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import { CreateAssessmentDto } from '../dto/assessments/create-assessment.dto';
+import { UpdateAssessmentDto } from '../dto/assessments/update-assessment.dto';
+import { Assessment, AssessmentDocument } from '../schema/assessment.schema';
 
 @Injectable()
 export class AssessmentsService {

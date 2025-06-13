@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { CreateAssessmentAnswerDto } from './dto/create-assessment-answer.dto';
-import { UpdateAssessmentAnswerDto } from './dto/update-assessment-answer.dto';
-import { AssessmentAnswer, AssessmentAnswerDocument } from './schema/assessment-answer.schema';
+import { CreateAssessmentAnswerDto } from '../dto/assessment-answers/create-assessment-answer.dto';
+import { UpdateAssessmentAnswerDto } from '../dto/assessment-answers/update-assessment-answer.dto';
+import { AssessmentAnswer, AssessmentAnswerDocument } from '../schema/assessment-answer.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne, queryUpdateOneByFilter } from 'src/pkg/helper/query.util';
-import { User, UserDocument } from '../users/schemas/user.schema';
+import { User, UserDocument } from '../../users/schemas/user.schema';
 @Injectable()
 export class AssessmentAnswersService {
   constructor(
@@ -58,11 +58,6 @@ export class AssessmentAnswersService {
   async findOne(id: string): Promise<{ data: AssessmentAnswer[] | null; message: string }> {
     const result = await queryFindOne<AssessmentAnswer>(this.assessmentAnswerModel, { _id: id }, [{ path: 'user' }]);
     return result;
-  }
-
-  async update(id: string, updateAssessmentAnswerDto: UpdateAssessmentAnswerDto) {
-    updateAssessmentAnswerDto.updatedAt = new Date();
-    return queryUpdateOne<AssessmentAnswer>(this.assessmentAnswerModel, id, updateAssessmentAnswerDto);
   }
 
   async remove(id: string) {
