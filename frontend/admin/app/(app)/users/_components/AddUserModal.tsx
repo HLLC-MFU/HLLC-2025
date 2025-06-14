@@ -65,7 +65,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                     major: user.metadata?.major?._id ?? ""
                 }
             });
-            setSchool(new Set([user.metadata.major.school.name.en]));
+            setSchool(typeof user.metadata.major.school === "object" ? new Set([user.metadata.major.school.name.en]) : new Set());
             setMajor(new Set([user.metadata.major.name.en]));
         }
     }, [isOpen, user, action]);
@@ -135,10 +135,6 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                                 onChange={(e) => setField(prev => ({ ...prev, name: { ...prev.name, middle: e.target.value } }))}
                             />
                             <Input
-                                isRequired
-                                errorMessage={
-                                    ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter your last name" }
-                                }
                                 label="Last Name"
                                 placeholder="Enter Last Name"
                                 type="string"
@@ -169,7 +165,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                                 selectedKeys={major}
                                 onSelectionChange={(keys) => setMajor(keys as Set<string>)}
                             >
-                                {(majors.filter((m) => m.school.name.en === Array.from(school)[0])).map((m) => (
+                                {(majors.filter((major) => (typeof major.school === "object" ? major.school.name.en : "") === Array.from(school)[0])).map((m) => (
                                     <SelectItem key={m.name.en}>{m.name.en}</SelectItem>
                                 ))}
                             </Select>

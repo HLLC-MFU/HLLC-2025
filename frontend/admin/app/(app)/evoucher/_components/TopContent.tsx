@@ -8,7 +8,7 @@ import type { Selection } from "@react-types/shared";
 
 export interface TopContentProps {
     setIsAddOpen: (value: boolean) => void;
-    setActionText: (value: "Add" | "Edit") => void;
+    setMode: (value: "Add" | "Edit") => void;
     filterValue: string;
     typeFilter: Selection;
     setTypeFilter: (value: Selection) => void;
@@ -30,7 +30,7 @@ export interface TopContentProps {
 
 export default function TopContent({
     setIsAddOpen,
-    setActionText,
+    setMode,
     filterValue,
     typeFilter,
     setTypeFilter,
@@ -106,7 +106,7 @@ export default function TopContent({
                             ))}
                         </DropdownMenu>
                     </Dropdown>
-                    <Button onPress={() => { setActionText("Add"); setIsAddOpen(true); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
+                    <Button onPress={() => { setMode("Add"); setIsAddOpen(true); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
                 </div>
             </div>
         </div>

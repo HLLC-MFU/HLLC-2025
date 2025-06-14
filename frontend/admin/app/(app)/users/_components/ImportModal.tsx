@@ -97,24 +97,27 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
         setIsPreviewModalOpen(false);
     };
 
-    const renderCell = useCallback(
-        (item: User, columnKey: Key) => {
-            const cellValue = item[columnKey as keyof typeof item];
-            const major = majors.find((m) => m._id === String(item.metadata?.major));
+    const renderCell = useCallback((item: User, columnKey: Key) => {
+        const cellValue = item[columnKey as keyof typeof item];
+        const major = majors.find((m) => m._id === String(item.metadata?.major));
 
-            switch (columnKey) {
-                case "name":
-                    if (typeof cellValue === "object" && cellValue !== null && 'first' in cellValue) {
-                        return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last ?? ""}`;
-                    }
-                case "school":
-                    return major?.school.name.en ?? "-";
-                case "major":
-                    return major?.name.en ?? "-";
-                case "actions":
-                    return null;
-            }
-        }, [field]
+        switch (columnKey) {
+            case "username":
+                if (typeof cellValue === "string") {
+                    return cellValue;
+                }
+            case "name":
+                if (typeof cellValue === "object" && cellValue !== null && 'first' in cellValue) {
+                    return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last ?? ""}`;
+                }
+            case "school":
+                return major?.school.name.en ?? "-";
+            case "major":
+                return major?.name.en ?? "-";
+            case "actions":
+                return null;
+        }
+    }, [field]
     );
 
     return (
@@ -181,7 +184,7 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                             </TableHeader>
                             <TableBody items={items}>
                                 {(item) => (
-                                    <TableRow key={item._id}>
+                                    <TableRow key={item.username}>
                                         {(columnKey) => <TableCell>{renderCell(item as User, columnKey)}</TableCell>}
                                     </TableRow>
                                 )}

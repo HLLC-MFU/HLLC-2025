@@ -11,7 +11,7 @@ type ModalState = {
 
 type TopContentProps = {
     setModal: (value: SetStateAction<ModalState>) => void;
-    setActionText: (value: "Add" | "Edit") => void;
+    setActionMode: (value: "Add" | "Edit") => void;
     filterValue: string;
     visibleColumns: Set<string>;
     columns: Array<{ uid: string; name: string }>;
@@ -23,7 +23,7 @@ type TopContentProps = {
 
 export default function TopContent({
     setModal,
-    setActionText,
+    setActionMode,
     filterValue,
     visibleColumns,
     columns,
@@ -71,7 +71,7 @@ export default function TopContent({
                             <Button color="primary" endContent={<Plus size={20} />}>Add new</Button>
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Static Actions">
-                            <DropdownItem onPress={() => { setActionText("Add"); setModal(prev => ({...prev, add: true})); }} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
+                            <DropdownItem onPress={() => { setActionMode("Add"); setModal(prev => ({...prev, add: true})); }} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
                             <DropdownItem onPress={() => setModal(prev => ({...prev, import: true}))} key="import" startContent={<FileInput size={16} />}>Import .xlsx file</DropdownItem>
                         </DropdownMenu>
                     </Dropdown >

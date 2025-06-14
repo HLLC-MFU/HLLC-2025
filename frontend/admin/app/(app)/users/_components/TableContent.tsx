@@ -13,7 +13,7 @@ type ModalState = {
 
 type TableContentProps = {
     setModal: (value: SetStateAction<ModalState>) => void;
-    setActionText: (value: "Add" | "Edit") => void;
+    setActionMode: (value: "Add" | "Edit") => void;
     filterValue: string;
     visibleColumns: Set<string>;
     columns: Array<{ uid: string; name: string; sortable?: boolean }>;
@@ -38,7 +38,7 @@ type TableContentProps = {
 
 export default function TableContent({
     setModal,
-    setActionText,
+    setActionMode,
     filterValue,
     visibleColumns,
     columns,
@@ -82,7 +82,7 @@ export default function TableContent({
             sortDescriptor={sortDescriptor}
             topContent={<TopContent
                 setModal={setModal}
-                setActionText={setActionText}
+                setActionMode={setActionMode}
                 filterValue={filterValue}
                 visibleColumns={visibleColumns}
                 columns={columns}

@@ -1,4 +1,4 @@
-import React, { createRef, FormEvent, RefObject, useEffect, useRef, useState } from "react";
+import React, { FormEvent, RefObject, useEffect, useState } from "react";
 import {
     Button,
     DateInput,
@@ -34,7 +34,7 @@ type AddEvoucherProps = {
     onClose: () => void;
     onAdd: (evoucherData: FormData) => void;
     type: EvoucherType[];
-    evoucher: Partial<Evoucher>;
+    evoucherSelected: Partial<Evoucher>;
     title: string;
     sponsorId: string;
     field: FieldProps;
@@ -49,7 +49,7 @@ export default function AddModal({
     onClose,
     onAdd,
     type,
-    evoucher,
+    evoucherSelected,
     title,
     sponsorId,
     field,
@@ -75,18 +75,18 @@ export default function AddModal({
             setField(resetField);
             setPreviewImage("");
         }
-        if (title === "Edit" && typeof evoucher === "object") {
+        if (title === "Edit" && typeof evoucherSelected === "object") {
             setField({
                 sponsor: "",
-                acronym: evoucher.acronym!,
-                detail: evoucher.detail?.en!,
-                discount: evoucher.discount!,
-                expiration: evoucher.expiration ? new Date(evoucher.expiration.toLocaleString("en-Us", { timeZone: "Asia/Bangkok" })) : new Date(),
-                selectedType: evoucher.type ? new Set([evoucher.type?.name]) : new Set<string>(),
-                cover: evoucher.photo?.coverPhoto ?? null,
+                acronym: evoucherSelected.acronym!,
+                detail: evoucherSelected.detail?.en!,
+                discount: evoucherSelected.discount!,
+                expiration: evoucherSelected.expiration ? new Date(evoucherSelected.expiration.toLocaleString("en-Us", { timeZone: "Asia/Bangkok" })) : new Date(),
+                selectedType: evoucherSelected.type ? new Set([evoucherSelected.type?.name]) : new Set<string>(),
+                cover: evoucherSelected.photo?.coverPhoto ?? null,
             });
         }
-    }, [title, evoucher, isOpen]);
+    }, [title, evoucherSelected, isOpen]);
 
     const handleFileChange = (file: File) => {
         if (!file) return;

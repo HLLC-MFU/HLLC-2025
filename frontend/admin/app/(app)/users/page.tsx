@@ -95,7 +95,7 @@ export default function ManagementPage() {
                   title={roleName}
                   subtitle={
                     <p className="flex">
-                      Total : <span className="text-primary ml-1">{roleUsers.length}</span>
+                      <span className="text-primary ml-1">{`${roleUsers.length} users`}</span>
                     </p>
                   }
                 >

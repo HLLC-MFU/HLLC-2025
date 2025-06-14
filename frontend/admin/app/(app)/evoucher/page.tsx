@@ -89,7 +89,7 @@ export default function EvoucherPage() {
                                     title={sponsorName}
                                     subtitle={
                                         <p className="flex">
-                                            Total : <span className="text-primary ml-1">{evoucher.length}</span>
+                                            <span className="text-primary ml-1">{`${evoucher.length} evouchers`}</span>
                                         </p>
                                     }
                                 >

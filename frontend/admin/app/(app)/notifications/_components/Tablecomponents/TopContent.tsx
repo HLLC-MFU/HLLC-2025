@@ -65,34 +65,6 @@ export default function TopContent({
                 size="sm"
                 variant="flat"
               >
-                Major
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              aria-label="Select Majors"
-              closeOnSelect={false}
-              selectedKeys={majorFilter}
-              selectionMode="multiple"
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys) as string[];
-                setMajorFilter(new Set(selected));
-              }}
-            >
-              {(majors ?? []).map((major) => (
-                <DropdownItem key={major._id} className="capitalize">
-                  {capitalize(major.name.en)}
-                </DropdownItem>
-              ))}
-            </DropdownMenu>
-          </Dropdown>
-
-          <Dropdown>
-            <DropdownTrigger className="hidden sm:flex">
-              <Button
-                endContent={<ChevronDown className="text-small" />}
-                size="sm"
-                variant="flat"
-              >
                 School
               </Button>
             </DropdownTrigger>
@@ -109,6 +81,34 @@ export default function TopContent({
               {(schools ?? []).map((school) => (
                 <DropdownItem key={school._id} className="capitalize">
                   {capitalize(school.name.en)}
+                </DropdownItem>
+              ))}
+            </DropdownMenu>
+          </Dropdown>
+
+          <Dropdown>
+            <DropdownTrigger className="hidden sm:flex">
+              <Button
+                endContent={<ChevronDown className="text-small" />}
+                size="sm"
+                variant="flat"
+              >
+                Major
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              aria-label="Select Majors"
+              closeOnSelect={false}
+              selectedKeys={majorFilter}
+              selectionMode="multiple"
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys) as string[];
+                setMajorFilter(new Set(selected));
+              }}
+            >
+              {(majors ?? []).map((major) => (
+                <DropdownItem key={major._id} className="capitalize">
+                  {capitalize(major.name.en)}
                 </DropdownItem>
               ))}
             </DropdownMenu>

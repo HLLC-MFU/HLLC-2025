@@ -6,5 +6,5 @@ export type Major = {
     name: Lang;
     acronym: string;
     detail: Lang
-    school: School;
+    school: School | string;
 }

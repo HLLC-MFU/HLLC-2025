@@ -21,7 +21,6 @@ export function useActivities() {
         setLoading(true);
         setError(null);
         try {
-            console.log('Fetching activities and types...');
             const [activitiesRes, typesRes] = await Promise.all([
                 apiRequest<{ data: Activities[] }>(
                     '/activities',
@@ -40,15 +39,12 @@ export function useActivities() {
                     }
                 ),
             ]);
-            console.log('Activities response:', activitiesRes);
             if (activitiesRes.data?.data) {
                 setActivities(activitiesRes.data.data);
-                console.log('Activities set:', activitiesRes.data.data);
             }
 
             if (typesRes.data?.data) {
                 setActivityTypes(typesRes.data.data);
-                console.log('Activity types set:', typesRes.data.data);
             }
         } catch (err) {
             console.error('Error fetching data:', err);
@@ -83,13 +79,6 @@ export function useActivities() {
     const createActivity = async (formData: FormData): Promise<void> => {
         try {
             setLoading(true);
-            console.log('Creating activity with form data');
-
-            // Log FormData content
-            console.log('FormData entries:');
-            formData.forEach((value, key) => {
-                console.log(`${key}:`, value);
-            });
 
             const res = await apiRequest<Activities>(
                 '/activities',
@@ -100,11 +89,8 @@ export function useActivities() {
                 }
             );
 
-            console.log('Create activity response:', res);
-
             if (res.data) {
                 setActivities((prev) => [...prev, res.data as Activities]);
-                console.log('Activity created:', res.data);
                 addToast({
                     title: 'Activity created successfully!',
                     color: 'success',
@@ -181,12 +167,6 @@ export function useActivities() {
                 formData.append('photo[logoPhoto]', logoPhoto);
             }
 
-            // Log FormData content
-            console.log('FormData entries for update:');
-            formData.forEach((value, key) => {
-                console.log(`${key}:`, value);
-            });
-
             const res = await apiRequest<Activities>(
                 `/activities/${id}`,
                 'PATCH',
@@ -227,7 +207,6 @@ export function useActivities() {
     const deleteActivity = async (id: string): Promise<void> => {
         try {
             setLoading(true);
-            console.log('Deleting activity:', id);
 
             const res = await apiRequest(
                 `/activities/${id}`,
@@ -237,8 +216,6 @@ export function useActivities() {
                     credentials: 'include',
                 }
             );
-
-            console.log('Delete response:', res);
 
             if (res.statusCode === 200 || res.statusCode === 204) {
                 setActivities((prev) => prev.filter((a) => a._id !== id));

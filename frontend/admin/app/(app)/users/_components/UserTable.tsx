@@ -66,8 +66,8 @@ export default function UsersTable({
     export: false,
     confirm: false,
   });
-  const [actionText, setActionText] = useState<"Add" | "Edit">("Add");
-  const [confirmText, setConfirmText] = useState<"Delete" | "Reset">("Delete")
+  const [actionMode, setActionMode] = useState<"Add" | "Edit">("Add");
+  const [confirmMode, setConfirmMode] = useState<"Delete" | "Reset">("Delete")
   const [userAction, setUserAction] = useState<User>(users[0]);
 
   const [filterValue, setFilterValue] = useState("");
@@ -156,7 +156,7 @@ export default function UsersTable({
                   <DropdownItem
                     key="edit"
                     startContent={<Pen size="16px" />}
-                    onPress={() => { setActionText("Edit"); setModal(prev => ({ ...prev, add: true })); setUserAction(item) }}
+                    onPress={() => { setActionMode("Edit"); setModal(prev => ({ ...prev, add: true })); setUserAction(item) }}
                   >
                     Edit
                   </DropdownItem>
@@ -165,7 +165,7 @@ export default function UsersTable({
                     className="text-danger"
                     color="danger"
                     startContent={<RotateCcw size="16px" />}
-                    onPress={() => { setConfirmText("Reset"); setModal(prev => ({ ...prev, confirm: true })); setUserAction(item) }}
+                    onPress={() => { setConfirmMode("Reset"); setModal(prev => ({ ...prev, confirm: true })); setUserAction(item) }}
                   >
                     Reset Password
                   </DropdownItem>
@@ -174,7 +174,7 @@ export default function UsersTable({
                     className="text-danger"
                     color="danger"
                     startContent={<Trash size="16px" />}
-                    onPress={() => { setConfirmText("Delete"); setModal(prev => ({ ...prev, confirm: true })); setUserAction(item); }}
+                    onPress={() => { setConfirmMode("Delete"); setModal(prev => ({ ...prev, confirm: true })); setUserAction(item); }}
                   >
                     Delete
                   </DropdownItem>
@@ -194,9 +194,9 @@ export default function UsersTable({
   );
 
   const handleAdd = async (user: Partial<User>) => {
-    const response = actionText === "Add"
+    const response = actionMode === "Add"
       ? await createUser(user)
-      : actionText === "Edit"
+      : actionMode === "Edit"
         ? await updateUser(userAction._id, user)
         : null;
 
@@ -271,7 +271,7 @@ export default function UsersTable({
   const handleConfirm = async () => {
     let response = null;
 
-    if (confirmText === "Delete") {
+    if (confirmMode === "Delete") {
       response = Array.from(selectedKeys).length > 0
         ? await deleteMultiple(Array.from(selectedKeys) as string[])
         : await deleteUser(userAction._id);
@@ -283,8 +283,8 @@ export default function UsersTable({
     if (response) {
       await fetchUsers();
       addToast({
-        title: `${confirmText} Successfully`,
-        description: `Data has ${confirmText.toLowerCase()} successfully`,
+        title: `${confirmMode} Successfully`,
+        description: `Data has ${confirmMode.toLowerCase()} successfully`,
         color: "success"
       });
     }
@@ -302,7 +302,7 @@ export default function UsersTable({
         pages={pages}
         renderCell={renderCell}
         selectedKeys={selectedKeys}
-        setActionText={setActionText}
+        setActionMode={setActionMode}
         setModal={setModal}
         setPage={setPage}
         setSelectedKeys={setSelectedKeys}
@@ -325,7 +325,7 @@ export default function UsersTable({
 
       {/* Add and Edit  */}
       <AddModal
-        action={actionText}
+        action={actionMode}
         isOpen={modal.add}
         roleId={roleId}
         schools={schools}
@@ -354,12 +354,12 @@ export default function UsersTable({
 
       {/* Delete & Reset */}
       <ConfirmationModal
-        body={`Are you sure you want to ${confirmText.toLowerCase()} this user?`}
-        confirmColor={'danger'}
         isOpen={modal.confirm}
-        title={`${confirmText} user ${userAction.username}`}
         onClose={() => setModal(prev => ({ ...prev, confirm: false }))}
         onConfirm={handleConfirm}
+        title={`${confirmMode} user ${userAction ? userAction.username : ""}`}
+        body={`Are you sure you want to ${confirmMode.toLowerCase()} this user?`}
+        confirmColor={'danger'}
       />
     </div>
   );

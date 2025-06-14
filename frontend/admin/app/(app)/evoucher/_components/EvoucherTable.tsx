@@ -65,13 +65,13 @@ export default function EvoucherTable({
         direction: "ascending",
     });
     const [page, setPage] = useState(1);
-    const [actionText, setActionText] = useState<"Add" | "Edit">("Add");
+    const [mode, setMode] = useState<"Add" | "Edit">("Add");
     const [modal, setModal] = useState({
         add: false,
         delete: false,
     });
     const hasSearchFilter = Boolean(filterValue);
-    const [evoucherAction, setEvoucherAction] = useState<Evoucher>(evouchers[0]);
+    const [evoucherSelected, setEvoucherSelected] = useState<Evoucher>(evouchers[0]);
 
     const [field, setField] = useState({
         sponsor: "" as string,
@@ -174,7 +174,7 @@ export default function EvoucherTable({
                                 <DropdownItem
                                     key="edit"
                                     startContent={<Pen size="16px" />}
-                                    onPress={() => { setActionText("Edit"); setModal(prev => ({ ...prev, add: true })); setEvoucherAction(item); }}
+                                    onPress={() => { setMode("Edit"); setModal(prev => ({ ...prev, add: true })); setEvoucherSelected(item); }}
                                 >
                                     Edit
                                 </DropdownItem>
@@ -183,7 +183,7 @@ export default function EvoucherTable({
                                     className="text-danger"
                                     color="danger"
                                     startContent={<Trash size="16px" />}
-                                    onPress={() => { setModal(prev => ({ ...prev, delete: true })); setEvoucherAction(item); }}
+                                    onPress={() => { setModal(prev => ({ ...prev, delete: true })); setEvoucherSelected(item); }}
                                 >
                                     Delete
                                 </DropdownItem>
@@ -197,10 +197,10 @@ export default function EvoucherTable({
     }, []);
 
     const handleAdd = async (evoucher: FormData) => {
-        const response = actionText === "Add"
+        const response = mode === "Add"
             ? await createEvoucher(evoucher)
-            : actionText === "Edit"
-                ? await updateEvoucher(evoucherAction._id, evoucher)
+            : mode === "Edit"
+                ? await updateEvoucher(evoucherSelected._id, evoucher)
                 : null;
 
         setModal(prev => ({ ...prev, add: false }));
@@ -208,15 +208,15 @@ export default function EvoucherTable({
         if (response) {
             await fetchEvouchers();
             addToast({
-                title: `${actionText} Successfully`,
-                description: `Data has been ${actionText.toLowerCase()}ed successfully`,
+                title: `${mode} Successfully`,
+                description: `Data has been ${mode.toLowerCase()}ed successfully`,
                 color: "success",
             });
         }
     };
 
     const handleDelete = async () => {
-        const response = await deleteEvoucher(evoucherAction._id)
+        const response = await deleteEvoucher(evoucherSelected._id)
 
         if (response) {
             await fetchEvouchers()
@@ -233,7 +233,7 @@ export default function EvoucherTable({
         <div>
             <TableContent
                 setIsAddOpen={() => setModal(prev => ({ ...prev, add: true }))}
-                setActionText={setActionText}
+                setMode={setMode}
                 sortDescriptor={sortDescriptor}
                 setSortDescriptor={setSortDescriptor}
                 headerColumns={headerColumns}
@@ -270,9 +270,9 @@ export default function EvoucherTable({
                 isOpen={modal.add}
                 onClose={() => setModal(prev => ({ ...prev, add: false }))}
                 onAdd={handleAdd}
-                title={actionText}
+                title={mode}
                 type={EvoucherType}
-                evoucher={evoucherAction}
+                evoucherSelected={evoucherSelected}
                 sponsorId={sponsors.find((s) => s.name.en === sponsorName)?._id as string}
                 field={field}
                 setField={setField}
@@ -284,8 +284,8 @@ export default function EvoucherTable({
                 isOpen={modal.delete}
                 onClose={() => setModal(prev => ({ ...prev, delete: false }))}
                 onConfirm={handleDelete}
-                title={"Delete evoucher"}
-                body={"Are you sure you want to delete this item?"}
+                title={`Delete ${evoucherSelected ? evoucherSelected.acronym : ""}`}
+                body={"Are you sure you want to delete this evoucher?"}
                 confirmColor='danger'
             />
         </div>

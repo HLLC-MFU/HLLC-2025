@@ -45,10 +45,23 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
   );
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  const [title, setTitle] = useState({ en: '', th: '' });
-  const [subtitle, setSubtitle] = useState({ en: '', th: '' });
-  const [description, setDescription] = useState({ en: '', th: '' });
-  const [redirect, setRedirect] = useState({ en: '', th: '', link: '' });
+  const [title, setTitle] = useState({ 
+    en: '', 
+    th: '' 
+  });
+  const [subtitle, setSubtitle] = useState({ 
+    en: '', 
+    th: '' 
+  });
+  const [description, setDescription] = useState({ 
+    en: '', 
+    th: '' 
+  });
+  const [redirect, setRedirect] = useState({ 
+    en: '', 
+    th: '', 
+    link: '' 
+  });
 
   useEffect(() => {
     const data = {
