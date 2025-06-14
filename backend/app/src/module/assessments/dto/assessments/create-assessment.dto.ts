@@ -1,5 +1,5 @@
 import { IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsObject, IsOptional } from "class-validator";
-import { AssessmentTypes } from "../enum/assessmentTypes.enum";
+import { AssessmentTypes } from "../../enum/assessment-types.enum";
 import { Localization } from "src/pkg/types/common";
 
 export class CreateAssessmentDto {
@@ -19,8 +19,4 @@ export class CreateAssessmentDto {
     @IsNumber()
     @IsOptional()
     order: number;
-
-    @IsOptional()
-    @IsNotEmpty()
-    banner: string;
 }

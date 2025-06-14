@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument, SchemaTypes, Types } from "mongoose";
-import { AssessmentTypes } from "../enum/assessmentTypes.enum";
+import { AssessmentTypes } from "../enum/assessment-types.enum";
 import { Localization } from "src/pkg/types/common";
 
 export type AssessmentDocument = HydratedDocument<Assessment>;
@@ -19,9 +19,6 @@ export class Assessment {
 
     @Prop({ required: true, type: Number, default: 1 })
     order: number;
-
-    @Prop({ type: String, default: null })
-    banner: string;
 }
 
 export const AssessmentSchema = SchemaFactory.createForClass(Assessment);
