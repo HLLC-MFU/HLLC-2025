@@ -34,7 +34,6 @@ export class AssessmentsController {
   @Patch(':id')
   @Permissions('assessments:update')
   update(@Param('id') id: string, @Body() updateAssessmentDto: UpdateAssessmentDto) {
-    updateAssessmentDto.updatedAt = new Date();
     return this.assessmentsService.update(id, updateAssessmentDto);
   }
 

@@ -56,7 +56,6 @@ export class SchoolsService {
   }
 
   async update(id: string, updateSchoolDto: UpdateSchoolDto) {
-    updateSchoolDto.updatedAt = new Date();
     return queryUpdateOne<School>(this.schoolModel, id, updateSchoolDto);
   }
 
