@@ -6,6 +6,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne, queryUpdateOneByFilter } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from '../../users/schemas/user.schema';
+import { Assessment, AssessmentDocument } from '../schema/assessment.schema';
 @Injectable()
 export class AssessmentAnswersService {
   constructor(
@@ -14,6 +15,9 @@ export class AssessmentAnswersService {
 
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
+
+    @InjectModel(Assessment.name)
+    private assessmentModel: Model<AssessmentDocument>,
   ) { }
 
 
@@ -67,4 +71,78 @@ export class AssessmentAnswersService {
       id,
     };
   }
+
+  async averageAllAssessments(): Promise<{ assessmentId: string; average: number; count: number }[]> {
+    const results = await queryAll<AssessmentAnswer>({
+      model: this.assessmentAnswerModel,
+      query: {},
+      filterSchema: {},
+    });
+
+    const scoreMap: Record<string, { sum: number; count: number }> = {};
+
+    for (const result of results.data) {
+      for (const answer of result.answers) {
+        const assessmentId = answer.assessment.toString();
+
+        const numericAnswer = parseFloat(answer.answer);
+        if (!isNaN(numericAnswer)) {
+          if (!scoreMap[assessmentId]) {
+            scoreMap[assessmentId] = { sum: 0, count: 0 };
+          }
+          scoreMap[assessmentId].sum += numericAnswer;
+          scoreMap[assessmentId].count += 1;
+        }
+      }
+    }
+
+    const output = Object.entries(scoreMap).map(([assessmentId, { sum, count }]) => ({
+      assessmentId,
+      average: sum / count,
+      count,
+    }));
+
+    return output;
+  }
+
+  async averageAssessmentsByActivity(activityId: string): Promise<{ assessmentId: string; average: number; count: number }[]> {
+    const activityObjectId = new Types.ObjectId(activityId);
+
+    const assessments = await this.assessmentModel.find({ activity: activityObjectId }).lean();
+    const assessmentIds = new Set(assessments.map(a => a._id.toString()));
+
+    const results = await queryAll<AssessmentAnswer>({
+      model: this.assessmentAnswerModel,
+      query: {},
+      filterSchema: {},
+    });
+
+    const scoreMap: Record<string, { sum: number; count: number }> = {};
+
+    for (const result of results.data) {
+      for (const answer of result.answers) {
+        const assessmentId = answer.assessment.toString();
+
+        if (!assessmentIds.has(assessmentId)) continue;
+
+        const numericAnswer = parseFloat(answer.answer);
+        if (!isNaN(numericAnswer)) {
+          if (!scoreMap[assessmentId]) {
+            scoreMap[assessmentId] = { sum: 0, count: 0 };
+          }
+          scoreMap[assessmentId].sum += numericAnswer;
+          scoreMap[assessmentId].count += 1;
+        }
+      }
+    }
+
+    const output = Object.entries(scoreMap).map(([assessmentId, { sum, count }]) => ({
+      assessmentId,
+      average: sum / count,
+      count,
+    }));
+
+    return output;
+  }
+
 }
