@@ -9,6 +9,15 @@ interface AssessmentState {
   data: {
     questions: Question[];
     activityProgress: ActivityProgress[];
+    activities: Array<{
+      _id: string;
+      name: {
+        en: string;
+        th: string;
+      };
+      acronym: string;
+      location: string;
+    }>;
   };
   loading: boolean;
   error: string | null;
@@ -26,6 +35,7 @@ const initialState: AssessmentState = {
   data: {
     questions: [],
     activityProgress: [],
+    activities: [],
   },
   loading: false,
   error: null,
@@ -54,41 +64,77 @@ function assessmentReducer(state: AssessmentState, action: AssessmentAction): As
 // API service functions
 const assessmentService = {
   async fetchQuestions(activityId: string) {
-    const response = await fetch(`${API_BASE_URL}/assessments/${activityId}/activity`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
+    try {
+      // If activityId is "activity", fetch all activity questions
+      // Otherwise, fetch questions for specific activity
+      const url = activityId === "activity" 
+        ? `${API_BASE_URL}/assessments`
+        : `${API_BASE_URL}/assessments?activity=${activityId}`;
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch activity questions: ${response.statusText}`);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to fetch activity questions: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data || [];
+    } catch (error) {
+      console.error('Error fetching activity questions:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.data || [];
   },
 
   async createQuestion(activityId: string, questionData: Partial<Question>) {
-    const response = await fetch(`${API_BASE_URL}/assessments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        ...questionData,
-        activity: activityId,
-      }),
-    });
+    try {
+      // Validate required fields
+      if (!questionData.type || !['text', 'rating', 'dropdown', 'checkbox', 'radio'].includes(questionData.type)) {
+        throw new Error('Question type must be one of: text, rating, dropdown, checkbox, radio');
+      }
+      if (!questionData.question?.en?.trim() || !questionData.question?.th?.trim()) {
+        throw new Error('Both English and Thai questions are required and cannot be empty');
+      }
+      if (typeof questionData.order !== 'number' || questionData.order < 1) {
+        throw new Error('Order must be a number and at least 1');
+      }
+      if (!activityId) {
+        throw new Error('Activity ID is required');
+      }
 
-    if (!response.ok) {
-      throw new Error(`Failed to create activity question: ${response.statusText}`);
+      const response = await fetch(`${API_BASE_URL}/assessments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...questionData,
+          activity: activityId,
+          assessmentType: 'activity',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to create activity question: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error creating activity question:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.data;
   },
 
   async updateQuestion(questionId: string, questionData: Partial<Question>) {
@@ -110,20 +156,23 @@ const assessmentService = {
   },
 
   async deleteQuestion(questionId: string) {
-    const response = await fetch(`${API_BASE_URL}/assessments/${questionId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/assessments/${questionId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to delete activity question: ${response.statusText}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to delete activity question: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.id;
+    } catch (error) {
+      console.error('Error deleting activity question:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.id;
   },
 
   async fetchActivityProgress(activityId: string) {
@@ -137,6 +186,23 @@ const assessmentService = {
 
     if (!response.ok) {
       throw new Error(`Failed to fetch activity progress: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data || [];
+  },
+
+  async fetchActivities() {
+    const response = await fetch(`${API_BASE_URL}/activities`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch activities: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -240,6 +306,12 @@ export function useAssessment() {
     [handleFetch]
   );
 
+  // Activity operations
+  const fetchActivities = useCallback(() => 
+    handleFetch(() => assessmentService.fetchActivities(), 'activities'), 
+    [handleFetch]
+  );
+
   return {
     // State
     ...state.data,
@@ -254,5 +326,8 @@ export function useAssessment() {
 
     // Activity progress operations
     fetchActivityProgress,
+
+    // Activity operations
+    fetchActivities,
   };
 } 

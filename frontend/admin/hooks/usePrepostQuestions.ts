@@ -6,12 +6,19 @@ import {
     AssessmentStats, 
     TestAnswer, 
     TestAnswersResponse,
-    PreTestState 
+    AssessmentType
 } from '@/types/assessment';
 import { apiRequest } from '@/utils/api';
 
+interface PrepostQuestionsState {
+    questions: Question[];
+    results: AssessmentResult[];
+    stats: AssessmentStats;
+    answers: TestAnswer[];
+}
+
 // Initial state
-const initialState: PreTestState = {
+const initialState: PrepostQuestionsState = {
     questions: [],
     results: [],
     stats: {
@@ -27,7 +34,7 @@ const initialState: PreTestState = {
     answers: []
 };
 
-export function usePreTest() {
+export function usePrepostQuestions(type: AssessmentType) {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [results, setResults] = useState<AssessmentResult[]>([]);
     const [stats, setStats] = useState<AssessmentStats>(initialState.stats);
@@ -36,18 +43,17 @@ export function usePreTest() {
     const [error, setError] = useState<string | null>(null);
 
     /**
-     * Fetch all pre-test questions from the API.
-     * @return {Promise<void>} A promise that resolves when the questions are fetched.
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * Fetch all questions from the API.
      */
     const fetchQuestions = async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: Question[] }>('/pre-tests');
+            const res = await apiRequest<{ data: Question[] }>('/prepost-questions');
 
             if (res.data?.data) {
-                setQuestions(Array.isArray(res.data.data) ? res.data.data : []);
+                const allQuestions = Array.isArray(res.data.data) ? res.data.data : [];
+                setQuestions(allQuestions);
             } else {
                 throw new Error(res.message || 'Failed to fetch questions');
             }
@@ -67,15 +73,13 @@ export function usePreTest() {
     };
 
     /**
-     * Fetch all pretest answers from the API.
-     * @return {Promise<void>} A promise that resolves when the answers are fetched.
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * Fetch all answers from the API based on type (pretest/posttest).
      */
     const fetchAnswers = async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<TestAnswersResponse>('/pre-test-answers');
+            const res = await apiRequest<TestAnswersResponse>(`/prepost-questions/answers?type=${type}`);
 
             if (res.data?.data) {
                 setAnswers(Array.isArray(res.data.data) ? res.data.data : []);
@@ -84,7 +88,7 @@ export function usePreTest() {
             }
         } catch (err) {
             addToast({
-                title: 'Failed to fetch pretest answers. Please try again.',
+                title: `Failed to fetch ${type} answers. Please try again.`,
                 color: 'danger',
             });
             setError(
@@ -98,10 +102,7 @@ export function usePreTest() {
     };
 
     /**
-     * Creates a new pre-test question.
-     * @param {Partial<Question>} questionData - The data for the new question.
-     * @return {Promise<void>} A promise that resolves when the question is created.
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * Creates a new question.
      */
     const createQuestion = async (questionData: Partial<Question>): Promise<void> => {
         try {
@@ -119,51 +120,28 @@ export function usePreTest() {
                 throw new Error('Order must be a number and at least 1');
             }
 
-            // Create FormData
-            const form = new FormData();
+            // Prepare request data
+            const requestData = {
+                type: questionData.type,
+                order: Number(questionData.order),
+                status: 'active',
+                displayType: questionData.displayType || 'both',
+                assessmentType: type,
+                question: {
+                    en: questionData.question.en.trim(),
+                    th: questionData.question.th.trim()
+                },
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
 
-            // Add basic fields with proper type conversion
-            form.append('type', questionData.type);
-            form.append('order', String(Number(questionData.order)));
-            form.append('status', 'active');
-
-            // Add nested question object with trimmed values
-            form.append('question[en]', questionData.question.en.trim());
-            form.append('question[th]', questionData.question.th.trim());
-
-            // Add banner if exists and is a File
-            if (questionData.banner && typeof questionData.banner === 'object' && 'name' in questionData.banner) {
-                form.append('banner', questionData.banner as File);
-            }
-
-            // Add timestamps
-            const now = new Date().toISOString();
-            form.append('createdAt', now);
-            form.append('updatedAt', now);
-
-            // Log the exact data being sent
-            console.log('Creating question with FormData:', {
-                url: '/pre-tests',
-                method: 'POST',
-                formData: Object.fromEntries(form.entries()),
-                rawData: questionData,
-            });
-
-            const res = await apiRequest<{ data: Question }>('/pre-tests', 'POST', form);
-
-            // Log the complete response for debugging
-            console.log('Create question response:', {
-                status: res.statusCode,
-                message: res.message,
-                data: res.data,
-            });
+            const res = await apiRequest<{ data: Question }>('/prepost-questions', 'POST', requestData);
 
             if (res.statusCode === 401) {
                 throw new Error('Your session has expired. Please log in again.');
             }
 
             if (res.statusCode === 400) {
-                console.error('Validation errors:', res.data);
                 throw new Error(res.message || 'Invalid question data. Please check all fields.');
             }
 
@@ -178,17 +156,9 @@ export function usePreTest() {
                     color: 'success',
                 });
             } else {
-                console.error('Unexpected response format:', res);
                 throw new Error(res.message || 'Failed to create question: Invalid response format');
             }
         } catch (err) {
-            console.error('Create question error:', {
-                error: err,
-                message: err instanceof Error ? err.message : 'Unknown error',
-                stack: err instanceof Error ? err.stack : undefined,
-                data: questionData,
-            });
-
             addToast({
                 title: err instanceof Error ? err.message : 'Failed to create question. Please try again.',
                 color: 'danger',
@@ -205,11 +175,7 @@ export function usePreTest() {
     };
 
     /**
-     * Updates an existing pre-test question.
-     * @param {string} questionId - The ID of the question to update.
-     * @param {Partial<Question>} questionData - The data to update the question with.
-     * @return {Promise<void>} A promise that resolves when the question is updated.
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * Updates an existing question.
      */
     const updateQuestion = async (questionId: string, questionData: Partial<Question>): Promise<void> => {
         try {
@@ -223,40 +189,24 @@ export function usePreTest() {
                 }
             }
 
-            // Create FormData
-            const form = new FormData();
+            // Prepare request data
+            const requestData: Record<string, any> = {
+                assessmentType: type,
+                updatedAt: new Date().toISOString()
+            };
 
-            // Add basic fields
-            if (questionData.type) form.append('type', questionData.type);
-            if (questionData.order !== undefined) form.append('order', String(questionData.order));
-
-            // Add nested question object
+            // Add fields only if they are provided
+            if (questionData.type) requestData.type = questionData.type;
+            if (questionData.order !== undefined) requestData.order = Number(questionData.order);
+            if (questionData.displayType) requestData.displayType = questionData.displayType;
             if (questionData.question) {
-                form.append('question[en]', questionData.question.en.trim());
-                form.append('question[th]', questionData.question.th.trim());
+                requestData.question = {
+                    en: questionData.question.en.trim(),
+                    th: questionData.question.th.trim()
+                };
             }
 
-            // Add banner if exists
-            if (questionData.banner) {
-                form.append('banner', questionData.banner);
-            }
-
-            // Add timestamp
-            form.append('updatedAt', new Date().toISOString());
-
-            console.log('Updating question with FormData:', {
-                url: `/pre-tests/${questionId}`,
-                method: 'PATCH',
-                formData: Object.fromEntries(form.entries()),
-            });
-
-            const res = await apiRequest<{ data: Question }>(`/pre-tests/${questionId}`, 'PATCH', form);
-
-            console.log('Update question response:', {
-                status: res.statusCode,
-                message: res.message,
-                data: res.data,
-            });
+            const res = await apiRequest<{ data: Question }>(`/prepost-questions/${questionId}`, 'PATCH', requestData);
 
             if (res.statusCode === 401) {
                 throw new Error('Your session has expired. Please log in again.');
@@ -273,16 +223,9 @@ export function usePreTest() {
                     color: 'success',
                 });
             } else {
-                console.error('Unexpected response format:', res);
                 throw new Error(res.message || 'Failed to update question: Invalid response format');
             }
         } catch (err) {
-            console.error('Update question error:', {
-                error: err,
-                message: err instanceof Error ? err.message : 'Unknown error',
-                stack: err instanceof Error ? err.stack : undefined,
-            });
-
             addToast({
                 title: 'Failed to update question. Please try again.',
                 color: 'danger',
@@ -299,17 +242,14 @@ export function usePreTest() {
     };
 
     /**
-     * Deletes a pre-test question.
-     * @param {string} questionId - The ID of the question to delete.
-     * @return {Promise<void>} A promise that resolves when the question is deleted.
-     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     * Deletes a question.
      */
     const deleteQuestion = async (questionId: string): Promise<void> => {
         try {
             setLoading(true);
             setError(null);
 
-            const res = await apiRequest<{ data: { id: string } }>(`/pre-tests/${questionId}`, 'DELETE');
+            const res = await apiRequest<{ data: { id: string } }>(`/prepost-questions/${questionId}`, 'DELETE');
 
             if (res.statusCode === 200) {
                 setQuestions(prev => prev.filter(q => q._id !== questionId));
@@ -336,11 +276,11 @@ export function usePreTest() {
         }
     };
 
-    // Fetch questions and answers when component mounts
+    // Fetch questions and answers when component mounts or type changes
     useEffect(() => {
         fetchQuestions();
         fetchAnswers();
-    }, []);
+    }, [type]);
 
     return {
         questions,

@@ -19,12 +19,18 @@ import {
   Spinner,
 } from "@heroui/react";
 import { Search, Filter, ChevronDown, Edit, Trash2, Eye, Plus } from "lucide-react";
-import { Question, AssessmentType } from "@/types/assessment";
-import { QUESTION_TYPES, DISPLAY_TYPES, QUESTION_TYPE_COLORS } from "../_constants/question-types";
+import { Question } from "@/types/assessment";
+import { QUESTION_TYPES, QUESTION_TYPE_COLORS } from "../_constants/question-types";
 
-interface QuestionTableProps {
+interface ActivityQuestionTableProps {
   questions: Question[];
-  type: AssessmentType;
+  activities: Array<{
+    _id: string;
+    name: {
+      en: string;
+      th: string;
+    };
+  }>;
   onEdit: (question: Question) => void;
   onDelete: (questionId: string) => void;
   onView: (question: Question) => void;
@@ -39,21 +45,19 @@ type SortConfig = {
 type FilterConfig = {
   search: string;
   type: string;
-  displayType: string;
 };
 
-export default function QuestionTable({
+export default function ActivityQuestionTable({
   questions,
-  type,
+  activities,
   onEdit,
   onDelete,
   onView,
   onAdd,
-}: QuestionTableProps) {
+}: ActivityQuestionTableProps) {
   const [filter, setFilter] = useState<FilterConfig>({
     search: "",
-    type: "all",
-    displayType: "all"
+    type: "all"
   });
   const [sort, setSort] = useState<SortConfig>({ field: "order", direction: "asc" });
   const [page, setPage] = useState(1);
@@ -63,14 +67,17 @@ export default function QuestionTable({
   const { filteredQuestions, totalPages } = useMemo(() => {
     const filtered = questions
       .filter((question) => {
+        if (!question?.question) return false;
+        
         const matchesSearch = 
-          question.question.en.toLowerCase().includes(filter.search.toLowerCase()) ||
-          question.question.th.toLowerCase().includes(filter.search.toLowerCase());
+          (question.question.en?.toLowerCase() || '').includes(filter.search.toLowerCase()) ||
+          (question.question.th?.toLowerCase() || '').includes(filter.search.toLowerCase());
         const matchesType = filter.type === "all" || question.type === filter.type;
-        const matchesDisplayType = filter.displayType === "all" || question.displayType === filter.displayType;
-        return matchesSearch && matchesType && matchesDisplayType;
+        return matchesSearch && matchesType;
       })
       .sort((a, b) => {
+        if (!a || !b) return 0;
+        
         const aValue = a[sort.field];
         const bValue = b[sort.field];
         const direction = sort.direction === "asc" ? 1 : -1;
@@ -103,6 +110,11 @@ export default function QuestionTable({
   const handleFilterChange = (key: keyof FilterConfig, value: string) => {
     setFilter(prev => ({ ...prev, [key]: value }));
     setPage(1); // Reset to first page when filter changes
+  };
+
+  const getActivityName = (question: Question) => {
+    if (!question.activity) return 'No Activity';
+    return question.activity.name.en;
   };
 
   return (
@@ -143,31 +155,6 @@ export default function QuestionTable({
             )}
           </DropdownMenu>
         </Dropdown>
-        <Dropdown>
-          <DropdownTrigger>
-            <Button
-              variant="bordered"
-              endContent={<ChevronDown className="text-default-400" size={20} />}
-              startContent={<Filter className="text-default-400" size={20} />}
-            >
-              Display: {filter.displayType.charAt(0).toUpperCase() + filter.displayType.slice(1)}
-            </Button>
-          </DropdownTrigger>
-          <DropdownMenu
-            aria-label="Display type filter"
-            onAction={(key) => handleFilterChange("displayType", key as string)}
-            items={[
-              { key: "all", label: "All" },
-              ...DISPLAY_TYPES.map(type => ({ key: type.value, label: type.label }))
-            ]}
-          >
-            {(item) => (
-              <DropdownItem key={item.key} textValue={item.label}>
-                {item.label}
-              </DropdownItem>
-            )}
-          </DropdownMenu>
-        </Dropdown>
         <Button
           color="primary"
           startContent={<Plus size={20} />}
@@ -184,7 +171,7 @@ export default function QuestionTable({
             {[
               { key: "order", label: "Order" },
               { key: "type", label: "Type" },
-              { key: "displayType", label: "Display Type" },
+              { key: "activity", label: "Activity" },
               { key: "question", label: "Question (EN)" },
               { key: "questionTh", label: "Question (TH)" },
               { key: "createdAt", label: "Created At" },
@@ -192,8 +179,8 @@ export default function QuestionTable({
             ].map(({ key, label }) => (
               <TableColumn
                 key={key}
-                className={key !== "actions" ? "cursor-pointer" : ""}
-                onClick={() => key !== "actions" && handleSort(key as keyof Question)}
+                className={key !== "actions" && key !== "activity" ? "cursor-pointer" : ""}
+                onClick={() => key !== "actions" && key !== "activity" && handleSort(key as keyof Question)}
               >
                 {label}
                 {sort.field === key && (
@@ -206,7 +193,7 @@ export default function QuestionTable({
             loadingContent={<Spinner />}
             emptyContent={
               <div className="py-8 text-center text-default-400">
-                {filter.search || filter.type !== "all" || filter.displayType !== "all"
+                {filter.search || filter.type !== "all"
                   ? "No questions match your search criteria"
                   : "No questions available"}
               </div>
@@ -221,30 +208,30 @@ export default function QuestionTable({
                     color={QUESTION_TYPE_COLORS[question.type]}
                     variant="flat"
                   >
-                    {question.type.charAt(0).toUpperCase() + question.type.slice(1)}
+                    {question.type?.charAt(0).toUpperCase() + question.type?.slice(1)}
                   </Chip>
                 </TableCell>
                 <TableCell>
                   <Chip
                     size="sm"
-                    color={DISPLAY_TYPES.find(t => t.value === question.displayType)?.color || "default"}
+                    color="primary"
                     variant="flat"
                   >
-                    {DISPLAY_TYPES.find(t => t.value === question.displayType)?.label || "Both"}
+                    {getActivityName(question)}
                   </Chip>
                 </TableCell>
                 <TableCell>
                   <div className="max-w-md">
-                    <p className="text-sm font-medium">{question.question.en}</p>
+                    <p className="text-sm font-medium">{question.question?.en || ''}</p>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="max-w-md">
-                    <p className="text-sm font-medium">{question.question.th}</p>
+                    <p className="text-sm font-medium">{question.question?.th || ''}</p>
                   </div>
                 </TableCell>
                 <TableCell>
-                  {new Date(question.createdAt).toLocaleDateString()}
+                  {question.createdAt ? new Date(question.createdAt).toLocaleDateString() : ''}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">

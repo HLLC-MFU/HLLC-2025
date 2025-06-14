@@ -1,12 +1,51 @@
 export type QuestionType = "text" | "rating" | "dropdown" | "checkbox" | "radio";
 export type DifficultyLevel = "easy" | "medium" | "hard";
 export type AssessmentType = "pretest" | "posttest" | "activity";
+export type DisplayType = "both" | "pretest" | "posttest";
 
 export type QuestionDifficulty = "easy" | "medium" | "hard";
+
+export interface Activity {
+  _id: string;
+  name: {
+    en: string;
+    th: string;
+  };
+  acronym: string;
+  fullDetails: {
+    en: string;
+    th: string;
+  };
+  shortDetails: {
+    en: string;
+    th: string;
+  };
+  type: string;
+  photo: {
+    bannerPhoto: string;
+  };
+  location: {
+    en: string;
+    th: string;
+  };
+  metadata: {
+    isOpen: boolean;
+    isProgressCount: boolean;
+    isVisible: boolean;
+    scope: {
+      major: string[];
+      school: string[];
+      user: string[];
+    };
+  };
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface Question {
   _id: string;
   type: QuestionType;
+  displayType?: DisplayType; // Optional for backward compatibility
   question: {
     en: string;
     th: string;
@@ -16,6 +55,8 @@ export interface Question {
   createdAt: string;
   updatedAt: string;
   assessmentType?: AssessmentType; // Optional since it's not in the API response
+  activityId?: string; // Optional field to link question to a specific activity
+  activity?: Activity; // The full activity object from the API
 }
 
 export interface AssessmentResult {

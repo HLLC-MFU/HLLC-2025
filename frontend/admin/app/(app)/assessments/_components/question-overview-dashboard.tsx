@@ -243,11 +243,11 @@ export default function AssessmentOverviewDashboard({
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <p className="text-sm font-medium">Completion Rate</p>
+                        <p className="text-sm font-medium">Registered Users</p>
                         <UserCheck className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardBody>
-                        <div className="text-2xl font-bold">{stats.completionRate}%</div>
+                        <div className="text-2xl font-bold">{stats.completionRate}</div>
                         <Progress
                             value={stats.completionRate}
                             className="mt-2"
@@ -259,11 +259,11 @@ export default function AssessmentOverviewDashboard({
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <p className="text-sm font-medium">Average Score</p>
+                        <p className="text-sm font-medium">Submit Assessments</p>
                         <Award className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardBody>
-                        <div className="text-2xl font-bold">{stats.averageScore}%</div>
+                        <div className="text-2xl font-bold">{stats.averageScore}</div>
                         <Progress
                             value={stats.averageScore}
                             className="mt-2"
