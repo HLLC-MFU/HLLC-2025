@@ -49,45 +49,49 @@ export function TableInfo({
     let selectedIds: string[] = [];
 
     if (keys === "all") {
-      selectedIds = filteredItems.map((user) => user.id);
+        selectedIds = filteredItems.map((user) => user.id);
     } else {
-      selectedIds = Array.from(keys).map(String);
+        selectedIds = Array.from(keys).map(String);
     }
 
     setSelectedKeys(new Set(selectedIds));
 
     if (onSelectionChange) {
-      const selectedUsers = filteredItems.filter((user) =>
-        selectedIds.includes(user.id)
-      );
+        const selectedUsers = filteredItems.filter((user) =>
+            selectedIds.includes(user.id)
+        );
 
-      const allMajorIds = selectedUsers
-        .map(u => u.majorId)
-        .filter(id => id);
+        // 1️⃣ ถ้าเลือกแค่คนเดียว → individual ทันที
+        if (selectedUsers.length === 1) {
+            onSelectionChange([{ type: "individual", id: selectedIds }]);
+            return;
+        }
 
-      const allSchoolIds = selectedUsers
-        .map(u => u.schoolId)
-        .filter(id => id);
+        const allMajorIds = selectedUsers
+            .map(u => u.majorId)
+            .filter(id => id != null);
 
-      const uniqueMajorIds = Array.from(new Set(allMajorIds));
-      const uniqueSchoolIds = Array.from(new Set(allSchoolIds));
+        const allSchoolIds = selectedUsers
+            .map(u => u.schoolId)
+            .filter(id => id != null);
 
-      const scope: SelectionScope[] = [];
+        const uniqueMajorIds = Array.from(new Set(allMajorIds));
+        const uniqueSchoolIds = Array.from(new Set(allSchoolIds));
 
-      if (uniqueMajorIds.length === 1) {
+        const scope: SelectionScope[] = [];
 
-        scope.push({ type: "major", id: uniqueMajorIds });
-      } else if (uniqueSchoolIds.length === 1) {
+        if (uniqueMajorIds.length > 0) {
+            scope.push({ type: "major", id: uniqueMajorIds });
+        } else if (uniqueSchoolIds.length === 1) {
+            scope.push({ type: "school", id: uniqueSchoolIds });
+        } else {
+            scope.push({ type: "individual", id: selectedIds });
+        }
 
-        scope.push({ type: "school", id: uniqueSchoolIds });
-      } else {
-
-        scope.push({ type: "individual", id: selectedIds });
-      }
-
-      onSelectionChange(scope);
+        onSelectionChange(scope);
     }
-  };
+};
+
 
 
   const formatted = React.useMemo(() => {
@@ -158,8 +162,6 @@ export function TableInfo({
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
     });
   }, [sortDescriptor, items]);
-
-
 
   useEffect(() => {
     if (schoolFilter.size > 0 && majors.length > 0) {
