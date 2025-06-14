@@ -6,7 +6,7 @@ export type PretestAnswerDocument = HydratedDocument<PretestAnswer>
 @Schema({_id: false})
 class Answer{
 
-    @Prop({ required:true, type: Types.ObjectId, ref:'PrepostQuestion', unique:true})
+    @Prop({ required:true, type: Types.ObjectId, ref:'PrepostQuestion',})
     pretest: Types.ObjectId
 
     @Prop({ required:true, type: String})
@@ -15,7 +15,7 @@ class Answer{
 
 @Schema({ timestamps: true , collection: "pretest-answer"})
 export class PretestAnswer {
-    @Prop({ required:true, type:Types.ObjectId, ref: 'User'})
+    @Prop({ required:true, type:Types.ObjectId, ref: 'User' })
     user: Types.ObjectId
 
     @Prop({ required:true, type:[Answer]})

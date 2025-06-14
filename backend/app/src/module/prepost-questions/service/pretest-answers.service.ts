@@ -89,4 +89,41 @@ export class PretestAnswersService {
   async remove(id: string) {
     return await queryDeleteOne(this.pretestAnswerModel, id)
   }
+
+  async averageAllPretests(): Promise<{ pretestId: string; average: number; count: number }[]> {
+    const results = await queryAll<PretestAnswer>({
+      model: this.pretestAnswerModel,
+      query: {},
+      filterSchema: {},
+    });
+
+    const scoreMap: Record<string, { sum: number; count: number }> = {};
+
+    for (const result of results.data) {
+      for (const answer of result.answers) {
+        const pretestId = answer.pretest.toString();
+
+        const numericAnswer = parseFloat(answer.answer);
+        if (!isNaN(numericAnswer)) {
+          if (!scoreMap[pretestId]) {
+            scoreMap[pretestId] = { sum: 0, count: 0 };
+          }
+          scoreMap[pretestId].sum += numericAnswer;
+          scoreMap[pretestId].count += 1;
+        }
+      }
+    }
+
+    const output: { pretestId: string; average: number; count: number }[] = [];
+    for (const pretestId in scoreMap) {
+      const { sum, count } = scoreMap[pretestId];
+      output.push({
+        pretestId,
+        average: count > 0 ? sum / count : 0,
+        count
+      });
+    }
+    return output;
+  }
 }
+
