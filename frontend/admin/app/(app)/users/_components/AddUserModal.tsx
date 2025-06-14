@@ -3,18 +3,6 @@ import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, Modal
 import { User } from "@/types/user";
 import { School } from "@/types/school";
 import { Major } from "@/types/major";
-import { Role } from "@/types/role";
-
-type AddModalProps = {
-    isOpen: boolean;
-    onClose: () => void;
-    onAdd: (user: Partial<User>) => void;
-    action: "Add" | "Edit";
-    user: Partial<User>;
-    roleId: string;
-    schools: School[];
-    majors: Major[];
-};
 
 type UserForm = {
     name: {
@@ -28,6 +16,17 @@ type UserForm = {
         major: string
     }
 }
+
+type AddModalProps = {
+    isOpen: boolean;
+    onClose: () => void;
+    onAdd: (user: Partial<User>) => void;
+    action: "Add" | "Edit";
+    user: Partial<User>;
+    roleId: string;
+    schools: School[];
+    majors: Major[];
+};
 
 export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId, schools, majors }: AddModalProps) {
     const resetField: UserForm = {
@@ -49,12 +48,16 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
     const majorData = majors.find(m => m.name.en === Array.from(major)[0]);
 
     useEffect(() => {
+        if (action === "Add") {
+            setField(resetField);
+            setField(prev => ({ ...prev, role: roleId }))
+        }
         if (action === "Edit" && typeof user.metadata?.major === "object") {
             setField({
                 name: {
                     first: user.name?.first!,
                     middle: user.name?.middle ?? "",
-                    last: user.name?.last!,
+                    last: user.name?.last ?? "",
                 },
                 username: user.username!,
                 role: roleId,
@@ -62,16 +65,15 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                     major: user.metadata?.major?._id ?? ""
                 }
             });
-            if (typeof user.metadata?.major === "object" && user.metadata?.major?.school) {
-                setSchool(new Set([user.metadata.major.school.name.en]));
-                setMajor(new Set([user.metadata.major.name.en]));
-            }
-        }
-        if (action === "Add") {
-            setField(resetField);
-            setField(prev => ({ ...prev, role: roleId }))
+            setSchool(new Set([user.metadata.major.school.name.en]));
+            setMajor(new Set([user.metadata.major.name.en]));
         }
     }, [isOpen, user, action]);
+
+    const handleClose = () => {
+        setField(resetField);
+        onClose();
+    };
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -85,13 +87,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
             }
         };
 
-        if (action === "Add") {
-            onAdd(formData);
-        } else if (action === "Edit") {
-            onAdd(formData);
-        } else {
-            console.error("Fail to submit data");
-        }
+        onAdd(formData);
     };
 
     return (
@@ -100,7 +96,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                 isDismissable={false}
                 isKeyboardDismissDisabled={true}
                 isOpen={isOpen}
-                onClose={() => { onClose(); setField(resetField); }}
+                onClose={handleClose}
             >
                 <ModalContent>
                     <Form
@@ -179,7 +175,11 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                             </Select>
                         </ModalBody>
                         <ModalFooter className="self-end">
-                            <Button color="danger" variant="light" onPress={() => { onClose(); setField(resetField); }}>
+                            <Button
+                                color="danger"
+                                variant="light"
+                                onPress={handleClose}
+                            >
                                 Cancel
                             </Button>
                             <Button color="primary" type="submit">
