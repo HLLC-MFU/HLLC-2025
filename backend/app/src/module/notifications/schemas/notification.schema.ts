@@ -17,7 +17,7 @@ class Target {
     type: String,
     enum: ['school', 'major', 'individual'],
     required: true,
-  })
+  })a
   type: 'school' | 'major' | 'individual';
 
   @Prop({ type: [SchemaTypes.ObjectId], required: true })

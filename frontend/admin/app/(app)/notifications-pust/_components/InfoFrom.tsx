@@ -41,6 +41,7 @@ type InformationinfoProps = {
   onChange?: (data: InformationInfoData) => void;
 };
 
+
 export function Informationinfo({ onChange }: InformationinfoProps) {
   const [selected, setSelected] = useState<(typeof icons)[0] | undefined>(undefined,);
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
@@ -64,6 +65,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
       onChange(data); // 🔁 ส่งข้อมูลออกทุกครั้งที่เปลี่ยน
     }
   }, [selected, title, subtitle, body, redirect, imageUrl, onChange]);
+
 
   return (
     <div className="flex flex-col gap-5">
@@ -112,7 +114,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         <Input
           label="English"
           size="md"
-          type="Text"
+          type="text"
           className="bg-white border border-gray-300 rounded-xl"
           value={title.en}
           onChange={e => setTitle({ ...title, en: e.target.value })}
@@ -121,7 +123,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         <Input
           label="Thai"
           size="md"
-          type="Text"
+          type="text"
           className="bg-white border border-gray-300 rounded-xl"
           value={title.th}
           onChange={e => setTitle({ ...title, th: e.target.value })}
@@ -134,7 +136,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         <Input
           label="English"
           size="md"
-          type="Text"
+          type="text"
           className="bg-white border border-gray-300 rounded-xl "
           value={subtitle.en}
           onChange={e => setSubtitle({ ...subtitle, en: e.target.value })}
@@ -143,7 +145,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         <Input
           label="Thai"
           size="md"
-          type="Text"
+          type="text"
           className="bg-white border border-gray-300 rounded-xl "
           value={subtitle.th}
           onChange={e => setSubtitle({ ...subtitle, th: e.target.value })}
@@ -179,7 +181,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         <Input
           label="English"
           size="md"
-          type="Text"
+          type="text"
           className="bg-white border border-gray-300 rounded-xl "
           value={redirect.en}
           onChange={e => setRedirect({ ...redirect, en: e.target.value })}
@@ -188,7 +190,7 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         <Input
           label="Thai"
           size="md"
-          type="Text"
+          type="text"
           className="bg-white border border-gray-300 rounded-xl "
           value={redirect.th}
           onChange={e => setRedirect({ ...redirect, th: e.target.value })}
@@ -196,10 +198,11 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
         <Input
           label="Link"
           size="md"
-          type="Url"
+          type="url"
           className="bg-white border border-gray-300 rounded-xl "
           value={redirect.link}
           onChange={e => setRedirect({ ...redirect, link: e.target.value })}
+
         />
       </div>
 

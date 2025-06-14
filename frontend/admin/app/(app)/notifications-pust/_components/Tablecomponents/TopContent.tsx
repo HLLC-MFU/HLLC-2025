@@ -90,8 +90,21 @@ export default function TopContent({
               selectionMode="multiple"
               selectedKeys={schoolFilter}
               onSelectionChange={(keys) => {
-                const selected = Array.from(keys) as string[];
-                setSchoolFilter(new Set(selected));
+                const selectedSchoolIds = Array.from(keys) as string[];
+                setSchoolFilter(new Set(selectedSchoolIds));
+
+                // หา major ids ที่เกี่ยวข้องกับ school ที่ถูกเลือก
+                const relatedMajorIds = schools
+                  .filter((school) => selectedSchoolIds.includes(school._id))
+                  .flatMap((school) => school.majorIds ?? []);
+
+                // รวมกับ majorFilter เดิม
+                const updatedMajorFilter = new Set([
+                  ...Array.from(majorFilter),
+                  ...relatedMajorIds
+                ]);
+
+                setMajorFilter(updatedMajorFilter);
               }}
               className="max-h-48 overflow-y-auto"
             >
@@ -101,6 +114,7 @@ export default function TopContent({
                 </DropdownItem>
               ))}
             </DropdownMenu>
+
           </Dropdown>
         </div>
       </div>

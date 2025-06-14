@@ -18,7 +18,7 @@ const Data = [
         PreTest: 20,
         CheckIn: 30,
         PostTest: 10,
-        activty: 'Onlyfan',
+        activty: 'Test',
     },
     {
         id: 2,

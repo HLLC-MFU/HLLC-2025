@@ -1,6 +1,6 @@
 'use client';
-import { BellIcon, SendHorizontal } from 'lucide-react';
-import { Button, form, Select, SelectItem } from '@heroui/react';
+import { SendHorizontal, BellRing } from 'lucide-react';
+import { Button, Select, SelectItem } from '@heroui/react';
 import { SelectStudent } from './_components/Selectstudentinfo';
 import { Informationinfo } from './_components/InfoFrom';
 import { PreviewApp, PreviewOutApp } from './_components/Preview';
@@ -8,9 +8,6 @@ import { InformationInfoData } from './_components/InfoFrom';
 import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { useNotification } from '@/hooks/useNotification';
-import type { Notification } from '@/types/Notification';
-import { fromDate } from '@internationalized/date';
-
 export const language = [
   { key: 'en', label: 'EN' },
   { key: 'th', label: 'TH' },
@@ -20,13 +17,15 @@ type SelectionScope =
   | 'global'
   | { type: 'individual' | 'school' | 'major'; id: string[] }[];
 
-export default function NotiManage() {
+export default function NotificationPust() {
   const [selectLanguagePreview, setSelectLanguagePreview] = useState<'en' | 'th'>('en');
   const [selectLanguageNotification, setSelectLanguageNotification] = useState<'en' | 'th'>('en');
   const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
   const [scope, setScope] = useState<SelectionScope>('global');
   const { createNotification } = useNotification()
 
+  console.log(infoData)
+  console.log(scope)
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,9 +39,10 @@ export default function NotiManage() {
       formData.append("body[Th]", infoData.body.th)
       formData.append("body[En]", infoData.body.en)
       formData.append("scope", typeof scope === 'string' ? scope : JSON.stringify(scope))
-      if (typeof infoData.icon === 'string') {
-        formData.append("icon", infoData.icon)
-      }
+      formData.append("icon",(infoData.icon && typeof infoData.icon === 'object'
+        ? (infoData.icon as any)?.render?.displayName
+        : undefined) || 'UnknownIcon'
+      );
       if (infoData.imageFile) {
         formData.append("image", infoData.imageFile);
       }
@@ -57,7 +57,7 @@ export default function NotiManage() {
 
   return (
     <>
-      <PageHeader description='Create, manage, and view system notifications for specific users or roles.' icon={<BellIcon />} />
+      <PageHeader description='Create, manage, and view system notifications for specific users or roles.' icon={<BellRing />} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <div id="Notification Info" className="flex row-span-2 w-full">

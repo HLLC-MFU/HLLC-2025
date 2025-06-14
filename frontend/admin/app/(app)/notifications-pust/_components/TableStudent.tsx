@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Table,
   TableHeader,
@@ -25,27 +25,25 @@ export function TableInfo({
 }: {
   onSelectionChange?: (scope: SelectionScope[]) => void;
 }) {
-  const [filterValue, setFilterValue] = React.useState("");
-  const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(new Set<string>());
-  const [visibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
-  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+  const [filterValue, setFilterValue] = useState("");
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set<string>());
+  const [visibleColumns] = useState(new Set(INITIAL_VISIBLE_COLUMNS));
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "name",
     direction: "ascending",
   });
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = useState(1);
   const { users } = useUsers();
   const { majors } = useMajors();
   const { schools } = useSchools();
-  const [majorFilter, setMajorFilter] = React.useState<Set<string>>(new Set(),);
-  const [schoolFilter, setSchoolFilter] = React.useState<Set<string>>(new Set(),);
+  const [majorFilter, setMajorFilter] = useState<Set<string>>(new Set(),);
+  const [schoolFilter, setSchoolFilter] = useState<Set<string>>(new Set(),);
   const pages = Math.ceil(users.length / rowsPerPage);
   const hasSearchFilter = Boolean(filterValue);
-  const headerColumns = React.useMemo(() => {
+  const headerColumns = useMemo(() => {
     return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
   }, [visibleColumns]);
-
-
 
   const handleSelectionChange = (keys: Selection) => {
     let selectedIds: string[] = [];
@@ -63,30 +61,34 @@ export function TableInfo({
         selectedIds.includes(user.id)
       );
 
-      const allMajorIds = selectedUsers.map(u => u.majorId);
-      const allSchoolIds = selectedUsers.map(u => u.schoolId);
+      const allMajorIds = selectedUsers
+        .map(u => u.majorId)
+        .filter(id => id);
+
+      const allSchoolIds = selectedUsers
+        .map(u => u.schoolId)
+        .filter(id => id);
 
       const uniqueMajorIds = Array.from(new Set(allMajorIds));
       const uniqueSchoolIds = Array.from(new Set(allSchoolIds));
 
       const scope: SelectionScope[] = [];
 
-      // ✅ 1. ทุกคน major เดียวกัน
       if (uniqueMajorIds.length === 1) {
-        scope.push({ type: "major", id: [uniqueMajorIds[0]] });
 
-        // ✅ 2. ไม่ใช่ major เดียวกัน แต่ school เดียวกัน
+        scope.push({ type: "major", id: uniqueMajorIds });
       } else if (uniqueSchoolIds.length === 1) {
-        scope.push({ type: "school", id: [uniqueSchoolIds[0]] });
 
-        // ❌ 3. กระจัดกระจาย
+        scope.push({ type: "school", id: uniqueSchoolIds });
       } else {
+
         scope.push({ type: "individual", id: selectedIds });
       }
 
       onSelectionChange(scope);
     }
   };
+
 
   const formatted = React.useMemo(() => {
     return (Array.isArray(users) ? users : [])
@@ -156,6 +158,8 @@ export function TableInfo({
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
     });
   }, [sortDescriptor, items]);
+
+
 
   useEffect(() => {
     if (schoolFilter.size > 0 && majors.length > 0) {

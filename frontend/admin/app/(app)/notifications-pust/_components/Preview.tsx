@@ -61,7 +61,7 @@ export function PreviewApp({ info, lang }: { info: any; lang: 'en' | 'th' }) {
           <div className="pr-8">
             {/* เพิ่ม padding ขวาให้ห่างจากรูป */}
             <p className=" text-base whitespace-pre-wrap break-words">
-              {info?.description?.[lang] || 'Description'}
+              {info?.body?.[lang] || 'Description'}
             </p>
           </div>
 

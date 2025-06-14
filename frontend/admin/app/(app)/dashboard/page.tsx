@@ -25,9 +25,6 @@ export default function Dashboard() {
   const { reporttypes } = useReportTypes();
   const { Userstats } = useUserStatistics();  
 
-  console.log("จำนวนปัญหา" , problems)
-  console.log("ประเภทปัญหา" , reporttypes)
-
   return (
     <>
       <PageHeader description='System overview — quickly access key modules, recent activity, and system statistics.' icon={<LayoutDashboard />} />

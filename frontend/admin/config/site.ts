@@ -12,6 +12,7 @@ import {
   Ticket,
   ShieldAlert,
   LogOutIcon,
+  BellDot
 } from "lucide-react";
 
 import type { NavSection } from "@/types/nav";
@@ -38,7 +39,8 @@ export const siteConfig: {
         { label: "Users Management", href: "/users", icon: UserIcon, permission: "users:read" },
         { label: "Activities", href: "/activities", icon: University, permission: "activities:read" },
         { label: "Checkin", href: "/checkin", icon: CircleCheckBig, permission: "checkin:read" },
-        { label: "Notification Management", href: '/notifications', icon: BellRing, permission: "notifications:read" },
+        { label: "Notification Push", href: '/notifications-pust', icon: BellRing, permission: "notifications:read" },
+        { label: "Notification Management", href: '/notification-Management', icon: BellDot, permission: "notifications:read" },
         { label: "Reports", href: "/reports", icon: ShieldAlert, permission: "reports:read" },
       ],
     },
