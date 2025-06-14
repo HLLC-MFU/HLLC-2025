@@ -29,7 +29,7 @@ export function LamduanFlowersFilters({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-rwo gap-4">
                 <Input
                     isClearable
                     value={searchQuery}

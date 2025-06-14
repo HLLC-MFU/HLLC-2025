@@ -1,6 +1,6 @@
 import { Accordion, AccordionItem } from "@heroui/react";
-import TableLamduanFlowers from "./TableLamduanFlowers";
-import { Flower2, Settings } from "lucide-react";
+import TableCardLamduanFlowers from "./TableCardLamduanFlowers";
+import { Car, Flower2, Settings } from "lucide-react";
 import { useState } from "react";
 import CardLamduanFlowers from "./CardLamduanFlowers";
 import { LamduanFlowers } from "@/types/lamduan-flowers";
@@ -53,16 +53,17 @@ export default function AccordionLamduan() {
                     </div>
                 }
             >
-                <div className="flex flex-col gap-6">
-                    <TableLamduanFlowers />
-                    {/* <CardLamduanFlowers />
-                    <CardLamduanFlowers />
-                    <CardLamduanFlowers />
-                    <CardLamduanFlowers />
-                    <CardLamduanFlowers />
-                    <CardLamduanFlowers />
-                    <CardLamduanFlowers />
-                    <CardLamduanFlowers /> */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {/* <TableCardLamduanFlowers /> */}
+                    <CardLamduanFlowers/>
+                    <CardLamduanFlowers/>
+                    <CardLamduanFlowers/>
+                    <CardLamduanFlowers/>
+                    <CardLamduanFlowers/>
+                    <CardLamduanFlowers/>
+                    <CardLamduanFlowers/>
+                    <CardLamduanFlowers/>
+                    <CardLamduanFlowers/>
                 </div>
             </AccordionItem>
         </Accordion>

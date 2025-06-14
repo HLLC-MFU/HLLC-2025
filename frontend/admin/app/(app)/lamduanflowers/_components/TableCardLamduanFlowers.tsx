@@ -6,12 +6,14 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  getKeyValue,
-  Button,
   Input,
   SortDescriptor,
+  Card,
+  CardBody,
+  Image,
+  Button
 } from "@heroui/react";
-import { Trash2, Search, Delete } from "lucide-react";
+import { Trash2, Search } from "lucide-react";
 
 // mock data
 const rows = [
@@ -24,13 +26,13 @@ const rows = [
   {
     key: "2",
     user: "6731804051",
-    comment: "Hello",
+    comment: "ขอบคุณที่ตั้งใจเรียนจนจบ เป็นผู้ใหญ่เต็มตัวแล้วนะหลังจากนี้ก็ใช้ชีวิตให้ดี ดูแลครอบครัวได้แล้วนะ",
     image: "https://i.pinimg.com/736x/4e/8a/6d/4e8a6da813ffe2337b5182587ebede35.jpg",
   },
   {
     key: "3",
     user: "6731503888",
-    comment: "Hello ",
+    comment: "สวัสดี",
     image: "https://i.pinimg.com/736x/4e/8a/6d/4e8a6da813ffe2337b5182587ebede35.jpg",
   },
 ];
@@ -43,7 +45,7 @@ const columns = [
   { key: "action", label: "Actions", sortable: false },
 ];
 
-export default function TableLamduanFlowers() {
+export default function TableCardLamduanFlowers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "user",
@@ -101,46 +103,40 @@ export default function TableLamduanFlowers() {
           )}
         </TableHeader>
 
-        <TableBody items={filteredItems}>
-          {(item) => (
+        <TableBody>
+          {filteredItems.map((item) => (
             <TableRow key={item.key}>
-              {(columnKey) => {
-                if (columnKey === "image") {
-                  return (
-                    <TableCell className="text-right">
-                      <img
+              <TableCell colSpan={4}>
+                <Card
+                  isBlurred
+                  className="border-none bg-background/60 dark:bg-default-100/50 max-w-full rounded-xl overflow-hidden"
+                  shadow="sm"
+                >
+                  <div className="flex">
+                    <div className="p-2">
+                      <Image
+                        alt="lamduan"
+                        className="object-cover w-[90px] h-[90px] rounded-lg"
+                        shadow="md"
                         src={item.image}
-                        alt="Lamduan"
-                        className="w-[60px] h-[60px] object-cover rounded"
                       />
-                    </TableCell>
-                  );
-                }
+                    </div>
 
-                if (columnKey === "action") {
-                  return (
-                    <TableCell className="text-right">
-                      <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="danger"
-                        onPress={() => alert(`Delete ${item.user}`)}
-                      >
-                        <Trash2 size={16} />
+                    <div className="flex flex-col justify-center gap-1 px-2 flex-1">
+                      <p className="text-lg font-bold">{item.user}</p>
+                      <p className="text-sm font-medium">Comment: {item.comment}</p>
+                    </div>
+
+                    <div className="w-[60px] flex items-center justify-center">
+                      <Button isIconOnly variant="light" color="danger">
+                        <Trash2 size={20} />
                       </Button>
-                    </TableCell>
-                  );
-                }
-
-                return (
-                  <TableCell className="py-4 px-2">
-                    {getKeyValue(item, columnKey)}
-                  </TableCell>
-                );
-              }}
+                    </div>
+                  </div>
+                </Card>
+              </TableCell>
             </TableRow>
-          )}
+          ))}
         </TableBody>
       </Table>
     </div>
