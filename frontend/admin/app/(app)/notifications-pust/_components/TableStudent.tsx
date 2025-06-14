@@ -95,7 +95,6 @@ export function TableInfo({ onSelectionChange }: { onSelectionChange?: (scope: S
     });
   }, [sortDescriptor, pagedItems]);
 
-  // Update Major filter when school filter changes
   useEffect(() => {
     if (schoolFilter.size > 0 && majors.length > 0) {
       const selectedSchoolIds = Array.from(schoolFilter);
@@ -115,39 +114,47 @@ export function TableInfo({ onSelectionChange }: { onSelectionChange?: (scope: S
   }, [schoolFilter, majors]);
 
   const handleSelectionChange = (keys: Selection) => {
-    let selectedIds: string[] = [];
+  let selectedIds: string[] = [];
 
-    if (keys === "all") {
-      selectedIds = filteredItems.map(user => user.id);
-    } else {
-      selectedIds = Array.from(keys).map(String);
+  if (keys === "all") {
+    selectedIds = filteredItems.map(user => user.id);
+  } else {
+    selectedIds = Array.from(keys).map(String);
+  }
+
+  setSelectedKeys(new Set(selectedIds));
+
+  if (onSelectionChange) {
+    const selectedUsers = filteredItems.filter(user => selectedIds.includes(user.id));
+
+    if (selectedUsers.length === 1) {
+      onSelectionChange([{ type: "individual", id: selectedIds }]);
+      return;
     }
 
-    setSelectedKeys(new Set(selectedIds));
+    // หา majorIds & schoolIds จาก user ที่เลือก
+    const majorIds = selectedUsers.map(u => u.majorId).filter(Boolean);
+    const uniqueMajorIds = Array.from(new Set(majorIds));
 
-    if (onSelectionChange) {
-      const selectedUsers = filteredItems.filter(user => selectedIds.includes(user.id));
-      if (selectedUsers.length === 1) {
-        onSelectionChange([{ type: "individual", id: selectedIds }]);
-        return;
-      }
+    const schoolIds = selectedUsers.map(u => u.schoolId).filter(Boolean);
+    const uniqueSchoolIds = Array.from(new Set(schoolIds));
 
-      const uniqueMajorIds = Array.from(new Set(selectedUsers.map(u => u.majorId).filter(Boolean)));
-      const uniqueSchoolIds = Array.from(new Set(selectedUsers.map(u => u.schoolId).filter(Boolean)));
-
-      const scope: SelectionScope[] = [];
-
-      if (uniqueMajorIds.length > 0) {
-        scope.push({ type: "major", id: uniqueMajorIds });
-      } else if (uniqueSchoolIds.length === 1) {
-        scope.push({ type: "school", id: uniqueSchoolIds });
-      } else {
-        scope.push({ type: "individual", id: selectedIds });
-      }
-
-      onSelectionChange(scope);
+    // ✅ CASE 1: ถ้ามีแค่ major เดียวทั้งหมด
+    if (uniqueMajorIds.length === 1) {
+      onSelectionChange([{ type: "major", id: uniqueMajorIds }]);
+      return;
     }
-  };
+
+    // ✅ CASE 2: ถ้า major มีหลายตัวแต่ school เดียวกัน
+    if (uniqueSchoolIds.length === 1) {
+      onSelectionChange([{ type: "school", id: uniqueSchoolIds }]);
+      return;
+    }
+
+    // ✅ CASE 3: ถ้าไม่เข้าเงื่อนไขอะไรเลย → ถือว่า individual
+    onSelectionChange([{ type: "individual", id: selectedIds }]);
+  }
+};
 
   const renderCell = useCallback((user: FormattedUser, columnKey: keyof FormattedUser | "name" | "major") => {
     const cellValue = columnKey === "name" ? user.name : user[columnKey as keyof FormattedUser];
@@ -232,7 +239,7 @@ export function TableInfo({ onSelectionChange }: { onSelectionChange?: (scope: S
           setSchoolFilter={setSchoolFilter}
           majors={majors}
           schools={schools}
-          usersLength={users.length}
+          usersLength={filteredItems.length}
           onRowsPerPageChange={onRowsPerPageChange}
         />
       }
