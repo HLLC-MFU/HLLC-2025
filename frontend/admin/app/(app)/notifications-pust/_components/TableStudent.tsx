@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Table,
   TableHeader,
@@ -20,170 +20,136 @@ import { INITIAL_VISIBLE_COLUMNS, columns } from "@/types/Notification/TableNoti
 
 type SelectionScope = { type: "school" | "major" | "individual"; id: string[] };
 
-export function TableInfo({
-  onSelectionChange,
-}: {
-  onSelectionChange?: (scope: SelectionScope[]) => void;
-}) {
+export function TableInfo({ onSelectionChange }: { onSelectionChange?: (scope: SelectionScope[]) => void; }) {
   const [filterValue, setFilterValue] = useState("");
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set<string>());
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [visibleColumns] = useState(new Set(INITIAL_VISIBLE_COLUMNS));
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: "name",
-    direction: "ascending",
-  });
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({ column: "name", direction: "ascending" });
   const [page, setPage] = useState(1);
   const { users } = useUsers();
   const { majors } = useMajors();
   const { schools } = useSchools();
-  const [majorFilter, setMajorFilter] = useState<Set<string>>(new Set(),);
-  const [schoolFilter, setSchoolFilter] = useState<Set<string>>(new Set(),);
-  const pages = Math.ceil(users.length / rowsPerPage);
+  const [majorFilter, setMajorFilter] = useState<Set<string>>(new Set());
+  const [schoolFilter, setSchoolFilter] = useState<Set<string>>(new Set());
+
   const hasSearchFilter = Boolean(filterValue);
+
   const headerColumns = useMemo(() => {
-    return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
+    return columns.filter(column => Array.from(visibleColumns).includes(column.uid));
   }, [visibleColumns]);
 
-  const handleSelectionChange = (keys: Selection) => {
-    let selectedIds: string[] = [];
-
-    if (keys === "all") {
-        selectedIds = filteredItems.map((user) => user.id);
-    } else {
-        selectedIds = Array.from(keys).map(String);
-    }
-
-    setSelectedKeys(new Set(selectedIds));
-
-    if (onSelectionChange) {
-        const selectedUsers = filteredItems.filter((user) =>
-            selectedIds.includes(user.id)
-        );
-
-        if (selectedUsers.length === 1) {
-            onSelectionChange([{ type: "individual", id: selectedIds }]);
-            return;
-        }
-
-        const allMajorIds = selectedUsers
-            .map(u => u.majorId)
-            .filter(id => id != null);
-
-        const allSchoolIds = selectedUsers
-            .map(u => u.schoolId)
-            .filter(id => id != null);
-
-        const uniqueMajorIds = Array.from(new Set(allMajorIds));
-        const uniqueSchoolIds = Array.from(new Set(allSchoolIds));
-
-        const scope: SelectionScope[] = [];
-
-        if (uniqueMajorIds.length > 0) {
-            scope.push({ type: "major", id: uniqueMajorIds });
-        } else if (uniqueSchoolIds.length === 1) {
-            scope.push({ type: "school", id: uniqueSchoolIds });
-        } else {
-            scope.push({ type: "individual", id: selectedIds });
-        }
-
-        onSelectionChange(scope);
-    }
-};
-
-
-
-  const formatted = React.useMemo(() => {
+  const formatted = useMemo<FormattedUser[]>(() => {
     return (Array.isArray(users) ? users : [])
       .filter(user => user.role?.name !== 'Administrator')
       .map(item => {
-        const metadataArray = Array.isArray(item.metadata)
-          ? item.metadata
-          : [item.metadata];
-
+        const metadataArray = Array.isArray(item.metadata) ? item.metadata : [item.metadata];
         const majorObj = metadataArray?.[0]?.major;
-        const major = metadataArray?.[0]?.major?.name?.en ?? '-';
         const schoolObj = metadataArray?.[0]?.major?.school;
-        const school = metadataArray[0]?.major?.school?.name?.en ?? '-';
 
         return {
           id: item._id,
           name: `${item.name?.first ?? ''} ${item.name?.middle ?? ''} ${item.name?.last ?? ''}`.trim(),
           studentid: item.username,
-          major,
+          major: majorObj?.name?.en ?? '-',
           majorId: majorObj?._id ?? '',
-          school,
+          school: schoolObj?.name?.en ?? '-',
           schoolId: schoolObj?._id ?? '',
         };
       });
   }, [users]);
 
-
-  const filteredItems = React.useMemo(() => {
-    let filteredUsers = [...formatted];
+  const filteredItems = useMemo(() => {
+    let filtered = [...formatted];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((user) =>
-        user.studentid.toLowerCase().includes(filterValue.toLowerCase()),
+      filtered = filtered.filter(user =>
+        (user.studentid ?? '').toLowerCase().includes(filterValue.toLowerCase())
       );
     }
 
-
-    if (majorFilter && majorFilter.size > 0) {
-      filteredUsers = filteredUsers.filter(user =>
-        majorFilter.has(user.majorId),
-      );
+    if (majorFilter.size > 0) {
+      filtered = filtered.filter(user => majorFilter.has(user.majorId));
     }
 
-    if (schoolFilter && schoolFilter.size > 0) {
-      filteredUsers = filteredUsers.filter(user =>
-        schoolFilter.has(user.schoolId),
-      );
+    if (schoolFilter.size > 0) {
+      filtered = filtered.filter(user => schoolFilter.has(user.schoolId));
     }
 
-    return filteredUsers;
+    return filtered;
   }, [formatted, filterValue, majorFilter, schoolFilter]);
 
+  const pages = Math.ceil(filteredItems.length / rowsPerPage);
 
-  const items = React.useMemo(() => {
+  const pagedItems = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
+    return filteredItems.slice(start, start + rowsPerPage);
+  }, [page, rowsPerPage, filteredItems]);
 
-    return filteredItems.slice(start, end);
-  }, [page, filteredItems, rowsPerPage]);
-
-  const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: any, b: any) => {
-      const first = a[sortDescriptor.column];
-      const second = b[sortDescriptor.column];
+  const sortedItems = useMemo(() => {
+    return [...pagedItems].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof FormattedUser] ?? '';
+      const second = b[sortDescriptor.column as keyof FormattedUser] ?? '';
       const cmp = first < second ? -1 : first > second ? 1 : 0;
-
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
     });
-  }, [sortDescriptor, items]);
+  }, [sortDescriptor, pagedItems]);
 
+  // Update Major filter when school filter changes
   useEffect(() => {
     if (schoolFilter.size > 0 && majors.length > 0) {
-      // เก็บ school id ที่เลือกไว้
       const selectedSchoolIds = Array.from(schoolFilter);
-
-      // กรอง majors ที่ belong กับ school ที่เลือก
       const filteredMajorIds = majors
-        .filter((m) => selectedSchoolIds.includes(m.school))
-        .map((m) => m._id)
+        .filter(m => {
+          if (typeof m.school === "object" && m.school !== null && "_id" in m.school) {
+            return selectedSchoolIds.includes((m.school as { _id: string })._id ?? '');
+          }
+          return false;
+        })
+        .map(m => m._id)
         .filter((id): id is string => typeof id === "string" && id.length > 0);
-
-      // เซ็ตใหม่เฉพาะ major ของ school ที่เลือก
       setMajorFilter(new Set(filteredMajorIds));
-    }
-
-    if (schoolFilter.size === 0) {
+    } else {
       setMajorFilter(new Set());
     }
-
   }, [schoolFilter, majors]);
 
-  const renderCell = React.useCallback((user: FormattedUser, columnKey: keyof FormattedUser | "name" | "major") => {
+  const handleSelectionChange = (keys: Selection) => {
+    let selectedIds: string[] = [];
+
+    if (keys === "all") {
+      selectedIds = filteredItems.map(user => user.id);
+    } else {
+      selectedIds = Array.from(keys).map(String);
+    }
+
+    setSelectedKeys(new Set(selectedIds));
+
+    if (onSelectionChange) {
+      const selectedUsers = filteredItems.filter(user => selectedIds.includes(user.id));
+      if (selectedUsers.length === 1) {
+        onSelectionChange([{ type: "individual", id: selectedIds }]);
+        return;
+      }
+
+      const uniqueMajorIds = Array.from(new Set(selectedUsers.map(u => u.majorId).filter(Boolean)));
+      const uniqueSchoolIds = Array.from(new Set(selectedUsers.map(u => u.schoolId).filter(Boolean)));
+
+      const scope: SelectionScope[] = [];
+
+      if (uniqueMajorIds.length > 0) {
+        scope.push({ type: "major", id: uniqueMajorIds });
+      } else if (uniqueSchoolIds.length === 1) {
+        scope.push({ type: "school", id: uniqueSchoolIds });
+      } else {
+        scope.push({ type: "individual", id: selectedIds });
+      }
+
+      onSelectionChange(scope);
+    }
+  };
+
+  const renderCell = useCallback((user: FormattedUser, columnKey: keyof FormattedUser | "name" | "major") => {
     const cellValue = columnKey === "name" ? user.name : user[columnKey as keyof FormattedUser];
 
     switch (columnKey) {
@@ -191,14 +157,10 @@ export function TableInfo({
         return (
           <User
             avatarProps={{ radius: "full", size: "sm", src: user.avatar }}
-            classNames={{
-              description: "text-default-500",
-            }}
+            classNames={{ description: "text-default-500" }}
             description={user.studentid}
             name={user.name}
-          >
-            {user.name}
-          </User>
+          />
         );
       case "major":
         return (
@@ -212,51 +174,43 @@ export function TableInfo({
     }
   }, []);
 
-  const onRowsPerPageChange = React.useCallback((e: any) => {
+  const onRowsPerPageChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     setRowsPerPage(Number(e.target.value));
     setPage(1);
   }, []);
 
-  const onSearchChange = React.useCallback((value: string) => {
-    if (value) {
-      setFilterValue(value);
-      setPage(1);
-    } else {
-      setFilterValue("");
-    }
+  const onSearchChange = useCallback((value: string) => {
+    setFilterValue(value || "");
+    setPage(1);
   }, []);
 
-  const classNames = React.useMemo(
-    () => ({
-      wrapper: ["max-h-[382px]", "max-w-3xl"],
-      th: ["bg-transparent", "text-default-500", "border-b", "border-divider"],
-      td: [
-        // changing the rows border radius
-        // first
-        "group-data-[first=true]/tr:first:before:rounded-none",
-        "group-data-[first=true]/tr:last:before:rounded-none",
-        // middle
-        "group-data-[middle=true]/tr:before:rounded-none",
-        // last
-        "group-data-[last=true]/tr:first:before:rounded-none",
-        "group-data-[last=true]/tr:last:before:rounded-none",
-      ],
-    }),
-    [],
-  );
+  const classNames = useMemo(() => ({
+    wrapper: ["max-h-[382px]", "max-w-3xl"],
+    th: ["bg-transparent", "text-default-500", "border-b", "border-divider"],
+    td: [
+      "group-data-[first=true]/tr:first:before:rounded-none",
+      "group-data-[first=true]/tr:last:before:rounded-none",
+      "group-data-[middle=true]/tr:before:rounded-none",
+      "group-data-[last=true]/tr:first:before:rounded-none",
+      "group-data-[last=true]/tr:last:before:rounded-none",
+    ],
+  }), []);
 
   return (
     <Table
       isCompact
       removeWrapper
       aria-label="Example table with custom cells, pagination and sorting"
-      bottomContent={<BottomContent
-        page={page}
-        pages={pages}
-        setPage={setPage}
-        selectedKeys={selectedKeys}
-        items={filteredItems}
-        hasSearchFilter={hasSearchFilter} />}
+      bottomContent={
+        <BottomContent
+          page={page}
+          pages={pages}
+          setPage={setPage}
+          selectedKeys={selectedKeys}
+          items={filteredItems}
+          hasSearchFilter={hasSearchFilter}
+        />
+      }
       bottomContentPlacement="outside"
       checkboxesProps={{
         classNames: {
@@ -267,19 +221,21 @@ export function TableInfo({
       selectedKeys={selectedKeys}
       selectionMode="multiple"
       sortDescriptor={sortDescriptor}
-      topContent={<TopContent
-        filterValue={filterValue}
-        onSearchChange={onSearchChange}
-        onClear={() => setFilterValue("")}
-        majorFilter={majorFilter}
-        setMajorFilter={setMajorFilter}
-        schoolFilter={schoolFilter}
-        setSchoolFilter={setSchoolFilter}
-        majors={majors}
-        schools={schools}
-        usersLength={users.length}
-        onRowsPerPageChange={onRowsPerPageChange}
-      />}
+      topContent={
+        <TopContent
+          filterValue={filterValue}
+          onSearchChange={onSearchChange}
+          onClear={() => setFilterValue("")}
+          majorFilter={majorFilter}
+          setMajorFilter={setMajorFilter}
+          schoolFilter={schoolFilter}
+          setSchoolFilter={setSchoolFilter}
+          majors={majors}
+          schools={schools}
+          usersLength={users.length}
+          onRowsPerPageChange={onRowsPerPageChange}
+        />
+      }
       topContentPlacement="outside"
       onSelectionChange={handleSelectionChange}
       onSortChange={setSortDescriptor}
