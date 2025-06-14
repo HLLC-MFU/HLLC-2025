@@ -11,10 +11,9 @@ export class Checkin {
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
   staff: Types.ObjectId;
 
-  @Prop({ required: true, type: [Types.ObjectId], ref: 'Activities' })
-  activities: Types.ObjectId[];
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Activities' })
+  activity: Types.ObjectId;
 }
 
 export const CheckinSchema = SchemaFactory.createForClass(Checkin);
-
-CheckinSchema.index({ user: 1, staff: 1, activities: 1 });
+CheckinSchema.index({ user: 1, activity: 1 }, { unique: true });

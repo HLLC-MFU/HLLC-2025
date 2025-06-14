@@ -1,4 +1,4 @@
-import React from "react";
+import React, { createRef, FormEvent, RefObject, useEffect, useRef, useState } from "react";
 import {
     Button,
     DateInput,
@@ -11,81 +11,114 @@ import {
     ModalHeader,
     Select,
     SelectItem,
-    Image,
+    Divider,
 } from "@heroui/react";
-import { Calendar } from "lucide-react";
-import { ZonedDateTime, toZoned, now } from "@internationalized/date";
+import { Image, Upload, X } from "lucide-react";
+import { fromDate } from "@internationalized/date";
 
-// Mockup data for schools
-import schoolsMockup from "@/public/mock/schools.json";
-import { Sponsors } from "@/types/sponsors";
 import { EvoucherType } from "@/types/evoucher-type";
+import { Evoucher } from "@/types/evoucher";
 
-export const schools = schoolsMockup;
+type FieldProps = {
+    sponsor: string,
+    acronym: string,
+    detail: string,
+    discount: number,
+    expiration: Date,
+    selectedType: Set<string>,
+    cover: File | string | null,
+}
 
-export interface AddEvoucherProps {
+type AddEvoucherProps = {
     isOpen: boolean;
     onClose: () => void;
     onAdd: (evoucherData: FormData) => void;
     type: EvoucherType[];
+    evoucher: Partial<Evoucher>;
     title: string;
-    sponsors: Sponsors[];
+    sponsorId: string;
+    field: FieldProps;
+    setField: (field: FieldProps) => void;
+    coverInputRef: RefObject<HTMLInputElement>;
 }
+
+const IMAGE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AddModal({
     isOpen,
     onClose,
     onAdd,
     type,
+    evoucher,
     title,
-    sponsors,
+    sponsorId,
+    field,
+    setField,
+    coverInputRef,
 }: AddEvoucherProps) {
-    const [sponsor, setSponsor] = React.useState<Set<string>>(new Set<string>());
-    const [acronym, setAcronym] = React.useState("");
-    const [detail, setDetail] = React.useState("");
-    const [discount, setDiscount] = React.useState<number>(0);
-    const [expiration, setExpiration] = React.useState<ZonedDateTime | null>(
-        toZoned(now("Asia/Bangkok"), "Asia/Bangkok")
-    );
-    const [selectedType, setSelectedType] = React.useState<Set<string>>(new Set<string>());
-    const [cover, setCover] = React.useState<File | null>(null);
+    const reader = new FileReader();
 
-    React.useEffect(() => {
-        if (title === "Add") {
-            onClear();
-        }
-    }, [title]);
-
-    const onClear = () => {
-        setSponsor(new Set());
-        setAcronym("");
-        setDetail("");
-        setDiscount(0);
-        setExpiration(toZoned(now("Asia/Bangkok"), "Asia/Bangkok"));
-        setSelectedType(new Set());
-        setCover(null);
+    const resetField: FieldProps = {
+        sponsor: "",
+        acronym: "",
+        detail: "",
+        discount: 0,
+        expiration: new Date(),
+        selectedType: new Set<string>(),
+        cover: null,
     };
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const [previewImage, setPreviewImage] = useState("");
+
+    useEffect(() => {
+        if (title === "Add") {
+            setField(resetField);
+            setPreviewImage("");
+        }
+        if (title === "Edit" && typeof evoucher === "object") {
+            setField({
+                sponsor: "",
+                acronym: evoucher.acronym!,
+                detail: evoucher.detail?.en!,
+                discount: evoucher.discount!,
+                expiration: evoucher.expiration ? new Date(evoucher.expiration.toLocaleString("en-Us", { timeZone: "Asia/Bangkok" })) : new Date(),
+                selectedType: evoucher.type ? new Set([evoucher.type?.name]) : new Set<string>(),
+                cover: evoucher.photo?.coverPhoto ?? null,
+            });
+        }
+    }, [title, evoucher, isOpen]);
+
+    const handleFileChange = (file: File) => {
+        if (!file) return;
+
+        reader.onload = () => {
+            setPreviewImage(reader.result as string)
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleClose = () => {
+        setPreviewImage("");
+        setField(resetField);
+        onClose();
+    };
+
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const sponsorId = sponsors.find((s) => s.name.en === Array.from(sponsor)[0])?._id;
-        const typeId = type.find((t) => t.name === Array.from(selectedType)[0])?._id;
+        const typeId = type.find((t) => t.name === Array.from(field.selectedType)[0])?._id;
 
         const formData = new FormData();
-        formData.append("acronym", acronym);
-        formData.append("discount", discount.toString());
-        if (expiration) {
-            formData.append("expiration", expiration.toDate().toISOString());
-        }
-        formData.append("detail[th]", detail);
-        formData.append("detail[en]", detail);
-        if (sponsorId) formData.append("sponsors", sponsorId);
+        formData.append("acronym", field.acronym);
+        formData.append("discount", field.discount.toString());
+        if (field.expiration) formData.append("expiration", field.expiration.toISOString());
+        formData.append("detail[th]", field.detail);
+        formData.append("detail[en]", field.detail);
+        formData.append("sponsors", sponsorId);
         if (typeId) formData.append("type", typeId);
-        if (cover) formData.append("photo[coverPhoto]", cover);
+        if (field.cover instanceof File) formData.append("photo[coverPhoto]", field.cover);
 
         onAdd(formData);
-        onClear();
     };
 
     return (
@@ -93,109 +126,160 @@ export default function AddModal({
             isDismissable={false}
             isKeyboardDismissDisabled={true}
             isOpen={isOpen}
-            onClose={() => {
-                onClose();
-                onClear();
-            }}
+            size="4xl"
+            scrollBehavior="inside"
+            onClose={handleClose}
         >
-            <ModalContent>
-                <Form className="w-full" onSubmit={(e) => handleSubmit(e)}>
+            <Form
+                className="w-full"
+                onSubmit={(e) => handleSubmit(e)}
+            >
+                <ModalContent>
                     <ModalHeader className="flex flex-col gap-1">
                         {title === "Add" ? "Add evoucher" : "Edit evoucher"}
                     </ModalHeader>
+
+                    <Divider />
+
                     <ModalBody className="w-full">
-                        <Select
-                            isRequired
-                            label="Sponsor"
-                            placeholder="Select Sponsor"
-                            errorMessage={({ validationDetails }) => {
-                                if (validationDetails.valueMissing) return "Please select sponsor";
-                            }}
-                            selectedKeys={sponsor}
-                            onSelectionChange={(keys) => setSponsor(keys as Set<string>)}
-                        >
-                            {sponsors.map((s) => (
-                                <SelectItem key={s.name.en}>{s.name.en}</SelectItem>
-                            ))}
-                        </Select>
+                        <div className=" grid grid-cols-2 gap-4">
+                            <Input
+                                isRequired
+                                label="Acronym"
+                                type="string"
+                                placeholder="Enter Acronym"
+                                errorMessage={({ validationDetails }) => {
+                                    if (validationDetails.valueMissing) return "Please enter acronym";
+                                }}
+                                value={field.acronym}
+                                onChange={(e) => setField({ ...field, acronym: e.target.value })}
+                            />
+                            <Input
+                                isRequired
+                                label="Detail"
+                                type="string"
+                                placeholder="Enter Detail"
+                                errorMessage={({ validationDetails }) => {
+                                    if (validationDetails.valueMissing) return "Please enter detail";
+                                }}
+                                value={field.detail}
+                                onChange={(e) => setField({ ...field, detail: e.target.value })}
+                            />
+                            <Input
+                                isRequired
+                                label="Discount"
+                                type="number"
+                                placeholder="Enter Discount"
+                                errorMessage={({ validationDetails }) => {
+                                    if (validationDetails.valueMissing) return "Please enter your discount";
+                                }}
+                                value={field.discount !== undefined ? field.discount.toString() : ""}
+                                onChange={(e) => setField({ ...field, discount: Number(e.target.value) })}
+                            />
+                            <DateInput
+                                isRequired
+                                label="Expiration"
+                                granularity="minute"
+                                errorMessage={({ validationDetails }) => {
+                                    if (validationDetails.valueMissing) return "Please enter your expiration";
+                                }}
+                                value={fromDate(field.expiration, "Asia/Bangkok")}
+                                onChange={(val) => setField({ ...field, expiration: val ? val.toDate() : new Date() })}
+                            />
+                            <Select
+                                isRequired
+                                label="Type"
+                                placeholder="Select Type"
+                                errorMessage={({ validationDetails }) => {
+                                    if (validationDetails.valueMissing) return "Please select evoucher type";
+                                }}
+                                selectedKeys={field.selectedType}
+                                onSelectionChange={(keys) => setField({ ...field, selectedType: new Set(Array.from(keys as Set<string>)) })}
+                            >
+                                {type.map((t) => (
+                                    <SelectItem key={t.name}>{t.name}</SelectItem>
+                                ))}
+                            </Select>
+                        </div>
+
+                        <Divider />
+
+                        <div className="space-y-2 max-w-[400px]">
+                            <h3 className="text-sm font-medium mb-3">Photos</h3>
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-medium text-default-700">Cover Photo</h4>
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="flat"
+                                        color="primary"
+                                        startContent={<Upload size={14} />}
+                                        onPress={() => coverInputRef.current?.click()}
+                                    >
+                                        Upload
+                                    </Button>
+                                    {previewImage && (
+                                        <Button
+                                            size="sm"
+                                            variant="flat"
+                                            color="danger"
+                                            isIconOnly
+                                            onPress={() => {
+                                                setField({ ...field, cover: null });
+                                                setPreviewImage("");
+                                            }}
+                                        >
+                                            <X size={14} />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="relative aspect-square rounded-xl border border-default-200 bg-default-50 transition-all duration-200 hover:border-primary/50">
+                                {previewImage ? (
+                                    <img
+                                        src={previewImage}
+                                        alt="Preview"
+                                        className="w-full h-full object-contain max-w-[400px] bg-white"
+                                    />
+                                ) : typeof field.cover === "string" ? (
+                                    <img
+                                        src={`${IMAGE_URL}/uploads/${field.cover}`}
+                                        alt="Preview"
+                                        className="w-full h-full object-contain max-w-[400px] bg-white"
+                                    />
+                                ) : (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-default-400">
+                                        <Image size={24} />
+                                        <span className="text-xs">No image uploaded</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <Input
-                            isRequired
-                            label="Acronym"
-                            type="string"
-                            placeholder="Enter Acronym"
-                            errorMessage={({ validationDetails }) => {
-                                if (validationDetails.valueMissing) return "Please enter acronym";
-                            }}
-                            value={acronym}
-                            onChange={(e) => setAcronym(e.target.value)}
-                        />
-                        <Input
-                            isRequired
-                            label="Detail"
-                            type="string"
-                            placeholder="Enter Detail"
-                            errorMessage={({ validationDetails }) => {
-                                if (validationDetails.valueMissing) return "Please enter detail";
-                            }}
-                            value={detail}
-                            onChange={(e) => setDetail(e.target.value)}
-                        />
-                        <Input
-                            isRequired
-                            label="Discount"
-                            type="number"
-                            placeholder="Enter Discount"
-                            errorMessage={({ validationDetails }) => {
-                                return "Please enter your discount";
-                            }}
-                            value={discount !== undefined ? discount.toString() : ""}
-                            onChange={(e) => setDiscount(Number(e.target.value))}
-                        />
-                        <DateInput
-                            isRequired
-                            label="Expiration"
-                            granularity="minute"
-                            value={expiration}
-                            onChange={setExpiration}
-                            endContent={<Calendar />}
-                            errorMessage={({ validationDetails }) => {
-                                if (validationDetails.valueMissing) return "Please enter your expiration";
-                            }}
-                        />
-                        <Select
-                            isRequired
-                            label="Type"
-                            placeholder="Select Type"
-                            errorMessage={({ validationDetails }) => {
-                                if (validationDetails.valueMissing) return "Please select evoucher type";
-                            }}
-                            selectedKeys={selectedType}
-                            onSelectionChange={(keys) => setSelectedType(keys as Set<string>)}
-                        >
-                            {type.map((t) => (
-                                <SelectItem key={t.name}>{t.name}</SelectItem>
-                            ))}
-                        </Select>
-                        <Input
-                            isRequired
+                            required={!(title === "Edit" && typeof field.cover === "string")}
+                            ref={coverInputRef}
                             type="file"
                             accept="image/*"
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                    setCover(file);
+                                    setField({ ...field, cover: file });
+                                    handleFileChange(file);
                                 }
                             }}
+                            className="hidden"
                         />
                     </ModalBody>
+
+                    <Divider />
+
                     <ModalFooter className="self-end">
                         <Button
                             color="danger"
                             variant="light"
-                            onPress={() => {
-                                onClose();
-                                onClear();
-                            }}
+                            onPress={handleClose}
                         >
                             Cancel
                         </Button>
@@ -203,8 +287,8 @@ export default function AddModal({
                             Confirm
                         </Button>
                     </ModalFooter>
-                </Form>
-            </ModalContent>
+                </ModalContent>
+            </Form>
         </Modal>
     );
 }

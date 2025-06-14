@@ -105,7 +105,6 @@ export default function TableContent({
             />}
             topContentPlacement="outside"
             selectedKeys={selectedKeys}
-            selectionMode="multiple"
             onSelectionChange={setSelectedKeys}
             sortDescriptor={sortDescriptor}
             onSortChange={setSortDescriptor}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Checkin, CheckinCreate } from "@/types/checkin";
-import { apiRequest } from "@/utils/api";
+import { addToast } from "@heroui/react";
 
 export function useCheckin() {
     const [checkin, setCheckin] = useState<Checkin[]>([]);
@@ -12,9 +12,19 @@ export function useCheckin() {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: Checkin[] }>("/checkin?limit=0", "GET");
-            setCheckin(Array.isArray(res.data?.data) ? res.data.data : []);
+            console.log("Fetching checkins...");
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/checkin`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            const res = await response.json();
+            console.log("Checkin fetch response:", res);
+            setCheckin(Array.isArray(res.data) ? res.data : []);
         } catch (err: any) {
+            console.error("Error fetching checkins:", err);
             setError(err.message || "Failed to fetch checkin data.");
         } finally {
             setLoading(false);
@@ -25,12 +35,48 @@ export function useCheckin() {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: Checkin }>("/checkin", "POST", checkinData);
-            if (res.data) {
+            console.log("Creating checkin with data:", checkinData);
+            
+            const payload = {
+                username: checkinData.user,
+                activities: checkinData.activities
+            };
+
+            console.log("Sending payload:", payload);
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/checkin`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const res = await response.json();
+            console.log("Checkin create response:", res);
+
+            if (response.ok && res.data) {
                 setCheckin((prev) => [...prev, res.data]);
+                addToast({
+                    title: "Check-in successful",
+                    description: "User has been checked in successfully",
+                    color: "success"
+                });
+                return res.data;
+            } else {
+                throw new Error(res.message || "Failed to create check-in");
             }
         } catch (err: any) {
+            console.error("Checkin error:", err);
+            addToast({
+                title: "Check-in failed",
+                description: err.message || "Failed to create check-in",
+                color: "danger"
+            });
             setError(err.message || "Failed to create checkin.");
+            throw err;
         } finally {
             setLoading(false);
         }

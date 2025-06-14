@@ -22,7 +22,7 @@ export default function checkin() {
           />
         </div>
         <QrCodeScanner selectedActivityIds={selectedActivityIds} />
-        <TableLog />
+        {/* <TableLog /> */}
       </div>
 
     </>

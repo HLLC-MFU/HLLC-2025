@@ -1,6 +1,6 @@
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, SortDescriptor, Image, addToast, } from "@heroui/react";
-import React, { Key, useCallback, useMemo, useState } from "react";
-import { EllipsisVertical } from "lucide-react";
+import React, { createRef, Key, RefObject, useCallback, useMemo, useState } from "react";
+import { EllipsisVertical, Pen, Trash } from "lucide-react";
 import { Evoucher } from "@/types/evoucher";
 import { Sponsors } from "@/types/sponsors";
 import TableContent from "./TableContent";
@@ -21,6 +21,7 @@ export const columns = [
     { name: "BANNER", uid: "banner", },
     { name: "THUMPNAIL", uid: "thumpnail", },
     { name: "LOGO", uid: "logo", },
+    { name: "ACTIONS", uid: "actions", },
 ];
 
 export function capitalize(s: string) {
@@ -35,6 +36,7 @@ const INITIAL_VISIBLE_COLUMNS = [
     "expiration",
     "type",
     "cover",
+    "actions",
 ];
 
 export default function EvoucherTable({
@@ -42,13 +44,14 @@ export default function EvoucherTable({
     evouchers,
     EvoucherType,
     sponsors,
+
 }: {
     sponsorName: string,
     evouchers: Evoucher[];
     EvoucherType: EvoucherType[];
     sponsors: Sponsors[];
 }) {
-    const { createEvoucher } = useEvoucher();
+    const { fetchEvouchers, createEvoucher, updateEvoucher, deleteEvoucher } = useEvoucher();
 
     const [filterValue, setFilterValue] = useState("");
     const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set<string>());
@@ -63,10 +66,23 @@ export default function EvoucherTable({
     });
     const [page, setPage] = useState(1);
     const [actionText, setActionText] = useState<"Add" | "Edit">("Add");
-    const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
-    const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false);
-
+    const [modal, setModal] = useState({
+        add: false,
+        delete: false,
+    });
     const hasSearchFilter = Boolean(filterValue);
+    const [evoucherAction, setEvoucherAction] = useState<Evoucher>(evouchers[0]);
+
+    const [field, setField] = useState({
+        sponsor: "" as string,
+        acronym: "" as string,
+        detail: "" as string,
+        discount: 0 as number,
+        expiration: new Date() as Date,
+        selectedType: new Set<string>() as Set<string>,
+        cover: null as File | string | null,
+    });
+    const coverInputRef = createRef<HTMLInputElement | null>();
 
     const headerColumns = useMemo(() => {
         return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
@@ -114,8 +130,9 @@ export default function EvoucherTable({
         });
     }, [sortDescriptor, items]);
 
-    const renderCell = useCallback((evoucher: Evoucher, columnKey: Key) => {
-        const cellValue = evoucher[columnKey as keyof Evoucher];
+
+    const renderCell = useCallback((item: Evoucher, columnKey: Key) => {
+        const cellValue = item[columnKey as keyof Evoucher];
 
         switch (columnKey) {
             case "sponsors":
@@ -133,15 +150,15 @@ export default function EvoucherTable({
                     return new Date(cellValue).toLocaleString("en-US", {
                         dateStyle: 'long',
                         timeStyle: 'short',
-                        timeZone: 'UTC'
+                        timeZone: 'Asia/Bangkok'
                     });
                 }
             case "cover":
                 return (
                     <Image
-                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo?.coverPhoto}`}
+                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${item.photo?.coverPhoto}`}
                         alt="Cover"
-                        width={100}
+                        width={80}
                     />
                 );
             case "actions":
@@ -154,8 +171,22 @@ export default function EvoucherTable({
                                 </Button>
                             </DropdownTrigger>
                             <DropdownMenu>
-                                <DropdownItem key="edit" onPress={() => { setActionText("Edit"); setIsAddOpen(true); }}>Edit</DropdownItem>
-                                <DropdownItem key="delete" onPress={() => setIsDeleteOpen(true)}>Delete</DropdownItem>
+                                <DropdownItem
+                                    key="edit"
+                                    startContent={<Pen size="16px" />}
+                                    onPress={() => { setActionText("Edit"); setModal(prev => ({ ...prev, add: true })); setEvoucherAction(item); }}
+                                >
+                                    Edit
+                                </DropdownItem>
+                                <DropdownItem
+                                    key="delete"
+                                    className="text-danger"
+                                    color="danger"
+                                    startContent={<Trash size="16px" />}
+                                    onPress={() => { setModal(prev => ({ ...prev, delete: true })); setEvoucherAction(item); }}
+                                >
+                                    Delete
+                                </DropdownItem>
                             </DropdownMenu>
                         </Dropdown>
                     </div>
@@ -166,33 +197,42 @@ export default function EvoucherTable({
     }, []);
 
     const handleAdd = async (evoucher: FormData) => {
-        try {
-            const response = await createEvoucher(evoucher);
-            setIsAddOpen(false);
+        const response = actionText === "Add"
+            ? await createEvoucher(evoucher)
+            : actionText === "Edit"
+                ? await updateEvoucher(evoucherAction._id, evoucher)
+                : null;
 
-            addToast({
-                title: "Add Successfully",
-                description: "Data has been added successfully",
-            });
+        setModal(prev => ({ ...prev, add: false }));
 
-            if (response) window.location.reload();
-        } catch (error) {
+        if (response) {
+            await fetchEvouchers();
             addToast({
-                title: "Failed to Add",
-                description: (error as Error)?.message || "An error occurred while adding data.",
-                color: "danger",
+                title: `${actionText} Successfully`,
+                description: `Data has been ${actionText.toLowerCase()}ed successfully`,
+                color: "success",
             });
         }
     };
 
-    const handleDelete = () => {
-        setIsDeleteOpen(true);
+    const handleDelete = async () => {
+        const response = await deleteEvoucher(evoucherAction._id)
+
+        if (response) {
+            await fetchEvouchers()
+            setModal(prev => ({ ...prev, delete: false }));
+            addToast({
+                title: "Delete Successfully",
+                description: "Data has been delteted successfully",
+                color: "success",
+            });
+        }
     };
 
     return (
         <div>
             <TableContent
-                setIsAddOpen={setIsAddOpen}
+                setIsAddOpen={() => setModal(prev => ({ ...prev, add: true }))}
                 setActionText={setActionText}
                 sortDescriptor={sortDescriptor}
                 setSortDescriptor={setSortDescriptor}
@@ -227,18 +267,22 @@ export default function EvoucherTable({
 
             {/* Add evoucher modal */}
             <AddModal
-                isOpen={isAddOpen}
-                onClose={() => setIsAddOpen(false)}
+                isOpen={modal.add}
+                onClose={() => setModal(prev => ({ ...prev, add: false }))}
                 onAdd={handleAdd}
                 title={actionText}
                 type={EvoucherType}
-                sponsors={sponsors}
+                evoucher={evoucherAction}
+                sponsorId={sponsors.find((s) => s.name.en === sponsorName)?._id as string}
+                field={field}
+                setField={setField}
+                coverInputRef={coverInputRef as RefObject<HTMLInputElement>}
             />
 
             {/* Delete evoucher modal */}
             <ConfirmationModal
-                isOpen={isDeleteOpen}
-                onClose={() => setIsDeleteOpen(false)}
+                isOpen={modal.delete}
+                onClose={() => setModal(prev => ({ ...prev, delete: false }))}
                 onConfirm={handleDelete}
                 title={"Delete evoucher"}
                 body={"Are you sure you want to delete this item?"}

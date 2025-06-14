@@ -13,7 +13,6 @@ import { Activities } from '@/types/activities';
 import { columns } from './activities-table/TableColumns';
 import { TableCell as TableCellComponent } from './activities-table/TableCell';
 import { ExpandedDetails } from './activities-table/ExpandedDetails';
-import { Plus } from 'lucide-react';
 
 interface ActivitiesTableProps {
   activities: Activities[];
