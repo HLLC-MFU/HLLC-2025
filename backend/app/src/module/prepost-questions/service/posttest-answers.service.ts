@@ -95,4 +95,40 @@ export class PosttestAnswersService {
   async remove(id: string) {
     return await queryDeleteOne(this.posttestAnswerModel, id)
   }
+
+  async averageAllPosttests(): Promise<{ posttestId: string; average: number; count: number }[]> {
+    const results = await queryAll<PosttestAnswer>({
+      model: this.posttestAnswerModel,
+      query: {},
+      filterSchema: {},
+    });
+
+    const scoreMap: Record<string, { sum: number; count: number }> = {};
+
+    for (const result of results.data) {
+      for (const answer of result.answers) {
+        const posttestId = answer.posttest.toString();
+
+        const numericAnswer = parseFloat(answer.answer);
+        if (!isNaN(numericAnswer)) {
+          if (!scoreMap[posttestId]) {
+            scoreMap[posttestId] = { sum: 0, count: 0 };
+          }
+          scoreMap[posttestId].sum += numericAnswer;
+          scoreMap[posttestId].count += 1;
+        }
+      }
+    }
+
+    const output: { posttestId: string; average: number; count: number }[] = [];
+    for (const posttestId in scoreMap) {
+      const { sum, count } = scoreMap[posttestId];
+      output.push({
+        posttestId,
+        average: count > 0 ? sum / count : 0,
+        count
+      });
+    }
+    return output;
+  }
 }
