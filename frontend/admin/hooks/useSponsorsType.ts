@@ -79,25 +79,25 @@ export function useSponsorsType() {
     };
 
     const deleteSponsorsType = async (id: string): Promise<void> => {
-		try {
-			setLoading(true);
-			const res = await apiRequest(`/sponsors-type/${id}`, 'DELETE');
+        try {
+            setLoading(true);
+            const res = await apiRequest(`/sponsors-type/${id}`, 'DELETE');
 
-			if (res.statusCode === 200) {
-				setSponsorsType((prev) => prev.filter((s) => s._id !== id));
-				addToast({
-					title: 'Sponsors type deleted successfully!',
-					color: 'success',
-				});
-			} else {
-				throw new Error(res.message || 'Failed to delete type.');
-			}
-		} catch (err: any) {
-			setError(err.message || 'Failed to delete type.');
-		} finally {
-			setLoading(false);
-		}
-	};
+            if (res.statusCode === 200) {
+                setSponsorsType((prev) => prev.filter((s) => s._id !== id));
+                addToast({
+                    title: 'Sponsors type deleted successfully!',
+                    color: 'success',
+                });
+            } else {
+                throw new Error(res.message || 'Failed to delete type.');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to delete type.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         fetchSponsorsType();
