@@ -61,7 +61,6 @@ export function TableInfo({
             selectedIds.includes(user.id)
         );
 
-        // 1️⃣ ถ้าเลือกแค่คนเดียว → individual ทันที
         if (selectedUsers.length === 1) {
             onSelectionChange([{ type: "individual", id: selectedIds }]);
             return;
