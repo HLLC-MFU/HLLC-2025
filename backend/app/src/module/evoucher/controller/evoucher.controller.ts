@@ -30,7 +30,6 @@ export class EvoucherController {
   @UseInterceptors(new MultipartInterceptor(500))
   update(@Param('id') id: string, @Req() req: FastifyRequest) {
     const dto = req.body as UpdateEvoucherDto;
-    dto.updatedAt = new Date();
     return this.evoucherService.update(id, dto);
   }
 
