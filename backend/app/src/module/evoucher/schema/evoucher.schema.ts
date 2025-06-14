@@ -2,6 +2,12 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument, Types } from "mongoose";
 import { Localization, Photo } from "src/pkg/types/common";
 
+export enum EvoucherType {
+  GLOBAL = 'GLOBAL',
+  INDIVIDUAL = 'INDIVIDUAL',
+  INVITE_ONLY = 'INVITE_ONLY'
+}
+
 export type EvoucherDocument = HydratedDocument<Evoucher>;
 
 @Schema({ timestamps: true })
@@ -13,8 +19,8 @@ export class Evoucher {
     @Prop({ required: true, type: String })
     acronym: string;
 
-    @Prop({ required: true, type: Types.ObjectId, ref: 'EvoucherType' })
-    type: Types.ObjectId;
+    @Prop({ required: true, type: String, enum: Object.values(EvoucherType) })
+    type: EvoucherType;
 
     @Prop({ required: true, type: Types.ObjectId, ref: 'Sponsors' })
     sponsors: Types.ObjectId;

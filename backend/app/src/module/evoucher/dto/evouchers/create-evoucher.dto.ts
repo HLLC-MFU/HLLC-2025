@@ -1,19 +1,22 @@
-import { IsBoolean, IsDate, IsMongoId, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsDate, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
 import { Localization, Photo } from "src/pkg/types/common";
+import { EvoucherType } from "../../schema/evoucher.schema";
+import { Type } from "class-transformer";
 
 export class CreateEvoucherDto {
 
     @IsNumber()
     @IsNotEmpty()
+    @Type(() => Number)
     discount: number;
 
     @IsString()
     @IsNotEmpty()
     acronym: string;
 
-    @IsMongoId()
+    @IsEnum(EvoucherType)
     @IsNotEmpty()
-    type: string;
+    type: EvoucherType;
 
     @IsMongoId()
     @IsNotEmpty()
@@ -21,6 +24,7 @@ export class CreateEvoucherDto {
 
     @IsDate()
     @IsNotEmpty()
+    @Type(() => Date)
     expiration: Date;
 
     @IsObject()

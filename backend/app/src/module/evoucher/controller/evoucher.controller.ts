@@ -42,9 +42,7 @@ export class EvoucherController {
   @CacheKey('evoucher:invalidate')
   @Patch(':id')
   @UseInterceptors(new MultipartInterceptor(500))
-  update(@Param('id') id: string, @Req() req: FastifyRequest) {
-    const dto = req.body as UpdateEvoucherDto;
-    dto.updatedAt = new Date();
+  async update(@Param('id') id: string, @Body() dto: UpdateEvoucherDto) {
     return this.evoucherService.update(id, dto);
   }
 
