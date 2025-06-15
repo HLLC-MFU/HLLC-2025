@@ -142,49 +142,4 @@ export class UsersController {
   ) {
     return this.usersService.removeDeviceToken(id, deviceToken);
   }
-
-  // // Evoucher-related endpoints
-  // @Get('evouchers/available')
-  // @Public()
-  // @CacheKey('users:evouchers:available:$req.user')
-  // getAvailableEvouchers(
-  //   @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
-  // ) {
-  //   const user = req.user;
-  //   const userId = user?._id ?? user?.id;
-    
-  //   // If user is not authenticated, show all public evouchers
-  //   // If user is authenticated, show evouchers they can claim
-  //   return this.evoucherCodeService.getPublicAvailableEvouchersForUser(userId);
-  // }
-
-  // @Post('evouchers/claim/:evoucherId')
-  // claimEvoucher(
-  //   @Param('evoucherId') evoucherId: string,
-  //   @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
-  // ) {
-  //   const user = req.user;
-  //   const userId = user?._id ?? user?.id;
-
-  //   if (!userId) {
-  //     throw new UnauthorizedException('User not found');
-  //   }
-
-  //   return this.evoucherCodeService.claimEvoucher(userId, evoucherId);
-  // }
-
-  // @Get('evouchers/my-codes')
-  // @CacheKey('users:evouchers:codes:$req.user')
-  // getMyEvoucherCodes(
-  //   @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
-  // ) {
-  //   const user = req.user;
-  //   const userId = user?._id ?? user?.id;
-
-  //   if (!userId) {
-  //     throw new UnauthorizedException('User not found');
-  //   }
-
-  //   return this.evoucherCodeService.getUserEvoucherCodes(userId);
-  // }
 }
