@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { Model, Types, HydratedDocument } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { EvoucherDocument, EvoucherType } from '../schema/evoucher.schema';
 import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
 import {
@@ -8,13 +8,6 @@ import {
   VoucherUpdateParams
 } from '../types/evoucher-code.type';
 
-/**
- * ตรวจสอบว่า Evoucher ยังสามารถใช้งานได้หรือไม่
- * - ถ้าไม่เจอ หรือ หมดอายุ → throw error
- * @param evoucherId - รหัส Evoucher
- * @param evoucherModel - Model ของ Evoucher
- * @returns Document ของ Evoucher
- */
 export async function validateEvoucherExpired(evoucherId: string, evoucherModel: Model<EvoucherDocument>) {
   const evoucher = await evoucherModel.findById(evoucherId);
   if (!evoucher) throw new BadRequestException('Evoucher not found');
@@ -24,24 +17,12 @@ export async function validateEvoucherExpired(evoucherId: string, evoucherModel:
   return evoucher;
 } 
 
-/**
- * ตรวจสอบว่า Evoucher ประเภทนี้สามารถ Claim ได้หรือไม่
- * - อนุญาตเฉพาะประเภท GLOBAL
- * @param type - ประเภทของ Evoucher
- */
 export function validateEvoucherTypeClaimable(type: EvoucherType) {
   if (type !== EvoucherType.GLOBAL) {
     throw new BadRequestException('This type is not claimable');
   }
 }
 
-/**
- * ตรวจสอบว่าผู้ใช้เคย Claim Evoucher นี้ไปแล้วหรือยัง
- * - ถ้าเคย Claim แล้ว → throw error
- * @param userId - รหัสผู้ใช้
- * @param evoucherId - รหัส Evoucher
- * @param evoucherCodeModel - Model ของ Evoucher Code
- */
 export async function validateUserDuplicateClaim(
     userId: string,
     evoucherId: string,
@@ -54,13 +35,6 @@ export async function validateUserDuplicateClaim(
     if (exists) throw new BadRequestException('You already have this evoucher');
   }
   
-
-/**
- * ตรวจสอบเงื่อนไขก่อนอัปเดต Voucher Code
- * - ห้ามใช้ซ้ำ ห้ามแก้กลับมาเป็นยังไม่ใช้
- * - เช็ควันหมดอายุด้วย
- * @param params - ข้อมูลสำหรับตรวจสอบ
- */
 export function validateUpdateVoucher(params: VoucherUpdateParams) {
   const { currentVoucherIsUsed, updateIsUsed, evoucherExpiration } = params;
 
@@ -75,13 +49,6 @@ export function validateUpdateVoucher(params: VoucherUpdateParams) {
   }
 }
 
-/**
- * สร้างรหัส Voucher Code ถัดไป (Next Code)
- * - ใช้เลข running number ต่อจากตัวล่าสุด
- * @param evoucherCodeModel - Model ของ Evoucher Code
- * @param acronym - Prefix ของ Evoucher
- * @returns รหัส Voucher Code ใหม่
- */
 export async function generateNextVoucherCode(
   evoucherCodeModel: Model<EvoucherCodeDocument>,
   acronym: string
@@ -92,14 +59,6 @@ export async function generateNextVoucherCode(
   return `${acronym}${nextNumber}`;
 }
 
-/**
- * สร้างรหัส Voucher Code หลายรหัสพร้อมกัน
- * - ใช้เลข running number ต่อจากตัวล่าสุด
- * @param dto - ข้อมูลสำหรับสร้างรหัส
- * @param evoucher - Document ของ Evoucher
- * @param existingCodes - รหัส Voucher Code ที่มีอยู่
- * @returns รหัส Voucher Code ที่สร้างขึ้น
- */
 export function generateBulkVoucherCodes(
   dto: BulkGenerateInput,
   evoucher: EvoucherDocument,
@@ -125,14 +84,6 @@ export function generateBulkVoucherCodes(
   return codesToInsert;
 }
 
-/**
- * รับรหัส Voucher Code จากผู้ใช้
- * - ถ้าไม่มีรหัสที่สอดคล้อง จะสร้างรหัสใหม่
- * @param userId - รหัสผู้ใช้
- * @param evoucher - Document ของ Evoucher
- * @param evoucherCodeModel - Model ของ Evoucher Code
- * @returns Document ของ Voucher Code
- */
 export async function claimVoucherCode(
   userId: string,
   evoucher: EvoucherDocument,
@@ -157,15 +108,7 @@ export async function claimVoucherCode(
 
   return code;
 }
-1
-/**
- * ตรวจสอบว่า Evoucher สามารถ Claim ได้หรือไม่
- * - ถ้าเป็น GLOBAL และยังไม่มีผู้ใช้ Claim แล้ว จะสามารถ Claim ได้
- * @param evouchers - รายการ Evoucher
- * @param evoucherCodeModel - Model ของ Evoucher Code
- * @param userId - รหัสผู้ใช้
- * @returns รายการ Evoucher ที่สามารถ
- */
+
 export async function validatePublicAvailableVoucher(
   evoucher: EvoucherDocument,
   evoucherCodeModel: Model<EvoucherCodeDocument>,
@@ -175,7 +118,6 @@ export async function validatePublicAvailableVoucher(
   const userObjectId = userId ? new Types.ObjectId(userId) : null;
   const evoucherId = new Types.ObjectId(evoucher._id);
 
-  // ตรวจสอบว่า user เคย claim evoucher นี้ไปแล้วหรือไม่
   const userHas = userObjectId 
     ? await evoucherCodeModel.exists({ 
         user: userObjectId, 
@@ -183,7 +125,6 @@ export async function validatePublicAvailableVoucher(
       }).then(res => !!res)
     : false;
 
-  // นับจำนวน claims ทั้งหมด (เฉพาะที่ยังไม่ได้ใช้)
   const totalClaims = await evoucherCodeModel.countDocuments({
     evoucher: evoucherId,
     user: { $ne: null },

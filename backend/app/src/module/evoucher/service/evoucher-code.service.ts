@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
@@ -8,8 +8,16 @@ import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
 import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
-import { generateBulkVoucherCodes, claimVoucherCode, validateUserDuplicateClaim, generateNextVoucherCode, validateEvoucherExpired, validateEvoucherTypeClaimable } from '../utils/evoucher-code.util';
-import { BulkGenerateInput, PopulatedEvoucherCode } from '../types/evoucher-code.type';
+import { 
+  generateBulkVoucherCodes, 
+  claimVoucherCode, 
+  validateUserDuplicateClaim, 
+  generateNextVoucherCode, 
+  validateEvoucherExpired, 
+  validateEvoucherTypeClaimable,
+  validateUpdateVoucher
+} from '../utils/evoucher-code.util';
+import { BulkGenerateInput } from '../types/evoucher-code.type';
 
 @Injectable()
 export class EvoucherCodeService {
@@ -21,8 +29,7 @@ export class EvoucherCodeService {
   ) {}
 
   async create(dto: CreateEvoucherCodeDto) {
-    const evoucher = await findOrThrow(this.evoucherModel, dto.evoucher, 'Evoucher not found');
-    if (new Date() > new Date(evoucher.expiration)) throw new BadRequestException('Cannot create code for expired evoucher');
+    const evoucher = await validateEvoucherExpired(dto.evoucher, this.evoucherModel);
     await findOrThrow(this.userModel, dto.user, 'User not found');
 
     const code = await generateNextVoucherCode(this.evoucherCodeModel, evoucher.acronym);
@@ -40,8 +47,7 @@ export class EvoucherCodeService {
   }
 
   async generateEvoucherCodes(dto: CreateEvoucherCodeDto & { count: number }) {
-    const evoucher = await findOrThrow(this.evoucherModel, dto.evoucher, 'Evoucher not found');
-    if (new Date() > new Date(evoucher.expiration)) throw new BadRequestException('Cannot generate code for expired evoucher');
+    const evoucher = await validateEvoucherExpired(dto.evoucher, this.evoucherModel);
 
     const existingCodes = await this.evoucherCodeModel.find({ code: new RegExp(`^${evoucher.acronym}\\d+$`) }).lean();
     const codesToInsert = generateBulkVoucherCodes(dto as BulkGenerateInput, evoucher, existingCodes);
@@ -51,13 +57,12 @@ export class EvoucherCodeService {
   }
 
   async claimEvoucher(userId: string, evoucherId: string) {
-    await findOrThrow(this.userModel, userId, 'User not found');
+    const user = await findOrThrow(this.userModel, userId, 'User not found');
     const evoucher = await validateEvoucherExpired(evoucherId, this.evoucherModel);
     validateEvoucherTypeClaimable(evoucher.type);
     await validateUserDuplicateClaim(userId, evoucherId, this.evoucherCodeModel);
     return await claimVoucherCode(userId, evoucher, this.evoucherCodeModel);
   }
-
 
   async getUserEvoucherCodes(userId: string) {
     const codes = await queryAll<EvoucherCode>({
@@ -68,12 +73,12 @@ export class EvoucherCodeService {
         { 
           path: 'evoucher',
           populate: [
-            { path: 'type' },
             { path: 'sponsors' }
           ]
         }
       ]),
     });
+
     const processedData = codes.data.map((code: EvoucherCode) => {
       const evoucherData = code.evoucher as unknown as Evoucher;
       const expiration = code.metadata?.expiration || evoucherData.expiration;
@@ -96,24 +101,24 @@ export class EvoucherCodeService {
     const voucherCode = await findOrThrow(this.evoucherCodeModel, id, 'Voucher code');
     const evoucher = await findOrThrow(this.evoucherModel, voucherCode.evoucher, 'Evoucher');
 
-    if (updateEvoucherCodeDto.isUsed === true && voucherCode.isUsed) {
-      throw new BadRequestException('Already used');
-    }
-    if (voucherCode.isUsed && updateEvoucherCodeDto.isUsed === false) {
-      throw new BadRequestException('Cannot reuse');
-    }
-    if (new Date() > new Date(evoucher.expiration)) {
-      throw new BadRequestException('Voucher code expired');
-    }
+    validateUpdateVoucher({
+      currentVoucherIsUsed: voucherCode.isUsed,
+      updateIsUsed: updateEvoucherCodeDto.isUsed ?? false,
+      evoucherExpiration: evoucher.expiration
+    });
+
     return await queryUpdateOne<EvoucherCode>(this.evoucherCodeModel, id, updateEvoucherCodeDto);
   }
 
   async findAll(query: Record<string, string>) {
     return await queryAll<EvoucherCode>({
       model: this.evoucherCodeModel,
-      query: query,
+      query,
       filterSchema: {},
-      populateFields: excluded => Promise.resolve(excluded.includes('evoucher') ? [] : [{ path: 'evoucher' }]),
+      populateFields: () => Promise.resolve([
+        { path: 'evoucher' },
+        { path: 'user' }
+      ]),
     });
   }
 

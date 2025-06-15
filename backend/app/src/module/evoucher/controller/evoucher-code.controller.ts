@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, Req, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, Req } from '@nestjs/common';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
 import { EvoucherCodeService } from '../service/evoucher-code.service';
@@ -6,8 +6,9 @@ import { PermissionsGuard } from 'src/module/auth/guards/permissions.guard';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { Permissions } from 'src/module/auth/decorators/permissions.decorator';
 import { CacheKey } from '@nestjs/cache-manager';
-import { Public } from 'src/module/auth/decorators/public.decorator';
 import { FastifyRequest } from 'fastify';
+import { Types } from 'mongoose';
+import { JwtAuthGuard } from 'src/module/auth/guards/jwt-auth.guard';
 
 @Controller('evoucher-code')
 @UseGuards(PermissionsGuard)
@@ -50,28 +51,18 @@ export class EvoucherCodeController {
     return this.evoucherCodeService.remove(id);
   }
 
-
   @Post('claim/:evoucherId')
-  @Public()
   claimEvoucher(
     @Param('evoucherId') evoucherId: string,
-    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }
   ) {
-    const user = req.user;
-    const userId = user?._id ?? user?.id;
-
-    return this.evoucherCodeService.claimEvoucher(userId, evoucherId);
+    return this.evoucherCodeService.claimEvoucher(req.user._id, evoucherId);
   }
 
   @Get('my-codes')
-  @Public()
-  @CacheKey('users:evouchers:codes:$req.user')
   getMyEvoucherCodes(
-    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }
   ) {
-    const user = req.user;
-    const userId = user?._id ?? user?.id;
-
-    return this.evoucherCodeService.getUserEvoucherCodes(userId);
+    return this.evoucherCodeService.getUserEvoucherCodes(req.user._id);
   }
 }
