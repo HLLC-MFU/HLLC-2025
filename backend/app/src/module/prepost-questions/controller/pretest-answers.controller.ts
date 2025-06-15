@@ -34,4 +34,10 @@ export class PretestAnswersController {
   remove(@Param('id') id: string) {
     return this.pretestAnswersService.remove(id);
   }
+
+  @Get('/all/average')
+  @Permissions('pretest-answers:read')
+  getAverageAll() {
+    return this.pretestAnswersService.averageAllPretests();
+  }
 }
