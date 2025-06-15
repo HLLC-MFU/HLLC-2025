@@ -197,7 +197,9 @@ export function ActivityModal({
         <ModalHeader className="flex flex-col gap-1">
           {mode === "add" ? "Add New Activity" : "Edit Activity"}
         </ModalHeader>
+
         <Divider />
+
         <ModalBody>
           <div className="flex flex-col gap-6">
             <BasicInformation
@@ -327,7 +329,9 @@ export function ActivityModal({
             />
           </div>
         </ModalBody>
+
         <Divider />
+        
         <ModalFooter>
           <Button color="danger" variant="light" onPress={onClose}>
             Cancel

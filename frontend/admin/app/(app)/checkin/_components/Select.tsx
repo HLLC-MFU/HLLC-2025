@@ -18,7 +18,6 @@ export default function Selectdropdown({
     <Select
       className={`w-full max-w-xl text-sm sm:overflow-hidden text-center ${forceVisible ? '' : 'sm:hidden'}`}
       label="Select Activities"
-      placeholder="เลือกกิจกรรม"
       selectionMode="multiple"
       selectedKeys={new Set(selectedActivityIds)}
       onSelectionChange={(keys) => {

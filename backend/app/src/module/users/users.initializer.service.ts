@@ -1,16 +1,17 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+// src/module/users/user.initializer.service.ts
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 
-import { User, UserDocument } from '../users/schemas/user.schema';
-import { Role, RoleDocument } from '../role/schemas/role.schema';
+import { User, UserDocument } from './schemas/user.schema';
+import { Role } from 'src/module/role/schemas/role.schema';
 
 @Injectable()
 export class UserInitializerService implements OnModuleInit {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
-    @InjectModel(Role.name) private readonly roleModel: Model<RoleDocument>,
+    @InjectModel(Role.name) private readonly roleModel: Model<Role>,
   ) {}
 
   async onModuleInit() {
@@ -18,29 +19,26 @@ export class UserInitializerService implements OnModuleInit {
   }
 
   private async createAdminUser() {
-    const username = process.env.ADMIN_USERNAME || 'admin';
-    const password = process.env.ADMIN_PASSWORD || 'user1234';
+    const username = 'admin';
+
     const existing = await this.userModel.findOne({ username });
+    if (existing) return;
 
-    if (existing) {
-      return;
-    }
+    const adminRole = await this.roleModel.findOne({ name: 'Administrator' });
+    if (!adminRole) throw new Error('Admin role not found. Cannot create admin user.');
 
-    const role = await this.roleModel.findOne({ name: 'Administrator' });
-    if (!role) {
-      return;
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash('user1234', 10);
 
     await this.userModel.create({
-      name: {
-        first: 'Administrator',
-      },
       username,
       password: hashedPassword,
-      role: role._id,
-      metadata: {},
+      name: {
+        first: 'Admin',
+        last: 'User',
+      },
+      role: adminRole._id,
     });
+
+    Logger.debug('[UserInitializer] Admin user created.');
   }
 }

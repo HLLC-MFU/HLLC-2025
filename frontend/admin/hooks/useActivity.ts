@@ -27,7 +27,6 @@ export function useActivity() {
         try {
             setLoading(true);
             const res = await apiRequest<any>("/activities", "POST", activityData);
-            console.log("Create response:", res);
 
             if (res.data) {
                 await new Promise((resolve) => {
