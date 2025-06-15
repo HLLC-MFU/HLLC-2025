@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Accordion, AccordionItem, Button } from "@heroui/react";
+import React, { useMemo, useState } from "react";
+import { Accordion, AccordionItem, addToast, Button, SortDescriptor } from "@heroui/react";
 import { Plus, UserRound, UserRoundCog, UserRoundSearch } from "lucide-react";
 
 import UsersTable from "./_components/UserTable";
@@ -14,13 +14,45 @@ import { Role } from "@/types/role";
 import { useSchools } from "@/hooks/useSchool";
 import { PageHeader } from "@/components/ui/page-header";
 import { useMajors } from "@/hooks/useMajor";
+import useAuth from "@/hooks/useAuth";
+import { School } from "@/types/school";
+
+export const columns = [
+  { name: "USERNAME", uid: "username", sortable: true },
+  { name: "NAME", uid: "name" },
+  { name: "SCHOOL", uid: "school" },
+  { name: "MAJOR", uid: "major" },
+  { name: "ACTIONS", uid: "actions" },
+];
+
+export function capitalize(s: string) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+}
+const INITIAL_VISIBLE_COLUMNS = [
+  "username",
+  "name",
+  "school",
+  "major",
+  "actions",
+];
 
 export default function ManagementPage() {
-  const { users, loading: usersLoading } = useUsers();
+  const { users, loading: usersLoading, fetchUsers, createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
   const { roles, createRole, loading: rolesLoading } = useRoles();
   const { schools, loading: schoolsLoading } = useSchools();
   const { majors, loading: majorsLoading } = useMajors();
-  const [isRoleOpen, setIsRoleOpen] = React.useState(false);
+  const { removePassword } = useAuth();
+
+  const [isRoleOpen, setIsRoleOpen] = useState(false);
+  const [modal, setModal] = useState({
+    add: false,
+    import: false,
+    export: false,
+    confirm: false,
+  });
+  const [actionMode, setActionMode] = useState<"Add" | "Edit">("Add");
+  const [confirmMode, setConfirmMode] = useState<"Delete" | "Reset">("Delete")
+  
 
   const isLoading = usersLoading || rolesLoading || schoolsLoading || majorsLoading;
 
@@ -43,6 +75,61 @@ export default function ManagementPage() {
   const handleAddRole = (roleData: Partial<Role>) => {
     createRole(roleData);
     setIsRoleOpen(false);
+  };
+
+  const handleAdd = async (user: Partial<User>, userAction: User) => {
+    const response = actionMode === "Add"
+      ? await createUser(user)
+      : actionMode === "Edit"
+        ? await updateUser(userAction._id, user)
+        : null;
+
+    setModal(prev => ({ ...prev, add: false }));
+
+    if (response) {
+      await fetchUsers();
+      addToast({
+        title: "Add Successfully",
+        description: "Data has added successfully",
+        color: "success"
+      });
+    }
+  };
+
+  const handleImport = async (users: Partial<User>[]) => {
+    const response = await uploadUser(users)
+    setModal(prev => ({ ...prev, import: false }));
+
+    if (response) {
+      await fetchUsers();
+      addToast({
+        title: "Import Successfully",
+        description: "Data has imported successfully",
+        color: "success"
+      });
+    }
+  };
+
+  const handleConfirm = async (selectedKeys: "all" | Set<string | number>, userAction: User) => {
+    let response = null;
+
+    if (confirmMode === "Delete") {
+      response = Array.from(selectedKeys).length > 1
+        ? await deleteMultiple(Array.from(selectedKeys) as string[])
+        : await deleteUser(userAction._id);
+    } else {
+      await removePassword(userAction.username);
+    }
+    setModal(prev => ({ ...prev, confirm: false }));
+
+    if (response) {
+      await fetchUsers();
+      addToast({
+        title: `${confirmMode} Successfully`,
+        description: `Data has ${confirmMode.toLowerCase()} successfully`,
+        color: "success"
+      });
+    }
   };
 
   return (
@@ -104,6 +191,18 @@ export default function ManagementPage() {
                     roleId={role._id}
                     schools={schools}
                     users={roleUsers}
+                    modal={modal}
+                    setModal={setModal}
+                    actionMode={actionMode}
+                    setActionMode={setActionMode}
+                    confirmMode={confirmMode}
+                    setConfirmMode={setConfirmMode}
+                    capitalize={capitalize}
+                    columns={columns}
+                    initialVisibleColumns={INITIAL_VISIBLE_COLUMNS}
+                    onAdd={handleAdd}
+                    onImport={handleImport}
+                    onConfirm={handleConfirm}
                   />
                 </AccordionItem>
               );

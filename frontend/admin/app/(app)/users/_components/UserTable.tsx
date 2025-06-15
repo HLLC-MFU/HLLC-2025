@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, Key, ReactNode, } from "react";
+import React, { useCallback, Key, ReactNode, Dispatch, SetStateAction, useState, useMemo, } from "react";
 import {
   Button,
   DropdownTrigger,
@@ -21,61 +21,68 @@ import ImportModal from "./ImportModal";
 
 import { User } from "@/types/user";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
-import { useUsers } from "@/hooks/useUsers";
 import { School } from "@/types/school";
 import { Major } from "@/types/major";
-import useAuth from "@/hooks/useAuth";
 
-export const columns = [
-  { name: "USERNAME", uid: "username", sortable: true },
-  { name: "NAME", uid: "name" },
-  { name: "SCHOOL", uid: "school" },
-  { name: "MAJOR", uid: "major" },
-  { name: "ACTIONS", uid: "actions" },
-];
+type ModalProps = {
+  add: boolean;
+  import: boolean;
+  export: boolean;
+  confirm: boolean;
+};
 
-export function capitalize(s: string) {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
-}
-
-const INITIAL_VISIBLE_COLUMNS = [
-  "username",
-  "name",
-  "school",
-  "major",
-  "actions",
-];
+type ColumnProps = {
+  name: string;
+  uid: string;
+  sortable: boolean;
+} | {
+  name: string;
+  uid: string;
+  sortable?: undefined;
+};
 
 export default function UsersTable({
   roleId,
   majors,
   users,
-  schools
+  schools,
+  modal,
+  setModal,
+  actionMode,
+  setActionMode,
+  confirmMode,
+  setConfirmMode,
+  capitalize,
+  columns,
+  initialVisibleColumns,
+  onAdd,
+  onImport,
+  onConfirm,
 }: {
   roleId: string;
   majors: Major[];
   users: User[];
   schools: School[];
+  modal: ModalProps;
+  setModal: (value: SetStateAction<ModalProps>) => void;
+  actionMode: "Add" | "Edit";
+  setActionMode: (value: "Add" | "Edit") => void;
+  confirmMode: "Reset" | "Delete";
+  setConfirmMode: (value: "Reset" | "Delete") => void;
+  capitalize: (s: string) => string;
+  columns: ColumnProps[];
+  initialVisibleColumns: string[],
+  onAdd: (user: Partial<User>, userAction: User) => Promise<void>;
+  onImport: (user: Partial<User>[]) => Promise<void>;
+  onConfirm: (selectedKeys: "all" | Set<string | number>, userAction: User) => Promise<void>;
 }) {
-  const { fetchUsers, createUser, updateUser, uploadUser, deleteUser, deleteMultiple } = useUsers();
-  const { removePassword } = useAuth();
-
-  const [modal, setModal] = useState({
-    add: false,
-    import: false,
-    export: false,
-    confirm: false,
-  });
-  const [actionMode, setActionMode] = useState<"Add" | "Edit">("Add");
-  const [confirmMode, setConfirmMode] = useState<"Delete" | "Reset">("Delete")
   const [userAction, setUserAction] = useState<User>(users[0]);
-
   const [filterValue, setFilterValue] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<"all" | Set<string | number>>(
     new Set([])
   );
   const [visibleColumns, setVisibleColumns] = useState(
-    new Set(INITIAL_VISIBLE_COLUMNS)
+    new Set(initialVisibleColumns)
   );
   const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
@@ -101,7 +108,7 @@ export default function UsersTable({
           user.username.toLowerCase().includes(filterValue.toLowerCase()) ||
           `${user.name.first} ${user.name.middle ?? ""} ${user.name.last ?? ""}`.toLowerCase().includes(filterValue.toLowerCase()) ||
           user.metadata?.major?.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
-          user.metadata?.major?.school.name.en.toLowerCase().includes(filterValue.toLowerCase())
+          (user.metadata?.major?.school as School).name.en.toLowerCase().includes(filterValue.toLowerCase())
         ));
     }
 
@@ -140,7 +147,7 @@ export default function UsersTable({
         case "name":
           return `${item.name.first} ${item.name.middle ?? ""} ${item.name.last ?? ""}`;
         case "school":
-          if (typeof item.metadata?.major === "object") return item.metadata?.major?.school?.name?.en ?? "-";
+          if (typeof item.metadata?.major === "object") return (item.metadata?.major?.school as School)?.name?.en ?? "-";
         case "major":
           if (typeof item.metadata?.major === "object") return item.metadata?.major?.name?.en ?? "-";
         case "actions":
@@ -193,39 +200,6 @@ export default function UsersTable({
     [page, selectedKeys]
   );
 
-  const handleAdd = async (user: Partial<User>) => {
-    const response = actionMode === "Add"
-      ? await createUser(user)
-      : actionMode === "Edit"
-        ? await updateUser(userAction._id, user)
-        : null;
-
-    setModal(prev => ({ ...prev, add: false }));
-
-    if (response) {
-      await fetchUsers();
-      addToast({
-        title: "Add Successfully",
-        description: "Data has added successfully",
-        color: "success"
-      });
-    }
-  };
-
-  const handleImport = async (users: Partial<User>[]) => {
-    const response = await uploadUser(users)
-    setModal(prev => ({ ...prev, import: false }));
-
-    if (response) {
-      await fetchUsers();
-      addToast({
-        title: "Import Successfully",
-        description: "Data has imported successfully",
-        color: "success"
-      });
-    }
-  };
-
   const handleExport = (fileName?: string) => {
     const temp = fileName
       ? users.map((user) => (
@@ -235,7 +209,7 @@ export default function UsersTable({
           middle: user.name?.middle ?? "",
           last: user.name?.last ?? "",
           role: user.role?.name,
-          school: user.metadata?.major?.school.name.en ?? "",
+          school: (user.metadata?.major?.school as School).name.en ?? "",
           major: user.metadata?.major?.name.en ?? "",
         }))
       : [{
@@ -267,28 +241,6 @@ export default function UsersTable({
       color: "success"
     });
   }
-
-  const handleConfirm = async () => {
-    let response = null;
-
-    if (confirmMode === "Delete") {
-      response = Array.from(selectedKeys).length > 0
-        ? await deleteMultiple(Array.from(selectedKeys) as string[])
-        : await deleteUser(userAction._id);
-    } else {
-      await removePassword(userAction.username);
-    }
-    setModal(prev => ({ ...prev, confirm: false }));
-
-    if (response) {
-      await fetchUsers();
-      addToast({
-        title: `${confirmMode} Successfully`,
-        description: `Data has ${confirmMode.toLowerCase()} successfully`,
-        color: "success"
-      });
-    }
-  };
 
   return (
     <div>
@@ -331,7 +283,8 @@ export default function UsersTable({
         schools={schools}
         majors={majors}
         user={userAction}
-        onAdd={handleAdd}
+        userAction={userAction}
+        onAdd={onAdd}
         onClose={() => setModal(prev => ({ ...prev, add: false }))}
       />
 
@@ -342,7 +295,7 @@ export default function UsersTable({
         roleId={roleId}
         onClose={() => setModal(prev => ({ ...prev, import: false }))}
         onExportTemplate={() => handleExport()}
-        onImport={handleImport}
+        onImport={onImport}
       />
 
       {/* Export */}
@@ -356,7 +309,9 @@ export default function UsersTable({
       <ConfirmationModal
         isOpen={modal.confirm}
         onClose={() => setModal(prev => ({ ...prev, confirm: false }))}
-        onConfirm={handleConfirm}
+        onConfirm={onConfirm}
+        selectedKeys={selectedKeys}
+        userAction={userAction}
         title={`${confirmMode} user ${userAction ? userAction.username : ""}`}
         body={`Are you sure you want to ${confirmMode.toLowerCase()} this user?`}
         confirmColor={'danger'}

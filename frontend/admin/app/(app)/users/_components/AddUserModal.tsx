@@ -20,15 +20,16 @@ type UserForm = {
 type AddModalProps = {
     isOpen: boolean;
     onClose: () => void;
-    onAdd: (user: Partial<User>) => void;
+    onAdd: (user: Partial<User>, userAction: User) => void;
     action: "Add" | "Edit";
     user: Partial<User>;
     roleId: string;
     schools: School[];
     majors: Major[];
+    userAction: User;
 };
 
-export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId, schools, majors }: AddModalProps) {
+export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId, schools, majors, userAction }: AddModalProps) {
     const resetField: UserForm = {
         name: {
             first: "",
@@ -87,7 +88,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
             }
         };
 
-        onAdd(formData);
+        onAdd(formData, userAction);
     };
 
     return (
