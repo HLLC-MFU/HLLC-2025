@@ -15,17 +15,14 @@ import {
  * @param evoucherModel - Model ของ Evoucher
  * @returns Document ของ Evoucher
  */
-export async function validateEvoucherAvailable(
-  evoucherId: string,
-  evoucherModel: Model<EvoucherDocument>
-): Promise<EvoucherDocument> {
+export async function validateEvoucherExpired(evoucherId: string, evoucherModel: Model<EvoucherDocument>) {
   const evoucher = await evoucherModel.findById(evoucherId);
   if (!evoucher) throw new BadRequestException('Evoucher not found');
   if (new Date() > new Date(evoucher.expiration)) {
     throw new BadRequestException('Evoucher expired');
   }
   return evoucher;
-}
+} 
 
 /**
  * ตรวจสอบว่า Evoucher ประเภทนี้สามารถ Claim ได้หรือไม่
@@ -46,13 +43,17 @@ export function validateEvoucherTypeClaimable(type: EvoucherType) {
  * @param evoucherCodeModel - Model ของ Evoucher Code
  */
 export async function validateUserDuplicateClaim(
-  userId: string,
-  evoucherId: string,
-  evoucherCodeModel: Model<EvoucherCodeDocument>
-): Promise<void> {
-  const exists = await evoucherCodeModel.findOne({ user: userId, evoucher: evoucherId });
-  if (exists) throw new BadRequestException('You already have this evoucher');
-}
+    userId: string,
+    evoucherId: string,
+    evoucherCodeModel: Model<EvoucherCodeDocument>
+  ): Promise<void> {
+    const exists = await evoucherCodeModel.findOne({
+      user: new Types.ObjectId(userId),
+      evoucher: new Types.ObjectId(evoucherId),
+    });
+    if (exists) throw new BadRequestException('You already have this evoucher');
+  }
+  
 
 /**
  * ตรวจสอบเงื่อนไขก่อนอัปเดต Voucher Code

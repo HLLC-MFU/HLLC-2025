@@ -9,12 +9,15 @@ import { PermissionsGuard } from 'src/module/auth/guards/permissions.guard';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { Permissions } from 'src/module/auth/decorators/permissions.decorator';
 import { CacheKey } from '@nestjs/cache-manager';
+import { Public } from 'src/module/auth/decorators/public.decorator';
 
 @Controller('evoucher')
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 export class EvoucherController {
-  constructor(private readonly evoucherService: EvoucherService) { }
+  constructor(
+    private readonly evoucherService: EvoucherService
+  ) { }
 
   @Permissions('evoucher:create')
   @CacheKey('evoucher:invalidate')
@@ -36,6 +39,18 @@ export class EvoucherController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.evoucherService.findOne(id);
+  }
+
+  @Get('available')
+  @Public()
+  @CacheKey('evouchers:available:$req.user')
+  getAvailableEvouchers(
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
+  ) {
+    const user = req.user;
+    const userId = user?._id ?? user?.id;
+
+    return this.evoucherService.getPublicAvailableEvouchersForUser(userId);
   }
 
   @Permissions('evoucher:update')

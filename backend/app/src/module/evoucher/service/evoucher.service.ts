@@ -7,6 +7,9 @@ import { Sponsors, SponsorsDocument } from 'src/module/sponsors/schema/sponsors.
 import { CreateEvoucherDto } from '../dto/evouchers/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/evouchers/update-evoucher.dto';
 import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
+import { validatePublicAvailableVouchers } from '../utils/evoucher-code.util';
+import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
+import { EvoucherCode } from '../schema/evoucher-code.schema';
 
 @Injectable()
 export class EvoucherService {
@@ -15,6 +18,8 @@ export class EvoucherService {
     private evoucherModel: Model<EvoucherDocument>,
     @InjectModel(Sponsors.name)
     private sponsorsModel: Model<SponsorsDocument>,
+    @InjectModel(EvoucherCode.name)
+    private evoucherCodeModel: Model<EvoucherCodeDocument>,
   ) { }
 
   async create(createEvoucherDto: CreateEvoucherDto) {
@@ -51,6 +56,12 @@ export class EvoucherService {
         { path: 'sponsors' },
       ]
     )
+  }
+
+  async getPublicAvailableEvouchersForUser(userId?: string) {
+    const evouchers = await this.evoucherModel.find({}).populate('type sponsors').lean();
+    const result = await validatePublicAvailableVouchers(evouchers, this.evoucherCodeModel, userId);
+    return result.filter(e => e.canClaim || (!userId && e.isClaimable && !e.expired && e.availableCount > 0));
   }
 
   async update(id: string, updateEvoucherDto: UpdateEvoucherDto) {

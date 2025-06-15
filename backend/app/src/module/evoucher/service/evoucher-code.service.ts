@@ -8,7 +8,7 @@ import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
 import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
-import { generateBulkVoucherCodes, claimVoucherCode, validateUserDuplicateClaim, generateNextVoucherCode, validateEvoucherAvailable, validateEvoucherTypeClaimable, validatePublicAvailableVouchers } from '../utils/evoucher-code.util';
+import { generateBulkVoucherCodes, claimVoucherCode, validateUserDuplicateClaim, generateNextVoucherCode, validateEvoucherExpired, validateEvoucherTypeClaimable } from '../utils/evoucher-code.util';
 import { BulkGenerateInput, PopulatedEvoucherCode } from '../types/evoucher-code.type';
 
 @Injectable()
@@ -52,19 +52,12 @@ export class EvoucherCodeService {
 
   async claimEvoucher(userId: string, evoucherId: string) {
     await findOrThrow(this.userModel, userId, 'User not found');
-    const evoucher = await validateEvoucherAvailable(evoucherId, this.evoucherModel);
+    const evoucher = await validateEvoucherExpired(evoucherId, this.evoucherModel);
     validateEvoucherTypeClaimable(evoucher.type);
     await validateUserDuplicateClaim(userId, evoucherId, this.evoucherCodeModel);
-
     return await claimVoucherCode(userId, evoucher, this.evoucherCodeModel);
   }
 
-
-  async getPublicAvailableEvouchersForUser(userId?: string) {
-    const evouchers = await this.evoucherModel.find({}).populate('type sponsors').lean();
-    const result = await validatePublicAvailableVouchers(evouchers, this.evoucherCodeModel, userId);
-    return result.filter(e => e.canClaim || (!userId && e.isClaimable && !e.expired && e.availableCount > 0));
-  }
 
   async getUserEvoucherCodes(userId: string) {
     const codes = await this.evoucherCodeModel

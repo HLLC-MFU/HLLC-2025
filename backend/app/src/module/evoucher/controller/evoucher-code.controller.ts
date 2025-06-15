@@ -50,17 +50,6 @@ export class EvoucherCodeController {
     return this.evoucherCodeService.remove(id);
   }
 
-  @Get('evouchers/available')
-  @Public()
-  @CacheKey('users:evouchers:available:$req.user')
-  getAvailableEvouchers(
-    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
-  ) {
-    const user = req.user;
-    const userId = user?._id ?? user?.id;
-    
-    return this.evoucherCodeService.getPublicAvailableEvouchersForUser(userId);
-  }
 
   @Post('evouchers/claim/:evoucherId')
   @Public()
@@ -70,10 +59,6 @@ export class EvoucherCodeController {
   ) {
     const user = req.user;
     const userId = user?._id ?? user?.id;
-
-    if (!userId) {
-      throw new UnauthorizedException('User not found');
-    }
 
     return this.evoucherCodeService.claimEvoucher(userId, evoucherId);
   }
@@ -86,10 +71,6 @@ export class EvoucherCodeController {
   ) {
     const user = req.user;
     const userId = user?._id ?? user?.id;
-
-    if (!userId) {
-      throw new UnauthorizedException('User not found');
-    }
 
     return this.evoucherCodeService.getUserEvoucherCodes(userId);
   }
