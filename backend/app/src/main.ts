@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import {
   NestFastifyApplication,
   FastifyAdapter,
@@ -33,7 +33,7 @@ async function bootstrap() {
   });
   await app.register(fastifyStatic, {
     root: path.join(__dirname, '..', 'uploads'),
-    prefix: '/uploads/',
+    prefix: '/api/uploads/',
   });
 
   app.setGlobalPrefix('api');
