@@ -35,4 +35,17 @@ export class AssessmentAnswersController {
   remove(@Param('id') id: string) {
     return this.assessmentAnswersService.remove(id);
   }
+
+  @Get('/all/average')
+  @Permissions('assessment-answers:read')
+  getAverageAll() {
+    return this.assessmentAnswersService.averageAllAssessments();
+  }
+
+  @Get('/:activityId/average')
+  @Permissions('assessment-answers:read')
+  getAverageByActivity(@Param('activityId') activityId: string) {
+    return this.assessmentAnswersService.averageAssessmentsByActivity(activityId);
+  }
+
 }
