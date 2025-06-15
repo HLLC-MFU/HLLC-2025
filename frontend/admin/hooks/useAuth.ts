@@ -5,10 +5,9 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { addToast } from "@heroui/react";
 import { redirect } from "next/navigation";
 
-import { useProfile } from "./useProfile";
-
 import { apiRequest } from "@/utils/api";
 import { getToken, saveToken, removeToken } from "@/utils/storage";
+import { useProfile } from "./useProfile";
 
 interface AuthStore {
   loading: boolean;
@@ -52,7 +51,6 @@ const useAuth = create<AuthStore>()(
             });
 
             redirect("/");
-
             return true;
           } else {
             set({ error: res.statusText });

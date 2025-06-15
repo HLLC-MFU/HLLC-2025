@@ -6,7 +6,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
-import { decryptItem, encryptItem } from '../auth/utils/crypto';
+import { encryptItem } from '../auth/utils/crypto';
 
 @Injectable()
 export class RoleService {
@@ -31,14 +31,7 @@ export class RoleService {
    * Throws an error if the role already exists.
    */
   async findAll(): Promise<Role[]> {
-    const roles = await this.roleModel.find().lean();
-    roles.forEach((role) => {
-      // Decrypt permissions for each role
-      role.permissions = role.permissions.map((perm) => {
-        return typeof perm === 'string' ? decryptItem(perm) : perm;
-      });
-    });
-    return roles;
+    return this.roleModel.find().lean();
   }
 
   /**
@@ -83,14 +76,6 @@ export class RoleService {
   ): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
     role.metadataSchema = dto.metadataSchema;
-
-    return await role.save();
-  }
-
-  async updatePermissions(id: string, permissions: string[]): Promise<Role> {
-    const role = await findOrThrow(this.roleModel, id, 'Role');
-
-    role.permissions = permissions.map(encryptItem);
 
     return await role.save();
   }

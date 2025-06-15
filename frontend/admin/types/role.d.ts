@@ -5,9 +5,9 @@ export type Role = {
 };
 
 export type MetadataSchema = {
-  [key: string]: {
-    type: string;
-    label: string;
-    required: boolean;
-  };
+    major: {
+        type: 'string' | 'number' | 'boolean' | 'date';
+        label?: string;
+        required?: boolean;
+    }
 };
