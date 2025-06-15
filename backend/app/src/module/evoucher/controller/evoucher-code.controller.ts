@@ -51,7 +51,7 @@ export class EvoucherCodeController {
   }
 
 
-  @Post('evouchers/claim/:evoucherId')
+  @Post('claim/:evoucherId')
   @Public()
   claimEvoucher(
     @Param('evoucherId') evoucherId: string,
@@ -63,7 +63,7 @@ export class EvoucherCodeController {
     return this.evoucherCodeService.claimEvoucher(userId, evoucherId);
   }
 
-  @Get('evouchers/my-codes')
+  @Get('my-codes')
   @Public()
   @CacheKey('users:evouchers:codes:$req.user')
   getMyEvoucherCodes(

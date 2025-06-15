@@ -7,9 +7,11 @@ import { Sponsors, SponsorsDocument } from 'src/module/sponsors/schema/sponsors.
 import { CreateEvoucherDto } from '../dto/evouchers/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/evouchers/update-evoucher.dto';
 import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
-import { validatePublicAvailableVouchers } from '../utils/evoucher-code.util';
 import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
 import { EvoucherCode } from '../schema/evoucher-code.schema';
+import { buildPaginatedResponse } from 'src/pkg/helper/buildPaginatedResponse';
+import { validatePublicAvailableVoucher } from '../utils/evoucher-code.util';
+import { PublicAvailableEvoucherResponse } from '../types/evoucher-code.type';
 
 @Injectable()
 export class EvoucherService {
@@ -58,12 +60,26 @@ export class EvoucherService {
     )
   }
 
-  async getPublicAvailableEvouchersForUser(userId?: string) {
-    const evouchers = await this.evoucherModel.find({}).populate('type sponsors').lean();
-    const result = await validatePublicAvailableVouchers(evouchers, this.evoucherCodeModel, userId);
-    return result.filter(e => e.canClaim || (!userId && e.isClaimable && !e.expired && e.availableCount > 0));
+  async getPublicAvailableEvouchersForUser(userId?: string, query?: Record<string, string>) {
+    const result = await queryAll<Evoucher>({
+      model: this.evoucherModel,
+      query: { ...query, type: 'GLOBAL' },
+      filterSchema: {},
+      populateFields: () => Promise.resolve([{ path: 'sponsors' }]),
+    });
+  
+    const processedData = await Promise.all(
+      result.data.map((evoucher: EvoucherDocument) => 
+        validatePublicAvailableVoucher(evoucher, this.evoucherCodeModel, userId)
+      )
+    );
+  
+    return buildPaginatedResponse<PublicAvailableEvoucherResponse>(
+      processedData as unknown as PublicAvailableEvoucherResponse[],
+      result.meta
+    );
   }
-
+  
   async update(id: string, updateEvoucherDto: UpdateEvoucherDto) {
     return queryUpdateOne<Evoucher>(
       this.evoucherModel,

@@ -60,28 +60,36 @@ export class EvoucherCodeService {
 
 
   async getUserEvoucherCodes(userId: string) {
-    const codes = await this.evoucherCodeModel
-      .find({ user: userId })
-      .populate<{ evoucher: EvoucherDocument }>({ 
-        path: 'evoucher', 
-        populate: [
-          { path: 'type' }, 
-          { path: 'sponsors' }
-        ] 
-      })
-      .lean();
-  
-    return codes.map((code: PopulatedEvoucherCode) => {
-      const expiration = code.metadata?.expiration ?? code.evoucher.expiration;
+    const codes = await queryAll<EvoucherCode>({
+      model: this.evoucherCodeModel,
+      query: { user: userId },
+      filterSchema: {},
+      populateFields: () => Promise.resolve([
+        { 
+          path: 'evoucher',
+          populate: [
+            { path: 'type' },
+            { path: 'sponsors' }
+          ]
+        }
+      ]),
+    });
+    const processedData = codes.data.map((code: EvoucherCode) => {
+      const evoucherData = code.evoucher as unknown as Evoucher;
+      const expiration = code.metadata?.expiration || evoucherData.expiration;
       const expired = expiration ? new Date() > new Date(expiration) : false;
       const canUse = !code.isUsed && !expired;
-  
+
       return {
         ...code,
-        expired,
         canUse
       };
     });
+
+    return {
+      ...codes,
+      data: processedData
+    };
   }
   
   async update(id: string, updateEvoucherCodeDto: UpdateEvoucherCodeDto) {

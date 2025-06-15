@@ -157,7 +157,7 @@ export async function claimVoucherCode(
 
   return code;
 }
-
+1
 /**
  * ตรวจสอบว่า Evoucher สามารถ Claim ได้หรือไม่
  * - ถ้าเป็น GLOBAL และยังไม่มีผู้ใช้ Claim แล้ว จะสามารถ Claim ได้
@@ -166,41 +166,35 @@ export async function claimVoucherCode(
  * @param userId - รหัสผู้ใช้
  * @returns รายการ Evoucher ที่สามารถ
  */
-export async function validatePublicAvailableVouchers(
-  evouchers: EvoucherDocument[],
+export async function validatePublicAvailableVoucher(
+  evoucher: EvoucherDocument,
   evoucherCodeModel: Model<EvoucherCodeDocument>,
   userId?: string
 ) {
-  return await Promise.all(
-    evouchers.map(async (evoucher) => {
-      const expired = new Date() > new Date(evoucher.expiration);
-      let userHas = false;
+  const expired = new Date() > new Date(evoucher.expiration);
+  const userObjectId = userId ? new Types.ObjectId(userId) : null;
+  const evoucherId = new Types.ObjectId(evoucher._id);
 
-      if (userId) {
-        const code = await evoucherCodeModel.exists({ user: userId, evoucher: evoucher._id });
-        userHas = !!code;
-      }
+  // ตรวจสอบว่า user เคย claim evoucher นี้ไปแล้วหรือไม่
+  const userHas = userObjectId 
+    ? await evoucherCodeModel.exists({ 
+        user: userObjectId, 
+        evoucher: evoucherId 
+      }).then(res => !!res)
+    : false;
 
-      let availableCount = 0;
-      if (evoucher.type === EvoucherType.GLOBAL) {
-        availableCount = userHas ? 0 : 1;
-      } else {
-        availableCount = await evoucherCodeModel.countDocuments({
-          evoucher: evoucher._id,
-          user: null,
-          isUsed: false
-        });
-      }
+  // นับจำนวน claims ทั้งหมด (เฉพาะที่ยังไม่ได้ใช้)
+  const totalClaims = await evoucherCodeModel.countDocuments({
+    evoucher: evoucherId,
+    user: { $ne: null },
+    isUsed: false
+  });
 
-      const canClaim = evoucher.type === EvoucherType.GLOBAL && !userHas && !expired;
-      return {
-        ...evoucher,
-        isClaimable: evoucher.type === EvoucherType.GLOBAL,
-        userHas,
-        availableCount,
-        expired,
-        canClaim,
-      };
-    })
-  );
+  return {
+    ...evoucher,
+    userHas,
+    totalClaims,  
+    canClaim: !userHas && !expired && evoucher.type === 'GLOBAL'
+  };
 }
+

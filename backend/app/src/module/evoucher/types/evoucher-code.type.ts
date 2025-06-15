@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { EvoucherDocument } from '../schema/evoucher.schema';
+import { Evoucher, EvoucherDocument, EvoucherType } from '../schema/evoucher.schema';
 import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
 
 export interface BulkGenerateInput {
@@ -9,7 +9,7 @@ export interface BulkGenerateInput {
 }
 
 export type PopulatedEvoucherCode = Omit<EvoucherCodeDocument, 'evoucher'> & {
-  evoucher: EvoucherDocument;
+  evoucher: Evoucher;
 };
 
 export interface VoucherCodeInsert {
@@ -52,9 +52,65 @@ export interface PublicAvailableResult {
     url: string;
     alt?: string;
   };
-  isClaimable: boolean;
+}
+
+export interface PublicEvoucherResponse {
+  _id: string;
+  discount: number;
+  acronym: string;
+  type: EvoucherType;
+  sponsors: {
+    _id: string;
+    name: {
+      th: string;
+      en: string;
+    };
+    photo: {
+      logoPhoto?: string;
+    };
+  };
+  detail: {
+    th: string;
+    en: string;
+  };
+  expiration: Date;
+  photo: {
+    coverPhoto: string;
+    bannerPhoto?: string;
+    thumbnail?: string;
+    logoPhoto?: string;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PublicAvailableEvoucherResponse {
+  _id: string;
+  discount: number;
+  acronym: string;
+  type: EvoucherType;
+  sponsors: {
+    _id: string;
+    name: {
+      th: string;
+      en: string;
+    };
+    photo: {
+      logoPhoto?: string;
+    };
+  };
+  detail: {
+    th: string;
+    en: string;
+  };
+  expiration: Date;
+  photo: {
+    coverPhoto: string;
+    bannerPhoto?: string;
+    thumbnail?: string;
+    logoPhoto?: string;
+  };
   userHas: boolean;
-  availableCount: number;
-  expired: boolean;
+  totalClaims: number;
   canClaim: boolean;
 }
