@@ -138,7 +138,7 @@ export class ReportsService {
     try {
       await findOrThrow(this.reportModel, { _id: id }, 'Report not found');
 
-      updateReportDto.updatedAt = new Date();
+      updateReportDto.createdAt = new Date();
       return await queryUpdateOne<Report>(this.reportModel, id, updateReportDto);
     } catch (error) {
       if (error instanceof NotFoundException) {

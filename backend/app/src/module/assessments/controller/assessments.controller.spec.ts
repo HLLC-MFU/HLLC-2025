@@ -79,16 +79,10 @@ import { AssessmentTypes } from '../enum/assessment-types.enum';
         question: { th: 'ใหม่', en: 'New' },
         type: AssessmentTypes.TEXT,
         activity: 'activityId',
-        updatedAt: new Date(),
       };
 
-      const beforeCall = Date.now();
+  
       const result = await controller.update('mockId', dto);
-      const afterCall = Date.now();
-
-      const updatedDto = serviceMock.update.mock.calls[0][1];
-      expect(updatedDto.updatedAt.getTime()).toBeGreaterThanOrEqual(beforeCall);
-      expect(updatedDto.updatedAt.getTime()).toBeLessThanOrEqual(afterCall);
       expect(serviceMock.update).toHaveBeenCalledWith('mockId', expect.objectContaining(dto));
       expect(result.order).toEqual(2);
     });

@@ -119,7 +119,7 @@ describe('MajorsService', () => {
         name: { th: 'ใหม่', en: 'New' },
         acronym: 'NEW',
         detail: { th: 'ใหม่', en: 'New' },
-        updatedAt: new Date(),
+        createdAt: new Date(),
       };
 
       const before = Date.now();
@@ -128,8 +128,8 @@ describe('MajorsService', () => {
 
       const updateArg = (queryUpdateOne as jest.Mock).mock.calls[0][2];
       expect(updateArg.name).toEqual(dto.name);
-      expect(updateArg.updatedAt.getTime()).toBeGreaterThanOrEqual(before);
-      expect(updateArg.updatedAt.getTime()).toBeLessThanOrEqual(after);
+      expect(updateArg.createdAt.getTime()).toBeGreaterThanOrEqual(before);
+      expect(updateArg.createdAt.getTime()).toBeLessThanOrEqual(after);
     });
   });
 

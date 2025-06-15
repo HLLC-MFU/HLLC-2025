@@ -183,7 +183,7 @@ describe('ReportsService', () => {
 
       const dto: UpdateReportDto = {
         status: 'resolved',
-        updatedAt: new Date()
+        createdAt: new Date()
       };
 
       const res = await service.update('id123', dto);
@@ -198,7 +198,7 @@ describe('ReportsService', () => {
       });
 
       await expect(
-        service.update('id', { status: 'x', updatedAt: new Date() })
+        service.update('id', { status: 'x', createdAt: new Date() })
       ).rejects.toThrow(InternalServerErrorException);
     });
   });

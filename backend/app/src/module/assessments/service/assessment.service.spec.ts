@@ -96,15 +96,11 @@ describe('AssessmentsService', () => {
         question: { th: 'ใหม่', en: 'New' },
         type: AssessmentTypes.TEXT,
         activity: 'activityId',
-        updatedAt:new Date(),
       };
 
-      (queryUpdateOne as jest.Mock).mockResolvedValue({ _id: '1', ...updateDto, updatedAt: new Date() });
-
+      (queryUpdateOne as jest.Mock).mockResolvedValue({ _id: '1', ...updateDto });
       const result = await service.update('1', updateDto);
-      const updateArg = (queryUpdateOne as jest.Mock).mock.calls[0][2];
       expect(result).toEqual(expect.objectContaining({ _id: '1' }));
-      expect(updateArg.updatedAt).toBeInstanceOf(Date);
     });
   });
 

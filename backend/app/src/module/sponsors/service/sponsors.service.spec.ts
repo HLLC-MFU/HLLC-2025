@@ -62,7 +62,6 @@ describe('SponsorsService', () => {
         },
         type: mockObjectId,
         metadata: { level: 'gold' },
-        updatedAt: new Date,
     };
 
     beforeEach(async () => {

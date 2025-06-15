@@ -14,6 +14,8 @@ import {
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 import { Model } from 'mongoose';
+import { Type } from 'class-transformer';
+import { create } from 'domain';
 
 jest.mock('src/pkg/helper/query.util', () => ({
   queryAll: jest.fn(),
@@ -118,31 +120,34 @@ describe('SchoolsService', () => {
     });
   });
 
-  describe('update', () => {
-    it('should update with updatedAt field', async () => {
-      const dto: UpdateSchoolDto = {
-        name: { th: 'ใหม่', en: 'New' },
-        acronym: 'XYZ',
-        detail: { th: 'รายละเอียดใหม่', en: 'Detail New' },
-        photo: 'photo.png',
-        updatedAt: undefined!,
-      };
-      const id = 'school123';
+ describe('update', () => {
+  const id = 'school123';
+  it('should update with updatedAt field', async () => {
+    const createdAt = new Date();
+    const dto: UpdateSchoolDto = {
+      name: { th: 'ใหม่', en: 'New' },
+      acronym: 'XYZ',
+      detail: { th: 'รายละเอียดใหม่', en: 'Detail New' },
+      photo: 'photo.png',
+      createdAt, 
+    };
 
-      await service.update(id, dto);
-      expect(queryUpdateOne).toHaveBeenCalledWith(
-        schoolModel,
-        id,
-        expect.objectContaining({
-          name: dto.name,
-          acronym: dto.acronym,
-          detail: dto.detail,
-          photo: dto.photo,
-          updatedAt: expect.any(Date),
-        }),
-      );
-    });
+    await service.update(id, dto);
+
+    expect(queryUpdateOne).toHaveBeenCalledWith(
+      schoolModel,
+      id,
+      expect.objectContaining({
+        name: dto.name,
+        acronym: dto.acronym,
+        detail: dto.detail,
+        photo: dto.photo,
+        createdAt, 
+      }),
+    );
   });
+});
+
 
   describe('remove', () => {
     it('should call queryDeleteOne and return confirmation', async () => {

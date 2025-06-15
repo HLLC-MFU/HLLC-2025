@@ -26,6 +26,10 @@ describe('ReportsController', () => {
     }),
   };
 
+  const fakeTime = new Date('2025-06-15T12:45:56.430Z');
+  jest.useFakeTimers().setSystemTime(fakeTime);
+
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ReportsController],
@@ -52,7 +56,7 @@ describe('ReportsController', () => {
         reporter: 'userId123',
         category: 'categoryId123',
         status: 'pending',
-        createdAt: new Date(),
+        createdAt: fakeTime,
       };
       const result = await controller.create(dto);
       expect(result).toEqual({
@@ -61,7 +65,7 @@ describe('ReportsController', () => {
         reporter: 'userId123',
         category: 'categoryId123',
         status: 'pending',
-        createdAt: new Date(),
+        createdAt: fakeTime,
       });
       expect(mockService.create).toHaveBeenCalledWith(dto);
     });
@@ -93,7 +97,7 @@ describe('ReportsController', () => {
 
   describe('update', () => {
     it('should update a report', async () => {
-      const dto: UpdateReportDto = { message: 'updated', updatedAt: new Date() };
+      const dto: UpdateReportDto = { message: 'updated' };
       const result = await controller.update('1', dto);
       expect(result).toEqual({ id: '1', message: 'updated' });
       expect(mockService.update).toHaveBeenCalledWith('1', dto);

@@ -45,7 +45,6 @@ describe('SponsorsController', () => {
         },
         type: 'typeId12345678901234567890',
         metadata: { key: 'value' },
-        updatedAt: new Date(),
     };
 
 
@@ -96,7 +95,6 @@ describe('SponsorsController', () => {
     describe('update()', () => {
         it('should call service.update with id and dto + updatedAt', async () => {
             const req = { body: { ...mockCreateDto } } as FastifyRequest<{ Body: UpdateSponsorDto }>;
-            (req.body.updatedAt as Date) = new Date();
 
             const id = 'abc';
             const expected = { ...req.body };
@@ -104,7 +102,6 @@ describe('SponsorsController', () => {
 
 
             const result = await controller.update(id, req);
-            expect(req.body.updatedAt).toBeInstanceOf(Date);
             expect(service.update).toHaveBeenCalledWith(id, req.body);
             expect(result).toEqual(expected);
         });

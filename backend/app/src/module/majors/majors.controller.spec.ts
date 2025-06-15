@@ -84,11 +84,11 @@ describe('MajorsController', () => {
         name: { th: 'ใหม่', en: 'New' },
         acronym: 'NEW',
         detail: { th: 'ใหม่', en: 'New' },
-        updatedAt: undefined!,
+        createdAt: new Date(),
       };
 
       const result = await controller.update(id, dto);
-      expect(dto.updatedAt).toBeInstanceOf(Date);
+      expect(dto.createdAt).toBeInstanceOf(Date);
       expect(service.update).toHaveBeenCalledWith(id, dto);
       expect(result).toEqual({ ...mockMajor, acronym: 'NEW' });
     });

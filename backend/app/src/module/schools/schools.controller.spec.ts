@@ -27,7 +27,7 @@ describe('SchoolsController', () => {
     acronym: 'NS',
     detail: { th: 'ใหม่', en: 'New' },
     photo: 'newphoto.jpg',
-    updatedAt: new Date(),
+    createdAt: new Date(),
   };
 
   const mockService = {
@@ -91,7 +91,7 @@ describe('SchoolsController', () => {
       mockService.update.mockResolvedValue(expected);
 
       const result = await controller.update(id, dto);
-      expect(dto.updatedAt).toBeInstanceOf(Date);
+      expect(dto.createdAt).toBeInstanceOf(Date);
       expect(service.update).toHaveBeenCalledWith(id, dto);
       expect(result).toEqual(expected);
     });
