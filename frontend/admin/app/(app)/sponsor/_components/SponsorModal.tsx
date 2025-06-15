@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, RefObject } from "react";
 import {
   Button,
   Input,
@@ -16,6 +16,7 @@ import {
 import { useSponsors } from "@/hooks/useSponsors";
 import { Sponsors } from "@/types/sponsors";
 import { SponsorType } from "@/types/sponsors-type";
+import { LogoPreview } from "./LogoPreview";
 
 interface SponsorModalProps {
   type: string;
@@ -46,12 +47,10 @@ export function SponsorModal({
   const [nameEn, setNameEn] = useState("");
   const [nameTh, setNameTh] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState("");
+  const logoInputRef = useRef<HTMLInputElement>(null) as RefObject<HTMLInputElement>;
   const [isShow, setIsShow] = useState(true);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    setLogoFile(file);
-  };
+  const [errors, setErrors] = useState({ nameEn: false, nameTh: false, logo: false });
 
   useEffect(() => {
     if (sponsor && mode === "edit") {
@@ -59,16 +58,39 @@ export function SponsorModal({
       setNameTh(sponsor.name?.th || "");
       setIsShow(sponsor.isShow ?? true);
       setLogoFile(null);
+      setLogoPreview(`http://localhost:8080/uploads/${sponsor.photo}`);
     } else {
       setNameEn("");
       setNameTh("");
       setIsShow(true);
       setLogoFile(null);
+      setLogoPreview("");
     }
+    setErrors({ nameEn: false, nameTh: false, logo: false });
   }, [sponsor, mode, isOpen]);
 
+  const handleFileChange = (file: File | null) => {
+    setLogoFile(file);
+    setErrors(prev => ({ ...prev, logo: false }));
+
+    if (!file) {
+      setLogoPreview("");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setLogoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async () => {
-    if (!nameEn.trim() || !nameTh.trim()) return;
+    const nameEnEmpty = !nameEn.trim();
+    const nameThEmpty = !nameTh.trim();
+    const logoEmpty = mode === "add" && !logoFile;
+
+    setErrors({ nameEn: nameEnEmpty, nameTh: nameThEmpty, logo: logoEmpty });
+
+    if (nameEnEmpty || nameThEmpty || logoEmpty) return;
 
     const typeId = sponsorTypes.find((s) => s.name === type)?._id;
     if (!typeId) return;
@@ -86,7 +108,6 @@ export function SponsorModal({
       } else if (sponsor?._id) {
         await updateSponsors(sponsor._id, formData);
       }
-
       onSuccess(sponsor || {}, mode);
       onClose();
     } catch (err) {
@@ -96,36 +117,48 @@ export function SponsorModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-      <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">
-          {mode === "add" ? "Add New Sponsor" : "Edit Sponsor"}
-        </ModalHeader>
+      <ModalContent className="max-w-[500px] mx-auto">
+        <ModalHeader>{mode === "add" ? "Add New Sponsor" : "Edit Sponsor"}</ModalHeader>
         <ModalBody>
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4">
               <Input
+                isRequired
                 label="Sponsor Name (English)"
                 placeholder="Enter sponsor name in English"
                 value={nameEn}
-                onValueChange={setNameEn}
+                onValueChange={(val) => {
+                  setNameEn(val);
+                  setErrors(prev => ({ ...prev, nameEn: false }));
+                }}
+                isInvalid={errors.nameEn}
+                errorMessage="Please fill out this field."
               />
               <Input
+                isRequired
                 label="Sponsor Name (Thai)"
                 placeholder="Enter sponsor name in Thai"
                 value={nameTh}
-                onValueChange={setNameTh}
+                onValueChange={(val) => {
+                  setNameTh(val);
+                  setErrors(prev => ({ ...prev, nameTh: false }));
+                }}
+                isInvalid={errors.nameTh}
+                errorMessage="Please fill out this field."
               />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
                 isRequired
-                className="max-w-xs"
+                className="w-full"
                 selectedKeys={[isShow ? "show" : "hide"]}
                 items={showOptions}
-                onChange={(e) =>
-                  setIsShow((e.target as HTMLSelectElement).value === "show")
-                }
+                onSelectionChange={(keys) => {
+                  const key = Array.from(keys)[0];
+                  if (key === "show") {
+                    setIsShow(true);
+                  } else if (key === "hide") {
+                    setIsShow(false);
+                  }
+                }}
                 label="Show"
                 placeholder="Select show"
               >
@@ -133,47 +166,31 @@ export function SponsorModal({
                   <SelectItem key={item.key}>{item.label}</SelectItem>
                 ))}
               </Select>
+            </div>
 
-              <div className="flex flex-col w-full">
-                <label
-                  htmlFor="logo-upload"
-                  className="text-sm font-medium text-default-600 mb-1"
-                >
-                  Logo Image
-                </label>
-                <input
-                  id="logo-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="block w-full text-sm text-default-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-lg file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-primary file:text-white
-                    hover:file:bg-primary/90
-                    cursor-pointer"
+            <div className="flex flex-col items-center w-full px-6">
+              <div className="w-full">
+                <LogoPreview
+                  preview={logoPreview}
+                  file={logoFile}
+                  onFileChange={handleFileChange}
+                  onRemove={() => handleFileChange(null)}
+                  inputRef={logoInputRef}
+                  aspectRatio="aspect-[6/3]"
+                  maxSize="max-h-[100px]"
+                  containerClassName="w-full"
                 />
-                {mode === "edit" && sponsor?.photo && !logoFile && (
-                  <p className="mt-2 text-sm text-default-500 italic">
-                    Current file:{" "}
-                    <span className="font-medium">{sponsor.photo}</span>
-                  </p>
-                )}
-                {logoFile && (
-                  <p className="mt-2 text-sm text-default-500 italic">
-                    Selected file:{" "}
-                    <span className="font-medium">{logoFile.name}</span>
-                  </p>
-                )}
               </div>
+              {errors.logo && (
+                <p className="mt-2 text-center text-danger text-sm">
+                  Please upload a logo image.
+                </p>
+              )}
             </div>
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button color="danger" variant="light" onPress={onClose}>
-            Cancel
-          </Button>
+          <Button color="danger" variant="light" onPress={onClose}>Cancel</Button>
           <Button color="primary" onPress={handleSubmit}>
             {mode === "add" ? "Add" : "Save"}
           </Button>

@@ -30,7 +30,6 @@ export class SponsorsController {
   @UseInterceptors(new MultipartInterceptor(500))
   update(@Param('id') id: string, @Req() req: FastifyRequest) {
     const dto = req.body as UpdateSponsorDto;
-    dto.updatedAt = new Date();
     return this.sponsorsService.update(id, dto);
   }
 
