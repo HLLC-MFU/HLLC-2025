@@ -46,7 +46,6 @@ export class PrepostQuestionsService {
   }
 
   async update(id: string, updatePrepostQuestiontDto: UpdatePrepostQuestiontDto) {
-    updatePrepostQuestiontDto.updatedAt = new Date()
     return queryUpdateOne<PrepostQuestion>(this.PrepostQuestionmodel, id, updatePrepostQuestiontDto)
   }
 

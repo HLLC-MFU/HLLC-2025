@@ -64,7 +64,6 @@ export class MajorsService {
   }
 
   async update(id: string, updateMajorDto: UpdateMajorDto) {
-    updateMajorDto.updatedAt = new Date();
     return queryUpdateOne<Major>(this.majorModel, id, updateMajorDto);
   }
 

@@ -41,7 +41,6 @@ export class AssessmentsService {
   }
 
   async update(id: string, updateAssessmentDto: UpdateAssessmentDto) {
-    updateAssessmentDto.updatedAt = new Date()
     return queryUpdateOne<Assessment>(this.assessmentModel, id, updateAssessmentDto);
   }
 
