@@ -96,39 +96,45 @@ export class PosttestAnswersService {
     return await queryDeleteOne(this.posttestAnswerModel, id)
   }
 
-  async averageAllPosttests(): Promise<{ posttestId: string; average: number; count: number }[]> {
+  async averageAllPosttests(): Promise<{ posttest: PrepostQuestion; average: number; count: number }[]> {
     const results = await queryAll<PosttestAnswer>({
       model: this.posttestAnswerModel,
       query: {},
       filterSchema: {},
+      populateFields: () => Promise.resolve([{ path: 'answers.posttest' }]),
     });
 
-    const scoreMap: Record<string, { sum: number; count: number }> = {};
+    const scoreMap = new Map<PrepostQuestion, { sum: number; count: number }>();
 
     for (const result of results.data) {
       for (const answer of result.answers) {
-        const posttestId = answer.posttest.toString();
+        const posttestRaw = answer.posttest;
 
-        const numericAnswer = parseFloat(answer.answer);
-        if (!isNaN(numericAnswer)) {
-          if (!scoreMap[posttestId]) {
-            scoreMap[posttestId] = { sum: 0, count: 0 };
+        if (typeof posttestRaw === 'object' && '_id' in posttestRaw) {
+          const posttest = posttestRaw as any as PrepostQuestion;
+
+          const numericAnswer = parseFloat(answer.answer);
+          if (!isNaN(numericAnswer)) {
+            if (!scoreMap.has(posttest)) {
+              scoreMap.set(posttest, { sum: 0, count: 0 });
+            }
+            const current = scoreMap.get(posttest)!;
+            current.sum += numericAnswer;
+            current.count += 1;
           }
-          scoreMap[posttestId].sum += numericAnswer;
-          scoreMap[posttestId].count += 1;
+        } else {
+          throw new Error('Posttest not populated');
         }
       }
     }
 
-    const output: { posttestId: string; average: number; count: number }[] = [];
-    for (const posttestId in scoreMap) {
-      const { sum, count } = scoreMap[posttestId];
-      output.push({
-        posttestId,
-        average: count > 0 ? sum / count : 0,
-        count
-      });
-    }
+    const output = Array.from(scoreMap.entries()).map(([posttest, { sum, count }]) => ({
+      posttest,
+      average: sum / count,
+      count,
+    }));
+
     return output;
   }
+
 }
