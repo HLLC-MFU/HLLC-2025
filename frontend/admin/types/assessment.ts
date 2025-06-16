@@ -57,6 +57,7 @@ export interface Question {
   assessmentType?: AssessmentType; // Optional since it's not in the API response
   activityId?: string; // Optional field to link question to a specific activity
   activity?: Activity; // The full activity object from the API
+  difficulty?: DifficultyLevel; // Added difficulty level
 }
 
 export interface AssessmentResult {
@@ -109,20 +110,47 @@ export interface ActivityProgress {
   progress: number;
   lastAccessed: string;
   completedAt?: string;
+  // Additional fields for filtering
+  userType?: string;
+  school?: string;
+  major?: string;
 }
 
 export interface TestAnswer {
     _id: string;
     userId: string;
     questionId: string;
-    answer: string | string[] | number;
+    answer: string | number | string[];
+    isCorrect?: boolean;
     createdAt: string;
     updatedAt: string;
     user?: {
-        name: string;
+        _id?: string;
+        name?: {
+            first: string;
+            middle?: string;
+            last: string;
+        } | string;
+        userType?: string;
+        username?: string;
+        role?: string;
+        metadata?: {
+            major?: {
+                _id: string;
+                name: {
+                    th: string;
+                    en: string;
+                };
+                school?: {
+                    name: {
+                        th: string;
+                        en: string;
+                    };
+                };
+            };
+        };
         school?: string;
         major?: string;
-        userType?: string;
     };
     question?: {
         type: string;
@@ -150,11 +178,12 @@ export interface PostTestState {
 }
 
 // Component Props Types
-export interface AssessmentOverviewDashboardProps {
+export type AssessmentOverviewDashboardProps = {
     type: AssessmentType;
-    answers: TestAnswer[];
-    loading: boolean;
-}
+    loading?: boolean;
+    answers?: TransformedAnswer[];
+    questions?: Question[];
+};
 
 export interface QuestionModalProps {
     isOpen: boolean;
@@ -176,6 +205,7 @@ export interface QuestionTableProps {
 // Student Details Types
 export interface StudentDetail {
     userId: string;
+    username: string;
     name: string;
     school?: string;
     major?: string;
@@ -183,12 +213,18 @@ export interface StudentDetail {
     timeSpent: number;
     completed: boolean;
     completedQuestions: number;
+    totalQuestions: number;
     lastUpdated: Date;
+    skillRatings?: Record<string, number | string>;
 }
 
 export interface UserDetails {
     userId: string;
-    name: string;
+    name: {
+        first: string;
+        middle?: string;
+        last: string;
+    } | string;
     school?: string;
     major?: string;
     scores: number[];
@@ -243,4 +279,104 @@ export interface MockFilterData {
     userTypes: string[];
     schools: string[];
     majors: string[];
+}
+
+export interface UserInAnswer {
+    _id: string;
+    name: {
+        first: string;
+        middle?: string;
+        last: string;
+    };
+    username: string;
+    role: string;
+    metadata: {
+        major: {
+            _id: string;
+            name: {
+                th: string;
+                en: string;
+            };
+            school: {
+                _id: string;
+                name: {
+                    th: string;
+                    en: string;
+                };
+            };
+        };
+    };
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface RawPosttestAnswer {
+    _id: string;
+    user: UserInAnswer;
+    answers: Array<{
+        posttest: string; // This is the question ID for posttest
+        answer: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface RawPretestAnswer {
+    _id: string;
+    user: UserInAnswer;
+    answers: Array<{
+        pretest: string; // This is the question ID for pretest
+        answer: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface APIResponse<T> {
+    data: T;
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+        lastUpdatedAt: string;
+    };
+    message: string;
+}
+
+// Add new types for transformed answers
+export interface TransformedAnswer {
+    _id: string;
+    userId: string;
+    questionId: string;
+    answer: string;
+    createdAt: string;
+    updatedAt: string;
+    user: {
+        _id: string;
+        name: {
+            first: string;
+            middle?: string;
+            last: string;
+        } | string;
+        username: string;
+        userType: string;
+        metadata: {
+            major: {
+                _id: string;
+                name: {
+                    th: string;
+                    en: string;
+                };
+                school?: {
+                    name: {
+                        th: string;
+                        en: string;
+                    };
+                };
+            };
+        };
+        school?: string;
+        major?: string;
+    };
 } 

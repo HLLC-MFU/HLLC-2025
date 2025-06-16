@@ -1,5 +1,5 @@
-import { useReducer, useCallback } from 'react';
-import { Question, ActivityProgress } from '@/types/assessment';
+import { useReducer, useCallback, useEffect } from 'react';
+import { Question, ActivityProgress, RawPretestAnswer, RawPosttestAnswer } from '@/types/assessment';
 
 // API base URL - should be configured in environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -9,6 +9,8 @@ interface AssessmentState {
   data: {
     questions: Question[];
     activityProgress: ActivityProgress[];
+    pretestProgress: RawPretestAnswer[];
+    posttestProgress: RawPosttestAnswer[];
     activities: Array<{
       _id: string;
       name: {
@@ -35,6 +37,8 @@ const initialState: AssessmentState = {
   data: {
     questions: [],
     activityProgress: [],
+    pretestProgress: [],
+    posttestProgress: [],
     activities: [],
   },
   loading: false,
@@ -208,6 +212,40 @@ const assessmentService = {
     const data = await response.json();
     return data.data || [];
   },
+
+  async fetchPretestProgress() {
+    const response = await fetch(`${API_BASE_URL}/pretest-answers`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch pretest progress: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data || [];
+  },
+
+  async fetchPosttestProgress() {
+    const response = await fetch(`${API_BASE_URL}/posttest-answers`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch posttest progress: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data || [];
+  },
 };
 
 export function useAssessment() {
@@ -312,6 +350,23 @@ export function useAssessment() {
     [handleFetch]
   );
 
+  // Pretest and Posttest progress operations
+  const fetchPretestProgress = useCallback(() => 
+    handleFetch(() => assessmentService.fetchPretestProgress(), 'pretestProgress'), 
+    [handleFetch]
+  );
+
+  const fetchPosttestProgress = useCallback(() => 
+    handleFetch(() => assessmentService.fetchPosttestProgress(), 'posttestProgress'), 
+    [handleFetch]
+  );
+
+  // Fetch all progress data when component mounts
+  useEffect(() => {
+    fetchPretestProgress();
+    fetchPosttestProgress();
+  }, [fetchPretestProgress, fetchPosttestProgress]);
+
   return {
     // State
     ...state.data,
@@ -326,6 +381,8 @@ export function useAssessment() {
 
     // Activity progress operations
     fetchActivityProgress,
+    fetchPretestProgress,
+    fetchPosttestProgress,
 
     // Activity operations
     fetchActivities,

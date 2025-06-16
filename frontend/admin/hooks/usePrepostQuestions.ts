@@ -79,7 +79,8 @@ export function usePrepostQuestions(type: AssessmentType) {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<TestAnswersResponse>(`/prepost-questions/answers?type=${type}`);
+            const endpoint = type === 'pretest' ? '/pretest-answers' : '/posttest-answers';
+            const res = await apiRequest<TestAnswersResponse>(endpoint);
 
             if (res.data?.data) {
                 setAnswers(Array.isArray(res.data.data) ? res.data.data : []);
