@@ -57,7 +57,6 @@ export class EvoucherCodeService {
   }
 
   async claimEvoucher(userId: string, evoucherId: string) {
-    const user = await findOrThrow(this.userModel, userId, 'User not found');
     const evoucher = await validateEvoucherExpired(evoucherId, this.evoucherModel);
     validateEvoucherTypeClaimable(evoucher.type);
     await validateUserDuplicateClaim(userId, evoucherId, this.evoucherCodeModel);

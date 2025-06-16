@@ -39,7 +39,7 @@ export class EvoucherService {
     return await evoucher.save();
   }
 
-  async findAll(query: Record<string, string>) {
+  findAll(query: Record<string, string>) {
     return queryAll<Evoucher>({
       model: this.evoucherModel,
       query,
@@ -50,7 +50,7 @@ export class EvoucherService {
     });
   }
 
-  async findOne(id: string) {
+  findOne(id: string) {
     return queryFindOne<Evoucher>(
       this.evoucherModel,
       { _id: id },
@@ -80,7 +80,7 @@ export class EvoucherService {
     );
   }
   
-  async update(id: string, updateEvoucherDto: UpdateEvoucherDto) {
+  update(id: string, updateEvoucherDto: UpdateEvoucherDto) {
     return queryUpdateOne<Evoucher>(
       this.evoucherModel,
       id,
