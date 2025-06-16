@@ -34,6 +34,9 @@ export class Evoucher {
     @Prop({ required: true, type: Object })
     photo: Photo;
 
+    @Prop({ type: Number, required: false })
+    maxClaims: number;
+
     @Prop({ type: Object, default: {} })
     metadata: Record<string, string>;
 }

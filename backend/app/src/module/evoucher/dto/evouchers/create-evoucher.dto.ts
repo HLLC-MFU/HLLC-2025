@@ -43,4 +43,9 @@ export class CreateEvoucherDto {
     @IsOptional()
     metadata?: Record<string, string>;
 
+    @IsNumber()
+    @IsOptional()
+    @Type(() => Number)
+    maxClaims?: number;
+
 }

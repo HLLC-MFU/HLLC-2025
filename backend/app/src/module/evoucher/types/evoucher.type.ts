@@ -64,15 +64,17 @@ export interface PublicAvailableEvoucherResponse {
   userHas: boolean;
   totalClaims: number;
   canClaim: boolean;
+  maxClaims: number;
 }
 
 export function formatEvoucherResponse(data: EvoucherDocument & { 
-  userHas: boolean; 
+  userHas: boolean;  
   totalClaims: number; 
   canClaim: boolean;
+  maxClaims: number;
   sponsors: SponsorsDocument;
 }) {
-  return {
+  const response = {
     _id: data._id.toString(),
     discount: data.discount,
     acronym: data.acronym,
@@ -87,6 +89,9 @@ export function formatEvoucherResponse(data: EvoucherDocument & {
     photo: data.photo,
     userHas: data.userHas,
     totalClaims: data.totalClaims,
-    canClaim: data.canClaim
+    canClaim: data.canClaim,
+    maxClaims: data.maxClaims
   };
-}
+
+  return response;
+}3

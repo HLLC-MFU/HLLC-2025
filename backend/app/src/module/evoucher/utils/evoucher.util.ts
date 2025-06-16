@@ -89,6 +89,17 @@ export async function claimVoucherCode(
   evoucher: EvoucherDocument,
   evoucherCodeModel: Model<EvoucherCodeDocument>
 ) {
+  // First check if we've reached max claims
+  const totalClaims = await evoucherCodeModel.countDocuments({
+    evoucher: evoucher._id,
+    user: { $ne: null },
+    isUsed: false
+  });
+
+  if (evoucher.maxClaims !== null && totalClaims >= evoucher.maxClaims) {
+    throw new BadRequestException('Maximum claims reached for this voucher');
+  }
+
   let code = await evoucherCodeModel.findOneAndUpdate(
     { evoucher: evoucher._id, user: null, isUsed: false },
     { user: new Types.ObjectId(userId) },
@@ -131,11 +142,14 @@ export async function validatePublicAvailableVoucher(
     isUsed: false
   });
 
+  const reachedMaxClaims = evoucher.maxClaims !== null && totalClaims >= evoucher.maxClaims;
+
   return {
     ...evoucher,
     userHas,
     totalClaims,  
-    canClaim: !userHas && !expired && evoucher.type === 'GLOBAL'
+    maxClaims: evoucher.maxClaims,
+    canClaim: !userHas && !expired && evoucher.type === 'GLOBAL' && !reachedMaxClaims
   };
 }
 

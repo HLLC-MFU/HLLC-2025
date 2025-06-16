@@ -35,6 +35,7 @@ export class EvoucherService {
       ...createEvoucherDto,
       sponsors: new Types.ObjectId(createEvoucherDto.sponsors),
       expiration: createEvoucherDto.expiration,
+      maxClaims: createEvoucherDto.maxClaims,
     });
     return await evoucher.save();
   }
