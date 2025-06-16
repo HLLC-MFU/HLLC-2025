@@ -1,4 +1,4 @@
-import { IsMongoId, IsNotEmpty, IsObject } from "class-validator";
+import { IsMongoId, IsNotEmpty, IsObject, IsString } from "class-validator";
 import { Localization, Photo } from "src/pkg/types/common";
 
 export class CreateLamduanFlowerDto {
@@ -7,9 +7,9 @@ export class CreateLamduanFlowerDto {
     @IsNotEmpty()
     user: string;
 
-    @IsMongoId()
+    @IsString()
     @IsNotEmpty()
-    comment: Localization
+    comment: string;
 
     @IsObject()
     @IsNotEmpty()
