@@ -4,8 +4,7 @@ import { Localization, Photo } from "src/pkg/types/common";
 
 export enum EvoucherType {
   GLOBAL = 'GLOBAL',
-  INDIVIDUAL = 'INDIVIDUAL',
-  INVITE_ONLY = 'INVITE_ONLY'
+  INDIVIDUAL = 'INDIVIDUAL'
 }
 
 export type EvoucherDocument = HydratedDocument<Evoucher>;

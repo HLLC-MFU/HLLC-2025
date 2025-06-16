@@ -94,4 +94,4 @@ export function formatEvoucherResponse(data: EvoucherDocument & {
   };
 
   return response;
-}3
+}
