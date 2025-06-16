@@ -9,10 +9,10 @@ import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-cod
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
 import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
 import { 
-  generateBulkVoucherCodes, 
+  generateBulkEvoucherCodes, 
   claimVoucherCode, 
   validateUserDuplicateClaim, 
-  generateNextVoucherCode, 
+  generateEvoucherCode, 
   validateEvoucherExpired, 
   validateEvoucherTypeClaimable,
 } from '../utils/evoucher.util';
@@ -30,7 +30,7 @@ export class EvoucherCodeService {
     const evoucher = await validateEvoucherExpired(dto.evoucher, this.evoucherModel);
     await findOrThrow(this.userModel, dto.user, 'User not found');
 
-    const code = await generateNextVoucherCode(this.evoucherCodeModel, evoucher.acronym);
+    const code = await generateEvoucherCode(this.evoucherCodeModel, evoucher.acronym);
 
     const newCode = new this.evoucherCodeModel({
       ...dto,
@@ -48,7 +48,7 @@ export class EvoucherCodeService {
     const evoucher = await validateEvoucherExpired(dto.evoucher, this.evoucherModel);
 
     const existingCodes = await this.evoucherCodeModel.find({ code: new RegExp(`^${evoucher.acronym}\\d+$`) }).lean();
-    const codesToInsert = generateBulkVoucherCodes(dto, evoucher, existingCodes);
+    const codesToInsert = generateBulkEvoucherCodes(dto, evoucher, existingCodes);
 
     await this.evoucherCodeModel.insertMany(codesToInsert);
     return codesToInsert;
