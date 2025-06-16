@@ -15,9 +15,7 @@ import {
   generateNextVoucherCode, 
   validateEvoucherExpired, 
   validateEvoucherTypeClaimable,
-  validateUpdateVoucher
 } from '../utils/evoucher.util';
-import { BulkGenerateInput } from '../types/evoucher.type';
 
 @Injectable()
 export class EvoucherCodeService {
@@ -50,10 +48,10 @@ export class EvoucherCodeService {
     const evoucher = await validateEvoucherExpired(dto.evoucher, this.evoucherModel);
 
     const existingCodes = await this.evoucherCodeModel.find({ code: new RegExp(`^${evoucher.acronym}\\d+$`) }).lean();
-    const codesToInsert = generateBulkVoucherCodes(dto as BulkGenerateInput, evoucher, existingCodes);
+    const codesToInsert = generateBulkVoucherCodes(dto, evoucher, existingCodes);
 
     await this.evoucherCodeModel.insertMany(codesToInsert);
-    return codesToInsert.map(c => c.code);
+    return codesToInsert;
   }
 
   async claimEvoucher(userId: string, evoucherId: string) {
@@ -99,12 +97,6 @@ export class EvoucherCodeService {
   async update(id: string, updateEvoucherCodeDto: UpdateEvoucherCodeDto) {
     const voucherCode = await findOrThrow(this.evoucherCodeModel, id, 'Voucher code');
     const evoucher = await findOrThrow(this.evoucherModel, voucherCode.evoucher, 'Evoucher');
-
-    validateUpdateVoucher({
-      currentVoucherIsUsed: voucherCode.isUsed,
-      updateIsUsed: updateEvoucherCodeDto.isUsed ?? false,
-      evoucherExpiration: evoucher.expiration
-    });
 
     return await queryUpdateOne<EvoucherCode>(this.evoucherCodeModel, id, updateEvoucherCodeDto);
   }

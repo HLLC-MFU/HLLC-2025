@@ -1,12 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
-import { EvoucherDocument, EvoucherType } from '../schema/evoucher.schema';
+import { EvoucherDocument, EvoucherType, EvoucherStatus } from '../schema/evoucher.schema';
 import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
-import {
-  BulkGenerateInput,
-  VoucherCodeInsert,
-  VoucherUpdateParams
-} from '../types/evoucher.type';
+import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 
 export async function validateEvoucherExpired(evoucherId: string, evoucherModel: Model<EvoucherDocument>) {
   const evoucher = await evoucherModel.findById(evoucherId);
@@ -35,20 +31,6 @@ export async function validateUserDuplicateClaim(
     if (exists) throw new BadRequestException('You already have this evoucher');
   }
   
-export function validateUpdateVoucher(params: VoucherUpdateParams) {
-  const { currentVoucherIsUsed, updateIsUsed, evoucherExpiration } = params;
-
-  if (updateIsUsed === true && currentVoucherIsUsed) {
-    throw new BadRequestException('Already used');
-  }
-  if (currentVoucherIsUsed && updateIsUsed === false) {
-    throw new BadRequestException('Cannot reuse');
-  }
-  if (new Date() > new Date(evoucherExpiration)) {
-    throw new BadRequestException('Voucher code expired');
-  }
-}
-
 export async function generateNextVoucherCode(
   evoucherCodeModel: Model<EvoucherCodeDocument>,
   acronym: string
@@ -60,23 +42,22 @@ export async function generateNextVoucherCode(
 }
 
 export function generateBulkVoucherCodes(
-  dto: BulkGenerateInput,
+  dto: CreateEvoucherCodeDto & { count: number },
   evoucher: EvoucherDocument,
   existingCodes: EvoucherCodeDocument[]
-): VoucherCodeInsert[] {
+): CreateEvoucherCodeDto[] {
   const existingNumbers = new Set(existingCodes.map(c => parseInt(c.code.replace(evoucher.acronym, ''))));
-  const codesToInsert: VoucherCodeInsert[] = [];
+  const codesToInsert: CreateEvoucherCodeDto[] = [];
   let current = Math.max(...Array.from(existingNumbers), 0) + 1;
 
   while (codesToInsert.length < dto.count) {
     const code = `${evoucher.acronym}${String(current).padStart(6, '0')}`;
     if (!existingNumbers.has(current)) {
       codesToInsert.push({
-        code,
-        evoucher: new Types.ObjectId(dto.evoucher),
-        user: new Types.ObjectId(dto.user),
+        evoucher: evoucher._id.toString(),
+        user: dto.user,
         isUsed: false,
-        metadata: { expiration: evoucher.expiration }
+        metadata: { expiration: evoucher.expiration.toISOString() }
       });
     }
     current++;
@@ -96,7 +77,7 @@ export async function claimVoucherCode(
     isUsed: false
   });
 
-  if (evoucher.maxClaims !== null && totalClaims >= evoucher.maxClaims) {
+  if (evoucher.maxClaims && totalClaims >= evoucher.maxClaims) {
     throw new BadRequestException('Maximum claims reached for this voucher');
   }
 
@@ -120,36 +101,42 @@ export async function claimVoucherCode(
   return code;
 }
 
-export async function validatePublicAvailableVoucher(
+export const validatePublicAvailableVoucher = async (
   evoucher: EvoucherDocument,
   evoucherCodeModel: Model<EvoucherCodeDocument>,
-  userId?: string
-) {
-  const expired = new Date() > new Date(evoucher.expiration);
-  const userObjectId = userId ? new Types.ObjectId(userId) : null;
-  const evoucherId = new Types.ObjectId(evoucher._id);
+  userId?: string,
+) => {
+  const evoucherId = evoucher._id;
+  const expired = evoucher.expiration && new Date(evoucher.expiration) < new Date();
 
-  const userHas = userObjectId 
-    ? await evoucherCodeModel.exists({ 
-        user: userObjectId, 
-        evoucher: evoucherId 
-      }).then(res => !!res)
-    : false;
+  const [userHas, currentClaims] = await Promise.all([
+    userId
+      ? evoucherCodeModel.exists({
+          evoucher: evoucherId,
+          user: userId,
+          isUsed: false,
+        })
+      : false,
+    evoucherCodeModel.countDocuments({
+      evoucher: evoucherId,
+      user: { $ne: null },
+      isUsed: false,
+    }),
+  ]);
 
-  const totalClaims = await evoucherCodeModel.countDocuments({
-    evoucher: evoucherId,
-    user: { $ne: null },
-    isUsed: false
-  });
+  const reachMaximumClaim = evoucher.maxClaims !== undefined && currentClaims >= evoucher.maxClaims;
+  const canClaim = !userHas && !expired && evoucher.type === 'GLOBAL' && !reachMaximumClaim && evoucher.status === EvoucherStatus.ACTIVE;
 
-  const reachedMaxClaims = evoucher.maxClaims !== null && totalClaims >= evoucher.maxClaims;
+  // Create a new object without maxClaims
+  const { maxClaims, ...evoucherWithoutMaxClaims } = evoucher.toJSON ? evoucher.toJSON() : evoucher;
 
   return {
-    ...evoucher,
-    userHas,
-    totalClaims,  
-    maxClaims: evoucher.maxClaims,
-    canClaim: !userHas && !expired && evoucher.type === 'GLOBAL' && !reachedMaxClaims
+    ...evoucherWithoutMaxClaims,
+    claims: {
+      userHas: !!userHas,
+      reachMaximumClaim,
+      canClaim
+    }
   };
-}
+};
 

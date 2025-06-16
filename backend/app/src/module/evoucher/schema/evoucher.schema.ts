@@ -7,6 +7,11 @@ export enum EvoucherType {
   INDIVIDUAL = 'INDIVIDUAL'
 }
 
+export enum EvoucherStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE'
+}
+
 export type EvoucherDocument = HydratedDocument<Evoucher>;
 
 @Schema({ timestamps: true })
@@ -34,7 +39,10 @@ export class Evoucher {
     photo: Photo;
 
     @Prop({ type: Number, required: false })
-    maxClaims: number;
+    maxClaims?: number;
+
+    @Prop({ type: String, enum: Object.values(EvoucherStatus), default: EvoucherStatus.ACTIVE })
+    status: EvoucherStatus;
 
     @Prop({ type: Object, default: {} })
     metadata: Record<string, string>;

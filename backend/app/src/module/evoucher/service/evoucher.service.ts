@@ -6,12 +6,11 @@ import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { Sponsors, SponsorsDocument } from 'src/module/sponsors/schema/sponsors.schema';
 import { CreateEvoucherDto } from '../dto/evouchers/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/evouchers/update-evoucher.dto';
-import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
+import { Evoucher, EvoucherDocument, EvoucherStatus } from '../schema/evoucher.schema';
 import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
 import { EvoucherCode } from '../schema/evoucher-code.schema';
 import { buildPaginatedResponse } from 'src/pkg/helper/buildPaginatedResponse';
 import { validatePublicAvailableVoucher } from '../utils/evoucher.util';
-import { formatEvoucherResponse } from '../types/evoucher.type';
 
 @Injectable()
 export class EvoucherService {
@@ -36,12 +35,13 @@ export class EvoucherService {
       sponsors: new Types.ObjectId(createEvoucherDto.sponsors),
       expiration: createEvoucherDto.expiration,
       maxClaims: createEvoucherDto.maxClaims,
+      status: EvoucherStatus.ACTIVE
     });
     return await evoucher.save();
   }
 
-  findAll(query: Record<string, string>) {
-    return queryAll<Evoucher>({
+  async findAll(query: Record<string, string>) {
+    const result = await queryAll<Evoucher>({
       model: this.evoucherModel,
       query,
       filterSchema: {},
@@ -49,6 +49,32 @@ export class EvoucherService {
         { path: 'sponsors' },
       ]),
     });
+
+    const processedData = await Promise.all(
+      result.data.map(async (evoucher: EvoucherDocument) => {
+        const currentClaims = await this.evoucherCodeModel.countDocuments({
+          evoucher: evoucher._id,
+          user: { $ne: null },
+          isUsed: false
+        });
+
+        // Create a new object without maxClaims
+        const { maxClaims, ...evoucherWithoutMaxClaims } = evoucher.toJSON ? evoucher.toJSON() : evoucher;
+
+        return { 
+          ...evoucherWithoutMaxClaims,
+          claims: {
+            maxClaim: maxClaims,
+            currentClaim: currentClaims
+          }
+        };
+      })
+    );
+
+    return buildPaginatedResponse<Evoucher>(
+      processedData,
+      result.meta
+    );
   }
 
   findOne(id: string) {
@@ -64,7 +90,7 @@ export class EvoucherService {
   async getPublicAvailableEvouchersForUser(userId?: string, query?: Record<string, string>) {
     const result = await queryAll<Evoucher>({
       model: this.evoucherModel,
-      query: { ...query, type: 'GLOBAL' },
+      query: { ...query, type: 'GLOBAL', status: EvoucherStatus.ACTIVE },
       filterSchema: {},
       populateFields: () => Promise.resolve([{ path: 'sponsors' }]),
     });
@@ -75,8 +101,8 @@ export class EvoucherService {
       )
     );
   
-    return buildPaginatedResponse(
-      processedData.map(formatEvoucherResponse),
+    return buildPaginatedResponse<Evoucher>(
+      processedData,
       result.meta
     );
   }
