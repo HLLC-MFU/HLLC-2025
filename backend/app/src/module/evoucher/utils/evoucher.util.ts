@@ -108,7 +108,7 @@ export const validatePublicAvailableVoucher = async (
 
   if (expired || evoucher.type !== 'GLOBAL' || evoucher.status !== EvoucherStatus.ACTIVE) {
     return {
-      ...evoucher.toJSON(),
+      ...(evoucher.toJSON ? evoucher.toJSON() : evoucher),
       claims: {
         userHas: false,
         reachMaximumClaim: false,
@@ -134,7 +134,7 @@ export const validatePublicAvailableVoucher = async (
   const canClaim = !userHas && !reachMaximumClaim;
 
   return {
-    ...evoucher.toJSON(),
+    ...(evoucher.toJSON ? evoucher.toJSON() : evoucher),
     claims: {
       userHas: !!userHas,
       reachMaximumClaim,
