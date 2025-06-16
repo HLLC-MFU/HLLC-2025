@@ -3,11 +3,16 @@ import {
   CircularProgressbar,
   buildStyles
 } from "react-circular-progressbar";
-import { Users, Ticket, ScanLine, Star, LayoutDashboard } from 'lucide-react';
+import { Users, Ticket, ScanLine, Star, LayoutDashboard, FileQuestion, Activity } from 'lucide-react';
 import { useCheckin } from "@/hooks/useCheckin";
 import { useUsers } from "@/hooks/useUsers";
 import { useSponsors } from "@/hooks/useSponsors";
 import { PageHeader } from "@/components/ui/page-header";
+import { Accordion, AccordionItem } from "@heroui/react";
+import { usePrepostQuestions } from "@/hooks/usePrepostQuestions";
+import { useAssessment } from "@/hooks/useAssessment";
+import AssessmentOverviewDashboard from "../assessments/_components/question-overview-dashboard";
+import ActivityDashboard from "../assessments/_components/activity-dashboard";
 
 const icons = [
   <ScanLine className="h-6 w-6 text-lime-600" />,
@@ -21,6 +26,8 @@ export default function Dashboard() {
   const { checkin } = useCheckin();
   const { users } = useUsers();
   const { sponsors } = useSponsors();
+  
+  const { activityProgress, loading: activityLoading } = useAssessment();
 
   return (
     <>
@@ -70,6 +77,50 @@ export default function Dashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Assessment Results Accordion */}
+      <div className="mt-6">
+        <Accordion variant="splitted" className="px-0">
+          {/* Pretest Results */}
+          <AccordionItem
+            key="pretest"
+            aria-label="Pretest Results"
+            startContent={<FileQuestion className="h-5 w-5 text-primary" />}
+            title="Pretest Results"
+            className="font-medium mb-2"
+          >
+            <AssessmentOverviewDashboard 
+              type="pretest" 
+              loading={false}
+            />
+          </AccordionItem>
+
+          {/* Posttest Results */}
+          <AccordionItem
+            key="posttest"
+            aria-label="Posttest Results"
+            startContent={<FileQuestion className="h-5 w-5 text-primary" />}
+            title="Posttest Results"
+            className="font-medium mb-2"
+          >
+            <AssessmentOverviewDashboard 
+              type="posttest" 
+              loading={false}
+            />
+          </AccordionItem>
+
+          {/* Activity Dashboard */}
+          <AccordionItem
+            key="activity"
+            aria-label="Activity Dashboard"
+            startContent={<Activity className="h-5 w-5 text-primary" />}
+            title="Activity Dashboard"
+            className="font-medium mb-2"
+          >
+            <ActivityDashboard />
+          </AccordionItem>
+        </Accordion>
       </div>
     </>
   );
