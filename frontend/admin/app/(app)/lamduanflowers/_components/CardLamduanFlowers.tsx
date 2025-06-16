@@ -6,14 +6,12 @@ import React from "react";
 interface LamduanFlowersProps {
   lamduanflowers: LamduanFlowers;
   onDelete: (id: string) => void;
+  onView: () => void
 }
 
-export default function CardLamduanFlowers({ lamduanflowers, onDelete }: LamduanFlowersProps) {
-  const {isOpen , onOpen , onClose } = useDisclosure();
-  const [backdrop, setBackdrop] = React.useState("blur");
-  const backdrops = ["blur"];
-
+export default function CardLamduanFlowers({ lamduanflowers, onDelete , onView }: LamduanFlowersProps) {
   return (
+    <div className="cursor-pointer" onClick={onView}>
     <Card isBlurred className="py-2 border-none bg-background/60 dark:bg-default-100/50" shadow="sm">
       <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
         <p className="text-medium uppercase font-bold truncate max-w-full">{lamduanflowers.user.username}</p>
@@ -43,5 +41,6 @@ export default function CardLamduanFlowers({ lamduanflowers, onDelete }: Lamduan
         </div>
       </CardBody>
     </Card>
+    </div>
   );
 }

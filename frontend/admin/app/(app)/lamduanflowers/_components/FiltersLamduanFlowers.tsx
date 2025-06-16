@@ -31,7 +31,7 @@ export function LamduanFlowersFilters({
           value={searchQuery}
           onValueChange={onSearchQueryChange}
           className="w-full"
-          placeholder="Search user, id, comment..."
+          placeholder="Search user, comment..."
           startContent={<SearchIcon className="text-default-400" />}
         />
         <div className="flex gap-2 sm:gap-3">
