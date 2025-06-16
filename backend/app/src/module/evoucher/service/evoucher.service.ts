@@ -24,6 +24,7 @@ export class EvoucherService {
   ) { }
 
   async create(createEvoucherDto: CreateEvoucherDto) {
+    
     await findOrThrow(
       this.sponsorsModel,
       createEvoucherDto.sponsors,
@@ -58,7 +59,6 @@ export class EvoucherService {
           isUsed: false
         });
 
-        // Create a new object without maxClaims
         const { maxClaims, ...evoucherWithoutMaxClaims } = evoucher.toJSON ? evoucher.toJSON() : evoucher;
 
         return { 

@@ -70,14 +70,13 @@ export async function claimVoucherCode(
   evoucher: EvoucherDocument,
   evoucherCodeModel: Model<EvoucherCodeDocument>
 ) {
-  // First check if we've reached max claims
-  const totalClaims = await evoucherCodeModel.countDocuments({
+  const currentClaims = await evoucherCodeModel.countDocuments({
     evoucher: evoucher._id,
     user: { $ne: null },
     isUsed: false
   });
 
-  if (evoucher.maxClaims && totalClaims >= evoucher.maxClaims) {
+  if (evoucher.maxClaims && currentClaims >= evoucher.maxClaims) {
     throw new BadRequestException('Maximum claims reached for this voucher');
   }
 
@@ -127,7 +126,6 @@ export const validatePublicAvailableVoucher = async (
   const reachMaximumClaim = evoucher.maxClaims !== undefined && currentClaims >= evoucher.maxClaims;
   const canClaim = !userHas && !expired && evoucher.type === 'GLOBAL' && !reachMaximumClaim && evoucher.status === EvoucherStatus.ACTIVE;
 
-  // Create a new object without maxClaims
   const { maxClaims, ...evoucherWithoutMaxClaims } = evoucher.toJSON ? evoucher.toJSON() : evoucher;
 
   return {
