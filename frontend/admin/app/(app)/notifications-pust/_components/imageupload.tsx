@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react';
+import { Button } from '@heroui/button';
+import { useState, useEffect, useRef } from 'react';
 
 export function ImageUploader({
   onChange,
+  resetSignal,
 }: {
   onChange?: (file: File | null, url: string) => void;
+  resetSignal?: number;
 }) {
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -25,7 +29,6 @@ export function ImageUploader({
     onChange?.(null, '');
   };
 
-  // Cleanup on unmount/change
   useEffect(() => {
     return () => {
       if (previewUrl) {
@@ -34,15 +37,34 @@ export function ImageUploader({
     };
   }, [previewUrl]);
 
+  useEffect(() => {
+    handleRemoveImage();
+  }, [resetSignal]);
+
+  const handleChooseFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="w-full p-4 shadow flex flex-col items-start gap-4 rounded-lg">
       <label className="text-sm font-medium">Upload Image</label>
+
+      <Button
+        type="button"
+        onClick={handleChooseFileClick}
+        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+      >
+        Choose Image
+      </Button>
+
       <input
+        ref={fileInputRef}
         type="file"
         accept="image/*"
         onChange={handleImageChange}
-        className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
+        className="hidden"
       />
+
       {previewUrl && (
         <div className="flex items-center gap-4">
           <img

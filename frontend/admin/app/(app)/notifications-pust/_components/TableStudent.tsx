@@ -132,26 +132,22 @@ export function TableInfo({ onSelectionChange }: { onSelectionChange?: (scope: S
       return;
     }
 
-    // หา majorIds & schoolIds จาก user ที่เลือก
     const majorIds = selectedUsers.map(u => u.majorId).filter(Boolean);
     const uniqueMajorIds = Array.from(new Set(majorIds));
 
     const schoolIds = selectedUsers.map(u => u.schoolId).filter(Boolean);
     const uniqueSchoolIds = Array.from(new Set(schoolIds));
 
-    // ✅ CASE 1: ถ้ามีแค่ major เดียวทั้งหมด
     if (uniqueMajorIds.length === 1) {
       onSelectionChange([{ type: "major", id: uniqueMajorIds }]);
       return;
     }
 
-    // ✅ CASE 2: ถ้า major มีหลายตัวแต่ school เดียวกัน
     if (uniqueSchoolIds.length === 1) {
       onSelectionChange([{ type: "school", id: uniqueSchoolIds }]);
       return;
     }
 
-    // ✅ CASE 3: ถ้าไม่เข้าเงื่อนไขอะไรเลย → ถือว่า individual
     onSelectionChange([{ type: "individual", id: selectedIds }]);
   }
 };

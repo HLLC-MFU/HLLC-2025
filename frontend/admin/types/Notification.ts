@@ -1,11 +1,12 @@
 import { Lang } from './lang'
 
-type Target = {
+export type Target = {
     type: 'school' | 'major' | 'individual';
     id: string[]
 }
 
 export type Notification = {
+    _id: string
     title: Lang
     subtitle: Lang
     body: Lang

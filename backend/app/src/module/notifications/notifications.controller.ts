@@ -29,13 +29,27 @@ export class NotificationsController {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly pushNotificationService: PushNotificationService
-  ) {}
+  ) { }
 
   @Post()
   @CacheKey('notifcations')
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Req() req: FastifyRequest) {
-    const dto = req.body as CreateNotificationDto
+    const body = req.body as Record<string, any>;
+
+    const parseJsonFields = (field: string) => {
+      if (body[field]) {
+        try {
+          body[field] = JSON.parse(body[field]);
+        } catch (e) {
+        }
+      }
+    };
+
+    ['title', 'subtitle', 'body', 'redirectButton', 'scope'].forEach(parseJsonFields);
+
+    const dto = body as CreateNotificationDto;
+
     return this.notificationsService.create(dto);
   }
 

@@ -1,6 +1,6 @@
 'use client';
 import { SendHorizontal, BellRing } from 'lucide-react';
-import { Button, Select, SelectItem } from '@heroui/react';
+import { Button, Select, SelectItem, addToast } from '@heroui/react';
 import { SelectStudent } from './_components/Selectstudentinfo';
 import { Informationinfo } from './_components/InfoFrom';
 import { PreviewApp, PreviewOutApp } from './_components/Preview';
@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { useNotification } from '@/hooks/useNotification';
 
-export const language = [
+const language = [
   { key: 'en', label: 'EN' },
   { key: 'th', label: 'TH' },
 ];
@@ -44,23 +44,25 @@ function isFormComplete(data?: InformationInfoData): boolean {
 }
 
 
+
 export default function NotificationPust() {
   const [selectLanguagePreview, setSelectLanguagePreview] = useState<'en' | 'th'>('en');
   const [selectLanguageNotification, setSelectLanguageNotification] = useState<'en' | 'th'>('en');
   const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
   const [scope, setScope] = useState<SelectionScope>('global');
+  const [resetFormCounter, setResetFormCounter] = useState(0);
   const { createNotification } = useNotification();
 
   const submitNotification = () => {
     if (!infoData) return;
 
     const formData = new FormData();
-    formData.append("title[Th]", infoData.title.th)
-    formData.append("title[En]", infoData.title.en)
-    formData.append("subtitle[Th]", infoData.subtitle.th)
-    formData.append("subtitle[En]", infoData.subtitle.en)
-    formData.append("body[Th]", infoData.body.th)
-    formData.append("body[En]", infoData.body.en)
+    formData.append("title[th]", infoData.title.th)
+    formData.append("title[en]", infoData.title.en)
+    formData.append("subtitle[th]", infoData.subtitle.th)
+    formData.append("subtitle[en]", infoData.subtitle.en)
+    formData.append("body[th]", infoData.body.th)
+    formData.append("body[en]", infoData.body.en)
     formData.append("scope", typeof scope === 'string' ? scope : JSON.stringify(scope))
     formData.append("icon", (infoData.icon && typeof infoData.icon === 'object'
       ? (infoData.icon as any)?.render?.displayName
@@ -70,11 +72,19 @@ export default function NotificationPust() {
       formData.append("image", infoData.imageFile);
     }
     if (infoData.redirect?.link?.trim() !== '') {
-      formData.append("redirectButton[label][En]", infoData.redirect.en)
-      formData.append("redirectButton[label][Th]", infoData.redirect.th)
+      formData.append("redirectButton[label][en]", infoData.redirect.en)
+      formData.append("redirectButton[label][th]", infoData.redirect.th)
       formData.append("redirectButton[url]", infoData.redirect.link)
     }
     createNotification(formData);
+
+    addToast({
+      title: `Post Notification ${infoData.title.en} Complete`,
+      color: "success"
+    })
+
+    setInfoData(undefined);
+    setResetFormCounter(prev => prev + 1);
   }
 
   const isSubmitDisabled =
@@ -95,7 +105,7 @@ export default function NotificationPust() {
                 <SelectStudent onScopeChange={setScope} />
               </div>
               <div className="flex flex-col w-full px-5 py-6 gap-6 rounded-2xl border border-gray-300 shadow-md">
-                <Informationinfo onChange={setInfoData} />
+                <Informationinfo onChange={setInfoData} resetSignal={resetFormCounter} />
               </div>
             </div>
           </div>

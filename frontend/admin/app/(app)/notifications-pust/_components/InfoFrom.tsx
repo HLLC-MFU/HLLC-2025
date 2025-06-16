@@ -39,11 +39,11 @@ export type InformationInfoData = {
 
 type InformationinfoProps = {
   onChange?: (data: InformationInfoData) => void;
+  resetSignal?: number; // ตัวช่วย reset
 };
 
-
-export function Informationinfo({ onChange }: InformationinfoProps) {
-  const [selected, setSelected] = useState<(typeof icons)[0] | undefined>(undefined,);
+export function Informationinfo({ onChange, resetSignal }: InformationinfoProps) {
+  const [selected, setSelected] = useState<(typeof icons)[0] | undefined>(undefined);
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [imageFile, setImageFile] = useState<File | undefined>(undefined);
   const [title, setTitle] = useState({ en: '', th: '' });
@@ -52,20 +52,22 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
   const [redirect, setRedirect] = useState({ en: '', th: '', link: '' });
 
   useEffect(() => {
-    const data = {
-      icon: selected?.icon,
-      title,
-      subtitle,
-      body,
-      redirect,
-      imageUrl,
-      imageFile
-    };
+    const data = { icon: selected?.icon, title, subtitle, body, redirect, imageUrl, imageFile };
     if (onChange) {
-      onChange(data); // 🔁 ส่งข้อมูลออกทุกครั้งที่เปลี่ยน
+      onChange(data);
     }
   }, [selected, title, subtitle, body, redirect, imageUrl, onChange]);
 
+  // ตัว reset state ทุกครั้งที่ resetSignal เปลี่ยน
+  useEffect(() => {
+    setSelected(undefined);
+    setImageUrl(undefined);
+    setImageFile(undefined);
+    setTitle({ en: '', th: '' });
+    setSubtitle({ en: '', th: '' });
+    setBody({ en: '', th: '' });
+    setRedirect({ en: '', th: '', link: '' });
+  }, [resetSignal]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -207,7 +209,8 @@ export function Informationinfo({ onChange }: InformationinfoProps) {
       </div>
 
       <h1 className="text-lg font-bold"> Imange (Optional) </h1>
-      <ImageUploader onChange={(file, url) => { setImageUrl(url); setImageFile(file ?? undefined); }} />
+      <ImageUploader onChange={(file, url) => { setImageUrl(url); setImageFile(file ?? undefined) }}
+      resetSignal={resetSignal} />
     </div>
   );
 }

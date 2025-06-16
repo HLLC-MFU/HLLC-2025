@@ -21,6 +21,7 @@ import { SseService } from '../sse/sse.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { ReadNotificationDto } from './dto/read-notification.dto';
 import { UserRequest } from 'src/pkg/types/users';
+import path from 'path';
 
 @Injectable()
 export class NotificationsService {
