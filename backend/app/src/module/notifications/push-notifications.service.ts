@@ -1,15 +1,15 @@
-import { Injectable } from "@nestjs/common";
-import { Expo, ExpoPushTicket } from "expo-server-sdk"
+import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { KafkaService } from "../kafka/kafka.service";
 import { PushNotificationDto } from "./dto/push-notification.dto";
+import type * as admin from 'firebase-admin';
 
 @Injectable()
 export class PushNotificationService {
 	constructor(
-		private readonly kafka: KafkaService
+		private readonly kafka: KafkaService,
+		@Inject('FIREBASE_ADMIN') 
+		private readonly firebaseApp: admin.app.App,
 	){}
-
-	private expo = new Expo();
 
 	async registerKafka() {
 		await this.kafka.registerHandler('chat-notifications', this.handleChatNotification.bind(this));
@@ -21,22 +21,39 @@ export class PushNotificationService {
 	}
 
 	async sendPushNotification(dto: PushNotificationDto) {
-		const messages = dto.to
-		.filter(token => Expo.isExpoPushToken(token))
-		.map(token => ({
-				to: token,
-				title: dto.title,
-				body: dto.body,
-		}));
+		const tokens = dto.to.filter(Boolean);
+    if (!tokens.length) throw new BadRequestException("Tokens are missing");
 
-		const chunks = this.expo.chunkPushNotifications(messages);
-		const tickets: ExpoPushTicket[] = [];
+    const messaging = this.firebaseApp.messaging();
 
-		for (const chunk of chunks) {
-			const ticketChunk = await this.expo.sendPushNotificationsAsync(chunk);
-			tickets.push(...ticketChunk);
-		}
+    const response = await messaging.sendEachForMulticast({
+      tokens,
+      notification: {
+        title: dto.title,
+        body: dto.body,
+      },
+      android: {
+        priority: dto.priority ?? 'high',
+      },
+      apns: {
+        payload: {
+          aps: {
+            alert: {
+              title: dto.title,
+              body: dto.body,
+            },
+            badge: 1,
+            sound: 'default',
+          },
+        },
+      },
+      // data: dto.data ? flattenData(dto.data) : undefined,
+    });
 
-		return { tickets };
+    return {
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      responses: response.responses,
+    };
 	}
 }

@@ -3,6 +3,6 @@ export class PushNotificationDto {
   title: string;
   body: string;
   data?: Record<string, any>;
-  priority?: 'default' | 'normal' | 'high';
+  priority?: 'normal' | 'high' | undefined;
   badge?: number; //ios badge
 }
