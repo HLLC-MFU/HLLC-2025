@@ -89,4 +89,45 @@ export class PretestAnswersService {
   async remove(id: string) {
     return await queryDeleteOne(this.pretestAnswerModel, id)
   }
+
+  async averageAllPretests(): Promise<{ pretest: PrepostQuestion; average: number; count: number }[]> {
+    const results = await queryAll<PretestAnswer>({
+      model: this.pretestAnswerModel,
+      query: {},
+      filterSchema: {},
+      populateFields: () => Promise.resolve([{ path: 'answers.pretest' }]),
+    });
+
+    const scoreMap = new Map<PrepostQuestion, { sum: number; count: number }>();
+
+    for (const result of results.data) {
+      for (const answer of result.answers) {
+        const pretestRaw = answer.pretest;
+
+        if (typeof pretestRaw === 'object' && '_id' in pretestRaw) {
+          const pretest = pretestRaw as any as PrepostQuestion;
+
+          const numericAnswer = parseFloat(answer.answer);
+          if (!isNaN(numericAnswer)) {
+            if (!scoreMap.has(pretest)) {
+              scoreMap.set(pretest, { sum: 0, count: 0 });
+            }
+            const current = scoreMap.get(pretest)!;
+            current.sum += numericAnswer;
+            current.count += 1;
+          }
+        } else {
+          throw new Error('Pretest not populated');
+        }
+      }
+    }
+
+    return Array.from(scoreMap.entries()).map(([pretest, { sum, count }]) => ({
+      pretest,
+      average: sum / count,
+      count,
+    }));
+  }
+
 }
+
