@@ -1,32 +1,10 @@
 import { Accordion, AccordionItem } from "@heroui/react";
-import TableCardLamduanFlowers from "./TableCardLamduanFlowers";
-import { Car, Flower2, Settings } from "lucide-react";
-import { useState } from "react";
+import { Flower2, Settings } from "lucide-react";
 import CardLamduanFlowers from "./CardLamduanFlowers";
-import { LamduanFlowers } from "@/types/lamduan-flowers";
+import { useLamduanFlowers } from "@/hooks/useLamduanFlowers";
 
 export default function AccordionLamduan() {
-    const [searchQuery, setSearchQuery] = useState("");
-    const [sortBy, setSortBy] = useState("name");
-    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-    const defaultContent =
-        "กำลังสร้างมองข้ามไปก่อน🤙";
-    const handleSearchQueryChange = (value: string) => {
-        setSearchQuery(value);
-    };
-
-    // const getFilteredSortedLamduanFlowers = (lamduanflowers: LamduanFlowers[] , type: string): LamduanFlowers[] => {
-    //     let filtered = [...lamduanflowers];
-    //     const search = searchQuery[type]?.toLowerCase() ?? "";
-
-    //     if(search.trim() !== "") {
-    //         filtered = filtered.filter(
-    //             (s) =>
-    //                 s._id.toLowerCase().includes(search)
-    //         );
-    //     }
-    // }
-
+    const { lamduanFlowers, deleteLamduanFlowers } = useLamduanFlowers();
 
     return (
         <Accordion variant="splitted">
@@ -40,7 +18,7 @@ export default function AccordionLamduan() {
                     </div>
                 }
             >
-                {defaultContent}
+                {"กำลังสร้างมองข้ามไปก่อน🤙"}
             </AccordionItem>
 
             <AccordionItem
@@ -54,16 +32,13 @@ export default function AccordionLamduan() {
                 }
             >
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {/* <TableCardLamduanFlowers /> */}
-                    <CardLamduanFlowers/>
-                    <CardLamduanFlowers/>
-                    <CardLamduanFlowers/>
-                    <CardLamduanFlowers/>
-                    <CardLamduanFlowers/>
-                    <CardLamduanFlowers/>
-                    <CardLamduanFlowers/>
-                    <CardLamduanFlowers/>
-                    <CardLamduanFlowers/>
+                    {lamduanFlowers.map((item) => (
+                        <CardLamduanFlowers
+                            key={item._id}
+                            lamduanflowers={item}
+                            onDelete={deleteLamduanFlowers}
+                        />
+                    ))}
                 </div>
             </AccordionItem>
         </Accordion>
