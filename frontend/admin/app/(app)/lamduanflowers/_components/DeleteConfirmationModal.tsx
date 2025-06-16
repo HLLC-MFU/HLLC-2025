@@ -16,8 +16,8 @@ export function DeleteConfirmationModal({ isOpen , onClose , onConfirm , lamduan
                     Delete Comment
                 </ModalHeader>
                 <ModalBody>
-                    <p>Are you sure want to delete <span className="font-semibold">{lamduanflower?._id}</span></p>
-                    <p className="text-sm text-default-500">This action be undone.</p>
+                    <p>Are you sure want to delete <span className="font-semibold">{lamduanflower?.user.username}</span></p>
+                    <p className="text-sm text-default-500">This action cannot be undone.</p>
                 </ModalBody>
                 <ModalFooter>
                     <Button color="danger" variant="light" onPress={onClose}>

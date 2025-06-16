@@ -1,6 +1,7 @@
 import { LamduanFlowers } from "@/types/lamduan-flowers";
-import { Card, CardHeader, CardBody, Image, Button } from "@heroui/react";
+import { Card, CardHeader, CardBody, Image, Button , Modal , ModalContent,  ModalHeader, ModalBody, ModalFooter, useDisclosure,} from "@heroui/react";
 import { Trash2 } from "lucide-react";
+import React from "react";
 
 interface LamduanFlowersProps {
   lamduanflowers: LamduanFlowers;
@@ -8,11 +9,19 @@ interface LamduanFlowersProps {
 }
 
 export default function CardLamduanFlowers({ lamduanflowers, onDelete }: LamduanFlowersProps) {
+  const {isOpen , onOpen , onClose } = useDisclosure();
+  const [backdrop, setBackdrop] = React.useState("blur");
+  const backdrops = ["blur"];
+
   return (
     <Card isBlurred className="py-2 border-none bg-background/60 dark:bg-default-100/50" shadow="sm">
       <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
-        <p className="text-medium uppercase font-bold">{lamduanflowers._id}</p>
-        <small className="text-default-800">{lamduanflowers.comment.th || lamduanflowers.comment.en}</small>
+        <p className="text-medium uppercase font-bold truncate max-w-full">{lamduanflowers.user.username}</p>
+        <small className="text-default-800 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
+          {typeof lamduanflowers.comment === 'object'
+            ? (lamduanflowers.comment.th || lamduanflowers.comment.en || 'No comment')
+            : lamduanflowers.comment}
+        </small>
       </CardHeader>
       <CardBody className="overflow-visible py-2">
         <Image
