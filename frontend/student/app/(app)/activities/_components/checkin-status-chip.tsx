@@ -23,7 +23,7 @@ const getCheckinStatusMeta = (status: number): CheckinStatusMeta => {
       }
     case 1:
       return {
-        label: "Open",
+        label: "Check-in Available",
         message: "Check-in available now",
         color: "#854d0e", // darker yellow for better contrast
         backgroundColor: "#fef9c3", // light yellow background

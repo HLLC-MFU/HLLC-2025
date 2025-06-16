@@ -103,7 +103,7 @@ export class AuthService {
       const reply = options.response as FastifyReply;
       reply.setCookie('accessToken', accessToken, {
         httpOnly: true,
-        secure: true,
+        secure: false,
         sameSite: 'lax',
         path: '/',
         maxAge: 60 * 60,
@@ -111,7 +111,7 @@ export class AuthService {
 
       reply.setCookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: true,
+        secure: false,
         sameSite: 'lax',
         path: '/',
         maxAge: 60 * 60 * 24 * 7,
@@ -123,7 +123,7 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     const { username, password, confirmPassword, metadata } = registerDto;
-    
+
     const existingUser = await this.userModel
       .findOne({ username })
       .select('+password')

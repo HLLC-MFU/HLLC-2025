@@ -28,7 +28,7 @@ export default function Layout() {
   return (
     <View style={{ flex: 1 }}>
       <ImageBackground
-        source={"https://hllc.mfu.ac.th/v0/api/uploads/573beca699982baa96b230c05b8d2fac.jpg"}
+        source={require('@/assets/images/lobby.png')}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
       >

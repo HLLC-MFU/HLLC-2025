@@ -1,4 +1,4 @@
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, SortDescriptor, Image, } from "@heroui/react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, SortDescriptor, Image, addToast, } from "@heroui/react";
 import React, { Key, useCallback, useMemo, useState } from "react";
 import { EllipsisVertical } from "lucide-react";
 import { Evoucher } from "@/types/evoucher";
@@ -7,7 +7,6 @@ import TableContent from "./TableContent";
 import AddModal from "./AddEvoucherModal";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { EvoucherType } from "@/types/evoucher-type";
-import AddToast from "../../users/_components/AddToast";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import type { Selection } from "@react-types/shared";
 
@@ -171,14 +170,14 @@ export default function EvoucherTable({
             const response = await createEvoucher(evoucher);
             setIsAddOpen(false);
 
-            AddToast({
+            addToast({
                 title: "Add Successfully",
                 description: "Data has been added successfully",
             });
 
             if (response) window.location.reload();
         } catch (error) {
-            AddToast({
+            addToast({
                 title: "Failed to Add",
                 description: (error as Error)?.message || "An error occurred while adding data.",
                 color: "danger",
