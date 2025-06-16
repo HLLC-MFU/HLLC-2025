@@ -7,6 +7,7 @@ import { Model, Types } from 'mongoose';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
 import { User, UserDocument } from '../users/schemas/user.schema';
+import { populate } from 'dotenv';
 
 @Injectable()
 export class LamduanFlowersService {
@@ -41,7 +42,7 @@ export class LamduanFlowersService {
       },
       filterSchema: {},
       populateFields: () => Promise.resolve([
-        { path: 'user' },
+       { path: 'user', select: '-name -role -metadata -createdAt -updatedAt' }
       ]),
     });
   }
