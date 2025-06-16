@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, UseInterceptors, Req } from '@nestjs/common';
 import { LandmarksService } from './landmarks.service';
 import { CreateLandmarkDto } from './dto/create-landmark.dto';
 import { UpdateLandmarkDto } from './dto/update-landmark.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
+import { FastifyRequest } from 'fastify';
 
 @UseGuards(PermissionsGuard)
 @ApiTags('landmarks')
@@ -14,8 +16,10 @@ export class LandmarksController {
 
   @Post()
   @Permissions('landmarks:create')
-  create(@Body() createLandmarkDto: CreateLandmarkDto) {
-    return this.landmarksService.create(createLandmarkDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  create(@Req() req: FastifyRequest) {
+    const dto = req.body as CreateLandmarkDto;
+    return this.landmarksService.create(dto);
   }
 
   @Get()
@@ -32,8 +36,10 @@ export class LandmarksController {
 
   @Patch(':id')
   @Permissions('landmarks:update')
-  update(@Param('id') id: string, @Body() updateLandmarkDto: UpdateLandmarkDto) {
-    return this.landmarksService.update(id, updateLandmarkDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  update(@Param('id') id: string, @Req() req: FastifyRequest) {
+    const dto = req.body as UpdateLandmarkDto;
+    return this.landmarksService.update(id, dto);
   }
 
   @Delete(':id')
