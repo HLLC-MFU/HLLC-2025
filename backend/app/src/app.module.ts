@@ -36,6 +36,7 @@ import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.
 import { StepCountersModule } from './module/step-counters/step-counters.module';
 import { LandmarksModule } from './module/landmarks/landmarks.module';
 import { CoinCollectionsModule } from './module/coin-collections/coin-collections.module';
+import { MapsModule } from './module/maps/maps.module';
 
 @Module({
   imports: [
@@ -88,7 +89,8 @@ import { CoinCollectionsModule } from './module/coin-collections/coin-collection
     PretestAnswersModule,
     StepCountersModule,
     LandmarksModule,
-    CoinCollectionsModule
+    CoinCollectionsModule,
+    MapsModule
   ],
   providers: [
     {
