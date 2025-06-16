@@ -5,7 +5,7 @@ export type LamduanFlowers = {
 
     _id: string;
     user: User
-    comment: Lang;
+    comment: string;
     photo: string;
     createdAt: string;
 

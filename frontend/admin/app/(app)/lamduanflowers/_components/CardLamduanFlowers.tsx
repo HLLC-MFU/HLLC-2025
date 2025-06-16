@@ -1,5 +1,5 @@
 import { LamduanFlowers } from "@/types/lamduan-flowers";
-import { Card, CardHeader, CardBody, Image, Button , Modal , ModalContent,  ModalHeader, ModalBody, ModalFooter, useDisclosure,} from "@heroui/react";
+import { Card, CardHeader, CardBody, Image, Button } from "@heroui/react";
 import { Trash2 } from "lucide-react";
 import React from "react";
 
@@ -17,7 +17,7 @@ export default function CardLamduanFlowers({ lamduanflowers, onDelete , onView }
         <p className="text-medium uppercase font-bold truncate max-w-full">{lamduanflowers.user.username}</p>
         <small className="text-default-800 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
           {typeof lamduanflowers.comment === 'object'
-            ? (lamduanflowers.comment.th || lamduanflowers.comment.en || 'No comment')
+            ? (lamduanflowers.comment || 'No comment')
             : lamduanflowers.comment}
         </small>
       </CardHeader>

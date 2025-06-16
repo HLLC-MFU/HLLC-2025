@@ -30,13 +30,7 @@ export default function AccordionLamduan() {
             filtered = lamduanFlowers.filter((item) => {
                 const idMatch = item._id.toLowerCase().includes(lower);
                 const usernameMatch = item.user.username.toLowerCase().includes(lower);
-                const commentMatch =
-                    typeof item.comment === "string"
-                        ? (item.comment as string).toLowerCase().includes(lower)
-                        : (
-                            (typeof item.comment?.th === "string" && item.comment?.th.toLowerCase().includes(lower)) ||
-                            (typeof item.comment?.en === "string" && item.comment?.en.toLowerCase().includes(lower))
-                        );
+                const commentMatch = item.comment.toLowerCase().includes(lower);
                 return idMatch || usernameMatch || commentMatch;
             });
         }
@@ -51,6 +45,7 @@ export default function AccordionLamduan() {
             return sortDirection === "asc" ? comparison : -comparison;
         });
     }, [lamduanFlowers, searchQuery, sortBy, sortDirection]);
+
 
     const paginatedFlowers = useMemo(() => {
         if (rowsPerPage === "All") return filteredAndSortedFlowers;
@@ -171,7 +166,7 @@ export default function AccordionLamduan() {
                     <ModalBody>
                         <p className="break-words whitespace-pre-wrap">
                             {typeof viewModalFlower?.comment === 'object'
-                                ? (viewModalFlower?.comment.th || viewModalFlower?.comment.en || 'No comment')
+                                ? (viewModalFlower?.comment || 'No comment')
                                 : viewModalFlower?.comment}
                         </p>
                     </ModalBody>
