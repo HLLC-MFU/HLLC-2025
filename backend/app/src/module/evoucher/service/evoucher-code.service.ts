@@ -16,8 +16,8 @@ import {
   validateEvoucherExpired, 
   validateEvoucherTypeClaimable,
   validateUpdateVoucher
-} from '../utils/evoucher-code.util';
-import { BulkGenerateInput } from '../types/evoucher-code.type';
+} from '../utils/evoucher.util';
+import { BulkGenerateInput } from '../types/evoucher.type';
 
 @Injectable()
 export class EvoucherCodeService {

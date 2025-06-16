@@ -10,8 +10,8 @@ import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
 import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
 import { EvoucherCode } from '../schema/evoucher-code.schema';
 import { buildPaginatedResponse } from 'src/pkg/helper/buildPaginatedResponse';
-import { validatePublicAvailableVoucher } from '../utils/evoucher-code.util';
-import { PublicAvailableEvoucherResponse } from '../types/evoucher-code.type';
+import { validatePublicAvailableVoucher } from '../utils/evoucher.util';
+import { formatEvoucherResponse } from '../types/evoucher.type';
 
 @Injectable()
 export class EvoucherService {
@@ -74,12 +74,12 @@ export class EvoucherService {
       )
     );
   
-    return buildPaginatedResponse<PublicAvailableEvoucherResponse>(
-      processedData as unknown as PublicAvailableEvoucherResponse[],
+    return buildPaginatedResponse(
+      processedData.map(formatEvoucherResponse),
       result.meta
     );
   }
-  
+
   update(id: string, updateEvoucherDto: UpdateEvoucherDto) {
     return queryUpdateOne<Evoucher>(
       this.evoucherModel,

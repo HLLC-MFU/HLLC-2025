@@ -6,7 +6,7 @@ import {
   BulkGenerateInput,
   VoucherCodeInsert,
   VoucherUpdateParams
-} from '../types/evoucher-code.type';
+} from '../types/evoucher.type';
 
 export async function validateEvoucherExpired(evoucherId: string, evoucherModel: Model<EvoucherDocument>) {
   const evoucher = await evoucherModel.findById(evoucherId);
