@@ -84,7 +84,19 @@ export class PosttestAnswersService {
     return await queryAll<PosttestAnswer>({
       model: this.posttestAnswerModel,
       query,
-      filterSchema: {}
+      filterSchema: {},
+      populateFields: () => Promise.resolve([
+        {
+          path: 'user',
+          populate: [
+            {
+              path: 'metadata.major',
+              model: 'Major',
+              populate: { path: 'school' }
+            }
+          ]
+        }
+      ]),
     })
   }
 

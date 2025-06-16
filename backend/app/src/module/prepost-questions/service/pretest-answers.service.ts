@@ -1,12 +1,13 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { model, Model, Types } from 'mongoose';
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne, queryUpdateOneByFilter } from 'src/pkg/helper/query.util';
 import { CreatePretestAnswerDto } from '../dto/pretest-answer/create-pretest-answer.dto';
 import { PretestAnswer, PretestAnswerDocument } from '../schema/pretest-answer.schema';
 import { PrepostQuestion, PrepostQuestionDocument } from '../schema/prepost-question.schema';
 import { PrepostQuestionTypes } from '../enum/prepost-question-types.enum';
+import path from 'path';
 
 @Injectable()
 export class PretestAnswersService {
@@ -78,10 +79,22 @@ export class PretestAnswersService {
     return await queryAll<PretestAnswer>({
       model: this.pretestAnswerModel,
       query,
-      filterSchema: {}
-    })
+      filterSchema: {},
+      populateFields: () => Promise.resolve([
+        {
+          path: 'user',
+          populate: [
+            {
+              path: 'metadata.major',
+              model: 'Major',
+              populate: { path: 'school' }
+            }
+          ]
+        }
+      ]),
+    });
   }
-
+  
   async findOne(id: string): Promise<{ data: PretestAnswer[] | null; message: string }> {
     return await queryFindOne(this.pretestAnswerModel, { _id: id })
   }
