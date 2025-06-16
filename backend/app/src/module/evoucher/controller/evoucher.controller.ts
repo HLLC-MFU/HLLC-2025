@@ -8,8 +8,6 @@ import { EvoucherService } from '../service/evoucher.service';
 import { PermissionsGuard } from 'src/module/auth/guards/permissions.guard';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { Permissions } from 'src/module/auth/decorators/permissions.decorator';
-import { CacheKey } from '@nestjs/cache-manager';
-import { Public } from 'src/module/auth/decorators/public.decorator';
 
 @Controller('evoucher')
 @UseGuards(PermissionsGuard)
@@ -20,7 +18,6 @@ export class EvoucherController {
   ) { }
 
   @Permissions('evoucher:create')
-  @CacheKey('evoucher:invalidate')
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Body() createEvoucherDto: CreateEvoucherDto) {
@@ -28,22 +25,18 @@ export class EvoucherController {
   }
 
   @Permissions('evoucher:read')
-  @CacheKey('evoucher:invalidate')
   @Get()
   findAll(@Query() query: Record<string, string>) {
     return this.evoucherService.findAll(query);
   }
 
   @Permissions('evoucher:read')
-  @CacheKey('evoucher:invalidate')
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.evoucherService.findOne(id);
   }
 
   @Get('available')
-  @Public()
-  @CacheKey('evouchers:available:$req.user')
   getAvailableEvouchers(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
   ) {
@@ -54,7 +47,6 @@ export class EvoucherController {
   }
 
   @Permissions('evoucher:update')
-  @CacheKey('evoucher:invalidate')
   @Patch(':id')
   @UseInterceptors(new MultipartInterceptor(500))
   async update(@Param('id') id: string, @Body() dto: UpdateEvoucherDto) {
@@ -62,7 +54,6 @@ export class EvoucherController {
   }
 
   @Permissions('evoucher:delete')
-  @CacheKey('evoucher:invalidate')
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.evoucherService.remove(id);
