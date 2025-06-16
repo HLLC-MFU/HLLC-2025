@@ -4,12 +4,14 @@ import { CreateSponsorDto } from './dto/create-sponsor.dto';
 import { UpdateSponsorDto } from './dto/update-sponsor.dto';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 
 @Controller('sponsors')
 export class SponsorsController {
   constructor(private readonly sponsorsService: SponsorsService) {}
 
   @Post()
+  @Permissions('sponsors:create')
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Req() req: FastifyRequest) {
     const dto = req.body as CreateSponsorDto;
@@ -17,16 +19,19 @@ export class SponsorsController {
   }
 
   @Get()
+  @Permissions('sponsors:read')
   findAll(@Query() query: Record<string, string>) {
     return this.sponsorsService.findAll(query);
   }
 
   @Get(':id')
+  @Permissions('sponsors:read')
   findOne(@Param('id') id: string) {
     return this.sponsorsService.findOne(id);
   }
 
   @Patch(':id')
+  @Permissions('sponsors:update')
   @UseInterceptors(new MultipartInterceptor(500))
   update(@Param('id') id: string, @Req() req: FastifyRequest) {
     const dto = req.body as UpdateSponsorDto;
@@ -34,6 +39,7 @@ export class SponsorsController {
   }
 
   @Delete(':id')
+  @Permissions('sponsors:delete')
   remove(@Param('id') id: string) {
     return this.sponsorsService.remove(id);
   }
