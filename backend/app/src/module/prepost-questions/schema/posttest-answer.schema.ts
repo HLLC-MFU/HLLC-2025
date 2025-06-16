@@ -6,7 +6,7 @@ export type PosttestAnswerDocument = HydratedDocument<PosttestAnswer>;
 @Schema({_id: false})
 class Answer{
 
-    @Prop({ required: true, type: Types.ObjectId, ref:'PrepostQuestion', unique: true})
+    @Prop({ required: true, type: Types.ObjectId, ref:'PrepostQuestion',})
     posttest: Types.ObjectId
 
     @Prop({ required: true, type: String})
