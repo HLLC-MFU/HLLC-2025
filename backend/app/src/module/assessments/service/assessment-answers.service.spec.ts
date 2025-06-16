@@ -6,6 +6,7 @@ import { AssessmentAnswer, AssessmentAnswerDocument } from '../schema/assessment
 import { User, UserDocument } from '../../users/schemas/user.schema';
 import { CreateAssessmentAnswerDto } from '../dto/assessment-answers/create-assessment-answer.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Assessment, AssessmentDocument } from '../schema/assessment.schema';
 import {
   queryAll,
   queryDeleteOne,
@@ -22,12 +23,9 @@ jest.mock('src/pkg/helper/query.util', () => ({
 
 describe('AssessmentAnswersService', () => {
   let service: AssessmentAnswersService;
-  let assessmentAnswerModel: Partial<Record<keyof Model<AssessmentAnswerDocument>, jest.Mock>> & {
-    findOne: jest.Mock;
-  };
-  let userModel: Partial<Record<keyof Model<UserDocument>, jest.Mock>> & {
-    exists: jest.Mock;
-  };
+  let assessmentAnswerModel: any;
+  let userModel: any;
+  let assessmentModel: any;
 
   beforeEach(async () => {
     assessmentAnswerModel = {
@@ -36,6 +34,10 @@ describe('AssessmentAnswersService', () => {
 
     userModel = {
       exists: jest.fn(),
+    };
+
+    assessmentModel = {
+      find: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -48,6 +50,10 @@ describe('AssessmentAnswersService', () => {
         {
           provide: getModelToken(User.name),
           useValue: userModel,
+        },
+        {
+          provide: getModelToken(Assessment.name),
+          useValue: assessmentModel,
         },
       ],
     }).compile();
@@ -71,12 +77,12 @@ describe('AssessmentAnswersService', () => {
     };
 
     it('should throw if user does not exist', async () => {
-      userModel.exists!.mockResolvedValue(null);
+      userModel.exists.mockResolvedValue(null);
       await expect(service.create(dto)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw if all assessments already exist', async () => {
-      userModel.exists!.mockResolvedValue(true);
+      userModel.exists.mockResolvedValue(true);
       assessmentAnswerModel.findOne.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         lean: jest.fn().mockResolvedValue({
@@ -91,13 +97,11 @@ describe('AssessmentAnswersService', () => {
     });
 
     it('should call queryUpdateOneByFilter with new answers', async () => {
-      userModel.exists!.mockResolvedValue(true);
+      userModel.exists.mockResolvedValue(true);
       assessmentAnswerModel.findOne.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         lean: jest.fn().mockResolvedValue({
-          answers: [
-            { assessment: new Types.ObjectId(assessmentId1) },
-          ],
+          answers: [{ assessment: new Types.ObjectId(assessmentId1) }],
         }),
       });
 
@@ -107,9 +111,16 @@ describe('AssessmentAnswersService', () => {
         assessmentAnswerModel,
         { user: expect.any(Types.ObjectId) },
         expect.objectContaining({
-          $addToSet: expect.objectContaining({
-            answers: expect.objectContaining({ $each: expect.any(Array) }),
-          }),
+          $addToSet: {
+            answers: {
+              $each: [
+                {
+                  assessment: expect.any(Types.ObjectId),
+                  answer: 'no',
+                },
+              ],
+            },
+          },
         }),
         { upsert: true },
       );
@@ -137,6 +148,60 @@ describe('AssessmentAnswersService', () => {
       const result = await service.remove('id123');
       expect(queryDeleteOne).toHaveBeenCalledWith(assessmentAnswerModel, 'id123');
       expect(result).toEqual({ message: 'Assessment answer deleted successfully', id: 'id123' });
+    });
+  });
+
+  describe('averageAllAssessments', () => {
+    it('should calculate average per assessment', async () => {
+      const assessment = { _id: new Types.ObjectId(), title: 'Assessment A' };
+      const mockAnswers = [
+        {
+          answers: [
+            { assessment, answer: '4' },
+            { assessment, answer: '6' },
+          ],
+        },
+      ];
+      (queryAll as jest.Mock).mockResolvedValue({ data: mockAnswers });
+
+      const result = await service.averageAllAssessments();
+
+      expect(result).toEqual([
+        {
+          assessment,
+          average: 5,
+          count: 2,
+        },
+      ]);
+    });
+  });
+
+  describe('averageAssessmentsByActivity', () => {
+    it('should calculate average only for assessments of specified activity', async () => {
+      const activityId = new Types.ObjectId().toHexString();
+      const assessment = { _id: new Types.ObjectId(), activity: activityId };
+      assessmentModel.find.mockResolvedValue([assessment]);
+
+      const mockAnswers = [
+        {
+          answers: [
+            { assessment, answer: '2' },
+            { assessment: { _id: new Types.ObjectId() }, answer: '99' }, // should be ignored
+          ],
+        },
+      ];
+
+      (queryAll as jest.Mock).mockResolvedValue({ data: mockAnswers });
+
+      const result = await service.averageAssessmentsByActivity(activityId);
+
+      expect(result).toEqual([
+        {
+          assessment,
+          average: 2,
+          count: 1,
+        },
+      ]);
     });
   });
 });
