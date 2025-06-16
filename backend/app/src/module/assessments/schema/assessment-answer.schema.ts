@@ -9,7 +9,7 @@ export class AssessmentAnswer {
     @Prop({ required: true, type: ObjectId })
     user: ObjectId;
 
-    @Prop([{ _id: false, assessment: { type: ObjectId, ref: 'Assessment', required: true, unique: true }, answer: { type: String, required: true } }])
+    @Prop([{ _id: false, assessment: { type: ObjectId, ref: 'Assessment', required: true,}, answer: { type: String, required: true } }])
     answers: { assessment: ObjectId, answer: string }[];
 }
 

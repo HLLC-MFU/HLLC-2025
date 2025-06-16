@@ -47,7 +47,6 @@ export class SchoolsController {
   @Patch(':id')
   @Permissions('schools:update')
   update(@Param('id') id: string, @Body() updateSchoolDto: UpdateSchoolDto) {
-    updateSchoolDto.updatedAt = new Date();
     return this.schoolsService.update(id, updateSchoolDto);
   }
 

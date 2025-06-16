@@ -32,6 +32,7 @@ import { AssessmentAnswersModule } from './module/assessments/assessment-answers
 import { PrepostQuestionsModule } from './module/prepost-questions/prepost-question.module';
 import { PosttestAnswersModule } from './module/prepost-questions/posttest-answer.module';
 import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
+import { StepCountersModule } from './module/step-counters/step-counters.module';
 
 @Module({
   imports: [
@@ -80,7 +81,8 @@ import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.
     AssessmentAnswersModule,
     PrepostQuestionsModule,
     PosttestAnswersModule,
-    PretestAnswersModule
+    PretestAnswersModule,
+    StepCountersModule
   ],
   providers: [
     {

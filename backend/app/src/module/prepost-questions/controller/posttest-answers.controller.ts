@@ -34,4 +34,10 @@ export class PosttestAnswersController {
   remove(@Param('id') id: string) {
     return this.posttestAnswersService.remove(id);
   }
+
+  @Get('/all/average')
+  @Permissions('posttest-answers:read')
+  getAverageAll() {
+    return this.posttestAnswersService.averageAllPosttests();
+  }
 }

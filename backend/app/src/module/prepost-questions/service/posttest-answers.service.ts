@@ -95,4 +95,46 @@ export class PosttestAnswersService {
   async remove(id: string) {
     return await queryDeleteOne(this.posttestAnswerModel, id)
   }
+
+  async averageAllPosttests(): Promise<{ posttest: PrepostQuestion; average: number; count: number }[]> {
+    const results = await queryAll<PosttestAnswer>({
+      model: this.posttestAnswerModel,
+      query: {},
+      filterSchema: {},
+      populateFields: () => Promise.resolve([{ path: 'answers.posttest' }]),
+    });
+
+    const scoreMap = new Map<PrepostQuestion, { sum: number; count: number }>();
+
+    for (const result of results.data) {
+      for (const answer of result.answers) {
+        const posttestRaw = answer.posttest;
+
+        if (typeof posttestRaw === 'object' && '_id' in posttestRaw) {
+          const posttest = posttestRaw as any as PrepostQuestion;
+
+          const numericAnswer = parseFloat(answer.answer);
+          if (!isNaN(numericAnswer)) {
+            if (!scoreMap.has(posttest)) {
+              scoreMap.set(posttest, { sum: 0, count: 0 });
+            }
+            const current = scoreMap.get(posttest)!;
+            current.sum += numericAnswer;
+            current.count += 1;
+          }
+        } else {
+          throw new Error('Posttest not populated');
+        }
+      }
+    }
+
+    const output = Array.from(scoreMap.entries()).map(([posttest, { sum, count }]) => ({
+      posttest,
+      average: sum / count,
+      count,
+    }));
+
+    return output;
+  }
+
 }

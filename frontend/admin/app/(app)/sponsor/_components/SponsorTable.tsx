@@ -47,22 +47,23 @@ export default function SponsorTable({
     <>
       <Table aria-label="Sponsor Table" className="min-w-full">
         <TableHeader>
-          <TableColumn>logo</TableColumn>
-          <TableColumn>ชื่อ Sponsor (EN)</TableColumn>
-          <TableColumn>ชื่อ Sponsor (TH)</TableColumn>
-          <TableColumn>Type</TableColumn>
+          <TableColumn className="text-center">Logo</TableColumn>
+          <TableColumn className="text-center">ชื่อ Sponsor (EN)</TableColumn>
+          <TableColumn className="text-center">ชื่อ Sponsor (TH)</TableColumn>
+          <TableColumn className="text-center">Type</TableColumn>
           <TableColumn className="text-center">Show</TableColumn>
           <TableColumn className="text-center">Actions</TableColumn>
         </TableHeader>
+
         <TableBody>
           {sponsors.map((sponsor) => (
             <TableRow key={sponsor._id}>
-              <TableCell>
+              <TableCell className="text-center">
                 {sponsor.photo && typeof sponsor.photo === "string" ? (
                   <img
                     src={`http://localhost:8080/uploads/${sponsor.photo}`}
                     alt={sponsor.name.en}
-                    className="h-10 w-10 object-contain rounded"
+                    className="h-16 w-16 object-contain rounded border border-default-300 bg-white mx-auto"
                     onError={(e) => {
                       e.currentTarget.src = "/placeholder.png";
                     }}
@@ -71,9 +72,10 @@ export default function SponsorTable({
                   <span className="text-default-500 italic">No Logo</span>
                 )}
               </TableCell>
-              <TableCell>{sponsor.name.en}</TableCell>
-              <TableCell>{sponsor.name.th}</TableCell>
-              <TableCell>
+
+              <TableCell className="text-center">{sponsor.name.en}</TableCell>
+              <TableCell className="text-center">{sponsor.name.th}</TableCell>
+              <TableCell className="text-center">
                 {typeof sponsor.type === "object" && sponsor.type !== null
                   ? (sponsor.type as { name: string }).name
                   : sponsor.type}
@@ -88,7 +90,7 @@ export default function SponsorTable({
                 </Chip>
               </TableCell>
               <TableCell className="text-center">
-                <div className="relative flex justify-end items-center gap-2">
+                <div className="relative flex justify-center items-center gap-2">
                   <Dropdown>
                     <DropdownTrigger>
                       <Button isIconOnly size="sm" variant="light">
