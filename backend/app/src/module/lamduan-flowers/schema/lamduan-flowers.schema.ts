@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument, Types } from "mongoose";
-import { Localization, Photo } from "src/pkg/types/common";
+import { Photo } from "src/pkg/types/common";
 
 export type LamduanFlowersDocument = HydratedDocument<LamduanFlowers>;
 @Schema({ timestamps: true })
@@ -9,7 +9,7 @@ export class LamduanFlowers {
     @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
     user: Types.ObjectId;
 
-    @Prop({ required: true, type: String })
+    @Prop({ required: true, type: String } )
     comment: String;
 
     @Prop({ required: true, type: Object })

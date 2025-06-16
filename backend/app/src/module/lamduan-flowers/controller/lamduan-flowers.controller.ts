@@ -1,16 +1,16 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, Query, Req, UseGuards } from '@nestjs/common';
-import { LamduanFlowersService } from './lamduan-flowers.service';
-import { CreateLamduanFlowerDto } from './dto/create-lamduan-flower.dto';
-import { UpdateLamduanFlowerDto } from './dto/update-lamduan-flower.dto';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { Permissions } from '../../auth/decorators/permissions.decorator';
+import { CreateLamduanFlowerDto } from '../dto/lamduan-flower/create-lamduan-flower.dto';
+import { UpdateLamduanFlowerDto } from '../dto/lamduan-flower/update-lamduan-flower.dto';
+import { LamduanFlowersService } from '../service/lamduan-flowers.service';
 
 @UseGuards(PermissionsGuard)
 @Controller('lamduan-flowers')
 export class LamduanFlowersController {
-  constructor(private readonly lamduanFlowersService: LamduanFlowersService) {}
+  constructor(private readonly lamduanFlowersService: LamduanFlowersService) { }
 
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))
