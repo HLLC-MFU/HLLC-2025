@@ -80,7 +80,7 @@ export function EvoucherModal({
         <ModalBody className="flex flex-col gap-6">
 
           {/* Section 1: Basic Information */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <Select label="Sponsor" isRequired selectedKeys={sponsor} onSelectionChange={(keys) => setSponsor(keys as Set<string>)}>
               {sponsors.map((s) => (
                 <SelectItem key={s.name.en}>{s.name.en}</SelectItem>
@@ -92,10 +92,8 @@ export function EvoucherModal({
                 <SelectItem key={t}>{t}</SelectItem>
               ))}
             </Select>
+            <Input label="Acronym" isRequired value={acronym} onChange={(e) => setAcronym(e.target.value)} />
           </div>
-
-          {/* Section 2: Acronym */}
-          <Input label="Acronym" isRequired value={acronym} onChange={(e) => setAcronym(e.target.value)} />
 
           <Divider />
 
@@ -110,10 +108,9 @@ export function EvoucherModal({
 
           {/* Section 4: Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <Textarea label="Detail (Thai)" value={detailTh} onChange={(e) => setDetailTh(e.target.value)} isRequired />
-            <Textarea label="Detail (English)" value={detailEn} onChange={(e) => setDetailEn(e.target.value)} isRequired />
+            <Textarea label="Detail (Thai)" value={detailTh} onChange={(e) => setDetailTh(e.target.value)} isRequired minRows={2} maxRows={3} />
+            <Textarea label="Detail (English)" value={detailEn} onChange={(e) => setDetailEn(e.target.value)} isRequired minRows={2} maxRows={3} />
           </div>
-
           <Divider />
 
           {/* Section 5: Cover Upload */}

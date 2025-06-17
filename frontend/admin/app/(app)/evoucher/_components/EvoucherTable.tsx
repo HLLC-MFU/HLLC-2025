@@ -117,7 +117,7 @@ export default function EvoucherTable({
             case "discount":
                 return (
                     <div className="flex flex-col">
-                        <span className="text-bold text-small">{(cellValue as Evoucher['discount'])}%</span>
+                        <span className="text-bold text-small">{(cellValue as Evoucher['discount'])}</span>
                     </div>
                 );
             case "acronym":
