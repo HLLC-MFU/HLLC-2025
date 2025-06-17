@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { LamduanFlowersService } from './lamduan-flowers.service';
-import { LamduanFlowersController } from './lamduan-flowers.controller';
+import { LamduanFlowersService } from './service/lamduan-flowers.service';
+import { LamduanFlowersController } from './controller/lamduan-flowers.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { LamduanFlowers, LamduanFlowersSchema } from './schema/lamduan-flowers.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
@@ -12,8 +12,8 @@ import { User, UserSchema } from '../users/schemas/user.schema';
       schema: LamduanFlowersSchema
     },
     {
-        name: User.name,
-        schema: UserSchema
+      name: User.name,
+      schema: UserSchema
     }
   ]),
   ],

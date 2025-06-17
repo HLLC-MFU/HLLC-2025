@@ -1,5 +1,5 @@
 import { IsMongoId, IsNotEmpty, IsObject, IsString } from "class-validator";
-import { Localization, Photo } from "src/pkg/types/common";
+import { Photo } from "src/pkg/types/common";
 
 export class CreateLamduanFlowerDto {
 

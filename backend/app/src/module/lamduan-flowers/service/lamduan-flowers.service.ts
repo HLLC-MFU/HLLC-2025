@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { CreateLamduanFlowerDto } from './dto/create-lamduan-flower.dto';
-import { UpdateLamduanFlowerDto } from './dto/update-lamduan-flower.dto';
-import { LamduanFlowers, LamduanFlowersDocument } from './schema/lamduan-flowers.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
-import { User, UserDocument } from '../users/schemas/user.schema';
-import { populate } from 'dotenv';
+import { User, UserDocument } from 'src/module/users/schemas/user.schema';
+import { CreateLamduanFlowerDto } from '../dto/lamduan-flower/create-lamduan-flower.dto';
+import { UpdateLamduanFlowerDto } from '../dto/lamduan-flower/update-lamduan-flower.dto';
+import { LamduanFlowers, LamduanFlowersDocument } from '../schema/lamduan-flowers.schema';
 
 @Injectable()
 export class LamduanFlowersService {
@@ -16,7 +15,7 @@ export class LamduanFlowersService {
     @InjectModel(LamduanFlowers.name)
     private lamduanflowersModel: Model<LamduanFlowersDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>
-  ){ }
+  ) { }
 
   async create(createLamduanFlowerDto: CreateLamduanFlowerDto) {
 
@@ -31,7 +30,7 @@ export class LamduanFlowersService {
       user: new Types.ObjectId(createLamduanFlowerDto.user)
     });
 
-      return await lamduanFlowers.save();
+    return await lamduanFlowers.save();
   }
 
   async findAll(query: Record<string, string>) {
@@ -42,7 +41,7 @@ export class LamduanFlowersService {
       },
       filterSchema: {},
       populateFields: () => Promise.resolve([
-       { path: 'user', select: '-name -role -metadata -createdAt -updatedAt' }
+        { path: 'user', select: '-name -role -metadata -createdAt -updatedAt' }
       ]),
     });
   }
@@ -52,7 +51,7 @@ export class LamduanFlowersService {
       this.lamduanflowersModel,
       { _id: id },
       [
-        { path:'user' },
+        { path: 'user' },
       ]
     );
   }
