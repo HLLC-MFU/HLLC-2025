@@ -104,15 +104,16 @@ export const validatePublicAvailableVoucher = async (
   userId?: string,
 ) => {
   const evoucherId = evoucher._id;
-  const expired = evoucher.expiration && new Date(evoucher.expiration) < new Date();
+  const isExpire = evoucher.expiration && new Date(evoucher.expiration) < new Date();
 
-  if (expired || evoucher.type !== 'GLOBAL' || evoucher.status !== EvoucherStatus.ACTIVE) {
+  if (isExpire || evoucher.type !== 'GLOBAL' || evoucher.status !== EvoucherStatus.ACTIVE) {
     return {
       ...(evoucher.toJSON ? evoucher.toJSON() : evoucher),
       claims: {
         userHas: false,
         reachMaximumClaim: false,
-        canClaim: false
+        canClaim: false,
+        isExpire
       }
     };
   }
@@ -138,7 +139,8 @@ export const validatePublicAvailableVoucher = async (
     claims: {
       userHas: !!userHas,
       reachMaximumClaim,
-      canClaim
+      canClaim,
+      isExpire
     }
   };
 };

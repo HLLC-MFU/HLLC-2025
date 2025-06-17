@@ -79,12 +79,13 @@ export class EvoucherCodeService {
     const processedData = codes.data.map((code: EvoucherCode) => {
       const evoucherData = code.evoucher as unknown as Evoucher;
       const expiration = code.metadata?.expiration || evoucherData.expiration;
-      const expired = expiration ? new Date() > new Date(expiration) : false;
-      const canUse = !code.isUsed && !expired;
+      const isExpire = expiration ? new Date() > new Date(expiration) : false;
+      const canUse = !code.isUsed && !isExpire;
 
       return {
         ...code,
-        canUse
+        canUse,
+        isExpire
       };
     });
 
