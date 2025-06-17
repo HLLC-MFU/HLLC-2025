@@ -3,16 +3,13 @@ import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, S
 import { ChevronDownIcon, PlusIcon, SearchIcon, Ticket } from "lucide-react";
 import { TableColumnType } from "./TableContent";
 import React from "react";
-import { EvoucherType } from "@/types/evoucher-type";
 import type { Selection } from "@react-types/shared";
 
 export interface TopContentProps {
-    setIsAddOpen: (value: boolean) => void;
     setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
     typeFilter: Selection;
     setTypeFilter: (value: Selection) => void;
-    EvoucherType: EvoucherType[];
     capitalize: (value: string) => string;
     visibleColumns: Set<string> | string[];
     setVisibleColumns: (columns: Set<string>) => void;
@@ -29,12 +26,10 @@ export interface TopContentProps {
 }
 
 export default function TopContent({
-    setIsAddOpen,
     setActionText,
     filterValue,
     typeFilter,
     setTypeFilter,
-    EvoucherType,
     capitalize,
     visibleColumns,
     setVisibleColumns,
@@ -70,11 +65,12 @@ export default function TopContent({
                             selectionMode="multiple"
                             onSelectionChange={setTypeFilter}
                         >
-                            {EvoucherType.map((type) => (
-                                <DropdownItem key={type.name} className="capitalize">
-                                    {capitalize(type.name)}
-                                </DropdownItem>
-                            ))}
+                            <DropdownItem key="GLOBAL" className="capitalize">
+                                {capitalize("GLOBAL")}
+                            </DropdownItem>
+                            <DropdownItem key="INDIVIDUAL" className="capitalize">
+                                {capitalize("INDIVIDUAL")}
+                            </DropdownItem>
                         </DropdownMenu>
                     </Dropdown>
                     <Dropdown>
@@ -106,7 +102,7 @@ export default function TopContent({
                             ))}
                         </DropdownMenu>
                     </Dropdown>
-                    <Button onPress={() => { setActionText("Add"); setIsAddOpen(true); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
+                    <Button onPress={() => { setActionText("Add"); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
                 </div>
             </div>
         </div>

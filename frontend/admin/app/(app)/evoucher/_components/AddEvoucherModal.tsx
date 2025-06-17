@@ -1,7 +1,6 @@
 import React from "react";
 import {
     Button,
-    DateInput,
     Form,
     Input,
     Modal,
@@ -11,23 +10,16 @@ import {
     ModalHeader,
     Select,
     SelectItem,
-    Image,
 } from "@heroui/react";
-import { Calendar } from "lucide-react";
-import { ZonedDateTime, toZoned, now } from "@internationalized/date";
 
-// Mockup data for schools
-import schoolsMockup from "@/public/mock/schools.json";
 import { Sponsors } from "@/types/sponsors";
-import { EvoucherType } from "@/types/evoucher-type";
-
-export const schools = schoolsMockup;
+import { Evoucher } from "@/types/evoucher";
 
 export interface AddEvoucherProps {
     isOpen: boolean;
     onClose: () => void;
     onAdd: (evoucherData: FormData) => void;
-    type: EvoucherType[];
+    type: Evoucher[];
     title: string;
     sponsors: Sponsors[];
 }
@@ -44,8 +36,8 @@ export default function AddModal({
     const [acronym, setAcronym] = React.useState("");
     const [detail, setDetail] = React.useState("");
     const [discount, setDiscount] = React.useState<number>(0);
-    const [expiration, setExpiration] = React.useState<ZonedDateTime | null>(
-        toZoned(now("Asia/Bangkok"), "Asia/Bangkok")
+    const [expiration, setExpiration] = React.useState<string>(
+        new Date().toISOString()
     );
     const [selectedType, setSelectedType] = React.useState<Set<string>>(new Set<string>());
     const [cover, setCover] = React.useState<File | null>(null);
@@ -61,7 +53,7 @@ export default function AddModal({
         setAcronym("");
         setDetail("");
         setDiscount(0);
-        setExpiration(toZoned(now("Asia/Bangkok"), "Asia/Bangkok"));
+        setExpiration(new Date().toISOString());
         setSelectedType(new Set());
         setCover(null);
     };
@@ -70,18 +62,14 @@ export default function AddModal({
         e.preventDefault();
 
         const sponsorId = sponsors.find((s) => s.name.en === Array.from(sponsor)[0])?._id;
-        const typeId = type.find((t) => t.name === Array.from(selectedType)[0])?._id;
 
         const formData = new FormData();
         formData.append("acronym", acronym);
         formData.append("discount", discount.toString());
-        if (expiration) {
-            formData.append("expiration", expiration.toDate().toISOString());
-        }
+        formData.append("expiration", expiration);
         formData.append("detail[th]", detail);
         formData.append("detail[en]", detail);
         if (sponsorId) formData.append("sponsors", sponsorId);
-        if (typeId) formData.append("type", typeId);
         if (cover) formData.append("photo[coverPhoto]", cover);
 
         onAdd(formData);
@@ -151,13 +139,12 @@ export default function AddModal({
                             value={discount !== undefined ? discount.toString() : ""}
                             onChange={(e) => setDiscount(Number(e.target.value))}
                         />
-                        <DateInput
+                        <Input
                             isRequired
                             label="Expiration"
-                            granularity="minute"
-                            value={expiration}
-                            onChange={setExpiration}
-                            endContent={<Calendar />}
+                            type="datetime-local"
+                            value={expiration.slice(0, 16)}
+                            onChange={(e) => setExpiration(new Date(e.target.value).toISOString())}
                             errorMessage={({ validationDetails }) => {
                                 if (validationDetails.valueMissing) return "Please enter your expiration";
                             }}
@@ -173,7 +160,7 @@ export default function AddModal({
                             onSelectionChange={(keys) => setSelectedType(keys as Set<string>)}
                         >
                             {type.map((t) => (
-                                <SelectItem key={t.name}>{t.name}</SelectItem>
+                                <SelectItem key={t.type}>{t.type}</SelectItem>
                             ))}
                         </Select>
                         <Input

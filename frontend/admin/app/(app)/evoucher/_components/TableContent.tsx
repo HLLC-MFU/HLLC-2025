@@ -3,7 +3,6 @@ import TopContent from "./TopContent";
 import BottomContent from "./BottomContent";
 import { Evoucher } from "@/types/evoucher";
 import { SortDescriptor } from "@heroui/react";
-import { EvoucherType } from "@/types/evoucher-type";
 import type { Selection } from "@react-types/shared";
 import { Key } from "react";
 
@@ -14,7 +13,6 @@ export interface TableColumnType {
 }
 
 export interface TableContentProps {
-    setIsAddOpen: (value: boolean) => void;
     setActionText: (value: "Add" | "Edit") => void;
     sortDescriptor: SortDescriptor;
     setSortDescriptor: (descriptor: SortDescriptor) => void;
@@ -24,7 +22,6 @@ export interface TableContentProps {
     filterValue: string;
     typeFilter: Selection;
     setTypeFilter: (value: Selection) => void;
-    EvoucherType: EvoucherType[];
     capitalize: (value: string) => string;
     visibleColumns: Set<string>;
     setVisibleColumns: (columns: Set<string>) => void;
@@ -42,7 +39,6 @@ export interface TableContentProps {
 }
 
 export default function TableContent({
-    setIsAddOpen,
     setActionText,
     sortDescriptor,
     setSortDescriptor,
@@ -53,7 +49,6 @@ export default function TableContent({
     filterValue,
     typeFilter,
     setTypeFilter,
-    EvoucherType,
     capitalize,
     visibleColumns,
     setVisibleColumns,
@@ -83,12 +78,10 @@ export default function TableContent({
             />}
             bottomContentPlacement="outside"
             topContent={<TopContent
-                setIsAddOpen={setIsAddOpen}
                 setActionText={setActionText}
                 filterValue={filterValue}
                 typeFilter={typeFilter}
-                setTypeFilter={setTypeFilter}
-                EvoucherType={EvoucherType}
+                setTypeFilter={setTypeFilter}   
                 capitalize={capitalize}
                 visibleColumns={visibleColumns}
                 setVisibleColumns={setVisibleColumns}

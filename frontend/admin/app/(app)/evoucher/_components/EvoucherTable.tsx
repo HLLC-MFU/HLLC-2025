@@ -1,26 +1,24 @@
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, SortDescriptor, Image, addToast, } from "@heroui/react";
 import React, { Key, useCallback, useMemo, useState } from "react";
 import { EllipsisVertical } from "lucide-react";
-import { Evoucher } from "@/types/evoucher";
 import { Sponsors } from "@/types/sponsors";
 import TableContent from "./TableContent";
-import AddModal from "./AddEvoucherModal";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
-import { EvoucherType } from "@/types/evoucher-type";
+import { Evoucher } from "@/types/evoucher";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import type { Selection } from "@react-types/shared";
+import AddEvoucherModal from "./AddEvoucherModal";
 
 export const columns = [
     { name: "SPONSOR", uid: "sponsors", sortable: true },
     { name: "ACRONYM", uid: "acronym", sortable: true },
-    { name: "DETAIL", uid: "detail", },
+    { name: "DETAIL", uid: "detail" },
     { name: "DISCOUNT", uid: "discount", sortable: true },
     { name: "EXPIRATION", uid: "expiration", sortable: true },
-    { name: "TYPE", uid: "type", sortable: true },
-    { name: "COVER", uid: "cover", },
-    { name: "BANNER", uid: "banner", },
-    { name: "THUMPNAIL", uid: "thumpnail", },
-    { name: "LOGO", uid: "logo", },
+    { name: "STATUS", uid: "status", sortable: true },
+    { name: "MAX CLAIMS", uid: "maxClaims" },
+    { name: "COVER", uid: "cover" },
+    { name: "ACTIONS", uid: "actions" },
 ];
 
 export function capitalize(s: string) {
@@ -33,19 +31,17 @@ const INITIAL_VISIBLE_COLUMNS = [
     "detail",
     "discount",
     "expiration",
-    "type",
+    "status",
     "cover",
 ];
 
 export default function EvoucherTable({
     sponsorName,
     evouchers,
-    EvoucherType,
     sponsors,
 }: {
     sponsorName: string,
     evouchers: Evoucher[];
-    EvoucherType: EvoucherType[];
     sponsors: Sponsors[];
 }) {
     const { createEvoucher } = useEvoucher();
@@ -63,7 +59,7 @@ export default function EvoucherTable({
     });
     const [page, setPage] = useState(1);
     const [actionText, setActionText] = useState<"Add" | "Edit">("Add");
-    const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
+    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false);
 
     const hasSearchFilter = Boolean(filterValue);
@@ -78,22 +74,15 @@ export default function EvoucherTable({
         if (hasSearchFilter) {
             filteredEvoucher = filteredEvoucher.filter((evoucher) =>
                 evoucher.sponsors.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
-                evoucher.type.name.toLowerCase().includes(filterValue.toLowerCase()) ||
                 evoucher.discount.toString().includes(filterValue.toLowerCase()) ||
                 evoucher.acronym.toLowerCase().includes(filterValue.toLowerCase()) ||
                 evoucher.detail.en.toLowerCase().includes(filterValue.toLowerCase()) ||
                 evoucher.expiration.toString().includes(filterValue.toLowerCase())
             );
         }
-        if (typeFilter !== "all" && Array.from(typeFilter).length !== EvoucherType.length) {
-            filteredEvoucher = filteredEvoucher.filter((evoucher) =>
-                Array.from(typeFilter).includes(evoucher.type.name),
-            );
-        }
 
         return filteredEvoucher;
-    }, [evouchers, filterValue, typeFilter]);
-
+    }, [evouchers, filterValue]);
 
     const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
@@ -119,17 +108,19 @@ export default function EvoucherTable({
 
         switch (columnKey) {
             case "sponsors":
-                return (cellValue as Sponsors).name.en;
+                return (cellValue as Evoucher['sponsors']).name.en;
             case "discount":
-                return cellValue
+                return cellValue;
             case "acronym":
                 return cellValue;
             case "detail":
                 return (cellValue as { en: string }).en;
-            case "type":
-                return (cellValue as { name: string }).name
+            case "status":
+                return cellValue as Evoucher['status'];
+            case "maxClaims":
+                return `${evoucher.claims.currentClaim} / ${evoucher.claims.maxClaim}`;
             case "expiration":
-                if (typeof cellValue === "string" || cellValue instanceof Date) {
+                if (typeof cellValue === "string") {
                     return new Date(cellValue).toLocaleString("en-US", {
                         dateStyle: 'long',
                         timeStyle: 'short',
@@ -154,8 +145,18 @@ export default function EvoucherTable({
                                 </Button>
                             </DropdownTrigger>
                             <DropdownMenu>
-                                <DropdownItem key="edit" onPress={() => { setActionText("Edit"); setIsAddOpen(true); }}>Edit</DropdownItem>
-                                <DropdownItem key="delete" onPress={() => setIsDeleteOpen(true)}>Delete</DropdownItem>
+                                <DropdownItem 
+                                    key="edit" 
+                                    onPress={() => {
+                                        setActionText("Edit");
+                                        setIsModalOpen(true);
+                                    }}
+                                >
+                                    Edit
+                                </DropdownItem>
+                                <DropdownItem key="delete" onPress={() => setIsDeleteOpen(true)}>
+                                    Delete
+                                </DropdownItem>
                             </DropdownMenu>
                         </Dropdown>
                     </div>
@@ -168,7 +169,7 @@ export default function EvoucherTable({
     const handleAdd = async (evoucher: FormData) => {
         try {
             const response = await createEvoucher(evoucher);
-            setIsAddOpen(false);
+            setIsModalOpen(false);
 
             addToast({
                 title: "Add Successfully",
@@ -192,8 +193,10 @@ export default function EvoucherTable({
     return (
         <div>
             <TableContent
-                setIsAddOpen={setIsAddOpen}
-                setActionText={setActionText}
+                setActionText={(text) => {
+                    setActionText(text);
+                    setIsModalOpen(true);
+                }}
                 sortDescriptor={sortDescriptor}
                 setSortDescriptor={setSortDescriptor}
                 headerColumns={headerColumns}
@@ -202,7 +205,6 @@ export default function EvoucherTable({
                 filterValue={filterValue}
                 typeFilter={typeFilter}
                 setTypeFilter={setTypeFilter}
-                EvoucherType={EvoucherType}
                 capitalize={capitalize}
                 visibleColumns={visibleColumns}
                 setVisibleColumns={(columns: Set<string>) => setVisibleColumns(new Set(columns))}
@@ -225,15 +227,17 @@ export default function EvoucherTable({
                 }}
             />
 
-            {/* Add evoucher modal */}
-            <AddModal
-                isOpen={isAddOpen}
-                onClose={() => setIsAddOpen(false)}
-                onAdd={handleAdd}
-                title={actionText}
-                type={EvoucherType}
-                sponsors={sponsors}
-            />
+            {/* Add/Edit evoucher modal */}
+            {isModalOpen && (
+                <AddEvoucherModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    onAdd={handleAdd}
+                    title={actionText}
+                    sponsors={sponsors}
+                    type={evouchers}
+                />
+            )}
 
             {/* Delete evoucher modal */}
             <ConfirmationModal
