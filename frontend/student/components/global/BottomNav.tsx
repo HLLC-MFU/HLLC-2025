@@ -3,8 +3,9 @@ import { useRouter, usePathname } from 'expo-router';
 import { Home, QrCode, Gift, MessageSquare, Book, Globe } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { BlurView } from 'expo-blur';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
-export default function BottomNav() {
+export default function BottomNav({state, descriptors, navigation}: BottomTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
