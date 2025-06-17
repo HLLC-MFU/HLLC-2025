@@ -1,10 +1,20 @@
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, Text, StyleSheet, ImageSourcePropType } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Home, QrCode, Gift, MessageSquare, Book, Globe } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { BlurView } from 'expo-blur';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { ImageBackground } from 'expo-image';
 
-export default function BottomNav() {
+type BottomNav = BottomTabBarProps & {
+  backgroundImage?: ImageSourcePropType,
+  backgroundQR?: ImageSourcePropType
+};
+
+export default function BottomNav({
+  backgroundImage,
+  backgroundQR,
+}: BottomNav) {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
@@ -17,20 +27,33 @@ export default function BottomNav() {
     { name: t("bottomNav.community"), icon: Globe, to: '/chat' },
   ] as const;
 
-  return (
-    <View style={styles.wrapper}>
+  const children = tabs.map((tab) => {
+    const isActive = pathname === tab.to;
+    const Icon = tab.icon;
 
-      <BlurView intensity={30} tint="light" style={styles.container}>
-
-        {tabs.map((tab) => {
-          const isActive = pathname === tab.to;
-          const Icon = tab.icon;
-
-          if (tab.name === 'QRCode' && !isActive) {
-            return (
-              <TouchableOpacity
-                key={tab.name}
-                style={[
+    if (tab.name === 'QRCode' && !isActive) {
+      return (
+        <View>
+          {backgroundQR ? (
+            <ImageBackground
+              source={backgroundQR}
+              style={{
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+                aspectRatio: 1,
+              }}
+            >
+              <Icon size={30} color="#fff" />
+              <Text style={{ color: '#fff', fontSize: 10, marginTop: 4 }}>
+                {tab.name}
+              </Text>
+            </ImageBackground>
+          ) : (
+            <TouchableOpacity
+              key={tab.name}
+              style={
+                [
                   styles.tabButton,
                   {
                     backgroundColor: 'rgba(0, 122, 255, 0.4)', // Soft blue background
@@ -42,34 +65,60 @@ export default function BottomNav() {
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
                     elevation: 6,
+                    aspectRatio: 1,
                   },
-                ]}
-                onPress={() => router.push(tab.to)}
-                activeOpacity={0.9}
-              >
-                <Icon size={30} color="#fff" />
-                <Text style={{ color: '#fff', fontSize: 10, marginTop: 4 }}>
-                  {tab.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          }
-
-          return (
-            <TouchableOpacity
-              key={tab.name}
-              style={styles.tabButton}
-              onPress={() => router.replace(tab.to)}
-              activeOpacity={1}
+                ]
+              }
+              onPress={() => router.push(tab.to)}
+              activeOpacity={0.9}
             >
-              <Icon size={30} color={isActive ? '#fff' : '#ffffff80'} />
-              <Text style={[styles.tabLabel, { color: isActive ? '#fff' : '#ffffff80' }]}>
+              <Icon size={30} color="#fff" />
+              <Text style={{ color: '#fff', fontSize: 10, marginTop: 4 }}>
                 {tab.name}
               </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </BlurView>
+            </ TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+
+    return (
+      <TouchableOpacity
+        key={tab.name}
+        style={styles.tabButton}
+        onPress={() => router.replace(tab.to)}
+        activeOpacity={1}
+      >
+        <Icon size={30} color={isActive ? '#fff' : '#ffffff80'} />
+        <Text style={[styles.tabLabel, { color: isActive ? '#fff' : '#ffffff80' }]}>
+          {tab.name}
+        </Text>
+      </TouchableOpacity>
+    );
+  });
+
+  return (
+    <View style={styles.wrapper}>
+      {backgroundImage ? (
+        <ImageBackground
+          source={backgroundImage}
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            justifyContent: 'space-around',
+            alignItems: 'center',
+            borderRadius: 999,
+            paddingHorizontal: 8,
+            overflow: 'hidden',
+          }}
+        >
+          {children}
+        </ImageBackground>
+      ) : (
+        <BlurView intensity={30} tint="light" style={styles.container}>
+          {children}
+        </BlurView>
+      )}
     </View>
   );
 }

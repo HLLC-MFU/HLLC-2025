@@ -7,6 +7,8 @@ import useProfile from '@/hooks/useProfile';
 import { useEffect, useState } from 'react';
 import BottomNav from '@/components/global/BottomNav';
 
+const assetImage = "@/assets/images/"
+
 export default function Layout() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,13 @@ export default function Layout() {
           tabBarActiveTintColor: '#3b82f6',
           tabBarInactiveTintColor: '#64748b',
         }}
-        tabBar={props => !isChatRoute ? <BottomNav {...props} /> : null}
+        tabBar={props => !isChatRoute ?
+          <BottomNav {...props}
+            // backgroundImage={require(`${assetImage}IconTest3.png`)}
+            // backgroundQR={require(`${assetImage}IconTest4.png`)}
+          />
+          : null
+        }
       />
     </View>
   );
