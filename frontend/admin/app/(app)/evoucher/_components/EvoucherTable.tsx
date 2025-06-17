@@ -7,8 +7,7 @@ import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { Evoucher } from "@/types/evoucher";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import type { Selection } from "@react-types/shared";
-import AddEvoucherModal from "./AddEvoucherModal";
-import { Lang } from "@/types/lang";
+import { EvoucherModal } from "./AddEvoucherModal";
 
 export const columns = [
     { name: "SPONSOR", uid: "sponsors", sortable: true },
@@ -270,13 +269,13 @@ export default function EvoucherTable({
 
             {/* Add/Edit evoucher modal */}
             {isModalOpen && (
-                <AddEvoucherModal
+                <EvoucherModal
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
-                    onAdd={handleAdd}
-                    title={actionText}
+                    onSuccess={handleAdd}
+                    mode={actionText.toLowerCase() as "add" | "edit"}
                     sponsors={sponsors}
-                    type={evouchers}
+                    type={evouchers.map((evoucher) => evoucher.type)}
                 />
             )}
 

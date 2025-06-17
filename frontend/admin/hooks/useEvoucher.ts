@@ -59,6 +59,36 @@ export function useEvoucher() {
         }
     };
 
+    // Delete evoucher
+    const deleteEvoucher = async (evoucherId: string) => {
+        try {
+            setLoading(true);
+
+            const res = await fetch(`${API_BASE_URL}/evoucher/${evoucherId}`, {
+                method: "DELETE",
+                credentials: "include"
+            });
+            const data = await res.json();
+            console.log("Delete response:", res, data);
+
+            if (data && '_id' in data) {
+                setEvouchers((prev) => prev.filter((evoucher) => evoucher._id !== evoucherId));
+            }
+
+            return res;
+        }
+        catch (err) {
+            const message =
+                err && typeof err === 'object' && 'message' in err
+                    ? (err as { message?: string }).message || 'Failed to delete evoucher.'
+                    : 'Failed to delete evoucher.';
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
 
     useEffect(() => {
         fetchEvouchers();
@@ -70,5 +100,6 @@ export function useEvoucher() {
         error,
         fetchEvouchers,
         createEvoucher,
+        deleteEvoucher,
     }
 }
