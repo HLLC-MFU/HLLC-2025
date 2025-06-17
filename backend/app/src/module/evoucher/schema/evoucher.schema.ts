@@ -17,8 +17,8 @@ export type EvoucherDocument = HydratedDocument<Evoucher>;
 @Schema({ timestamps: true })
 export class Evoucher {
 
-    @Prop({ required: true, type: Number, default: 0 })
-    discount: number;
+    @Prop({ required: true, type: String, default: '0' })
+    discount: string;
 
     @Prop({ required: true, type: String })
     acronym: string;

@@ -5,10 +5,9 @@ import { Type } from "class-transformer";
 
 export class CreateEvoucherDto {
 
-    @IsNumber()
+    @IsString()
     @IsNotEmpty()
-    @Type(() => Number)
-    discount: number;
+    discount: string;
 
     @IsString()
     @IsNotEmpty()
