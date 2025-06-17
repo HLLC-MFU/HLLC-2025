@@ -36,18 +36,18 @@ func NewRepository(db *mongo.Client) RoomRepository {
 	return &repository{db: db}
 }
 
-func (r *repository) dbConnect(ctx context.Context) *mongo.Database {
+func (r *repository) dbConnect() *mongo.Database {
 	return r.db.Database("hllc-2025")
 }
 
 func (r *repository) Create(ctx context.Context, room *model.Room) error {
-	_, err := r.dbConnect(ctx).Collection("rooms").InsertOne(ctx, room)
+	_, err := r.dbConnect().Collection("rooms").InsertOne(ctx, room)
 	return err
 }
 
 func (r *repository) GetById(ctx context.Context, id primitive.ObjectID) (*model.Room, error) {
 	var room model.Room
-	err := r.dbConnect(ctx).Collection("rooms").FindOne(ctx, bson.M{"_id": id}).Decode(&room)
+	err := r.dbConnect().Collection("rooms").FindOne(ctx, bson.M{"_id": id}).Decode(&room)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	}
@@ -59,7 +59,7 @@ func (r *repository) GetById(ctx context.Context, id primitive.ObjectID) (*model
 
 func (r *repository) GetByName(ctx context.Context, thName, enName string) (*model.Room, error) {
 	var room model.Room
-	err := r.dbConnect(ctx).Collection("rooms").FindOne(ctx, bson.M{
+	err := r.dbConnect().Collection("rooms").FindOne(ctx, bson.M{
 		"name.th_name": thName,
 		"name.en_name": enName,
 	}).Decode(&room)
@@ -75,13 +75,13 @@ func (r *repository) GetByName(ctx context.Context, thName, enName string) (*mod
 func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Room, int64, error) {
 	skip := (page - 1) * limit
 
-	total, err := r.dbConnect(ctx).Collection("rooms").CountDocuments(ctx, bson.M{})
+	total, err := r.dbConnect().Collection("rooms").CountDocuments(ctx, bson.M{})
 	if err != nil {
 		return nil, 0, nil
 	}
 
 	opts := options.Find().SetSkip(skip).SetLimit(limit)
-	cursor, err := r.dbConnect(ctx).Collection("rooms").Find(ctx, bson.M{}, opts)
+	cursor, err := r.dbConnect().Collection("rooms").Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -95,17 +95,17 @@ func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Room
 }
 
 func (r *repository) Update(ctx context.Context, room *model.Room) error {
-	_, err := r.dbConnect(ctx).Collection("rooms").ReplaceOne(ctx, bson.M{"_id": room.ID}, room)
+	_, err := r.dbConnect().Collection("rooms").ReplaceOne(ctx, bson.M{"_id": room.ID}, room)
 	return err
 }
 
 func (r *repository) Delete(ctx context.Context, id primitive.ObjectID) error {
-	_, err := r.dbConnect(ctx).Collection("rooms").DeleteOne(ctx, bson.M{"_id": id})
+	_, err := r.dbConnect().Collection("rooms").DeleteOne(ctx, bson.M{"_id": id})
 	return err
 }
 
 func (r *repository) ExistsByID(ctx context.Context, id primitive.ObjectID) (bool, error) {
-	count, err := r.dbConnect(ctx).Collection("rooms").CountDocuments(ctx, bson.M{"_id": id})
+	count, err := r.dbConnect().Collection("rooms").CountDocuments(ctx, bson.M{"_id": id})
 	if err != nil {
 		return false, err
 	}
@@ -113,7 +113,7 @@ func (r *repository) ExistsByID(ctx context.Context, id primitive.ObjectID) (boo
 }
 
 func (r *repository) FilterRooms(ctx context.Context, filter bson.M) ([]*model.Room, error) {
-	cursor, err := r.dbConnect(ctx).Collection("rooms").Find(ctx, filter)
+	cursor, err := r.dbConnect().Collection("rooms").Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}

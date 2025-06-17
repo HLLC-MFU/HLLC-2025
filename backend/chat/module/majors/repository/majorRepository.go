@@ -28,18 +28,18 @@ func NewRepository(db *mongo.Client) MajorRepository {
 	return &repository{db: db}
 }
 
-func (r *repository) dbConnect(ctx context.Context) *mongo.Database {
+func (r *repository) dbConnect() *mongo.Database {
 	return r.db.Database("hllc-2025")
 }
 
 func (r *repository) Create(ctx context.Context, major *model.Major) error {
-	_, err := r.dbConnect(ctx).Collection("majors").InsertOne(ctx, major)
+	_, err := r.dbConnect().Collection("majors").InsertOne(ctx, major)
 	return err
 }
 
 func (r *repository) GetById(ctx context.Context, id primitive.ObjectID) (*model.Major, error) {
 	var major model.Major
-	err := r.dbConnect(ctx).Collection("majors").FindOne(ctx, bson.M{"_id": id}).Decode(&major)
+	err := r.dbConnect().Collection("majors").FindOne(ctx, bson.M{"_id": id}).Decode(&major)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	}
@@ -48,7 +48,7 @@ func (r *repository) GetById(ctx context.Context, id primitive.ObjectID) (*model
 
 func (r *repository) GetByName(ctx context.Context, thName, enName string) (*model.Major, error) {
 	var major model.Major
-	err := r.dbConnect(ctx).Collection("majors").FindOne(ctx, bson.M{
+	err := r.dbConnect().Collection("majors").FindOne(ctx, bson.M{
 		"$or": []bson.M{
 			{"name.th": thName},
 			{"name.en": enName},
@@ -65,7 +65,7 @@ func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Majo
 	skip := (page - 1) * limit
 	opts := options.Find().SetSkip(skip).SetLimit(limit)
 
-	cursor, err := r.dbConnect(ctx).Collection("majors").Find(ctx, bson.M{}, opts)
+	cursor, err := r.dbConnect().Collection("majors").Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -76,7 +76,7 @@ func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Majo
 		return nil, 0, err
 	}
 
-	count, err := r.dbConnect(ctx).Collection("majors").CountDocuments(ctx, bson.M{})
+	count, err := r.dbConnect().Collection("majors").CountDocuments(ctx, bson.M{})
 	if err != nil {
 		return nil, 0, err
 	}
@@ -85,7 +85,7 @@ func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Majo
 }
 
 func (r *repository) Update(ctx context.Context, major *model.Major) error {
-	_, err := r.dbConnect(ctx).Collection("majors").UpdateOne(
+	_, err := r.dbConnect().Collection("majors").UpdateOne(
 		ctx,
 		bson.M{"_id": major.ID},
 		bson.M{"$set": major},
@@ -94,12 +94,12 @@ func (r *repository) Update(ctx context.Context, major *model.Major) error {
 }
 
 func (r *repository) Delete(ctx context.Context, id primitive.ObjectID) error {
-	_, err := r.dbConnect(ctx).Collection("majors").DeleteOne(ctx, bson.M{"_id": id})
+	_, err := r.dbConnect().Collection("majors").DeleteOne(ctx, bson.M{"_id": id})
 	return err
 }
 
 func (r *repository) ExistsByID(ctx context.Context, id primitive.ObjectID) (bool, error) {
-	count, err := r.dbConnect(ctx).Collection("majors").CountDocuments(ctx, bson.M{"_id": id})
+	count, err := r.dbConnect().Collection("majors").CountDocuments(ctx, bson.M{"_id": id})
 	if err != nil {
 		return false, err
 	}

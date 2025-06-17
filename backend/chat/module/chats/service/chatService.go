@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -37,6 +36,7 @@ type ChatService interface {
 	DeleteRoomMessages(ctx context.Context, roomID string) error
 	StartRoomConsumers()
 	NotifyOfflineUser(userID, roomID, fromUserID, message, eventType string)
+	HandleMessage(ctx context.Context, msg *model.ChatMessage) error
 }
 
 const (
@@ -86,45 +86,27 @@ func (s *service) InitChatHub() {
 				log.Printf("[UNREGISTER] %s left room %s", client.UserID.Hex(), client.RoomID)
 
 			case message := <-model.Broadcast:
-				log.Printf("[BROADCAST] Message from %s in room %s: %s", message.FROM.UserID.Hex(), message.FROM.RoomID, message.MSG)
+				log.Printf("[BROADCAST] Message from %s in room %s: %v", message.FROM.UserID.Hex(), message.FROM.RoomID, message.MSG)
 
-				// Try to parse as a special message type (sticker/file)
-				var specialMsg map[string]interface{}
-				if err := json.Unmarshal([]byte(message.MSG), &specialMsg); err == nil {
-					// Check if it's a special message type
-					if msgType, ok := specialMsg["type"].(string); ok {
-						switch msgType {
-						case "sticker":
-							// Notify offline users about sticker
-							for userID, conn := range model.Clients[message.FROM.RoomID] {
-								if conn == nil {
-									notificationMsg := fmt.Sprintf("sent a sticker")
-									s.NotifyOfflineUser(userID, message.FROM.RoomID.Hex(), message.FROM.UserID.Hex(), notificationMsg, "sticker")
-								}
-							}
-							continue
-						case "file":
-							fileName, _ := specialMsg["fileName"].(string)
-							// Notify offline users about file
-							for userID, conn := range model.Clients[message.FROM.RoomID] {
-								if conn == nil {
-									notificationMsg := fmt.Sprintf("sent a file: %s", fileName)
-									s.NotifyOfflineUser(userID, message.FROM.RoomID.Hex(), message.FROM.UserID.Hex(), notificationMsg, "file")
-								}
-							}
-							continue
-						}
+				// Handle MSG เป็น struct (ChatMessage) หรือ string
+				var chatMsg *model.ChatMessage
+				switch v := message.MSG.(type) {
+				case string:
+					// กรณีเก่า (text ธรรมดา)
+					chatMsg = &model.ChatMessage{
+						RoomID:    message.FROM.RoomID,
+						UserID:    message.FROM.UserID,
+						Message:   v,
+						Mentions:  utils.ExtractMentions(v),
+						Timestamp: time.Now(),
 					}
-				}
-
-				// Handle as regular text message
-				mentions := utils.ExtractMentions(message.MSG)
-				chatMsg := &model.ChatMessage{
-					RoomID:    message.FROM.RoomID,
-					UserID:    message.FROM.UserID,
-					Message:   message.MSG,
-					Mentions:  mentions,
-					Timestamp: time.Now(),
+				case *model.ChatMessage:
+					chatMsg = v
+				case model.ChatMessage:
+					chatMsg = &v
+				default:
+					log.Printf("[BROADCAST] Unknown MSG type: %T", message.MSG)
+					continue
 				}
 
 				// Convert to Kafka message format and send to Kafka topic
@@ -143,7 +125,7 @@ func (s *service) InitChatHub() {
 				// Notify offline users
 				for userID, conn := range model.Clients[message.FROM.RoomID] {
 					if conn == nil {
-						s.NotifyOfflineUser(userID, message.FROM.RoomID.Hex(), message.FROM.UserID.Hex(), message.MSG, "text")
+						s.NotifyOfflineUser(userID, message.FROM.RoomID.Hex(), message.FROM.UserID.Hex(), chatMsg.Message, "text")
 					}
 				}
 
@@ -186,13 +168,7 @@ func (s *service) NotifyOfflineUser(userID, roomID, fromUserID, message, eventTy
 	notified[key] = time.Now()
 	notifiedMu.Unlock()
 
-	payload := map[string]string{
-		"userId":  userID,
-		"roomId":  roomID,
-		"from":    fromUserID,
-		"message": message,
-		"type":    eventType,
-	}
+	payload := model.NewNotificationPayload(userID, roomID, fromUserID, message, eventType)
 	msg, _ := json.Marshal(payload)
 
 	if err := s.publisher.SendMessageToTopic("chat-notifications", userID, string(msg)); err != nil {
@@ -356,14 +332,13 @@ func (s *service) StartRoomConsumers() {
 		log.Printf("[Kafka] Failed to list rooms for consumer startup: %v", err)
 		return
 	}
-	handler := NewChatMessageHandler(s)
 	for _, room := range rooms {
 		topic := "chat-room-" + room.ID.Hex()
 		consumer := kafkaPublisher.NewConsumer(
 			[]string{"localhost:9092"},
 			[]string{topic},
 			chatConsumerGroup,
-			handler,
+			s,
 		)
 		go func(c *kafkaPublisher.Consumer, t string) {
 			if err := c.Start(); err != nil {
@@ -371,4 +346,71 @@ func (s *service) StartRoomConsumers() {
 			}
 		}(consumer, topic)
 	}
+}
+
+func (s *service) HandleMessage(ctx context.Context, msg *model.ChatMessage) error {
+	// Try to unmarshal as KafkaMessage first
+	var kafkaMsg model.KafkaMessage
+	if err := json.Unmarshal([]byte(msg.Message), &kafkaMsg); err == nil {
+		// If successful, convert back to ChatMessage
+		msg = &model.ChatMessage{
+			RoomID:    kafkaMsg.RoomID,
+			UserID:    kafkaMsg.UserID,
+			Message:   kafkaMsg.Message,
+			Mentions:  kafkaMsg.Mentions,
+			FileURL:   kafkaMsg.FileURL,
+			FileType:  kafkaMsg.FileType,
+			FileName:  kafkaMsg.FileName,
+			Timestamp: kafkaMsg.Timestamp,
+			Image:     kafkaMsg.Image,
+		}
+	}
+
+	// Save to MongoDB
+	if err := s.SaveChatMessage(ctx, msg); err != nil {
+		log.Printf("[Message Handler] Failed to save message to MongoDB: %v", err)
+		return err
+	}
+
+	// Cache in Redis
+	if err := redis.SaveChatMessageToRoom(msg.RoomID.Hex(), msg); err != nil {
+		log.Printf("[Message Handler] Failed to cache message in Redis: %v", err)
+		// Don't return error here as the message is already saved in MongoDB
+	}
+
+	// Only broadcast to WebSocket clients if this is a text message (msg.Message not empty)
+	if msg.Message != "" {
+		payload := model.MessagePayload{
+			UserID:   msg.UserID,
+			RoomID:   msg.RoomID,
+			Message:  msg.Message,
+			Mentions: msg.Mentions,
+		}
+		event := model.ChatEvent{
+			EventType: "message",
+			Payload:   payload,
+		}
+
+		// Send to all clients in the room except sender
+		for userID, conn := range model.Clients[msg.RoomID] {
+			if userID == msg.UserID.Hex() {
+				continue // Skip sender
+			}
+
+			if conn == nil {
+				// Notify offline users
+				s.NotifyOfflineUser(userID, msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message, "text")
+				continue
+			}
+
+			if err := sendJSONMessage(conn, event); err != nil {
+				log.Printf("[Message Handler] Failed to send to WebSocket client %s: %v", userID, err)
+				conn.Close()
+				model.Clients[msg.RoomID][userID] = nil
+				s.NotifyOfflineUser(userID, msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message, "text")
+			}
+		}
+	}
+
+	return nil
 }
