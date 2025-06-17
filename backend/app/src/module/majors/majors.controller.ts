@@ -40,7 +40,6 @@ export class MajorsController {
   @Patch(':id')
   @Permissions('majors:update')
   update(@Param('id') id: string, @Body() updateMajorDto: UpdateMajorDto) {
-    updateMajorDto.updatedAt = new Date();
     return this.majorsService.update(id, updateMajorDto);
   }
 
