@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ReportTypeController } from './report-type.controller';
+import { ReportTypeController } from './controller/report-type.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ReportType, ReportTypeSchema } from './schemas/report-type.schema';
-import { ReportTypeService } from './report-type.service';
+import { ReportTypeService } from './service/report-type.service';
 
 @Module({
   imports: [

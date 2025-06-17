@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { CreateSponsorDto } from './dto/create-sponsor.dto';
-import { UpdateSponsorDto } from './dto/update-sponsor.dto';
-import { SponsorsDocument } from './schema/sponsors.schema';
+import { CreateSponsorDto } from '../dto/sponsers/create-sponsor.dto';
+import { UpdateSponsorDto } from '../dto/sponsers/update-sponsor.dto';
+import { SponsorsDocument } from '../schema/sponsors.schema';
 import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { Sponsors } from './schema/sponsors.schema';
-import { SponsorsType } from '../sponsors-type/schema/sponsors-type.schema';
-import { SponsorsTypeDocument } from '../sponsors-type/schema/sponsors-type.schema';
+import { Sponsors } from '../schema/sponsors.schema';
+import { SponsorsType } from '../schema/sponsors-type.schema';
+import { SponsorsTypeDocument } from '../schema/sponsors-type.schema';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { queryAll, queryFindOne } from 'src/pkg/helper/query.util';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
