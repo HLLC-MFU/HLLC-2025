@@ -58,10 +58,12 @@ export function EvoucherModal({
     formData.append("expiration", expiration);
     formData.append("detail[th]", detailTh);
     formData.append("detail[en]", detailEn);
-    formData.append("maxClaim", maxClaim);
-    formData.append("type", evoucherType); // Use pre-selected type
+    formData.append("maxClaim", maxClaim || "0");
+    formData.append("type", evoucherType);
     if (sponsorId) formData.append("sponsors", sponsorId);
-    if (field.cover) formData.append("photo[coverPhoto]", field.cover);
+    if (field.cover instanceof File) {
+      formData.append("photo[coverPhoto]", field.cover);
+    }
 
     onSuccess(formData, mode);
     onClose();

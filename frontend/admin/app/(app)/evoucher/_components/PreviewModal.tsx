@@ -25,6 +25,21 @@ export default function PreviewModal({
 }: PreviewModalProps) {
     const coverInputRef = useRef<HTMLInputElement>(null);
 
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                alert("File size should be less than 5MB");
+                return;
+            }
+            if (!file.type.startsWith('image/')) {
+                alert("Please upload an image file");
+                return;
+            }
+            handleFileChange(file);
+        }
+    };
+
     return (
         <div className="flex flex-col items-center space-y-4 w-full max-w-sm mx-auto">
             <div className="flex items-center justify-between w-full">
@@ -82,13 +97,7 @@ export default function PreviewModal({
                 ref={coverInputRef}
                 type="file"
                 accept="image/*"
-                onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    if (file) {
-                        setField({ ...field, cover: file });
-                        handleFileChange(file);
-                    }
-                }}
+                onChange={handleImageUpload}
                 className="hidden"
             />
         </div>

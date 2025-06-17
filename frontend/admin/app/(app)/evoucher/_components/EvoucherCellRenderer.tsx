@@ -1,6 +1,6 @@
 import React, { Key } from "react";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Image } from "@heroui/react";
-import { EllipsisVertical } from "lucide-react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
+import { EllipsisVertical, Image } from "lucide-react";
 import { Evoucher } from "@/types/evoucher/d";
 
 interface EvoucherCellRendererProps {
@@ -35,7 +35,7 @@ export default function EvoucherCellRenderer({
         detail: (
             <div className="flex flex-col gap-1">
                 <span className="text-bold text-small">TH: {evoucher.detail.th}</span>
-                <span className="text-small text-default-400">EN: {evoucher.detail.en}</span>
+                <span className="text-small text-small">EN: {evoucher.detail.en}</span>
             </div>
         ),
         status: (
@@ -47,7 +47,7 @@ export default function EvoucherCellRenderer({
         ),
         claims: (
             <span className="text-bold text-small">
-                {evoucher.claims.currentClaim} / {evoucher.claims.maxClaim}
+                {evoucher.claims ? `${evoucher.claims.currentClaim || 0} / ${evoucher.claims.maxClaim || 0}` : '0 / 0'}
             </span>
         ),
         expiration: (
@@ -61,13 +61,23 @@ export default function EvoucherCellRenderer({
         ),
         cover: (
             <div className="relative w-[100px] h-[100px] rounded-lg overflow-hidden border border-default-200">
-                <Image
-                    src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo?.coverPhoto}`}
-                    alt="Cover"
-                    width={100}
-                    height={100}
-                    className="object-cover w-full h-full hover:scale-110 transition-transform duration-200"
-                />
+                {evoucher.photo?.coverPhoto ? (
+                    <div className="w-full h-full">
+                        <img
+                    src={`http://localhost:8080/uploads/${evoucher.photo.coverPhoto}`}
+                    alt={evoucher.sponsors.name.en}
+                    className="h-full w-full object-contain rounded border border-default-300 bg-white mx-auto"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.png";
+                    }}
+                  />
+                    </div>
+                ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-default-400">
+                        <Image size={24} />
+                        <span className="text-xs">No image uploaded</span>
+                    </div>
+                )}
             </div>
         ),
         actions: (

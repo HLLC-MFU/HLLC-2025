@@ -35,10 +35,14 @@ export default function EvoucherTable({
                 evoucher={evoucher}
                 columnKey={columnKey}
                 onEdit={tableLogic.handleEdit}
-                onDelete={tableLogic.handleDelete}
+                onDelete={handleDelete}
             />
         );
     }, [tableLogic.handleEdit, tableLogic.handleDelete]);
+
+    const handleDelete = () => {
+        tableLogic.setIsDeleteOpen(true);
+    };
 
     return (
         <div>
