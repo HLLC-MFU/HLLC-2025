@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
@@ -7,13 +7,14 @@ import { EvoucherCode, EvoucherCodeDocument } from '../schema/evoucher-code.sche
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
-import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
+import { Evoucher, EvoucherDocument, EvoucherStatus } from '../schema/evoucher.schema';
 import { 
   generateEvoucherCode, 
   claimVoucherCode, 
   validateUserDuplicateClaim, 
   validateEvoucherExpired, 
   validateEvoucherTypeClaimable,
+  useEvoucherCode as useEvoucherCodeUtil
 } from '../utils/evoucher.util';
 
 @Injectable()
@@ -78,12 +79,13 @@ export class EvoucherCodeService {
     const processedData = codes.data.map((code: EvoucherCode) => {
       const evoucherData = code.evoucher as unknown as Evoucher;
       const expiration = code.metadata?.expiration || evoucherData.expiration;
-      const expired = expiration ? new Date() > new Date(expiration) : false;
-      const canUse = !code.isUsed && !expired;
+      const isExpire = expiration ? new Date() > new Date(expiration) : false;
+      const canUse = !code.isUsed && !isExpire;
 
       return {
         ...code,
-        canUse
+        canUse,
+        isExpire
       };
     });
 
@@ -129,5 +131,13 @@ export class EvoucherCodeService {
   async checkVoucherUsage(user: string, evoucher: string): Promise<boolean> {
     const used = await this.evoucherCodeModel.findOne({ user, evoucher, isUsed: true });
     return !!used;
+  }
+
+  async useEvoucherCode(userId: Types.ObjectId, codeId: string) {
+    const evoucherCode = await useEvoucherCodeUtil(userId, codeId, this.evoucherCodeModel);
+    return {
+      message: 'Evoucher code used successfully',
+      code: evoucherCode
+    };
   }
 }
