@@ -1,4 +1,4 @@
-import { User } from "./lamduan-user";
+import { User } from "./user";
 
 export type LamduanFlowers = {
 
@@ -7,5 +7,11 @@ export type LamduanFlowers = {
     comment: string;
     photo: string;
     createdAt: string;
+    setting: Setting;
 
+}
+
+export type Setting = {
+    startAt: Date;
+    endAt: Date;
 }

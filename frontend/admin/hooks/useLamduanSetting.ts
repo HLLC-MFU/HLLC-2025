@@ -12,7 +12,7 @@ export function useLamduanSetting() {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: LamduanSetting[] }>("/lamduan-settings?limit=0", "GET");
+            const res = await apiRequest<{ data: LamduanSetting[] }>("/lamduan-setting?limit=0", "GET");
 
             setLamduanSetting(Array.isArray(res.data?.data) ? res.data.data : []);
             return res;
@@ -31,7 +31,7 @@ export function useLamduanSetting() {
         try {
             setLoading(true);
 
-            const res = await apiRequest<LamduanSetting>('/lamduan-settings', 'POST', settingData);
+            const res = await apiRequest<LamduanSetting>('/lamduan-setting', 'POST', settingData);
 
             if (res.data) {
                 setLamduanSetting((prev) => [...prev, res.data as LamduanSetting]);
@@ -63,7 +63,7 @@ export function useLamduanSetting() {
         try {
             setLoading(true);
             const res = await apiRequest<LamduanSetting>(
-                `/lamduan-settings/${id}`,
+                `/lamduan-setting/${id}`,
                 'PATCH',
                 lamduanSettingData,
             );
@@ -85,7 +85,7 @@ export function useLamduanSetting() {
     const deleteLamduanSetting = async (id: string): Promise<void> => {
         try {
             setLoading(true);
-            const res = await apiRequest(`/lamduan-settings/${id}`, 'DELETE');
+            const res = await apiRequest(`/lamduan-setting/${id}`, 'DELETE');
 
             if (res.statusCode === 200) {
                 setLamduanSetting((prev) => prev.filter((s) => s._id !== id));
@@ -111,7 +111,7 @@ export function useLamduanSetting() {
         lamduanSetting,
         loading,
         error,
-        createLamduanSetting,
+        updateLamduanSetting,
         fetchLamduanSetting,
         deleteLamduanSetting,
     };

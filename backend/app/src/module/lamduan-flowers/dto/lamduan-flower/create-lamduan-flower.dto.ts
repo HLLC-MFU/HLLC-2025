@@ -1,5 +1,6 @@
 import { IsMongoId, IsNotEmpty, IsObject, IsString } from "class-validator";
 import { Photo } from "src/pkg/types/common";
+import { LamduanSetting } from "../../schema/lamduan.setting";
 
 export class CreateLamduanFlowerDto {
 
@@ -14,5 +15,9 @@ export class CreateLamduanFlowerDto {
     @IsObject()
     @IsNotEmpty()
     photo: Photo;
+
+    @IsMongoId()
+    @IsNotEmpty()
+    setting: string;
 
 }

@@ -8,9 +8,9 @@ import { UpdateLamduanSettingDto } from '../dto/lamduan-settings/update-lamduan-
 import { LamduanSettingService } from '../service/lamduan-setting.service';
 
 @UseGuards(PermissionsGuard)
-@Controller('lamduan-settings')
+@Controller('lamduan-setting')
 export class LamduanSettingController {
-  constructor(private readonly lamduanSettingService: LamduanSettingService) {}
+  constructor(private readonly lamduanSettingService: LamduanSettingService) { }
 
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))

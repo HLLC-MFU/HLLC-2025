@@ -1,12 +1,12 @@
-import { useState, useRef, ChangeEvent, useEffect } from "react";
+import { useState, useRef, useEffect, ChangeEvent, FormEvent } from "react";
 import { Button } from "@heroui/button";
-import { Input, addToast } from "@heroui/react";
+import { Form, Input, addToast } from "@heroui/react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { useLamduanSetting } from "@/hooks/useLamduanSetting";
-import { LamduanSetting } from "@/types/lamduan-setting"; // ดึง type มาใช้ด้วย
+import { LamduanSetting } from "@/types/lamduan-setting";
 
 export function LamduanFlowersSetting() {
-  const { lamduanSetting, createLamduanSetting, fetchLamduanSetting } = useLamduanSetting();
+  const { lamduanSetting, updateLamduanSetting, fetchLamduanSetting } = useLamduanSetting();
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
@@ -16,74 +16,71 @@ export function LamduanFlowersSetting() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const handleClearImage = () => {
+    setFile(null);
+    setPreview("");
+  };
+
+  const populateForm = (data: LamduanSetting | null) => {
+    if (!data) {
+      setFile(null);
+      setPreview("");
+      setVideoLink("");
+      setStartDate("");
+      setEndDate("");
+      return;
+    }
+    setFile(null);
+    setPreview(`http://localhost:8080/uploads/${data.TutorialPhoto}`);
+    setVideoLink(data.TutorialVideo);
+    setStartDate(data.StartAt.split("T")[0]);
+    setEndDate(data.EndAt.split("T")[0]);
+  };
+
   useEffect(() => {
     fetchLamduanSetting();
   }, []);
 
   useEffect(() => {
-  fetchLamduanSetting();
-}, []);
-
-useEffect(() => {
-  if (lamduanSetting.length > 0) {
-    const data: LamduanSetting = lamduanSetting[lamduanSetting.length - 1];
-    setPreview(`http://localhost:8080/uploads/${data.TutorialPhoto}`);
-    setVideoLink(data.TutorialVideo);
-    setStartDate(data.StartAt.split("T")[0]);
-    setEndDate(data.EndAt.split("T")[0]);
-  }
-}, [lamduanSetting]);
-
+    const latestData = lamduanSetting[lamduanSetting.length - 1] || null;
+    populateForm(latestData);
+  }, [lamduanSetting]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFile(file);
-      setPreview(URL.createObjectURL(file));
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
     }
   };
 
-  const handleRemove = () => {
-    setFile(null);
-    setPreview("");
+  const handleDiscard = () => {
+    const latestData = lamduanSetting[lamduanSetting.length - 1] || null;
+    populateForm(latestData);
   };
 
-  const handleDiscard = () => {
-  if (lamduanSetting.length > 0) {
-    const data: LamduanSetting = lamduanSetting[lamduanSetting.length - 1];
-    setPreview(`http://localhost:8080/uploads/${data.TutorialPhoto}`);
-    setVideoLink(data.TutorialVideo);
-    setStartDate(data.StartAt.split("T")[0]);
-    setEndDate(data.EndAt.split("T")[0]);
-  } else {
-    setFile(null);
-    setPreview("");
-    setVideoLink("");
-    setStartDate("");
-    setEndDate("");
-  }
-};
-
-
   const handleSave = async () => {
-    if (!file) {
+    if (!file && !preview) {
       addToast({ title: "Please upload a file", color: "danger" });
       return;
     }
 
+
     const formData = new FormData();
-    formData.append("TutorialPhoto", file);
+    if (file) {
+      formData.append("TutorialPhoto", file);
+    }
     formData.append("TutorialVideo", videoLink);
     formData.append("StartAt", startDate);
     formData.append("EndAt", endDate);
 
-    await createLamduanSetting(formData);
+    await updateLamduanSetting(lamduanSetting[0]._id, formData);
     await fetchLamduanSetting();
     addToast({ title: "Created successfully", color: "success" });
   };
 
   return (
-    <div className={`space-y-4`}>
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium text-default-700">Lamduan Flower Setting</h4>
@@ -91,9 +88,8 @@ useEffect(() => {
           <Button size="sm" variant="flat" color="primary" startContent={<Upload size={14} />} onPress={() => inputRef.current?.click()}>
             Upload
           </Button>
-
           {preview && (
-            <Button size="sm" variant="flat" color="danger" isIconOnly onPress={handleRemove}>
+            <Button size="sm" variant="flat" color="danger" isIconOnly onPress={handleClearImage}>
               <X size={14} />
             </Button>
           )}
@@ -113,8 +109,7 @@ useEffect(() => {
         <input ref={inputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
       </div>
 
-      {/* Youtube URL */}
-      <div className="flex w-full flex-wrap md:flex-nowrap mb-2 gap-4">
+      <div className="flex w-full flex-wrap md:flex-nowrap mb-2 gap-4 py-2">
         <Input
           label="Link Youtube"
           labelPlacement="outside"
@@ -127,20 +122,16 @@ useEffect(() => {
 
       {/* Event Date Range */}
       <div className="flex flex-col md:flex-row gap-2">
-        <div className="flex-1">
-          <Input label="Event start" labelPlacement="outside" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </div>
-        <div className="flex-1">
-          <Input label="Event end" labelPlacement="outside" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </div>
+        <Input label="Event start" labelPlacement="outside" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        <Input label="Event end" labelPlacement="outside" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
       </div>
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-4 pt-4">
-        <Button variant="light" color="danger" size="md" onClick={handleDiscard}>
+        <Button variant="light" color="danger" size="md" onPress={handleDiscard}>
           Discard Changes
         </Button>
-        <Button variant="solid" color="primary" size="md" onClick={handleSave}>
+        <Button variant="solid" color="primary" size="md" onPress={handleSave}>
           Save
         </Button>
       </div>

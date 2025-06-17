@@ -5,10 +5,10 @@ interface DeleteConfirmationModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
-    lamduanflower? : LamduanFlowers
+    lamduanflower?: LamduanFlowers
 }
 
-export function DeleteConfirmationModal({ isOpen , onClose , onConfirm , lamduanflower}: DeleteConfirmationModalProps) {
+export function DeleteConfirmationModal({ isOpen, onClose, onConfirm, lamduanflower }: DeleteConfirmationModalProps) {
     return (
         <Modal isOpen={isOpen} onClose={onClose}>
             <ModalContent>
@@ -23,7 +23,7 @@ export function DeleteConfirmationModal({ isOpen , onClose , onConfirm , lamduan
                     <Button color="danger" variant="light" onPress={onClose}>
                         Cancel
                     </Button>
-                     <Button color="danger" onPress={onConfirm}>
+                    <Button color="danger" onPress={onConfirm}>
                         Delete
                     </Button>
                 </ModalFooter>

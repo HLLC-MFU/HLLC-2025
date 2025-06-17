@@ -8,16 +8,16 @@ export type LamduanSettingDocument = HydratedDocument<LamduanSetting>;
 export class LamduanSetting {
 
     @Prop({ required: true, type: Object })
-    TutorialPhoto: Photo;
+    tutorialPhoto: Photo;
 
     @Prop({ required: true })
-    TutorialVideo: string;
+    tutorialVideo: string;
 
     @Prop({ required: true, type: Date })
-    StartAt: Date
+    startAt: Date
 
     @Prop({ required: true, type: Date })
-    EndAt: Date
+    endAt: Date
 }
 
 export const LamduanSettingSchema = SchemaFactory.createForClass(LamduanSetting);

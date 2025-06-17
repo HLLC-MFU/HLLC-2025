@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
@@ -7,6 +7,7 @@ import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { CreateLamduanFlowerDto } from '../dto/lamduan-flower/create-lamduan-flower.dto';
 import { UpdateLamduanFlowerDto } from '../dto/lamduan-flower/update-lamduan-flower.dto';
 import { LamduanFlowers, LamduanFlowersDocument } from '../schema/lamduan-flowers.schema';
+import { LamduanSetting, LamduanSettingDocument } from '../schema/lamduan.setting';
 
 @Injectable()
 export class LamduanFlowersService {
@@ -14,7 +15,10 @@ export class LamduanFlowersService {
   constructor(
     @InjectModel(LamduanFlowers.name)
     private lamduanflowersModel: Model<LamduanFlowersDocument>,
-    @InjectModel(User.name) private userModel: Model<UserDocument>
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
+    @InjectModel(LamduanSetting.name)
+    private lamduanSetting: Model<LamduanSettingDocument>
   ) { }
 
   async create(createLamduanFlowerDto: CreateLamduanFlowerDto) {
@@ -25,9 +29,16 @@ export class LamduanFlowersService {
       'User Id not found'
     )
 
+    await findOrThrow(
+      this.lamduanSetting,
+      createLamduanFlowerDto.setting,
+      'Setting Id not found'
+    )
+
     const lamduanFlowers = new this.lamduanflowersModel({
       ...createLamduanFlowerDto,
-      user: new Types.ObjectId(createLamduanFlowerDto.user)
+      user: new Types.ObjectId(createLamduanFlowerDto.user),
+      setting: new Types.ObjectId(createLamduanFlowerDto.setting)
     });
 
     return await lamduanFlowers.save();
@@ -41,7 +52,8 @@ export class LamduanFlowersService {
       },
       filterSchema: {},
       populateFields: () => Promise.resolve([
-        { path: 'user', select: '-name -role -metadata -createdAt -updatedAt' }
+        { path: 'user', select: '-name -role -metadata -createdAt -updatedAt' },
+        { path: 'setting' }
       ]),
     });
   }
