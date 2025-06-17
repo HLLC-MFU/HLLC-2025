@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { CoinCollectionsService } from './coin-collections.service';
-import { CoinCollectionsController } from './coin-collections.controller';
+import { CoinCollectionsService } from './service/coin-collections.service';
+import { CoinCollectionsController } from './controller/coin-collections.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CoinCollection, CoinCollectionSchema } from './schema/coin-collection.schema';
-import { Landmark, LandmarkSchema } from '../landmarks/schema/landmark.schema';
+import { Landmark, LandmarkSchema } from './schema/landmark.schema';
 
 @Module({
   imports: [MongooseModule.forFeature([

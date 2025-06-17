@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Patch, Param, Delete, Query, UseGuards, Req, UseInterceptors } from '@nestjs/common';
-import { MapsService } from './maps.service';
-import { Permissions } from '../auth/decorators/permissions.decorator';
-import { UpdateMapDto } from './dto/update-map.dto';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { MapsService } from '../service/maps.service';
+import { Permissions } from '../../auth/decorators/permissions.decorator';
+import { UpdateMapDto } from '../../coin-collections/dto/maps/update-map.dto';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
 import { FastifyRequest } from 'fastify';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
-import { CreateMapDto } from './dto/create-map.dto';
+import { CreateMapDto } from '../../coin-collections/dto/maps/create-map.dto';
 
 @UseGuards(PermissionsGuard)
 @ApiTags('maps')

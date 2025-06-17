@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { LandmarksService } from './landmarks.service';
-import { LandmarksController } from './landmarks.controller';
+import { LandmarksService } from './service/landmarks.service';
+import { LandmarksController } from './controller/landmarks.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Landmark, LandmarkSchema } from './schema/landmark.schema';
 

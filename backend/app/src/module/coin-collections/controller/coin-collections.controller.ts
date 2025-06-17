@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, Delete, Query } from '@nestjs/common';
-import { CoinCollectionsService } from './coin-collections.service';
-import { CollectCoinDto } from './dto/coin-collectoin.dto';
+import { CoinCollectionsService } from '../service/coin-collections.service';
+import { CollectCoinDto } from '../dto/coin-collections/coin-collectoin.dto';
 
 @Controller('coin-collections')
 export class CoinCollectionsController {

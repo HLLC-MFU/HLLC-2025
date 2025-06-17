@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, UseInterceptors, Req } from '@nestjs/common';
-import { LandmarksService } from './landmarks.service';
-import { CreateLandmarkDto } from './dto/create-landmark.dto';
-import { UpdateLandmarkDto } from './dto/update-landmark.dto';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { LandmarksService } from '../service/landmarks.service';
+import { CreateLandmarkDto } from '../dto/ladmarks/create-landmark.dto';
+import { UpdateLandmarkDto } from '../dto/ladmarks/update-landmark.dto';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
-import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
 

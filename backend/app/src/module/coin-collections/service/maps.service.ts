@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { CreateMapDto } from './dto/create-map.dto';
-import { UpdateMapDto } from './dto/update-map.dto';
-import { MapDocument, Map } from './schema/map.schema';
+import { CreateMapDto } from '../dto/maps/create-map.dto';
+import { UpdateMapDto } from '../dto/maps/update-map.dto';
+import { MapDocument, Map } from '../schema/map.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';

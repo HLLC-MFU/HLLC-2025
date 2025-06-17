@@ -34,9 +34,9 @@ import { PrepostQuestionsModule } from './module/prepost-questions/prepost-quest
 import { PosttestAnswersModule } from './module/prepost-questions/posttest-answer.module';
 import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
 import { StepCountersModule } from './module/step-counters/step-counters.module';
-import { LandmarksModule } from './module/landmarks/landmarks.module';
+import { LandmarksModule } from './module/coin-collections/landmarks.module';
 import { CoinCollectionsModule } from './module/coin-collections/coin-collections.module';
-import { MapsModule } from './module/maps/maps.module';
+import { MapsModule } from './module/coin-collections/maps.module';
 
 @Module({
   imports: [

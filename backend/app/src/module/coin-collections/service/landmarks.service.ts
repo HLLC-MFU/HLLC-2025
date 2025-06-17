@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { CreateLandmarkDto } from './dto/create-landmark.dto';
-import { UpdateLandmarkDto } from './dto/update-landmark.dto';
+import { CreateLandmarkDto } from '../dto/ladmarks/create-landmark.dto';
+import { UpdateLandmarkDto } from '../dto/ladmarks/update-landmark.dto';
 import { Model } from 'mongoose';
-import { Landmark, LandmarkDocument } from './schema/landmark.schema';
+import { Landmark, LandmarkDocument } from '../schema/landmark.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+
+
 
 @Injectable()
 export class LandmarksService {

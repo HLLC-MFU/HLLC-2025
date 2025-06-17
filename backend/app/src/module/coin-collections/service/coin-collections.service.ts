@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { CoinCollection, CoinCollectionDocument } from './schema/coin-collection.schema';
+import { CoinCollection, CoinCollectionDocument } from '../schema/coin-collection.schema';
 import { Model, Types } from 'mongoose';
-import { Landmark, LandmarkDocument } from '../landmarks/schema/landmark.schema';
+import { Landmark, LandmarkDocument } from '../schema/landmark.schema';
 import { queryAll, queryDeleteOne, queryFindOne } from 'src/pkg/helper/query.util';
-import { CollectCoinDto } from './dto/coin-collectoin.dto';
+import { CollectCoinDto } from '../dto/coin-collections/coin-collectoin.dto';
 
 @Injectable()
 export class CoinCollectionsService {
