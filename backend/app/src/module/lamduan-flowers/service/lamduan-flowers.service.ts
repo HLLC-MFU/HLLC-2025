@@ -3,7 +3,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
-import { populate } from 'dotenv';
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { CreateLamduanFlowerDto } from '../dto/lamduan-flower/create-lamduan-flower.dto';
 import { UpdateLamduanFlowerDto } from '../dto/lamduan-flower/update-lamduan-flower.dto';

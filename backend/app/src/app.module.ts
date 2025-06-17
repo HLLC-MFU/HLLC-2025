@@ -35,6 +35,7 @@ import { PosttestAnswersModule } from './module/prepost-questions/posttest-answe
 import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
 import { StepCountersModule } from './module/step-counters/step-counters.module';
 import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
+import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
 
 @Module({
   imports: [
@@ -86,7 +87,8 @@ import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.m
     PosttestAnswersModule,
     PretestAnswersModule,
     StepCountersModule,
-    LamduanFlowersModule
+    LamduanFlowersModule,
+    LamduanSettingModule
   ],
   providers: [
     {
@@ -99,4 +101,4 @@ import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.m
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

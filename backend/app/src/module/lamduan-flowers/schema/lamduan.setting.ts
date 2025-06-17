@@ -2,22 +2,22 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument } from "mongoose";
 import { Photo } from "src/pkg/types/common";
 
-export type LamduanFlowersSettingDocument = HydratedDocument<LamduanFlowersSetting>;
+export type LamduanSettingDocument = HydratedDocument<LamduanSetting>;
 
 @Schema({ timestamps: true })
-export class LamduanFlowersSetting {
+export class LamduanSetting {
 
-    @Prop({ required: true, Types: Object })
+    @Prop({ required: true, type: Object })
     TutorialPhoto: Photo;
 
-    @Prop({ required: true, Types: String })
+    @Prop({ required: true })
     TutorialVideo: string;
 
-    @Prop({ required: true, Types: Date })
+    @Prop({ required: true, type: Date })
     StartAt: Date
 
-    @Prop({ required: true, Types: Date })
+    @Prop({ required: true, type: Date })
     EndAt: Date
 }
 
-export const LamduanFlowersSettingSchema = SchemaFactory.createForClass(LamduanFlowersSetting);
+export const LamduanSettingSchema = SchemaFactory.createForClass(LamduanSetting);
