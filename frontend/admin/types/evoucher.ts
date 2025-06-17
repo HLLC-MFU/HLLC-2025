@@ -12,7 +12,7 @@ export enum EvoucherStatus {
 
 export interface Evoucher {
     _id: string;
-    discount: number;
+    discount: string;
     acronym: string;
     type: EvoucherType;
     sponsors: Sponsors;

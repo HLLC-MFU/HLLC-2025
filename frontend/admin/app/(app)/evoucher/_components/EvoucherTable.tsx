@@ -110,7 +110,7 @@ export default function EvoucherTable({
             case "sponsors":
                 return (cellValue as Evoucher['sponsors']).name.en;
             case "discount":
-                return cellValue;
+                return `${cellValue}%`;
             case "acronym":
                 return cellValue;
             case "detail":

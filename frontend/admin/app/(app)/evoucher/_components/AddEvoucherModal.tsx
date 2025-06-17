@@ -35,7 +35,7 @@ export default function AddModal({
     const [sponsor, setSponsor] = React.useState<Set<string>>(new Set<string>());
     const [acronym, setAcronym] = React.useState("");
     const [detail, setDetail] = React.useState("");
-    const [discount, setDiscount] = React.useState<number>(0);
+    const [discount, setDiscount] = React.useState<string>("0");
     const [expiration, setExpiration] = React.useState<string>(
         new Date().toISOString()
     );
@@ -52,7 +52,7 @@ export default function AddModal({
         setSponsor(new Set());
         setAcronym("");
         setDetail("");
-        setDiscount(0);
+        setDiscount("0");
         setExpiration(new Date().toISOString());
         setSelectedType(new Set());
         setCover(null);
@@ -65,7 +65,7 @@ export default function AddModal({
 
         const formData = new FormData();
         formData.append("acronym", acronym);
-        formData.append("discount", discount.toString());
+        formData.append("discount", discount);
         formData.append("expiration", expiration);
         formData.append("detail[th]", detail);
         formData.append("detail[en]", detail);
@@ -136,8 +136,8 @@ export default function AddModal({
                             errorMessage={({ validationDetails }) => {
                                 return "Please enter your discount";
                             }}
-                            value={discount !== undefined ? discount.toString() : ""}
-                            onChange={(e) => setDiscount(Number(e.target.value))}
+                            value={discount}
+                            onChange={(e) => setDiscount(e.target.value)}
                         />
                         <Input
                             isRequired
