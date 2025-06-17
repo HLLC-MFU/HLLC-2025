@@ -1,20 +1,20 @@
-import { Evoucher } from "./evoucher/d";
+import { Evoucher } from "./evoucher";
+import { Sponsors } from "./sponsors";
 
 export enum EvoucherCodeStatus {
     ACTIVE = 'ACTIVE',
-    USED = 'USED',
-    EXPIRED = 'EXPIRED'
+    INACTIVE = 'INACTIVE',
+    USED = 'USED'
 }
 
 export type EvoucherCode = {
     _id: string;
     code: string;
-    user?: string;
     evoucher: Evoucher;
-    isUsed: boolean;
-    metadata?: Record<string, string>;
+    sponsors: Sponsors;
     status: EvoucherCodeStatus;
+    usedBy?: string;
+    usedAt?: string;
     createdAt: string;
     updatedAt: string;
-    usedAt?: string;
 } 

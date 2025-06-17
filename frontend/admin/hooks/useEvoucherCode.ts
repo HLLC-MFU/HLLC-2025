@@ -9,13 +9,12 @@ export function useEvoucherCode() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch all evouchers
+    // Fetch all evoucher codes
     const fetchEvoucherCodes = async () => {
         setLoading(true);
         setError(null);
         try {
             const res = await apiRequest<{ data: EvoucherCode[] }>("/evoucher-code?limit=0", "GET");
-
             setEvoucherCodes(Array.isArray(res.data?.data) ? res.data.data : []);
             return res;
         } catch (err) {
@@ -29,18 +28,16 @@ export function useEvoucherCode() {
         }
     };
 
-    // Create evoucher
+    // Create evoucher code
     const createEvoucherCode = async (evoucherCodeData: FormData) => {
         try {
             setLoading(true);
-
             const res = await fetch(`${API_BASE_URL}/evoucher-code`, {
                 method: "POST",
                 body: evoucherCodeData,
                 credentials: "include"
             });
             const data = await res.json();
-            console.log("Create response:", res, data);
 
             if (data && '_id' in data) {
                 setEvoucherCodes((prev) => [...prev, data]);
@@ -50,8 +47,8 @@ export function useEvoucherCode() {
         } catch (err) {
             const message =
                 err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to create evoucher codes.'
-                    : 'Failed to create evoucher codes.';
+                    ? (err as { message?: string }).message || 'Failed to create evoucher code.'
+                    : 'Failed to create evoucher code.';
             setError(message);
             throw new Error(message);
         } finally {
@@ -59,6 +56,64 @@ export function useEvoucherCode() {
         }
     };
 
+    // Update evoucher code
+    const updateEvoucherCode = async (evoucherCodeId: string, evoucherCodeData: FormData) => {
+        try {
+            setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/evoucher-code/${evoucherCodeId}`, {
+                method: "PATCH",
+                body: evoucherCodeData,
+                credentials: "include"
+            });
+            const data = await res.json();
+
+            if (data && '_id' in data) {
+                setEvoucherCodes((prev) => 
+                    prev.map((evoucherCode) => 
+                        evoucherCode._id === evoucherCodeId ? data : evoucherCode
+                    )
+                );
+            }
+
+            return res;
+        } catch (err) {
+            const message =
+                err && typeof err === 'object' && 'message' in err
+                    ? (err as { message?: string }).message || 'Failed to update evoucher code.'
+                    : 'Failed to update evoucher code.';
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Delete evoucher code
+    const deleteEvoucherCode = async (evoucherCodeId: string) => {
+        try {
+            setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/evoucher-code/${evoucherCodeId}`, {
+                method: "DELETE",
+                credentials: "include"
+            });
+            const data = await res.json();
+
+            if (data && '_id' in data) {
+                setEvoucherCodes((prev) => prev.filter((evoucherCode) => evoucherCode._id !== evoucherCodeId));
+            }
+
+            return res;
+        } catch (err) {
+            const message =
+                err && typeof err === 'object' && 'message' in err
+                    ? (err as { message?: string }).message || 'Failed to delete evoucher code.'
+                    : 'Failed to delete evoucher code.';
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         fetchEvoucherCodes();
@@ -70,5 +125,7 @@ export function useEvoucherCode() {
         error,
         fetchEvoucherCodes,
         createEvoucherCode,
-    }
+        updateEvoucherCode,
+        deleteEvoucherCode,
+    };
 }
