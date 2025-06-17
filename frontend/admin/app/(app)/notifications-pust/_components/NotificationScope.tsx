@@ -1,6 +1,6 @@
 import { Switch } from '@heroui/react';
 import React, { useState } from 'react';
-import { TableInfo } from './TableStudent';
+import { TableInfo } from './NotificationTableStudent';
 
 type SelectionScope = { type: 'major' | 'school' | 'individual'; id: string[] };
 

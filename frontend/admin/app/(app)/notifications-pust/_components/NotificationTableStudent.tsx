@@ -13,8 +13,8 @@ import {
 import { useMajors } from "@/hooks/useMajor";
 import { useUsers } from "@/hooks/useUsers";
 import { useSchools } from "@/hooks/useSchool";
-import TopContent from "./Tablecomponents/TopContent";
-import BottomContent from "./Tablecomponents/BottomContent";
+import TopContent from "./TableStudent/TableStudentTopContent";
+import BottomContent from "./TableStudent/TableStudentBottomContent";
 import { FormattedUser } from "@/types/Notification/FomattedUser";
 import { INITIAL_VISIBLE_COLUMNS, columns } from "@/types/Notification/TableNotification";
 

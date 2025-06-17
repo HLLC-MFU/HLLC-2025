@@ -7,9 +7,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import { useReports } from "@/hooks/useReports";
 import { useReportTypes } from "@/hooks/useReportTypes";
-import { ReportCharts } from "./_components/ReportCharts";
-import Overview from "./_components/Overview";
-import Charts from "./_components/TimeLineCharts";
+import { ReportCharts } from "./_components/DashboardReportCharts";
+import Overview from "./_components/DashboardOverview";
+import Charts from "./_components/DashboardTimeLineCharts";
 import { useUserStatistics } from "@/hooks/useUsersytem";
 import { useActivities } from "@/hooks/useActivities";
 import { UseruseSystem } from "@/types/user-stats"

@@ -41,9 +41,11 @@ export function PreviewApp({ info, lang }: { info: any; lang: 'en' | 'th' }) {
                 {SelectedIcon && (
                   <SelectedIcon className="w-6 h-6 text-black" />
                 )}
-                <p className="text-xl font-medium truncate">
-                  {info?.title?.[lang] || 'Title'}
-                </p>
+                <div className='pr-28 w-80'>
+                  <p className="text-xl font-medium break-words ">
+                    {info?.title?.[lang] || 'Title'}
+                  </p>
+                </div>
               </div>
               <p className="absolute top-4 right-5 text-sm text-gray-500 whitespace-nowrap">
                 {dateString} | {timeString}
@@ -101,7 +103,7 @@ export function PreviewOutApp({
   info: any;
   lang: 'en' | 'th';
 }) {
-  const [now, setNow] = useState(new Date()); 
+  const [now, setNow] = useState(new Date());
   const SelectedIcon = info?.icon;
 
   useEffect(() => {
@@ -138,9 +140,11 @@ export function PreviewOutApp({
                   {SelectedIcon && (
                     <SelectedIcon className="w-6 h-6 text-black shrink-0" />
                   )}
-                  <p className="text-xl font-medium truncate">
-                    {info?.title?.[lang] || 'Title'}
-                  </p>
+                  <div className='pr-28 w-80'>
+                    <p className="text-xl font-medium break-words ">
+                      {info?.title?.[lang] || 'Title'}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Subtitle */}

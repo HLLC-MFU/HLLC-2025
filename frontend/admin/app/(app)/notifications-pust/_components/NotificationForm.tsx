@@ -2,7 +2,7 @@ import { Input, Textarea } from '@heroui/input';
 import { image, Select, SelectItem } from '@heroui/react';
 import { Star, School, BookMarked, CircleCheckBig } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { ImageUploader } from './imageupload';
+import { ImageUploader } from './NotificationImageUpload';
 
 export const icons = [
   {

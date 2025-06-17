@@ -1,10 +1,10 @@
 'use client';
 import { SendHorizontal, BellRing } from 'lucide-react';
 import { Button, Select, SelectItem, addToast } from '@heroui/react';
-import { SelectStudent } from './_components/Selectstudentinfo';
-import { Informationinfo } from './_components/InfoFrom';
-import { PreviewApp, PreviewOutApp } from './_components/Preview';
-import { InformationInfoData } from './_components/InfoFrom';
+import { SelectStudent } from './_components/NotificationScope';
+import { Informationinfo } from './_components/NotificationForm';
+import { PreviewApp, PreviewOutApp } from './_components/NotificationPreview';
+import { InformationInfoData } from './_components/NotificationForm';
 import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { useNotification } from '@/hooks/useNotification';

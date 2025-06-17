@@ -2,7 +2,7 @@
 import { PageHeader } from '@/components/ui/page-header';
 import { useNotification } from '@/hooks/useNotification';
 import { BellDot, ChevronDown, Search } from 'lucide-react';
-import NotificationCard, { capitalize } from './_components/Card';
+import NotificationCard, { capitalize } from './_components/NotificationInformationCard';
 import { useMemo, useState } from 'react';
 import { Input } from '@heroui/input';
 import { Button } from '@heroui/button';
