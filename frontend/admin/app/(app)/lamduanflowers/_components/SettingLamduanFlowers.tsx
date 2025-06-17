@@ -1,13 +1,13 @@
-import { useState, useRef, ChangeEvent } from "react";
+import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { Button } from "@heroui/button";
-import { DatePicker, Input, addToast } from "@heroui/react";
+import { Input, addToast } from "@heroui/react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { useLamduanSetting } from "@/hooks/useLamduanSetting";
+import { LamduanSetting } from "@/types/lamduan-setting"; // ดึง type มาใช้ด้วย
 
 export function LamduanFlowersSetting() {
-  const { createLamduanSetting } = useLamduanSetting();
+  const { lamduanSetting, createLamduanSetting, fetchLamduanSetting } = useLamduanSetting();
 
-  // Form state
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
   const [videoLink, setVideoLink] = useState<string>("");
@@ -15,6 +15,25 @@ export function LamduanFlowersSetting() {
   const [endDate, setEndDate] = useState<string>("");
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchLamduanSetting();
+  }, []);
+
+  useEffect(() => {
+  fetchLamduanSetting();
+}, []);
+
+useEffect(() => {
+  if (lamduanSetting.length > 0) {
+    const data: LamduanSetting = lamduanSetting[lamduanSetting.length - 1];
+    setPreview(`http://localhost:8080/uploads/${data.TutorialPhoto}`);
+    setVideoLink(data.TutorialVideo);
+    setStartDate(data.StartAt.split("T")[0]);
+    setEndDate(data.EndAt.split("T")[0]);
+  }
+}, [lamduanSetting]);
+
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -30,12 +49,21 @@ export function LamduanFlowersSetting() {
   };
 
   const handleDiscard = () => {
+  if (lamduanSetting.length > 0) {
+    const data: LamduanSetting = lamduanSetting[lamduanSetting.length - 1];
+    setPreview(`http://localhost:8080/uploads/${data.TutorialPhoto}`);
+    setVideoLink(data.TutorialVideo);
+    setStartDate(data.StartAt.split("T")[0]);
+    setEndDate(data.EndAt.split("T")[0]);
+  } else {
     setFile(null);
     setPreview("");
     setVideoLink("");
     setStartDate("");
     setEndDate("");
-  };
+  }
+};
+
 
   const handleSave = async () => {
     if (!file) {
@@ -50,8 +78,8 @@ export function LamduanFlowersSetting() {
     formData.append("EndAt", endDate);
 
     await createLamduanSetting(formData);
+    await fetchLamduanSetting();
     addToast({ title: "Created successfully", color: "success" });
-    handleDiscard(); // reset form after create
   };
 
   return (
@@ -100,22 +128,10 @@ export function LamduanFlowersSetting() {
       {/* Event Date Range */}
       <div className="flex flex-col md:flex-row gap-2">
         <div className="flex-1">
-          <Input
-            label="Event start"
-            labelPlacement="outside"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
+          <Input label="Event start" labelPlacement="outside" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
         <div className="flex-1">
-          <Input
-            label="Event end"
-            labelPlacement="outside"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+          <Input label="Event end" labelPlacement="outside" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
       </div>
 

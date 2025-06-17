@@ -4,5 +4,6 @@ export type LamduanSetting = {
   TutorialVideo: string;
   StartAt: string;
   EndAt: string;
+  createdAt: string;
 };
 

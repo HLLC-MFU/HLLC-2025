@@ -8,7 +8,7 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Pagination,
+  Pagination
 } from "@heroui/react";
 import { Flower2, Settings } from "lucide-react";
 import CardLamduanFlowers from "./CardLamduanFlowers";
@@ -19,6 +19,7 @@ import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { LamduanFlowersSetting } from "./SettingLamduanFlowers";
 
 export default function AccordionLamduan() {
+
   const { lamduanFlowers, deleteLamduanFlowers } = useLamduanFlowers();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,6 +30,34 @@ export default function AccordionLamduan() {
   const [viewModalFlower, setViewModalFlower] = useState<LamduanFlowers | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState<number | "All">(24);
+
+  // 🔧 FORCE RESET PAGE
+  const resetToFirstPage = () => {
+    setCurrentPage(prev => {
+      if (prev === 1) {
+        setCurrentPage(0);
+        setTimeout(() => setCurrentPage(1), 0);
+      } else {
+        setCurrentPage(1);
+      }
+      return prev;
+    });
+  };
+
+  const handleSortByChange = (sort: string) => {
+    setSortBy(sort);
+    resetToFirstPage();
+  };
+
+  const toggleSortDirection = () => {
+    setSortDirection(prev => (prev === "asc" ? "desc" : "asc"));
+    resetToFirstPage();
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    resetToFirstPage();
+  };
 
   const filteredAndSortedFlowers = useMemo(() => {
     if (!lamduanFlowers) return [];
@@ -59,11 +88,6 @@ export default function AccordionLamduan() {
 
   const totalPages = rowsPerPage === "All" ? 1 : Math.ceil(filteredAndSortedFlowers.length / rowsPerPage);
 
-  const toggleSortDirection = () => {
-    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-    setCurrentPage(1);
-  };
-
   const handleDeleteClick = (flower: LamduanFlowers) => {
     setSelectedFlower(flower);
     setIsModalOpen(true);
@@ -83,34 +107,40 @@ export default function AccordionLamduan() {
   return (
     <>
       <Accordion variant="splitted">
-        <AccordionItem key="1" aria-label="Accordion 1" title={
-          <div className="flex items-center gap-2">
-            <Settings />
-            <span>Lamduan Flower Setting</span>
-          </div>
-        }>
+        <AccordionItem
+          key="1"
+          aria-label="Accordion 1"
+          title={
+            <div className="flex items-center gap-2">
+              <Settings />
+              <span>Lamduan Flower Setting</span>
+            </div>
+          }
+        >
           <LamduanFlowersSetting />
         </AccordionItem>
 
-        <AccordionItem key="2" aria-label="Accordion 2" title={
-          <div className="flex items-center gap-2">
-            <Flower2 />
-            <span>Lamduan Flower Management</span>
-          </div>
-        }>
+        <AccordionItem
+          key="2"
+          aria-label="Accordion 2"
+          title={
+            <div className="flex items-center gap-2">
+              <Flower2 />
+              <span>Lamduan Flower Management</span>
+            </div>
+          }
+        >
           <LamduanFlowersFilters
             searchQuery={searchQuery}
             sortBy={sortBy}
             sortDirection={sortDirection}
-            onSearchQueryChange={(v) => { setSearchQuery(v); setCurrentPage(1); }}
-            onSortByChange={setSortBy}
+            onSearchQueryChange={handleSearchChange}
+            onSortByChange={handleSortByChange}
             onSortDirectionToggle={toggleSortDirection}
           />
 
           {filteredAndSortedFlowers.length === 0 && (
-            <p className="text-center text-sm text-default-500 py-10">
-              No lamduan flowers found.
-            </p>
+            <p className="text-center text-sm text-default-500 py-10">No lamduan flowers found.</p>
           )}
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mt-4">
