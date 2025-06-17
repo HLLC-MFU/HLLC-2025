@@ -28,7 +28,7 @@ export class CoinCollectionsController {
 
   @Get('leaderboard')
   async getLeaderboard(@Query('limit') limit: number) {
-    return await this.coinCollectionsService.getLeaderboard(limit ? +limit : 10);
+    return await this.coinCollectionsService.getLeaderboard(limit);
   }
 
   @Get(':userId/leaderboard')

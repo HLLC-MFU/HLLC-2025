@@ -16,11 +16,9 @@ export class CoinCollectionsService {
   async collectCoin(collectCoinDto: CollectCoinDto) {
     const landmarkObjectId = new Types.ObjectId(collectCoinDto.landmark);
 
-    // ดึงข้อมูล landmark พร้อม location
-    const landmark = await this.landmarkModel.findById(landmarkObjectId).populate('location');
+    const landmark = await this.landmarkModel.findById(landmarkObjectId)
     if (!landmark) throw new NotFoundException('Landmark not found');
 
-    // เช็คระยะห่างด้วย Haversine formula
     const distance = calculateDistance(
       collectCoinDto.userLat,
       collectCoinDto.userLong,
@@ -30,7 +28,6 @@ export class CoinCollectionsService {
     if (distance > 50)
       throw new BadRequestException('You are too far from the landmark');
 
-    // เช็ค cooldown: มี user คนใดเก็บ landmark นี้ในช่วง cooldown หรือเปล่า
     const cooldownCheck = await this.coinCollectionModel.find({
       landmarks: {
         $elemMatch: {
@@ -43,14 +40,12 @@ export class CoinCollectionsService {
     if (cooldownCheck.length > 0)
       throw new BadRequestException('Landmark is in cooldown');
 
-    // เช็คว่าผู้ใช้งานคนนี้เคยเก็บ landmark นี้ไปแล้วหรือยัง
     const userObjectId = new Types.ObjectId(collectCoinDto.user);
     const userCollection = await this.coinCollectionModel.findOne({ user: userObjectId });
 
     if (userCollection?.landmarks.some(item => item.landmark.equals(landmarkObjectId)))
       throw new BadRequestException('Already collected this landmark');
 
-    // เช็ค limit 14 landmark
     if ((userCollection?.landmarks?.length ?? 0) >= 14)
       throw new BadRequestException('Maximum coins collected');
 
@@ -58,7 +53,6 @@ export class CoinCollectionsService {
       throw new BadRequestException('No coins available for this landmark');
     }
 
-    // เก็บ landmark ใหม่
     if (!userCollection) {
       await this.coinCollectionModel.create({
         user: userObjectId,
@@ -72,7 +66,6 @@ export class CoinCollectionsService {
       await userCollection.save();
     }
 
-    // หลังจากเก็บ coin collection เสร็จ → update coinAmount
     await this.landmarkModel.findByIdAndUpdate(
       landmarkObjectId,
       { $inc: { coinAmount: -1 } }
@@ -136,17 +129,21 @@ export class CoinCollectionsService {
         }
       }
     ]);
+    const leaderboardWithRank = leaderboard.map((item, index) => ({
+      rank: index + 1,
+      ...item
+    }));
+
 
     return {
       message: 'Leaderboard fetched successfully',
-      data: leaderboard,
-    }
+      data: leaderboardWithRank,
+    };
   }
 
   async getUserRank(userId: string) {
     const userObjectId = new Types.ObjectId(userId);
 
-    // 1. หาเหรียญของ user คนนี้ก่อน
     const userData = await this.coinCollectionModel.aggregate([
       { $match: { user: userObjectId } },
       {
@@ -164,8 +161,6 @@ export class CoinCollectionsService {
     const myCoinCount = userData[0].coinCount;
     const myLatestCollectedAt = userData[0].latestCollectedAt;
 
-
-    // 2. หาว่ามีคนที่เหรียญเยอะกว่าเรากี่คน
     const higherRankCount = await this.coinCollectionModel.aggregate([
       {
         $project: {
