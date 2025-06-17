@@ -15,7 +15,6 @@ import {
   queryFindOne,
   queryUpdateOne,
 } from 'src/pkg/helper/query.util';
-import { BadRequestException } from '@nestjs/common';
 
 jest.mock('src/pkg/validator/model.validator', () => ({ findOrThrow: jest.fn() }));
 jest.mock('src/pkg/helper/helpers', () => ({ handleMongoDuplicateError: jest.fn() }));

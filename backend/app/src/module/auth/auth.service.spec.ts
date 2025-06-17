@@ -11,7 +11,6 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
-  ConflictException,
 } from '@nestjs/common';
 import { User, UserDocument } from '../users/schemas/user.schema';
 

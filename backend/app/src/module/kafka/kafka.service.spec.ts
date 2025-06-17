@@ -1,0 +1,155 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { KafkaService } from './kafka.service';
+import { Kafka, Consumer, KafkaMessage, EachMessagePayload, ConsumerRunConfig } from 'kafkajs';
+
+jest.mock('kafkajs');
+
+function createKafkaMessage(value: object): KafkaMessage {
+  return {
+    key: null,
+    value: Buffer.from(JSON.stringify(value)),
+    timestamp: Date.now().toString(),
+    offset: '0',
+    headers: {},
+    attributes: 0,
+  };
+}
+
+describe('KafkaService', () => {
+  let service: KafkaService;
+  let mockConsumer: jest.Mocked<Consumer>;
+
+  beforeEach(async () => {
+    mockConsumer = {
+      connect: jest.fn(),
+      subscribe: jest.fn(),
+      run: jest.fn(),
+      disconnect: jest.fn(),
+      stop: jest.fn(),
+      pause: jest.fn(),
+      resume: jest.fn(),
+      seek: jest.fn(),
+      describeGroup: jest.fn(),
+      on: jest.fn(),
+      commitOffsets: jest.fn(),
+      paused: jest.fn(),
+      logger: undefined,
+      events: {} as any,
+    } as unknown as jest.Mocked<Consumer>;
+
+    (Kafka as unknown as jest.Mock).mockImplementation(() => ({
+      consumer: () => mockConsumer,
+    }));
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [KafkaService],
+    }).compile();
+
+    service = module.get<KafkaService>(KafkaService);
+  });
+
+  describe('registerHandler', () => {
+    it('should register handler before start', async () => {
+      const handler = jest.fn().mockResolvedValue(undefined);
+      await service.registerHandler('test-topic', handler);
+      expect((service as any).handlers.get('test-topic')).toBe(handler);
+    });
+
+    it('should throw if registering after start', async () => {
+      (service as any).hasStarted = true;
+      await expect(
+        service.registerHandler('late-topic', async () => {}),
+      ).rejects.toThrow('Cannot register after Kafka consumer started');
+    });
+  });
+
+  describe('start', () => {
+    it('should subscribe and run handlers on start', async () => {
+      const payloadReceived: object[] = [];
+      const handler = jest.fn(async (payload: object) => {
+        payloadReceived.push(payload);
+      });
+
+      await service.registerHandler('my-topic', handler);
+
+      let eachMessageHandler: ((payload: EachMessagePayload) => Promise<void>) | undefined;
+
+      mockConsumer.run.mockImplementationOnce(async (config: ConsumerRunConfig) => {
+        eachMessageHandler = config.eachMessage!;
+      });
+
+      await service.start();
+
+      expect(mockConsumer.connect).toHaveBeenCalled();
+      expect(mockConsumer.subscribe).toHaveBeenCalledWith({ topic: 'my-topic' });
+      expect(mockConsumer.run).toHaveBeenCalled();
+
+      await eachMessageHandler?.({
+        topic: 'my-topic',
+        partition: 0,
+        message: createKafkaMessage({ hello: 'world' }),
+        heartbeat: jest.fn(),
+        pause: jest.fn(),
+      });
+
+      expect(handler).toHaveBeenCalledWith({ hello: 'world' });
+      expect(payloadReceived).toEqual([{ hello: 'world' }]);
+    });
+
+    it('should ignore topics without handlers', async () => {
+      let eachMessageHandler: ((payload: EachMessagePayload) => Promise<void>) | undefined;
+
+      mockConsumer.run.mockImplementationOnce(async (config: ConsumerRunConfig) => {
+        eachMessageHandler = config.eachMessage!;
+      });
+
+      await service.start();
+
+      const result = await eachMessageHandler?.({
+        topic: 'unregistered-topic',
+        partition: 0,
+        message: createKafkaMessage({ ignored: true }),
+        heartbeat: jest.fn(),
+        pause: jest.fn(),
+      });
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('message handling', () => {
+    it('should handle JSON parse errors gracefully', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const handler = jest.fn();
+
+      await service.registerHandler('bad-json-topic', handler);
+
+      mockConsumer.run.mockImplementationOnce(async (config: ConsumerRunConfig) => {
+        await config.eachMessage?.({
+          topic: 'bad-json-topic',
+          partition: 0,
+          message: {
+            value: Buffer.from('invalid-json'),
+            key: null,
+            timestamp: '0',
+            offset: '0',
+            headers: {},
+            attributes: 0,
+          },
+          heartbeat: jest.fn(),
+          pause: jest.fn(),
+        });
+      });
+
+      await service.start();
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[Kafka] Error processing message from topic'),
+        expect.any(SyntaxError),
+      );
+
+      errorSpy.mockRestore();
+    });
+  });
+});
