@@ -33,7 +33,7 @@ async function bootstrap() {
   });
   await app.register(fastifyStatic, {
     root: path.join(__dirname, '..', 'uploads'),
-    prefix: '/uploads/',
+    prefix: '/api/uploads/',
   });
 
   app.setGlobalPrefix('api');

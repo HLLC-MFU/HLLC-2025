@@ -28,7 +28,7 @@ export default function Layout() {
   return (
     <View style={{ flex: 1 }}>
       <ImageBackground
-        source={{ uri: user.theme?.assets?.background }}
+        source={require('@/assets/images/lobby.png')}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
       >
