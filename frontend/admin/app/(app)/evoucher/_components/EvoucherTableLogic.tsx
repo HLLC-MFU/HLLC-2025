@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { SortDescriptor, addToast } from "@heroui/react";
 import type { Selection } from "@react-types/shared";
-import { Evoucher } from "@/types/evoucher";
+import { Evoucher } from "@/types/evoucher/d";
 import { useEvoucher } from "@/hooks/useEvoucher";
 
 // Utility functions

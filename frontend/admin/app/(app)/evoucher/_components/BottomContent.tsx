@@ -1,4 +1,4 @@
-import { Evoucher } from "@/types/evoucher";
+import { Evoucher } from "@/types/evoucher/d";
 import { Button, Pagination } from "@heroui/react";
 import type { Selection } from "@react-types/shared";
 

@@ -1,4 +1,4 @@
-import { Evoucher } from "./evoucher";
+import { Evoucher } from "./evoucher/d";
 
 export enum EvoucherCodeStatus {
     ACTIVE = 'ACTIVE',
@@ -6,7 +6,7 @@ export enum EvoucherCodeStatus {
     EXPIRED = 'EXPIRED'
 }
 
-export interface EvoucherCode {
+export type EvoucherCode = {
     _id: string;
     code: string;
     user?: string;

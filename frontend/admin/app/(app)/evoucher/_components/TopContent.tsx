@@ -1,4 +1,4 @@
-import { Evoucher } from "@/types/evoucher";
+import { Evoucher } from "@/types/evoucher/d";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Select, SelectItem } from "@heroui/react";
 import { ChevronDownIcon, PlusIcon, SearchIcon, Ticket } from "lucide-react";
 import { TableColumnType } from "./TableContent";

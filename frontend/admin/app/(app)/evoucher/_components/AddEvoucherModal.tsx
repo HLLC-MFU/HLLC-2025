@@ -5,7 +5,7 @@ import {
   Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider, Input, Select, SelectItem, Textarea
 } from "@heroui/react";
 import { Sponsors } from "@/types/sponsors";
-import { Evoucher, EvoucherType } from "@/types/evoucher";
+import { Evoucher, EvoucherType } from "@/types/evoucher/d";
 import PreviewModal from "./PreviewModal";
 
 interface AddEvoucherProps {

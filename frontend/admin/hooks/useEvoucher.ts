@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/utils/api";
-import { Evoucher } from "@/types/evoucher";
+import { Evoucher } from "@/types/evoucher/d";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 

@@ -11,7 +11,7 @@ export enum EvoucherStatus {
     INACTIVE = 'INACTIVE'
 }
 
-export interface Evoucher {
+export type Evoucher = {
     _id: string;
     discount: string;
     acronym: string;

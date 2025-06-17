@@ -12,7 +12,7 @@ export const COLUMNS = [
 ];
 
 export const INITIAL_VISIBLE_COLUMNS = new Set([
-    "sponsors", "acronym", "detail", "discount", "expiration", "status", "claims", "cover"
+    "sponsors", "acronym", "detail", "discount", "expiration", "status", "claims", "cover", "actions"
 ]);
 
 export const ROWS_PER_PAGE = 5;

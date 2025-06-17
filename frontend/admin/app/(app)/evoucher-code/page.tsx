@@ -29,7 +29,7 @@ import { useEvoucher } from "@/hooks/useEvoucher";
 import { Toast } from "@heroui/react";
 
 export default function EvoucherCodePage() {
-    const { codes, loading, generateCode, useCode, deleteCode } = useEvoucherCode();
+    const { evoucherCodes, loading, generateCode, useCode, deleteCode } = useEvoucherCode();
     const { evouchers } = useEvoucher();
     const [selectedCode, setSelectedCode] = useState<EvoucherCode | null>(null);
     const [selectedEvoucher, setSelectedEvoucher] = useState<string>("");
@@ -138,7 +138,7 @@ export default function EvoucherCodePage() {
                             <TableColumn>ACTIONS</TableColumn>
                         </TableHeader>
                         <TableBody>
-                            {codes.map((code) => (
+                            {evoucherCodes.map((code) => (
                                 <TableRow key={code._id}>
                                     <TableCell>
                                         <div className="flex items-center gap-2">

@@ -2,7 +2,7 @@ import React, { Key, useCallback, useMemo } from "react";
 import { Sponsors } from "@/types/sponsors";
 import TableContent from "./TableContent";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
-import { Evoucher, EvoucherType } from "@/types/evoucher";
+import { Evoucher, EvoucherType } from "@/types/evoucher/d";
 import { EvoucherModal } from "./AddEvoucherModal";
 import EvoucherCellRenderer from "./EvoucherCellRenderer";
 import { useEvoucherTable } from "./EvoucherTableLogic";
