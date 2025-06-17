@@ -1,7 +1,7 @@
 "use client"
-import { Target } from "@/types/Notification";
+import { Target } from "@/types/notification";
 import { Card, Image } from "@heroui/react";
-import { Notification } from '@/types/Notification';
+import { Notification } from '@/types/notification';
 import { useMemo, useState } from "react";
 import NotificationModal from "./NotificationDetailModal";
 

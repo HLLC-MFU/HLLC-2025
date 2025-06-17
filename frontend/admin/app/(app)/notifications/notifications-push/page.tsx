@@ -95,7 +95,7 @@ export default function NotificationPust() {
 
   return (
     <>
-      <PageHeader description='Create, manage, and view system notifications for specific users or roles.' icon={<BellRing />} />
+      <PageHeader title="Notifications Push" description='Create, manage, and view system notifications for specific users or roles.' icon={<BellRing />} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <div id="Notification Info" className="flex row-span-2 w-full">
@@ -132,7 +132,7 @@ export default function NotificationPust() {
               </Select>
             </div>
 
-            <PreviewApp info={infoData} lang={selectLanguagePreview} />
+            {infoData && <PreviewApp info={infoData} lang={selectLanguagePreview} />}
 
             <div className='flex items-center gap-5'>
 
@@ -177,7 +177,9 @@ export default function NotificationPust() {
               </Select>
             </div>
 
-            <PreviewOutApp info={infoData} lang={selectLanguageNotification} />
+            {infoData && (
+              <PreviewOutApp info={infoData} lang={selectLanguageNotification} />
+            )}
           </div>
         </div>
       </div>

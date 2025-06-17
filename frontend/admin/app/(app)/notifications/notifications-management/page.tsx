@@ -8,8 +8,10 @@ import { Input } from '@heroui/input';
 import { Button } from '@heroui/button';
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react';
 import React from 'react';
+import { useRouter } from "next/navigation";
 
 export default function Notification_Management() {
+
     const { notification } = useNotification();
     const [search, setSearch] = useState('');
     const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -38,13 +40,12 @@ export default function Notification_Management() {
 
         const matchType = selectedTypes.length === 0 || scopeList.some(scope => selectedTypes.includes(scope));
 
-        return matchSearch && matchType ;
+        return matchSearch && matchType;
     });
 
     return (
         <>
-            <PageHeader description='I don know' icon={<BellDot />} />
-
+            <PageHeader title="Notifications Management" description='Manage notification information' icon={<BellDot />} />
             <div className="flex justify-between gap-3 items-end">
                 <Input
                     isClearable

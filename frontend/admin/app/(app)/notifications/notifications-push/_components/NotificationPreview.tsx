@@ -7,8 +7,11 @@ import {
   Button,
 } from '@heroui/react';
 import { useEffect, useState } from 'react';
+import { InformationInfoData } from './NotificationForm';
 
-export function PreviewApp({ info, lang }: { info: any; lang: 'en' | 'th' }) {
+
+
+export function PreviewApp({ info, lang }: { info: InformationInfoData; lang: 'en' | 'th' }) {
   const [now, setNow] = useState(new Date());
   const SelectedIcon = info?.icon;
 
@@ -100,7 +103,7 @@ export function PreviewOutApp({
   info,
   lang,
 }: {
-  info: any;
+  info: InformationInfoData;
   lang: 'en' | 'th';
 }) {
   const [now, setNow] = useState(new Date());

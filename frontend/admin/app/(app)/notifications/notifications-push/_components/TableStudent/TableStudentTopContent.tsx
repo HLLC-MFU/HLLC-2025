@@ -8,7 +8,21 @@ import {
   DropdownItem,
 } from '@heroui/react';
 import { ChevronDown, Search } from 'lucide-react';
-import { TopContentStudentProps } from '@/types/Notification/TableNotification';
+import { Major, School } from '@/types/school';
+
+interface TopContentStudentProps {
+  filterValue: string;
+  onSearchChange: (val: string) => void;
+  onClear: () => void;
+  majorFilter: Set<string>;
+  setMajorFilter: (val: Set<string>) => void;
+  schoolFilter: Set<string>;
+  setSchoolFilter: (val: Set<string>) => void;
+  majors: Major[];
+  schools: School[];
+  usersLength: number;
+  onRowsPerPageChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+} 
 
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
@@ -67,7 +81,7 @@ export default function TopContent({
               className="max-h-48 overflow-y-auto"
             >
               {(majors ?? []).map((major) => (
-                <DropdownItem key={major._id} className="capitalize">
+                <DropdownItem key={major._id ?? `major-${major.name.en}`} className="capitalize">
                   {capitalize(major.name.en)}
                 </DropdownItem>
               ))}

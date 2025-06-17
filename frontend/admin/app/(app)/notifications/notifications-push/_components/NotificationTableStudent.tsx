@@ -15,8 +15,25 @@ import { useUsers } from "@/hooks/useUsers";
 import { useSchools } from "@/hooks/useSchool";
 import TopContent from "./TableStudent/TableStudentTopContent";
 import BottomContent from "./TableStudent/TableStudentBottomContent";
-import { FormattedUser } from "@/types/Notification/FomattedUser";
-import { INITIAL_VISIBLE_COLUMNS, columns } from "@/types/Notification/TableNotification";
+
+const columns = [
+  { name: "NAME", uid: "name", sortable: true },
+  { name: "MAJOR", uid: "major", sortable: true },
+];
+
+const INITIAL_VISIBLE_COLUMNS = ["name", "major"];
+
+type FormattedUser = {
+  avatar?: string;
+  id: string;
+  name: string;
+  studentid?: string;
+  major: string;
+  majorId: string;
+  school: string;
+  schoolId: string;
+  [key: string]: string | undefined;
+};
 
 type SelectionScope = { type: "school" | "major" | "individual"; id: string[] };
 
@@ -87,7 +104,7 @@ export function TableInfo({ onSelectionChange }: { onSelectionChange?: (scope: S
   }, [page, rowsPerPage, filteredItems]);
 
   const sortedItems = useMemo(() => {
-    return [...pagedItems].sort((a, b) => {
+    return [...pagedItems].sort((a: FormattedUser, b: FormattedUser) => {
       const first = a[sortDescriptor.column as keyof FormattedUser] ?? '';
       const second = b[sortDescriptor.column as keyof FormattedUser] ?? '';
       const cmp = first < second ? -1 : first > second ? 1 : 0;
@@ -114,43 +131,43 @@ export function TableInfo({ onSelectionChange }: { onSelectionChange?: (scope: S
   }, [schoolFilter, majors]);
 
   const handleSelectionChange = (keys: Selection) => {
-  let selectedIds: string[] = [];
+    let selectedIds: string[] = [];
 
-  if (keys === "all") {
-    selectedIds = filteredItems.map(user => user.id);
-  } else {
-    selectedIds = Array.from(keys).map(String);
-  }
+    if (keys === "all") {
+      selectedIds = filteredItems.map(user => user.id);
+    } else {
+      selectedIds = Array.from(keys).map(String);
+    }
 
-  setSelectedKeys(new Set(selectedIds));
+    setSelectedKeys(new Set(selectedIds));
 
-  if (onSelectionChange) {
-    const selectedUsers = filteredItems.filter(user => selectedIds.includes(user.id));
+    if (onSelectionChange) {
+      const selectedUsers = filteredItems.filter(user => selectedIds.includes(user.id));
 
-    if (selectedUsers.length === 1) {
+      if (selectedUsers.length === 1) {
+        onSelectionChange([{ type: "individual", id: selectedIds }]);
+        return;
+      }
+
+      const majorIds = selectedUsers.map(u => u.majorId).filter(Boolean);
+      const uniqueMajorIds = Array.from(new Set(majorIds));
+
+      const schoolIds = selectedUsers.map(u => u.schoolId).filter(Boolean);
+      const uniqueSchoolIds = Array.from(new Set(schoolIds));
+
+      if (uniqueMajorIds.length === 1) {
+        onSelectionChange([{ type: "major", id: uniqueMajorIds }]);
+        return;
+      }
+
+      if (uniqueSchoolIds.length === 1) {
+        onSelectionChange([{ type: "school", id: uniqueSchoolIds }]);
+        return;
+      }
+
       onSelectionChange([{ type: "individual", id: selectedIds }]);
-      return;
     }
-
-    const majorIds = selectedUsers.map(u => u.majorId).filter(Boolean);
-    const uniqueMajorIds = Array.from(new Set(majorIds));
-
-    const schoolIds = selectedUsers.map(u => u.schoolId).filter(Boolean);
-    const uniqueSchoolIds = Array.from(new Set(schoolIds));
-
-    if (uniqueMajorIds.length === 1) {
-      onSelectionChange([{ type: "major", id: uniqueMajorIds }]);
-      return;
-    }
-
-    if (uniqueSchoolIds.length === 1) {
-      onSelectionChange([{ type: "school", id: uniqueSchoolIds }]);
-      return;
-    }
-
-    onSelectionChange([{ type: "individual", id: selectedIds }]);
-  }
-};
+  };
 
   const renderCell = useCallback((user: FormattedUser, columnKey: keyof FormattedUser | "name" | "major") => {
     const cellValue = columnKey === "name" ? user.name : user[columnKey as keyof FormattedUser];

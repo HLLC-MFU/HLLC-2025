@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Notification } from "@/types/Notification"
+import { Notification } from "@/types/notification"
 import { apiRequest } from "@/utils/api"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;

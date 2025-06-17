@@ -1,5 +1,13 @@
-import { BottomContentProps } from "@/types/Notification/TableNotification";
 import { Pagination } from "@heroui/react";
+
+interface BottomContentProps {
+    page: number;
+    pages: number;
+    setPage: (page: number) => void;
+    selectedKeys: Set<string> | "all";
+    items: any[];
+    hasSearchFilter: boolean;
+}
 
 export default function BottomContent({ page, pages, setPage, selectedKeys, items, hasSearchFilter }: BottomContentProps) {
     return (
