@@ -9,9 +9,9 @@ const filterItems = (items: EvoucherCode[], search: string) => {
     const query = search.toLowerCase();
     return items.filter(code =>
         code.code.toLowerCase().includes(query) ||
-        code.evoucher.acronym.toLowerCase().includes(query) ||
-        code.evoucher.sponsors.name.en.toLowerCase().includes(query) ||
-        code.evoucher.detail.en.toLowerCase().includes(query)
+        code.evoucher?.acronym?.toLowerCase().includes(query) ||
+        code.evoucher?.sponsors?.name.en?.toLowerCase().includes(query) ||
+        code.evoucher?.detail?.en?.toLowerCase().includes(query)
     );
 };
 
@@ -23,12 +23,12 @@ const sortItems = (items: EvoucherCode[], descriptor: SortDescriptor) => {
         // Handle special cases for nested objects
         switch (descriptor.column) {
             case "evoucher":
-                first = a.evoucher.acronym;
-                second = b.evoucher.acronym;
+                first = a.evoucher?.acronym || "";
+                second = b.evoucher?.acronym || "";
                 break;
             case "sponsor":
-                first = a.evoucher.sponsors.name.en;
-                second = b.evoucher.sponsors.name.en;
+                first = a.evoucher?.sponsors?.name.en || "" ;
+                second = b.evoucher?.sponsors?.name.en || "";
                 break;
             default:
                 first = String(a[descriptor.column as keyof EvoucherCode] || "");

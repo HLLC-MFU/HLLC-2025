@@ -24,13 +24,13 @@ export default function EvoucherCodeCellRenderer({
         ),
         evoucher: (
             <div className="flex flex-col gap-1">
-                <span className="text-bold text-small">{evoucherCode.evoucher.acronym}</span>
-                <span className="text-small text-default-500">{evoucherCode.evoucher.detail.en}</span>
+                <span className="text-bold text-small">{evoucherCode.evoucher?.acronym}</span>
+                <span className="text-small text-default-500">{evoucherCode.evoucher?.detail.en}</span>
             </div>
         ),
         sponsor: (
             <span className="text-bold text-small capitalize">
-                {evoucherCode.evoucher.sponsors.name.en}
+                {evoucherCode.evoucher?.sponsors?.name.en}
             </span>
         ),
         isUsed: (

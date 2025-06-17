@@ -68,8 +68,6 @@ export default function EvoucherCodeTable({
                 sortedItems={tableLogic.pagedItems}
                 renderCell={renderCell}
                 filterValue={tableLogic.filterValue}
-                typeFilter={tableLogic.typeFilter}
-                setTypeFilter={tableLogic.setTypeFilter}
                 capitalize={capitalize}
                 visibleColumns={visibleColumns}
                 setVisibleColumns={(columns: Set<string>) => setVisibleColumns(new Set(columns))}

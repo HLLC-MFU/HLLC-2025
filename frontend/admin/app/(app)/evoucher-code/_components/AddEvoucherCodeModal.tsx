@@ -33,8 +33,8 @@ export function EvoucherCodeModal({
   // Load existing data if in edit mode
   useEffect(() => {
     if (mode === "edit" && evoucherCode) {
-      setSelectedSponsor(evoucherCode.evoucher.sponsors.name.en);
-      setSelectedEvoucher(evoucherCode.evoucher._id);
+      setSelectedSponsor(evoucherCode.evoucher?.sponsors?.name.en || "");
+      setSelectedEvoucher(evoucherCode.evoucher?._id || "" as string);
       setCode(evoucherCode.code);
       setExpiration(evoucherCode.metadata.expiration);
     }
@@ -86,7 +86,7 @@ export function EvoucherCodeModal({
               {sponsors
                 .find(s => s.name.en === selectedSponsor)
                 ?.evouchers?.map((e: Evoucher) => (
-                  <SelectItem key={e._id}>{e.acronym}</SelectItem>
+                  <SelectItem key={e._id}>{e.acronym || "" as string}</SelectItem>
                 )) || []}
             </Select>
           </div>
