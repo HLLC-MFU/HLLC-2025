@@ -6,6 +6,7 @@ import { useLamduanFlowers } from "@/hooks/useLamduanFlowers";
 import { LamduanFlowersFilters } from "./FiltersLamduanFlowers";
 import { LamduanFlowers } from "@/types/lamduan-flowers";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import { LamduanFlowersSetting } from "./SettingLamduanFlowers";
 
 export default function AccordionLamduan() {
     const { lamduanFlowers, deleteLamduanFlowers } = useLamduanFlowers();
@@ -86,6 +87,7 @@ export default function AccordionLamduan() {
                     </div>
                 }>
                     {"กำลังสร้างมองข้ามไปก่อน🤙"}
+                    <LamduanFlowersSetting/>
                 </AccordionItem>
 
                 <AccordionItem key="2" aria-label="Accordion 2" title={
