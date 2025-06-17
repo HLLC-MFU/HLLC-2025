@@ -58,4 +58,12 @@ export class EvoucherCodeController {
   ) {
     return this.evoucherCodeService.getUserEvoucherCodes(req.user._id);
   }
+
+  @Post('use/:codeId')
+  useEvoucherCode(
+    @Param('codeId') codeId: string,
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }
+  ) {
+    return this.evoucherCodeService.useEvoucherCode(req.user._id, codeId);
+  }
 }
