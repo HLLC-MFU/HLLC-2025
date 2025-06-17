@@ -41,13 +41,13 @@ export default function Layout() {
           sceneStyle: { backgroundColor: 'transparent' },
           headerShown: false,
         }}
-        tabBar={() => <TabBar /> }
+        tabBar={() => <TabBar />}
       >
-<Tabs.Screen name="(tabs)/index" options={{ title: 'Home' }} />
-<Tabs.Screen name="(tabs)/activities/index" options={{ title: 'Activities' }} />
-<Tabs.Screen name="(tabs)/qrcode" options={{ title: 'QR Code' }} />
-<Tabs.Screen name="(tabs)/evoucher/index" options={{ title: 'E-Voucher' }} />
-<Tabs.Screen name="(tabs)/chat/index" options={{ title: 'Community' }} />
+        <Tabs.Screen name="index" options={{ title: 'Home' }} />
+        <Tabs.Screen name="activities/index" options={{ title: 'Activities' }} />
+        <Tabs.Screen name="qrcode" options={{ title: 'QR Code' }} />
+        <Tabs.Screen name="evoucher" options={{ title: 'E-Voucher' }} />
+        <Tabs.Screen name="chat/index" options={{ title: 'Community' }} />
 
       </Tabs>
     </View>

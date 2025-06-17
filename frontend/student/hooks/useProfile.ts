@@ -19,7 +19,6 @@ const useProfile = create<ProfileStore>((set) => ({
       const res = await apiRequest<User>("/users/profile");
       if (res.statusCode === 200 && res.data) {
         set({ user: res.data });
-        console.log(res.data);
         return res.data;
       } else {
         return null;
