@@ -97,8 +97,6 @@ export function EvoucherModal({
           {mode === "add" ? `Add ${evoucherType} E-voucher` : "Edit E-voucher"}
         </ModalHeader>
 
-        <Divider />
-
         <ModalBody className="flex flex-col gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Select 
@@ -117,23 +115,18 @@ export function EvoucherModal({
             <Input label="Acronym" isRequired value={acronym} onChange={(e) => setAcronym(e.target.value)} />
           </div>
 
-          <Divider />
-
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <Input label="Discount" type="text" value={discount} onChange={(e) => setDiscount(e.target.value)} isRequired />
             <Input label="Max Claims" type="number" value={maxClaim} onChange={(e) => setMaxClaim(e.target.value)} isRequired />
             <Input label="Expiration" type="datetime-local" value={expiration.slice(0, 16)} onChange={(e) => setExpiration(new Date(e.target.value).toISOString())} isRequired />
           </div>
 
-          <Divider />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Textarea label="Detail (Thai)" value={detailTh} onChange={(e) => setDetailTh(e.target.value)} isRequired minRows={2} maxRows={3} />
             <Textarea label="Detail (English)" value={detailEn} onChange={(e) => setDetailEn(e.target.value)} isRequired minRows={2} maxRows={3} />
           </div>
           
-          <Divider />
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Select
               label="Status"
@@ -148,7 +141,6 @@ export function EvoucherModal({
           <Divider />
 
           <div className="flex flex-col items-center gap-4">
-            <h3 className="text-sm font-medium">Cover Photo</h3>
             <div className="w-full max-w-md">
               <PreviewModal
                 field={field}
@@ -162,8 +154,6 @@ export function EvoucherModal({
           </div>
 
         </ModalBody>
-
-        <Divider />
 
         <ModalFooter>
           <Button color="danger" variant="light" onPress={() => { onClose(); }}>
