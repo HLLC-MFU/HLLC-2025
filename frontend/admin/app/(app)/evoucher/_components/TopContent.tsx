@@ -1,12 +1,12 @@
-import { Evoucher } from "@/types/evoucher/d";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Select, SelectItem } from "@heroui/react";
-import { ChevronDownIcon, PlusIcon, SearchIcon, Ticket } from "lucide-react";
+import { Evoucher } from "@/types/evoucher";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from "@heroui/react";
+import { ChevronDownIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { TableColumnType } from "./TableContent";
 import React from "react";
 import type { Selection } from "@react-types/shared";
 import { useSponsors } from "@/hooks/useSponsors";
 
-export interface TopContentProps {
+interface TopContentProps {
     setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
     capitalize: (value: string) => string;

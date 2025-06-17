@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider, Input, Select, SelectItem, Textarea
 } from "@heroui/react";
@@ -34,8 +34,26 @@ export function EvoucherModal({
   const [discount, setDiscount] = useState("");
   const [expiration, setExpiration] = useState(new Date().toISOString());
   const [maxClaim, setMaxClaim] = useState("0");
+  const [status, setStatus] = useState<EvoucherStatus>(EvoucherStatus.ACTIVE);
   const [field, setField] = useState<{ cover: File | string | null }>({ cover: null });
   const [previewImage, setPreviewImage] = useState("");
+
+  // Load existing data if in edit mode
+  useEffect(() => {
+    if (mode === "edit" && evoucher) {
+      setSelectedSponsor(evoucher.sponsors.name.en);
+      setAcronym(evoucher.acronym);
+      setDetailTh(evoucher.detail.th);
+      setDetailEn(evoucher.detail.en);
+      setDiscount(evoucher.discount);
+      setExpiration(evoucher.expiration);
+      setMaxClaim(evoucher.claims?.maxClaim?.toString() || "0");
+      setStatus(evoucher.status);
+      if (evoucher.photo?.coverPhoto) {
+        setField({ cover: evoucher.photo.coverPhoto });
+      }
+    }
+  }, [mode, evoucher]);
 
   const handleFileChange = (file: File | null) => {
     if (!file) return;
@@ -60,10 +78,12 @@ export function EvoucherModal({
     formData.append("detail[en]", detailEn);
     formData.append("maxClaims", maxClaim);
     formData.append("type", evoucherType);
-    formData.append("status", EvoucherStatus.ACTIVE);
+    formData.append("status", status);
     if (sponsorId) formData.append("sponsors", sponsorId);
-    if (field.cover instanceof File) {
-      formData.append("photo[coverPhoto]", field.cover);
+    if (field.cover instanceof File || mode === "add") {
+      if (field.cover instanceof File) {
+        formData.append("photo[coverPhoto]", field.cover);
+      }
     }
 
     onSuccess(formData, mode);
@@ -80,7 +100,6 @@ export function EvoucherModal({
         <Divider />
 
         <ModalBody className="flex flex-col gap-6">
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Select 
               label="Sponsor" 
@@ -113,6 +132,19 @@ export function EvoucherModal({
             <Textarea label="Detail (English)" value={detailEn} onChange={(e) => setDetailEn(e.target.value)} isRequired minRows={2} maxRows={3} />
           </div>
           
+          <Divider />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <Select
+              label="Status"
+              selectedKeys={[status]}
+              onChange={(e) => setStatus(e.target.value as EvoucherStatus)}
+            >
+              <SelectItem key={EvoucherStatus.ACTIVE}>Active</SelectItem>
+              <SelectItem key={EvoucherStatus.INACTIVE}>Inactive</SelectItem>
+            </Select>
+          </div>
+
           <Divider />
 
           <div className="flex flex-col items-center gap-4">

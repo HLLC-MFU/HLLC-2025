@@ -1,8 +1,8 @@
-import React, { Key, useCallback, useMemo } from "react";
+import React, { Key, useCallback, useMemo, useState } from "react";
 import { Sponsors } from "@/types/sponsors";
 import TableContent from "./TableContent";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
-import { Evoucher, EvoucherType } from "@/types/evoucher/d";
+import { Evoucher, EvoucherType } from "@/types/evoucher";
 import { EvoucherModal } from "./AddEvoucherModal";
 import EvoucherCellRenderer from "./EvoucherCellRenderer";
 import { useEvoucherTable } from "./EvoucherTableLogic";
@@ -21,6 +21,7 @@ export default function EvoucherTable({
 }) {
     const tableLogic = useEvoucherTable({ evouchers });
     const [visibleColumns, setVisibleColumns] = React.useState(INITIAL_VISIBLE_COLUMNS);
+    const [selectedEvoucher, setSelectedEvoucher] = useState<Evoucher | undefined>();
 
     // Computed values
     const headerColumns = useMemo(() => 
@@ -34,14 +35,29 @@ export default function EvoucherTable({
             <EvoucherCellRenderer
                 evoucher={evoucher}
                 columnKey={columnKey}
-                onEdit={tableLogic.handleEdit}
-                onDelete={handleDelete}
+                onEdit={() => {
+                    setSelectedEvoucher(evoucher);
+                    tableLogic.handleEdit();
+                }}
+                onDelete={() => {
+                    setSelectedEvoucher(evoucher);
+                    handleDelete();
+                }}
             />
         );
-    }, [tableLogic.handleEdit, tableLogic.handleDelete]);
+    }, [tableLogic.handleEdit]);
 
     const handleDelete = () => {
         tableLogic.setIsDeleteOpen(true);
+    };
+
+    const handleSuccess = async (formData: FormData, mode: "add" | "edit") => {
+        if (mode === "edit" && selectedEvoucher) {
+            await tableLogic.handleUpdate(selectedEvoucher._id, formData);
+        } else {
+            await tableLogic.handleAdd(formData);
+        }
+        setSelectedEvoucher(undefined);
     };
 
     return (
@@ -76,18 +92,29 @@ export default function EvoucherTable({
             {tableLogic.isModalOpen && (
                 <EvoucherModal
                     isOpen={tableLogic.isModalOpen}
-                    onClose={() => tableLogic.setIsModalOpen(false)}
-                    onSuccess={tableLogic.handleAdd}
+                    onClose={() => {
+                        tableLogic.setIsModalOpen(false);
+                        setSelectedEvoucher(undefined);
+                    }}
+                    onSuccess={handleSuccess}
                     mode={tableLogic.actionText.toLowerCase() as "add" | "edit"}
                     evoucherType={evoucherType}
                     sponsors={sponsors}
+                    evoucher={selectedEvoucher}
                 />
             )}
 
             <ConfirmationModal
                 isOpen={tableLogic.isDeleteOpen}
-                onClose={() => tableLogic.setIsDeleteOpen(false)}
-                onConfirm={tableLogic.handleDelete}
+                onClose={() => {
+                    tableLogic.setIsDeleteOpen(false);
+                    setSelectedEvoucher(undefined);
+                }}
+                onConfirm={() => {
+                    if (selectedEvoucher) {
+                        tableLogic.handleDelete(selectedEvoucher._id);
+                    }
+                }}
                 title={"Delete evoucher"}
                 body={"Are you sure you want to delete this item?"}
                 confirmColor='danger'

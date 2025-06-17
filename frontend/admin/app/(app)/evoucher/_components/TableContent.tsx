@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import TopContent from "./TopContent";
 import BottomContent from "./BottomContent";
-import { Evoucher } from "@/types/evoucher/d";
+import { Evoucher } from "@/types/evoucher";
 import { SortDescriptor } from "@heroui/react";
 import type { Selection } from "@react-types/shared";
 import { Key } from "react";

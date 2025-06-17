@@ -3,7 +3,6 @@ import { SortDescriptor, addToast } from "@heroui/react";
 import type { Selection } from "@react-types/shared";
 import { Evoucher } from "@/types/evoucher";
 import { useEvoucher } from "@/hooks/useEvoucher";
-import { apiRequest } from "@/utils/api";
 
 // Utility functions
 const filterItems = (items: Evoucher[], search: string) => {
@@ -37,7 +36,7 @@ interface UseEvoucherTableProps {
 }
 
 export function useEvoucherTable({ evouchers, rowsPerPage = 5 }: UseEvoucherTableProps) {
-    const { createEvoucher, deleteEvoucher } = useEvoucher();
+    const { createEvoucher, updateEvoucher, deleteEvoucher } = useEvoucher();
 
     // State
     const [filterValue, setFilterValue] = useState("");
@@ -91,29 +90,46 @@ export function useEvoucherTable({ evouchers, rowsPerPage = 5 }: UseEvoucherTabl
         }
     };
 
-    const handleDelete = async () => {
-        let response;
-    
-        if (Array.from(selectedKeys).length > 0) {
-          response = await apiRequest(`/evoucher/${Array.from(selectedKeys) as string[]}`, "DELETE", {
-            credentials: "include",
-          });
-        } else {
-          response = await apiRequest(`/evoucher/${evouchers[0]._id}`, "DELETE", {
-            credentials: "include",
-          });
-        }
-        
-        setIsDeleteOpen(false);
-        
-        if (response) {
+    const handleUpdate = async (evoucherId: string, evoucher: FormData) => {
+        try {
+            const response = await updateEvoucher(evoucherId, evoucher);
+            setIsModalOpen(false);
+
             addToast({
-                title: "Delete Successfully",
-                description: "Data has deleted successfully",
+                title: "Update Successfully",
+                description: "Data has been updated successfully",
             });
-            window.location.reload();
+
+            if (response) window.location.reload();
+        } catch (error) {
+            addToast({
+                title: "Failed to Update",
+                description: (error as Error)?.message || "An error occurred while updating data.",
+                color: "danger",
+            });
         }
-      };
+    };
+
+    const handleDelete = async (evoucherId: string) => {
+        try {
+            const response = await deleteEvoucher(evoucherId);
+            setIsDeleteOpen(false);
+            
+            if (response) {
+                addToast({
+                    title: "Delete Successfully",
+                    description: "Data has deleted successfully",
+                });
+                window.location.reload();
+            }
+        } catch (error) {
+            addToast({
+                title: "Failed to Delete",
+                description: (error as Error)?.message || "An error occurred while deleting data.",
+                color: "danger",
+            });
+        }
+    };
 
     const handleSearch = (val: string) => {
         setFilterValue(val);
@@ -165,6 +181,7 @@ export function useEvoucherTable({ evouchers, rowsPerPage = 5 }: UseEvoucherTabl
         
         // Handlers
         handleAdd,
+        handleUpdate,
         handleDelete,
         handleSearch,
         handleClear,

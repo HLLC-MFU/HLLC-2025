@@ -1,7 +1,7 @@
 import React, { Key } from "react";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
 import { EllipsisVertical, Image } from "lucide-react";
-import { Evoucher } from "@/types/evoucher/d";
+import { Evoucher } from "@/types/evoucher";
 
 interface EvoucherCellRendererProps {
     evoucher: Evoucher;
