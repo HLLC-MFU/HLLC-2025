@@ -9,10 +9,9 @@ import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-cod
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
 import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
 import { 
-  generateBulkEvoucherCodes, 
+  generateEvoucherCode, 
   claimVoucherCode, 
   validateUserDuplicateClaim, 
-  generateEvoucherCode, 
   validateEvoucherExpired, 
   validateEvoucherTypeClaimable,
 } from '../utils/evoucher.util';
@@ -30,7 +29,7 @@ export class EvoucherCodeService {
     const evoucher = await validateEvoucherExpired(dto.evoucher, this.evoucherModel);
     await findOrThrow(this.userModel, dto.user, 'User not found');
 
-    const code = await generateEvoucherCode(this.evoucherCodeModel, evoucher.acronym);
+    const code = await generateEvoucherCode(dto, evoucher, []);
 
     const newCode = new this.evoucherCodeModel({
       ...dto,
@@ -48,7 +47,7 @@ export class EvoucherCodeService {
     const evoucher = await validateEvoucherExpired(dto.evoucher, this.evoucherModel);
 
     const existingCodes = await this.evoucherCodeModel.find({ code: new RegExp(`^${evoucher.acronym}\\d+$`) }).lean();
-    const codesToInsert = generateBulkEvoucherCodes(dto, evoucher, existingCodes);
+    const codesToInsert = generateEvoucherCode(dto, evoucher, existingCodes);
 
     await this.evoucherCodeModel.insertMany(codesToInsert);
     return codesToInsert;
@@ -107,7 +106,12 @@ export class EvoucherCodeService {
       query,
       filterSchema: {},
       populateFields: () => Promise.resolve([
-        { path: 'evoucher' },
+        { 
+          path: 'evoucher',
+          populate: [
+            { path: 'sponsors' }
+          ]
+        },
         { path: 'user' }
       ]),
     });

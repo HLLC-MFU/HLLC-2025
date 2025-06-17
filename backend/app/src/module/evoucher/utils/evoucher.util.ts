@@ -50,12 +50,12 @@ export function generateEvoucherCode(
     const codeNumber = String(current++).padStart(6, '0');
     return {
       code: `${evoucher.acronym}${codeNumber}`,
-      evoucher: evoucher._id.toString(),
-      user: dto.user,
-      isUsed: false,
-      metadata: { expiration: evoucher.expiration.toISOString() }
+        evoucher: evoucher._id.toString(),
+        user: dto.user,
+        isUsed: false,
+        metadata: { expiration: evoucher.expiration.toISOString() }
     };
-  });
+      });
 }
   
 
@@ -66,9 +66,9 @@ export async function claimVoucherCode(
 ) {
   const [currentClaims, availableCode] = await Promise.all([
     evoucher.maxClaims ? evoucherCodeModel.countDocuments({
-      evoucher: evoucher._id,
-      user: { $ne: null },
-      isUsed: false
+    evoucher: evoucher._id,
+    user: { $ne: null },
+    isUsed: false
     }) : 0,
     evoucherCodeModel.findOneAndUpdate(
       { evoucher: evoucher._id, user: null, isUsed: false },
@@ -89,10 +89,10 @@ export async function claimVoucherCode(
       user: userId,
       metadata: { expiration: evoucher.expiration.toISOString() }
     }, evoucher) as string,
-    evoucher: evoucher._id,
-    user: new Types.ObjectId(userId),
-    isUsed: false,
-    metadata: { expiration: evoucher.expiration }
+      evoucher: evoucher._id,
+      user: new Types.ObjectId(userId),
+      isUsed: false,
+      metadata: { expiration: evoucher.expiration }
   });
 
   return newCode;
@@ -119,9 +119,9 @@ export const validatePublicAvailableVoucher = async (
 
   const [userHas, currentClaims] = await Promise.all([
     userId ? evoucherCodeModel.exists({
-      evoucher: evoucherId,
-      user: userId,
-      isUsed: false,
+          evoucher: evoucherId,
+          user: userId,
+          isUsed: false,
     }) : false,
     evoucher.maxClaims ? evoucherCodeModel.countDocuments({
       evoucher: evoucherId,
