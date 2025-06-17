@@ -57,6 +57,7 @@ export default function EvoucherPage() {
                     evouchers={globalEvouchers}
                     sponsors={sponsors}
                     sponsorName="Global"
+                    evoucherType={EvoucherType.GLOBAL}
                 />
             </AccordionItem>,
             <AccordionItem
@@ -77,6 +78,7 @@ export default function EvoucherPage() {
                     evouchers={individualEvouchers}
                     sponsors={sponsors}
                     sponsorName="Individual"
+                    evoucherType={EvoucherType.INDIVIDUAL}
                 />
             </AccordionItem>
         ];

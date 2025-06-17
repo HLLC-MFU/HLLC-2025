@@ -13,7 +13,7 @@ interface AddEvoucherProps {
   onClose: () => void;
   onSuccess: (formData: FormData, mode: "add" | "edit") => void;
   mode: "add" | "edit";
-  type: EvoucherType[];
+  evoucherType: EvoucherType; 
   sponsors: Sponsors[];
   evoucher?: Evoucher;
 }
@@ -23,17 +23,16 @@ export function EvoucherModal({
   onClose,
   onSuccess,
   mode,
-  type,
+  evoucherType,
   sponsors,
   evoucher
 }: AddEvoucherProps) {
-  const [sponsor, setSponsor] = useState<Set<string>>(new Set());
+  const [selectedSponsor, setSelectedSponsor] = useState<string>("");
   const [acronym, setAcronym] = useState("");
   const [detailTh, setDetailTh] = useState("");
   const [detailEn, setDetailEn] = useState("");
-  const [discount, setDiscount] = useState("0");
+  const [discount, setDiscount] = useState("");
   const [expiration, setExpiration] = useState(new Date().toISOString());
-  const [selectedType, setSelectedType] = useState<Set<string>>(new Set());
   const [maxClaim, setMaxClaim] = useState("0");
   const [field, setField] = useState<{ cover: File | string | null }>({ cover: null });
   const [previewImage, setPreviewImage] = useState("");
@@ -49,9 +48,9 @@ export function EvoucherModal({
   };
 
   const handleSubmit = () => {
-    if (!sponsor.size || !selectedType.size) return;
+    if (!selectedSponsor) return;
 
-    const sponsorId = sponsors.find((s) => s.name.en === Array.from(sponsor)[0])?._id;
+    const sponsorId = sponsors.find((s) => s.name.en === selectedSponsor)?._id;
 
     const formData = new FormData();
     formData.append("acronym", acronym);
@@ -60,9 +59,9 @@ export function EvoucherModal({
     formData.append("detail[th]", detailTh);
     formData.append("detail[en]", detailEn);
     formData.append("maxClaim", maxClaim);
+    formData.append("type", evoucherType); // Use pre-selected type
     if (sponsorId) formData.append("sponsors", sponsorId);
     if (field.cover) formData.append("photo[coverPhoto]", field.cover);
-    formData.append("type", Array.from(selectedType)[0]);
 
     onSuccess(formData, mode);
     onClose();
@@ -72,7 +71,7 @@ export function EvoucherModal({
     <Modal isOpen={isOpen} onClose={() => { onClose(); }} size="4xl" scrollBehavior="inside">
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
-          {mode === "add" ? "Add E-voucher" : "Edit E-voucher"}
+          {mode === "add" ? `Add ${evoucherType} E-voucher` : "Edit E-voucher"}
         </ModalHeader>
 
         <Divider />
@@ -80,16 +79,18 @@ export function EvoucherModal({
         <ModalBody className="flex flex-col gap-6">
 
           {/* Section 1: Basic Information */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <Select label="Sponsor" isRequired selectedKeys={sponsor} onSelectionChange={(keys) => setSponsor(keys as Set<string>)}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <Select 
+              label="Sponsor" 
+              isRequired 
+              selectedKeys={selectedSponsor ? [selectedSponsor] : []}
+              onSelectionChange={(keys) => {
+                const selectedKey = Array.from(keys)[0] as string;
+                setSelectedSponsor(selectedKey);
+              }}
+            >
               {sponsors.map((s) => (
                 <SelectItem key={s.name.en}>{s.name.en}</SelectItem>
-              ))}
-            </Select>
-
-            <Select label="Type" isRequired selectedKeys={selectedType} onSelectionChange={(keys) => setSelectedType(keys as Set<string>)}>
-              {type.map((t) => (
-                <SelectItem key={t}>{t}</SelectItem>
               ))}
             </Select>
             <Input label="Acronym" isRequired value={acronym} onChange={(e) => setAcronym(e.target.value)} />
@@ -97,33 +98,36 @@ export function EvoucherModal({
 
           <Divider />
 
-          {/* Section 3: Discount + Expiration + MaxClaim */}
+          {/* Section 2: Discount + Expiration + MaxClaim */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <Input label="Discount (%)" type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} isRequired />
+            <Input label="Discount" type="text" value={discount} onChange={(e) => setDiscount(e.target.value)} isRequired />
             <Input label="Max Claims" type="number" value={maxClaim} onChange={(e) => setMaxClaim(e.target.value)} isRequired />
             <Input label="Expiration" type="datetime-local" value={expiration.slice(0, 16)} onChange={(e) => setExpiration(new Date(e.target.value).toISOString())} isRequired />
           </div>
 
           <Divider />
 
-          {/* Section 4: Details */}
+          {/* Section 3: Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Textarea label="Detail (Thai)" value={detailTh} onChange={(e) => setDetailTh(e.target.value)} isRequired minRows={2} maxRows={3} />
             <Textarea label="Detail (English)" value={detailEn} onChange={(e) => setDetailEn(e.target.value)} isRequired minRows={2} maxRows={3} />
           </div>
+          
           <Divider />
 
-          {/* Section 5: Cover Upload */}
-          <div>
-            <h3 className="text-sm font-medium mb-3">Cover Photo</h3>
-            <PreviewModal
-              field={field}
-              setField={setField}
-              previewImage={previewImage}
-              setPreviewImage={setPreviewImage}
-              handleFileChange={handleFileChange}
-              title={mode as "Add" | "Edit"}
-            />
+          {/* Section 4: Cover Upload - Centered and Smaller */}
+          <div className="flex flex-col items-center gap-4">
+            <h3 className="text-sm font-medium">Cover Photo</h3>
+            <div className="w-full max-w-md">
+              <PreviewModal
+                field={field}
+                setField={setField}
+                previewImage={previewImage}
+                setPreviewImage={setPreviewImage}
+                handleFileChange={handleFileChange}
+                title={mode as "Add" | "Edit"}
+              />
+            </div>
           </div>
 
         </ModalBody>

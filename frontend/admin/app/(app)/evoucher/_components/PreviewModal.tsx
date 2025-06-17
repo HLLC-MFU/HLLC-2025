@@ -9,7 +9,7 @@ interface PreviewModalProps {
     setField: (field: { cover: File | string | null }) => void;
     previewImage: string;
     setPreviewImage: (url: string) => void;
-    handleFileChange: (file: File) => void;
+    handleFileChange: (file: File | null) => void;
     title: "Add" | "Edit";
 }
 
@@ -26,9 +26,8 @@ export default function PreviewModal({
     const coverInputRef = useRef<HTMLInputElement>(null);
 
     return (
-        <div className="space-y-2 max-w-[400px]">
-            <h3 className="text-sm font-medium mb-3">Photos</h3>
-            <div className="flex items-center justify-between">
+        <div className="flex flex-col items-center space-y-4 w-full max-w-sm mx-auto">
+            <div className="flex items-center justify-between w-full">
                 <h4 className="text-sm font-medium text-default-700">Cover Photo</h4>
                 <div className="flex gap-2">
                     <Button
@@ -57,18 +56,18 @@ export default function PreviewModal({
                 </div>
             </div>
 
-            <div className="relative aspect-square rounded-xl border border-default-200 bg-default-50 transition-all duration-200 hover:border-primary/50">
+            <div className="relative w-48 h-48 rounded-xl border border-default-200 bg-default-50 transition-all duration-200 hover:border-primary/50">
                 {previewImage ? (
                     <img
                         src={previewImage}
                         alt="Preview"
-                        className="w-full h-full object-contain max-w-[400px] bg-white rounded-xl"
+                        className="w-full h-full object-cover rounded-xl"
                     />
                 ) : typeof field.cover === "string" ? (
                     <img
                         src={`${IMAGE_URL}/uploads/${field.cover}`}
                         alt="Preview"
-                        className="w-full h-full object-contain max-w-[400px] bg-white rounded-xl"
+                        className="w-full h-full object-cover rounded-xl"
                     />
                 ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-default-400">
@@ -84,7 +83,7 @@ export default function PreviewModal({
                 type="file"
                 accept="image/*"
                 onChange={(e) => {
-                    const file = e.target.files?.[0];
+                    const file = e.target.files?.[0] || null;
                     if (file) {
                         setField({ ...field, cover: file });
                         handleFileChange(file);
