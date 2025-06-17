@@ -4,12 +4,11 @@ import { ChevronDownIcon, PlusIcon, SearchIcon, Ticket } from "lucide-react";
 import { TableColumnType } from "./TableContent";
 import React from "react";
 import type { Selection } from "@react-types/shared";
+import { useSponsors } from "@/hooks/useSponsors";
 
 export interface TopContentProps {
     setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
-    typeFilter: Selection;
-    setTypeFilter: (value: Selection) => void;
     capitalize: (value: string) => string;
     visibleColumns: Set<string> | string[];
     setVisibleColumns: (columns: Set<string>) => void;
@@ -28,8 +27,6 @@ export interface TopContentProps {
 export default function TopContent({
     setActionText,
     filterValue,
-    typeFilter,
-    setTypeFilter,
     capitalize,
     visibleColumns,
     setVisibleColumns,
@@ -37,7 +34,7 @@ export default function TopContent({
     onClear,
     onSearchChange,
 }: TopContentProps) {
-
+    const { sponsors } = useSponsors();
     return (
         <div className="flex flex-col gap-4">
             <div className="flex justify-between gap-3 items-end">
@@ -54,23 +51,20 @@ export default function TopContent({
                     <Dropdown>
                         <DropdownTrigger className="hidden sm:flex">
                             <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
-                                Type
+                                Sponsor
                             </Button>
                         </DropdownTrigger>
                         <DropdownMenu
                             disallowEmptySelection
                             aria-label="Table Columns"
                             closeOnSelect={false}
-                            selectedKeys={typeFilter}
                             selectionMode="multiple"
-                            onSelectionChange={setTypeFilter}
                         >
-                            <DropdownItem key="GLOBAL" className="capitalize">
-                                {capitalize("GLOBAL")}
-                            </DropdownItem>
-                            <DropdownItem key="INDIVIDUAL" className="capitalize">
-                                {capitalize("INDIVIDUAL")}
-                            </DropdownItem>
+                            {sponsors.map((sponsor) => (
+                                <DropdownItem key={sponsor._id} className="capitalize">
+                                    {capitalize(sponsor.name.en)}
+                                </DropdownItem>
+                            ))}
                         </DropdownMenu>
                     </Dropdown>
                     <Dropdown>

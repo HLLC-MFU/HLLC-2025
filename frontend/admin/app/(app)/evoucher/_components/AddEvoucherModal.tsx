@@ -5,7 +5,7 @@ import {
   Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider, Input, Select, SelectItem, Textarea
 } from "@heroui/react";
 import { Sponsors } from "@/types/sponsors";
-import { Evoucher, EvoucherType } from "@/types/evoucher/d";
+import { Evoucher, EvoucherStatus, EvoucherType } from "@/types/evoucher";
 import PreviewModal from "./PreviewModal";
 
 interface AddEvoucherProps {
@@ -58,8 +58,9 @@ export function EvoucherModal({
     formData.append("expiration", expiration);
     formData.append("detail[th]", detailTh);
     formData.append("detail[en]", detailEn);
-    formData.append("maxClaim", maxClaim || "0");
+    formData.append("maxClaims", maxClaim);
     formData.append("type", evoucherType);
+    formData.append("status", EvoucherStatus.ACTIVE);
     if (sponsorId) formData.append("sponsors", sponsorId);
     if (field.cover instanceof File) {
       formData.append("photo[coverPhoto]", field.cover);
@@ -80,7 +81,6 @@ export function EvoucherModal({
 
         <ModalBody className="flex flex-col gap-6">
 
-          {/* Section 1: Basic Information */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Select 
               label="Sponsor" 
@@ -100,7 +100,6 @@ export function EvoucherModal({
 
           <Divider />
 
-          {/* Section 2: Discount + Expiration + MaxClaim */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <Input label="Discount" type="text" value={discount} onChange={(e) => setDiscount(e.target.value)} isRequired />
             <Input label="Max Claims" type="number" value={maxClaim} onChange={(e) => setMaxClaim(e.target.value)} isRequired />
@@ -109,7 +108,6 @@ export function EvoucherModal({
 
           <Divider />
 
-          {/* Section 3: Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Textarea label="Detail (Thai)" value={detailTh} onChange={(e) => setDetailTh(e.target.value)} isRequired minRows={2} maxRows={3} />
             <Textarea label="Detail (English)" value={detailEn} onChange={(e) => setDetailEn(e.target.value)} isRequired minRows={2} maxRows={3} />
@@ -117,7 +115,6 @@ export function EvoucherModal({
           
           <Divider />
 
-          {/* Section 4: Cover Upload - Centered and Smaller */}
           <div className="flex flex-col items-center gap-4">
             <h3 className="text-sm font-medium">Cover Photo</h3>
             <div className="w-full max-w-md">

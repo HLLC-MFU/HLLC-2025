@@ -47,8 +47,6 @@ export default function TableContent({
     sortedItems,
     renderCell,
     filterValue,
-    typeFilter,
-    setTypeFilter,
     capitalize,
     visibleColumns,
     setVisibleColumns,
@@ -80,8 +78,6 @@ export default function TableContent({
             topContent={<TopContent
                 setActionText={setActionText}
                 filterValue={filterValue}
-                typeFilter={typeFilter}
-                setTypeFilter={setTypeFilter}   
                 capitalize={capitalize}
                 visibleColumns={visibleColumns}
                 setVisibleColumns={setVisibleColumns}
@@ -108,18 +104,22 @@ export default function TableContent({
                     <TableColumn
                         key={column.uid}
                         align={column.uid === "actions" ? "center" : "start"}
-                        className={`${column.uid === "actions" ? "w-16" : "w-48"} py-3`}
+                        className={`${column.uid === "actions" ? "w-16" : "w-48"} py-4 bg-default-50`}
                         allowsSorting={column.sortable}
                     >
-                        <span className="text-bold text-small">{column.name}</span>
+                        <span className="text-bold text-small uppercase tracking-wider">{column.name}</span>
                     </TableColumn>
                 )}
             </TableHeader>
-            <TableBody emptyContent={"No users found"} items={sortedItems}>
+            <TableBody emptyContent={
+                <div className="flex flex-col items-center justify-center py-8">
+                    <span className="text-default-400">No evouchers found</span>
+                </div>
+            } items={sortedItems}>
                 {(item) => (
-                    <TableRow key={item._id} className="hover:bg-default-100">
+                    <TableRow key={item._id} className="hover:bg-default-50 transition-colors">
                         {(columnKey) => (
-                            <TableCell className={`${columnKey === "actions" ? "w-16" : "w-48"} py-2`}>
+                            <TableCell className={`${columnKey === "actions" ? "w-16" : "w-48"} py-4`}>
                                 {renderCell(item, columnKey)}
                             </TableCell>
                         )}
