@@ -4314,6 +4314,11 @@ packages:
       uglify-js:
         optional: true
 
+  terser@5.39.0:
+    resolution: {integrity: sha512-LBAhFyLho16harJoWMg/nZsQYgTrg5jXOn2nCYjRUcZZEdE3qa2zb8QEDRUGVZBW4rlazf2fxkg8tztybTaqWw==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   terser@5.39.2:
     resolution: {integrity: sha512-yEPUmWve+VA78bI71BW70Dh0TuV4HHd+I5SHOAfS1+QBOmvmCiiffgjR8ryyEd3KIfvPGFqoADt8LdQ6XpXIvg==}
     engines: {node: '>=10'}
@@ -10361,8 +10366,15 @@ snapshots:
       jest-worker: 27.5.1
       schema-utils: 4.3.2
       serialize-javascript: 6.0.2
-      terser: 5.39.2
+      terser: 5.39.0
       webpack: 5.99.9
+
+  terser@5.39.0:
+    dependencies:
+      '@jridgewell/source-map': 0.3.6
+      acorn: 8.14.1
+      commander: 2.20.3
+      source-map-support: 0.5.21
 
   terser@5.39.2:
     dependencies:
