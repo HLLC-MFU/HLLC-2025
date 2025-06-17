@@ -1,3 +1,4 @@
+import { Lang } from "./lang";
 import { Sponsors } from "./sponsors";
 
 export enum EvoucherType {
@@ -16,10 +17,7 @@ export interface Evoucher {
     acronym: string;
     type: EvoucherType;
     sponsors: Sponsors;
-    detail: {
-        en: string;
-        th: string;
-    };
+    detail: Lang;
     expiration: string;
     photo: {
         coverPhoto: string;

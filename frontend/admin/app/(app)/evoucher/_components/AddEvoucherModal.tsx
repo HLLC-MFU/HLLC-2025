@@ -14,6 +14,7 @@ import {
 
 import { Sponsors } from "@/types/sponsors";
 import { Evoucher } from "@/types/evoucher";
+import PreviewModal from "./PreviewModal";
 
 export interface AddEvoucherProps {
     isOpen: boolean;
@@ -40,7 +41,8 @@ export default function AddModal({
         new Date().toISOString()
     );
     const [selectedType, setSelectedType] = React.useState<Set<string>>(new Set<string>());
-    const [cover, setCover] = React.useState<File | null>(null);
+    const [field, setField] = React.useState<{ cover: File | string | null }>({ cover: null });
+    const [previewImage, setPreviewImage] = React.useState("");
 
     React.useEffect(() => {
         if (title === "Add") {
@@ -55,7 +57,16 @@ export default function AddModal({
         setDiscount("0");
         setExpiration(new Date().toISOString());
         setSelectedType(new Set());
-        setCover(null);
+        setField({ cover: null });
+        setPreviewImage("");
+    };
+
+    const handleFileChange = (file: File) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setPreviewImage(reader.result as string);
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -70,7 +81,7 @@ export default function AddModal({
         formData.append("detail[th]", detail);
         formData.append("detail[en]", detail);
         if (sponsorId) formData.append("sponsors", sponsorId);
-        if (cover) formData.append("photo[coverPhoto]", cover);
+        if (field.cover) formData.append("photo[coverPhoto]", field.cover);
 
         onAdd(formData);
         onClear();
@@ -163,16 +174,14 @@ export default function AddModal({
                                 <SelectItem key={t.type}>{t.type}</SelectItem>
                             ))}
                         </Select>
-                        <Input
-                            isRequired
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                    setCover(file);
-                                }
-                            }}
+
+                        <PreviewModal
+                            field={field}
+                            setField={setField}
+                            previewImage={previewImage}
+                            setPreviewImage={setPreviewImage}
+                            handleFileChange={handleFileChange}
+                            title={title as "Add" | "Edit"}
                         />
                     </ModalBody>
                     <ModalFooter className="self-end">

@@ -8,6 +8,7 @@ import { Evoucher } from "@/types/evoucher";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import type { Selection } from "@react-types/shared";
 import AddEvoucherModal from "./AddEvoucherModal";
+import { Lang } from "@/types/lang";
 
 export const columns = [
     { name: "SPONSOR", uid: "sponsors", sortable: true },
@@ -16,7 +17,7 @@ export const columns = [
     { name: "DISCOUNT", uid: "discount", sortable: true },
     { name: "EXPIRATION", uid: "expiration", sortable: true },
     { name: "STATUS", uid: "status", sortable: true },
-    { name: "MAX CLAIMS", uid: "maxClaims" },
+    { name: "CLAIMS", uid: "claims" },
     { name: "COVER", uid: "cover" },
     { name: "ACTIONS", uid: "actions" },
 ];
@@ -32,6 +33,7 @@ const INITIAL_VISIBLE_COLUMNS = [
     "discount",
     "expiration",
     "status",
+    "claims",
     "cover",
 ];
 
@@ -108,32 +110,71 @@ export default function EvoucherTable({
 
         switch (columnKey) {
             case "sponsors":
-                return (cellValue as Evoucher['sponsors']).name.en;
+                return (
+                    <div className="flex flex-col">
+                        <span className="text-bold text-small capitalize">{(cellValue as Evoucher['sponsors']).name.en}</span>
+                    </div>
+                );
             case "discount":
-                return `${cellValue}%`;
+                return (
+                    <div className="flex flex-col">
+                        <span className="text-bold text-small">{(cellValue as Evoucher['discount'])}%</span>
+                    </div>
+                );
             case "acronym":
-                return cellValue;
+                return (
+                    <div className="flex flex-col">
+                        <span className="text-bold text-small">{(cellValue as Evoucher['acronym'])}</span>
+                    </div>
+                );
             case "detail":
-                return (cellValue as { en: string }).en;
+                return (
+                    <div className="flex flex-col gap-1">
+                        <span className="text-bold text-small">TH: {(cellValue as Evoucher['detail']).th}</span>
+                        <span className="text-small text-default-400">EN: {(cellValue as Evoucher['detail']).en}</span>
+                    </div>
+                );
             case "status":
-                return cellValue as Evoucher['status'];
-            case "maxClaims":
-                return `${evoucher.claims.currentClaim} / ${evoucher.claims.maxClaim}`;
+                return (
+                    <div className="flex flex-col">
+                        <span className={`text-bold text-small capitalize ${cellValue === 'ACTIVE' ? 'text-success' : 'text-danger'}`}>
+                            {cellValue as Evoucher['status']}
+                        </span>
+                    </div>
+                );
+            case "claims":
+                return (
+                    <div className="flex flex-col">
+                        <span className="text-bold text-small">
+                            {evoucher.claims.currentClaim} / {evoucher.claims.maxClaim}
+                        </span>
+                    </div>
+                );
             case "expiration":
                 if (typeof cellValue === "string") {
-                    return new Date(cellValue).toLocaleString("en-US", {
-                        dateStyle: 'long',
-                        timeStyle: 'short',
-                        timeZone: 'UTC'
-                    });
+                    return (
+                        <div className="flex flex-col">
+                            <span className="text-bold text-small">
+                                {new Date(cellValue).toLocaleString("en-US", {
+                                    dateStyle: 'long',
+                                    timeStyle: 'short',
+                                    timeZone: 'UTC'
+                                })}
+                            </span>
+                        </div>
+                    );
                 }
             case "cover":
                 return (
-                    <Image
-                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo?.coverPhoto}`}
-                        alt="Cover"
-                        width={100}
-                    />
+                    <div className="relative w-[100px] h-[100px] rounded-lg overflow-hidden border border-default-200">
+                        <Image
+                            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo?.coverPhoto}`}
+                            alt="Cover"
+                            width={100}
+                            height={100}
+                            className="object-cover w-full h-full hover:scale-110 transition-transform duration-200"
+                        />
+                    </div>
                 );
             case "actions":
                 return (

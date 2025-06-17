@@ -108,17 +108,21 @@ export default function TableContent({
                     <TableColumn
                         key={column.uid}
                         align={column.uid === "actions" ? "center" : "start"}
-                        className="w-48"
+                        className={`${column.uid === "actions" ? "w-16" : "w-48"} py-3`}
                         allowsSorting={column.sortable}
                     >
-                        {column.name}
+                        <span className="text-bold text-small">{column.name}</span>
                     </TableColumn>
                 )}
             </TableHeader>
             <TableBody emptyContent={"No users found"} items={sortedItems}>
                 {(item) => (
-                    <TableRow key={item._id}>
-                        {(columnKey) => <TableCell className="w-48">{renderCell(item, columnKey)}</TableCell>}
+                    <TableRow key={item._id} className="hover:bg-default-100">
+                        {(columnKey) => (
+                            <TableCell className={`${columnKey === "actions" ? "w-16" : "w-48"} py-2`}>
+                                {renderCell(item, columnKey)}
+                            </TableCell>
+                        )}
                     </TableRow>
                 )}
             </TableBody>
