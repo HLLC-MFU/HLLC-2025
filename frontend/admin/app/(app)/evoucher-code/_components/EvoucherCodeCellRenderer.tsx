@@ -1,7 +1,7 @@
 import React, { Key } from "react";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Chip } from "@heroui/react";
-import { EllipsisVertical, Copy } from "lucide-react";
-import { EvoucherCode, EvoucherCodeStatus } from "@/types/evoucher-code";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
+import { EllipsisVertical } from "lucide-react";
+import { EvoucherCode } from "@/types/evoucher-code";
 
 interface EvoucherCodeCellRendererProps {
     evoucherCode: EvoucherCode;
@@ -16,60 +16,37 @@ export default function EvoucherCodeCellRenderer({
     onEdit, 
     onDelete 
 }: EvoucherCodeCellRendererProps) {
-    const handleCopyCode = (code: string) => {
-        navigator.clipboard.writeText(code);
-    };
-
-    const getStatusColor = (status: EvoucherCodeStatus) => {
-        switch (status) {
-            case EvoucherCodeStatus.ACTIVE:
-                return "success";
-            case EvoucherCodeStatus.USED:
-                return "warning";
-            case EvoucherCodeStatus.INACTIVE:
-                return "danger";
-            default:
-                return "default";
-        }
-    };
-
     const cellRenderers: Record<string, React.ReactNode> = {
         code: (
-            <div className="flex items-center gap-2">
-                <span className="font-mono">{evoucherCode.code}</span>
-                <Button
-                    isIconOnly
-                    variant="light"
-                    size="sm"
-                    onClick={() => handleCopyCode(evoucherCode.code)}
-                >
-                    <Copy className="h-4 w-4" />
-                </Button>
-            </div>
+            <span className="text-bold text-small">
+                {evoucherCode.code}
+            </span>
         ),
         evoucher: (
-            <span className="text-bold text-small">
-                {evoucherCode.evoucher.acronym}
+            <div className="flex flex-col gap-1">
+                <span className="text-bold text-small">{evoucherCode.evoucher.acronym}</span>
+                <span className="text-small text-default-500">{evoucherCode.evoucher.detail.en}</span>
+            </div>
+        ),
+        sponsor: (
+            <span className="text-bold text-small capitalize">
+                {evoucherCode.evoucher.sponsors.name.en}
             </span>
         ),
-        status: (
-            <Chip color={getStatusColor(evoucherCode.status)} size="sm">
-                {evoucherCode.status}
-            </Chip>
-        ),
-        usedBy: (
-            <span className="text-bold text-small">
-                {evoucherCode.usedBy || "-"}
+        isUsed: (
+            <span className={`text-bold text-small capitalize ${
+                evoucherCode.isUsed ? 'text-danger' : 'text-success'
+            }`}>
+                {evoucherCode.isUsed ? 'Used' : 'Available'}
             </span>
         ),
-        usedAt: (
+        expiration: (
             <span className="text-bold text-small">
-                {evoucherCode.usedAt ? new Date(evoucherCode.usedAt).toLocaleString() : "-"}
-            </span>
-        ),
-        createdAt: (
-            <span className="text-bold text-small">
-                {new Date(evoucherCode.createdAt).toLocaleString()}
+                {new Date(evoucherCode.metadata.expiration).toLocaleString("en-US", {
+                    dateStyle: 'long',
+                    timeStyle: 'short',
+                    timeZone: 'UTC'
+                })}
             </span>
         ),
         actions: (

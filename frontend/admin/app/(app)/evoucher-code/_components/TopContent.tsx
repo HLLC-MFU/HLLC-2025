@@ -75,7 +75,7 @@ export default function TopContent({
                             ))}
                         </DropdownMenu>
                     </Dropdown>
-                    <Button onPress={() => { setActionText("Add"); }} color="primary" endContent={<PlusIcon size={20} />}>Add Code</Button>
+                    <Button onPress={() => { setActionText("Add"); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher Code</Button>
                 </div>
             </div>
         </div>

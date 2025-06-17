@@ -2,15 +2,14 @@
 export const COLUMNS = [
     { name: "CODE", uid: "code", sortable: true },
     { name: "EVOUCHER", uid: "evoucher", sortable: true },
-    { name: "STATUS", uid: "status", sortable: true },
-    { name: "USED BY", uid: "usedBy" },
-    { name: "USED AT", uid: "usedAt", sortable: true },
-    { name: "CREATED AT", uid: "createdAt", sortable: true },
+    { name: "SPONSOR", uid: "sponsor", sortable: true },
+    { name: "USED", uid: "isUsed", sortable: true },
+    { name: "EXPIRATION", uid: "expiration", sortable: true },
     { name: "ACTIONS", uid: "actions" },
 ];
 
 export const INITIAL_VISIBLE_COLUMNS = new Set([
-    "code", "evoucher", "status", "usedBy", "usedAt", "createdAt", "actions"
+    "code", "evoucher", "sponsor", "isUsed", "expiration", "actions"
 ]);
 
 export const ROWS_PER_PAGE = 5;

@@ -20,8 +20,6 @@ export interface TableContentProps {
     sortedItems: EvoucherCode[];
     renderCell: (evoucherCode: EvoucherCode, columnKey: Key) => any;
     filterValue: string;
-    typeFilter: Selection;
-    setTypeFilter: (value: Selection) => void;
     capitalize: (value: string) => string;
     visibleColumns: Set<string>;
     setVisibleColumns: (columns: Set<string>) => void;
@@ -128,4 +126,4 @@ export default function TableContent({
             </TableBody>
         </Table>
     );
-};
+}

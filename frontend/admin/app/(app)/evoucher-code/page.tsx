@@ -18,10 +18,17 @@ export default function EvoucherCodePage() {
     const isLoading = evoucherCodesLoading || sponsorsLoading;
 
     // Group evoucher codes by sponsor
-    const evoucherCodesBySponsors = sponsors.reduce((acc, sponsor) => {
-        acc[sponsor._id] = evoucherCodes.filter(code => code.sponsors._id === sponsor._id);
-        return acc;
-    }, {} as Record<string, typeof evoucherCodes>);
+    const evoucherCodesBySponsors = React.useMemo(() => {
+        const groupedCodes = new Map();
+        evoucherCodes.forEach(code => {
+            const sponsorName = code.evoucher.sponsors.name.en;
+            if (!groupedCodes.has(sponsorName)) {
+                groupedCodes.set(sponsorName, []);
+            }
+            groupedCodes.get(sponsorName).push(code);
+        });
+        return groupedCodes;
+    }, [evoucherCodes]);
 
     const accordionItems = isLoading 
         ? Array.from({ length: 2 }).map((_, index) => (
@@ -35,24 +42,24 @@ export default function EvoucherCodePage() {
                 <div className="h-[100px] w-full bg-gray-100 rounded-md animate-pulse" />
             </AccordionItem>
         ))
-        : sponsors.map(sponsor => (
+        : Array.from(evoucherCodesBySponsors.entries()).map(([sponsorName, codes]) => (
             <AccordionItem
-                key={sponsor._id}
-                aria-label={`${sponsor.name.en} Evoucher Codes`}
+                key={sponsorName}
+                aria-label={`${sponsorName} Evoucher Codes`}
                 className="font-medium mb-2"
                 title={
                     <div className="flex items-center gap-2">
-                        <span>{sponsor.name.en} Evoucher Codes</span>
+                        <span>{sponsorName} Evoucher Codes</span>
                         <span className="text-xs text-gray-500">
-                            ({evoucherCodesBySponsors[sponsor._id]?.length || 0} code{evoucherCodesBySponsors[sponsor._id]?.length !== 1 ? "s" : ""})
+                            ({codes.length} code{codes.length !== 1 ? "s" : ""})
                         </span>
                     </div>
                 }
             >
                 <EvoucherCodeTable
-                    evoucherCodes={evoucherCodesBySponsors[sponsor._id] || []}
+                    evoucherCodes={codes}
                     sponsors={sponsors}
-                    sponsorId={sponsor._id}
+                    sponsorName={sponsorName}
                 />
             </AccordionItem>
         ));

@@ -7,30 +7,35 @@ import { useEvoucherCode } from "@/hooks/useEvoucherCode";
 // Utility functions
 const filterItems = (items: EvoucherCode[], search: string) => {
     const query = search.toLowerCase();
-    return items.filter(evoucherCode =>
-        evoucherCode.code.toLowerCase().includes(query) ||
-        evoucherCode.evoucher.acronym.toLowerCase().includes(query) ||
-        evoucherCode.status.toLowerCase().includes(query) ||
-        (evoucherCode.usedBy || "").toLowerCase().includes(query)
+    return items.filter(code =>
+        code.code.toLowerCase().includes(query) ||
+        code.evoucher.acronym.toLowerCase().includes(query) ||
+        code.evoucher.sponsors.name.en.toLowerCase().includes(query) ||
+        code.evoucher.detail.en.toLowerCase().includes(query)
     );
 };
 
 const sortItems = (items: EvoucherCode[], descriptor: SortDescriptor) => {
     return [...items].sort((a, b) => {
-        let first = a[descriptor.column as keyof EvoucherCode];
-        let second = b[descriptor.column as keyof EvoucherCode];
+        let first: string;
+        let second: string;
 
         // Handle special cases for nested objects
-        if (descriptor.column === "evoucher") {
-            first = a.evoucher.acronym;
-            second = b.evoucher.acronym;
+        switch (descriptor.column) {
+            case "evoucher":
+                first = a.evoucher.acronym;
+                second = b.evoucher.acronym;
+                break;
+            case "sponsor":
+                first = a.evoucher.sponsors.name.en;
+                second = b.evoucher.sponsors.name.en;
+                break;
+            default:
+                first = String(a[descriptor.column as keyof EvoucherCode] || "");
+                second = String(b[descriptor.column as keyof EvoucherCode] || "");
         }
 
-        // Convert to strings for comparison
-        const firstStr = String(first);
-        const secondStr = String(second);
-
-        const cmp = firstStr < secondStr ? -1 : firstStr > secondStr ? 1 : 0;
+        const cmp = first < second ? -1 : first > second ? 1 : 0;
         return descriptor.direction === "descending" ? -cmp : cmp;
     });
 };
@@ -80,9 +85,9 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5 }: UseEvou
     const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
     // Handlers
-    const handleAdd = async (evoucherCode: FormData) => {
+    const handleAdd = async (formData: FormData) => {
         try {
-            const response = await createEvoucherCode(evoucherCode);
+            const response = await createEvoucherCode(formData);
             setIsModalOpen(false);
 
             addToast({
@@ -100,9 +105,9 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5 }: UseEvou
         }
     };
 
-    const handleUpdate = async (evoucherCodeId: string, evoucherCode: FormData) => {
+    const handleUpdate = async (evoucherCodeId: string, formData: FormData) => {
         try {
-            const response = await updateEvoucherCode(evoucherCodeId, evoucherCode);
+            const response = await updateEvoucherCode(evoucherCodeId, formData);
             setIsModalOpen(false);
 
             addToast({
