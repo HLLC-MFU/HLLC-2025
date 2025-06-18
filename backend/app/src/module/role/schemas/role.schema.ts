@@ -58,11 +58,11 @@ export class Role {
   >;
 
   /**
- * The metadata schema for the role.
- * This defines additional properties that can be associated with the role.
- * Each property should specify its type, label, and whether it is required.
- * @example "major": { "type": "string", "label": "major", "required": true }
- */
+   * The metadata schema for the role.
+   * This defines additional properties that can be associated with the role.
+   * Each property should specify its type, label, and whether it is required.
+   * @example "major": { "type": "string", "label": "major", "required": true }
+   */
   @Prop({ type: Object, default: {} })
   metadata: Record<string, any>;
 }

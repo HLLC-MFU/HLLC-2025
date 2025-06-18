@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Role, RoleDocument } from './schemas/role.schema';
@@ -7,14 +7,13 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { decryptItem, encryptItem } from '../auth/utils/crypto';
-import { UpdateCheckinScopeDto } from './dto/update-checkin-scope.dto';
 import { Checkin, CheckinDocument } from '../checkin/schema/checkin.schema';
 
 /**
  * @class RoleService
  * @description
- * RoleService provides methods to manage roles in the system.  
- * It includes **creating**, **updating**, **deleting**, and **retrieving** roles.  
+ * RoleService provides methods to manage roles in the system.
+ * It includes **creating**, **updating**, **deleting**, and **retrieving** roles.
  * Permissions are **encrypted** before saving and **decrypted** when retrieving.
  *
  * ⚠️ **IF YOU EDIT THIS FILE WITHOUT JEMIEZLER'S APPROVAL, I WILL HUNT YOU DOWN.**
@@ -27,8 +26,9 @@ import { Checkin, CheckinDocument } from '../checkin/schema/checkin.schema';
 export class RoleService {
   constructor(
     @InjectModel(Role.name) private readonly roleModel: Model<RoleDocument>,
-    @InjectModel(Checkin.name) private readonly checkinModel: Model<CheckinDocument>,
-  ) { }
+    @InjectModel(Checkin.name)
+    private readonly checkinModel: Model<CheckinDocument>,
+  ) {}
 
   /**
    * Creates a new role.
@@ -111,7 +111,8 @@ export class RoleService {
 
   async updateMetadataSchema(
     id: string,
-    dto: UpdateMetadataSchemaDto,): Promise<Role> {
+    dto: UpdateMetadataSchemaDto,
+  ): Promise<Role> {
     const role = await findOrThrow(this.roleModel, id, 'Role');
     role.metadataSchema = dto.metadataSchema;
     return await role.save();
