@@ -135,6 +135,11 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 					"message":   msg.Message,
 					"Mentions":  msg.Mentions,
 					"timestamp": msg.Timestamp,
+					"file_url":  msg.FileURL,
+       				"file_type": msg.FileType,
+       				"file_name": msg.FileName,
+        			"stickerId": msg.StickerID, 
+        			"image":     msg.Image,
 				},
 			}
 			eventJSON, _ := json.Marshal(event)
@@ -163,6 +168,11 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 						"message":   msg.ChatMessage.Message,
 						"Mentions":  msg.ChatMessage.Mentions,
 						"timestamp": msg.ChatMessage.Timestamp,
+						"file_url":  msg.ChatMessage.FileURL,
+        				"file_type": msg.ChatMessage.FileType,
+       					"file_name": msg.ChatMessage.FileName,
+       					"stickerId": msg.ChatMessage.StickerID,
+       					"image":     msg.ChatMessage.Image,
 					},
 				}
 				eventJSON, _ := json.Marshal(event)
