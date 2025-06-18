@@ -79,7 +79,7 @@ export class EvoucherCodeService {
     const evoucher = await validateEvoucherExpired(evoucherId, this.evoucherModel);
     validateEvoucherTypeClaimable(evoucher.type);
     await validateUserDuplicateClaim(userId, evoucherId, this.evoucherCodeModel);
-    return await claimVoucherCode(userId, evoucher, this.evoucherCodeModel);
+    return await claimVoucherCode(userId, evoucher, this.evoucherCodeModel, this.sequenceModel);
   }
 
   async getUserEvoucherCodes(userId: string) {
