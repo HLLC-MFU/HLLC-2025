@@ -12,7 +12,7 @@ export function useEvoucherCode() {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: EvoucherCode[] }>("/evoucher-codes?limit=0", "GET");
+            const res = await apiRequest<{ data: EvoucherCode[] }>("/evoucher-code?limit=0", "GET");
             const evoucherCodeData = res.data?.data ?? [];
             setEvoucherCodes(evoucherCodeData);
             return res;
@@ -28,7 +28,7 @@ export function useEvoucherCode() {
     const createEvoucherCode = async (evoucherCodeData: FormData): Promise<ApiResponse<{ data: EvoucherCode }>> => {
         setLoading(true);
         try {
-            const res = await apiRequest<{ data: EvoucherCode }>("/evoucher-codes", "POST", evoucherCodeData);
+            const res = await apiRequest<{ data: EvoucherCode }>("/evoucher-code", "POST", evoucherCodeData);
             const newEvoucherCode = res.data?.data;
             if (newEvoucherCode) {
                 setEvoucherCodes(prev => [...prev, newEvoucherCode]);
@@ -47,7 +47,7 @@ export function useEvoucherCode() {
     const updateEvoucherCode = async (evoucherCodeId: string, evoucherCodeData: FormData): Promise<ApiResponse<{ data: EvoucherCode }>> => {
         setLoading(true);
         try {
-            const res = await apiRequest<{ data: EvoucherCode }>(`/evoucher-codes/${evoucherCodeId}`, "PATCH", evoucherCodeData);
+            const res = await apiRequest<{ data: EvoucherCode }>(`/evoucher-code/${evoucherCodeId}`, "PATCH", evoucherCodeData);
             const updatedEvoucherCode = res.data?.data;
             if (updatedEvoucherCode) {
                 setEvoucherCodes(prev => 
@@ -70,7 +70,7 @@ export function useEvoucherCode() {
     const deleteEvoucherCode = async (evoucherCodeId: string): Promise<ApiResponse<{ data: EvoucherCode }>> => {
         setLoading(true);
         try {
-            const res = await apiRequest<{ data: EvoucherCode }>(`/evoucher-codes/${evoucherCodeId}`, "DELETE");
+            const res = await apiRequest<{ data: EvoucherCode }>(`/evoucher-code/${evoucherCodeId}`, "DELETE");
             const deletedEvoucherCode = res.data?.data;
             if (deletedEvoucherCode) {
                 setEvoucherCodes(prev => prev.filter(evoucherCode => evoucherCode._id !== evoucherCodeId));
