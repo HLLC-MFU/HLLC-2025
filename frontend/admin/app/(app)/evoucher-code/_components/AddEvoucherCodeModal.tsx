@@ -27,7 +27,7 @@ export function EvoucherCodeModal({
   evouchers,
   evoucherCode
 }: AddEvoucherCodeProps) {
-  const [selectedSponsor, setSelectedSponsor] = useState<string>("");
+  const [selectedSponsorId, setSelectedSponsorId] = useState<string>("");
   const [selectedEvoucher, setSelectedEvoucher] = useState<string>("");
   const [code, setCode] = useState("");
   const [expiration, setExpiration] = useState(new Date().toISOString());
@@ -35,15 +35,15 @@ export function EvoucherCodeModal({
   // Load existing data if in edit mode
   useEffect(() => {
     if (mode === "edit" && evoucherCode) {
-      setSelectedSponsor(evoucherCode.evoucher?.sponsors?.name.en || "");
-      setSelectedEvoucher(evoucherCode.evoucher?._id || "" as string);
+      setSelectedSponsorId(evoucherCode.evoucher?.sponsors?._id || "");
+      setSelectedEvoucher(evoucherCode.evoucher?._id || "");
       setCode(evoucherCode.code);
       setExpiration(evoucherCode.metadata.expiration);
     }
   }, [mode, evoucherCode]);
 
   const handleSubmit = () => {
-    if (!selectedSponsor || !selectedEvoucher) return;
+    if (!selectedSponsorId || !selectedEvoucher) return;
 
     const formData = new FormData();
     formData.append("code", code);
@@ -66,14 +66,16 @@ export function EvoucherCodeModal({
             <Select 
               label="Sponsor" 
               isRequired 
-              selectedKeys={selectedSponsor ? [selectedSponsor] : []}
+              selectedKeys={selectedSponsorId ? [selectedSponsorId] : []}
               onSelectionChange={(keys) => {
                 const selectedKey = Array.from(keys)[0] as string;
-                setSelectedSponsor(selectedKey);
+                setSelectedSponsorId(selectedKey);
+                // Reset evoucher selection when sponsor changes
+                setSelectedEvoucher("");
               }}
             >
               {sponsors.map((s) => (
-                <SelectItem key={s.name.en}>{s.name.en}</SelectItem>
+                <SelectItem key={s._id}>{s.name.en}</SelectItem>
               ))}
             </Select>
             <Select 
@@ -86,9 +88,9 @@ export function EvoucherCodeModal({
               }}
             >
               {evouchers
-                .filter(e => e.sponsors?.name?.en === selectedSponsor)
+                .filter(e => e.sponsors?._id === selectedSponsorId)
                 .map((e: Evoucher) => (
-                  <SelectItem key={e._id}>{e.acronym || "" as string}</SelectItem>
+                  <SelectItem key={e._id}>{e.acronym || ""}</SelectItem>
                 ))}
             </Select>
           </div>
@@ -103,7 +105,7 @@ export function EvoucherCodeModal({
             <Input 
               label="Expiration" 
               type="datetime-local" 
-              value={expiration.slice(0, 16)} 
+              value={toLocalInputValue(expiration)} 
               onChange={(e) => setExpiration(new Date(e.target.value).toISOString())} 
               isRequired 
             />
@@ -122,3 +124,6 @@ export function EvoucherCodeModal({
     </Modal>
   );
 }
+
+// Helper function to convert ISO string to local datetime input value
+const toLocalInputValue = (iso: string) => new Date(iso).toISOString().slice(0, 16);

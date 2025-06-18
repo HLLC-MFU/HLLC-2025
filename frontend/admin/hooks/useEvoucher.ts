@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { apiRequest } from "@/utils/api";
+import { apiRequest, ApiResponse } from "@/utils/api";
 import { Evoucher } from "@/types/evoucher";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function useEvoucher() {
     const [evouchers, setEvouchers] = useState<Evoucher[]>([]);
@@ -28,93 +27,66 @@ export function useEvoucher() {
         }
     };
 
-    // Create evoucher
-    const createEvoucher = async (evoucherData: FormData) => {
-        try {
-            setLoading(true);
-            const res = await fetch(`${API_BASE_URL}/evoucher`, {
-                method: "POST",
-                body: evoucherData,
-                credentials: "include"
-            });
-            const data = await res.json();
-
-            if (data && '_id' in data) {
-                setEvouchers((prev) => [...prev, data]);
-            }
-
-            return res;
-        } catch (err) {
-            const message =
-                err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to create evouchers.'
-                    : 'Failed to create evouchers.';
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setLoading(false);
+   // Create evoucher code
+   const createEvoucher = async (evoucherData: FormData): Promise<ApiResponse<{ data: Evoucher }>> => {
+    setLoading(true);
+    try {
+        const res = await apiRequest<{ data: Evoucher }>("/evoucher", "POST", evoucherData);
+        const newEvoucher = res.data?.data;
+        if (newEvoucher) {
+            setEvouchers(prev => [...prev, newEvoucher]);
         }
-    };
-
-    // Update evoucher
-    const updateEvoucher = async (evoucherId: string, evoucherData: FormData) => {
-        try {
-            setLoading(true);
-            const res = await fetch(`${API_BASE_URL}/evoucher/${evoucherId}`, {
-                method: "PATCH",
-                body: evoucherData,
-                credentials: "include"
-            });
-            const data = await res.json();
-
-            if (data && '_id' in data) {
-                setEvouchers((prev) => 
-                    prev.map((evoucher) => 
-                        evoucher._id === evoucherId ? data : evoucher
-                    )
-                );
-            }
-
-            return res;
-        } catch (err) {
-            const message =
-                err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to update evoucher.'
-                    : 'Failed to update evoucher.';
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Delete evoucher
-    const deleteEvoucher = async (evoucherId: string) => {
-        try {
-            setLoading(true);
-            const res = await fetch(`${API_BASE_URL}/evoucher/${evoucherId}`, {
-                method: "DELETE",
-                credentials: "include"
-            });
-            const data = await res.json();
-
-            if (data && '_id' in data) {
-                setEvouchers((prev) => prev.filter((evoucher) => evoucher._id !== evoucherId));
-            }
-
-            return res;
-        }
-        catch (err) {
-            const message =
-                err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to delete evoucher.'
-                    : 'Failed to delete evoucher.';
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setLoading(false);
-        }
+        return res;
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to create evoucher.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+    } finally {
+        setLoading(false);
     }
+};
+
+// Update evoucher code
+const updateEvoucher = async (evoucherId: string, evoucherData: FormData): Promise<ApiResponse<{ data: Evoucher }>> => {
+    setLoading(true);
+    try {
+        const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "PATCH", evoucherData);
+        const updatedEvoucher = res.data?.data;
+        if (updatedEvoucher) {
+            setEvouchers(prev => 
+                prev.map(evoucher => 
+                    evoucher._id === evoucherId ? updatedEvoucher : evoucher
+                )
+            );
+        }
+        return res;
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to update evoucher.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+    } finally {
+        setLoading(false);
+    }
+};
+
+// Delete evoucher code
+const deleteEvoucher = async (evoucherId: string): Promise<ApiResponse<{ data: Evoucher }>> => {
+    setLoading(true);
+    try {
+        const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "DELETE");
+        const deletedEvoucher = res.data?.data;
+        if (deletedEvoucher) {
+            setEvouchers(prev => prev.filter(evoucher => evoucher._id !== evoucherId));
+        }
+        return res;
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to delete evoucher.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+    } finally {
+        setLoading(false);
+    }
+};
 
     useEffect(() => {
         fetchEvouchers();

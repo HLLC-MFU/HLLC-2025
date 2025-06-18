@@ -53,9 +53,10 @@ const paginateItems = (items: EvoucherCode[], page: number, rowsPerPage: number)
 interface UseEvoucherCodeTableProps {
     evoucherCodes: EvoucherCode[];
     rowsPerPage?: number;
+    onDataChange?: () => void; // Callback to notify parent of data changes
 }
 
-export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5 }: UseEvoucherCodeTableProps) {
+export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataChange }: UseEvoucherCodeTableProps) {
     const { createEvoucherCode, updateEvoucherCode, deleteEvoucherCode } = useEvoucherCode();
 
     // State
@@ -70,11 +71,17 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5 }: UseEvou
     const [actionText, setActionText] = useState<"Add" | "Edit">("Add");
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false);
+    const [localEvoucherCodes, setLocalEvoucherCodes] = useState<EvoucherCode[]>(evoucherCodes);
+
+    // Update local state when props change
+    useMemo(() => {
+        setLocalEvoucherCodes(evoucherCodes);
+    }, [evoucherCodes]);
 
     // Computed values
     const filteredItems = useMemo(() => 
-        filterValue ? filterItems(evoucherCodes, filterValue) : evoucherCodes, 
-        [evoucherCodes, filterValue]
+        filterValue ? filterItems(localEvoucherCodes, filterValue) : localEvoucherCodes, 
+        [localEvoucherCodes, filterValue]
     );
 
     const sortedItems = useMemo(() => 
@@ -95,12 +102,16 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5 }: UseEvou
             const response = await createEvoucherCode(formData);
             setIsModalOpen(false);
 
-            addToast({
-                title: "Add Successfully",
-                description: "Data has been added successfully",
-            });
+            if (response?.data?.data) {
+                const newEvoucherCode = response.data.data;
+                setLocalEvoucherCodes(prev => [...prev, newEvoucherCode]);
+                onDataChange?.();
 
-            if (response) window.location.reload();
+                addToast({
+                    title: "Add Successfully",
+                    description: "Data has been added successfully",
+                });
+            }
         } catch (error) {
             addToast({
                 title: "Failed to Add",
@@ -115,12 +126,18 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5 }: UseEvou
             const response = await updateEvoucherCode(evoucherCodeId, formData);
             setIsModalOpen(false);
 
-            addToast({
-                title: "Update Successfully",
-                description: "Data has been updated successfully",
-            });
+            if (response?.data?.data) {
+                const updatedEvoucherCode = response.data.data;
+                setLocalEvoucherCodes(prev => 
+                    prev.map(code => code._id === evoucherCodeId ? updatedEvoucherCode : code)
+                );
+                onDataChange?.();
 
-            if (response) window.location.reload();
+                addToast({
+                    title: "Update Successfully",
+                    description: "Data has been updated successfully",
+                });
+            }
         } catch (error) {
             addToast({
                 title: "Failed to Update",
@@ -136,11 +153,14 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5 }: UseEvou
             setIsDeleteOpen(false);
             
             if (response) {
+                // Update local state
+                setLocalEvoucherCodes(prev => prev.filter(code => code._id !== evoucherCodeId));
+                onDataChange?.();
+
                 addToast({
                     title: "Delete Successfully",
-                    description: "Data has deleted successfully",
+                    description: "Data has been deleted successfully",
                 });
-                window.location.reload();
             }
         } catch (error) {
             addToast({
