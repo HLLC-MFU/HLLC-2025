@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types, Schema as MongooseSchema } from "mongoose";
+import { HydratedDocument, Types } from "mongoose";
 
 export type EvoucherCodeDocument = HydratedDocument<EvoucherCode>;
 
@@ -9,16 +9,16 @@ export class EvoucherCode {
     @Prop({ required: true, type: String, unique: true })
     code: string;
 
-    @Prop({ type: [MongooseSchema.Types.ObjectId], default: [] })
-    user: MongooseSchema.Types.ObjectId[];
+    @Prop({ type: Types.ObjectId, ref: "User" })
+    user: Types.ObjectId;
 
-    @Prop({ required: true, type: Types.ObjectId, ref: 'Evoucher'})
+    @Prop({ required: true, type :Types.ObjectId, ref: 'Evoucher'})
     evoucher: Types.ObjectId
 
     @Prop({ required: true, type: Boolean, default: false })
     isUsed: boolean;
 
-    @Prop({ type: Object, required: false})
+    @Prop({ type: Object })
     metadata: Record<string, string>
 }
 

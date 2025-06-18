@@ -7,7 +7,7 @@ import { EvoucherCode, EvoucherCodeDocument } from '../schema/evoucher-code.sche
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
-import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
+import { Evoucher, EvoucherDocument, EvoucherStatus } from '../schema/evoucher.schema';
 import { 
   generateEvoucherCode, 
   claimVoucherCode, 
@@ -16,11 +16,6 @@ import {
   validateEvoucherTypeClaimable,
   useEvoucherCode as useEvoucherCodeUtil
 } from '../utils/evoucher.util';
-
-interface LeanEvoucherCode extends Omit<EvoucherCode, 'evoucher'> {
-  _id: Types.ObjectId;
-  evoucher: Evoucher & { _id: Types.ObjectId };
-}
 
 @Injectable()
 export class EvoucherCodeService {
@@ -32,37 +27,18 @@ export class EvoucherCodeService {
   ) {}
 
   async create(dto: CreateEvoucherCodeDto) {
-    if (!dto.user || dto.user.length === 0) {
-      throw new BadRequestException('At least one user is required to create evoucher code');
-    }
-
     const evoucher = await validateEvoucherExpired(dto.evoucher, this.evoucherModel);
-    
-    // Validate all users exist
-    const users = await this.userModel.find({ _id: { $in: dto.user } });
-    if (users.length !== dto.user.length) {
-      throw new BadRequestException('Some users not found');
-    }
-
-    if (dto.user && dto.user.length > 0) {
-      const existingClaims = await this.evoucherCodeModel.find({
-        evoucher: new Types.ObjectId(dto.evoucher),
-        user: { $in: dto.user }
-      });
-
-      if (existingClaims.length > 0) {
-        throw new BadRequestException('Some users already have this evoucher');
-      }
-    }
+    await findOrThrow(this.userModel, dto.user, 'User not found');
 
     const code = await generateEvoucherCode(dto, evoucher, []);
 
     const newCode = new this.evoucherCodeModel({
+      ...dto,
       code,
       isUsed: false,
       evoucher: new Types.ObjectId(dto.evoucher),
       user: new Types.ObjectId(dto.user),
-      metadata: dto.metadata || {}
+      metadata: { expiration: evoucher.expiration }
     });
 
     return await newCode.save();
@@ -86,13 +62,19 @@ export class EvoucherCodeService {
   }
 
   async getUserEvoucherCodes(userId: string) {
-    const codes = await this.evoucherCodeModel
-      .find({ user: userId })
-      .populate({
-        path: 'evoucher',
-        populate: { path: 'sponsors' }
-      })
-      .lean<LeanEvoucherCode[]>();
+    const codes = await queryAll<EvoucherCode>({
+      model: this.evoucherCodeModel,
+      query: { user: userId },
+      filterSchema: {},
+      populateFields: () => Promise.resolve([
+        { 
+          path: 'evoucher',
+          populate: [
+            { path: 'sponsors' }
+          ]
+        }
+      ]),
+    });
 
     const processedData = codes.data.map((code: EvoucherCode) => {
       const evoucherData = code.evoucher as unknown as Evoucher;
@@ -107,9 +89,8 @@ export class EvoucherCodeService {
     });
 
     return {
-      data: processedData,
-      total: processedData.length,
-      limit: processedData.length
+      ...codes,
+      data: processedData
     };
   }
   

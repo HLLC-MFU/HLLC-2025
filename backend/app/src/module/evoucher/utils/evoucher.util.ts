@@ -25,7 +25,7 @@ export async function validateUserDuplicateClaim(
     evoucherCodeModel: Model<EvoucherCodeDocument>
   ): Promise<void> {
     const exists = await evoucherCodeModel.findOne({
-      user: userId,
+      user: new Types.ObjectId(userId),
       evoucher: new Types.ObjectId(evoucherId),
     });
     if (exists) throw new BadRequestException('You already have this evoucher');
@@ -56,7 +56,6 @@ export function generateEvoucherCode(
       metadata: dto.metadata || {}
     };
   });
-  });
 }
   
 
@@ -77,13 +76,13 @@ export async function claimVoucherCode(
 
   const [currentClaims, availableCode] = await Promise.all([
     evoucher.maxClaims ? evoucherCodeModel.countDocuments({
-      evoucher: evoucher._id,
-      user: { $ne: [] },
-      isUsed: false
+    evoucher: evoucher._id,
+    user: { $ne: null },
+    isUsed: false
     }) : 0,
     evoucherCodeModel.findOneAndUpdate(
-      { evoucher: evoucher._id, user: [], isUsed: false },
-      { $push: { user: new Types.ObjectId(userId) } },
+      { evoucher: evoucher._id, user: null, isUsed: false },
+      { user: new Types.ObjectId(userId) },
       { new: true }
     )
   ]);
@@ -140,12 +139,12 @@ export const validatePublicAvailableVoucher = async (
     }) : false,
     evoucher.maxClaims ? evoucherCodeModel.countDocuments({
       evoucher: evoucherId,
-      user: { $ne: [] },
+      user: { $ne: null },
       isUsed: false,
     }) : 0
   ]);
 
-  const reachMaximumClaim = evoucher.maxClaims && currentClaims >= evoucher.maxClaims;
+  const reachMaximumClaim = evoucher.maxClaims !== undefined && currentClaims >= evoucher.maxClaims;
   const canClaim = !userHas && !reachMaximumClaim;
 
   return {
@@ -167,8 +166,7 @@ export async function validateEvoucherCodeForUsage(
   userId: Types.ObjectId,
   evoucher: EvoucherDocument
 ): Promise<void> {
-  const userExists = evoucherCode.user.some(u => u.toString() === userId.toString());
-  if (!userExists) {
+  if (!evoucherCode.user.equals(userId)) {
     throw new BadRequestException('This evoucher code does not belong to you');
   }
   if (evoucherCode.isUsed) {
@@ -200,4 +198,3 @@ export async function useEvoucherCode(
 
   return evoucherCode;
 }
-
