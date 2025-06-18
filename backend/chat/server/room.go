@@ -56,7 +56,7 @@ func (s *server) roomService() {
 	// Handlers
 	roomHandler := handler.NewHTTPHandler(roomService, memService, publisher, stkService, userService)
 	stickerHandler := stickerHandler.NewHTTPHandler(stkService)
-	chatHandler := chatHandlerPkg.NewHTTPHandler(chatService, memService, publisher, stkService, roomService)
+	chatHandler := chatHandlerPkg.NewHTTPHandler(chatService, memService, publisher, stkService, roomService, userService)
 
 	// Middleware
 	s.app.Use(cors.New(s.config.FiberCORSConfig()))

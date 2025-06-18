@@ -17,6 +17,7 @@ import (
 	roomRedis "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 	RoomService "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/service"
 	stickerService "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
+	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 
 	"github.com/gofiber/fiber/v2"
@@ -30,15 +31,17 @@ type ChatHTTPHandler struct {
 	memberService  MemberService.MemberService
 	publisher      kafkaPublisher.Publisher
 	stickerService stickerService.StickerService
+	userService    userService.UserService
 }
 
-func NewHTTPHandler(service service.ChatService, memberService MemberService.MemberService, publisher kafkaPublisher.Publisher, stickerService stickerService.StickerService, roomService RoomService.RoomService) *ChatHTTPHandler {
+func NewHTTPHandler(service service.ChatService, memberService MemberService.MemberService, publisher kafkaPublisher.Publisher, stickerService stickerService.StickerService, roomService RoomService.RoomService, userService userService.UserService) *ChatHTTPHandler {
 	return &ChatHTTPHandler{
 		service:        service,
 		memberService:  memberService,
 		publisher:      publisher,
 		stickerService: stickerService,
 		roomService:    roomService,
+		userService:    userService,
 	}
 }
 
@@ -115,9 +118,24 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 	redisHistory, err := redis.GetRecentMessages(roomID, 50)
 	if err == nil && len(redisHistory) > 0 {
 		for _, msg := range redisHistory {
+			// Get user information
+			user, err := h.userService.GetById(ctx, msg.UserID)
+			var username string
+			if err == nil && user != nil {
+				username = user.Username
+			}
+
 			event := ChatEvent{
 				EventType: "history",
-				Payload:   msg,
+				Payload: map[string]interface{}{
+					"id":        msg.ID.Hex(),
+					"room_id":   msg.RoomID.Hex(),
+					"user_id":   msg.UserID.Hex(),
+					"username":  username,
+					"message":   msg.Message,
+					"Mentions":  msg.Mentions,
+					"timestamp": msg.Timestamp,
+				},
 			}
 			eventJSON, _ := json.Marshal(event)
 			_ = conn.WriteMessage(websocket.TextMessage, eventJSON)
@@ -128,9 +146,24 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 		mongoHistory, err := h.service.GetChatHistoryByRoom(ctx, roomID, 50)
 		if err == nil && len(mongoHistory) > 0 {
 			for _, msg := range mongoHistory {
+				// Get user information
+				user, err := h.userService.GetById(ctx, msg.ChatMessage.UserID)
+				var username string
+				if err == nil && user != nil {
+					username = user.Username
+				}
+
 				event := ChatEvent{
 					EventType: "history",
-					Payload:   msg,
+					Payload: map[string]interface{}{
+						"id":        msg.ChatMessage.ID.Hex(),
+						"room_id":   msg.ChatMessage.RoomID.Hex(),
+						"user_id":   msg.ChatMessage.UserID.Hex(),
+						"username":  username,
+						"message":   msg.ChatMessage.Message,
+						"Mentions":  msg.ChatMessage.Mentions,
+						"timestamp": msg.ChatMessage.Timestamp,
+					},
 				}
 				eventJSON, _ := json.Marshal(event)
 				_ = conn.WriteMessage(websocket.TextMessage, eventJSON)

@@ -185,7 +185,7 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 	// Try to get from Redis cache first
 	cachedMessages, err := redis.GetRecentMessages(roomID, int(limit))
 	if err == nil && len(cachedMessages) > 0 {
-		// Cache hit - enrich the messages with reactions
+		// Cache hit - enrich the messages with reactions and user info
 		var enriched []model.ChatMessageEnriched
 		for _, msg := range cachedMessages {
 			reactions, _ := s.repo.GetReactionsByMessageID(ctx, msg.ID)
@@ -195,11 +195,20 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 				replyTo, _ = s.repo.GetMessageByID(ctx, *msg.ReplyToID)
 			}
 
-			enriched = append(enriched, model.ChatMessageEnriched{
+			// Get user information
+			user, err := s.userService.GetById(ctx, msg.UserID)
+			var username string
+			if err == nil && user != nil {
+				username = user.Username
+			}
+
+			enrichedMsg := model.ChatMessageEnriched{
 				ChatMessage: msg,
 				Reactions:   reactions,
 				ReplyTo:     replyTo,
-			})
+				Username:    username, // Add username to enriched message
+			}
+			enriched = append(enriched, enrichedMsg)
 		}
 		return enriched, nil
 	}
@@ -226,11 +235,20 @@ func (s *service) GetChatHistoryByRoom(ctx context.Context, roomID string, limit
 			replyTo, _ = s.repo.GetMessageByID(ctx, *msg.ReplyToID)
 		}
 
-		enriched = append(enriched, model.ChatMessageEnriched{
+		// Get user information
+		user, err := s.userService.GetById(ctx, msg.UserID)
+		var username string
+		if err == nil && user != nil {
+			username = user.Username
+		}
+
+		enrichedMsg := model.ChatMessageEnriched{
 			ChatMessage: msg,
 			Reactions:   reactions,
 			ReplyTo:     replyTo,
-		})
+			Username:    username, // Add username to enriched message
+		}
+		enriched = append(enriched, enrichedMsg)
 	}
 
 	return enriched, nil
@@ -381,44 +399,53 @@ func (s *service) HandleMessage(ctx context.Context, msg *model.ChatMessage) err
 		// Don't return error here as the message is already saved in MongoDB
 	}
 
-	// Only broadcast to WebSocket clients if this is a text message (msg.Message not empty)
-	if msg.Message != "" {
-		user, err := s.userService.GetById(ctx, msg.UserID)
-		var username string
-		if err == nil && user != nil {
-			username = user.Username
+	// Get user information regardless of message type
+	user, err := s.userService.GetById(ctx, msg.UserID)
+	var username string
+	if err == nil && user != nil {
+		username = user.Username
+	}
+
+	// Create the base payload with user information
+	payload := map[string]interface{}{
+		"userId":   msg.UserID.Hex(),
+		"username": username,
+		"roomId":   msg.RoomID.Hex(),
+		"message":  msg.Message,
+		"mentions": msg.Mentions,
+	}
+
+	// Add file-related fields if present
+	if msg.FileURL != "" {
+		payload["fileURL"] = msg.FileURL
+		payload["fileType"] = msg.FileType
+		payload["fileName"] = msg.FileName
+	}
+	if msg.Image != "" {
+		payload["image"] = msg.Image
+	}
+
+	event := model.ChatEvent{
+		EventType: "message",
+		Payload:   payload,
+	}
+
+	// Broadcast to all clients in the room
+	for userID, conn := range model.Clients[msg.RoomID] {
+		if userID == msg.UserID.Hex() {
+			continue
 		}
 
-		payload := map[string]interface{}{
-			"userId":   msg.UserID.Hex(),
-			"username": username,
-			"roomId":   msg.RoomID.Hex(),
-			"message":  msg.Message,
-			"mentions": msg.Mentions,
+		if conn == nil {
+			s.NotifyOfflineUser(userID, msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message, "text")
+			continue
 		}
 
-		event := model.ChatEvent{
-			EventType: "message",
-			Payload:   payload,
-		}
-
-		// Now broadcast the message
-		for userID, conn := range model.Clients[msg.RoomID] {
-			if userID == msg.UserID.Hex() {
-				continue
-			}
-
-			if conn == nil {
-				s.NotifyOfflineUser(userID, msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message, "text")
-				continue
-			}
-
-			if err := sendJSONMessage(conn, event); err != nil {
-				log.Printf("[Message Handler] Failed to send to WebSocket client %s: %v", userID, err)
-				conn.Close()
-				model.Clients[msg.RoomID][userID] = nil
-				s.NotifyOfflineUser(userID, msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message, "text")
-			}
+		if err := sendJSONMessage(conn, event); err != nil {
+			log.Printf("[Message Handler] Failed to send to WebSocket client %s: %v", userID, err)
+			conn.Close()
+			model.Clients[msg.RoomID][userID] = nil
+			s.NotifyOfflineUser(userID, msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message, "text")
 		}
 	}
 
