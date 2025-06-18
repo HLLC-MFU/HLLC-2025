@@ -1,9 +1,9 @@
 export type LamduanSetting = {
   _id: string;
-  TutorialPhoto: string;
-  TutorialVideo: string;
-  StartAt: string;
-  EndAt: string;
+  tutorialPhoto: string;
+  tutorialVideo: string;
+  startAt: string;
+  endAt: string;
   createdAt: string;
 };
 

@@ -1,12 +1,26 @@
-import { useState, useRef, useEffect, ChangeEvent, FormEvent } from "react";
+import { useState, useRef, useEffect, ChangeEvent, useMemo, RefObject } from "react";
 import { Button } from "@heroui/button";
-import { Form, Input, addToast } from "@heroui/react";
+import { Input } from "@heroui/react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { useLamduanSetting } from "@/hooks/useLamduanSetting";
 import { LamduanSetting } from "@/types/lamduan-setting";
 
-export function LamduanFlowersSetting() {
-  const { lamduanSetting, updateLamduanSetting, fetchLamduanSetting } = useLamduanSetting();
+type LamduanFlowersSettingProps = {
+  handleSave: (
+    isChanged: boolean,
+    file: File | null,
+    videoLink: string,
+    startDate: string,
+    endDate: string
+  ) => Promise<void>;
+  originalRef: RefObject<LamduanSetting | null>;
+}
+
+export function LamduanFlowersSetting({
+  handleSave,
+  originalRef,
+}: LamduanFlowersSettingProps) {
+  const { lamduanSetting, fetchLamduanSetting } = useLamduanSetting();
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
@@ -16,11 +30,6 @@ export function LamduanFlowersSetting() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleClearImage = () => {
-    setFile(null);
-    setPreview("");
-  };
-
   const populateForm = (data: LamduanSetting | null) => {
     if (!data) {
       setFile(null);
@@ -28,13 +37,16 @@ export function LamduanFlowersSetting() {
       setVideoLink("");
       setStartDate("");
       setEndDate("");
+      originalRef.current = null;
       return;
     }
+
     setFile(null);
-    setPreview(`http://localhost:8080/uploads/${data.TutorialPhoto}`);
-    setVideoLink(data.TutorialVideo);
-    setStartDate(data.StartAt.split("T")[0]);
-    setEndDate(data.EndAt.split("T")[0]);
+    setPreview(`http://localhost:8080/uploads/${data.tutorialPhoto}`);
+    setVideoLink(data.tutorialVideo);
+    setStartDate(data.startAt?.split("T")[0] || "");
+    setEndDate(data.endAt?.split("T")[0] || "");
+    originalRef.current = data;
   };
 
   useEffect(() => {
@@ -42,7 +54,7 @@ export function LamduanFlowersSetting() {
   }, []);
 
   useEffect(() => {
-    const latestData = lamduanSetting[lamduanSetting.length - 1] || null;
+    const latestData = lamduanSetting.at(-1) ?? null;
     populateForm(latestData);
   }, [lamduanSetting]);
 
@@ -54,30 +66,31 @@ export function LamduanFlowersSetting() {
     }
   };
 
+  const handleClearImage = () => {
+    setFile(null);
+    setPreview("");
+  };
+
   const handleDiscard = () => {
-    const latestData = lamduanSetting[lamduanSetting.length - 1] || null;
+    const latestData = lamduanSetting.at(-1) ?? null;
     populateForm(latestData);
   };
 
-  const handleSave = async () => {
-    if (!file && !preview) {
-      addToast({ title: "Please upload a file", color: "danger" });
-      return;
-    }
+  const isChanged = useMemo(() => {
+    const original = originalRef.current;
+    if (!original) return false;
 
+    const originalStart = original.startAt?.split("T")[0] || "";
+    const originalEnd = original.endAt?.split("T")[0] || "";
 
-    const formData = new FormData();
-    if (file) {
-      formData.append("TutorialPhoto", file);
-    }
-    formData.append("TutorialVideo", videoLink);
-    formData.append("StartAt", startDate);
-    formData.append("EndAt", endDate);
+    return (
+      videoLink !== original.tutorialVideo ||
+      startDate !== originalStart ||
+      endDate !== originalEnd ||
+      file instanceof File
+    );
+  }, [videoLink, startDate, endDate, file]);
 
-    await updateLamduanSetting(lamduanSetting[0]._id, formData);
-    await fetchLamduanSetting();
-    addToast({ title: "Created successfully", color: "success" });
-  };
 
   return (
     <div className="space-y-4">
@@ -85,7 +98,13 @@ export function LamduanFlowersSetting() {
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium text-default-700">Lamduan Flower Setting</h4>
         <div className="flex gap-2">
-          <Button size="sm" variant="flat" color="primary" startContent={<Upload size={14} />} onPress={() => inputRef.current?.click()}>
+          <Button
+            size="sm"
+            variant="flat"
+            color="primary"
+            startContent={<Upload size={14} />}
+            onPress={() => inputRef.current?.click()}
+          >
             Upload
           </Button>
           {preview && (
@@ -109,6 +128,7 @@ export function LamduanFlowersSetting() {
         <input ref={inputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
       </div>
 
+      {/* Video Input */}
       <div className="flex w-full flex-wrap md:flex-nowrap mb-2 gap-4 py-2">
         <Input
           label="Link Youtube"
@@ -122,8 +142,20 @@ export function LamduanFlowersSetting() {
 
       {/* Event Date Range */}
       <div className="flex flex-col md:flex-row gap-2">
-        <Input label="Event start" labelPlacement="outside" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        <Input label="Event end" labelPlacement="outside" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        <Input
+          label="Event start"
+          labelPlacement="outside"
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+        />
+        <Input
+          label="Event end"
+          labelPlacement="outside"
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+        />
       </div>
 
       {/* Action Buttons */}
@@ -131,7 +163,7 @@ export function LamduanFlowersSetting() {
         <Button variant="light" color="danger" size="md" onPress={handleDiscard}>
           Discard Changes
         </Button>
-        <Button variant="solid" color="primary" size="md" onPress={handleSave}>
+        <Button variant="solid" color="primary" size="md" onPress={() => handleSave(isChanged, file, videoLink, startDate, endDate)}>
           Save
         </Button>
       </div>

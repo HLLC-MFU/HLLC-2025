@@ -1,22 +1,21 @@
 import { IsNotEmpty, IsObject, IsString, IsDateString, ValidateNested } from "class-validator";
-import { Type } from "class-transformer";
 import { Photo } from "src/pkg/types/common";
 
 export class CreateLamduanSettingDto {
 
     @IsObject()
     @IsNotEmpty()
-    TutorialPhoto: Photo;
+    tutorialPhoto: Photo;
 
     @IsString()
     @IsNotEmpty()
-    TutorialVideo: string;
+    tutorialVideo: string;
 
     @IsDateString()
     @IsNotEmpty()
-    StartAt: string;
+    startAt: string;
 
     @IsDateString()
     @IsNotEmpty()
-    EndAt: string;
+    endAt: string;
 }

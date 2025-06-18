@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
@@ -11,7 +11,7 @@ export class LamduanSettingService {
   constructor(
     @InjectModel(LamduanSetting.name)
     private lamduanSettingModel: Model<LamduanSettingDocument>,
-  ) {}
+  ) { }
 
   async create(createLamduanSettingDto: CreateLamduanSettingDto) {
     const lamduanSetting = new this.lamduanSettingModel(createLamduanSettingDto);

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, RefObject } from "react";
 import {
     Accordion, AccordionItem, Button, Modal, ModalBody,
     ModalContent, ModalFooter, ModalHeader, Pagination
@@ -10,8 +10,23 @@ import { LamduanFlowersFilters } from "./FiltersLamduanFlowers";
 import { LamduanFlowers } from "@/types/lamduan-flowers";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { LamduanFlowersSetting } from "./SettingLamduanFlowers";
+import { LamduanSetting } from "@/types/lamduan-setting";
 
-export default function AccordionLamduan() {
+type LamduanFlowersSettingProps = {
+    handleSave: (
+        isChanged: boolean,
+        file: File | null,
+        videoLink: string,
+        startDate: string,
+        endDate: string
+    ) => Promise<void>;
+    originalRef: RefObject<LamduanSetting | null>;
+}
+
+export default function AccordionLamduan({
+    handleSave,
+    originalRef,
+}: LamduanFlowersSettingProps) {
     const { lamduanFlowers, deleteLamduanFlowers } = useLamduanFlowers();
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -62,7 +77,10 @@ export default function AccordionLamduan() {
                     aria-label="Setting"
                     title={<div className="flex items-center gap-2"><Settings /><span>Lamduan Flower Setting</span></div>}
                 >
-                    <LamduanFlowersSetting />
+                    <LamduanFlowersSetting
+                        handleSave={handleSave}
+                        originalRef={originalRef}
+                    />
                 </AccordionItem>
 
                 <AccordionItem
