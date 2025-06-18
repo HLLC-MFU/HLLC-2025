@@ -38,7 +38,7 @@ export class EvoucherCodeService {
       isUsed: false,
       evoucher: new Types.ObjectId(dto.evoucher),
       user: new Types.ObjectId(dto.user),
-      metadata: { expiration: evoucher.expiration }
+      metadata: dto.metadata || {}
     });
 
     return await newCode.save();
@@ -78,8 +78,7 @@ export class EvoucherCodeService {
 
     const processedData = codes.data.map((code: EvoucherCode) => {
       const evoucherData = code.evoucher as unknown as Evoucher;
-      const expiration = code.metadata?.expiration || evoucherData.expiration;
-      const isExpire = expiration ? new Date() > new Date(expiration) : false;
+      const isExpire = evoucherData.expiration ? new Date() > new Date(evoucherData.expiration) : false;
       const canUse = !code.isUsed && !isExpire;
 
       return {

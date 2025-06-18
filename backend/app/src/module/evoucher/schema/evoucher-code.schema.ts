@@ -18,7 +18,7 @@ export class EvoucherCode {
     @Prop({ required: true, type: Boolean, default: false })
     isUsed: boolean;
 
-    @Prop({ type: Object })
+    @Prop({ type: Object, required: false})
     metadata: Record<string, string>
 }
 
