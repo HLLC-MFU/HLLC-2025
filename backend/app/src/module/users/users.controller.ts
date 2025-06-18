@@ -31,7 +31,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly activitiesService: ActivitiesService,
-  ) {}
+  ) { }
 
   @Post()
   @Permissions('users:create')
@@ -76,6 +76,7 @@ export class UsersController {
   getProfile(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
+
     const user = req.user as { _id?: string; id?: string };
     const userId: string = user?._id ?? user?.id ?? '';
     if (!userId) {
