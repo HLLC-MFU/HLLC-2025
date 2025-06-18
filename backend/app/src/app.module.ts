@@ -34,7 +34,7 @@ import { PrepostQuestionsModule } from './module/prepost-questions/prepost-quest
 import { PosttestAnswersModule } from './module/prepost-questions/posttest-answer.module';
 import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
 import { StepCountersModule } from './module/step-counters/step-counters.module';
-import { CmsModule } from './module/cms/cms.module';
+import { InterfacesModule } from './module/interfaces/interfaces.module';
 
 @Module({
   imports: [
@@ -86,7 +86,7 @@ import { CmsModule } from './module/cms/cms.module';
     PosttestAnswersModule,
     PretestAnswersModule,
     StepCountersModule,
-    CmsModule
+    InterfacesModule
   ],
   providers: [
     {

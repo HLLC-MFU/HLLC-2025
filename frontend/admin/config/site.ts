@@ -12,6 +12,8 @@ import {
   Ticket,
   ShieldAlert,
   LogOutIcon,
+  MonitorSmartphone,
+  HandCoins,
 } from "lucide-react";
 
 import type { NavSection } from "@/types/nav";
@@ -45,7 +47,7 @@ export const siteConfig: {
     {
       section: "Sponsor & Evoucher",
       items: [
-        { label: "Sponsor", href: "/sponsor", icon: DollarSignIcon, permission: "sponsor:read" },
+        { label: "Sponsor", href: "/sponsor", icon: HandCoins, permission: "sponsor:read" },
         { label: "Evoucher", href: "/evoucher", icon: Ticket, permission: "evoucher:read" },
         { label: "Campaign", href: "/campaigns", icon: Megaphone, permission: "campaigns:read" },
       ],
@@ -55,6 +57,7 @@ export const siteConfig: {
       items: [
         { label: "Settings", href: "/settings", icon: SettingsIcon, permission: "system:read" },
         { label: "Appearance", href: "/appearance", icon: Palette, permission: "appearance:read" },
+        { label: "Interfaces", href: "/interfaces", icon: MonitorSmartphone, permission: "interface:read" },
       ],
     },
     {
