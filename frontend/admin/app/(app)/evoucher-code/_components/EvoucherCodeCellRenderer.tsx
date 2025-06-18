@@ -23,34 +23,41 @@ export default function EvoucherCodeCellRenderer({
             </span>
         ),
         evoucher: (
-            <div className="flex flex-col gap-1">
-                <span className="text-bold text-small">{evoucherCode.evoucher?.acronym}</span>
-                <span className="text-small text-default-500">{evoucherCode.evoucher?.detail.en}</span>
+            <div className="flex flex-col gap-1 min-w-[180px] max-w-[250px]">
+                <span className="text-bold text-small truncate">{evoucherCode.evoucher?.discount}</span>
             </div>
         ),
         sponsor: (
-            <span className="text-bold text-small capitalize">
-                {evoucherCode.evoucher?.sponsors?.name.en}
-            </span>
+            <div className="flex flex-col gap-1 min-w-[180px] max-w-[250px]">
+                <span className="text-bold text-small truncate">{evoucherCode.evoucher?.sponsors?.name.en}</span>
+                <span className="text-small text-default-500 truncate">{evoucherCode.evoucher?.sponsors?.name.th}</span>
+            </div>
         ),
         isUsed: (
-            <span className={`text-bold text-small capitalize ${
-                evoucherCode.isUsed ? 'text-danger' : 'text-success'
-            }`}>
-                {evoucherCode.isUsed ? 'Used' : 'Available'}
-            </span>
+            <div className="flex flex-col gap-1 min-w-[180px] max-w-[250px]">
+                <span className={`text-bold text-small capitalize truncate ${
+                    evoucherCode.isUsed ? 'text-danger' : 'text-success'
+                }`}>
+                    {evoucherCode.isUsed ? 'Used' : 'Available'}
+                </span>
+            </div>
         ),
         expiration: (
-            <span className="text-bold text-small">
+            <div className="flex flex-col gap-1 min-w-[180px] max-w-[250px]">
                 {new Date(evoucherCode.metadata.expiration).toLocaleString("en-US", {
                     dateStyle: 'long',
                     timeStyle: 'short',
                     timeZone: 'UTC'
                 })}
-            </span>
+            </div>
+        ),
+        user: (
+            <div className="flex flex-col gap-1 min-w-[180px] max-w-[250px]">
+                <span className="text-bold text-small truncate">{evoucherCode.user?.username}</span>
+            </div>
         ),
         actions: (
-            <div className="relative flex justify-end items-center gap-2">
+            <div className="relative flex justify-end items-center gap-2 w-[60px]">
                 <Dropdown>
                     <DropdownTrigger>
                         <Button isIconOnly size="sm" variant="light">

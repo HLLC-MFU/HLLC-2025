@@ -61,6 +61,31 @@ export default function TableContent({
     onClear,
     onSearchChange,
 }: TableContentProps) {
+    const getColumnWidth = (columnKey: string) => {
+        switch (columnKey) {
+            case "sponsors":
+                return "min-w-[120px]";
+            case "acronym":
+                return "min-w-[100px]";
+            case "detail":
+                return "min-w-[180px] max-w-[250px]";
+            case "discount":
+                return "min-w-[80px]";
+            case "expiration":
+                return "min-w-[180px]";
+            case "status":
+                return "min-w-[90px]";
+            case "claims":
+                return "min-w-[80px]";
+            case "cover":
+                return "w-[100px]";
+            case "actions":
+                return "w-[60px]";
+            default:
+                return "";
+        }
+    };
+
     return (
         <Table
             isHeaderSticky
@@ -104,7 +129,7 @@ export default function TableContent({
                     <TableColumn
                         key={column.uid}
                         align={column.uid === "actions" ? "center" : "start"}
-                        className={`${column.uid === "actions" ? "w-16" : "w-48"} py-4 bg-default-50`}
+                        className={`${getColumnWidth(column.uid)} py-4 bg-default-50`}
                         allowsSorting={column.sortable}
                     >
                         <span className="text-bold text-small uppercase tracking-wider">{column.name}</span>
@@ -119,7 +144,7 @@ export default function TableContent({
                 {(item) => (
                     <TableRow key={item._id} className="hover:bg-default-50 transition-colors">
                         {(columnKey) => (
-                            <TableCell className={`${columnKey === "actions" ? "w-16" : "w-48"} py-4`}>
+                            <TableCell className={`${getColumnWidth(columnKey.toString())} py-4`}>
                                 {renderCell(item, columnKey)}
                             </TableCell>
                         )}

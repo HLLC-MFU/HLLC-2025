@@ -10,19 +10,17 @@ import { COLUMNS, INITIAL_VISIBLE_COLUMNS, capitalize } from "./EvoucherCodeTabl
 import { Evoucher } from "@/types/evoucher";
 
 export default function EvoucherCodeTable({
-    sponsorName,
     evoucherCodes,
     sponsors,
     evouchers,
 }: {
-    sponsorName: string,
     evoucherCodes: EvoucherCode[];
     sponsors: Sponsors[];
     evouchers: Evoucher[];
 }) {
     const tableLogic = useEvoucherCodeTable({ evoucherCodes });
     const [visibleColumns, setVisibleColumns] = React.useState(INITIAL_VISIBLE_COLUMNS);
-    const [selectedEvoucherCode, setSelectedEvoucherCode] = useState<EvoucherCode | undefined>();
+    const [selectedEvoucherCode, setSelectedEvoucherCode] = useState<EvoucherCode>();
 
     // Computed values
     const headerColumns = useMemo(() => 

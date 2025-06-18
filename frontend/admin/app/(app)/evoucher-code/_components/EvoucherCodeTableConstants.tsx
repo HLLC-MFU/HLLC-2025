@@ -5,11 +5,12 @@ export const COLUMNS = [
     { name: "SPONSOR", uid: "sponsor", sortable: true },
     { name: "USED", uid: "isUsed", sortable: true },
     { name: "EXPIRATION", uid: "expiration", sortable: true },
+    { name: "USER", uid: "user", sortable: true },
     { name: "ACTIONS", uid: "actions" },
 ];
 
 export const INITIAL_VISIBLE_COLUMNS = new Set([
-    "code", "evoucher", "sponsor", "isUsed", "expiration", "actions"
+    "code", "evoucher", "sponsor", "isUsed", "expiration", "user", "actions"
 ]);
 
 export const ROWS_PER_PAGE = 5;

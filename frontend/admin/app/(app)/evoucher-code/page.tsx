@@ -93,7 +93,6 @@ export default function EvoucherCodePage() {
                 <EvoucherCodeTable
                     evoucherCodes={codes}
                     sponsors={sponsors}
-                    sponsorName={sponsorName}
                     evouchers={evouchers}
                 />
             </AccordionItem>

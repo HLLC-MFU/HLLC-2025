@@ -11,7 +11,8 @@ const filterItems = (items: EvoucherCode[], search: string) => {
         code.code.toLowerCase().includes(query) ||
         code.evoucher?.acronym?.toLowerCase().includes(query) ||
         code.evoucher?.sponsors?.name.en?.toLowerCase().includes(query) ||
-        code.evoucher?.detail?.en?.toLowerCase().includes(query)
+        code.evoucher?.detail?.en?.toLowerCase().includes(query) ||
+        code.user?.username?.toString()?.toLowerCase().includes(query)
     );
 };
 
@@ -29,6 +30,10 @@ const sortItems = (items: EvoucherCode[], descriptor: SortDescriptor) => {
             case "sponsor":
                 first = a.evoucher?.sponsors?.name.en || "" ;
                 second = b.evoucher?.sponsors?.name.en || "";
+                break;
+            case "user":
+                first = a.user?.username?.toString() || "";
+                second = b.user?.username?.toString() || "";
                 break;
             default:
                 first = String(a[descriptor.column as keyof EvoucherCode] || "");
