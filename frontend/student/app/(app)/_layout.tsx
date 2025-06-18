@@ -40,10 +40,21 @@ export default function Layout() {
         screenOptions={{
           sceneStyle: { backgroundColor: 'transparent' },
           headerShown: false,
+          animation: "shift",
+          transitionSpec: {
+            animation: 'spring',
+            config: {
+              stiffness: 1000,
+              damping: 100,
+              mass: 3,
+              velocity: 0.5,
+            },
+          }
         }}
         tabBar={() => <TabBar />}
       >
-        <Tabs.Screen name="index" options={{ title: 'Home' }} />
+        <Tabs.Screen name="index" options={{ title: 'Home' }}
+        />
         <Tabs.Screen name="activities/index" options={{ title: 'Activities' }} />
         <Tabs.Screen name="qrcode" options={{ title: 'QR Code' }} />
         <Tabs.Screen name="evoucher" options={{ title: 'E-Voucher' }} />
