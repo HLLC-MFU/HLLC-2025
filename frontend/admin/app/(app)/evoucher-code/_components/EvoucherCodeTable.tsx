@@ -11,12 +11,13 @@ import { Evoucher } from "@/types/evoucher";
 
 export default function EvoucherCodeTable({
     evoucherCodes,
-    sponsors,
     evouchers,
+    sponsorId,
 }: {
     evoucherCodes: EvoucherCode[];
     sponsors: Sponsors[];
     evouchers: Evoucher[];
+    sponsorId: string;
 }) {
     const tableLogic = useEvoucherCodeTable({ evoucherCodes });
     const [visibleColumns, setVisibleColumns] = React.useState(INITIAL_VISIBLE_COLUMNS);
@@ -95,9 +96,9 @@ export default function EvoucherCodeTable({
                     }}
                     onSuccess={handleSuccess}
                     mode={tableLogic.actionText.toLowerCase() as "add" | "edit"}
-                    sponsors={sponsors}
                     evouchers={evouchers}
                     evoucherCode={selectedEvoucherCode}
+                    sponsorId={sponsorId}
                 />
             )}
 

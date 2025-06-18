@@ -22,6 +22,7 @@ export default function EvoucherCodePage() {
     const evoucherCodesBySponsors = React.useMemo(() => {
         const groupedCodes = new Map();
         evoucherCodes.forEach(code => {
+            const sponsorId = code.evoucher?.sponsors?._id;
             const sponsorName = code.evoucher?.sponsors?.name.en;
             if (sponsorName && !groupedCodes.has(sponsorName)) {
                 const sponsorPhoto = code.evoucher?.sponsors?.photo as { logoPhoto?: string } | undefined;
@@ -32,7 +33,8 @@ export default function EvoucherCodePage() {
                 });
                 groupedCodes.set(sponsorName, {
                     codes: [],
-                    photo: sponsorPhoto?.logoPhoto || ""
+                    photo: sponsorPhoto?.logoPhoto || "",
+                    sponsorId
                 });
             }
             if (sponsorName) {
@@ -54,7 +56,7 @@ export default function EvoucherCodePage() {
                 <div className="h-[100px] w-full bg-gray-100 rounded-md animate-pulse" />
             </AccordionItem>
         ))
-        : Array.from(evoucherCodesBySponsors.entries()).map(([sponsorName, { codes, photo }]) => (
+        : Array.from(evoucherCodesBySponsors.entries()).map(([sponsorName, { codes, photo, sponsorId }]) => (
             <AccordionItem
                 key={sponsorName}
                 aria-label={`${sponsorName} Evoucher Codes`}
@@ -94,6 +96,7 @@ export default function EvoucherCodePage() {
                     evoucherCodes={codes}
                     sponsors={sponsors}
                     evouchers={evouchers}
+                    sponsorId={sponsorId}
                 />
             </AccordionItem>
         ));

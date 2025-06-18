@@ -2,20 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem
+  Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Select, SelectItem
 } from "@heroui/react";
-import { Sponsors } from "@/types/sponsors";
 import { EvoucherCode } from "@/types/evoucher-code";
 import { Evoucher } from "@/types/evoucher";
+import { useUsers } from "@/hooks/useUsers";
+import { ScopeSelector } from "@/app/(app)/evoucher-code/_components/ScopeSelector";
+import { Users } from "lucide-react";
 
 interface AddEvoucherCodeProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (formData: FormData, mode: "add" | "edit") => void;
   mode: "add" | "edit";
-  sponsors: Sponsors[];
   evouchers: Evoucher[];
   evoucherCode?: EvoucherCode;
+  sponsorId?: string;
 }
 
 export function EvoucherCodeModal({
@@ -23,35 +25,43 @@ export function EvoucherCodeModal({
   onClose,
   onSuccess,
   mode,
-  sponsors,
   evouchers,
-  evoucherCode
+  evoucherCode,
+  sponsorId
 }: AddEvoucherCodeProps) {
-  const [selectedSponsorId, setSelectedSponsorId] = useState<string>("");
+  const { users, loading: usersLoading } = useUsers();
   const [selectedEvoucher, setSelectedEvoucher] = useState<string>("");
-  const [code, setCode] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [expiration, setExpiration] = useState(new Date().toISOString());
+
+  // Filter evouchers by sponsor
+  const filteredEvouchers = evouchers.filter(e => e.sponsors._id === sponsorId);
 
   // Load existing data if in edit mode
   useEffect(() => {
     if (mode === "edit" && evoucherCode) {
-      setSelectedSponsorId(evoucherCode.evoucher?.sponsors?._id || "");
       setSelectedEvoucher(evoucherCode.evoucher?._id || "");
-      setCode(evoucherCode.code);
+      setSelectedUsers(evoucherCode.user?._id ? [evoucherCode.user._id] : []);
       setExpiration(evoucherCode.metadata.expiration);
     }
   }, [mode, evoucherCode]);
 
   const handleSubmit = () => {
-    if (!selectedSponsorId || !selectedEvoucher) return;
+    if (!selectedEvoucher || selectedUsers.length === 0) return;
 
-    const formData = new FormData();
-    formData.append("code", code);
-    formData.append("evoucher", selectedEvoucher);
-    formData.append("metadata[expiration]", expiration);
+    // Create a FormData object for each selected user
+    const promises = selectedUsers.map(userId => {
+      const formData = new FormData();
+      formData.append("evoucher", selectedEvoucher);
+      formData.append("user", userId);
+      formData.append("metadata[expiration]", expiration);
+      return onSuccess(formData, mode);
+    });
 
-    onSuccess(formData, mode);
-    onClose();
+    // Close modal after all requests are done
+    Promise.all(promises).then(() => {
+      onClose();
+    });
   };
 
   return (
@@ -62,22 +72,7 @@ export function EvoucherCodeModal({
         </ModalHeader>
 
         <ModalBody className="flex flex-col gap-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <Select 
-              label="Sponsor" 
-              isRequired 
-              selectedKeys={selectedSponsorId ? [selectedSponsorId] : []}
-              onSelectionChange={(keys) => {
-                const selectedKey = Array.from(keys)[0] as string;
-                setSelectedSponsorId(selectedKey);
-                // Reset evoucher selection when sponsor changes
-                setSelectedEvoucher("");
-              }}
-            >
-              {sponsors.map((s) => (
-                <SelectItem key={s._id}>{s.name.en}</SelectItem>
-              ))}
-            </Select>
+          <div className="grid grid-cols-1 gap-6">
             <Select 
               label="Evoucher" 
               isRequired 
@@ -87,27 +82,32 @@ export function EvoucherCodeModal({
                 setSelectedEvoucher(selectedKey);
               }}
             >
-              {evouchers
-                .filter(e => e.sponsors?._id === selectedSponsorId)
-                .map((e: Evoucher) => (
-                  <SelectItem key={e._id}>{e.acronym || ""}</SelectItem>
-                ))}
+              {filteredEvouchers.map((e) => (
+                <SelectItem key={e._id} textValue={e.acronym}>
+                  <div className="flex flex-col">
+                    <span>{e.acronym}</span>
+                    <span className="text-small text-default-400">Discount: {e.discount}%</span>
+                  </div>
+                </SelectItem>
+              ))}
             </Select>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <Input 
-              label="Code" 
-              isRequired 
-              value={code} 
-              onChange={(e) => setCode(e.target.value)} 
-            />
-            <Input 
-              label="Expiration" 
-              type="datetime-local" 
-              value={toLocalInputValue(expiration)} 
-              onChange={(e) => setExpiration(new Date(e.target.value).toISOString())} 
-              isRequired 
+            <ScopeSelector
+              label="Select Users"
+              icon={Users}
+              items={users}
+              selectedItems={selectedUsers}
+              onSelect={(id) => setSelectedUsers([...selectedUsers, id])}
+              onRemove={(id) => setSelectedUsers(selectedUsers.filter(u => u !== id))}
+              isLoading={usersLoading}
+              placeholder="Select users..."
+              getName={(user) => user.username}
+              getId={(user) => user._id}
+              searchFields={(user) => [
+                user.username,
+                user.metadata?.[0]?.major?.name?.en,
+                user.metadata?.[0]?.major?.school?.name?.en
+              ]}
             />
           </div>
         </ModalBody>

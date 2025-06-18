@@ -68,7 +68,7 @@ export default function EvoucherCellRenderer({
         claims: (
             <div className="flex items-center justify-start min-w-[80px]">
                 <p className="text-sm font-medium">
-                    {evoucher.claims ? `${evoucher.claims.currentClaim || 0} / ${evoucher.claims.maxClaim || 0}` : '0 / 0'}
+                    {evoucher.claims?.maxClaim ? `${evoucher.claims.currentClaim || 0} / ${evoucher.claims.maxClaim}` : '-'}
                 </p>
             </div>
         ),

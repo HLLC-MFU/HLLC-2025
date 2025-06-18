@@ -33,7 +33,7 @@ export function EvoucherModal({
   const [detailEn, setDetailEn] = useState("");
   const [discount, setDiscount] = useState("");
   const [expiration, setExpiration] = useState(new Date().toISOString());
-  const [maxClaim, setMaxClaim] = useState("0");
+  const [maxClaim, setMaxClaim] = useState<string>("");
   const [status, setStatus] = useState<EvoucherStatus>(EvoucherStatus.ACTIVE);
   const [field, setField] = useState<{ cover: File | string | null }>({ cover: null });
   const [previewImage, setPreviewImage] = useState("");
@@ -47,7 +47,7 @@ export function EvoucherModal({
       setDetailEn(evoucher.detail.en);
       setDiscount(evoucher.discount);
       setExpiration(evoucher.expiration);
-      setMaxClaim(evoucher.claims?.maxClaim?.toString() || "0");
+      setMaxClaim(evoucher.claims?.maxClaim?.toString() || "");
       setStatus(evoucher.status);
       if (evoucher.photo?.coverPhoto) {
         setField({ cover: evoucher.photo.coverPhoto });
@@ -76,7 +76,9 @@ export function EvoucherModal({
     formData.append("expiration", expiration);
     formData.append("detail[th]", detailTh);
     formData.append("detail[en]", detailEn);
-    formData.append("maxClaims", maxClaim);
+    if (maxClaim) {
+      formData.append("maxClaims", maxClaim);
+    }
     formData.append("type", evoucherType);
     formData.append("status", status);
     if (sponsorId) formData.append("sponsors", sponsorId);
@@ -117,7 +119,7 @@ export function EvoucherModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <Input label="Discount" type="text" value={discount} onChange={(e) => setDiscount(e.target.value)} isRequired />
-            <Input label="Max Claims" type="number" value={maxClaim} onChange={(e) => setMaxClaim(e.target.value)} isRequired />
+            <Input label="Max Claims" type="number" value={maxClaim} onChange={(e) => setMaxClaim(e.target.value)} />
             <Input label="Expiration" type="datetime-local" value={expiration.slice(0, 16)} onChange={(e) => setExpiration(new Date(e.target.value).toISOString())} isRequired />
           </div>
 
