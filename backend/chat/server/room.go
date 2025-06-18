@@ -50,7 +50,7 @@ func (s *server) roomService() {
 	memService := memberServicePkg.NewMemberService(memRepo)
 	stkService := stickerServicePkg.NewStickerService(stkRepo)
 	userService := userServicePkg.NewUserService(userRepo, majorService)
-	chatService := chatServicePkg.NewService(chatRepo, publisher, roomRepo, userService)
+	chatService := chatServicePkg.NewService(chatRepo, publisher, roomRepo, userService, memService)
 	roomService := service.NewService(roomRepo, publisher, memService, chatService, userService)
 
 	// Handlers
