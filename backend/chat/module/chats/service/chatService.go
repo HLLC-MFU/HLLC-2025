@@ -12,12 +12,14 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils"
 	roomRedis "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 
+	MemberService "github.com/HLLC-MFU/HLLC-2025/backend/module/members/service"
 	RoomRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
 	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
 	"github.com/gofiber/websocket/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Error string
@@ -46,10 +48,11 @@ const (
 )
 
 type service struct {
-	repo        repository.ChatRepository
-	publisher   kafkaPublisher.Publisher
-	roomRepo    RoomRepository.RoomRepository
-	userService userService.UserService
+	repo          repository.ChatRepository
+	publisher     kafkaPublisher.Publisher
+	roomRepo      RoomRepository.RoomRepository
+	userService   userService.UserService
+	memberService MemberService.MemberService
 }
 
 var (
@@ -57,12 +60,13 @@ var (
 	notified   = make(map[string]time.Time) // key: userId:roomId:message
 )
 
-func NewService(repo repository.ChatRepository, publisher kafkaPublisher.Publisher, roomRepo RoomRepository.RoomRepository, userSvc userService.UserService) ChatService {
+func NewService(repo repository.ChatRepository, publisher kafkaPublisher.Publisher, roomRepo RoomRepository.RoomRepository, userService userService.UserService, memberService MemberService.MemberService) ChatService {
 	s := &service{
-		repo:        repo,
-		publisher:   publisher,
-		roomRepo:    roomRepo,
-		userService: userSvc,
+		repo:          repo,
+		publisher:     publisher,
+		roomRepo:      roomRepo,
+		userService:   userService,
+		memberService: memberService,
 	}
 
 	s.StartRoomConsumers()
@@ -170,6 +174,25 @@ func (s *service) NotifyOfflineUser(userID, roomID, fromUserID, message, eventTy
 	}
 	notified[key] = time.Now()
 	notifiedMu.Unlock()
+
+	// Check if user is still a member of the room
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		log.Printf("[Notify] Invalid room ID: %v", err)
+		return
+	}
+
+	// Check if user is still a member
+	isMember, err := s.memberService.IsUserInRoom(context.Background(), roomObjID, userID)
+	if err != nil {
+		log.Printf("[Notify] Failed to check room membership: %v", err)
+		return
+	}
+
+	if !isMember {
+		log.Printf("[Notify] User %s is not a member of room %s, skipping notification", userID, roomID)
+		return
+	}
 
 	payload := model.NewNotificationPayload(userID, roomID, fromUserID, message, eventType)
 	msg, _ := json.Marshal(payload)
