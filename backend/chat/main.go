@@ -2,49 +2,103 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"os"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/config"
-	"github.com/HLLC-MFU/HLLC-2025/backend/pkg/core"
-	"github.com/HLLC-MFU/HLLC-2025/backend/server"
-	"github.com/joho/godotenv"
+	"chat/module/chat/controller"
+	"chat/module/chat/service"
+	"chat/pkg/config"
+	"chat/pkg/core"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-/**
- * Main function
- *
- * @author Dev. Bengi (Backend Team)
- */
-
 func main() {
-	// Initialize context
-	ctx := context.Background()
-
-	// Load configuration from .env file
-	cfg := config.LoadConfig(".env")
-
-	// Connect to the database
-	db := core.DbConnect(ctx, cfg)
-	defer core.DbDisconnect(ctx, db)
-
-	// Connect to Redis
-	redis := core.RedisConnect(ctx, cfg)
-	defer core.RedisDisconnect(ctx, redis)
-
-	// Create server instance
-	srv := server.NewServer(cfg, db)
-
-	// Load environment variables from .env file
-	err := godotenv.Load(".env")
+	// Load configuration
+	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("Error loading .env file")
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	log.Println("JWT_SECRET:", os.Getenv("JWT_SECRET"))
+	// Create Fiber app
+	app := fiber.New()
 
-	// Start the server
-	if err := srv.Start(); err != nil {
+	// Setup MongoDB
+	mongo, err := setupMongo(cfg)
+	if err != nil {
+		log.Fatalf("Failed to setup MongoDB: %v", err)
+	}
+
+	// Setup Redis
+	redis, err := setupRedis(cfg)
+	if err != nil {
+		log.Fatalf("Failed to setup Redis: %v", err)
+	}
+
+	// Setup middleware
+	setupMiddleware(app)
+
+	// Setup controllers
+	setupControllers(app, mongo, redis)
+
+	// Start server
+	port := fmt.Sprintf(":%s", cfg.App.Port)
+	log.Printf("Server starting on port %s", port)
+	if err := app.Listen(port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
+}
+
+func setupMongo(cfg *config.Config) (*mongo.Database, error) {
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cfg.Mongo.URI))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.Ping(context.Background(), nil); err != nil {
+		return nil, err
+	}
+
+	return client.Database(cfg.Mongo.Database), nil
+}
+
+func setupRedis(cfg *config.Config) (*core.RedisCache, error) {
+	redisConfig := &core.RedisConfig{
+		Host:     cfg.Redis.Host,
+		Port:     cfg.Redis.Port,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	}
+
+	return core.NewRedisCache(redisConfig)
+}
+
+func setupMiddleware(app *fiber.App) {
+	// Recovery middleware
+	app.Use(recover.New())
+
+	// CORS middleware
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
+
+	// Logger middleware
+	app.Use(logger.New(logger.Config{
+		Format: "[${time}] ${status} - ${latency} ${method} ${path}\n",
+	}))
+}
+
+func setupControllers(app *fiber.App, mongo *mongo.Database, redis *core.RedisCache) {
+	// Initialize services
+	chatService := service.NewChatService(mongo, redis)
+
+	// Initialize controllers
+	controller.NewChatController(app, chatService)
 }

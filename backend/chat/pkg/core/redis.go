@@ -7,7 +7,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/config"
+	"chat/pkg/config"
+
 	"github.com/redis/go-redis/v9"
 )
 

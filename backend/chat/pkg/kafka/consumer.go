@@ -8,7 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
+	"chat/module/chat/model"
+
 	"github.com/segmentio/kafka-go"
 )
 
@@ -45,10 +46,6 @@ func (c *Consumer) Start() error {
 	for _, topic := range c.topics {
 		if err := EnsureKafkaTopic("localhost:9092", topic); err != nil {
 			return fmt.Errorf("failed to ensure topic exists: %w", err)
-		}
-
-		if err := WaitUntilTopicReady("localhost:9092", topic, 30*time.Second); err != nil {
-			return fmt.Errorf("topic not ready after waiting: %w", err)
 		}
 
 		c.reader = kafka.NewReader(kafka.ReaderConfig{
@@ -153,7 +150,7 @@ func (c *Consumer) consume() {
 			}
 
 			log.Printf("[Kafka Consumer] Successfully processed message from user %s in room %s (topic: %s)",
-				chatMsg.UserID, chatMsg.RoomID, c.topics)
+				chatMsg.SenderID, chatMsg.RoomID, c.topics)
 		}
 	}
 }
