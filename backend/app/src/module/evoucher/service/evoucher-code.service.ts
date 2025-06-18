@@ -16,6 +16,7 @@ import {
   validateEvoucherTypeClaimable,
   useEvoucherCode as useEvoucherCodeUtil
 } from '../utils/evoucher.util';
+import { EvoucherCodeSequence, EvoucherCodeSequenceDocument } from '../schema/evoucher-code-sequence.schema';
 
 @Injectable()
 export class EvoucherCodeService {
@@ -24,6 +25,7 @@ export class EvoucherCodeService {
     @InjectModel(EvoucherCode.name) private evoucherCodeModel: Model<EvoucherCodeDocument>,
     @InjectModel(Evoucher.name) private evoucherModel: Model<EvoucherDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(EvoucherCodeSequence.name) private sequenceModel: Model<EvoucherCodeSequenceDocument>,
   ) {}
 
   async create(dto: CreateEvoucherCodeDto) {
@@ -58,7 +60,7 @@ export class EvoucherCodeService {
     const evoucher = await validateEvoucherExpired(evoucherId, this.evoucherModel);
     validateEvoucherTypeClaimable(evoucher.type);
     await validateUserDuplicateClaim(userId, evoucherId, this.evoucherCodeModel);
-    return await claimVoucherCode(userId, evoucher, this.evoucherCodeModel);
+    return await claimVoucherCode(userId, evoucher, this.evoucherCodeModel, this.sequenceModel);
   }
 
   async getUserEvoucherCodes(userId: string) {
