@@ -48,6 +48,9 @@ export default function Layout() {
               damping: 100,
               mass: 3,
               velocity: 0.5,
+              overshootClamping: true,
+              restDisplacementThreshold: 0.01,
+              restSpeedThreshold: 0.01,
             },
           }
         }}
