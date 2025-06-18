@@ -17,7 +17,7 @@ import {
   parseScope,
   parseStringArray,
 } from '../utils/scope.util';
-import { Checkin, CheckinDocument } from 'src/module/checkin/schema/checkin.schema';
+import { Checkin } from 'src/module/checkin/schema/checkin.schema';
 
 @Injectable()
 export class ActivitiesService {
@@ -27,7 +27,7 @@ export class ActivitiesService {
     private usersService: UsersService,
     @InjectModel(Checkin.name)
     private readonly checkinsModel: Model<Checkin>,
-  ) { }
+  ) {}
 
   async create(createActivitiesDto: CreateActivitiesDto) {
     const metadata = createActivitiesDto.metadata || {};
@@ -132,10 +132,16 @@ export class ActivitiesService {
     const now = new Date();
 
     // ✅ Step 1: Fetch check-ins for this user
-    const userCheckins = await this.checkinsModel.find({ user: user._id }).lean();
+    const userCheckins = (await this.checkinsModel
+      .find({ user: user._id })
+      .lean()
+      .exec()) as Array<{ activity?: Types.ObjectId | string }>;
 
     const checkinMap = new Set(
-      userCheckins.map((c) => c.activity.toString()),
+      userCheckins
+        .map((c) => c.activity)
+        .filter((activity): activity is Types.ObjectId | string => !!activity)
+        .map((activity) => activity.toString()),
     );
 
     // ✅ Step 2: Fetch activities (without populate)
@@ -157,7 +163,11 @@ export class ActivitiesService {
       .filter((activity) => isUserInScope(user, activity as ActivityDocument))
       .map((activity) => {
         const meta = activity.metadata;
-        const activityId = (activity as any)._id.toString();
+        const activityDoc = activity as ActivityDocument;
+        const activityId =
+          activityDoc._id instanceof Types.ObjectId
+            ? activityDoc._id.toString()
+            : String(activityDoc._id);
         const hasCheckedIn = checkinMap.has(activityId);
 
         let status = 0;
@@ -183,10 +193,12 @@ export class ActivitiesService {
           message = 'Check-in available now';
         }
 
+        const activityObj =
+          typeof (activity as ActivityDocument).toObject === 'function'
+            ? (activity as ActivityDocument).toObject()
+            : activity;
         return {
-          ...(typeof (activity as any).toObject === 'function'
-            ? (activity as any).toObject()
-            : activity),
+          ...activityObj,
           checkinStatus: status,
           checkinMessage: message,
         };
@@ -202,8 +214,6 @@ export class ActivitiesService {
       },
     };
   }
-
-
 
   async update(id: string, updateActivityDto: UpdateActivityDto) {
     if (updateActivityDto.metadata?.scope) {
