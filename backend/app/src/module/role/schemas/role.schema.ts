@@ -56,16 +56,15 @@ export class Role {
       required?: boolean;
     }
   >;
+
+  /**
+ * The metadata schema for the role.
+ * This defines additional properties that can be associated with the role.
+ * Each property should specify its type, label, and whether it is required.
+ * @example "major": { "type": "string", "label": "major", "required": true }
+ */
+  @Prop({ type: Object, default: {} })
+  metadata: Record<string, any>;
 }
 
 export const RoleSchema = SchemaFactory.createForClass(Role);
-/**
- * Remove __v and metadataSchema from the JSON representation
- */
-RoleSchema.set('toJSON', {
-  transform: (doc, ret) => {
-    delete ret.__v;
-    delete ret.metadataSchema;
-    return ret;
-  },
-});

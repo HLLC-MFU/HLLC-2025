@@ -1,61 +1,40 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
+  Req,
+  BadRequestException,
   Patch,
   Param,
-  Delete,
-  Query,
-  UseGuards,
-  Request,
 } from '@nestjs/common';
 import { CheckinService } from './checkin.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
-import { UpdateCheckinDto } from './dto/update-checkin.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { Permissions } from '../auth/decorators/permissions.decorator';
-import { UserRequest } from 'src/pkg/types/users';
+import { Checkin } from './schema/checkin.schema';
+import { FastifyRequest } from 'fastify';
+import { Activities } from '../activities/schemas/activities.schema';
 
-@Controller('checkin')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@Controller('checkins')
 export class CheckinController {
   constructor(private readonly checkinService: CheckinService) { }
 
   @Post()
-  @Permissions('checkin:create')
   async create(
-    @Request() req: UserRequest,
     @Body() createCheckinDto: CreateCheckinDto,
-  ) {
+    @Req() req: FastifyRequest & { user?: { _id?: string } },
+  ): Promise<Checkin[]> {
+    try {
+      const user = req.user as { _id?: string } | undefined;
+      const staffId = user?._id;
+      if (!staffId) throw new BadRequestException('Unauthorized');
 
-    createCheckinDto.staff = req.user._id;
-
-    return this.checkinService.create(createCheckinDto);
-  }
-
-  @Get()
-  @Permissions('checkin:read')
-  findAll(@Query() query: Record<string, string>) {
-    return this.checkinService.findAll(query);
-  }
-
-  @Get(':id')
-  @Permissions('checkin:read')
-  findOne(@Param('id') id: string) {
-    return this.checkinService.findOne(id);
-  }
-
-  @Patch(':id')
-  @Permissions('checkin:update')
-  update(@Param('id') id: string, @Body() updateCheckinDto: UpdateCheckinDto) {
-    return this.checkinService.update(id, updateCheckinDto);
-  }
-
-  @Delete(':id')
-  @Permissions('checkin:delete')
-  remove(@Param('id') id: string) {
-    return this.checkinService.remove(id);
+      return await this.checkinService.create({
+        ...createCheckinDto,
+        staff: staffId,
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Check-in failed';
+      throw new BadRequestException(message);
+    }
   }
 }

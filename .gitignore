@@ -100,3 +100,9 @@ package-lock.json
 yarn.lock
 scripts/hllc.js
 scripts/hllc.js
+
+ecosystem.config.js
+ecosystem.config.cjs
+ecosystem.config.mjs
+
+hllc-2025.code-workspace

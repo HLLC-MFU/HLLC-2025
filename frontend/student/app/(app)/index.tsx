@@ -1,82 +1,56 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Dimensions,
-  ScrollView,
   View,
   Text,
   ActivityIndicator,
 } from "react-native";
-import HomeHero from "@/components/home/Hero";
-import FAB from "@/components/FAB";
-import { QrCode, MessageSquare } from "lucide-react-native";
-
+import { ImageBackground } from 'expo-image';
 import { useRouter } from 'expo-router';
-import TopNav from '@/components/global/TopNav';
-import HomeActivityCard from '@/components/home/ActivityCard';
 import { useActivities } from '@/hooks/useActivities';
-import SectionHeader from '@/components/home/SectionHeader';
-import useProfile from '@/hooks/useProfile';
-import { useLanguage } from '@/context/LanguageContext';
 import { useTranslation } from 'react-i18next';
+import { Bell, User, Users } from 'lucide-react-native';
+import { GlassButton } from '@/components/ui/GlassButton';
+import FadeView from '@/components/ui/FadeView';
 
 export default function HomeScreen() {
-  const { user } = useProfile();
-  const router = useRouter();
-  const { width } = Dimensions.get('window');
   const { t } = useTranslation();
-  const { language } = useLanguage();
-  const { activities, loading, error } = useActivities();
-  if (loading) {
-    return (
-      <SafeAreaView
-        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-      >
-        <ActivityIndicator size="large" color="#888" />
-      </SafeAreaView>
-    );
-  }
   return (
-    <View style={{ flex: 1 }}>
-      <TopNav />
-      <SafeAreaView style={{ flex: 1, top: -36 }}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <HomeHero style={{ paddingHorizontal: 16 }} />
-          <View style={{ top: -60, width: '100%', gap: 16 }}>
-            <SectionHeader
-              title={t('home.activities')}
-              rightText={t('home.seeAll')}
-              onPressRight={() => console.log('Pressed See All')}
+    <FadeView>
+      <ImageBackground
+        source={require('@/assets/images/lobby.png')}
+        contentFit="cover"
+        style={{ flex: 1 }}>
+        <SafeAreaView style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 0, alignItems: 'center', justifyContent: 'space-between' }}>
+          <GlassButton>
+            <User
+              color="white"
+              size={20}
+              onPress={() => {
+                useRouter().push('/(auth)/login');
+              }}
             />
-            <ScrollView
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingRight: 16 }}
-              style={{ gap: 12, flexGrow: 1, height: 200 }}
+            <Text
+              style={{
+                color: 'white',
+                fontWeight: '600',
+                fontSize: 20,
+                marginLeft: 8,
+              }}
             >
-              <View style={{ width: 16 }}></View>
-              {activities
-                .filter(
-                  activity =>
-                    activity.code !== 'LAMDUAN' && activity.code !== 'KHANTOKE',
-                )
-                .map(activity => (
-                  <HomeActivityCard
-                    key={activity.id}
-                    activity={activity}
-                    lang={language}
-                    onPress={() =>
-                      router.push({
-                        pathname: `/activities/[id]`,
-                        params: { id: activity.id },
-                      })
-                    }
-                    style={{ width: width * 0.85, marginRight: 16 }}
-                  />
-                ))}
-            </ScrollView>
+              {t('nav.progress')}
+            </Text>
+          </GlassButton>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <GlassButton iconOnly>
+              <Users color="white" size={20} />
+            </GlassButton>
+            <GlassButton iconOnly>
+              <Bell fill={"white"} color="white" size={20} />
+            </GlassButton>
           </View>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+        </SafeAreaView>
+      </ImageBackground>
+    </FadeView>
   );
 }
