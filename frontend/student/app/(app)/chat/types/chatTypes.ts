@@ -1,4 +1,5 @@
 export interface Message {
+  isTemp: any;
   id?: string;
   text?: string;
   senderId: string;

@@ -3,17 +3,17 @@ import useProfile from '@/hooks/useProfile';
 import { Platform } from 'react-native';
 import { Message, ConnectedUser } from '../types/chatTypes';
 import { getToken } from '@/utils/storage';
+import { CHAT_BASE_URL, WS_BASE_URL } from '../config/chatConfig';
 
-// Use actual IP for Android, localhost for iOS
-const WS_BASE_URL = Platform.OS === 'android' 
-  ? 'ws://10.0.2.2:1334'  
-  : 'ws://localhost:1334';
-
-// Maximum number of messages to keep in memory
+// Constants
 const MAX_MESSAGES = 100;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const CONNECTION_TIMEOUT = 5000;
+const PING_INTERVAL = 60000;
+const RECONNECT_DELAY = 3000;
 
 interface WebSocketWithHeartbeat extends WebSocket {
-  heartbeatInterval?: NodeJS.Timeout;
+  heartbeatInterval?: ReturnType<typeof setInterval>;
 }
 
 export interface WebSocketHook {
@@ -32,74 +32,163 @@ export interface WebSocketHook {
   addMessage: (message: Message) => void;
 }
 
+interface ConnectionState {
+  isConnecting: boolean;
+  hasAttemptedConnection: boolean;
+  reconnectAttempts: number;
+}
+
+interface WebSocketState {
+  ws: WebSocketWithHeartbeat | null;
+  isConnected: boolean;
+  error: string | null;
+  messages: Message[];
+  connectedUsers: ConnectedUser[];
+  typing: { id: string; name?: string }[];
+}
+
 export const useWebSocket = (roomId: string): WebSocketHook => {
   const { user } = useProfile();
-  const [ws, setWs] = useState<WebSocketWithHeartbeat | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
-  const [typing, setTyping] = useState<{ id: string; name?: string }[]>([]);
+  const userId = user?.data[0]?._id;
   
-  // Keep track of sent message IDs to prevent duplicates
-  const sentMessageIds = useRef<Set<string>>(new Set());
-  
-  // Keep track of connection state
-  const isConnecting = useRef(false);
-  const connectionTimeout = useRef<NodeJS.Timeout | null>(null);
-  
-  // Keep track of reconnection attempts
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Use a single state object to reduce useState calls
+  const [state, setState] = useState<WebSocketState>({
+    ws: null,
+    isConnected: false,
+    error: null,
+    messages: [],
+    connectedUsers: [],
+    typing: []
+  });
 
-  // Function to handle user joining - memoized to prevent recreations
-  const handleUserJoin = useCallback((userId: string, username?: string) => {
-    if (!userId) return;
-    
-    console.log('User joined:', userId, username);
-    setConnectedUsers(prev => {
-      if (prev.find(u => u.id === userId)) {
-        return prev;
-      }
-      const newUsers = [...prev, { id: userId, name: username, online: true }];
-      return newUsers.slice(-50);
-    });
+  // Use refs for connection state management
+  const connectionState = useRef<ConnectionState>({
+    isConnecting: false,
+    hasAttemptedConnection: false,
+    reconnectAttempts: 0
+  });
+  
+  const sentMessageIds = useRef<Set<string>>(new Set());
+  const connectionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Helper function to update state
+  const updateState = useCallback((updates: Partial<WebSocketState>) => {
+    setState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  // Function to handle user leaving - memoized
-  const handleUserLeave = useCallback((userId: string) => {
-    if (!userId) return;
+  // Helper function to update connection state
+  const updateConnectionState = useCallback((updates: Partial<ConnectionState>) => {
+    connectionState.current = { ...connectionState.current, ...updates };
+  }, []);
+
+  // Create message object with proper structure
+  const createMessage = useCallback((data: any, isHistory = false): Message => {
+    const baseMessage = {
+      id: data.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      senderId: data.user_id || data.userId,
+      senderName: data.user_id || data.userId,
+      timestamp: data.timestamp || new Date().toISOString(),
+      isRead: false,
+      isTemp: false // Fix linter error by adding isTemp property
+    };
+
+    if (data.file_url) {
+      const fileUrl = data.file_url.startsWith('http') 
+        ? data.file_url 
+        : `${CHAT_BASE_URL}/api/uploads/${data.file_url}`;
+      
+      return {
+        ...baseMessage,
+        fileUrl,
+        fileName: data.file_name,
+        fileType: data.file_type,
+        type: 'file' as const
+      };
+    }
+
+    if (data.stickerId || (data.image && !data.message)) {
+      return {
+        ...baseMessage,
+        image: data.image,
+        stickerId: data.stickerId,
+        type: 'sticker' as const
+      };
+    }
+
+    // Handle text messages with potential replyTo
+    let messageContent = data.message;
+    let replyTo = undefined;
     
-    console.log('User left:', userId);
-    setConnectedUsers(prev => prev.filter(u => u.id !== userId));
+    try {
+      const parsedContent = JSON.parse(data.message);
+      if (parsedContent.message && parsedContent.replyTo) {
+        messageContent = parsedContent.message;
+        replyTo = parsedContent.replyTo;
+      }
+    } catch (e) {
+      messageContent = data.message;
+    }
+
+    return {
+      ...baseMessage,
+      text: messageContent,
+      type: 'message' as const,
+      replyTo
+    };
   }, []);
 
   // Add message with memory management and deduplication
   const addMessage = useCallback((message: Message) => {
-    setMessages(prev => {
+    setState(prev => {
+      const messageId = message.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
       // Check if message already exists
-      if (prev.some(msg => msg.id === message.id) || sentMessageIds.current.has(message.id)) {
+      if (prev.messages.some(msg => msg.id === messageId) || sentMessageIds.current.has(messageId)) {
         return prev;
       }
       
-      const newMessage = { 
-        ...message, 
-        id: message.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        timestamp: message.timestamp || new Date().toISOString()
+      const newMessage = { ...message, id: messageId };
+      sentMessageIds.current.add(messageId);
+      
+      const newMessages = [...prev.messages, newMessage];
+      return {
+        ...prev,
+        messages: newMessages.slice(-MAX_MESSAGES)
       };
-      
-      // Add message ID to sent messages set
-      sentMessageIds.current.add(newMessage.id);
-      
-      const newMessages = [...prev, newMessage];
-      return newMessages.slice(-MAX_MESSAGES);
     });
   }, []);
 
-  // Memoized reconnect function
+  // Handle user join/leave
+  const handleUserJoin = useCallback((userId: string, username?: string) => {
+    if (!userId) return;
+    
+    console.log('User joined:', userId, username);
+    setState(prev => {
+      if (prev.connectedUsers.find(u => u.id === userId)) {
+        return prev;
+      }
+      const newUsers = [...prev.connectedUsers, { id: userId, name: username, online: true }];
+      return {
+        ...prev,
+        connectedUsers: newUsers.slice(-50)
+      };
+    });
+  }, []);
+
+  const handleUserLeave = useCallback((userId: string) => {
+    if (!userId) return;
+    
+    console.log('User left:', userId);
+    setState(prev => ({
+      ...prev,
+      connectedUsers: prev.connectedUsers.filter(u => u.id !== userId)
+    }));
+  }, []);
+
+  // Reconnect logic
   const attemptReconnect = useCallback(() => {
-    if (reconnectAttempts.current >= maxReconnectAttempts) {
+    if (connectionState.current.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
       console.log('Max reconnect attempts reached');
       return;
     }
@@ -108,15 +197,15 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       clearTimeout(reconnectTimeoutRef.current);
     }
     
-    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+    const delay = Math.min(1000 * Math.pow(2, connectionState.current.reconnectAttempts), 30000);
     
     reconnectTimeoutRef.current = setTimeout(() => {
-      console.log(`Reconnect attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts}`);
-      reconnectAttempts.current += 1;
+      console.log(`Reconnect attempt ${connectionState.current.reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS}`);
+      connectionState.current.reconnectAttempts += 1;
       
-      if (ws) {
+      if (state.ws) {
         try {
-          ws.close();
+          state.ws.close();
         } catch (e) {
           // Ignore errors when closing
         }
@@ -124,29 +213,31 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       
       connect(roomId);
     }, delay);
-  }, [roomId, ws]);
+  }, [roomId, state.ws]);
 
-  // Connect function to avoid redundant code
+  // WebSocket connection function
   const connect = useCallback(async (roomId: string) => {
-    if (!roomId || !user?.data[0]._id) {
-      console.log('Cannot connect: missing roomId or userId', {
-        roomId,
-        userId: user?.data[0]._id
-      });
+    if (!roomId || !userId) {
+      console.log('Cannot connect: missing roomId or userId', { roomId, userId });
       return;
     }
 
-    // If already connecting or connected, don't try to connect again
-    if (isConnecting.current || (ws && ws.readyState === WebSocket.OPEN)) {
-      console.log('WebSocket already connecting or connected');
+    if (connectionState.current.isConnecting) {
+      console.log('WebSocket already connecting, skipping...');
+      return;
+    }
+
+    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+      console.log('WebSocket already connected, skipping...');
       return;
     }
 
     try {
-      isConnecting.current = true;
+      updateConnectionState({ isConnecting: true });
+      console.log('Starting WebSocket connection...');
+      
       const token = await getToken('accessToken');
       if (!token) {
-        console.error('No access token found');
         throw new Error('No access token found');
       }
 
@@ -156,29 +247,26 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       const currentTime = Date.now();
       
       if (currentTime >= expirationTime) {
-        console.error('Token expired', {
-          expirationTime,
-          currentTime
-        });
         throw new Error('Token expired');
       }
 
-      const wsUrl = `${WS_BASE_URL}/ws/${roomId}/${user?.data[0]._id}`;
+      const wsUrl = `${WS_BASE_URL}/ws/${roomId}/${userId}`;
       console.log('Attempting to connect to WebSocket:', {
         url: wsUrl,
         roomId,
-        userId: user?.data[0]._id,
+        userId,
         platform: Platform.OS
       });
       
       // Close existing connection if any
-      if (ws) {
+      if (state.ws) {
         try {
-          ws.close();
+          console.log('Closing existing WebSocket connection...');
+          state.ws.close();
         } catch (e) {
           console.error('Error closing existing connection:', e);
         }
-        setWs(null);
+        updateState({ ws: null });
       }
       
       const socket = new WebSocket(wsUrl) as WebSocketWithHeartbeat;
@@ -192,28 +280,32 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         if (socket.readyState !== WebSocket.OPEN) {
           console.log('Connection timeout - socket state:', socket.readyState);
           socket.close();
-          isConnecting.current = false;
-          setError('Connection timeout');
+          updateConnectionState({ isConnecting: false });
+          updateState({ error: 'Connection timeout' });
         }
-      }, 5000);
+      }, CONNECTION_TIMEOUT);
       
       socket.onopen = () => {
         console.log('WebSocket Connected successfully');
-        console.log('Connection state:', socket.readyState);
-        setIsConnected(true);
-        setError(null);
-        reconnectAttempts.current = 0;
-        isConnecting.current = false;
+        updateState({
+          isConnected: true,
+          error: null,
+          ws: socket
+        });
+        updateConnectionState({
+          isConnecting: false,
+          reconnectAttempts: 0,
+          hasAttemptedConnection: false
+        });
         
         if (connectionTimeout.current) {
           clearTimeout(connectionTimeout.current);
         }
 
-        // Use WebSocket ping/pong frames
+        // Setup heartbeat
         const pingInterval = setInterval(() => {
           if (socket.readyState === WebSocket.OPEN) {
             try {
-              // Use WebSocket ping frame
               socket.ping();
             } catch (err) {
               console.error('Error sending ping:', err);
@@ -223,9 +315,8 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
           } else {
             clearInterval(pingInterval);
           }
-        }, 30000);
+        }, PING_INTERVAL);
 
-        // Store interval ID for cleanup
         socket.heartbeatInterval = pingInterval;
       };
 
@@ -235,20 +326,22 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
           reason: event.reason,
           wasClean: event.wasClean
         });
-        setIsConnected(false);
-        isConnecting.current = false;
+        updateState({ isConnected: false, ws: null });
+        updateConnectionState({ isConnecting: false });
         
         if (connectionTimeout.current) {
           clearTimeout(connectionTimeout.current);
         }
 
-        // Clear heartbeat interval
         if (socket.heartbeatInterval) {
           clearInterval(socket.heartbeatInterval);
         }
         
-        if (event.code !== 1000) {
+        if (event.code !== 1000 && event.code !== 1001) {
+          console.log('Abnormal disconnect, attempting reconnect...');
           attemptReconnect();
+        } else {
+          console.log('Normal disconnect, not attempting reconnect');
         }
       };
 
@@ -258,8 +351,8 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
           readyState: socket.readyState,
           url: wsUrl
         });
-        setError('Failed to connect to chat server');
-        isConnecting.current = false;
+        updateState({ error: 'Failed to connect to chat server' });
+        updateConnectionState({ isConnecting: false });
         
         if (connectionTimeout.current) {
           clearTimeout(connectionTimeout.current);
@@ -269,114 +362,24 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('WebSocket message received:', data);
           
-          // Handle different event types
           if (data.eventType === 'history') {
-            if (data.payload?.chat) {
+            const messageData = data.payload;
+            if (messageData && messageData.id) {
               try {
-                const messageData = data.payload.chat;
-                console.log('Parsed history message:', messageData);
-                
-                let newMessage: Message;
-                
-                if (messageData.file_url) {
-                  newMessage = {
-                    id: messageData.id,
-                    fileUrl: messageData.file_url,
-                    fileName: messageData.file_name,
-                    fileType: messageData.file_type,
-                    senderId: messageData.user_id,
-                    senderName: messageData.user_id,
-                    type: 'file',
-                    timestamp: messageData.timestamp,
-                    isRead: false,
-                  };
-                } else if (messageData.stickerId) {
-                  newMessage = {
-                    id: messageData.id,
-                    image: messageData.image,
-                    stickerId: messageData.stickerId,
-                    senderId: messageData.user_id,
-                    senderName: messageData.user_id,
-                    type: 'sticker',
-                    timestamp: messageData.timestamp,
-                    isRead: false,
-                  };
-                } else {
-                  // Parse message content
-                  let messageContent = messageData.message;
-                  let replyTo = undefined;
-                  
-                  try {
-                    const parsedContent = JSON.parse(messageData.message);
-                    if (parsedContent.eventType === 'message' && parsedContent.payload) {
-                      messageContent = parsedContent.payload.message;
-                      if (parsedContent.payload.replyTo) {
-                        replyTo = parsedContent.payload.replyTo;
-                      }
-                    }
-                  } catch (e) {
-                    // If parsing fails, use the original message
-                    console.log('Message is not JSON, using as is');
-                  }
-                  
-                  newMessage = {
-                    id: messageData.id,
-                    text: messageContent,
-                    senderId: messageData.user_id,
-                    senderName: messageData.user_id,
-                    type: 'message',
-                    timestamp: messageData.timestamp,
-                    isRead: false,
-                    replyTo: replyTo
-                  };
-                }
-
-                console.log('Adding history message:', newMessage);
+                const newMessage = createMessage(messageData, true);
                 addMessage(newMessage);
               } catch (parseError) {
                 console.error('Error parsing history message:', parseError);
               }
             }
           } else if (data.eventType === 'message') {
-            // Handle direct message
             try {
               const messageData = data.payload;
-              console.log('Received new message:', messageData);
-
-              // Check if this is our own message (sent by us)
-              const isOwnMessage = messageData.userId === user?.data[0]._id;
+              const isOwnMessage = messageData.userId === userId;
               
-              // Only add message if it's not our own (since we already added it via addMessage)
               if (!isOwnMessage) {
-                let messageContent = messageData.message;
-                let replyTo = undefined;
-                
-                try {
-                  const parsedContent = JSON.parse(messageData.message);
-                  if (parsedContent.eventType === 'message' && parsedContent.payload) {
-                    messageContent = parsedContent.payload.message;
-                    if (parsedContent.payload.replyTo) {
-                      replyTo = parsedContent.payload.replyTo;
-                    }
-                  }
-                } catch (e) {
-                  // If parsing fails, use the original message
-                  console.log('Message is not JSON, using as is');
-                }
-                
-                const newMessage = {
-                  id: Date.now().toString(),
-                  text: messageContent,
-                  senderId: messageData.userId,
-                  senderName: messageData.userId,
-                  type: 'message' as const,
-                  timestamp: new Date().toISOString(),
-                  isRead: false,
-                  replyTo: replyTo
-                };
-                console.log('Adding new message:', newMessage);
+                const newMessage = createMessage(messageData);
                 addMessage(newMessage);
               }
             } catch (parseError) {
@@ -388,29 +391,32 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         }
       };
 
-      setWs(socket);
+      updateState({ ws: socket });
     } catch (error) {
       console.error('Error creating WebSocket:', error);
-      setError('Failed to create WebSocket connection');
-      isConnecting.current = false;
+      updateState({ error: 'Failed to create WebSocket connection' });
+      updateConnectionState({ isConnecting: false });
       
       if (connectionTimeout.current) {
         clearTimeout(connectionTimeout.current);
       }
       
-      // Don't attempt reconnect immediately on error
       setTimeout(() => {
         attemptReconnect();
-      }, 3000);
+      }, RECONNECT_DELAY);
     }
-  }, [roomId, user?.data[0]._id, addMessage, attemptReconnect]);
+  }, [roomId, userId, addMessage, attemptReconnect, createMessage, updateState, updateConnectionState]);
 
+  // Initialize connection
   useEffect(() => {
-    if (roomId && user?.data[0]._id && !isConnecting.current) {
+    if (roomId && userId && !connectionState.current.isConnecting && !state.ws && !state.isConnected && !connectionState.current.hasAttemptedConnection) {
+      console.log('Initializing WebSocket connection...');
+      updateConnectionState({ hasAttemptedConnection: true });
       connect(roomId);
     }
     
     return () => {
+      console.log('Cleaning up WebSocket connection...');
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
@@ -421,10 +427,9 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         connectionTimeout.current = null;
       }
       
-      if (ws) {
-        const socket = ws;
+      if (state.ws) {
+        const socket = state.ws;
         
-        // Clear heartbeat interval
         if (socket.heartbeatInterval) {
           clearInterval(socket.heartbeatInterval);
         }
@@ -443,99 +448,100 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         }
       }
       
-      setMessages([]);
-      setConnectedUsers([]);
-      setIsConnected(false);
-      setError(null);
-      isConnecting.current = false;
+      updateState({
+        connectedUsers: [],
+        isConnected: false,
+        error: null
+      });
+      updateConnectionState({
+        isConnecting: false,
+        hasAttemptedConnection: false
+      });
     };
-  }, [roomId, user?._id]);
+  }, [roomId, userId, connect, updateState, updateConnectionState]);
 
-  // Send message
+  // Clear messages when room or user changes
+  useEffect(() => {
+    console.log('Room or user changed, clearing messages...');
+    updateState({
+      messages: [],
+      connectedUsers: [],
+      typing: []
+    });
+    sentMessageIds.current.clear();
+  }, [roomId, userId, updateState]);
+
+  // Message sending functions
   const sendMessage = useCallback((message: string) => {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      setError('Not connected to chat server');
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+      updateState({ error: 'Not connected to chat server' });
       return;
     }
 
     try {
-      // Generate a unique message ID
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      
-      // Add message ID to sent messages set
       sentMessageIds.current.add(messageId);
-      
-      // Send message directly
-      ws.send(message);
+      state.ws.send(message);
     } catch (error) {
       console.error('Error sending message:', error);
-      setError('Failed to send message');
+      updateState({ error: 'Failed to send message' });
     }
-  }, [ws]);
+  }, [state.ws, updateState]);
 
-  // Send typing event
   const sendTyping = useCallback(() => {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
     
     const typingData = {
       eventType: 'typing',
-      payload: {
-        typing: true
-      }
+      payload: { typing: true }
     };
     
-    ws.send(JSON.stringify(typingData));
-  }, [ws]);
+    state.ws.send(JSON.stringify(typingData));
+  }, [state.ws]);
 
-  // Send read receipt
   const sendReadReceipt = useCallback((messageId: string) => {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
     
     const readData = {
       eventType: 'read_receipt',
-      payload: {
-        messageId
-      }
+      payload: { messageId }
     };
     
-    ws.send(JSON.stringify(readData));
-  }, [ws]);
+    state.ws.send(JSON.stringify(readData));
+  }, [state.ws]);
 
-  // Send reaction
   const sendReaction = useCallback((messageId: string, reaction: string) => {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
     
     const reactionData = {
       eventType: 'message_reaction',
-      payload: {
-        messageId,
-        reaction
-      }
+      payload: { messageId, reaction }
     };
     
-    ws.send(JSON.stringify(reactionData));
-  }, [ws]);
+    state.ws.send(JSON.stringify(reactionData));
+  }, [state.ws]);
 
   const disconnect = useCallback(() => {
-    if (ws) {
-      ws.close();
-      setWs(null);
+    if (state.ws) {
+      state.ws.close();
+      updateState({ ws: null });
     }
-  }, [ws]);
+    updateConnectionState({ hasAttemptedConnection: false });
+  }, [state.ws, updateState, updateConnectionState]);
 
   return {
-    isConnected,
-    error,
+    isConnected: state.isConnected,
+    error: state.error,
     sendMessage,
     sendTyping,
     sendReadReceipt,
     sendReaction,
-    messages,
-    connectedUsers,
-    typing,
+    messages: state.messages,
+    connectedUsers: state.connectedUsers,
+    typing: state.typing,
     connect,
     disconnect,
-    ws,
+    ws: state.ws,
     addMessage
   };
 }; 

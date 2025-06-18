@@ -3,20 +3,18 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Alert, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Vibration } from 'react-native';
-import WebSocket from 'react';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useWebSocket } from './useWebSocket';
 import { useTypingIndicator } from './useTypingIndicator';
 import { useMessageGrouping } from './useMessageGrouping';
 import useProfile from '@/hooks/useProfile';
-import { chatService } from '../services/chatService';
+import { chatService, RoomMembersResponse } from '../services/chatService';
 import { ChatRoom, Message } from '../types/chatTypes';
 import { 
   MAX_MESSAGE_LENGTH, 
   SCROLL_DELAY,
   ERROR_MESSAGES,
-  HEARTBEAT_INTERVAL,
 } from '../constants/chatConstants';
 import { 
   triggerHapticFeedback, 
@@ -24,7 +22,35 @@ import {
   createTempMessage,
   createFileMessage,
 } from '../utils/messageHandlers';
-import { handleWebSocketMessage } from '../utils/websocketHandlers';
+import { API_BASE_URL } from '../config/chatConfig';
+
+// WebSocket constants
+const WS_OPEN = 1;
+
+// State interfaces for better organization
+interface ChatState {
+  room: ChatRoom | null;
+  isMember: boolean;
+  messageText: string;
+  loading: boolean;
+  error: string | null;
+  joining: boolean;
+}
+
+interface UIState {
+  showEmojiPicker: boolean;
+  isRoomInfoVisible: boolean;
+  showStickerPicker: boolean;
+}
+
+interface ReplyState {
+  replyTo: Message | undefined;
+}
+
+interface RoomDataState {
+  roomMembers: RoomMembersResponse | null;
+  loadingMembers: boolean;
+}
 
 export const useChatRoom = () => {
   const router = useRouter();
@@ -35,16 +61,34 @@ export const useChatRoom = () => {
   const userId = user?.data[0]._id || '';
   const roomId = params.roomId as string;
 
-  const [room, setRoom] = useState<ChatRoom | null>(null);
-  const [isMember, setIsMember] = useState(false);
-  const [messageText, setMessageText] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [joining, setJoining] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
-  const [replyTo, setReplyTo] = useState<Message | undefined>(undefined);
-  const [showStickerPicker, setShowStickerPicker] = useState(false);
+  // Consolidated state management
+  const [chatState, setChatState] = useState<ChatState>({
+    room: null,
+    isMember: false,
+    messageText: '',
+    loading: true,
+    error: null,
+    joining: false,
+  });
+
+  const [uiState, setUIState] = useState<UIState>({
+    showEmojiPicker: false,
+    isRoomInfoVisible: false,
+    showStickerPicker: false,
+  });
+
+  const [replyState, setReplyState] = useState<ReplyState>({
+    replyTo: undefined,
+  });
+
+  const [roomDataState, setRoomDataState] = useState<RoomDataState>({
+    roomMembers: null,
+    loadingMembers: false,
+  });
+
+  // Track initialization state to prevent multiple calls
+  const isInitialized = useRef(false);
+  const initializationInProgress = useRef(false);
 
   const {
     isConnected,
@@ -62,111 +106,160 @@ export const useChatRoom = () => {
   const { isTyping, handleTyping } = useTypingIndicator();
   const groupMessages = useMessageGrouping(wsMessages);
 
-  // Initialize room data
+  // State update helpers
+  const updateChatState = useCallback((updates: Partial<ChatState>) => {
+    setChatState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  const updateUIState = useCallback((updates: Partial<UIState>) => {
+    setUIState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  const updateReplyState = useCallback((updates: Partial<ReplyState>) => {
+    setReplyState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  const updateRoomDataState = useCallback((updates: Partial<RoomDataState>) => {
+    setRoomDataState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  // Initialize room data - only once
   const initializeRoom = useCallback(async () => {
+    if (isInitialized.current || initializationInProgress.current) {
+      console.log('Room already initialized or initialization in progress, skipping...');
+      return;
+    }
+
     try {
-      setLoading(true);
+      initializationInProgress.current = true;
+      updateChatState({ loading: true });
+      console.log('Initializing room data...');
+      
       if (params.room) {
         const roomData = JSON.parse(params.room as string);
-        setRoom(roomData);
-        setIsMember(roomData.is_member || false);
-        
-        if (roomData.is_member && (!ws || ws.readyState !== WebSocket.OPEN)) {
-          await wsConnect(roomId);
-          startHeartbeat();
-        }
+        updateChatState({ 
+          room: roomData, 
+          isMember: roomData.is_member || false 
+        });
+        console.log('Room data loaded from params, is_member:', roomData.is_member);
       } else {
         const roomData = await chatService.getRoom(roomId);
         if (!roomData) throw new Error('Room not found');
         
-        setRoom(roomData);
-        setIsMember(roomData.is_member || false);
-        
-        if (roomData.is_member && (!ws || ws.readyState !== WebSocket.OPEN)) {
-          await wsConnect(roomId);
-          startHeartbeat();
-        }
+        updateChatState({ 
+          room: roomData, 
+          isMember: roomData.is_member || false 
+        });
+        console.log('Room data loaded from API, is_member:', roomData.is_member);
       }
+      
+      // Fetch room members
+      await fetchRoomMembers();
+      
+      isInitialized.current = true;
     } catch (err) {
       console.error('Error initializing room:', err);
-      setError('Failed to load room');
+      updateChatState({ error: 'Failed to load room' });
     } finally {
-      setLoading(false);
+      updateChatState({ loading: false });
+      initializationInProgress.current = false;
     }
-  }, [roomId, params.room, wsConnect, ws]);
+  }, [roomId, params.room, updateChatState]);
 
-  // Heartbeat mechanism
-  const startHeartbeat = useCallback(() => {
-    const heartbeatInterval = setInterval(() => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        try {
-          ws.send(JSON.stringify({ type: 'heartbeat' }));
-        } catch (err) {
-          console.error('Error sending heartbeat:', err);
-          clearInterval(heartbeatInterval);
-          if (room?.is_member) wsConnect(roomId);
-        }
-      } else {
-        clearInterval(heartbeatInterval);
-        if (room?.is_member) wsConnect(roomId);
-      }
-    }, HEARTBEAT_INTERVAL);
+  // Fetch room members
+  const fetchRoomMembers = useCallback(async () => {
+    try {
+      updateRoomDataState({ loadingMembers: true });
+      const members = await chatService.getRoomMembers(roomId);
+      updateRoomDataState({ roomMembers: members });
+      console.log('Room members loaded:', members);
+    } catch (error) {
+      console.error('Error fetching room members:', error);
+    } finally {
+      updateRoomDataState({ loadingMembers: false });
+    }
+  }, [roomId, updateRoomDataState]);
 
-    return () => clearInterval(heartbeatInterval);
-  }, [ws, room?.is_member, roomId, wsConnect]);
+  // Connect to WebSocket only when room is initialized and user is a member
+  const connectToWebSocket = useCallback(async () => {
+    if (!isInitialized.current || !chatState.room?.is_member) {
+      console.log('Cannot connect: room not initialized or user not a member', {
+        isInitialized: isInitialized.current,
+        isMember: chatState.room?.is_member
+      });
+      return;
+    }
 
-  // Initialize room on mount
+    if (isConnected) {
+      console.log('WebSocket already connected, skipping connection...');
+      return;
+    }
+
+    console.log('Connecting to WebSocket...');
+    await wsConnect(roomId);
+  }, [chatState.room?.is_member, isConnected, wsConnect, roomId]);
+
+  // Initialize room on mount - only once
   useEffect(() => {
-    let heartbeatCleanup: (() => void) | undefined;
-    
     const setup = async () => {
-      await initializeRoom();
-      if (room?.is_member) {
-        heartbeatCleanup = startHeartbeat();
+      // Reset initialization state when roomId changes
+      isInitialized.current = false;
+      initializationInProgress.current = false;
+      
+      // Reset state when room changes
+      updateChatState({
+        room: null,
+        isMember: false,
+        error: null,
+        loading: true,
+      });
+      updateRoomDataState({ roomMembers: null });
+      
+      // Disconnect from previous WebSocket
+      if (ws && ws.readyState === WS_OPEN) {
+        console.log('Disconnecting from previous WebSocket...');
+        ws.close();
       }
+      
+      // Call disconnect to clean up WebSocket state
+      wsDisconnect();
+      
+      await initializeRoom();
     };
 
     setup();
 
     return () => {
-      if (heartbeatCleanup) heartbeatCleanup();
-      if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+      if (ws && ws.readyState === WS_OPEN) ws.close();
+      wsDisconnect();
     };
-  }, [initializeRoom, startHeartbeat, room?.is_member]);
+  }, [roomId]); // Add roomId as dependency to reinitialize when room changes
 
-  // Handle WebSocket disconnection
+  // Connect to WebSocket when room is ready and user is a member
   useEffect(() => {
-    if (!ws) return;
-
-    const handleDisconnect = () => {
-      if (room?.is_member) {
-        console.log('WebSocket disconnected, attempting to reconnect...');
-        wsConnect(roomId);
-      }
-    };
-
-    ws.addEventListener('close', handleDisconnect);
-    ws.addEventListener('error', handleDisconnect);
-
-    return () => {
-      ws.removeEventListener('close', handleDisconnect);
-      ws.removeEventListener('error', handleDisconnect);
-    };
-  }, [ws, room?.is_member, roomId, wsConnect]);
+    if (isInitialized.current && chatState.room?.is_member && !isConnected) {
+      connectToWebSocket();
+    }
+  }, [isInitialized.current, chatState.room?.is_member, isConnected, connectToWebSocket]);
 
   const handleJoin = async () => {
     try {
-      if (!room || room.is_member || joining) return;
-      setJoining(true);
+      if (!chatState.room || chatState.room.is_member || chatState.joining) return;
+      updateChatState({ joining: true });
 
       const result = await chatService.joinRoom(roomId);
       
       if (result.success && result.room) {
-        setRoom(result.room);
-        setIsMember(true);
+        updateChatState({
+          room: result.room,
+          isMember: true,
+        });
         
-        if (ws) ws.close();
-        await wsConnect(roomId);
+        // Refresh room members after joining
+        await fetchRoomMembers();
+        
+        // Connect to WebSocket after joining
+        await connectToWebSocket();
         
         triggerSuccessHaptic();
       } else {
@@ -174,43 +267,45 @@ export const useChatRoom = () => {
       }
     } catch (error) {
       console.error('Error joining room:', error);
-      setError(ERROR_MESSAGES.JOIN_FAILED);
+      updateChatState({ error: ERROR_MESSAGES.JOIN_FAILED });
     } finally {
-      setJoining(false);
+      updateChatState({ joining: false });
     }
   };
 
   const handleSendMessage = useCallback(async () => {
-    const trimmedMessage = messageText.trim();
-    if (!trimmedMessage || !room?.is_member || !isConnected) return;
+    const trimmedMessage = chatState.messageText.trim();
+    if (!trimmedMessage || !chatState.room?.is_member || !isConnected) return;
     
     try {
-      const tempMessage = createTempMessage(trimmedMessage, userId, replyTo);
+      const tempMessage = createTempMessage(trimmedMessage, userId, replyState.replyTo);
       addMessage(tempMessage);
       
-      const messageData = {
-        eventType: 'message',
-        payload: {
+      // Send message with replyTo info if available
+      let messageToSend = trimmedMessage;
+      if (replyState.replyTo) {
+        // Add replyTo info to the message for backend processing
+        const messageWithReply = {
           message: trimmedMessage,
-          userId: userId,
-          replyTo: replyTo ? {
-            id: replyTo.id || '',
-            text: replyTo.text || '',
-            senderId: replyTo.senderId,
-            senderName: replyTo.senderName
-          } : undefined
-        }
-      };
+          replyTo: {
+            id: replyState.replyTo.id || '',
+            text: replyState.replyTo.text || '',
+            senderId: replyState.replyTo.senderId,
+            senderName: replyState.replyTo.senderName
+          }
+        };
+        messageToSend = JSON.stringify(messageWithReply);
+      }
       
-      wsSendMessage(JSON.stringify(messageData));
-      setMessageText('');
-      setReplyTo(undefined);
+      wsSendMessage(messageToSend);
+      updateChatState({ messageText: '' });
+      updateReplyState({ replyTo: undefined });
       triggerHapticFeedback();
     } catch (error) {
       console.error('Error sending message:', error);
-      setError(ERROR_MESSAGES.SEND_FAILED);
+      updateChatState({ error: ERROR_MESSAGES.SEND_FAILED });
     }
-  }, [messageText, room, isConnected, wsSendMessage, userId, addMessage, replyTo]);
+  }, [chatState.messageText, chatState.room, isConnected, wsSendMessage, userId, addMessage, replyState.replyTo, updateChatState, updateReplyState]);
 
   const handleImageUpload = useCallback(async () => {
     try {
@@ -232,7 +327,7 @@ export const useChatRoom = () => {
         formData.append('roomId', roomId);
         formData.append('userId', userId);
 
-        const response = await fetch(`http://localhost:1334/api/v1/rooms/upload`, {
+        const response = await fetch(`${API_BASE_URL}/rooms/upload`, {
           method: 'POST',
           body: formData,
           headers: {
@@ -240,7 +335,11 @@ export const useChatRoom = () => {
           },
         });
 
-        if (!response.ok) throw new Error('Failed to upload image');
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Upload failed with status:', response.status, 'Error:', errorText);
+          throw new Error(`Failed to upload image: ${response.status} - ${errorText}`);
+        }
 
         const data = await response.json();
         const tempMessage = createFileMessage(data);
@@ -252,14 +351,15 @@ export const useChatRoom = () => {
       }
     } catch (error) {
       console.error('Error uploading image:', error);
-      Alert.alert('Error', 'Failed to upload image');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      Alert.alert('Error', `Failed to upload image: ${errorMessage}`);
     }
   }, [roomId, userId, addMessage]);
 
   const handleSendSticker = useCallback(async (stickerId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:1334/api/v1/rooms/${roomId}/stickers?userId=${userId}&stickerId=${stickerId}`,
+        `${API_BASE_URL}/rooms/${roomId}/stickers?userId=${userId}&stickerId=${stickerId}`,
         { method: 'POST' }
       );
 
@@ -269,53 +369,70 @@ export const useChatRoom = () => {
       
       // Add the sticker message to WebSocket state
       const stickerMessage: Message = {
-        id: data.id,
-        room_id: data.room_id,
-        user_id: data.user_id,
-        message: data.message,
-        Mentions: data.Mentions,
-        timestamp: data.timestamp,
-        stickerId: data.stickerId,
-        image: data.image,
+        id: data.id || Date.now().toString(),
         senderId: data.user_id,
-        senderName: user?.data[0].name || '',
+        senderName: typeof user?.data[0].name === 'string' 
+          ? user?.data[0].name 
+          : `${user?.data[0].name?.first || ''} ${user?.data[0].name?.last || ''}`.trim(),
         type: 'sticker',
-        isRead: false
+        timestamp: data.timestamp || new Date().toISOString(),
+        isRead: false,
+        stickerId: data.stickerId || stickerId,
+        image: data.image
       };
       
       addMessage(stickerMessage);
-      setShowStickerPicker(false);
+      updateUIState({ showStickerPicker: false });
       triggerHapticFeedback();
     } catch (error) {
       console.error('Error sending sticker:', error);
       Alert.alert('Error', 'Failed to send sticker');
     }
-  }, [roomId, userId, addMessage, user?.data[0].name]);
+  }, [roomId, userId, addMessage, user?.data[0].name, updateUIState]);
 
+  // Expose state and handlers
   return {
-    room,
-    isMember,
-    messageText,
-    setMessageText,
-    loading,
-    error,
-    joining,
-    showEmojiPicker,
-    setShowEmojiPicker,
-    isRoomInfoVisible,
-    setIsRoomInfoVisible,
-    replyTo,
-    setReplyTo,
-    showStickerPicker,
-    setShowStickerPicker,
+    // Chat state
+    room: chatState.room,
+    isMember: chatState.isMember,
+    messageText: chatState.messageText,
+    loading: chatState.loading,
+    error: chatState.error,
+    joining: chatState.joining,
+    
+    // UI state
+    showEmojiPicker: uiState.showEmojiPicker,
+    isRoomInfoVisible: uiState.isRoomInfoVisible,
+    showStickerPicker: uiState.showStickerPicker,
+    
+    // Reply state
+    replyTo: replyState.replyTo,
+    
+    // Room data state
+    roomMembers: roomDataState.roomMembers,
+    loadingMembers: roomDataState.loadingMembers,
+    
+    // WebSocket state
     isConnected,
     wsError,
     connectedUsers,
     typing,
+    
+    // Refs
     flatListRef,
     inputRef,
     userId,
     groupMessages,
+    
+    // State setters
+    setMessageText: (text: string) => updateChatState({ messageText: text }),
+    setShowEmojiPicker: (show: boolean) => updateUIState({ showEmojiPicker: show }),
+    setIsRoomInfoVisible: (visible: boolean) => updateUIState({ isRoomInfoVisible: visible }),
+    setReplyTo: (message: Message | undefined) => updateReplyState({ replyTo: message }),
+    setShowStickerPicker: (show: boolean) => updateUIState({ showStickerPicker: show }),
+    
+    // Handlers
+    fetchRoomMembers,
     handleJoin,
     handleSendMessage,
     handleImageUpload,
