@@ -1,6 +1,6 @@
 import { View, Text } from "react-native"
 
-export function DateBadge({ date }: { date: string }) {
+export default function DateBadge({ date }: { date: string }) {
   const d = new Date(date)
   const month = d.toLocaleString("en-US", { month: "long" }).toUpperCase()
   const day = d.getDate()

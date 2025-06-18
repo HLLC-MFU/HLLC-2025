@@ -72,13 +72,13 @@ type Props = {
   onPress?: () => void
 }
 
-export const CheckinStatusChip: React.FC<Props> = ({
+export default function CheckinStatusChip ({
   status,
   size = "md",
   withLabel = true,
   withAnimation = true,
   onPress,
-}) => {
+}: Props): React.ReactElement {
   const { label, color, backgroundColor, icon } = getCheckinStatusMeta(status)
   const scaleAnim = new Animated.Value(0.95)
 

@@ -15,12 +15,12 @@ import {
 } from "tamagui"
 
 import { apiRequest } from "@/utils/api"
-import { UpcomingActivityCard } from "./_components/upcoming-activity-card"
-import { ActivityCard } from "./_components/activity-card"
 import { useActivityStore } from "@/stores/activityStore"
 import { UserActivity } from "@/types/activities"
 import { BlurView } from "expo-blur"
 import FadeView from "@/components/ui/FadeView"
+import UpcomingActivityCard from "./_components/upcoming-activity-card"
+import ActivityCard from "./_components/activity-card"
 
 export default function ActivitiesPage() {
   const router = useRouter()

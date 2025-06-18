@@ -10,7 +10,7 @@ interface UpcomingActivityCardProps {
   onPress?: () => void
 }
 
-export function UpcomingActivityCard({ activity, onPress }: UpcomingActivityCardProps) {
+export default function UpcomingActivityCard({ activity, onPress }: UpcomingActivityCardProps) {
   if (!activity) return null;
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={onPress}>

@@ -11,7 +11,7 @@ interface ActivityCardProps {
   onPress?: () => void;
 }
 
-export function ActivityCard({ activity, onPress }: ActivityCardProps) {
+export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
   if (!activity) return null;
 
   const imageId = `activity-image-${activity._id}`;

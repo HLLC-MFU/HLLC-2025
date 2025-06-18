@@ -3,11 +3,11 @@ import { useActivityStore } from "@/stores/activityStore";
 import { Linking, Text, TouchableOpacity, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { DateBadge } from "./_components/date-badge";
 import { Button, Separator } from "tamagui";
 import { ArrowLeft, Compass } from "@tamagui/lucide-icons";
 import { SharedElement, SharedElementCompatRoute } from "react-navigation-shared-element";
-import { CheckinStatusChip } from "./_components/checkin-status-chip";
+import CheckinStatusChip from "./_components/checkin-status-chip";
+import DateBadge from "./_components/date-badge";
 
 
 export default function ActivityDetailPage() {
@@ -46,7 +46,7 @@ export default function ActivityDetailPage() {
         />
 
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.push("/(app)/activities")}
           style={{
             position: "absolute",
             top: 60,
