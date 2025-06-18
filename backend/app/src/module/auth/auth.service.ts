@@ -106,6 +106,7 @@ export class AuthService {
         secure: false,
         sameSite: 'lax',
         path: '/',
+        domain: 'localhost',
         maxAge: 60 * 60,
       });
 
@@ -114,6 +115,7 @@ export class AuthService {
         secure: false,
         sameSite: 'lax',
         path: '/',
+        domain: 'localhost',
         maxAge: 60 * 60 * 24 * 7,
       });
     }
