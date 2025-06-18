@@ -40,7 +40,6 @@ func (s *server) chatService() {
 	// Chats logic
 	chatRepo := repository.NewRepository(s.db)
 	roomRepo := RoomRepository.NewRepository(s.db)
-	chatService := service.NewService(chatRepo, publisher, roomRepo)
 
 	// Members logic
 	memRepo := memberRepo.NewRoomMemberRepository(s.db)
@@ -53,7 +52,7 @@ func (s *server) chatService() {
 	// Users logic
 	userRepo := userRepoPkg.NewUserRepository(s.db)
 	userService := userServicePkg.NewUserService(userRepo)
-
+	chatService := service.NewService(chatRepo, publisher, roomRepo, userRepo)
 	// Rooms logic
 	roomService := RoomService.NewService(roomRepo, publisher, memberService, chatService, userService)
 

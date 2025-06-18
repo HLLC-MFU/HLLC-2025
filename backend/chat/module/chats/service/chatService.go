@@ -13,6 +13,7 @@ import (
 	roomRedis "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 
 	RoomRepository "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/repository"
+	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/redis"
@@ -45,9 +46,10 @@ const (
 )
 
 type service struct {
-	repo      repository.ChatRepository
-	publisher kafkaPublisher.Publisher
-	roomRepo  RoomRepository.RoomRepository
+	repo        repository.ChatRepository
+	publisher   kafkaPublisher.Publisher
+	roomRepo    RoomRepository.RoomRepository
+	userService userService.UserService
 }
 
 var (
@@ -55,11 +57,12 @@ var (
 	notified   = make(map[string]time.Time) // key: userId:roomId:message
 )
 
-func NewService(repo repository.ChatRepository, publisher kafkaPublisher.Publisher, roomRepo RoomRepository.RoomRepository) ChatService {
+func NewService(repo repository.ChatRepository, publisher kafkaPublisher.Publisher, roomRepo RoomRepository.RoomRepository, userSvc userService.UserService) ChatService {
 	s := &service{
-		repo:      repo,
-		publisher: publisher,
-		roomRepo:  roomRepo,
+		repo:        repo,
+		publisher:   publisher,
+		roomRepo:    roomRepo,
+		userService: userSvc,
 	}
 
 	s.StartRoomConsumers()
@@ -380,25 +383,32 @@ func (s *service) HandleMessage(ctx context.Context, msg *model.ChatMessage) err
 
 	// Only broadcast to WebSocket clients if this is a text message (msg.Message not empty)
 	if msg.Message != "" {
-		payload := model.MessagePayload{
-			UserID:   msg.UserID,
-			RoomID:   msg.RoomID,
-			Message:  msg.Message,
-			Mentions: msg.Mentions,
+		user, err := s.userService.GetById(ctx, msg.UserID)
+		var username string
+		if err == nil && user != nil {
+			username = user.Username
 		}
+
+		payload := map[string]interface{}{
+			"userId":   msg.UserID.Hex(),
+			"username": username,
+			"roomId":   msg.RoomID.Hex(),
+			"message":  msg.Message,
+			"mentions": msg.Mentions,
+		}
+
 		event := model.ChatEvent{
 			EventType: "message",
 			Payload:   payload,
 		}
 
-		// Send to all clients in the room except sender
+		// Now broadcast the message
 		for userID, conn := range model.Clients[msg.RoomID] {
 			if userID == msg.UserID.Hex() {
-				continue // Skip sender
+				continue
 			}
 
 			if conn == nil {
-				// Notify offline users
 				s.NotifyOfflineUser(userID, msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message, "text")
 				continue
 			}

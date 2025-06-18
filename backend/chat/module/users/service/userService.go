@@ -9,8 +9,6 @@ import (
 )
 
 type UserService interface {
-	Create(ctx context.Context, user *model.User) error
-
 	GetById(ctx context.Context, id primitive.ObjectID) (*model.User, error)
 
 	GetByUsername(ctx context.Context, username string) (*model.User, error)
@@ -20,10 +18,6 @@ type UserService interface {
 	ExistsByUsername(ctx context.Context, username string) (bool, error)
 
 	List(ctx context.Context, page, limit int64) ([]*model.User, int64, error)
-
-	Update(ctx context.Context, user *model.User) error
-
-	Delete(ctx context.Context, id primitive.ObjectID) error
 }
 
 type service struct {
@@ -32,10 +26,6 @@ type service struct {
 
 func NewUserService(repo repository.UserRepository) UserService {
 	return &service{repo: repo}
-}
-
-func (s *service) Create(ctx context.Context, user *model.User) error {
-	return s.repo.Create(ctx, user)
 }
 
 func (s *service) GetById(ctx context.Context, id primitive.ObjectID) (*model.User, error) {
@@ -56,12 +46,4 @@ func (s *service) ExistsByUsername(ctx context.Context, username string) (bool, 
 
 func (s *service) List(ctx context.Context, page, limit int64) ([]*model.User, int64, error) {
 	return s.repo.List(ctx, page, limit)
-}
-
-func (s *service) Update(ctx context.Context, user *model.User) error {
-	return s.repo.Update(ctx, user)
-}
-
-func (s *service) Delete(ctx context.Context, id primitive.ObjectID) error {
-	return s.repo.Delete(ctx, id)
 }
