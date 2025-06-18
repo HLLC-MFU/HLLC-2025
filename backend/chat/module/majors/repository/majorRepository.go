@@ -11,12 +11,9 @@ import (
 )
 
 type MajorRepository interface {
-	Create(ctx context.Context, major *model.Major) error
 	GetById(ctx context.Context, id primitive.ObjectID) (*model.Major, error)
 	GetByName(ctx context.Context, thName, enName string) (*model.Major, error)
 	List(ctx context.Context, page, limit int64) ([]*model.Major, int64, error)
-	Update(ctx context.Context, major *model.Major) error
-	Delete(ctx context.Context, id primitive.ObjectID) error
 	ExistsByID(ctx context.Context, id primitive.ObjectID) (bool, error)
 }
 
@@ -30,11 +27,6 @@ func NewRepository(db *mongo.Client) MajorRepository {
 
 func (r *repository) dbConnect() *mongo.Database {
 	return r.db.Database("hllc-2025")
-}
-
-func (r *repository) Create(ctx context.Context, major *model.Major) error {
-	_, err := r.dbConnect().Collection("majors").InsertOne(ctx, major)
-	return err
 }
 
 func (r *repository) GetById(ctx context.Context, id primitive.ObjectID) (*model.Major, error) {
@@ -82,20 +74,6 @@ func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Majo
 	}
 
 	return majors, count, nil
-}
-
-func (r *repository) Update(ctx context.Context, major *model.Major) error {
-	_, err := r.dbConnect().Collection("majors").UpdateOne(
-		ctx,
-		bson.M{"_id": major.ID},
-		bson.M{"$set": major},
-	)
-	return err
-}
-
-func (r *repository) Delete(ctx context.Context, id primitive.ObjectID) error {
-	_, err := r.dbConnect().Collection("majors").DeleteOne(ctx, bson.M{"_id": id})
-	return err
 }
 
 func (r *repository) ExistsByID(ctx context.Context, id primitive.ObjectID) (bool, error) {

@@ -46,7 +46,7 @@ func (s *server) roomService() {
 	// Services
 	memService := memberServicePkg.NewMemberService(memRepo)
 	stkService := stickerServicePkg.NewStickerService(stkRepo)
-	chatService := chatServicePkg.NewService(chatRepo, publisher, roomRepo)
+	chatService := chatServicePkg.NewService(chatRepo, publisher, roomRepo, userRepo)
 	userService := userServicePkg.NewUserService(userRepo)
 	roomService := service.NewService(roomRepo, publisher, memService, chatService, userService)
 

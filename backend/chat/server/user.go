@@ -3,6 +3,8 @@ package server
 import (
 	"log"
 
+	roleRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/roles/repository"
+	roleService "github.com/HLLC-MFU/HLLC-2025/backend/module/roles/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/users/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/users/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/users/router"
@@ -13,8 +15,11 @@ import (
 
 func (s *server) userService() {
 	userRepo := repository.NewUserRepository(s.db)
+	roleRepo := roleRepo.NewRoleRepository(s.db)
 	userService := service.NewUserService(userRepo)
-	userHandler := handler.NewUserHandler(userService)
+	roleService := roleService.NewRoleService(roleRepo)
+	userHandler := handler.NewUserHandler(userService, roleService)
+
 	router.RegisterUserRoutes(s.app.Group("/users"), userHandler)
 
 	// Middleware
@@ -33,9 +38,5 @@ func (s *server) userService() {
 		return c.SendString("OK")
 	})
 
-	s.app.Get("/health", func(c *fiber.Ctx) error {
-		return c.SendString("OK")
-	})
-
-	log.Println("School service initialized")
+	log.Println("User service initialized")
 }

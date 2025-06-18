@@ -52,6 +52,7 @@ func (s *server) Start() error {
 	s.schoolService()
 	s.userService()
 	s.majorService()
+	s.roleService()
 
 	// Start HTTP server
 	go func() {

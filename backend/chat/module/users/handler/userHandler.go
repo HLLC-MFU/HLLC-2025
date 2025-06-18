@@ -1,51 +1,19 @@
 package handler
 
 import (
-	"github.com/HLLC-MFU/HLLC-2025/backend/module/users/model"
+	roleService "github.com/HLLC-MFU/HLLC-2025/backend/module/roles/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserHTTPHandler struct {
-	service service.UserService
+	service     service.UserService
+	roleSerivce roleService.RoleService
 }
 
-func NewUserHandler(service service.UserService) *UserHTTPHandler {
-	return &UserHTTPHandler{service: service}
-}
-
-func (h *UserHTTPHandler) CreateUser(c *fiber.Ctx) error {
-	var req struct {
-		Username string                 `json:"username"`
-		Password string                 `json:"password"`
-		Role     string                 `json:"role"`
-		Name     model.Name             `json:"name"`
-		Metadata map[string]interface{} `json:"metadata"`
-	}
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
-	}
-
-	roleID, err := primitive.ObjectIDFromHex(req.Role)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid role ID"})
-	}
-
-	user := &model.User{
-		Username: req.Username,
-		Password: req.Password,
-		Role:     roleID,
-		Name:     req.Name,
-		Metadata: req.Metadata,
-	}
-
-	err = h.service.Create(c.Context(), user)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	return c.Status(fiber.StatusCreated).JSON(user)
+func NewUserHandler(service service.UserService, roleService roleService.RoleService) *UserHTTPHandler {
+	return &UserHTTPHandler{service: service, roleSerivce: roleService}
 }
 
 func (h *UserHTTPHandler) GetUser(c *fiber.Ctx) error {
@@ -60,71 +28,69 @@ func (h *UserHTTPHandler) GetUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(user)
+	// Populate role
+	var roleData interface{}
+	if h.roleSerivce != nil && user.Role != primitive.NilObjectID {
+		roleObj, err := h.roleSerivce.GetRole(c.Context(), user.Role)
+		if err == nil && roleObj != nil {
+			roleData = map[string]interface{}{
+				"id":          roleObj.ID.Hex(),
+				"name":        roleObj.Name,
+				"permissions": roleObj.Permissions,
+			}
+		}
+	}
+
+	// Prepare response
+	userResp := map[string]interface{}{
+		"id":         user.ID.Hex(),
+		"created_at": user.CreatedAt,
+		"updated_at": user.UpdatedAt,
+		"username":   user.Username,
+		"name":       user.Name,
+		"role_id":    user.Role.Hex(),
+		"role":       roleData,
+	}
+
+	if user.Metadata != nil {
+		userResp["metadata"] = user.Metadata
+	}
+
+	return c.Status(fiber.StatusOK).JSON(userResp)
 }
 
 func (h *UserHTTPHandler) ListUsers(c *fiber.Ctx) error {
 	page := c.QueryInt("page", 1)
 	limit := c.QueryInt("limit", 10)
-	users, _, err := h.service.List(c.Context(), int64(page), int64(limit))
+
+	users, total, err := h.service.List(c.Context(), int64(page), int64(limit))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(users)
-}
+	var result []map[string]interface{}
+	for _, user := range users {
+		// Fetch role information by ObjectID
+		role, err := h.roleSerivce.GetRole(c.Context(), user.Role)
+		if err != nil {
+			role = nil // skip role info if not found or error
+		}
 
-func (h *UserHTTPHandler) UpdateUser(c *fiber.Ctx) error {
-	userID := c.Params("id")
-	id, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
+		result = append(result, map[string]interface{}{
+			"created_at": user.CreatedAt,
+			"updated_at": user.UpdatedAt,
+			"id":         user.ID.Hex(),
+			"name":       user.Name,
+			"username":   user.Username,
+			"role_id":    user.Role.Hex(),
+			"role":       role,
+		})
 	}
 
-	var req struct {
-		Username string                 `json:"username"`
-		Password string                 `json:"password"`
-		Role     string                 `json:"role"`
-		Name     model.Name             `json:"name"`
-		Metadata map[string]interface{} `json:"metadata"`
-	}
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
-	}
-
-	roleID, err := primitive.ObjectIDFromHex(req.Role)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid role ID"})
-	}
-
-	user := &model.User{
-		ID:       id,
-		Username: req.Username,
-		Password: req.Password,
-		Role:     roleID,
-		Name:     req.Name,
-		Metadata: req.Metadata,
-	}
-
-	err = h.service.Update(c.Context(), user)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	return c.Status(fiber.StatusOK).JSON(user)
-}
-
-func (h *UserHTTPHandler) DeleteUser(c *fiber.Ctx) error {
-	userID := c.Params("id")
-	id, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
-	}
-
-	err = h.service.Delete(c.Context(), id)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "User deleted successfully"})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"users": result,
+		"total": total,
+		"page":  page,
+		"limit": limit,
+	})
 }

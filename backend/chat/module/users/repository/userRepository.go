@@ -11,8 +11,6 @@ import (
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, user *model.User) error
-
 	GetById(ctx context.Context, id primitive.ObjectID) (*model.User, error)
 
 	GetByUsername(ctx context.Context, username string) (*model.User, error)
@@ -22,10 +20,6 @@ type UserRepository interface {
 	ExistsByUsername(ctx context.Context, username string) (bool, error)
 
 	List(ctx context.Context, page, limit int64) ([]*model.User, int64, error)
-
-	Update(ctx context.Context, user *model.User) error
-
-	Delete(ctx context.Context, id primitive.ObjectID) error
 }
 
 type userRepository struct {
@@ -38,11 +32,6 @@ func NewUserRepository(db *mongo.Client) UserRepository {
 
 func (r *userRepository) dbConnect() *mongo.Database {
 	return r.db.Database("hllc-2025")
-}
-
-func (r *userRepository) Create(ctx context.Context, user *model.User) error {
-	_, err := r.dbConnect().Collection("users").InsertOne(ctx, user)
-	return err
 }
 
 func (r *userRepository) GetById(ctx context.Context, id primitive.ObjectID) (*model.User, error) {
@@ -77,16 +66,6 @@ func (r *userRepository) List(ctx context.Context, page, limit int64) ([]*model.
 		return nil, 0, err
 	}
 	return users, total, nil
-}
-
-func (r *userRepository) Update(ctx context.Context, user *model.User) error {
-	_, err := r.dbConnect().Collection("users").UpdateOne(ctx, bson.M{"_id": user.ID}, bson.M{"$set": user})
-	return err
-}
-
-func (r *userRepository) Delete(ctx context.Context, id primitive.ObjectID) error {
-	_, err := r.dbConnect().Collection("users").DeleteOne(ctx, bson.M{"_id": id})
-	return err
 }
 
 func (r *userRepository) GetByUsername(ctx context.Context, username string) (*model.User, error) {
