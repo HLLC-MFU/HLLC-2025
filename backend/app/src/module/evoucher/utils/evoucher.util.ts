@@ -50,12 +50,12 @@ export function generateEvoucherCode(
     const codeNumber = String(current++).padStart(6, '0');
     return {
       code: `${evoucher.acronym}${codeNumber}`,
-        evoucher: evoucher._id.toString(),
-        user: dto.user,
-        isUsed: false,
-        metadata: { expiration: evoucher.expiration.toISOString() }
+      evoucher: evoucher._id.toString(),
+      user: dto.user,
+      isUsed: false,
+      metadata: dto.metadata || {}
     };
-      });
+  });
 }
   
 
@@ -96,13 +96,12 @@ export async function claimVoucherCode(
   const newCode = await evoucherCodeModel.create({
     code: generateEvoucherCode({
       evoucher: evoucher._id.toString(),
-      user: userId,
-      metadata: { expiration: evoucher.expiration.toISOString() }
+      user: userId
     }, evoucher) as string,
-      evoucher: evoucher._id,
-      user: new Types.ObjectId(userId),
-      isUsed: false,
-      metadata: { expiration: evoucher.expiration }
+    evoucher: evoucher._id,
+    user: new Types.ObjectId(userId),
+    isUsed: false,
+    metadata: {}
   });
 
   return newCode;
