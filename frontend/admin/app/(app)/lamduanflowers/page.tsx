@@ -1,6 +1,6 @@
 "use client"
 import { PageHeader } from "@/components/ui/page-header";
-import { Accordion, AccordionItem, addToast } from "@heroui/react";
+import { addToast } from "@heroui/react";
 import { Flower } from "lucide-react";
 import AccordionLamduan from "./_components/AccordionLamduan";
 import { useRef } from "react";

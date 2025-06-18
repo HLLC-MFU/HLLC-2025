@@ -27,28 +27,6 @@ export function useLamduanSetting() {
         }
     };
 
-    const createLamduanSetting = async (settingData: FormData) => {
-        try {
-            setLoading(true);
-
-            const res = await apiRequest<LamduanSetting>('/lamduan-setting', 'POST', settingData);
-
-            if (res.data) {
-                setLamduanSetting((prev) => [...prev, res.data as LamduanSetting]);
-                addToast({
-                    title: 'Information add successfully!',
-                    color: 'success',
-                });
-            }
-
-            return res;
-        } catch (err: any) {
-            setError(err.message || 'Failed to create information.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const updateLamduanSetting = async (
         id: string,
         lamduanSettingData: FormData,
