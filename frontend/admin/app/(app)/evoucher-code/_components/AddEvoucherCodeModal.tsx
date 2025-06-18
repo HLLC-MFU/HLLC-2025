@@ -80,16 +80,21 @@ export function EvoucherCodeModal({
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData();
-      formData.append("evoucher", selectedEvoucher);
-      formData.append("user", selectedUsers[0]); // For edit mode, we only use the first user
-      formData.append("metadata[expiration]", expiration);
+      // Create an array of promises for each user
+      const createPromises = selectedUsers.map(userId => {
+        const formData = new FormData();
+        formData.append("evoucher", selectedEvoucher);
+        formData.append("user", userId);
+        formData.append("metadata[expiration]", expiration);
+        return onSuccess(formData, mode);
+      });
 
-      await onSuccess(formData, mode);
+      // Wait for all promises to resolve
+      await Promise.all(createPromises);
       
       addToast({
         title: "Success",
-        description: `Successfully ${mode === 'add' ? 'created' : 'updated'} evoucher code.`,
+        description: `Successfully ${mode === 'add' ? 'created' : 'updated'} evoucher code${selectedUsers.length > 1 ? 's' : ''}.`,
         color: "success"
       });
 
@@ -227,8 +232,11 @@ export function EvoucherCodeModal({
             color="primary" 
             onPress={handleSubmit}
             isDisabled={!selectedEvoucher || selectedUsers.length === 0}
+            isLoading={isSubmitting}
           >
-            {mode === "add" ? "Add Evoucher Code" : "Save Changes"}
+            {mode === "add" 
+              ? `Add Evoucher Code${selectedUsers.length > 1 ? 's' : ''} (${selectedUsers.length} user${selectedUsers.length > 1 ? 's' : ''})` 
+              : "Save Changes"}
           </Button>
         </ModalFooter>
       </ModalContent>

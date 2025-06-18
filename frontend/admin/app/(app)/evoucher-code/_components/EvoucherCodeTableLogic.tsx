@@ -105,7 +105,6 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
                 const newEvoucherCode = response.data.data;
                 setLocalEvoucherCodes(prev => [...prev, newEvoucherCode]);
                 onDataChange?.();
-                window.location.reload();
             }
             return response;
         } catch (error) {
