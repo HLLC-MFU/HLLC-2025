@@ -26,6 +26,7 @@ import StickerPicker from './components/StickerPicker';
 import ChatInput from './components/ChatInput';
 import MessageList from './components/MessageList';
 import Loader from './components/Loader';
+import { BlurView } from 'expo-blur';
 
 // Hooks
 import { useChatRoom } from './hooks/useChatRoom';
@@ -93,7 +94,7 @@ export default function ChatRoomPage() {
         setShowEmojiPicker(false);
         setShowStickerPicker(false);
       }}>
-        <View style={chatStyles.container}>
+        <BlurView intensity={40} tint="dark" style={chatStyles.container}>
           <StatusBar barStyle="light-content" />
           <SafeAreaView style={chatStyles.safeArea} edges={['top']}>
             {/* Header */}
@@ -211,7 +212,7 @@ export default function ChatRoomPage() {
               />
             )}
           </SafeAreaView>
-        </View>
+        </BlurView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );

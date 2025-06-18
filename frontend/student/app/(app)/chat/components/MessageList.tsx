@@ -39,6 +39,7 @@ const MessageList = ({
           const isMyMessage = message.senderId === userId;
           const isLastInGroup = index === item.length - 1;
           const isFirstInGroup = index === 0;
+          const senderName = message.username || message.senderName || message.senderId;
           
           return (
             <MessageBubble 
@@ -46,7 +47,7 @@ const MessageList = ({
               message={message} 
               isMyMessage={isMyMessage} 
               senderId={message.senderId}
-              senderName={message.senderName}
+              senderName={senderName}
               isRead={message.isRead}
               showAvatar={!isMyMessage && isLastInGroup}
               isLastInGroup={isLastInGroup}

@@ -87,7 +87,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     const baseMessage = {
       id: data.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       senderId: data.user_id || data.userId,
-      senderName: data.user_id || data.userId,
+      senderName: data.username || data.senderName || data.user_id || data.userId,
       timestamp: data.timestamp || new Date().toISOString(),
       isRead: false,
       isTemp: false // Fix linter error by adding isTemp property
@@ -103,7 +103,8 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         fileUrl,
         fileName: data.file_name,
         fileType: data.file_type,
-        type: 'file' as const
+        type: 'file' as const,
+        username: data.username || data.senderName || data.user_id || data.userId || ''
       };
     }
 
@@ -112,7 +113,8 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         ...baseMessage,
         image: data.image,
         stickerId: data.stickerId,
-        type: 'sticker' as const
+        type: 'sticker' as const,
+        username: data.username || data.senderName || data.user_id || data.userId || ''
       };
     }
 
@@ -134,7 +136,8 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
       ...baseMessage,
       text: messageContent,
       type: 'message' as const,
-      replyTo
+      replyTo,
+      username: data.username || data.senderName || data.user_id || data.userId || ''
     };
   }, []);
 
@@ -365,6 +368,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
           
           if (data.eventType === 'history') {
             const messageData = data.payload;
+            console.log('HISTORY MESSAGE:', messageData);
             if (messageData && messageData.id) {
               try {
                 const newMessage = createMessage(messageData, true);
@@ -376,6 +380,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
           } else if (data.eventType === 'message') {
             try {
               const messageData = data.payload;
+              console.log('NEW MESSAGE:', messageData);
               const isOwnMessage = messageData.userId === userId;
               
               if (!isOwnMessage) {
