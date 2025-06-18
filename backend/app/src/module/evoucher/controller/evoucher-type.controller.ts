@@ -1,12 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { CreateEvoucherTypeDto } from '../dto/evoucher-types/create-evoucher-type.dto';
 import { UpdateEvoucherTypeDto } from '../dto/evoucher-types/update-evoucher-type.dto';
 import { EvoucherTypeService } from '../service/evoucher-type.service';
 
-
 @Controller('evoucher-type')
 export class EvoucherTypeController {
-  constructor(private readonly evoucherTypeService: EvoucherTypeService) { }
+  constructor(private readonly evoucherTypeService: EvoucherTypeService) {}
 
   @Post()
   create(@Body() createEvoucherTypeDto: CreateEvoucherTypeDto) {
@@ -24,7 +32,10 @@ export class EvoucherTypeController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEvoucherTypeDto: UpdateEvoucherTypeDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateEvoucherTypeDto: UpdateEvoucherTypeDto,
+  ) {
     return this.evoucherTypeService.update(id, updateEvoucherTypeDto);
   }
 
