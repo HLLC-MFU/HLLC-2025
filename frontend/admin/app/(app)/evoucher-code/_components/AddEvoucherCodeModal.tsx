@@ -14,6 +14,7 @@ interface AddEvoucherCodeProps {
   onSuccess: (formData: FormData, mode: "add" | "edit") => void;
   mode: "add" | "edit";
   sponsors: Sponsors[];
+  evouchers: Evoucher[];
   evoucherCode?: EvoucherCode;
 }
 
@@ -23,6 +24,7 @@ export function EvoucherCodeModal({
   onSuccess,
   mode,
   sponsors,
+  evouchers,
   evoucherCode
 }: AddEvoucherCodeProps) {
   const [selectedSponsor, setSelectedSponsor] = useState<string>("");
@@ -83,11 +85,11 @@ export function EvoucherCodeModal({
                 setSelectedEvoucher(selectedKey);
               }}
             >
-              {sponsors
-                .find(s => s.name.en === selectedSponsor)
-                ?.evouchers?.map((e: Evoucher) => (
+              {evouchers
+                .filter(e => e.sponsors?.name?.en === selectedSponsor)
+                .map((e: Evoucher) => (
                   <SelectItem key={e._id}>{e.acronym || "" as string}</SelectItem>
-                )) || []}
+                ))}
             </Select>
           </div>
 

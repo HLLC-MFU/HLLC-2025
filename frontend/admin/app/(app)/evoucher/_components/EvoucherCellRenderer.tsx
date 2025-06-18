@@ -1,6 +1,6 @@
 import React, { Key } from "react";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
-import { EllipsisVertical, Image } from "lucide-react";
+import { EllipsisVertical, Image, Pen, Trash } from "lucide-react";
 import { Evoucher } from "@/types/evoucher";
 
 interface EvoucherCellRendererProps {
@@ -64,7 +64,7 @@ export default function EvoucherCellRenderer({
                 {evoucher.photo?.coverPhoto ? (
                     <div className="w-full h-full">
                         <img
-                    src={`http://localhost:8080/uploads/${evoucher.photo.coverPhoto}`}
+                    src={`http://localhost:8080/api/uploads/${evoucher.photo.coverPhoto}`}
                     alt={evoucher.sponsors.name.en}
                     className="h-full w-full object-contain rounded border border-default-300 bg-white mx-auto"
                     onError={(e) => {
@@ -89,10 +89,20 @@ export default function EvoucherCellRenderer({
                         </Button>
                     </DropdownTrigger>
                     <DropdownMenu>
-                        <DropdownItem key="edit" onPress={onEdit}>
+                        <DropdownItem 
+                            key="edit" 
+                            startContent={<Pen size={16} />}
+                            onPress={onEdit}
+                        >
                             Edit
                         </DropdownItem>
-                        <DropdownItem key="delete" onPress={onDelete}>
+                        <DropdownItem 
+                            key="delete" 
+                            className="text-danger"
+                            color="danger"
+                            startContent={<Trash size={16} />}
+                            onPress={onDelete}
+                        >
                             Delete
                         </DropdownItem>
                     </DropdownMenu>

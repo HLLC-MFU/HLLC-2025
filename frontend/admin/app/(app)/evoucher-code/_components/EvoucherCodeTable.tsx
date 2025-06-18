@@ -7,15 +7,18 @@ import { EvoucherCodeModal } from "./AddEvoucherCodeModal";
 import EvoucherCodeCellRenderer from "./EvoucherCodeCellRenderer";
 import { useEvoucherCodeTable } from "./EvoucherCodeTableLogic";
 import { COLUMNS, INITIAL_VISIBLE_COLUMNS, capitalize } from "./EvoucherCodeTableConstants";
+import { Evoucher } from "@/types/evoucher";
 
 export default function EvoucherCodeTable({
     sponsorName,
     evoucherCodes,
     sponsors,
+    evouchers,
 }: {
     sponsorName: string,
     evoucherCodes: EvoucherCode[];
     sponsors: Sponsors[];
+    evouchers: Evoucher[];
 }) {
     const tableLogic = useEvoucherCodeTable({ evoucherCodes });
     const [visibleColumns, setVisibleColumns] = React.useState(INITIAL_VISIBLE_COLUMNS);
@@ -95,6 +98,7 @@ export default function EvoucherCodeTable({
                     onSuccess={handleSuccess}
                     mode={tableLogic.actionText.toLowerCase() as "add" | "edit"}
                     sponsors={sponsors}
+                    evouchers={evouchers}
                     evoucherCode={selectedEvoucherCode}
                 />
             )}

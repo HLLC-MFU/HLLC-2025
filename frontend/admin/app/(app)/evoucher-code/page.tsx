@@ -10,12 +10,13 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Ticket, Image } from "lucide-react";
 import { useEvoucherCode } from "@/hooks/useEvoucherCode";
 import { useSponsors } from "@/hooks/useSponsors";
+import { useEvoucher } from "@/hooks/useEvoucher";
 
 export default function EvoucherCodePage() {
     const { evoucherCodes, loading: evoucherCodesLoading } = useEvoucherCode();
     const { sponsors, loading: sponsorsLoading } = useSponsors();
-
-    const isLoading = evoucherCodesLoading || sponsorsLoading;
+    const { evouchers, loading: evouchersLoading } = useEvoucher();
+    const isLoading = evoucherCodesLoading || sponsorsLoading || evouchersLoading;
 
     // Group evoucher codes by sponsor
     const evoucherCodesBySponsors = React.useMemo(() => {
@@ -93,6 +94,7 @@ export default function EvoucherCodePage() {
                     evoucherCodes={codes}
                     sponsors={sponsors}
                     sponsorName={sponsorName}
+                    evouchers={evouchers}
                 />
             </AccordionItem>
         ));

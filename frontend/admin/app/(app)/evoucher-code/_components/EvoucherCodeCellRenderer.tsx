@@ -1,6 +1,6 @@
 import React, { Key } from "react";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
-import { EllipsisVertical } from "lucide-react";
+import { EllipsisVertical, Pen, Trash } from "lucide-react";
 import { EvoucherCode } from "@/types/evoucher-code";
 
 interface EvoucherCodeCellRendererProps {
@@ -58,10 +58,20 @@ export default function EvoucherCodeCellRenderer({
                         </Button>
                     </DropdownTrigger>
                     <DropdownMenu>
-                        <DropdownItem key="edit" onPress={onEdit}>
+                        <DropdownItem 
+                            key="edit" 
+                            startContent={<Pen size={16} />}
+                            onPress={onEdit}
+                        >
                             Edit
                         </DropdownItem>
-                        <DropdownItem key="delete" onPress={onDelete}>
+                        <DropdownItem 
+                            key="delete" 
+                            className="text-danger"
+                            color="danger"
+                            startContent={<Trash size={16} />}
+                            onPress={onDelete}
+                        >
                             Delete
                         </DropdownItem>
                     </DropdownMenu>

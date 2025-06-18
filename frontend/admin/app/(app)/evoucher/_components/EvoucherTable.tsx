@@ -9,7 +9,6 @@ import { useEvoucherTable } from "./EvoucherTableLogic";
 import { COLUMNS, INITIAL_VISIBLE_COLUMNS, capitalize } from "./EvoucherTableConstants";
 
 export default function EvoucherTable({
-    sponsorName,
     evouchers,
     sponsors,
     evoucherType,
