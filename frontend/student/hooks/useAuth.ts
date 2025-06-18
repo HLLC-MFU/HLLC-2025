@@ -12,10 +12,22 @@ interface TokenResponse {
     refreshToken: string;
   };
   user: {
-    id: string;
+    _id: string;
     username: string;
-    email: string;
-    role: string;
+    name: {
+      first: string;
+      middle?: string;
+      last: string;
+    };
+    role: {
+      _id: string;
+      name: string;
+      permissions: string[];
+      metadataSchema: any[];
+    };
+    metadata?: {
+      major: string;
+    };
     createdAt: string;
     updatedAt: string;
   };
@@ -63,11 +75,27 @@ const useAuth = create<AuthStore>()(
           if (res.statusCode === 201 && res.data) {
             await saveToken('accessToken', res.data.tokens.accessToken);
             await saveToken('refreshToken', res.data.tokens.refreshToken);
+            
+            // Wait longer for tokens to be saved and sync
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Verify token was saved correctly
+            const savedToken = await getToken('accessToken');
+            
             const { getProfile } = useProfile.getState();
-            const user = await getProfile();
+            const user = await getProfile(res.data.tokens.accessToken);
+            
             if (user) {
               router.replace("/");
               return true;
+            } else {
+              // Fallback: use user data from login response
+              const { setUser } = useProfile.getState();
+              if (res.data.user) {
+                setUser(res.data.user);
+                router.replace("/");
+                return true;
+              }
             }
           }
 
