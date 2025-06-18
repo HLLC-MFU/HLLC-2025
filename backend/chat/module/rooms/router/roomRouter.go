@@ -20,6 +20,8 @@ func RegisterRoomRoutes(router fiber.Router, h *handler.RoomHTTPHandler, s *Stic
 	router.Get("/:roomId/members", h.GetRoomMembers)
 	router.Get("/:userId/members", h.ListMemberRooms)
 	router.Post("/:roomId/:userId/join", c.JoinRoom)
+	router.Post("/:roomId/school/:schoolId/join", h.JoinRoomByGroup)
+	router.Post("/:roomId/major/:majorId/join", h.JoinRoomByGroup)
 	router.Post("/:roomId/:userId/leave", c.LeaveRoom)
 
 	// Cache Management

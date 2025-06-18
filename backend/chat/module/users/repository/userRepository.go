@@ -20,6 +20,8 @@ type UserRepository interface {
 	ExistsByUsername(ctx context.Context, username string) (bool, error)
 
 	List(ctx context.Context, page, limit int64) ([]*model.User, int64, error)
+
+	FindByFilter(ctx context.Context, filter bson.M) ([]*model.User, error)
 }
 
 type userRepository struct {
@@ -94,4 +96,17 @@ func (r *userRepository) ExistsByUsername(ctx context.Context, username string) 
 		return false, err
 	}
 	return count > 0, nil
+}
+func (r *userRepository) FindByFilter(ctx context.Context, filter bson.M) ([]*model.User, error) {
+	cursor, err := r.dbConnect().Collection("users").Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []*model.User
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, err
+	}
+	return users, nil
 }

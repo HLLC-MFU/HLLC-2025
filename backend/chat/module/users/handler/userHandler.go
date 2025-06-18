@@ -1,6 +1,7 @@
 package handler
 
 import (
+	majorService "github.com/HLLC-MFU/HLLC-2025/backend/module/majors/service"
 	roleService "github.com/HLLC-MFU/HLLC-2025/backend/module/roles/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 	"github.com/gofiber/fiber/v2"
@@ -8,12 +9,17 @@ import (
 )
 
 type UserHTTPHandler struct {
-	service     service.UserService
-	roleSerivce roleService.RoleService
+	service      service.UserService
+	roleSerivce  roleService.RoleService
+	majorService majorService.MajorService
 }
 
-func NewUserHandler(service service.UserService, roleService roleService.RoleService) *UserHTTPHandler {
-	return &UserHTTPHandler{service: service, roleSerivce: roleService}
+func NewUserHandler(service service.UserService, roleService roleService.RoleService, majorService majorService.MajorService) *UserHTTPHandler {
+	return &UserHTTPHandler{
+		service:      service,
+		roleSerivce:  roleService,
+		majorService: majorService,
+	}
 }
 
 func (h *UserHTTPHandler) GetUser(c *fiber.Ctx) error {
@@ -70,13 +76,9 @@ func (h *UserHTTPHandler) ListUsers(c *fiber.Ctx) error {
 
 	var result []map[string]interface{}
 	for _, user := range users {
-		// Fetch role information by ObjectID
-		role, err := h.roleSerivce.GetRole(c.Context(), user.Role)
-		if err != nil {
-			role = nil // skip role info if not found or error
-		}
+		role, _ := h.roleSerivce.GetRole(c.Context(), user.Role)
 
-		result = append(result, map[string]interface{}{
+		userMap := map[string]interface{}{
 			"created_at": user.CreatedAt,
 			"updated_at": user.UpdatedAt,
 			"id":         user.ID.Hex(),
@@ -84,7 +86,28 @@ func (h *UserHTTPHandler) ListUsers(c *fiber.Ctx) error {
 			"username":   user.Username,
 			"role_id":    user.Role.Hex(),
 			"role":       role,
-		})
+		}
+
+		// 🌟 Populate metadata.major if it's an ObjectID string
+		if user.Metadata != nil {
+			meta := user.Metadata
+
+			if majorRaw, ok := meta["major"]; ok {
+				if majorStr, ok := majorRaw.(string); ok {
+					majorID, err := primitive.ObjectIDFromHex(majorStr)
+					if err == nil {
+						major, err := h.majorService.GetMajor(c.Context(), majorID)
+						if err == nil && major != nil {
+							meta["major"] = major
+						}
+					}
+				}
+			}
+
+			userMap["metadata"] = meta
+		}
+
+		result = append(result, userMap)
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{

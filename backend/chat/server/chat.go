@@ -6,6 +6,8 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
+	majorRepoPkg "github.com/HLLC-MFU/HLLC-2025/backend/module/majors/repository"
+	majorServicePkg "github.com/HLLC-MFU/HLLC-2025/backend/module/majors/service"
 	memberRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/members/repository"
 	memberService "github.com/HLLC-MFU/HLLC-2025/backend/module/members/service"
 	roomKafka "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
@@ -51,8 +53,11 @@ func (s *server) chatService() {
 
 	// Users logic
 	userRepo := userRepoPkg.NewUserRepository(s.db)
-	userService := userServicePkg.NewUserService(userRepo)
-	chatService := service.NewService(chatRepo, publisher, roomRepo, userRepo)
+	majorRepo := majorRepoPkg.NewRepository(s.db)
+	majorService := majorServicePkg.NewService(majorRepo)
+	userService := userServicePkg.NewUserService(userRepo, majorService)
+	chatService := service.NewService(chatRepo, publisher, roomRepo, userService)
+
 	// Rooms logic
 	roomService := RoomService.NewService(roomRepo, publisher, memberService, chatService, userService)
 
