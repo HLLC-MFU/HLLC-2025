@@ -124,9 +124,9 @@ export function TableLog() {
   }, [activities]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a : any, b : any) => {
-      const first = a[sortDescriptor.column ];
-      const second = b[sortDescriptor.column ];
+    return [...items].sort((a : UserType, b : UserType) => {
+      const first = a[sortDescriptor.column as keyof UserType];
+      const second = b[sortDescriptor.column as keyof UserType];
       const cmp = first! < second! ? -1 : first! > second! ? 1 : 0;
       return sortDescriptor.direction === 'descending' ? -cmp : cmp;
     });

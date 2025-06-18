@@ -178,7 +178,7 @@ export function Informationinfo({ onChange, resetSignal }: InformationinfoProps)
         </div>
       </div>
 
-      <h1 className="text-lg font-bold"> Redirect (Optional) </h1>
+      <h1 className="text-lg font-bold"> Redirect Button (Optional) </h1>
       <div className="grid grid-cols-2 justify-between gap-5">
         <Input
           label="English"
@@ -208,7 +208,7 @@ export function Informationinfo({ onChange, resetSignal }: InformationinfoProps)
         />
       </div>
 
-      <h1 className="text-lg font-bold"> Imange (Optional) </h1>
+      <h1 className="text-lg font-bold"> Image (Optional) </h1>
       <ImageUploader onChange={(file, url) => { setImageUrl(url); setImageFile(file ?? undefined) }}
       resetSignal={resetSignal} />
     </div>

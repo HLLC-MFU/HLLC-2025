@@ -1,5 +1,5 @@
 'use client';
-import { SendHorizontal, BellRing } from 'lucide-react';
+import { SendHorizontal, BellPlus } from 'lucide-react';
 import { Button, Select, SelectItem, addToast } from '@heroui/react';
 import { SelectStudent } from './_components/NotificationScope';
 import { Informationinfo } from './_components/NotificationForm';
@@ -43,9 +43,7 @@ function isFormComplete(data?: InformationInfoData): boolean {
   );
 }
 
-
-
-export default function NotificationPust() {
+export default function NotificationPush() {
   const [selectLanguagePreview, setSelectLanguagePreview] = useState<'en' | 'th'>('en');
   const [selectLanguageNotification, setSelectLanguageNotification] = useState<'en' | 'th'>('en');
   const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
@@ -95,7 +93,7 @@ export default function NotificationPust() {
 
   return (
     <>
-      <PageHeader title="Notifications Push" description='Create, manage, and view system notifications for specific users or roles.' icon={<BellRing />} />
+      <PageHeader title="Notifications Push" description='Create, manage, and view system notifications for specific users or roles.' icon={<BellPlus />} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <div id="Notification Info" className="flex row-span-2 w-full">
