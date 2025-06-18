@@ -35,10 +35,6 @@ func (s *server) roomService() {
 
 	// Setup Kafka topic
 	publisher := kafkaUtil.GetPublisher()
-	topicName := "chat-room"
-	if err := kafkaUtil.EnsureKafkaTopic("localhost:9092", topicName); err != nil {
-		log.Fatalf("[Kafka] Ensure Topic error: %v", err)
-	}
 
 	// Repositories
 	roomRepo := repository.NewRepository(s.db)

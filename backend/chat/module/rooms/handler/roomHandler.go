@@ -298,3 +298,36 @@ func (h *RoomHTTPHandler) ListRoomMembers(c *fiber.Ctx) error {
 		"rooms": roomMembers,
 	})
 }
+
+func (h *RoomHTTPHandler) ListMemberRooms(c *fiber.Ctx) error {
+	userIDHex := c.Params("userId")
+	userID, err := primitive.ObjectIDFromHex(userIDHex)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user ID"})
+	}
+
+	rooms, err := h.service.ListVisibleRooms(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	var result []map[string]interface{}
+	for _, room := range rooms {
+		creator, _ := h.userService.GetById(c.Context(), room.Creator)
+
+		result = append(result, map[string]interface{}{
+			"id":         room.ID.Hex(),
+			"name":       room.Name,
+			"capacity":   room.Capacity,
+			"image":      room.Image,
+			"creator_id": room.Creator.Hex(),
+			"creator":    creator,
+			"created_at": room.CreatedAt,
+			"updated_at": room.UpdatedAt,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"rooms": result,
+	})
+}

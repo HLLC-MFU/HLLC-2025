@@ -14,6 +14,7 @@ import (
 	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 	"github.com/segmentio/kafka-go"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -32,6 +33,7 @@ type RoomService interface {
 	UpdateRoom(ctx context.Context, room *model.Room) error
 	DeleteRoom(ctx context.Context, id primitive.ObjectID) error
 	ListRoomsWithMembers(ctx context.Context, memberService MemberService.MemberService) ([]map[string]interface{}, error)
+	ListVisibleRooms(ctx context.Context, userID primitive.ObjectID) ([]*model.Room, error)
 }
 
 type service struct {
@@ -184,4 +186,21 @@ func (s *service) ListRoomsWithMembers(ctx context.Context, memberService Member
 	}
 
 	return result, nil
+}
+
+func (s *service) ListVisibleRooms(ctx context.Context, userID primitive.ObjectID) ([]*model.Room, error) {
+	roomIDs, err := s.memberService.GetRoomIDsForUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(roomIDs) == 0 {
+		return []*model.Room{}, nil
+	}
+
+	filter := bson.M{
+		"_id": bson.M{"$in": roomIDs},
+	}
+
+	return s.repo.FilterRooms(ctx, filter)
 }

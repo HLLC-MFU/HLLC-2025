@@ -123,8 +123,8 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 			_ = conn.WriteMessage(websocket.TextMessage, eventJSON)
 		}
 	} else {
-		// 2. Fallback to Mongo if Redis fails
-		log.Println("[REDIS] History not available, fallback to MongoDB")
+		// 2. Fallback to Mongo if Redis fails or is empty
+		log.Println("[REDIS] History not available or empty, fallback to MongoDB")
 		mongoHistory, err := h.service.GetChatHistoryByRoom(ctx, roomID, 50)
 		if err == nil && len(mongoHistory) > 0 {
 			for _, msg := range mongoHistory {
@@ -134,6 +134,8 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 				}
 				eventJSON, _ := json.Marshal(event)
 				_ = conn.WriteMessage(websocket.TextMessage, eventJSON)
+				// cache กลับ Redis
+				_ = redis.SaveChatMessageToRoom(roomID, &msg.ChatMessage)
 			}
 		}
 	}
@@ -174,21 +176,17 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 			filteredMessage := utils.FilterProfanity(messageBody)
 			mentions := extractMentions(filteredMessage)
 
-			replyPayload := map[string]interface{}{
-				"userId":    userID,
-				"message":   filteredMessage,
-				"replyToId": replyToID.Hex(),
-				"mentions":  mentions,
+			msg := &model.ChatMessage{
+				RoomID:    roomObjID,
+				UserID:    userObjID,
+				Message:   filteredMessage,
+				Mentions:  mentions,
+				ReplyToID: &replyToID,
+				Timestamp: time.Now(),
 			}
 
-			event := ChatEvent{
-				EventType: "reply",
-				Payload:   replyPayload,
-			}
-
-			eventJSON, _ := json.Marshal(event)
 			model.BroadcastMessage(model.BroadcastObject{
-				MSG:  string(eventJSON),
+				MSG:  msg,
 				FROM: client,
 			})
 			continue
@@ -226,7 +224,13 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 
 		// Only broadcast to model.BroadcastMessage for text messages
 		model.BroadcastMessage(model.BroadcastObject{
-			MSG:  filteredMessage,
+			MSG: &model.ChatMessage{
+				RoomID:    roomObjID,
+				UserID:    userObjID,
+				Message:   filteredMessage,
+				Mentions:  mentions,
+				Timestamp: time.Now(),
+			},
 			FROM: client,
 		})
 
@@ -407,7 +411,9 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 					}
 				}
 				if !isOnline {
-					h.service.NotifyOfflineUser(memberID, roomId, userID, "sent a sticker", "sticker")
+					payload := model.NewNotificationPayload(memberID, roomId, userID, "sent a sticker", "sticker")
+					msg, _ := json.Marshal(payload)
+					h.publisher.SendMessageToTopic("chat-notifications", memberID, string(msg))
 				}
 			}
 		}
@@ -542,7 +548,6 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	// Save file
 	filename := fmt.Sprintf("%s_%s", time.Now().Format("20060102150405"), file.Filename)
 	savePath := fmt.Sprintf("./uploads/%s", filename)
-	publicURL := fmt.Sprintf("http://localhost:1334/uploads/%s", filename)
 	if err := c.SaveFile(file, savePath); err != nil {
 		log.Printf("[UPLOAD ERROR] Failed to save file: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "upload failed"})
@@ -560,7 +565,7 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	msg := &model.ChatMessage{
 		RoomID:    roomObjID,
 		UserID:    userObjID,
-		FileURL:   publicURL,
+		FileURL:   filename,
 		FileName:  file.Filename,
 		FileType:  fileType,
 		Timestamp: time.Now(),
@@ -602,7 +607,9 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 					}
 				}
 				if !isOnline {
-					h.service.NotifyOfflineUser(memberID, roomId, userId, fmt.Sprintf("sent a file: %s", msg.FileName), "file")
+					payload := model.NewNotificationPayload(memberID, roomId, userId, "sent a file: "+msg.FileName, "file")
+					msg, _ := json.Marshal(payload)
+					h.publisher.SendMessageToTopic("chat-notifications", memberID, string(msg))
 				}
 			}
 		}
