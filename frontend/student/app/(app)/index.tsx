@@ -15,16 +15,6 @@ import FadeView from '@/components/ui/FadeView';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
-  const { activities, loading, error } = useActivities();
-  if (loading) {
-    return (
-      <SafeAreaView
-        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-      >
-        <ActivityIndicator size="large" color="#888" />
-      </SafeAreaView>
-    );
-  }
   return (
     <FadeView>
       <ImageBackground

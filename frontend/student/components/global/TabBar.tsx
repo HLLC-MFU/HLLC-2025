@@ -41,8 +41,6 @@ export default function GlassTabBar() {
 
     useEffect(() => {
         const currentIndex = tabs.findIndex((tab) => tab.route === pathname);
-        const prevIndex = prevIndexRef.current;
-        const direction = currentIndex > prevIndex ? 1 : -1;
 
         if (currentIndex !== -1) {
             offsetX.value = withSpring(currentIndex * tabWidth, { damping: 15 });
@@ -77,7 +75,7 @@ export default function GlassTabBar() {
                     <BlurView tint="light" intensity={60} style={styles.blurInsidePill} />
                 </Animated.View>
 
-                {tabs.map((tab, index) => {
+                {tabs.map((tab) => {
                     const isActive = pathname === tab.route;
                     const Icon = tab.icon;
 
@@ -92,7 +90,7 @@ export default function GlassTabBar() {
                             style={styles.tabItem}
                             activeOpacity={1}
                         >
-                            <Icon size={24} color={isActive ? '#fff' : '#ffffff70'} />
+                            <Icon size={32} color={isActive ? '#fff' : '#ffffff70'} />
                             <Text
                                 style={[
                                     styles.tabLabel,
@@ -116,14 +114,14 @@ const styles = StyleSheet.create({
         bottom: 30,
         left: 16,
         right: 16,
-        height: 60,
-        borderRadius: 32,
+        height: 65,
+        borderRadius: 37.5,
         overflow: 'visible',
     },
     navContainer: {
         flex: 1,
         flexDirection: 'row',
-        borderRadius: 32,
+        borderRadius: 37.5,
         paddingHorizontal: 8,
         overflow: 'hidden',
         alignItems: 'center',
