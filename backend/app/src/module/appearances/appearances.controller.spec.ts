@@ -1,8 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppearancesController } from './appearances.controller';
 import { AppearancesService } from './appearances.service';
-import { CreateAppearanceDto } from './dto/create-appearance.dto';
-import { UpdateAppearanceDto } from './dto/update-appearance.dto';
 import { FastifyRequest } from 'fastify';
 
 describe('AppearancesController', () => {

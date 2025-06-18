@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { MajorsService } from './majors.service';
-import { Major } from './schemas/major.schema';
-import { School } from '../schools/schemas/school.schema';
+import { Major, MajorDocument } from './schemas/major.schema';
+import { School, SchoolDocument } from '../schools/schemas/school.schema';
 import { CreateMajorDto } from './dto/create-major.dto';
 import { UpdateMajorDto } from './dto/update-major.dto';
 import { Model, Types } from 'mongoose';
@@ -21,8 +21,8 @@ jest.mock('src/pkg/helper/helpers');
 
 describe('MajorsService', () => {
   let service: MajorsService;
-  let majorModel: Model<any>;
-  let schoolModel: Model<any>;
+  let majorModel: Model<MajorDocument>;
+  let schoolModel: Model<SchoolDocument>;
 
   const mockMajorInstance = { save: jest.fn() };
 

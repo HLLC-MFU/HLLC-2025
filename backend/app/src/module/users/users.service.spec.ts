@@ -6,7 +6,6 @@ import { User, UserDocument } from './schemas/user.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import {
   queryAll,
   queryDeleteOne,
