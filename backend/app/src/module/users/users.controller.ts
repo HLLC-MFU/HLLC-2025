@@ -31,7 +31,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly activitiesService: ActivitiesService,
-  ) {}
+  ) { }
 
   @Post()
   @Permissions('users:create')
@@ -63,43 +63,28 @@ export class UsersController {
     return this.usersService.getUserCountByRoles();
   }
 
+  @Get(':id')
+  @Permissions('users:read:id')
+  @CacheKey('users:$params.id')
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
+  }
 
   @Get('profile')
-  @Public()
   @CacheKey('users:$req.user')
   getProfile(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
-    const user = req.user;
-    const userId: string | undefined = user?._id ?? user?.id;
 
+    const user = req.user as { _id?: string; id?: string };
+    const userId: string = user?._id ?? user?.id ?? '';
     if (!userId) {
-      throw new UnauthorizedException('User not found');
+      return null;
     }
-
-    return this.usersService.findOne(userId);
-  }
-
-  @Get('activities')
-  @CacheKey('users:activities:$req.user')
-  getUserActivities(
-    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
-  ) {
-    const user = req.user;
-    const userId: string | undefined = user?._id ?? user?.id;
-
-    if (!userId) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    return this.activitiesService.findActivitiesByUserId(userId);
-  }
-
-  @Get(':id')
-  @Permissions('users:read:id')
-  @CacheKey('users:$params.id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+    return this.usersService.findOneByQuery({
+      _id: userId,
+    });
   }
 
   @Patch(':id')
