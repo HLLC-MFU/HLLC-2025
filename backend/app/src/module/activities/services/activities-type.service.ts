@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ActivitiesType, ActivitiesTypeDocument } from '../schema/activitiesType.schema';
+import { ActivitiesType, ActivitiesTypeDocument } from '../schemas/activitiesType.schema';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';

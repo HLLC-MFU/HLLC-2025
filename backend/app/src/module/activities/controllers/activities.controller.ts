@@ -10,7 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ActivitiesService } from '../service/activities.service';
+import { ActivitiesService } from '../services/activities.service';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
 import { UpdateActivityDto } from '../dto/activities/update-activities.dto';
 import { FastifyRequest } from 'fastify';
@@ -18,11 +18,17 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 import { UserRequest } from 'src/pkg/types/users';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
+import { CacheKey } from '@nestjs/cache-manager';
+import { Activities } from '../schemas/activities.schema';
+import { PaginatedResponse } from 'src/pkg/interceptors/response.interceptor';
+import { Public } from 'src/module/auth/decorators/public.decorator';
+import { AuthGuard } from '@nestjs/passport';
+import { Types } from 'mongoose';
 
 @UseGuards(PermissionsGuard)
 @Controller('activities')
 export class ActivitiesController {
-  constructor(private readonly activitiesService: ActivitiesService) {}
+  constructor(private readonly activitiesService: ActivitiesService) { }
 
   @Post()
   @Permissions('activities:create')
@@ -34,17 +40,24 @@ export class ActivitiesController {
 
   @Get('')
   @Permissions('activities:read')
-  async findAll(
-    @Query() query: Record<string, string>,
-  ) {
+  async findAll(@Query() query: Record<string, string>) {
     return this.activitiesService.findAll(query);
+  }
+
+  @Get('canCheckin')
+  @Permissions('activities:read')
+  async canCheckin(): Promise<PaginatedResponse<Activities> & { message: string }> {
+    return this.activitiesService.findCanCheckinActivities();
+  }
+
+  @Get('users')
+  getActivitiesByUser(@Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
+    return this.activitiesService.findActivitiesByUserId(req.user._id);
   }
 
   @Get(':id')
   @Permissions('activities:read')
-  findOne(
-    @Param('id') id: string,
-  ) {
+  findOne(@Param('id') id: string) {
     return this.activitiesService.findOne(id);
   }
 

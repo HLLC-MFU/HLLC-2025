@@ -20,7 +20,7 @@ export class ActivityScope {
 class ActivityMetadata {
   @Prop({ default: true })
   isOpen: boolean;
-  
+
   @Prop({ default: false })
   isProgressCount: boolean;
 
@@ -30,11 +30,14 @@ class ActivityMetadata {
   @Prop({ type: ActivityScope, default: { major: [], school: [], user: [] } })
   scope: ActivityScope;
 
-  @Prop({ type: Date })
+  @Prop()
   startAt: Date;
 
-  @Prop({ type: Date })
+  @Prop()
   endAt: Date;
+
+  @Prop()
+  checkinStartAt: Date;
 }
 
 @Schema({ timestamps: true })
@@ -60,12 +63,15 @@ export class Activities {
   @Prop({ type: Object, required: true })
   location: Localization;
 
-  @Prop({ type: ActivityMetadata, default: () => ({
-    isOpen: true,
-    isProgressCount: false,
-    isVisible: true,
-    scope: {}
-  })})
+  @Prop({
+    type: ActivityMetadata,
+    default: () => ({
+      isOpen: true,
+      isProgressCount: false,
+      isVisible: true,
+      scope: {},
+    }),
+  })
   metadata: ActivityMetadata;
 }
 

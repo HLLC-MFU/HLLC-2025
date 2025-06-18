@@ -38,6 +38,7 @@ import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
   imports: [
     ConfigModule.forRoot({
       load: [configuration],
+      envFilePath: '.env.production',
       isGlobal: true,
     }),
     MongooseModule.forRootAsync({

@@ -10,7 +10,6 @@ import {
   Patch,
   Post,
   Req,
-  UnauthorizedException,
 } from '@nestjs/common';
 
 import { UsersService } from './users.service';
@@ -23,7 +22,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { FastifyRequest } from 'fastify';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
-import { ActivitiesService } from '../activities/service/activities.service';
+import { ActivitiesService } from '../activities/services/activities.service';
 
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)

@@ -1,4 +1,46 @@
 {
+    "global":{
+        "loading": "กำลังโหลด...",
+        "error": "เกิดข้อผิดพลาด",
+        "success": "สำเร็จ",
+        "cancel": "ยกเลิก",
+        "confirm": "ยืนยัน",
+        "ok": "ตกลง",
+        "yes": "ใช่",
+        "no": "ไม่"
+    },
+    "login": {
+        "title": "เข้าสู่ระบบ",
+        "subtitle": "กรุณาใส่ข้อมูลรับรองของคุณ",
+        "username": "ชื่อผู้ใช้",
+        "password": "รหัสผ่าน",
+        "loginButton": "เข้าสู่ระบบ",
+        "forgotPassword": "ลืมรหัสผ่าน?",
+        "register": "ลงทะเบียน"
+    },
+    "register": {
+        "title": "ลงทะเบียน",
+        "subtitle": "สร้างบัญชีใหม่",
+        "username": "ชื่อผู้ใช้",
+        "password": "รหัสผ่าน",
+        "confirmPassword": "ยืนยันรหัสผ่าน",
+        "registerButton": "ลงทะเบียน",
+        "loginPrompt": "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ"
+    },
+    "profile": {
+        "title": "โปรไฟล์",
+        "editProfile": "แก้ไขโปรไฟล์",
+        "viewProfile": "ดูโปรไฟล์",
+        "logout": "ออกจากระบบ",
+        "settings": "การตั้งค่า"
+    },
+    "settings": {
+        "title": "การตั้งค่า",
+        "language": "ภาษา",
+        "notifications": "การแจ้งเตือน",
+        "privacy": "ความเป็นส่วนตัว",
+        "help": "ช่วยเหลือ & สนับสนุน"
+    },
     "nav": {
         "welcome": "ยินดีต้อนรับกลับมา",
         "progress": "ความคืบหน้า"

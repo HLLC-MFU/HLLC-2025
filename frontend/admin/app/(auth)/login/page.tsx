@@ -39,7 +39,7 @@ export default function LoginPage() {
           fill
           alt="Background"
           className="object-cover md:rounded-[24px]"
-          src="/images/background.png"
+          src="/ihX0S043/images/background.png"
         />
       </div>
 
