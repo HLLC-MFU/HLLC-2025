@@ -44,11 +44,15 @@ export default function EvoucherCodeCellRenderer({
         ),
         expiration: (
             <div className="flex flex-col gap-1 min-w-[180px] max-w-[250px]">
-                {new Date(evoucherCode.metadata.expiration).toLocaleString("en-US", {
-                    dateStyle: 'long',
-                    timeStyle: 'short',
-                    timeZone: 'UTC'
-                })}
+                {evoucherCode.evoucher?.expiration ? (
+                    new Date(evoucherCode.evoucher.expiration).toLocaleString("en-US", {
+                        dateStyle: 'long',
+                        timeStyle: 'short',
+                        timeZone: 'UTC'
+                    })
+                ) : (
+                    <span className="text-default-400">No expiration date</span>
+                )}
             </div>
         ),
         user: (

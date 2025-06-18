@@ -13,9 +13,7 @@ export type EvoucherCode = {
     user?: User;
     evoucher?: Evoucher;
     isUsed: boolean;
-    metadata: {
-        expiration: string;
-    };
+    metadata: Record<string, string>;
     createdAt: string;
     updatedAt: string;
 } 
