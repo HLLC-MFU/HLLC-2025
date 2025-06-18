@@ -2,14 +2,12 @@ import { Interfaces } from "@/types/interfaces";
 import { apiRequest } from "@/utils/api";
 import { useEffect, useState } from "react";
 
-export function useSchoolByInterface(id?: string) {
+export function useSchoolByInterfaces(id?: string) {
     const [interfaces, setInterfaces] = useState<Interfaces | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // console.log(interfaces);
-
-    const fetchSchoolInterface = async () => {
+    const fetchSchoolInterfaces = async () => {
         setLoading(true);
         setError(null);
         try {
@@ -42,7 +40,7 @@ export function useSchoolByInterface(id?: string) {
 
     useEffect(() => {
         if (!id) return;
-        fetchSchoolInterface();
+        fetchSchoolInterfaces();
     }, [id])
 
     return {
@@ -50,5 +48,6 @@ export function useSchoolByInterface(id?: string) {
         loading,
         error,
         setInterfaces,
+        fetchSchoolInterfaces,
     }
 }
