@@ -14,7 +14,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '@/context/LanguageContext';
 import useProfile from '@/hooks/useProfile';
 import { useChatRooms } from './hooks/useChatRooms';
@@ -27,6 +26,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import { ChatHeader } from './components/ChatHeader';
 import { ChatTabBar } from './components/ChatTabBar';
 import { CategoryFilter } from './components/CategoryFilter';
+import { BlurView } from 'expo-blur';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -112,25 +112,37 @@ export default function ChatPage() {
       );
     }
     return (
-      <RoomCard 
-        room={item} 
-        width={width} 
-        language={language} 
-        onPress={() => navigateToRoom(item.id, false)} 
-        onJoin={() => joinRoom(item.id)}
-        index={index}
-      />
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigateToRoom(item.id, false)}
+        activeOpacity={0.9}
+      >
+        <BlurView
+          intensity={30}
+          tint="light"
+          style={styles.cardBlur}
+        >
+          <RoomCard 
+            room={item}
+            width={width}
+            language={language}
+            onJoin={() => joinRoom(item.id)}
+            index={index} onPress={function (): void {
+              throw new Error('Function not implemented.');
+            } }          />
+        </BlurView>
+      </TouchableOpacity>
     );
   };
 
   if (loading && !refreshing) {
     return (
-      <LinearGradient colors={['#e0e7ff', '#f8fafc']} style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#e0e7ff" translucent />
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <LoadingSpinner text={language === 'th' ? 'กำลังโหลดชุมชน...' : 'Loading communities...'} />
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -141,8 +153,8 @@ export default function ChatPage() {
   });
 
   return (
-    <LinearGradient colors={['#e0e7ff', '#f8fafc']} style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#e0e7ff" translucent />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <SafeAreaView style={styles.safeArea}>
         <ChatHeader
           language={language}
@@ -209,9 +221,9 @@ export default function ChatPage() {
           }}
           activeOpacity={0.9}
         >
-          <LinearGradient colors={['#6366f1', '#8b5cf6']} style={styles.fabGradient}>
+          <View style={styles.fabGradient}>
             <Plus size={24} color="#fff" />
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       </Animated.View>
 
@@ -221,7 +233,7 @@ export default function ChatPage() {
         onSuccess={loadRooms}
         userId={userId}
       />
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -260,7 +272,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#ffffff',
     textAlign: 'center',
   },
   fabContainer: {
@@ -279,10 +291,30 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
     bottom: 60,
+    backgroundColor: '#6366f1',
   },
   fabGradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  card: {
+    backgroundColor: 'transparent',
+    borderRadius: 18,
+    marginBottom: 12,
+    marginRight: 12,
+    shadowColor: '#a5b4fc',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.13,
+    shadowRadius: 10,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  cardBlur: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    flex: 1,
   },
 });

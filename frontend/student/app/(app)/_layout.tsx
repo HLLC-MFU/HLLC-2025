@@ -54,7 +54,7 @@ export default function Layout() {
             },
           }
         }}
-        tabBar={() => <TabBar />}
+        tabBar={() => !isChatRoute ? <TabBar /> : null}
       >
         <Tabs.Screen name="index" options={{ title: 'Home' }}
         />
@@ -62,7 +62,6 @@ export default function Layout() {
         <Tabs.Screen name="qrcode" options={{ title: 'QR Code' }} />
         <Tabs.Screen name="evoucher" options={{ title: 'E-Voucher' }} />
         <Tabs.Screen name="chat/index" options={{ title: 'Community' }} />
-
       </Tabs>
     </View>
   );

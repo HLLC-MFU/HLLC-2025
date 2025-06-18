@@ -23,7 +23,7 @@ interface ChatInputProps {
   handleTyping: () => void;
   isMember: boolean;
   isConnected: boolean;
-  inputRef: React.RefObject<TextInput>;
+  inputRef: React.RefObject<TextInput | null>;
   setShowStickerPicker: (show: boolean) => void;
   showStickerPicker: boolean;
 }
@@ -41,10 +41,31 @@ const ChatInput = ({
   showStickerPicker,
 }: ChatInputProps) => {
   const [isFocused, setIsFocused] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const anim = useRef(new Animated.Value(0)).current;
   const hasText = messageText.trim().length > 0;
   const isDisabled = !isMember || !isConnected;
   const canSend = hasText && !isDisabled;
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   useEffect(() => {
     Animated.timing(anim, {
@@ -160,7 +181,13 @@ const ChatInput = ({
 };
 
 const styles = StyleSheet.create({
-  container: { position: 'relative' },
+  container: { 
+    position: 'relative', 
+    marginBottom: 20, 
+    marginLeft: 10, 
+    marginRight: 10,
+    paddingBottom: Platform.OS === 'ios' ? 0 : 0,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',

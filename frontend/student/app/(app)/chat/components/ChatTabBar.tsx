@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { MessageCircle, Sparkles } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 interface ChatTabBarProps {
   language: string;
@@ -10,17 +11,18 @@ interface ChatTabBarProps {
   tabBarAnimation: Animated.Value;
 }
 
-export const ChatTabBar: React.FC<ChatTabBarProps> = ({
+export const ChatTabBar = ({
   language,
   activeTab,
   onTabChange,
   tabBarAnimation,
-}) => {
+}:ChatTabBarProps) => {
   return (
-    <Animated.View style={[styles.enhancedTabBar, { transform: [{ scale: tabBarAnimation }] }]}>
-      <LinearGradient
-        colors={['#ffffff', '#f8fafc']}
-        style={styles.tabBarGradient}
+    <Animated.View style={[styles.tabBarWrapper, { transform: [{ scale: tabBarAnimation }] }]}> 
+      <BlurView
+        intensity={30}
+        tint="light"
+        style={styles.tabBarBlur}
       >
         <View style={styles.tabBarContainer}>
           {[
@@ -29,72 +31,75 @@ export const ChatTabBar: React.FC<ChatTabBarProps> = ({
           ].map(({ key, label, icon: Icon }) => (
             <TouchableOpacity
               key={key}
-              style={[
-                styles.tabButton,
-                activeTab === key && styles.tabButtonActive
-              ]}
+              style={[styles.tabBtn, activeTab === key && styles.tabBtnActive]}
               onPress={() => onTabChange(key as 'my' | 'discover')}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
               <LinearGradient
                 colors={activeTab === key ? ['#6366f1', '#8b5cf6'] : ['transparent', 'transparent']}
-                style={styles.tabButtonGradient}
+                style={styles.tabBtnGradient}
               >
-                <Icon size={18} color={activeTab === key ? '#fff' : '#64748b'} />
-                <Text style={[
-                  styles.tabButtonText,
-                  activeTab === key && styles.tabButtonTextActive
-                ]}>
-                  {label}
-                </Text>
+                <Icon size={18} color={activeTab === key ? '#fff' : '#6366f1'} />
+                <Text style={[styles.tabBtnText, activeTab === key && styles.tabBtnTextActive]}>{label}</Text>
               </LinearGradient>
             </TouchableOpacity>
           ))}
         </View>
-      </LinearGradient>
+      </BlurView>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  enhancedTabBar: {
+  tabBarWrapper: {
     marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 16,
+    marginBottom: 18,
+    borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#a5b4fc',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  tabBarGradient: {
-    padding: 4,
+  tabBarBlur: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
   tabBarContainer: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 10,
+    backgroundColor: 'transparent',
+    borderRadius: 18,
+    padding: 4,
   },
-  tabButton: {
+  tabBtn: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
   },
-  tabButtonActive: {},
-  tabButtonGradient: {
+  tabBtnActive: {
+    shadowColor: '#6366f1',
+    shadowOpacity: 0.12,
+    elevation: 2,
+  },
+  tabBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 10,
     gap: 8,
+    borderRadius: 14,
   },
-  tabButtonText: {
-    fontSize: 14,
+  tabBtnText: {
+    fontSize: 15,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#6366f1',
   },
-  tabButtonTextActive: {
-    color: '#ffffff',
+  tabBtnTextActive: {
+    color: '#fff',
   },
 }); 

@@ -13,8 +13,9 @@ interface MessageListProps {
   messages: Message[][];
   userId: string;
   typing: { id: string; name?: string }[];
-  flatListRef: React.RefObject<FlatList>;
+  flatListRef: React.RefObject<FlatList | null>;
   onReply: (message: Message) => void;
+  onRetry?: (message: Message) => void;
   scrollToBottom: () => void;
 }
 
@@ -24,11 +25,12 @@ const MessageList = ({
   typing,
   flatListRef,
   onReply,
+  onRetry,
   scrollToBottom,
 }: MessageListProps) => {
   const renderItem = ({ item }: { item: Message[] }) => {
     if (item.length === 1 && (item[0].type === 'join' || item[0].type === 'leave')) {
-      return <SystemMessage text={item[0].text} timestamp={item[0].timestamp} />;
+      return <SystemMessage text={item[0].text || ''} timestamp={item[0].timestamp} />;
     }
     
     return (

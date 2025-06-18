@@ -52,10 +52,25 @@ export const chatStyles = StyleSheet.create({
     backgroundColor: '#cc3300',
     padding: 8,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   connectionErrorText: {
     color: '#fff',
     fontSize: 12,
+    flex: 1,
+  },
+  retryButton: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  retryButtonText: {
+    color: '#cc3300',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   centerContent: { 
     justifyContent: 'center', 

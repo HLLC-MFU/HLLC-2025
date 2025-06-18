@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform, StatusBar, Animated } from 'react-native';
 import { Users, MessageCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 interface ChatHeaderProps {
   language: string;
@@ -12,14 +13,14 @@ interface ChatHeaderProps {
   headerOpacity: Animated.AnimatedInterpolation<string | number>;
 }
 
-export const ChatHeader: React.FC<ChatHeaderProps> = ({
+export const ChatHeader = ({
   language,
   roomsCount,
   joinedRoomsCount,
   headerScale,
   pulseAnim,
   headerOpacity,
-}) => {
+}:ChatHeaderProps) => {
   return (
     <Animated.View style={[styles.enhancedHeader, { opacity: headerOpacity }]}>
       <LinearGradient
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
@@ -110,6 +111,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
     marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   statItem: {
     alignItems: 'center',
