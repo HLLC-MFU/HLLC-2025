@@ -19,6 +19,7 @@ interface ScopeSelectorProps<T> {
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   isLoading: boolean;
+  isDisabled?: boolean;
   placeholder: string;
   getName: (item: T) => string;
   getId: (item: T) => string;
@@ -33,6 +34,7 @@ export function ScopeSelector<T>({
   onSelect,
   onRemove,
   isLoading,
+  isDisabled = false,
   placeholder,
   getName,
   getId,
@@ -65,8 +67,8 @@ export function ScopeSelector<T>({
       </div>
 
       <Popover 
-        isOpen={isOpen} 
-        onOpenChange={setIsOpen}
+        isOpen={isOpen && !isDisabled} 
+        onOpenChange={(open) => !isDisabled && setIsOpen(open)}
         placement="bottom"
       >
         <PopoverTrigger>
@@ -74,6 +76,7 @@ export function ScopeSelector<T>({
             variant="flat"
             className="w-full justify-between h-unit-12 px-3"
             endContent={<ChevronDown className="text-default-500" size={16} />}
+            isDisabled={isDisabled}
           >
             <div className="flex items-center gap-2">
               <span className="text-default-500">
@@ -147,9 +150,10 @@ export function ScopeSelector<T>({
         {selectedItemsData.map((item) => (
           <Chip
             key={getId(item)}
-            onClose={() => onRemove(getId(item))}
+            onClose={() => !isDisabled && onRemove(getId(item))}
             variant="flat"
             size="sm"
+            isDisabled={isDisabled}
           >
             {getName(item)}
           </Chip>

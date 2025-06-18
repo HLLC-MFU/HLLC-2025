@@ -52,12 +52,16 @@ export default function EvoucherCodeTable({
     };
 
     const handleSuccess = async (formData: FormData, mode: "add" | "edit") => {
-        if (mode === "edit" && selectedEvoucherCode) {
-            await tableLogic.handleUpdate(selectedEvoucherCode._id, formData);
-        } else {
-            await tableLogic.handleAdd(formData);
+        try {
+            if (mode === "edit" && selectedEvoucherCode) {
+                await tableLogic.handleUpdate(selectedEvoucherCode._id, formData);
+            } else {
+                await tableLogic.handleAdd(formData);
+            }
+        } catch (error) {
+            console.error('Error handling evoucher code operation:', error);
+            throw error; // Re-throw to let the modal handle the error
         }
-        setSelectedEvoucherCode(undefined);
     };
 
     return (

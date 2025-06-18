@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { apiRequest, ApiResponse } from "@/utils/api";
 import { EvoucherCode } from "@/types/evoucher-code";
+import { addToast } from "@heroui/react";
 
 export function useEvoucherCode() {
     const [evoucherCodes, setEvoucherCodes] = useState<EvoucherCode[]>([]);
@@ -19,48 +20,148 @@ export function useEvoucherCode() {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to fetch evoucher codes.';
             setError(errorMessage);
+            addToast({
+                title: "Error",
+                description: errorMessage,
+                color: "danger"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Fetch single evoucher code
+    const fetchEvoucherCode = async (id: string): Promise<EvoucherCode | null> => {
+        setLoading(true);
+        try {
+            const res = await apiRequest<{ data: EvoucherCode }>(`/evoucher-code/${id}`, "GET");
+            return res.data?.data || null;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to fetch evoucher code.';
+            setError(errorMessage);
+            addToast({
+                title: "Error",
+                description: errorMessage,
+                color: "danger"
+            });
+            return null;
         } finally {
             setLoading(false);
         }
     };
 
     // Create evoucher code
-    const createEvoucherCode = async (evoucherCodeData: FormData): Promise<ApiResponse<{ data: EvoucherCode }>> => {
+    const createEvoucherCode = async (formData: FormData): Promise<ApiResponse<{ data: EvoucherCode }>> => {
         setLoading(true);
         try {
-            const res = await apiRequest<{ data: EvoucherCode }>("/evoucher-code", "POST", evoucherCodeData);
-            const newEvoucherCode = res.data?.data;
-            if (newEvoucherCode) {
-                setEvoucherCodes(prev => [...prev, newEvoucherCode]);
+            // Convert FormData to JSON object
+            const jsonData = {
+                evoucher: formData.get('evoucher'),
+                user: formData.get('user'),
+                metadata: {
+                    expiration: formData.get('metadata[expiration]')
+                }
+            };
+
+            console.log('Creating evoucher code with data:', jsonData);
+
+            const res = await apiRequest<{ data: EvoucherCode }>(
+                "/evoucher-code",
+                "POST",
+                jsonData
+            );
+            
+            console.log('API Response:', res);
+            
+            if (res?.data?.data) {
+                const newEvoucherCode = res.data.data;
+                console.log('Adding new evoucher code to state:', newEvoucherCode);
+                setEvoucherCodes(prev => {
+                    const updated = [...prev, newEvoucherCode];
+                    console.log('Updated evoucher codes state:', updated);
+                    return updated;
+                });
+                addToast({
+                    title: "Success",
+                    description: "Evoucher code created successfully",
+                    color: "success"
+                });
             }
             return res;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to create evoucher code.';
+        } catch (err: any) {
+            console.error('Error creating evoucher code:', err);
+            let errorMessage = 'Failed to create evoucher code.';
+            
+            // Handle specific error messages
+            if (err.message === 'Evoucher expired') {
+                errorMessage = 'Cannot create code: The selected evoucher has expired.';
+            } else if (err.response?.data?.message) {
+                errorMessage = err.response.data.message;
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
             setError(errorMessage);
-            throw new Error(errorMessage);
+            addToast({
+                title: "Error",
+                description: errorMessage,
+                color: "danger"
+            });
+            throw err;
         } finally {
             setLoading(false);
         }
     };
 
     // Update evoucher code
-    const updateEvoucherCode = async (evoucherCodeId: string, evoucherCodeData: FormData): Promise<ApiResponse<{ data: EvoucherCode }>> => {
+    const updateEvoucherCode = async (evoucherCodeId: string, formData: FormData): Promise<ApiResponse<{ data: EvoucherCode }>> => {
         setLoading(true);
         try {
-            const res = await apiRequest<{ data: EvoucherCode }>(`/evoucher-code/${evoucherCodeId}`, "PATCH", evoucherCodeData);
-            const updatedEvoucherCode = res.data?.data;
-            if (updatedEvoucherCode) {
+            // First fetch the current data
+            const currentData = await fetchEvoucherCode(evoucherCodeId);
+            if (!currentData) {
+                throw new Error('Failed to fetch current evoucher code data');
+            }
+
+            // Convert FormData to JSON object
+            const jsonData = {
+                evoucher: formData.get('evoucher') || currentData.evoucher?._id,
+                user: formData.get('user') || currentData.user?._id,
+                metadata: {
+                    expiration: formData.get('metadata[expiration]') || currentData.metadata.expiration
+                }
+            };
+
+            const res = await apiRequest<{ data: EvoucherCode }>(
+                `/evoucher-code/${evoucherCodeId}`,
+                "PATCH",
+                jsonData
+            );
+            
+            if (res?.data?.data) {
+                const updatedEvoucherCode = res.data.data;
                 setEvoucherCodes(prev => 
-                    prev.map(evoucherCode => 
-                        evoucherCode._id === evoucherCodeId ? updatedEvoucherCode : evoucherCode
+                    prev.map(code => 
+                        code._id === evoucherCodeId ? updatedEvoucherCode : code
                     )
                 );
+
+                addToast({
+                    title: "Success",
+                    description: "Evoucher code updated successfully",
+                    color: "success"
+                });
             }
             return res;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to update evoucher code.';
+        } catch (err: any) {
+            const errorMessage = err.message || 'Failed to update evoucher code.';
             setError(errorMessage);
-            throw new Error(errorMessage);
+            addToast({
+                title: "Error",
+                description: errorMessage,
+                color: "danger"
+            });
+            throw err;
         } finally {
             setLoading(false);
         }
@@ -71,15 +172,25 @@ export function useEvoucherCode() {
         setLoading(true);
         try {
             const res = await apiRequest<{ data: EvoucherCode }>(`/evoucher-code/${evoucherCodeId}`, "DELETE");
-            const deletedEvoucherCode = res.data?.data;
-            if (deletedEvoucherCode) {
-                setEvoucherCodes(prev => prev.filter(evoucherCode => evoucherCode._id !== evoucherCodeId));
+            
+            if (res) {
+                setEvoucherCodes(prev => prev.filter(code => code._id !== evoucherCodeId));
+                addToast({
+                    title: "Success",
+                    description: "Evoucher code deleted successfully",
+                    color: "success"
+                });
             }
             return res;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to delete evoucher code.';
+        } catch (err: any) {
+            const errorMessage = err.message || 'Failed to delete evoucher code.';
             setError(errorMessage);
-            throw new Error(errorMessage);
+            addToast({
+                title: "Error",
+                description: errorMessage,
+                color: "danger"
+            });
+            throw err;
         } finally {
             setLoading(false);
         }
@@ -96,5 +207,6 @@ export function useEvoucherCode() {
         createEvoucherCode,
         updateEvoucherCode,
         deleteEvoucherCode,
+        fetchEvoucherCode,
     };
 }

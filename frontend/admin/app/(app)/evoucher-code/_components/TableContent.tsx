@@ -60,6 +60,12 @@ export default function TableContent({
     onSearchChange,
 }: TableContentProps) {
 
+    console.log('TableContent render - sortedItems:', sortedItems.map(item => ({
+        id: item._id,
+        code: item.code,
+        user: item.user?.username
+    })));
+
     const getColumnWidth = (columnKey: string) => {
         switch (columnKey) {
             case "sponsors":
@@ -86,6 +92,9 @@ export default function TableContent({
                 return "";
         }
     };
+
+    // Create unique keys for each row by combining _id with index
+    const getUniqueKey = (item: EvoucherCode, index: number) => `${item._id}-${index}`;
 
     return (
         <Table
@@ -142,15 +151,18 @@ export default function TableContent({
                     <span className="text-default-400">No evoucher codes found</span>
                 </div>
             } items={sortedItems}>
-                {(item) => (
-                    <TableRow key={item._id} className="hover:bg-default-50 transition-colors">
-                        {(columnKey) => (
-                            <TableCell className={`${getColumnWidth(columnKey.toString())} py-4`}>
-                                {renderCell(item, columnKey)}
-                            </TableCell>
-                        )}
-                    </TableRow>
-                )}
+                {(item: EvoucherCode) => {
+                    const uniqueKey = `${item._id}-${sortedItems.indexOf(item)}`;
+                    return (
+                        <TableRow key={uniqueKey} className="hover:bg-default-50 transition-colors">
+                            {(columnKey) => (
+                                <TableCell className={`${getColumnWidth(columnKey.toString())} py-4`}>
+                                    {renderCell(item, columnKey)}
+                                </TableCell>
+                            )}
+                        </TableRow>
+                    );
+                }}
             </TableBody>
         </Table>
     );

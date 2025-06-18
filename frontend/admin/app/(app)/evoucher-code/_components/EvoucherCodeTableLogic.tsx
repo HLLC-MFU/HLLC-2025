@@ -100,24 +100,21 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
     const handleAdd = async (formData: FormData) => {
         try {
             const response = await createEvoucherCode(formData);
-            setIsModalOpen(false);
-
+            
             if (response?.data?.data) {
                 const newEvoucherCode = response.data.data;
                 setLocalEvoucherCodes(prev => [...prev, newEvoucherCode]);
                 onDataChange?.();
-
-                addToast({
-                    title: "Add Successfully",
-                    description: "Data has been added successfully",
-                });
             }
+            return response;
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to create evoucher code.';
             addToast({
-                title: "Failed to Add",
-                description: (error as Error)?.message || "An error occurred while adding data.",
+                title: "Failed to Create",
+                description: errorMessage,
                 color: "danger",
             });
+            throw error;
         }
     };
 
@@ -129,7 +126,9 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
             if (response?.data?.data) {
                 const updatedEvoucherCode = response.data.data;
                 setLocalEvoucherCodes(prev => 
-                    prev.map(code => code._id === evoucherCodeId ? updatedEvoucherCode : code)
+                    prev.map(code => 
+                        code._id === evoucherCodeId ? updatedEvoucherCode : code
+                    )
                 );
                 onDataChange?.();
 
@@ -138,12 +137,15 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
                     description: "Data has been updated successfully",
                 });
             }
+            return response;
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to update evoucher code.';
             addToast({
                 title: "Failed to Update",
-                description: (error as Error)?.message || "An error occurred while updating data.",
+                description: errorMessage,
                 color: "danger",
             });
+            throw error;
         }
     };
 
@@ -162,12 +164,15 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
                     description: "Data has been deleted successfully",
                 });
             }
+            return response;
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete evoucher code.';
             addToast({
                 title: "Failed to Delete",
-                description: (error as Error)?.message || "An error occurred while deleting data.",
+                description: errorMessage,
                 color: "danger",
             });
+            throw error;
         }
     };
 

@@ -18,31 +18,57 @@ export default function EvoucherCodePage() {
     const { evouchers, loading: evouchersLoading } = useEvoucher();
     const isLoading = evoucherCodesLoading || sponsorsLoading || evouchersLoading;
 
-    // Group evoucher codes by sponsor
-    const evoucherCodesBySponsors = React.useMemo(() => {
-        const groupedCodes = new Map();
-        evoucherCodes.forEach(code => {
-            const sponsorId = code.evoucher?.sponsors?._id;
-            const sponsorName = code.evoucher?.sponsors?.name.en;
-            if (sponsorName && !groupedCodes.has(sponsorName)) {
-                const sponsorPhoto = code.evoucher?.sponsors?.photo as { logoPhoto?: string } | undefined;
-                console.log('Sponsor photo data:', {
+    // Group evouchers by sponsor first
+    const evouchersBySponsors = React.useMemo(() => {
+        const groupedEvouchers = new Map();
+        evouchers.forEach(evoucher => {
+            const sponsorId = evoucher.sponsors._id;
+            const sponsorName = evoucher.sponsors.name.en;
+            if (sponsorName && !groupedEvouchers.has(sponsorId)) {
+                const sponsorPhoto = evoucher.sponsors.photo as { logoPhoto?: string } | undefined;
+                groupedEvouchers.set(sponsorId, {
                     name: sponsorName,
-                    photo: sponsorPhoto?.logoPhoto,
-                    fullPath: sponsorPhoto?.logoPhoto ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsorPhoto.logoPhoto}` : null
-                });
-                groupedCodes.set(sponsorName, {
-                    codes: [],
+                    evouchers: [],
                     photo: sponsorPhoto?.logoPhoto || "",
-                    sponsorId
                 });
             }
-            if (sponsorName) {
-                groupedCodes.get(sponsorName).codes.push(code);
+            if (sponsorId) {
+                groupedEvouchers.get(sponsorId).evouchers.push(evoucher);
             }
         });
+        return groupedEvouchers;
+    }, [evouchers]);
+
+    // Then group evoucher codes by sponsor
+    const evoucherCodesBySponsor = React.useMemo(() => {
+        const groupedCodes = new Map();
+        
+        // Initialize the map with sponsor data from evouchersBySponsors
+        Array.from(evouchersBySponsors.entries()).forEach(([sponsorId, data]) => {
+            groupedCodes.set(sponsorId, {
+                ...data,
+                codes: []
+            });
+        });
+        
+        // Add evoucher codes to their respective sponsor groups
+        evoucherCodes.forEach(code => {
+            const sponsorId = code.evoucher?.sponsors?._id;
+            if (sponsorId && groupedCodes.has(sponsorId)) {
+                // Check if code is already added
+                const existingCodes = groupedCodes.get(sponsorId).codes;
+                const isDuplicate = existingCodes.some((existingCode: { _id: string }) => 
+                    existingCode._id === code._id
+                );
+                
+                if (!isDuplicate) {
+                    groupedCodes.get(sponsorId).codes.push(code);
+                }
+            }
+        });
+
         return groupedCodes;
-    }, [evoucherCodes]);
+    }, [evouchersBySponsors, evoucherCodes]);
 
     const accordionItems = isLoading 
         ? Array.from({ length: 2 }).map((_, index) => (
@@ -56,17 +82,17 @@ export default function EvoucherCodePage() {
                 <div className="h-[100px] w-full bg-gray-100 rounded-md animate-pulse" />
             </AccordionItem>
         ))
-        : Array.from(evoucherCodesBySponsors.entries()).map(([sponsorName, { codes, photo, sponsorId }]) => (
+        : Array.from(evoucherCodesBySponsor.entries()).map(([sponsorId, data]) => (
             <AccordionItem
-                key={sponsorName}
-                aria-label={`${sponsorName} Evoucher Codes`}
+                key={sponsorId}
+                aria-label={`${data.name} Evoucher Codes`}
                 className="font-medium mb-2"
                 startContent={
                     <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-default-200">
-                        {photo ? (
+                        {data.photo ? (
                             <img
-                                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${photo}`}
-                                alt={sponsorName}
+                                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${data.photo}`}
+                                alt={data.name}
                                 className="h-full w-full object-contain rounded border border-default-300 bg-white"
                                 onError={(e) => {
                                     console.error('Failed to load image:', e.currentTarget.src);
@@ -78,24 +104,24 @@ export default function EvoucherCodePage() {
                                 }}
                             />
                         ) : null}
-                        <div className={`absolute inset-0 ${!photo ? 'flex' : 'hidden'} items-center justify-center text-default-400`}>
+                        <div className={`absolute inset-0 ${!data.photo ? 'flex' : 'hidden'} items-center justify-center text-default-400`}>
                             <Image size={16} />
                         </div>
                     </div>
                 }
                 title={
                     <div className="flex items-center gap-2">
-                        <span>{sponsorName} Evoucher Codes</span>
+                        <span>{data.name} Evoucher Codes</span>
                         <span className="text-xs text-gray-500">
-                            ({codes.length} code{codes.length !== 1 ? "s" : ""})
+                            ({data.codes?.length || 0} code{(data.codes?.length || 0) !== 1 ? "s" : ""})
                         </span>
                     </div>
                 }
             >
                 <EvoucherCodeTable
-                    evoucherCodes={codes}
+                    evoucherCodes={data.codes || []}
                     sponsors={sponsors}
-                    evouchers={evouchers}
+                    evouchers={data.evouchers}
                     sponsorId={sponsorId}
                 />
             </AccordionItem>
