@@ -22,11 +22,16 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { FastifyRequest } from 'fastify';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
+import { ActivitiesService } from '../activities/services/activities.service';
+
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly activitiesService: ActivitiesService,
+  ) { }
 
   @Post()
   @Permissions('users:create')
@@ -47,13 +52,6 @@ export class UsersController {
   @CacheKey('users')
   async findAll(@Query() query: Record<string, string>) {
     return this.usersService.findAll(query);
-  }
-
-  @Get('by-query')
-  @Permissions('users:read')
-  @CacheKey('users:by-query')
-  async findAllByQuery(@Query() query: Record<string, string>) {
-    return this.usersService.findAllByQuery(query);
   }
 
   @Get('statistics')
@@ -78,6 +76,7 @@ export class UsersController {
   getProfile(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
+
     const user = req.user as { _id?: string; id?: string };
     const userId: string = user?._id ?? user?.id ?? '';
     if (!userId) {

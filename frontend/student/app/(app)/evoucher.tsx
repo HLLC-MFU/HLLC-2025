@@ -33,7 +33,6 @@ export default function EvoucherPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   header: {
     padding: 16,

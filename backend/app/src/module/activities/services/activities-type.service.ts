@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { CreateActivitiesTypeDto } from './dto/create-activities-type.dto';
-import { UpdateActivitiesTypeDto } from './dto/update-activities-type.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { model, Model } from 'mongoose';
-import { ActivitiesType, ActivitiesTypeDocument } from './schema/activitiesType.schema';
+import { Model } from 'mongoose';
+import { ActivitiesType, ActivitiesTypeDocument } from '../schemas/activitiesType.schema';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
+import { CreateActivitiesTypeDto } from '../dto/activities-type/create-activities-type.dto';
+import { UpdateActivitiesTypeDto } from '../dto/activities-type/update-activities-type.dto';
 
 @Injectable()
 export class ActivitiesTypeService {

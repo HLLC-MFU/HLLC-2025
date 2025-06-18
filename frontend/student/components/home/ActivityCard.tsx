@@ -20,7 +20,7 @@ type HomeActivityCardProps = {
   onImageLoaded?: () => void;
 };
 
-export default function HomeActivityCard({
+export default function ActivityCard({
   activity,
   lang,
   onPress,

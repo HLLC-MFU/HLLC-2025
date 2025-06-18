@@ -1,4 +1,46 @@
 {
+    "global": {
+        "loading": "Loading...",
+        "error": "An error occurred",
+        "success": "Success",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "ok": "OK",
+        "yes": "Yes",
+        "no": "No"
+    },
+    "login": {
+        "title": "Login",
+        "subtitle": "Please enter your credentials",
+        "username": "Username",
+        "password": "Password",
+        "loginButton": "Login",
+        "forgotPassword": "Forgot Password?",
+        "register": "Register"
+    },
+    "register": {
+        "title": "Register",
+        "subtitle": "Create a new account",
+        "username": "Username",
+        "password": "Password",
+        "confirmPassword": "Confirm Password",
+        "registerButton": "Register",
+        "loginPrompt": "Already have an account? Login"
+    },
+    "profile": {
+        "title": "Profile",
+        "editProfile": "Edit Profile",
+        "viewProfile": "View Profile",
+        "logout": "Logout",
+        "settings": "Settings"
+    },
+    "settings": {
+        "title": "Settings",
+        "language": "Language",
+        "notifications": "Notifications",
+        "privacy": "Privacy",
+        "help": "Help & Support"
+    },
     "nav": {
         "welcome": "Welcome Back",
         "progress": "Progress"
