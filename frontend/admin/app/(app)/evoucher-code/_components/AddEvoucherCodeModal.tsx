@@ -32,13 +32,11 @@ export function EvoucherCodeModal({
   sponsorId
 }: AddEvoucherCodeProps) {
   const { users, loading: usersLoading } = useUsers();
-  const { fetchEvoucherCode } = useEvoucherCode();
-  const [selectedEvoucher, setSelectedEvoucher] = useState<string>("");
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [expiration, setExpiration] = useState(new Date().toISOString());
+  const { fetchEvoucherCode, evoucherCodes } = useEvoucherCode();
+  const [selectedEvoucher, setSelectedEvoucher] = useState<string>(evoucherCode?.evoucher?._id || "");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>(evoucherCode?.user?._id ? [evoucherCode.user._id] : []);
+  const [expiration, setExpiration] = useState(evoucherCode?.metadata?.expiration || new Date().toISOString());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
 
   // Filter evouchers by sponsor
   const filteredEvouchers = evouchers.filter(e => e.sponsors._id === sponsorId);
@@ -49,123 +47,114 @@ export function EvoucherCodeModal({
     return expirationDate < new Date();
   };
 
-  // Load existing data if in edit mode
-  useEffect(() => {
-    const loadEvoucherCode = async () => {
-      if (mode === "edit" && evoucherCode?._id) {
-        setIsLoading(true);
-        try {
-          const currentData = await fetchEvoucherCode(evoucherCode._id);
-          if (currentData) {
-            setSelectedEvoucher(currentData.evoucher?._id || "");
-            setSelectedUsers(currentData.user?._id ? [currentData.user._id] : []);
-            setExpiration(currentData.metadata.expiration || new Date().toISOString());
-          }
-        } catch (error) {
-          console.error('Error loading evoucher code:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
+  // Check if user already has an evoucher code for the selected evoucher
+  const hasExistingEvoucherCode = (userId: string): boolean => {
+    if (!selectedEvoucher) return false;
+    
+    // In edit mode, exclude the current evoucher code from the check
+    const existingCode = evoucherCodes.find(code => 
+      code.evoucher?._id === selectedEvoucher && 
+      code.user?._id === userId &&
+      (!evoucherCode || code._id !== evoucherCode._id)
+    );
+    
+    return !!existingCode;
+  };
 
-    loadEvoucherCode();
-  }, [mode, evoucherCode, fetchEvoucherCode]);
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (isOpen && mode === "edit" && evoucherCode) {
+      setSelectedEvoucher(evoucherCode.evoucher?._id || "");
+      setSelectedUsers(evoucherCode.user?._id ? [evoucherCode.user._id] : []);
+      setExpiration(evoucherCode.metadata?.expiration || new Date().toISOString());
+    } else if (!isOpen) {
+      setSelectedEvoucher("");
+      setSelectedUsers([]);
+      setExpiration(new Date().toISOString());
+    }
+  }, [isOpen, mode, evoucherCode]);
 
   const handleSubmit = async () => {
     if (!selectedEvoucher || selectedUsers.length === 0) return;
 
     setIsSubmitting(true);
-    setProgress(0);
 
     try {
-      const total = selectedUsers.length;
-      const results = [];
-      let successCount = 0;
-      let hasError = false;
+      const formData = new FormData();
+      formData.append("evoucher", selectedEvoucher);
+      formData.append("user", selectedUsers[0]); // For edit mode, we only use the first user
+      formData.append("metadata[expiration]", expiration);
 
-      // Process each user sequentially
-      for (let i = 0; i < selectedUsers.length; i++) {
-        const userId = selectedUsers[i];
-        
-        try {
-          const formData = new FormData();
-          formData.append("evoucher", selectedEvoucher);
-          formData.append("user", userId);
-          formData.append("metadata[expiration]", expiration);
-          
-          // Wait for each request to complete before moving to the next
-          const result = await onSuccess(formData, mode);
-          results.push({ userId, success: true });
-          successCount++;
-        } catch (error: any) {
-          console.error(`Error creating evoucher code for user ${userId}:`, error);
-          results.push({ 
-            userId, 
-            success: false, 
-            error: error.message || 'Failed to create evoucher code' 
-          });
-          hasError = true;
-        }
+      await onSuccess(formData, mode);
+      
+      addToast({
+        title: "Success",
+        description: `Successfully ${mode === 'add' ? 'created' : 'updated'} evoucher code.`,
+        color: "success"
+      });
 
-        // Update progress
-        setProgress(((i + 1) / total) * 100);
-      }
-
-      // Show summary toast
-      if (hasError) {
-        const successMessage = successCount > 0 
-          ? `Successfully created ${successCount} out of ${total} evoucher codes. `
-          : '';
-        const errorMessage = `Some evoucher codes could not be created. Please check the console for details.`;
-        addToast({
-          title: "Partial Success",
-          description: successMessage + errorMessage,
-          color: "warning"
-        });
-      } else {
-        addToast({
-          title: "Success",
-          description: `Successfully created ${total} evoucher code${total !== 1 ? 's' : ''}.`,
-          color: "success"
-        });
-      }
-
-      if (successCount > 0) {
-        onClose();
-      }
+      onClose();
     } catch (error) {
-      console.error('Error in batch operation:', error);
+      console.error('Error in operation:', error);
       addToast({
         title: "Error",
-        description: "Failed to process evoucher codes.",
+        description: "Failed to process evoucher code.",
         color: "danger"
       });
     } finally {
       setIsSubmitting(false);
-      setProgress(0);
     }
   };
 
-  if (isLoading) {
-    return (
-      <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-        <ModalContent>
-          <div className="p-6 flex items-center justify-center">
-            <Progress
-              size="sm"
-              isIndeterminate
-              aria-label="Loading..."
-              className="max-w-md"
-            />
-          </div>
-        </ModalContent>
-      </Modal>
-    );
-  }
+  const handleEvoucherChange = (keys: any) => {
+    const selectedKey = Array.from(keys)[0] as string;
+    setSelectedEvoucher(selectedKey);
+    // Clear selected users when evoucher changes
+    setSelectedUsers([]);
+  };
+
+  const handleUserSelect = (id: string) => {
+    // Check if user already has an evoucher code for the selected evoucher
+    if (hasExistingEvoucherCode(id)) {
+      addToast({
+        title: "Cannot Select User",
+        description: "This user already has a code for the selected evoucher.",
+        color: "danger"
+      });
+      return;
+    }
+
+    // In edit mode, replace the current user
+    if (mode === "edit") {
+      setSelectedUsers([id]);
+      return;
+    }
+    // In add mode, add to the list
+    setSelectedUsers([...selectedUsers, id]);
+  };
+
+  const handleUserRemove = (id: string) => {
+    // In edit mode, don't allow removing the last user
+    if (mode === "edit" && selectedUsers.length <= 1) {
+      return;
+    }
+    setSelectedUsers(selectedUsers.filter(u => u !== id));
+  };
+
+  // Filter out users who already have an evoucher code for the selected evoucher
+  const availableUsers = users.filter(user => !hasExistingEvoucherCode(user._id));
 
   return (
-    <Modal isOpen={isOpen} onClose={() => { onClose(); }} size="2xl" scrollBehavior="inside">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose}
+      size="2xl" 
+      scrollBehavior="inside"
+      isDismissable={!isSubmitting}
+      classNames={{
+        base: "z-[1000]"
+      }}
+    >
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           {mode === "add" ? "Add Evoucher Code" : "Edit Evoucher Code"}
@@ -177,11 +166,11 @@ export function EvoucherCodeModal({
               label="Evoucher" 
               isRequired 
               selectedKeys={selectedEvoucher ? [selectedEvoucher] : []}
-              onSelectionChange={(keys) => {
-                const selectedKey = Array.from(keys)[0] as string;
-                setSelectedEvoucher(selectedKey);
+              onSelectionChange={handleEvoucherChange}
+              isDisabled={mode === "edit" || isSubmitting}
+              classNames={{
+                trigger: "z-0"
               }}
-              isDisabled={mode === "edit"}
             >
               {filteredEvouchers.map((e) => {
                 const expired = isEvoucherExpired(e);
@@ -213,10 +202,10 @@ export function EvoucherCodeModal({
             <ScopeSelector
               label="Select Users"
               icon={Users}
-              items={users}
+              items={availableUsers}
               selectedItems={selectedUsers}
-              onSelect={(id) => setSelectedUsers([...selectedUsers, id])}
-              onRemove={(id) => setSelectedUsers(selectedUsers.filter(u => u !== id))}
+              onSelect={handleUserSelect}
+              onRemove={handleUserRemove}
               isLoading={usersLoading}
               placeholder="Select users..."
               getName={(user) => user.username}
@@ -226,33 +215,18 @@ export function EvoucherCodeModal({
                 user.metadata?.[0]?.major?.name?.en,
                 user.metadata?.[0]?.major?.school?.name?.en
               ]}
-              isDisabled={mode === "edit"}
             />
-
-            {isSubmitting && (
-              <div className="w-full">
-                <Progress
-                  aria-label="Creating evoucher codes..."
-                  value={progress}
-                  className="max-w-md"
-                />
-                <p className="text-small text-default-400 mt-2">
-                  Creating evoucher codes... {Math.round(progress)}%
-                </p>
-              </div>
-            )}
           </div>
         </ModalBody>
 
         <ModalFooter>
-          <Button color="danger" variant="light" onPress={() => { onClose(); }}>
+          <Button color="danger" variant="light" onPress={onClose}>
             Cancel
           </Button>
           <Button 
             color="primary" 
             onPress={handleSubmit}
-            isLoading={isSubmitting}
-            isDisabled={isSubmitting || !selectedEvoucher || selectedUsers.length === 0}
+            isDisabled={!selectedEvoucher || selectedUsers.length === 0}
           >
             {mode === "add" ? "Add Evoucher Code" : "Save Changes"}
           </Button>
@@ -261,6 +235,3 @@ export function EvoucherCodeModal({
     </Modal>
   );
 }
-
-// Helper function to convert ISO string to local datetime input value
-const toLocalInputValue = (iso: string) => new Date(iso).toISOString().slice(0, 16);

@@ -105,6 +105,7 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
                 const newEvoucherCode = response.data.data;
                 setLocalEvoucherCodes(prev => [...prev, newEvoucherCode]);
                 onDataChange?.();
+                window.location.reload();
             }
             return response;
         } catch (error) {
@@ -131,11 +132,7 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
                     )
                 );
                 onDataChange?.();
-
-                addToast({
-                    title: "Update Successfully",
-                    description: "Data has been updated successfully",
-                });
+                window.location.reload();
             }
             return response;
         } catch (error) {
