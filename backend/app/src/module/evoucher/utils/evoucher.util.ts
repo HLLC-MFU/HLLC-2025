@@ -50,12 +50,12 @@ export function generateEvoucherCode(
     const codeNumber = String(current++).padStart(6, '0');
     return {
       code: `${evoucher.acronym}${codeNumber}`,
-        evoucher: evoucher._id.toString(),
-        user: dto.user,
-        isUsed: false,
-        metadata: { expiration: evoucher.expiration.toISOString() }
+      evoucher: evoucher._id.toString(),
+      user: dto.user,
+      isUsed: false,
+      metadata: dto.metadata || {}
     };
-      });
+  });
 }
   
 
@@ -64,6 +64,16 @@ export async function claimVoucherCode(
   evoucher: EvoucherDocument,
   evoucherCodeModel: Model<EvoucherCodeDocument>
 ) {
+  // Check if evoucher is expired
+  if (new Date() > new Date(evoucher.expiration)) {
+    throw new BadRequestException('Cannot claim expired evoucher');
+  }
+
+  // Check if evoucher is active
+  if (evoucher.status !== EvoucherStatus.ACTIVE) {
+    throw new BadRequestException('Cannot claim inactive evoucher');
+  }
+
   const [currentClaims, availableCode] = await Promise.all([
     evoucher.maxClaims ? evoucherCodeModel.countDocuments({
     evoucher: evoucher._id,
@@ -86,13 +96,12 @@ export async function claimVoucherCode(
   const newCode = await evoucherCodeModel.create({
     code: generateEvoucherCode({
       evoucher: evoucher._id.toString(),
-      user: userId,
-      metadata: { expiration: evoucher.expiration.toISOString() }
+      user: userId
     }, evoucher) as string,
-      evoucher: evoucher._id,
-      user: new Types.ObjectId(userId),
-      isUsed: false,
-      metadata: { expiration: evoucher.expiration }
+    evoucher: evoucher._id,
+    user: new Types.ObjectId(userId),
+    isUsed: false,
+    metadata: {}
   });
 
   return newCode;
@@ -113,7 +122,10 @@ export const validatePublicAvailableVoucher = async (
         userHas: false,
         reachMaximumClaim: false,
         canClaim: false,
-        isExpire
+        isExpire,
+        reason: isExpire ? 'Evoucher has expired' : 
+                evoucher.type !== 'GLOBAL' ? 'Evoucher is not public' : 
+                'Evoucher is not active'
       }
     };
   }
@@ -140,7 +152,10 @@ export const validatePublicAvailableVoucher = async (
       userHas: !!userHas,
       reachMaximumClaim,
       canClaim,
-      isExpire
+      isExpire,
+      reason: userHas ? 'You already have this evoucher' :
+              reachMaximumClaim ? 'Maximum claims reached' : 
+              null
     }
   };
 };

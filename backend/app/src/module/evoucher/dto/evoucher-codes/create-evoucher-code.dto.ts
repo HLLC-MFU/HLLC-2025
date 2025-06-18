@@ -16,5 +16,5 @@ export class CreateEvoucherCodeDto {
 
     @IsObject()
     @IsOptional()
-    metadata: Record<string, string>
+    metadata?: Record<string, string>
 }
