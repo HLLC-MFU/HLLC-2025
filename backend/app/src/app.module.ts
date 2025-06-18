@@ -85,7 +85,7 @@ import { StepCountersModule } from './module/step-counters/step-counters.module'
     PrepostQuestionsModule,
     PosttestAnswersModule,
     PretestAnswersModule,
-    StepCountersModule
+    StepCountersModule,
   ],
   providers: [
     {
