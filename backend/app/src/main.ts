@@ -40,10 +40,11 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ?? 'http://localhost:8080',
+    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
+  
 
   await app.register(cookie);
   const config = new DocumentBuilder()
