@@ -34,7 +34,7 @@ type ChatService struct {
 
 var (
 	notifiedMu sync.Mutex
-	notified   = make(map[string]time.Time) // key: userId:roomId:message
+	notified   = make(map[string]time.Time) 
 )
 
 func NewChatService(db *mongo.Database, redis *core.RedisCache) *ChatService {
@@ -46,22 +46,18 @@ func NewChatService(db *mongo.Database, redis *core.RedisCache) *ChatService {
 		notifyService: NewNotificationService(),
 	}
 
-	// Setup message enricher
 	s.enricher = enrichment.NewEnricher[model.ChatMessage, model.ChatMessageEnriched](
-		s.enrichMessage,    // Single message enrichment
-		s.enrichMessages,   // Batch enrichment
-		100,               // Batch size
+		s.enrichMessage,
+		s.enrichMessages,
+		100,
 	)
 
-	// Setup WebSocket event handlers
 	s.hub.OnConnect = s.handleConnect
 	s.hub.OnDisconnect = s.handleDisconnect
 	s.hub.OnMessage = s.handleMessage
 
-	// Start WebSocket hub
 	go s.hub.Run()
 
-	// Start Kafka consumer
 	go s.startConsumer()
 
 	return s
@@ -87,21 +83,21 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 	}
 	msg = &result.Data[0]
 
-	if err := s.cache.Set(ctx, msg.RoomID, msg); err != nil {
+	if err := s.cache.Set(ctx, msg.RoomID.Hex(), msg); err != nil {
 		log.Printf("[Cache] Failed to cache message: %v", err)
 	}
 
 	// Broadcast via WebSocket
 	s.hub.Broadcast(&commonws.Message[model.ChatMessage]{
 		Type:    "message",
-		RoomID:  msg.RoomID,
-		From:    msg.SenderID,
+		RoomID:  msg.RoomID.Hex(),
+		From:    msg.UserID.Hex(),
 		Payload: *msg,
 	})
 
 	// Notify offline users
-	for _, userID := range s.getOfflineUsers(msg.RoomID) {
-		s.notifyService.NotifyOfflineUser(userID, msg.RoomID, msg.SenderID, msg.Content)
+	for _, userID := range s.getOfflineUsers(msg.RoomID.Hex()) {
+		s.notifyService.NotifyOfflineUser(userID, msg.RoomID.Hex(), msg.UserID.Hex(), msg.Content)
 	}
 
 	return nil
@@ -195,8 +191,6 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID primitive.Ob
 	return err
 }
 
-// Helper methods
-
 func (s *ChatService) notifyOfflineUser(userID, roomID, fromUserID, message string) {
 	key := fmt.Sprintf("%s:%s:%s", userID, roomID, message)
 	
@@ -251,15 +245,15 @@ func (s *ChatService) HandleMessage(ctx context.Context, msg *model.ChatMessage)
 	}
 
 	// Cache in Redis
-	if err := s.cache.Set(ctx, msg.RoomID, msg); err != nil {
+	if err := s.cache.Set(ctx, msg.RoomID.Hex(), msg); err != nil {
 		log.Printf("[Cache] Failed to cache message: %v", err)
 	}
 
 	// Broadcast to WebSocket clients
 	s.hub.Broadcast(&commonws.Message[model.ChatMessage]{
 		Type:    "message",
-		RoomID:  msg.RoomID,
-		From:    msg.SenderID,
+		RoomID:  msg.RoomID.Hex(),
+		From:    msg.UserID.Hex(),
 		Payload: *msg,
 	})
 
@@ -290,8 +284,8 @@ func (s *ChatService) enrichMessage(ctx context.Context, msg model.ChatMessage) 
 		Reactions:   msg.Reactions,
 	}
 
-	if msg.ReplyTo != nil {
-		replyMsg, err := s.FindOneById(ctx, msg.ReplyTo.Hex())
+	if msg.ReplyToID != nil {
+		replyMsg, err := s.FindOneById(ctx, msg.ReplyToID.Hex())
 		if err == nil {
 			enriched.ReplyTo = &replyMsg.Data[0]
 		}

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"chat/module/chat/controller"
-	"chat/module/chat/service"
 	"chat/pkg/config"
 	"chat/pkg/core"
 
@@ -97,8 +95,8 @@ func setupMiddleware(app *fiber.App) {
 
 func setupControllers(app *fiber.App, mongo *mongo.Database, redis *core.RedisCache) {
 	// Initialize services
-	chatService := service.NewChatService(mongo, redis)
+	// chatService := service.NewChatService(mongo, redis)
 
 	// Initialize controllers
-	controller.NewChatController(app, chatService)
+	// controller.NewChatController(app, chatService)
 }

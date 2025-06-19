@@ -150,7 +150,7 @@ func (c *Consumer) consume() {
 			}
 
 			log.Printf("[Kafka Consumer] Successfully processed message from user %s in room %s (topic: %s)",
-				chatMsg.SenderID, chatMsg.RoomID, c.topics)
+				chatMsg.UserID, chatMsg.RoomID, c.topics)
 		}
 	}
 }

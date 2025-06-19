@@ -21,6 +21,12 @@ type (
 		ThumbnailPhoto string `bson:"thumbnailPhoto" json:"thumbnailPhoto"`
 		LogoPhoto      string `bson:"logoPhoto" json:"logoPhoto"`
 	}
+
+	Name struct {
+		First string `bson:"first" json:"first"`
+		Middle string `bson:"middle" json:"middle"`
+		Last  string `bson:"last" json:"last"`
+	}
 )
 
 // Decorator for MongoDB collection name

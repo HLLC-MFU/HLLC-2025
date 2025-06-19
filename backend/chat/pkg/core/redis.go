@@ -66,7 +66,6 @@ func RedisConnect(ctx context.Context, cfg *config.Config) *RedisCache {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 
-	// 💡 Set global reference
 	GlobalRedis = cache
 
 	return cache
@@ -78,12 +77,10 @@ func RedisDisconnect(ctx context.Context, cache *RedisCache) {
 	}
 }
 
-// Set stores a key-value pair in Redis with expiration
 func (c *RedisCache) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 	return c.Client.Set(ctx, key, value, expiration).Err()
 }
 
-// Get retrieves a value from Redis by key
 func (c *RedisCache) Get(ctx context.Context, key string) (string, error) {
 	val, err := c.Client.Get(ctx, key).Result()
 	if err == redis.Nil {
