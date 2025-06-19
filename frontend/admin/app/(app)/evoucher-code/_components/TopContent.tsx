@@ -1,10 +1,9 @@
-import { Evoucher } from "@/types/evoucher";
+import { EvoucherCode } from "@/types/evoucher-code";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from "@heroui/react";
 import { ChevronDownIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { TableColumnType } from "./TableContent";
 import React from "react";
 import type { Selection } from "@react-types/shared";
-import { useSponsors } from "@/hooks/useSponsors";
 
 interface TopContentProps {
     setActionText: (value: "Add" | "Edit") => void;
@@ -14,7 +13,7 @@ interface TopContentProps {
     setVisibleColumns: (columns: Set<string>) => void;
     columns: TableColumnType[];
     selectedKeys: Selection;
-    filteredItems: Evoucher[];
+    filteredItems: EvoucherCode[];
     page: number;
     pages: number;
     setPage: (page: number) => void;
@@ -34,39 +33,19 @@ export default function TopContent({
     onClear,
     onSearchChange,
 }: TopContentProps) {
-    const { sponsors } = useSponsors();
     return (
         <div className="flex flex-col gap-4">
             <div className="flex justify-between gap-3 items-end">
                 <Input
                     isClearable
                     className="w-full sm:max-w-[44%]"
-                    placeholder="Search evoucher"
+                    placeholder="Search evoucher code"
                     startContent={<SearchIcon />}
                     value={filterValue}
                     onClear={() => onClear()}
                     onValueChange={onSearchChange}
                 />
                 <div className="flex gap-3">
-                    <Dropdown>
-                        <DropdownTrigger className="hidden sm:flex">
-                            <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
-                                Sponsor
-                            </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu
-                            disallowEmptySelection
-                            aria-label="Table Columns"
-                            closeOnSelect={false}
-                            selectionMode="multiple"
-                        >
-                            {sponsors.map((sponsor) => (
-                                <DropdownItem key={sponsor._id} className="capitalize">
-                                    {capitalize(sponsor.name.en)}
-                                </DropdownItem>
-                            ))}
-                        </DropdownMenu>
-                    </Dropdown>
                     <Dropdown>
                         <DropdownTrigger className="hidden sm:flex">
                             <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
@@ -96,7 +75,7 @@ export default function TopContent({
                             ))}
                         </DropdownMenu>
                     </Dropdown>
-                    <Button onPress={() => { setActionText("Add"); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
+                    <Button onPress={() => { setActionText("Add"); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher Code</Button>
                 </div>
             </div>
         </div>

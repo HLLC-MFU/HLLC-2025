@@ -1,183 +1,151 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { EvoucherDocument, EvoucherType, EvoucherStatus } from '../schema/evoucher.schema';
 import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 
-export async function validateEvoucherExpired(evoucherId: string, evoucherModel: Model<EvoucherDocument>) {
+const generateRandomNumber = (length = 8): string =>
+  String(Math.floor(Math.random() * 10 ** length)).padStart(length, '0');
+
+const generateCode = (prefix: string) => `${prefix}${generateRandomNumber()}`;
+
+export const validateEvoucher = async (
+  evoucherId: string,
+  evoucherModel: Model<EvoucherDocument>
+) => {
   const evoucher = await evoucherModel.findById(evoucherId);
   if (!evoucher) throw new BadRequestException('Evoucher not found');
-  if (new Date() > new Date(evoucher.expiration)) {
-    throw new BadRequestException('Evoucher expired');
-  }
+  validateEvoucherState(evoucher);
   return evoucher;
-} 
+};
 
-export function validateEvoucherTypeClaimable(type: EvoucherType) {
-  if (type !== EvoucherType.GLOBAL) {
-    throw new BadRequestException('This type is not claimable');
-  }
-}
+export const validateEvoucherState = (evoucher: EvoucherDocument, now = new Date()) => {
+  if (now > new Date(evoucher.expiration)) throw new BadRequestException('Evoucher expired');
+  if (evoucher.status !== EvoucherStatus.ACTIVE) throw new BadRequestException('Evoucher inactive');
+};
 
-export async function validateUserDuplicateClaim(
-    userId: string,
-    evoucherId: string,
-    evoucherCodeModel: Model<EvoucherCodeDocument>
-  ): Promise<void> {
-    const exists = await evoucherCodeModel.findOne({
-      user: new Types.ObjectId(userId),
-      evoucher: new Types.ObjectId(evoucherId),
-    });
-    if (exists) throw new BadRequestException('You already have this evoucher');
-  }
-  
-export function generateEvoucherCode(
-  dto: CreateEvoucherCodeDto & { count?: number },
-  evoucher: EvoucherDocument,
-  existingCodes: EvoucherCodeDocument[] = []
-): string | CreateEvoucherCodeDto[] {
-  const count = dto.count ?? 1;
-  const existingNumbers = new Set(
-    existingCodes.map(c => parseInt(c.code.replace(evoucher.acronym, '')))
-  );
-  let current = Math.max(...Array.from(existingNumbers), 0) + 1;
-
-  if (count === 1) {
-    return `${evoucher.acronym}${String(current).padStart(6, '0')}`;
-  }
-
-  return Array.from({ length: count }, () => {
-    const codeNumber = String(current++).padStart(6, '0');
-    return {
-      code: `${evoucher.acronym}${codeNumber}`,
-        evoucher: evoucher._id.toString(),
-        user: dto.user,
-        isUsed: false,
-        metadata: { expiration: evoucher.expiration.toISOString() }
-    };
-      });
-}
-  
-
-export async function claimVoucherCode(
+export const validateClaimEligibility = async (
   userId: string,
   evoucher: EvoucherDocument,
   evoucherCodeModel: Model<EvoucherCodeDocument>
-) {
-  const [currentClaims, availableCode] = await Promise.all([
-    evoucher.maxClaims ? evoucherCodeModel.countDocuments({
-    evoucher: evoucher._id,
-    user: { $ne: null },
-    isUsed: false
-    }) : 0,
-    evoucherCodeModel.findOneAndUpdate(
-      { evoucher: evoucher._id, user: null, isUsed: false },
-      { user: new Types.ObjectId(userId) },
-      { new: true }
-    )
-  ]);
-
-  if (evoucher.maxClaims && currentClaims >= evoucher.maxClaims) {
-    throw new BadRequestException('Maximum claims reached for this voucher');
+) => {
+  if (evoucher.type !== EvoucherType.GLOBAL) {
+    throw new BadRequestException('This type is not claimable');
   }
 
+  const [hasClaimed, currentClaims] = await Promise.all([
+    evoucherCodeModel.findOne({
+      user: new Types.ObjectId(userId),
+      evoucher: evoucher._id,
+    }),
+    evoucher.maxClaims
+      ? evoucherCodeModel.countDocuments({
+          evoucher: evoucher._id,
+          user: { $ne: null },
+          isUsed: false
+        })
+      : 0
+  ]);
+
+  if (hasClaimed) throw new BadRequestException('You already have this evoucher');
+  if (evoucher.maxClaims && currentClaims >= evoucher.maxClaims) {
+    throw new BadRequestException('Maximum claims reached for this evoucher');
+  }
+};
+
+export const createEvoucherCode = async (
+  userId: string,
+  evoucher: EvoucherDocument,
+  evoucherCodeModel: Model<EvoucherCodeDocument>
+) => {
+  const userObjectId = new Types.ObjectId(userId);
+  
+  // Try to find an available code first
+  const availableCode = await evoucherCodeModel.findOneAndUpdate(
+    { evoucher: evoucher._id, user: null, isUsed: false },
+    { user: userObjectId },
+    { new: true }
+  );
+  
   if (availableCode) return availableCode;
 
-  const newCode = await evoucherCodeModel.create({
-    code: generateEvoucherCode({
-      evoucher: evoucher._id.toString(),
-      user: userId,
-      metadata: { expiration: evoucher.expiration.toISOString() }
-    }, evoucher) as string,
-      evoucher: evoucher._id,
-      user: new Types.ObjectId(userId),
-      isUsed: false,
-      metadata: { expiration: evoucher.expiration }
-  });
+  // Generate new code if no available code found
+  for (let retry = 0; retry < 3; retry++) {
+    const code = generateCode(evoucher.acronym);
+    try {
+      return await evoucherCodeModel.create({
+        code,
+        evoucher: evoucher._id,
+        user: userObjectId,
+        isUsed: false,
+        metadata: {}
+      });
+    } catch (err) {
+      if (err.code !== 11000 || retry === 2) throw err;
+    }
+  }
+  throw new ConflictException('Unable to generate unique code after retries');
+};
 
-  return newCode;
-}
+export const useEvoucherCode = async (
+  userId: Types.ObjectId,
+  codeId: string,
+  model: Model<EvoucherCodeDocument>
+) => {
+  const code = await model.findById(codeId).populate('evoucher');
+  if (!code) throw new BadRequestException('Code not found');
+
+  const evoucher = code.evoucher as unknown as EvoucherDocument;
+  validateEvoucherState(evoucher);
+
+  if (!code.user.equals(userId)) throw new BadRequestException('Code does not belong to you');
+  if (code.isUsed) throw new BadRequestException('Code already used');
+
+  code.isUsed = true;
+  return await code.save();
+};
 
 export const validatePublicAvailableVoucher = async (
   evoucher: EvoucherDocument,
   evoucherCodeModel: Model<EvoucherCodeDocument>,
-  userId?: string,
+  userId?: string
 ) => {
-  const evoucherId = evoucher._id;
-  const expired = evoucher.expiration && new Date(evoucher.expiration) < new Date();
+  const isExpire = new Date(evoucher.expiration) < new Date();
+  const isInvalid = isExpire || evoucher.type !== 'GLOBAL' || evoucher.status !== EvoucherStatus.ACTIVE;
 
-  if (expired || evoucher.type !== 'GLOBAL' || evoucher.status !== EvoucherStatus.ACTIVE) {
+  if (isInvalid) {
     return {
-      ...(evoucher.toJSON ? evoucher.toJSON() : evoucher),
-      claims: {
-        userHas: false,
-        reachMaximumClaim: false,
-        canClaim: false
-      }
+      ...(evoucher.toJSON?.() ?? evoucher),
+      claims: { userHas: false, reachMaximumClaim: false, canClaim: false, isExpire }
     };
   }
 
-  const [userHas, currentClaims] = await Promise.all([
-    userId ? evoucherCodeModel.exists({
-          evoucher: evoucherId,
-          user: userId,
-          isUsed: false,
-    }) : false,
-    evoucher.maxClaims ? evoucherCodeModel.countDocuments({
-      evoucher: evoucherId,
-      user: { $ne: null },
-      isUsed: false,
-    }) : 0
+  const [userHas, currentClaims = 0] = await Promise.all([
+    userId ? evoucherCodeModel.exists({ evoucher: evoucher._id, user: userId, isUsed: false }) : false,
+    evoucher.maxClaims
+      ? evoucherCodeModel.countDocuments({ evoucher: evoucher._id, user: { $ne: null }, isUsed: false })
+      : 0
   ]);
 
-  const reachMaximumClaim = evoucher.maxClaims !== undefined && currentClaims >= evoucher.maxClaims;
-  const canClaim = !userHas && !reachMaximumClaim;
-
+  const reachMaximumClaim = evoucher.maxClaims && currentClaims >= evoucher.maxClaims;
   return {
-    ...(evoucher.toJSON ? evoucher.toJSON() : evoucher),
+    ...(evoucher.toJSON?.() ?? evoucher),
     claims: {
       userHas: !!userHas,
-      reachMaximumClaim,
-      canClaim
+      reachMaximumClaim: !!reachMaximumClaim,
+      canClaim: !userHas && !reachMaximumClaim,
+      isExpire
     }
   };
 };
 
-export async function validateEvoucherCodeForUsage(
+export const validateEvoucherCodeForUsage = async (
   evoucherCode: EvoucherCodeDocument,
   userId: Types.ObjectId,
   evoucher: EvoucherDocument
-): Promise<void> {
-  if (!evoucherCode.user.equals(userId)) {
-    throw new BadRequestException('This evoucher code does not belong to you');
-  }
-  if (evoucherCode.isUsed) {
-    throw new BadRequestException('This evoucher code has already been used');
-  }
-  if (evoucher.status !== EvoucherStatus.ACTIVE) {
-    throw new BadRequestException('This evoucher is not active');
-  }
-  if (new Date() > new Date(evoucher.expiration)) {
-    throw new BadRequestException('This evoucher has expired');
-  }
-}
-
-export async function useEvoucherCode(
-  userId: Types.ObjectId,
-  codeId: string,
-  evoucherCodeModel: Model<EvoucherCodeDocument>
-): Promise<EvoucherCodeDocument> {
-  const evoucherCode = await evoucherCodeModel.findById(codeId).populate('evoucher').exec();
-  if (!evoucherCode) {
-    throw new BadRequestException('Evoucher code not found');
-  }
-
-  const evoucher = evoucherCode.evoucher as unknown as EvoucherDocument;
-  await validateEvoucherCodeForUsage(evoucherCode, userId, evoucher);
-
-  evoucherCode.isUsed = true;
-  await evoucherCode.save();
-
-  return evoucherCode;
-}
-
+) => {
+  if (!evoucherCode.user.equals(userId)) throw new BadRequestException('This evoucher code does not belong to you');
+  if (evoucherCode.isUsed) throw new BadRequestException('This evoucher code has already been used');
+  if (evoucher.status !== EvoucherStatus.ACTIVE) throw new BadRequestException('This evoucher is not active');
+  if (new Date() > new Date(evoucher.expiration)) throw new BadRequestException('This evoucher has expired');
+};

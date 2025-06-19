@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import TopContent from "./TopContent";
 import BottomContent from "./BottomContent";
-import { Evoucher } from "@/types/evoucher";
+import { EvoucherCode } from "@/types/evoucher-code";
 import { SortDescriptor } from "@heroui/react";
 import type { Selection } from "@react-types/shared";
 import { Key } from "react";
@@ -17,18 +17,16 @@ export interface TableContentProps {
     sortDescriptor: SortDescriptor;
     setSortDescriptor: (descriptor: SortDescriptor) => void;
     headerColumns: TableColumnType[];
-    sortedItems: Evoucher[];
-    renderCell: (evoucher: Evoucher, columnKey: Key) => any;
+    sortedItems: EvoucherCode[];
+    renderCell: (evoucherCode: EvoucherCode, columnKey: Key) => any;
     filterValue: string;
-    typeFilter: Selection;
-    setTypeFilter: (value: Selection) => void;
     capitalize: (value: string) => string;
     visibleColumns: Set<string>;
     setVisibleColumns: (columns: Set<string>) => void;
     columns: TableColumnType[];
     selectedKeys: Selection;
     setSelectedKeys: (keys: Selection) => void;
-    filteredItems: Evoucher[];
+    filteredItems: EvoucherCode[];
     page: number;
     pages: number;
     setPage: (page: number) => void;
@@ -61,6 +59,13 @@ export default function TableContent({
     onClear,
     onSearchChange,
 }: TableContentProps) {
+
+    console.log('TableContent render - sortedItems:', sortedItems.map(item => ({
+        id: item._id,
+        code: item.code,
+        user: item.user?.username
+    })));
+
     const getColumnWidth = (columnKey: string) => {
         switch (columnKey) {
             case "sponsors":
@@ -79,12 +84,17 @@ export default function TableContent({
                 return "min-w-[80px]";
             case "cover":
                 return "w-[100px]";
+            case "user":
+                return "min-w-[180px] max-w-[250px]";
             case "actions":
                 return "w-[60px]";
             default:
                 return "";
         }
     };
+
+    // Create unique keys for each row by combining _id with index
+    const getUniqueKey = (item: EvoucherCode, index: number) => `${item._id}-${index}`;
 
     return (
         <Table
@@ -138,19 +148,22 @@ export default function TableContent({
             </TableHeader>
             <TableBody emptyContent={
                 <div className="flex flex-col items-center justify-center py-8">
-                    <span className="text-default-400">No evouchers found</span>
+                    <span className="text-default-400">No evoucher codes found</span>
                 </div>
             } items={sortedItems}>
-                {(item) => (
-                    <TableRow key={item._id} className="hover:bg-default-50 transition-colors">
-                        {(columnKey) => (
-                            <TableCell className={`${getColumnWidth(columnKey.toString())} py-4`}>
-                                {renderCell(item, columnKey)}
-                            </TableCell>
-                        )}
-                    </TableRow>
-                )}
+                {(item: EvoucherCode) => {
+                    const uniqueKey = `${item._id}-${sortedItems.indexOf(item)}`;
+                    return (
+                        <TableRow key={uniqueKey} className="hover:bg-default-50 transition-colors">
+                            {(columnKey) => (
+                                <TableCell className={`${getColumnWidth(columnKey.toString())} py-4`}>
+                                    {renderCell(item, columnKey)}
+                                </TableCell>
+                            )}
+                        </TableRow>
+                    );
+                }}
             </TableBody>
         </Table>
     );
-};
+}

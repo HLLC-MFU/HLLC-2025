@@ -2,25 +2,26 @@ import React, { Key, useCallback, useMemo, useState } from "react";
 import { Sponsors } from "@/types/sponsors";
 import TableContent from "./TableContent";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
-import { Evoucher, EvoucherType } from "@/types/evoucher";
-import { EvoucherModal } from "./AddEvoucherModal";
-import EvoucherCellRenderer from "./EvoucherCellRenderer";
-import { useEvoucherTable } from "./EvoucherTableLogic";
-import { COLUMNS, INITIAL_VISIBLE_COLUMNS, capitalize } from "./EvoucherTableConstants";
+import { EvoucherCode } from "@/types/evoucher-code";
+import { EvoucherCodeModal } from "./AddEvoucherCodeModal";
+import EvoucherCodeCellRenderer from "./EvoucherCodeCellRenderer";
+import { useEvoucherCodeTable } from "./EvoucherCodeTableLogic";
+import { COLUMNS, INITIAL_VISIBLE_COLUMNS, capitalize } from "./EvoucherCodeTableConstants";
+import { Evoucher } from "@/types/evoucher";
 
-export default function EvoucherTable({
+export default function EvoucherCodeTable({
+    evoucherCodes,
     evouchers,
-    sponsors,
-    evoucherType,
+    sponsorId,
 }: {
-    sponsorName: string,
-    evouchers: Evoucher[];
+    evoucherCodes: EvoucherCode[];
     sponsors: Sponsors[];
-    evoucherType: EvoucherType;
+    evouchers: Evoucher[];
+    sponsorId: string;
 }) {
-    const tableLogic = useEvoucherTable({ evouchers });
+    const tableLogic = useEvoucherCodeTable({ evoucherCodes });
     const [visibleColumns, setVisibleColumns] = React.useState(INITIAL_VISIBLE_COLUMNS);
-    const [selectedEvoucher, setSelectedEvoucher] = useState<Evoucher | undefined>();
+    const [selectedEvoucherCode, setSelectedEvoucherCode] = useState<EvoucherCode>();
 
     // Computed values
     const headerColumns = useMemo(() => 
@@ -29,17 +30,17 @@ export default function EvoucherTable({
     );
 
     // Render cell with extracted component
-    const renderCell = useCallback((evoucher: Evoucher, columnKey: Key) => {
+    const renderCell = useCallback((evoucherCode: EvoucherCode, columnKey: Key) => {
         return (
-            <EvoucherCellRenderer
-                evoucher={evoucher}
+            <EvoucherCodeCellRenderer
+                evoucherCode={evoucherCode}
                 columnKey={columnKey}
                 onEdit={() => {
-                    setSelectedEvoucher(evoucher);
+                    setSelectedEvoucherCode(evoucherCode);
                     tableLogic.handleEdit();
                 }}
                 onDelete={() => {
-                    setSelectedEvoucher(evoucher);
+                    setSelectedEvoucherCode(evoucherCode);
                     handleDelete();
                 }}
             />
@@ -51,12 +52,16 @@ export default function EvoucherTable({
     };
 
     const handleSuccess = async (formData: FormData, mode: "add" | "edit") => {
-        if (mode === "edit" && selectedEvoucher) {
-            await tableLogic.handleUpdate(selectedEvoucher._id, formData);
-        } else {
-            await tableLogic.handleAdd(formData);
+        try {
+            if (mode === "edit" && selectedEvoucherCode) {
+                await tableLogic.handleUpdate(selectedEvoucherCode._id, formData);
+            } else {
+                await tableLogic.handleAdd(formData);
+            }
+        } catch (error) {
+            console.error('Error handling evoucher code operation:', error);
+            throw error; // Re-throw to let the modal handle the error
         }
-        setSelectedEvoucher(undefined);
     };
 
     return (
@@ -69,8 +74,6 @@ export default function EvoucherTable({
                 sortedItems={tableLogic.pagedItems}
                 renderCell={renderCell}
                 filterValue={tableLogic.filterValue}
-                typeFilter={tableLogic.typeFilter}
-                setTypeFilter={tableLogic.setTypeFilter}
                 capitalize={capitalize}
                 visibleColumns={visibleColumns}
                 setVisibleColumns={(columns: Set<string>) => setVisibleColumns(new Set(columns))}
@@ -89,17 +92,17 @@ export default function EvoucherTable({
 
             {/* Modals */}
             {tableLogic.isModalOpen && (
-                <EvoucherModal
+                <EvoucherCodeModal
                     isOpen={tableLogic.isModalOpen}
                     onClose={() => {
                         tableLogic.setIsModalOpen(false);
-                        setSelectedEvoucher(undefined);
+                        setSelectedEvoucherCode(undefined);
                     }}
                     onSuccess={handleSuccess}
                     mode={tableLogic.actionText.toLowerCase() as "add" | "edit"}
-                    evoucherType={evoucherType}
-                    sponsors={sponsors}
-                    evoucher={selectedEvoucher}
+                    evouchers={evouchers}
+                    evoucherCode={selectedEvoucherCode}
+                    sponsorId={sponsorId}
                 />
             )}
 
@@ -107,14 +110,14 @@ export default function EvoucherTable({
                 isOpen={tableLogic.isDeleteOpen}
                 onClose={() => {
                     tableLogic.setIsDeleteOpen(false);
-                    setSelectedEvoucher(undefined);
+                    setSelectedEvoucherCode(undefined);
                 }}
                 onConfirm={() => {
-                    if (selectedEvoucher) {
-                        tableLogic.handleDelete(selectedEvoucher._id);
+                    if (selectedEvoucherCode) {
+                        tableLogic.handleDelete(selectedEvoucherCode._id);
                     }
                 }}
-                title={"Delete evoucher"}
+                title={"Delete evoucher code"}
                 body={"Are you sure you want to delete this item?"}
                 confirmColor='danger'
             />
