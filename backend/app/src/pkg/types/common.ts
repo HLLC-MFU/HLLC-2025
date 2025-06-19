@@ -12,3 +12,8 @@ export type Photo = {
   evoucherImageFront?: string;
   evoucherImageBack?: string;
 };
+
+export type Location = {
+  latitude: number;
+  longitude: number;
+};
