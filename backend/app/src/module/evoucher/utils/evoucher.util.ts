@@ -1,35 +1,22 @@
-// backend/app/src/module/evoucher/utils/evoucher.util.ts
-
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { EvoucherDocument, EvoucherType, EvoucherStatus } from '../schema/evoucher.schema';
 import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 
-export const validateEvoucherExpired = async (
+const generateRandomNumber = (length = 8): string =>
+  String(Math.floor(Math.random() * 10 ** length)).padStart(length, '0');
+
+const generateCode = (prefix: string) => `${prefix}${generateRandomNumber()}`;
+
+export const validateEvoucher = async (
   evoucherId: string,
   evoucherModel: Model<EvoucherDocument>
 ) => {
   const evoucher = await evoucherModel.findById(evoucherId);
   if (!evoucher) throw new BadRequestException('Evoucher not found');
-  if (new Date() > new Date(evoucher.expiration)) throw new BadRequestException('Evoucher expired');
+  validateEvoucherState(evoucher);
   return evoucher;
-};
-
-export const validateEvoucherTypeClaimable = (type: EvoucherType) => {
-  if (type !== EvoucherType.GLOBAL) throw new BadRequestException('This type is not claimable');
-};
-
-export const validateUserDuplicateClaim = async (
-  userId: string,
-  evoucherId: string,
-  evoucherCodeModel: Model<EvoucherCodeDocument>
-) => {
-  const exists = await evoucherCodeModel.findOne({
-    user: new Types.ObjectId(userId),
-    evoucher: new Types.ObjectId(evoucherId),
-  });
-  if (exists) throw new BadRequestException('You already have this evoucher');
 };
 
 export const validateEvoucherState = (evoucher: EvoucherDocument, now = new Date()) => {
@@ -37,80 +24,54 @@ export const validateEvoucherState = (evoucher: EvoucherDocument, now = new Date
   if (evoucher.status !== EvoucherStatus.ACTIVE) throw new BadRequestException('Evoucher inactive');
 };
 
-export const validateMaxClaims = async (
-  evoucher: EvoucherDocument,
-  evoucherCodeModel: Model<EvoucherCodeDocument>
-) => {
-  if (!evoucher.maxClaims) return;
-  
-  const currentClaims = await evoucherCodeModel.countDocuments({
-    evoucher: evoucher._id,
-    user: { $ne: null },
-    isUsed: false
-  });
-
-  if (currentClaims >= evoucher.maxClaims) {
-    throw new BadRequestException('Maximum claims reached for this evoucher');
-  }
-};
-
-const generateRandomNumber = (length = 8): string =>
-  String(Math.floor(Math.random() * 10 ** length)).padStart(length, '0');
-
-const generateCode = (prefix: string) => `${prefix}${generateRandomNumber()}`;
-
-const isCodeUnique = async (code: string, model: Model<EvoucherCodeDocument>) => {
-  return !(await model.exists({ code }));
-};
-
-export const generateEvoucherCode = (
-  dto: CreateEvoucherCodeDto & { count?: number },
-  evoucher: EvoucherDocument
-): string | CreateEvoucherCodeDto[] => {
-  const count = dto.count ?? 1;
-  const generate = () => `${evoucher.acronym}${generateRandomNumber()}`;
-
-  return count === 1
-    ? generate()
-    : Array.from({ length: count }, () => ({
-        code: generate(),
-        evoucher: evoucher._id.toString(),
-        user: dto.user,
-        isUsed: false,
-        metadata: dto.metadata || {}
-      }));
-};
-
-export const claimVoucherCode = async (
+export const validateClaimEligibility = async (
   userId: string,
   evoucher: EvoucherDocument,
   evoucherCodeModel: Model<EvoucherCodeDocument>
 ) => {
-  validateEvoucherState(evoucher);
-  validateEvoucherTypeClaimable(evoucher.type);
+  if (evoucher.type !== EvoucherType.GLOBAL) {
+    throw new BadRequestException('This type is not claimable');
+  }
 
-  const userObjectId = new Types.ObjectId(userId);
-  const [hasClaimed, currentClaims, availableCode] = await Promise.all([
-    evoucherCodeModel.findOne({ user: userObjectId, evoucher: evoucher._id }),
+  const [hasClaimed, currentClaims] = await Promise.all([
+    evoucherCodeModel.findOne({
+      user: new Types.ObjectId(userId),
+      evoucher: evoucher._id,
+    }),
     evoucher.maxClaims
-      ? evoucherCodeModel.countDocuments({ evoucher: evoucher._id, user: { $ne: null }, isUsed: false })
-      : 0,
-    evoucherCodeModel.findOneAndUpdate(
-      { evoucher: evoucher._id, user: null, isUsed: false },
-      { user: userObjectId },
-      { new: true }
-    )
+      ? evoucherCodeModel.countDocuments({
+          evoucher: evoucher._id,
+          user: { $ne: null },
+          isUsed: false
+        })
+      : 0
   ]);
 
   if (hasClaimed) throw new BadRequestException('You already have this evoucher');
-  if (evoucher.maxClaims && currentClaims >= evoucher.maxClaims)
-    throw new BadRequestException('Maximum claims reached');
+  if (evoucher.maxClaims && currentClaims >= evoucher.maxClaims) {
+    throw new BadRequestException('Maximum claims reached for this evoucher');
+  }
+};
 
+export const createEvoucherCode = async (
+  userId: string,
+  evoucher: EvoucherDocument,
+  evoucherCodeModel: Model<EvoucherCodeDocument>
+) => {
+  const userObjectId = new Types.ObjectId(userId);
+  
+  // Try to find an available code first
+  const availableCode = await evoucherCodeModel.findOneAndUpdate(
+    { evoucher: evoucher._id, user: null, isUsed: false },
+    { user: userObjectId },
+    { new: true }
+  );
+  
   if (availableCode) return availableCode;
 
+  // Generate new code if no available code found
   for (let retry = 0; retry < 3; retry++) {
     const code = generateCode(evoucher.acronym);
-    if (!(await isCodeUnique(code, evoucherCodeModel))) continue;
     try {
       return await evoucherCodeModel.create({
         code,
@@ -152,16 +113,15 @@ export const validatePublicAvailableVoucher = async (
   const isExpire = new Date(evoucher.expiration) < new Date();
   const isInvalid = isExpire || evoucher.type !== 'GLOBAL' || evoucher.status !== EvoucherStatus.ACTIVE;
 
-  if (isInvalid)
+  if (isInvalid) {
     return {
       ...(evoucher.toJSON?.() ?? evoucher),
       claims: { userHas: false, reachMaximumClaim: false, canClaim: false, isExpire }
     };
+  }
 
   const [userHas, currentClaims = 0] = await Promise.all([
-    userId
-      ? evoucherCodeModel.exists({ evoucher: evoucher._id, user: userId, isUsed: false })
-      : false,
+    userId ? evoucherCodeModel.exists({ evoucher: evoucher._id, user: userId, isUsed: false }) : false,
     evoucher.maxClaims
       ? evoucherCodeModel.countDocuments({ evoucher: evoucher._id, user: { $ne: null }, isUsed: false })
       : 0
