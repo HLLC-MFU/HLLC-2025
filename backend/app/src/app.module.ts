@@ -38,6 +38,8 @@ import { FirebaseAdminModule } from './module/firebase/firebase-admin.module';
 import { LandmarksModule } from './module/coin-collections/landmarks.module';
 import { CoinCollectionsModule } from './module/coin-collections/coin-collections.module';
 import { MapsModule } from './module/coin-collections/maps.module';
+import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
+import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
 
 @Module({
   imports: [
@@ -94,6 +96,8 @@ import { MapsModule } from './module/coin-collections/maps.module';
     LandmarksModule,
     CoinCollectionsModule,
     MapsModule,
+    LamduanFlowersModule,
+    LamduanSettingModule
   ],
   providers: [
     {
@@ -106,4 +110,4 @@ import { MapsModule } from './module/coin-collections/maps.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
