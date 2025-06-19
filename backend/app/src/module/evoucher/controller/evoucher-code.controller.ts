@@ -1,12 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
 import { EvoucherCodeService } from '../service/evoucher-code.service';
 
-
 @Controller('evoucher-code')
 export class EvoucherCodeController {
-  constructor(private readonly evoucherCodeService: EvoucherCodeService) { }
+  constructor(private readonly evoucherCodeService: EvoucherCodeService) {}
 
   @Post()
   create(@Body() createEvoucherCodeDto: CreateEvoucherCodeDto) {
@@ -24,7 +32,10 @@ export class EvoucherCodeController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEvoucherCodeDto: UpdateEvoucherCodeDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateEvoucherCodeDto: UpdateEvoucherCodeDto,
+  ) {
     return this.evoucherCodeService.update(id, updateEvoucherCodeDto);
   }
 

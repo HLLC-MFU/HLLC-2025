@@ -40,10 +40,7 @@ export function useActivities() {
                     }
                 ),
             ]);
-
             console.log('Activities response:', activitiesRes);
-            console.log('Activity types response:', typesRes);
-
             if (activitiesRes.data?.data) {
                 setActivities(activitiesRes.data.data);
                 console.log('Activities set:', activitiesRes.data.data);

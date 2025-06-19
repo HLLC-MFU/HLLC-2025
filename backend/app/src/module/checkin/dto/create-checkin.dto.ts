@@ -1,4 +1,4 @@
-import { ArrayNotEmpty, IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateCheckinDto {
   @IsNotEmpty()
@@ -9,7 +9,6 @@ export class CreateCheckinDto {
   staff?: string;
 
   @IsNotEmpty()
-  @ArrayNotEmpty()
   @IsString({ each: true })
-  activities: string[];
+  activities: string;
 }
