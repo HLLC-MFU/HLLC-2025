@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Notification } from "@/types/notification"
 import { apiRequest } from "@/utils/api"
+import { addToast } from "@heroui/react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -48,6 +49,41 @@ export function useNotification() {
         }
     };
 
+    const deleteNotification = async (id: string): Promise<void> => {
+        try {
+            setLoading(true);
+
+            const res = await apiRequest(`/notifications/${id}` , 'DELETE' , undefined,
+                {
+                    credentials: 'include',
+                }
+            );
+
+            console.log('Delete response:', res);
+
+            if (res.statusCode === 200 || res.statusCode === 204) {
+                setNotification((prev) => prev.filter((a) => a._id !== id));
+                addToast({
+                    title: 'Notification deleted successfully!',
+                    color: 'success',
+                });
+            } else {
+                throw new Error(res.message || 'Failed to delete notification.');
+            }
+        } catch (err: any) {
+            console.error('Error notification activity:', err);
+            const errorMessage = err.message || 'Failed to delete notification.';
+            setError(errorMessage);
+            addToast({
+                title: 'Failed to delete notification',
+                description: errorMessage,
+                color: 'danger',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchnotification();
     }, []);
@@ -56,6 +92,7 @@ export function useNotification() {
         notification,
         loading,
         error,
+        deleteNotification,
         fetchnotification,
         createNotification,
     };

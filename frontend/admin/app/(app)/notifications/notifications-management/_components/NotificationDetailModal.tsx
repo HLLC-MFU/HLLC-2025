@@ -29,7 +29,7 @@ export default function NotificationModal({ isOpen, onClose, notification }: Not
                     <ModalBody>
                         {notification.image && (
                             <img
-                                src={`http://localhost:8080/uploads/${notification.image}`}
+                                src={`http://localhost:8080/api/uploads/${notification.image}`}
                                 alt="Notification"
                                 className="w-full h-48 object-cover rounded"
                             />
