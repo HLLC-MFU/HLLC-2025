@@ -1,6 +1,6 @@
 import { Lang } from './lang';
 
-export type School = {
+export interface School {
     _id: string;
     name: Lang;
     acronym: string;
@@ -8,7 +8,7 @@ export type School = {
     photos: Photo;
 };
 
-export type Photo = {
+export interface Photo {
     first: string;
     second: string;
     third: string;

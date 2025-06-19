@@ -96,6 +96,7 @@ import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.m
     InterfacesModule,
     FirebaseAdminModule,
     StepCountersModule,
+    InterfacesModule,
     LandmarksModule,
     CoinCollectionsModule,
     MapsModule,

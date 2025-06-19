@@ -69,7 +69,7 @@ export default function AssetsInputField({
                     />
                 ) : (image) ? (
                     <img
-                        src={`http://localhost:8080/uploads/${image}`}
+                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${image}`}
                     />
                 ) : (
                     <Image size={80} className="text-gray-400" />
@@ -91,7 +91,7 @@ export default function AssetsInputField({
             <Input
                 ref={imageRef}
                 type="file"
-                accept="image/png"
+                accept="image/*"
                 onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
