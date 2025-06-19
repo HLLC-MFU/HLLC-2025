@@ -10,7 +10,7 @@ import { LamduanFlowersFilters } from "./FiltersLamduanFlowers";
 import { LamduanFlowers } from "@/types/lamduan-flowers";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { LamduanFlowersSetting } from "./SettingLamduanFlowers";
-import { LamduanSetting } from "@/types/lamduan-setting";
+import { LamduanSetting } from "@/types/lamduan-flowers";
 
 type LamduanFlowersSettingProps = {
     handleSave: (
@@ -73,17 +73,6 @@ export default function AccordionLamduan({
         <>
             <Accordion variant="splitted">
                 <AccordionItem
-                    key="1"
-                    aria-label="Setting"
-                    title={<div className="flex items-center gap-2"><Settings /><span>Lamduan Flower Setting</span></div>}
-                >
-                    <LamduanFlowersSetting
-                        handleSave={handleSave}
-                        originalRef={originalRef}
-                    />
-                </AccordionItem>
-
-                <AccordionItem
                     key="2"
                     aria-label="Management"
                     title={<div className="flex items-center gap-2"><Flower2 /><span>Lamduan Flower Management</span></div>}
@@ -135,6 +124,16 @@ export default function AccordionLamduan({
                             <Pagination showControls total={totalPages} page={currentPage} onChange={setCurrentPage} />
                         )}
                     </div>
+                </AccordionItem>
+                <AccordionItem
+                    key="1"
+                    aria-label="Setting"
+                    title={<div className="flex items-center gap-2"><Settings /><span>Lamduan Flower Setting</span></div>}
+                >
+                    <LamduanFlowersSetting
+                        handleSave={handleSave}
+                        originalRef={originalRef}
+                    />
                 </AccordionItem>
             </Accordion>
 
