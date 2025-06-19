@@ -51,7 +51,6 @@ export default function NotificationPust() {
   const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
   const [scope, setScope] = useState<SelectionScope>('global');
   const [resetFormCounter, setResetFormCounter] = useState(0);
-  const [imageError, setImageError] = useState<string | null>(null);
   const { createNotification } = useNotification();
 
   const submitNotification = () => {
