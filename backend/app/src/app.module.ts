@@ -35,6 +35,9 @@ import { PosttestAnswersModule } from './module/prepost-questions/posttest-answe
 import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
 import { StepCountersModule } from './module/step-counters/step-counters.module';
 import { FirebaseAdminModule } from './module/firebase/firebase-admin.module';
+import { LandmarksModule } from './module/coin-collections/landmarks.module';
+import { CoinCollectionsModule } from './module/coin-collections/coin-collections.module';
+import { MapsModule } from './module/coin-collections/maps.module';
 
 @Module({
   imports: [
@@ -86,8 +89,11 @@ import { FirebaseAdminModule } from './module/firebase/firebase-admin.module';
     PrepostQuestionsModule,
     PosttestAnswersModule,
     PretestAnswersModule,
+    FirebaseAdminModule,
     StepCountersModule,
-    FirebaseAdminModule
+    LandmarksModule,
+    CoinCollectionsModule,
+    MapsModule,
   ],
   providers: [
     {
