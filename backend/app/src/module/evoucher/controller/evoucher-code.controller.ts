@@ -12,7 +12,7 @@ import { Types } from 'mongoose';
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 export class EvoucherCodeController {
-  constructor(private readonly evoucherCodeService: EvoucherCodeService) { }
+  constructor(private readonly evoucherCodeService: EvoucherCodeService) {}
 
   @Permissions('evoucher-code:create')
   @Post()
@@ -34,7 +34,10 @@ export class EvoucherCodeController {
 
   @Permissions('evoucher-code:update')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEvoucherCodeDto: UpdateEvoucherCodeDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateEvoucherCodeDto: UpdateEvoucherCodeDto,
+  ) {
     return this.evoucherCodeService.update(id, updateEvoucherCodeDto);
   }
 

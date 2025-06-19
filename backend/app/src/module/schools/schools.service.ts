@@ -12,13 +12,17 @@ import {
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
-import { Appearance, AppearanceDocument } from '../appearances/schemas/apprearance.schema';
+import {
+  Appearance,
+  AppearanceDocument,
+} from '../appearances/schemas/apprearance.schema';
 
 @Injectable()
 export class SchoolsService {
   constructor(
     @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
-    @InjectModel(Appearance.name) private AppearanceModel: Model<AppearanceDocument>,
+    @InjectModel(Appearance.name)
+    private AppearanceModel: Model<AppearanceDocument>,
   ) {}
 
   async create(createSchoolDto: CreateSchoolDto) {
@@ -31,12 +35,7 @@ export class SchoolsService {
     const school = new this.schoolModel({
       ...createSchoolDto,
     });
-
-    try {
-      return await school.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
+    return await school.save();
   }
 
   async findAll(query: Record<string, string>) {
@@ -71,7 +70,7 @@ export class SchoolsService {
     return queryFindOne<Appearance>(
       this.AppearanceModel,
       { school: schoolId },
-      [{ path: 'school' }]
+      [{ path: 'school' }],
     );
   }
 }

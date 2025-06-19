@@ -28,14 +28,14 @@ import { PushNotificationService } from './push-notifications.service';
 export class NotificationsController {
   constructor(
     private readonly notificationsService: NotificationsService,
-    private readonly pushNotificationService: PushNotificationService
+    private readonly pushNotificationService: PushNotificationService,
   ) {}
 
   @Post()
   @CacheKey('notifcations')
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Req() req: FastifyRequest) {
-    const dto = req.body as CreateNotificationDto
+    const dto = req.body as CreateNotificationDto;
     return this.notificationsService.create(dto);
   }
 
@@ -80,6 +80,8 @@ export class NotificationsController {
 
   @Post('push')
   sendPushNotification(@Body() pushNotificationDto: PushNotificationDto) {
-    return this.pushNotificationService.sendPushNotification(pushNotificationDto);
+    return this.pushNotificationService.sendPushNotification(
+      pushNotificationDto,
+    );
   }
 }

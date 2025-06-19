@@ -30,13 +30,17 @@ interface LoginOptions {
 
 @Injectable()
 export class AuthService {
+  private readonly isProduction: boolean;
   constructor(
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly discoveryService: DiscoveryService,
     private readonly reflector: Reflector,
-  ) { }
+  ) {
+    this.isProduction =
+      this.configService.get<boolean>('isProduction') ?? false;
+  }
 
   async validateUser(username: string, pass: string) {
     const userDoc = await this.userModel
@@ -48,14 +52,14 @@ export class AuthService {
       .select('username name password metadata.major')
       .lean();
 
-
     if (!userDoc) throw new UnauthorizedException('User not found');
-    if (!userDoc.password) throw new UnauthorizedException('User not registered');
+    if (!userDoc.password)
+      throw new UnauthorizedException('User not registered');
 
     const isMatch = await bcrypt.compare(pass, userDoc.password);
     if (!isMatch) throw new UnauthorizedException('Invalid password');
 
-    const { password, ...user } = userDoc;
+    const { ...user } = userDoc;
     let role: RoleDocument | null = null;
     if (
       user.role &&
@@ -100,20 +104,22 @@ export class AuthService {
     );
 
     if (options?.useCookie && options.response) {
-      const reply = options.response as FastifyReply;
-      reply.setCookie('accessToken', accessToken, {
+      const reply = options.response;
+      const cookieOptions = {
         httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
+        secure: this.isProduction,
+        sameSite: this.isProduction ? ('strict' as const) : ('lax' as const),
         path: '/',
+        domain: this.configService.get<string>('COOKIE_DOMAIN') ?? 'localhost',
+      };
+
+      reply.setCookie('accessToken', accessToken, {
+        ...cookieOptions,
         maxAge: 60 * 60,
       });
 
       reply.setCookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
-        path: '/',
+        ...cookieOptions,
         maxAge: 60 * 60 * 24 * 7,
       });
     }

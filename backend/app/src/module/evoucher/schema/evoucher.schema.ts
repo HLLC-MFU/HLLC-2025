@@ -20,20 +20,20 @@ export class Evoucher {
     @Prop({ required: true, type: String, default: '0' })
     discount: string;
 
-    @Prop({ required: true, type: String })
-    acronym: string;
+  @Prop({ required: true, type: String })
+  acronym: string;
 
     @Prop({ required: true, type: String, enum: Object.values(EvoucherType) })
     type: EvoucherType;
 
-    @Prop({ required: true, type: Types.ObjectId, ref: 'Sponsors' })
-    sponsors: Types.ObjectId;
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Sponsors' })
+  sponsors: Types.ObjectId;
 
-    @Prop({ required: true, type: Object })
-    detail: Localization;
+  @Prop({ required: true, type: Object })
+  detail: Localization;
 
-    @Prop({ required: true, type: Date })
-    expiration: Date;
+  @Prop({ required: true, type: Date })
+  expiration: Date;
 
     @Prop({ required: true, type: Object })
     photo: Photo;
@@ -44,8 +44,8 @@ export class Evoucher {
     @Prop({ type: String, enum: Object.values(EvoucherStatus), default: EvoucherStatus.ACTIVE })
     status: EvoucherStatus;
 
-    @Prop({ type: Object, default: {} })
-    metadata: Record<string, string>;
+  @Prop({ type: Object, default: {} })
+  metadata: Record<string, string>;
 }
 
 export const EvoucherSchema = SchemaFactory.createForClass(Evoucher);

@@ -4,7 +4,6 @@ import { RoleController } from './role.controller';
 import { Role } from './schemas/role.schema';
 import { RoleSchema } from './schemas/role.schema';
 import { MongooseModule } from '@nestjs/mongoose';
-import { RoleInitializerService } from './role.initializer.service';
 import { CheckinModule } from '../checkin/checkin.module';
 
 @Module({

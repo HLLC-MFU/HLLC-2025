@@ -4,18 +4,15 @@ import {
   Body,
   Req,
   BadRequestException,
-  Patch,
-  Param,
 } from '@nestjs/common';
 import { CheckinService } from './checkin.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { Checkin } from './schema/checkin.schema';
 import { FastifyRequest } from 'fastify';
-import { Activities } from '../activities/schemas/activities.schema';
 
 @Controller('checkins')
 export class CheckinController {
-  constructor(private readonly checkinService: CheckinService) { }
+  constructor(private readonly checkinService: CheckinService) {}
 
   @Post()
   async create(

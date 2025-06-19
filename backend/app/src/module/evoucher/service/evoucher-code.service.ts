@@ -19,9 +19,9 @@ import {
 
 @Injectable()
 export class EvoucherCodeService {
-
   constructor(
-    @InjectModel(EvoucherCode.name) private evoucherCodeModel: Model<EvoucherCodeDocument>,
+    @InjectModel(EvoucherCode.name)
+    private evoucherCodeModel: Model<EvoucherCodeDocument>,
     @InjectModel(Evoucher.name) private evoucherModel: Model<EvoucherDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
@@ -119,7 +119,11 @@ export class EvoucherCodeService {
   }
 
   async findOne(id: string) {
-    return await queryFindOne<EvoucherCode>(this.evoucherCodeModel, { _id: id }, [{ path: 'evoucher' }]);
+    return await queryFindOne<EvoucherCode>(
+      this.evoucherCodeModel,
+      { _id: id },
+      [{ path: 'evoucher' }],
+    );
   }
 
   async remove(id: string) {

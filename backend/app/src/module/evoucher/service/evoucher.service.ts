@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import {
+  queryAll,
+  queryDeleteOne,
+  queryFindOne,
+  queryUpdateOne,
+} from 'src/pkg/helper/query.util';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { Sponsors, SponsorsDocument } from 'src/module/sponsors/schema/sponsors.schema';
 import { CreateEvoucherDto } from '../dto/evouchers/create-evoucher.dto';
@@ -28,8 +33,8 @@ export class EvoucherService {
     await findOrThrow(
       this.sponsorsModel,
       createEvoucherDto.sponsors,
-      'Sponsors not found'
-    )
+      'Sponsors not found',
+    );
 
     const evoucher = new this.evoucherModel({
       ...createEvoucherDto,
@@ -116,13 +121,10 @@ export class EvoucherService {
   }
 
   async remove(id: string) {
-    await queryDeleteOne<Evoucher>(
-      this.evoucherModel,
-      id
-    )
+    await queryDeleteOne<Evoucher>(this.evoucherModel, id);
     return {
       message: 'Evoucher deleted successfully',
       id,
-    }
+    };
   }
 }

@@ -74,7 +74,7 @@ export class RoleController {
 
   @Patch(':id/checkin-scope')
   @Permissions('roles:update:checkin-scope')
-  async updateCheckinScope(
+  updateCheckinScope(
     @Param('id') id: string,
     @Body()
     user?: string[],

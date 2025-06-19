@@ -8,7 +8,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // ✅ Exclude /login route
-  if (pathname === "/ihX0S043/login") {
+  if (pathname === "/login") {
     return NextResponse.next();
   }
 
@@ -16,7 +16,7 @@ export async function middleware(req: NextRequest) {
   const refreshToken = req.cookies.get("refreshToken")?.value;
 
   if (!accessToken) {
-    return NextResponse.redirect(new URL("/ihX0S043/login", req.url));
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   if (isTokenExpired(accessToken)) {
@@ -44,10 +44,10 @@ export async function middleware(req: NextRequest) {
 
         return response;
       } else {
-        return NextResponse.redirect(new URL("/ihX0S043/login", req.url));
+        return NextResponse.redirect(new URL("/login", req.url));
       }
     } else {
-      return NextResponse.redirect(new URL("/ihX0S043/login", req.url));
+      return NextResponse.redirect(new URL("/login", req.url));
     }
   }
 

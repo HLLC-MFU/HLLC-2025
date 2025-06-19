@@ -1,21 +1,26 @@
-import { Type } from "class-transformer";
-import { IsArray, IsMongoId, IsNotEmpty, IsString, ValidateNested } from "class-validator";
+import { Type } from 'class-transformer';
+import {
+  IsMongoId,
+  IsNotEmpty,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 export class CreateAssessmentAnswerDto {
-    @IsNotEmpty()
-    @IsMongoId()
-    user: string;
+  @IsNotEmpty()
+  @IsMongoId()
+  user: string;
 
-    @ValidateNested({ each: true })
-    @Type(() => Answer)
-    answers: Answer[];
+  @ValidateNested({ each: true })
+  @Type(() => Answer)
+  answers: Answer[];
 }
 
 class Answer {
-    @IsMongoId()
-    assessment: string;
+  @IsMongoId()
+  assessment: string;
 
-    @IsString()
-    @IsNotEmpty()
-    answer: string;
+  @IsString()
+  @IsNotEmpty()
+  answer: string;
 }

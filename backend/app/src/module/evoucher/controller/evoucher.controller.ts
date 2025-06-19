@@ -13,9 +13,7 @@ import { Permissions } from 'src/module/auth/decorators/permissions.decorator';
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 export class EvoucherController {
-  constructor(
-    private readonly evoucherService: EvoucherService
-  ) { }
+  constructor(private readonly evoucherService: EvoucherService) {}
 
   @Permissions('evoucher:create')
   @Post()

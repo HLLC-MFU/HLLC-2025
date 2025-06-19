@@ -9,34 +9,34 @@ export class CreateEvoucherDto {
     @IsNotEmpty()
     discount: string;
 
-    @IsString()
-    @IsNotEmpty()
-    acronym: string;
+  @IsString()
+  @IsNotEmpty()
+  acronym: string;
 
     @IsEnum(EvoucherType)
     @IsNotEmpty()
     type: EvoucherType;
 
-    @IsMongoId()
-    @IsNotEmpty()
-    sponsors: string;
+  @IsMongoId()
+  @IsNotEmpty()
+  sponsors: string;
 
     @IsDate()
     @IsNotEmpty()
     @Type(() => Date)
     expiration: Date;
 
-    @IsObject()
-    @IsNotEmpty()
-    detail: Localization;
+  @IsObject()
+  @IsNotEmpty()
+  detail: Localization;
 
-    @IsObject()
-    @IsNotEmpty()
-    photo: Photo;
+  @IsObject()
+  @IsNotEmpty()
+  photo: Photo;
 
-    @IsBoolean()
-    @IsOptional()
-    status?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
 
     @IsObject()
     @IsOptional()
