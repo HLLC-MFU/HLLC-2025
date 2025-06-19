@@ -4,7 +4,7 @@ import { addToast } from "@heroui/react";
 import { Flower } from "lucide-react";
 import AccordionLamduan from "./_components/AccordionLamduan";
 import { useRef } from "react";
-import { LamduanSetting } from "@/types/lamduan-setting";
+import { LamduanSetting } from "@/types/lamduan-flowers";
 import { useLamduanSetting } from "@/hooks/useLamduanSetting";
 
 export default function LamduanflowersPage() {

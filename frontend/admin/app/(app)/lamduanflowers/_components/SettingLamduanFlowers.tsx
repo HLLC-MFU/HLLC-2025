@@ -3,7 +3,7 @@ import { Button } from "@heroui/button";
 import { Input } from "@heroui/react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { useLamduanSetting } from "@/hooks/useLamduanSetting";
-import { LamduanSetting } from "@/types/lamduan-setting";
+import { LamduanSetting } from "@/types/lamduan-flowers";
 
 type LamduanFlowersSettingProps = {
   handleSave: (
