@@ -1,42 +1,49 @@
-import { IsBoolean, IsDate, IsMongoId, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
-import { Localization, Photo } from "src/pkg/types/common";
+import {
+  IsBoolean,
+  IsDate,
+  IsMongoId,
+  IsNotEmpty,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { Localization, Photo } from 'src/pkg/types/common';
 
 export class CreateEvoucherDto {
+  @IsNumber()
+  @IsNotEmpty()
+  discount: number;
 
-    @IsNumber()
-    @IsNotEmpty()
-    discount: number;
+  @IsString()
+  @IsNotEmpty()
+  acronym: string;
 
-    @IsString()
-    @IsNotEmpty()
-    acronym: string;
+  @IsMongoId()
+  @IsNotEmpty()
+  type: string;
 
-    @IsMongoId()
-    @IsNotEmpty()
-    type: string;
+  @IsMongoId()
+  @IsNotEmpty()
+  sponsors: string;
 
-    @IsMongoId()
-    @IsNotEmpty()
-    sponsors: string;
+  @IsDate()
+  @IsNotEmpty()
+  expiration: Date;
 
-    @IsDate()
-    @IsNotEmpty()
-    expiration: Date;
+  @IsObject()
+  @IsNotEmpty()
+  detail: Localization;
 
-    @IsObject()
-    @IsNotEmpty()
-    detail: Localization;
+  @IsObject()
+  @IsNotEmpty()
+  photo: Photo;
 
-    @IsObject()
-    @IsNotEmpty()
-    photo: Photo;
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
 
-    @IsBoolean()
-    @IsOptional()
-    status?: boolean;
-
-    @IsObject()
-    @IsOptional()
-    metadata?: Record<string, string>;
-
+  @IsObject()
+  @IsOptional()
+  metadata?: Record<string, string>;
 }

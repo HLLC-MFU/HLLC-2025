@@ -3,7 +3,10 @@ import { ActivitiesService } from './services/activities.service';
 import { ActivitiesController } from './controllers/activities.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Activities, ActivitiesSchema } from './schemas/activities.schema';
-import { ActivitiesType, ActivitiesTypeSchema } from './schemas/activitiesType.schema';
+import {
+  ActivitiesType,
+  ActivitiesTypeSchema,
+} from './schemas/activitiesType.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { Major, MajorSchema } from '../majors/schemas/major.schema';
 import { School, SchoolSchema } from '../schools/schemas/school.schema';
@@ -21,7 +24,7 @@ import { CheckinModule } from '../checkin/checkin.module';
       { name: Major.name, schema: MajorSchema },
       { name: School.name, schema: SchoolSchema },
       { name: Role.name, schema: RoleSchema },
-      { name: Checkin.name, schema: CheckinSchema }
+      { name: Checkin.name, schema: CheckinSchema },
     ]),
     forwardRef(() => CheckinModule),
   ],

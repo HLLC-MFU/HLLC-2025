@@ -18,17 +18,14 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 import { UserRequest } from 'src/pkg/types/users';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
-import { CacheKey } from '@nestjs/cache-manager';
 import { Activities } from '../schemas/activities.schema';
 import { PaginatedResponse } from 'src/pkg/interceptors/response.interceptor';
-import { Public } from 'src/module/auth/decorators/public.decorator';
-import { AuthGuard } from '@nestjs/passport';
 import { Types } from 'mongoose';
 
 @UseGuards(PermissionsGuard)
 @Controller('activities')
 export class ActivitiesController {
-  constructor(private readonly activitiesService: ActivitiesService) { }
+  constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
   @Permissions('activities:create')
@@ -46,13 +43,18 @@ export class ActivitiesController {
 
   @Get('canCheckin')
   @Permissions('activities:read')
-  async canCheckin(): Promise<PaginatedResponse<Activities> & { message: string }> {
+  async canCheckin(): Promise<
+    PaginatedResponse<Activities> & { message: string }
+  > {
     return this.activitiesService.findCanCheckinActivities();
   }
 
   @Get('users')
-  getActivitiesByUser(@Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
-    return this.activitiesService.findActivitiesByUserId(req.user._id);
+  getActivitiesByUser(
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
+  ) {
+    const user = req.user as { _id: Types.ObjectId };
+    return this.activitiesService.findActivitiesByUserId(user._id.toString());
   }
 
   @Get(':id')

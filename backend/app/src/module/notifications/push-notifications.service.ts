@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { KafkaService } from "../kafka/kafka.service";
 import { PushNotificationDto } from "./dto/push-notification.dto";
 import type * as admin from 'firebase-admin';
@@ -11,14 +11,17 @@ export class PushNotificationService {
 		private readonly firebaseApp: admin.app.App,
 	){}
 
-	async registerKafka() {
-		await this.kafka.registerHandler('chat-notifications', this.handleChatNotification.bind(this));
-	}
-	
-	private async handleChatNotification(payload: ChatNotificationPayload) {
-		console.log('[Notification]', payload);
-		// TODO: implement out-app notification
-	}
+  async registerKafka() {
+    await this.kafka.registerHandler(
+      'chat-notifications',
+      this.handleChatNotification.bind(this),
+    );
+  }
+
+  private async handleChatNotification(payload: ChatNotificationPayload) {
+    console.log('[Notification]', payload);
+    // TODO: implement out-app notification
+  }
 
 	async sendPushNotification(dto: PushNotificationDto) {
 		const tokens = dto.to.filter(Boolean);

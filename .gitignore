@@ -98,8 +98,6 @@ bun.lock
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
-scripts/hllc.js
-scripts/hllc.js
 
 ecosystem.config.js
 ecosystem.config.cjs

@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseInterceptors, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseInterceptors,
+  Req,
+} from '@nestjs/common';
 
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
@@ -8,7 +19,7 @@ import { EvoucherService } from '../service/evoucher.service';
 
 @Controller('evoucher')
 export class EvoucherController {
-  constructor(private readonly evoucherService: EvoucherService) { }
+  constructor(private readonly evoucherService: EvoucherService) {}
 
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))

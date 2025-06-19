@@ -10,7 +10,6 @@ import {
 } from '../activities/schemas/activities.schema';
 import { Role, RoleSchema } from '../role/schemas/role.schema';
 import { Major, MajorSchema } from '../majors/schemas/major.schema';
-import { ActivitiesService } from '../activities/services/activities.service';
 import { UsersService } from '../users/users.service';
 import { RoleService } from '../role/role.service';
 import { ActivitiesModule } from '../activities/activities.module';
@@ -39,7 +38,7 @@ import { ActivitiesModule } from '../activities/activities.module';
         schema: MajorSchema,
       },
     ]),
-    forwardRef(() => ActivitiesModule)
+    forwardRef(() => ActivitiesModule),
   ],
   exports: [MongooseModule],
   controllers: [CheckinController],

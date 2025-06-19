@@ -17,7 +17,7 @@ export class CheckinService {
     @InjectModel(Role.name) private readonly roleModel: Model<Role>,
     @InjectModel(Activities.name)
     private readonly activityModel: Model<Activities>,
-  ) { }
+  ) {}
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
     const { staff: staffId, user: username, activities } = createCheckinDto;
@@ -89,5 +89,4 @@ export class CheckinService {
 
     return this.checkinModel.insertMany(docs) as unknown as Checkin[];
   }
-
 }
