@@ -143,9 +143,6 @@ export default function NotificationModal({
             <Button color="danger" variant="light" onPress={onClose}>
               Close
             </Button>
-            <Button color="primary" onPress={onClose}>
-              View
-            </Button>
           </ModalFooter>
         </>
       </ModalContent>

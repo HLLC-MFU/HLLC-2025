@@ -93,36 +93,26 @@ export default function NotificationCard({
           </CardBody>
 
           <CardFooter>
-            <div className="w-full flex justify-between items-center">
-              <AvatarGroup size="sm" isBordered max={3}>
-                <Avatar src="https://i.pravatar.cc/150?u=a042581f4e29026024d" />
-                <Avatar src="https://i.pravatar.cc/150?u=a04258a2462d826712d" />
-                <Avatar src="https://i.pravatar.cc/150?u=a042581f4e29026704d" />
-                <Avatar src="https://i.pravatar.cc/150?u=a04258114e29026302d" />
-                <Avatar src="https://i.pravatar.cc/150?u=a04258114e29026702d" />
-                <Avatar src="https://i.pravatar.cc/150?u=a04258114e29026708c" />
-              </AvatarGroup>
-              <div className="flex items-center">
-                <Button
-                  onPress={() => deleteNotification(item._id)}
-                  isIconOnly
-                  size="sm"
-                  color="danger"
-                  variant="light"
-                >
-                  <Trash2 className="w-5 h-auto" />
-                </Button>
-                <Button
-                  isIconOnly
-                  onPress={() => handleOpenModal(item)}
-                  size="sm"
-                  color="primary"
-                  className="mx-2"
-                  variant="light"
-                >
-                  <Eye className="w-5 h-auto" />
-                </Button>
-              </div>
+            <div className="w-full flex justify-end">
+              <Button
+                onPress={() => deleteNotification(item._id)}
+                isIconOnly
+                size="sm"
+                color="danger"
+                variant="light"
+              >
+                <Trash2 className="w-5 h-auto" />
+              </Button>
+              <Button
+                isIconOnly
+                onPress={() => handleOpenModal(item)}
+                size="sm"
+                color="primary"
+                className="mx-2"
+                variant="light"
+              >
+                <Eye className="w-5 h-auto" />
+              </Button>
             </div>
           </CardFooter>
         </Card>
