@@ -91,13 +91,17 @@ const MessageBubble = memo(({
         <Text style={styles.senderNameAbove}>{senderName || senderId}</Text>
       )}
       
-      <View style={styles.messageBubbleRow}>
+      <TouchableOpacity
+        style={styles.messageBubbleRow}
+        onLongPress={() => onReply && onReply(message)}
+        activeOpacity={0.8}
+        delayLongPress={200}
+      >
         {!isMyMessage && showAvatar && isLastInGroup ? (
           <Avatar name={senderName || senderId} size={32} />
         ) : (
           !isMyMessage && <View style={{ width: 40 }} />
         )}
-        
         <View style={[
           styles.messageBubble, 
           isMyMessage ? styles.myBubble : styles.otherBubble,
@@ -115,14 +119,7 @@ const MessageBubble = memo(({
           )}
           {renderContent()}
         </View>
-
-        <TouchableOpacity 
-          style={styles.replyButton}
-          onPress={() => onReply && onReply(message)}
-        >
-          <Reply size={16} color="#8E8E93" />
-        </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
       
       {isLastInGroup && (
         <View style={[styles.messageFooter, isMyMessage ? { alignSelf: 'flex-end' } : { marginLeft: 40 }]}>

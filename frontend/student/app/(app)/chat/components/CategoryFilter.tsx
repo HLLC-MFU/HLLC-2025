@@ -26,7 +26,7 @@ export const CategoryFilter = ({
             style={[
               styles.categoryFilterButton,
               selectedCategory === name && styles.categoryFilterButtonActive,
-              { borderColor: color }
+             
             ]}
             onPress={() => onCategoryChange(name)}
             activeOpacity={0.8}
@@ -40,7 +40,7 @@ export const CategoryFilter = ({
                 colors={selectedCategory === name ? [color, `${color}dd`] : ['transparent', 'transparent']}
                 style={styles.categoryFilterGradient}
               >
-                <Icon size={16} color={selectedCategory === name ? '#fff' : color} />
+                <Icon size={16} color= '#fff' />
                 <Text style={[
                   styles.categoryFilterText,
                   selectedCategory === name && styles.categoryFilterTextActive
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   categoryFilterButton: {
     borderRadius: 20,
     overflow: 'hidden',
-    borderWidth: 1,
+
   },
   categoryFilterButtonActive: {},
   categoryFilterBlur: {
@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
   categoryFilterText: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#ffffff70',
   },
   categoryFilterTextActive: {
     color: '#ffffff',

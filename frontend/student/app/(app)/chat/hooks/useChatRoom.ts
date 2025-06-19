@@ -281,21 +281,14 @@ export const useChatRoom = () => {
       const tempMessage = createTempMessage(trimmedMessage, userId, replyState.replyTo);
       addMessage(tempMessage);
       
-      // Send message with replyTo info if available
+      // Debug log
+      console.log('handleSendMessage: replyTo =', replyState.replyTo);
+      // Send message with /reply <messageID> <ข้อความ> if replyTo exists
       let messageToSend = trimmedMessage;
-      if (replyState.replyTo) {
-        // Add replyTo info to the message for backend processing
-        const messageWithReply = {
-          message: trimmedMessage,
-          replyTo: {
-            id: replyState.replyTo.id || '',
-            text: replyState.replyTo.text || '',
-            senderId: replyState.replyTo.senderId,
-            senderName: replyState.replyTo.senderName
-          }
-        };
-        messageToSend = JSON.stringify(messageWithReply);
+      if (replyState.replyTo && replyState.replyTo.id) {
+        messageToSend = `/reply ${replyState.replyTo.id} ${trimmedMessage}`;
       }
+      console.log('handleSendMessage: messageToSend =', messageToSend);
       
       wsSendMessage(messageToSend);
       updateChatState({ messageText: '' });

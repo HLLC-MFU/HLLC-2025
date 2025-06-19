@@ -17,6 +17,8 @@ interface MessageListProps {
   onReply: (message: Message) => void;
   onRetry?: (message: Message) => void;
   scrollToBottom: () => void;
+  onScroll?: (event: any) => void;
+  scrollEventThrottle?: number;
 }
 
 const MessageList = ({
@@ -27,6 +29,8 @@ const MessageList = ({
   onReply,
   onRetry,
   scrollToBottom,
+  onScroll,
+  scrollEventThrottle,
 }: MessageListProps) => {
   const renderItem = ({ item }: { item: Message[] }) => {
     if (item.length === 1 && (item[0].type === 'join' || item[0].type === 'leave')) {
@@ -86,6 +90,8 @@ const MessageList = ({
         onEndReachedThreshold={0.5}
         onContentSizeChange={scrollToBottom}
         onLayout={scrollToBottom}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
       />
       
       {typing && typing.length > 0 && (

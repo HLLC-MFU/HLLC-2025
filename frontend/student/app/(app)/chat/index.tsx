@@ -28,6 +28,8 @@ import { ChatTabBar } from './components/ChatTabBar';
 import { CategoryFilter } from './components/CategoryFilter';
 import { BlurView } from 'expo-blur';
 import { chatService } from './services/chatService';
+import { RoomDetailModal } from './components/RoomDetailModal';
+import { ConfirmJoinModal } from './components/ConfirmJoinModal';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -35,6 +37,10 @@ export default function ChatPage() {
   const { language } = useLanguage();
   const { user } = useProfile();
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
+  const [confirmJoinVisible, setConfirmJoinVisible] = useState(false);
+  const [pendingJoinRoom, setPendingJoinRoom] = useState<ChatRoom | null>(null);
   const userId = user?.data?.[0]?._id || '';
 
   const {
@@ -67,37 +73,33 @@ export default function ChatPage() {
   }, [loadRooms]);
 
   const joinRoom = async (roomId: string) => {
-    Alert.alert(
-      language === 'th' ? 'ยืนยันการเข้าร่วม' : 'Confirm Join',
-      language === 'th' ? 'คุณต้องการเข้าร่วมห้องนี้หรือไม่?' : 'Do you want to join this room?',
-      [
-        { text: language === 'th' ? 'ยกเลิก' : 'Cancel', style: 'cancel' },
-        {
-          text: language === 'th' ? 'เข้าร่วม' : 'Join',
-          onPress: async () => {
-            try {
-              const result = await chatService.joinRoom(roomId);
-              if (result.success) {
-                router.push({
-                  pathname: "/chat/[roomId]",
-                  params: { roomId, isMember: 'true' }
-                });
-              } else {
-                Alert.alert(
-                  language === 'th' ? 'เข้าร่วมไม่สำเร็จ' : 'Join Failed',
-                  result.message || (language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room')
-                );
-              }
-            } catch (error) {
-              Alert.alert(
-                language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
-                language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room'
-              );
-            }
-          }
-        }
-      ]
-    );
+    const room = rooms.find(r => r.id === roomId);
+    setPendingJoinRoom(room || null);
+    setConfirmJoinVisible(true);
+  };
+
+  const handleConfirmJoin = async () => {
+    if (!pendingJoinRoom) return;
+    setConfirmJoinVisible(false);
+    try {
+      const result = await chatService.joinRoom(pendingJoinRoom.id);
+      if (result.success) {
+        router.push({
+          pathname: "/chat/[roomId]",
+          params: { roomId: pendingJoinRoom.id, isMember: 'true' }
+        });
+      } else {
+        Alert.alert(
+          language === 'th' ? 'เข้าร่วมไม่สำเร็จ' : 'Join Failed',
+          result.message || (language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room')
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
+        language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room'
+      );
+    }
   };
 
   const navigateToRoom = async (rid: string, isMember: boolean) => {
@@ -139,12 +141,10 @@ export default function ChatPage() {
         />
       );
     }
-    // สำหรับ discovery: กด card ให้แสดงรายละเอียดห้อง (ตัวอย่างใช้ Alert)
+    // สำหรับ discovery: กด card ให้แสดงรายละเอียดห้อง (modal)
     const showRoomDetail = () => {
-      Alert.alert(
-        language === 'th' ? 'รายละเอียดห้อง' : 'Room Details',
-        `${language === 'th' ? item.name?.th : item.name?.en}\n${item.category ? `\n${item.category}` : ''}\n${item.members_count ?? 0} Members`
-      );
+      setSelectedRoom(item);
+      setDetailModalVisible(true);
     };
     return (
       <TouchableOpacity
@@ -247,7 +247,6 @@ export default function ChatPage() {
         />
       </SafeAreaView>
 
-      <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabScale }] }]}>
         <TouchableOpacity
           style={styles.enhancedFab}
           onPress={() => {
@@ -256,17 +255,31 @@ export default function ChatPage() {
           }}
           activeOpacity={0.9}
         >
-          <BlurView intensity={20} tint="light" style={styles.fabGradient}>
+          <BlurView intensity={0} tint="light" style={styles.fabGradient}>
             <Plus size={24} color="#fff" />
           </BlurView>
         </TouchableOpacity>
-      </Animated.View>
 
       <CreateRoomModal
         visible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
         onSuccess={loadRooms}
         userId={userId}
+      />
+
+      <RoomDetailModal
+        visible={detailModalVisible}
+        room={selectedRoom}
+        language={language}
+        onClose={() => setDetailModalVisible(false)}
+      />
+
+      <ConfirmJoinModal
+        visible={confirmJoinVisible}
+        room={pendingJoinRoom}
+        language={language}
+        onConfirm={handleConfirmJoin}
+        onCancel={() => setConfirmJoinVisible(false)}
       />
     </View>
   );
@@ -313,12 +326,10 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     textAlign: 'center',
   },
-  fabContainer: {
-    position: 'absolute',
-    bottom: 40,
-    right: 24,
-  },
   enhancedFab: {
+    position: 'absolute',
+    bottom: 120,
+    right: 24,
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -328,8 +339,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.10,
     shadowRadius: 4,
     elevation: 3,
-    bottom: 60,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1,
     borderColor: 'rgba(200,200,200,0.18)',
     justifyContent: 'center',

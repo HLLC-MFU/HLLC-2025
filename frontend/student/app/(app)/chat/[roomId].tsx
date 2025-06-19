@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -40,6 +40,7 @@ import { chatStyles } from './constants/chatStyles';
 export default function ChatRoomPage() {
   const router = useRouter();
   const flatListRef = useRef<FlatList | null>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const {
     room,
     isMember,
@@ -73,12 +74,22 @@ export default function ChatRoomPage() {
     initializeRoom,
   } = useChatRoom();
 
-  // Add auto-scroll effect
-  useEffect(() => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true });
-    }
-  }, [groupMessages()]); // Scroll when messages change
+  // Scroll to bottom after sending message
+  const handleSendMessageWithScroll = () => {
+    handleSendMessage();
+    setTimeout(() => {
+      if (flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }
+    }, 100);
+  };
+
+  // Show scroll to bottom button if not at bottom
+  const handleScroll = (event: { nativeEvent: { layoutMeasurement: any; contentOffset: any; contentSize: any; }; }) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const isAtBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
+    setShowScrollToBottom(!isAtBottom);
+  };
 
   if (loading) return <Loader />;
   if (error) return <ErrorView message={error} onRetry={initializeRoom} />;
@@ -149,40 +160,39 @@ export default function ChatRoomPage() {
               />
             )}
             
-            {/* Reply Banner */}
-            {replyTo && (
-              <View style={chatStyles.replyBanner}>
-                <View style={chatStyles.replyBannerContent}>
-                  <Reply size={16} color="#0A84FF" />
-                  <Text style={chatStyles.replyBannerText} numberOfLines={1}>
-                    Replying to {replyTo.senderName || replyTo.senderId}: {replyTo.text}
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={() => setReplyTo(undefined)}>
-                  <X size={16} color="#8E8E93" />
-                </TouchableOpacity>
-              </View>
-            )}
+        
             
             {/* Messages List */}
-            <MessageList
-              messages={groupMessages()}
-              userId={userId}
-              typing={typing}
-              flatListRef={flatListRef}
-              onReply={setReplyTo}
-              scrollToBottom={() => {
-                if (flatListRef.current) {
-                  flatListRef.current.scrollToEnd({ animated: true });
-                }
-              }}
-            />
+            <View style={{ flex: 1 }}>
+              <MessageList
+                messages={groupMessages()}
+                userId={userId}
+                typing={typing}
+                flatListRef={flatListRef}
+                onReply={setReplyTo}
+                scrollToBottom={() => {
+                  if (flatListRef.current) {
+                    flatListRef.current.scrollToEnd({ animated: true });
+                  }
+                }}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+              />
+              {showScrollToBottom && (
+                <TouchableOpacity
+                  style={{ position: 'absolute', bottom: 60, right: 20, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 24, padding: 10, zIndex: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 }}
+                  onPress={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                >
+                  <Text style={{ color: '#fff', fontSize: 16 }}>↓</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             
             {/* Input Area */}
             <ChatInput
               messageText={messageText}
               setMessageText={setMessageText}
-              handleSendMessage={handleSendMessage}
+              handleSendMessage={handleSendMessageWithScroll}
               handleImageUpload={handleImageUpload}
               handleTyping={handleTyping}
               isMember={!!room?.is_member}
@@ -190,6 +200,8 @@ export default function ChatRoomPage() {
               inputRef={inputRef}
               setShowStickerPicker={setShowStickerPicker}
               showStickerPicker={showStickerPicker}
+              replyTo={replyTo}
+              setReplyTo={setReplyTo}
             />
             
             {/* Room Info Modal */}

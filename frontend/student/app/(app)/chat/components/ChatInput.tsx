@@ -9,8 +9,9 @@ import {
   Easing,
   Keyboard,
   Dimensions,
+  Text,
 } from 'react-native';
-import { Send, Plus, Smile } from 'lucide-react-native';
+import { Send, Plus, Smile, Reply } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -26,6 +27,8 @@ interface ChatInputProps {
   inputRef: React.RefObject<TextInput | null>;
   setShowStickerPicker: (show: boolean) => void;
   showStickerPicker: boolean;
+  replyTo?: any;
+  setReplyTo?: (msg?: any) => void;
 }
 
 const ChatInput = ({
@@ -39,6 +42,8 @@ const ChatInput = ({
   inputRef,
   setShowStickerPicker,
   showStickerPicker,
+  replyTo,
+  setReplyTo,
 }: ChatInputProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -99,6 +104,25 @@ const ChatInput = ({
 
   return (
     <View style={styles.container}>
+      {replyTo && (
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: 'rgba(255,255,255,0.08)',
+          borderRadius: 12,
+          padding: 8,
+          marginBottom: 4,
+          marginHorizontal: 2,
+        }}>
+          <Reply size={16} color="#8E8E93" style={{ marginRight: 6 }} />
+          <Text style={{ color: '#fff', opacity: 0.7, flex: 1 }} numberOfLines={1}>
+            {replyTo.text}
+          </Text>
+          <TouchableOpacity onPress={() => setReplyTo && setReplyTo(undefined)}>
+            <Text style={{ color: '#8E8E93', fontSize: 16, marginLeft: 8 }}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <Animated.View style={[styles.inputContainer, { borderColor, shadowOpacity }]}>
         <LinearGradient
           colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}

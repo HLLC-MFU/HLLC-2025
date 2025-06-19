@@ -25,7 +25,7 @@ const RoomCard = ({ room, width, language, onPress, onJoin, onShowDetail }: Room
   const imageUrl = getImageUrl();
 
   return (
-    <TouchableOpacity style={[styles.card, { width: (width - 66) / 2 }]} onPress={onShowDetail ? onShowDetail : onPress} activeOpacity={0.88}>
+    <TouchableOpacity style={[, { width: (width - 66) / 2 }]} onPress={onShowDetail ? onShowDetail : onPress} activeOpacity={0.88}>
       <BlurView intensity={50} tint="light" style={styles.cardBlur}>
         <View style={styles.gradientOverlay} pointerEvents="none" />
         <View style={styles.imageContainer}>
@@ -62,24 +62,11 @@ const RoomCard = ({ room, width, language, onPress, onJoin, onShowDetail }: Room
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.35)',
-    shadowColor: '#a5b4fc',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    elevation: 8,
-    overflow: 'hidden',
-  },
+
   cardBlur: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(0, 0, 0, 0.18)',
     borderRadius: 22,
-    borderWidth: 1.2,
-    borderColor: 'rgba(255,255,255,0.25)',
     overflow: 'hidden',
     position: 'relative',
   },
@@ -88,10 +75,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     zIndex: 1,
     backgroundColor: 'transparent',
-    // Gradient overlay (simulate with linear-gradient if using expo-linear-gradient)
-    // If not, fallback to semi-transparent white
-    // background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 100%)',
-    // React Native doesn't support gradients in View, so use expo-linear-gradient if needed
   },
   imageContainer: {
     width: '100%',
@@ -118,7 +101,7 @@ const styles = StyleSheet.create({
   roomName: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#22223b',
+    color: '#ffffff',
     marginBottom: 2,
   },
   badge: {
