@@ -4,7 +4,6 @@ import type { Selection } from "@react-types/shared";
 import { EvoucherCode } from "@/types/evoucher-code";
 import { useEvoucherCode } from "@/hooks/useEvoucherCode";
 
-// Utility functions
 const filterItems = (items: EvoucherCode[], search: string) => {
     const query = search.toLowerCase();
     return items.filter(code =>
@@ -21,7 +20,6 @@ const sortItems = (items: EvoucherCode[], descriptor: SortDescriptor) => {
         let first: string;
         let second: string;
 
-        // Handle special cases for nested objects
         switch (descriptor.column) {
             case "evoucher":
                 first = a.evoucher?.acronym || "";
@@ -53,13 +51,12 @@ const paginateItems = (items: EvoucherCode[], page: number, rowsPerPage: number)
 interface UseEvoucherCodeTableProps {
     evoucherCodes: EvoucherCode[];
     rowsPerPage?: number;
-    onDataChange?: () => void; // Callback to notify parent of data changes
+    onDataChange?: () => void;
 }
 
 export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataChange }: UseEvoucherCodeTableProps) {
     const { createEvoucherCode, updateEvoucherCode, deleteEvoucherCode } = useEvoucherCode();
 
-    // State
     const [filterValue, setFilterValue] = useState("");
     const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set<string>());
     const [typeFilter, setTypeFilter] = useState<Selection>("all");
@@ -73,12 +70,10 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
     const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false);
     const [localEvoucherCodes, setLocalEvoucherCodes] = useState<EvoucherCode[]>(evoucherCodes);
 
-    // Update local state when props change
     useMemo(() => {
         setLocalEvoucherCodes(evoucherCodes);
     }, [evoucherCodes]);
 
-    // Computed values
     const filteredItems = useMemo(() => 
         filterValue ? filterItems(localEvoucherCodes, filterValue) : localEvoucherCodes, 
         [localEvoucherCodes, filterValue]
@@ -96,7 +91,6 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
 
     const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
-    // Handlers
     const handleAdd = async (formData: FormData) => {
         try {
             const response = await createEvoucherCode(formData);
@@ -151,7 +145,6 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
             setIsDeleteOpen(false);
             
             if (response) {
-                // Update local state
                 setLocalEvoucherCodes(prev => prev.filter(code => code._id !== evoucherCodeId));
                 onDataChange?.();
 
@@ -196,7 +189,6 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
     };
 
     return {
-        // State
         filterValue,
         selectedKeys,
         typeFilter,
@@ -206,13 +198,11 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
         isModalOpen,
         isDeleteOpen,
         
-        // Computed
         filteredItems,
         sortedItems,
         pagedItems,
         pages,
         
-        // Setters
         setSelectedKeys,
         setTypeFilter,
         setSortDescriptor,
@@ -220,7 +210,6 @@ export function useEvoucherCodeTable({ evoucherCodes, rowsPerPage = 5, onDataCha
         setIsModalOpen,
         setIsDeleteOpen,
         
-        // Handlers
         handleAdd,
         handleUpdate,
         handleDelete,

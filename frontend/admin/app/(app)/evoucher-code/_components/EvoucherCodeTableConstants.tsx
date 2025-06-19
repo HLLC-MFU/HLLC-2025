@@ -12,8 +12,5 @@ export const COLUMNS = [
 export const INITIAL_VISIBLE_COLUMNS = new Set([
     "code", "evoucher", "sponsor", "isUsed", "expiration", "user", "actions"
 ]);
-
 export const ROWS_PER_PAGE = 5;
-
-// Utility functions
 export const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ""; 

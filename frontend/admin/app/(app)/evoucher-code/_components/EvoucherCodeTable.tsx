@@ -22,14 +22,11 @@ export default function EvoucherCodeTable({
     const tableLogic = useEvoucherCodeTable({ evoucherCodes });
     const [visibleColumns, setVisibleColumns] = React.useState(INITIAL_VISIBLE_COLUMNS);
     const [selectedEvoucherCode, setSelectedEvoucherCode] = useState<EvoucherCode>();
-
-    // Computed values
     const headerColumns = useMemo(() => 
         COLUMNS.filter(column => Array.from(visibleColumns).includes(column.uid)), 
         [visibleColumns]
     );
 
-    // Render cell with extracted component
     const renderCell = useCallback((evoucherCode: EvoucherCode, columnKey: Key) => {
         return (
             <EvoucherCodeCellRenderer
@@ -60,7 +57,7 @@ export default function EvoucherCodeTable({
             }
         } catch (error) {
             console.error('Error handling evoucher code operation:', error);
-            throw error; // Re-throw to let the modal handle the error
+            throw error;
         }
     };
 

@@ -18,7 +18,6 @@ export default function EvoucherCodePage() {
     const { evouchers, loading: evouchersLoading } = useEvoucher();
     const isLoading = evoucherCodesLoading || sponsorsLoading || evouchersLoading;
 
-    // Group evouchers by sponsor first
     const evouchersBySponsors = React.useMemo(() => {
         const groupedEvouchers = new Map();
         evouchers.forEach(evoucher => {
@@ -39,11 +38,9 @@ export default function EvoucherCodePage() {
         return groupedEvouchers;
     }, [evouchers]);
 
-    // Then group evoucher codes by sponsor
     const evoucherCodesBySponsor = React.useMemo(() => {
         const groupedCodes = new Map();
         
-        // Initialize the map with sponsor data from evouchersBySponsors
         Array.from(evouchersBySponsors.entries()).forEach(([sponsorId, data]) => {
             groupedCodes.set(sponsorId, {
                 ...data,
@@ -51,11 +48,9 @@ export default function EvoucherCodePage() {
             });
         });
         
-        // Add evoucher codes to their respective sponsor groups
         evoucherCodes.forEach(code => {
             const sponsorId = code.evoucher?.sponsors?._id;
             if (sponsorId && groupedCodes.has(sponsorId)) {
-                // Check if code is already added
                 const existingCodes = groupedCodes.get(sponsorId).codes;
                 const isDuplicate = existingCodes.some((existingCode: { _id: string }) => 
                     existingCode._id === code._id
