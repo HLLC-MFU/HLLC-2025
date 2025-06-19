@@ -55,13 +55,10 @@ export default function NotificationPush() {
     if (!infoData) return;
 
     const formData = new FormData();
-    formData.append("title[th]", infoData.title.th)
-    formData.append("title[en]", infoData.title.en)
-    formData.append("subtitle[th]", infoData.subtitle.th)
-    formData.append("subtitle[en]", infoData.subtitle.en)
-    formData.append("body[th]", infoData.body.th)
-    formData.append("body[en]", infoData.body.en)
-    formData.append("scope", typeof scope === 'string' ? scope : JSON.stringify(scope))
+    formData.append("title", JSON.stringify(infoData.title));
+    formData.append("subtitle", JSON.stringify(infoData.subtitle));
+    formData.append("body", JSON.stringify(infoData.body));
+    formData.append("scope", JSON.stringify(scope));
     formData.append("icon", (infoData.icon && typeof infoData.icon === 'object'
       ? (infoData.icon as any)?.render?.displayName
       : undefined) || 'UnknownIcon'
@@ -69,10 +66,14 @@ export default function NotificationPush() {
     if (infoData.imageFile) {
       formData.append("image", infoData.imageFile);
     }
-    if (infoData.redirect?.link?.trim() !== '') {
-      formData.append("redirectButton[label][en]", infoData.redirect.en)
-      formData.append("redirectButton[label][th]", infoData.redirect.th)
-      formData.append("redirectButton[url]", infoData.redirect.link)
+    if (infoData.redirect?.link?.trim()) {
+      formData.append("redirectButton", JSON.stringify({
+        label: {
+          th: infoData.redirect.th,
+          en: infoData.redirect.en
+        },
+        url: infoData.redirect.link
+      }));
     }
     createNotification(formData);
 

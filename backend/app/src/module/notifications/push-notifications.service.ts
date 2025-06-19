@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { KafkaService } from "../kafka/kafka.service";
 import { PushNotificationDto } from "./dto/push-notification.dto";
 import type * as admin from 'firebase-admin';
