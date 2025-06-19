@@ -14,6 +14,7 @@ import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import { Button } from 'tamagui';
 import useAuth from '@/hooks/useAuth';
+import { DoorClosedLocked } from '@tamagui/lucide-icons';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
@@ -54,6 +55,12 @@ export default function HomeScreen() {
             </GlassButton>
             <GlassButton iconOnly>
               <Bell fill={"white"} color="white" size={20} />
+            </GlassButton>
+            <GlassButton
+              onPress={handleSignOut}
+              iconOnly
+            >
+              <DoorClosedLocked color="white" size={20} />
             </GlassButton>
           </View>
         </SafeAreaView>
