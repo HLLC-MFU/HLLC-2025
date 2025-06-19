@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PermissionsGuard } from 'src/module/auth/guards/permissions.guard';
 import { CreatePrepostQuestiontDto } from '../dto/prepost-question/create-prepost-question.dto';
@@ -10,7 +20,9 @@ import { Permissions } from '../../auth/decorators/permissions.decorator';
 @ApiTags('prepost-questions')
 @Controller('prepost-questions')
 export class PrepostQuestionsController {
-  constructor(private readonly PrepostQuestionsService: PrepostQuestionsService) { }
+  constructor(
+    private readonly PrepostQuestionsService: PrepostQuestionsService,
+  ) {}
 
   @Post()
   @Permissions('prepost-questions:create')
@@ -32,7 +44,10 @@ export class PrepostQuestionsController {
 
   @Patch(':id')
   @Permissions('prepost-questions:update')
-  update(@Param('id') id: string, @Body() updatePrepostDto: UpdatePrepostQuestiontDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updatePrepostDto: UpdatePrepostQuestiontDto,
+  ) {
     return this.PrepostQuestionsService.update(id, updatePrepostDto);
   }
 

@@ -1,11 +1,7 @@
-import { IsString } from "class-validator";
-
-import { IsNotEmpty } from "class-validator";
+import { IsString, IsNotEmpty } from 'class-validator';
 
 export class CreateEvoucherTypeDto {
-
-    @IsString()
-    @IsNotEmpty()
-    name: string;
-
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 }

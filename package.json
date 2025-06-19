@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@fastify/multipart": "^9.0.3",
+    "dotenv": "^16.5.0",
     "hllc-2025": "file:"
   },
   "devDependencies": {

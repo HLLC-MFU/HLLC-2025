@@ -25,7 +25,7 @@ import { ActivitiesModule } from './module/activities/activities.module';
 import { EvoucherModule } from './module/evoucher/evoucher.module';
 import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
 import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
-import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
+import { ActivitiesTypeModule } from './module/activities/activities-type.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
 import { KafkaBootstrapModule } from './module/kafka/kafka-bootstrap.module';
 import { AssessmentsModule } from './module/assessments/assessments.module';
@@ -35,11 +35,18 @@ import { PosttestAnswersModule } from './module/prepost-questions/posttest-answe
 import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
 import { StepCountersModule } from './module/step-counters/step-counters.module';
 import { InterfacesModule } from './module/interfaces/interfaces.module';
+import { FirebaseAdminModule } from './module/firebase/firebase-admin.module';
+import { LandmarksModule } from './module/coin-collections/landmarks.module';
+import { CoinCollectionsModule } from './module/coin-collections/coin-collections.module';
+import { MapsModule } from './module/coin-collections/maps.module';
+import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
+import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       load: [configuration],
+      envFilePath: '.env.production',
       isGlobal: true,
     }),
     MongooseModule.forRootAsync({
@@ -86,7 +93,14 @@ import { InterfacesModule } from './module/interfaces/interfaces.module';
     PosttestAnswersModule,
     PretestAnswersModule,
     StepCountersModule,
-    InterfacesModule
+    InterfacesModule,
+    FirebaseAdminModule,
+    StepCountersModule,
+    LandmarksModule,
+    CoinCollectionsModule,
+    MapsModule,
+    LamduanFlowersModule,
+    LamduanSettingModule
   ],
   providers: [
     {
@@ -99,4 +113,4 @@ import { InterfacesModule } from './module/interfaces/interfaces.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

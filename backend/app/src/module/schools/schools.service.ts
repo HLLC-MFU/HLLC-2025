@@ -33,12 +33,7 @@ export class SchoolsService {
     const school = new this.schoolModel({
       ...createSchoolDto,
     });
-
-    try {
-      return await school.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
+    return await school.save();
   }
 
   async findAll(query: Record<string, string>) {
@@ -73,7 +68,7 @@ export class SchoolsService {
     return queryFindOne<Appearance>(
       this.AppearanceModel,
       { school: schoolId },
-      [{ path: 'school' }]
+      [{ path: 'school' }],
     );
   }
 
