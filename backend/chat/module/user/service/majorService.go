@@ -20,14 +20,12 @@ func NewMajorService(db *mongo.Database) *MajorService {
 	}
 }
 
-func (s *MajorService) GetMajors(ctx context.Context, filter map[string]interface{}) ([]model.Major, error) {
-	majors, err := s.FindAll(ctx, queries.QueryOptions{
-		Filter: filter,
-	})
-	if err != nil {
-		return nil, err
+func (s *MajorService) GetMajors(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.Major], error) {
+	if opts.Filter == nil {
+		opts.Filter = make(map[string]interface{})
 	}
-	return majors.Data, nil
+
+	return s.FindAllWithPopulate(ctx, opts, "school", "schools")		
 }
 
 func (s *MajorService) GetMajorById(ctx context.Context, id string) (*model.Major, error) {

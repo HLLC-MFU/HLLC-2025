@@ -20,14 +20,12 @@ func NewRoleService(db *mongo.Database) *RoleService {
 	}
 }
 
-func (s *RoleService) GetRoles(ctx context.Context, filter map[string]interface{}) ([]model.Role, error) {
-	roles, err := s.FindAll(ctx, queries.QueryOptions{
-		Filter: filter,
-	})
-	if err != nil {
-		return nil, err
+func (s *RoleService) GetRoles(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.Role], error) {
+	if opts.Filter == nil {
+		opts.Filter = make(map[string]interface{})
 	}
-	return roles.Data, nil
+
+	return s.FindAll(ctx, opts)
 }
 
 func (s *RoleService) GetRoleById(ctx context.Context, id string) (*model.Role, error) {

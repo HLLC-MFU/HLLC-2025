@@ -11,25 +11,29 @@ import (
 type (
 	SchoolService struct {
 		*queries.BaseService[model.School]
+		collection *mongo.Collection
 	}
 )
 
 func NewSchoolService(db *mongo.Database) *SchoolService {
+	collection := db.Collection("schools")
 	return &SchoolService{
-		BaseService: queries.NewBaseService[model.School](db.Collection("schools")),
+		BaseService: queries.NewBaseService[model.School](collection),
+		collection: collection,
 	}
 }
 
-func (s *SchoolService) GetSchools(ctx context.Context, filter map[string]interface{}) ([]model.School, error) {
-	schools, err := s.FindAll(ctx, queries.QueryOptions{
-		Filter: filter,
-	})
-	if err != nil {
-		return nil, err
+// GetSchools retrieves schools with pagination
+func (s *SchoolService) GetSchools(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.School], error) {
+
+	if opts.Filter == nil {
+		opts.Filter = make(map[string]interface{})
 	}
-	return schools.Data, nil
+
+	return s.FindAll(ctx, opts)
 }
 
+// GetSchoolById retrieves a single school by ID
 func (s *SchoolService) GetSchoolById(ctx context.Context, id string) (*model.School, error) {
 	school, err := s.FindOneById(ctx, id)
 	if err != nil {

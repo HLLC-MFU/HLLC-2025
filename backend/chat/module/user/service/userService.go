@@ -11,28 +11,29 @@ import (
 type (
 	UserService struct {
 		*queries.BaseService[model.User]
-		MajorService *MajorService
-		RoleService *RoleService
+		majorService *MajorService
 	}
 )
 
 func NewUserService(db *mongo.Database) *UserService {
+	collection := db.Collection("users")
 	return &UserService{
-		BaseService: queries.NewBaseService[model.User](db.Collection("users")),
-		MajorService: NewMajorService(db),
-		RoleService: NewRoleService(db),
+		BaseService:  queries.NewBaseService[model.User](collection),
+		majorService: NewMajorService(db),
 	}
 }
 
-func (s *UserService) GetUsers(ctx context.Context, filter map[string]interface{}) ([]model.User, error) {
-	users, err := s.FindAll(ctx, queries.QueryOptions{
-		Filter: filter,
-	})
+func (s *UserService) GetUsers(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.User], error) {
+	if opts.Filter == nil {
+		opts.Filter = make(map[string]interface{})
+	}
+
+	response, err := s.FindAllWithPopulateNested(ctx, opts, "metadata.major", "majors")
 	if err != nil {
 		return nil, err
 	}
 
-	return users.Data, nil
+	return response, nil
 }
 
 func (s *UserService) GetUserById(ctx context.Context, id string) (*model.User, error) {

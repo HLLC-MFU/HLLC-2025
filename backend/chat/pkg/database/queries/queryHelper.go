@@ -1,9 +1,10 @@
-// pkg/database/query/base.service.go
 package queries
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -19,11 +20,13 @@ var (
 
 type BaseService[T any] struct {
     collection *mongo.Collection
+    db *mongo.Database
 }
 
 func NewBaseService[T any](collection *mongo.Collection) *BaseService[T] {
     return &BaseService[T]{
         collection: collection,
+        db: collection.Database(),
     }
 }
 
@@ -102,6 +105,163 @@ func (s *BaseService[T]) FindAll(ctx context.Context, opts QueryOptions) (*Respo
         },
     }, nil
 }
+
+// FindAllWithPopulate finds all documents with population
+func (s *BaseService[T]) FindAllWithPopulate(ctx context.Context, opts QueryOptions, populateField string, foreignCollection string) (*Response[T], error) {
+    // Debug: Print the pipeline stages
+    fmt.Printf("Populating field: %s from collection: %s\n", populateField, foreignCollection)
+
+    pipeline := []bson.M{
+        {"$match": opts.Filter},
+        {"$lookup": bson.M{
+            "from":         foreignCollection,
+            "localField":   populateField,
+            "foreignField": "_id",
+            "as":          populateField,
+        }},
+        {"$unwind": bson.M{
+            "path": "$" + populateField,
+            "preserveNullAndEmptyArrays": true,
+        }},
+    }
+
+    // Debug: Print the pipeline
+    pipelineBytes, _ := json.MarshalIndent(pipeline, "", "  ")
+    fmt.Printf("Pipeline: %s\n", string(pipelineBytes))
+
+    // Add sort stage if specified
+    if opts.Sort != "" {
+        pipeline = append(pipeline, bson.M{"$sort": s.parseSort(opts.Sort)})
+    }
+
+    // Add pagination stages
+    skip := int64((opts.Page - 1) * opts.Limit)
+    pipeline = append(pipeline,
+        bson.M{"$skip": skip},
+        bson.M{"$limit": int64(opts.Limit)},
+    )
+
+    // Execute aggregation
+    cursor, err := s.collection.Aggregate(ctx, pipeline)
+    if err != nil {
+        fmt.Printf("Aggregation error: %v\n", err)
+        return nil, err
+    }
+    defer cursor.Close(ctx)
+
+    var results []T
+    if err = cursor.All(ctx, &results); err != nil {
+        fmt.Printf("Cursor decode error: %v\n", err)
+        return nil, err
+    }
+
+    // Debug: Print the results
+    fmt.Printf("Found %d documents\n", len(results))
+    for i, result := range results {
+        resultBytes, _ := json.MarshalIndent(result, "", "  ")
+        fmt.Printf("Document %d: %s\n", i+1, string(resultBytes))
+    }
+
+    // Get total count
+    total, err := s.collection.CountDocuments(ctx, opts.Filter)
+    if err != nil {
+        fmt.Printf("Count error: %v\n", err)
+        return nil, err
+    }
+
+    return &Response[T]{
+        Success: true,
+        Message: "Documents fetched successfully",
+        Data:    results,
+        Meta: &Meta{
+            Total:         total,
+            Page:          opts.Page,
+            Limit:         opts.Limit,
+            TotalPages:    int(total) / opts.Limit,
+            LastUpdatedAt: time.Now(),
+        },
+    }, nil
+}
+
+func (s *BaseService[T]) FindAllWithPopulateNested(
+	ctx context.Context,
+	opts QueryOptions,
+	nestedPath string,
+	foreignCollection string,
+) (*Response[T], error) {
+	// แยก path เช่น "metadata.major"
+	parts := strings.Split(nestedPath, ".")
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("nestedPath must be a nested field (e.g. metadata.major)")
+	}
+
+	flattenField := "__pop_fk"
+	lookupPath := nestedPath // where to assign the populated result
+
+	// === BUILD PIPELINE ===
+	pipeline := []bson.M{
+		{"$match": opts.Filter},
+		{"$addFields": bson.M{
+			flattenField: "$" + nestedPath,
+		}},
+		{
+            "$lookup": bson.M{
+              "from":         "majors",
+              "localField":   "__pop_fk",
+              "foreignField": "_id",
+              "as":           "populated_major",
+            },
+          },          
+		{"$unwind": bson.M{
+			"path":                       "$" + lookupPath + ".populated_major",
+			"preserveNullAndEmptyArrays": true,
+		}},
+	}
+
+	// Add sort
+	if opts.Sort != "" {
+		pipeline = append(pipeline, bson.M{"$sort": s.parseSort(opts.Sort)})
+	}
+
+	// Pagination
+	skip := int64((opts.Page - 1) * opts.Limit)
+	pipeline = append(pipeline,
+		bson.M{"$skip": skip},
+		bson.M{"$limit": int64(opts.Limit)},
+	)
+
+	// === EXECUTE AGGREGATION ===
+	cursor, err := s.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []T
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, err
+	}
+
+	// Get total count
+	total, err := s.collection.CountDocuments(ctx, opts.Filter)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Response[T]{
+		Success: true,
+		Message: "Populated fetch successful",
+		Data:    results,
+		Meta: &Meta{
+			Total:         total,
+			Page:          opts.Page,
+			Limit:         opts.Limit,
+			TotalPages:    int(total)/opts.Limit + 1,
+			LastUpdatedAt: time.Now(),
+		},
+	}, nil
+}
+
 
 // Create creates a new document
 func (s *BaseService[T]) Create(ctx context.Context, document T) (*Response[T], error) {
