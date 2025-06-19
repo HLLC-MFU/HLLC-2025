@@ -4,7 +4,10 @@ import { Photo } from "src/pkg/types/common";
 import { LamduanSetting } from "./lamduan.setting";
 
 export type LamduanFlowersDocument = HydratedDocument<LamduanFlowers>;
-@Schema({ timestamps: true })
+@Schema({
+    collection: 'lamduan-flowers',
+    timestamps: true,
+})
 export class LamduanFlowers {
 
     @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
