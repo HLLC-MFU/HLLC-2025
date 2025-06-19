@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 
 import { MongooseModule } from '@nestjs/mongoose';
 
-import { SponsorsType } from '../sponsors-type/schema/sponsors-type.schema';
-import { SponsorsTypeSchema } from '../sponsors-type/schema/sponsors-type.schema';
+import { SponsorsType } from '../sponsors/schema/sponsors-type.schema';
+import { SponsorsTypeSchema } from '../sponsors/schema/sponsors-type.schema';
 import {
   EvoucherType,
   EvoucherTypeSchema,
