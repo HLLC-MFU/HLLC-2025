@@ -51,6 +51,7 @@ export default function NotificationPust() {
   const [infoData, setInfoData] = useState<InformationInfoData | undefined>(undefined);
   const [scope, setScope] = useState<SelectionScope>('global');
   const [resetFormCounter, setResetFormCounter] = useState(0);
+  const [imageError, setImageError] = useState<string | null>(null);
   const { createNotification } = useNotification();
 
   const submitNotification = () => {
@@ -87,11 +88,14 @@ export default function NotificationPust() {
     setResetFormCounter(prev => prev + 1);
   }
 
+  // กัน user error
+
   const isSubmitDisabled =
-    !infoData ||
-    !isFormComplete(infoData) ||
-    !isValidUrl(infoData.redirect?.link);
-  ;
+  !infoData ||
+  !isFormComplete(infoData) ||
+  !isValidUrl(infoData.redirect?.link) ||
+  (infoData.imageFile && infoData.imageFile.size > 500 * 1024);
+
 
   return (
     <>
@@ -140,9 +144,10 @@ export default function NotificationPust() {
                 <p className="text-red-500 font-medium">⚠ Invalid redirect link</p>
               )}
 
-              {!isFormComplete(infoData) && (
-                <p className="text-red-500 font-medium">⚠ Data is not complete</p>
-              )}
+              {!isFormComplete(infoData) && ( <p className="text-red-500 font-medium">⚠ Data is not complete</p> )}
+
+              {(infoData && infoData.imageFile && infoData.imageFile.size > 500 * 1024) && 
+              ( <p className="text-red-500 font-medium">⚠ Please upload an image smaller than 500KB</p> )}
 
               <Button
                 color="primary"

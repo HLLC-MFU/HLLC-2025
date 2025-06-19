@@ -6,11 +6,13 @@ import {
   CardHeader,
   CardBody,
   AvatarGroup,
+  Button,
 } from '@heroui/react';
 import { Notification } from '@/types/notification';
 import { useState } from 'react';
 import NotificationModal from './NotificationDetailModal';
 import { useNotification } from '@/hooks/useNotification';
+import { Link, Eye, Trash2 } from 'lucide-react';
 
 export function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
@@ -27,9 +29,12 @@ const statusColorMap: Record<string, { bg: string; text: string }> = {
   individual: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
 };
 
-export default function NotificationCard({ notification }: NotificationCardprop) {
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
-  const { deleteNotification } = useNotification()
+export default function NotificationCard({
+  notification,
+}: NotificationCardprop) {
+  const [selectedNotification, setSelectedNotification] =
+    useState<Notification | null>(null);
+  const { deleteNotification } = useNotification();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleOpenModal = (notification: Notification) => {
@@ -41,7 +46,6 @@ export default function NotificationCard({ notification }: NotificationCardprop)
     setIsModalOpen(false);
     setSelectedNotification(null);
   };
-
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-8 w-full ">
@@ -77,15 +81,15 @@ export default function NotificationCard({ notification }: NotificationCardprop)
                 ))
               )}
               {item.redirectButton?.url && (
-                <span className=" font-normal text-sm bg-red-100 px-2 pt-1 rounded-md text-red-800 ">
-                  Link
+                <span className="flex bg-red-100 px-2 py-1 rounded-md text-red-800 justify-center items-center">
+                  <Link className="w-4 h-4" />
                 </span>
               )}
             </div>
           </CardHeader>
 
           <CardBody>
-            <p className="text-sm break-words">{capitalize(item.body.en)}</p>
+            <p className="text-sm break-words text-wrap">{capitalize(item.body.en)}</p>
           </CardBody>
 
           <CardFooter>
@@ -99,8 +103,25 @@ export default function NotificationCard({ notification }: NotificationCardprop)
                 <Avatar src="https://i.pravatar.cc/150?u=a04258114e29026708c" />
               </AvatarGroup>
               <div className="flex items-center">
-                <p onClick={() => deleteNotification(item._id)} className="mx-2 text-sm hover:text-red-800  cursor-pointer"> Delete </p>
-                <p onClick={() => handleOpenModal(item)} className="mx-2 font-medium hover:text-blue-800 cursor-pointer transition" > View </p>
+                <Button
+                  onPress={() => deleteNotification(item._id)}
+                  isIconOnly
+                  size="sm"
+                  color="danger"
+                  variant="light"
+                >
+                  <Trash2 className="w-5 h-auto" />
+                </Button>
+                <Button
+                  isIconOnly
+                  onPress={() => handleOpenModal(item)}
+                  size="sm"
+                  color="primary"
+                  className="mx-2"
+                  variant="light"
+                >
+                  <Eye className="w-5 h-auto" />
+                </Button>
               </div>
             </div>
           </CardFooter>
