@@ -19,11 +19,12 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { UpdatePermissionsDto } from './dto/update-permissions.dto';
+
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 @Controller('roles')
 export class RoleController {
-  constructor(private readonly roleService: RoleService) {}
+  constructor(private readonly roleService: RoleService) { }
 
   @Post()
   @CacheKey('roles:invalidate')
@@ -69,6 +70,18 @@ export class RoleController {
     @Body() dto: UpdatePermissionsDto,
   ) {
     return this.roleService.updatePermissions(id, dto.permissions);
+  }
+
+  @Patch(':id/checkin-scope')
+  @Permissions('roles:update:checkin-scope')
+  updateCheckinScope(
+    @Param('id') id: string,
+    @Body()
+    user?: string[],
+    major?: string[],
+    school?: string[],
+  ) {
+    return this.roleService.updateCheckinScope(id, user, major, school);
   }
 
   @Delete(':id')

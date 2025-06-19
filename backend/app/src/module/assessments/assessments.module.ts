@@ -7,8 +7,10 @@ import { ActivitiesModule } from '../activities/activities.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Assessment.name, schema: AssessmentSchema }]),
-    ActivitiesModule
+    MongooseModule.forFeature([
+      { name: Assessment.name, schema: AssessmentSchema },
+    ]),
+    ActivitiesModule,
   ],
   controllers: [AssessmentsController],
   providers: [AssessmentsService],

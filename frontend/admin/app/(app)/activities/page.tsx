@@ -1,4 +1,5 @@
 'use client';
+
 import { useMemo, useState } from 'react';
 import { addToast } from '@heroui/react';
 import {
@@ -72,7 +73,10 @@ export default function ActivitiesPage() {
     const groups: Record<string, Activities[]> = {};
 
     filteredActivities.forEach((activity) => {
-      const typeId = activity.type || 'other';
+      const typeId =
+        typeof activity.type === 'object' && activity.type !== null && '_id' in activity.type
+          ? (activity.type as { _id: string })._id
+          : activity.type || 'other';
       if (!groups[typeId]) {
         groups[typeId] = [];
       }
@@ -84,7 +88,6 @@ export default function ActivitiesPage() {
 
   const handleAddActivity = (typeId: string) => {
     setModalMode('add');
-    setSelectedActivity(undefined);
     setSelectedActivity({ type: typeId } as Activities);
     setIsActivityModalOpen(true);
   };
@@ -167,7 +170,6 @@ export default function ActivitiesPage() {
 
   return (
     <>
-
       <PageHeader
         title="Activities Management"
         description="Manage your activities and activity types"
@@ -210,7 +212,7 @@ export default function ActivitiesPage() {
               variant="splitted"
               defaultExpandedKeys={activityTypes.length > 0 ? [activityTypes[0]._id] : []}
               selectionMode="multiple"
-              className="gap-4"
+              className="gap-2 px-0"
             >
               {activityTypes.map((type) => {
                 const typeActivities = groupedActivities[type._id] || [];
@@ -229,51 +231,52 @@ export default function ActivitiesPage() {
                           <p className="text-lg font-medium">{type.name}</p>
                           <p className="text-sm text-default-400">{typeActivities.length} activities</p>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            color="primary"
-                            size="sm"
-                            variant="flat"
-                            endContent={<Plus className="w-4 h-4" />}
-                            onPress={() => handleAddActivity(type._id)}
-                          >
-                            Add Activity
-                          </Button>
-                          <Dropdown>
-                            <DropdownTrigger>
-                              <Button isIconOnly variant="light" size="sm">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownTrigger>
-                            <DropdownMenu>
-                              <DropdownItem
-                                key="edit"
-                                startContent={<Pencil className="w-4 h-4" />}
-                                onPress={() => handleEditType(type)}
-                              >
-                                Edit Type
-                              </DropdownItem>
-                              <DropdownItem
-                                key="delete"
-                                className="text-danger"
-                                color="danger"
-                                startContent={<Trash2 className="w-4 h-4" />}
-                                onPress={() => handleDeleteType(type)}
-                              >
-                                Delete Type
-                              </DropdownItem>
-                            </DropdownMenu>
-                          </Dropdown>
-                        </div>
                       </div>
                     }
                     classNames={{
                       base: "bg-white rounded-xl shadow-md mb-4",
                       title: "font-medium text-large",
                       content: "px-4 pb-4",
-                      trigger: "px-6 py-4",
+                      trigger: "px-2 py-4",
                     }}
                   >
+                    <div className="flex justify-end mb-4 gap-2">
+                      <Button
+                        color="primary"
+                        size="sm"
+                        variant="flat"
+                        endContent={<Plus className="w-4 h-4" />}
+                        onPress={() => handleAddActivity(type._id)}
+                      >
+                        Add Activity
+                      </Button>
+                      <Dropdown>
+                        <DropdownTrigger>
+                          <Button isIconOnly variant="light" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownTrigger>
+                        <DropdownMenu>
+                          <DropdownItem
+                            key="edit"
+                            startContent={<Pencil className="w-4 h-4" />}
+                            onPress={() => handleEditType(type)}
+                          >
+                            Edit Type
+                          </DropdownItem>
+                          <DropdownItem
+                            key="delete"
+                            className="text-danger"
+                            color="danger"
+                            startContent={<Trash2 className="w-4 h-4" />}
+                            onPress={() => handleDeleteType(type)}
+                          >
+                            Delete Type
+                          </DropdownItem>
+                        </DropdownMenu>
+                      </Dropdown>
+                    </div>
+
                     {typeActivities.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-6 px-4 border-2 border-dashed rounded-xl bg-default-50">
                         <Calendar className="w-12 h-12 text-default-300 mb-4" />
@@ -296,7 +299,6 @@ export default function ActivitiesPage() {
           )}
         </div>
       </div>
-
 
       <ActivityModal
         isOpen={isActivityModalOpen}

@@ -1,123 +1,92 @@
-import { Injectable } from '@nestjs/common';
-import { CreateCheckinDto } from './dto/create-checkin.dto';
-import { UpdateCheckinDto } from './dto/update-checkin.dto';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Checkin, CheckinDocument } from './schema/checkin.schema';
 import { Model, Types } from 'mongoose';
-import { findOrThrow } from 'src/pkg/validator/model.validator';
-import {
-  queryAll,
-  queryDeleteOne,
-  queryFindOne,
-  queryUpdateOne,
-} from 'src/pkg/helper/query.util';
-import { User } from '../users/schemas/user.schema';
-import { UserDocument } from '../users/schemas/user.schema';
-import { Activities } from '../activities/schema/activities.schema';
-import { ActivityDocument } from '../activities/schema/activities.schema';
-import { PopulateField } from 'src/pkg/types/query';
+
+import { CreateCheckinDto } from './dto/create-checkin.dto';
+import { User } from 'src/module/users/schemas/user.schema';
+import { Checkin } from './schema/checkin.schema';
+import { Role } from '../role/schemas/role.schema';
+import { Activities } from 'src/module/activities/schemas/activities.schema';
+import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
 
 @Injectable()
 export class CheckinService {
   constructor(
-    @InjectModel(Checkin.name)
-    private readonly checkinModel: Model<CheckinDocument>,
-    @InjectModel(User.name)
-    private readonly userModel: Model<UserDocument>,
+    @InjectModel(Checkin.name) private readonly checkinModel: Model<Checkin>,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Role.name) private readonly roleModel: Model<Role>,
     @InjectModel(Activities.name)
-    private readonly activitiesModel: Model<ActivityDocument>,
-  ) { }
+    private readonly activityModel: Model<Activities>,
+  ) {}
 
-  async create(createCheckinDto: CreateCheckinDto) {
-    
-    await findOrThrow(
-      this.userModel,
-      new Types.ObjectId(createCheckinDto.user),
-      'User not found'
-    )
+  async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
+    const { staff: staffId, user: username, activities } = createCheckinDto;
 
-    await findOrThrow(
-      this.userModel,
-      new Types.ObjectId(createCheckinDto.staff),
-      'Staff not found'
-    )
-  
-    for (const activity of createCheckinDto.activities) {
-      await findOrThrow(
-        this.activitiesModel,
-        new Types.ObjectId(activity),
-        'Activity not found'
-      );
+    if (!username || typeof username !== 'string') {
+      throw new BadRequestException('Invalid username');
     }
-  
-    const newCheckin = new this.checkinModel({
-      user: new Types.ObjectId(createCheckinDto.user),
-      staff: new Types.ObjectId(createCheckinDto.staff),
-      activities: createCheckinDto.activities.map(activity => new Types.ObjectId(activity)),
-    });
-    
-    return newCheckin.save();
-  }
-  
 
-  async findAll(query: Record<string, string>) {
+    const userDoc = await this.userModel.findOne({ username }).select('_id');
+    if (!userDoc) {
+      throw new BadRequestException('User not found');
+    }
 
-    return queryAll<Checkin>({
-      model: this.checkinModel,
-      query: {
-        ...query,
-        excluded: 'user.password,user.refreshToken,user.role.permissions,user.role.metadataSchema',
-      },
-      filterSchema: {},
-      populateFields: (excluded) =>
-        Promise.resolve(
-          excluded.includes('user') ? [] : [{ path: 'user' } , {path: 'activities'}] as PopulateField[],
-        ),
-    });
-  }
-  async findOne(id: string) {
-    return queryFindOne<Checkin>(this.checkinModel, { _id: id }, [
-      { path: 'user' },
-      { path: 'activities' },
-    ]);
-  }
+    const userObjectId = userDoc._id;
+    const staffObjectId = staffId ? new Types.ObjectId(staffId) : undefined;
 
-  async update(id: string, updateCheckinDto: UpdateCheckinDto) {
-    if (updateCheckinDto.user) {
-      await findOrThrow(
+    if (!Array.isArray(activities) || activities.length === 0) {
+      throw new BadRequestException('Activities must be a non-empty array');
+    }
+
+    if (staffObjectId) {
+      if (!staffId || !Types.ObjectId.isValid(staffId)) {
+        throw new BadRequestException('Invalid staff ID');
+      }
+
+      const isAllowed = await isCheckinAllowed(
+        staffId,
+        userObjectId.toString(),
         this.userModel,
-        new Types.ObjectId(updateCheckinDto.user),
-        'User not found',
+        this.roleModel,
       );
-    }
 
-    if (updateCheckinDto.staff) {
-      await findOrThrow(
-        this.userModel,
-        new Types.ObjectId(updateCheckinDto.staff),
-        'Staff not found',
-      );
-    }
-
-    if (updateCheckinDto.activities) {
-      for (const activity of updateCheckinDto.activities) {
-        await findOrThrow(
-          this.activitiesModel,
-          new Types.ObjectId(activity),
-          'Activity not found',
+      if (!isAllowed) {
+        throw new BadRequestException(
+          'User is not allowed to be checked in by this staff',
         );
       }
     }
-    return queryUpdateOne<Checkin>(this.checkinModel, id, updateCheckinDto);
-  }
 
-  async remove(id: string) {
-    await findOrThrow(
-      this.checkinModel,
-      id,
-      'Checkin not found'
-    )
+    await validateCheckinTime(activities, this.activityModel);
 
-    return await this.checkinModel.findByIdAndDelete(id);
+    const activityObjectIds = activities.map(
+      (id) => new Types.ObjectId(`${id}`),
+    );
+
+    const existing = await this.checkinModel
+      .find({
+        user: userObjectId,
+        activity: { $in: activityObjectIds },
+      })
+      .lean();
+
+    const alreadyChecked = new Set(existing.map((e) => e.activity.toString()));
+    const filtered = activityObjectIds.filter(
+      (id) => !alreadyChecked.has(id.toString()),
+    );
+
+    if (filtered.length === 0) {
+      throw new BadRequestException(
+        'User already checked in to all activities',
+      );
+    }
+
+    const docs = filtered.map((activityId) => ({
+      user: userObjectId,
+      activity: activityId,
+      ...(staffObjectId && { staff: staffObjectId }),
+    }));
+
+    return this.checkinModel.insertMany(docs) as unknown as Checkin[];
   }
 }

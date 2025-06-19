@@ -1,0 +1,2502 @@
+{
+	"info": {
+		"_postman_id": "0f27e1a2-1392-480c-9f5d-d78130ad74da",
+		"name": "HLLC-API",
+		"description": "API collection for HLLC Campus CRM System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29106659",
+		"_collection_link": "https://cloudy-crater-790743.postman.co/workspace/My-Workspace~c4ef2216-515a-467e-8b4f-1e66616b87fd/collection/29106659-0f27e1a2-1392-480c-9f5d-d78130ad74da?action=share&source=collection_link&creator=29106659"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login?useCookies=true",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							],
+							"query": [
+								{
+									"key": "useCookies",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Login to get JWT token."
+					},
+					"response": [
+						{
+							"name": "Login (Admin)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/auth/login?useCookie=true",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									],
+									"query": [
+										{
+											"key": "useCookie",
+											"value": "true"
+										}
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "access-control-allow-origin",
+									"value": "http://localhost:3000"
+								},
+								{
+									"key": "access-control-allow-credentials",
+									"value": "true"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "set-cookie",
+									"value": "accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ODMwMzE1ODZmZjAwZDViZGUwNzY4MTQiLCJ1c2VybmFtZSI6ImFkbWluIiwiaWF0IjoxNzQ4MjMyMzg1LCJleHAiOjE3NDgzMTg3ODV9.2GBKXj7_0FvF0adBtT6FBKeYNjeKdfuVHtdKbEDVJyw; Max-Age=3600; Path=/; HttpOnly; Secure; SameSite=Strict"
+								},
+								{
+									"key": "set-cookie",
+									"value": "refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ODMwMzE1ODZmZjAwZDViZGUwNzY4MTQiLCJ1c2VybmFtZSI6ImFkbWluIiwiaWF0IjoxNzQ4MjMyMzg1LCJleHAiOjE3NDg4MzcxODV9.j6yKz7NwDYx7tIJBuU_wFdPg5tvcwEXadYyF_F7kkrM; Max-Age=604800; Path=/; HttpOnly; Secure; SameSite=Strict"
+								},
+								{
+									"key": "vary",
+									"value": "accept-encoding"
+								},
+								{
+									"key": "content-encoding",
+									"value": "gzip"
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 26 May 2025 04:06:26 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=72"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Login successful!\",\n    \"user\": {\n        \"_id\": \"683031586ff00d5bde076814\",\n        \"name\": {\n            \"first\": \"System\",\n            \"last\": \"Administrator\"\n        },\n        \"username\": \"admin\",\n        \"role\": {\n            \"_id\": \"682ef6e80827126131434318\",\n            \"name\": \"Administrator\",\n            \"permissions\": [\n                \"users:read\",\n                \"users:create\",\n                \"users:update\",\n                \"users:delete\",\n                \"schools:read\",\n                \"schools:create\",\n                \"schools:update\",\n                \"schools:delete\",\n                \"majors:read\",\n                \"majors:create\",\n                \"majors:update\",\n                \"majors:delete\",\n                \"roles:read\",\n                \"roles:create\",\n                \"roles:update\",\n                \"roles:delete\",\n                \"activities:read\",\n                \"activities:create\",\n                \"activities:update\",\n                \"activities:delete\",\n                \"checkin:read\",\n                \"checkin:create\",\n                \"checkin:update\",\n                \"checkin:delete\",\n                \"users:read:id\",\n                \"users:create:id\",\n                \"users:update:id\",\n                \"users:delete:id\",\n                \"schools:read:id\",\n                \"schools:create:id\",\n                \"schools:update:id\",\n                \"schools:delete:id\",\n                \"majors:read:id\",\n                \"majors:create:id\",\n                \"majors:update:id\",\n                \"majors:delete:id\",\n                \"roles:read:id\",\n                \"roles:create:id\",\n                \"roles:update:id\",\n                \"roles:delete:id\",\n                \"activities:read:id\",\n                \"activities:create:id\",\n                \"activities:update:id\",\n                \"activities:delete:id\",\n                \"checkin:read:id\",\n                \"checkin:create:id\",\n                \"checkin:update:id\",\n                \"checkin:delete:id\",\n                \"admin:access\"\n            ],\n            \"metadataSchema\": {\n                \"required\": []\n            },\n            \"createdAt\": \"2025-05-22T10:05:28.800Z\",\n            \"updatedAt\": \"2025-05-22T10:05:28.800Z\"\n        },\n        \"createdAt\": \"2025-05-23T08:27:04.365Z\",\n        \"updatedAt\": \"2025-05-26T04:06:26.064Z\",\n        \"secret\": \"\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Login (User)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"student\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login?useCookies=true",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							],
+							"query": [
+								{
+									"key": "useCookies",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Login to get JWT token."
+					},
+					"response": []
+				},
+				{
+					"name": "Login (Intern)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testShool\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login?useCookies=true",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							],
+							"query": [
+								{
+									"key": "useCookies",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Login to get JWT token."
+					},
+					"response": []
+				},
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"med\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"metadata\": {\n    \"secret\": \"Phuket\"\n  }\n}\n"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Login to get JWT token."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
+						},
+						"description": "Refresh access token using refresh token."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Logout and invalidate tokens."
+					},
+					"response": []
+				},
+				{
+					"name": "Reset-Password",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"test001\",\n  \"password\": \"newSecurePass123\",\n  \"confirmPassword\": \"newSecurePass123\",\n  \"metadata\": {\n    \"secret\": \"Songkla\"\n  }\n}\n"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/reset-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"reset-password"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication related endpoints"
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							]
+						},
+						"description": "Get all users with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Activities",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/activities",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"activities"
+							]
+						},
+						"description": "Get all users with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Metadata",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users?school=682ee3569fc8ea728d1d630b",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							],
+							"query": [
+								{
+									"key": "school",
+									"value": "682ee3569fc8ea728d1d630b"
+								}
+							]
+						},
+						"description": "Get all users with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Ger Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me"
+							]
+						},
+						"description": "Get all users with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							]
+						},
+						"description": "Get a single user by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": {\n    \"first\": \"test\",\n    \"middle\": \"test.\",\n    \"last\": \"test\"\n  },\n  \"username\": \"testShool\",\n  \"password\": \"password123\",\n  \"role\": \"6847df4b85d36a5476950986\",\n  \"metadata\": {}\n}\n"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							]
+						},
+						"description": "Create a new user."
+					},
+					"response": []
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": {\n    \"first\": \"student\",\n    \"middle\": \"student.\",\n    \"last\": \"student\"\n  },\n  \"username\": \"studentSchool\",\n  \"role\": \"6846f12442f759f8e1e32b5a\",\n\n  \"metadata\": {\n    \"major\": \"6847bf845a319b7f4659473f\"\n  }\n}\n"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							]
+						},
+						"description": "Create a new user."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": {\n    \"first\": \"Jinny\",\n    \"middle\": \"Burger.\",\n    \"last\": \"White\"\n  },\n  \"username\": \"johm\",\n  \"password\": \"password123\",\n  \"major\": \"682ee35d9fc8ea728d1d630f\",\n  \"role\": \"682ef6ea3f996e278c8b6129\"\n}\n"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{userId}}"
+							]
+						},
+						"description": "Update a user by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{userId}}"
+							]
+						},
+						"description": "Delete a user by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Upload user",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  {\n    \"name\": { \"first\": \"Somchai\", \"middle\": \"K.\", \"last\": \"Srisuwan\" },\n    \"username\": \"6831503001\",\n    \"role\": \"6836b1c79e20a07c8d9b0bcb\",\n    \"metadata\": { \"major\": \"68395628476933c319a11b1c\" }\n  },\n  {\n    \"name\": { \"first\": \"Suda\", \"middle\": \"T.\", \"last\": \"Chaiyaporn\" },\n    \"username\": \"6831503002\",\n    \"role\": \"6836b1c79e20a07c8d9b0bcb\",\n    \"metadata\": { \"major\": \"68395628476933c319a11b1c\" }\n  },\n  {\n    \"name\": { \"first\": \"Nattapong\", \"middle\": \"M.\", \"last\": \"Thongchai\" },\n    \"username\": \"6831503003\",\n    \"role\": \"6836b1c79e20a07c8d9b0bcb\",\n    \"metadata\": { \"major\": \"68395628476933c319a11b1c\" }\n  },\n  {\n    \"name\": { \"first\": \"Kanokwan\", \"middle\": \"S.\", \"last\": \"Meesuk\" },\n    \"username\": \"6831503004\",\n    \"role\": \"6836b1c79e20a07c8d9b0bcb\",\n    \"metadata\": { \"major\": \"68395628476933c319a11b1c\" }\n  },\n  {\n    \"name\": { \"first\": \"Anan\", \"middle\": \"P.\", \"last\": \"Rojanasakul\" },\n    \"username\": \"6831503005\",\n    \"role\": \"6836b1c79e20a07c8d9b0bcb\",\n    \"metadata\": { \"major\": \"68395628476933c319a11b1c\" }\n  },\n  {\n    \"name\": { \"first\": \"Pimchanok\", \"middle\": \"W.\", \"last\": \"Siriporn\" },\n    \"username\": \"6831503006\",\n    \"role\": \"6836b1c79e20a07c8d9b0bcb\",\n    \"metadata\": { \"major\": \"68395628476933c319a11b1c\" }\n  },\n  {\n    \"name\": { \"first\": \"Wichai\", \"middle\": \"L.\", \"last\": \"Boonyarit\" },\n    \"username\": \"6831503007\",\n    \"role\": \"6836b1c79e20a07c8d9b0bcb\",\n    \"metadata\": { \"major\": \"68395628476933c319a11b1c\" }\n  },\n  {\n    \"name\": { \"first\": \"Suchada\", \"middle\": \"R.\", \"last\": \"Kongsuwan\" },\n    \"username\": \"6831503008\",\n    \"role\": \"6836b1c79e20a07c8d9b0bcb\",\n    \"metadata\": { \"major\": \"68395628476933c319a11b1c\" }\n  },\n  {\n    \"name\": { \"first\": \"Kittisak\", \"middle\": \"N.\", \"last\": \"Poonpat\" },\n    \"username\": \"6831503009\",\n    \"role\": \"6836b1c79e20a07c8d9b0bcb\",\n    \"metadata\": { \"major\": \"68395628476933c319a11b1c\" }\n  },\n  {\n    \"name\": { \"first\": \"Patcharaporn\", \"middle\": \"C.\", \"last\": \"Nimmanhemin\" },\n    \"username\": \"6831503010\",\n    \"role\": \"6836b1c79e20a07c8d9b0bcb\",\n    \"metadata\": { \"major\": \"68395628476933c319a11b1c\" }\n  }\n]\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/upload",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"upload"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "User management endpoints"
+		},
+		{
+			"name": "Schools",
+			"item": [
+				{
+					"name": "Get All Schools",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/schools",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"schools"
+							]
+						},
+						"description": "Get all schools."
+					},
+					"response": []
+				},
+				{
+					"name": "Get School by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/schools/{{schoolId}}/appearances",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"schools",
+								"{{schoolId}}",
+								"appearances"
+							]
+						},
+						"description": "Get a school by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create School",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name[th]",
+									"value": "สำนักเวทมนตร์และศาสตร์แห่งการจัดการ",
+									"type": "text"
+								},
+								{
+									"key": "name[tn]",
+									"value": "School of Wizardry and Managerial Arts",
+									"type": "text"
+								},
+								{
+									"key": "acronym",
+									"value": "swma",
+									"type": "text"
+								},
+								{
+									"key": "detail[th]",
+									"value": "สำนักเวทมนตร์ที่ผสานศาสตร์แห่งการบริหาร พลังแห่งกลยุทธ์ และมนตร์การตลาด เพื่อสร้างผู้นำในโลกเวทมนตร์สมัยใหม่",
+									"type": "text"
+								},
+								{
+									"key": "detail[en]",
+									"value": "A magical school combining the arts of administration, the power of strategy, and the spells of marketing to shape leaders in the modern wizarding world.",
+									"type": "text"
+								},
+								{
+									"key": "photo[coverPhoto]",
+									"type": "file",
+									"src": "/Users/bricksocoolxd/Downloads/3.jpg"
+								},
+								{
+									"key": "photo[bannerPhoto]",
+									"type": "file",
+									"src": "/Users/bricksocoolxd/Downloads/ATA-Senior ERD.png"
+								},
+								{
+									"key": "photo[logoPhoto]",
+									"type": "file",
+									"src": "/Users/bricksocoolxd/Downloads/shake.jpg"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/schools",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"schools"
+							]
+						},
+						"description": "Create a new school."
+					},
+					"response": []
+				},
+				{
+					"name": "Update School",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Engineering School\",\n    \"description\": \"Updated School of Engineering and Technology\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/schools/{{schoolId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"schools",
+								"{{schoolId}}"
+							]
+						},
+						"description": "Update a school by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete School",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/schools/{{schoolId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"schools",
+								"{{schoolId}}"
+							]
+						},
+						"description": "Delete a school by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "School management endpoints"
+		},
+		{
+			"name": "Majors",
+			"item": [
+				{
+					"name": "Get All Majors",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/majors",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"majors"
+							]
+						},
+						"description": "Get all majors."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Major by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/majors/{{majorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"majors",
+								"{{majorId}}"
+							]
+						},
+						"description": "Get a major by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Major",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": {\n    \"th\": \"การตลาดยุคใหม่\",\n    \"en\": \"Modern Marketing\"\n  },\n  \"acronym\": \"MM\",\n  \"detail\": {\n    \"th\": \"หลักสูตรที่มุ่งเน้นกลยุทธ์การตลาดดิจิทัล พฤติกรรมผู้บริโภค และการใช้ข้อมูลเพื่อขับเคลื่อนแคมเปญทางการตลาด\",\n    \"en\": \"A program focused on digital marketing strategies, consumer behavior, and data-driven marketing campaigns.\"\n  },\n  \"school\": \"6837d8c43bec83890deee60a\"\n}\n"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/majors",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"majors"
+							]
+						},
+						"description": "Create a new major."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Major",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Computer Science\",\n    \"description\": \"Updated study of computer systems and computational processes\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/majors/{{majorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"majors",
+								"{{majorId}}"
+							]
+						},
+						"description": "Update a major by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Major",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/majors/{{majorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"majors",
+								"{{majorId}}"
+							]
+						},
+						"description": "Delete a major by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Major management endpoints"
+		},
+		{
+			"name": "Roles",
+			"item": [
+				{
+					"name": "Get All Roles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/roles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles"
+							]
+						},
+						"description": "Get all roles."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Role by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{roleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{roleId}}"
+							]
+						},
+						"description": "Get a role by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Role (Student)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"student\",\n  \"permissions\": [\n    \"user:read:id\",\n    \"vote:create\"\n  ],\n  \"metadataSchema\": {\n    \"major\": {\n      \"type\": \"string\",\n      \"label\": \"major\",\n      \"required\": true\n    }\n  }\n}\n"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/roles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles"
+							]
+						},
+						"description": "Create a new role."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Role (Test)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"testSchool\",\n  \"permissions\": [\"checkin:create\", \"checkin:read\"],\n  \"metadataScanned\": {\n    \"default\": {\n      \"scan\": true,\n      \"canScan\": [\"student\", \"intern\", \"smo\"],\n      \"scope\": {\n        \"type\": \"school\",\n        \"values\": \"6847af9a59cfd4ce9d789347\"\n      }\n    }\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/roles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles"
+							]
+						},
+						"description": "Create a new role."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Role (Scanned)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"mentor\",\n  \"permissions\": [\"checkin:create\", \"checkin:read\"],\n  \"metadataScanned\": {\n    \"default\": {\n      \"scan\": true,\n      \"canScan\": [\"student\", \"intern\", \"staff\"]\n    }\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/roles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles"
+							]
+						},
+						"description": "Create a new role."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Role",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Administrator\",\n        \"permissions\": [\n            \"users:read\",\n            \"users:create\",\n            \"users:update\",\n            \"users:delete\",\n            \"schools:read\",\n            \"schools:create\",\n            \"schools:update\",\n            \"schools:delete\",\n            \"majors:read\",\n            \"majors:create\",\n            \"majors:update\",\n            \"majors:delete\",\n            \"roles:read\",\n            \"roles:create\",\n            \"roles:update\",\n            \"roles:delete\",\n            \"activities:read\",\n            \"activities:create\",\n            \"activities:update\",\n            \"activities:delete\",\n            \"checkin:read\",\n            \"checkin:create\",\n            \"checkin:update\",\n            \"checkin:delete\",\n            \"users:read:id\",\n            \"users:create:id\",\n            \"users:update:id\",\n            \"users:delete:id\",\n            \"schools:read:id\",\n            \"schools:create:id\",\n            \"schools:update:id\",\n            \"schools:delete:id\",\n            \"majors:read:id\",\n            \"majors:create:id\",\n            \"majors:update:id\",\n            \"majors:delete:id\",\n            \"roles:read:id\",\n            \"roles:create:id\",\n            \"roles:update:id\",\n            \"roles:delete:id\",\n            \"activities:read:id\",\n            \"activities:create\",\n            \"activities:update:id\",\n            \"activities:delete:id\",\n            \"checkin:read:id\",\n            \"checkin:create:id\",\n            \"checkin:update:id\",\n            \"checkin:delete:id\",\n            \"admin:access\"\n        ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{roleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{roleId}}"
+							]
+						},
+						"description": "Update a role by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Role Metadata Schema",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"required\": [\"schoolId\", \"majorId\", \"studentId\"],\n    \"properties\": {\n        \"schoolId\": { \"type\": \"string\" },\n        \"majorId\": { \"type\": \"string\" },\n        \"studentId\": { \"type\": \"string\" },\n        \"enrollmentYear\": { \"type\": \"number\" },\n        \"graduationYear\": { \"type\": \"number\" }\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{roleId}}/metadata-schema",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{roleId}}",
+								"metadata-schema"
+							]
+						},
+						"description": "Update a role's metadata schema."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Role",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{roleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{roleId}}"
+							]
+						},
+						"description": "Delete a role by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Role management endpoints"
+		},
+		{
+			"name": "Activities",
+			"item": [
+				{
+					"name": "ActivitiesType",
+					"item": [
+						{
+							"name": "Get All",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/activities-type",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"activities-type"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get By ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/activities-type/683691c2264624b78face4df",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"activities-type",
+										"683691c2264624b78face4df"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Type",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"HOW TO LEARN\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/activities-type",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"activities-type"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Type Copy",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Some thing here....\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/activities-type/683691c2264624b78face4df",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"activities-type",
+										"683691c2264624b78face4df"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Type Copy 2",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Some thing here....\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/activities-type/683691c2264624b78face4df",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"activities-type",
+										"683691c2264624b78face4df"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Core",
+					"item": [
+						{
+							"name": "Get All Activities (Public)",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/activities",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"activities"
+									]
+								},
+								"description": "Get all activities with pagination."
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Activities (Admin) Copy",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/activities/user?school=682ee3569fc8ea728d1d630b",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"activities",
+										"user"
+									],
+									"query": [
+										{
+											"key": "school",
+											"value": "682ee3569fc8ea728d1d630b"
+										}
+									]
+								},
+								"description": "Get all activities with pagination."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Activity by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/activities/{{activityId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"activities",
+										"{{activityId}}"
+									]
+								},
+								"description": "Get an activity by ID."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Activity",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "name[th]",
+											"value": "MFU Freshers Night Test School",
+											"type": "text"
+										},
+										{
+											"key": "name[en]",
+											"value": "MFU Freshers Night Test School",
+											"type": "text"
+										},
+										{
+											"key": "acronym",
+											"value": "FRESHER",
+											"type": "text"
+										},
+										{
+											"key": "fullDetails[th]",
+											"value": "ส่งท้ายกิจกรรมต้อนรับนักศึกษาใหม่อย่างสมบูรณ์ ด้วยการแสดงสุดพิเศษจากศิลปินและโชว์ต่าง ๆ",
+											"type": "text"
+										},
+										{
+											"key": "fullDetails[en]",
+											"value": "The final activity to welcome freshers. There will be special performances by artists and various shows.",
+											"type": "text"
+										},
+										{
+											"key": "shortDetails[th]",
+											"value": "คอนเสิร์ตของศิลปินดัง ที่จะมาร่วมต้อนรับและมอบความสุข ความสนุกให้กับน้องๆ",
+											"type": "text"
+										},
+										{
+											"key": "shortDetails[en]",
+											"value": "A concert featuring renowned artists who will join in welcoming and bringing joy to freshers.",
+											"type": "text"
+										},
+										{
+											"key": "type",
+											"value": "683691c2264624b78face4df",
+											"type": "text"
+										},
+										{
+											"key": "photo[bannerPhoto]",
+											"type": "file",
+											"src": "/Users/bricksocoolxd/Desktop/Screenshot 2568-06-06 at 10.10.10.png"
+										},
+										{
+											"key": "location[en]",
+											"value": "Example Hall ",
+											"type": "text"
+										},
+										{
+											"key": "location[th]",
+											"value": "Example Hall ",
+											"type": "text"
+										},
+										{
+											"key": "metadata[isOpen]",
+											"value": "true",
+											"type": "text"
+										},
+										{
+											"key": "metadata[isProgressCount]",
+											"value": "true",
+											"type": "text"
+										},
+										{
+											"key": "metadata[isVisible]",
+											"value": "true",
+											"type": "text"
+										},
+										{
+											"key": "metadata[scope][user]",
+											"value": "6847d9d285d36a547695090c",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "metadata[scope][major]",
+											"value": "682ee35d9fc8ea728d1d630f",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "metadata[scope][school]",
+											"value": "6847af9a59cfd4ce9d789347",
+											"type": "text"
+										},
+										{
+											"key": "metadata[startAt]",
+											"value": "2024-06-09T13:19:00.000Z",
+											"type": "text"
+										},
+										{
+											"key": "metadata[endAt]",
+											"value": "2026-06-03T18:00:00.000Z",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/activities",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"activities"
+									]
+								},
+								"description": "Create a new activity."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Activities",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "name[th]",
+											"value": "MFU Freshers Night",
+											"type": "text"
+										},
+										{
+											"key": "name[en]",
+											"value": "MFU Freshers Night",
+											"type": "text"
+										},
+										{
+											"key": "acronym",
+											"value": "FRESHER",
+											"type": "text"
+										},
+										{
+											"key": "fullDetails[th]",
+											"value": "ส่งท้ายกิจกรรมต้อนรับนักศึกษาใหม่อย่างสมบูรณ์ ด้วยการแสดงสุดพิเศษจากศิลปินและโชว์ต่าง ๆ",
+											"type": "text"
+										},
+										{
+											"key": "fullDetails[en]",
+											"value": "The final activity to welcome freshers. There will be special performances by artists and various shows.",
+											"type": "text"
+										},
+										{
+											"key": "shortDetails[th]",
+											"value": "คอนเสิร์ตของศิลปินดัง ที่จะมาร่วมต้อนรับและมอบความสุข ความสนุกให้กับน้องๆ",
+											"type": "text"
+										},
+										{
+											"key": "shortDetails[en]",
+											"value": "A concert featuring renowned artists who will join in welcoming and bringing joy to freshers.",
+											"type": "text"
+										},
+										{
+											"key": "type",
+											"value": "683691c2264624b78face4df",
+											"type": "text"
+										},
+										{
+											"key": "photo[bannerPhoto]",
+											"type": "file",
+											"src": "/Users/bricksocoolxd/Desktop/Screenshot 2568-06-06 at 10.10.10.png"
+										},
+										{
+											"key": "location[en]",
+											"value": "Example Hall ",
+											"type": "text"
+										},
+										{
+											"key": "location[th]",
+											"value": "Example Hall ",
+											"type": "text"
+										},
+										{
+											"key": "metadata[isOpen]",
+											"value": "true",
+											"type": "text"
+										},
+										{
+											"key": "metadata[isProgressCount]",
+											"value": "true",
+											"type": "text"
+										},
+										{
+											"key": "metadata[isVisible]",
+											"value": "true",
+											"type": "text"
+										},
+										{
+											"key": "metadata[scope][user]",
+											"value": "6847d9d285d36a547695090c",
+											"type": "text"
+										},
+										{
+											"key": "metadata[scope][major]",
+											"value": "682ee35d9fc8ea728d1d630f",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "metadata[scope][school]",
+											"value": "6847af9a59cfd4ce9d789347",
+											"type": "text"
+										},
+										{
+											"key": "metadata[startAt]",
+											"value": "2024-06-09T13:19:00.000Z",
+											"type": "text"
+										},
+										{
+											"key": "metadata[endAt]",
+											"value": "2026-06-03T18:00:00.000Z",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/activities/{{activitiesId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"activities",
+										"{{activitiesId}}"
+									]
+								},
+								"description": "Create a new activity."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Activity",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/activities/{{activityId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"activities",
+										"{{activityId}}"
+									]
+								},
+								"description": "Delete an activity by ID."
+							},
+							"response": []
+						}
+					]
+				}
+			],
+			"description": "Activity management endpoints"
+		},
+		{
+			"name": "Checkin",
+			"item": [
+				{
+					"name": "Get Checkin",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/checkin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"checkin"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Checkin by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/checkin/{{checkin}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"checkin",
+								"{{checkin}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Checkin",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user\": \"6847d9d285d36a547695090c\",     \n    \"activities\": [\"6847dfa285d36a5476950997\"] \n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/checkin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"checkin"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Checkin",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user\": \"68372afc67cc1ea56a16794a\",     \n    \"activities\": [\"6841b809e68c5463521cb3c3\"] \n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/checkin/{{checkin}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"checkin",
+								"{{checkin}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "E-Voucher",
+			"item": [
+				{
+					"name": "E-Voucher-Type",
+					"item": [
+						{
+							"name": "Get All Type",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/evoucher-type",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"evoucher-type"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create E-Voucher-Type",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Global\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/evoucher-type",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"evoucher-type"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "E-Voucher-Code",
+					"item": [
+						{
+							"name": "Get All",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/evoucher-code",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"evoucher-code"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create eVoucherCode",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user\": \"68372ae2ab0db3198dc687b3\",\n    \"evoucher\": \"68388015ba9771c44568cd2b\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/evoucher-code",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"evoucher-code"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get By Id",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/evoucher-code/{{id}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"evoucher-code",
+										"{{id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"isUsed\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/evoucher-code/{{id}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"evoucher-code",
+										"{{id}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Core",
+					"item": [
+						{
+							"name": "Create Evoucher",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "discount",
+											"value": "100",
+											"type": "text"
+										},
+										{
+											"key": "acronym",
+											"value": "LUNG",
+											"type": "text"
+										},
+										{
+											"key": "type",
+											"value": "683800854c9ec8119c2e0290",
+											"type": "text"
+										},
+										{
+											"key": "campaign",
+											"value": "683d4e6c8cf7051850cfa7f4",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "sponsors",
+											"value": "68387620a725996354121e27",
+											"type": "text"
+										},
+										{
+											"key": "detail[th]",
+											"value": "LUNG Tea & coffee",
+											"type": "text"
+										},
+										{
+											"key": "detail[en]",
+											"value": "LUNG Tea & coffee",
+											"type": "text"
+										},
+										{
+											"key": "expiration",
+											"value": "2025-12-31T23:59:59.000+00:00",
+											"type": "text"
+										},
+										{
+											"key": "photo[coverPhoto]",
+											"type": "file",
+											"src": "/Users/bricksocoolxd/Downloads/confirm-booking.png"
+										},
+										{
+											"key": "metadata",
+											"value": "",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/evoucher",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"evoucher"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Evoucher",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"discount\": 100,\n    \"acronym\": \"MENTEE\",\n    \"type\": \"683800854c9ec8119c2e0290\", // ObjectId of EvoucherType\n    \"sponsors\": \"68387620a725996354121e27\",\n    \"detail\": {\n        \"th\": \"ส่วนลด 100 บาท สำหรับสมาชิกใหม่\",\n        \"en\": \"100 THB discount for new members\"\n    },\n    \"expiration\": \"2024-12-31T23:59:59Z\",  // Required - ISO 8601 date format\n    \"photo\": {\n        \"coverPhoto\": \"https://example.com/cover.jpg\",\n        \"bannerPhoto\": \"https://example.com/banner.jpg\",\n        \"thumbnail\": \"https://example.com/thumb.jpg\",\n        \"logoPhoto\": \"https://example.com/logo.jpg\"\n    },\n    \"metadata\": {}  // Optional additional data\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/evoucher",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"evoucher"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Sponsors",
+			"item": [
+				{
+					"name": "SponsorsType",
+					"item": [
+						{
+							"name": "Create",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Normal\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/sponsors-type",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"sponsors-type"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/sponsors-type",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"sponsors-type"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Create Sponsors",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name[th]",
+									"value": "test",
+									"type": "text"
+								},
+								{
+									"key": "name[en]",
+									"value": "test",
+									"type": "text"
+								},
+								{
+									"key": "photo[logoPhoto]",
+									"type": "file",
+									"src": "/Users/bricksocoolxd/Desktop/Screenshot 2568-05-28 at 16.30.31.png"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sponsors",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sponsors"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Sponsors",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": {\n        \"th\": \"บริษัท น้ำดื่มใสใจ จำกัด\",\n        \"en\": \"Clear Heart Water Co., Ltd.\"\n    },\n    \"photo\": {\n        \"logoPhoto\": \"https://example.com/logo-clearheart.png\"\n    },\n    \"type\": \"683825b6fd563aeab632cd83\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sponsors",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sponsors"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Campaigns",
+			"item": [
+				{
+					"name": "Create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name[th]",
+									"value": "test",
+									"type": "text"
+								},
+								{
+									"key": "name[en]",
+									"value": "test",
+									"type": "text"
+								},
+								{
+									"key": "detail[th]",
+									"value": "test",
+									"type": "text"
+								},
+								{
+									"key": "detail[en]",
+									"value": "test",
+									"type": "text"
+								},
+								{
+									"key": "photo[bannerPhoto]",
+									"type": "file",
+									"src": "/Users/bricksocoolxd/Downloads/1.1.jpg"
+								},
+								{
+									"key": "status",
+									"value": "active",
+									"type": "text"
+								},
+								{
+									"key": "startAt",
+									"value": "2025-06-02T09:00:00.000Z",
+									"type": "text"
+								},
+								{
+									"key": "endAt",
+									"value": "2025-06-09T09:00:00.000Z",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/campaigns",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"campaigns"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Copy",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name[th]",
+									"value": "test",
+									"type": "text"
+								},
+								{
+									"key": "name[en]",
+									"value": "test",
+									"type": "text"
+								},
+								{
+									"key": "detail[th]",
+									"value": "test",
+									"type": "text"
+								},
+								{
+									"key": "detail[en]",
+									"value": "test",
+									"type": "text"
+								},
+								{
+									"key": "photo[bannerPhoto]",
+									"type": "file",
+									"src": "/Users/bricksocoolxd/Downloads/1.1.jpg"
+								},
+								{
+									"key": "status",
+									"value": "active",
+									"type": "text"
+								},
+								{
+									"key": "startAt",
+									"value": "2025-06-02T09:00:00.000Z",
+									"type": "text"
+								},
+								{
+									"key": "endAt",
+									"value": "2025-06-09T09:00:00.000Z",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/campaigns",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"campaigns"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Report",
+			"item": [
+				{
+					"name": "Category",
+					"item": [
+						{
+							"name": "Create Category",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\" : {\n        \"th\": \"gfgdfg\",\n        \"en\": \"dfsfsdffs\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/categories",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"categories"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Create Report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reporter\": \"68372afc67cc1ea56a16794a\",\n    \"category\": \"683d5c4641646dd55c2b734e\",\n    \"message\": \"fsdfsdfsdfsdfsd\",\n    \"status\": \"Pending\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/reports",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"reports"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Find All Report",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reporter\": \"68372afc67cc1ea56a16794a\",\n    \"category\": \"683d5c4641646dd55c2b734e\",\n    \"message\": \"fsdfsdfsdfsdfsd\",\n    \"status\": \"Pending\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/reports",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"reports"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Appearances",
+			"item": [
+				{
+					"name": "New Request",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "school",
+									"value": "68399842f6dc6a0223292208",
+									"type": "text"
+								},
+								{
+									"key": "colors[primary]",
+									"value": "#FF0000",
+									"type": "text"
+								},
+								{
+									"key": "colors[secondary]",
+									"value": "#00FF00",
+									"type": "text"
+								},
+								{
+									"key": "colors[accent]",
+									"value": "#0000FF",
+									"type": "text"
+								},
+								{
+									"key": "assets[logo]",
+									"type": "file",
+									"src": [
+										"/Users/bricksocoolxd/Desktop/Screenshot 2568-05-28 at 16.30.31.png",
+										"/Users/bricksocoolxd/Desktop/Screenshot 2568-05-28 at 16.30.31.png"
+									]
+								},
+								{
+									"key": "assets[banner]",
+									"type": "file",
+									"src": [
+										"/Users/bricksocoolxd/Desktop/Screenshot 2568-05-28 at 16.30.31.png",
+										"/Users/bricksocoolxd/Desktop/Screenshot 2568-05-28 at 16.30.31.png"
+									]
+								},
+								{
+									"key": "assets[favicon]",
+									"type": "file",
+									"src": [
+										"/Users/bricksocoolxd/Desktop/Screenshot 2568-05-28 at 16.30.31.png",
+										"/Users/bricksocoolxd/Desktop/Screenshot 2568-05-28 at 16.30.31.png"
+									]
+								},
+								{
+									"key": "assets[spiderManIcon]",
+									"type": "file",
+									"src": [
+										"/Users/bricksocoolxd/Desktop/Screenshot 2568-05-28 at 16.30.31.png",
+										"/Users/bricksocoolxd/Desktop/Screenshot 2568-05-28 at 16.30.31.png"
+									],
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/appearances",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"appearances"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

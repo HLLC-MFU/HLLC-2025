@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { CreateAssessmentDto } from '../dto/assessments/create-assessment.dto';
 import { UpdateAssessmentDto } from '../dto/assessments/update-assessment.dto';
 import { AssessmentsService } from '../service/assessments.service';
@@ -6,12 +16,11 @@ import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 
-
 @UseGuards(PermissionsGuard)
 @ApiTags('assessments')
 @Controller('assessments')
 export class AssessmentsController {
-  constructor(private readonly assessmentsService: AssessmentsService) { }
+  constructor(private readonly assessmentsService: AssessmentsService) {}
 
   @Post()
   @Permissions('assessments:create')
@@ -33,7 +42,10 @@ export class AssessmentsController {
 
   @Patch(':id')
   @Permissions('assessments:update')
-  update(@Param('id') id: string, @Body() updateAssessmentDto: UpdateAssessmentDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateAssessmentDto: UpdateAssessmentDto,
+  ) {
     return this.assessmentsService.update(id, updateAssessmentDto);
   }
 
