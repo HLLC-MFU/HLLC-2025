@@ -12,7 +12,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { CacheKey } from '@nestjs/cache-manager';
 import { Notification } from './schemas/notification.schema';
 import { ReadNotificationDto } from './dto/read-notification.dto';
 import { CreateNotificationDto } from './dto/create-notification.dto';
