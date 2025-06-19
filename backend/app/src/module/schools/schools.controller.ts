@@ -56,7 +56,6 @@ export class SchoolsController {
     return this.schoolsService.remove(id);
   }
 
-
   @Get(':id/appearances')
   findAppearance(
     @Param('id') id: string,
@@ -65,7 +64,6 @@ export class SchoolsController {
     console.log('findOne Appearance', id);
     return this.schoolsService.findColor(id, query);
   }
-
 
   @Get(':id/interfaces')
   findInterfaces(
