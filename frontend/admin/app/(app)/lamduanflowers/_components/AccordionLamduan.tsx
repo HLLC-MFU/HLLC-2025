@@ -154,7 +154,7 @@ export default function AccordionLamduan({
                     <ModalBody className="flex flex-col items-center gap-4">
                         {viewModalFlower?.photo && (
                             <img
-                                src={`http://localhost:8080/api/uploads/${viewModalFlower.photo}`}
+                                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${viewModalFlower.photo}`}
                                 alt="User Photo"
                                 className="rounded-xl object-contain max-h-80 w-full bg-white"
                             />

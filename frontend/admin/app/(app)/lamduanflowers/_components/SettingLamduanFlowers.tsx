@@ -42,7 +42,7 @@ export function LamduanFlowersSetting({
     }
 
     setFile(null);
-    setPreview(`http://localhost:8080/api/uploads/${data.tutorialPhoto}`);
+    setPreview(`${process.env.NEXT_PUBLIC_API_URL}/uploads/${data.tutorialPhoto}`);
     setVideoLink(data.tutorialVideo);
     setStartDate(data.startAt?.split("T")[0] || "");
     setEndDate(data.endAt?.split("T")[0] || "");
