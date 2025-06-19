@@ -7,8 +7,8 @@ interface UseAppearanceColorsProps {
 
 export function useAppearanceColors({ appearance }: UseAppearanceColorsProps) {
     const [colorDrafts, setColorDrafts] = useState<Record<string, string>>({
-        primary: appearance?.colors.primary ?? "#3b82f6",
-        secondary: appearance?.colors.secondary ?? "#8b5cf6",
+        primary: appearance?.colors?.primary ?? "#3b82f6",
+        secondary: appearance?.colors?.secondary ?? "#8b5cf6",
     });
 
     const handleColorChange = (key: string, value: string) => {
