@@ -5,25 +5,30 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { School, SchoolDocument } from './schemas/school.schema';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import {
   queryAll,
   queryFindOne,
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
-import {
-  Appearance,
-  AppearanceDocument,
+import { 
+  Appearance, 
+  AppearanceDocument, 
 } from '../appearances/schemas/apprearance.schema';
+import { 
+  Interfaces, 
+  InterfacesDocument,
+} from '../interfaces/schema/interfaces.schema';
 
 @Injectable()
 export class SchoolsService {
   constructor(
     @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
-    @InjectModel(Appearance.name)
+    @InjectModel(Appearance.name) 
     private AppearanceModel: Model<AppearanceDocument>,
-  ) {}
+    @InjectModel(Interfaces.name) 
+    private InterfacesModel: Model<InterfacesDocument>,
+  ) { }
 
   async create(createSchoolDto: CreateSchoolDto) {
     await throwIfExists(
@@ -71,6 +76,14 @@ export class SchoolsService {
       this.AppearanceModel,
       { school: schoolId },
       [{ path: 'school' }],
+    );
+  }
+
+  async findInterfaces(schoolId: string) {
+    return queryFindOne<Interfaces>(
+      this.InterfacesModel,
+      { school: schoolId },
+      [{ path: 'school' }]
     );
   }
 }
