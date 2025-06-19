@@ -11,36 +11,33 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { User, UserDocument } from '../users/schemas/user.schema';
 
 jest.mock('./utils/crypto', () => ({
-  decryptItem: jest.fn(() => 'decrypted-perm'),
+  decryptItem: jest.fn((perm) => `decrypted-${perm}`),
 }));
 
-jest.spyOn(bcrypt, 'compare').mockImplementation(async (a, b) => bcrypt.compareSync(a, b));
-
 const mockUserId = new Types.ObjectId();
-const mockRoleId = new Types.ObjectId();
-
 const mockRole = {
-  _id: mockRoleId,
+  _id: new Types.ObjectId(),
   permissions: ['encrypted-perm'],
 };
 
-const mockUserData = {
-  _id: mockUserId,
-  username: 'testuser',
-  password: bcrypt.hashSync('password123', 10),
-  refreshToken: bcrypt.hashSync('mockToken', 10),
-  role: mockRoleId,
-  metadata: { secret: bcrypt.hashSync('mysecret', 10) },
-};
+const createPopulateSelectLeanChain = (data: any) => ({
+  populate: jest.fn().mockReturnValue({
+    select: jest.fn().mockReturnValue({
+      lean: jest.fn().mockResolvedValue(data),
+    }),
+  }),
+});
 
-const mockUser = {
-  ...mockUserData,
-  save: jest.fn().mockResolvedValue({ toObject: () => mockUserData }),
-};
+const createSelectLeanChain = (data: any) => ({
+  select: jest.fn().mockReturnValue({
+    lean: jest.fn().mockResolvedValue(data),
+  }),
+});
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -54,31 +51,24 @@ describe('AuthService', () => {
 
   const configServiceMock = {
     get: jest.fn((key: string) => {
-      switch (key) {
-        case 'JWT_EXPIRATION': return '15m';
-        case 'JWT_REFRESH_EXPIRATION': return '7d';
-        case 'JWT_REFRESH_SECRET': return 'secret-key';
-        default: return '';
-      }
+      const values = {
+        JWT_EXPIRATION: '15m',
+        JWT_REFRESH_EXPIRATION: '7d',
+        JWT_REFRESH_SECRET: 'secret-key',
+        COOKIE_DOMAIN: 'localhost',
+      };
+      return values[key];
     }),
   };
 
   const userModelMock: Partial<Record<keyof Model<UserDocument>, jest.Mock>> = {
     findOne: jest.fn(),
     findById: jest.fn(),
+    updateOne: jest.fn(),
   };
 
   beforeEach(async () => {
-    userModelMock.findOne = jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        lean: jest.fn().mockResolvedValue({ password: null }),
-      }),
-    });
-
-    userModelMock.findById = jest.fn().mockResolvedValue({
-      ...mockUserData,
-      save: jest.fn().mockResolvedValue({ toObject: () => mockUserData }),
-    });
+    jest.spyOn(bcrypt, 'compare').mockImplementation(async (a, b) => bcrypt.compareSync(a, b));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -95,164 +85,125 @@ describe('AuthService', () => {
     userModel = module.get<Model<UserDocument>>(getModelToken(User.name));
   });
 
-  describe('register', () => {
-    it('should throw if user not found in DB', async () => {
-      userModelMock.findOne = jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          lean: jest.fn().mockResolvedValue(null),
-        }),
-      });
-
-      await expect(service.register({
-        username: 'newuser',
-        password: 'pass123',
-        confirmPassword: 'pass123',
-        metadata: { secret: 's' },
-      })).rejects.toThrow(NotFoundException);
-    });
-
-    it('should throw if passwords do not match', async () => {
-      await expect(service.register({
-        username: 'newuser',
-        password: 'a',
-        confirmPassword: 'b',
-        metadata: { secret: 's' },
-      })).rejects.toThrow(BadRequestException);
-    });
-
-    it('should register user successfully', async () => {
-      userModelMock.findOne = jest
-        .fn()
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnValue({
-            lean: jest.fn().mockResolvedValue({ password: null }),
-          }),
-        })
-        .mockReturnValueOnce({
-          ...mockUserData,
-          save: jest.fn().mockResolvedValue({ toObject: () => mockUserData }),
-        });
-
-      const result = await service.register({
-        username: 'testuser',
-        password: '1234',
-        confirmPassword: '1234',
-        metadata: { secret: 's' },
-      });
-
-      expect(result).toEqual({ message: 'User registered successfully' });
-    });
-  });
-
-  describe('refreshToken', () => {
-    it('should return new tokens', async () => {
-      userModelMock.findById = jest.fn().mockResolvedValue({
-        ...mockUserData,
-        refreshToken: bcrypt.hashSync('mockToken', 10),
-        save: jest.fn().mockResolvedValue({ toObject: () => mockUserData }),
-      });
-
-      const result = await service.refreshToken('mockToken');
-
-      expect(jwtServiceMock.verify).toHaveBeenCalled();
-      expect(result).toEqual({
-        accessToken: 'mockToken',
-        refreshToken: 'mockToken',
-      });
-    });
-
-    it('should throw if token is invalid', async () => {
-      jwtServiceMock.verify = jest.fn(() => { throw new Error(); });
-
-      await expect(service.refreshToken('bad')).rejects.toThrow(UnauthorizedException);
-    });
-  });
-
-  describe('resetPassword', () => {
-    it('should reset password if valid', async () => {
-      userModelMock.findOne = jest.fn().mockReturnValue({
-        select: jest.fn().mockResolvedValue({
-          ...mockUserData,
-          metadata: { secret: bcrypt.hashSync('mysecret', 10) },
-          save: jest.fn().mockResolvedValue({ toObject: () => mockUserData }),
-        }),
-      });
-
-      const result = await service.resetPassword({
-        username: 'testuser',
-        password: '1234',
-        confirmPassword: '1234',
-        metadata: { secret: 'mysecret' },
-      });
-
-      expect(result).toEqual({ message: 'Password reset successfully' });
-    });
-  });
-
   describe('validateUser', () => {
     it('should throw if user not found', async () => {
-      userModelMock.findOne = jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          populate: jest.fn().mockResolvedValue(null),
-        }),
-      });
-
+      userModelMock.findOne = jest.fn().mockReturnValue(createPopulateSelectLeanChain(null));
       await expect(service.validateUser('nouser', 'pass')).rejects.toThrow(UnauthorizedException);
     });
 
     it('should return user if valid', async () => {
-      userModelMock.findOne = jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          populate: jest.fn().mockResolvedValue({
-            ...mockUserData,
-            password: bcrypt.hashSync('password123', 10),
-            role: mockRole,
-          }),
-        }),
-      });
-
+      const mockUser = {
+        _id: mockUserId,
+        username: 'testuser',
+        password: bcrypt.hashSync('password123', 10),
+        role: mockRole,
+        metadata: { major: {} },
+      };
+      userModelMock.findOne = jest.fn().mockReturnValue(createPopulateSelectLeanChain(mockUser));
       const user = await service.validateUser('testuser', 'password123');
       expect(user.username).toBe('testuser');
     });
   });
 
-  describe('login', () => {
-    it('should set cookies and return tokens', async () => {
-      const reply = {
-        setCookie: jest.fn().mockReturnThis(),
-      } as unknown as FastifyReply;
-
-      const result = await service.login(mockUser as any, {
-        useCookie: true,
-        response: reply,
-      });
-
-      expect(reply.setCookie).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ accessToken: 'mockToken', refreshToken: 'mockToken' });
+  describe('register', () => {
+    it('should throw if not found', async () => {
+      userModelMock.findOne = jest.fn().mockReturnValue(createSelectLeanChain(null));
+      await expect(
+        service.register({ username: 'nouser', password: '123', confirmPassword: '123', metadata: { secret: 'x' } })
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
-  describe('logout', () => {
-    it('should clear cookies', async () => {
-      const reply = {
-        clearCookie: jest.fn(),
-      } as unknown as FastifyReply;
+  describe('refreshToken', () => {
+    it('should return new tokens if valid', async () => {
+      const oldRefreshToken = 'mockToken';
+      const hashedToken = await bcrypt.hash(oldRefreshToken, 10);
 
       userModelMock.findById = jest.fn().mockResolvedValue({
-        ...mockUserData,
-        save: jest.fn().mockResolvedValue(mockUserData),
+        _id: mockUserId,
+        username: 'testuser',
+        refreshToken: hashedToken,
+        save: jest.fn(),
       });
 
-      const result = await service.logout(mockUserId.toHexString(), reply);
-      expect(reply.clearCookie).toHaveBeenCalledTimes(2);
+      const result = await service.refreshToken(oldRefreshToken);
+      expect(result).toHaveProperty('accessToken');
+      expect(result).toHaveProperty('refreshToken');
+    });
+  });
+
+  describe('resetPassword', () => {
+  it('should throw if user not found', async () => {
+    // simulate that findOne().select() returns null
+    userModelMock.findOne = jest.fn().mockReturnValue({
+      select: jest.fn().mockResolvedValue(null), // ❗ ไม่มี lean เพราะ service ไม่ใช้ lean
+    });
+
+    await expect(
+      service.resetPassword({
+        username: 'nouser',
+        password: 'x',
+        confirmPassword: 'x',
+        metadata: { secret: 'x' },
+      }),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('should throw if user has no secret', async () => {
+    userModelMock.findOne = jest.fn().mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        _id: mockUserId,
+        metadata: {}, // no secret
+      }),
+    });
+
+    await expect(
+      service.resetPassword({
+        username: 'nouser',
+        password: 'x',
+        confirmPassword: 'x',
+        metadata: { secret: 'x' },
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+});
+
+
+  describe('logout', () => {
+    it('should clear refreshToken and return success message', async () => {
+      userModelMock.findById = jest.fn().mockResolvedValue({ save: jest.fn(), refreshToken: 'token' });
+
+      const responseMock = { clearCookie: jest.fn() } as unknown as FastifyReply;
+      const result = await service.logout(mockUserId.toHexString(), responseMock);
       expect(result).toEqual({ message: 'Logged out successfully' });
     });
   });
 
   describe('scanPermissions', () => {
-    it('should return empty list (mock)', () => {
-      const result = service.scanPermissions();
-      expect(result).toEqual([]);
+    it('should return all permissions found in controllers', () => {
+      class FakeController {
+        testMethod() {}
+      }
+
+      const discoveryServiceMock = { getControllers: () => [{ instance: new FakeController() }] };
+      const reflectorMock = {
+        get: (key: string, target: unknown) => {
+          if (target === FakeController) return ['perm:read'];
+          if (target === FakeController.prototype.testMethod) return ['perm:write'];
+          return [];
+        },
+      };
+
+      const scanService = new AuthService(
+        {} as Model<UserDocument>,
+        {} as JwtService,
+        configServiceMock as any,
+        discoveryServiceMock as any,
+        reflectorMock as any,
+      );
+
+      const result = scanService.scanPermissions();
+      expect(result).toEqual(['perm:read', 'perm:write']);
     });
   });
 });

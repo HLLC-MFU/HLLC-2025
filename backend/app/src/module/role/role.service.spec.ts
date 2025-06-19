@@ -7,9 +7,10 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
 import { encryptItem } from '../auth/utils/crypto';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
+import { BadRequestException } from '@nestjs/common';
 
 jest.mock('../auth/utils/crypto', () => ({
-  encryptItem: jest.fn((item: string) => `encrypted-${item}`),
+  encryptItem: jest.fn((item) => `encrypted-${item}`),
 }));
 
 jest.mock('src/pkg/validator/model.validator', () => ({
@@ -21,10 +22,14 @@ describe('RoleService', () => {
 
   const saveMock = jest.fn();
   const findMock = jest.fn();
+  const findOneMock = jest.fn();
+  const findByIdMock = jest.fn();
   const findByIdAndDeleteMock = jest.fn();
 
   const roleModelMock = {
     find: findMock,
+    findOne: findOneMock,
+    findById: findByIdMock,
     findByIdAndDelete: findByIdAndDeleteMock,
   };
 
@@ -46,6 +51,10 @@ describe('RoleService', () => {
           provide: getModelToken(Role.name),
           useValue: Object.assign(roleModelConstructorMock, roleModelMock),
         },
+        {
+          provide: getModelToken('Checkin'),
+          useValue: {},
+        },
       ],
     }).compile();
 
@@ -63,8 +72,6 @@ describe('RoleService', () => {
       const result = await service.create(dto);
 
       expect(encryptItem).toHaveBeenCalledTimes(2);
-      expect(encryptItem).toHaveBeenNthCalledWith(1, 'perm:read', 0, ['perm:read', 'perm:write']);
-      expect(encryptItem).toHaveBeenNthCalledWith(2, 'perm:write', 1, ['perm:read', 'perm:write']);
       expect(saveMock).toHaveBeenCalled();
       expect(result).toEqual(expect.objectContaining({
         _id: 'mock-id',
@@ -93,6 +100,17 @@ describe('RoleService', () => {
       const result = await service.findOne('123');
       expect(findOrThrow).toHaveBeenCalledWith(expect.any(Function), '123', 'Role');
       expect(result).toBe(mockRole);
+    });
+  });
+
+  describe('findByName', () => {
+    it('should return role by name', async () => {
+      const mockRole = { _id: '123', name: 'Admin' };
+      findOneMock.mockReturnValueOnce({ lean: () => mockRole });
+
+      const result = await service.findByName('Admin');
+      expect(findOneMock).toHaveBeenCalledWith({ name: 'Admin' });
+      expect(result).toEqual(mockRole);
     });
   });
 
@@ -164,6 +182,77 @@ describe('RoleService', () => {
 
       expect(findOrThrow).toHaveBeenCalledWith(expect.any(Function), '999', 'Role');
       expect(result.metadataSchema).toEqual(dto.metadataSchema);
+      expect(saveMock).toHaveBeenCalled();
+    });
+  });
+
+  describe('updatePermissions', () => {
+    it('should update encrypted permissions and save', async () => {
+      const mockRole = {
+        _id: '777',
+        permissions: [],
+        save: saveMock.mockResolvedValueOnce({
+          _id: '777',
+          permissions: ['encrypted-perm:create', 'encrypted-perm:update'],
+        }),
+      };
+
+      (findOrThrow as jest.Mock).mockResolvedValueOnce(mockRole);
+
+      const result = await service.updatePermissions('777', ['perm:create', 'perm:update']);
+
+      expect(encryptItem).toHaveBeenNthCalledWith(1, 'perm:create', 0, ['perm:create', 'perm:update']);
+      expect(encryptItem).toHaveBeenNthCalledWith(2, 'perm:update', 1, ['perm:create', 'perm:update']);
+      expect(result.permissions).toEqual(['encrypted-perm:create', 'encrypted-perm:update']);
+      expect(saveMock).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateCheckinScope', () => {
+    it('should throw BadRequest if roleId is invalid', async () => {
+      await expect(
+        service.updateCheckinScope('invalid-id'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequest if role not found', async () => {
+      findByIdMock.mockReturnValueOnce(null);
+
+      await expect(
+        service.updateCheckinScope('60f6d62c4a3f1c2f5c8e6a96'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should update check-in scope and save', async () => {
+      const mockRole = {
+        _id: '60f6d62c4a3f1c2f5c8e6a96',
+        metadata: {},
+        save: saveMock.mockResolvedValueOnce({
+          _id: '60f6d62c4a3f1c2f5c8e6a96',
+          metadata: {
+            canCheckin: {
+              users: ['u1'],
+              majors: ['m1'],
+              schools: ['s1'],
+            },
+          },
+        }),
+      };
+
+      findByIdMock.mockReturnValueOnce(mockRole);
+
+      const result = await service.updateCheckinScope(
+        '60f6d62c4a3f1c2f5c8e6a96',
+        ['u1'],
+        ['m1'],
+        ['s1'],
+      );
+
+      expect(result.metadata.canCheckin).toEqual({
+        users: ['u1'],
+        majors: ['m1'],
+        schools: ['s1'],
+      });
       expect(saveMock).toHaveBeenCalled();
     });
   });

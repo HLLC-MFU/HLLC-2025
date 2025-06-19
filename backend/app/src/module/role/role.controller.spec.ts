@@ -4,6 +4,8 @@ import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+
 
 describe('RoleController', () => {
   let controller: RoleController;
@@ -25,6 +27,14 @@ describe('RoleController', () => {
         {
           provide: RoleService,
           useValue: mockRoleService,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn(),
+          },
         },
       ],
     }).compile();

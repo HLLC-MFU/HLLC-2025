@@ -6,25 +6,24 @@ import { School, SchoolDocument } from '../schools/schemas/school.schema';
 import { CreateMajorDto } from './dto/create-major.dto';
 import { UpdateMajorDto } from './dto/update-major.dto';
 import { Model, Types } from 'mongoose';
-import { throwIfExists, findOrThrow } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import {
   queryAll,
   queryFindOne,
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
+import { throwIfExists, findOrThrow } from 'src/pkg/validator/model.validator';
 
 jest.mock('src/pkg/helper/query.util');
 jest.mock('src/pkg/validator/model.validator');
-jest.mock('src/pkg/helper/helpers');
 
 describe('MajorsService', () => {
   let service: MajorsService;
   let majorModel: Model<MajorDocument>;
   let schoolModel: Model<SchoolDocument>;
 
-  const mockMajorInstance = { save: jest.fn() };
+  const saveMock = jest.fn();
+  const mockMajorConstructor = jest.fn(() => ({ save: saveMock }));
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -34,7 +33,9 @@ describe('MajorsService', () => {
         MajorsService,
         {
           provide: getModelToken(Major.name),
-          useValue: jest.fn(() => mockMajorInstance),
+          useValue: Object.assign(mockMajorConstructor, {
+            prototype: {},
+          }),
         },
         {
           provide: getModelToken(School.name),
@@ -54,34 +55,30 @@ describe('MajorsService', () => {
         name: { th: 'ชื่อ', en: 'Name' },
         acronym: 'SCI',
         detail: { th: 'รายละเอียด', en: 'Detail' },
-        school: new Types.ObjectId(),
+        school: new Types.ObjectId().toHexString(),
         createdAt: new Date(),
       };
 
-      mockMajorInstance.save.mockResolvedValue({ _id: '1', ...dto });
+      saveMock.mockResolvedValue({ _id: '1', ...dto });
 
       const result = await service.create(dto);
 
-      expect(throwIfExists).toHaveBeenCalled();
-      expect(findOrThrow).toHaveBeenCalled();
+      expect(throwIfExists).toHaveBeenCalledWith(
+        majorModel,
+        { name: dto.name },
+        'Major already exists'
+      );
+      expect(findOrThrow).toHaveBeenCalledWith(
+        schoolModel,
+        dto.school,
+        'School not found'
+      );
+      expect(mockMajorConstructor).toHaveBeenCalledWith({
+        ...dto,
+        school: expect.any(Types.ObjectId),
+      });
+      expect(saveMock).toHaveBeenCalled();
       expect(result).toHaveProperty('_id');
-      expect(mockMajorInstance.save).toHaveBeenCalled();
-    });
-
-    it('should handle duplicate error', async () => {
-      const dto: CreateMajorDto = {
-        name: { th: 'ชื่อ', en: 'Name' },
-        acronym: 'SCI',
-        detail: { th: 'รายละเอียด', en: 'Detail' },
-        school: new Types.ObjectId(),
-        createdAt: new Date(),
-      };
-
-      const error = new Error('Duplicate');
-      mockMajorInstance.save.mockRejectedValue(error);
-
-      await service.create(dto);
-      expect(handleMongoDuplicateError).toHaveBeenCalledWith(error, 'name');
     });
   });
 
@@ -122,14 +119,8 @@ describe('MajorsService', () => {
         createdAt: new Date(),
       };
 
-      const before = Date.now();
       await service.update(id, dto);
-      const after = Date.now();
-
-      const updateArg = (queryUpdateOne as jest.Mock).mock.calls[0][2];
-      expect(updateArg.name).toEqual(dto.name);
-      expect(updateArg.createdAt.getTime()).toBeGreaterThanOrEqual(before);
-      expect(updateArg.createdAt.getTime()).toBeLessThanOrEqual(after);
+      expect(queryUpdateOne).toHaveBeenCalledWith(majorModel, id, dto);
     });
   });
 

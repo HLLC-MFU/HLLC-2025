@@ -9,7 +9,6 @@ import {
   queryAll,
 } from 'src/pkg/helper/query.util';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { UpdateReportTypeDto } from '../dto/reports-type/update-type.dto';
 
 @Injectable()

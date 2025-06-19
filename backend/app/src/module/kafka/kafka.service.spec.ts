@@ -1,6 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { KafkaService } from './kafka.service';
-import { Kafka, Consumer, KafkaMessage, EachMessagePayload, ConsumerRunConfig } from 'kafkajs';
+import {
+  Kafka,
+  Consumer,
+  KafkaMessage,
+  EachMessagePayload,
+  ConsumerRunConfig,
+} from 'kafkajs';
 
 jest.mock('kafkajs');
 
@@ -49,17 +55,17 @@ describe('KafkaService', () => {
   });
 
   describe('registerHandler', () => {
-    it('should register handler before start', async () => {
+    it('should register handler before start', () => {
       const handler = jest.fn().mockResolvedValue(undefined);
-      await service.registerHandler('test-topic', handler);
+      service.registerHandler('test-topic', handler);
       expect((service as any).handlers.get('test-topic')).toBe(handler);
     });
 
-    it('should throw if registering after start', async () => {
+    it('should throw if registering after start', () => {
       (service as any).hasStarted = true;
-      await expect(
-        service.registerHandler('late-topic', async () => {}),
-      ).rejects.toThrow('Cannot register after Kafka consumer started');
+      expect(() => {
+        service.registerHandler('late-topic', async () => {});
+      }).toThrowError(new Error('Cannot register after Kafka consumer started'));
     });
   });
 
@@ -70,7 +76,7 @@ describe('KafkaService', () => {
         payloadReceived.push(payload);
       });
 
-      await service.registerHandler('my-topic', handler);
+      service.registerHandler('my-topic', handler);
 
       let eachMessageHandler: ((payload: EachMessagePayload) => Promise<void>) | undefined;
 
@@ -122,7 +128,7 @@ describe('KafkaService', () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const handler = jest.fn();
 
-      await service.registerHandler('bad-json-topic', handler);
+      service.registerHandler('bad-json-topic', handler);
 
       mockConsumer.run.mockImplementationOnce(async (config: ConsumerRunConfig) => {
         await config.eachMessage?.({

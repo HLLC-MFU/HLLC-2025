@@ -103,16 +103,6 @@ describe('UsersService', () => {
     });
   });
 
-  describe('findAllByQuery()', () => {
-    it('should return users filtered by school ID', async () => {
-      const schoolId = new Types.ObjectId().toHexString();
-      (majorModel.find as jest.Mock).mockReturnValue({ select: () => ({ lean: () => [{ _id: mockMajorId }] }) });
-      (queryAll as jest.Mock).mockResolvedValue({ data: [] });
-      const result = await service.findAllByQuery({ school: schoolId });
-      expect(Array.isArray(result.data)).toBe(true);
-    });
-  });
-
   describe('findOne()', () => {
     it('should call queryFindOne with id', async () => {
       const id = mockUserId.toHexString();

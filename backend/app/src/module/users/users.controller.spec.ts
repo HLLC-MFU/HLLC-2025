@@ -6,6 +6,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Types } from 'mongoose';
+import { ActivitiesService } from '../activities/services/activities.service';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -26,11 +27,16 @@ describe('UsersController', () => {
     removeDeviceToken: jest.fn(),
   };
 
+  const mockActivitiesService = {
+    // mock only if used in controller, otherwise keep empty
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
       providers: [
         { provide: UsersService, useValue: mockService },
+        { provide: ActivitiesService, useValue: mockActivitiesService },
         {
           provide: CACHE_MANAGER,
           useValue: {
@@ -80,14 +86,6 @@ describe('UsersController', () => {
       const query = { role: 'admin' };
       await controller.findAll(query);
       expect(service.findAll).toHaveBeenCalledWith(query);
-    });
-  });
-
-  describe('findAllByQuery()', () => {
-    it('should call service.findAllByQuery with query', async () => {
-      const query = { school: 'id' };
-      await controller.findAllByQuery(query);
-      expect(service.findAllByQuery).toHaveBeenCalledWith(query);
     });
   });
 

@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ActivitiesController } from './activities.controller';
-import { ActivitiesService } from './activities.service';
-import { CreateActivitiesDto } from './dto/create-activities.dto';
-import { UpdateActivityDto } from './dto/update-activities.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ActivitiesController } from '../controllers/activities.controller';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { FastifyRequest } from 'fastify';
+import { ActivitiesService } from '../services/activities.service';
+import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
+import { UpdateActivityDto } from '../dto/activities/update-activities.dto';
 
-// 👇 Helper type เพื่อ mock Request ที่มี user แบบ FastifyRequest
+//  Helper type เพื่อ mock Request ที่มี user แบบ FastifyRequest
 type MockedUserRequest<T = any> = FastifyRequest & {
   user: {
     _id: string;
@@ -102,29 +102,22 @@ describe('ActivitiesController', () => {
   });
 
   describe('findAll', () => {
-    it('should return all activities for user', async () => {
-      const query = {};
-      const req: MockedUserRequest = {
-        user: mockUser,
-      } as Pick<FastifyRequest, 'body' | 'user'> & MockedUserRequest<CreateActivitiesDto>
-
-      const result = await controller.findAll(query, req);
-      expect(service.findAll).toHaveBeenCalledWith(query, mockUser);
-      expect(result).toEqual([mockActivity]);
-    });
+  it('should return all activities for user', async () => {
+    const query = {};
+    const result = await controller.findAll(query);
+    expect(service.findAll).toHaveBeenCalledWith(query);
+    expect(result).toEqual([mockActivity]);
   });
+});
 
-  describe('findOne', () => {
-    it('should return single activity by id', async () => {
-      const req: MockedUserRequest = {
-        user: mockUser,
-      } as Pick<FastifyRequest, 'body' | 'user'> & MockedUserRequest<CreateActivitiesDto>
-
-      const result = await controller.findOne('activityId123', req);
-      expect(service.findOne).toHaveBeenCalledWith('activityId123', 'user123');
-      expect(result).toEqual(mockActivity);
-    });
+describe('findOne', () => {
+  it('should return single activity by id', async () => {
+    const result = await controller.findOne('activityId123');
+    expect(service.findOne).toHaveBeenCalledWith('activityId123');
+    expect(result).toEqual(mockActivity);
   });
+});
+
 
   describe('update', () => {
     it('should update activity with given dto', async () => {

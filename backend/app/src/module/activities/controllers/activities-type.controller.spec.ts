@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ActivitiesTypeController } from './activities-type.controller';
-import { ActivitiesTypeService } from './activities-type.service';
-import { CreateActivitiesTypeDto } from './dto/create-activities-type.dto';
-import { UpdateActivitiesTypeDto } from './dto/update-activities-type.dto';
+import { ActivitiesTypeService } from '../services/activities-type.service';
+import { CreateActivitiesTypeDto } from '../dto/activities-type/create-activities-type.dto';
+import { UpdateActivitiesTypeDto } from '../dto/activities-type/update-activities-type.dto';
 import { Types } from 'mongoose';
 
 describe('ActivitiesTypeController', () => {

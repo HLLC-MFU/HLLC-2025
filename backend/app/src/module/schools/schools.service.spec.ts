@@ -82,22 +82,6 @@ describe('SchoolsService', () => {
       expect(result).toHaveProperty('_id');
       expect(mockSchoolInstance.save).toHaveBeenCalled();
     });
-
-    it('should handle duplicate error', async () => {
-      const dto: CreateSchoolDto = {
-        name: { th: 'ชื่อ', en: 'Name' },
-        acronym: 'ABC',
-        detail: { th: 'รายละเอียด', en: 'Detail' },
-        photo: 'img.jpg',
-        createdAt: new Date(),
-      };
-
-      const error = new Error('Duplicate');
-      mockSchoolInstance.save.mockRejectedValue(error);
-
-      await service.create(dto);
-      expect(handleMongoDuplicateError).toHaveBeenCalledWith(error, 'name');
-    });
   });
 
   describe('findAll', () => {

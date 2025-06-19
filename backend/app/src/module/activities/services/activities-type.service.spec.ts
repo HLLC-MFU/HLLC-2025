@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ActivitiesTypeService } from './activities-type.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { ActivitiesType, ActivitiesTypeDocument } from './schema/activitiesType.schema';
+import { ActivitiesType, ActivitiesTypeDocument } from '../schemas/activitiesType.schema';
 import { Model, Types } from 'mongoose';
-import { CreateActivitiesTypeDto } from './dto/create-activities-type.dto';
-import { UpdateActivitiesTypeDto } from './dto/update-activities-type.dto';
+import { CreateActivitiesTypeDto } from '../dto/activities-type/create-activities-type.dto';
+import { UpdateActivitiesTypeDto } from '../dto/activities-type/update-activities-type.dto';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import {
