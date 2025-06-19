@@ -1,6 +1,7 @@
 import { Lang } from "./lang"
 
 export type Checkin = {
+  status: string;
   _id: string;
   user: User;
   staff: string;

@@ -7,7 +7,6 @@ import { Major, MajorDocument } from './schemas/major.schema';
 import { School } from '../schools/schemas/school.schema';
 import { SchoolDocument } from '../schools/schemas/school.schema';
 import { findOrThrow, throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { Types } from 'mongoose';
 import {
   queryAll,
@@ -41,11 +40,7 @@ export class MajorsService {
       school: new Types.ObjectId(createMajorDto.school),
     });
 
-    try {
-      return await major.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
+    return await major.save();
   }
 
   async findAll(query: Record<string, string>) {

@@ -1,22 +1,28 @@
-import { Injectable } from "@nestjs/common";
-import { EachMessagePayload, Kafka } from "kafkajs";
+import { Injectable } from '@nestjs/common';
+import { EachMessagePayload, Kafka } from 'kafkajs';
 import { KAFKA_CONFIG } from './kafka.constant';
 
 @Injectable()
 export class KafkaService {
-	private hasStarted = false;
+  private hasStarted = false;
 
-	private readonly kafka = new Kafka({
-		clientId: KAFKA_CONFIG.CLIENT_ID,
-		brokers: KAFKA_CONFIG.BROKERS,
-	});
+  private readonly kafka = new Kafka({
+    clientId: KAFKA_CONFIG.CLIENT_ID,
+    brokers: KAFKA_CONFIG.BROKERS,
+  });
 
-	private readonly consumer = this.kafka.consumer({ groupId: KAFKA_CONFIG.GROUP_ID });
+  private readonly consumer = this.kafka.consumer({
+    groupId: KAFKA_CONFIG.GROUP_ID,
+  });
 
-	private readonly handlers = new Map<string, (payload: any) => Promise<void>>();
+  private readonly handlers = new Map<
+    string,
+    (payload: any) => Promise<void>
+  >();
 
-	async registerHandler(topic: string, handler: (payload: any) => Promise<void>) {
-		if (this.hasStarted) throw new Error('Cannot register after Kafka consumer started');
+  registerHandler(topic: string, handler: (payload: any) => Promise<void>) {
+    if (this.hasStarted)
+      throw new Error('Cannot register after Kafka consumer started');
     this.handlers.set(topic, handler);
   }
 
@@ -32,16 +38,21 @@ export class KafkaService {
         const handler = this.handlers.get(topic);
         if (!handler) return;
 
-				try {
-					const payload = JSON.parse(message.value?.toString() ?? '{}');
-					await handler(payload);
-				} catch (err) {
-					console.error(`[Kafka] Error processing message from topic ${topic}:`, err);
-				}
+        try {
+          const payload: unknown = JSON.parse(
+            message.value?.toString() ?? '{}',
+          );
+          // Optionally, add type checking here if you know the expected shape
+          await handler(payload);
+        } catch (err) {
+          console.error(
+            `[Kafka] Error processing message from topic ${topic}:`,
+            err,
+          );
+        }
       },
     });
 
     this.hasStarted = true;
   }
-
 }

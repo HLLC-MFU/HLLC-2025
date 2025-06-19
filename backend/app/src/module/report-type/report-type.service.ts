@@ -9,7 +9,6 @@ import {
   queryAll,
 } from 'src/pkg/helper/query.util';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { UpdateReportTypeDto } from './dto/update-report_category.dto';
 
 @Injectable()
@@ -31,11 +30,7 @@ export class ReportTypeService {
 
     const category = new this.reportTypeModel(createReportTypeDto);
 
-    try {
-      return await category.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
+    return await category.save();
   }
 
   async findAll(query: Record<string, string>) {
@@ -64,11 +59,7 @@ export class ReportTypeService {
     }
 
     const updated = await this.reportTypeModel
-      .findByIdAndUpdate(
-        id,
-        updateReportTypeDto,
-        { new: true }, 
-      )
+      .findByIdAndUpdate(id, updateReportTypeDto, { new: true })
       .lean();
 
     if (!updated) {
