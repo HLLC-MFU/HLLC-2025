@@ -32,10 +32,19 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
       if (scannerRef.current && isRunningRef.current) {
         try {
           await scannerRef.current.stop();
-          await scannerRef.current.clear();
         } catch (err) {
-          console.error('Error stopping scanner:', err);
+          console.warn('Scanner stop error:', err);
         }
+
+        try {
+          const region = document.getElementById(qrRegionId);
+          if (region) {
+            await scannerRef.current.clear();
+          }
+        } catch (err) {
+          console.warn('Scanner clear error (likely already unmounted):', err);
+        }
+
         isRunningRef.current = false;
       }
     };
@@ -43,47 +52,71 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
     const startScanner = async () => {
       if (selectedActivityIds.length === 0 || !isMobile) return;
 
-      const scanner = new Html5Qrcode(qrRegionId);
-      scannerRef.current = scanner;
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode(qrRegionId);
+      }
 
       try {
         const devices = await Html5Qrcode.getCameras();
-        if (!isMounted || devices.length === 0) return;
+        if (!isMounted || devices.length === 0) {
+          addToast({
+            title: 'Camera Error',
+            description: 'ไม่พบกล้อง กรุณาอนุญาตการใช้งานกล้อง',
+            color: 'danger',
+          });
+          return;
+        }
 
         const cameraId = devices[0].id;
-        await scanner.start(
+        await scannerRef.current.start(
           cameraId,
           { fps: 10, qrbox: 250 },
           async decodedText => {
             if (!decodedText || scannedSetRef.current.has(decodedText)) return;
 
-            scannedSetRef.current.add(decodedText);
-
             try {
+              let studentId = decodedText;
+              try {
+                const parsed = JSON.parse(decodedText);
+                studentId = parsed.username || parsed.studentId || parsed.id || decodedText;
+              } catch { }
+
+              if (!/^\d{10}$/.test(studentId)) {
+                throw new Error('รหัสนักศึกษาไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+              }
+
+              scannedSetRef.current.add(studentId);
+
               await createcheckin({
-                user: decodedText,
+                user: studentId,
                 activities: selectedActivityIds,
               });
 
               addToast({
                 title: 'สแกนสำเร็จ',
-                description: `${decodedText} ได้ทำการ check-in`,
+                description: `รหัสนักศึกษา ${studentId} ได้ทำการ check-in`,
                 color: 'success',
               });
-            } catch (err) {
+            } catch (err: any) {
+              console.error('Checkin error:', err);
               addToast({
                 title: 'เกิดข้อผิดพลาด',
-                description: 'ไม่สามารถส่งข้อมูลได้',
+                description: err instanceof Error ? err.message : 'ไม่สามารถส่งข้อมูลได้',
                 color: 'danger',
               });
             }
           },
-          () => {},
+          () => { }
         );
 
         isRunningRef.current = true;
       } catch (err) {
         console.error('Camera start error:', err);
+        addToast({
+          title: 'Camera Error',
+          description: 'ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตการใช้งานกล้อง',
+          color: 'danger',
+        });
       }
     };
 
@@ -100,31 +133,18 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
     };
   }, [selectedActivityIds, isMobile]);
 
+
   if (!isMobile) return null;
 
   return (
     <div className="w-full max-w-sm mx-auto mb-4 sm:overflow-hidden sm:hidden">
       {selectedActivityIds.length === 0 ? (
-        <div
-          style={{
-            width: '100%',
-            height: '250px',
-            backgroundColor: 'black',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '1rem',
-            fontWeight: 'bold',
-            borderRadius: '10px',
-          }}
-        >
+        <div className="w-full h-[250px] bg-black flex items-center justify-center text-white text-base font-bold rounded-lg">
           กรุณาเลือกกิจกรรม
         </div>
       ) : (
         <div
           id="qr-reader"
-          style={{ width: '100%' }}
           className="w-full rounded-xl overflow-hidden"
         />
       )}

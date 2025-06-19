@@ -18,7 +18,7 @@ export class AppearancesService {
   constructor(
     @InjectModel(Appearance.name)
     private apprearanceModel: Model<AppearanceDocument>,
-  ) { }
+  ) {}
 
   async create(createAppearanceDto: CreateAppearanceDto) {
     await throwIfExists(
@@ -63,7 +63,7 @@ export class AppearancesService {
     if (updateAppearanceDto.assets) {
       updateAppearanceDto.assets = {
         ...existing.assets,
-        ...updateAppearanceDto.assets
+        ...updateAppearanceDto.assets,
       };
     }
 
@@ -71,7 +71,7 @@ export class AppearancesService {
     if (updateAppearanceDto.colors) {
       updateAppearanceDto.colors = {
         ...existing.colors,
-        ...updateAppearanceDto.colors
+        ...updateAppearanceDto.colors,
       };
     }
 

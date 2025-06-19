@@ -1,12 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { ReportTypeService } from '../service/report-type.service';
-import { CreateReportTypeDto } from '../dto/reports-type/create-type.dto';
-import { UpdateReportTypeDto } from '../dto/reports-type/update-type.dto';
-import { Public } from '../../auth/decorators/public.decorator';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
+import { ReportTypeService } from './report-type.service';
+import { CreateReportTypeDto } from './dto/create-type.dto';
+import { UpdateReportTypeDto } from './dto/update-report_category.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('report-types')
 export class ReportTypeController {
-  constructor(private readonly reportTypeService: ReportTypeService) { }
+  constructor(private readonly reportTypeService: ReportTypeService) {}
 
   @Post()
   @Public()
@@ -28,7 +37,10 @@ export class ReportTypeController {
 
   @Patch(':id')
   @Public()
-  update(@Param('id') id: string, @Body() updateReportTypeDto: UpdateReportTypeDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateReportTypeDto: UpdateReportTypeDto,
+  ) {
     return this.reportTypeService.update(id, updateReportTypeDto);
   }
 
