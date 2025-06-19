@@ -109,7 +109,19 @@ export class PosttestAnswersService {
       model: this.posttestAnswerModel,
       query,
       filterSchema: {},
-    });
+      populateFields: () => Promise.resolve([
+        {
+          path: 'user',
+          populate: [
+            {
+              path: 'metadata.major',
+              model: 'Major',
+              populate: { path: 'school' }
+            }
+          ]
+        }
+      ]),
+    })
   }
 
   async findOne(

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { model, Model, Types } from 'mongoose';
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import {
   queryAll,
@@ -22,6 +22,7 @@ import {
   PrepostQuestionDocument,
 } from '../schema/prepost-question.schema';
 import { PrepostQuestionTypes } from '../enum/prepost-question-types.enum';
+import path from 'path';
 
 @Injectable()
 export class PretestAnswersService {
@@ -107,6 +108,18 @@ export class PretestAnswersService {
       model: this.pretestAnswerModel,
       query,
       filterSchema: {},
+      populateFields: () => Promise.resolve([
+        {
+          path: 'user',
+          populate: [
+            {
+              path: 'metadata.major',
+              model: 'Major',
+              populate: { path: 'school' }
+            }
+          ]
+        }
+      ]),
     });
   }
 

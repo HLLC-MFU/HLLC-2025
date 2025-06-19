@@ -76,11 +76,22 @@ export class AssessmentAnswersService {
   }
 
   async findAll(query: Record<string, string>) {
-    return queryAll<AssessmentAnswer>({
+    return await queryAll<AssessmentAnswer>({
       model: this.assessmentAnswerModel,
       query,
       filterSchema: {},
-      populateFields: () => Promise.resolve([{ path: 'user' }]),
+      populateFields: () => Promise.resolve([
+        {
+          path: 'user',
+          populate: [
+            {
+              path: 'metadata.major',
+              model: 'Major',
+              populate: { path: 'school' }
+            }
+          ]
+        }
+      ]),
     });
   }
 
