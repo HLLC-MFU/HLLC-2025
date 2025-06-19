@@ -10,8 +10,6 @@ import { ScopeSelector } from "@/app/(app)/evoucher-code/_components/ScopeSelect
 import { Users } from "lucide-react";
 import { EvoucherSelect } from "./EvoucherSelect";
 import { useEvoucherCodeForm } from "./useEvoucherCodeForm";
-import { UserFilters } from "./UserFilters";
-
 interface AddEvoucherCodeProps {
   isOpen: boolean;
   onClose: () => void;
@@ -39,7 +37,8 @@ export function EvoucherCodeModal({
     setSelectedEvoucher,
     setSelectedUsers,
     availableUsers,
-    hasExistingEvoucherCode,
+    searchQuery,
+    setSearchQuery,
     setFilters
   } = useEvoucherCodeForm(isOpen, mode, evoucherCode, sponsorId);
 
@@ -84,6 +83,8 @@ export function EvoucherCodeModal({
         <ModalHeader>{mode === "add" ? "Add Evoucher Code" : "Edit Evoucher Code"}</ModalHeader>
 
         <ModalBody className="flex flex-col gap-6">
+
+          {/* evoucher */}
           <EvoucherSelect
             value={selectedEvoucher}
             onChange={(evoucherId) => {
@@ -95,28 +96,28 @@ export function EvoucherCodeModal({
           />
 
           <div className="flex flex-col gap-4">
-            <UserFilters onFilterChange={setFilters} />
-
+            {/* user */}
             <ScopeSelector
               label="Select Users"
               icon={Users}
               items={availableUsers}
               selectedItems={selectedUsers}
               onSelect={(id) => {
-                if (hasExistingEvoucherCode(id)) {
-                  addToast({ title: "Cannot Select", description: "This user already has a code.", color: "danger" });
-                  return;
-                }
-                mode === "edit" ? setSelectedUsers([id]) : setSelectedUsers([...selectedUsers, id]);
+                const stringId = id.toString();
+                if (selectedUsers.includes(stringId)) return;
+
+                const updated = mode === "edit" ? [stringId] : [...selectedUsers, stringId];
+                setSelectedUsers(updated);
               }}
               onRemove={(id) => {
+                const stringId = id.toString();
                 if (mode === "edit" && selectedUsers.length <= 1) return;
-                setSelectedUsers(selectedUsers.filter(u => u !== id));
+                setSelectedUsers(selectedUsers.filter((u) => u !== stringId));
               }}
               isLoading={usersLoading}
               placeholder="Select users..."
               getName={(user) => user.username}
-              getId={(user) => user._id}
+              getId={(user) => user._id.toString()}
               searchFields={(user) => [
                 user.username,
                 user.metadata?.[0]?.major?.name?.th,
@@ -124,6 +125,8 @@ export function EvoucherCodeModal({
                 user.metadata?.[0]?.major?.school?.name?.th,
                 user.metadata?.[0]?.major?.school?.name?.en,
               ]}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
             />
           </div>
         </ModalBody>

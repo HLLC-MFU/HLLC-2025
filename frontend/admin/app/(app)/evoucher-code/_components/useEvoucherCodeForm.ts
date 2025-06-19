@@ -1,22 +1,25 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { EvoucherCode } from "@/types/evoucher-code";
 import { useUsers } from "@/hooks/useUsers";
 import { useEvoucherCode } from "@/hooks/useEvoucherCode";
+import { User } from "@/types/user";
 
-// แยกมาเพราะไม่อยากให้มันเยอะใร Modal
 export const useEvoucherCodeForm = (
   isOpen: boolean,
   mode: "add" | "edit",
   evoucherCode?: EvoucherCode,
   sponsorId?: string
 ) => {
-  const { users, loading: usersLoading } = useUsers();
+  const { fetchByUsername, loading: usersLoading } = useUsers();
   const { evoucherCodes } = useEvoucherCode();
 
   const [selectedEvoucher, setSelectedEvoucher] = useState<string>(evoucherCode?.evoucher?._id || "");
   const [selectedUsers, setSelectedUsers] = useState<string[]>(evoucherCode?.user?._id ? [evoucherCode.user._id] : []);
   const [expiration, setExpiration] = useState(evoucherCode?.metadata?.expiration || new Date().toISOString());
   const [filters, setFilters] = useState<{ school?: string; major?: string }>({});
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
 
   useEffect(() => {
     if (isOpen && mode === "edit" && evoucherCode) {
@@ -28,6 +31,8 @@ export const useEvoucherCodeForm = (
       setSelectedUsers([]);
       setExpiration(new Date().toISOString());
       setFilters({});
+      setSearchQuery("");
+      setAvailableUsers([]);
     }
   }, [isOpen, mode, evoucherCode]);
 
@@ -43,28 +48,29 @@ export const useEvoucherCodeForm = (
     return !!existing;
   };
 
-  const availableUsers = useMemo(() => {
-    let filteredUsers = users;
+  useEffect(() => {
+    const delay = setTimeout(async () => {
+      if (!searchQuery.trim()) {
+        setAvailableUsers([]);
+        return;
+      }
 
-    // Apply school filter
-    if (filters.school) {
-      filteredUsers = filteredUsers.filter(user => 
-        user.metadata?.[0]?.major?.school?._id === filters.school
-      );
-    }
+      const results = await fetchByUsername(searchQuery);
 
-    // Apply major filter
-    if (filters.major) {
-      filteredUsers = filteredUsers.filter(user => 
-        user.metadata?.[0]?.major?._id === filters.major
-      );
-    }
+      const filtered = results.filter(user => {
+        if (filters.school && user.metadata?.[0]?.major?.school?._id !== filters.school) return false;
+        if (filters.major && user.metadata?.[0]?.major?._id !== filters.major) return false;
+        return true;
+      });
 
-    return filteredUsers.filter(user => !hasExistingEvoucherCode(user._id));
-  }, [users, filters.school, filters.major, selectedEvoucher]);
+      setAvailableUsers(filtered);
+    }, 1000);
+
+    return () => clearTimeout(delay);
+  }, [searchQuery, selectedEvoucher, filters]);
+
 
   return {
-    users,
     usersLoading,
     selectedEvoucher,
     selectedUsers,
@@ -75,6 +81,8 @@ export const useEvoucherCodeForm = (
     availableUsers,
     hasExistingEvoucherCode,
     filters,
-    setFilters
+    setFilters,
+    searchQuery,
+    setSearchQuery,
   };
 };
