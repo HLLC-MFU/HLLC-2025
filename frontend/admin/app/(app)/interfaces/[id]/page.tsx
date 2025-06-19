@@ -10,7 +10,7 @@ import useInterfaces from "@/hooks/useInterfaces";
 import AssetsSection from "./_components/AssetsSection";
 
 const topBar = [
-    { title: "Step Tracking" },
+    { title: "Progress" },
     { title: "Notification" },
     { title: "Profile" },
 ]
