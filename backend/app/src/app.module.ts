@@ -25,7 +25,7 @@ import { ActivitiesModule } from './module/activities/activities.module';
 import { EvoucherModule } from './module/evoucher/evoucher.module';
 import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
 import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
-import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
+import { ActivitiesTypeModule } from './module/activities/activities-type.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
 import { KafkaBootstrapModule } from './module/kafka/kafka-bootstrap.module';
 import { AssessmentsModule } from './module/assessments/assessments.module';
@@ -40,6 +40,7 @@ import { InterfacesModule } from './module/interfaces/interfaces.module';
   imports: [
     ConfigModule.forRoot({
       load: [configuration],
+      envFilePath: '.env.production',
       isGlobal: true,
     }),
     MongooseModule.forRootAsync({

@@ -61,8 +61,10 @@ export function useSchools() {
 				if (value !== undefined && value !== null) {
 					if (typeof value === "object" && !(value instanceof File)) {
 						const nested = value as Record<string, string | number | boolean>;
+
 						for (const subKey in nested) {
 							const subValue = nested[subKey];
+
 							if (subValue !== undefined && subValue !== null) {
 								form.append(`${key}[${subKey}]`, String(subValue));
 							}
@@ -96,8 +98,6 @@ export function useSchools() {
 			setLoading(false);
 		}
 	};
-
-
 
 
 	/**
@@ -152,6 +152,7 @@ export function useSchools() {
 					title: 'School deleted successfully!',
 					color: 'success',
 				});
+				window.location.reload();
 			} else {
 				throw new Error(res.message || 'Failed to delete school.');
 			}
@@ -181,12 +182,14 @@ export function useSchools() {
 				school: schoolId,
 			});
 
-			if (res.statusCode === 201) {
+			if (res.statusCode === 200) {
 				addToast({
 					title: 'Major added successfully!',
 					color: 'success',
 				});
+				window.location.reload();
 			}
+			
 		} catch (err: any) {
 			addToast({
 				title: 'Failed to add major. Please try again.',

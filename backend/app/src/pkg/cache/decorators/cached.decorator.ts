@@ -1,4 +1,3 @@
-// src/shared/cache/decorators/cached.decorator.ts
 import { SetMetadata } from '@nestjs/common';
 
 export const CACHE_KEY_METADATA = 'cache_key';
