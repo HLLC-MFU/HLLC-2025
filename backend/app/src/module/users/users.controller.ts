@@ -72,7 +72,6 @@ export class UsersController {
   }
 
   @Get('profile')
-  @CacheKey('users:$req.user')
   getProfile(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {

@@ -7,6 +7,7 @@ interface ProfileStore {
   user: User | null;
   setUser: (user: User | null) => void;
   getProfile: () => Promise<User | null>;
+  clearProfile: () => void;
 }
 
 const useProfile = create<ProfileStore>((set) => ({
@@ -19,6 +20,7 @@ const useProfile = create<ProfileStore>((set) => ({
       const res = await apiRequest<User>("/users/profile");
       if (res.statusCode === 200 && res.data) {
         set({ user: res.data });
+        console.log("✅ Profile fetched successfully", res.data.data[0].name);
         return res.data;
       } else {
         return null;
@@ -28,6 +30,9 @@ const useProfile = create<ProfileStore>((set) => ({
       return null;
     }
   },
+
+  clearProfile: () => set({ user: null }),
 }));
+
 
 export default useProfile;

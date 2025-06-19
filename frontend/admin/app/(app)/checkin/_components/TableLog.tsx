@@ -99,8 +99,8 @@ export function TableLog() {
           name: `${item.user.name.first} ${item.user.name.middle ?? ''} ${item.user.name.last}`.trim(),
           studentid: item.user.username,
           activityId: activity?._id ?? '',
-          activity: activity?.name?.en ?? 'Unknown',
-          activityth: activity?.name?.th ?? 'ไม่ทราบ',
+          activity: activity?.shortName?.en ?? 'Unknown',
+          activityth: activity?.shortName?.th ?? 'ไม่ทราบ',
           userId: item.user._id,
         };
       })

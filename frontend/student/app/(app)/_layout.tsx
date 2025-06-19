@@ -5,8 +5,22 @@ import { BlurView } from 'expo-blur';
 import { ImageBackground } from 'expo-image';
 import useProfile from '@/hooks/useProfile';
 import { useEffect, useState } from 'react';
-import { BookIcon, GiftIcon, GlobeIcon, HomeIcon, QrCodeIcon } from 'lucide-react-native';
 import TabBar from '@/components/global/TabBar';
+import messaging from '@react-native-firebase/messaging';
+
+export async function requestNotificationPermissionAndGetToken() {
+  const authStatus = await messaging().requestPermission();
+  const enabled =
+    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+  if (!enabled) return null;
+
+  const token = await messaging().getToken();
+  console.log('Token:', token);
+
+  return token;
+}
 
 export default function Layout() {
   const { user, getProfile } = useProfile();
@@ -25,6 +39,15 @@ export default function Layout() {
 
   // Check if we're in the chat room section
   const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
+
+  useEffect(() => {
+    requestNotificationPermissionAndGetToken().then((token) => {
+      if (token) {
+        console.log('FCM Token:', token);
+        // TODO: ส่ง token ไปเก็บใน backend user profile
+      }
+    });
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>

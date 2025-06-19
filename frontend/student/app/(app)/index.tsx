@@ -6,15 +6,22 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { ImageBackground } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { router, useRouter } from 'expo-router';
 import { useActivities } from '@/hooks/useActivities';
 import { useTranslation } from 'react-i18next';
 import { Bell, User, Users } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
+import { Button } from 'tamagui';
+import useAuth from '@/hooks/useAuth';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
+  const handleSignOut = async () => {
+    await useAuth.getState().signOut();
+    router.replace('/(auth)/login'); // ✅ redirect กลับหน้า login (หรือหน้าอื่น)
+  };
+
   return (
     <FadeView>
       <ImageBackground

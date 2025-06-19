@@ -25,7 +25,7 @@ export function AppearanceHeader({ appearance }: AppearanceHeaderProps) {
                     <div className="flex items-center gap-3">
                         <div
                             className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg"
-                            style={{ background: `linear-gradient(135deg, ${appearance?.colors.primary}, ${appearance?.colors.secondary})` }}
+                            style={{ background: `linear-gradient(135deg, ${appearance?.colors?.primary}, ${appearance?.colors?.secondary})` }}
                         >
                             {appearance?.school?.acronym ?? "N/A"}
                         </div>

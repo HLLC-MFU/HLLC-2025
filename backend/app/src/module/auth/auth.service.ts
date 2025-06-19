@@ -221,6 +221,30 @@ export class AuthService {
     }
   }
 
+  async getRegisteredUser(username: string) {
+    const user = await this.userModel.findOne({ username }).populate({
+      path: 'metadata.major',
+      model: 'Major',
+      populate: {
+        path: 'school',
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.password) {
+      throw new BadRequestException('User already has a password set');
+    }
+
+    return {
+      username: user.username,
+      name: user.name,
+      major: user.metadata?.major,
+    };
+  }
+
   async removePassword(username: string) {
     const user = await this.userModel.findOne({ username }).select('+password');
     if (!user) {

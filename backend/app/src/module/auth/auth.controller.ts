@@ -7,6 +7,7 @@ import {
   Query,
   Res,
   Get,
+  Param,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
@@ -48,6 +49,16 @@ export class AuthController {
   @Post('refresh')
   async refresh(@Body() body: { refreshToken: string }) {
     return this.authService.refreshToken(body.refreshToken);
+  }
+
+  @Public()
+  @Post('student/status/:id')
+  async check(@Param('id') id: string, @Res() res: FastifyReply) {
+    const user = await this.authService.getRegisteredUser(id);
+    if (!user) {
+      return res.status(404).send({ message: 'User not found' });
+    }
+    return res.send({ user });
   }
 
   @Public()
