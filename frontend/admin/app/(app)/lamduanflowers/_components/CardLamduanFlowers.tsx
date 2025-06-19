@@ -25,7 +25,7 @@ export default function CardLamduanFlowers({ lamduanflowers, onDelete, onView }:
           <Image
             alt="Lamduan"
             className="object-cover rounded-xl"
-            src={`http://localhost:8080/uploads/${lamduanflowers.photo}`}
+            src={`http://localhost:8080/api/uploads/${lamduanflowers.photo}`}
             width={270}
           />
           <div className="mt-2 w-full">
