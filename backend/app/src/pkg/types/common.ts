@@ -9,3 +9,8 @@ export type Photo = {
   thumbnail: string;
   logoPhoto: string;
 };
+
+export type Location = {
+  latitude: number;
+  longitude: number;
+};
