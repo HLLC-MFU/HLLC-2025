@@ -94,6 +94,7 @@ const CreateRoomModal = ({
         },
         capacity: formData.capacity,
         image: selectedImage || undefined,
+        creatorId: ''
       });
 
       if (!result) {
@@ -207,10 +208,14 @@ const CreateRoomModal = ({
                 placeholder={language === 'th' ? 'จำนวนสมาชิกสูงสุด' : 'Maximum number of users'}
                 placeholderTextColor="#666"
                 value={formData.capacity.toString()}
-                onChangeText={(text) => setFormData(prev => ({
-                  ...prev,
-                  capacity: parseInt(text, 10)
-                }))}
+                onChangeText={(text) => {
+                  let value = parseInt(text, 10);
+                  if (isNaN(value) || value < 2) value = 2;
+                  setFormData(prev => ({
+                    ...prev,
+                    capacity: value
+                  }));
+                }}
                 keyboardType="numeric"
                 maxLength={3}
               />

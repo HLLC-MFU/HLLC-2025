@@ -23,10 +23,6 @@ export const ChatHeader = ({
 }:ChatHeaderProps) => {
   return (
     <Animated.View style={[styles.enhancedHeader, { opacity: headerOpacity }]}>
-      <LinearGradient
-        colors={['rgba(99,102,241,0.1)', 'transparent']}
-        style={styles.headerGradient}
-      />
       
       <View style={styles.headerContent}>
         <View style={styles.headerTop}>
@@ -43,7 +39,7 @@ export const ChatHeader = ({
         <View style={styles.statsContainer}>
           <Animated.View style={[styles.statItem, { transform: [{ scale: pulseAnim }] }]}>
             <View style={styles.statIconContainer}>
-              <Users size={16} color="#6366f1" />
+              <Users size={16} color="#fff" />
             </View>
             <Text style={styles.statNumber}>{roomsCount}</Text>
             <Text style={styles.statLabel}>
@@ -53,7 +49,7 @@ export const ChatHeader = ({
           
           <View style={styles.statItem}>
             <View style={styles.statIconContainer}>
-              <MessageCircle size={16} color="#10b981" />
+              <MessageCircle size={16} color="#fff" />
             </View>
             <Text style={styles.statNumber}>{joinedRoomsCount}</Text>
             <Text style={styles.statLabel}>
@@ -90,13 +86,13 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#ffffff70',
     fontWeight: '500',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#fff',
     marginTop: 4,
   },
   statsContainer: {
@@ -122,18 +118,18 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   statNumber: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#fff',
   },
   statLabel: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#ffffff70',
     fontWeight: '500',
   },
 }); 

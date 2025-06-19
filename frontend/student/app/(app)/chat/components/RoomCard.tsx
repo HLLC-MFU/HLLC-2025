@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Users } from 'lucide-react-native';
 import { ChatRoom } from '../types/chatTypes';
 import { BlurView } from 'expo-blur';
+import { API_BASE_URL } from '../config/chatConfig';
+import { GlassButton } from '../../../../components/ui/GlassButton';
 
 interface RoomCardProps {
   room: ChatRoom;
@@ -10,14 +12,22 @@ interface RoomCardProps {
   language: string;
   onPress: () => void;
   onJoin?: () => void;
+  onShowDetail?: () => void;
   index: number;
 }
 
-const RoomCard = ({ room, width, language, onPress, onJoin }: RoomCardProps) => {
-  const imageUrl = room.image_url || room.image || undefined;
+const RoomCard = ({ room, width, language, onPress, onJoin, onShowDetail }: RoomCardProps) => {
+  const getImageUrl = () => {
+    const url = room.image_url || room.image;
+      return `${API_BASE_URL}/uploads/rooms/${url}`;
+  };
+
+  const imageUrl = getImageUrl();
+
   return (
-    <TouchableOpacity style={[styles.card, { width: (width - 52) / 2 }]} onPress={onPress} activeOpacity={0.88}>
-      <BlurView intensity={30} tint="light" style={styles.cardBlur}>
+    <TouchableOpacity style={[styles.card, { width: (width - 66) / 2 }]} onPress={onShowDetail ? onShowDetail : onPress} activeOpacity={0.88}>
+      <BlurView intensity={50} tint="light" style={styles.cardBlur}>
+        <View style={styles.gradientOverlay} pointerEvents="none" />
         <View style={styles.imageContainer}>
           {imageUrl ? (
             <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
@@ -35,12 +45,14 @@ const RoomCard = ({ room, width, language, onPress, onJoin }: RoomCardProps) => 
             </View>
           )}
           <View style={styles.memberRow}>
-            <Users size={14} color="#6366f1" />
+            <Users size={14} color="#fff" />
             <Text style={styles.memberText}>{room.members_count ?? 0} Members</Text>
           </View>
           {onJoin && (
-            <TouchableOpacity style={styles.joinBtn} onPress={onJoin} activeOpacity={0.85}>
-              <Text style={styles.joinBtnText}>{language === 'th' ? 'เข้าร่วม' : 'Join'}</Text>
+            <TouchableOpacity onPress={onJoin} activeOpacity={0.85} style={styles.joinBtn}>
+              <GlassButton blurIntensity={20}>
+                <Text style={styles.joinBtnText}>{language === 'th' ? 'เข้าร่วม' : 'Join'}</Text>
+              </GlassButton>
             </TouchableOpacity>
           )}
         </View>
@@ -51,24 +63,35 @@ const RoomCard = ({ room, width, language, onPress, onJoin }: RoomCardProps) => 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'transparent',
-    borderRadius: 18,
-    marginBottom: 12,
-    marginRight: 12,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
     shadowColor: '#a5b4fc',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.13,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 8,
     overflow: 'hidden',
   },
   cardBlur: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
     flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 22,
+    borderWidth: 1.2,
+    borderColor: 'rgba(255,255,255,0.25)',
     overflow: 'hidden',
+    position: 'relative',
+  },
+  gradientOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 22,
+    zIndex: 1,
+    backgroundColor: 'transparent',
+    // Gradient overlay (simulate with linear-gradient if using expo-linear-gradient)
+    // If not, fallback to semi-transparent white
+    // background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 100%)',
+    // React Native doesn't support gradients in View, so use expo-linear-gradient if needed
   },
   imageContainer: {
     width: '100%',
@@ -100,7 +123,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#dff',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -119,16 +142,15 @@ const styles = StyleSheet.create({
   },
   memberText: {
     fontSize: 12,
-    color: '#6366f1',
+    color: '#fff',
     marginLeft: 2,
   },
   joinBtn: {
     marginTop: 6,
-    backgroundColor: '#6366f1',
     borderRadius: 8,
     paddingVertical: 5,
     paddingHorizontal: 16,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
   },
   joinBtnText: {
     color: '#fff',

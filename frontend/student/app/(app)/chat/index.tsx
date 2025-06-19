@@ -27,6 +27,7 @@ import { ChatHeader } from './components/ChatHeader';
 import { ChatTabBar } from './components/ChatTabBar';
 import { CategoryFilter } from './components/CategoryFilter';
 import { BlurView } from 'expo-blur';
+import { chatService } from './services/chatService';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -66,19 +67,37 @@ export default function ChatPage() {
   }, [loadRooms]);
 
   const joinRoom = async (roomId: string) => {
-    try {
-      animateTabBar();
-      router.push({
-        pathname: "/chat/[roomId]",
-        params: { roomId, isMember: 'true' }
-      });
-    } catch (error) {
-      console.error("Failed to join room:", error);
-      Alert.alert(
-        language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
-        language === 'th' ? 'ไม่สามารถเข้าร่วมห้องแชทได้' : 'Failed to join room'
-      );
-    }
+    Alert.alert(
+      language === 'th' ? 'ยืนยันการเข้าร่วม' : 'Confirm Join',
+      language === 'th' ? 'คุณต้องการเข้าร่วมห้องนี้หรือไม่?' : 'Do you want to join this room?',
+      [
+        { text: language === 'th' ? 'ยกเลิก' : 'Cancel', style: 'cancel' },
+        {
+          text: language === 'th' ? 'เข้าร่วม' : 'Join',
+          onPress: async () => {
+            try {
+              const result = await chatService.joinRoom(roomId);
+              if (result.success) {
+                router.push({
+                  pathname: "/chat/[roomId]",
+                  params: { roomId, isMember: 'true' }
+                });
+              } else {
+                Alert.alert(
+                  language === 'th' ? 'เข้าร่วมไม่สำเร็จ' : 'Join Failed',
+                  result.message || (language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room')
+                );
+              }
+            } catch (error) {
+              Alert.alert(
+                language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
+                language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room'
+              );
+            }
+          }
+        }
+      ]
+    );
   };
 
   const navigateToRoom = async (rid: string, isMember: boolean) => {
@@ -100,21 +119,36 @@ export default function ChatPage() {
     }
   };
 
+  const handleTabChange = (tab: 'my' | 'discover') => {
+    animateTabBar();
+    setActiveTab(tab);
+  };
+
+  const handleRefresh = () => {
+    loadRooms();
+  };
+
   const renderRoomItem = ({ item, index }: { item: ChatRoom; index: number }) => {
     if (activeTab === 'my') {
       return (
         <RoomListItem 
-          room={item} 
-          language={language} 
-          onPress={() => navigateToRoom(item.id, true)} 
-          index={index}
+          room={item}
+          language={language}
+          onPress={() => navigateToRoom(item.id, true)}
+          index={index} width={0}
         />
       );
     }
+    // สำหรับ discovery: กด card ให้แสดงรายละเอียดห้อง (ตัวอย่างใช้ Alert)
+    const showRoomDetail = () => {
+      Alert.alert(
+        language === 'th' ? 'รายละเอียดห้อง' : 'Room Details',
+        `${language === 'th' ? item.name?.th : item.name?.en}\n${item.category ? `\n${item.category}` : ''}\n${item.members_count ?? 0} Members`
+      );
+    };
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => navigateToRoom(item.id, false)}
         activeOpacity={0.9}
       >
         <BlurView
@@ -127,9 +161,10 @@ export default function ChatPage() {
             width={width}
             language={language}
             onJoin={() => joinRoom(item.id)}
-            index={index} onPress={function (): void {
-              throw new Error('Function not implemented.');
-            } }          />
+            onShowDetail={showRoomDetail}
+            index={index} 
+            onPress={() => {}} // ไม่ต้องใช้งานจริงใน discover
+          />
         </BlurView>
       </TouchableOpacity>
     );
@@ -167,7 +202,7 @@ export default function ChatPage() {
         <ChatTabBar
           language={language}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           tabBarAnimation={tabBarAnimation}
         />
         <CategoryFilter
@@ -190,7 +225,7 @@ export default function ChatPage() {
           refreshControl={
             <RefreshControl 
               refreshing={refreshing} 
-              onRefresh={() => setRefreshing(true)}
+              onRefresh={handleRefresh}
               colors={['#6366f1']}
               tintColor="#6366f1"
               progressBackgroundColor="#ffffff"
@@ -221,9 +256,9 @@ export default function ChatPage() {
           }}
           activeOpacity={0.9}
         >
-          <View style={styles.fabGradient}>
+          <BlurView intensity={20} tint="light" style={styles.fabGradient}>
             <Plus size={24} color="#fff" />
-          </View>
+          </BlurView>
         </TouchableOpacity>
       </Animated.View>
 
@@ -252,6 +287,9 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 120,
+    flexGrow: 1,
+    minHeight: '1%',
+    alignContent: 'center'
   },
   listContentSingle: {
     gap: 12,
@@ -285,36 +323,41 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     overflow: 'hidden',
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
     bottom: 60,
-    backgroundColor: '#6366f1',
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,200,200,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   fabGradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   card: {
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255,255,255,0.7)',
     borderRadius: 18,
     marginBottom: 12,
     marginRight: 12,
-    shadowColor: '#a5b4fc',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.13,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
     overflow: 'hidden',
   },
   cardBlur: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.3)',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: 'rgba(200,200,200,0.18)',
     flex: 1,
   },
 });
