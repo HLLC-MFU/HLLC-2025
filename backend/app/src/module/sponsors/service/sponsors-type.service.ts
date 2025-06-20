@@ -1,19 +1,23 @@
 import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import {
+  queryAll,
+  queryDeleteOne,
+  queryFindOne,
+  queryUpdateOne,
+} from 'src/pkg/helper/query.util';
+import { throwIfExists } from 'src/pkg/validator/model.validator';
+import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { CreateSponsorsTypeDto } from '../dto/sponsers-type/create-sponsors-type.dto';
 import { UpdateSponsorsTypeDto } from '../dto/sponsers-type/update-sponsors-type.dto';
 import { SponsorsType, SponsorsTypeDocument } from '../schema/sponsors-type.schema';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
-import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 @Injectable()
 export class SponsorsTypeService {
-
   constructor(
     @InjectModel(SponsorsType.name)
-    private sponsorsTypeModel: Model<SponsorsTypeDocument>
+    private sponsorsTypeModel: Model<SponsorsTypeDocument>,
   ) {}
 
   async create(createSponsorsTypeDto: CreateSponsorsTypeDto) {
@@ -21,7 +25,7 @@ export class SponsorsTypeService {
       this.sponsorsTypeModel,
       { name: createSponsorsTypeDto.name },
       'Sponsors type already exists',
-    )
+    );
 
     const newSponsorsType = new this.sponsorsTypeModel({
       ...createSponsorsTypeDto,
@@ -47,7 +51,11 @@ export class SponsorsTypeService {
   }
 
   async update(id: string, updateSponsorsTypeDto: UpdateSponsorsTypeDto) {
-    return await queryUpdateOne<SponsorsType>(this.sponsorsTypeModel, id, updateSponsorsTypeDto);
+    return await queryUpdateOne<SponsorsType>(
+      this.sponsorsTypeModel,
+      id,
+      updateSponsorsTypeDto,
+    );
   }
 
   async remove(id: string) {

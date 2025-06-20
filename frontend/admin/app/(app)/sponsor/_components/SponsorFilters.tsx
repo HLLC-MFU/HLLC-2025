@@ -46,18 +46,18 @@ export function SponsorFilters({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <Input
           isClearable
-          value={searchQuery}
-          onValueChange={onSearchQueryChange}
           className="w-full"
           placeholder="Search sponsors..."
           startContent={<SearchIcon className="text-default-400" />}
+          value={searchQuery}
+          onValueChange={onSearchQueryChange}
         />
 
         <div className="flex gap-2 sm:gap-3">
           <ButtonGroup className="flex-1 sm:flex-none">
             <Dropdown>
               <DropdownTrigger>
-                <Button variant="flat" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto" variant="flat">
                   Sort by: {currentSortLabel}
                 </Button>
               </DropdownTrigger>
@@ -74,20 +74,20 @@ export function SponsorFilters({
             </Dropdown>
 
             <Button
-              variant="flat"
               isIconOnly
-              onPress={onSortDirectionToggle}
               className="flex-shrink-0"
+              variant="flat"
+              onPress={onSortDirectionToggle}
             >
               {sortDirection === "asc" ? <AArrowUpIcon /> : <AArrowDownIcon />}
             </Button>
           </ButtonGroup>
 
           <Button
+            className="flex-1 sm:flex-none"
             color="primary"
             endContent={<PlusIcon />}
             onPress={onAddSponsor}
-            className="flex-1 sm:flex-none"
           >
             Add Sponsor
           </Button>

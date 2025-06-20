@@ -58,7 +58,7 @@ export default function Layout() {
         <Tabs.Screen name="index" options={{ title: 'Home' }}/>
         <Tabs.Screen name="activities/index" options={{ title: 'Activities' }} />
         <Tabs.Screen name="qrcode" options={{ title: 'QR Code' }} />
-        <Tabs.Screen name="evoucher" options={{ title: 'E-Voucher' }} />
+        <Tabs.Screen name="evoucher/index" options={{ title: 'E-Voucher' }} />
         <Tabs.Screen name="chat/index" options={{ title: 'Community' }} />
       </Tabs>
     </View>

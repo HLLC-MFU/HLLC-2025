@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,27 +15,26 @@ import {
   ChevronLeft, 
   Users, 
   Info, 
-  X,
-  Reply,
+  Loader,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import ErrorView from './components/ErrorView';
-import JoinBanner from './components/JoinBanner';
-import RoomInfoModal from './components/RoomInfoModal';
-import StickerPicker from './components/StickerPicker';
-import ChatInput from './components/ChatInput';
-import MessageList from './components/MessageList';
-import Loader from './components/Loader';
+
 import { BlurView } from 'expo-blur';
 
 // Hooks
-import { useChatRoom } from './hooks/useChatRoom';
+import { useChatRoom } from '../../../hooks/chats/useChatRoom';
 
 // Types
-import { ChatRoom } from './types/chatTypes';
+import { ChatRoom } from '../../../types/chatTypes';
 
 // Styles
-import { chatStyles } from './constants/chatStyles';
+import { chatStyles } from '../../../constants/chats/chatStyles';
+import ChatInput from '@/components/chats/ChatInput';
+import ErrorView from '@/components/chats/ErrorView';
+import JoinBanner from '@/components/chats/JoinBanner';
+import MessageList from '@/components/chats/MessageList';
+import RoomInfoModal from '@/components/chats/RoomInfoModal';
+import StickerPicker from '@/components/chats/StickerPicker';
 
 export default function ChatRoomPage() {
   const router = useRouter();

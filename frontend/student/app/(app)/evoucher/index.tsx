@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Search, ArrowLeft } from 'lucide-react-native';
-import { SponsorCard } from './components/SponsorCard';
-import { EvoucherCodeCard } from './components/EvoucherCodeCard';
-import { EvoucherModal } from './components/EvoucherModal';
+import { SponsorCard } from '../../../components/evoucher/SponsorCard';
+import { EvoucherCodeCard } from '../../../components/evoucher/EvoucherCodeCard';
+import { EvoucherModal } from '../../../components/evoucher/EvoucherModal';
 import { useSponsors } from '@/hooks/useSponsors';
 import { useEvoucher } from '@/hooks/useEvoucher';
 import { ISponsor } from '@/types/sponsor';
