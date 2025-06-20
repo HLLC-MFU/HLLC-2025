@@ -29,7 +29,6 @@ type (
 	}
 )
 
-// Decorator for MongoDB collection name
 func Collection(name string) interface{} {
 	return struct {
 		Collection string
@@ -38,7 +37,6 @@ func Collection(name string) interface{} {
 	}
 }
 
-// Decorator for MongoDB index
 func Index(keys ...string) interface{} {
 	return struct {
 		Keys []string

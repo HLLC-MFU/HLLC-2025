@@ -5,6 +5,7 @@ import (
 	"chat/module/room/service"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
+	controllerHelper "chat/pkg/helpers/controller"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -64,48 +65,25 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 }
 
 func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
-	room := new(model.Room)
-	if err := ctx.BodyParser(room); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
-	}
+	return controllerHelper.ControllerAction(ctx, func(room *model.Room) (any, error) {
+		if room.CreatedBy.IsZero() {
+			room.CreatedBy = controllerHelper.GetUserID(ctx)
+		}
+		
+		if room.CreatedBy.IsZero() {
+			return nil, fiber.NewError(fiber.StatusBadRequest, "createdBy is required")
+		}
 
-	// Set a default CreatedBy ID
-	defaultID := primitive.NewObjectID()
-	room.CreatedBy = defaultID
-
-	createdRoom, err := c.service.CreateRoom(ctx.Context(), room, defaultID.Hex())
-	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
-	}
-
-	return ctx.Status(fiber.StatusOK).JSON(createdRoom)
+		return c.service.CreateRoom(ctx.Context(), room, room.CreatedBy.Hex())
+	})
 }
 
 func (c *RoomController) UpdateRoom(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
-	room := new(model.Room)
-	if err := ctx.BodyParser(room); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
-	}
+	return controllerHelper.ControllerAction(ctx, func(room *model.Room) (any, error) {
+		room.CreatedBy = controllerHelper.GetUserID(ctx)
 
-	updatedRoom, err := c.service.UpdateRoom(ctx.Context(), id, room)
-	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
-	}
-
-	return ctx.Status(fiber.StatusOK).JSON(updatedRoom)
+		return c.service.UpdateRoom(ctx.Context(), ctx.Params("id"), room)
+	})
 }
 
 func (c *RoomController) DeleteRoom(ctx *fiber.Ctx) error {
