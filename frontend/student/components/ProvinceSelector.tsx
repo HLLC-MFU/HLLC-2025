@@ -10,13 +10,13 @@ interface ProvinceSelectorProps {
   onSelect: (province: string) => void;
 }
 
-export const ProvinceSelector: React.FC<ProvinceSelectorProps> = ({
+export const ProvinceSelector = ({
   isOpen,
   onOpenChange,
   provinces,
   selectedProvince,
   onSelect,
-}) => {
+}:ProvinceSelectorProps) => {
   return (
     <Sheet
       open={isOpen}

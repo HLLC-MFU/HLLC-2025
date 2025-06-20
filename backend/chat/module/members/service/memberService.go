@@ -7,6 +7,7 @@ import (
 
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/members/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -16,6 +17,7 @@ type MemberService interface {
 	GetRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error)
 	IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
 	DeleteRoomMembers(ctx context.Context, roomID primitive.ObjectID) error
+	GetRoomIDsForUser(ctx context.Context, userID primitive.ObjectID) ([]primitive.ObjectID, error)
 }
 
 type memberService struct {
@@ -97,4 +99,23 @@ func (s *memberService) DeleteRoomMembers(ctx context.Context, roomID primitive.
 
 	log.Printf("[DELETE] Deleted all members for room %s", roomID.Hex())
 	return nil
+}
+
+func (s *memberService) GetRoomIDsForUser(ctx context.Context, userID primitive.ObjectID) ([]primitive.ObjectID, error) {
+	cursor, err := s.repo.GetDB().Collection("room_members").Find(ctx, bson.M{"user_ids": userID})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var roomIDs []primitive.ObjectID
+	for cursor.Next(ctx) {
+		var result struct {
+			RoomID primitive.ObjectID `bson:"room_id"`
+		}
+		if err := cursor.Decode(&result); err == nil {
+			roomIDs = append(roomIDs, result.RoomID)
+		}
+	}
+	return roomIDs, nil
 }

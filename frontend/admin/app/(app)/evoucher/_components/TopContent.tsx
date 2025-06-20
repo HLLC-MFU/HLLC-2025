@@ -1,18 +1,14 @@
 import { Evoucher } from "@/types/evoucher";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Select, SelectItem } from "@heroui/react";
-import { ChevronDownIcon, PlusIcon, SearchIcon, Ticket } from "lucide-react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from "@heroui/react";
+import { ChevronDownIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { TableColumnType } from "./TableContent";
 import React from "react";
-import { EvoucherType } from "@/types/evoucher-type";
 import type { Selection } from "@react-types/shared";
+import { useSponsors } from "@/hooks/useSponsors";
 
-export interface TopContentProps {
-    setIsAddOpen: (value: boolean) => void;
+interface TopContentProps {
     setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
-    typeFilter: Selection;
-    setTypeFilter: (value: Selection) => void;
-    EvoucherType: EvoucherType[];
     capitalize: (value: string) => string;
     visibleColumns: Set<string> | string[];
     setVisibleColumns: (columns: Set<string>) => void;
@@ -29,12 +25,8 @@ export interface TopContentProps {
 }
 
 export default function TopContent({
-    setIsAddOpen,
     setActionText,
     filterValue,
-    typeFilter,
-    setTypeFilter,
-    EvoucherType,
     capitalize,
     visibleColumns,
     setVisibleColumns,
@@ -42,7 +34,7 @@ export default function TopContent({
     onClear,
     onSearchChange,
 }: TopContentProps) {
-
+    const { sponsors } = useSponsors();
     return (
         <div className="flex flex-col gap-4">
             <div className="flex justify-between gap-3 items-end">
@@ -59,20 +51,18 @@ export default function TopContent({
                     <Dropdown>
                         <DropdownTrigger className="hidden sm:flex">
                             <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
-                                Type
+                                Sponsor
                             </Button>
                         </DropdownTrigger>
                         <DropdownMenu
                             disallowEmptySelection
                             aria-label="Table Columns"
                             closeOnSelect={false}
-                            selectedKeys={typeFilter}
                             selectionMode="multiple"
-                            onSelectionChange={setTypeFilter}
                         >
-                            {EvoucherType.map((type) => (
-                                <DropdownItem key={type.name} className="capitalize">
-                                    {capitalize(type.name)}
+                            {sponsors.map((sponsor) => (
+                                <DropdownItem key={sponsor._id} className="capitalize">
+                                    {capitalize(sponsor.name.en)}
                                 </DropdownItem>
                             ))}
                         </DropdownMenu>
@@ -106,7 +96,7 @@ export default function TopContent({
                             ))}
                         </DropdownMenu>
                     </Dropdown>
-                    <Button onPress={() => { setActionText("Add"); setIsAddOpen(true); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
+                    <Button onPress={() => { setActionText("Add"); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
                 </div>
             </div>
         </div>

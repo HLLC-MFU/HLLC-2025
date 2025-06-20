@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -19,8 +19,6 @@ import {
   Reply,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-
-// Components
 import ErrorView from './components/ErrorView';
 import JoinBanner from './components/JoinBanner';
 import RoomInfoModal from './components/RoomInfoModal';
@@ -28,6 +26,7 @@ import StickerPicker from './components/StickerPicker';
 import ChatInput from './components/ChatInput';
 import MessageList from './components/MessageList';
 import Loader from './components/Loader';
+import { BlurView } from 'expo-blur';
 
 // Hooks
 import { useChatRoom } from './hooks/useChatRoom';
@@ -40,7 +39,8 @@ import { chatStyles } from './constants/chatStyles';
 
 export default function ChatRoomPage() {
   const router = useRouter();
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList | null>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const {
     room,
     isMember,
@@ -64,6 +64,8 @@ export default function ChatRoomPage() {
     inputRef,
     userId,
     groupMessages,
+    roomMembers,
+    loadingMembers,
     handleJoin,
     handleSendMessage,
     handleImageUpload,
@@ -72,137 +74,158 @@ export default function ChatRoomPage() {
     initializeRoom,
   } = useChatRoom();
 
-  // Add auto-scroll effect
-  useEffect(() => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true });
-    }
-  }, [groupMessages()]); // Scroll when messages change
+  // Scroll to bottom after sending message
+  const handleSendMessageWithScroll = () => {
+    handleSendMessage();
+    setTimeout(() => {
+      if (flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }
+    }, 100);
+  };
+
+  // Show scroll to bottom button if not at bottom
+  const handleScroll = (event: { nativeEvent: { layoutMeasurement: any; contentOffset: any; contentSize: any; }; }) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const isAtBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
+    setShowScrollToBottom(!isAtBottom);
+  };
 
   if (loading) return <Loader />;
   if (error) return <ErrorView message={error} onRetry={initializeRoom} />;
 
   return (
-    <TouchableWithoutFeedback onPress={() => {
-      Keyboard.dismiss();
-      setShowEmojiPicker(false);
-      setShowStickerPicker(false);
-    }}>
-      <View style={chatStyles.container}>
-        <StatusBar barStyle="light-content" />
-        <SafeAreaView style={chatStyles.safeArea} edges={['top']}>
-          {/* Header */}
-          <View style={chatStyles.header}>
-            <TouchableOpacity 
-              style={chatStyles.backButton} 
-              onPress={() => router.replace('/chat')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <ChevronLeft color="#fff" size={24} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={chatStyles.headerInfo}
-              onPress={() => setIsRoomInfoVisible(true)}
-              activeOpacity={0.7}
-            >
-              <Text style={chatStyles.headerTitle} numberOfLines={1}>
-                {room?.name?.th_name || 'ห้องแชท'}
-              </Text>
-              <View style={chatStyles.memberInfo}>
-                <Users size={14} color="#0A84FF" />
-                <Text style={chatStyles.memberCount}>
-                  {connectedUsers.length} คนออนไลน์
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <TouchableWithoutFeedback onPress={() => {
+        Keyboard.dismiss();
+        setShowEmojiPicker(false);
+        setShowStickerPicker(false);
+      }}>
+        <BlurView intensity={40} tint="dark" style={chatStyles.container}>
+          <StatusBar barStyle="light-content" />
+          <SafeAreaView style={chatStyles.safeArea} edges={['top']}>
+            {/* Header */}
+            <View style={chatStyles.header}>
+              <TouchableOpacity 
+                style={chatStyles.backButton} 
+                onPress={() => router.replace('/chat')}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <ChevronLeft color="#fff" size={24} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={chatStyles.headerInfo}
+                onPress={() => setIsRoomInfoVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={chatStyles.headerTitle} numberOfLines={1}>
+                  {room?.name?.th || room?.name?.en || 'ห้องแชท'}
                 </Text>
-              </View>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={chatStyles.infoButton}
-              onPress={() => setIsRoomInfoVisible(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Info color="#0A84FF" size={20} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Connection status indicator */}
-          {wsError && (
-            <View style={chatStyles.connectionError}>
-              <Text style={chatStyles.connectionErrorText}>การเชื่อมต่อขัดข้อง กำลังลองใหม่...</Text>
-            </View>
-          )}
-          
-          {/* Join Room Banner */}
-          {!room?.is_member && (
-            <JoinBanner 
-              onJoin={handleJoin} 
-              joining={joining} 
-              roomCapacity={room?.capacity || 0}
-              connectedCount={connectedUsers.length}
-            />
-          )}
-          
-          {/* Reply Banner */}
-          {replyTo && (
-            <View style={chatStyles.replyBanner}>
-              <View style={chatStyles.replyBannerContent}>
-                <Reply size={16} color="#0A84FF" />
-                <Text style={chatStyles.replyBannerText} numberOfLines={1}>
-                  Replying to {replyTo.senderName || replyTo.senderId}: {replyTo.text}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => setReplyTo(undefined)}>
-                <X size={16} color="#8E8E93" />
+                <View style={chatStyles.memberInfo}>
+                  <Users size={14} color="#0A84FF" />
+                  <Text style={chatStyles.memberCount}>
+                    {roomMembers?.members?.length || 0} members
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={chatStyles.infoButton}
+                onPress={() => setIsRoomInfoVisible(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Info color="#0A84FF" size={20} />
               </TouchableOpacity>
             </View>
-          )}
-          
-          {/* Messages List */}
-          <MessageList
-            messages={groupMessages()}
-            userId={userId}
-            typing={typing}
-            flatListRef={flatListRef}
-            onReply={setReplyTo}
-            scrollToBottom={() => {
-              if (flatListRef.current) {
-                flatListRef.current.scrollToEnd({ animated: true });
-              }
-            }}
-          />
-          
-          {/* Input Area */}
-          <ChatInput
-            messageText={messageText}
-            setMessageText={setMessageText}
-            handleSendMessage={handleSendMessage}
-            handleImageUpload={handleImageUpload}
-            handleTyping={handleTyping}
-            isMember={!!room?.is_member}
-            isConnected={isConnected}
-            inputRef={inputRef}
-            setShowStickerPicker={setShowStickerPicker}
-            showStickerPicker={showStickerPicker}
-          />
-          
-          {/* Room Info Modal */}
-          <RoomInfoModal 
-            room={room as ChatRoom} 
-            isVisible={isRoomInfoVisible} 
-            onClose={() => setIsRoomInfoVisible(false)}
-            connectedUsers={connectedUsers}
-          />
 
-          {/* Sticker Picker Modal */}
-          {showStickerPicker && (
-            <StickerPicker
-              onSelectSticker={handleSendSticker}
-              onClose={() => setShowStickerPicker(false)}
+            {/* Connection status indicator */}
+            {wsError && (
+              <View style={chatStyles.connectionError}>
+                <Text style={chatStyles.connectionErrorText}>การเชื่อมต่อขัดข้อง กำลังลองใหม่...</Text>
+              </View>
+            )}
+            
+            {/* Join Room Banner */}
+            {!room?.is_member && (
+              <JoinBanner 
+                onJoin={handleJoin} 
+                joining={joining} 
+                roomCapacity={room?.capacity || 0}
+                connectedCount={roomMembers?.members?.length || 0}
+              />
+            )}
+            
+        
+            
+            {/* Messages List */}
+            <View style={{ flex: 1 }}>
+              <MessageList
+                messages={groupMessages()}
+                userId={userId}
+                typing={typing}
+                flatListRef={flatListRef}
+                onReply={setReplyTo}
+                scrollToBottom={() => {
+                  if (flatListRef.current) {
+                    flatListRef.current.scrollToEnd({ animated: true });
+                  }
+                }}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+              />
+              {showScrollToBottom && (
+                <TouchableOpacity
+                  style={{ position: 'absolute', bottom: 60, right: 20, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 24, padding: 10, zIndex: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 }}
+                  onPress={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                >
+                  <Text style={{ color: '#fff', fontSize: 16 }}>↓</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {/* Input Area */}
+            <ChatInput
+              messageText={messageText}
+              setMessageText={setMessageText}
+              handleSendMessage={handleSendMessageWithScroll}
+              handleImageUpload={handleImageUpload}
+              handleTyping={handleTyping}
+              isMember={!!room?.is_member}
+              isConnected={isConnected}
+              inputRef={inputRef}
+              setShowStickerPicker={setShowStickerPicker}
+              showStickerPicker={showStickerPicker}
+              replyTo={replyTo}
+              setReplyTo={setReplyTo}
             />
-          )}
-        </SafeAreaView>
-      </View>
-    </TouchableWithoutFeedback>
+            
+            {/* Room Info Modal */}
+            <RoomInfoModal 
+              room={room as ChatRoom} 
+              isVisible={isRoomInfoVisible} 
+              onClose={() => setIsRoomInfoVisible(false)}
+              connectedUsers={roomMembers?.members?.map(member => ({
+                id: member.user_id,
+                name: `${member.user.name.first} ${member.user.name.middle} ${member.user.name.last}`.trim(),
+                online: true // Assume all members are online since they are room members
+              })) || []}
+            />
+
+            {/* Sticker Picker Modal */}
+            {showStickerPicker && (
+              <StickerPicker
+                onSelectSticker={handleSendSticker}
+                onClose={() => setShowStickerPicker(false)}
+              />
+            )}
+          </SafeAreaView>
+        </BlurView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }

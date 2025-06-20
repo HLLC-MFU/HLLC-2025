@@ -13,9 +13,12 @@ interface MessageListProps {
   messages: Message[][];
   userId: string;
   typing: { id: string; name?: string }[];
-  flatListRef: React.RefObject<FlatList>;
+  flatListRef: React.RefObject<FlatList | null>;
   onReply: (message: Message) => void;
+  onRetry?: (message: Message) => void;
   scrollToBottom: () => void;
+  onScroll?: (event: any) => void;
+  scrollEventThrottle?: number;
 }
 
 const MessageList = ({
@@ -24,11 +27,14 @@ const MessageList = ({
   typing,
   flatListRef,
   onReply,
+  onRetry,
   scrollToBottom,
+  onScroll,
+  scrollEventThrottle,
 }: MessageListProps) => {
   const renderItem = ({ item }: { item: Message[] }) => {
     if (item.length === 1 && (item[0].type === 'join' || item[0].type === 'leave')) {
-      return <SystemMessage text={item[0].text} timestamp={item[0].timestamp} />;
+      return <SystemMessage text={item[0].text || ''} timestamp={item[0].timestamp} />;
     }
     
     return (
@@ -37,6 +43,7 @@ const MessageList = ({
           const isMyMessage = message.senderId === userId;
           const isLastInGroup = index === item.length - 1;
           const isFirstInGroup = index === 0;
+          const senderName = message.username || message.senderName || message.senderId;
           
           return (
             <MessageBubble 
@@ -44,7 +51,7 @@ const MessageList = ({
               message={message} 
               isMyMessage={isMyMessage} 
               senderId={message.senderId}
-              senderName={message.senderName}
+              senderName={senderName}
               isRead={message.isRead}
               showAvatar={!isMyMessage && isLastInGroup}
               isLastInGroup={isLastInGroup}
@@ -83,6 +90,8 @@ const MessageList = ({
         onEndReachedThreshold={0.5}
         onContentSizeChange={scrollToBottom}
         onLayout={scrollToBottom}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
       />
       
       {typing && typing.length > 0 && (

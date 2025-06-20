@@ -74,13 +74,42 @@ export interface JoinRoomResponse {
   room?: ChatRoom;
 }
 
+export interface RoomMember {
+  user: {
+    created_at: string;
+    updated_at: string;
+    id: string;
+    name: {
+      first: string;
+      middle: string;
+      last: string;
+    };
+    username: string;
+    role: string;
+    metadata: {
+      major: string;
+      secret: string;
+    };
+  };
+  user_id: string;
+}
+
+export interface RoomMembersResponse {
+  members: RoomMember[];
+  room_id: string;
+}
+
 async function getAuthHeaders() {
   const token = await getToken("accessToken");
+  console.log('Token retrieved:', token ? 'Token exists' : 'No token found');
   if (!token) throw new Error("No access token found");
-  return {
+  
+  const headers = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   };
+  console.log('Auth headers created:', { ...headers, Authorization: 'Bearer [REDACTED]' });
+  return headers;
 }
 
 class ChatService {
@@ -95,13 +124,38 @@ class ChatService {
       const headers = await getAuthHeaders();
       console.log('Fetching rooms with headers:', headers);
       
-      const response = await fetch(`${API_BASE_URL}/rooms`, {
-        headers,
-      });
+      // Try multiple endpoints
+      const endpoints = [
+        `${API_BASE_URL}/rooms`,
+        `${CHAT_BASE_URL}/rooms`
+      ];
+      
+      let response: Response | null = null;
+      let lastError: string = '';
+      
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`Trying endpoint: ${endpoint}`);
+          response = await fetch(endpoint, { headers });
+          console.log(`Response status for ${endpoint}:`, response.status);
+          
+          if (response.ok) {
+            console.log(`Success with endpoint: ${endpoint}`);
+            break;
+          } else {
+            const errorText = await response.text();
+            lastError = `Endpoint ${endpoint} failed: ${response.status} - ${errorText}`;
+            console.error(lastError);
+          }
+        } catch (error) {
+          lastError = `Endpoint ${endpoint} error: ${error}`;
+          console.error(lastError);
+        }
+      }
 
-      if (!response.ok) {
-        console.error('Failed to fetch rooms:', response.status, response.statusText);
-        throw new Error("Failed to fetch rooms");
+      if (!response || !response.ok) {
+        console.error('All endpoints failed. Last error:', lastError);
+        throw new Error("Failed to fetch rooms from all endpoints");
       }
 
       const result = await response.json();
@@ -130,12 +184,16 @@ class ChatService {
       );
 
       // Enrich room data with membership info
-      const enrichedRooms = rooms.map((room: ChatRoom) => {
+      const enrichedRooms = rooms.map((room: any) => {
         const members = membersMap.get(room.id) || [];
-        const enrichedRoom = {
+        // Extract user IDs from the members array if it contains objects
+        const memberIds = members.map((member: any) => 
+          typeof member === 'string' ? member : member.user_id || member.id
+        );
+        const enrichedRoom: ChatRoom = {
           ...room,
-          is_member: members.includes(currentUserId),
-          members_count: members.length
+          is_member: memberIds.includes(currentUserId),
+          members_count: memberIds.length
         };
         console.log('Enriched room:', enrichedRoom);
         return enrichedRoom;
@@ -185,14 +243,31 @@ class ChatService {
       const currentUserId = userData.sub; // Use sub instead of id
 
       // Check membership from members collection
-      const membersResponse = await fetch(`${API_BASE_URL}/rooms/${roomId}/members`, {
+      const membersResponse = await fetch(`${CHAT_BASE_URL}/api/rooms/${roomId}/members`, {
         headers
       });
 
       let isMember = false;
       if (membersResponse.ok) {
         const membersData = await membersResponse.json();
-        isMember = membersData.members?.includes(currentUserId) || false;
+        console.log("Raw members data:", membersData);
+        
+        // Handle different response formats
+        if (membersData.members) {
+          if (Array.isArray(membersData.members)) {
+            // Check if members is array of strings or objects
+            const memberIds = membersData.members.map((member: any) => 
+              typeof member === 'string' ? member : member.user_id || member.id
+            );
+            isMember = memberIds.includes(currentUserId);
+          } else {
+            // If members is a boolean or other format
+            isMember = Boolean(membersData.members);
+          }
+        } else if (membersData.isMember !== undefined) {
+          isMember = membersData.isMember;
+        }
+        
         console.log("isMember", isMember, "membersData", membersData, "currentUserId", currentUserId);
       }
       
@@ -242,7 +317,7 @@ class ChatService {
       const userId = userData.sub; // Use sub instead of id
 
       // First check if room is full
-      const roomResponse = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {
+      const roomResponse = await fetch(`${CHAT_BASE_URL}/api/rooms/${roomId}`, {
         headers,
       });
 
@@ -259,13 +334,28 @@ class ChatService {
       }
 
       // Check if user is already a member
-      const membersResponse = await fetch(`${API_BASE_URL}/rooms/${roomId}/members`, {
+      const membersResponse = await fetch(`${CHAT_BASE_URL}/api/rooms/${roomId}/members`, {
         headers,
       });
 
       if (membersResponse.ok) {
         const membersData = await membersResponse.json();
-        const isMember = membersData.members?.includes(userId) || false;
+        console.log("Members data for join check:", membersData);
+        
+        // Handle different response formats
+        let isMember = false;
+        if (membersData.members) {
+          if (Array.isArray(membersData.members)) {
+            const memberIds = membersData.members.map((member: any) => 
+              typeof member === 'string' ? member : member.user_id || member.id
+            );
+            isMember = memberIds.includes(userId);
+          } else {
+            isMember = Boolean(membersData.members);
+          }
+        } else if (membersData.isMember !== undefined) {
+          isMember = membersData.isMember;
+        }
         
         if (isMember) {
           return {
@@ -289,7 +379,7 @@ class ChatService {
 
       // Try to join the room
       const joinResponse = await fetch(
-        `${API_BASE_URL}/rooms/${roomId}/${userId}/join`,
+        `${CHAT_BASE_URL}/api/rooms/${roomId}/${userId}/join`,
         {
           method: "POST",
           headers,
@@ -520,7 +610,7 @@ class ChatService {
   async getRoomsWithMembers(): Promise<{ rooms: { room: ChatRoom, members: string[] }[] }> {
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/rooms/with-members`, {
+      const response = await fetch(`${CHAT_BASE_URL}/api/rooms/with-members`, {
         headers,
       });
 
@@ -528,10 +618,46 @@ class ChatService {
         throw new Error('Failed to fetch rooms with members');
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('Raw rooms with members response:', result);
+      
+      // Transform the response to match expected format
+      const transformedRooms = result.rooms?.map((item: any) => {
+        const members = item.members || [];
+        // Extract user IDs from member objects
+        const memberIds = members.map((member: any) => 
+          typeof member === 'string' ? member : member.user_id || member.id
+        );
+        return {
+          room: item.room,
+          members: memberIds
+        };
+      }) || [];
+
+      return { rooms: transformedRooms };
     } catch (error) {
       console.error('Error fetching rooms with members:', error);
       return { rooms: [] };
+    }
+  }
+
+  async getRoomMembers(roomId: string): Promise<RoomMembersResponse | null> {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${CHAT_BASE_URL}/api/rooms/${roomId}/members`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch room members');
+      }
+
+      const result = await response.json();
+      console.log('Room members response:', result);
+      return result;
+    } catch (error) {
+      console.error('Error fetching room members:', error);
+      return null;
     }
   }
 

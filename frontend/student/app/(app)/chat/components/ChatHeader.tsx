@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform, StatusBar, Animated } from 'react-native';
 import { Users, MessageCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 interface ChatHeaderProps {
   language: string;
@@ -22,10 +23,6 @@ export default function ChatHeader ({
 }: ChatHeaderProps) {
   return (
     <Animated.View style={[styles.enhancedHeader, { opacity: headerOpacity }]}>
-      <LinearGradient
-        colors={['rgba(99,102,241,0.1)', 'transparent']}
-        style={styles.headerGradient}
-      />
       
       <View style={styles.headerContent}>
         <View style={styles.headerTop}>
@@ -42,7 +39,7 @@ export default function ChatHeader ({
         <View style={styles.statsContainer}>
           <Animated.View style={[styles.statItem, { transform: [{ scale: pulseAnim }] }]}>
             <View style={styles.statIconContainer}>
-              <Users size={16} color="#6366f1" />
+              <Users size={16} color="#fff" />
             </View>
             <Text style={styles.statNumber}>{roomsCount}</Text>
             <Text style={styles.statLabel}>
@@ -52,7 +49,7 @@ export default function ChatHeader ({
           
           <View style={styles.statItem}>
             <View style={styles.statIconContainer}>
-              <MessageCircle size={16} color="#10b981" />
+              <MessageCircle size={16} color="#fff" />
             </View>
             <Text style={styles.statNumber}>{joinedRoomsCount}</Text>
             <Text style={styles.statLabel}>
@@ -89,19 +86,19 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#ffffff70',
     fontWeight: '500',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#fff',
     marginTop: 4,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
@@ -110,6 +107,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
     marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   statItem: {
     alignItems: 'center',
@@ -119,18 +118,18 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   statNumber: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#fff',
   },
   statLabel: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#ffffff70',
     fontWeight: '500',
   },
 }); 
