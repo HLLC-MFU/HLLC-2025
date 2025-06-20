@@ -13,7 +13,6 @@ import {
   SelectItem,
 } from "@heroui/react";
 
-import { useSponsors } from "@/hooks/useSponsors";
 import { Sponsors } from "@/types/sponsors";
 import { SponsorType } from "@/types/sponsors-type";
 import { LogoPreview } from "./LogoPreview";
@@ -42,8 +41,6 @@ export function SponsorModal({
   sponsor,
   mode,
 }: SponsorModalProps) {
-  const { createSponsors, updateSponsors } = useSponsors();
-
   const [nameEn, setNameEn] = useState("");
   const [nameTh, setNameTh] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -86,7 +83,7 @@ export function SponsorModal({
   const handleSubmit = async () => {
     const nameEnEmpty = !nameEn.trim();
     const nameThEmpty = !nameTh.trim();
-    const logoEmpty = mode === "add" && !logoFile;
+    const logoEmpty = !logoFile && !logoPreview;
 
     setErrors({ nameEn: nameEnEmpty, nameTh: nameThEmpty, logo: logoEmpty });
 

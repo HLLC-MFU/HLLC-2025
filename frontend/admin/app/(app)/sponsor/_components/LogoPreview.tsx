@@ -19,7 +19,6 @@ export function LogoPreview({
     onRemove,
     inputRef,
     aspectRatio = "aspect-video",
-    maxSize = "max-h-[300px]",
     containerClassName = "",
 }: LogoPreviewProps) {
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {

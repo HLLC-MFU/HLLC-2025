@@ -112,25 +112,6 @@ export default function SponsorPage() {
 
   const handleSubmitSponsor = async (sponsorsData: FormData) => {
     let response;
-    // const formData = new FormData();
-
-    // if (sponsorsData.name) {
-    //   if (sponsorsData.name.th) formData.append("name[th]", sponsorsData.name.th);
-    //   if (sponsorsData.name.en) formData.append("name[en]", sponsorsData.name.en);
-    // }
-
-    // const input = document.querySelector<HTMLInputElement>("#photo-input");
-    // const file = input?.files?.[0];
-    // if (file) {
-    //   formData.append("photo", file);
-    // }
-
-    // if (sponsorsData.type && sponsorsData.type._id !== "") {
-    //   formData.append("type", sponsorsData.type._id);
-    // }
-    // if (typeof sponsorsData.isShow === "boolean") {
-    //   formData.append("isShow", String(sponsorsData.isShow));
-    // }
 
     if (modalMode === "add") {
       response = await createSponsors(sponsorsData);
