@@ -1,9 +1,13 @@
 import { Switch } from '@heroui/react';
 import React, { useState } from 'react';
-import { TableInfo } from './NotificationTableStudent';
-import { SelectionScope } from '../_types/modal'
+import { TableStudentInformation } from './NotificationTableStudent';
 
-export function SelectStudent({ onScopeChange }: { onScopeChange?: (scope: 'global' | SelectionScope[]) => void }) {
+type SelectionScope = {
+    type: 'major' | 'school' | 'individual';
+    id: string[];
+};
+
+export function SelectStudentType({ onScopeChange }: { onScopeChange?: (scope: 'global' | SelectionScope[]) => void }) {
   
   const [showSelect, setShowSelect] = useState(true);
   const [tableKey, setTableKey] = useState(0); 
@@ -26,7 +30,7 @@ export function SelectStudent({ onScopeChange }: { onScopeChange?: (scope: 'glob
       </Switch>
 
       {!showSelect && (
-        <TableInfo
+        <TableStudentInformation
           key={tableKey} 
           onSelectionChange={(scope) => {
             onScopeChange?.(scope);

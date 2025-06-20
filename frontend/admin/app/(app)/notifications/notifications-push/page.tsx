@@ -1,14 +1,26 @@
 'use client';
 import { SendHorizontal, BellPlus } from 'lucide-react';
 import { Button, Select, SelectItem, addToast } from '@heroui/react';
-import { SelectStudent } from './_components/NotificationScope';
-import { Informationinfo } from './_components/NotificationForm';
-import { PreviewApp, PreviewOutApp } from './_components/NotificationPreview';
-import { InformationInfoData } from './_types/modal';
+import { PushNotificationApplication, PushNotification } from './_components/NotificationPreview';
 import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { useNotification } from '@/hooks/useNotification';
-import { language } from './_types/modal';
+import { NotificationFormSection } from './_components/NotificationFormSection';
+
+const language = [
+  { key: 'en', label: 'EN' },
+  { key: 'th', label: 'TH' },
+];
+
+type InformationInfoData = {
+  icon?: React.ElementType;
+  title: { en: string; th: string };
+  subtitle: { en: string; th: string };
+  body: { en: string; th: string };
+  redirect: { en: string; th: string; link: string };
+  imageUrl?: string;
+  imageFile?: File;
+};
 
 type SelectionScope =
   | 'global'
@@ -40,15 +52,9 @@ function isFormComplete(data?: InformationInfoData): boolean {
 }
 
 export default function NotificationPush() {
-  const [selectLanguagePreview, setSelectLanguagePreview] = useState<
-    'en' | 'th'
-  >('en');
-  const [selectLanguageNotification, setSelectLanguageNotification] = useState<
-    'en' | 'th'
-  >('en');
-  const [infoData, setInfoData] = useState<InformationInfoData | undefined>(
-    undefined,
-  );
+  const [LanguagePreview, setLanguagePreview] = useState<'en' | 'th' >('en');
+  const [LanguageNotification, setLanguageNotification] = useState< 'en' | 'th' >('en');
+  const [infoData, setInfoData] = useState<InformationInfoData | undefined>( undefined );
   const [scope, setScope] = useState<SelectionScope>('global');
   const [resetFormCounter, setResetFormCounter] = useState(0);
   const { createNotification } = useNotification();
@@ -110,18 +116,11 @@ export default function NotificationPush() {
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div id="Notification Info" className="flex row-span-2 w-full">
-          <div className="flex flex-col w-full gap-6">
-            <div className="flex flex-col w-full px-5 py-6 gap-6 rounded-2xl border border-gray-300 shadow-md">
-              <h1 className="text-2xl font-bold ">Preview</h1>
-              <SelectStudent onScopeChange={setScope} />
-            </div>
-            <div className="flex flex-col w-full px-5 py-6 gap-6 rounded-2xl border border-gray-300 shadow-md">
-              <Informationinfo
-                onChange={setInfoData}
-                resetSignal={resetFormCounter}
-              />
-            </div>
-          </div>
+            <NotificationFormSection
+              setScope={setScope}
+              setInfoData={setInfoData}
+              resetFormCounter={resetFormCounter}
+            />
         </div>
 
         <div className="flex flex-col px-4 gap-6 w-full">
@@ -133,15 +132,15 @@ export default function NotificationPush() {
               <h1 className="text-xl font-bold ">Preview In Application</h1>
               <Select
                 className="max-w-[9rem]"
-                value={selectLanguagePreview}
+                value={LanguagePreview}
                 items={language}
                 label="Language"
                 placeholder="Select a Language"
-                selectedKeys={[selectLanguagePreview]}
+                selectedKeys={[LanguagePreview]}
                 onSelectionChange={(key) => {
                   const lang = Array.from(key)[0];
                   if (lang === 'en' || lang === 'th')
-                    setSelectLanguagePreview(lang);
+                    setLanguagePreview(lang);
                 }}
               >
                 {(lang) => <SelectItem key={lang.key}>{lang.label}</SelectItem>}
@@ -149,7 +148,7 @@ export default function NotificationPush() {
             </div>
 
             {infoData && (
-              <PreviewApp info={infoData} lang={selectLanguagePreview} />
+              <PushNotificationApplication Information={infoData} Language={LanguagePreview} />
             )}
 
             <div className="flex items-center gap-5">
@@ -194,15 +193,15 @@ export default function NotificationPush() {
               <h1 className="text-xl font-bold ">Preview Notification</h1>
               <Select
                 className="max-w-[9rem]"
-                value={selectLanguageNotification}
+                value={LanguageNotification}
                 items={language}
                 label="Language"
                 placeholder="Select a Language"
-                selectedKeys={[selectLanguageNotification]}
+                selectedKeys={[LanguageNotification]}
                 onSelectionChange={(key) => {
                   const lang = Array.from(key)[0];
                   if (lang === 'en' || lang === 'th')
-                    setSelectLanguageNotification(lang);
+                    setLanguageNotification(lang);
                 }}
               >
                 {(lang) => <SelectItem key={lang.key}>{lang.label}</SelectItem>}
@@ -210,9 +209,9 @@ export default function NotificationPush() {
             </div>
 
             {infoData && (
-              <PreviewOutApp
-                info={infoData}
-                lang={selectLanguageNotification}
+              <PushNotification
+                Information={infoData}
+                Language={LanguageNotification}
               />
             )}
           </div>

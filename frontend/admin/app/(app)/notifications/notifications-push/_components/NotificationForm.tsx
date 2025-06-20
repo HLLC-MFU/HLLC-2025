@@ -3,7 +3,16 @@ import { image, Select, SelectItem } from '@heroui/react';
 import { Star, School, BookMarked, CircleCheckBig } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ImageUploader } from './NotificationImageUpload';
-import { InformationInfoData } from '../_types/modal';
+
+type InformationInfoData = {
+  icon?: React.ElementType;
+  title: { en: string; th: string };
+  subtitle: { en: string; th: string };
+  body: { en: string; th: string };
+  redirect: { en: string; th: string; link: string };
+  imageUrl?: string;
+  imageFile?: File;
+};
 
 export const icons = [
   {
@@ -34,7 +43,7 @@ type InformationinfoProps = {
   resetSignal?: number;
 };
 
-export function Informationinfo({ onChange, resetSignal }: InformationinfoProps) {
+export function InformationForm({ onChange, resetSignal }: InformationinfoProps) {
   const [selected, setSelected] = useState<(typeof icons)[0] | undefined>(undefined);
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [imageFile, setImageFile] = useState<File | undefined>(undefined);

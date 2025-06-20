@@ -72,7 +72,7 @@ export default function TopContent({
                 const selected = Array.from(keys) as string[];
                 setMajorFilter(new Set(selected));
               }}
-              className="max-h-48 overflow-y-auto"
+              className="max-h-48 overflow-y-auto scrollbar-none"
             >
               {(majors ?? []).map((major) => (
                 <DropdownItem key={major._id ?? `major-${major.name.en}`} className="capitalize">

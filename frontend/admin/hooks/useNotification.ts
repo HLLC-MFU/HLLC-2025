@@ -11,7 +11,7 @@ export function useNotification() {
     const [error, setError] = useState<string | null>(null)
 
     // 📥 Fetch all Student
-    const fetchnotification = async () => {
+    const fetchNotification = async () => {
         setLoading(true);
         setError(null);
         try {
@@ -85,7 +85,7 @@ export function useNotification() {
     };
 
     useEffect(() => {
-        fetchnotification();
+        fetchNotification();
     }, []);
 
     return {
@@ -93,7 +93,7 @@ export function useNotification() {
         loading,
         error,
         deleteNotification,
-        fetchnotification,
+        fetchNotification,
         createNotification,
     };
 
