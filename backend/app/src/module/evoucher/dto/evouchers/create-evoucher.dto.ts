@@ -1,30 +1,39 @@
-import { IsBoolean, IsDate, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
-import { Localization, Photo } from "src/pkg/types/common";
-import { EvoucherType } from "../../schema/evoucher.schema";
-import { Type } from "class-transformer";
+import {
+  IsBoolean,
+  IsDate,
+  IsEnum,
+  IsMongoId,
+  IsNotEmpty,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { Localization, Photo } from 'src/pkg/types/common';
+import { EvoucherType } from '../../schema/evoucher.schema';
+import { Type } from 'class-transformer';
 
 export class CreateEvoucherDto {
-
-    @IsString()
-    @IsNotEmpty()
-    discount: string;
+  @IsString()
+  @IsNotEmpty()
+  discount: string;
 
   @IsString()
   @IsNotEmpty()
   acronym: string;
 
-    @IsEnum(EvoucherType)
-    @IsNotEmpty()
-    type: EvoucherType;
+  @IsEnum(EvoucherType)
+  @IsNotEmpty()
+  type: EvoucherType;
 
   @IsMongoId()
   @IsNotEmpty()
   sponsors: string;
 
-    @IsDate()
-    @IsNotEmpty()
-    @Type(() => Date)
-    expiration: Date;
+  @IsDate()
+  @IsNotEmpty()
+  @Type(() => Date)
+  expiration: Date;
 
   @IsObject()
   @IsNotEmpty()
@@ -38,13 +47,12 @@ export class CreateEvoucherDto {
   @IsOptional()
   status?: boolean;
 
-    @IsObject()
-    @IsOptional()
-    metadata?: Record<string, string>;
+  @IsObject()
+  @IsOptional()
+  metadata?: Record<string, string>;
 
-    @IsNumber()
-    @IsOptional()
-    @Type(() => Number)
-    maxClaims?: number;
-
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  maxClaims?: number;
 }

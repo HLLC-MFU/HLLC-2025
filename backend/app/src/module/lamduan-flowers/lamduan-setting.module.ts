@@ -5,15 +5,16 @@ import { LamduanSettingController } from './controller/lamduan-setting.controlle
 import { LamduanSettingService } from './service/lamduan-setting.service';
 
 @Module({
-    imports: [MongooseModule.forFeature([
-        {
-            name: LamduanSetting.name,
-            schema: LamduanSettingSchema
-        }
+  imports: [
+    MongooseModule.forFeature([
+      {
+        name: LamduanSetting.name,
+        schema: LamduanSettingSchema,
+      },
     ]),
-    ],
-    exports: [MongooseModule],
-    controllers: [LamduanSettingController],
-    providers: [LamduanSettingService],
+  ],
+  exports: [MongooseModule],
+  controllers: [LamduanSettingController],
+  providers: [LamduanSettingService],
 })
-export class LamduanSettingModule { }
+export class LamduanSettingModule {}
