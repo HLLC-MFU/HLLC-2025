@@ -1,41 +1,11 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  User,
-  SortDescriptor,
-  Selection
-} from "@heroui/react";
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, User, SortDescriptor, Selection } from "@heroui/react";
+import { columns , INITIAL_VISIBLE_COLUMNS , FormattedUser , SelectionScope } from "../_types/modal";
 import { useMajors } from "@/hooks/useMajor";
 import { useUsers } from "@/hooks/useUsers";
 import { useSchools } from "@/hooks/useSchool";
 import TopContent from "./TableStudent/TableStudentTopContent";
 import BottomContent from "./TableStudent/TableStudentBottomContent";
-
-const columns = [
-  { name: "NAME", uid: "name", sortable: true },
-  { name: "MAJOR", uid: "major", sortable: true },
-];
-
-const INITIAL_VISIBLE_COLUMNS = ["name", "major"];
-
-type FormattedUser = {
-  avatar?: string;
-  id: string;
-  name: string;
-  studentid?: string;
-  major: string;
-  majorId: string;
-  school: string;
-  schoolId: string;
-  [key: string]: string | undefined;
-};
-
-type SelectionScope = { type: "school" | "major" | "individual"; id: string[] };
 
 export function TableInfo({ onSelectionChange }: { onSelectionChange?: (scope: SelectionScope[]) => void; }) {
   const [filterValue, setFilterValue] = useState("");

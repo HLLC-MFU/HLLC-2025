@@ -1,11 +1,4 @@
-import {
-  Card,
-  CardHeader,
-  CardBody,
-  Divider,
-  Image,
-  Button,
-} from '@heroui/react';
+import { Card, CardHeader, CardBody, Divider, Image, Button } from '@heroui/react';
 import { useEffect, useState } from 'react';
 import { InformationInfoData } from '../_types/modal';
 
@@ -18,14 +11,12 @@ export function PreviewApp({ info, lang }: { info: InformationInfoData; lang: 'e
     return () => clearInterval(interval);
   }, []);
 
-  // format: May 31, 2025
   const dateString = now.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
 
-  // format: 14:20
   const timeString = now.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',

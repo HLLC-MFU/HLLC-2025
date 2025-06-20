@@ -3,6 +3,7 @@ import { image, Select, SelectItem } from '@heroui/react';
 import { Star, School, BookMarked, CircleCheckBig } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ImageUploader } from './NotificationImageUpload';
+import { InformationInfoData } from '../_types/modal';
 
 export const icons = [
   {
@@ -27,19 +28,10 @@ export const icons = [
   },
 ];
 
-export type InformationInfoData = {
-  icon?: React.ElementType;
-  title: { en: string; th: string };
-  subtitle: { en: string; th: string };
-  body: { en: string; th: string };
-  redirect: { en: string; th: string; link: string };
-  imageUrl?: string;
-  imageFile?: File;
-};
 
 type InformationinfoProps = {
   onChange?: (data: InformationInfoData) => void;
-  resetSignal?: number; // ตัวช่วย reset
+  resetSignal?: number;
 };
 
 export function Informationinfo({ onChange, resetSignal }: InformationinfoProps) {
@@ -58,7 +50,6 @@ export function Informationinfo({ onChange, resetSignal }: InformationinfoProps)
     }
   }, [selected, title, subtitle, body, redirect, imageUrl, onChange]);
 
-  // ตัว reset state ทุกครั้งที่ resetSignal เปลี่ยน
   useEffect(() => {
     setSelected(undefined);
     setImageUrl(undefined);

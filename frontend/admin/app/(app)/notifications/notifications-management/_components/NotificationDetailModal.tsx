@@ -28,7 +28,7 @@ export default function NotificationModal({
       placement="center"
       backdrop="opaque"
     >
-      <ModalContent className='max-w-xl w-full'>
+      <ModalContent className="max-w-xl w-full">
         <>
           <ModalHeader className="flex flex-col gap-1">
             Model Information

@@ -1,14 +1,8 @@
 import React from 'react';
-import {
-  Input,
-  Button,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-} from '@heroui/react';
+import { Input, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react';
 import { ChevronDown, Search } from 'lucide-react';
-import { Major, School } from '@/types/school';
+import { School } from '@/types/school';
+import { Major } from '@/types/major';
 
 interface TopContentStudentProps {
   filterValue: string;
