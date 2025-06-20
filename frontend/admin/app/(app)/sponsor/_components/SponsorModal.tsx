@@ -14,7 +14,7 @@ import {
 } from "@heroui/react";
 
 import { Sponsors } from "@/types/sponsors";
-import { SponsorType } from "@/types/sponsors-type";
+import { SponsorType } from "@/types/sponsors";
 import { LogoPreview } from "./LogoPreview";
 
 interface SponsorModalProps {
