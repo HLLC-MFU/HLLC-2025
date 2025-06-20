@@ -35,7 +35,6 @@ export class SystemStatusController {
   @Get(':id')
   @Permissions('system:read')
   findOne(@Param('id') id: string) {
-    console.log('findOne', id);
     return this.systemStatusService.findOne(id);
   }
 

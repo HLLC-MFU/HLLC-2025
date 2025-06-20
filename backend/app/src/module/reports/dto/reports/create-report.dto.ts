@@ -17,5 +17,5 @@ export class CreateReportDto {
   @IsNotEmpty()
   status: string;
 
-  updatedAt: Date;
+  createdAt: Date;
 }

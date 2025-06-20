@@ -34,14 +34,14 @@ export class UsersController {
   ) { }
 
   @Post()
-  @Permissions('users:create')
+  @Public()
   @CacheKey('users:invalidate')
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Post('upload')
-  @Permissions('users:upload')
+  @Public()
   @CacheKey('users:invalidate')
   upload(@Body() uploadUserDtos: UserUploadDirectDto[]) {
     return this.usersService.upload(uploadUserDtos);
@@ -88,14 +88,13 @@ export class UsersController {
 
   @Patch(':id')
   @CacheKey('users:invalidate')
-  @Permissions('users:update')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   @CacheKey('users:invalidate')
-  @Permissions('users:delete:id')
+  @Public()
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
