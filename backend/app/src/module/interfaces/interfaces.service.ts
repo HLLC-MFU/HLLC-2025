@@ -9,8 +9,8 @@ import { Interfaces, InterfacesDocument } from './schema/interfaces.schema';
 export class InterfacesService {
   constructor(
     @InjectModel(Interfaces.name)
-    private interfaceModel: Model<InterfacesDocument>
-  ) { }
+    private interfaceModel: Model<InterfacesDocument>,
+  ) {}
 
   async create(createInterfacesDto: CreateInterfacesDto) {
     const createInterface = new this.interfaceModel(createInterfacesDto);
@@ -18,11 +18,11 @@ export class InterfacesService {
   }
 
   async findAll() {
-    return this.interfaceModel.find().populate('school').exec();
+    return this.interfaceModel.find().populate('school').lean();
   }
 
   async findOne(id: string) {
-    return this.interfaceModel.findById(id).exec();
+    return this.interfaceModel.findById(id).lean();
   }
 
   async update(id: string, updateInterfacesDto: Partial<UpdateInterfacesDto>) {
@@ -33,14 +33,16 @@ export class InterfacesService {
     if (updateInterfacesDto.assets) {
       updateInterfacesDto.assets = {
         ...originalInterface.assets,
-        ...updateInterfacesDto.assets
+        ...updateInterfacesDto.assets,
       };
     }
 
-    return this.interfaceModel.findByIdAndUpdate(id, updateInterfacesDto, { new: true }).exec();
+    return this.interfaceModel
+      .findByIdAndUpdate(id, updateInterfacesDto, { new: true })
+      .lean();
   }
 
   async remove(id: string) {
-    return this.interfaceModel.findByIdAndDelete(id).exec();
+    return this.interfaceModel.findByIdAndDelete(id).lean();
   }
 }

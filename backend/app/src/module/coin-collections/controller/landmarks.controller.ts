@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, UseInterceptors, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  UseInterceptors,
+  Req,
+} from '@nestjs/common';
 import { LandmarksService } from '../service/landmarks.service';
 import { CreateLandmarkDto } from '../dto/ladmarks/create-landmark.dto';
 import { UpdateLandmarkDto } from '../dto/ladmarks/update-landmark.dto';
@@ -12,7 +23,7 @@ import { FastifyRequest } from 'fastify';
 @ApiTags('landmarks')
 @Controller('landmarks')
 export class LandmarksController {
-  constructor(private readonly landmarksService: LandmarksService) { }
+  constructor(private readonly landmarksService: LandmarksService) {}
 
   @Post()
   @Permissions('landmarks:create')

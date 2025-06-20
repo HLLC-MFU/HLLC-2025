@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import {
   queryAll,
   queryDeleteOne,
@@ -24,11 +23,7 @@ export class AssessmentsService {
       ...createAssessmentDto,
     });
 
-    try {
-      return await assessment.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'order');
-    }
+    return await assessment.save();
   }
 
   async findAll(query: Record<string, string>) {

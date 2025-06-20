@@ -5,7 +5,7 @@ import { LamduanFlowersDocument } from '../schema/lamduan-flowers.schema';
 
 export async function validateLamduanTime(
   settingId: string,
-  lamduanModel: Model<LamduanSettingDocument>
+  lamduanModel: Model<LamduanSettingDocument>,
 ) {
   const lamduan = await lamduanModel.findById(settingId);
   if (!lamduan) throw new BadRequestException('Lamduan setting not found');
@@ -26,7 +26,7 @@ export async function validateLamduanTime(
 export async function validateUserAlreadySentLamduan(
   userId: string,
   settingId: string,
-  lamduanModel: Model<LamduanFlowersDocument>
+  lamduanModel: Model<LamduanFlowersDocument>,
 ): Promise<void> {
   const exists = await lamduanModel.findOne({
     user: new Types.ObjectId(userId),
