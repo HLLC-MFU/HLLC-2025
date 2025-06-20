@@ -16,21 +16,20 @@ import { Plus, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/context/LanguageContext';
 import useProfile from '@/hooks/useProfile';
-import { useChatRooms } from './hooks/useChatRooms';
-import { useChatAnimations } from './hooks/useChatAnimations';
-import { ChatRoom } from './types/chatTypes';
-import CreateRoomModal from './components/CreateRoomModal';
-import RoomCard from './components/RoomCard';
-import RoomListItem from './components/RoomListItem';
-import LoadingSpinner from './components/LoadingSpinner';
-
+import { useChatRooms } from '../../../hooks/chats/useChatRooms';
+import { useChatAnimations } from '../../../hooks/chats/useChatAnimations';
+import { ChatRoom } from '../../../types/chatTypes';
 import { BlurView } from 'expo-blur';
-import { chatService } from './services/chatService';
-import { RoomDetailModal } from './components/RoomDetailModal';
-import { ConfirmJoinModal } from './components/ConfirmJoinModal';
-import ChatHeader from './components/ChatHeader';
-import ChatTabBar from './components/ChatTabBar';
-import CategoryFilter from './components/CategoryFilter';
+import { chatService } from '../../../services/chats/chatService';
+import CategoryFilter from '@/components/chats/CategoryFilter';
+import ChatHeader from '@/components/chats/ChatHeader';
+import { ChatTabBar } from '@/components/chats/ChatTabBar';
+import { ConfirmJoinModal } from '@/components/chats/ConfirmJoinModal';
+import CreateRoomModal from '@/components/chats/CreateRoomModal';
+import LoadingSpinner from '@/components/chats/LoadingSpinner';
+import RoomCard from '@/components/chats/RoomCard';
+import { RoomDetailModal } from '@/components/chats/RoomDetailModal';
+import RoomListItem from '@/components/chats/RoomListItem';
 
 export default function ChatPage() {
   const router = useRouter();
