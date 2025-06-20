@@ -23,7 +23,6 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 @Controller('schools')
 export class SchoolsController {
   constructor(private readonly schoolsService: SchoolsService) {}
-  constructor(private readonly schoolsService: SchoolsService) {}
 
   @UseInterceptors(new MultipartInterceptor())
   @Post()
