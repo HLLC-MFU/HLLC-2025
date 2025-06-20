@@ -1,13 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { Expo, ExpoPushTicket } from 'expo-server-sdk';
-import { KafkaService } from '../kafka/kafka.service';
-import { PushNotificationDto } from './dto/push-notification.dto';
+import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import { KafkaService } from "../kafka/kafka.service";
+import { PushNotificationDto } from "./dto/push-notification.dto";
+import type * as admin from 'firebase-admin';
 
 @Injectable()
 export class PushNotificationService {
-  constructor(private readonly kafka: KafkaService) {}
-
-  private expo = new Expo();
+	constructor(
+		private readonly kafka: KafkaService,
+		@Inject('FIREBASE_ADMIN') 
+		private readonly firebaseApp: admin.app.App,
+	){}
 
   async registerKafka() {
     await this.kafka.registerHandler(
@@ -21,23 +23,40 @@ export class PushNotificationService {
     // TODO: implement out-app notification
   }
 
-  async sendPushNotification(dto: PushNotificationDto) {
-    const messages = dto.to
-      .filter((token) => Expo.isExpoPushToken(token))
-      .map((token) => ({
-        to: token,
+	async sendPushNotification(dto: PushNotificationDto) {
+		const tokens = dto.to.filter(Boolean);
+    if (!tokens.length) throw new BadRequestException("Tokens are missing");
+
+    const messaging = this.firebaseApp.messaging();
+
+    const response = await messaging.sendEachForMulticast({
+      tokens,
+      notification: {
         title: dto.title,
         body: dto.body,
-      }));
+      },
+      android: {
+        priority: dto.priority ?? 'high',
+      },
+      apns: {
+        payload: {
+          aps: {
+            alert: {
+              title: dto.title,
+              body: dto.body,
+            },
+            badge: 1,
+            sound: 'default',
+          },
+        },
+      },
+      // data: dto.data ? flattenData(dto.data) : undefined,
+    });
 
-    const chunks = this.expo.chunkPushNotifications(messages);
-    const tickets: ExpoPushTicket[] = [];
-
-    for (const chunk of chunks) {
-      const ticketChunk = await this.expo.sendPushNotificationsAsync(chunk);
-      tickets.push(...ticketChunk);
-    }
-
-    return { tickets };
-  }
+    return {
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      responses: response.responses,
+    };
+	}
 }

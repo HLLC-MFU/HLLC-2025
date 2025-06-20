@@ -5,7 +5,6 @@ import { BlurView } from 'expo-blur';
 import { ImageBackground } from 'expo-image';
 import useProfile from '@/hooks/useProfile';
 import { useEffect, useState } from 'react';
-import { BookIcon, GiftIcon, GlobeIcon, HomeIcon, QrCodeIcon } from 'lucide-react-native';
 import TabBar from '@/components/global/TabBar';
 
 export default function Layout() {
@@ -56,13 +55,11 @@ export default function Layout() {
         }}
         tabBar={() => <TabBar />}
       >
-        <Tabs.Screen name="index" options={{ title: 'Home' }}
-        />
+        <Tabs.Screen name="index" options={{ title: 'Home' }}/>
         <Tabs.Screen name="activities/index" options={{ title: 'Activities' }} />
         <Tabs.Screen name="qrcode" options={{ title: 'QR Code' }} />
         <Tabs.Screen name="evoucher" options={{ title: 'E-Voucher' }} />
         <Tabs.Screen name="chat/index" options={{ title: 'Community' }} />
-
       </Tabs>
     </View>
   );

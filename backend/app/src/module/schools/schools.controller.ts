@@ -23,6 +23,9 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 @Controller('schools')
 export class SchoolsController {
   constructor(private readonly schoolsService: SchoolsService) {}
+  constructor(
+    private readonly schoolsService: SchoolsService,
+  ) { }
 
   @UseInterceptors(new MultipartInterceptor())
   @Post()
@@ -60,5 +63,12 @@ export class SchoolsController {
     @Query() query: Record<string, string>,
   ) {
     return this.schoolsService.findColor(id, query);
+  }
+
+  @Get(':id/interfaces')
+  findInterfaces(
+    @Param('id') id: string,
+  ) {
+    return this.schoolsService.findInterfaces(id);
   }
 }

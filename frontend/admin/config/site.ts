@@ -12,6 +12,9 @@ import {
   Ticket,
   ShieldAlert,
   LogOutIcon,
+  MonitorSmartphone,
+  HandCoins,
+  Flower,
 } from "lucide-react";
 
 import type { NavSection } from "@/types/nav";
@@ -36,18 +39,24 @@ export const siteConfig: {
       items: [
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon, permission: "schools:read" },
         { label: "Users Management", href: "/users", icon: UserIcon, permission: "users:read" },
+        { label: "Notifications", href: "/notifications", icon: BellRing , permission: "notification:read"},
         { label: "Activities", href: "/activities", icon: University, permission: "activities:read" },
         { label: "Checkin", href: "/checkin", icon: CircleCheckBig, permission: "checkin:read" },
-        { label: "Notification Management", href: '/notifications', icon: BellRing, permission: "notifications:read" },
         { label: "Reports", href: "/reports", icon: ShieldAlert, permission: "reports:read" },
       ],
     },
     {
       section: "Sponsor & Evoucher",
       items: [
-        { label: "Sponsor", href: "/sponsor", icon: DollarSignIcon, permission: "sponsor:read" },
+        { label: "Sponsor", href: "/sponsor", icon: HandCoins, permission: "sponsor:read" },
         { label: "Evoucher", href: "/evoucher", icon: Ticket, permission: "evoucher:read" },
         { label: "Campaign", href: "/campaigns", icon: Megaphone, permission: "campaigns:read" },
+      ],
+    },
+    {
+      section: "Lamduan",
+      items: [
+        { label: "Lamduan flowers" , href: "/lamduanflowers" , icon: Flower , permission:"lamduanflowers:read"},
       ],
     },
     {
@@ -55,6 +64,7 @@ export const siteConfig: {
       items: [
         { label: "Settings", href: "/settings", icon: SettingsIcon, permission: "system:read" },
         { label: "Appearance", href: "/appearance", icon: Palette, permission: "appearance:read" },
+        { label: "Interfaces", href: "/interfaces", icon: MonitorSmartphone, permission: "interface:read" },
       ],
     },
     {

@@ -95,10 +95,11 @@ export function useActivities() {
     hasFetched,
     fetchActivities,
   } = useActivitiesStore();
+  const userId = user?.data?.[0]._id;
 
   useEffect(() => {
-    if (user?.id) fetchActivities(user.id);
-  }, [user?.id]);
+    if (userId) fetchActivities(userId);
+  }, [userId]);
 
   return {
     activities,
