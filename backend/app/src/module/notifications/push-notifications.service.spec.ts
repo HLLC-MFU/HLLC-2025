@@ -51,6 +51,18 @@ describe('PushNotificationService', () => {
             registerHandler: jest.fn(),
           },
         },
+        {
+          provide: 'FIREBASE_ADMIN',
+          useValue: {
+            messaging: () => ({
+              sendEachForMulticast: jest.fn().mockResolvedValue({
+                successCount: 1,
+                failureCount: 0,
+                responses: [{ status: 'ok' }],
+              }),
+            }),
+          },
+        },
       ],
     }).compile();
 
@@ -58,43 +70,53 @@ describe('PushNotificationService', () => {
     kafkaService = module.get(KafkaService);
   });
 
-  it('should send push notifications', async () => {
-    const dto: PushNotificationDto = {
-      to: ['ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]'],
-      title: 'Test Title',
-      body: 'Test Body',
-    };
+  describe('sendPushNotification()', () => {
+    it('should send push notifications and return valid response', async () => {
+      const dto: PushNotificationDto = {
+        to: ['ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]'],
+        title: 'Test Title',
+        body: 'Test Body',
+      };
 
-    const result = await service.sendPushNotification(dto);
+      const result = await service.sendPushNotification(dto);
 
-    expect(result).toHaveProperty('tickets');
-    expect(Array.isArray(result.tickets)).toBe(true);
-    expect(result.tickets[0]).toEqual({ status: 'ok' });
+      expect(result).toHaveProperty('successCount');
+      expect(result).toHaveProperty('failureCount');
+      expect(result).toHaveProperty('responses');
+
+      expect(typeof result.successCount).toBe('number');
+      expect(typeof result.failureCount).toBe('number');
+      expect(Array.isArray(result.responses)).toBe(true);
+      expect(result.responses[0]).toEqual({ status: 'ok' });
+    });
   });
 
-  it('should register kafka handler', async () => {
-  const spy = jest.spyOn(kafkaService, 'registerHandler');
-  await service.registerKafka();
+  describe('registerKafka()', () => {
+    it('should register kafka handler for chat-notifications', async () => {
+      const spy = jest.spyOn(kafkaService, 'registerHandler');
+      await service.registerKafka();
 
-  const calls = spy.mock.calls;
-  expect(calls.length).toBe(1);
-  expect(calls[0][0]).toBe('chat-notifications');
-  expect(calls[0][1]).toBeInstanceOf(Function);
-});
+      const calls = spy.mock.calls;
+      expect(calls.length).toBe(1);
+      expect(calls[0][0]).toBe('chat-notifications');
+      expect(calls[0][1]).toBeInstanceOf(Function);
+    });
+  });
 
+  describe('handleChatNotification()', () => {
+    it('should log notification payload to console', () => {
+      const payload: ChatNotificationPayload = {
+        userId: 'user123',
+        message: 'Hello',
+        type: 'chat',
+      };
 
-  it('should handle chat notification (log only)', () => {
-    const payload: ChatNotificationPayload = {
-      userId: 'user123',
-      message: 'Hello',
-      type: 'chat',
-    };
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      service.callHandleChatNotification(payload);
 
-    service.callHandleChatNotification(payload);
-
-    expect(consoleSpy).toHaveBeenCalledWith('[Notification]', payload);
-    consoleSpy.mockRestore();
+      expect(consoleSpy).toHaveBeenCalledWith('[Notification]', payload);
+      consoleSpy.mockRestore();
+    });
   });
 });

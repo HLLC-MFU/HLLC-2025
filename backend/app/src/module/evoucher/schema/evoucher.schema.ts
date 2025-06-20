@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument, Types } from "mongoose";
 import { Localization, Photo } from "src/pkg/types/common";
 
+
 export enum EvoucherType {
   GLOBAL = 'GLOBAL',
   INDIVIDUAL = 'INDIVIDUAL'

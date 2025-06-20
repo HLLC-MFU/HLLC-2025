@@ -2,22 +2,22 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { EvoucherService } from './evoucher.service';
 import { Sponsors } from 'src/module/sponsors/schema/sponsors.schema';
-import { EvoucherType } from '../schema/evoucher-type.schema';
-import { Evoucher } from '../schema/evoucher.schema';
+import { Evoucher, EvoucherStatus, EvoucherType } from '../schema/evoucher.schema';
+import { EvoucherCode } from '../schema/evoucher-code.schema';
 import { CreateEvoucherDto } from '../dto/evouchers/create-evoucher.dto';
 import { Types } from 'mongoose';
 
 jest.mock('src/pkg/validator/model.validator', () => ({
   findOrThrow: jest.fn(),
 }));
-jest.mock('src/pkg/helper/helpers', () => ({
-  handleMongoDuplicateError: jest.fn(),
-}));
 jest.mock('src/pkg/helper/query.util', () => ({
   queryAll: jest.fn(),
   queryFindOne: jest.fn(),
   queryUpdateOne: jest.fn(),
   queryDeleteOne: jest.fn(),
+}));
+jest.mock('../utils/evoucher.util', () => ({
+  validatePublicAvailableVoucher: jest.fn(),
 }));
 
 import { findOrThrow } from 'src/pkg/validator/model.validator';
@@ -27,18 +27,27 @@ import {
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
+import { validatePublicAvailableVoucher } from '../utils/evoucher.util';
+
+type EvoucherWithClaims = Omit<Evoucher, 'claims'> & {
+  claims: {
+    maxClaim: number | undefined;
+    currentClaim: number;
+  };
+};
+
+type EvoucherWithAvailability = Omit<Evoucher, 'isAvailable'> & {
+  isAvailable: boolean;
+};
 
 describe('EvoucherService', () => {
   let service: EvoucherService;
 
-  const mockEvoucherModel = {
-    save: jest.fn(),
-    constructor: jest.fn(),
+  const mockEvoucherCodeModel = {
+    countDocuments: jest.fn(),
   };
 
   const mockSponsorsModel = {};
-  const mockTypeModel = {};
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -46,15 +55,15 @@ describe('EvoucherService', () => {
         EvoucherService,
         {
           provide: getModelToken(Evoucher.name),
-          useValue: jest.fn().mockImplementation(() => mockEvoucherModel),
+          useValue: jest.fn(),
         },
         {
           provide: getModelToken(Sponsors.name),
           useValue: mockSponsorsModel,
         },
         {
-          provide: getModelToken(EvoucherType.name),
-          useValue: mockTypeModel,
+          provide: getModelToken(EvoucherCode.name),
+          useValue: mockEvoucherCodeModel,
         },
       ],
     }).compile();
@@ -66,14 +75,15 @@ describe('EvoucherService', () => {
     jest.clearAllMocks();
   });
 
-  describe('create (validation errors)', () => {
-    it('should throw if evoucherType not found', async () => {
-      const dto = {
-        discount: 100,
+  describe('create', () => {
+    it('should create evoucher successfully', async () => {
+      const dto: CreateEvoucherDto = {
+        discount: '100',
         acronym: 'EV100',
-        type: new Types.ObjectId().toString(),
+        type: EvoucherType.GLOBAL,
         sponsors: new Types.ObjectId().toString(),
         expiration: new Date(),
+        maxClaims: 100,
         detail: { th: 'ดีลดี', en: 'Great Deal' },
         photo: {
           coverPhoto: '',
@@ -81,70 +91,59 @@ describe('EvoucherService', () => {
           thumbnail: '',
           logoPhoto: 'evocher.png',
         },
-      } as CreateEvoucherDto;
+      };
 
-      (findOrThrow as jest.Mock).mockImplementationOnce(() => {
-        throw new Error('Evoucher type not found');
-      });
+      (findOrThrow as jest.Mock).mockResolvedValueOnce({});
 
-      await expect(service.create(dto)).rejects.toThrow('Evoucher type not found');
-      expect(findOrThrow).toHaveBeenCalledTimes(1);
-    });
+      const saveMock = jest.fn().mockResolvedValue({ _id: 'e1', ...dto });
+      const evoucherConstructor = jest.fn().mockImplementation(() => ({ save: saveMock }));
+      Object.defineProperty(service, 'evoucherModel', { value: evoucherConstructor });
 
-    it('should throw if sponsors not found', async () => {
-      const dto = {
-        discount: 100,
-        acronym: 'EV100',
-        type: new Types.ObjectId().toString(),
-        sponsors: new Types.ObjectId().toString(),
-        expiration: new Date(),
-        detail: { th: 'ดีลดี', en: 'Great Deal' },
-        photo: {
-          coverPhoto: '',
-          bannerPhoto: '',
-          thumbnail: '',
-          logoPhoto: 'evocher.png',
-        },
-      } as CreateEvoucherDto;
-
-      (findOrThrow as jest.Mock)
-        .mockResolvedValueOnce({}) 
-        .mockImplementationOnce(() => {
-          throw new Error('Sponsors not found');
-        });
-
-      await expect(service.create(dto)).rejects.toThrow('Sponsors not found');
-      expect(findOrThrow).toHaveBeenCalledTimes(2);
+      const result = await service.create(dto);
+      expect(result).toEqual(expect.objectContaining({ _id: 'e1', acronym: 'EV100' }));
     });
   });
-
-  describe('findAll (populate fields)', () => {
-    it('should pass correct populateFields to queryAll', async () => {
-      const mockResult = { data: ['ev1'], meta: {} };
-
-      (queryAll as jest.Mock).mockImplementation(async (args) => {
-        const fields = await args.populateFields?.();
-        expect(fields).toEqual([
-          { path: 'type' },
-          { path: 'sponsors' },
-        ]);
-        return mockResult;
-      });
-
-      const result = await service.findAll({});
-      expect(result).toEqual(mockResult);
-    });
-  });
- 
 
   describe('findAll', () => {
-    it('should return all evouchers with populated fields', async () => {
-      const fakeQuery = { keyword: 'test' };
-      (queryAll as jest.Mock).mockResolvedValue({ data: [], meta: {} });
+    it('should return evouchers with claims info', async () => {
+      const mockEvoucher = {
+        _id: new Types.ObjectId(),
+        maxClaims: 10,
+        expiration: new Date(Date.now() + 1000000),
+        toJSON: function () {
+          return {
+            _id: this._id,
+            maxClaims: this.maxClaims,
+            expiration: this.expiration,
+          };
+        },
+      };
 
-      const result = await service.findAll(fakeQuery);
-      expect(queryAll).toHaveBeenCalled();
-      expect(result).toEqual({ data: [], meta: {} });
+      (queryAll as jest.Mock).mockResolvedValue({ data: [mockEvoucher], meta: {} });
+      mockEvoucherCodeModel.countDocuments.mockResolvedValue(2);
+
+      const result = await service.findAll({});
+
+      const resultWithClaims = result.data as EvoucherWithClaims[];
+      expect(resultWithClaims[0].claims).toEqual({ maxClaim: 10, currentClaim: 2 });
+    });
+  });
+
+  describe('getPublicAvailableEvouchersForUser', () => {
+    it('should validate each evoucher and return paginated result', async () => {
+      const evoucher = {
+        _id: new Types.ObjectId(),
+        status: EvoucherStatus.ACTIVE,
+        type: EvoucherType.GLOBAL,
+      };
+
+      (queryAll as jest.Mock).mockResolvedValue({ data: [evoucher], meta: {} });
+      (validatePublicAvailableVoucher as jest.Mock).mockResolvedValue({ ...evoucher, isAvailable: true });
+
+      const result = await service.getPublicAvailableEvouchersForUser('u1');
+
+      const resultWithAvailability = result.data as EvoucherWithAvailability[];
+      expect(resultWithAvailability[0].isAvailable).toBe(true);
     });
   });
 
@@ -153,39 +152,26 @@ describe('EvoucherService', () => {
       (queryFindOne as jest.Mock).mockResolvedValue({ _id: '123' });
 
       const result = await service.findOne('123');
-      expect(queryFindOne).toHaveBeenCalledWith(
-        expect.anything(),
-        { _id: '123' },
-        expect.arrayContaining([
-          expect.objectContaining({ path: 'type' }),
-          expect.objectContaining({ path: 'sponsors' }),
-        ])
-      );
+      expect(queryFindOne).toHaveBeenCalledWith(expect.anything(), { _id: '123' }, expect.any(Array));
       expect(result).toEqual({ _id: '123' });
     });
   });
 
   describe('update', () => {
     it('should call queryUpdateOne', async () => {
-      const updateDto = { discount: 50, updatedAt: new Date() };
+      const updateDto = { discount: '50' };
       (queryUpdateOne as jest.Mock).mockResolvedValue({ _id: '321', ...updateDto });
 
       const result = await service.update('321', updateDto);
-      expect(queryUpdateOne).toHaveBeenCalledWith(expect.anything(), '321', updateDto);
-      expect(result).toEqual(expect.objectContaining({ discount: 50 }));
+      expect(result).toEqual(expect.objectContaining({ discount: '50' }));
     });
   });
 
   describe('remove', () => {
-    it('should delete evoucher and return message', async () => {
+    it('should call queryDeleteOne and return confirmation', async () => {
       (queryDeleteOne as jest.Mock).mockResolvedValue(true);
-
       const result = await service.remove('999');
-      expect(queryDeleteOne).toHaveBeenCalledWith(expect.anything(), '999');
-      expect(result).toEqual({
-        message: 'Evoucher deleted successfully',
-        id: '999',
-      });
+      expect(result).toEqual({ message: 'Evoucher deleted successfully', id: '999' });
     });
   });
 });

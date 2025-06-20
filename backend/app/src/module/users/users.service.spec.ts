@@ -93,6 +93,21 @@ describe('UsersService', () => {
       expect(saveMock).toHaveBeenCalled();
       expect(result).toBe(mockUser);
     });
+
+    it('should throw NotFoundException if role is not found', async () => {
+      const dto: CreateUserDto = {
+        name: { first: 'John', last: 'Doe' },
+        username: 'johndoe',
+        password: 'pass',
+        role: mockRoleId,
+        metadata: {},
+      };
+      (roleModel.findById as jest.Mock).mockReturnValueOnce({
+        lean: () => Promise.resolve(null),
+      });
+
+      await expect(service.create(dto)).rejects.toThrow('Role not found');
+    });
   });
 
   describe('findAll()', () => {
@@ -140,6 +155,29 @@ describe('UsersService', () => {
       (userModel.findByIdAndUpdate as jest.Mock).mockReturnValueOnce({ lean: () => Promise.resolve(mockUser) });
       const result = await service.update(mockUserId.toHexString(), { username: 'updated' });
       expect(result).toBe(mockUser);
+    });
+
+    it('should throw NotFoundException if user is not found', async () => {
+      (userModel.findById as jest.Mock).mockReturnValueOnce({
+        lean: () => Promise.resolve(null),
+      });
+
+      await expect(
+        service.update(mockUserId.toHexString(), { username: 'new' }),
+      ).rejects.toThrow('User not found');
+    });
+
+    it('should throw NotFoundException if role is not found', async () => {
+      (userModel.findById as jest.Mock).mockReturnValueOnce({
+        lean: () => Promise.resolve({ _id: mockUserId, role: mockRoleId }),
+      });
+      (roleModel.findById as jest.Mock).mockReturnValueOnce({
+        lean: () => Promise.resolve(null),
+      });
+
+      await expect(
+        service.update(mockUserId.toHexString(), { username: 'new' }),
+      ).rejects.toThrow('Role not found');
     });
   });
 
@@ -196,6 +234,59 @@ describe('UsersService', () => {
       const result = await service.upload(dto);
       expect(result.length).toBe(1);
     });
+
+    it('should throw BadRequestException if metadata.major is missing', async () => {
+      const dto: UserUploadDirectDto[] = [
+        {
+          name: { first: 'a' },
+          username: 'b',
+          role: mockRoleId.toHexString(),
+          metadata: {}, // missing major
+        },
+      ];
+
+      await expect(service.upload(dto)).rejects.toThrow('Major is required');
+    });
+
+    it('should throw NotFoundException if major not found', async () => {
+      const dto: UserUploadDirectDto[] = [
+        {
+          name: { first: 'a' },
+          username: 'b',
+          role: mockRoleId.toHexString(),
+          metadata: { major: mockMajorId.toHexString() },
+        },
+      ];
+
+      (majorModel.findById as jest.Mock).mockReturnValueOnce({
+        lean: () => Promise.resolve(null),
+      });
+
+      await expect(service.upload(dto)).rejects.toThrow(
+        'Major in database not found',
+      );
+    });
+
+    it('should throw BadRequestException if user.save() fails', async () => {
+      const dto: UserUploadDirectDto[] = [
+        {
+          name: { first: 'a' },
+          username: 'b',
+          role: mockRoleId.toHexString(),
+          metadata: { major: mockMajorId.toHexString() },
+        },
+      ];
+
+      (majorModel.findById as jest.Mock).mockReturnValue({
+        lean: () => Promise.resolve(mockMajor),
+      });
+
+      (userModel as jest.Mock).mockImplementation(() => ({
+        save: jest.fn().mockRejectedValue(new Error('DB error')),
+      }));
+
+      await expect(service.upload(dto)).rejects.toThrow('DB error');
+    });
   });
 
   describe('registerDeviceToken()', () => {
@@ -204,6 +295,7 @@ describe('UsersService', () => {
       await service.registerDeviceToken(mockUserId.toHexString(), { deviceToken: 'abc' });
       expect(queryUpdateOne).toHaveBeenCalled();
     });
+    
   });
 
   describe('removeDeviceToken()', () => {
@@ -211,6 +303,13 @@ describe('UsersService', () => {
       (findOrThrow as jest.Mock).mockResolvedValue(mockUser);
       await service.removeDeviceToken(mockUserId.toHexString(), 'abc');
       expect(queryUpdateOne).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if token is missing', async () => {
+      (findOrThrow as jest.Mock).mockResolvedValue(mockUser);
+      await expect(
+        service.removeDeviceToken(mockUserId.toHexString(), ''),
+      ).rejects.toThrow('Token is required');
     });
   });
 });

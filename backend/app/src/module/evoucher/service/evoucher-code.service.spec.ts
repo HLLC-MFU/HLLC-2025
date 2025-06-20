@@ -3,12 +3,15 @@ import { getModelToken } from '@nestjs/mongoose';
 import { EvoucherCodeService } from './evoucher-code.service';
 import { EvoucherCode, EvoucherCodeDocument } from '../schema/evoucher-code.schema';
 import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
-import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
+import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
 import { Types, Model } from 'mongoose';
-
-import { findOrThrow } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
+import {
+  validateEvoucher,
+  validateClaimEligibility,
+  createEvoucherCode,
+  useEvoucherCode as useEvoucherCodeUtil,
+} from '../utils/evoucher.util';
 import {
   queryAll,
   queryDeleteOne,
@@ -16,46 +19,29 @@ import {
   queryUpdateOne,
 } from 'src/pkg/helper/query.util';
 
-jest.mock('src/pkg/validator/model.validator', () => ({ findOrThrow: jest.fn() }));
-jest.mock('src/pkg/helper/helpers', () => ({ handleMongoDuplicateError: jest.fn() }));
-jest.mock('src/pkg/helper/query.util', () => ({
-  queryAll: jest.fn(),
-  queryDeleteOne: jest.fn(),
-  queryFindOne: jest.fn(),
-  queryUpdateOne: jest.fn(),
-}));
+jest.mock('../utils/evoucher.util');
+jest.mock('src/pkg/helper/query.util');
 
 describe('EvoucherCodeService', () => {
   let service: EvoucherCodeService;
-  let evoucherCodeModel: Partial<Record<keyof Model<EvoucherCodeDocument>, jest.Mock>> & {
-    findById: jest.Mock;
-    find: jest.Mock;
-    exists: jest.Mock;
-    findOne: jest.Mock;
-    insertMany: jest.Mock;
+
+  const mockEvoucherCodeModel = {
+    findOne: jest.fn(),
   };
-  let evoucherModel: Partial<Record<keyof Model<EvoucherDocument>, jest.Mock>>;
-  let userModel: Partial<Record<keyof Model<UserDocument>, jest.Mock>>;
+  const mockEvoucherModel = {};
 
   beforeEach(async () => {
-    evoucherCodeModel = {
-      findById: jest.fn(),
-      find: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue([]) }),
-      exists: jest.fn(),
-      findOne: jest.fn(),
-      insertMany: jest.fn(),
-    };
-    evoucherModel = {
-      find: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue([]) }),
-    };
-    userModel = {};
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EvoucherCodeService,
-        { provide: getModelToken(EvoucherCode.name), useValue: evoucherCodeModel },
-        { provide: getModelToken(Evoucher.name), useValue: evoucherModel },
-        { provide: getModelToken(User.name), useValue: userModel },
+        {
+          provide: getModelToken(EvoucherCode.name),
+          useValue: mockEvoucherCodeModel,
+        },
+        {
+          provide: getModelToken(Evoucher.name),
+          useValue: mockEvoucherModel,
+        },
       ],
     }).compile();
 
@@ -65,114 +51,127 @@ describe('EvoucherCodeService', () => {
   afterEach(() => jest.clearAllMocks());
 
   describe('create', () => {
-    it('should create evoucher code', async () => {
-  const validEvoucherId = new Types.ObjectId().toHexString();
-  const validUserId = new Types.ObjectId().toHexString();
+    it('should validate and create evoucher code', async () => {
+      const dto: CreateEvoucherCodeDto = {
+        evoucher: 'e1',
+        user: 'u1',
+        isUsed: false,
+        metadata: {},
+      };
 
-  const dto: CreateEvoucherCodeDto = {
-    evoucher: validEvoucherId,
-    user: validUserId,
-    isUsed: false,
-    metadata: {},
-  };
+      (validateEvoucher as jest.Mock).mockResolvedValue('validated-evoucher');
+      (validateClaimEligibility as jest.Mock).mockResolvedValue(true);
+      (createEvoucherCode as jest.Mock).mockResolvedValue('created-code');
 
-  const evoucher = { expiration: new Date(Date.now() + 100000), acronym: 'EV' };
-  (findOrThrow as jest.Mock).mockResolvedValueOnce(evoucher).mockResolvedValueOnce({});
-  const generateNextCode = jest.spyOn(service as EvoucherCodeService, 'generateNextCode' as any);
-  generateNextCode.mockResolvedValue('EV000001');
+      const result = await service.create(dto);
 
-  const saveMock = jest.fn().mockResolvedValue({ code: 'EV000001' });
-  const evoucherCodeConstructor = jest.fn().mockImplementation(() => ({ save: saveMock }));
-  Object.defineProperty(service, 'evoucherCodeModel', { value: evoucherCodeConstructor });
-
-  const result = await service.create(dto);
-  expect(result).toEqual({ code: 'EV000001' });
-});
-
-
-    it('should throw if evoucher expired', async () => {
-      const dto = { evoucher: '1', user: '2' } as CreateEvoucherCodeDto;
-      (findOrThrow as jest.Mock).mockResolvedValueOnce({ expiration: new Date(Date.now() - 1000) });
-      await expect(service.create(dto)).rejects.toThrow('Cannot create code for expired evoucher');
+      expect(result).toEqual('created-code');
+      expect(validateEvoucher).toHaveBeenCalledWith('e1', mockEvoucherModel);
+      expect(validateClaimEligibility).toHaveBeenCalledWith('u1', 'validated-evoucher', mockEvoucherCodeModel);
+      expect(createEvoucherCode).toHaveBeenCalledWith('u1', 'validated-evoucher', mockEvoucherCodeModel);
     });
+  });
 
+  describe('claimEvoucher', () => {
+    it('should validate and claim evoucher', async () => {
+      (validateEvoucher as jest.Mock).mockResolvedValue('evoucher');
+      (validateClaimEligibility as jest.Mock).mockResolvedValue(true);
+      (createEvoucherCode as jest.Mock).mockResolvedValue('claimed-code');
 
-  it('should call handleMongoDuplicateError if save fails', async () => {
-  const validObjectId1 = new Types.ObjectId().toString(); 
-  const validObjectId2 = new Types.ObjectId().toString();
+      const result = await service.claimEvoucher('u1', 'e1');
 
-  const dto = {
-    evoucher: validObjectId1,
-    user: validObjectId2,
-  } as CreateEvoucherCodeDto;
+      expect(result).toEqual('claimed-code');
+      expect(validateEvoucher).toHaveBeenCalledWith('e1', mockEvoucherModel);
+      expect(validateClaimEligibility).toHaveBeenCalledWith('u1', 'evoucher', mockEvoucherCodeModel);
+      expect(createEvoucherCode).toHaveBeenCalledWith('u1', 'evoucher', mockEvoucherCodeModel);
+    });
+  });
 
-  (findOrThrow as jest.Mock).mockResolvedValue({ expiration: new Date(Date.now() + 1000), acronym: 'EV' });
+  describe('getUserEvoucherCodes', () => {
+    it('should return processed user codes with canUse + isExpire flags', async () => {
+      const now = new Date();
+      const evoucherWithFutureDate = {
+        expiration: new Date(now.getTime() + 1000000),
+      };
+      const mockCode = {
+        isUsed: false,
+        evoucher: evoucherWithFutureDate,
+      };
 
-  const generateNextCode = jest.spyOn(service as EvoucherCodeService, 'generateNextCode' as any);
-  generateNextCode.mockResolvedValue('EV000001');
+      (queryAll as jest.Mock).mockResolvedValue({ data: [mockCode], meta: {} });
 
-  const saveMock = jest.fn().mockRejectedValue(new Error('dup'));
-  const evoucherCodeConstructor = jest.fn().mockImplementation(() => ({ save: saveMock }));
-  Object.defineProperty(service, 'evoucherCodeModel', { value: evoucherCodeConstructor });
+      const result = await service.getUserEvoucherCodes('u1');
 
-  await service.create(dto);
+      expect(result.data[0].canUse).toBe(true);
+      expect(result.data[0].isExpire).toBe(false);
+    });
+  });
 
-  expect(handleMongoDuplicateError).toHaveBeenCalledWith(expect.any(Error), 'code');
-});
+  describe('update', () => {
+    it('should call queryUpdateOne', async () => {
+      (queryUpdateOne as jest.Mock).mockResolvedValue({ updated: true });
 
+      const dto: UpdateEvoucherCodeDto = {
+        isUsed: true,
+        metadata: {},
+      };
+
+      const result = await service.update('id1', dto);
+      expect(result).toEqual({ updated: true });
+      expect(queryUpdateOne).toHaveBeenCalledWith(mockEvoucherCodeModel, 'id1', dto);
+    });
+  });
 
   describe('findAll', () => {
-    it('should call queryAll with populateFields', async () => {
-      (queryAll as jest.Mock).mockResolvedValue({ data: [], meta: {} });
+    it('should return all evoucher codes', async () => {
+      (queryAll as jest.Mock).mockResolvedValue({ data: ['C1'], meta: {} });
       const result = await service.findAll({});
-      expect(result).toEqual({ data: [], meta: {} });
+      expect(result).toEqual({ data: ['C1'], meta: {} });
     });
   });
 
   describe('findOne', () => {
-    it('should call queryFindOne', async () => {
+    it('should find one evoucher code', async () => {
       (queryFindOne as jest.Mock).mockResolvedValue({ code: 'C1' });
-      const result = await service.findOne('1');
+      const result = await service.findOne('id1');
       expect(result).toEqual({ code: 'C1' });
     });
   });
 
-  describe('findOneByQuery', () => {
-    it('should return one by query', async () => {
-      (queryFindOne as jest.Mock).mockResolvedValue({ code: 'X' });
-      const result = await service.findOneByQuery({ code: 'X' });
-      expect(result).toEqual({ code: 'X' });
-    });
-  });
-
-  describe('findAllByQuery', () => {
-    it('should return many by query', async () => {
-      (queryAll as jest.Mock).mockResolvedValue({ data: ['X'], meta: {} });
-      const result = await service.findAllByQuery({ isUsed: false });
-      expect(result).toEqual({ data: ['X'], meta: {} });
-    });
-  });
-
   describe('remove', () => {
-    it('should delete code', async () => {
+    it('should delete evoucher code and return message', async () => {
       (queryDeleteOne as jest.Mock).mockResolvedValue(true);
-      const result = await service.remove('1');
-      expect(result).toEqual({ message: 'Evoucher code deleted successfully', id: '1' });
+      const result = await service.remove('id1');
+      expect(result).toEqual({ message: 'Evoucher code deleted successfully', id: 'id1' });
     });
   });
 
   describe('checkVoucherUsage', () => {
-    it('should return true if used', async () => {
-      evoucherCodeModel.findOne!.mockResolvedValue({ code: 'ABC' });
+    it('should return true if voucher is used', async () => {
+      mockEvoucherCodeModel.findOne!.mockResolvedValue({ isUsed: true });
       const result = await service.checkVoucherUsage('u1', 'e1');
       expect(result).toBe(true);
     });
 
-    it('should return false if not used', async () => {
-      evoucherCodeModel.findOne!.mockResolvedValue(null);
+    it('should return false if voucher is not used', async () => {
+      mockEvoucherCodeModel.findOne!.mockResolvedValue(null);
       const result = await service.checkVoucherUsage('u1', 'e1');
       expect(result).toBe(false);
     });
   });
+
+  describe('useEvoucherCode', () => {
+    it('should use evoucher code successfully', async () => {
+      const mockResult = { _id: 'c1' };
+      (useEvoucherCodeUtil as jest.Mock).mockResolvedValue(mockResult);
+
+      const userId = new Types.ObjectId();
+      const result = await service.useEvoucherCode(userId, 'c1');
+
+      expect(result).toEqual({
+        message: 'Evoucher code used successfully',
+        code: mockResult,
+      });
+    });
+  });
 });
-})

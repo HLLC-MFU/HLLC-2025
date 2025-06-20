@@ -3,19 +3,17 @@ import { getModelToken } from '@nestjs/mongoose';
 import { SchoolsService } from './schools.service';
 import { School, SchoolDocument } from './schemas/school.schema';
 import { Appearance, AppearanceDocument } from '../appearances/schemas/apprearance.schema';
-import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
+import { Interfaces, InterfacesDocument } from '../interfaces/schema/interfaces.schema';
+import { CreateSchoolDto } from './dto/create-school.dto';
+import { UpdateSchoolDto } from './dto/update-school.dto';
+import { Model } from 'mongoose';
 import {
   queryAll,
   queryFindOne,
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
-import { CreateSchoolDto } from './dto/create-school.dto';
-import { UpdateSchoolDto } from './dto/update-school.dto';
-import { Model } from 'mongoose';
-import { Type } from 'class-transformer';
-import { create } from 'domain';
+import { throwIfExists } from 'src/pkg/validator/model.validator';
 
 jest.mock('src/pkg/helper/query.util', () => ({
   queryAll: jest.fn(),
@@ -26,17 +24,25 @@ jest.mock('src/pkg/helper/query.util', () => ({
 jest.mock('src/pkg/validator/model.validator', () => ({
   throwIfExists: jest.fn(),
 }));
-jest.mock('src/pkg/helper/helpers', () => ({
-  handleMongoDuplicateError: jest.fn(),
-}));
 
 describe('SchoolsService', () => {
   let service: SchoolsService;
   let schoolModel: Model<SchoolDocument>;
   let appearanceModel: Model<AppearanceDocument>;
+  let interfacesModel: Model<InterfacesDocument>;
 
-  const mockSchoolInstance = {
-    save: jest.fn(),
+  const mockSave = jest.fn();
+  const mockConstructor = jest.fn().mockImplementation((dto) => ({
+    ...dto,
+    save: mockSave,
+  }));
+
+  const mockAppearanceModel: Partial<Model<AppearanceDocument>> = {
+    findOne: jest.fn(),
+  };
+
+  const mockInterfacesModel: Partial<Model<InterfacesDocument>> = {
+    findOne: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -47,11 +53,17 @@ describe('SchoolsService', () => {
         SchoolsService,
         {
           provide: getModelToken(School.name),
-          useValue: jest.fn(() => mockSchoolInstance),
+          useValue: Object.assign(mockConstructor, {
+            findOne: jest.fn(),
+          }),
         },
         {
           provide: getModelToken(Appearance.name),
-          useValue: {},
+          useValue: mockAppearanceModel,
+        },
+        {
+          provide: getModelToken(Interfaces.name),
+          useValue: mockInterfacesModel,
         },
       ],
     }).compile();
@@ -59,6 +71,7 @@ describe('SchoolsService', () => {
     service = module.get<SchoolsService>(SchoolsService);
     schoolModel = module.get(getModelToken(School.name));
     appearanceModel = module.get(getModelToken(Appearance.name));
+    interfacesModel = module.get(getModelToken(Interfaces.name));
   });
 
   describe('create', () => {
@@ -71,31 +84,36 @@ describe('SchoolsService', () => {
         createdAt: new Date(),
       };
 
-      mockSchoolInstance.save.mockResolvedValue({ _id: '1', ...dto });
+      mockSave.mockResolvedValue({ _id: '1', ...dto });
 
       const result = await service.create(dto);
+
       expect(throwIfExists).toHaveBeenCalledWith(
         expect.any(Function),
         { name: dto.name },
-        'School already exists'
+        'School already exists',
       );
-      expect(result).toHaveProperty('_id');
-      expect(mockSchoolInstance.save).toHaveBeenCalled();
+      expect(mockConstructor).toHaveBeenCalledWith(dto);
+      expect(mockSave).toHaveBeenCalled();
+      expect(result).toHaveProperty('_id', '1');
     });
   });
 
   describe('findAll', () => {
-    it('should call queryAll with proper params', async () => {
-      const query = { keyword: 'test' };
-      await service.findAll(query);
-      expect(queryAll).toHaveBeenCalledWith({
-        model: schoolModel,
-        query,
-        filterSchema: {},
-        populateFields: expect.any(Function),
-      });
-    });
+  it('should call queryAll with proper params', async () => {
+    const query = { keyword: 'test' };
+
+    await service.findAll(query);
+
+    const callArg = (queryAll as jest.Mock).mock.calls[0][0];
+    expect(callArg.model).toBe(schoolModel);
+    expect(callArg.query).toEqual(query);
+    expect(callArg.filterSchema).toEqual({});
+    const populated = await callArg.populateFields();
+    expect(populated).toEqual([{ path: 'majors' }]);
   });
+});
+
 
   describe('findOne', () => {
     it('should call queryFindOne with specific id', async () => {
@@ -104,34 +122,25 @@ describe('SchoolsService', () => {
     });
   });
 
- describe('update', () => {
-  const id = 'school123';
-  it('should update with updatedAt field', async () => {
-    const createdAt = new Date();
-    const dto: UpdateSchoolDto = {
-      name: { th: 'ใหม่', en: 'New' },
-      acronym: 'XYZ',
-      detail: { th: 'รายละเอียดใหม่', en: 'Detail New' },
-      photo: 'photo.png',
-      createdAt, 
-    };
+  describe('update', () => {
+    it('should call queryUpdateOne with updated fields', async () => {
+      const id = 'school123';
+      const dto: UpdateSchoolDto = {
+        name: { th: 'ใหม่', en: 'New' },
+        acronym: 'XYZ',
+        detail: { th: 'รายละเอียดใหม่', en: 'Detail New' },
+        photo: 'photo.png',
+        createdAt: new Date(),
+      };
 
-    await service.update(id, dto);
-
-    expect(queryUpdateOne).toHaveBeenCalledWith(
-      schoolModel,
-      id,
-      expect.objectContaining({
-        name: dto.name,
-        acronym: dto.acronym,
-        detail: dto.detail,
-        photo: dto.photo,
-        createdAt, 
-      }),
-    );
+      await service.update(id, dto);
+      expect(queryUpdateOne).toHaveBeenCalledWith(
+        schoolModel,
+        id,
+        dto,
+      );
+    });
   });
-});
-
 
   describe('remove', () => {
     it('should call queryDeleteOne and return confirmation', async () => {
@@ -146,11 +155,23 @@ describe('SchoolsService', () => {
   });
 
   describe('findColor', () => {
-    it('should call queryFindOne with populated school path', async () => {
+    it('should call queryFindOne for appearance with school', async () => {
       const schoolId = 'abc123';
       await service.findColor(schoolId, {});
       expect(queryFindOne).toHaveBeenCalledWith(
         appearanceModel,
+        { school: schoolId },
+        [{ path: 'school' }],
+      );
+    });
+  });
+
+  describe('findInterfaces', () => {
+    it('should call queryFindOne for interfaces with school', async () => {
+      const schoolId = 'xyz789';
+      await service.findInterfaces(schoolId);
+      expect(queryFindOne).toHaveBeenCalledWith(
+        interfacesModel,
         { school: schoolId },
         [{ path: 'school' }],
       );

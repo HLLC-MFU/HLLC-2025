@@ -6,7 +6,16 @@ import { CreateNotificationDto } from './dto/create-notification.dto';
 import { ReadNotificationDto } from './dto/read-notification.dto';
 import { PushNotificationDto } from './dto/push-notification.dto';
 import { UserRequest } from 'src/pkg/types/users';
-import { FastifyRequest } from 'fastify/types/request';
+
+
+jest.mock('firebase-admin', () => ({
+  initializeApp: jest.fn(),
+  messaging: jest.fn().mockReturnValue({
+    sendMulticast: jest.fn(),
+  }),
+}));
+
+
 
 interface MockUserRequest extends Partial<Omit<UserRequest, 'user'>> {
   user: {
@@ -68,8 +77,7 @@ describe('NotificationsController', () => {
         icon: '',
         scope: 'global',
       };
-      const req = { body: dto } as FastifyRequest;
-      await controller.create(req);
+      await controller.create(dto);
       expect(notificationsService.create).toHaveBeenCalledWith(dto);
     });
   });

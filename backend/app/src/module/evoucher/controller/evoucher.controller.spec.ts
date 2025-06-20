@@ -3,125 +3,139 @@ import { EvoucherController } from './evoucher.controller';
 import { EvoucherService } from '../service/evoucher.service';
 import { CreateEvoucherDto } from '../dto/evouchers/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/evouchers/update-evoucher.dto';
-import { FastifyRequest } from 'fastify';
+import { Evoucher, EvoucherType, EvoucherStatus } from '../schema/evoucher.schema';
 import { Types } from 'mongoose';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+
 
 describe('EvoucherController', () => {
-    let controller: EvoucherController;
-    let service: EvoucherService;
+  let controller: EvoucherController;
+  let service: EvoucherService;
 
-    const mockEvoucher = {
-        _id: new Types.ObjectId().toHexString(),
-        discount: 25,
-        acronym: 'EV123',
-        type: new Types.ObjectId().toHexString(),
-        sponsors: new Types.ObjectId().toHexString(),
-        expiration: new Date(),
-        detail: { th: 'รายละเอียด', en: 'Detail' },
-        photo: {
-            coverPhoto: '',
-            bannerPhoto: '',
-            thumbnail: '',
-            logoPhoto: 'Wasan.png',
-        },
+  const mockEvoucher: Evoucher = {
+    discount: '10%',
+    acronym: 'PROMO10',
+    type: EvoucherType.GLOBAL,
+    sponsors: new Types.ObjectId('60f6d62c4a3f1c2f5c8e6a96'),
+    detail: { th: 'เวาเชอร์', en: 'Voucher' },
+    expiration: new Date(),
+    photo: {
+      coverPhoto: '',
+      bannerPhoto: '',
+      thumbnail: '',
+      logoPhoto: '',
+      evoucherImage: '',
+      evoucherImageFront: 'front.png',
+      evoucherImageBack: 'back.png',
+    },
+    maxClaims: 5,
+    status: EvoucherStatus.ACTIVE,
+    metadata: { campaign: 'summer' },
+  };
+
+  const mockService = {
+    create: jest.fn().mockResolvedValue(mockEvoucher),
+    findAll: jest.fn().mockResolvedValue([mockEvoucher]),
+    findOne: jest.fn().mockResolvedValue(mockEvoucher),
+    getPublicAvailableEvouchersForUser: jest.fn().mockResolvedValue([mockEvoucher]),
+    update: jest.fn().mockResolvedValue(mockEvoucher),
+    remove: jest.fn().mockResolvedValue({ deleted: true }),
+  };
+
+ 
+
+beforeEach(async () => {
+  const module: TestingModule = await Test.createTestingModule({
+    controllers: [EvoucherController],
+    providers: [
+      { provide: EvoucherService, useValue: mockService },
+      { provide: CACHE_MANAGER, useValue: {} }, 
+    ],
+  }).compile();
+    controller = module.get<EvoucherController>(EvoucherController);
+    service = module.get<EvoucherService>(EvoucherService);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  describe('create', () => {
+    it('should create an evoucher', async () => {
+      const dto: CreateEvoucherDto = {
+        discount: '10%',
+        acronym: 'PROMO10',
+        type: EvoucherType.GLOBAL,
+        sponsors: '60f6d62c4a3f1c2f5c8e6a96',
+        expiration: mockEvoucher.expiration,
+        detail: { th: 'เวาเชอร์', en: 'Voucher' },
+        photo: mockEvoucher.photo,
+        maxClaims: 5,
+        metadata: { campaign: 'summer' },
         status: true,
-        metadata: { tag: 'summer' },
-    };
+      };
 
-    const mockEvoucherService: Record<keyof EvoucherService, jest.Mock> = {
-        create: jest.fn(),
-        findAll: jest.fn(),
-        findOne: jest.fn(),
-        update: jest.fn(),
-        remove: jest.fn(),
-    };
+      const result = await controller.create(dto);
+      expect(result).toEqual(mockEvoucher);
+      expect(service.create).toHaveBeenCalledWith(dto);
+    });
+  });
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            controllers: [EvoucherController],
-            providers: [{ provide: EvoucherService, useValue: mockEvoucherService }],
-        }).compile();
+  describe('findAll', () => {
+    it('should return all evouchers', async () => {
+      const query = { page: '1' };
+      const result = await controller.findAll(query);
+      expect(result).toEqual([mockEvoucher]);
+      expect(service.findAll).toHaveBeenCalledWith(query);
+    });
+  });
 
-        controller = module.get<EvoucherController>(EvoucherController);
-        service = module.get<EvoucherService>(EvoucherService);
+  describe('findOne', () => {
+    it('should return one evoucher by id', async () => {
+      const id = 'mock-id';
+      const result = await controller.findOne(id);
+      expect(result).toEqual(mockEvoucher);
+      expect(service.findOne).toHaveBeenCalledWith(id);
+    });
+  });
+
+  describe('getAvailableEvouchers', () => {
+    it('should use user._id if present', async () => {
+      const req = { user: { _id: 'user-id' } } as any;
+      const result = await controller.getAvailableEvouchers(req);
+      expect(result).toEqual([mockEvoucher]);
+      expect(service.getPublicAvailableEvouchersForUser).toHaveBeenCalledWith('user-id');
     });
 
-    describe('create', () => {
-        it('should call evoucherService.create with dto', async () => {
-            const dto: CreateEvoucherDto = {
-                discount: 25,
-                acronym: 'EV123',
-                type: mockEvoucher.type,
-                sponsors: mockEvoucher.sponsors,
-                expiration: new Date(),
-                detail: { th: 'รายละเอียด', en: 'Detail' },
-                photo: {
-                    coverPhoto: '',
-                    bannerPhoto: '',
-                    thumbnail: '',
-                    logoPhoto: 'Wasan.png',
-                },
-                status: true,
-                metadata: { tag: 'summer' },
-            };
-
-            mockEvoucherService.create.mockResolvedValue({ ...dto, _id: mockEvoucher._id });
-
-            const result = await controller.create(dto);
-            expect(result).toEqual({ ...dto, _id: mockEvoucher._id });
-            expect(mockEvoucherService.create).toHaveBeenCalledWith(dto);
-        });
+    it('should fallback to user.id if _id is not present', async () => {
+      const req = { user: { id: 'user-id-alt' } } as any;
+      const result = await controller.getAvailableEvouchers(req);
+      expect(result).toEqual([mockEvoucher]);
+      expect(service.getPublicAvailableEvouchersForUser).toHaveBeenCalledWith('user-id-alt');
     });
+  });
 
-    describe('findAll', () => {
-        it('should return all evouchers from service', async () => {
-            const query: Record<string, string> = { acronym: 'EV123' };
-            mockEvoucherService.findAll.mockResolvedValue([mockEvoucher]);
+  describe('update', () => {
+    it('should update an evoucher by id', async () => {
+      const id = 'update-id';
+      const dto: UpdateEvoucherDto = {
+        discount: '15%',
+        acronym: 'UPDATE15',
+        expiration: new Date(),
+      };
 
-            const result = await controller.findAll(query);
-            expect(result).toEqual([mockEvoucher]);
-            expect(mockEvoucherService.findAll).toHaveBeenCalledWith(query);
-        });
+      const result = await controller.update(id, dto);
+      expect(result).toEqual(mockEvoucher);
+      expect(service.update).toHaveBeenCalledWith(id, dto);
     });
+  });
 
-    describe('findOne', () => {
-        it('should return one evoucher by id', async () => {
-            mockEvoucherService.findOne.mockResolvedValue(mockEvoucher);
-
-            const result = await controller.findOne(mockEvoucher._id);
-            expect(result).toEqual(mockEvoucher);
-            expect(mockEvoucherService.findOne).toHaveBeenCalledWith(mockEvoucher._id);
-        });
+  describe('remove', () => {
+    it('should remove evoucher by id', async () => {
+      const id = 'remove-id';
+      const result = await controller.remove(id);
+      expect(result).toEqual({ deleted: true });
+      expect(service.remove).toHaveBeenCalledWith(id);
     });
-
-    describe('update', () => {
-        it('should call update with id and dto', async () => {
-            const updateDto: UpdateEvoucherDto = {
-                discount: 50,
-                metadata: { updated: 'yes' },
-            };
-
-            const req = {
-                body: updateDto,
-            } as unknown as FastifyRequest;
-
-            const updated = { ...mockEvoucher, ...updateDto };
-            mockEvoucherService.update.mockResolvedValue(updated);
-
-            const result = await controller.update(mockEvoucher._id, req);
-            expect(result).toEqual(updated);
-            expect(mockEvoucherService.update).toHaveBeenCalledWith(mockEvoucher._id, updateDto);
-        });
-    });
-
-    describe('remove', () => {
-        it('should call remove with id', async () => {
-            const expected = { deleted: true };
-            mockEvoucherService.remove.mockResolvedValue(expected);
-
-            const result = await controller.remove(mockEvoucher._id);
-            expect(result).toEqual(expected);
-            expect(mockEvoucherService.remove).toHaveBeenCalledWith(mockEvoucher._id);
-        });
-    });
+  });
 });
