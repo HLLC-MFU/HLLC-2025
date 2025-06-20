@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 export const chatStyles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#121212',
+    backgroundColor: 'rgba(18,18,18,0.3)',
   },
   safeArea: { 
     flex: 1,
@@ -13,7 +13,6 @@ export const chatStyles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: '#1A1A1A',
     borderBottomWidth: 1,
     borderBottomColor: '#2A2A2A',
     elevation: 3,
@@ -52,10 +51,25 @@ export const chatStyles = StyleSheet.create({
     backgroundColor: '#cc3300',
     padding: 8,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   connectionErrorText: {
     color: '#fff',
     fontSize: 12,
+    flex: 1,
+  },
+  retryButton: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  retryButtonText: {
+    color: '#cc3300',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   centerContent: { 
     justifyContent: 'center', 

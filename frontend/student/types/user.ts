@@ -1,3 +1,5 @@
+import { Major } from "./major";
+
 export interface UserData {
   _id: string;
   username: string;
@@ -8,6 +10,9 @@ export interface UserData {
   role: {
     name: string;
   };
+  metadata: {
+    major: Major;
+  }
   createdAt: string;
   updatedAt: string;
 }

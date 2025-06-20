@@ -8,7 +8,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from 'react-native';
-import { API_BASE_URL } from '../config/chatConfig';
+import { CHAT_BASE_URL } from '../config/chatConfig';
 
 interface Sticker {
   id: string;
@@ -35,12 +35,11 @@ export default function StickerPicker({ onSelectSticker, onClose }: StickerPicke
 
   const fetchStickers = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/stickers`);
+      const response = await fetch(`${CHAT_BASE_URL}/api/stickers`);
       if (!response.ok) {
         throw new Error('Failed to fetch stickers');
       }
       const data = await response.json();
-      console.log('Sticker response:', data);
       setStickers(data.stickers);
     } catch (err) {
       console.error('Error fetching stickers:', err);
@@ -48,6 +47,16 @@ export default function StickerPicker({ onSelectSticker, onClose }: StickerPicke
     } finally {
       setLoading(false);
     }
+  };
+
+  const getStickerImageUrl = (imagePath: string) => {
+    // If imagePath is already a full URL, return it
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    // Otherwise, construct the full URL
+    const fullUrl = `${CHAT_BASE_URL}/api/uploads/${imagePath}`;
+    return fullUrl;
   };
 
   if (loading) {
@@ -85,9 +94,10 @@ export default function StickerPicker({ onSelectSticker, onClose }: StickerPicke
           <TouchableOpacity
             style={styles.stickerItem}
             onPress={() => onSelectSticker(item.id)}
+            activeOpacity={0.7}
           >
             <Image
-              source={{ uri: item.image }}
+              source={{ uri: getStickerImageUrl(item.image) }}
               style={styles.stickerImage}
               resizeMode="contain"
             />
@@ -98,6 +108,8 @@ export default function StickerPicker({ onSelectSticker, onClose }: StickerPicke
         )}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.stickerGrid}
+        showsVerticalScrollIndicator={false}
+        columnWrapperStyle={{ justifyContent: 'space-between' }}
       />
     </View>
   );
@@ -109,13 +121,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#2A2A2A',
     padding: 16,
-    maxHeight: 300,
+    maxHeight: 400,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    paddingHorizontal: 4,
   },
   title: {
     color: '#fff',
@@ -125,6 +138,7 @@ const styles = StyleSheet.create({
   closeButton: {
     color: '#0A84FF',
     fontSize: 16,
+    fontWeight: '500',
   },
   stickerGrid: {
     paddingBottom: 16,
@@ -132,33 +146,44 @@ const styles = StyleSheet.create({
   stickerItem: {
     flex: 1,
     aspectRatio: 1,
+    marginHorizontal: 2,
     padding: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3A3A3A',
   },
   stickerImage: {
-    width: '100%',
-    height: '80%',
+    width: '85%',
+    height: '70%',
+    borderRadius: 8,
   },
   stickerName: {
     color: '#fff',
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 11,
+    marginTop: 6,
     textAlign: 'center',
+    fontWeight: '500',
+    opacity: 0.9,
   },
   errorText: {
     color: '#ff3b30',
     textAlign: 'center',
     marginBottom: 16,
+    fontSize: 16,
   },
   retryButton: {
     backgroundColor: '#0A84FF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 8,
     alignSelf: 'center',
   },
   retryButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
   },
 }); 

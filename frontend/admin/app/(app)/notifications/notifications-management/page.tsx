@@ -8,7 +8,6 @@ import { Input } from '@heroui/input';
 import { Button } from '@heroui/button';
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react';
 import React from 'react';
-import { useRouter } from "next/navigation";
 
 export default function Notification_Management() {
 

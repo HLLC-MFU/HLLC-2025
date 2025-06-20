@@ -27,18 +27,18 @@ func NewStickerRepository(db *mongo.Client) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) dbConnect(ctx context.Context) *mongo.Database {
+func (r *repository) dbConnect() *mongo.Database {
 	return r.db.Database("hllc-2025")
 }
 
 func (r *repository) Create(ctx context.Context, sticker *model.Sticker) error {
-	_, err := r.dbConnect(ctx).Collection("stickers").InsertOne(ctx, sticker)
+	_, err := r.dbConnect().Collection("stickers").InsertOne(ctx, sticker)
 	return err
 }
 
 func (r *repository) GetById(ctx context.Context, id primitive.ObjectID) (*model.Sticker, error) {
 	var sticker model.Sticker
-	err := r.dbConnect(ctx).Collection("stickers").FindOne(ctx, bson.M{"_id": id}).Decode(&sticker)
+	err := r.dbConnect().Collection("stickers").FindOne(ctx, bson.M{"_id": id}).Decode(&sticker)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	}
@@ -51,13 +51,13 @@ func (r *repository) GetById(ctx context.Context, id primitive.ObjectID) (*model
 func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Sticker, int64, error) {
 	skip := (page - 1) * limit
 
-	total, err := r.dbConnect(ctx).Collection("stickers").CountDocuments(ctx, bson.M{})
+	total, err := r.dbConnect().Collection("stickers").CountDocuments(ctx, bson.M{})
 	if err != nil {
 		return nil, 0, nil
 	}
 
 	opts := options.Find().SetSkip(skip).SetLimit(limit)
-	cursor, err := r.dbConnect(ctx).Collection("stickers").Find(ctx, bson.M{}, opts)
+	cursor, err := r.dbConnect().Collection("stickers").Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -71,18 +71,18 @@ func (r *repository) List(ctx context.Context, page, limit int64) ([]*model.Stic
 }
 
 func (r *repository) Update(ctx context.Context, sticker *model.Sticker) error {
-	_, err := r.dbConnect(ctx).Collection("stickers").ReplaceOne(ctx, bson.M{"_id": sticker.ID}, sticker)
+	_, err := r.dbConnect().Collection("stickers").ReplaceOne(ctx, bson.M{"_id": sticker.ID}, sticker)
 	return err
 }
 
 func (r *repository) Delete(ctx context.Context, id primitive.ObjectID) error {
-	_, err := r.dbConnect(ctx).Collection("stickers").DeleteOne(ctx, bson.M{"_id": id})
+	_, err := r.dbConnect().Collection("stickers").DeleteOne(ctx, bson.M{"_id": id})
 	return err
 }
 
 func (r *repository) GetByName(ctx context.Context, thName, enName string) (*model.Sticker, error) {
 	var sticker model.Sticker
-	err := r.dbConnect(ctx).Collection("stickers").FindOne(ctx, bson.M{
+	err := r.dbConnect().Collection("stickers").FindOne(ctx, bson.M{
 		"name.th_name": thName,
 		"name.en_name": enName,
 	}).Decode(&sticker)

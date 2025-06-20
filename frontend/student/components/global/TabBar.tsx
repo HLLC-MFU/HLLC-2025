@@ -7,6 +7,7 @@ import {
     useWindowDimensions,
     ViewStyle,
     TextStyle,
+    Image,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useRouter, usePathname } from 'expo-router';
@@ -17,10 +18,14 @@ import Animated, {
     runOnJS,
 } from 'react-native-reanimated';
 import { Home, Book, QrCode, Gift, Globe } from 'lucide-react-native';
+import { useInterfaces } from '@/hooks/useInterfaces';
+import AssetImage from './AssetImage';
+
+const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 type AllowedRoutes = "/" | "/qrcode" | "/evoucher" | "/chat" | "/activities";
 
-const tabs: { label: string; icon: React.ComponentType<{ size?: number; color?: string }> ;route: AllowedRoutes }[] = [
+const tabs: { label: string; icon: React.ComponentType<{ size?: number; color?: string }>; route: AllowedRoutes }[] = [
     { label: 'Home', icon: Home, route: '/' },
     { label: 'Activity', icon: Book, route: '/activities' },
     { label: 'QRCode', icon: QrCode, route: '/qrcode' },
@@ -38,6 +43,15 @@ export default function GlassTabBar() {
     const scale = useSharedValue(1);
 
     const prevIndexRef = useRef(0);
+
+    const { assets } = useInterfaces();
+    const icons = {
+        home: assets?.home ?? null,
+        activity: assets?.activities ?? null,
+        qrcode: assets?.qrcode ?? null,
+        voucher: assets?.evoucher ?? null,
+        chat: assets?.community ?? null,
+    };
 
     useEffect(() => {
         const currentIndex = tabs.findIndex((tab) => tab.route === pathname);
@@ -76,6 +90,7 @@ export default function GlassTabBar() {
                 </Animated.View>
 
                 {tabs.map((tab) => {
+                    const assetIcon = icons[tab.label.toLowerCase() as keyof typeof icons];
                     const isActive = pathname === tab.route;
                     const Icon = tab.icon;
 
@@ -90,7 +105,11 @@ export default function GlassTabBar() {
                             style={styles.tabItem}
                             activeOpacity={1}
                         >
-                            <Icon size={32} color={isActive ? '#fff' : '#ffffff70'} />
+                            {assetIcon ? (
+                                <AssetImage uri={`${baseImageUrl}/uploads/${assetIcon}`} style={{ width: 32, height: 32 }}/>
+                            ) : (
+                                <Icon size={32} color={isActive ? '#fff' : '#ffffff70'} />
+                            )}
                             <Text
                                 style={[
                                     styles.tabLabel,

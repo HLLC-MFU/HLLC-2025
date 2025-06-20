@@ -127,7 +127,7 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
               <View style={styles.roomInfoContainer}>
                 {/* Room Title */}
                 <View style={styles.roomTitleContainer}>
-                  <Text style={styles.roomInfoTitle}>{room.name.th_name}</Text>
+                  <Text style={styles.roomInfoTitle}>{room.name?.th || room.name?.en || 'Unnamed'}</Text>
                   <View style={styles.roomBadge}>
                     <Star size={14} color="#FFD700" />
                   </View>

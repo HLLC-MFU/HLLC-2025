@@ -13,8 +13,8 @@ import (
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/service"
 	stickerService "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
+	userModel "github.com/HLLC-MFU/HLLC-2025/backend/module/users/model"
 	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
-
 	coreModel "github.com/HLLC-MFU/HLLC-2025/backend/pkg/core/model"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -40,14 +40,6 @@ func NewHTTPHandler(service service.RoomService,
 		stickerService: stickerService,
 		userService:    userService,
 	}
-}
-
-type createRoomRequest struct {
-	Name struct {
-		ThName string `json:"thName"`
-		EnName string `json:"enName"`
-	} `json:"name"`
-	Capacity int `json:"capacity"`
 }
 
 // when create add creator to member first
@@ -296,5 +288,91 @@ func (h *RoomHTTPHandler) ListRoomMembers(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"rooms": roomMembers,
+	})
+}
+
+func (h *RoomHTTPHandler) ListMemberRooms(c *fiber.Ctx) error {
+	userIDHex := c.Params("userId")
+	userID, err := primitive.ObjectIDFromHex(userIDHex)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user ID"})
+	}
+
+	rooms, err := h.service.ListVisibleRooms(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	var result []map[string]interface{}
+	for _, room := range rooms {
+		creator, _ := h.userService.GetById(c.Context(), room.Creator)
+
+		result = append(result, map[string]interface{}{
+			"id":         room.ID.Hex(),
+			"name":       room.Name,
+			"capacity":   room.Capacity,
+			"image":      room.Image,
+			"creator_id": room.Creator.Hex(),
+			"creator":    creator,
+			"created_at": room.CreatedAt,
+			"updated_at": room.UpdatedAt,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"rooms": result,
+	})
+}
+
+func (h *RoomHTTPHandler) JoinRoomByGroup(c *fiber.Ctx) error {
+	roomId := c.Params("roomId")
+
+	roomObjID, err := primitive.ObjectIDFromHex(roomId)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid room ID"})
+	}
+
+	// Validate room existence
+	room, err := h.service.GetRoom(c.Context(), roomObjID)
+	if err != nil || room == nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "room not found"})
+	}
+
+	var users []*userModel.User
+
+	// Try majorId first
+	if majorIdHex := c.Params("majorId"); majorIdHex != "" {
+		// Convert to ObjectID and then Hex string
+		majorId, err := primitive.ObjectIDFromHex(majorIdHex)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid major ID"})
+		}
+		users, err = h.userService.GetUsersByMetadataField(c.Context(), "major", majorId.Hex())
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to fetch users by major"})
+		}
+	} else if schoolIdHex := c.Params("schoolId"); schoolIdHex != "" {
+		// ✅ Don't convert to ObjectID – school is stored as string
+		users, err = h.userService.GetUsersByMetadataField(c.Context(), "school", schoolIdHex)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to fetch users by school"})
+		}
+	} else {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "no majorId or schoolId provided"})
+	}
+
+	// Add users to room
+	added := 0
+	for _, user := range users {
+		if err := h.memberService.AddUserToRoom(c.Context(), roomObjID, user.ID.Hex()); err == nil {
+			_ = redis.AddUserToRoom(roomObjID.Hex(), user.ID.Hex())
+			added++
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"message":          "users added to room",
+		"room_id":          roomObjID.Hex(),
+		"added_user_count": added,
 	})
 }
