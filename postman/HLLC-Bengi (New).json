@@ -141,7 +141,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"username\": \"student\",\n  \"password\": \"password123\"\n}"
+							"raw": "{\n  \"username\": \"test1\",\n  \"password\": \"password123\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/auth/login?useCookies=true",
@@ -209,7 +209,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"username\": \"med\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"metadata\": {\n    \"secret\": \"Phuket\"\n  }\n}\n"
+							"raw": "{\n  \"username\": \"test1\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"metadata\": {\n    \"secret\": \"Phuket\"\n  }\n}\n"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/auth/register",
@@ -360,6 +360,85 @@
 					"response": []
 				},
 				{
+					"name": "Get eVoucher Available",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/evouchers/available",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"evouchers",
+								"available"
+							]
+						},
+						"description": "Get all users with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Get eVoucher Claim (User-Only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/evouchers/claim/{{evoucherId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"evouchers",
+								"claim",
+								"{{evoucherId}}"
+							]
+						},
+						"description": "Get all users with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Get My-eVoucher",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/evouchers/my-codes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"evouchers",
+								"my-codes"
+							]
+						},
+						"description": "Get all users with pagination."
+					},
+					"response": []
+				},
+				{
 					"name": "Get User Activities",
 					"request": {
 						"method": "GET",
@@ -426,13 +505,13 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/users/me",
+							"raw": "{{baseUrl}}/users/profile",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"users",
-								"me"
+								"profile"
 							]
 						},
 						"description": "Get all users with pagination."
@@ -522,7 +601,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": {\n    \"first\": \"student\",\n    \"middle\": \"student.\",\n    \"last\": \"student\"\n  },\n  \"username\": \"studentSchool\",\n  \"role\": \"6846f12442f759f8e1e32b5a\",\n\n  \"metadata\": {\n    \"major\": \"6847bf845a319b7f4659473f\"\n  }\n}\n"
+							"raw": "{\n  \"name\": {\n    \"first\": \"test1\",\n    \"middle\": \"test1.\",\n    \"last\": \"test1\"\n  },\n  \"username\": \"test1\",\n  \"role\": \"6846f12442f759f8e1e32b5a\",\n\n  \"metadata\": {\n    \"major\": \"6847bf845a319b7f4659473f\"\n  }\n}\n"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/users",
@@ -1843,13 +1922,39 @@
 							"response": []
 						},
 						{
-							"name": "Create E-Voucher-Type",
+							"name": "Create E-Voucher-Type (Global)",
 							"request": {
 								"method": "POST",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"name\": \"Global\"\n}",
+									"raw": "{\n  \"name\": \"Global Voucher\",\n  \"key\": \"global\", \n  \"description\": \"สำหรับผู้ใช้ทั่วไป\",\n  \"isClaimable\": true  // ← ตัวนี้กำหนดว่า user กดรับเองได้หรือไม่\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/evoucher-type",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"evoucher-type"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create E-Voucher-Type (Individual)",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Individual Voucher\",\n  \"key\": \"individual\",\n  \"description\": \"สำหรับผู้ใช้เฉพาะ\", \n  \"isClaimable\": false  // ← Admin ต้องมอบให้เท่านั้น\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1981,19 +2086,13 @@
 										},
 										{
 											"key": "acronym",
-											"value": "LUNG",
+											"value": "PING",
 											"type": "text"
 										},
 										{
 											"key": "type",
-											"value": "683800854c9ec8119c2e0290",
+											"value": "6848475f76076abe7031b58c",
 											"type": "text"
-										},
-										{
-											"key": "campaign",
-											"value": "683d4e6c8cf7051850cfa7f4",
-											"type": "text",
-											"disabled": true
 										},
 										{
 											"key": "sponsors",
@@ -2018,7 +2117,7 @@
 										{
 											"key": "photo[coverPhoto]",
 											"type": "file",
-											"src": "/Users/bricksocoolxd/Downloads/confirm-booking.png"
+											"src": "/Users/bricksocoolxd/Desktop/Screenshot 2568-06-06 at 10.10.10.png"
 										},
 										{
 											"key": "metadata",
@@ -2035,6 +2134,75 @@
 									],
 									"path": [
 										"evoucher"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Evoucher Copy",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "discount",
+											"value": "1000",
+											"type": "text"
+										},
+										{
+											"key": "acronym",
+											"value": "KING",
+											"type": "text"
+										},
+										{
+											"key": "type",
+											"value": "6848475f76076abe7031b58c",
+											"type": "text"
+										},
+										{
+											"key": "sponsors",
+											"value": "68387620a725996354121e27",
+											"type": "text"
+										},
+										{
+											"key": "detail[th]",
+											"value": "LUNG Tea & coffee",
+											"type": "text"
+										},
+										{
+											"key": "detail[en]",
+											"value": "LUNG Tea & coffee",
+											"type": "text"
+										},
+										{
+											"key": "expiration",
+											"value": "2025-12-31T23:59:59.000+00:00",
+											"type": "text"
+										},
+										{
+											"key": "photo[coverPhoto]",
+											"type": "file",
+											"src": "/Users/bricksocoolxd/Desktop/Screenshot 2568-06-06 at 10.10.10.png"
+										},
+										{
+											"key": "metadata",
+											"value": "",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/evoucher/{{eVoucherId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"evoucher",
+										"{{eVoucherId}}"
 									]
 								}
 							},

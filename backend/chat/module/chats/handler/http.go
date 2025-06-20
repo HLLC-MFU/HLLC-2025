@@ -17,6 +17,7 @@ import (
 	roomRedis "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/redis"
 	RoomService "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/service"
 	stickerService "github.com/HLLC-MFU/HLLC-2025/backend/module/stickers/service"
+	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 
 	"github.com/gofiber/fiber/v2"
@@ -30,15 +31,17 @@ type ChatHTTPHandler struct {
 	memberService  MemberService.MemberService
 	publisher      kafkaPublisher.Publisher
 	stickerService stickerService.StickerService
+	userService    userService.UserService
 }
 
-func NewHTTPHandler(service service.ChatService, memberService MemberService.MemberService, publisher kafkaPublisher.Publisher, stickerService stickerService.StickerService, roomService RoomService.RoomService) *ChatHTTPHandler {
+func NewHTTPHandler(service service.ChatService, memberService MemberService.MemberService, publisher kafkaPublisher.Publisher, stickerService stickerService.StickerService, roomService RoomService.RoomService, userService userService.UserService) *ChatHTTPHandler {
 	return &ChatHTTPHandler{
 		service:        service,
 		memberService:  memberService,
 		publisher:      publisher,
 		stickerService: stickerService,
 		roomService:    roomService,
+		userService:    userService,
 	}
 }
 
@@ -115,25 +118,67 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 	redisHistory, err := redis.GetRecentMessages(roomID, 50)
 	if err == nil && len(redisHistory) > 0 {
 		for _, msg := range redisHistory {
+			// Get user information
+			user, err := h.userService.GetById(ctx, msg.UserID)
+			var username string
+			if err == nil && user != nil {
+				username = user.Username
+			}
+
 			event := ChatEvent{
 				EventType: "history",
-				Payload:   msg,
+				Payload: map[string]interface{}{
+					"id":        msg.ID.Hex(),
+					"room_id":   msg.RoomID.Hex(),
+					"user_id":   msg.UserID.Hex(),
+					"username":  username,
+					"message":   msg.Message,
+					"Mentions":  msg.Mentions,
+					"timestamp": msg.Timestamp,
+					"file_url":  msg.FileURL,
+       				"file_type": msg.FileType,
+       				"file_name": msg.FileName,
+        			"stickerId": msg.StickerID, 
+        			"image":     msg.Image,
+				},
 			}
 			eventJSON, _ := json.Marshal(event)
 			_ = conn.WriteMessage(websocket.TextMessage, eventJSON)
 		}
 	} else {
-		// 2. Fallback to Mongo if Redis fails
-		log.Println("[REDIS] History not available, fallback to MongoDB")
+		// 2. Fallback to Mongo if Redis fails or is empty
+		log.Println("[REDIS] History not available or empty, fallback to MongoDB")
 		mongoHistory, err := h.service.GetChatHistoryByRoom(ctx, roomID, 50)
 		if err == nil && len(mongoHistory) > 0 {
 			for _, msg := range mongoHistory {
+				// Get user information
+				user, err := h.userService.GetById(ctx, msg.ChatMessage.UserID)
+				var username string
+				if err == nil && user != nil {
+					username = user.Username
+				}
+
 				event := ChatEvent{
 					EventType: "history",
-					Payload:   msg,
+					Payload: map[string]interface{}{
+						"id":        msg.ChatMessage.ID.Hex(),
+						"room_id":   msg.ChatMessage.RoomID.Hex(),
+						"user_id":   msg.ChatMessage.UserID.Hex(),
+						"username":  username,
+						"message":   msg.ChatMessage.Message,
+						"Mentions":  msg.ChatMessage.Mentions,
+						"timestamp": msg.ChatMessage.Timestamp,
+						"file_url":  msg.ChatMessage.FileURL,
+        				"file_type": msg.ChatMessage.FileType,
+       					"file_name": msg.ChatMessage.FileName,
+       					"stickerId": msg.ChatMessage.StickerID,
+       					"image":     msg.ChatMessage.Image,
+					},
 				}
 				eventJSON, _ := json.Marshal(event)
 				_ = conn.WriteMessage(websocket.TextMessage, eventJSON)
+				// cache กลับ Redis
+				_ = redis.SaveChatMessageToRoom(roomID, &msg.ChatMessage)
 			}
 		}
 	}
@@ -174,21 +219,17 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 			filteredMessage := utils.FilterProfanity(messageBody)
 			mentions := extractMentions(filteredMessage)
 
-			replyPayload := map[string]interface{}{
-				"userId":    userID,
-				"message":   filteredMessage,
-				"replyToId": replyToID.Hex(),
-				"mentions":  mentions,
+			msg := &model.ChatMessage{
+				RoomID:    roomObjID,
+				UserID:    userObjID,
+				Message:   filteredMessage,
+				Mentions:  mentions,
+				ReplyToID: &replyToID,
+				Timestamp: time.Now(),
 			}
 
-			event := ChatEvent{
-				EventType: "reply",
-				Payload:   replyPayload,
-			}
-
-			eventJSON, _ := json.Marshal(event)
 			model.BroadcastMessage(model.BroadcastObject{
-				MSG:  string(eventJSON),
+				MSG:  msg,
 				FROM: client,
 			})
 			continue
@@ -226,7 +267,13 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 
 		// Only broadcast to model.BroadcastMessage for text messages
 		model.BroadcastMessage(model.BroadcastObject{
-			MSG:  filteredMessage,
+			MSG: &model.ChatMessage{
+				RoomID:    roomObjID,
+				UserID:    userObjID,
+				Message:   filteredMessage,
+				Mentions:  mentions,
+				Timestamp: time.Now(),
+			},
 			FROM: client,
 		})
 
@@ -407,7 +454,9 @@ func (h *ChatHTTPHandler) SendSticker(c *fiber.Ctx) error {
 					}
 				}
 				if !isOnline {
-					h.service.NotifyOfflineUser(memberID, roomId, userID, "sent a sticker", "sticker")
+					payload := model.NewNotificationPayload(memberID, roomId, userID, "sent a sticker", "sticker")
+					msg, _ := json.Marshal(payload)
+					h.publisher.SendMessageToTopic("chat-notifications", memberID, string(msg))
 				}
 			}
 		}
@@ -542,7 +591,6 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	// Save file
 	filename := fmt.Sprintf("%s_%s", time.Now().Format("20060102150405"), file.Filename)
 	savePath := fmt.Sprintf("./uploads/%s", filename)
-	publicURL := fmt.Sprintf("http://localhost:1334/uploads/%s", filename)
 	if err := c.SaveFile(file, savePath); err != nil {
 		log.Printf("[UPLOAD ERROR] Failed to save file: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "upload failed"})
@@ -560,7 +608,7 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 	msg := &model.ChatMessage{
 		RoomID:    roomObjID,
 		UserID:    userObjID,
-		FileURL:   publicURL,
+		FileURL:   filename,
 		FileName:  file.Filename,
 		FileType:  fileType,
 		Timestamp: time.Now(),
@@ -602,7 +650,9 @@ func (h *ChatHTTPHandler) UploadFile(c *fiber.Ctx) error {
 					}
 				}
 				if !isOnline {
-					h.service.NotifyOfflineUser(memberID, roomId, userId, fmt.Sprintf("sent a file: %s", msg.FileName), "file")
+					payload := model.NewNotificationPayload(memberID, roomId, userId, "sent a file: "+msg.FileName, "file")
+					msg, _ := json.Marshal(payload)
+					h.publisher.SendMessageToTopic("chat-notifications", memberID, string(msg))
 				}
 			}
 		}

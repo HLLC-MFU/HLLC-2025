@@ -53,7 +53,7 @@ export default function Layout() {
             },
           }
         }}
-        tabBar={() => <TabBar />}
+        tabBar={() => !isChatRoute ? <TabBar /> : null}
       >
         <Tabs.Screen name="index" options={{ title: 'Home' }}/>
         <Tabs.Screen name="activities/index" options={{ title: 'Activities' }} />

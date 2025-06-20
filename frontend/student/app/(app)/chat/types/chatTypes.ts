@@ -1,4 +1,6 @@
 export interface Message {
+  username: string;
+  isTemp: any;
   id?: string;
   text?: string;
   senderId: string;
@@ -37,9 +39,33 @@ export interface RoomName {
 
 export interface ChatRoom {
   id: string;
-  name: string;
-  description: string;
-  is_member: boolean;
+  name: {
+    th: string;
+    en: string;
+  };
+  description?: string;
+  capacity: number;
+  creator_id: string;
+  creator?: {
+    id: string;
+    name: {
+      first: string;
+      middle?: string;
+      last: string;
+    };
+    username: string;
+    role: string;
+    metadata?: {
+      major: string;
+      secret: string;
+    };
+    created_at: string;
+    updated_at: string;
+  };
+  image?: string;
+  created_at: string;
+  updated_at: string;
+  is_member?: boolean;
   category?: string;
   members_count?: number;
   last_message?: string;

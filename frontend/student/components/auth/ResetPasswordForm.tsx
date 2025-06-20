@@ -21,7 +21,7 @@ interface ResetPasswordFormProps {
   onClose: () => void;
 }
 
-export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
+export const ResetPasswordForm = ({
   username,
   setUsername,
   password,
@@ -36,7 +36,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
   isLoading,
   onReset,
   onClose,
-}) => {
+}:ResetPasswordFormProps) => {
   const [errors, setErrors] = useState({
     username: '',
     password: '',

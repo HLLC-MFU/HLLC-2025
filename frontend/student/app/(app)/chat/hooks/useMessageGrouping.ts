@@ -23,13 +23,15 @@ export const useMessageGrouping = (messages: Message[]) => {
         // 2. Previous message was a system message
         // 3. Current message is from a different sender than previous
         // 4. Messages are more than 5 minutes apart
+        // 5. Current message is temporary (to separate from confirmed messages)
         if (
           !prevMessage || 
           prevMessage.type === 'join' || 
           prevMessage.type === 'leave' ||
           prevMessage.senderId !== message.senderId ||
           (message.timestamp && prevMessage.timestamp && 
-            new Date(message.timestamp).getTime() - new Date(prevMessage.timestamp).getTime() > 5 * 60 * 1000)
+            new Date(message.timestamp).getTime() - new Date(prevMessage.timestamp).getTime() > 5 * 60 * 1000) ||
+          message.isTemp !== prevMessage.isTemp // Separate temp and confirmed messages
         ) {
           if (currentGroup.length > 0) {
             result.push([...currentGroup]);

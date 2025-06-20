@@ -43,7 +43,7 @@ func NewServer(cfg *config.Config, db *mongo.Client) *server {
 
 func (s *server) Start() error {
 	// Serve static files for uploads globally
-	s.app.Static("/uploads", "./uploads")
+	s.app.Static("/api/uploads", "./uploads")
 
 	// Route service based on App Name
 	s.chatService()
@@ -52,6 +52,7 @@ func (s *server) Start() error {
 	s.schoolService()
 	s.userService()
 	s.majorService()
+	s.roleService()
 
 	// Start HTTP server
 	go func() {

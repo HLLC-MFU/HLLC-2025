@@ -8,6 +8,7 @@ type GlassButtonProps = {
   blurStyle?: StyleProp<ViewStyle>;
   blurIntensity?: number;
   iconOnly?: boolean;
+  onPress?: () => void;
 };
 
 export function GlassButton({
@@ -16,6 +17,7 @@ export function GlassButton({
   blurStyle,
   blurIntensity = 10,
   iconOnly = false,
+  onPress,  
 }: GlassButtonProps) {
   return (
     <View
@@ -30,6 +32,7 @@ export function GlassButton({
         },
         containerStyle,
       ]}
+      onTouchEnd={onPress}
     >
       <BlurView
         intensity={blurIntensity}

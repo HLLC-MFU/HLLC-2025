@@ -1,17 +1,17 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Categories } from '../constants/categories';
 
 interface CategoryFilterProps {
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
 }
-
-export const CategoryFilter: React.FC<CategoryFilterProps> = ({
+export default function CategoryFilter({
   selectedCategory,
   onCategoryChange,
-}) => {
+}: CategoryFilterProps) {
   return (
     <View style={styles.categoryFilterContainer}>
       <ScrollView 
@@ -25,23 +25,29 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             style={[
               styles.categoryFilterButton,
               selectedCategory === name && styles.categoryFilterButtonActive,
-              { borderColor: color }
+             
             ]}
             onPress={() => onCategoryChange(name)}
             activeOpacity={0.8}
           >
-            <LinearGradient
-              colors={selectedCategory === name ? [color, `${color}dd`] : ['#ffffff', '#f8fafc']}
-              style={styles.categoryFilterGradient}
+            <BlurView
+              intensity={40}
+              tint="light"
+              style={styles.categoryFilterBlur}
             >
-              <Icon size={16} color={selectedCategory === name ? '#fff' : color} />
-              <Text style={[
-                styles.categoryFilterText,
-                selectedCategory === name && styles.categoryFilterTextActive
-              ]}>
-                {name}
-              </Text>
-            </LinearGradient>
+              <LinearGradient
+                colors={selectedCategory === name ? [color, `${color}dd`] : ['transparent', 'transparent']}
+                style={styles.categoryFilterGradient}
+              >
+                <Icon size={16} color= '#fff' />
+                <Text style={[
+                  styles.categoryFilterText,
+                  selectedCategory === name && styles.categoryFilterTextActive
+                ]}>
+                  {name}
+                </Text>
+              </LinearGradient>
+            </BlurView>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -60,9 +66,15 @@ const styles = StyleSheet.create({
   categoryFilterButton: {
     borderRadius: 20,
     overflow: 'hidden',
-    borderWidth: 1,
+
   },
   categoryFilterButtonActive: {},
+  categoryFilterBlur: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
   categoryFilterGradient: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -73,6 +85,7 @@ const styles = StyleSheet.create({
   categoryFilterText: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#ffffff70',
   },
   categoryFilterTextActive: {
     color: '#ffffff',

@@ -31,17 +31,12 @@ func NewRepository(db *mongo.Client) ChatRepository {
 	return &repository{db: db}
 }
 
-func (r *repository) dbConnect(ctx context.Context) *mongo.Database {
+func (r *repository) dbConnect() *mongo.Database {
 	return r.db.Database("hllc-2025")
 }
 
-func (r *repository) CreateChatHistories(ctx context.Context, chatHistory *model.ChatMessage) error {
-	_, err := r.dbConnect(ctx).Collection("chat_histories").InsertOne(ctx, chatHistory)
-	return err
-}
-
 func (r *repository) SaveChatMessage(ctx context.Context, msg *model.ChatMessage) error {
-	res, err := r.dbConnect(ctx).Collection("chat_messages").InsertOne(ctx, msg)
+	res, err := r.dbConnect().Collection("chat-messages").InsertOne(ctx, msg)
 	if err != nil {
 		return err
 	}
@@ -55,12 +50,16 @@ func (r *repository) SaveChatMessage(ctx context.Context, msg *model.ChatMessage
 }
 
 func (r *repository) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error) {
-	filter := bson.M{"room_id": roomID}
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return nil, err
+	}
+	filter := bson.M{"room_id": roomObjID}
 	opts := options.Find().
 		SetSort(bson.M{"timestamp": -1}).
 		SetLimit(limit)
 
-	cursor, err := r.dbConnect(ctx).Collection("chat_messages").Find(ctx, filter, opts)
+	cursor, err := r.dbConnect().Collection("chat-messages").Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +78,7 @@ func (r *repository) GetChatHistoryByRoom(ctx context.Context, roomID string, li
 }
 
 func (r *repository) Save(ctx context.Context, msg *model.ChatMessage) (primitive.ObjectID, error) {
-	res, err := r.dbConnect(ctx).Collection("chat_messages").InsertOne(ctx, msg)
+	res, err := r.dbConnect().Collection("chat-messages").InsertOne(ctx, msg)
 	if err != nil {
 		return primitive.NilObjectID, err
 	}
@@ -88,7 +87,7 @@ func (r *repository) Save(ctx context.Context, msg *model.ChatMessage) (primitiv
 
 func (r *repository) GetReactionsByMessageID(ctx context.Context, messageID primitive.ObjectID) ([]model.MessageReaction, error) {
 	filter := bson.M{"message_id": messageID}
-	cursor, err := r.dbConnect(ctx).Collection("message_reactions").Find(ctx, filter)
+	cursor, err := r.dbConnect().Collection("message_reactions").Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +102,7 @@ func (r *repository) GetReactionsByMessageID(ctx context.Context, messageID prim
 
 func (r *repository) GetMessageByID(ctx context.Context, id primitive.ObjectID) (*model.ChatMessage, error) {
 	var msg model.ChatMessage
-	err := r.dbConnect(ctx).Collection("chat_messages").
+	err := r.dbConnect().Collection("chat-messages").
 		FindOne(ctx, bson.M{"_id": id}).Decode(&msg)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
@@ -114,7 +113,7 @@ func (r *repository) GetMessageByID(ctx context.Context, id primitive.ObjectID) 
 // DeleteMessagesByRoomID deletes all messages for a room
 func (r *repository) DeleteMessagesByRoomID(ctx context.Context, roomID string) error {
 	filter := bson.M{"room_id": roomID}
-	_, err := r.dbConnect(ctx).Collection("chat_messages").DeleteMany(ctx, filter)
+	_, err := r.dbConnect().Collection("chat-messages").DeleteMany(ctx, filter)
 	return err
 }
 
@@ -123,7 +122,7 @@ func (r *repository) DeleteReactionsByRoomID(ctx context.Context, roomID string)
 	// First get all message IDs for this room
 	var messageIDs []primitive.ObjectID
 	filter := bson.M{"room_id": roomID}
-	cursor, err := r.dbConnect(ctx).Collection("chat_messages").Find(ctx, filter, options.Find().SetProjection(bson.M{"_id": 1}))
+	cursor, err := r.dbConnect().Collection("chat-messages").Find(ctx, filter, options.Find().SetProjection(bson.M{"_id": 1}))
 	if err != nil {
 		log.Printf("[DeleteReactionsByRoomID] Failed to find messages for room %s: %v", roomID, err)
 		return err
@@ -149,7 +148,7 @@ func (r *repository) DeleteReactionsByRoomID(ctx context.Context, roomID string)
 
 	// Delete all reactions for these messages
 	reactionFilter := bson.M{"message_id": bson.M{"$in": messageIDs}}
-	result, err := r.dbConnect(ctx).Collection("message_reactions").DeleteMany(ctx, reactionFilter)
+	result, err := r.dbConnect().Collection("message_reactions").DeleteMany(ctx, reactionFilter)
 	if err != nil {
 		log.Printf("[DeleteReactionsByRoomID] Failed to delete reactions: %v", err)
 		return err
@@ -163,7 +162,7 @@ func (r *repository) DeleteReadReceiptsByRoomID(ctx context.Context, roomID stri
 	// First get all message IDs for this room
 	var messageIDs []primitive.ObjectID
 	filter := bson.M{"room_id": roomID}
-	cursor, err := r.dbConnect(ctx).Collection("chat_messages").Find(ctx, filter, options.Find().SetProjection(bson.M{"_id": 1}))
+	cursor, err := r.dbConnect().Collection("chat-messages").Find(ctx, filter, options.Find().SetProjection(bson.M{"_id": 1}))
 	if err != nil {
 		log.Printf("[DeleteReadReceiptsByRoomID] Failed to find messages for room %s: %v", roomID, err)
 		return err
@@ -189,7 +188,7 @@ func (r *repository) DeleteReadReceiptsByRoomID(ctx context.Context, roomID stri
 
 	// Delete all read receipts for these messages
 	receiptFilter := bson.M{"message_id": bson.M{"$in": messageIDs}}
-	result, err := r.dbConnect(ctx).Collection("message_read_receipts").DeleteMany(ctx, receiptFilter)
+	result, err := r.dbConnect().Collection("message_read_receipts").DeleteMany(ctx, receiptFilter)
 	if err != nil {
 		log.Printf("[DeleteReadReceiptsByRoomID] Failed to delete read receipts: %v", err)
 		return err
@@ -203,6 +202,6 @@ func (r *repository) AddReactionToMessage(ctx context.Context, messageID primiti
 		"$push": bson.M{"reactions": reaction},
 	}
 	filter := bson.M{"_id": messageID}
-	_, err := r.dbConnect(ctx).Collection("chat_messages").UpdateOne(ctx, filter, update)
+	_, err := r.dbConnect().Collection("chat-messages").UpdateOne(ctx, filter, update)
 	return err
 }
