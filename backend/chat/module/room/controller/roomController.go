@@ -1,14 +1,15 @@
 package controller
 
 import (
+	"chat/module/room/dto"
 	"chat/module/room/model"
 	"chat/module/room/service"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
 	controllerHelper "chat/pkg/helpers/controller"
+	"chat/pkg/validator"
 
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type (
@@ -65,16 +66,19 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 }
 
 func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
-	return controllerHelper.ControllerAction(ctx, func(room *model.Room) (any, error) {
-		if room.CreatedBy.IsZero() {
-			room.CreatedBy = controllerHelper.GetUserID(ctx)
+	return controllerHelper.ControllerAction(ctx, func(createDto *dto.CreateRoomDto) (any, error) {
+		if createDto.CreatedBy == "" {
+			userID := controllerHelper.GetUserID(ctx)
+			if !userID.IsZero() {
+				createDto.CreatedBy = userID.Hex()
+			}
 		}
 		
-		if room.CreatedBy.IsZero() {
+		if createDto.CreatedBy == "" {
 			return nil, fiber.NewError(fiber.StatusBadRequest, "createdBy is required")
 		}
 
-		return c.service.CreateRoom(ctx.Context(), room, room.CreatedBy.Hex())
+		return c.service.CreateRoom(ctx.Context(), createDto)
 	})
 }
 
@@ -101,47 +105,36 @@ func (c *RoomController) DeleteRoom(ctx *fiber.Ctx) error {
 }
 
 func (c *RoomController) AddRoomMember(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
-	member := new(model.RoomMember)
-	if err := ctx.BodyParser(member); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
-	}
+	return controllerHelper.ControllerAction(ctx, func(addDto *dto.AddRoomMembersDto) (any, error) {
+		// Validate the DTO
+		if err := validator.ValidateStruct(addDto); err != nil {
+			return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
 
-	addedMember, err := c.service.AddRoomMember(ctx.Context(), id, member)
-	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
-	}
-
-	return ctx.Status(fiber.StatusOK).JSON(addedMember)
+		// Add members
+		return c.service.AddRoomMember(ctx.Context(), ctx.Params("id"), addDto)
+	})
 }
 
 func (c *RoomController) RemoveRoomMember(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	userId := ctx.Params("userId")
 	
-	userObjectId, err := primitive.ObjectIDFromHex(userId)
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid user ID format",
-		})
+	// Create DTO with single user ID
+	addDto := &dto.AddRoomMembersDto{
+		UserIDs: []string{userId},
 	}
-	
-	removedMember, err := c.service.AddRoomMember(ctx.Context(), id, &model.RoomMember{
-		UserIDs: []primitive.ObjectID{userObjectId},
-	})
-	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+
+	// Validate the DTO
+	if err := validator.ValidateStruct(addDto); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
-	
+
+	// Remove member
+	removedMember, err := c.service.AddRoomMember(ctx.Context(), id, addDto)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
 	return ctx.Status(fiber.StatusOK).JSON(removedMember)
 }

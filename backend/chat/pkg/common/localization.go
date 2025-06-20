@@ -16,11 +16,11 @@ type (
 	}	
 
 	Photo struct {
-		CoverPhoto     string `bson:"coverPhoto" json:"coverPhoto"`
-		BannerPhoto    string `bson:"bannerPhoto" json:"bannerPhoto"`
-		ThumbnailPhoto string `bson:"thumbnailPhoto" json:"thumbnailPhoto"`
-		LogoPhoto      string `bson:"logoPhoto" json:"logoPhoto"`
-	}
+		CoverPhoto     string `json:"coverPhoto" bson:"coverPhoto"`
+		BannerPhoto    string `json:"bannerPhoto" bson:"bannerPhoto"`
+		ThumbnailPhoto string `json:"thumbnailPhoto" bson:"thumbnailPhoto"`
+		LogoPhoto      string `json:"logoPhoto" bson:"logoPhoto"`
+	} 
 
 	Name struct {
 		First string `bson:"first" json:"first"`

@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 
+	chatController "chat/module/chat/controller"
+	chatService "chat/module/chat/service"
 	roomController "chat/module/room/controller"
 	roomService "chat/module/room/service"
 	"chat/module/user/controller"
@@ -16,6 +18,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/websocket/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -93,6 +96,15 @@ func setupMiddleware(app *fiber.App) {
 	app.Use(logger.New(logger.Config{
 		Format: "[${time}] ${status} - ${latency} ${method} ${path}\n",
 	}))
+
+	// WebSocket middleware
+	app.Use("/ws", func(c *fiber.Ctx) error {
+		if websocket.IsWebSocketUpgrade(c) {
+			c.Locals("allowed", true)
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
+	})
 }
 
 func setupControllers(app *fiber.App, mongo *mongo.Database) {
@@ -102,6 +114,7 @@ func setupControllers(app *fiber.App, mongo *mongo.Database) {
 	roleService := service.NewRoleService(mongo)
 	userService := service.NewUserService(mongo)
 	roomService := roomService.NewRoomService(mongo)
+	chatSvc := chatService.NewChatService(mongo)
 
 	// Initialize controllers
 	controller.NewSchoolController(app, schoolService)
@@ -109,4 +122,5 @@ func setupControllers(app *fiber.App, mongo *mongo.Database) {
 	controller.NewRoleController(app, roleService)
 	controller.NewUserController(app, userService)
 	roomController.NewRoomController(app, roomService)
+	chatController.NewChatController(app, chatSvc)
 }

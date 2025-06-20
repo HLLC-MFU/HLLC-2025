@@ -1,10 +1,12 @@
 package service
 
 import (
+	"chat/module/room/dto"
 	"chat/module/room/model"
 	"chat/module/user/service"
 	"chat/pkg/database/queries"
 	serviceHelper "chat/pkg/helpers/service"
+	"chat/pkg/validator"
 	"context"
 	"fmt"
 	"time"
@@ -47,25 +49,27 @@ func (s *RoomService) GetRoomById(ctx context.Context, id string) (*model.Room, 
 	return &room.Data[0], nil
 }
 
-func (s *RoomService) CreateRoom(ctx context.Context, room *model.Room, createdBy string) (*model.Room, error) {
-
-	if room.Name.En == "" || room.Name.Th == "" {
-		return nil, fmt.Errorf("room name is required in both languages")
-	}
-	if room.Capacity <= 0 {
-		return nil, fmt.Errorf("room capacity must be greater than 0")
+func (s *RoomService) CreateRoom(ctx context.Context, createDto *dto.CreateRoomDto) (*model.Room, error) {
+	// Validate DTO
+	if err := validator.ValidateStruct(createDto); err != nil {
+		return nil, fmt.Errorf("validation error: %w", err)
 	}
 
-	if err := s.fkValidator.ValidateForeignKey(ctx, "users", createdBy); err != nil {
-		return nil, err
+	// Validate foreign key
+	if err := s.fkValidator.ValidateForeignKey(ctx, "users", createDto.CreatedBy); err != nil {
+		return nil, fmt.Errorf("foreign key validation error: %w", err)
 	}
 
-	userID, _ := primitive.ObjectIDFromHex(createdBy)
+	// Create room model
+	room := &model.Room{
+		Name:      createDto.Name,
+		Capacity:  createDto.Capacity,
+		CreatedBy: createDto.ToObjectID(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
 
-	room.CreatedBy = userID
-	room.CreatedAt = time.Now()
-	room.UpdatedAt = time.Now()
-
+	// Save
 	response, err := s.Create(ctx, *room)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create room: %w", err)
@@ -89,11 +93,39 @@ func (s *RoomService) DeleteRoom(ctx context.Context, id string) (*model.Room, e
 	return &room.Data[0], nil
 }
 
-func (s *RoomService) AddRoomMember(ctx context.Context, id string, member *model.RoomMember) (*model.RoomMember, error) {
+func (s *RoomService) AddRoomMember(ctx context.Context, roomID string, dto *dto.AddRoomMembersDto) (*model.RoomMember, error) {
+		
+	if err := s.fkValidator.ValidateForeignKey(ctx, "rooms", roomID); err != nil {
+		return nil, fmt.Errorf("foreign key validation error: %w", err)
+	}
+
+	if err := s.fkValidator.ValidateForeignKey(ctx, "users", dto.UserIDs[0]); err != nil {
+		return nil, fmt.Errorf("foreign key validation error: %w", err)
+	}
+
+	userObjectIDs := dto.ToObjectIDs()
+	for i, userID := range dto.UserIDs {
+		if err := s.fkValidator.ValidateForeignKey(ctx, "users", userID); err != nil {
+			return nil, fmt.Errorf("invalid user at index %d: %w", i, err)
+		}
+	}
+
+	roomObjectID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid room ID format: %w", err)
+	}
+
+	// Create room member
+	member := &model.RoomMember{
+		RoomID:  roomObjectID,
+		UserIDs: userObjectIDs,
+	}
+
 	result, err := s.memberCollection.InsertOne(ctx, member)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to add room members: %w", err)
 	}
+
 	member.ID = result.InsertedID.(primitive.ObjectID)
 	return member, nil
 }

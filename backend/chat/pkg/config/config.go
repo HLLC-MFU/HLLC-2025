@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -13,16 +14,28 @@ type (
 	Config struct {
 		App   AppConfig
 		Mongo MongoConfig
+		Redis RedisConfig
+		Kafka KafkaConfig
 	}
 
 	AppConfig struct {
-		Port string
-		Env  string
+		Port        string
+		Environment string
 	}
 
 	MongoConfig struct {
 		URI      string
 		Database string
+	}
+
+	RedisConfig struct {
+		Addr     string
+		Password string
+		DB       int
+	}
+
+	KafkaConfig struct {
+		Brokers []string
 	}
 )
 
@@ -42,15 +55,32 @@ func LoadConfig() (*Config, error) {
 		fmt.Println(env)
 	}
 
+	// Parse Redis DB number
+	redisDB, err := strconv.Atoi(getEnvWithValidation("REDIS_DB", "0", validateRedisDB))
+	if err != nil {
+		redisDB = 0 // Default to 0 if invalid
+	}
+
+	// Parse Kafka brokers
+	kafkaBrokers := strings.Split(getEnvWithValidation("KAFKA_BROKERS", "localhost:9092", validateKafkaBrokers), ",")
+
 	// Load configuration
 	config := &Config{
 		App: AppConfig{
-			Port: getEnvWithValidation("APP_PORT", "1443", validatePort),
-			Env:  getEnvWithValidation("APP_ENV", "development", validateEnv),
+			Port:        getEnvWithValidation("APP_PORT", "1443", validatePort),
+			Environment: getEnvWithValidation("APP_ENV", "development", validateEnv),
 		},
 		Mongo: MongoConfig{
 			URI:      getRequiredEnv("MONGO_URI", "mongodb://localhost:27017"),
 			Database: getRequiredEnv("MONGO_DATABASE", "hllc-2025"),
+		},
+		Redis: RedisConfig{
+			Addr:     getEnvWithValidation("REDIS_ADDR", "localhost:6379", validateRedisAddr),
+			Password: os.Getenv("REDIS_PASSWORD"), // Optional
+			DB:       redisDB,
+		},
+		Kafka: KafkaConfig{
+			Brokers: kafkaBrokers,
 		},
 	}
 
@@ -162,6 +192,45 @@ func validateEnv(env string) error {
 	}
 	if !validEnvs[env] {
 		return fmt.Errorf("environment must be one of: development, production, testing")
+	}
+	return nil
+}
+
+// Additional validation functions
+func validateRedisDB(db string) error {
+	num, err := strconv.Atoi(db)
+	if err != nil {
+		return fmt.Errorf("Redis DB must be a number")
+	}
+	if num < 0 {
+		return fmt.Errorf("Redis DB must be non-negative")
+	}
+	return nil
+}
+
+func validateRedisAddr(addr string) error {
+	parts := strings.Split(addr, ":")
+	if len(parts) != 2 {
+		return fmt.Errorf("Redis address must be in format host:port")
+	}
+	if _, err := strconv.Atoi(parts[1]); err != nil {
+		return fmt.Errorf("Redis port must be a number")
+	}
+	return nil
+}
+
+func validateKafkaBrokers(brokers string) error {
+	if brokers == "" {
+		return fmt.Errorf("Kafka brokers cannot be empty")
+	}
+	for _, broker := range strings.Split(brokers, ",") {
+		parts := strings.Split(broker, ":")
+		if len(parts) != 2 {
+			return fmt.Errorf("Kafka broker %s must be in format host:port", broker)
+		}
+		if _, err := strconv.Atoi(parts[1]); err != nil {
+			return fmt.Errorf("Kafka broker %s port must be a number", broker)
+		}
 	}
 	return nil
 }
