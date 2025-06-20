@@ -21,10 +21,6 @@ import {
 import { useRouter } from 'expo-router';
 
 // Components
-import Avatar from './components/Avatar';
-import MessageBubble from './components/MessageBubble';
-import SystemMessage from './components/SystemMessage';
-import TypingIndicator from './components/TypingIndicator';
 import ErrorView from './components/ErrorView';
 import JoinBanner from './components/JoinBanner';
 import RoomInfoModal from './components/RoomInfoModal';

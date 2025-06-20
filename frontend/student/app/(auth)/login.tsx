@@ -10,6 +10,7 @@ import { Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { useToastController } from '@tamagui/toast';
 import provincesData from '@/data/provinces.json';
 import { apiRequest } from '@/utils/api';
+import { RegisterSheet } from '@/components/auth/register-modal';
 
 export default function LoginScreen() {
   // State
@@ -185,7 +186,6 @@ export default function LoginScreen() {
           onCancel={() => setIsRegisterSheetOpen(false)}
         />
       </Sheet>
-
       <Sheet
         open={isForgotPasswordSheetOpen}
         onOpenChange={setIsForgotPasswordSheetOpen}

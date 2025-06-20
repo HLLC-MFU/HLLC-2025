@@ -24,9 +24,10 @@ import CreateRoomModal from './components/CreateRoomModal';
 import RoomCard from './components/RoomCard';
 import RoomListItem from './components/RoomListItem';
 import LoadingSpinner from './components/LoadingSpinner';
-import { ChatHeader } from './components/ChatHeader';
-import { ChatTabBar } from './components/ChatTabBar';
-import { CategoryFilter } from './components/CategoryFilter';
+import ChatHeader from './components/ChatHeader';
+import ChatTabBar from './components/ChatTabBar';
+import CategoryFilter from './components/CategoryFilter';
+
 
 export default function ChatPage() {
   const router = useRouter();

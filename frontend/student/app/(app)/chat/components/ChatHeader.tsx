@@ -12,14 +12,14 @@ interface ChatHeaderProps {
   headerOpacity: Animated.AnimatedInterpolation<string | number>;
 }
 
-export const ChatHeader: React.FC<ChatHeaderProps> = ({
+export default function ChatHeader ({
   language,
   roomsCount,
   joinedRoomsCount,
   headerScale,
   pulseAnim,
   headerOpacity,
-}) => {
+}: ChatHeaderProps) {
   return (
     <Animated.View style={[styles.enhancedHeader, { opacity: headerOpacity }]}>
       <LinearGradient

@@ -231,7 +231,6 @@ export class AuthService {
           path: 'school',
         },
       });
-    console.log(user);
 
     if (!user) {
       throw new NotFoundException('User not found');

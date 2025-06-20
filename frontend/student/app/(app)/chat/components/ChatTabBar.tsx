@@ -10,12 +10,12 @@ interface ChatTabBarProps {
   tabBarAnimation: Animated.Value;
 }
 
-export const ChatTabBar: React.FC<ChatTabBarProps> = ({
+export default function ChatTabBar ({
   language,
   activeTab,
   onTabChange,
   tabBarAnimation,
-}) => {
+}: ChatTabBarProps) {
   return (
     <Animated.View style={[styles.enhancedTabBar, { transform: [{ scale: tabBarAnimation }] }]}>
       <LinearGradient

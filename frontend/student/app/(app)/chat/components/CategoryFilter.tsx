@@ -7,11 +7,10 @@ interface CategoryFilterProps {
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
 }
-
-export const CategoryFilter: React.FC<CategoryFilterProps> = ({
+export default function CategoryFilter({
   selectedCategory,
   onCategoryChange,
-}) => {
+}: CategoryFilterProps) {
   return (
     <View style={styles.categoryFilterContainer}>
       <ScrollView 
