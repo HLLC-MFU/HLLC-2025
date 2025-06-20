@@ -1,5 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, UseInterceptors } from '@nestjs/common';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseInterceptors,
+} from '@nestjs/common';
 import { Public } from '../auth/decorators/public.decorator';
 import { CreateInterfacesDto } from './dto/create-interfaces.dto';
 import { UpdateInterfacesDto } from './dto/update-interfaces.dto';
@@ -29,7 +37,10 @@ export class InterfaceController {
 
   @Patch(':id')
   @UseInterceptors(new MultipartInterceptor(500))
-  update(@Param('id') id: string, @Body() updateInterfacesDto: UpdateInterfacesDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateInterfacesDto: UpdateInterfacesDto,
+  ) {
     return this.InterfacesService.update(id, updateInterfacesDto);
   }
 

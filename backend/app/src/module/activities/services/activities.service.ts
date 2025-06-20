@@ -131,7 +131,6 @@ export class ActivitiesService {
 
     const now = new Date();
 
-    // ✅ Step 1: Fetch check-ins for this user
     const userCheckins = (await this.checkinsModel
       .find({ user: user._id })
       .lean()
@@ -144,7 +143,6 @@ export class ActivitiesService {
         .map((activity) => activity.toString()),
     );
 
-    // ✅ Step 2: Fetch activities (without populate)
     const result = await queryAll<Activities>({
       model: this.activitiesModel,
       query: {

@@ -8,10 +8,17 @@ import {
   queryUpdateOne,
 } from 'src/pkg/helper/query.util';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
-import { Sponsors, SponsorsDocument } from 'src/module/sponsors/schema/sponsors.schema';
+import {
+  Sponsors,
+  SponsorsDocument,
+} from 'src/module/sponsors/schema/sponsors.schema';
 import { CreateEvoucherDto } from '../dto/evouchers/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/evouchers/update-evoucher.dto';
-import { Evoucher, EvoucherDocument, EvoucherStatus } from '../schema/evoucher.schema';
+import {
+  Evoucher,
+  EvoucherDocument,
+  EvoucherStatus,
+} from '../schema/evoucher.schema';
 import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
 import { EvoucherCode } from '../schema/evoucher-code.schema';
 import { buildPaginatedResponse } from 'src/pkg/helper/buildPaginatedResponse';
@@ -26,10 +33,9 @@ export class EvoucherService {
     private sponsorsModel: Model<SponsorsDocument>,
     @InjectModel(EvoucherCode.name)
     private evoucherCodeModel: Model<EvoucherCodeDocument>,
-  ) { }
+  ) {}
 
   async create(createEvoucherDto: CreateEvoucherDto) {
-    
     await findOrThrow(
       this.sponsorsModel,
       createEvoucherDto.sponsors,
@@ -41,7 +47,7 @@ export class EvoucherService {
       sponsors: new Types.ObjectId(createEvoucherDto.sponsors),
       expiration: createEvoucherDto.expiration,
       maxClaims: createEvoucherDto.maxClaims,
-      status: EvoucherStatus.ACTIVE
+      status: EvoucherStatus.ACTIVE,
     });
     return await evoucher.save();
   }
@@ -51,9 +57,7 @@ export class EvoucherService {
       model: this.evoucherModel,
       query,
       filterSchema: {},
-      populateFields: () => Promise.resolve([
-        { path: 'sponsors' },
-      ]),
+      populateFields: () => Promise.resolve([{ path: 'sponsors' }]),
     });
 
     const processedData = await Promise.all(
@@ -61,63 +65,58 @@ export class EvoucherService {
         const currentClaims = await this.evoucherCodeModel.countDocuments({
           evoucher: evoucher._id,
           user: { $ne: null },
-          isUsed: false
+          isUsed: false,
         });
 
-        const { maxClaims, ...evoucherWithoutMaxClaims } = evoucher.toJSON ? evoucher.toJSON() : evoucher;
+        const { maxClaims, ...evoucherWithoutMaxClaims } = evoucher.toJSON
+          ? evoucher.toJSON()
+          : evoucher;
 
-        return { 
+        return {
           ...evoucherWithoutMaxClaims,
           claims: {
             maxClaim: maxClaims,
-            currentClaim: currentClaims
-          }
+            currentClaim: currentClaims,
+          },
         };
-      })
+      }),
     );
 
-    return buildPaginatedResponse<Evoucher>(
-      processedData,
-      result.meta
-    );
+    return buildPaginatedResponse<Evoucher>(processedData, result.meta);
   }
 
   findOne(id: string) {
-    return queryFindOne<Evoucher>(
-      this.evoucherModel,
-      { _id: id },
-      [
-        { path: 'sponsors' },
-      ]
-    )
+    return queryFindOne<Evoucher>(this.evoucherModel, { _id: id }, [
+      { path: 'sponsors' },
+    ]);
   }
 
-  async getPublicAvailableEvouchersForUser(userId?: string, query?: Record<string, string>) {
+  async getPublicAvailableEvouchersForUser(
+    userId?: string,
+    query?: Record<string, string>,
+  ) {
     const result = await queryAll<Evoucher>({
       model: this.evoucherModel,
       query: { ...query, type: 'GLOBAL', status: EvoucherStatus.ACTIVE },
       filterSchema: {},
       populateFields: () => Promise.resolve([{ path: 'sponsors' }]),
     });
-  
+
     const processedData = await Promise.all(
-      result.data.map((evoucher: EvoucherDocument) => 
-        validatePublicAvailableVoucher(evoucher, this.evoucherCodeModel, userId)
-      )
+      result.data.map((evoucher: EvoucherDocument) =>
+        validatePublicAvailableVoucher(
+          evoucher,
+          this.evoucherCodeModel,
+          userId,
+        ),
+      ),
     );
-  
-    return buildPaginatedResponse<Evoucher>(
-      processedData,
-      result.meta
-    );
+
+    return buildPaginatedResponse<Evoucher>(processedData, result.meta);
   }
 
   update(id: string, updateEvoucherDto: UpdateEvoucherDto) {
-    return queryUpdateOne<Evoucher>(
-      this.evoucherModel,
-      id,
-      updateEvoucherDto
-    )
+    return queryUpdateOne<Evoucher>(this.evoucherModel, id, updateEvoucherDto);
   }
 
   async remove(id: string) {

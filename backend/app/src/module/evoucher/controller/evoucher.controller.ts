@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseInterceptors, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseInterceptors,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
@@ -36,10 +48,10 @@ export class EvoucherController {
 
   @Get('available')
   getAvailableEvouchers(
-    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
-    const user = req.user;
-    const userId = user?._id ?? user?.id;
+    const user = req.user as { _id?: string; id?: string } | undefined;
+    const userId: string | undefined = user?._id ?? user?.id;
 
     return this.evoucherService.getPublicAvailableEvouchersForUser(userId);
   }
