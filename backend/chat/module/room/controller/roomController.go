@@ -10,6 +10,7 @@ import (
 	"chat/pkg/validator"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type (
@@ -54,7 +55,14 @@ func (c *RoomController) GetRooms(ctx *fiber.Ctx) error {
 func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	
-	room, err := c.service.GetRoomById(ctx.Context(), id)
+	roomObjID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "invalid room ID",
+		})
+	}
+	room, err := c.service.GetRoomById(ctx.Context(), roomObjID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,

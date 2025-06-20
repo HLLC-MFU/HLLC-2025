@@ -4,6 +4,7 @@ package controller
 import (
 	"chat/module/chat/model"
 	chatService "chat/module/chat/service"
+	"chat/module/chat/utils"
 	roomModel "chat/module/room/model"
 	stickerModel "chat/module/sticker/model"
 	"chat/pkg/decorators"
@@ -67,7 +68,7 @@ func NewChatController(
 
 func (c *ChatController) setupRoutes() {
 	// WebSocket routes
-	c.Get("/ws/:roomId/:userId", c.handleWebSocketUpgrade)
+	c.Get("/ws/:roomId/:userId", websocket.New(c.handleWebSocket))
 	
 	// File routes
 	c.Post("/upload", c.handleFileUpload)
@@ -122,12 +123,6 @@ func (c *ChatController) handleWebSocket(conn *websocket.Conn) {
 		return
 	}
 
-	client := model.ClientObject{
-		RoomID: roomObjID,
-		UserID: userObjID,
-		Conn:   conn,
-	}
-
 	// Send chat history
 	messages, err := c.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
 	if err == nil {
@@ -142,8 +137,24 @@ func (c *ChatController) handleWebSocket(conn *websocket.Conn) {
 		}
 	}
 
-	model.RegisterClient(client)
-	defer model.UnregisterClient(client)
+	// Create client object
+	client := &model.ClientObject{
+		RoomID: roomObjID,
+		UserID: userObjID,
+		Conn:   conn,
+	}
+
+	// Register client with hub
+	c.chatService.GetHub().Register(utils.Client{
+		Conn:   conn,
+		RoomID: roomObjID,
+		UserID: userObjID,
+	})
+	defer c.chatService.GetHub().Unregister(utils.Client{
+		Conn:   conn,
+		RoomID: roomObjID,
+		UserID: userObjID,
+	})
 
 	for {
 		_, msg, err := conn.ReadMessage()
@@ -156,14 +167,26 @@ func (c *ChatController) handleWebSocket(conn *websocket.Conn) {
 		// Handle different message types
 		switch {
 		case strings.HasPrefix(messageText, "/reply"):
-			c.handleReplyMessage(messageText, client)
+			c.handleReplyMessage(messageText, *client)
 		case strings.HasPrefix(messageText, "/react"):
-			c.handleReactionMessage(messageText, client)
+			c.handleReactionMessage(messageText, *client)
 		case messageText == "/leave":
-			c.handleLeaveMessage(ctx, messageText, client)
+			c.handleLeaveMessage(ctx, messageText, *client)
 			return
 		default:
-			c.handleTextMessage(messageText, client)
+			// Create and save message
+			chatMsg := &model.ChatMessage{
+				RoomID:    roomObjID,
+				UserID:    userObjID,
+				Message:   messageText,
+				Timestamp: time.Now(),
+			}
+			
+			// Save message to database and broadcast
+			if err := c.chatService.SaveMessage(ctx, chatMsg); err != nil {
+				log.Printf("[ERROR] Failed to save message: %v", err)
+				continue
+			}
 		}
 	}
 }
@@ -328,10 +351,10 @@ func (c *ChatController) handleReplyMessage(messageText string, client model.Cli
 		Timestamp: time.Now(),
 	}
 
-	model.BroadcastMessage(model.BroadcastObject{
-		MSG:  msg,
-		FROM: client,
-	})
+	// Save and broadcast reply message
+	if err := c.chatService.SaveMessage(context.Background(), msg); err != nil {
+		log.Printf("[ERROR] Failed to save reply message: %v", err)
+	}
 }
 
 func (c *ChatController) handleReactionMessage(messageText string, client model.ClientObject) {
@@ -371,10 +394,10 @@ func (c *ChatController) handleTextMessage(messageText string, client model.Clie
 		Timestamp: time.Now(),
 	}
 
-	model.BroadcastMessage(model.BroadcastObject{
-		MSG:  msg,
-		FROM: client,
-	})
+	// Save and broadcast text message
+	if err := c.chatService.SaveMessage(context.Background(), msg); err != nil {
+		log.Printf("[ERROR] Failed to save text message: %v", err)
+	}
 }
 
 func (c *ChatController) getFileType(ext string) string {

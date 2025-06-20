@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"chat/module/room/model"
 	"chat/pkg/core/kafka"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -14,66 +16,139 @@ const (
 	roomEventsTopic = "room-events"
 )
 
-type (
-	RoomEventEmitter struct {
-		kafkaBus *kafka.Bus
-		broker   string
+type RoomEvent struct {
+	Type    string          `json:"type"`
+	RoomID  string         `json:"roomId"`
+	Payload json.RawMessage `json:"payload,omitempty"`
+}
+
+type RoomEventEmitter struct {
+	bus *kafka.Bus
+}
+
+func NewRoomEventEmitter(bus *kafka.Bus, brokerAddress string) *RoomEventEmitter {
+	// Ensure the room-events topic exists
+	if err := kafka.EnsureTopic(brokerAddress, roomEventsTopic, 1); err != nil {
+		log.Printf("[Kafka] Failed to ensure topic %s: %v", roomEventsTopic, err)
 	}
 
-	RoomEvent struct {
-		Type    string          `json:"type"`
-		RoomID  string          `json:"roomId"`
-		Payload json.RawMessage `json:"payload,omitempty"`
+	// Wait for topic to be ready
+	if err := kafka.WaitForTopic(brokerAddress, roomEventsTopic, 10*time.Second); err != nil {
+		log.Printf("[Kafka] Topic %s not ready: %v", roomEventsTopic, err)
 	}
-)
 
-func NewRoomEventEmitter(bus *kafka.Bus, broker string) *RoomEventEmitter {
 	return &RoomEventEmitter{
-		kafkaBus: bus,
-		broker:   broker,
+		bus: bus,
 	}
 }
 
-func (e *RoomEventEmitter) emitRoomEvent(ctx context.Context, eventType string, roomID primitive.ObjectID, payload any) {
-	go func() {
-		topicName := "chat-room-" + roomID.Hex()
+func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive.ObjectID, room *model.Room) {
+	// Validate IDs
+	if roomID.IsZero() {
+		log.Printf("[ERROR] Attempted to emit room_created event with zero roomID")
+		return
+	}
+	if room.ID.IsZero() {
+		log.Printf("[ERROR] Attempted to emit room_created event with zero room.ID")
+		return
+	}
+	if roomID != room.ID {
+		log.Printf("[ERROR] roomID mismatch in room_created event: %s != %s", roomID.Hex(), room.ID.Hex())
+		return
+	}
 
-		if err := kafka.EnsureTopic(e.broker, topicName, 1); err != nil {
-			log.Printf("[Kafka] Failed to ensure topic %s: %v", topicName, err)
-			return
-		}
+	log.Printf("[RoomEvent] Emitting room_created event for room %s", roomID.Hex())
+	
+	payload, err := json.Marshal(room)
+	if err != nil {
+		log.Printf("[ERROR] Failed to marshal room for room_created event: %v", err)
+		return
+	}
 
-		if err := kafka.WaitForTopic(e.broker, topicName, 10*time.Second); err != nil {
-			log.Printf("[Kafka] Topic %s not ready: %v", topicName, err)
-			return
-		}
+	event := RoomEvent{
+		Type:    "room_created",
+		RoomID:  roomID.Hex(),
+		Payload: payload,
+	}
 
-		event := RoomEvent{
-			Type:    eventType,
-			RoomID:  roomID.Hex(),
-			Payload: marshalRaw(payload),
-		}
+	if err := e.emitEvent(ctx, event); err != nil {
+		log.Printf("[ERROR] Failed to emit room_created event for room %s: %v", roomID.Hex(), err)
+	} else {
+		log.Printf("[RoomEvent] Successfully emitted room_created event for room %s", roomID.Hex())
+	}
+}
 
-		if err := e.kafkaBus.Emit(ctx, roomEventsTopic, "room-system", event); err != nil {
-			log.Printf("[Kafka] Failed to emit %s event for room %s: %v", eventType, roomID.Hex(), err)
-		}
-	}()
+func (e *RoomEventEmitter) EmitRoomDeleted(ctx context.Context, roomID primitive.ObjectID) {
+	// Validate ID
+	if roomID.IsZero() {
+		log.Printf("[ERROR] Attempted to emit room_deleted event with zero roomID")
+		return
+	}
+
+	log.Printf("[RoomEvent] Emitting room_deleted event for room %s", roomID.Hex())
+
+	event := RoomEvent{
+		Type:   "room_deleted",
+		RoomID: roomID.Hex(),
+	}
+
+	if err := e.emitEvent(ctx, event); err != nil {
+		log.Printf("[ERROR] Failed to emit room_deleted event for room %s: %v", roomID.Hex(), err)
+	} else {
+		log.Printf("[RoomEvent] Successfully emitted room_deleted event for room %s", roomID.Hex())
+	}
+}
+
+func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, userID primitive.ObjectID) {
+	// Validate IDs
+	if roomID.IsZero() {
+		log.Printf("[ERROR] Attempted to emit room_member_joined event with zero roomID")
+		return
+	}
+	if userID.IsZero() {
+		log.Printf("[ERROR] Attempted to emit room_member_joined event with zero userID")
+		return
+	}
+
+	log.Printf("[RoomEvent] Emitting room_member_joined event for room %s, user %s", roomID.Hex(), userID.Hex())
+
+	payload := map[string]string{
+		"userId": userID.Hex(),
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("[ERROR] Failed to marshal payload for room_member_joined event: %v", err)
+		return
+	}
+
+	event := RoomEvent{
+		Type:    "room_member_joined",
+		RoomID:  roomID.Hex(),
+		Payload: payloadBytes,
+	}
+
+	if err := e.emitEvent(ctx, event); err != nil {
+		log.Printf("[ERROR] Failed to emit room_member_joined event for room %s, user %s: %v", 
+			roomID.Hex(), userID.Hex(), err)
+	} else {
+		log.Printf("[RoomEvent] Successfully emitted room_member_joined event for room %s, user %s", 
+			roomID.Hex(), userID.Hex())
+	}
+}
+
+func (e *RoomEventEmitter) emitEvent(ctx context.Context, event RoomEvent) error {
+	// Validate event
+	if event.RoomID == "" || event.RoomID == "000000000000000000000000" {
+		return fmt.Errorf("invalid roomID in event: %s", event.RoomID)
+	}
+
+	return e.bus.Emit(ctx, roomEventsTopic, event.RoomID, event)
 }
 
 // ==== Convenience Emitters ====
 
-func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive.ObjectID, payload any) {
+func (e *RoomEventEmitter) emitRoomEvent(ctx context.Context, eventType string, roomID primitive.ObjectID, payload any) {
 	e.emitRoomEvent(ctx, "room_created", roomID, payload)
-}
-
-func (e *RoomEventEmitter) EmitRoomDeleted(ctx context.Context, roomID primitive.ObjectID) {
-	e.emitRoomEvent(ctx, "room_deleted", roomID, nil)
-}
-
-func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, userID primitive.ObjectID) {
-	e.emitRoomEvent(ctx, "room_member_joined", roomID, map[string]string{
-		"userId": userID.Hex(),
-	})
 }
 
 // ==== Internal ====

@@ -6,7 +6,6 @@ import (
 	"chat/pkg/database/queries"
 	"chat/pkg/helpers/service"
 	"context"
-	"encoding/json"
 	"log"
 	"time"
 
@@ -16,10 +15,15 @@ import (
 
 type ChatService struct {
 	*queries.BaseService[model.ChatMessage]
-	redis       *redis.Client
+	cache       *utils.ChatCacheService
 	hub         *utils.Hub
 	fkValidator *service.ForeignKeyValidator
 	collection  *mongo.Collection
+}
+
+// GetHub returns the hub instance for WebSocket management
+func (s *ChatService) GetHub() *utils.Hub {
+	return s.hub
 }
 
 func NewChatService(
@@ -30,7 +34,7 @@ func NewChatService(
 	collection := db.Collection("chat_messages")
 	return &ChatService{
 		BaseService:  queries.NewBaseService[model.ChatMessage](collection),
-		redis:       redis,
+		cache:       utils.NewChatCacheService(redis),
 		hub:         hub,
 		fkValidator: service.NewForeignKeyValidator(db),
 		collection:  collection,
@@ -38,10 +42,9 @@ func NewChatService(
 }
 
 func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {
-	// Try Redis first
-	key := "room:" + roomID + ":messages"
-	messages, err := s.getCachedMessages(ctx, key, int(limit))
-	if err == nil {
+	// Try cache first
+	messages, err := s.cache.GetRoomMessages(ctx, roomID, int(limit))
+	if err == nil && len(messages) > 0 {
 		return messages, nil
 	}
 
@@ -57,13 +60,16 @@ func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, l
 		return nil, err
 	}
 
+	// Enrich messages and cache them
 	enriched := make([]model.ChatMessageEnriched, len(result.Data))
 	for i, msg := range result.Data {
 		enriched[i] = model.ChatMessageEnriched{
 			ChatMessage: msg,
 		}
-		// Cache message
-		s.cacheMessage(ctx, &msg)
+		// Cache each message
+		if err := s.cache.SaveMessage(ctx, roomID, &enriched[i]); err != nil {
+			log.Printf("Failed to cache message: %v", err)
+		}
 	}
 
 	return enriched, nil
@@ -90,18 +96,24 @@ func (s *ChatService) SaveMessage(ctx context.Context, msg *model.ChatMessage) e
 	}
 	msg.ID = result.Data[0].ID
 
-	// Cache in Redis
-	if err := s.cacheMessage(ctx, msg); err != nil {
-		log.Printf("[WARN] Failed to cache message: %v", err)
+	// Cache the message
+	enriched := model.ChatMessageEnriched{
+		ChatMessage: *msg,
+	}
+	if err := s.cache.SaveMessage(ctx, msg.RoomID.Hex(), &enriched); err != nil {
+		log.Printf("Failed to cache message: %v", err)
 	}
 
-	// Broadcast via Hub
-	s.hub.Broadcast(utils.Message{
+	// Create broadcast message
+	wsMsg := utils.Message{
 		RoomID:    msg.RoomID,
 		UserID:    msg.UserID,
 		Message:   msg.Message,
 		Timestamp: msg.Timestamp,
-	})
+	}
+
+	// Broadcast to all clients in the room
+	s.hub.Broadcast(wsMsg)
 
 	return nil
 }
@@ -120,65 +132,31 @@ func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.Messag
 		},
 	}
 	
-	_, err = s.UpdateById(ctx, reaction.MessageID.Hex(), update)
-	if err != nil {
+	if _, err := s.UpdateById(ctx, reaction.MessageID.Hex(), update); err != nil {
 		return err
 	}
 
-	// Update cache
-	key := "room:" + msg.Data[0].RoomID.Hex() + ":messages"
-	s.redis.Del(ctx, key)
+	// Cache the reaction
+	if err := s.cache.SaveReaction(ctx, msg.Data[0].RoomID.Hex(), reaction.MessageID.Hex(), reaction); err != nil {
+		log.Printf("Failed to cache reaction: %v", err)
+	}
 
 	return nil
 }
 
 func (s *ChatService) DeleteRoomMessages(ctx context.Context, roomID string) error {
-	// Delete from MongoDB using direct collection access
+	// Delete from MongoDB
 	filter := map[string]interface{}{
 		"room_id": roomID,
 	}
-	_, err := s.collection.DeleteMany(ctx, filter)
-	if err != nil {
+	if _, err := s.collection.DeleteMany(ctx, filter); err != nil {
 		return err
 	}
 
-	// Delete from Redis
-	key := "room:" + roomID + ":messages"
-	s.redis.Del(ctx, key)
+	// Delete from cache
+	if err := s.cache.DeleteRoomMessages(ctx, roomID); err != nil {
+		log.Printf("Failed to delete messages from cache: %v", err)
+	}
 
 	return nil
-}
-
-// Helper methods for Redis caching
-func (s *ChatService) cacheMessage(ctx context.Context, msg *model.ChatMessage) error {
-	key := "room:" + msg.RoomID.Hex() + ":messages"
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return err
-	}
-
-	return s.redis.ZAdd(ctx, key, redis.Z{
-		Score:  float64(msg.Timestamp.Unix()),
-		Member: data,
-	}).Err()
-}
-
-func (s *ChatService) getCachedMessages(ctx context.Context, key string, limit int) ([]model.ChatMessageEnriched, error) {
-	results, err := s.redis.ZRevRange(ctx, key, 0, int64(limit-1)).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	messages := make([]model.ChatMessageEnriched, 0, len(results))
-	for _, data := range results {
-		var msg model.ChatMessage
-		if err := json.Unmarshal([]byte(data), &msg); err != nil {
-			continue
-		}
-		messages = append(messages, model.ChatMessageEnriched{
-			ChatMessage: msg,
-		})
-	}
-
-	return messages, nil
 }

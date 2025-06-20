@@ -5,7 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
+	"strings"
 
+	chatController "chat/module/chat/controller"
+	chatService "chat/module/chat/service"
+	chatUtils "chat/module/chat/utils"
 	roomController "chat/module/room/controller"
 	roomService "chat/module/room/service"
 	stickerController "chat/module/sticker/controller"
@@ -13,6 +18,7 @@ import (
 	"chat/module/user/controller"
 	"chat/module/user/service"
 	"chat/pkg/config"
+	"chat/pkg/core/kafka"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -23,6 +29,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// Route structure to store route information
+type Route struct {
+	Method      string
+	Path        string
+	Handler     string
+	Module      string
+	Middleware  []string
+}
 
 func main() {
 	// Print current working directory for debugging
@@ -50,7 +65,7 @@ func main() {
 	app := fiber.New()
 
 	// Setup MongoDB
-	mongo, err := setupMongo(cfg)
+	mongoDB, err := setupMongo(cfg)
 	if err != nil {
 		log.Fatalf("Failed to setup MongoDB: %v", err)
 	}
@@ -71,7 +86,10 @@ func main() {
 	setupMiddleware(app)
 
 	// Setup controllers
-	setupControllers(app, mongo)
+	setupControllers(app, mongoDB, redisClient)
+
+	// Log all registered routes
+	logRegisteredRoutes(app)
 
 	// Start server
 	port := fmt.Sprintf(":%s", cfg.App.Port)
@@ -110,8 +128,8 @@ func setupMiddleware(app *fiber.App) {
 		Format: "[${time}] ${status} - ${latency} ${method} ${path}\n",
 	}))
 
-	// WebSocket middleware
-	app.Use("/ws", func(c *fiber.Ctx) error {
+	// WebSocket middleware - apply to all WebSocket routes
+	app.Use("/chat/ws/*", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
 			c.Locals("allowed", true)
 			return c.Next()
@@ -120,7 +138,7 @@ func setupMiddleware(app *fiber.App) {
 	})
 }
 
-func setupControllers(app *fiber.App, mongo *mongo.Database) {
+func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.Client) {
 	// Initialize services
 	schoolService := service.NewSchoolService(mongo)
 	majorService := service.NewMajorService(mongo)
@@ -129,6 +147,36 @@ func setupControllers(app *fiber.App, mongo *mongo.Database) {
 	roomService := roomService.NewRoomService(mongo)
 	stickerService := stickerService.NewStickerService(mongo)
 
+	// Initialize Kafka bus for chat
+	bus := kafka.New([]string{"localhost:9092"}, "chat-service")
+
+	// Create required topics
+	if err := bus.CreateTopics([]string{
+		"room-events",      // For room events (create, update, delete)
+		chatUtils.ChatMessagesTopic, // For chat messages
+	}); err != nil {
+		log.Printf("[ERROR] Failed to create Kafka topics: %v", err)
+	}
+
+	// Initialize chat hub with Kafka publisher
+	hub := chatUtils.NewHub(func(topic, key string, payload []byte) error {
+		return bus.Emit(context.Background(), topic, key, payload)
+	})
+
+	// Subscribe to chat messages
+	bus.On(chatUtils.ChatMessagesTopic, func(ctx context.Context, msg *kafka.Message) error {
+		hub.HandleKafkaMessage(msg.Topic, msg.Value)
+		return nil
+	})
+
+	// Start the bus
+	if err := bus.Start(); err != nil {
+		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)
+	}
+
+	// Initialize chat service
+	chatService := chatService.NewChatService(mongo, redisClient, hub)
+
 	// Initialize controllers
 	controller.NewSchoolController(app, schoolService)
 	controller.NewMajorController(app, majorService)
@@ -136,5 +184,92 @@ func setupControllers(app *fiber.App, mongo *mongo.Database) {
 	controller.NewUserController(app, userService)
 	roomController.NewRoomController(app, roomService)
 	stickerController.NewStickerController(app, stickerService)
+	chatController.NewChatController(app, chatService, roomService, stickerService, roomService)
+}
+
+// logRegisteredRoutes prints all registered routes in a formatted way
+func logRegisteredRoutes(app *fiber.App) {
+	// Group routes by module
+	modules := map[string][]Route{
+		"User":    {},
+		"Room":    {},
+		"Chat":    {},
+		"Sticker": {},
+		"Other":   {},
+	}
+
+	for _, route := range app.GetRoutes() {
+		// Determine module based on path
+		module := "Other"
+		switch {
+		case strings.Contains(route.Path, "/api/users") || 
+			 strings.Contains(route.Path, "/api/roles") || 
+			 strings.Contains(route.Path, "/api/schools") ||
+			 strings.Contains(route.Path, "/api/majors"):
+			module = "User"
+		case strings.Contains(route.Path, "/api/rooms"):
+			module = "Room"
+		case strings.Contains(route.Path, "/chat"):
+			module = "Chat"
+		case strings.Contains(route.Path, "/api/stickers"):
+			module = "Sticker"
+		}
+
+		// Get middleware names
+		var middleware []string
+		for _, m := range route.Handlers {
+			name := fmt.Sprintf("%T", m)
+			if strings.Contains(name, "middleware") {
+				middleware = append(middleware, strings.TrimPrefix(name, "*"))
+			}
+		}
+
+		r := Route{
+			Method:     route.Method,
+			Path:       route.Path,
+			Handler:    route.Name,
+			Module:     module,
+			Middleware: middleware,
+		}
+
+		modules[module] = append(modules[module], r)
+	}
+
+	// Print routes grouped by module
+	log.Println("\nRegistered Routes:")
+	log.Println(strings.Repeat("=", 120))
+
+	for module, routes := range modules {
+		if len(routes) == 0 {
+			continue
+		}
+
+		// Sort routes within each module
+		sort.Slice(routes, func(i, j int) bool {
+			return routes[i].Path < routes[j].Path
+		})
+
+		// Print module header
+		log.Printf("\n[%s Module]\n", module)
+		log.Println(strings.Repeat("-", 120))
+		log.Printf("%-7s %-50s %-30s %s\n", "METHOD", "PATH", "MIDDLEWARE", "HANDLER")
+		log.Println(strings.Repeat("-", 120))
+
+		for _, route := range routes {
+			middleware := "none"
+			if len(route.Middleware) > 0 {
+				middleware = strings.Join(route.Middleware, ", ")
+			}
+			log.Printf("%-7s %-50s %-30s %s\n", 
+				route.Method, 
+				route.Path, 
+				middleware,
+				route.Handler,
+			)
+		}
+	}
+
+	log.Println(strings.Repeat("=", 120))
+	log.Printf("\nTotal Routes: %d\n", len(app.GetRoutes()))
 }
 

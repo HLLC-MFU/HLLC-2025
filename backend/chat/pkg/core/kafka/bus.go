@@ -41,9 +41,43 @@ func New(brokers []string, groupID string) *Bus {
 		handlers: map[string][]HandlerFunc{},
 		readers:  map[string]*kafka.Reader{},
 		writer:   kafka.NewWriter(kafka.WriterConfig{Brokers: brokers, Balancer: &kafka.LeastBytes{}}),
-		ctx:    ctx,
-		cancel: cancel,
+		ctx:      ctx,
+		cancel:   cancel,
 	}
+}
+
+func (b *Bus) CreateTopics(topics []string) error {
+	conn, err := kafka.Dial("tcp", b.brokers[0])
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	controller, err := conn.Controller()
+	if err != nil {
+		return err
+	}
+	controllerConn, err := kafka.Dial("tcp", controller.Host)
+	if err != nil {
+		return err
+	}
+	defer controllerConn.Close()
+
+	topicConfigs := make([]kafka.TopicConfig, len(topics))
+	for i, topic := range topics {
+		topicConfigs[i] = kafka.TopicConfig{
+			Topic:             topic,
+			NumPartitions:     1,
+			ReplicationFactor: 1,
+		}
+	}
+
+	err = controllerConn.CreateTopics(topicConfigs...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (b *Bus) On(topic string, handler HandlerFunc) {
