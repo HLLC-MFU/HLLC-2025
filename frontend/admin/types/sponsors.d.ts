@@ -8,3 +8,8 @@ export type Sponsors = {
     type: SponsorType;
     isShow: boolean;
 }
+
+export type SponsorType = {
+    _id: string;
+    name: string;
+}
