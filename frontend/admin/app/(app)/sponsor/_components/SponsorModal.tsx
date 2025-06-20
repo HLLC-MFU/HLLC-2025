@@ -13,9 +13,6 @@ import {
   SelectItem,
 } from "@heroui/react";
 
-import { LogoPreview } from "./LogoPreview";
-
-import { useSponsors } from "@/hooks/useSponsors";
 import { Sponsors } from "@/types/sponsors";
 import { SponsorType } from "@/types/sponsors-type";
 
@@ -24,7 +21,7 @@ interface SponsorModalProps {
   sponsorTypes: SponsorType[];
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (sponsor: Partial<Sponsors>, mode: "add" | "edit") => void;
+  onSuccess: (sponsor: FormData, mode: "add" | "edit") => void;
   sponsor?: Sponsors;
   mode: "add" | "edit";
 }
@@ -43,8 +40,6 @@ export function SponsorModal({
   sponsor,
   mode,
 }: SponsorModalProps) {
-  const { createSponsors, updateSponsors } = useSponsors();
-
   const [nameEn, setNameEn] = useState("");
   const [nameTh, setNameTh] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -59,7 +54,7 @@ export function SponsorModal({
       setNameTh(sponsor.name?.th || "");
       setIsShow(sponsor.isShow ?? true);
       setLogoFile(null);
-      setLogoPreview(`http://localhost:8080/uploads/${sponsor.photo}`);
+      setLogoPreview(`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.photo}`);
     } else {
       setNameEn("");
       setNameTh("");
@@ -89,7 +84,7 @@ export function SponsorModal({
   const handleSubmit = async () => {
     const nameEnEmpty = !nameEn.trim();
     const nameThEmpty = !nameTh.trim();
-    const logoEmpty = mode === "add" && !logoFile;
+    const logoEmpty = !logoFile && !logoPreview;
 
     setErrors({ nameEn: nameEnEmpty, nameTh: nameThEmpty, logo: logoEmpty });
 
@@ -107,17 +102,8 @@ export function SponsorModal({
     formData.append("isShow", String(isShow));
     if (logoFile) formData.append("photo", logoFile);
 
-    try {
-      if (mode === "add") {
-        await createSponsors(formData);
-      } else if (sponsor?._id) {
-        await updateSponsors(sponsor._id, formData);
-      }
-      onSuccess(sponsor || {}, mode);
-      onClose();
-    } catch (err) {
-      console.error("Sponsor submission error:", err);
-    }
+    onSuccess(formData || {}, mode);
+    onClose();
   };
 
   return (
