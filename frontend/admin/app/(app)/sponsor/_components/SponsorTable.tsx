@@ -61,7 +61,7 @@ export default function SponsorTable({
               <TableCell className="text-center">
                 {sponsor.photo && typeof sponsor.photo === "string" ? (
                   <img
-                    src={`http://localhost:8080/uploads/${sponsor.photo}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.photo}`}
                     alt={sponsor.name.en}
                     className="h-16 w-16 object-contain rounded border border-default-300 bg-white mx-auto"
                     onError={(e) => {
