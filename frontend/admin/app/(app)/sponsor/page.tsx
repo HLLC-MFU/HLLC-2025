@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 import { Accordion, AccordionItem, Button } from "@heroui/react";
 import { DollarSignIcon, Plus } from "lucide-react";
 
-import { useSponsors } from "@/hooks/useSponsors";
 import { SponsorFilters } from "./_components/SponsorFilters";
 import SponsorTable from "./_components/SponsorTable";
-import AddSponsorTypeModal from "./_components/AddSponsorTypeModal";
+
+import { useSponsors } from "@/hooks/useSponsors";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { Sponsors } from "@/types/sponsors";
 import { useSponsorsType } from "@/hooks/useSponsorsType";
@@ -49,6 +49,7 @@ export default function SponsorPage() {
         typeof s.type === "object" && s.type !== null && "name" in s.type
           ? (s.type as { name: string }).name
           : s.type || "Unknown";
+
       if (!groups[typeName]) groups[typeName] = [];
       groups[typeName].push(s);
     });
@@ -74,6 +75,7 @@ export default function SponsorPage() {
 
     return filtered.sort((a, b) => {
       let comparison = 0;
+
       switch (sortBy) {
         case "name":
           comparison = (a.name?.en ?? "").localeCompare(b.name?.en ?? "");
@@ -85,6 +87,7 @@ export default function SponsorPage() {
           comparison = Number(a.isShow ?? 0) - Number(b.isShow ?? 0);
           break;
       }
+
       return sortDirection === "asc" ? comparison : -comparison;
     });
   };
@@ -121,6 +124,7 @@ export default function SponsorPage() {
 
     const input = document.querySelector<HTMLInputElement>("#photo-input");
     const file = input?.files?.[0];
+
     if (file) {
       formData.append("photo", file);
     }
@@ -160,7 +164,6 @@ export default function SponsorPage() {
     <div className="flex flex-col min-h-screen">
       <div className="container mx-auto">
         <PageHeader
-          title="Sponsor Management"
           description="This is Sponsor page"
           icon={<DollarSignIcon />}
           right={
@@ -175,6 +178,7 @@ export default function SponsorPage() {
               </Button>
             </div>
           }
+          title="Sponsor Management"
         />
 
         <Accordion variant="splitted">
@@ -185,13 +189,13 @@ export default function SponsorPage() {
               <AccordionItem
                 key={type}
                 aria-label={type}
-                title={`${type}`}
                 subtitle={
                   <p className="flex">
                     Total sponsors:{" "}
                     <span className="text-primary ml-1">{sponsors.length}</span>
                   </p>
                 }
+                title={`${type}`}
               >
                 <div className="flex flex-col gap-6 p-4 sm:p-6 w-full overflow-x-auto">
                   <SponsorFilters
@@ -212,18 +216,19 @@ export default function SponsorPage() {
 
                   <div className="w-full overflow-x-auto">
                     <SponsorTable
-                      type={type}
-                      sponsorTypes={sponsorsType}
+                      handleSubmitSponsor={handleSubmitSponsor}
                       isModalOpen={isModalOpen}
-                      onClose={() => setIsModalOpen(false)}
                       modalMode={modalMode}
                       selectedSponsor={selectedSponsor}
-                      handleSubmitSponsor={handleSubmitSponsor}
+                      sponsorTypes={sponsorsType}
                       sponsors={filtered}
-                      onEdit={handleEditSponsor}
+                      type={type}
+                      onClose={() => setIsModalOpen(false)}
                       onDelete={handleDeleteSponsor}
+                      onEdit={handleEditSponsor}
                       onToggleShow={(s) => {
                         const formData = new FormData();
+
                         formData.append("isShow", String(!s.isShow));
                         updateSponsors(s._id, formData);
                       }}
@@ -235,12 +240,6 @@ export default function SponsorPage() {
           })}
         </Accordion>
       </div>
-
-      <AddSponsorTypeModal
-        isOpen={isTypeOpen}
-        onClose={() => setIsTypeOpen(false)}
-        onAddType={handleAddType}
-      />
 
       <ConfirmationModal
         body={

@@ -13,10 +13,11 @@ import {
   SelectItem,
 } from "@heroui/react";
 
+import { LogoPreview } from "./LogoPreview";
+
 import { useSponsors } from "@/hooks/useSponsors";
 import { Sponsors } from "@/types/sponsors";
 import { SponsorType } from "@/types/sponsors-type";
-import { LogoPreview } from "./LogoPreview";
 
 interface SponsorModalProps {
   type: string;
@@ -75,10 +76,12 @@ export function SponsorModal({
 
     if (!file) {
       setLogoPreview("");
+
       return;
     }
 
     const reader = new FileReader();
+
     reader.onload = () => setLogoPreview(reader.result as string);
     reader.readAsDataURL(file);
   };
@@ -93,9 +96,11 @@ export function SponsorModal({
     if (nameEnEmpty || nameThEmpty || logoEmpty) return;
 
     const typeId = sponsorTypes.find((s) => s.name === type)?._id;
+
     if (!typeId) return;
 
     const formData = new FormData();
+
     formData.append("name[en]", nameEn.trim());
     formData.append("name[th]", nameTh.trim());
     formData.append("type", typeId);
@@ -116,7 +121,7 @@ export function SponsorModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+    <Modal isOpen={isOpen} size="2xl" onClose={onClose}>
       <ModalContent className="max-w-[500px] mx-auto">
         <ModalHeader>{mode === "add" ? "Add New Sponsor" : "Edit Sponsor"}</ModalHeader>
         <ModalBody>
@@ -124,6 +129,8 @@ export function SponsorModal({
             <div className="flex flex-col gap-4">
               <Input
                 isRequired
+                errorMessage="Please fill out this field."
+                isInvalid={errors.nameEn}
                 label="Sponsor Name (English)"
                 placeholder="Enter sponsor name in English"
                 value={nameEn}
@@ -131,11 +138,11 @@ export function SponsorModal({
                   setNameEn(val);
                   setErrors(prev => ({ ...prev, nameEn: false }));
                 }}
-                isInvalid={errors.nameEn}
-                errorMessage="Please fill out this field."
               />
               <Input
                 isRequired
+                errorMessage="Please fill out this field."
+                isInvalid={errors.nameTh}
                 label="Sponsor Name (Thai)"
                 placeholder="Enter sponsor name in Thai"
                 value={nameTh}
@@ -143,24 +150,23 @@ export function SponsorModal({
                   setNameTh(val);
                   setErrors(prev => ({ ...prev, nameTh: false }));
                 }}
-                isInvalid={errors.nameTh}
-                errorMessage="Please fill out this field."
               />
               <Select
                 isRequired
                 className="w-full"
-                selectedKeys={[isShow ? "show" : "hide"]}
                 items={showOptions}
+                label="Show"
+                placeholder="Select show"
+                selectedKeys={[isShow ? "show" : "hide"]}
                 onSelectionChange={(keys) => {
                   const key = Array.from(keys)[0];
+
                   if (key === "show") {
                     setIsShow(true);
                   } else if (key === "hide") {
                     setIsShow(false);
                   }
                 }}
-                label="Show"
-                placeholder="Select show"
               >
                 {showOptions.map((item) => (
                   <SelectItem key={item.key}>{item.label}</SelectItem>
@@ -171,14 +177,14 @@ export function SponsorModal({
             <div className="flex flex-col items-center w-full px-6">
               <div className="w-full">
                 <LogoPreview
-                  preview={logoPreview}
+                  aspectRatio="aspect-[6/3]"
+                  containerClassName="w-full"
                   file={logoFile}
+                  inputRef={logoInputRef}
+                  maxSize="max-h-[100px]"
+                  preview={logoPreview}
                   onFileChange={handleFileChange}
                   onRemove={() => handleFileChange(null)}
-                  inputRef={logoInputRef}
-                  aspectRatio="aspect-[6/3]"
-                  maxSize="max-h-[100px]"
-                  containerClassName="w-full"
                 />
               </div>
               {errors.logo && (
