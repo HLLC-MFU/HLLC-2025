@@ -5,15 +5,14 @@ import {
 } from "react-circular-progressbar";
 import { Users, Ticket, ScanLine, Star, LayoutDashboard, FileQuestion, Activity } from 'lucide-react';
 import { Button } from "@heroui/react";
-import { LayoutDashboard } from 'lucide-react';
 import { useCheckin } from "@/hooks/useCheckin";
 import { useSponsors } from "@/hooks/useSponsors";
 import { PageHeader } from "@/components/ui/page-header";
 import { Accordion, AccordionItem } from "@heroui/react";
 import { usePrepostQuestions } from "@/hooks/usePrepostQuestions";
 import { useAssessment } from "@/hooks/useAssessment";
-import AssessmentOverviewDashboard from "../assessments/_components/question-overview-dashboard";
-import ActivityDashboard from "../assessments/_components/activity-dashboard";
+import AssessmentOverviewDashboard from "./_components/DashboardOverviewQuestion";
+import ActivityDashboard from "./_components/DashboardActivity";
 
 const icons = [
   <ScanLine className="h-6 w-6 text-lime-600" />,
@@ -82,7 +81,7 @@ export default function Dashboard() {
               type="pretest" 
               loading={false}
             />
-          </AccordionItem>
+          </AccordionItem> 
 
           {/* Posttest Results */}
           <AccordionItem
@@ -96,7 +95,7 @@ export default function Dashboard() {
               type="posttest" 
               loading={false}
             />
-          </AccordionItem>
+          </AccordionItem> 
 
           {/* Activity Dashboard */}
           <AccordionItem
@@ -106,10 +105,10 @@ export default function Dashboard() {
             title="Activity Dashboard"
             className="font-medium mb-2"
           >
-            <ActivityDashboard />
-          </AccordionItem>
-        </Accordion>
-      </div>
+            <ActivityDashboard /> 
+          </AccordionItem> 
+        </Accordion>  
+      </div> 
       <h1 className=" text-2xl font-semibold my-6">Reports</h1>
       <ReportCharts problems={problems} reporttypes={reporttypes} />
     </>

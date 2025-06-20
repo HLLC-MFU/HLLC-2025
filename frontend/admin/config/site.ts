@@ -38,7 +38,6 @@ export const siteConfig: {
       items: [
         { label: "Schools & Majors", href: "/schools", icon: SchoolIcon, permission: "schools:read" },
         { label: "Users Management", href: "/users", icon: UserIcon, permission: "users:read" },
-        { label: "Notification Management", href: '/notifications', icon: BellRing, permission: "notifications:read" },
         { label: "Notifications", href: "/notifications", icon: BellRing , permission: "notification:read"},
         { label: "Activities", href: "/activities", icon: University, permission: "activities:read" },
         { label: "Checkin", href: "/checkin", icon: CircleCheckBig, permission: "checkin:read" },

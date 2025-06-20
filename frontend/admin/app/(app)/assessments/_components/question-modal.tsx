@@ -13,10 +13,10 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { Question, AssessmentType, QuestionType, DisplayType } from "@/types/assessment";
-import QuestionTypeSelect from "./question-form/question-type-select";
-import DisplayTypeSelect from "./question-form/display-type-select";
-import QuestionTextInput from "./question-form/question-text-input";
-import QuestionOrderInput from "./question-form/question-order-input";
+import QuestionTypeSelect from "./question-form/QuestionTypeSelect";
+import DisplayTypeSelect from "./question-form/DisplayTypeSelect";
+import QuestionTextInput from "./question-form/QuestionTextInput";
+import QuestionOrderInput from "./question-form/QuestionOrderInput";
 
 interface QuestionModalProps {
   isOpen: boolean;

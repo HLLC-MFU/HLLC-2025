@@ -12,9 +12,9 @@ import {
   addToast,
 } from "@heroui/react";
 import { Question } from "@/types/assessment";
-import QuestionTypeSelect from "./question-form/question-type-select";
-import QuestionTextInput from "./question-form/question-text-input";
-import QuestionOrderInput from "./question-form/question-order-input";
+import QuestionTypeSelect from "./question-form/QuestionTypeSelect";
+import QuestionTextInput from "./question-form/QuestionTextInput";
+import QuestionOrderInput from "./question-form/QuestionOrderInput";
 
 interface ActivityQuestionModalProps {
   isOpen: boolean;
@@ -138,7 +138,7 @@ export default function ActivityQuestionModal({
               value={formData.type || "text"}
               onChange={(type) => setFormData(prev => ({ ...prev, type }))}
               error={errors.type}
-            />
+            /> 
 
             {/* Question Order */}
             <QuestionOrderInput
