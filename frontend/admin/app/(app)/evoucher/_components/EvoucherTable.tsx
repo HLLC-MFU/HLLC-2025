@@ -1,123 +1,132 @@
 import React, { Key, useCallback, useMemo, useState } from "react";
 import { Sponsors } from "@/types/sponsors";
-import TableContent from "./TableContent";
-import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { Evoucher, EvoucherType } from "@/types/evoucher";
-import { EvoucherModal } from "./AddEvoucherModal";
 import EvoucherCellRenderer from "./EvoucherCellRenderer";
 import { useEvoucherTable } from "./EvoucherTableLogic";
 import { COLUMNS, INITIAL_VISIBLE_COLUMNS, capitalize } from "./EvoucherTableConstants";
+import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import TopContent from "./TopContent";
+import BottomContent from "./BottomContent";
+
+export type TableColumnType = {
+    uid: string;
+    name: string;
+    sortable?: boolean;
+}
 
 export default function EvoucherTable({
     evouchers,
-    sponsors,
-    evoucherType,
 }: {
-    sponsorName: string,
+    sponsorName: string;
     evouchers: Evoucher[];
-    sponsors: Sponsors[];
     evoucherType: EvoucherType;
 }) {
     const tableLogic = useEvoucherTable({ evouchers });
-    const [visibleColumns, setVisibleColumns] = React.useState(INITIAL_VISIBLE_COLUMNS);
+    const [visibleColumns, setVisibleColumns] = useState(INITIAL_VISIBLE_COLUMNS);
     const [selectedEvoucher, setSelectedEvoucher] = useState<Evoucher | undefined>();
 
-    // Computed values
-    const headerColumns = useMemo(() => 
-        COLUMNS.filter(column => Array.from(visibleColumns).includes(column.uid)), 
+    const headerColumns = useMemo(
+        () => COLUMNS.filter((column) => Array.from(visibleColumns).includes(column.uid)),
         [visibleColumns]
     );
-
-    // Render cell with extracted component
-    const renderCell = useCallback((evoucher: Evoucher, columnKey: Key) => {
-        return (
-            <EvoucherCellRenderer
-                evoucher={evoucher}
-                columnKey={columnKey}
-                onEdit={() => {
-                    setSelectedEvoucher(evoucher);
-                    tableLogic.handleEdit();
-                }}
-                onDelete={() => {
-                    setSelectedEvoucher(evoucher);
-                    handleDelete();
-                }}
-            />
-        );
-    }, [tableLogic.handleEdit]);
 
     const handleDelete = () => {
         tableLogic.setIsDeleteOpen(true);
     };
 
-    const handleSuccess = async (formData: FormData, mode: "add" | "edit") => {
-        if (mode === "edit" && selectedEvoucher) {
-            await tableLogic.handleUpdate(selectedEvoucher._id, formData);
-        } else {
-            await tableLogic.handleAdd(formData);
-        }
-        setSelectedEvoucher(undefined);
-    };
+    const renderCell = useCallback(
+        (evoucher: Evoucher, columnKey: Key) => {
+            return (
+                <EvoucherCellRenderer
+                    evoucher={evoucher}
+                    columnKey={columnKey}
+                    onEdit={() => {
+                        setSelectedEvoucher(evoucher);
+                        tableLogic.handleEdit();
+                    }}
+                    onDelete={() => {
+                        setSelectedEvoucher(evoucher);
+                        handleDelete();
+                    }}
+                />
+            );
+        },
+        [tableLogic.handleEdit]
+    );
 
     return (
         <div>
-            <TableContent
-                setActionText={tableLogic.handleAddNew}
-                sortDescriptor={tableLogic.sortDescriptor}
-                setSortDescriptor={tableLogic.setSortDescriptor}
-                headerColumns={headerColumns}
-                sortedItems={tableLogic.pagedItems}
-                renderCell={renderCell}
-                filterValue={tableLogic.filterValue}
-                typeFilter={tableLogic.typeFilter}
-                setTypeFilter={tableLogic.setTypeFilter}
-                capitalize={capitalize}
-                visibleColumns={visibleColumns}
-                setVisibleColumns={(columns: Set<string>) => setVisibleColumns(new Set(columns))}
-                columns={COLUMNS}
+            <Table
+                isHeaderSticky
+                aria-label="Table header"
+                bottomContent={
+                    <BottomContent
+                        selectedKeys={tableLogic.selectedKeys}
+                        filteredItems={tableLogic.filteredItems}
+                        page={tableLogic.page}
+                        pages={tableLogic.pages}
+                        setPage={tableLogic.setPage}
+                        onPreviousPage={tableLogic.handlePreviousPage}
+                        onNextPage={tableLogic.handleNextPage}
+                    />
+                }
+                bottomContentPlacement="outside"
+                topContent={
+                    <TopContent
+                        setActionText={tableLogic.handleAddNew}
+                        filterValue={tableLogic.filterValue}
+                        capitalize={capitalize}
+                        visibleColumns={visibleColumns}
+                        setVisibleColumns={(columns: Set<string>) => setVisibleColumns(new Set(columns))}
+                        onClear={tableLogic.handleClear}
+                        onSearchChange={tableLogic.handleSearch}
+                        selectedKeys={tableLogic.selectedKeys}
+                        filteredItems={tableLogic.filteredItems}
+                        page={tableLogic.page}
+                        pages={tableLogic.pages}
+                        setPage={tableLogic.setPage}
+                        onPreviousPage={tableLogic.handlePreviousPage}
+                        onNextPage={tableLogic.handleNextPage}
+                    />
+                }
+                topContentPlacement="outside"
                 selectedKeys={tableLogic.selectedKeys}
-                setSelectedKeys={tableLogic.setSelectedKeys}
-                filteredItems={tableLogic.filteredItems}
-                page={tableLogic.page}
-                pages={tableLogic.pages}
-                setPage={tableLogic.setPage}
-                onPreviousPage={tableLogic.handlePreviousPage}
-                onNextPage={tableLogic.handleNextPage}
-                onClear={tableLogic.handleClear}
-                onSearchChange={tableLogic.handleSearch}
-            />
-
-            {/* Modals */}
-            {tableLogic.isModalOpen && (
-                <EvoucherModal
-                    isOpen={tableLogic.isModalOpen}
-                    onClose={() => {
-                        tableLogic.setIsModalOpen(false);
-                        setSelectedEvoucher(undefined);
-                    }}
-                    onSuccess={handleSuccess}
-                    mode={tableLogic.actionText.toLowerCase() as "add" | "edit"}
-                    evoucherType={evoucherType}
-                    sponsors={sponsors}
-                    evoucher={selectedEvoucher}
-                />
-            )}
-
-            <ConfirmationModal
-                isOpen={tableLogic.isDeleteOpen}
-                onClose={() => {
-                    tableLogic.setIsDeleteOpen(false);
-                    setSelectedEvoucher(undefined);
-                }}
-                onConfirm={() => {
-                    if (selectedEvoucher) {
-                        tableLogic.handleDelete(selectedEvoucher._id);
+                selectionMode="multiple"
+                onSelectionChange={tableLogic.setSelectedKeys}
+                sortDescriptor={tableLogic.sortDescriptor}
+                onSortChange={tableLogic.setSortDescriptor}
+            >
+                <TableHeader columns={headerColumns}>
+                    {(column) => (
+                        <TableColumn
+                            key={column.uid}
+                            align={column.uid === "actions" ? "center" : "start"}
+                            className={`${(column.uid)} py-4 bg-default-50`}
+                            allowsSorting={column.sortable}
+                        >
+                            <span className="text-bold text-small uppercase tracking-wider">{column.name}</span>
+                        </TableColumn>
+                    )}
+                </TableHeader>
+                <TableBody
+                    emptyContent={
+                        <div className="flex flex-col items-center justify-center py-8">
+                            <span className="text-default-400">No evouchers found</span>
+                        </div>
                     }
-                }}
-                title={"Delete evoucher"}
-                body={"Are you sure you want to delete this item?"}
-                confirmColor='danger'
-            />
+                    items={tableLogic.pagedItems}
+                >
+                    {(item) => (
+                        <TableRow key={item._id} className="hover:bg-default-50 transition-colors">
+                            {(columnKey) => (
+                                <TableCell className={`${(columnKey.toString())} py-4`}>
+                                    {renderCell(item, columnKey)}
+                                </TableCell>
+                            )}
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
         </div>
     );
 }

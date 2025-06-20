@@ -3,18 +3,18 @@ import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@
 import { EllipsisVertical, Image, Pen, Trash } from "lucide-react";
 import { Evoucher } from "@/types/evoucher";
 
-interface EvoucherCellRendererProps {
+type EvoucherCellRendererProps = {
     evoucher: Evoucher;
     columnKey: Key;
     onEdit: () => void;
     onDelete: () => void;
 }
 
-export default function EvoucherCellRenderer({ 
-    evoucher, 
-    columnKey, 
-    onEdit, 
-    onDelete 
+export default function EvoucherCellRenderer({
+    evoucher,
+    columnKey,
+    onEdit,
+    onDelete
 }: EvoucherCellRendererProps) {
     const cellRenderers: Record<string, React.ReactNode> = {
         sponsors: (
@@ -56,11 +56,10 @@ export default function EvoucherCellRenderer({
         ),
         status: (
             <div className="flex items-center min-w-[90px]">
-                <span className={`text-sm font-medium capitalize px-2 py-1 rounded-full ${
-                    evoucher.status === 'ACTIVE' 
-                        ? 'bg-success/10 text-success' 
-                        : 'bg-danger/10 text-danger'
-                }`}>
+                <span className={`text-sm font-medium capitalize px-2 py-1 rounded-full ${evoucher.status === 'ACTIVE'
+                    ? 'bg-success/10 text-success'
+                    : 'bg-danger/10 text-danger'
+                    }`}>
                     {evoucher.status.toLowerCase()}
                 </span>
             </div>
@@ -113,15 +112,15 @@ export default function EvoucherCellRenderer({
                         </Button>
                     </DropdownTrigger>
                     <DropdownMenu>
-                        <DropdownItem 
-                            key="edit" 
+                        <DropdownItem
+                            key="edit"
                             startContent={<Pen size={16} />}
                             onPress={onEdit}
                         >
                             Edit
                         </DropdownItem>
-                        <DropdownItem 
-                            key="delete" 
+                        <DropdownItem
+                            key="delete"
                             className="text-danger"
                             color="danger"
                             startContent={<Trash size={16} />}

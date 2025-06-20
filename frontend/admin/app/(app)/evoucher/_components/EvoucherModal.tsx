@@ -6,7 +6,6 @@ import {
 } from "@heroui/react";
 import { Sponsors } from "@/types/sponsors";
 import { Evoucher, EvoucherStatus, EvoucherType } from "@/types/evoucher";
-import PreviewModal from "./PreviewModal";
 
 interface AddEvoucherProps {
   isOpen: boolean;
@@ -139,22 +138,7 @@ export function EvoucherModal({
               <SelectItem key={EvoucherStatus.INACTIVE}>Inactive</SelectItem>
             </Select>
           </div>
-
           <Divider />
-
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-full max-w-md">
-              <PreviewModal
-                field={field}
-                setField={setField}
-                previewImage={previewImage}
-                setPreviewImage={setPreviewImage}
-                handleFileChange={handleFileChange}
-                title={mode as "Add" | "Edit"}
-              />
-            </div>
-          </div>
-
         </ModalBody>
 
         <ModalFooter>
