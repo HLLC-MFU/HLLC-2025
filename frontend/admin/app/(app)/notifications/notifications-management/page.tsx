@@ -2,44 +2,22 @@
 import { PageHeader } from '@/components/ui/page-header';
 import { useNotification } from '@/hooks/useNotification';
 import { BellDot } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import InformationCard from './_components/NotificationInfoCard';
 import TopContent from './_components/NotificationTopContent';
-import { Notification } from '@/types/notification';
-
-export function capitalize(s: string) {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
-}
 
 export default function NotificationManagement() {
-  const { notification, fetchNotification, deleteNotification } = useNotification();
+  const { notification } = useNotification();
   const [search, setSearch] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  
-  console.log(notification)
-
-  useEffect(() => {
-    const fetchData = async () => {
-      await fetchNotification();
-      setNotifications(notification);
-    };
-
-    fetchData();
-  }, []);
-
-  const handleDelete = async (id: string) => {
-    await deleteNotification(id);
-    setNotifications((prev) => prev.filter((n) => n._id !== id));
-  };
 
   const uniqueScopes = useMemo(() => {
     const scopes = notification.flatMap((notification) => {
       const scope = notification.scope;
       if (Array.isArray(scope)) {
-        return scope.map((t) => capitalize(t.type));
+        return scope.map((t) => t.type);
       }
-      return [capitalize(scope)];
+      return [scope];
     });
 
     return Array.from(new Set(scopes));
@@ -51,8 +29,8 @@ export default function NotificationManagement() {
       item.body.en.toLowerCase().includes(search.toLowerCase());
 
     const scopeList = Array.isArray(item.scope)
-      ? item.scope.map((t) => capitalize(t.type))
-      : [capitalize(item.scope)];
+      ? item.scope.map((t) => t.type)
+      : [item.scope];
 
     const matchType =
       selectedTypes.length === 0 ||
@@ -75,7 +53,7 @@ export default function NotificationManagement() {
         setSelectedTypes={setSelectedTypes}
         uniqueScopes={uniqueScopes}
       />
-      <InformationCard notification={filteredNotifications} onDelete={handleDelete} />
+      <InformationCard notification={filteredNotifications} />
     </>
   );
 }

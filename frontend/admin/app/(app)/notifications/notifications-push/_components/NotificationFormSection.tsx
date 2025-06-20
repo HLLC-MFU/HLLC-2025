@@ -1,6 +1,6 @@
 import { InformationForm } from './NotificationForm';
 import { Dispatch, SetStateAction } from 'react';
-import { SelectStudentType } from './NotificationSelectStudent';
+import { SelectStudentType } from './NotificationSelectStudentType';
 
 type SelectionScope =
   | 'global'

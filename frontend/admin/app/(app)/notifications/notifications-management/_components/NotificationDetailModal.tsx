@@ -121,9 +121,14 @@ export default function NotificationModal({
                       <h1 className="text-sm font-semibold text-gray-700">
                         URL
                       </h1>
-                      <p className="text-sm text-blue-700 break-words underline">
+                      <a
+                        href={notification.redirectButton.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-700 break-words underline"
+                      >
                         {notification.redirectButton.url}
-                      </p>
+                      </a>
                     </div>
                   </div>
                 </>

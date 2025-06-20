@@ -23,7 +23,6 @@ type PushNotificationProp = {
   Language :  'en' | 'th' 
 }
 
-
 export function PushNotificationApplication({ Information, Language }: PushNotificationProp) {
   const [now, setNow] = useState(new Date());
   const SelectedIcon = Information?.icon;

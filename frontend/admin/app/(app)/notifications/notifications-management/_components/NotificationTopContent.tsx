@@ -17,7 +17,7 @@ interface TopContentProps {
   uniqueScopes: string[];
 }
 
-export default function TopContent({search,setSearch,selectedTypes,setSelectedTypes,uniqueScopes}:TopContentProps) {
+export default function TopContent({search,setSearch,selectedTypes,setSelectedTypes,uniqueScopes}: TopContentProps) {
   return (
     <>
       <div className="flex justify-between gap-3 items-end">

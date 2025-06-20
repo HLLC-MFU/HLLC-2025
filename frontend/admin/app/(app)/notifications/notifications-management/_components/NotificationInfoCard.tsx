@@ -4,13 +4,11 @@ import { Notification } from '@/types/notification';
 import { useState } from 'react';
 import NotificationModal from './NotificationDetailModal';
 import { Link, Eye, Trash2 } from 'lucide-react';
-import { capitalize } from '../page';
+import { useNotification } from '@/hooks/useNotification';
 
 interface NotificationCardprop {
   notification: Notification[];
-  onDelete: (id: string) => void;
 }
-
 
 const statusColorMap: Record<string, { bg: string; text: string }> = {
   global: { bg: 'bg-green-100', text: 'text-green-800' },
@@ -19,13 +17,10 @@ const statusColorMap: Record<string, { bg: string; text: string }> = {
   individual: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
 };
 
-export default function InformationCard({
-  notification, onDelete
-}: NotificationCardprop) {
-  const [selectedNotification, setSelectedNotification] =
-  useState<Notification | null>(null);
+export default function InformationCard({ notification }: NotificationCardprop) {
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const { deleteNotification } = useNotification();
   
   const handleOpenModal = (notification: Notification) => {
     setSelectedNotification(notification);
@@ -48,21 +43,20 @@ export default function InformationCard({
             <CardHeader className="flex flex-col items-start ">
               <div className=" py-2 ">
                 <h4 className="font-bold text-lg break-words py-0.5">
-                  {capitalize(item.title.en)}
+                  {item.title.en}
                 </h4>
                 <p className="text-sm break-words">
-                  {capitalize(item.subtitle.en)}
+                  {item.subtitle.en}
                 </p>
               </div>
 
               <div className=" flex gap-3 ">
-                {/* เอาไว้สำหรับการหา ตัวของ scope ใน object อีกที่  */}
 
                 {typeof item.scope === 'string' ? (
                   <span
                     className={`px-2 pt-1 rounded-md font-medium text-sm ${statusColorMap[item.scope]?.bg} ${statusColorMap[item.scope]?.text}`}
                   >
-                    {capitalize(item.scope)}
+                    {item.scope}
                   </span>
                 ) : (
                   item.scope.map((target, index) => (
@@ -70,7 +64,7 @@ export default function InformationCard({
                       key={index}
                       className={`px-2 pt-1 rounded-md font-medium text-sm ${statusColorMap[target.type]?.bg} ${statusColorMap[target.type]?.text}`}
                     >
-                      {capitalize(target.type)}
+                      {target.type}
                     </span>
                   ))
                 )}
@@ -84,14 +78,14 @@ export default function InformationCard({
 
             <CardBody>
               <p className="text-sm break-words text-wrap">
-                {capitalize(item.body.en)}
+                {item.body.en}
               </p>
             </CardBody>
 
             <CardFooter>
               <div className="w-full flex justify-end">
                 <Button
-                  onPress={() => onDelete(item._id)}
+                  onPress={() => deleteNotification(item._id)}
                   isIconOnly
                   size="sm"
                   color="danger"

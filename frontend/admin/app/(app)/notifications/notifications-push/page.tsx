@@ -1,7 +1,7 @@
 'use client';
 import { SendHorizontal, BellPlus } from 'lucide-react';
 import { Button, Select, SelectItem, addToast } from '@heroui/react';
-import { PushNotificationApplication, PushNotification } from './_components/NotificationPreview';
+import { PushNotificationApplication, PushNotification } from './_components/NotificationPushNotification';
 import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { useNotification } from '@/hooks/useNotification';
