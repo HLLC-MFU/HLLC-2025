@@ -23,7 +23,7 @@ interface SponsorModalProps {
   sponsorTypes: SponsorType[];
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (sponsor: Partial<Sponsors>, mode: "add" | "edit") => void;
+  onSuccess: (sponsor: FormData, mode: "add" | "edit") => void;
   sponsor?: Sponsors;
   mode: "add" | "edit";
 }
@@ -102,17 +102,8 @@ export function SponsorModal({
     formData.append("isShow", String(isShow));
     if (logoFile) formData.append("photo", logoFile);
 
-    try {
-      if (mode === "add") {
-        await createSponsors(formData);
-      } else if (sponsor?._id) {
-        await updateSponsors(sponsor._id, formData);
-      }
-      onSuccess(sponsor || {}, mode);
-      onClose();
-    } catch (err) {
-      console.error("Sponsor submission error:", err);
-    }
+    onSuccess(formData || {}, mode);
+    onClose();
   };
 
   return (

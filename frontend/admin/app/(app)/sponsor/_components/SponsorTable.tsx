@@ -24,7 +24,7 @@ interface SponsorTableProps {
   onClose: () => void;
   modalMode: "edit" | "add";
   selectedSponsor?: Sponsors | Partial<Sponsors>;
-  handleSubmitSponsor: (sponsorData: Partial<Sponsors>) => void;
+  handleSubmitSponsor: (sponsorData: FormData) => void;
   sponsors: Sponsors[];
   onEdit: (s: Sponsors) => void;
   onDelete: (s: Sponsors) => void;
