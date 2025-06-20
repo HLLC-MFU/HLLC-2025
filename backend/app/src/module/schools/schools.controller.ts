@@ -23,9 +23,7 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 @Controller('schools')
 export class SchoolsController {
   constructor(private readonly schoolsService: SchoolsService) {}
-  constructor(
-    private readonly schoolsService: SchoolsService,
-  ) { }
+  constructor(private readonly schoolsService: SchoolsService) {}
 
   @UseInterceptors(new MultipartInterceptor())
   @Post()
@@ -66,9 +64,7 @@ export class SchoolsController {
   }
 
   @Get(':id/interfaces')
-  findInterfaces(
-    @Param('id') id: string,
-  ) {
+  findInterfaces(@Param('id') id: string) {
     return this.schoolsService.findInterfaces(id);
   }
 }
