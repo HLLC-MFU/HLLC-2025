@@ -4,6 +4,7 @@ import { MessageBubbleProps } from '../types/chatTypes';
 import Avatar from './Avatar';
 import { formatTime } from '../utils/timeUtils';
 import { Reply } from 'lucide-react-native';
+import { CHAT_BASE_URL } from '../config/chatConfig';
 
 const MessageBubble = memo(({ 
   message, 
@@ -24,13 +25,28 @@ const MessageBubble = memo(({
     </View>
   );
 
+  const getStickerImageUrl = (imagePath: string) => {
+    // If imagePath is already a full URL, return it
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    // Otherwise, construct the full URL
+    const fullUrl = `${CHAT_BASE_URL}/api/uploads/${imagePath}`;
+    return fullUrl;
+  };
+
   const renderContent = () => {
-    if (message.stickerId) {
+    // Check for sticker by looking at image field and type
+    if (message.image && (message.type === 'sticker' || message.stickerId)) {
+      const imageUrl = getStickerImageUrl(message.image);
       return (
         <Image 
-          source={{ uri: message.image }} 
+          source={{ uri: imageUrl }} 
           style={styles.stickerImage}
           resizeMode="contain"
+          onError={(error) => {
+            console.error('Error loading sticker image:', error.nativeEvent.error);
+          }}
         />
       );
     }
@@ -75,19 +91,23 @@ const MessageBubble = memo(({
         <Text style={styles.senderNameAbove}>{senderName || senderId}</Text>
       )}
       
-      <View style={styles.messageBubbleRow}>
+      <TouchableOpacity
+        style={styles.messageBubbleRow}
+        onLongPress={() => onReply && onReply(message)}
+        activeOpacity={0.8}
+        delayLongPress={200}
+      >
         {!isMyMessage && showAvatar && isLastInGroup ? (
           <Avatar name={senderName || senderId} size={32} />
         ) : (
           !isMyMessage && <View style={{ width: 40 }} />
         )}
-        
         <View style={[
           styles.messageBubble, 
           isMyMessage ? styles.myBubble : styles.otherBubble,
           isFirstInGroup && (isMyMessage ? styles.myFirstBubble : styles.otherFirstBubble),
           isLastInGroup && (isMyMessage ? styles.myLastBubble : styles.otherLastBubble),
-          (message.stickerId || message.fileType === 'image') && styles.mediaBubble
+          (message.stickerId || message.image || message.fileType === 'image') && styles.mediaBubble
         ]}>
           {message.replyTo && (
             <View style={styles.replyContainer}>
@@ -99,14 +119,7 @@ const MessageBubble = memo(({
           )}
           {renderContent()}
         </View>
-
-        <TouchableOpacity 
-          style={styles.replyButton}
-          onPress={() => onReply && onReply(message)}
-        >
-          <Reply size={16} color="#8E8E93" />
-        </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
       
       {isLastInGroup && (
         <View style={[styles.messageFooter, isMyMessage ? { alignSelf: 'flex-end' } : { marginLeft: 40 }]}>

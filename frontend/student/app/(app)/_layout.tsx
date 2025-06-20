@@ -6,21 +6,6 @@ import { ImageBackground } from 'expo-image';
 import useProfile from '@/hooks/useProfile';
 import { useEffect, useState } from 'react';
 import TabBar from '@/components/global/TabBar';
-import messaging from '@react-native-firebase/messaging';
-
-export async function requestNotificationPermissionAndGetToken() {
-  const authStatus = await messaging().requestPermission();
-  const enabled =
-    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-
-  if (!enabled) return null;
-
-  const token = await messaging().getToken();
-  console.log('Token:', token);
-
-  return token;
-}
 
 export default function Layout() {
   const { user, getProfile } = useProfile();
@@ -39,15 +24,6 @@ export default function Layout() {
 
   // Check if we're in the chat room section
   const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
-
-  useEffect(() => {
-    requestNotificationPermissionAndGetToken().then((token) => {
-      if (token) {
-        console.log('FCM Token:', token);
-        // TODO: ส่ง token ไปเก็บใน backend user profile
-      }
-    });
-  }, []);
 
   return (
     <View style={{ flex: 1 }}>
@@ -77,15 +53,13 @@ export default function Layout() {
             },
           }
         }}
-        tabBar={() => <TabBar />}
+        tabBar={() => !isChatRoute ? <TabBar /> : null}
       >
-        <Tabs.Screen name="index" options={{ title: 'Home' }}
-        />
+        <Tabs.Screen name="index" options={{ title: 'Home' }}/>
         <Tabs.Screen name="activities/index" options={{ title: 'Activities' }} />
         <Tabs.Screen name="qrcode" options={{ title: 'QR Code' }} />
         <Tabs.Screen name="evoucher" options={{ title: 'E-Voucher' }} />
         <Tabs.Screen name="chat/index" options={{ title: 'Community' }} />
-
       </Tabs>
     </View>
   );

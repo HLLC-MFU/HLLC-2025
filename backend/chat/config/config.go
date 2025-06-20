@@ -38,6 +38,10 @@ type Config struct {
 		AllowMethods     string
 		AllowCredentials bool
 	}
+	Storage struct {
+		UploadsDir     string
+		StickersSubDir string
+	}
 }
 
 func LoadConfig(path string) *Config {
@@ -74,6 +78,10 @@ func LoadConfig(path string) *Config {
 	cfg.CORS.AllowHeaders = getEnvOrDefault("CORS_ALLOW_HEADERS", "Origin, Content-Type, Accept, Authorization")
 	cfg.CORS.AllowMethods = getEnvOrDefault("CORS_ALLOW_METHODS", "GET, POST, PUT, DELETE")
 	cfg.CORS.AllowCredentials = getEnvOrDefault("CORS_ALLOW_CREDENTIALS", "true") == "true"
+
+	// Storage configuration
+	cfg.Storage.UploadsDir = getEnvOrDefault("UPLOADS_DIR", "./uploads")
+	cfg.Storage.StickersSubDir = getEnvOrDefault("STICKERS_SUBDIR", "stickers")
 
 	return cfg
 }
@@ -120,4 +128,11 @@ func (cfg *Config) FiberCORSConfig() cors.Config {
 		AllowHeaders:     cfg.CORS.AllowHeaders,
 		AllowMethods:     cfg.CORS.AllowMethods,
 	}
+}
+
+func EnsureDirExists(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return os.MkdirAll(path, 0755)
+	}
+	return nil
 }

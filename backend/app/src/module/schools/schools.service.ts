@@ -5,7 +5,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { School, SchoolDocument } from './schemas/school.schema';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import {
   queryAll,
   queryFindOne,
@@ -16,6 +15,10 @@ import {
   Appearance,
   AppearanceDocument,
 } from '../appearances/schemas/apprearance.schema';
+import {
+  Interfaces,
+  InterfacesDocument,
+} from '../interfaces/schema/interfaces.schema';
 
 @Injectable()
 export class SchoolsService {
@@ -23,6 +26,8 @@ export class SchoolsService {
     @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
     @InjectModel(Appearance.name)
     private AppearanceModel: Model<AppearanceDocument>,
+    @InjectModel(Interfaces.name)
+    private InterfacesModel: Model<InterfacesDocument>,
   ) {}
 
   async create(createSchoolDto: CreateSchoolDto) {
@@ -69,6 +74,14 @@ export class SchoolsService {
   async findColor(schoolId: string, query: Record<string, string>) {
     return queryFindOne<Appearance>(
       this.AppearanceModel,
+      { school: schoolId },
+      [{ path: 'school' }],
+    );
+  }
+
+  async findInterfaces(schoolId: string) {
+    return queryFindOne<Interfaces>(
+      this.InterfacesModel,
       { school: schoolId },
       [{ path: 'school' }],
     );

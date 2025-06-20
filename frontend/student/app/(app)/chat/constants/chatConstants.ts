@@ -6,7 +6,6 @@ export const AVATAR_COLORS = [
 export const TYPING_TIMEOUT = 2000;
 export const MAX_MESSAGE_LENGTH = 5000;
 export const SCROLL_DELAY = 100;
-export const HEARTBEAT_INTERVAL = 30000;
 
 export const MESSAGE_TYPES = {
   JOIN: 'join',

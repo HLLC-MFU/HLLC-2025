@@ -11,8 +11,6 @@ import (
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, user *model.User) error
-
 	GetById(ctx context.Context, id primitive.ObjectID) (*model.User, error)
 
 	GetByUsername(ctx context.Context, username string) (*model.User, error)
@@ -23,9 +21,7 @@ type UserRepository interface {
 
 	List(ctx context.Context, page, limit int64) ([]*model.User, int64, error)
 
-	Update(ctx context.Context, user *model.User) error
-
-	Delete(ctx context.Context, id primitive.ObjectID) error
+	FindByFilter(ctx context.Context, filter bson.M) ([]*model.User, error)
 }
 
 type userRepository struct {
@@ -36,18 +32,13 @@ func NewUserRepository(db *mongo.Client) UserRepository {
 	return &userRepository{db: db}
 }
 
-func (r *userRepository) dbConnect(ctx context.Context) *mongo.Database {
+func (r *userRepository) dbConnect() *mongo.Database {
 	return r.db.Database("hllc-2025")
-}
-
-func (r *userRepository) Create(ctx context.Context, user *model.User) error {
-	_, err := r.dbConnect(ctx).Collection("users").InsertOne(ctx, user)
-	return err
 }
 
 func (r *userRepository) GetById(ctx context.Context, id primitive.ObjectID) (*model.User, error) {
 	var user model.User
-	err := r.dbConnect(ctx).Collection("users").FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+	err := r.dbConnect().Collection("users").FindOne(ctx, bson.M{"_id": id}).Decode(&user)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	}
@@ -60,13 +51,13 @@ func (r *userRepository) GetById(ctx context.Context, id primitive.ObjectID) (*m
 func (r *userRepository) List(ctx context.Context, page, limit int64) ([]*model.User, int64, error) {
 	skip := (page - 1) * limit
 
-	total, err := r.dbConnect(ctx).Collection("users").CountDocuments(ctx, bson.M{})
+	total, err := r.dbConnect().Collection("users").CountDocuments(ctx, bson.M{})
 	if err != nil {
 		return nil, 0, nil
 	}
 
 	opts := options.Find().SetSkip(skip).SetLimit(limit)
-	cursor, err := r.dbConnect(ctx).Collection("users").Find(ctx, bson.M{}, opts)
+	cursor, err := r.dbConnect().Collection("users").Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -79,19 +70,9 @@ func (r *userRepository) List(ctx context.Context, page, limit int64) ([]*model.
 	return users, total, nil
 }
 
-func (r *userRepository) Update(ctx context.Context, user *model.User) error {
-	_, err := r.dbConnect(ctx).Collection("users").UpdateOne(ctx, bson.M{"_id": user.ID}, bson.M{"$set": user})
-	return err
-}
-
-func (r *userRepository) Delete(ctx context.Context, id primitive.ObjectID) error {
-	_, err := r.dbConnect(ctx).Collection("users").DeleteOne(ctx, bson.M{"_id": id})
-	return err
-}
-
 func (r *userRepository) GetByUsername(ctx context.Context, username string) (*model.User, error) {
 	var user model.User
-	err := r.dbConnect(ctx).Collection("users").FindOne(ctx, bson.M{"username": username}).Decode(&user)
+	err := r.dbConnect().Collection("users").FindOne(ctx, bson.M{"username": username}).Decode(&user)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	}
@@ -102,7 +83,7 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 }
 
 func (r *userRepository) ExistsByID(ctx context.Context, id primitive.ObjectID) (bool, error) {
-	count, err := r.dbConnect(ctx).Collection("users").CountDocuments(ctx, bson.M{"_id": id})
+	count, err := r.dbConnect().Collection("users").CountDocuments(ctx, bson.M{"_id": id})
 	if err != nil {
 		return false, err
 	}
@@ -110,9 +91,22 @@ func (r *userRepository) ExistsByID(ctx context.Context, id primitive.ObjectID) 
 }
 
 func (r *userRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
-	count, err := r.dbConnect(ctx).Collection("users").CountDocuments(ctx, bson.M{"username": username})
+	count, err := r.dbConnect().Collection("users").CountDocuments(ctx, bson.M{"username": username})
 	if err != nil {
 		return false, err
 	}
 	return count > 0, nil
+}
+func (r *userRepository) FindByFilter(ctx context.Context, filter bson.M) ([]*model.User, error) {
+	cursor, err := r.dbConnect().Collection("users").Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []*model.User
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, err
+	}
+	return users, nil
 }

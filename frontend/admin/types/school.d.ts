@@ -6,15 +6,6 @@ export type School = {
     acronym: string;
     detail: Lang;
     photos: Photo;
-    majors: Major[];
-};
-
-export type Major = {
-    _id?: string;
-    name: Lang;
-    detail: Lang;
-    acronym: string;
-    school: string;
 };
 
 export type Photo = {

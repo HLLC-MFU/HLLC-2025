@@ -60,7 +60,7 @@ type ClientObject struct {
 }
 
 type BroadcastObject struct {
-	MSG  string
+	MSG  interface{}
 	FROM ClientObject
 }
 
