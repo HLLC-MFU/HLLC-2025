@@ -15,6 +15,8 @@ export function StatisticsCards({ type }: StatisticsCardsProps) {
     const { users } = useUsers();
     const { activityProgress, pretestProgress, posttestProgress } = useAssessment();
 
+    console.log('activityProgress' , activityProgress)
+
     // Calculate completion rate based on the assessment type
     const progressData: ActivityProgress[] | RawPretestAnswer[] | RawPosttestAnswer[] = type === "pretest" 
         ? pretestProgress 

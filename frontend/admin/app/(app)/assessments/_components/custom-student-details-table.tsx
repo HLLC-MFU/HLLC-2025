@@ -41,7 +41,7 @@ export function CustomStudentDetailsTable({
     userType,
     school,
     major
-}: CustomStudentDetailsTableProps) {
+}: CustomStudentDetailsTableProps) {    
     const paginatedStudents = students.slice((page - 1) * rowsPerPage, page * rowsPerPage);
     const hasFilters = searchQuery || userType !== "All" || school !== "All" || major !== "All";
 
@@ -55,6 +55,7 @@ export function CustomStudentDetailsTable({
         });
         return Array.from(allSkillNames).sort();
     }, [students]);
+    
 
     // Combine static and dynamic columns
     const columns = useMemo(() => [

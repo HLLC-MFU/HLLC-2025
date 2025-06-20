@@ -87,7 +87,7 @@ export function ScoreDistributionChart({ type }: ScoreDistributionChartProps) {
             </CardHeader>
             <Divider />
             <CardBody>
-                <div className="h-[300px]">
+                <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data}>
                             <CartesianGrid strokeDasharray="3 3" />

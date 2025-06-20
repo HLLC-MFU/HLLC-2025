@@ -50,6 +50,9 @@ export default function ActivityDashboard() {
     const { filterData, loading: filterLoading } = useFilterData();
     const { loading, error, studentDetails, questionStats } = useActivityData();
 
+    console.log("questionStats" ,questionStats )
+    console.log("studentDetails" ,studentDetails )
+    
     const filteredStudentDetails = useMemo(() => {
         const { userType, school, major, searchQuery } = filterState;
         const searchLower = searchQuery.toLowerCase();

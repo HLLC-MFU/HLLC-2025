@@ -12,9 +12,9 @@ import {
   addToast,
 } from "@heroui/react";
 import { Question } from "@/types/assessment";
-import QuestionTypeSelect from "./question-form/QuestionTypeSelect";
-import QuestionTextInput from "./question-form/QuestionTextInput";
-import QuestionOrderInput from "./question-form/QuestionOrderInput";
+import QuestionTypeSelect from "./question-form/question-type-select";
+import QuestionTextInput from "./question-form/question-text-input";
+import QuestionOrderInput from "./question-form/question-order-input";
 
 interface ActivityQuestionModalProps {
   isOpen: boolean;

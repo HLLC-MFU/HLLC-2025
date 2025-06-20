@@ -11,8 +11,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Accordion, AccordionItem } from "@heroui/react";
 import { usePrepostQuestions } from "@/hooks/usePrepostQuestions";
 import { useAssessment } from "@/hooks/useAssessment";
-import AssessmentOverviewDashboard from "./_components/DashboardOverviewQuestion";
-import ActivityDashboard from "./_components/DashboardActivity";
+import AssessmentOverviewDashboard from "../assessments/_components/question-overview-dashboard";
+import ActivityDashboard from "../assessments/_components/activity-dashboard";
 
 const icons = [
   <ScanLine className="h-6 w-6 text-lime-600" />,
@@ -36,7 +36,6 @@ export default function Dashboard() {
   const { checkin, loading } = useCheckin();
   const { activities } = useActivities();
   const { sponsors } = useSponsors();
-  
   const { activityProgress, loading: activityLoading } = useAssessment();
   const { evouchers } = useEvoucher();
   const { problems } = useReports();
