@@ -3,7 +3,6 @@ import TopContent from "./TopContent";
 import BottomContent from "./BottomContent";
 import { Evoucher } from "@/types/evoucher";
 import { SortDescriptor } from "@heroui/react";
-import { EvoucherType } from "@/types/evoucher-type";
 import type { Selection } from "@react-types/shared";
 import { Key } from "react";
 
@@ -14,7 +13,6 @@ export interface TableColumnType {
 }
 
 export interface TableContentProps {
-    setIsAddOpen: (value: boolean) => void;
     setActionText: (value: "Add" | "Edit") => void;
     sortDescriptor: SortDescriptor;
     setSortDescriptor: (descriptor: SortDescriptor) => void;
@@ -24,7 +22,6 @@ export interface TableContentProps {
     filterValue: string;
     typeFilter: Selection;
     setTypeFilter: (value: Selection) => void;
-    EvoucherType: EvoucherType[];
     capitalize: (value: string) => string;
     visibleColumns: Set<string>;
     setVisibleColumns: (columns: Set<string>) => void;
@@ -42,7 +39,6 @@ export interface TableContentProps {
 }
 
 export default function TableContent({
-    setIsAddOpen,
     setActionText,
     sortDescriptor,
     setSortDescriptor,
@@ -51,9 +47,6 @@ export default function TableContent({
     sortedItems,
     renderCell,
     filterValue,
-    typeFilter,
-    setTypeFilter,
-    EvoucherType,
     capitalize,
     visibleColumns,
     setVisibleColumns,
@@ -68,6 +61,31 @@ export default function TableContent({
     onClear,
     onSearchChange,
 }: TableContentProps) {
+    const getColumnWidth = (columnKey: string) => {
+        switch (columnKey) {
+            case "sponsors":
+                return "min-w-[120px]";
+            case "acronym":
+                return "min-w-[100px]";
+            case "detail":
+                return "min-w-[180px] max-w-[250px]";
+            case "discount":
+                return "min-w-[80px]";
+            case "expiration":
+                return "min-w-[180px]";
+            case "status":
+                return "min-w-[90px]";
+            case "claims":
+                return "min-w-[80px]";
+            case "cover":
+                return "w-[100px]";
+            case "actions":
+                return "w-[60px]";
+            default:
+                return "";
+        }
+    };
+
     return (
         <Table
             isHeaderSticky
@@ -83,12 +101,8 @@ export default function TableContent({
             />}
             bottomContentPlacement="outside"
             topContent={<TopContent
-                setIsAddOpen={setIsAddOpen}
                 setActionText={setActionText}
                 filterValue={filterValue}
-                typeFilter={typeFilter}
-                setTypeFilter={setTypeFilter}
-                EvoucherType={EvoucherType}
                 capitalize={capitalize}
                 visibleColumns={visibleColumns}
                 setVisibleColumns={setVisibleColumns}
@@ -115,17 +129,25 @@ export default function TableContent({
                     <TableColumn
                         key={column.uid}
                         align={column.uid === "actions" ? "center" : "start"}
-                        className="w-48"
+                        className={`${getColumnWidth(column.uid)} py-4 bg-default-50`}
                         allowsSorting={column.sortable}
                     >
-                        {column.name}
+                        <span className="text-bold text-small uppercase tracking-wider">{column.name}</span>
                     </TableColumn>
                 )}
             </TableHeader>
-            <TableBody emptyContent={"No users found"} items={sortedItems}>
+            <TableBody emptyContent={
+                <div className="flex flex-col items-center justify-center py-8">
+                    <span className="text-default-400">No evouchers found</span>
+                </div>
+            } items={sortedItems}>
                 {(item) => (
-                    <TableRow key={item._id}>
-                        {(columnKey) => <TableCell className="w-48">{renderCell(item, columnKey)}</TableCell>}
+                    <TableRow key={item._id} className="hover:bg-default-50 transition-colors">
+                        {(columnKey) => (
+                            <TableCell className={`${getColumnWidth(columnKey.toString())} py-4`}>
+                                {renderCell(item, columnKey)}
+                            </TableCell>
+                        )}
                     </TableRow>
                 )}
             </TableBody>

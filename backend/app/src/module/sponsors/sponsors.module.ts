@@ -12,13 +12,13 @@ import { SponsorsTypeSchema } from '../sponsors-type/schema/sponsors-type.schema
     MongooseModule.forFeature([
       {
         name: Sponsors.name,
-        schema: SponsorsSchema
+        schema: SponsorsSchema,
       },
       {
         name: SponsorsType.name,
-        schema: SponsorsTypeSchema
-      }
-    ])
+        schema: SponsorsTypeSchema,
+      },
+    ]),
   ],
   exports: [MongooseModule],
   controllers: [SponsorsController],

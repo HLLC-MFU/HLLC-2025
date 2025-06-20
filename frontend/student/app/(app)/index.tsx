@@ -13,6 +13,7 @@ import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
 import { useInterfaces } from '@/hooks/useInterfaces';
 import AssetImage from '@/components/global/AssetImage';
+import { DoorClosedLocked } from '@tamagui/lucide-icons';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -73,6 +74,12 @@ export default function HomeScreen() {
               ) : (
                 <Bell fill={"white"} color="white" size={20} />
               )}
+            </GlassButton>
+            <GlassButton
+              onPress={handleSignOut}
+              iconOnly
+            >
+              <DoorClosedLocked color="white" size={20} />
             </GlassButton>
           </View>
         </SafeAreaView>
