@@ -3,7 +3,9 @@ package service
 import (
 	"chat/module/room/dto"
 	"chat/module/room/model"
+	"chat/module/room/utils"
 	"chat/module/user/service"
+	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	serviceHelper "chat/pkg/helpers/service"
 	"chat/pkg/validator"
@@ -21,6 +23,7 @@ type (
 		memberCollection *mongo.Collection
 		userService     *service.UserService
 		fkValidator     *serviceHelper.ForeignKeyValidator
+		eventEmitter    *utils.RoomEventEmitter
 	}
 )
 
@@ -30,6 +33,7 @@ func NewRoomService(db *mongo.Database) *RoomService {
 		memberCollection: db.Collection("room_members"),
 		userService:     service.NewUserService(db),
 		fkValidator:     serviceHelper.NewForeignKeyValidator(db),
+		eventEmitter:    utils.NewRoomEventEmitter(kafka.New([]string{"localhost:9092"}, "room-service"), "localhost:9092"),
 	}
 }
 
@@ -74,6 +78,9 @@ func (s *RoomService) CreateRoom(ctx context.Context, createDto *dto.CreateRoomD
 	if err != nil {
 		return nil, fmt.Errorf("failed to create room: %w", err)
 	}
+
+	s.eventEmitter.EmitRoomCreated(ctx, room.ID, room)
+
 	return &response.Data[0], nil
 }
 
@@ -90,6 +97,9 @@ func (s *RoomService) DeleteRoom(ctx context.Context, id string) (*model.Room, e
 	if err != nil {
 		return nil, err
 	}
+
+	s.eventEmitter.EmitRoomDeleted(ctx, room.Data[0].ID)
+
 	return &room.Data[0], nil
 }
 
@@ -128,4 +138,34 @@ func (s *RoomService) AddRoomMember(ctx context.Context, roomID string, dto *dto
 
 	member.ID = result.InsertedID.(primitive.ObjectID)
 	return member, nil
+}
+
+func (s *RoomService) IsUserMemberOfRoom(ctx context.Context, roomID string, userID string) (bool, error) {
+	roomObjectID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return false, fmt.Errorf("invalid room ID format: %w", err)
+	}
+
+	userObjectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return false, fmt.Errorf("invalid user ID format: %w", err)
+	}
+
+	// Find room member document
+	var member model.RoomMember
+	err = s.memberCollection.FindOne(ctx, map[string]interface{}{
+		"roomId":   roomObjectID,
+		"userIds": userObjectID,
+	}).Decode(&member)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+
+	s.eventEmitter.EmitRoomMemberJoined(ctx, roomObjectID, userObjectID)
+
+	return true, nil
 }

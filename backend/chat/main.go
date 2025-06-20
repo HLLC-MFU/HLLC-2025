@@ -6,11 +6,10 @@ import (
 	"log"
 	"os"
 
-	chatController "chat/module/chat/controller"
-	"chat/module/chat/hub"
-	"chat/module/chat/hub/impl"
 	roomController "chat/module/room/controller"
 	roomService "chat/module/room/service"
+	stickerController "chat/module/sticker/controller"
+	stickerService "chat/module/sticker/service"
 	"chat/module/user/controller"
 	"chat/module/user/service"
 	"chat/pkg/config"
@@ -63,23 +62,16 @@ func main() {
 		DB:       cfg.Redis.DB,
 	})
 
-	// Setup event bus
-	eventBus, err := impl.NewRedisEventBus(redisClient)
-	if err != nil {
-		log.Fatalf("Failed to setup event bus: %v", err)
+	// Test Redis connection
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
-	defer eventBus.Close()
-
-	// Create and start hub
-	chatHub := hub.NewHub(eventBus)
-	chatHub.Start()
-	defer chatHub.Stop()
 
 	// Setup middleware
 	setupMiddleware(app)
 
 	// Setup controllers
-	setupControllers(app, mongo, chatHub)
+	setupControllers(app, mongo)
 
 	// Start server
 	port := fmt.Sprintf(":%s", cfg.App.Port)
@@ -128,13 +120,14 @@ func setupMiddleware(app *fiber.App) {
 	})
 }
 
-func setupControllers(app *fiber.App, mongo *mongo.Database, chatHub *hub.Hub) {
+func setupControllers(app *fiber.App, mongo *mongo.Database) {
 	// Initialize services
 	schoolService := service.NewSchoolService(mongo)
 	majorService := service.NewMajorService(mongo)
 	roleService := service.NewRoleService(mongo)
 	userService := service.NewUserService(mongo)
 	roomService := roomService.NewRoomService(mongo)
+	stickerService := stickerService.NewStickerService(mongo)
 
 	// Initialize controllers
 	controller.NewSchoolController(app, schoolService)
@@ -142,5 +135,6 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, chatHub *hub.Hub) {
 	controller.NewRoleController(app, roleService)
 	controller.NewUserController(app, userService)
 	roomController.NewRoomController(app, roomService)
-	chatController.NewChatController(app, chatHub)
+	stickerController.NewStickerController(app, stickerService)
 }
+
