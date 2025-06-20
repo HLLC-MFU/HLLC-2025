@@ -1,5 +1,15 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, User, SortDescriptor, Selection } from "@heroui/react";
+import { 
+  Table, 
+  TableHeader, 
+  TableColumn, 
+  TableBody, 
+  TableRow, 
+  TableCell, 
+  User, 
+  SortDescriptor, 
+  Selection 
+} from "@heroui/react";
 import { useMajors } from "@/hooks/useMajor";
 import { useUsers } from "@/hooks/useUsers";
 import { useSchools } from "@/hooks/useSchool";
