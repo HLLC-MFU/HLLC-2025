@@ -7,7 +7,8 @@ import (
 	"os"
 
 	chatController "chat/module/chat/controller"
-	chatService "chat/module/chat/service"
+	"chat/module/chat/hub"
+	"chat/module/chat/hub/impl"
 	roomController "chat/module/room/controller"
 	roomService "chat/module/room/service"
 	"chat/module/user/controller"
@@ -19,6 +20,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/websocket/v2"
+	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -54,11 +56,30 @@ func main() {
 		log.Fatalf("Failed to setup MongoDB: %v", err)
 	}
 
+	// Setup Redis
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+
+	// Setup event bus
+	eventBus, err := impl.NewRedisEventBus(redisClient)
+	if err != nil {
+		log.Fatalf("Failed to setup event bus: %v", err)
+	}
+	defer eventBus.Close()
+
+	// Create and start hub
+	chatHub := hub.NewHub(eventBus)
+	chatHub.Start()
+	defer chatHub.Stop()
+
 	// Setup middleware
 	setupMiddleware(app)
 
 	// Setup controllers
-	setupControllers(app, mongo)
+	setupControllers(app, mongo, chatHub)
 
 	// Start server
 	port := fmt.Sprintf(":%s", cfg.App.Port)
@@ -107,14 +128,13 @@ func setupMiddleware(app *fiber.App) {
 	})
 }
 
-func setupControllers(app *fiber.App, mongo *mongo.Database) {
+func setupControllers(app *fiber.App, mongo *mongo.Database, chatHub *hub.Hub) {
 	// Initialize services
 	schoolService := service.NewSchoolService(mongo)
 	majorService := service.NewMajorService(mongo)
 	roleService := service.NewRoleService(mongo)
 	userService := service.NewUserService(mongo)
 	roomService := roomService.NewRoomService(mongo)
-	chatSvc := chatService.NewChatService(mongo)
 
 	// Initialize controllers
 	controller.NewSchoolController(app, schoolService)
@@ -122,5 +142,5 @@ func setupControllers(app *fiber.App, mongo *mongo.Database) {
 	controller.NewRoleController(app, roleService)
 	controller.NewUserController(app, userService)
 	roomController.NewRoomController(app, roomService)
-	chatController.NewChatController(app, chatSvc)
+	chatController.NewChatController(app, chatHub)
 }

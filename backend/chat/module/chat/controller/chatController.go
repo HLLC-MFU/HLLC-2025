@@ -1,19 +1,22 @@
 package controller
 
 import (
-	"chat/module/chat/service"
+	"chat/module/chat/hub"
+	wsHandler "chat/module/chat/transport/websocket"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 )
 
 type ChatController struct {
-	chatService *service.ChatService
+	hub              *hub.Hub
+	connectionHandler *wsHandler.ConnectionHandler
 }
 
-func NewChatController(app *fiber.App, chatService *service.ChatService) {
+func NewChatController(app *fiber.App, h *hub.Hub) {
 	controller := &ChatController{
-		chatService: chatService,
+		hub:              h,
+		connectionHandler: wsHandler.NewConnectionHandler(h),
 	}
 
 	// WebSocket endpoint for chat
@@ -25,6 +28,13 @@ func (c *ChatController) handleWebSocket(conn *websocket.Conn) {
 	roomID := conn.Params("roomId")
 	userID := conn.Params("userId")
 
+	// Basic validation
+	if roomID == "" || userID == "" {
+		_ = conn.WriteJSON(map[string]string{"error": "Invalid room ID or user ID"})
+		conn.Close()
+		return
+	}
+
 	// Handle WebSocket connection
-	c.chatService.HandleWebSocket(conn, userID, roomID)
+	c.connectionHandler.HandleConnection(conn, userID, roomID)
 }
