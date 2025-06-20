@@ -2,7 +2,6 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { EvoucherDocument, EvoucherType, EvoucherStatus } from '../schema/evoucher.schema';
 import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
-import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 
 const generateRandomNumber = (length = 8): string =>
   String(Math.floor(Math.random() * 10 ** length)).padStart(length, '0');
