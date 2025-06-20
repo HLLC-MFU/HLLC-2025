@@ -1,7 +1,11 @@
 import { SseService } from './sse.service';
-import { SsePayload } from 'src/pkg/types/sse.type';
-import { SseEventType } from 'src/pkg/types/sse.type'; 
+import { SsePayload } from 'src/pkg/types/sse.type'; 
 import { take } from 'rxjs/operators';
+
+export enum SseEventType {
+  REFETCH_NOTIFICATIONS = 'REFETCH_NOTIFICATIONS',
+  REFETCH_DASHBOARD = 'REFETCH_DASHBOARD',
+}
 
 describe('SseService', () => {
   let service: SseService;
@@ -12,7 +16,7 @@ describe('SseService', () => {
 
   it('should emit events via notify()', (done) => {
     const mockPayload: SsePayload = {
-      type: 'REFETCH_NOTIFICATIONS', 
+      type: SseEventType.REFETCH_NOTIFICATIONS, 
       event: 'test',
       data: { msg: 'hello' },
     };

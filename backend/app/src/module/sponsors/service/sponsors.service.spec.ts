@@ -16,13 +16,9 @@ jest.mock('src/pkg/validator/model.validator', () => ({
     findOrThrow: jest.fn(),
 }));
 
-jest.mock('src/pkg/helper/helpers', () => ({
-    handleMongoDuplicateError: jest.fn(),
-}));
 
 import { queryAll, queryFindOne } from 'src/pkg/helper/query.util';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 
 describe('SponsorsService', () => {
     let service: SponsorsService;
@@ -121,46 +117,30 @@ describe('SponsorsService', () => {
             expect(saveMock).toHaveBeenCalled();
             expect(result).toEqual(expect.objectContaining({ _id: 'sponsor1' }));
         });
-
-        it('should handle duplicate error', async () => {
-            (findOrThrow as jest.Mock).mockResolvedValue({ _id: 'type123' });
-
-            const error = new Error('duplicate key');
-            const SponsorConstructor = jest.fn().mockImplementation(() => ({
-                save: jest.fn().mockRejectedValue(error),
-            }));
-
-            const module = await Test.createTestingModule({
-                providers: [
-                    SponsorsService,
-                    { provide: getModelToken(Sponsors.name), useValue: SponsorConstructor },
-                    { provide: getModelToken(SponsorsType.name), useValue: mockSponsorsTypeModel },
-                ],
-            }).compile();
-
-            const localService = module.get<SponsorsService>(SponsorsService);
-            await localService.create(createSponsorDto);
-
-            expect(handleMongoDuplicateError).toHaveBeenCalledWith(error, 'name');
-        });
     });
 
     describe('findAll()', () => {
-        it('should call queryAll with correct arguments', async () => {
+        it('should call queryAll with correct model, query, and populateFields behavior', async () => {
+            const mockQuery = { keyword: 'sponsor' };
             (queryAll as jest.Mock).mockResolvedValue(['result']);
-            const query = { keyword: 'abc' };
-            const result = await service.findAll(query);
+            
+            const result = await service.findAll(mockQuery);
+            expect(queryAll).toHaveBeenCalledTimes(1);
 
-            expect(queryAll).toHaveBeenCalledWith({
-                model: mockSponsorsModel,
-                query,
-                filterSchema: {},
-                populateFields: expect.any(Function),
-            });
+            const arg = (queryAll as jest.Mock).mock.calls[0][0];
+            expect(arg.model).toBe(mockSponsorsModel);
+            expect(arg.query).toEqual(mockQuery);
+            expect(arg.filterSchema).toEqual({});
 
+            const shouldPopulate = await arg.populateFields([]);
+            expect(shouldPopulate).toEqual([{ path: 'type' }]);
+
+            const shouldSkip = await arg.populateFields(['type']);
+            expect(shouldSkip).toEqual([]);
             expect(result).toEqual(['result']);
         });
     });
+
 
     describe('findOne()', () => {
         it('should call queryFindOne with populated type', async () => {

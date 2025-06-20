@@ -6,7 +6,6 @@ import { Activities } from '../schemas/activities.schema';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
-import { UpdateActivityDto } from '../dto/activities/update-activities.dto';
 import { Checkin } from 'src/module/checkin/schema/checkin.schema';
 
 jest.mock('src/pkg/helper/query.util', () => ({

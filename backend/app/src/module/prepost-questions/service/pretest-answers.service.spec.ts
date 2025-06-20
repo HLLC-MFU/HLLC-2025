@@ -155,7 +155,7 @@ describe('PretestAnswersService', () => {
 
   describe('averageAllPretests', () => {
     it('should return average per pretest question', async () => {
-      const mockQuestion = { _id: new Types.ObjectId(), question: 'Q1' } as any;
+      const mockQuestion = { _id: new Types.ObjectId(), question: 'Q1' } ;
       const answers = [
         { pretest: mockQuestion, answer: '3' },
         { pretest: mockQuestion, answer: '5' },

@@ -94,7 +94,7 @@ describe('SponsorsController', () => {
 
     describe('update()', () => {
         it('should call service.update with id and dto + updatedAt', async () => {
-            const req = { body: { ...mockCreateDto } } as FastifyRequest<{ Body: UpdateSponsorDto }>;
+            const req = { body: { ...mockUpdateDto } } as FastifyRequest<{ Body: UpdateSponsorDto }>;
 
             const id = 'abc';
             const expected = { ...req.body };

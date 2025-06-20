@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { EvoucherCodeService } from './evoucher-code.service';
-import { EvoucherCode, EvoucherCodeDocument } from '../schema/evoucher-code.schema';
-import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
+import { EvoucherCode } from '../schema/evoucher-code.schema';
+import { Evoucher } from '../schema/evoucher.schema';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
-import { Types, Model } from 'mongoose';
+import { Types } from 'mongoose';
 import {
   validateEvoucher,
   validateClaimEligibility,

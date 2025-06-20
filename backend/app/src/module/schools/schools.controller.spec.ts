@@ -10,6 +10,7 @@ import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 
+
 describe('SchoolsController', () => {
   let controller: SchoolsController;
   let service: SchoolsService;
@@ -87,7 +88,7 @@ describe('SchoolsController', () => {
     it('should call service.update with id and dto (with updatedAt)', async () => {
       const id = 'abc';
       const dto: UpdateSchoolDto = { ...updatedSchoolData };
-      const expected = { ...dto, updatedAt: expect.any(Date) };
+      const expected = { ...dto, createdAt: expect(Date) };
       mockService.update.mockResolvedValue(expected);
 
       const result = await controller.update(id, dto);

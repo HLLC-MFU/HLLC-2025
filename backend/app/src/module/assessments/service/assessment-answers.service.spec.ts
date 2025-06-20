@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
-import { Types, Model } from 'mongoose';
+import { Types } from 'mongoose';
 import { AssessmentAnswersService } from './assessment-answers.service';
-import { AssessmentAnswer, AssessmentAnswerDocument } from '../schema/assessment-answer.schema';
-import { User, UserDocument } from '../../users/schemas/user.schema';
+import { AssessmentAnswer} from '../schema/assessment-answer.schema';
+import { User } from '../../users/schemas/user.schema';
 import { CreateAssessmentAnswerDto } from '../dto/assessment-answers/create-assessment-answer.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { Assessment, AssessmentDocument } from '../schema/assessment.schema';
+import { Assessment } from '../schema/assessment.schema';
 import {
   queryAll,
   queryDeleteOne,

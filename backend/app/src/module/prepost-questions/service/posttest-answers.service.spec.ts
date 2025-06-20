@@ -1,10 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { PosttestAnswersService } from './posttest-answers.service';
-import { Model, Types } from 'mongoose';
-import { PosttestAnswer } from '../schema/posttest-answer.schema';
-import { User } from 'src/module/users/schemas/user.schema';
-import { PrepostQuestion } from '../schema/prepost-question.schema';
+import { Types } from 'mongoose';
 import {
   queryAll,
   queryDeleteOne,
@@ -15,7 +12,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 jest.mock('src/pkg/helper/query.util');
 
-const mockLean = (data: any) => jest.fn().mockResolvedValue(data);
+const mockLean = <T>(data: T): jest.Mock<Promise<T>> => jest.fn().mockResolvedValue(data);
 
 describe('PosttestAnswersService', () => {
   let service: PosttestAnswersService;

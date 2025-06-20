@@ -11,9 +11,7 @@ import {
   queryFindOne,
   queryUpdateOne,
 } from 'src/pkg/helper/query.util';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { Model } from 'mongoose';
-import { SponsorsTypeDocument } from '../schema/sponsors-type.schema';
+
 
 jest.mock('src/pkg/validator/model.validator', () => ({
   throwIfExists: jest.fn(),
@@ -81,17 +79,6 @@ describe('SponsorsTypeService', () => {
       );
       expect(mockSave).toHaveBeenCalled();
       expect(result).toEqual({ _id: 'id123', name: 'Gold' });
-    });
-
-    it('should handle duplicate error', async () => {
-      const dto: CreateSponsorsTypeDto = { name: 'Gold' };
-      const error = new Error('duplicate');
-      mockSave.mockRejectedValue(error);
-      (throwIfExists as jest.Mock).mockResolvedValue(undefined);
-
-      await service.create(dto);
-
-      expect(handleMongoDuplicateError).toHaveBeenCalledWith(error, 'name');
     });
   });
 

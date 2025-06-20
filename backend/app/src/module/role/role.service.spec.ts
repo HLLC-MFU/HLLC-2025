@@ -98,7 +98,11 @@ describe('RoleService', () => {
       (findOrThrow as jest.Mock).mockResolvedValueOnce(mockRole);
 
       const result = await service.findOne('123');
-      expect(findOrThrow).toHaveBeenCalledWith(expect.any(Function), '123', 'Role');
+      expect(findOrThrow).toHaveBeenCalledWith(
+        service['roleModel'],
+        '123',
+        'Role',
+      );
       expect(result).toBe(mockRole);
     });
   });
