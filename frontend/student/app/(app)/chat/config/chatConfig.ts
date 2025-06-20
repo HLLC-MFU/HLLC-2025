@@ -15,4 +15,11 @@ export const API_BASE_URL = `${CHAT_BASE_URL}/api`;
 
 // WebSocket endpoint
 export const getWebSocketUrl = (roomId: string, userId: string) => 
-  `${WS_BASE_URL}/ws/${roomId}/${userId}`; 
+  `${WS_BASE_URL}/ws/${roomId}/${userId}`;
+
+export default {
+  CHAT_BASE_URL,
+  WS_BASE_URL,
+  API_BASE_URL,
+  getWebSocketUrl
+}; 

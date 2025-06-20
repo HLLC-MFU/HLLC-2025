@@ -39,6 +39,8 @@ export const createTempMessage = (
     senderId: replyTo.senderId,
     senderName: replyTo.senderName,
   } : undefined,
+  username: userId,
+  isTemp: true
 });
 
 export const createFileMessage = (
@@ -66,5 +68,14 @@ export const createFileMessage = (
     type: 'file',
     timestamp: fileData.timestamp,
     isRead: false,
+    username: fileData.user_id,
+    isTemp: true
   };
+};
+
+export default {
+  triggerHapticFeedback,
+  triggerSuccessHaptic,
+  createTempMessage,
+  createFileMessage
 }; 

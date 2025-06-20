@@ -71,4 +71,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginTop: 2,
     },
-}); 
+});
+
+export default EvoucherCodeCard; 

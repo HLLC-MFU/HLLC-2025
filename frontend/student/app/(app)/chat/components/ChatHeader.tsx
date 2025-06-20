@@ -132,4 +132,6 @@ const styles = StyleSheet.create({
     color: '#ffffff70',
     fontWeight: '500',
   },
-}); 
+});
+
+export default ChatHeader; 

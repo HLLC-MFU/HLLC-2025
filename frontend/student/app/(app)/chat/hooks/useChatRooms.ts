@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { chatService } from '../services/chatService';
+import chatService from '../services/chatService';
 import { ChatRoom } from '../types/chatTypes';
 
 export const useChatRooms = () => {
@@ -50,4 +50,6 @@ export const useChatRooms = () => {
     loadRooms,
     setRefreshing,
   };
-}; 
+};
+
+export default useChatRooms; 

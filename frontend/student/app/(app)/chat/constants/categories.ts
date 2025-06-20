@@ -9,4 +9,6 @@ export const Categories = [
   { name: 'Movies', icon: Star, color: '#f59e0b' },
   { name: 'Coffee', icon: Coffee, color: '#92400e' },
   { name: 'Crypto', icon: Crown, color: '#dc2626' },
-]; 
+];
+
+export default Categories; 

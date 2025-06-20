@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 
 export const useTypingIndicator = () => {
   const [isTyping, setIsTyping] = useState(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<number | NodeJS.Timeout | null>(null);
 
   const handleTyping = useCallback(() => {
     if (!isTyping) {
@@ -28,4 +28,6 @@ export const useTypingIndicator = () => {
     isTyping,
     handleTyping,
   };
-}; 
+};
+
+export default useTypingIndicator; 

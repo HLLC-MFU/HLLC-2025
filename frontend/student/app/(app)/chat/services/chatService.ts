@@ -741,4 +741,4 @@ class ChatService {
   }
 }
 
-export const chatService = new ChatService();
+export default new ChatService();

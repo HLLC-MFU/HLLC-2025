@@ -4,7 +4,8 @@ import { BlurView } from 'expo-blur';
 import { GlassButton } from '../../../../components/ui/GlassButton';
 import { ChatRoom } from '../types/chatTypes';
 import { API_BASE_URL } from '../config/chatConfig';
-import { chatService } from '../services/chatService';
+import chatService from '../services/chatService';
+
 
 interface RoomDetailModalProps {
   visible: boolean;
@@ -136,4 +137,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-}); 
+});
+
+export default RoomDetailModal; 

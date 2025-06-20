@@ -9,7 +9,7 @@ import { useWebSocket } from './useWebSocket';
 import { useTypingIndicator } from './useTypingIndicator';
 import { useMessageGrouping } from './useMessageGrouping';
 import useProfile from '@/hooks/useProfile';
-import { chatService, RoomMembersResponse } from '../services/chatService';
+
 import { ChatRoom, Message } from '../types/chatTypes';
 import { 
   MAX_MESSAGE_LENGTH, 
@@ -23,6 +23,7 @@ import {
   createFileMessage,
 } from '../utils/messageHandlers';
 import { API_BASE_URL } from '../config/chatConfig';
+import chatService, { RoomMembersResponse } from '../services/chatService';
 
 // WebSocket constants
 const WS_OPEN = 1;
@@ -276,6 +277,15 @@ export const useChatRoom = () => {
   const handleSendMessage = useCallback(async () => {
     const trimmedMessage = chatState.messageText.trim();
     if (!trimmedMessage || !chatState.room?.is_member || !isConnected) return;
+    // ป้องกัน reply ที่ id ไม่ถูกต้อง
+    if (replyState.replyTo && (
+      !replyState.replyTo.id ||
+      replyState.replyTo.id.startsWith('msg-') ||
+      replyState.replyTo.id.length !== 24
+    )) {
+      alert('ไม่สามารถ reply ข้อความนี้ได้ กรุณารอให้ข้อความถูกส่งสำเร็จก่อน');
+      return;
+    }
     
     try {
       const tempMessage = createTempMessage(trimmedMessage, userId, replyState.replyTo);
@@ -371,7 +381,9 @@ export const useChatRoom = () => {
         timestamp: data.timestamp || new Date().toISOString(),
         isRead: false,
         stickerId: data.stickerId || stickerId,
-        image: data.image
+        image: data.image,
+        username: data.username || data.user_id || '',
+        isTemp: false
       };
       
       addMessage(stickerMessage);
@@ -433,4 +445,6 @@ export const useChatRoom = () => {
     handleTyping,
     initializeRoom,
   };
-}; 
+};
+
+export default useChatRoom; 

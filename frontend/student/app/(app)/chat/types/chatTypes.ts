@@ -126,4 +126,6 @@ export interface RoomInfoModalProps {
   isVisible: boolean;
   onClose: () => void;
   connectedUsers: ConnectedUser[];
-} 
+}
+
+export default {}; 
