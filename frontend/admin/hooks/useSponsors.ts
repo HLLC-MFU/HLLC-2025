@@ -62,13 +62,7 @@ export function useSponsors() {
       return;
     }
 
-    sponsorsData.forEach((value, key) => {
-      console.log("key", key);
-      console.log("value", value);
-    });
-
-    // Optionally remove _id from FormData
-    sponsorsData.delete('_id'); // Prevent conflict if _id is present but empty
+    sponsorsData.delete('_id');
 
     try {
       setLoading(true);

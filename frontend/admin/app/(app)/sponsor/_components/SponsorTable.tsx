@@ -1,6 +1,3 @@
-import type { Sponsors } from "@/types/sponsors";
-import type { SponsorType } from "@/types/sponsors-type";
-
 import {
   Table,
   TableHeader,
@@ -16,7 +13,8 @@ import {
   DropdownItem,
 } from "@heroui/react";
 import { EllipsisVertical, Pen, Trash } from "lucide-react";
-
+import type { Sponsors } from "@/types/sponsors";
+import type { SponsorType } from "@/types/sponsors";
 import { SponsorModal } from "./SponsorModal";
 
 interface SponsorTableProps {
