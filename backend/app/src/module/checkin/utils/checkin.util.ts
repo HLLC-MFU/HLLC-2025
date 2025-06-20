@@ -1,4 +1,3 @@
-// src/common/checkin.util.ts
 import { BadRequestException } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { Role } from 'src/module/role/schemas/role.schema';

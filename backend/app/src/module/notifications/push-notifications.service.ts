@@ -1,31 +1,31 @@
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
-import { KafkaService } from "../kafka/kafka.service";
-import { PushNotificationDto } from "./dto/push-notification.dto";
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { KafkaService } from '../kafka/kafka.service';
+import { PushNotificationDto } from './dto/push-notification.dto';
 import type * as admin from 'firebase-admin';
 
 @Injectable()
 export class PushNotificationService {
-	constructor(
-		private readonly kafka: KafkaService,
-		@Inject('FIREBASE_ADMIN') 
-		private readonly firebaseApp: admin.app.App,
-	){}
+  constructor(
+    private readonly kafka: KafkaService,
+    @Inject('FIREBASE_ADMIN')
+    private readonly firebaseApp: admin.app.App,
+  ) {}
 
-  async registerKafka() {
-    await this.kafka.registerHandler(
+  registerKafka() {
+    this.kafka.registerHandler(
       'chat-notifications',
-      this.handleChatNotification.bind(this),
+      this.handleChatNotification.bind(this)
     );
   }
 
-  private async handleChatNotification(payload: ChatNotificationPayload) {
+  private handleChatNotification(payload: ChatNotificationPayload) {
     console.log('[Notification]', payload);
     // TODO: implement out-app notification
   }
 
-	async sendPushNotification(dto: PushNotificationDto) {
-		const tokens = dto.to.filter(Boolean);
-    if (!tokens.length) throw new BadRequestException("Tokens are missing");
+  async sendPushNotification(dto: PushNotificationDto) {
+    const tokens = dto.to.filter(Boolean);
+    if (!tokens.length) throw new BadRequestException('Tokens are missing');
 
     const messaging = this.firebaseApp.messaging();
 
@@ -58,5 +58,5 @@ export class PushNotificationService {
       failureCount: response.failureCount,
       responses: response.responses,
     };
-	}
+  }
 }

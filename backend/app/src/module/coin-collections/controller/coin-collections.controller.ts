@@ -1,10 +1,20 @@
-import { Controller, Get, Post, Body, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { CoinCollectionsService } from '../service/coin-collections.service';
 import { CollectCoinDto } from '../dto/coin-collections/coin-collectoin.dto';
 
 @Controller('coin-collections')
 export class CoinCollectionsController {
-  constructor(private readonly coinCollectionsService: CoinCollectionsService) { }
+  constructor(
+    private readonly coinCollectionsService: CoinCollectionsService,
+  ) {}
 
   @Post('collect')
   async collectCoin(@Body() collectCoinDto: CollectCoinDto) {
@@ -35,5 +45,4 @@ export class CoinCollectionsController {
   async getUserRank(@Param('userId') userId: string) {
     return await this.coinCollectionsService.getUserRank(userId);
   }
-
 }
