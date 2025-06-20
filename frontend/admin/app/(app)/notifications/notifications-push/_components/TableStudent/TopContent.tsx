@@ -1,14 +1,8 @@
 import React from 'react';
-import {
-  Input,
-  Button,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-} from '@heroui/react';
+import { Input, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react';
 import { ChevronDown, Search } from 'lucide-react';
-import { Major, School } from '@/types/school';
+import { School } from '@/types/school';
+import { Major } from '@/types/major';
 
 interface TopContentStudentProps {
   filterValue: string;
@@ -78,7 +72,7 @@ export default function TopContent({
                 const selected = Array.from(keys) as string[];
                 setMajorFilter(new Set(selected));
               }}
-              className="max-h-48 overflow-y-auto"
+              className="max-h-48 overflow-y-auto scrollbar-none"
             >
               {(majors ?? []).map((major) => (
                 <DropdownItem key={major._id ?? `major-${major.name.en}`} className="capitalize">
