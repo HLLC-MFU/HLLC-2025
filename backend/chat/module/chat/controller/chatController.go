@@ -127,10 +127,19 @@ func (c *ChatController) handleWebSocket(conn *websocket.Conn) {
 	messages, err := c.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
 	if err == nil {
 		for _, msg := range messages {
-			event := model.ChatEvent{
-				EventType: "history",
-				Payload:   msg,
+			msgBytes, err := json.Marshal(msg)
+			if err != nil {
+				continue
 			}
+
+			event := utils.ChatEvent{
+				Type:      "history",
+				RoomID:    roomID,
+				UserID:    userID,
+				Timestamp: time.Now(),
+				Payload:   msgBytes,
+			}
+
 			if data, err := json.Marshal(event); err == nil {
 				conn.WriteMessage(websocket.TextMessage, data)
 			}
@@ -187,6 +196,18 @@ func (c *ChatController) handleWebSocket(conn *websocket.Conn) {
 				log.Printf("[ERROR] Failed to save message: %v", err)
 				continue
 			}
+
+			// Create chat event for broadcasting
+			event := utils.ChatEvent{
+				Type:      "message",
+				RoomID:    roomID,
+				UserID:    userID,
+				Message:   messageText,
+				Timestamp: time.Now(),
+			}
+
+			// Broadcast through hub
+			c.chatService.GetHub().BroadcastEvent(event)
 		}
 	}
 }

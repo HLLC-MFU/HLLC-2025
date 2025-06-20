@@ -6,6 +6,7 @@ import (
 	"chat/pkg/database/queries"
 	"chat/pkg/helpers/service"
 	"context"
+	"encoding/json"
 	"log"
 	"time"
 
@@ -104,16 +105,24 @@ func (s *ChatService) SaveMessage(ctx context.Context, msg *model.ChatMessage) e
 		log.Printf("Failed to cache message: %v", err)
 	}
 
-	// Create broadcast message
-	wsMsg := utils.Message{
-		RoomID:    msg.RoomID,
-		UserID:    msg.UserID,
+	// Create chat event for broadcasting
+	event := utils.ChatEvent{
+		Type:      "message",
+		RoomID:    msg.RoomID.Hex(),
+		UserID:    msg.UserID.Hex(),
 		Message:   msg.Message,
 		Timestamp: msg.Timestamp,
 	}
 
+	// Marshal event to JSON
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("[ERROR] Failed to marshal chat event: %v", err)
+		return err
+	}
+
 	// Broadcast to all clients in the room
-	s.hub.Broadcast(wsMsg)
+	s.hub.BroadcastRaw(msg.RoomID.Hex(), eventBytes)
 
 	return nil
 }

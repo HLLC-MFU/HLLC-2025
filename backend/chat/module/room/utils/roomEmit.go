@@ -18,7 +18,7 @@ const (
 
 type RoomEvent struct {
 	Type    string          `json:"type"`
-	RoomID  string         `json:"roomId"`
+	RoomID  string          `json:"roomId"`
 	Payload json.RawMessage `json:"payload,omitempty"`
 }
 
@@ -142,25 +142,12 @@ func (e *RoomEventEmitter) emitEvent(ctx context.Context, event RoomEvent) error
 		return fmt.Errorf("invalid roomID in event: %s", event.RoomID)
 	}
 
-	return e.bus.Emit(ctx, roomEventsTopic, event.RoomID, event)
-}
-
-// ==== Convenience Emitters ====
-
-func (e *RoomEventEmitter) emitRoomEvent(ctx context.Context, eventType string, roomID primitive.ObjectID, payload any) {
-	e.emitRoomEvent(ctx, "room_created", roomID, payload)
-}
-
-// ==== Internal ====
-
-func marshalRaw(data any) json.RawMessage {
-	if data == nil {
-		return nil
-	}
-	bytes, err := json.Marshal(data)
+	// Marshal event to JSON
+	eventBytes, err := json.Marshal(event)
 	if err != nil {
-		log.Printf("[Kafka] Failed to marshal payload: %v", err)
-		return nil
+		return fmt.Errorf("failed to marshal event: %w", err)
 	}
-	return bytes
+
+	// Send JSON bytes to Kafka
+	return e.bus.Emit(ctx, roomEventsTopic, event.RoomID, eventBytes)
 }
