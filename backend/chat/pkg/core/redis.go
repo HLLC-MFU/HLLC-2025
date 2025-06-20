@@ -1,153 +1,104 @@
 // // backend/pkg/core/redis.go
 package core
 
-// import (
-// 	"context"
-// 	"fmt"
-// 	"log"
-// 	"time"
+import (
+	"chat/module/chat/model"
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"time"
 
-// 	"chat/pkg/config"
+	"github.com/redis/go-redis/v9"
+)
 
-// 	"github.com/redis/go-redis/v9"
-// )
+type RedisService struct {
+	client *redis.Client
+	ttl    time.Duration
+	limit  int64
+}
 
-// var GlobalRedis *RedisCache
+func NewRedisService(client *redis.Client) *RedisService {
+	return &RedisService{
+		client: client,
+		ttl:    24 * time.Hour, // Default TTL
+		limit:  1000,           // Default message limit
+	}
+}
 
-// type (
-// 	RedisConfig struct {
-// 		Host     string
-// 		Port     string
-// 		Password string
-// 		DB       int
-// 	}
+func (s *RedisService) roomKey(roomID string) string {
+	return fmt.Sprintf("chat:room:%s", roomID)
+}
 
-// 	RedisCache struct {
-// 		Client *redis.Client
-// 	}
-// )
+func (s *RedisService) SaveMessage(ctx context.Context, msg *model.ChatMessage) error {
+	key := s.roomKey(msg.RoomID.Hex())
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshal error: %w", err)
+	}
 
-// // NewRedisCache creates a new Redis cache instance
-// func NewRedisCache(config *RedisConfig) (*RedisCache, error) {
-// 	client := redis.NewClient(&redis.Options{
-// 		Addr:         fmt.Sprintf("%s:%s", config.Host, config.Port),
-// 		Password:     config.Password,
-// 		DB:           config.DB,
-// 		DialTimeout:  5 * time.Second,
-// 		ReadTimeout:  3 * time.Second,
-// 		WriteTimeout: 3 * time.Second,
-// 		PoolSize:     10,
-// 		PoolTimeout:  4 * time.Second,
-// 	})
+	// Use ZADD with timestamp as score for automatic ordering
+	score := float64(msg.Timestamp.Unix())
+	if err := s.client.ZAdd(ctx, key, redis.Z{
+		Score:  score,
+		Member: data,
+	}).Err(); err != nil {
+		return fmt.Errorf("redis save error: %w", err)
+	}
 
-// 	// Test the connection
-// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-// 	defer cancel()
+	// Trim old messages and refresh TTL in a pipeline
+	pipe := s.client.Pipeline()
+	pipe.ZRemRangeByRank(ctx, key, 0, -(s.limit + 1)) // Keep only latest messages
+	pipe.Expire(ctx, key, s.ttl)
+	
+	if _, err := pipe.Exec(ctx); err != nil {
+		log.Printf("Warning: Failed to trim messages: %v", err)
+	}
 
-// 	if err := client.Ping(ctx).Err(); err != nil {
-// 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
-// 	}
+	return nil
+}
 
-// 	return &RedisCache{
-// 		Client: client,
-// 	}, nil
-// }
+func (s *RedisService) GetMessages(ctx context.Context, roomID string, limit int64) ([]model.ChatMessage, error) {
+	if limit <= 0 || limit > s.limit {
+		limit = s.limit
+	}
 
-// func RedisConnect(ctx context.Context, cfg *config.Config) *RedisCache {
-// 	redisConfig := &RedisConfig{
-// 		Host:     cfg.Redis.Host,
-// 		Port:     cfg.Redis.Port,
-// 		Password: cfg.Redis.Password,
-// 		DB:       cfg.Redis.DB,
-// 	}
+	key := s.roomKey(roomID)
+	
+	// Get latest messages using ZREVRANGE
+	data, err := s.client.ZRevRange(ctx, key, 0, limit-1).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return []model.ChatMessage{}, nil
+		}
+		return nil, fmt.Errorf("redis get error: %w", err)
+	}
 
-// 	cache, err := NewRedisCache(redisConfig)
-// 	if err != nil {
-// 		log.Fatalf("Failed to connect to Redis: %v", err)
-// 	}
+	messages := make([]model.ChatMessage, 0, len(data))
+	for _, item := range data {
+		var msg model.ChatMessage
+		if err := json.Unmarshal([]byte(item), &msg); err != nil {
+			log.Printf("Warning: Failed to unmarshal message: %v", err)
+			continue
+		}
+		messages = append(messages, msg)
+	}
 
-// 	GlobalRedis = cache
+	// Refresh TTL
+	s.client.Expire(ctx, key, s.ttl)
 
-// 	return cache
-// }
+	return messages, nil
+}
 
-// func RedisDisconnect(ctx context.Context, cache *RedisCache) {
-// 	if err := cache.Close(); err != nil {
-// 		log.Printf("Error closing Redis connection: %v", err)
-// 	}
-// }
+func (s *RedisService) DeleteRoomMessages(ctx context.Context, roomID string) error {
+	return s.client.Del(ctx, s.roomKey(roomID)).Err()
+}
 
-// func (c *RedisCache) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
-// 	return c.Client.Set(ctx, key, value, expiration).Err()
-// }
+// Optional: Add methods to customize service settings
+func (s *RedisService) SetTTL(ttl time.Duration) {
+	s.ttl = ttl
+}
 
-// func (c *RedisCache) Get(ctx context.Context, key string) (string, error) {
-// 	val, err := c.Client.Get(ctx, key).Result()
-// 	if err == redis.Nil {
-// 		return "", fmt.Errorf("key %s not found", key)
-// 	}
-// 	return val, err
-// }
-
-// // Delete removes a key from Redis
-// func (c *RedisCache) Delete(ctx context.Context, key string) error {
-// 	return c.Client.Del(ctx, key).Err()
-// }
-
-// // Exists checks if a key exists in Redis
-// func (c *RedisCache) Exists(ctx context.Context, key string) (bool, error) {
-// 	n, err := c.Client.Exists(ctx, key).Result()
-// 	if err != nil {
-// 		return false, err
-// 	}
-// 	return n > 0, nil
-// }
-
-// // SetNX sets a key-value pair if the key doesn't exist (useful for locks)
-// func (c *RedisCache) SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) (bool, error) {
-// 	return c.Client.SetNX(ctx, key, value, expiration).Result()
-// }
-
-// // HSet stores a hash field
-// func (c *RedisCache) HSet(ctx context.Context, key string, field string, value interface{}) error {
-// 	return c.Client.HSet(ctx, key, field, value).Err()
-// }
-
-// // HGet retrieves a hash field
-// func (c *RedisCache) HGet(ctx context.Context, key string, field string) (string, error) {
-// 	val, err := c.Client.HGet(ctx, key, field).Result()
-// 	if err == redis.Nil {
-// 		return "", fmt.Errorf("field %s in key %s not found", field, key)
-// 	}
-// 	return val, err
-// }
-
-// // Close closes the Redis connection
-// func (c *RedisCache) Close() error {
-// 	return c.Client.Close()
-// }
-
-// // FlushDB removes all keys from the current database
-// func (c *RedisCache) FlushDB(ctx context.Context) error {
-// 	return c.Client.FlushDB(ctx).Err()
-// }
-
-// // TTL gets the remaining time to live of a key
-// func (c *RedisCache) TTL(ctx context.Context, key string) (time.Duration, error) {
-// 	return c.Client.TTL(ctx, key).Result()
-// }
-
-// // Expire sets a timeout on key
-// func (c *RedisCache) Expire(ctx context.Context, key string, expiration time.Duration) error {
-// 	return c.Client.Expire(ctx, key, expiration).Err()
-// }
-
-// // Pipeline returns a new pipeline
-// func (c *RedisCache) Pipeline() redis.Pipeliner {
-// 	return c.Client.Pipeline()
-// }
-
-// // Health checks if Redis is healthy
-// func (c *RedisCache) Health(ctx context.Context) error {
-// 	return c.Client.Ping(ctx).Err()
-// }
+func (s *RedisService) SetMessageLimit(limit int64) {
+	s.limit = limit
+}

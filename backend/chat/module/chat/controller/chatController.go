@@ -4,6 +4,8 @@ package controller
 import (
 	"chat/module/chat/model"
 	chatService "chat/module/chat/service"
+	roomModel "chat/module/room/model"
+	stickerModel "chat/module/sticker/model"
 	"chat/pkg/decorators"
 	controllerHelper "chat/pkg/helpers/controller"
 	"context"
@@ -28,11 +30,11 @@ type (
 	}
 
 	StickerService interface {
-		GetSticker(ctx context.Context, stickerID string) (*model.Sticker, error)
+		GetStickerById(ctx context.Context, stickerID string) (*stickerModel.Sticker, error)
 	}
 
 	RoomService interface {
-		GetRoom(ctx context.Context, roomID primitive.ObjectID) (*model.Room, error)
+		GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*roomModel.Room, error)
 	}
 )
 
@@ -268,7 +270,7 @@ func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
 		roomID := ctx.Params("roomId")
 		userID := controllerHelper.GetUserID(ctx)
 
-		sticker, err := c.stickerService.GetSticker(ctx.Context(), payload.StickerID)
+		sticker, err := c.stickerService.GetStickerById(ctx.Context(), payload.StickerID)
 		if err != nil {
 			return nil, fmt.Errorf("sticker not found")
 		}
