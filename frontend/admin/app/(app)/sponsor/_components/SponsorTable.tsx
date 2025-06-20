@@ -16,7 +16,6 @@ import {
   DropdownItem,
 } from "@heroui/react";
 import { EllipsisVertical, Pen, Trash } from "lucide-react";
-import Image from "next/image";
 
 import { SponsorModal } from "./SponsorModal";
 

@@ -135,11 +135,6 @@ export default function SponsorPage() {
     setSelectedSponsor(undefined);
   };
 
-  const handleAddType = async (type: { name: string }) => {
-    await createSponsorsType(type);
-    setIsTypeOpen(false);
-  };
-
   return (
     <div className="flex flex-col min-h-screen">
       <div className="container mx-auto">

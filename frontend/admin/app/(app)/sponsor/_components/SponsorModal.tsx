@@ -13,6 +13,8 @@ import {
   SelectItem,
 } from "@heroui/react";
 
+import { LogoPreview } from "./LogoPreview";
+
 import { Sponsors } from "@/types/sponsors";
 import { SponsorType } from "@/types/sponsors-type";
 
