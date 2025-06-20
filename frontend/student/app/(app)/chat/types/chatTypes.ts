@@ -17,6 +17,12 @@ export interface Message {
     text: string;
     senderId: string;
     senderName: string;
+    type?: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention';
+    image?: string;
+    fileName?: string;
+    fileType?: string;
+    stickerId?: string;
+    notFound?: boolean;
   };
   fileUrl?: string;
   fileName?: string;
