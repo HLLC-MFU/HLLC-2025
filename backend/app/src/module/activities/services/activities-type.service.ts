@@ -12,7 +12,6 @@ import {
   queryFindOne,
   queryUpdateOne,
 } from 'src/pkg/helper/query.util';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { CreateActivitiesTypeDto } from '../dto/activities-type/create-activities-type.dto';
 import { UpdateActivitiesTypeDto } from '../dto/activities-type/update-activities-type.dto';
 
@@ -34,11 +33,7 @@ export class ActivitiesTypeService {
       ...createActivitiesTypeDto,
     });
 
-    try {
-      return await activitiesType.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
+    return await activitiesType.save();
   }
 
   async findAll(query: Record<string, string>) {
