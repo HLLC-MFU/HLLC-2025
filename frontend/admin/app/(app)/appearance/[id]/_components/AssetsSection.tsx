@@ -66,7 +66,7 @@ export function AssetsSection({
                                     <label htmlFor={`upload-${backgroundKey}`} className="cursor-pointer block">
                                         <div className="overflow-hidden rounded-lg">
                                             <img
-                                                src={previewUrls[backgroundKey] || `http://localhost:8080/uploads/${appearance.assets[backgroundKey]}`}
+                                                src={previewUrls[backgroundKey] || `${process.env.NEXT_PUBLIC_API_URL}/${appearance.assets[backgroundKey]}`}
                                                 alt={backgroundKey}
                                                 className="w-full max-w-xl h-full mx-auto object-cover  rounded-lg flex items-center justify-center overflow-hidden object-cover"
                                             />

@@ -67,7 +67,7 @@ export function useAppearanceAssets({ appearance, onAppearanceUpdate }: UseAppea
                 });
             }
 
-            const res = await fetch(`http://localhost:8080/api/appearances/${appearance._id}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/appearances/${appearance._id}`, {
                 method: "PATCH",
                 body: formData,
                 credentials: "include",

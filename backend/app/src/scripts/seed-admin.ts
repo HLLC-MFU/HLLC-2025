@@ -6,7 +6,7 @@
  * 2. pnpm exec ts-node src/scripts/seed-admin.ts
  */
 
-import { MongoClient, ObjectId } from 'mongodb';
+import { MongoClient } from 'mongodb';
 import * as bcrypt from 'bcryptjs';
 import * as dotenv from 'dotenv';
 import { join } from 'path';
