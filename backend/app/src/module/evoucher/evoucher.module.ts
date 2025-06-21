@@ -13,20 +13,20 @@ import { EvoucherCodeSchema } from './schema/evoucher-code.schema';
     MongooseModule.forFeature([
       {
         name: Evoucher.name,
-        schema: EvoucherSchema
+        schema: EvoucherSchema,
       },
       {
         name: Sponsors.name,
-        schema: SponsorsSchema
+        schema: SponsorsSchema,
       },
       {
         name: EvoucherCode.name,
-        schema: EvoucherCodeSchema
-      }
-    ])
+        schema: EvoucherCodeSchema,
+      },
+    ]),
   ],
   exports: [MongooseModule],
   controllers: [EvoucherController],
   providers: [EvoucherService],
 })
-export class EvoucherModule { }
+export class EvoucherModule {}

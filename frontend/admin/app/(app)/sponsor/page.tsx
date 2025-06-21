@@ -12,6 +12,7 @@ import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { Sponsors } from "@/types/sponsors";
 import { useSponsorsType } from "@/hooks/useSponsorsType";
 import { PageHeader } from "@/components/ui/page-header";
+import AddSponsorTypeModal from "./_components/AddSponsorTypeModal";
 
 export default function SponsorPage() {
   const [isTypeOpen, setIsTypeOpen] = useState(false);
@@ -135,6 +136,11 @@ export default function SponsorPage() {
     setSelectedSponsor(undefined);
   };
 
+  const handleAddType = async (type: { name: string }) => {
+    await createSponsorsType(type);
+    setIsTypeOpen(false);
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <div className="container mx-auto">
@@ -215,6 +221,12 @@ export default function SponsorPage() {
           })}
         </Accordion>
       </div>
+
+      <AddSponsorTypeModal
+        isOpen={isTypeOpen}
+        onClose={() => setIsTypeOpen(false)}
+        onAddType={handleAddType}
+      />
 
       <ConfirmationModal
         body={

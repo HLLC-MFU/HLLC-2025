@@ -13,10 +13,9 @@ import {
   SelectItem,
 } from "@heroui/react";
 
-import { LogoPreview } from "./LogoPreview";
-
 import { Sponsors } from "@/types/sponsors";
-import { SponsorType } from "@/types/sponsors-type";
+import { SponsorType } from "@/types/sponsors";
+import { LogoPreview } from "./LogoPreview";
 
 interface SponsorModalProps {
   type: string;
