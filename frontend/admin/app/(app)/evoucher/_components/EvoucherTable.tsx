@@ -1,12 +1,11 @@
-import React, { Key, useCallback, useMemo, useState } from "react";
-import { Sponsors } from "@/types/sponsors";
+import React, { useCallback, useMemo, useState } from "react";
 import { Evoucher, EvoucherType } from "@/types/evoucher";
-import EvoucherCellRenderer from "./EvoucherCellRenderer";
-import { useEvoucherTable } from "./EvoucherTableLogic";
+import EvoucherCellRenderer, { EvoucherColumnKey } from "./EvoucherCellRenderer";
 import { COLUMNS, INITIAL_VISIBLE_COLUMNS, capitalize } from "./EvoucherTableConstants";
-import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { SortDescriptor, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import TopContent from "./TopContent";
 import BottomContent from "./BottomContent";
+import type { Selection } from "@react-types/shared";
 
 export type TableColumnType = {
     uid: string;
@@ -14,44 +13,85 @@ export type TableColumnType = {
     sortable?: boolean;
 }
 
-export default function EvoucherTable({
-    evouchers,
-}: {
+type EvoucherTableProps = {
     sponsorName: string;
     evouchers: Evoucher[];
     evoucherType: EvoucherType;
-}) {
-    const tableLogic = useEvoucherTable({ evouchers });
+    onAdd: () => void;
+    onEdit: (evoucher: Evoucher) => void;
+    onDelete: (evoucher: Evoucher) => void;
+};
+
+export default function EvoucherTable({
+    evouchers,
+    onAdd,
+    onEdit,
+    onDelete,
+}: EvoucherTableProps) {
+    const [filterValue, setFilterValue] = useState("");
     const [visibleColumns, setVisibleColumns] = useState(INITIAL_VISIBLE_COLUMNS);
-    const [selectedEvoucher, setSelectedEvoucher] = useState<Evoucher | undefined>();
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const [page, setPage] = useState(1);
+    const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({ column: "acronym", direction: "ascending" });
 
-    const headerColumns = useMemo(
-        () => COLUMNS.filter((column) => Array.from(visibleColumns).includes(column.uid)),
-        [visibleColumns]
-    );
-
-    const handleDelete = () => {
-        tableLogic.setIsDeleteOpen(true);
+    const handleSearch = (value: string) => {
+        setFilterValue(value);
+        setPage(1);
     };
 
+    const handleClear = () => {
+        setFilterValue("");
+        setPage(1);
+    };
+
+    const handlePreviousPage = () => setPage((prev) => Math.max(1, prev - 1));
+    const handleNextPage = () => setPage((prev) => prev + 1);
+
+    const filteredItems = useMemo(() => {
+        const query = filterValue.toLowerCase();
+        return evouchers.filter((evoucher) =>
+            evoucher.sponsors.name.en.toLowerCase().includes(query) ||
+            evoucher.discount.toString().includes(query) ||
+            evoucher.acronym.toLowerCase().includes(query) ||
+            evoucher.detail.en.toLowerCase().includes(query) ||
+            evoucher.expiration.toString().includes(query)
+        );
+    }, [evouchers, filterValue]);
+
+    const sortedItems = useMemo(() => {
+        return [...filteredItems].sort((a, b) => {
+            const first = a[sortDescriptor.column as keyof Evoucher] as any;
+            const second = b[sortDescriptor.column as keyof Evoucher] as any;
+            const cmp = first < second ? -1 : first > second ? 1 : 0;
+            return sortDescriptor.direction === "descending" ? -cmp : cmp;
+        });
+    }, [filteredItems, sortDescriptor]);
+
+    const rowsPerPage = 5;
+    const pagedItems = useMemo(() => {
+        const start = (page - 1) * rowsPerPage;
+        return sortedItems.slice(start, start + rowsPerPage);
+    }, [sortedItems, page]);
+
+    const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
+
     const renderCell = useCallback(
-        (evoucher: Evoucher, columnKey: Key) => {
+        (evoucher: Evoucher, columnKey: EvoucherColumnKey) => {
             return (
                 <EvoucherCellRenderer
                     evoucher={evoucher}
                     columnKey={columnKey}
-                    onEdit={() => {
-                        setSelectedEvoucher(evoucher);
-                        tableLogic.handleEdit();
-                    }}
-                    onDelete={() => {
-                        setSelectedEvoucher(evoucher);
-                        handleDelete();
-                    }}
+                    onEdit={() => onEdit(evoucher)}
+                    onDelete={() => onDelete(evoucher)}
                 />
             );
         },
-        [tableLogic.handleEdit]
+        [onEdit, onDelete]
+    );
+
+    const headerColumns = useMemo(
+        () => COLUMNS.filter((column) => Array.from(visibleColumns).includes(column.uid)),
+        [visibleColumns]
     );
 
     return (
@@ -59,49 +99,50 @@ export default function EvoucherTable({
             <Table
                 isHeaderSticky
                 aria-label="Table header"
-                bottomContent={
-                    <BottomContent
-                        selectedKeys={tableLogic.selectedKeys}
-                        filteredItems={tableLogic.filteredItems}
-                        page={tableLogic.page}
-                        pages={tableLogic.pages}
-                        setPage={tableLogic.setPage}
-                        onPreviousPage={tableLogic.handlePreviousPage}
-                        onNextPage={tableLogic.handleNextPage}
-                    />
-                }
-                bottomContentPlacement="outside"
+
                 topContent={
                     <TopContent
-                        setActionText={tableLogic.handleAddNew}
-                        filterValue={tableLogic.filterValue}
+                        setActionText={onAdd}
+                        filterValue={filterValue}
                         capitalize={capitalize}
                         visibleColumns={visibleColumns}
                         setVisibleColumns={(columns: Set<string>) => setVisibleColumns(new Set(columns))}
-                        onClear={tableLogic.handleClear}
-                        onSearchChange={tableLogic.handleSearch}
-                        selectedKeys={tableLogic.selectedKeys}
-                        filteredItems={tableLogic.filteredItems}
-                        page={tableLogic.page}
-                        pages={tableLogic.pages}
-                        setPage={tableLogic.setPage}
-                        onPreviousPage={tableLogic.handlePreviousPage}
-                        onNextPage={tableLogic.handleNextPage}
+                        onClear={handleClear}
+                        onSearchChange={handleSearch}
+                        selectedKeys={selectedKeys}
+                        filteredItems={filteredItems}
+                        page={page}
+                        pages={pages}
+                        setPage={setPage}
+                        onPreviousPage={handlePreviousPage}
+                        onNextPage={handleNextPage}
                     />
                 }
                 topContentPlacement="outside"
-                selectedKeys={tableLogic.selectedKeys}
+                selectedKeys={selectedKeys}
                 selectionMode="multiple"
-                onSelectionChange={tableLogic.setSelectedKeys}
-                sortDescriptor={tableLogic.sortDescriptor}
-                onSortChange={tableLogic.setSortDescriptor}
+                onSelectionChange={setSelectedKeys}
+                sortDescriptor={sortDescriptor}
+                onSortChange={setSortDescriptor}
+                bottomContent={
+                    <BottomContent
+                        selectedKeys={selectedKeys}
+                        filteredItems={filteredItems}
+                        page={page}
+                        pages={pages}
+                        setPage={setPage}
+                        onPreviousPage={handlePreviousPage}
+                        onNextPage={handleNextPage}
+                    />
+                }
+                bottomContentPlacement="outside"
             >
                 <TableHeader columns={headerColumns}>
                     {(column) => (
                         <TableColumn
                             key={column.uid}
                             align={column.uid === "actions" ? "center" : "start"}
-                            className={`${(column.uid)} py-4 bg-default-50`}
+                            className={`${column.uid} py-4 bg-default-50`}
                             allowsSorting={column.sortable}
                         >
                             <span className="text-bold text-small uppercase tracking-wider">{column.name}</span>
@@ -114,13 +155,13 @@ export default function EvoucherTable({
                             <span className="text-default-400">No evouchers found</span>
                         </div>
                     }
-                    items={tableLogic.pagedItems}
+                    items={pagedItems}
                 >
                     {(item) => (
                         <TableRow key={item._id} className="hover:bg-default-50 transition-colors">
                             {(columnKey) => (
-                                <TableCell className={`${(columnKey.toString())} py-4`}>
-                                    {renderCell(item, columnKey)}
+                                <TableCell className={`${columnKey.toString()} py-4`}>
+                                    {renderCell(item, columnKey as EvoucherColumnKey)}
                                 </TableCell>
                             )}
                         </TableRow>

@@ -3,11 +3,19 @@ import { Evoucher, EvoucherType } from "@/types/evoucher";
 import { Globe, User } from "lucide-react";
 import EvoucherTable from "./EvoucherTable";
 
+type EvoucherAccordionProps = {
+    evouchers: Evoucher[];
+    onAdd: (type: EvoucherType) => void;
+    onEdit: (evoucher: Evoucher) => void;
+    onDelete: (evoucher: Evoucher) => void;
+};
+
 export default function EvoucherAccordion({
     evouchers,
-}: {
-    evouchers: Evoucher[];
-}) {
+    onAdd,
+    onEdit,
+    onDelete,
+}: EvoucherAccordionProps) {
     const globalEvouchers = evouchers.filter(e => e.type === EvoucherType.GLOBAL);
     const individualEvouchers = evouchers.filter(e => e.type === EvoucherType.INDIVIDUAL);
 
@@ -23,6 +31,9 @@ export default function EvoucherAccordion({
                     evouchers={globalEvouchers}
                     sponsorName="Global"
                     evoucherType={EvoucherType.GLOBAL}
+                    onAdd={() => onAdd(EvoucherType.GLOBAL)}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
                 />
             </AccordionItem>
 
@@ -36,6 +47,9 @@ export default function EvoucherAccordion({
                     evouchers={individualEvouchers}
                     sponsorName="Individual"
                     evoucherType={EvoucherType.INDIVIDUAL}
+                    onAdd={() => onAdd(EvoucherType.INDIVIDUAL)}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
                 />
             </AccordionItem>
         </Accordion>
