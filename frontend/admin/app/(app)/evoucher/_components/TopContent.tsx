@@ -9,9 +9,6 @@ type TopContentProps = {
     setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
     capitalize: (value: string) => string;
-    visibleColumns: Set<string> | string[];
-    setVisibleColumns: (columns: Set<string>) => void;
-    selectedKeys: Selection;
     filteredItems: Evoucher[];
     page: number;
     pages: number;

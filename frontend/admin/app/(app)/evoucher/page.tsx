@@ -13,7 +13,7 @@ import { useSponsors } from "@/hooks/useSponsors";
 
 
 export default function EvoucherPage() {
-    const { evouchers, loading: evouchersLoading, createEvoucher, deleteEvoucher, updateEvoucher } = useEvoucher();
+    const { evouchers, loading: evouchersLoading, createEvoucher, deleteEvoucher, updateEvoucher, fetchEvouchers, } = useEvoucher();
     const isLoading = evouchersLoading;
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,40 +43,36 @@ export default function EvoucherPage() {
         setConfirmationModalType('delete');
     };
 
-    const handleSubmitEvoucher = (formData: FormData, mode: "add" | "edit") => {
-        const evoucherData: Partial<Evoucher> = {};
-        formData.forEach((value, key) => {
-            (evoucherData as any)[key] = value;
-        });
+    const handleSubmitEvoucher = async (formData: FormData, mode: "add" | "edit") => {
+        try {
+            if (mode === "edit" && selectedEvoucher && "_id" in selectedEvoucher && selectedEvoucher._id) {
+                await updateEvoucher(selectedEvoucher._id, formData);
+            } else if (mode === "add") {
+                await createEvoucher(formData);
+            }
 
-        if (mode === 'edit' && selectedEvoucher && '_id' in selectedEvoucher && selectedEvoucher._id) {
-            updateEvoucher(selectedEvoucher._id, formData);
-            setSelectedEvoucher({ ...selectedEvoucher, ...evoucherData });
-        } else if (mode === 'add') {
-            createEvoucher(formData);
-            addToast({ title: 'Evoucher added successfully!', color: 'success' });
+            await fetchEvouchers();
+            addToast({ title: `Evoucher ${mode === "add" ? "added" : "updated"} successfully!`, color: "success" });
+        } catch (err) {
+            addToast({ title: "Error while saving evoucher", color: "danger" });
+        } finally {
+            setIsModalOpen(false);
         }
-
-        setIsModalOpen(false);
     };
 
-
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (
             confirmationModalType === 'delete' &&
             selectedEvoucher &&
             selectedEvoucher._id
         ) {
-            deleteEvoucher(selectedEvoucher._id);
-            addToast({
-                title: 'Evoucher updated successfully!',
-                color: 'success',
-            });
+            await deleteEvoucher(selectedEvoucher._id);
+            await fetchEvouchers();
+            addToast({ title: 'Evoucher deleted successfully!', color: 'success' });
         }
         setConfirmationModalType(null);
         setSelectedEvoucher(undefined);
-    }
-
+    };
 
     return (
         <>

@@ -1,11 +1,22 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Evoucher, EvoucherType } from "@/types/evoucher";
 import EvoucherCellRenderer, { EvoucherColumnKey } from "./EvoucherCellRenderer";
-import { COLUMNS, INITIAL_VISIBLE_COLUMNS, capitalize } from "./EvoucherTableConstants";
 import { SortDescriptor, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import TopContent from "./TopContent";
 import BottomContent from "./BottomContent";
 import type { Selection } from "@react-types/shared";
+
+export const COLUMNS = [
+    { name: "SPONSOR", uid: "sponsors", sortable: true },
+    { name: "ACRONYM", uid: "acronym", sortable: true },
+    { name: "DETAIL", uid: "detail" },
+    { name: "DISCOUNT", uid: "discount", sortable: true },
+    { name: "EXPIRATION", uid: "expiration", sortable: true },
+    { name: "STATUS", uid: "status", sortable: true },
+    { name: "CLAIMS", uid: "claims" },
+    { name: "COVER", uid: "cover" },
+    { name: "ACTIONS", uid: "actions" },
+];
 
 export type TableColumnType = {
     uid: string;
@@ -29,10 +40,10 @@ export default function EvoucherTable({
     onDelete,
 }: EvoucherTableProps) {
     const [filterValue, setFilterValue] = useState("");
-    const [visibleColumns, setVisibleColumns] = useState(INITIAL_VISIBLE_COLUMNS);
     const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
     const [page, setPage] = useState(1);
     const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({ column: "acronym", direction: "ascending" });
+    const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 
     const handleSearch = (value: string) => {
         setFilterValue(value);
@@ -89,11 +100,6 @@ export default function EvoucherTable({
         [onEdit, onDelete]
     );
 
-    const headerColumns = useMemo(
-        () => COLUMNS.filter((column) => Array.from(visibleColumns).includes(column.uid)),
-        [visibleColumns]
-    );
-
     return (
         <div>
             <Table
@@ -105,11 +111,8 @@ export default function EvoucherTable({
                         setActionText={onAdd}
                         filterValue={filterValue}
                         capitalize={capitalize}
-                        visibleColumns={visibleColumns}
-                        setVisibleColumns={(columns: Set<string>) => setVisibleColumns(new Set(columns))}
                         onClear={handleClear}
                         onSearchChange={handleSearch}
-                        selectedKeys={selectedKeys}
                         filteredItems={filteredItems}
                         page={page}
                         pages={pages}
@@ -137,7 +140,7 @@ export default function EvoucherTable({
                 }
                 bottomContentPlacement="outside"
             >
-                <TableHeader columns={headerColumns}>
+                <TableHeader columns={COLUMNS}>
                     {(column) => (
                         <TableColumn
                             key={column.uid}

@@ -20,7 +20,7 @@ export default function EvoucherAccordion({
     const individualEvouchers = evouchers.filter(e => e.type === EvoucherType.INDIVIDUAL);
 
     return (
-        <Accordion variant="splitted" className="px-0">
+        <Accordion variant="splitted" className="px-0" selectionMode="multiple">
             <AccordionItem
                 key="global"
                 aria-label="Accordion Global"
