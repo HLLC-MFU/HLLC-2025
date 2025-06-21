@@ -1,14 +1,7 @@
-import {
-  Card,
-  CardHeader,
-  CardBody,
-  Divider,
-  Image,
-  Button,
-} from '@heroui/react';
-import { useEffect, useState } from 'react';
+import { Button, Card, CardBody, CardHeader, Divider , Image } from '@heroui/react';
+import { useState, useEffect } from 'react';
 
-type InformationInfoData = {
+type InformationData = {
   icon?: React.ElementType;
   title: { en: string; th: string };
   subtitle: { en: string; th: string };
@@ -19,28 +12,31 @@ type InformationInfoData = {
 };
 
 type PushNotificationProp = {
-  Information : InformationInfoData
-  Language :  'en' | 'th' 
-}
+  Information: InformationData;
+  Language: 'en' | 'th';
+};
 
-export function PushNotificationApplication({ Information, Language }: PushNotificationProp) {
-  const [now, setNow] = useState(new Date());
+export function PushNotificationApp({
+  Information,
+  Language,
+}: PushNotificationProp) {
+  const [time, setTime] = useState(new Date());
   const SelectedIcon = Information?.icon;
 
   useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000);
+    const interval = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
 
   // format: May 31, 2025
-  const dateString = now.toLocaleDateString('en-US', {
+  const dateString = time.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
 
   // format: 14:20
-  const timeString = now.toLocaleTimeString('en-US', {
+  const timeString = time.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
@@ -56,7 +52,7 @@ export function PushNotificationApplication({ Information, Language }: PushNotif
                 {SelectedIcon && (
                   <SelectedIcon className="w-6 h-6 text-black" />
                 )}
-                <div className='pr-28 w-80'>
+                <div className="pr-28 w-80">
                   <p className="text-xl font-medium break-words ">
                     {Information?.title?.[Language] || 'Title'}
                   </p>
@@ -103,64 +99,6 @@ export function PushNotificationApplication({ Information, Language }: PushNotif
             </div>
           )}
         </CardBody>
-      </Card>
-    </div>
-  );
-}
-
-export function PushNotification ({
-  Information,
-  Language,
-}: PushNotificationProp) {
-  const [now, setNow] = useState(new Date());
-  const SelectedIcon = Information?.icon;
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const dateString = now.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-
-  const timeString = now.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-  return (
-    <div className="w-full h-full flex bg-cover bg-center bg-[url('/Bg_phone.png')] justify-center items-start rounded-2xl">
-      <Card className="w-[90%] mt-5 ">
-
-        <CardHeader className="flex gap-3 items-center">
-          <div className="flex flex-col w-full justify-between">
-            <div className="flex items-start gap-4 ">
-              <div className="bg-[url('/HLLC.jpg')] bg-cover w-14 aspect-square rounded-xl" />
-              <div className="flex flex-col w-full min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  {SelectedIcon && (
-                    <SelectedIcon className="w-6 h-6 text-black shrink-0" />
-                  )}
-                  <div className='pr-28 w-80'>
-                    <p className="text-xl font-medium break-words ">
-                      {Information?.title?.[Language] || 'Title'}
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-lg text-default-500 break-words whitespace-pre-wrap">
-                  {Information?.subtitle?.[Language] || 'Subtitle'}
-                </p>
-              </div>
-              <p className="absolute top-4 right-5 text-sm text-gray-500 ">
-                {dateString} | {timeString}{' '}
-              </p>
-            </div>
-          </div>
-        </CardHeader>
       </Card>
     </div>
   );

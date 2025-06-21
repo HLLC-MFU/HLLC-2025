@@ -1,10 +1,10 @@
 import { Input, Textarea } from '@heroui/input';
-import { image, Select, SelectItem } from '@heroui/react';
+import { Select, SelectItem } from '@heroui/react';
 import { Star, School, BookMarked, CircleCheckBig } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ImageUploader } from './NotificationImageUpload';
 
-type InformationInfoData = {
+type InformationData = {
   icon?: React.ElementType;
   title: { en: string; th: string };
   subtitle: { en: string; th: string };
@@ -38,12 +38,12 @@ export const icons = [
 ];
 
 
-type InformationinfoProps = {
-  onChange?: (data: InformationInfoData) => void;
+type InformationProps = {
+  onChange?: (data: InformationData) => void;
   resetSignal?: number;
 };
 
-export function InformationForm({ onChange, resetSignal }: InformationinfoProps) {
+export function NotificationForm({ onChange, resetSignal }: InformationProps) {
   const [selected, setSelected] = useState<(typeof icons)[0] | undefined>(undefined);
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [imageFile, setImageFile] = useState<File | undefined>(undefined);

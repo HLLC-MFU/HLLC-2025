@@ -1,4 +1,4 @@
-import { InformationForm } from './NotificationForm';
+import { NotificationForm } from './NotificationForm';
 import { Dispatch, SetStateAction } from 'react';
 import { SelectStudentType } from './NotificationSelectStudentType';
 
@@ -6,7 +6,7 @@ type SelectionScope =
   | 'global'
   | { type: 'major' | 'school' | 'individual'; id: string[] }[];
 
-type InformationInfoData = {
+type InformationData = {
   icon?: React.ElementType;
   title: { en: string; th: string };
   subtitle: { en: string; th: string };
@@ -18,13 +18,13 @@ type InformationInfoData = {
 
 interface NotificationFormSectionProps {
   setScope: Dispatch<SetStateAction<SelectionScope>>;
-  setInfoData: Dispatch<SetStateAction<InformationInfoData | undefined>>;
+  setInformationData: Dispatch<SetStateAction<InformationData | undefined>>;
   resetFormCounter: number;
 }
 
 export function NotificationFormSection({
   setScope,
-  setInfoData,
+  setInformationData,
   resetFormCounter,
 }: NotificationFormSectionProps) {
   return (
@@ -34,7 +34,7 @@ export function NotificationFormSection({
         <SelectStudentType onScopeChange={setScope} />
       </div>
       <div className="flex flex-col w-full px-5 py-6 gap-6 rounded-2xl border border-gray-300 shadow-md">
-        <InformationForm onChange={setInfoData} resetSignal={resetFormCounter} />
+        <NotificationForm onChange={setInformationData} resetSignal={resetFormCounter} />
       </div>
     </div>
   );

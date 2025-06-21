@@ -3,10 +3,9 @@ import { Notification } from "@/types/notification"
 import { apiRequest } from "@/utils/api"
 import { addToast } from "@heroui/react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function useNotification() {
-    const [notification, setNotification] = useState<Notification[]>([])
+    const [notifications, setNotification] = useState<Notification[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -18,7 +17,7 @@ export function useNotification() {
             const res = await apiRequest<{ data: Notification[] }>("/notifications", "GET");
             setNotification(Array.isArray(res.data?.data) ? res.data.data : []);
         } catch (err: any) {
-            setError(err.message || "Failed to fetch schools.");
+            setError(err.message || "Failed to fetch notifications.");
         } finally {
             setLoading(false);
         }
@@ -37,7 +36,7 @@ export function useNotification() {
             }
             return res;
         } catch (err: any) {
-            setError(err.message || "Failed to create school.");
+            setError(err.message || "Failed to create notifications.");
         } finally {
             setLoading(false);
         }
@@ -59,14 +58,14 @@ export function useNotification() {
                 });
                 fetchNotification();
             } else {
-                throw new Error(res.message || 'Failed to delete notification.');
+                throw new Error(res.message || 'Failed to delete s.');
             }
         } catch (err: any) {
-            console.error('Error notification activity:', err);
-            const errorMessage = err.message || 'Failed to delete notification.';
+            console.error('Error s activity:', err);
+            const errorMessage = err.message || 'Failed to delete s.';
             setError(errorMessage);
             addToast({
-                title: 'Failed to delete notification',
+                title: 'Failed to delete s',
                 description: errorMessage,
                 color: 'danger',
             });
@@ -80,7 +79,7 @@ export function useNotification() {
     }, []);
 
     return {
-        notification,
+        notifications,
         loading,
         error,
         deleteNotification,

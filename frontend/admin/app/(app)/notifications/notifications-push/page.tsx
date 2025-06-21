@@ -1,18 +1,19 @@
 'use client';
 import { SendHorizontal, BellPlus } from 'lucide-react';
 import { Button, Select, SelectItem, addToast } from '@heroui/react';
-import { PushNotificationApplication, PushNotification } from './_components/NotificationPushNotification';
 import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { useNotification } from '@/hooks/useNotification';
 import { NotificationFormSection } from './_components/NotificationFormSection';
+import { PushNotificationApp } from './_components/PushNotification/PushNotificationApp';
+import { PushNotification } from './_components/PushNotification/PushNotification';
 
 const language = [
   { key: 'en', label: 'EN' },
   { key: 'th', label: 'TH' },
 ];
 
-type InformationInfoData = {
+type InformationData = {
   icon?: React.ElementType;
   title: { en: string; th: string };
   subtitle: { en: string; th: string };
@@ -36,7 +37,7 @@ function isValidUrl(url?: string): boolean {
   }
 }
 
-function isFormComplete(data?: InformationInfoData): boolean {
+function isFormComplete(data?: InformationData): boolean {
   if (!data) return false;
 
   const { title, subtitle, body } = data;
@@ -52,60 +53,60 @@ function isFormComplete(data?: InformationInfoData): boolean {
 }
 
 export default function NotificationPush() {
-  const [LanguagePreview, setLanguagePreview] = useState<'en' | 'th' >('en');
-  const [LanguageNotification, setLanguageNotification] = useState< 'en' | 'th' >('en');
-  const [infoData, setInfoData] = useState<InformationInfoData | undefined>( undefined );
+  const [languagePreview, setLanguagePreview] = useState<'en' | 'th' >('en');
+  const [languageNotification, setLanguageNotification] = useState< 'en' | 'th' >('en');
+  const [informationData, setInformationData] = useState<InformationData | undefined>( undefined );
   const [scope, setScope] = useState<SelectionScope>('global');
   const [resetFormCounter, setResetFormCounter] = useState(0);
   const { createNotification } = useNotification();
 
   const submitNotification = () => {
-    if (!infoData) return;
+    if (!informationData) return;
 
     const formData = new FormData();
-    formData.append('title', JSON.stringify(infoData.title));
-    formData.append('subtitle', JSON.stringify(infoData.subtitle));
-    formData.append('body', JSON.stringify(infoData.body));
+    formData.append('title', JSON.stringify(informationData.title));
+    formData.append('subtitle', JSON.stringify(informationData.subtitle));
+    formData.append('body', JSON.stringify(informationData.body));
     formData.append('scope', JSON.stringify(scope));
     formData.append(
       'icon',
-      (infoData.icon && typeof infoData.icon === 'object'
-        ? (infoData.icon as any)?.render?.displayName
+      (informationData.icon && typeof informationData.icon === 'object'
+        ? (informationData.icon as any)?.render?.displayName
         : undefined) || 'UnknownIcon',
     );
-    if (infoData.imageFile) {
-      formData.append('image', infoData.imageFile);
+    if (informationData.imageFile) {
+      formData.append('image', informationData.imageFile);
     }
-    if (infoData.redirect?.link?.trim()) {
+    if (informationData.redirect?.link?.trim()) {
       formData.append(
         'redirectButton',
         JSON.stringify({
           label: {
-            th: infoData.redirect.th,
-            en: infoData.redirect.en,
+            th: informationData.redirect.th,
+            en: informationData.redirect.en,
           },
-          url: infoData.redirect.link,
+          url: informationData.redirect.link,
         }),
       );
     }
     createNotification(formData);
 
     addToast({
-      title: `Post Notification ${infoData.title.en} Complete`,
+      title: `Post Notification ${informationData.title.en} Complete`,
       color: 'success',
     });
 
-    setInfoData(undefined);
+    setInformationData(undefined);
     setResetFormCounter((prev) => prev + 1);
   };
 
   // กัน user error
 
   const isSubmitDisabled =
-    !infoData ||
-    !isFormComplete(infoData) ||
-    !isValidUrl(infoData.redirect?.link) ||
-    (infoData.imageFile && infoData.imageFile.size > 500 * 1024);
+    !informationData ||
+    !isFormComplete(informationData) ||
+    !isValidUrl(informationData.redirect?.link) ||
+    (informationData.imageFile && informationData.imageFile.size > 500 * 1024);
 
   return (
     <>
@@ -118,7 +119,7 @@ export default function NotificationPush() {
         <div id="Notification Info" className="flex row-span-2 w-full">
             <NotificationFormSection
               setScope={setScope}
-              setInfoData={setInfoData}
+              setInformationData={setInformationData}
               resetFormCounter={resetFormCounter}
             />
         </div>
@@ -132,11 +133,11 @@ export default function NotificationPush() {
               <h1 className="text-xl font-bold ">Preview In Application</h1>
               <Select
                 className="max-w-[9rem]"
-                value={LanguagePreview}
+                value={languagePreview}
                 items={language}
                 label="Language"
                 placeholder="Select a Language"
-                selectedKeys={[LanguagePreview]}
+                selectedKeys={[languagePreview]}
                 onSelectionChange={(key) => {
                   const lang = Array.from(key)[0];
                   if (lang === 'en' || lang === 'th')
@@ -147,26 +148,26 @@ export default function NotificationPush() {
               </Select>
             </div>
 
-            {infoData && (
-              <PushNotificationApplication Information={infoData} Language={LanguagePreview} />
+            {informationData && (
+              <PushNotificationApp Information={informationData} Language={languagePreview} />
             )}
 
             <div className="flex items-center gap-5">
-              {!isValidUrl(infoData?.redirect?.link) && (
+              {!isValidUrl(informationData?.redirect?.link) && (
                 <p className="text-red-500 font-medium">
                   ⚠ Invalid redirect link
                 </p>
               )}
 
-              {!isFormComplete(infoData) && (
+              {!isFormComplete(informationData) && (
                 <p className="text-red-500 font-medium">
                   ⚠ Data is not complete
                 </p>
               )}
 
-              {infoData &&
-                infoData.imageFile &&
-                infoData.imageFile.size > 500 * 1024 && (
+              {informationData &&
+                informationData.imageFile &&
+                informationData.imageFile.size > 500 * 1024 && (
                   <p className="text-red-500 font-medium">
                     ⚠ Please upload an image smaller than 500KB
                   </p>
@@ -193,11 +194,11 @@ export default function NotificationPush() {
               <h1 className="text-xl font-bold ">Preview Notification</h1>
               <Select
                 className="max-w-[9rem]"
-                value={LanguageNotification}
+                value={languageNotification}
                 items={language}
                 label="Language"
                 placeholder="Select a Language"
-                selectedKeys={[LanguageNotification]}
+                selectedKeys={[languageNotification]}
                 onSelectionChange={(key) => {
                   const lang = Array.from(key)[0];
                   if (lang === 'en' || lang === 'th')
@@ -208,10 +209,10 @@ export default function NotificationPush() {
               </Select>
             </div>
 
-            {infoData && (
+            {informationData && (
               <PushNotification
-                Information={infoData}
-                Language={LanguageNotification}
+                Information={informationData}
+                Language={languageNotification}
               />
             )}
           </div>
