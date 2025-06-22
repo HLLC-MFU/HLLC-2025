@@ -1,59 +1,52 @@
-import React from 'react';
-import { Snippet } from '@heroui/snippet';
-import { Code } from '@heroui/code';
-import { button as buttonStyles } from '@heroui/theme';
-import { Link } from '@heroui/link';
+'use client';
 
-import { title } from '../components/primitives';
-import { subtitle } from '../components/primitives';
-import { siteConfig } from '../config/site';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, useFBX } from '@react-three/drei';
+import * as THREE from 'three';
 
-import { GithubIcon } from '@/components/icons';
+function Scene() {
+  const fbx = useFBX('/models/1.fbx');
+
+  // Center model using bounding box
+  const box = new THREE.Box3().setFromObject(fbx);
+  const center = new THREE.Vector3();
+
+  box.getCenter(center);
+  fbx.position.sub(center); // move to origin
+
+  // Fix materials and visibility
+  fbx.traverse(child => {
+    if (child.isMesh || child.isSkinnedMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+
+      // Overwrite material to make sure it's visible
+      child.material = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        metalness: 0.5,
+        roughness: 0.5,
+      });
+    }
+  });
+
+  return (
+    <>
+      <primitive object={fbx} scale={0.01} />
+      <primitive object={new THREE.AxesHelper(2)} />
+    </>
+  );
+}
 
 export default function Home() {
   return (
-    <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
-      <div className="inline-block max-w-xl text-center justify-center">
-        <span className={title()}>Make&nbsp;</span>
-        <span className={title({ color: 'violet' })}>beautiful&nbsp;</span>
-        <br />
-        <span className={title()}>
-          websites regardless of your design experience.
-        </span>
-        <div className={subtitle({ class: 'mt-4' })}>
-          Beautiful, fast and modern React UI library.
-        </div>
-      </div>
-
-      <div className="flex gap-3">
-        <Link
-          isExternal
-          className={buttonStyles({
-            color: 'primary',
-            radius: 'full',
-            variant: 'shadow',
-          })}
-          href={siteConfig.links.docs}
-        >
-          Documentation
-        </Link>
-        <Link
-          isExternal
-          className={buttonStyles({ variant: 'bordered', radius: 'full' })}
-          href={siteConfig.links.github}
-        >
-          <GithubIcon size={20} />
-          GitHub
-        </Link>
-      </div>
-
-      <div className="mt-8">
-        <Snippet hideCopyButton hideSymbol variant="bordered">
-          <span>
-            Get started by editing <Code color="primary">app/page.tsx</Code>
-          </span>
-        </Snippet>
-      </div>
-    </section>
+    <Canvas
+      camera={{ position: [0, 2, 5], fov: 60 }}
+      style={{ height: '100vh', background: '#888' }}
+    >
+      <ambientLight intensity={0.6} />
+      <directionalLight castShadow intensity={1.5} position={[5, 10, 5]} />
+      <OrbitControls />
+      <Scene />
+    </Canvas>
   );
 }
