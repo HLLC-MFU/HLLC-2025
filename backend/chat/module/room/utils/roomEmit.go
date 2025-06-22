@@ -9,18 +9,13 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const (
 	roomEventsTopic = "room-events"
 )
-
-type RoomEvent struct {
-	Type    string          `json:"type"`
-	RoomID  string          `json:"roomId"`
-	Payload json.RawMessage `json:"payload,omitempty"`
-}
 
 type RoomEventEmitter struct {
 	bus *kafka.Bus
@@ -65,7 +60,7 @@ func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive
 		return
 	}
 
-	event := RoomEvent{
+	event := model.RoomEvent{
 		Type:    "room_created",
 		RoomID:  roomID.Hex(),
 		Payload: payload,
@@ -87,7 +82,7 @@ func (e *RoomEventEmitter) EmitRoomDeleted(ctx context.Context, roomID primitive
 
 	log.Printf("[RoomEvent] Emitting room_deleted event for room %s", roomID.Hex())
 
-	event := RoomEvent{
+	event := model.RoomEvent{
 		Type:   "room_deleted",
 		RoomID: roomID.Hex(),
 	}
@@ -121,7 +116,7 @@ func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, use
 		return
 	}
 
-	event := RoomEvent{
+	event := model.RoomEvent{
 		Type:    "room_member_joined",
 		RoomID:  roomID.Hex(),
 		Payload: payloadBytes,
@@ -136,10 +131,15 @@ func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, use
 	}
 }
 
-func (e *RoomEventEmitter) emitEvent(ctx context.Context, event RoomEvent) error {
+func (e *RoomEventEmitter) emitEvent(ctx context.Context, event model.RoomEvent) error {
 	// Validate event
 	if event.RoomID == "" || event.RoomID == "000000000000000000000000" {
 		return fmt.Errorf("invalid roomID in event: %s", event.RoomID)
+	}
+
+	// Generate a unique event ID
+	if event.ID == "" {
+		event.ID = uuid.New().String()
 	}
 
 	// Marshal event to JSON
@@ -149,5 +149,5 @@ func (e *RoomEventEmitter) emitEvent(ctx context.Context, event RoomEvent) error
 	}
 
 	// Send JSON bytes to Kafka
-	return e.bus.Emit(ctx, roomEventsTopic, event.RoomID, eventBytes)
+	return e.bus.Emit(ctx, roomEventsTopic, event.ID, eventBytes)
 }

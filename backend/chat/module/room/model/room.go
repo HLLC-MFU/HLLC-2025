@@ -2,6 +2,7 @@ package model
 
 import (
 	"chat/pkg/common"
+	"encoding/json"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,4 +23,12 @@ type (
 		RoomID    primitive.ObjectID `bson:"roomId" json:"roomId"`
 		UserIDs   []primitive.ObjectID `bson:"userIds" json:"userIds"`
 	}
+
+	RoomEvent struct {
+		ID string `json:"id"`
+		Type string `json:"type"`
+		RoomID string `json:"roomId"`
+		Payload json.RawMessage `json:"payload"`
+	}
+
 )
