@@ -52,11 +52,13 @@ export class AuthController {
   }
 
   @Public()
-  @Post('student/status/:id')
+  @Get('student/status/:id')
   async check(@Param('id') id: string, @Res() res: FastifyReply) {
     const user = await this.authService.getRegisteredUser(id);
     if (!user) {
-      return res.status(404).send({ message: 'User not found' });
+      return res.status(404).send({
+        message: 'User not found. Please check your username and try again.',
+      });
     }
     return res.send({ user });
   }

@@ -18,6 +18,6 @@ export function runInNewTerminal(title, command, cwd) {
     console.error('❌ ไม่รองรับ OS นี้');
     return;
   }
-
-  spawn(cmd, { shell: true, stdio: 'inherit' });
+  const [command, ...args] = cmd.split(' ');
+  spawn(command, args, { stdio: 'inherit' });
 }
