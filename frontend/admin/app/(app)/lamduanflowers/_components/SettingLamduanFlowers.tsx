@@ -5,7 +5,7 @@ import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { useLamduanSetting } from "@/hooks/useLamduanSetting";
 import { LamduanSetting } from "@/types/lamduan-flowers";
 
-type LamduanFlowersSettingProps = {
+type SettingLamduanFlowersProps = {
   handleSave: (
     isChanged: boolean,
     file: File | null,
@@ -14,12 +14,12 @@ type LamduanFlowersSettingProps = {
     endDate: string
   ) => Promise<void>;
   originalRef: RefObject<LamduanSetting | null>;
-}
+};
 
-export function LamduanFlowersSetting({
+export function SettingLamduanFlowers({
   handleSave,
   originalRef,
-}: LamduanFlowersSettingProps) {
+}: SettingLamduanFlowersProps) {
   const { lamduanSetting, fetchLamduanSetting } = useLamduanSetting();
 
   const [file, setFile] = useState<File | null>(null);
@@ -27,6 +27,12 @@ export function LamduanFlowersSetting({
   const [videoLink, setVideoLink] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [errors, setErrors] = useState({
+    file: "",
+    videoLink: "",
+    startDate: "",
+    endDate: "",
+  });
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -74,11 +80,17 @@ export function LamduanFlowersSetting({
   const handleDiscard = () => {
     const latestData = lamduanSetting.at(-1) ?? null;
     populateForm(latestData);
+    setErrors({
+      file: "",
+      videoLink: "",
+      startDate: "",
+      endDate: "",
+    });
   };
 
   const isChanged = useMemo(() => {
     const original = originalRef.current;
-    if (!original) return false;
+    if (!original) return true;
 
     const originalStart = original.startAt?.split("T")[0] || "";
     const originalEnd = original.endAt?.split("T")[0] || "";
@@ -91,10 +103,24 @@ export function LamduanFlowersSetting({
     );
   }, [videoLink, startDate, endDate, file]);
 
+  const handleValidateAndSave = () => {
+    const newErrors = {
+      file: !file && !preview ? "Image is required" : "",
+      videoLink: videoLink.trim() === "" ? "Video link is required" : "",
+      startDate: startDate.trim() === "" ? "Start date is required" : "",
+      endDate: endDate.trim() === "" ? "End date is required" : "",
+    };
+
+    setErrors(newErrors);
+
+    const hasError = Object.values(newErrors).some((v) => v !== "");
+    if (hasError) return;
+
+    handleSave(isChanged, file, videoLink, startDate, endDate);
+  };
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium text-default-700">Lamduan Flower Setting</h4>
         <div className="flex gap-2">
@@ -115,7 +141,6 @@ export function LamduanFlowersSetting({
         </div>
       </div>
 
-      {/* Image Preview */}
       <div className="relative aspect-video rounded-xl overflow-hidden border border-default-200 bg-default-50">
         {preview ? (
           <img src={preview} alt="Preview" className="w-full h-full object-contain bg-white" />
@@ -127,43 +152,52 @@ export function LamduanFlowersSetting({
         )}
         <input ref={inputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
       </div>
+      {errors.file && (
+        <p className="text-sm text-red-500 mt-1">{errors.file}</p>
+      )}
 
-      {/* Video Input */}
       <div className="flex w-full flex-wrap md:flex-nowrap mb-2 gap-4 py-2">
         <Input
+          isRequired
           label="Link Youtube"
           labelPlacement="outside"
           placeholder="https://youtube.com/watch?v=..."
           type="url"
           value={videoLink}
           onChange={(e) => setVideoLink(e.target.value)}
+          isInvalid={!!errors.videoLink}
+          errorMessage={errors.videoLink}
         />
       </div>
 
-      {/* Event Date Range */}
       <div className="flex flex-col md:flex-row gap-2">
         <Input
+          isRequired
           label="Event start"
           labelPlacement="outside"
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
+          isInvalid={!!errors.startDate}
+          errorMessage={errors.startDate}
         />
         <Input
+          isRequired
           label="Event end"
           labelPlacement="outside"
           type="date"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
+          isInvalid={!!errors.endDate}
+          errorMessage={errors.endDate}
         />
       </div>
 
-      {/* Action Buttons */}
       <div className="flex justify-end gap-4 pt-4">
         <Button variant="light" color="danger" size="md" onPress={handleDiscard}>
           Discard Changes
         </Button>
-        <Button variant="solid" color="primary" size="md" onPress={() => handleSave(isChanged, file, videoLink, startDate, endDate)}>
+        <Button variant="solid" color="primary" size="md" onPress={handleValidateAndSave}>
           Save
         </Button>
       </div>

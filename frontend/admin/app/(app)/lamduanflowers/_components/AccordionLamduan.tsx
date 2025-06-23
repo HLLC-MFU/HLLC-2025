@@ -6,10 +6,10 @@ import {
 import { Flower2, Settings } from "lucide-react";
 import CardLamduanFlowers from "./CardLamduanFlowers";
 import { useLamduanFlowers } from "@/hooks/useLamduanFlowers";
-import { LamduanFlowersFilters } from "./FiltersLamduanFlowers";
+import { FiltersLamduanFlowers } from "./FiltersLamduanFlowers";
 import { LamduanFlowers } from "@/types/lamduan-flowers";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
-import { LamduanFlowersSetting } from "./SettingLamduanFlowers";
+import { SettingLamduanFlowers } from "./SettingLamduanFlowers";
 import { LamduanSetting } from "@/types/lamduan-flowers";
 
 type LamduanFlowersSettingProps = {
@@ -77,7 +77,7 @@ export default function AccordionLamduan({
                     aria-label="Management"
                     title={<div className="flex items-center gap-2"><Flower2 /><span>Lamduan Flower Management</span></div>}
                 >
-                    <LamduanFlowersFilters
+                    <FiltersLamduanFlowers
                         searchQuery={searchQuery}
                         sortBy="createdAt"
                         sortDirection={sortDirection}
@@ -130,7 +130,7 @@ export default function AccordionLamduan({
                     aria-label="Setting"
                     title={<div className="flex items-center gap-2"><Settings /><span>Lamduan Flower Setting</span></div>}
                 >
-                    <LamduanFlowersSetting
+                    <SettingLamduanFlowers
                         handleSave={handleSave}
                         originalRef={originalRef}
                     />
