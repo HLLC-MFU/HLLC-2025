@@ -58,7 +58,7 @@ export function SponsorModal({
       setNameTh(sponsor.name?.th || "");
       setIsShow(sponsor.isShow ?? true);
       setLogoFile(null);
-      setLogoPreview(`http://localhost:8080/uploads/${sponsor.photo}`);
+      setLogoPreview(`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.photo}`);
     } else {
       setNameEn("");
       setNameTh("");

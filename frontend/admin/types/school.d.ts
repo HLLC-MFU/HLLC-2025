@@ -1,4 +1,5 @@
 import { Lang } from './lang';
+import { Major } from './major';
 
 export type School = {
     _id: string;
@@ -6,6 +7,7 @@ export type School = {
     acronym: string;
     detail: Lang;
     photos: Photo;
+    majors: Major[];
 };
 
 export type Photo = {

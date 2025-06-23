@@ -132,7 +132,7 @@ export default function NotificationModal({
               {/* Optional Image */}
               {notification.image && (
                 <img
-                  src={`http://localhost:8080/api/uploads/${notification.image}`}
+                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${notification.image}`}
                   alt="Notification"
                   className="w-full h-48 object-cover rounded-lg mt-4"
                 />

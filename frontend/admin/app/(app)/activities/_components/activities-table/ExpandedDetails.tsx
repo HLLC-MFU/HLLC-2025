@@ -96,7 +96,7 @@ export function ExpandedDetails({ activity }: ExpandedDetailsProps) {
               <p className="text-xs text-default-500 mb-2">Banner Photo</p>
               {activity.photo?.bannerPhoto ? (
                 <img 
-                  src={`http://localhost:8080/uploads/${activity.photo.bannerPhoto}`}
+                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`}
                   alt="Banner"
                   className="w-full h-[200px] object-cover rounded-lg"
                 />
@@ -112,7 +112,7 @@ export function ExpandedDetails({ activity }: ExpandedDetailsProps) {
               <p className="text-xs text-default-500 mb-2">Logo Photo</p>
               {activity.photo?.logoPhoto ? (
                 <img 
-                  src={`http://localhost:8080/uploads/${activity.photo.logoPhoto}`}
+                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.logoPhoto}`}
                   alt="Logo"
                   className="w-full h-[200px] object-contain rounded-lg"
                 />
