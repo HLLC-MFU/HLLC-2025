@@ -3,9 +3,13 @@ package controller
 import (
 	"chat/module/sticker/dto"
 	"chat/module/sticker/service"
+	"chat/pkg/common"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
 	controllerHelper "chat/pkg/helpers/controller"
+	"chat/pkg/utils"
+	"fmt"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -14,6 +18,7 @@ type (
 	StickerController struct {
 		*decorators.BaseController
 		service *service.StickerService
+		uploadHandler *utils.FileUploadHandler
 	}
 )
 
@@ -21,6 +26,7 @@ func NewStickerController(app *fiber.App, service *service.StickerService) *Stic
 	controller := &StickerController{
 		BaseController: decorators.NewBaseController(app, "/api/stickers"),
 		service: service,
+		uploadHandler: utils.NewModuleFileHandler("sticker"),
 	}
 
 	controller.Get("/", controller.GetAllStickers)
@@ -62,10 +68,45 @@ func (c *StickerController) GetStickerById(ctx *fiber.Ctx) error {
 }
 
 func (c *StickerController) CreateSticker(ctx *fiber.Ctx) error {
-	return controllerHelper.ControllerAction(ctx, func(createDto *dto.CreateStickerDto) (any, error) {
-		sticker := createDto.ToSticker()
-		return c.service.CreateSticker(ctx.Context(), sticker)
-	})
+	// Parse multipart form
+	if form, err := ctx.MultipartForm(); err == nil {
+		defer form.RemoveAll()
+	}
+
+	// Upload file
+	filepath, err := c.uploadHandler.HandleFileUpload(ctx, "image")
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": err.Error(),
+		})
+	}
+
+	// Create sticker DTO
+	createDto := &dto.CreateStickerDto{
+		Name: common.LocalizedName{
+			En: ctx.FormValue("name.en"),
+			Th: ctx.FormValue("name.th"),
+		},
+		Image: c.uploadHandler.GetFileURL(filepath),
+	}
+
+	// Create sticker
+	sticker := createDto.ToSticker()
+	result, err := c.service.CreateSticker(ctx.Context(), sticker)
+	if err != nil {
+		// Cleanup uploaded file on error
+		if err := os.Remove(filepath); err != nil {
+			// Just log the error, don't return it
+			fmt.Printf("Failed to delete file: %v\n", err)
+		}
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusCreated).JSON(result)
 }
 
 func (c *StickerController) UpdateSticker(ctx *fiber.Ctx) error {

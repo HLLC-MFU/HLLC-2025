@@ -6,13 +6,13 @@ import (
 )
 
 type CreateStickerDto struct {
-	Name common.LocalizedName `json:"name" validate:"notEmpty"`
-	Image string `json:"image" validate:"notEmpty"`
+	Name  common.LocalizedName `form:"name"`
+	Image string              `form:"image"`
 }
 
 func (dto *CreateStickerDto) ToSticker() *model.Sticker {
 	return &model.Sticker{
-		Name: dto.Name,
+		Name:  dto.Name,
 		Image: dto.Image,
 	}
 }

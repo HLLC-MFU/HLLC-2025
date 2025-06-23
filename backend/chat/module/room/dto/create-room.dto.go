@@ -2,6 +2,7 @@ package dto
 
 import (
 	"chat/pkg/common"
+	"mime/multipart"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -12,6 +13,7 @@ type(
 		Capacity  int                  `form:"capacity" validate:"notEmpty"`
 		Members   []string            `form:"members" validate:"mongoId,optional"`
 		CreatedBy string              `form:"createdBy" validate:"mongoId"`
+		Image     *multipart.FileHeader `form:"image" validate:"optional"`
 	}
 
 	AddRoomMembersDto struct {

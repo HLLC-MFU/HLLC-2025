@@ -11,7 +11,6 @@ import (
 	"chat/pkg/validator"
 
 	"mime/multipart"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -54,7 +53,6 @@ func NewRoomController(app *fiber.App, service *service.RoomService) *RoomContro
 	controller.Delete("/:id", controller.DeleteRoom)
 	controller.Post("/:id/members", controller.AddRoomMember)
 	controller.Delete("/:id/members/:userId", controller.RemoveRoomMember)
-	controller.Post("/:id/image", controller.UpdateRoomImage)
 	controller.SetupRoutes()
 
 	return controller
@@ -207,57 +205,4 @@ func (c *RoomController) RemoveRoomMember(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(removedMember)
-}
-
-// UpdateRoomImage updates room's image using multipart form
-func (c *RoomController) UpdateRoomImage(ctx *fiber.Ctx) error {
-	// Parse and validate image upload
-	var imageDto validator.ImageUploadDto
-	if err := ctx.BodyParser(&imageDto); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
-	}
-
-	// Validate image
-	if err := c.imageValidator.ValidateFile(imageDto.File); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
-	}
-
-	// Get room
-	roomID := ctx.Params("id")
-	roomObjID, err := primitive.ObjectIDFromHex(roomID)
-	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "invalid room ID")
-	}
-
-	room, err := c.service.GetRoomById(ctx.Context(), roomObjID)
-	if err != nil {
-		return err
-	}
-
-	// Handle new image upload
-	filepath, err := c.uploadHandler.HandleFileUpload(ctx, "file")
-	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
-	}
-
-	// Delete old image if exists
-	if room.Image != "" {
-		if err := c.uploadHandler.DeleteFile(room.Image); err != nil {
-			// Log error but continue
-			ctx.App().Config().ErrorHandler(ctx, err)
-		}
-	}
-
-	// Update room with new image path
-	room.Image = filepath
-	room.UpdatedAt = time.Now()
-
-	updatedRoom, err := c.service.UpdateRoom(ctx.Context(), roomID, room)
-	if err != nil {
-		// Clean up new file if update fails
-		_ = c.uploadHandler.DeleteFile(filepath)
-		return err
-	}
-
-	return ctx.JSON(updatedRoom)
 }

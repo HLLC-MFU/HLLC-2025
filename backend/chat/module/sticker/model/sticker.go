@@ -10,6 +10,6 @@ type (
 	Sticker struct {
 		ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 		Name      common.LocalizedName `bson:"name" json:"name"`
-		Image     string               `bson:"image" json:"image"`
+		Image       string             `bson:"image,omitempty" json:"image,omitempty"`
 	}
 )

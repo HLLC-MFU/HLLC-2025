@@ -25,8 +25,4 @@ type (
 		RoomID string `json:"roomId"`
 		Payload json.RawMessage `json:"payload"`
 	}
-
-)
-
-// MaxImageSize represents 256KB in bytes
-const MaxImageSize = 256 * 1024 // 256KB
+)	
