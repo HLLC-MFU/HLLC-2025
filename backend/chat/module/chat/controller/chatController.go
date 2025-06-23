@@ -10,7 +10,6 @@ import (
 	"chat/pkg/decorators"
 	controllerHelper "chat/pkg/helpers/controller"
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -55,7 +54,6 @@ type (
 		stickerService StickerService
 		roomService    RoomService
 		wsHandler     *WebSocketHandler
-		fileHandler   *FileHandler
 	}
 )
 
@@ -76,7 +74,6 @@ func NewChatController(
 
 	// Initialize handlers
 	controller.wsHandler = NewWebSocketHandler(chatService, memberService, roomService)
-	controller.fileHandler = NewFileHandler(chatService)
 
 	controller.setupRoutes()
 	return controller
@@ -86,13 +83,10 @@ func (c *ChatController) setupRoutes() {
 	// WebSocket routes
 	c.Get("/ws/:roomId/:userId", websocket.New(c.wsHandler.HandleWebSocket))
 	
-	// File routes
-	c.Post("/upload", c.fileHandler.HandleFileUpload)
-	
 	// Room routes
 	c.Post("/rooms/:roomId/join", c.handleJoinRoom)
 	c.Post("/rooms/:roomId/leave", c.handleLeaveRoom)
-	c.Post("/rooms/:roomId/sticker", c.handleSendSticker)
+	c.Get("/:roomId/send", c.handleSendSticker)
 	c.Delete("/rooms/:roomId/cache", c.handleClearCache)
 
 	c.SetupRoutes()
@@ -135,39 +129,74 @@ func (c *ChatController) handleLeaveRoom(ctx *fiber.Ctx) error {
 	})
 }
 
-type StickerPayload struct {
-	StickerID string `query:"stickerId"`
-}
-
 func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
-	var payload StickerPayload
-	return controllerHelper.Handle(ctx, &payload, func() (any, error) {
-		roomID := ctx.Params("roomId")
-		userID := controllerHelper.GetUserID(ctx)
+	// Get parameters
+	roomID := ctx.Params("roomId")
+	senderID := ctx.Query("userId")     // User sending the sticker
+	stickerID := ctx.Query("stickerId") // Sticker to send
 
-		sticker, err := c.stickerService.GetStickerById(ctx.Context(), payload.StickerID)
-		if err != nil {
-			return nil, fmt.Errorf("sticker not found")
-		}
+	// Validate parameters
+	if senderID == "" || stickerID == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "userId and stickerId are required",
+		})
+	}
 
-		roomObjID, err := primitive.ObjectIDFromHex(roomID)
-		if err != nil {
-			return nil, fmt.Errorf("invalid room ID")
-		}
+	// Convert IDs
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid room ID",
+		})
+	}
 
-		msg := &model.ChatMessage{
-			RoomID:    roomObjID,
-			UserID:    userID,
-			StickerID: &sticker.ID,
-			Image:     sticker.Image,
-			Timestamp: time.Now(),
-		}
+	senderObjID, err := primitive.ObjectIDFromHex(senderID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid user ID",
+		})
+	}
 
-		if err := c.chatService.SendMessage(ctx.Context(), msg); err != nil {
-			return nil, err
-		}
+	// Check if sender is in room
+	isInRoom, err := c.memberService.IsUserInRoom(ctx.Context(), roomObjID, senderID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to check user room membership",
+		})
+	}
+	if !isInRoom {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "user is not in the room",
+		})
+	}
 
-		return msg, nil
+	// Get sticker details
+	sticker, err := c.stickerService.GetStickerById(ctx.Context(), stickerID)
+	if err != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "sticker not found",
+		})
+	}
+
+	// Create message
+	msg := &model.ChatMessage{
+		RoomID:    roomObjID,
+		UserID:    senderObjID,
+		StickerID: &sticker.ID,
+		Image:     sticker.Image,
+		Timestamp: time.Now(),
+	}
+
+	// Send message
+	if err := c.chatService.SendMessage(ctx.Context(), msg); err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to send sticker",
+		})
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "sticker sent successfully",
+		"data": msg,
 	})
 }
 

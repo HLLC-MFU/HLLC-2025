@@ -34,29 +34,30 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s User=%s Text=%s", 
 		msg.ID.Hex(), msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message)
 
-	// Create chat event
+	// Create base event
 	event := ChatEvent{
-		Type:      "message",
 		RoomID:    msg.RoomID.Hex(),
 		UserID:    msg.UserID.Hex(),
 		Message:   msg.Message,
 		Timestamp: time.Now(),
 	}
 
-	// Add additional data if present
-	if msg.FileURL != "" {
-		event.Payload, _ = json.Marshal(map[string]string{
+	// Handle different message types
+	if msg.StickerID != nil {
+		event.Type = "sticker"
+		event.Payload = map[string]interface{}{
+			"stickerId": msg.StickerID.Hex(),
+			"image":     msg.Image,
+		}
+	} else if msg.FileURL != "" {
+		event.Type = "file"
+		event.Payload = map[string]interface{}{
 			"fileUrl":  msg.FileURL,
 			"fileType": msg.FileType,
 			"fileName": msg.FileName,
-		})
-	}
-
-	if msg.StickerID != nil {
-		event.Payload, _ = json.Marshal(map[string]string{
-			"stickerId": msg.StickerID.Hex(),
-			"image":     msg.Image,
-		})
+		}
+	} else {
+		event.Type = "message"
 	}
 
 	// Marshal event for broadcasting
