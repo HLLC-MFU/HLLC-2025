@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	ChatServicePkg "github.com/HLLC-MFU/HLLC-2025/backend/module/chats/service"
 	MemberService "github.com/HLLC-MFU/HLLC-2025/backend/module/members/service"
 	roomKafka "github.com/HLLC-MFU/HLLC-2025/backend/module/rooms/kafka"
@@ -14,6 +15,7 @@ import (
 	userService "github.com/HLLC-MFU/HLLC-2025/backend/module/users/service"
 	kafkaPublisher "github.com/HLLC-MFU/HLLC-2025/backend/pkg/kafka"
 	"github.com/segmentio/kafka-go"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -32,6 +34,7 @@ type RoomService interface {
 	UpdateRoom(ctx context.Context, room *model.Room) error
 	DeleteRoom(ctx context.Context, id primitive.ObjectID) error
 	ListRoomsWithMembers(ctx context.Context, memberService MemberService.MemberService) ([]map[string]interface{}, error)
+	ListVisibleRooms(ctx context.Context, userID primitive.ObjectID) ([]*model.Room, error)
 }
 
 type service struct {
@@ -40,15 +43,17 @@ type service struct {
 	memberService MemberService.MemberService
 	chatService   ChatServicePkg.ChatService
 	userService   userService.UserService
+	config        *config.Config
 }
 
-func NewService(repo repository.RoomRepository, publisher kafkaPublisher.Publisher, memberService MemberService.MemberService, chatService ChatServicePkg.ChatService, userService userService.UserService) RoomService {
+func NewService(repo repository.RoomRepository, publisher kafkaPublisher.Publisher, memberService MemberService.MemberService, chatService ChatServicePkg.ChatService, userService userService.UserService, cfg *config.Config) RoomService {
 	return &service{
 		repo:          repo,
 		publisher:     publisher,
 		memberService: memberService,
 		chatService:   chatService,
 		userService:   userService,
+		config:        cfg,
 	}
 }
 
@@ -73,15 +78,15 @@ func (s *service) CreateRoom(ctx context.Context, room *model.Room) error {
 	go func(roomID primitive.ObjectID) {
 		topicName := "chat-room-" + roomID.Hex()
 
-		if err := kafkaPublisher.EnsureKafkaTopic("localhost:9092", topicName); err != nil {
+		if err := kafkaPublisher.EnsureKafkaTopic(s.config.KafkaAddress(), topicName); err != nil {
 			log.Printf("[Kafka] Failed to create topic %s: %v", topicName, err)
 		}
 
-		if err := kafkaPublisher.ForceCreateTopic("localhost:9092", topicName); err != nil {
+		if err := kafkaPublisher.ForceCreateTopic(s.config.KafkaAddress(), topicName); err != nil {
 			log.Printf("[Kafka] Failed to force produce to topic %s: %v", topicName, err)
 		}
 
-		if err := kafkaPublisher.WaitUntilTopicReady("localhost:9092", topicName, 10*time.Second); err != nil {
+		if err := kafkaPublisher.WaitUntilTopicReady(s.config.KafkaAddress(), topicName, 10*time.Second); err != nil {
 			log.Printf("[Kafka] Topic %s not ready: %v", topicName, err)
 		}
 	}(room.ID)
@@ -145,7 +150,7 @@ func (s *service) DeleteRoom(ctx context.Context, id primitive.ObjectID) error {
 		log.Printf("[Room Service] Error marshaling room deletion event: %v", err)
 	} else {
 		writer := kafka.NewWriter(kafka.WriterConfig{
-			Brokers:  []string{"localhost:9092"},
+			Brokers:  []string{s.config.KafkaAddress()},
 			Topic:    "room-events",
 			Balancer: &kafka.LeastBytes{},
 		})
@@ -184,4 +189,21 @@ func (s *service) ListRoomsWithMembers(ctx context.Context, memberService Member
 	}
 
 	return result, nil
+}
+
+func (s *service) ListVisibleRooms(ctx context.Context, userID primitive.ObjectID) ([]*model.Room, error) {
+	roomIDs, err := s.memberService.GetRoomIDsForUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(roomIDs) == 0 {
+		return []*model.Room{}, nil
+	}
+
+	filter := bson.M{
+		"_id": bson.M{"$in": roomIDs},
+	}
+
+	return s.repo.FilterRooms(ctx, filter)
 }

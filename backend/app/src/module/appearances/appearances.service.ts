@@ -5,7 +5,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Appearance, AppearanceDocument } from './schemas/apprearance.schema';
 import { Model } from 'mongoose';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import {
   queryAll,
   queryDeleteOne,
@@ -30,11 +29,7 @@ export class AppearancesService {
     const apprearance = new this.apprearanceModel({
       ...createAppearanceDto,
     });
-    try {
-      return await apprearance.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'school');
-    }
+    return await apprearance.save();
   }
 
   async findAll(query: Record<string, string>) {

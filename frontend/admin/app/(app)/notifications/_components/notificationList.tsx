@@ -4,13 +4,13 @@ import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ReactNode } from "react";
 
-
 interface Props {
     title: string;
     description: string;
     icon: ReactNode;
     href: string;
 }
+
 export default function NotificationList({ title, description, icon, href }: Props) {
     const router = useRouter();
     return (

@@ -22,9 +22,6 @@ import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesModule } from './module/activities/activities.module';
-import { EvoucherModule } from './module/evoucher/evoucher.module';
-import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
-import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
 import { ActivitiesTypeModule } from './module/activities/activities-type.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
 import { KafkaBootstrapModule } from './module/kafka/kafka-bootstrap.module';
@@ -81,9 +78,6 @@ import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.m
     SseModule,
     CheckinModule,
     ActivitiesModule,
-    EvoucherModule,
-    EvoucherCodeModule,
-    EvoucherTypeModule,
     NotificationsModule,
     KafkaBootstrapModule,
     AssessmentsModule,

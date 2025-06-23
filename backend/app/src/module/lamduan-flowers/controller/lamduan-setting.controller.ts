@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseInterceptors,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
@@ -10,7 +22,7 @@ import { LamduanSettingService } from '../service/lamduan-setting.service';
 @UseGuards(PermissionsGuard)
 @Controller('lamduan-setting')
 export class LamduanSettingController {
-  constructor(private readonly lamduanSettingService: LamduanSettingService) { }
+  constructor(private readonly lamduanSettingService: LamduanSettingService) {}
 
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))

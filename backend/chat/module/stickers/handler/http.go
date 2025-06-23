@@ -22,14 +22,6 @@ func NewHTTPHandler(service service.StickerService) *StickerHTTPHandler {
 	}
 }
 
-type createStickerRequest struct {
-	Name struct {
-		ThName string `json:"thName" form:"name[th]"`
-		EnName string `json:"enName" form:"name[en]"`
-	} `json:"name"`
-	Image string `json:"image,omitempty"`
-}
-
 func (h *StickerHTTPHandler) CreateSticker(c *fiber.Ctx) error {
 	file, err := c.FormFile("image")
 	if err != nil {
@@ -37,7 +29,7 @@ func (h *StickerHTTPHandler) CreateSticker(c *fiber.Ctx) error {
 	}
 
 	filename := fmt.Sprintf("sticker_%d_%s", time.Now().Unix(), file.Filename)
-	savePath := fmt.Sprintf("./uploads/stickers/%s", filename)
+	savePath := fmt.Sprintf("./uploads/%s", filename)
 	if err := c.SaveFile(file, savePath); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save file"})
 	}
@@ -132,7 +124,7 @@ func (h *StickerHTTPHandler) UpdateSticker(c *fiber.Ctx) error {
 	file, err := c.FormFile("image")
 	if err == nil && file != nil {
 		filename := fmt.Sprintf("sticker_%d_%s", time.Now().Unix(), file.Filename)
-		savePath := fmt.Sprintf("./uploads/stickers/%s", filename)
+		savePath := fmt.Sprintf("./uploads/%s", filename)
 		if saveErr := c.SaveFile(file, savePath); saveErr == nil {
 			image = filename
 		} else {

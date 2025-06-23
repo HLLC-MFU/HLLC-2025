@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Patch, Param, Delete, Query, UseGuards, Req, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  Req,
+  UseInterceptors,
+} from '@nestjs/common';
 import { MapsService } from '../service/maps.service';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { UpdateMapDto } from '../../coin-collections/dto/maps/update-map.dto';
@@ -12,13 +23,13 @@ import { CreateMapDto } from '../../coin-collections/dto/maps/create-map.dto';
 @ApiTags('maps')
 @Controller('maps')
 export class MapsController {
-  constructor(private readonly mapsService: MapsService) { }
+  constructor(private readonly mapsService: MapsService) {}
 
   @Post()
   @Permissions('maps:create')
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Req() req: FastifyRequest) {
-    const dto = req.body as CreateMapDto
+    const dto = req.body as CreateMapDto;
     return this.mapsService.create(dto);
   }
 
@@ -38,7 +49,7 @@ export class MapsController {
   @Permissions('maps:update')
   @UseInterceptors(new MultipartInterceptor(500))
   update(@Param('id') id: string, @Req() req: FastifyRequest) {
-    const dto = req.body as UpdateMapDto
+    const dto = req.body as UpdateMapDto;
     return this.mapsService.update(id, dto);
   }
 

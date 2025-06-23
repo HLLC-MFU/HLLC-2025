@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsDate,
+  IsEnum,
   IsMongoId,
   IsNotEmpty,
   IsNumber,
@@ -9,19 +10,21 @@ import {
   IsString,
 } from 'class-validator';
 import { Localization, Photo } from 'src/pkg/types/common';
+import { EvoucherType } from '../../schema/evoucher.schema';
+import { Type } from 'class-transformer';
 
 export class CreateEvoucherDto {
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
-  discount: number;
+  discount: string;
 
   @IsString()
   @IsNotEmpty()
   acronym: string;
 
-  @IsMongoId()
+  @IsEnum(EvoucherType)
   @IsNotEmpty()
-  type: string;
+  type: EvoucherType;
 
   @IsMongoId()
   @IsNotEmpty()
@@ -29,6 +32,7 @@ export class CreateEvoucherDto {
 
   @IsDate()
   @IsNotEmpty()
+  @Type(() => Date)
   expiration: Date;
 
   @IsObject()
@@ -46,4 +50,9 @@ export class CreateEvoucherDto {
   @IsObject()
   @IsOptional()
   metadata?: Record<string, string>;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  maxClaims?: number;
 }

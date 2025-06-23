@@ -4,11 +4,9 @@ import { Evoucher, EvoucherSchema } from './schema/evoucher.schema';
 import { Sponsors } from '../sponsors/schema/sponsors.schema';
 import { SponsorsSchema } from '../sponsors/schema/sponsors.schema';
 import { EvoucherController } from './controller/evoucher.controller';
-import {
-  EvoucherType,
-  EvoucherTypeSchema,
-} from './schema/evoucher-type.schema';
 import { EvoucherService } from './service/evoucher.service';
+import { EvoucherCode } from './schema/evoucher-code.schema';
+import { EvoucherCodeSchema } from './schema/evoucher-code.schema';
 
 @Module({
   imports: [
@@ -18,12 +16,12 @@ import { EvoucherService } from './service/evoucher.service';
         schema: EvoucherSchema,
       },
       {
-        name: EvoucherType.name,
-        schema: EvoucherTypeSchema,
-      },
-      {
         name: Sponsors.name,
         schema: SponsorsSchema,
+      },
+      {
+        name: EvoucherCode.name,
+        schema: EvoucherCodeSchema,
       },
     ]),
   ],

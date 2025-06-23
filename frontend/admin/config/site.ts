@@ -15,6 +15,7 @@ import {
   MonitorSmartphone,
   HandCoins,
   Flower,
+  BadgeCent,
 } from "lucide-react";
 
 import type { NavSection } from "@/types/nav";
@@ -50,6 +51,7 @@ export const siteConfig: {
       items: [
         { label: "Sponsor", href: "/sponsor", icon: HandCoins, permission: "sponsor:read" },
         { label: "Evoucher", href: "/evoucher", icon: Ticket, permission: "evoucher:read" },
+        { label: "Evoucher Code", href: "/evoucher-code", icon: BadgeCent, permission: "evoucher-code:read" },
         { label: "Campaign", href: "/campaigns", icon: Megaphone, permission: "campaigns:read" },
       ],
     },
