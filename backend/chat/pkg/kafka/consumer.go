@@ -43,11 +43,12 @@ func NewConsumer(brokers []string, topics []string, groupID string, handler Mess
 
 func (c *Consumer) Start() error {
 	for _, topic := range c.topics {
-		if err := EnsureKafkaTopic("localhost:9092", topic); err != nil {
+		if err := EnsureKafkaTopic(c.brokers[0], topic); err != nil {
+
 			return fmt.Errorf("failed to ensure topic exists: %w", err)
 		}
 
-		if err := WaitUntilTopicReady("localhost:9092", topic, 30*time.Second); err != nil {
+		if err := WaitUntilTopicReady(c.brokers[0], topic, 30*time.Second); err != nil {
 			return fmt.Errorf("topic not ready after waiting: %w", err)
 		}
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -31,6 +32,10 @@ type Config struct {
 		Port     string
 		Password string
 		DB       int
+	}
+	Kafka struct {
+		Host string
+		Port string
 	}
 	CORS struct {
 		AllowOrigins     string
@@ -72,6 +77,10 @@ func LoadConfig(path string) *Config {
 	cfg.Redis.Port = getEnvOrFatal("REDIS_PORT")
 	cfg.Redis.Password = getEnvOrDefault("REDIS_PASSWORD", "")
 	cfg.Redis.DB = getEnvAsIntOrDefault("REDIS_DB", 0)
+
+	// Kafka configuration
+	cfg.Kafka.Host = getEnvOrDefault("KAFKA_HOST", "localhost")
+	cfg.Kafka.Port = getEnvOrDefault("KAFKA_PORT", "9092")
 
 	// CORS configuration
 	cfg.CORS.AllowOrigins = getEnvOrDefault("CORS_ALLOW_ORIGINS", "http://localhost:3000")
@@ -135,4 +144,8 @@ func EnsureDirExists(path string) error {
 		return os.MkdirAll(path, 0755)
 	}
 	return nil
+}
+
+func (cfg *Config) KafkaAddress() string {
+	return fmt.Sprintf("%s:%s", cfg.Kafka.Host, cfg.Kafka.Port)
 }
