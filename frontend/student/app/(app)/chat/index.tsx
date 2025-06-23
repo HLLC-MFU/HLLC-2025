@@ -30,6 +30,7 @@ import RoomCard from '@/components/chats/RoomCard';
 import { RoomDetailModal } from '@/components/chats/RoomDetailModal';
 import RoomListItem from '@/components/chats/RoomListItem';
 import chatService from '@/services/chats/chatService';
+import { t, getLocalizedField } from '@/utils/i18n';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -90,14 +91,14 @@ export default function ChatPage() {
         });
       } else {
         Alert.alert(
-          language === 'th' ? 'เข้าร่วมไม่สำเร็จ' : 'Join Failed',
-          result.message || (language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room')
+          t('joinFailed', language),
+          result.message || t('joinFailedMessage', language)
         );
       }
     } catch (error) {
       Alert.alert(
-        language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
-        language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room'
+        t('error', language),
+        t('cannotJoin', language)
       );
     }
   };
@@ -115,8 +116,8 @@ export default function ChatPage() {
     } catch (error) {
       console.error('Error navigating to room:', error);
       Alert.alert(
-        language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
-        language === 'th' ? 'ไม่สามารถเข้าห้องแชทได้' : 'Cannot access chat room'
+        t('error', language),
+        t('cannotAccess', language)
       );
     }
   };
@@ -175,7 +176,7 @@ export default function ChatPage() {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
-          <LoadingSpinner text={language === 'th' ? 'กำลังโหลดชุมชน...' : 'Loading communities...'} />
+          <LoadingSpinner text={t('loadingCommunities', language)} />
         </View>
       </View>
     );
@@ -240,7 +241,7 @@ export default function ChatPage() {
             <View style={styles.emptyState}>
               <Sparkles size={48} color="#a5b4fc" />
               <Text style={styles.emptyStateText}>
-                {language === 'th' ? 'ไม่พบชุมชนในหมวดหมู่นี้' : 'No communities found in this category'}
+                {t('noCommunities', language)}
               </Text>
             </View>
           )}

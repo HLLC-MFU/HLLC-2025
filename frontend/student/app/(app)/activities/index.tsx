@@ -21,6 +21,7 @@ import { BlurView } from "expo-blur"
 import FadeView from "@/components/ui/FadeView"
 import UpcomingActivityCard from "./_components/upcoming-activity-card"
 import ActivityCard from "./_components/activity-card"
+import React from "react"
 
 export default function ActivitiesPage() {
   const router = useRouter()
