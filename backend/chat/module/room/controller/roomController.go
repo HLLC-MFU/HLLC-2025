@@ -130,7 +130,7 @@ func (c *RoomController) RemoveRoomMember(ctx *fiber.Ctx) error {
 	
 	// Create DTO with single user ID
 	addDto := &dto.AddRoomMembersDto{
-		UserIDs: []string{userId},
+		Members: []string{userId},
 	}
 
 	// Validate the DTO

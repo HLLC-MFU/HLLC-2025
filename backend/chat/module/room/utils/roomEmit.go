@@ -4,17 +4,10 @@ import (
 	"chat/module/room/model"
 	"chat/pkg/core/kafka"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-)
-
-const (
-	roomEventsTopic = "room-events"
 )
 
 type RoomEventEmitter struct {
@@ -22,41 +15,18 @@ type RoomEventEmitter struct {
 }
 
 func NewRoomEventEmitter(bus *kafka.Bus, brokerAddress string) *RoomEventEmitter {
-	// Ensure the room-events topic exists
-	if err := kafka.EnsureTopic(brokerAddress, roomEventsTopic, 1); err != nil {
-		log.Printf("[Kafka] Failed to ensure topic %s: %v", roomEventsTopic, err)
-	}
-
-	// Wait for topic to be ready
-	if err := kafka.WaitForTopic(brokerAddress, roomEventsTopic, 10*time.Second); err != nil {
-		log.Printf("[Kafka] Topic %s not ready: %v", roomEventsTopic, err)
-	}
-
-	return &RoomEventEmitter{
-		bus: bus,
-	}
+	return &RoomEventEmitter{bus: bus}
 }
 
 func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive.ObjectID, room *model.Room) {
-	// Validate IDs
-	if roomID.IsZero() {
-		log.Printf("[ERROR] Attempted to emit room_created event with zero roomID")
-		return
-	}
-	if room.ID.IsZero() {
-		log.Printf("[ERROR] Attempted to emit room_created event with zero room.ID")
-		return
-	}
-	if roomID != room.ID {
-		log.Printf("[ERROR] roomID mismatch in room_created event: %s != %s", roomID.Hex(), room.ID.Hex())
+	if !ValidateRoomID(roomID, "room_created") {
 		return
 	}
 
 	log.Printf("[RoomEvent] Emitting room_created event for room %s", roomID.Hex())
-	
-	payload, err := json.Marshal(room)
-	if err != nil {
-		log.Printf("[ERROR] Failed to marshal room for room_created event: %v", err)
+
+	payload, ok := MustMarshal(room, "room_created payload")
+	if !ok {
 		return
 	}
 
@@ -66,42 +36,53 @@ func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive
 		Payload: payload,
 	}
 
-	if err := e.emitEvent(ctx, event); err != nil {
-		log.Printf("[ERROR] Failed to emit room_created event for room %s: %v", roomID.Hex(), err)
-	} else {
-		log.Printf("[RoomEvent] Successfully emitted room_created event for room %s", roomID.Hex())
+	eventBytes, ok := MustMarshal(event, "room_created event")
+	if !ok {
+		return
+	}
+
+	roomTopic := fmt.Sprintf("chat-room-%s", roomID.Hex())
+	if err := kafka.EnsureTopic("localhost:9092", roomTopic, 1); err != nil {
+		log.Printf("[Kafka] Failed to create topic %s: %v", roomTopic, err)
+		return
+	}
+
+	if err := e.bus.Emit(ctx, roomTopic, roomID.Hex(), eventBytes); err != nil {
+		EmitErrorLog(ctx, "room_created", err)
 	}
 }
 
 func (e *RoomEventEmitter) EmitRoomDeleted(ctx context.Context, roomID primitive.ObjectID) {
-	// Validate ID
-	if roomID.IsZero() {
-		log.Printf("[ERROR] Attempted to emit room_deleted event with zero roomID")
+	if !ValidateRoomID(roomID, "room_deleted") {
 		return
 	}
-
-	log.Printf("[RoomEvent] Emitting room_deleted event for room %s", roomID.Hex())
 
 	event := model.RoomEvent{
 		Type:   "room_deleted",
 		RoomID: roomID.Hex(),
 	}
 
-	if err := e.emitEvent(ctx, event); err != nil {
-		log.Printf("[ERROR] Failed to emit room_deleted event for room %s: %v", roomID.Hex(), err)
-	} else {
-		log.Printf("[RoomEvent] Successfully emitted room_deleted event for room %s", roomID.Hex())
+	eventBytes, ok := MustMarshal(event, "room_deleted event")
+	if !ok {
+		return
 	}
+
+	roomTopic := fmt.Sprintf("chat-room-%s", roomID.Hex())
+
+	if err := e.bus.Emit(ctx, roomTopic, roomID.Hex(), eventBytes); err != nil {
+		EmitErrorLog(ctx, "room_deleted", err)
+		return
+	}
+
+	if err := kafka.DeleteTopic("localhost:9092", roomTopic); err != nil {
+		log.Printf("[Kafka] Failed to delete topic %s: %v", roomTopic, err)
+	} else {
+		log.Printf("[Kafka] Deleted topic %s", roomTopic)
+	}	
 }
 
 func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, userID primitive.ObjectID) {
-	// Validate IDs
-	if roomID.IsZero() {
-		log.Printf("[ERROR] Attempted to emit room_member_joined event with zero roomID")
-		return
-	}
-	if userID.IsZero() {
-		log.Printf("[ERROR] Attempted to emit room_member_joined event with zero userID")
+	if !ValidateRoomID(roomID, "room_member_joined") || !ValidateUserID(userID, "room_member_joined") {
 		return
 	}
 
@@ -110,9 +91,9 @@ func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, use
 	payload := map[string]string{
 		"userId": userID.Hex(),
 	}
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		log.Printf("[ERROR] Failed to marshal payload for room_member_joined event: %v", err)
+
+	payloadBytes, ok := MustMarshal(payload, "room_member_joined payload")
+	if !ok {
 		return
 	}
 
@@ -123,31 +104,27 @@ func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, use
 	}
 
 	if err := e.emitEvent(ctx, event); err != nil {
-		log.Printf("[ERROR] Failed to emit room_member_joined event for room %s, user %s: %v", 
-			roomID.Hex(), userID.Hex(), err)
+		EmitErrorLog(ctx, fmt.Sprintf("room_member_joined room=%s user=%s", roomID.Hex(), userID.Hex()), err)
 	} else {
-		log.Printf("[RoomEvent] Successfully emitted room_member_joined event for room %s, user %s", 
-			roomID.Hex(), userID.Hex())
+		log.Printf("[RoomEvent] Successfully emitted room_member_joined event for room %s, user %s", roomID.Hex(), userID.Hex())
 	}
 }
 
 func (e *RoomEventEmitter) emitEvent(ctx context.Context, event model.RoomEvent) error {
-	// Validate event
 	if event.RoomID == "" || event.RoomID == "000000000000000000000000" {
 		return fmt.Errorf("invalid roomID in event: %s", event.RoomID)
 	}
 
-	// Generate a unique event ID
-	if event.ID == "" {
-		event.ID = uuid.New().String()
+	roomTopic := fmt.Sprintf("chat-room-%s", event.RoomID)
+
+	if err := kafka.EnsureTopic("localhost:9092", roomTopic, 1); err != nil {
+		log.Printf("[Kafka] Failed to ensure topic %s: %v", roomTopic, err)
 	}
 
-	// Marshal event to JSON
-	eventBytes, err := json.Marshal(event)
-	if err != nil {
-		return fmt.Errorf("failed to marshal event: %w", err)
+	eventBytes, ok := MustMarshal(event, "generic event")
+	if !ok {
+		return fmt.Errorf("failed to marshal event for topic %s", roomTopic)
 	}
 
-	// Send JSON bytes to Kafka
-	return e.bus.Emit(ctx, roomEventsTopic, event.ID, eventBytes)
+	return e.bus.Emit(ctx, roomTopic, event.RoomID, eventBytes)
 }
