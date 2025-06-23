@@ -1,6 +1,8 @@
 package decorators
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -44,10 +46,24 @@ func (b *BaseController) AddRoute(route Route) {
 
 // NewBaseController creates a new base controller
 func NewBaseController(app *fiber.App, prefix string, guards ...fiber.Handler) *BaseController {
-	return &BaseController{
+	controller := &BaseController{
 		Controller: NewController(app, prefix, guards...),
 		routes:    make([]RouteDefinition, 0),
 	}
+
+	// Setup static file serving for uploads with optimized configuration
+	app.Static("/api/uploads", "./uploads", fiber.Static{
+		Browse:        false,  // Disable directory browsing for security
+		MaxAge:       86400,  // Cache for 24 hours
+		Compress:     true,   // Enable compression
+		ByteRange:    true,   // Enable byte range requests
+		CacheDuration: 24 * 60 * 60 * time.Second, // 24 hours cache
+		Next: func(c *fiber.Ctx) bool { // Skip processing for non-existent files
+			return c.Method() != fiber.MethodGet
+		},
+	})
+
+	return controller
 }
 
 // RegisterRoute adds a route definition to the controller

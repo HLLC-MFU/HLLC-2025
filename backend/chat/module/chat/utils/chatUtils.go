@@ -17,12 +17,12 @@ const (
 )
 
 type ChatEvent struct {
-	Type      string          `json:"type"`
-	RoomID    string          `json:"roomId"`
-	UserID    string          `json:"userId"`
-	Message   string          `json:"message"`
-	Timestamp time.Time       `json:"timestamp"`
-	Payload   json.RawMessage `json:"payload,omitempty"`
+	Type      string      `json:"type"`
+	RoomID    string      `json:"roomId"`
+	UserID    string      `json:"userId"`
+	Message   string      `json:"message"`
+	Timestamp time.Time   `json:"timestamp"`
+	Payload   interface{} `json:"payload,omitempty"`
 }
 
 type Client struct {

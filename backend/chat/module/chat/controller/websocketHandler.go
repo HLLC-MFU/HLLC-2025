@@ -83,14 +83,9 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 	messages, err := h.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
 	if err == nil {
 		for _, msg := range messages {
-			msgBytes, err := json.Marshal(msg)
-			if err != nil {
-				continue
-			}
-
 			event := model.ChatEvent{
 				EventType: "history",
-				Payload:   msgBytes,
+				Payload:   msg,
 			}
 
 			if data, err := json.Marshal(event); err == nil {

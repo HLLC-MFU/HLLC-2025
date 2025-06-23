@@ -2,6 +2,7 @@ package validator
 
 import (
 	"fmt"
+	"mime/multipart"
 	"reflect"
 	"strings"
 
@@ -122,3 +123,100 @@ func ValidateStruct(s interface{}) error {
 
 	return nil
 }
+
+// FileUploadDto represents a file upload request
+type FileUploadDto struct {
+	File        *multipart.FileHeader `form:"file" validate:"required"`
+	ContentType string                `form:"-"` // Will be set from File header
+}
+
+// ImageUploadDto represents an image upload request with specific validation
+type ImageUploadDto struct {
+	FileUploadDto
+	MaxSize      int64    `form:"-"` // Set by validator
+	AllowedTypes []string `form:"-"` // Set by validator
+}
+
+// ValidateFileUpload is a decorator for basic file upload validation
+func ValidateFileUpload(file *multipart.FileHeader) error {
+	if file == nil {
+		return fmt.Errorf("no file provided")
+	}
+
+	if file.Size == 0 {
+		return fmt.Errorf("file is empty")
+	}
+
+	return nil
+}
+
+// ValidateImageUpload is a decorator for image upload validation
+func ValidateImageUpload(file *multipart.FileHeader, maxSize int64, allowedTypes []string) error {
+	// First apply basic file validation
+	if err := ValidateFileUpload(file); err != nil {
+		return err
+	}
+
+	// Check file size
+	if file.Size > maxSize {
+		return fmt.Errorf("file size %d exceeds maximum allowed size of %d bytes", file.Size, maxSize)
+	}
+
+	// Check content type
+	contentType := file.Header.Get("Content-Type")
+	isAllowed := false
+	for _, allowedType := range allowedTypes {
+		if contentType == allowedType {
+			isAllowed = true
+			break
+		}
+	}
+
+	if !isAllowed {
+		return fmt.Errorf("invalid file type: %s. Allowed types: %s", 
+			contentType, strings.Join(allowedTypes, ", "))
+	}
+
+	return nil
+}
+
+// ValidateMultipartForm is a decorator for validating multipart form data
+func ValidateMultipartForm[T any](data *T) error {
+	if data == nil {
+		return fmt.Errorf("no form data provided")
+	}
+
+	return ValidateStruct(data)
+}
+
+// FileUploadValidator provides a reusable validation interface
+type FileUploadValidator interface {
+	ValidateFile(file *multipart.FileHeader) error
+}
+
+// ImageUploadValidator implements FileUploadValidator for images
+type ImageUploadValidator struct {
+	MaxSize      int64
+	AllowedTypes []string
+}
+
+// NewImageUploadValidator creates a new image upload validator
+func NewImageUploadValidator(maxSize int64, allowedTypes []string) *ImageUploadValidator {
+	return &ImageUploadValidator{
+		MaxSize:      maxSize,
+		AllowedTypes: allowedTypes,
+	}
+}
+
+// ValidateFile implements FileUploadValidator
+func (v *ImageUploadValidator) ValidateFile(file *multipart.FileHeader) error {
+	return ValidateImageUpload(file, v.MaxSize, v.AllowedTypes)
+}
+
+// Common validation errors
+var (
+	ErrNoFile = fmt.Errorf("no file provided")
+	ErrEmptyFile = fmt.Errorf("file is empty")
+	ErrInvalidFileType = fmt.Errorf("invalid file type")
+	ErrFileTooLarge = fmt.Errorf("file too large")
+)

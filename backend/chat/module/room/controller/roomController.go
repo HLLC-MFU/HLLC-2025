@@ -7,7 +7,11 @@ import (
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
 	controllerHelper "chat/pkg/helpers/controller"
+	"chat/pkg/utils"
 	"chat/pkg/validator"
+
+	"mime/multipart"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -16,14 +20,31 @@ import (
 type (
 	RoomController struct {
 		*decorators.BaseController
-		service *service.RoomService
+		service       *service.RoomService
+		uploadHandler *utils.FileUploadHandler
+		imageValidator *validator.ImageUploadValidator
+	}
+
+	UpdateRoomImageDto struct {
+		Image *multipart.FileHeader `form:"image" validate:"required"`
 	}
 )
 
 func NewRoomController(app *fiber.App, service *service.RoomService) *RoomController {
+	// Get room-specific file upload config
+	uploadConfig := utils.GetModuleConfig("room")
+
+	// Create image validator
+	imageValidator := validator.NewImageUploadValidator(
+		uploadConfig.MaxSize,
+		uploadConfig.AllowedTypes,
+	)
+
 	controller := &RoomController{
 		BaseController: decorators.NewBaseController(app, "/api/rooms"),
 		service:       service,
+		uploadHandler: utils.NewModuleFileHandler("room"),
+		imageValidator: imageValidator,
 	}
 
 	controller.Get("/", controller.GetRooms)
@@ -33,6 +54,7 @@ func NewRoomController(app *fiber.App, service *service.RoomService) *RoomContro
 	controller.Delete("/:id", controller.DeleteRoom)
 	controller.Post("/:id/members", controller.AddRoomMember)
 	controller.Delete("/:id/members/:userId", controller.RemoveRoomMember)
+	controller.Post("/:id/image", controller.UpdateRoomImage)
 	controller.SetupRoutes()
 
 	return controller
@@ -74,20 +96,60 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 }
 
 func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
-	return controllerHelper.ControllerAction(ctx, func(createDto *dto.CreateRoomDto) (any, error) {
-		if createDto.CreatedBy == "" {
-			userID := controllerHelper.GetUserID(ctx)
-			if !userID.IsZero() {
-				createDto.CreatedBy = userID.Hex()
-			}
-		}
-		
-		if createDto.CreatedBy == "" {
-			return nil, fiber.NewError(fiber.StatusBadRequest, "createdBy is required")
+	// Parse multipart form
+	if form, err := ctx.MultipartForm(); err == nil {
+		defer form.RemoveAll()
+	}
+
+	// Get room data
+	var createDto dto.CreateRoomDto
+	if err := ctx.BodyParser(&createDto); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
+	}
+
+	// Validate the DTO including image if present
+	if err := validator.ValidateMultipartForm(&createDto); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	// Handle image upload if exists
+	var imagePath string
+	file, err := ctx.FormFile("image")
+	if err == nil && file != nil {
+		// Validate image
+		if err := c.imageValidator.ValidateFile(file); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 
-		return c.service.CreateRoom(ctx.Context(), createDto)
-	})
+		// Save image
+		imagePath, err = c.uploadHandler.HandleFileUpload(ctx, "image")
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	}
+
+	// Create room
+	room, err := c.service.CreateRoom(ctx.Context(), &createDto)
+	if err != nil {
+		// Clean up uploaded file if room creation fails
+		if imagePath != "" {
+			_ = c.uploadHandler.DeleteFile(imagePath)
+		}
+		return err
+	}
+
+	// Set the image path in the room model
+	if imagePath != "" {
+		room.Image = imagePath
+		room, err = c.service.UpdateRoom(ctx.Context(), room.ID.Hex(), room)
+		if err != nil {
+			// Clean up uploaded file if update fails
+			_ = c.uploadHandler.DeleteFile(imagePath)
+			return err
+		}
+	}
+
+	return ctx.Status(fiber.StatusCreated).JSON(room)
 }
 
 func (c *RoomController) UpdateRoom(ctx *fiber.Ctx) error {
@@ -145,4 +207,57 @@ func (c *RoomController) RemoveRoomMember(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(removedMember)
+}
+
+// UpdateRoomImage updates room's image using multipart form
+func (c *RoomController) UpdateRoomImage(ctx *fiber.Ctx) error {
+	// Parse and validate image upload
+	var imageDto validator.ImageUploadDto
+	if err := ctx.BodyParser(&imageDto); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
+	}
+
+	// Validate image
+	if err := c.imageValidator.ValidateFile(imageDto.File); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	// Get room
+	roomID := ctx.Params("id")
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid room ID")
+	}
+
+	room, err := c.service.GetRoomById(ctx.Context(), roomObjID)
+	if err != nil {
+		return err
+	}
+
+	// Handle new image upload
+	filepath, err := c.uploadHandler.HandleFileUpload(ctx, "file")
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	// Delete old image if exists
+	if room.Image != "" {
+		if err := c.uploadHandler.DeleteFile(room.Image); err != nil {
+			// Log error but continue
+			ctx.App().Config().ErrorHandler(ctx, err)
+		}
+	}
+
+	// Update room with new image path
+	room.Image = filepath
+	room.UpdatedAt = time.Now()
+
+	updatedRoom, err := c.service.UpdateRoom(ctx.Context(), roomID, room)
+	if err != nil {
+		// Clean up new file if update fails
+		_ = c.uploadHandler.DeleteFile(filepath)
+		return err
+	}
+
+	return ctx.JSON(updatedRoom)
 }

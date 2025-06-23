@@ -17,6 +17,7 @@ type (
 		CreatedBy   primitive.ObjectID            `bson:"createdBy" json:"createdBy"`
 		CreatedAt   time.Time         `bson:"createdAt" json:"createdAt"`
 		UpdatedAt   time.Time         `bson:"updatedAt" json:"updatedAt"`
+		Image       string             `bson:"image,omitempty" json:"image,omitempty"` // Base64 encoded image, max 256KB
 	}
 
 	RoomEvent struct {
@@ -26,3 +27,6 @@ type (
 	}
 
 )
+
+// MaxImageSize represents 256KB in bytes
+const MaxImageSize = 256 * 1024 // 256KB
