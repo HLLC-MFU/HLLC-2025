@@ -36,6 +36,13 @@ export function SettingLamduanFlowers({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const toLocalDatetime = (iso: string | undefined | null) => {
+    if (!iso) return "";
+    const date = new Date(iso);
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
+  };
+
   const populateForm = (data: LamduanSetting | null) => {
     if (!data) {
       setFile(null);
@@ -50,8 +57,8 @@ export function SettingLamduanFlowers({
     setFile(null);
     setPreview(`${process.env.NEXT_PUBLIC_API_URL}/uploads/${data.tutorialPhoto}`);
     setVideoLink(data.tutorialVideo);
-    setStartDate(data.startAt?.split("T")[0] || "");
-    setEndDate(data.endAt?.split("T")[0] || "");
+    setStartDate(toLocalDatetime(data.startAt));
+    setEndDate(toLocalDatetime(data.endAt));
     originalRef.current = data;
   };
 
@@ -92,8 +99,8 @@ export function SettingLamduanFlowers({
     const original = originalRef.current;
     if (!original) return true;
 
-    const originalStart = original.startAt?.split("T")[0] || "";
-    const originalEnd = original.endAt?.split("T")[0] || "";
+    const originalStart = toLocalDatetime(original.startAt);
+    const originalEnd = toLocalDatetime(original.endAt);
 
     return (
       videoLink !== original.tutorialVideo ||
@@ -175,7 +182,7 @@ export function SettingLamduanFlowers({
           isRequired
           label="Event start"
           labelPlacement="outside"
-          type="date"
+          type="datetime-local"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
           isInvalid={!!errors.startDate}
@@ -185,7 +192,7 @@ export function SettingLamduanFlowers({
           isRequired
           label="Event end"
           labelPlacement="outside"
-          type="date"
+          type="datetime-local"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
           isInvalid={!!errors.endDate}
