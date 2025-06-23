@@ -26,17 +26,17 @@ import (
 )
 
 func (s *server) chatService() {
-	publisher := kafkaUtil.GetPublisher()
+	publisher := kafkaUtil.GetPublisher(s.config)
 
 	kafkaTopics := []string{
 		"chat-notifications",
 	}
 
 	for _, topic := range kafkaTopics {
-		if err := kafkaUtil.EnsureKafkaTopic("localhost:9092", topic); err != nil {
+		if err := kafkaUtil.EnsureKafkaTopic(s.config.KafkaAddress(), topic); err != nil {
 			log.Fatalf("[Kafka] Ensure Topic %s error: %v", topic, err)
 		}
-		if err := kafkaUtil.ForceCreateTopic("localhost:9092", topic); err != nil {
+		if err := kafkaUtil.ForceCreateTopic(s.config.KafkaAddress(), topic); err != nil {
 			log.Fatalf("[Kafka] Force create Topic %s error: %v", topic, err)
 		}
 	}
@@ -58,17 +58,17 @@ func (s *server) chatService() {
 	majorRepo := majorRepoPkg.NewRepository(s.db)
 	majorService := majorServicePkg.NewService(majorRepo)
 	userService := userServicePkg.NewUserService(userRepo, majorService)
-	chatService := service.NewService(chatRepo, publisher, roomRepo, userService, memberService)
+	chatService := service.NewService(chatRepo, publisher, roomRepo, userService, memberService, s.config)
 
 	// Rooms logic
-	roomService := RoomService.NewService(roomRepo, publisher, memberService, chatService, userService)
+	roomService := RoomService.NewService(roomRepo, publisher, memberService, chatService, userService, s.config)
 
 	// Background services
 	chatService.SyncRoomMembers()
 	chatService.InitChatHub()
 
 	// Start room-specific Kafka consumer
-	roomKafka.StartKafkaConsumer("localhost:9092", chatService)
+	roomKafka.StartKafkaConsumer(s.config.KafkaAddress(), chatService)
 
 	// HTTP/WebSocket handler
 	httpHandler := handler.NewHTTPHandler(chatService, memberService, publisher, stickerService, roomService, userService)
@@ -99,7 +99,7 @@ func (s *server) chatService() {
 		if err == nil && user != nil {
 			username = user.Username
 		} else {
-			username = userID // Fallback to userID if we can't get the username
+			username = userID
 		}
 
 		httpHandler.HandleWebSocket(conn, userID, username, roomID)
