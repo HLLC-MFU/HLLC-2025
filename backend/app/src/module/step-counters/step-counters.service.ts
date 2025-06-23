@@ -23,7 +23,7 @@ export class StepCountersService {
     private stepCounterModel: Model<StepCounterDocument>,
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
-  ) {}
+  ) { }
 
   async create(createStepCounterDto: CreateStepCounterDto) {
     await findOrThrow(
@@ -78,37 +78,33 @@ export class StepCountersService {
     };
   }
 
-  async listUsersBySchoolId(schoolId: string) {
-    const all = await queryAll<User>({
-      model: this.userModel,
-      query: {},
-      filterSchema: {},
-      populateFields: () =>
-        Promise.resolve([
-          {
-            path: 'metadata.major',
-            model: 'Major',
-            populate: {
-              path: 'school',
-            },
+  async findAllBySchoolId(schoolId: string) {
+    const stepCounters = await this.stepCounterModel.find({})
+      .populate({
+        path: 'user',
+        model: 'User',
+        populate: {
+          path: 'metadata.major',
+          model: 'Major',
+          populate: {
+            path: 'school',
+            model: 'School',
           },
-        ]),
+        },
+      })
+      .lean();
+
+    const filtered = stepCounters.filter((sc: any) => {
+      const school = sc?.user?.metadata?.major?.school;
+      return school && school._id?.toString() === schoolId;
     });
 
-    const filtered = all.data.filter(
-      (user) =>
-        user.metadata?.major &&
-        typeof user.metadata.major === 'object' &&
-        (user.metadata.major as Major).school?._id?.toString() === schoolId,
-    );
-
     return {
-      ...all,
       data: filtered,
       meta: {
-        ...all.meta,
         total: filtered.length,
       },
+      message: 'Step counters fetched successfully by school',
     };
   }
 }
