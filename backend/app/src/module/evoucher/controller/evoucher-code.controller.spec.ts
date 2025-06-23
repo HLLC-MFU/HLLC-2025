@@ -3,7 +3,6 @@ import { EvoucherCodeController } from './evoucher-code.controller';
 import { EvoucherCodeService } from '../service/evoucher-code.service';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
-
 import { Types } from 'mongoose';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
@@ -12,6 +11,7 @@ describe('EvoucherCodeController', () => {
   let service: EvoucherCodeService;
 
   const mockObjectId = new Types.ObjectId();
+  const mockObjectIdStr = mockObjectId.toHexString();
 
   const mockEvoucherCode = {
     _id: mockObjectId,
@@ -37,7 +37,7 @@ describe('EvoucherCodeController', () => {
       controllers: [EvoucherCodeController],
       providers: [
         { provide: EvoucherCodeService, useValue: mockService },
-        { provide: CACHE_MANAGER, useValue: {} }, // Mock สำหรับ AutoCacheInterceptor
+        { provide: CACHE_MANAGER, useValue: {} },
       ],
     }).compile();
 
@@ -52,8 +52,8 @@ describe('EvoucherCodeController', () => {
   describe('create', () => {
     it('should call service.create with dto', async () => {
       const dto: CreateEvoucherCodeDto = {
-        user: mockObjectId.toHexString(),
-        evoucher: mockObjectId.toHexString(),
+        user: mockObjectIdStr,
+        evoucher: mockObjectIdStr,
         metadata: { claimedBy: 'user' },
       };
       const result = await controller.create(dto);
@@ -99,25 +99,46 @@ describe('EvoucherCodeController', () => {
   });
 
   describe('claimEvoucher', () => {
-    it('should claim evoucher for a user', async () => {
-      const req = { user: { _id: mockObjectId } } as any;
-      const result = await controller.claimEvoucher(mockObjectId.toHexString(), req);
+    it('should claim evoucher for a user (string _id)', async () => {
+      const req = { user: { _id: mockObjectIdStr } } as any;
+      const result = await controller.claimEvoucher(mockObjectIdStr, req);
       expect(result).toEqual({ claimed: true });
-      expect(service.claimEvoucher).toHaveBeenCalledWith(mockObjectId, mockObjectId.toHexString());
+      expect(service.claimEvoucher).toHaveBeenCalledWith(mockObjectIdStr, mockObjectIdStr);
+    });
+
+    it('should claim evoucher for a user (ObjectId _id)', async () => {
+      const req = { user: { _id: mockObjectId } } as any;
+      const result = await controller.claimEvoucher(mockObjectIdStr, req);
+      expect(result).toEqual({ claimed: true });
+      expect(service.claimEvoucher).toHaveBeenCalledWith(mockObjectIdStr, mockObjectIdStr);
     });
   });
 
   describe('getMyEvoucherCodes', () => {
-    it('should get evoucher codes for the user', async () => {
+    it('should get evoucher codes (string _id)', async () => {
+      const req = { user: { _id: mockObjectIdStr } } as any;
+      const result = await controller.getMyEvoucherCodes(req);
+      expect(result).toEqual([mockEvoucherCode]);
+      expect(service.getUserEvoucherCodes).toHaveBeenCalledWith(mockObjectIdStr);
+    });
+
+    it('should get evoucher codes (ObjectId _id)', async () => {
       const req = { user: { _id: mockObjectId } } as any;
       const result = await controller.getMyEvoucherCodes(req);
       expect(result).toEqual([mockEvoucherCode]);
-      expect(service.getUserEvoucherCodes).toHaveBeenCalledWith(mockObjectId);
+      expect(service.getUserEvoucherCodes).toHaveBeenCalledWith(mockObjectIdStr);
     });
   });
 
   describe('useEvoucherCode', () => {
-    it('should mark evoucher code as used', async () => {
+    it('should mark evoucher code as used (string _id)', async () => {
+      const req = { user: { _id: mockObjectIdStr } } as any;
+      const result = await controller.useEvoucherCode('code-id', req);
+      expect(result).toEqual({ used: true });
+      expect(service.useEvoucherCode).toHaveBeenCalledWith(new Types.ObjectId(mockObjectIdStr), 'code-id');
+    });
+
+    it('should mark evoucher code as used (ObjectId _id)', async () => {
       const req = { user: { _id: mockObjectId } } as any;
       const result = await controller.useEvoucherCode('code-id', req);
       expect(result).toEqual({ used: true });

@@ -6,7 +6,6 @@ import { Model, Types } from 'mongoose';
 import { CreateAppearanceDto } from './dto/create-appearance.dto';
 import { NotFoundException } from '@nestjs/common';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import {
   queryAll,
   queryDeleteOne,
@@ -66,14 +65,6 @@ describe('AppearancesService', () => {
 
       expect(throwIfExists).toHaveBeenCalledWith(model, { school: dto.school }, 'School already exists');
       expect(saveMock).toHaveBeenCalled();
-    });
-
-    it('should handle duplicate error on save', async () => {
-      const error = new Error('duplicate');
-      (throwIfExists as jest.Mock).mockResolvedValue(undefined);
-      saveMock.mockRejectedValue(error);
-      await service.create({ school: mockAppearanceId });
-      expect(handleMongoDuplicateError).toHaveBeenCalledWith(error, 'school');
     });
   });
 

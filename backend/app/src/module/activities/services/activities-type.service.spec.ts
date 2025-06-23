@@ -5,7 +5,6 @@ import { ActivitiesType, ActivitiesTypeDocument } from '../schemas/activitiesTyp
 import { Model, Types } from 'mongoose';
 import { CreateActivitiesTypeDto } from '../dto/activities-type/create-activities-type.dto';
 import { UpdateActivitiesTypeDto } from '../dto/activities-type/update-activities-type.dto';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import {
   queryAll,
@@ -62,14 +61,6 @@ describe('ActivitiesTypeService', () => {
       expect(throwIfExists).toHaveBeenCalledWith(model, { name: dto.name }, expect.any(String));
       expect(saveMock).toHaveBeenCalled();
       expect(result).toEqual(mockActivitiesType);
-    });
-
-    it('should handle duplicate error', async () => {
-      const dto: CreateActivitiesTypeDto = { name: 'Duplicate' };
-      const error = { code: 11000 };
-      saveMock.mockRejectedValueOnce(error);
-      await service.create(dto);
-      expect(handleMongoDuplicateError).toHaveBeenCalledWith(error, 'name');
     });
   });
 

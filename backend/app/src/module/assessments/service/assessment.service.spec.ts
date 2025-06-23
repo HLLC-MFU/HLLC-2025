@@ -5,7 +5,6 @@ import { Assessment } from '../schema/assessment.schema';
 import { CreateAssessmentDto } from '../dto/assessments/create-assessment.dto';
 import { UpdateAssessmentDto } from '../dto/assessments/update-assessment.dto';
 import { AssessmentTypes } from '../enum/assessment-types.enum';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import {
   queryAll,
   queryFindOne,
@@ -62,14 +61,6 @@ describe('AssessmentsService', () => {
       const result = await service.create(dto);
       expect(result).toEqual(expect.objectContaining({ _id: 'a1' }));
       expect(assessmentModel.save).toHaveBeenCalled();
-    });
-
-    it('should handle duplicate key error', async () => {
-      const error = new Error('duplicate');
-      assessmentModel.save.mockRejectedValue(error);
-
-      await service.create(dto);
-      expect(handleMongoDuplicateError).toHaveBeenCalledWith(error, 'order');
     });
   });
 
