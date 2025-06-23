@@ -9,20 +9,11 @@ import { useWebSocket } from './useWebSocket';
 import { useTypingIndicator } from './useTypingIndicator';
 import { useMessageGrouping } from './useMessageGrouping';
 import useProfile from '@/hooks/useProfile';
-import { chatService, RoomMembersResponse } from '../services/chatService';
-import { ChatRoom, Message } from '../types/chatTypes';
-import { 
-  MAX_MESSAGE_LENGTH, 
-  SCROLL_DELAY,
-  ERROR_MESSAGES,
-} from '../constants/chatConstants';
-import { 
-  triggerHapticFeedback, 
-  triggerSuccessHaptic,
-  createTempMessage,
-  createFileMessage,
-} from '../utils/messageHandlers';
-import { API_BASE_URL } from '../config/chatConfig';
+import { ChatRoom, Message } from '@/types/chatTypes';
+import chatService, { RoomMembersResponse } from '@/services/chats/chatService';
+import { createFileMessage, createTempMessage, triggerHapticFeedback, triggerSuccessHaptic } from '@/utils/chats/messageHandlers';
+import { ERROR_MESSAGES } from '@/constants/chats/chatConstants';
+import { API_BASE_URL } from '@/configs/chats/chatConfig';
 
 // WebSocket constants
 const WS_OPEN = 1;
@@ -364,14 +355,17 @@ export const useChatRoom = () => {
       const stickerMessage: Message = {
         id: data.id || Date.now().toString(),
         senderId: data.user_id,
-        senderName: typeof user?.data[0].name === 'string' 
-          ? user?.data[0].name 
+        senderName: typeof user?.data[0].name === 'string'
+          ? user?.data[0].name
           : `${user?.data[0].name?.first || ''} ${user?.data[0].name?.last || ''}`.trim(),
+        username: user?.data[0].username || '',
         type: 'sticker',
         timestamp: data.timestamp || new Date().toISOString(),
         isRead: false,
+        isTemp: false,
         stickerId: data.stickerId || stickerId,
-        image: data.image
+        image: data.image,
+
       };
       
       addMessage(stickerMessage);

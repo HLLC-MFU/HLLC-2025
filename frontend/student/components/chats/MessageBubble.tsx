@@ -8,7 +8,7 @@ import { formatTime } from '@/utils/chats/timeUtils';
 
 
 interface MessageBubbleEnrichedProps extends MessageBubbleProps {
-  allMessages?: import('../types/chatTypes').Message[];
+  allMessages?: import('@/types/chatTypes').Message[];
   onReplyPreviewClick?: (replyToId: string) => void;
 }
 
@@ -133,7 +133,7 @@ const MessageBubble = memo(({
             ? `You replied to ${enrichedReplyTo.senderName || 'Unknown'}`
             : `${senderName || 'Someone'} replied to ${enrichedReplyTo.senderName || 'Unknown'}`}
         </Text>
-        <View style={styles.replyPreviewBox}>
+        <View style={isMyMessage ? styles.replyPreviewBoxMine : styles.replyPreviewBoxOther}>
           {enrichedReplyTo.type === 'file' && enrichedReplyTo.fileType === 'image' && enrichedReplyTo.image && (
             <Image source={{ uri: enrichedReplyTo.image }} style={styles.replyImage} />
           )}
@@ -144,7 +144,7 @@ const MessageBubble = memo(({
             <Text style={styles.replyFile}>{enrichedReplyTo.fileName}</Text>
           )}
           {enrichedReplyTo.type === 'message' && (
-            <Text style={styles.replyText} numberOfLines={1}>
+            <Text style={styles.replyText}>
               {enrichedReplyTo.text}
             </Text>
           )}
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 18,
   },
   otherBubble: { 
-    backgroundColor: '#ffffff70',
+    backgroundColor: '#E0E0E0',
     borderTopRightRadius: 18,
     borderBottomRightRadius: 18,
     borderTopLeftRadius: 4,
@@ -306,6 +306,7 @@ const styles = StyleSheet.create({
   },
   replyPreviewContainer: {
     marginBottom: 6,
+    maxWidth: '80%',
   },
   replyLabel: {
     color: '#b0b0b0',
@@ -313,11 +314,20 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     marginLeft: 2,
   },
-  replyPreviewBox: {
+  replyPreviewBoxMine: {
     backgroundColor: '#ffffff70',
     borderRadius: 18,
     paddingVertical: 8,
     paddingHorizontal: 14,
+    marginBottom: -12,
+    justifyContent: 'center',
+  },
+  replyPreviewBoxOther: {
+    backgroundColor: '#ffffff70',
+    borderRadius: 18,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginLeft: 40,
     marginBottom: -12,
     justifyContent: 'center',
   },

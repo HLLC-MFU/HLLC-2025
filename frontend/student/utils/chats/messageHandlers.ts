@@ -1,9 +1,7 @@
-import { Message } from '../types/chatTypes';
-import { Platform } from 'react-native';
+import { CHAT_BASE_URL } from "@/configs/chats/chatConfig";
+import { Message } from "@/types/chatTypes";
+import { Platform, Vibration } from "react-native";
 import * as Haptics from 'expo-haptics';
-import { Vibration } from 'react-native';
-import { ERROR_MESSAGES } from '../constants/chatConstants';
-import { CHAT_BASE_URL } from '../config/chatConfig';
 
 export const triggerHapticFeedback = () => {
   if (Platform.OS === 'ios') {
