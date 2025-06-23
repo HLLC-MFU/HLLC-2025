@@ -20,7 +20,6 @@ import { useChatRooms } from '../../../hooks/chats/useChatRooms';
 import { useChatAnimations } from '../../../hooks/chats/useChatAnimations';
 import { ChatRoom } from '../../../types/chatTypes';
 import { BlurView } from 'expo-blur';
-import { chatService } from '../../../services/chats/chatService';
 import CategoryFilter from '@/components/chats/CategoryFilter';
 import ChatHeader from '@/components/chats/ChatHeader';
 import { ChatTabBar } from '@/components/chats/ChatTabBar';
@@ -30,6 +29,7 @@ import LoadingSpinner from '@/components/chats/LoadingSpinner';
 import RoomCard from '@/components/chats/RoomCard';
 import { RoomDetailModal } from '@/components/chats/RoomDetailModal';
 import RoomListItem from '@/components/chats/RoomListItem';
+import chatService from '@/services/chats/chatService';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -226,8 +226,8 @@ export default function ChatPage() {
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={handleRefresh}
-              colors={['#6366f1']}
-              tintColor="#6366f1"
+              colors={['#fff']}
+              tintColor="#fff"
               progressBackgroundColor="#ffffff"
             />
           }

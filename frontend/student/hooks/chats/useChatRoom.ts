@@ -10,10 +10,12 @@ import { useTypingIndicator } from './useTypingIndicator';
 import { useMessageGrouping } from './useMessageGrouping';
 import useProfile from '@/hooks/useProfile';
 import { ChatRoom, Message } from '@/types/chatTypes';
-import chatService, { RoomMembersResponse } from '@/services/chats/chatService';
+import type { RoomMember } from '@/types/chatTypes';
 import { createFileMessage, createTempMessage, triggerHapticFeedback, triggerSuccessHaptic } from '@/utils/chats/messageHandlers';
 import { ERROR_MESSAGES } from '@/constants/chats/chatConstants';
 import { API_BASE_URL } from '@/configs/chats/chatConfig';
+import chatService from '@/services/chats/chatService';
+
 
 // WebSocket constants
 const WS_OPEN = 1;
@@ -34,6 +36,12 @@ interface UIState {
   showStickerPicker: boolean;
 }
 
+interface MentionState {
+  mentionSuggestions: RoomMember[];
+  mentionQuery: string;
+  isMentioning: boolean;
+}
+
 interface ReplyState {
   replyTo: Message | undefined;
 }
@@ -41,6 +49,11 @@ interface ReplyState {
 interface RoomDataState {
   roomMembers: RoomMembersResponse | null;
   loadingMembers: boolean;
+}
+
+interface RoomMembersResponse {
+  members: RoomMember[];
+  room_id: string;
 }
 
 export const useChatRoom = () => {
@@ -66,6 +79,12 @@ export const useChatRoom = () => {
     showEmojiPicker: false,
     isRoomInfoVisible: false,
     showStickerPicker: false,
+  });
+
+  const [mentionState, setMentionState] = useState<MentionState>({
+    mentionSuggestions: [],
+    mentionQuery: '',
+    isMentioning: false,
   });
 
   const [replyState, setReplyState] = useState<ReplyState>({
@@ -94,7 +113,7 @@ export const useChatRoom = () => {
     addMessage
   } = useWebSocket(roomId);
 
-  const { isTyping, handleTyping } = useTypingIndicator();
+  const { isTyping, handleTyping: originalHandleTyping } = useTypingIndicator();
   const groupMessages = useMessageGrouping(wsMessages);
 
   // State update helpers
@@ -106,6 +125,10 @@ export const useChatRoom = () => {
     setUIState(prev => ({ ...prev, ...updates }));
   }, []);
 
+  const updateMentionState = useCallback((updates: Partial<MentionState>) => {
+    setMentionState(prev => ({ ...prev, ...updates }));
+  }, []);
+
   const updateReplyState = useCallback((updates: Partial<ReplyState>) => {
     setReplyState(prev => ({ ...prev, ...updates }));
   }, []);
@@ -114,17 +137,54 @@ export const useChatRoom = () => {
     setRoomDataState(prev => ({ ...prev, ...updates }));
   }, []);
 
+  // Handle text input changes for mentions
+  const handleTextInput = (text: string) => {
+    updateChatState({ messageText: text });
+    originalHandleTyping(); // Trigger typing indicator
+
+    // Regex to find @ at the end of the string, or after a space
+    const mentionMatch = text.match(/(?:^|\s)@(\w*)$/);
+
+    if (mentionMatch) {
+      const query = mentionMatch[1].toLowerCase();
+      updateMentionState({ isMentioning: true, mentionQuery: query });
+      if (roomDataState.roomMembers?.members) {
+        const suggestions = roomDataState.roomMembers.members.filter((member: RoomMember) =>
+          (`${member.user.name.first} ${member.user.name.last}`.toLowerCase().includes(query) ||
+           member.user.username.toLowerCase().includes(query)) &&
+           member.user_id !== userId // Exclude self
+        );
+        updateMentionState({ mentionSuggestions: suggestions });
+      }
+    } else {
+      updateMentionState({ isMentioning: false, mentionSuggestions: [] });
+    }
+  };
+
+  // Handle selecting a user from mention suggestions
+  const handleMentionSelect = (user: RoomMember) => {
+    const currentText = chatState.messageText;
+    const mentionMatch = currentText.match(/(?:^|\s)@\w*$/);
+    if (mentionMatch && typeof mentionMatch.index === 'number') {
+      const newText = currentText.substring(0, mentionMatch.index) + `${mentionMatch.index > 0 ? ' ' : ''}@${user.user.username} `;
+      updateChatState({ messageText: newText });
+    }
+    updateMentionState({ isMentioning: false, mentionSuggestions: [] });
+    if (inputRef.current) {
+      // @ts-ignore
+      inputRef.current.focus();
+    }
+  };
+
   // Initialize room data - only once
   const initializeRoom = useCallback(async () => {
     if (isInitialized.current || initializationInProgress.current) {
-      console.log('Room already initialized or initialization in progress, skipping...');
       return;
     }
 
     try {
       initializationInProgress.current = true;
       updateChatState({ loading: true });
-      console.log('Initializing room data...');
       
       if (params.room) {
         const roomData = JSON.parse(params.room as string);
@@ -132,7 +192,6 @@ export const useChatRoom = () => {
           room: roomData, 
           isMember: roomData.is_member || false 
         });
-        console.log('Room data loaded from params, is_member:', roomData.is_member);
       } else {
         const roomData = await chatService.getRoom(roomId);
         if (!roomData) throw new Error('Room not found');
@@ -141,7 +200,6 @@ export const useChatRoom = () => {
           room: roomData, 
           isMember: roomData.is_member || false 
         });
-        console.log('Room data loaded from API, is_member:', roomData.is_member);
       }
       
       // Fetch room members
@@ -163,7 +221,6 @@ export const useChatRoom = () => {
       updateRoomDataState({ loadingMembers: true });
       const members = await chatService.getRoomMembers(roomId);
       updateRoomDataState({ roomMembers: members });
-      console.log('Room members loaded:', members);
     } catch (error) {
       console.error('Error fetching room members:', error);
     } finally {
@@ -189,6 +246,13 @@ export const useChatRoom = () => {
     console.log('Connecting to WebSocket...');
     await wsConnect(roomId);
   }, [chatState.room?.is_member, isConnected, wsConnect, roomId]);
+
+  // Modified handleTyping to avoid triggering while mentioning
+  const handleTyping = () => {
+    if (!mentionState.isMentioning) {
+      originalHandleTyping();
+    }
+  };
 
   // Initialize room on mount - only once
   useEffect(() => {
@@ -272,14 +336,11 @@ export const useChatRoom = () => {
       const tempMessage = createTempMessage(trimmedMessage, userId, replyState.replyTo);
       addMessage(tempMessage);
       
-      // Debug log
-      console.log('handleSendMessage: replyTo =', replyState.replyTo);
       // Send message with /reply <messageID> <ข้อความ> if replyTo exists
       let messageToSend = trimmedMessage;
       if (replyState.replyTo && replyState.replyTo.id) {
         messageToSend = `/reply ${replyState.replyTo.id} ${trimmedMessage}`;
       }
-      console.log('handleSendMessage: messageToSend =', messageToSend);
       
       wsSendMessage(messageToSend);
       updateChatState({ messageText: '' });
@@ -379,52 +440,32 @@ export const useChatRoom = () => {
 
   // Expose state and handlers
   return {
-    // Chat state
-    room: chatState.room,
-    isMember: chatState.isMember,
-    messageText: chatState.messageText,
-    loading: chatState.loading,
-    error: chatState.error,
-    joining: chatState.joining,
-    
-    // UI state
-    showEmojiPicker: uiState.showEmojiPicker,
-    isRoomInfoVisible: uiState.isRoomInfoVisible,
-    showStickerPicker: uiState.showStickerPicker,
-    
-    // Reply state
-    replyTo: replyState.replyTo,
-    
-    // Room data state
-    roomMembers: roomDataState.roomMembers,
-    loadingMembers: roomDataState.loadingMembers,
-    
-    // WebSocket state
+    ...chatState,
+    ...uiState,
+    ...replyState,
+    ...roomDataState,
+    ...mentionState,
+    userId,
+    roomId,
     isConnected,
     wsError,
     connectedUsers,
     typing,
-    
-    // Refs
-    flatListRef,
     inputRef,
-    userId,
+    flatListRef,
     groupMessages,
-    
-    // State setters
-    setMessageText: (text: string) => updateChatState({ messageText: text }),
-    setShowEmojiPicker: (show: boolean) => updateUIState({ showEmojiPicker: show }),
-    setIsRoomInfoVisible: (visible: boolean) => updateUIState({ isRoomInfoVisible: visible }),
-    setReplyTo: (message: Message | undefined) => updateReplyState({ replyTo: message }),
-    setShowStickerPicker: (show: boolean) => updateUIState({ showStickerPicker: show }),
-    
-    // Handlers
-    fetchRoomMembers,
+    initializeRoom,
     handleJoin,
     handleSendMessage,
     handleImageUpload,
     handleSendSticker,
     handleTyping,
-    initializeRoom,
+    handleTextInput,
+    handleMentionSelect,
+    setMessageText: (text: string) => handleTextInput(text),
+    setShowEmojiPicker: (show: boolean) => updateUIState({ showEmojiPicker: show }),
+    setIsRoomInfoVisible: (show: boolean) => updateUIState({ isRoomInfoVisible: show }),
+    setReplyTo: (message?: Message) => updateReplyState({ replyTo: message }),
+    setShowStickerPicker: (show: boolean) => updateUIState({ showStickerPicker: show }),
   };
 }; 

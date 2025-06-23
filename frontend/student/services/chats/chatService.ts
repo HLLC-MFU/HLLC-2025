@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import { getToken } from "@/utils/storage";
 import { ChatRoom } from '../../types/chatTypes';
 import { CHAT_BASE_URL, WS_BASE_URL, API_BASE_URL } from '../../configs/chats/chatConfig';
+import type { RoomMember, User } from '@/types/chatTypes';
 
 // Cache for room data
 const roomCache = new Map<string, { data: ChatRoom; timestamp: number }>();
@@ -74,29 +75,16 @@ export interface JoinRoomResponse {
   room?: ChatRoom;
 }
 
-export interface RoomMember {
-  user: {
-    created_at: string;
-    updated_at: string;
-    id: string;
-    name: {
-      first: string;
-      middle: string;
-      last: string;
-    };
-    username: string;
-    role: string;
-    metadata: {
-      major: string;
-      secret: string;
-    };
-  };
-  user_id: string;
-}
-
-export interface RoomMembersResponse {
+interface RoomMembersResponse {
   members: RoomMember[];
   room_id: string;
+}
+
+// Helper type for member mapping
+interface MemberLike {
+  user_id?: string;
+  id?: string;
+  user?: User;
 }
 
 async function getAuthHeaders() {
@@ -184,10 +172,10 @@ class ChatService {
       );
 
       // Enrich room data with membership info
-      const enrichedRooms = rooms.map((room: any) => {
+      const enrichedRooms = rooms.map((room: ChatRoom) => {
         const members = membersMap.get(room.id) || [];
         // Extract user IDs from the members array if it contains objects
-        const memberIds = members.map((member: any) => 
+        const memberIds = members.map((member: string | MemberLike) => 
           typeof member === 'string' ? member : member.user_id || member.id
         );
         const enrichedRoom: ChatRoom = {
@@ -256,7 +244,7 @@ class ChatService {
         if (membersData.members) {
           if (Array.isArray(membersData.members)) {
             // Check if members is array of strings or objects
-            const memberIds = membersData.members.map((member: any) => 
+            const memberIds = membersData.members.map((member: string | MemberLike) => 
               typeof member === 'string' ? member : member.user_id || member.id
             );
             isMember = memberIds.includes(currentUserId);
@@ -346,7 +334,7 @@ class ChatService {
         let isMember = false;
         if (membersData.members) {
           if (Array.isArray(membersData.members)) {
-            const memberIds = membersData.members.map((member: any) => 
+            const memberIds = membersData.members.map((member: string | MemberLike) => 
               typeof member === 'string' ? member : member.user_id || member.id
             );
             isMember = memberIds.includes(userId);
@@ -622,10 +610,10 @@ class ChatService {
       
       
       // Transform the response to match expected format
-      const transformedRooms = result.rooms?.map((item: any) => {
+      const transformedRooms = result.rooms?.map((item: { room: ChatRoom; members: (string | MemberLike)[] }) => {
         const members = item.members || [];
         // Extract user IDs from member objects
-        const memberIds = members.map((member: any) => 
+        const memberIds = members.map((member: string | MemberLike) => 
           typeof member === 'string' ? member : member.user_id || member.id
         );
         return {
@@ -653,7 +641,18 @@ class ChatService {
       }
 
       const result = await response.json();
-      
+
+      // Map ให้ user มี _id เสมอ
+      if (result.members && Array.isArray(result.members)) {
+        result.members = result.members.map((member: RoomMember) => ({
+          ...member,
+          user: {
+            ...member.user,
+            _id: member.user._id, // Use only _id as per User interface
+          }
+        }));
+      }
+
       return result;
     } catch (error) {
       console.error('Error fetching room members:', error);

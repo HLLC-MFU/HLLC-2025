@@ -10,6 +10,7 @@ import { formatTime } from '@/utils/chats/timeUtils';
 interface MessageBubbleEnrichedProps extends MessageBubbleProps {
   allMessages?: import('@/types/chatTypes').Message[];
   onReplyPreviewClick?: (replyToId: string) => void;
+  currentUsername: string;
 }
 
 const MessageBubble = memo(({ 
@@ -24,6 +25,7 @@ const MessageBubble = memo(({
   onReply,
   allMessages = [],
   onReplyPreviewClick,
+  currentUsername,
 }: MessageBubbleEnrichedProps) => {
   const statusElement = isMyMessage && (
     <View style={styles.messageStatus}>
@@ -48,6 +50,25 @@ const MessageBubble = memo(({
       styles.messageText,
       !isMyMessage && { color: '#222' }, // ข้อความคนอื่นเป็นสีดำ
     ];
+  };
+
+  const renderWithMentions = (text: string, currentUsername: string) => {
+    if (!text) return null;
+    const regex = /(@\w+)/g;
+    const parts = text.split(regex);
+    return parts.map((part, i) => {
+      if (regex.test(part)) {
+        const mention = part.slice(1);
+        const isMatch = mention === currentUsername;
+        if (isMatch) {
+          return (
+            <Text key={i} style={{ color: '#0A84FF', fontWeight: 'bold' }}>{part}</Text>
+          );
+        }
+        return <Text key={i}>{part}</Text>;
+      }
+      return <Text key={i}>{part}</Text>;
+    });
   };
 
   const renderContent = () => {
@@ -92,7 +113,7 @@ const MessageBubble = memo(({
       );
     }
 
-    return <Text style={getMessageTextStyle()}>{message.text}</Text>;
+    return <Text style={getMessageTextStyle()}>{renderWithMentions(message.text || '', currentUsername)}</Text>;
   };
   
   const enrichedReplyTo = React.useMemo(() => {
@@ -145,7 +166,7 @@ const MessageBubble = memo(({
           )}
           {enrichedReplyTo.type === 'message' && (
             <Text style={styles.replyText}>
-              {enrichedReplyTo.text}
+              {renderWithMentions(enrichedReplyTo.text || '', currentUsername)}
             </Text>
           )}
           {enrichedReplyTo.notFound && (

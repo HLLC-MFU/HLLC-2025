@@ -4,11 +4,14 @@ import {
   FlatList,
   StyleSheet,
   Text,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import MessageBubble from './MessageBubble';
 import SystemMessage from './SystemMessage';
 import TypingIndicator from './TypingIndicator';
 import { Message } from '@/types/chatTypes';
+import useProfile from '@/hooks/useProfile';
 
 interface MessageListProps {
   messages: Message[][];
@@ -18,7 +21,7 @@ interface MessageListProps {
   onReply: (message: Message) => void;
   onRetry?: (message: Message) => void;
   scrollToBottom: () => void;
-  onScroll?: (event: any) => void;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   scrollEventThrottle?: number;
 }
 
@@ -33,6 +36,9 @@ const MessageList = ({
   onScroll,
   scrollEventThrottle,
 }: MessageListProps) => {
+  const { user } = useProfile();
+  const currentUsername = user?.data?.[0]?.username || '';
+
   // flatten all messages for replyTo enrichment (sort จากเก่าไปใหม่)
   const allMessages = React.useMemo(() => {
     return messages
@@ -103,6 +109,7 @@ const MessageList = ({
               onReply={onReply}
               allMessages={allMessages}
               onReplyPreviewClick={handleReplyPreviewClick}
+              currentUsername={currentUsername}
             />
           );
         })}
