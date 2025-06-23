@@ -144,7 +144,7 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	majorService := service.NewMajorService(mongo)
 	roleService := service.NewRoleService(mongo)
 	userService := service.NewUserService(mongo)
-	roomService := roomService.NewRoomService(mongo)
+	roomService := roomService.NewRoomService(mongo, redisClient)
 	stickerService := stickerService.NewStickerService(mongo)
 
 	// Initialize Kafka bus for chat
@@ -153,29 +153,13 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	// Create required topics
 	if err := bus.CreateTopics([]string{
 		"room-events",      // For room events (create, update, delete)
-		chatUtils.ChatMessagesTopic, // For chat messages
+		chatUtils.RoomTopicPrefix + "*", // For room-specific chat messages
 	}); err != nil {
 		log.Printf("[ERROR] Failed to create Kafka topics: %v", err)
 	}
 
-	// Initialize chat hub with Kafka publisher
-	hub := chatUtils.NewHub(func(topic, key string, payload []byte) error {
-		return bus.Emit(context.Background(), topic, key, payload)
-	})
-
-	// Subscribe to chat messages
-	bus.On(chatUtils.ChatMessagesTopic, func(ctx context.Context, msg *kafka.Message) error {
-		hub.HandleKafkaMessage(msg.Topic, msg.Value)
-		return nil
-	})
-
-	// Start the bus
-	if err := bus.Start(); err != nil {
-		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)
-	}
-
-	// Initialize chat service
-	chatService := chatService.NewChatService(mongo, redisClient, hub)
+	// Initialize chat service with Kafka bus
+	chatService := chatService.NewChatService(mongo, redisClient, bus)
 
 	// Initialize controllers
 	controller.NewSchoolController(app, schoolService)

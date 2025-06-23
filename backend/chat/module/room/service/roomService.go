@@ -14,6 +14,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -24,21 +25,22 @@ type (
 		userService     *service.UserService
 		fkValidator     *serviceHelper.ForeignKeyValidator
 		eventEmitter    *utils.RoomEventEmitter
+		cache           *utils.RoomCacheService
 	}
 )
 
-func NewRoomService(db *mongo.Database) *RoomService {
-	// Create Kafka bus for room events
+func NewRoomService(db *mongo.Database, redis *redis.Client) *RoomService {
 	bus := kafka.New([]string{"localhost:9092"}, "room-service")
 	if err := bus.Start(); err != nil {
 		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)
 	}
 
 	return &RoomService{
-		BaseService:      queries.NewBaseService[model.Room](db.Collection("rooms")),
-		userService:     service.NewUserService(db),
-		fkValidator:     serviceHelper.NewForeignKeyValidator(db),
-		eventEmitter:    utils.NewRoomEventEmitter(bus, "localhost:9092"),
+		BaseService:   queries.NewBaseService[model.Room](db.Collection("rooms")),
+		userService:   service.NewUserService(db),
+		fkValidator:   serviceHelper.NewForeignKeyValidator(db),
+		eventEmitter:  utils.NewRoomEventEmitter(bus, "localhost:9092"),
+		cache:         utils.NewRoomCacheService(redis),
 	}
 }
 
@@ -46,60 +48,101 @@ func (s *RoomService) GetRooms(ctx context.Context, opts queries.QueryOptions) (
 	if opts.Filter == nil {
 		opts.Filter = make(map[string]interface{})
 	}
-
 	return s.FindAll(ctx, opts)
 }
 
 func (s *RoomService) GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*model.Room, error) {
+	// Try cache first
+	if room, err := s.cache.GetRoom(ctx, roomID.Hex()); err == nil && room != nil {
+		return room, nil
+	}
+
+	// Fallback to database
 	room, err := s.FindOneById(ctx, roomID.Hex())
 	if err != nil {
 		return nil, err
 	}
-	return &room.Data[0], nil
+
+	// Cache the result
+	result := &room.Data[0]
+	if err := s.cache.SaveRoom(ctx, result); err != nil {
+		log.Printf("[WARN] Failed to cache room: %v", err)
+	}
+
+	return result, nil
 }
 
 func (s *RoomService) CreateRoom(ctx context.Context, createDto *dto.CreateRoomDto) (*model.Room, error) {
-	// Validate DTO
 	if err := validator.ValidateStruct(createDto); err != nil {
 		return nil, fmt.Errorf("validation error: %w", err)
 	}
 
-	// Validate foreign key
 	if err := s.fkValidator.ValidateForeignKey(ctx, "users", createDto.CreatedBy); err != nil {
 		return nil, fmt.Errorf("foreign key validation error: %w", err)
 	}
 
-	// Create room model
-	room := &model.Room{
+	// Validate member IDs if provided
+	if len(createDto.Members) > 0 {
+		for i, memberID := range createDto.Members {
+			if err := s.fkValidator.ValidateForeignKey(ctx, "users", memberID); err != nil {
+				return nil, fmt.Errorf("invalid member at index %d: %w", i, err)
+			}
+		}
+	}
+
+	// Convert member IDs to ObjectIDs
+	memberIDs := make([]primitive.ObjectID, 0)
+	if len(createDto.Members) > 0 {
+		memberIDs = make([]primitive.ObjectID, len(createDto.Members))
+		for i, memberID := range createDto.Members {
+			objID, _ := primitive.ObjectIDFromHex(memberID)
+			memberIDs[i] = objID
+		}
+	}
+
+	r := &model.Room{
 		Name:      createDto.Name,
 		Capacity:  createDto.Capacity,
 		CreatedBy: createDto.ToObjectID(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
+		Members:   memberIDs,
 	}
-
-	// Save to database
-	response, err := s.Create(ctx, *room)
+	resp, err := s.Create(ctx, *r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create room: %w", err)
 	}
 
-	// Get the created room with ID
-	createdRoom := &response.Data[0]
-	log.Printf("[RoomService] Created room with ID: %s", createdRoom.ID.Hex())
+	created := &resp.Data[0]
+	
+	// Cache the new room
+	if err := s.cache.SaveRoom(ctx, created); err != nil {
+		log.Printf("[WARN] Failed to cache new room: %v", err)
+	}
 
-	// Emit room created event with the actual room ID
-	s.eventEmitter.EmitRoomCreated(ctx, createdRoom.ID, createdRoom)
+	// Create Kafka topic for the room
+	if err := s.eventEmitter.EnsureRoomTopic(ctx, created.ID); err != nil {
+		log.Printf("[WARN] Failed to create Kafka topic for room: %v", err)
+	}
 
-	return createdRoom, nil
+	return created, nil
 }
 
 func (s *RoomService) UpdateRoom(ctx context.Context, id string, room *model.Room) (*model.Room, error) {
-	response, err := s.UpdateById(ctx, id, *room)
+	room.UpdatedAt = time.Now()
+	resp, err := s.UpdateById(ctx, id, *room)
 	if err != nil {
 		return nil, err
 	}
-	return &response.Data[0], nil
+
+	updated := &resp.Data[0]
+	
+	// Update cache
+	if err := s.cache.SaveRoom(ctx, updated); err != nil {
+		log.Printf("[WARN] Failed to update room cache: %v", err)
+	}
+
+	return updated, nil
 }
 
 func (s *RoomService) DeleteRoom(ctx context.Context, id string) (*model.Room, error) {
@@ -108,7 +151,15 @@ func (s *RoomService) DeleteRoom(ctx context.Context, id string) (*model.Room, e
 		return nil, err
 	}
 
-	s.eventEmitter.EmitRoomDeleted(ctx, room.Data[0].ID)
+	// Delete from cache
+	if err := s.cache.DeleteRoom(ctx, id); err != nil {
+		log.Printf("[WARN] Failed to delete room from cache: %v", err)
+	}
+
+	// Delete Kafka topic for the room
+	if err := s.eventEmitter.DeleteRoomTopic(ctx, room.Data[0].ID); err != nil {
+		log.Printf("[WARN] Failed to delete Kafka topic for room: %v", err)
+	}
 
 	return &room.Data[0], nil
 }
@@ -118,133 +169,182 @@ func (s *RoomService) AddRoomMember(ctx context.Context, roomID string, dto *dto
 		return nil, fmt.Errorf("foreign key validation error: %w", err)
 	}
 
-	if err := s.fkValidator.ValidateForeignKey(ctx, "users", dto.Members[0]); err != nil {
-		return nil, fmt.Errorf("foreign key validation error: %w", err)
-	}
-
 	userObjectIDs := dto.ToObjectIDs()
-	for i, userID := range dto.Members {
-		if err := s.fkValidator.ValidateForeignKey(ctx, "users", userID); err != nil {
+	for i, uid := range dto.Members {
+		if err := s.fkValidator.ValidateForeignKey(ctx, "users", uid); err != nil {
 			return nil, fmt.Errorf("invalid user at index %d: %w", i, err)
 		}
 	}
 
-	roomObjectID, err := primitive.ObjectIDFromHex(roomID)
+	rid, _ := primitive.ObjectIDFromHex(roomID)
+	r, err := s.GetRoomById(ctx, rid)
 	if err != nil {
-		return nil, fmt.Errorf("invalid room ID format: %w", err)
+		return nil, err
 	}
 
-	// Create room member
-	room := &model.Room{
-		Members: userObjectIDs,
+	// Check capacity before adding members
+	currentMembers := len(r.Members)
+	newMembers := len(userObjectIDs)
+	if currentMembers + newMembers > r.Capacity {
+		return nil, fmt.Errorf("room capacity exceeded: current=%d, new=%d, capacity=%d", 
+			currentMembers, newMembers, r.Capacity)
 	}
 
-	result, err := s.UpdateById(ctx, roomID, *room)
+	r.Members = utils.MergeMembers(r.Members, userObjectIDs)
+	r.UpdatedAt = time.Now()
+	resp, err := s.UpdateById(ctx, roomID, *r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add room members: %w", err)
+		return nil, err
 	}
 
-	log.Printf("[RoomService] Added members to room %s: %v", roomID, userObjectIDs)
-
-	// Emit member joined events for each user
-	for _, userID := range userObjectIDs {
-		s.eventEmitter.EmitRoomMemberJoined(ctx, roomObjectID, userID)
+	updated := &resp.Data[0]
+	
+	// Update cache
+	if err := s.cache.SaveRoom(ctx, updated); err != nil {
+		log.Printf("[WARN] Failed to update room cache after adding members: %v", err)
 	}
 
-	return &result.Data[0], nil
+	return updated, nil
 }
 
-func (s *RoomService) IsUserMemberOfRoom(ctx context.Context, roomID string, userID string) (bool, error) {
-	roomObjectID, err := primitive.ObjectIDFromHex(roomID)
+func (s *RoomService) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (*model.Room, error) {
+	uid, _ := primitive.ObjectIDFromHex(userID)
+	r, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
-		return false, fmt.Errorf("invalid room ID format: %w", err)
+		return nil, err
 	}
 
-	userObjectID, err := primitive.ObjectIDFromHex(userID)
+	r.Members = utils.RemoveMember(r.Members, uid)
+	r.UpdatedAt = time.Now()
+	resp, err := s.UpdateById(ctx, roomID.Hex(), *r)
 	if err != nil {
-		return false, fmt.Errorf("invalid user ID format: %w", err)
+		return nil, err
 	}
 
-	// Find room member document
-	room, err := s.GetRoomById(ctx, roomObjectID)
+	updated := &resp.Data[0]
+	
+	// Update cache
+	if err := s.cache.SaveRoom(ctx, updated); err != nil {
+		log.Printf("[WARN] Failed to update room cache after removing member: %v", err)
+	}
 
+	return updated, err
+}
+
+func (s *RoomService) IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+	// Try cache first
+	if room, err := s.cache.GetRoom(ctx, roomID.Hex()); err == nil && room != nil {
+		uid, _ := primitive.ObjectIDFromHex(userID)
+		for _, m := range room.Members {
+			if m == uid {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+
+	// Fallback to database
+	r, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return false, err
 	}
-
-	for _, member := range room.Members {
-		if member.Hex() == userObjectID.Hex() {
+	uid, _ := primitive.ObjectIDFromHex(userID)
+	for _, m := range r.Members {
+		if m == uid {
 			return true, nil
 		}
 	}
-
-	s.eventEmitter.EmitRoomMemberJoined(ctx, roomObjectID, userObjectID)
-
-	return true, nil
+	return false, nil
 }
 
 func (s *RoomService) AddUserToRoom(ctx context.Context, roomID, userID string) error {
-	rid, err := primitive.ObjectIDFromHex(roomID)
-	if err != nil {
-		return fmt.Errorf("invalid room ID: %w", err)
-	}
-
-	uid, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return fmt.Errorf("invalid user ID: %w", err)
-	}
-
-	// Check if user is already in room
+	rid, _ := primitive.ObjectIDFromHex(roomID)
 	exists, err := s.IsUserInRoom(ctx, rid, userID)
 	if err != nil {
 		return err
 	}
 	if exists {
-		return nil // User already in room
+		return nil
 	}
 
-	// Add user to room
-	room := &model.Room{
-		Members: []primitive.ObjectID{uid},
-	}
-
-	_, err = s.UpdateById(ctx, rid.Hex(), *room)
-	if err != nil {
-		return fmt.Errorf("failed to add user to room: %w", err)
-	}
-
-	return nil
+	_, err = s.AddRoomMember(ctx, roomID, &dto.AddRoomMembersDto{
+		Members: []string{userID},
+		RoomID:  roomID,
+	})
+	return err
 }
 
-func (s *RoomService) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
-	uid, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return fmt.Errorf("invalid user ID: %w", err)
-	}
-
-	room := &model.Room{
-		Members: []primitive.ObjectID{uid},
-	}
-
-	_, err = s.UpdateById(ctx, roomID.Hex(), *room)
-	if err != nil {
-		return fmt.Errorf("failed to remove user from room: %w", err)
-	}
-
-	return nil
-}
-
-func (s *RoomService) IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+// Add new methods for connection management
+func (s *RoomService) ValidateAndTrackConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+	// Check if room exists and is active
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
-		return false, fmt.Errorf("failed to check room membership: %w", err)
+		return fmt.Errorf("room not found: %w", err)
 	}
 
-	for _, member := range room.Members {
-		if member.Hex() == userID {
-			return true, nil
-		}
+	// Check if user is a member
+	isMember, err := s.IsUserInRoom(ctx, roomID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to check membership: %w", err)
+	}
+	if !isMember {
+		return fmt.Errorf("user is not a member of this room")
 	}
 
-	return false, nil
+	// Get current active connections
+	activeCount, err := s.cache.GetActiveConnectionsCount(ctx, roomID.Hex())
+	if err != nil {
+		log.Printf("[WARN] Failed to get active connections count: %v", err)
+	} else if activeCount >= int64(room.Capacity) {
+		return fmt.Errorf("room is at capacity: %d/%d", activeCount, room.Capacity)
+	}
+
+	// Track the new connection
+	if err := s.cache.TrackConnection(ctx, roomID.Hex(), userID); err != nil {
+		log.Printf("[WARN] Failed to track connection: %v", err)
+	}
+
+	return nil
+}
+
+func (s *RoomService) RemoveConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+	if err := s.cache.RemoveConnection(ctx, roomID.Hex(), userID); err != nil {
+		log.Printf("[WARN] Failed to remove connection: %v", err)
+	}
+	return nil
+}
+
+func (s *RoomService) GetRoomStatus(ctx context.Context, roomID primitive.ObjectID) (map[string]interface{}, error) {
+	room, err := s.GetRoomById(ctx, roomID)
+	if err != nil {
+		return nil, err
+	}
+
+	activeCount, err := s.cache.GetActiveConnectionsCount(ctx, roomID.Hex())
+	if err != nil {
+		activeCount = 0
+	}
+
+	activeUsers, err := s.cache.GetActiveUsers(ctx, roomID.Hex())
+	if err != nil {
+		activeUsers = []string{}
+	}
+
+	return map[string]interface{}{
+		"roomId":          roomID.Hex(),
+		"capacity":        room.Capacity,
+		"memberCount":     len(room.Members),
+		"activeCount":     activeCount,
+		"activeUsers":     activeUsers,
+		"lastActive":      room.UpdatedAt,
+	}, nil
+}
+
+// Periodic cleanup of inactive connections
+func (s *RoomService) CleanupInactiveConnections(ctx context.Context, roomID primitive.ObjectID) error {
+	return s.cache.CleanupInactiveConnections(ctx, roomID.Hex())
+}
+
+func (s *RoomService) GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID) (int64, error) {
+	return s.cache.GetActiveConnectionsCount(ctx, roomID.Hex())
 }

@@ -27,7 +27,7 @@ type (
 	MemberService interface {
 		IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
 		AddUserToRoom(ctx context.Context, roomID, userID string) error
-		RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error
+		RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (*roomModel.Room, error)
 	}
 
 	StickerService interface {
@@ -36,6 +36,10 @@ type (
 
 	RoomService interface {
 		GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*roomModel.Room, error)
+		GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID) (int64, error)
+		ValidateAndTrackConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error
+		RemoveConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error
+		GetRoomStatus(ctx context.Context, roomID primitive.ObjectID) (map[string]interface{}, error)
 	}
 )
 
@@ -82,14 +86,6 @@ func (c *ChatController) setupRoutes() {
 	c.SetupRoutes()
 }
 
-func (c *ChatController) handleWebSocketUpgrade(ctx *fiber.Ctx) error {
-	if websocket.IsWebSocketUpgrade(ctx) {
-		ctx.Locals("allowed", true)
-		return ctx.Next()
-	}
-	return fiber.ErrUpgradeRequired
-}
-
 func (c *ChatController) handleWebSocket(conn *websocket.Conn) {
 	roomID := conn.Params("roomId")
 	userID := conn.Params("userId")
@@ -108,19 +104,34 @@ func (c *ChatController) handleWebSocket(conn *websocket.Conn) {
 		return
 	}
 
-	// Check membership
-	isMember, err := c.memberService.IsUserInRoom(ctx, roomObjID, userID)
-	if err != nil || !isMember {
-		conn.WriteMessage(websocket.TextMessage, []byte("Not a member of this room"))
+	// Validate and track connection using RoomService
+	if err := c.roomService.ValidateAndTrackConnection(ctx, roomObjID, userID); err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 		conn.Close()
 		return
 	}
 
+	// Subscribe to room's Kafka topic
+	if err := c.chatService.SubscribeToRoom(ctx, roomID); err != nil {
+		log.Printf("[WARN] Failed to subscribe to room topic: %v", err)
+	}
+
 	userObjID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
+		c.roomService.RemoveConnection(ctx, roomObjID, userID)
 		conn.WriteMessage(websocket.TextMessage, []byte("Invalid user ID"))
 		conn.Close()
 		return
+	}
+
+	// Send room status
+	if status, err := c.roomService.GetRoomStatus(ctx, roomObjID); err == nil {
+		if statusBytes, err := json.Marshal(map[string]interface{}{
+			"type": "room_status",
+			"data": status,
+		}); err == nil {
+			conn.WriteMessage(websocket.TextMessage, statusBytes)
+		}
 	}
 
 	// Send chat history
@@ -159,11 +170,22 @@ func (c *ChatController) handleWebSocket(conn *websocket.Conn) {
 		RoomID: roomObjID,
 		UserID: userObjID,
 	})
-	defer c.chatService.GetHub().Unregister(utils.Client{
-		Conn:   conn,
-		RoomID: roomObjID,
-		UserID: userObjID,
-	})
+	
+	defer func() {
+		c.chatService.GetHub().Unregister(utils.Client{
+			Conn:   conn,
+			RoomID: roomObjID,
+			UserID: userObjID,
+		})
+		c.roomService.RemoveConnection(ctx, roomObjID, userID)
+		
+		// Unsubscribe from room's Kafka topic if no more clients
+		if count, err := c.roomService.GetActiveConnectionsCount(ctx, roomObjID); err == nil && count == 0 {
+			if err := c.chatService.UnsubscribeFromRoom(ctx, roomID); err != nil {
+				log.Printf("[WARN] Failed to unsubscribe from room topic: %v", err)
+			}
+		}
+	}()
 
 	for {
 		_, msg, err := conn.ReadMessage()
@@ -183,7 +205,7 @@ func (c *ChatController) handleWebSocket(conn *websocket.Conn) {
 			c.handleLeaveMessage(ctx, messageText, *client)
 			return
 		default:
-			// Create and save message
+			// Create message and let SaveMessage handle the broadcasting
 			chatMsg := &model.ChatMessage{
 				RoomID:    roomObjID,
 				UserID:    userObjID,
@@ -191,23 +213,11 @@ func (c *ChatController) handleWebSocket(conn *websocket.Conn) {
 				Timestamp: time.Now(),
 			}
 			
-			// Save message to database and broadcast
+			// Save message and let emitter handle broadcasting
 			if err := c.chatService.SaveMessage(ctx, chatMsg); err != nil {
 				log.Printf("[ERROR] Failed to save message: %v", err)
 				continue
 			}
-
-			// Create chat event for broadcasting
-			event := utils.ChatEvent{
-				Type:      "message",
-				RoomID:    roomID,
-				UserID:    userID,
-				Message:   messageText,
-				Timestamp: time.Now(),
-			}
-
-			// Broadcast through hub
-			c.chatService.GetHub().BroadcastEvent(event)
 		}
 	}
 }
@@ -293,7 +303,7 @@ func (c *ChatController) handleLeaveRoom(ctx *fiber.Ctx) error {
 		})
 	}
 
-	if err := c.memberService.RemoveUserFromRoom(ctx.Context(), roomObjID, userID.Hex()); err != nil {
+	if _, err := c.memberService.RemoveUserFromRoom(ctx.Context(), roomObjID, userID.Hex()); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to leave room",
 		})
@@ -402,22 +412,8 @@ func (c *ChatController) handleReactionMessage(messageText string, client model.
 }
 
 func (c *ChatController) handleLeaveMessage(ctx context.Context, messageText string, client model.ClientObject) {
-	if err := c.memberService.RemoveUserFromRoom(ctx, client.RoomID, client.UserID.Hex()); err != nil {
+	if _, err := c.memberService.RemoveUserFromRoom(ctx, client.RoomID, client.UserID.Hex()); err != nil {
 		log.Printf("[ERROR] Failed to remove user from room: %v", err)
-	}
-}
-
-func (c *ChatController) handleTextMessage(messageText string, client model.ClientObject) {
-	msg := &model.ChatMessage{
-		RoomID:    client.RoomID,
-		UserID:    client.UserID,
-		Message:   messageText,
-		Timestamp: time.Now(),
-	}
-
-	// Save and broadcast text message
-	if err := c.chatService.SaveMessage(context.Background(), msg); err != nil {
-		log.Printf("[ERROR] Failed to save text message: %v", err)
 	}
 }
 

@@ -3,10 +3,12 @@ package service
 import (
 	"chat/module/chat/model"
 	"chat/module/chat/utils"
+	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	"chat/pkg/helpers/service"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -20,6 +22,8 @@ type ChatService struct {
 	hub         *utils.Hub
 	fkValidator *service.ForeignKeyValidator
 	collection  *mongo.Collection
+	emitter     *utils.ChatEventEmitter
+	kafkaBus    *kafka.Bus
 }
 
 // GetHub returns the hub instance for WebSocket management
@@ -30,15 +34,29 @@ func (s *ChatService) GetHub() *utils.Hub {
 func NewChatService(
 	db *mongo.Database,
 	redis *redis.Client,
-	hub *utils.Hub,
+	kafkaBus *kafka.Bus,
 ) *ChatService {
 	collection := db.Collection("chat_messages")
+	
+	// Start Kafka bus
+	if err := kafkaBus.Start(); err != nil {
+		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)
+	}
+	
+	// Create hub
+	hub := utils.NewHub()
+
+	// Create emitter with hub and kafka bus
+	emitter := utils.NewChatEventEmitter(hub, kafkaBus)
+
 	return &ChatService{
 		BaseService:  queries.NewBaseService[model.ChatMessage](collection),
 		cache:       utils.NewChatCacheService(redis),
 		hub:         hub,
 		fkValidator: service.NewForeignKeyValidator(db),
 		collection:  collection,
+		emitter:     emitter,
+		kafkaBus:    kafkaBus,
 	}
 }
 
@@ -105,24 +123,35 @@ func (s *ChatService) SaveMessage(ctx context.Context, msg *model.ChatMessage) e
 		log.Printf("Failed to cache message: %v", err)
 	}
 
-	// Create chat event for broadcasting
+	// Create chat event
 	event := utils.ChatEvent{
 		Type:      "message",
 		RoomID:    msg.RoomID.Hex(),
 		UserID:    msg.UserID.Hex(),
 		Message:   msg.Message,
-		Timestamp: msg.Timestamp,
+		Timestamp: time.Now(),
 	}
 
-	// Marshal event to JSON
-	eventBytes, err := json.Marshal(event)
-	if err != nil {
-		log.Printf("[ERROR] Failed to marshal chat event: %v", err)
-		return err
+	// Add additional data if present
+	if msg.FileURL != "" {
+		event.Payload, _ = json.Marshal(map[string]string{
+			"fileUrl":  msg.FileURL,
+			"fileType": msg.FileType,
+			"fileName": msg.FileName,
+		})
 	}
 
-	// Broadcast to all clients in the room
-	s.hub.BroadcastRaw(msg.RoomID.Hex(), eventBytes)
+	if msg.StickerID != nil {
+		event.Payload, _ = json.Marshal(map[string]string{
+			"stickerId": msg.StickerID.Hex(),
+			"image":     msg.Image,
+		})
+	}
+
+	// Let emitter handle both WebSocket and Kafka broadcasting
+	if err := s.emitter.EmitMessage(ctx, msg); err != nil {
+		log.Printf("[WARN] Failed to emit message: %v", err)
+	}
 
 	return nil
 }
@@ -150,6 +179,11 @@ func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.Messag
 		log.Printf("Failed to cache reaction: %v", err)
 	}
 
+	// Emit reaction event
+	if err := s.emitter.EmitReaction(ctx, reaction, msg.Data[0].RoomID); err != nil {
+		log.Printf("[WARN] Failed to emit reaction: %v", err)
+	}
+
 	return nil
 }
 
@@ -167,5 +201,40 @@ func (s *ChatService) DeleteRoomMessages(ctx context.Context, roomID string) err
 		log.Printf("Failed to delete messages from cache: %v", err)
 	}
 
+	return nil
+}
+
+func (s *ChatService) SubscribeToRoom(ctx context.Context, roomID string) error {
+	topic := utils.RoomTopicPrefix + roomID
+
+	// Ensure topic exists
+	if err := kafka.EnsureTopic("localhost:9092", topic, 1); err != nil {
+		return fmt.Errorf("failed to create topic: %w", err)
+	}
+
+	// Subscribe to room topic using kafkaBus
+	s.kafkaBus.On(topic, func(ctx context.Context, msg *kafka.Message) error {
+		// Log received message
+		log.Printf("[Kafka] Received message from topic %s", topic)
+		
+		// Handle message
+		if err := s.hub.HandleKafkaMessage(topic, msg.Value); err != nil {
+			log.Printf("[ERROR] Failed to handle Kafka message: %v", err)
+			return err
+		}
+		
+		return nil
+	})
+
+	return nil
+}
+
+func (s *ChatService) UnsubscribeFromRoom(ctx context.Context, roomID string) error {
+	topic := utils.RoomTopicPrefix + roomID
+	
+	// Stop consuming messages (implementation depends on your Kafka setup)
+	// This is a placeholder - implement based on your needs
+	log.Printf("[INFO] Unsubscribed from topic: %s", topic)
+	
 	return nil
 }

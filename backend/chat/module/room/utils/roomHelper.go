@@ -42,7 +42,7 @@ func EmitErrorLog(ctx context.Context, label string, err error) {
 }
 
 // This's one will be used in service to merge members ** Do not touch it**
-func mergeMembers(existing []primitive.ObjectID, new []primitive.ObjectID) []primitive.ObjectID {
+func MergeMembers(existing []primitive.ObjectID, new []primitive.ObjectID) []primitive.ObjectID {
 	set := make(map[primitive.ObjectID]struct{})
 	for _, m := range existing {
 		set[m] = struct{}{}
@@ -55,4 +55,15 @@ func mergeMembers(existing []primitive.ObjectID, new []primitive.ObjectID) []pri
 		merged = append(merged, id)
 	}
 	return merged
+}
+
+// This's one will be used in service to remove members ** Do not touch it**
+func RemoveMember(existing []primitive.ObjectID, target primitive.ObjectID) []primitive.ObjectID {
+	filtered := make([]primitive.ObjectID, 0, len(existing))
+	for _, member := range existing {
+		if member != target {
+			filtered = append(filtered, member)
+		}
+	}
+	return filtered
 }

@@ -128,3 +128,33 @@ func (e *RoomEventEmitter) emitEvent(ctx context.Context, event model.RoomEvent)
 
 	return e.bus.Emit(ctx, roomTopic, event.RoomID, eventBytes)
 }
+
+func (e *RoomEventEmitter) EnsureRoomTopic(ctx context.Context, roomID primitive.ObjectID) error {
+	if !ValidateRoomID(roomID, "ensure_room_topic") {
+		return fmt.Errorf("invalid room ID")
+	}
+
+	roomTopic := fmt.Sprintf("chat-room-%s", roomID.Hex())
+	if err := kafka.EnsureTopic("localhost:9092", roomTopic, 1); err != nil {
+		log.Printf("[Kafka] Failed to create topic %s: %v", roomTopic, err)
+		return err
+	}
+
+	log.Printf("[Kafka] Successfully created topic %s", roomTopic)
+	return nil
+}
+
+func (e *RoomEventEmitter) DeleteRoomTopic(ctx context.Context, roomID primitive.ObjectID) error {
+	if !ValidateRoomID(roomID, "delete_room_topic") {
+		return fmt.Errorf("invalid room ID")
+	}
+
+	roomTopic := fmt.Sprintf("chat-room-%s", roomID.Hex())
+	if err := kafka.DeleteTopic("localhost:9092", roomTopic); err != nil {
+		log.Printf("[Kafka] Failed to delete topic %s: %v", roomTopic, err)
+		return err
+	}
+
+	log.Printf("[Kafka] Successfully deleted topic %s", roomTopic)
+	return nil
+}

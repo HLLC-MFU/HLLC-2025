@@ -14,16 +14,18 @@ var Register = make(chan ClientObject)
 var Broadcast = make(chan BroadcastObject)
 var Unregister = make(chan ClientObject)
 
-type ClientObject struct {
-	RoomID primitive.ObjectID
-	UserID primitive.ObjectID
-	Conn   *websocket.Conn
-}
+type(
+	ClientObject struct {
+		RoomID primitive.ObjectID
+		UserID primitive.ObjectID
+		Conn   *websocket.Conn
+	}
 
-type BroadcastObject struct {
-	MSG  interface{}
-	FROM ClientObject
-}
+	BroadcastObject struct {
+		MSG  interface{}
+		FROM ClientObject
+	}
+) 
 
 func RegisterClient(client ClientObject) {
 	if Clients[client.RoomID] == nil {

@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	ChatMessagesTopic = "chat-messages"
+	// Base topic for room events
+	RoomTopicPrefix = "chat-room-"
 )
 
 type ChatEvent struct {
@@ -24,13 +25,6 @@ type ChatEvent struct {
 	Payload   json.RawMessage `json:"payload,omitempty"`
 }
 
-type Message struct {
-	RoomID    primitive.ObjectID `json:"roomId"`
-	UserID    primitive.ObjectID `json:"userId"`
-	Message   string            `json:"message"`
-	Timestamp time.Time         `json:"timestamp"`
-}
-
 type Client struct {
 	Conn   *websocket.Conn
 	RoomID primitive.ObjectID
@@ -38,30 +32,26 @@ type Client struct {
 }
 
 type Hub struct {
-	// Map structure: roomID -> userID -> []connection
-	clients sync.Map // key: roomId string, value: *sync.Map[userID string]*sync.Map[connID string]*websocket.Conn
-	publish func(topic string, key string, payload []byte) error
+	clients sync.Map
 }
 
-func NewHub(publisher func(topic string, key string, payload []byte) error) *Hub {
-	return &Hub{publish: publisher}
+func NewHub() *Hub {
+	return &Hub{}
+}
+
+func getRoomTopic(roomID string) string {
+	return fmt.Sprintf("%s%s", RoomTopicPrefix, roomID)
 }
 
 func (h *Hub) Register(c Client) {
 	roomKey := c.RoomID.Hex()
 	userKey := c.UserID.Hex()
-	connID := fmt.Sprintf("%p", c.Conn) // Use pointer address as unique connection ID
+	connID := fmt.Sprintf("%p", c.Conn)
 
-	// Get or create room map
 	roomMap, _ := h.clients.LoadOrStore(roomKey, &sync.Map{})
-
-	// Get or create user connections map
 	userConns, _ := roomMap.(*sync.Map).LoadOrStore(userKey, &sync.Map{})
-
-	// Store connection
 	userConns.(*sync.Map).Store(connID, c.Conn)
 
-	// Count users and connections
 	users, conns := h.countRoomStats(roomKey)
 	log.Printf("[WS] User %s joined room %s (connection: %s) - Users: %d, Connections: %d", 
 		userKey, roomKey, connID, users, conns)
@@ -109,33 +99,19 @@ func (h *Hub) countRoomStats(roomID string) (users int, connections int) {
 	return
 }
 
-func (h *Hub) BroadcastRaw(roomID string, payload []byte) {
-	// Publish to Kafka first
-	if err := h.publish(ChatMessagesTopic, roomID, payload); err != nil {
-		log.Printf("[ERROR] Failed to publish to Kafka: %v", err)
-	} else {
-		log.Printf("[ChatMessage] Successfully published message to Kafka topic %s", ChatMessagesTopic)
-	}
-
-	// Count users and connections
-	users, conns := h.countRoomStats(roomID)
-	log.Printf("[ChatMessage] Room %s stats - Users: %d, Connections: %d", roomID, users, conns)
-
-	// Broadcast to WebSocket clients in the room
-	h.broadcastToRoom(roomID, payload)
-}
-
 func (h *Hub) BroadcastEvent(event ChatEvent) {
-	log.Printf("[ChatMessage] Broadcasting message from user %s to room %s", event.UserID, event.RoomID)
+	log.Printf("[ChatMessage] Broadcasting event type=%s from user %s to room %s", 
+		event.Type, event.UserID, event.RoomID)
 
 	// Marshal event for broadcasting
 	payload, err := json.Marshal(event)
 	if err != nil {
-		log.Printf("[ERROR] Failed to marshal message: %v", err)
+		log.Printf("[ERROR] Failed to marshal event: %v", err)
 		return
 	}
 
-	h.BroadcastRaw(event.RoomID, payload)
+	// Broadcast only to WebSocket clients
+	h.broadcastToRoom(event.RoomID, payload)
 }
 
 func (h *Hub) broadcastToRoom(roomID string, payload []byte) {
@@ -143,7 +119,12 @@ func (h *Hub) broadcastToRoom(roomID string, payload []byte) {
 	failCount := 0
 
 	if roomMap, ok := h.clients.Load(roomID); ok {
+		log.Printf("[WS] Broadcasting to room %s", roomID)
+		
 		roomMap.(*sync.Map).Range(func(userID, userConns interface{}) bool {
+			log.Printf("[WS] Broadcasting to user %s in room %s", userID, roomID)
+			
+			activeConns := 0
 			userConns.(*sync.Map).Range(func(connID, conn interface{}) bool {
 				ws := conn.(*websocket.Conn)
 				if err := ws.WriteMessage(websocket.TextMessage, payload); err != nil {
@@ -152,32 +133,50 @@ func (h *Hub) broadcastToRoom(roomID string, payload []byte) {
 					userConns.(*sync.Map).Delete(connID)
 					failCount++
 				} else {
+					log.Printf("[WS] Successfully sent message to user %s (connection: %s)", userID, connID)
 					successCount++
+					activeConns++
 				}
 				return true
 			})
+			
+			// If user has no active connections, remove them from room
+			if activeConns == 0 {
+				log.Printf("[WS] Removing user %s from room %s (no active connections)", userID, roomID)
+				roomMap.(*sync.Map).Delete(userID)
+			}
+			
 			return true
 		})
-	}
 
-	log.Printf("[ChatMessage] Broadcast results for room %s: %d successful, %d failed", 
-		roomID, successCount, failCount)
+		log.Printf("[WS] Broadcast complete for room %s: %d successful, %d failed", 
+			roomID, successCount, failCount)
+	} else {
+		log.Printf("[WS] No clients found for room %s", roomID)
+	}
 }
 
-// HandleKafkaMessage processes messages from Kafka and broadcasts them to WebSocket clients
-func (h *Hub) HandleKafkaMessage(topic string, payload []byte) {
-	// Try to unmarshal as ChatEvent
+func (h *Hub) HandleKafkaMessage(topic string, payload []byte) error {
+	// Extract roomID from topic
+	roomID := topic[len(RoomTopicPrefix):]
+	if roomID == "" {
+		log.Printf("[ERROR] Invalid topic format: %s", topic)
+		return fmt.Errorf("invalid topic format: %s", topic)
+	}
+
 	var event ChatEvent
 	if err := json.Unmarshal(payload, &event); err != nil {
 		log.Printf("[ERROR] Failed to unmarshal Kafka message: %v", err)
-		return
+		return fmt.Errorf("failed to unmarshal Kafka message: %w", err)
 	}
 
-	log.Printf("[ChatMessage] Received Kafka message: type=%s, room=%s, user=%s", 
-		event.Type, event.RoomID, event.UserID)
+	log.Printf("[ChatMessage] Received Kafka message from topic %s: type=%s, room=%s, user=%s", 
+		topic, event.Type, event.RoomID, event.UserID)
 
-	// Broadcast the message to all clients in the room
-	h.broadcastToRoom(event.RoomID, payload)
+	// Only broadcast to WebSocket clients
+	h.broadcastToRoom(roomID, payload)
+	
+	return nil
 }
 
 func (h *Hub) HandleSocket(conn *websocket.Conn, roomID, userID string) {
@@ -199,22 +198,13 @@ func (h *Hub) HandleSocket(conn *websocket.Conn, roomID, userID string) {
 	defer h.Unregister(client)
 
 	for {
-		_, data, err := conn.ReadMessage()
-		if err != nil {
+		if _, _, err := conn.ReadMessage(); err != nil {
 			log.Printf("[WS] Read error: %v", err)
 			break
 		}
 
-		// Create chat event
-		event := ChatEvent{
-			Type:      "message",
-			RoomID:    rid.Hex(),
-			UserID:    uid.Hex(),
-			Message:   string(data),
-			Timestamp: time.Now(),
-		}
-
-		// Broadcast event
-		h.BroadcastEvent(event)
+		// Let the controller handle the message
+		// The controller will call SaveMessage which will handle broadcasting
+		log.Printf("[WS] Received message from user %s in room %s", uid.Hex(), rid.Hex())
 	}
 }
