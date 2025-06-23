@@ -6,7 +6,7 @@ export type StepCounterDocument = HydratedDocument<StepCounter>;
 @Schema({ timestamps: true })
 export class StepCounter {
 
-    @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+    @Prop({ required: true, type: Types.ObjectId, ref: 'User' , unique: true})
     user: Types.ObjectId;
 
     @Prop({ required: true, type: Number, default: 0 })
