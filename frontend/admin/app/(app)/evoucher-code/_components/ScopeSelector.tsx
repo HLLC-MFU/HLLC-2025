@@ -6,7 +6,7 @@ import {
 } from '@heroui/react';
 import { Search, X } from 'lucide-react';
 
-interface ScopeSelectorProps<T> {
+type ScopeSelectorProps<T> = {
   label: string;
   icon: React.ElementType;
   items: T[];
@@ -89,9 +89,8 @@ export function ScopeSelector<T>({
             return (
               <Button
                 key={id}
-                className={`w-full justify-start h-unit-10 px-2 ${
-                  isSelected ? 'bg-primary/10 text-primary' : ''
-                }`}
+                className={`w-full justify-start h-unit-10 px-2 ${isSelected ? 'bg-primary/10 text-primary' : ''
+                  }`}
                 variant={isSelected ? 'flat' : 'light'}
                 onPress={() => {
                   if (isSelected) {

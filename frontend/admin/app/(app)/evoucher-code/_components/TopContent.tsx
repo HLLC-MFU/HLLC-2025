@@ -1,16 +1,10 @@
 import { EvoucherCode } from "@/types/evoucher-code";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from "@heroui/react";
-import { ChevronDownIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { Button, Input } from "@heroui/react";
+import { PlusIcon, SearchIcon } from "lucide-react";
 import React from "react";
-import { TableColumnType } from "../../evoucher/_components/EvoucherTable";
-
 interface TopContentProps {
     setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
-    capitalize: (value: string) => string;
-    visibleColumns: Set<string> | string[];
-    setVisibleColumns: (columns: Set<string>) => void;
-    columns: TableColumnType[];
     filteredItems: EvoucherCode[];
     page: number;
     pages: number;
@@ -24,10 +18,6 @@ interface TopContentProps {
 export default function TopContent({
     setActionText,
     filterValue,
-    capitalize,
-    visibleColumns,
-    setVisibleColumns,
-    columns,
     onClear,
     onSearchChange,
 }: TopContentProps) {
@@ -44,35 +34,6 @@ export default function TopContent({
                     onValueChange={onSearchChange}
                 />
                 <div className="flex gap-3">
-                    <Dropdown>
-                        <DropdownTrigger className="hidden sm:flex">
-                            <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
-                                Columns
-                            </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu
-                            disallowEmptySelection
-                            aria-label="Table Columns"
-                            closeOnSelect={false}
-                            selectedKeys={visibleColumns}
-                            selectionMode="multiple"
-                            onSelectionChange={(keys) => {
-                                if (typeof keys === "string") {
-                                    setVisibleColumns(new Set([keys]));
-                                } else if (keys instanceof Set) {
-                                    setVisibleColumns(keys as Set<string>);
-                                } else {
-                                    setVisibleColumns(new Set());
-                                }
-                            }}
-                        >
-                            {columns.map((column) => (
-                                <DropdownItem key={column.uid} className="capitalize">
-                                    {capitalize(column.name)}
-                                </DropdownItem>
-                            ))}
-                        </DropdownMenu>
-                    </Dropdown>
                     <Button onPress={() => { setActionText("Add"); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher Code</Button>
                 </div>
             </div>

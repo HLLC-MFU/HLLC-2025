@@ -80,8 +80,8 @@ export function EvoucherModal({
   const validationRules: { key: string; value: string; message: string; validate?: (val: string) => boolean }[] = [
     { key: "sponsor", value: selectedSponsor, message: "Sponsor is required" },
     { key: "acronym", value: acronym, message: "Acronym is required" },
-    { key: "discount", value: discount, message: "Discount is required", validate: (val) => !isNaN(Number(val)) },
-    { key: "maxClaim", value: maxClaim, message: "Max claim is required", validate: (val) => !isNaN(Number(val)) },
+    { key: "discount", value: discount, message: "Discount is required", validate: (val) => !isNaN(Number(val)) && Number(val) >= 0 },
+    { key: "maxClaim", value: String(maxClaim), message: "Max claim is required", validate: (val) => !isNaN(Number(val)) },
     { key: "detailTh", value: detailTh, message: "Detail (Thai) is required" },
     { key: "detailEn", value: detailEn, message: "Detail (English) is required" },
     { key: "expiration", value: expiration, message: "Expiration is required" },
@@ -114,7 +114,7 @@ export function EvoucherModal({
     formData.append("expiration", expiration);
     formData.append("detail[th]", detailTh);
     formData.append("detail[en]", detailEn);
-    if (maxClaim) formData.append("maxClaims", maxClaim);
+    formData.append("maxClaims", String(maxClaim));
     formData.append("type", evoucherType);
     formData.append("status", status);
     if (sponsorId) formData.append("sponsors", sponsorId);
@@ -158,7 +158,7 @@ export function EvoucherModal({
             <Input label="Discount" type="text" value={discount} onChange={(e) => setDiscount(e.target.value)} isRequired
               isInvalid={!!errors.discount}
               errorMessage={errors.discount} />
-            <Input label="Max Claims" type="number" value={maxClaim} onChange={(e) => setMaxClaim(e.target.value)}
+            <Input label="Max Claims" type="number" value={String(maxClaim)} onChange={(e) => setMaxClaim(Number(e.target.value))}
               isRequired
               isInvalid={!!errors.maxClaim}
               errorMessage={errors.maxClaim} />

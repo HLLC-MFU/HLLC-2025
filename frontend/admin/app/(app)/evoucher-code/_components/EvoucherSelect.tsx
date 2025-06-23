@@ -2,14 +2,14 @@ import { Select, SelectItem } from "@heroui/react";
 import { AlertCircle } from "lucide-react";
 import { Evoucher } from "@/types/evoucher";
 
-interface Props {
+type EvoucherSelectProps = {
   value: string;
   onChange: (evoucherId: string) => void;
   evouchers: Evoucher[];
   isDisabled: boolean;
 }
 
-export const EvoucherSelect = ({ value, onChange, evouchers, isDisabled }: Props) => {
+export const EvoucherSelect = ({ value, onChange, evouchers, isDisabled }: EvoucherSelectProps) => {
   const handleChange = (keys: any) => {
     const selectedKey = Array.from(keys)[0] as string;
     onChange(selectedKey);

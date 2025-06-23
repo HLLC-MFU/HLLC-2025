@@ -1,8 +1,7 @@
 import { Button, Pagination } from "@heroui/react";
-import type { Selection } from "@react-types/shared";
 import { EvoucherCode } from "@/types/evoucher-code";
 
-interface BottomContentProps {
+type BottomContentProps = {
     filteredItems: EvoucherCode[];
     page: number;
     pages: number;
@@ -12,7 +11,6 @@ interface BottomContentProps {
 }
 
 export default function BottomContent({
-    filteredItems,
     page,
     pages,
     setPage,

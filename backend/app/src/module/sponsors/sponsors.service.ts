@@ -94,8 +94,8 @@ export class SponsorsService {
         match: { sponsors: new Types.ObjectId(sponsorId) },
         populate: { path: 'sponsors' }
       })
+      .populate('user')
       .then(results => results.filter(code => code.evoucher));
-    console.log(res);
     return res
   }
 }

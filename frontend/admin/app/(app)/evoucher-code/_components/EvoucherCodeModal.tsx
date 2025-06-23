@@ -1,19 +1,31 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, addToast
+  Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, addToast,
 } from "@heroui/react";
 import { EvoucherCode } from "@/types/evoucher-code";
 import { Evoucher } from "@/types/evoucher";
 import { ScopeSelector } from "@/app/(app)/evoucher-code/_components/ScopeSelector";
 import { Users } from "lucide-react";
 import { EvoucherSelect } from "./EvoucherSelect";
-import { useEvoucherCodeForm } from "./useEvoucherCodeForm";
-interface AddEvoucherCodeProps {
+import { useUsers } from "@/hooks/useUsers";
+
+function useDebounce<T>(value: T, delay: number = 10000): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+type AddEvoucherCodeProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (formData: FormData, mode: "add" | "edit") => Promise<void>;
+  onSuccess: (evoucherCode: Partial<EvoucherCode>, mode: "add" | "edit") => void;
   mode: "add" | "edit";
   evouchers: Evoucher[];
   evoucherCode?: EvoucherCode;
@@ -26,43 +38,76 @@ export function EvoucherCodeModal({
   onSuccess,
   mode,
   evoucherCode,
+  evouchers,
   sponsorId,
-  evouchers
 }: AddEvoucherCodeProps) {
-  const {
-    usersLoading,
-    selectedEvoucher,
-    selectedUsers,
-    expiration,
-    setSelectedEvoucher,
-    setSelectedUsers,
-    availableUsers,
-    searchQuery,
-    setSearchQuery,
-    setFilters
-  } = useEvoucherCodeForm(isOpen, mode, evoucherCode, sponsorId);
+  const { fetchByUsername } = useUsers();
 
+  const [selectedEvoucher, setSelectedEvoucher] = useState<string>("");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [usersLoading, setUsersLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  useEffect(() => {
+    if (mode === "edit" && evoucherCode) {
+      setSelectedEvoucher(
+        typeof evoucherCode.evoucher === "string"
+          ? evoucherCode.evoucher
+          : evoucherCode.evoucher?._id || ""
+      );
+      setSelectedUsers([
+        typeof evoucherCode.user === "string"
+          ? evoucherCode.user
+          : evoucherCode.user?._id || "",
+      ]);
+    } else {
+      setSelectedEvoucher("");
+      setSelectedUsers([]);
+    }
+  }, [isOpen, mode, evoucherCode]);
+
+  useEffect(() => {
+    const fetchAvailableUsers = async () => {
+      if (!selectedEvoucher || !debouncedSearch.trim()) {
+        setAvailableUsers([]);
+        return;
+      }
+
+      setUsersLoading(true);
+      try {
+        const users = await fetchByUsername(debouncedSearch.trim());
+        setAvailableUsers(users ?? []);
+      } catch (err) {
+        console.error("Failed to fetch users", err);
+        setAvailableUsers([]);
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+    fetchAvailableUsers();
+  }, [selectedEvoucher, debouncedSearch]);
 
   const handleSubmit = async () => {
     if (!selectedEvoucher || selectedUsers.length === 0) return;
 
     setIsSubmitting(true);
     try {
-      const promises = selectedUsers.map(userId => {
-        const formData = new FormData();
-        formData.append("evoucher", selectedEvoucher);
-        formData.append("user", userId);
-        formData.append("metadata[expiration]", expiration);
-        return onSuccess(formData, mode);
-      });
+      for (const userId of selectedUsers) {
+        const evoucherCode: Partial<EvoucherCode> = {
+          evoucher: selectedEvoucher,
+          user: userId,
+        };
 
-      await Promise.all(promises);
+        await onSuccess(evoucherCode, mode);
+      }
 
       addToast({
         title: "Success",
         description: `Successfully ${mode === "add" ? "created" : "updated"} evoucher code(s).`,
-        color: "success"
+        color: "success",
       });
 
       onClose();
@@ -70,7 +115,7 @@ export function EvoucherCodeModal({
       addToast({
         title: "Error",
         description: "Failed to process evoucher code.",
-        color: "danger"
+        color: "danger",
       });
     } finally {
       setIsSubmitting(false);
@@ -81,22 +126,18 @@ export function EvoucherCodeModal({
     <Modal isOpen={isOpen} onClose={onClose} size="2xl" scrollBehavior="inside">
       <ModalContent>
         <ModalHeader>{mode === "add" ? "Add Evoucher Code" : "Edit Evoucher Code"}</ModalHeader>
-
         <ModalBody className="flex flex-col gap-6">
-
-          {/* evoucher */}
           <EvoucherSelect
             value={selectedEvoucher}
             onChange={(evoucherId) => {
               setSelectedEvoucher(evoucherId);
               setSelectedUsers([]);
             }}
-            evouchers={evouchers.filter(e => e.sponsors._id === sponsorId)}
+            evouchers={evouchers.filter((e) => e.sponsors._id === sponsorId)}
             isDisabled={mode === "edit" || isSubmitting}
           />
 
           <div className="flex flex-col gap-4">
-            {/* user */}
             <ScopeSelector
               label="Select Users"
               icon={Users}
@@ -132,8 +173,15 @@ export function EvoucherCodeModal({
         </ModalBody>
 
         <ModalFooter>
-          <Button color="danger" variant="light" onPress={onClose}>Cancel</Button>
-          <Button color="primary" onPress={handleSubmit} isDisabled={!selectedEvoucher || selectedUsers.length === 0} isLoading={isSubmitting}>
+          <Button color="danger" variant="light" onPress={onClose}>
+            Cancel
+          </Button>
+          <Button
+            color="primary"
+            onPress={handleSubmit}
+            isDisabled={!selectedEvoucher || selectedUsers.length === 0}
+            isLoading={isSubmitting}
+          >
             {mode === "add"
               ? `Add Evoucher Code${selectedUsers.length > 1 ? "s" : ""} (${selectedUsers.length})`
               : "Save Changes"}
