@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Accordion, AccordionItem, Button } from "@heroui/react";
-import { DollarSignIcon, Plus } from "lucide-react";
+import { HandCoins, Plus } from "lucide-react";
 
 import { SponsorFilters } from "./_components/SponsorFilters";
 import SponsorTable from "./_components/SponsorTable";
@@ -17,8 +17,6 @@ import AddSponsorTypeModal from "./_components/AddSponsorTypeModal";
 export default function SponsorPage() {
   const [isTypeOpen, setIsTypeOpen] = useState(false);
   const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
-  const [sortBy, setSortBy] = useState("name");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSponsor, setSelectedSponsor] = useState<Sponsors | Partial<Sponsors>>();
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
@@ -74,27 +72,7 @@ export default function SponsorPage() {
       );
     }
 
-    return filtered.sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortBy) {
-        case "name":
-          comparison = (a.name?.en ?? "").localeCompare(b.name?.en ?? "");
-          break;
-        case "type":
-          comparison = String(a.type ?? "").localeCompare(String(b.type ?? ""));
-          break;
-        case "isShow":
-          comparison = Number(a.isShow ?? 0) - Number(b.isShow ?? 0);
-          break;
-      }
-
-      return sortDirection === "asc" ? comparison : -comparison;
-    });
-  };
-
-  const toggleSortDirection = () => {
-    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    return filtered;
   };
 
   const handleAddSponsor = () => {
@@ -146,7 +124,7 @@ export default function SponsorPage() {
       <div className="container mx-auto">
         <PageHeader
           description="This is Sponsor page"
-          icon={<DollarSignIcon />}
+          icon={<HandCoins />}
           right={
             <div className="w-full sm:w-auto">
               <Button
@@ -181,21 +159,11 @@ export default function SponsorPage() {
                 <div className="flex flex-col gap-6 p-4 sm:p-6 w-full overflow-x-auto">
                   <SponsorFilters
                     searchQuery={searchQueries[type] ?? ""}
-                    sortBy={sortBy}
-                    sortDirection={sortDirection}
                     onAddSponsor={handleAddSponsor}
                     onSearchQueryChange={(v) => handleSearchQueryChange(type, v)}
-                    onSortByChange={setSortBy}
-                    onSortDirectionToggle={toggleSortDirection}
                   />
 
-                  {filtered.length === 0 && !sponsorsLoading && (
-                    <p className="text-center text-sm text-default-500">
-                      No sponsors found. Please add a new sponsor.
-                    </p>
-                  )}
-
-                  <div className="w-full overflow-x-auto">
+                  <div className="w-full overflow-x-auto border border-default-200 rounded-xl">
                     <SponsorTable
                       handleSubmitSponsor={handleSubmitSponsor}
                       isModalOpen={isModalOpen}
@@ -215,6 +183,12 @@ export default function SponsorPage() {
                       }}
                     />
                   </div>
+
+                  {filtered.length === 0 && !sponsorsLoading && (
+                    <p className="text-center text-sm text-default-500">
+                      No sponsors found. Please add a new sponsor.
+                    </p>
+                  )}
                 </div>
               </AccordionItem>
             );

@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Table,
   TableHeader,
@@ -11,11 +13,13 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
+  SortDescriptor,
 } from "@heroui/react";
 import { EllipsisVertical, Pen, Trash } from "lucide-react";
 import type { Sponsors } from "@/types/sponsors";
 import type { SponsorType } from "@/types/sponsors";
 import { SponsorModal } from "./SponsorModal";
+import { useState, useMemo } from "react";
 
 interface SponsorTableProps {
   type: string;
@@ -31,6 +35,14 @@ interface SponsorTableProps {
   onToggleShow: (s: Sponsors) => void;
 }
 
+const columns = [
+  { name: "Logo", uid: "logo" },
+  { name: "Sponsor name", uid: "name", sortable: true },
+  { name: "Type", uid: "type" },
+  { name: "Display", uid: "isShow", sortable: true },
+  { name: "Actions", uid: "actions" },
+];
+
 export default function SponsorTable({
   type,
   sponsorTypes,
@@ -43,20 +55,70 @@ export default function SponsorTable({
   onEdit,
   onDelete,
 }: SponsorTableProps) {
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+    column: "name",
+    direction: "ascending",
+  });
+
+  const sortedSponsors = useMemo(() => {
+    return [...sponsors].sort((a, b) => {
+      const col = sortDescriptor.column;
+
+      const getValue = (sponsor: Sponsors) => {
+        switch (col) {
+          case "name":
+            return sponsor.name.en.toLowerCase();
+          case "type":
+            return typeof sponsor.type === "object"
+              ? (sponsor.type as { name: string }).name.toLowerCase()
+              : sponsor.type.toLowerCase();
+          case "isShow":
+            return sponsor.isShow ? 1 : 0;
+          default:
+            return "";
+        }
+      };
+
+      const firstValue = getValue(a);
+      const secondValue = getValue(b);
+
+      let comparisonResult = 0;
+
+      if (firstValue < secondValue) {
+        comparisonResult = -1;
+      } else if (firstValue > secondValue) {
+        comparisonResult = 1;
+      }
+
+      return sortDescriptor.direction === "descending"
+        ? -comparisonResult
+        : comparisonResult;
+
+    });
+  }, [sponsors, sortDescriptor]);
+
   return (
     <>
-      <Table aria-label="Sponsor Table" className="min-w-full">
-        <TableHeader>
-          <TableColumn className="text-center">Logo</TableColumn>
-          <TableColumn className="text-center">ชื่อ Sponsor (EN)</TableColumn>
-          <TableColumn className="text-center">ชื่อ Sponsor (TH)</TableColumn>
-          <TableColumn className="text-center">Type</TableColumn>
-          <TableColumn className="text-center">Show</TableColumn>
-          <TableColumn className="text-center">Actions</TableColumn>
+      <Table
+        aria-label="Sponsor Table"
+        className="min-w-full"
+        sortDescriptor={sortDescriptor}
+        onSortChange={setSortDescriptor}
+      >
+        <TableHeader columns={columns}>
+          {(column) => (
+            <TableColumn
+              key={column.uid}
+              className="text-center"
+              allowsSorting={column.sortable}
+            >
+              {column.name}
+            </TableColumn>
+          )}
         </TableHeader>
 
-        <TableBody>
-          {sponsors.map((sponsor) => (
+        <TableBody items={sortedSponsors}>
+          {(sponsor) => (
             <TableRow key={sponsor._id}>
               <TableCell className="text-center">
                 {sponsor.photo && typeof sponsor.photo === "string" ? (
@@ -75,22 +137,32 @@ export default function SponsorTable({
                 )}
               </TableCell>
 
-              <TableCell className="text-center">{sponsor.name.en}</TableCell>
-              <TableCell className="text-center">{sponsor.name.th}</TableCell>
+              <TableCell className="text-center">
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-sm font-medium text-default-900">
+                    {sponsor.name.en}
+                  </div>
+                  <div className="text-sm text-default-500">
+                    {sponsor.name.th}
+                  </div>
+                </div>
+              </TableCell>
+
               <TableCell className="text-center">
                 {typeof sponsor.type === "object" && sponsor.type !== null
                   ? (sponsor.type as { name: string }).name
                   : sponsor.type}
               </TableCell>
+
               <TableCell className="text-center">
                 <Chip
-                  className="cursor-pointer select-none"
                   color={sponsor.isShow ? "primary" : "danger"}
                   variant="solid"
                 >
                   {sponsor.isShow ? "Show" : "Hide"}
                 </Chip>
               </TableCell>
+
               <TableCell className="text-center">
                 <div className="relative flex justify-center items-center gap-2">
                   <Dropdown>
@@ -121,7 +193,7 @@ export default function SponsorTable({
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
 
