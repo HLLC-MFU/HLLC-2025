@@ -3,7 +3,6 @@ import type { Selection } from "@react-types/shared";
 import { EvoucherCode } from "@/types/evoucher-code";
 
 interface BottomContentProps {
-    selectedKeys: Selection;
     filteredItems: EvoucherCode[];
     page: number;
     pages: number;
@@ -13,7 +12,6 @@ interface BottomContentProps {
 }
 
 export default function BottomContent({
-    selectedKeys,
     filteredItems,
     page,
     pages,
@@ -23,11 +21,6 @@ export default function BottomContent({
 }: BottomContentProps) {
     return (
         <div className="py-2 px-2 flex justify-between items-center">
-            <span className="w-[30%] text-small text-default-400">
-                {typeof selectedKeys === "string" && selectedKeys === "all"
-                    ? "All items selected"
-                    : `${selectedKeys && typeof selectedKeys !== "string" && "size" in selectedKeys ? (selectedKeys as { size: number }).size : 0} of ${filteredItems ? filteredItems.length : 0} selected`}
-            </span>
             <Pagination
                 isCompact
                 showControls

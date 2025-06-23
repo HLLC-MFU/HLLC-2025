@@ -41,7 +41,7 @@ export default function EvoucherCellRenderer({
             return (
                 <div className="flex items-center justify-start min-w-[80px]">
                     <p className="text-sm font-medium">
-                        {evoucher.discount}%
+                        {evoucher.discount}
                     </p>
                 </div>
             );

@@ -10,6 +10,7 @@ import { SponsorsTypeDocument } from '../sponsors-type/schema/sponsors-type.sche
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { queryAll, queryFindOne } from 'src/pkg/helper/query.util';
 import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
+import { EvoucherCode } from '../evoucher/schema/evoucher-code.schema';
 
 @Injectable()
 export class SponsorsService {
@@ -18,8 +19,10 @@ export class SponsorsService {
     @InjectModel(Sponsors.name)
     private sponsorsModel: Model<SponsorsDocument>,
     @InjectModel(SponsorsType.name)
-    private sponsorsTypeModel: Model<SponsorsTypeDocument>
-  ) {}
+    private sponsorsTypeModel: Model<SponsorsTypeDocument>,
+    @InjectModel(EvoucherCode.name)
+    private evoucherCodeModel: Model<EvoucherCode>
+  ) { }
 
   async create(createSponsorDto: CreateSponsorDto) {
 
@@ -82,5 +85,17 @@ export class SponsorsService {
     )
 
     return await this.sponsorsModel.findByIdAndDelete(_id);
+  }
+
+  async findEvoucherCodesBySponsorId(sponsorId: string, query: Record<string, string>) {
+    const res = await this.evoucherCodeModel.find(query)
+      .populate({
+        path: 'evoucher',
+        match: { sponsors: new Types.ObjectId(sponsorId) },
+        populate: { path: 'sponsors' }
+      })
+      .then(results => results.filter(code => code.evoucher));
+    console.log(res);
+    return res
   }
 }

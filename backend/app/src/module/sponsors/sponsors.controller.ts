@@ -7,7 +7,7 @@ import { FastifyRequest } from 'fastify';
 
 @Controller('sponsors')
 export class SponsorsController {
-  constructor(private readonly sponsorsService: SponsorsService) {}
+  constructor(private readonly sponsorsService: SponsorsService) { }
 
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))
@@ -36,5 +36,13 @@ export class SponsorsController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.sponsorsService.remove(id);
+  }
+
+  @Get(':id/evoucher-codes')
+  async getEvoucherCodesForSponsor(
+    @Param('id') id: string,
+    @Query() query: Record<string, string>
+  ) {
+    return this.sponsorsService.findEvoucherCodesBySponsorId(id, query);
   }
 }

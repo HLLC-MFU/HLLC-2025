@@ -1,9 +1,8 @@
 import { EvoucherCode } from "@/types/evoucher-code";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from "@heroui/react";
 import { ChevronDownIcon, PlusIcon, SearchIcon } from "lucide-react";
-import { TableColumnType } from "./TableContent";
 import React from "react";
-import type { Selection } from "@react-types/shared";
+import { TableColumnType } from "../../evoucher/_components/EvoucherTable";
 
 interface TopContentProps {
     setActionText: (value: "Add" | "Edit") => void;
@@ -12,7 +11,6 @@ interface TopContentProps {
     visibleColumns: Set<string> | string[];
     setVisibleColumns: (columns: Set<string>) => void;
     columns: TableColumnType[];
-    selectedKeys: Selection;
     filteredItems: EvoucherCode[];
     page: number;
     pages: number;
