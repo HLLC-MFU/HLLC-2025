@@ -20,7 +20,7 @@ type (
 		Timestamp time.Time           `bson:"timestamp" json:"timestamp"`
 		StickerID *primitive.ObjectID `bson:"sticker_id,omitempty" json:"stickerId,omitempty"`
 		Image     string              `bson:"image,omitempty" json:"image,omitempty"`
-}
+	}
 
 	MessageReaction struct {
 		MessageID primitive.ObjectID `bson:"message_id"`

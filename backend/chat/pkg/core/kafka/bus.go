@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -102,12 +103,24 @@ func (b *Bus) Emit(ctx context.Context, topic, key string, payload any) error {
 	if err != nil {
 		return err
 	}
+
+	// Log before sending
+	log.Printf("[Kafka] Emitting message to topic=%s key=%s", topic, key)
+
 	msg := kafka.Message{
 		Topic: topic,
 		Key:   []byte(key),
 		Value: data,
 	}
-	return b.writer.WriteMessages(ctx, msg)
+
+	err = b.writer.WriteMessages(ctx, msg)
+	if err != nil {
+		return fmt.Errorf("failed to write message: %w", err)
+	}
+
+	// Log after successful send
+	log.Printf("[Kafka] Successfully emitted message to topic=%s key=%s", topic, key)
+	return nil
 }
 
 func (b *Bus) Start() error {

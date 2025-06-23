@@ -9,6 +9,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -16,17 +17,23 @@ import (
 type ChatEventEmitter struct {
 	hub *Hub
 	bus *kafka.Bus
+	redis *redis.Client
 }
 
-func NewChatEventEmitter(hub *Hub, bus *kafka.Bus) *ChatEventEmitter {
+func NewChatEventEmitter(hub *Hub, bus *kafka.Bus, redis *redis.Client) *ChatEventEmitter {
 	return &ChatEventEmitter{
 		hub: hub,
 		bus: bus,
+		redis: redis,
 	}
 }
 
 // EmitMessage broadcasts a new chat message through both WebSocket and Kafka
 func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessage) error {
+	// Add detailed logging
+	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s User=%s Text=%s", 
+		msg.ID.Hex(), msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message)
+
 	// Create chat event
 	event := ChatEvent{
 		Type:      "message",
@@ -61,17 +68,15 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 	// Broadcast to WebSocket clients first
 	e.hub.BroadcastEvent(event)
 
-	// Then publish to Kafka
+	// Get room topic
 	roomTopic := getRoomTopic(msg.RoomID.Hex())
-	if err := kafka.EnsureTopic("localhost:9092", roomTopic, 1); err != nil {
-		log.Printf("[WARN] Failed to ensure topic %s: %v", roomTopic, err)
-	}
 
+	// Emit to Kafka
 	if err := e.bus.Emit(ctx, roomTopic, msg.RoomID.Hex(), eventBytes); err != nil {
 		return fmt.Errorf("failed to emit to Kafka: %w", err)
 	}
 
-	log.Printf("[Kafka] Successfully published message to topic %s", roomTopic)
+	log.Printf("[Kafka] Successfully published message ID=%s to topic %s", msg.ID.Hex(), roomTopic)
 	return nil
 }
 

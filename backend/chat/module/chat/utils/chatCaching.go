@@ -145,19 +145,19 @@ func (s *ChatCacheService) DeleteRoomMessages(ctx context.Context, roomID string
 }
 
 // DeleteMessageReactions deletes reactions for a message
-func (s *ChatCacheService) DeleteMessageReactions(ctx context.Context, roomID string, messageID string) error {
-	key := s.roomReactionsKey(roomID, messageID)
-	return s.redis.Del(ctx, key).Err()
-}
+// func (s *ChatCacheService) DeleteMessageReactions(ctx context.Context, roomID string, messageID string) error {
+// 	key := s.roomReactionsKey(roomID, messageID)
+// 	return s.redis.Del(ctx, key).Err()
+// }
 
 // Utility functions
-func (s *ChatCacheService) IsMessageCached(ctx context.Context, roomID string, messageID string) bool {
-	key := s.roomMessagesKey(roomID)
-	count, err := s.redis.Exists(ctx, key).Result()
-	return err == nil && count > 0
-}
+// func (s *ChatCacheService) IsMessageCached(ctx context.Context, roomID string, messageID string) bool {
+// 	key := s.roomMessagesKey(roomID)
+// 	count, err := s.redis.Exists(ctx, key).Result()
+// 	return err == nil && count > 0
+// }
 
-func (s *ChatCacheService) RefreshTTL(ctx context.Context, roomID string) error {
-	key := s.roomMessagesKey(roomID)
-	return s.redis.Expire(ctx, key, MessageTTL).Err()
-} 
+// func (s *ChatCacheService) RefreshTTL(ctx context.Context, roomID string) error {
+// 	key := s.roomMessagesKey(roomID)
+// 	return s.redis.Expire(ctx, key, MessageTTL).Err()
+// } 

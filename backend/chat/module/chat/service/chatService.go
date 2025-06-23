@@ -7,10 +7,8 @@ import (
 	"chat/pkg/database/queries"
 	"chat/pkg/helpers/service"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -42,12 +40,20 @@ func NewChatService(
 	if err := kafkaBus.Start(); err != nil {
 		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)
 	}
+
+	// Create default topics
+	if err := kafka.CreateTopics([]string{
+		kafka.RoomEventsTopic,
+		kafka.ChatEventsTopic,
+	}); err != nil {
+		log.Printf("[ERROR] Failed to create default topics: %v", err)
+	}
 	
 	// Create hub
 	hub := utils.NewHub()
 
-	// Create emitter with hub and kafka bus
-	emitter := utils.NewChatEventEmitter(hub, kafkaBus)
+	// Create emitter with hub, kafka bus and redis
+	emitter := utils.NewChatEventEmitter(hub, kafkaBus, redis)
 
 	return &ChatService{
 		BaseService:  queries.NewBaseService[model.ChatMessage](collection),
@@ -94,20 +100,8 @@ func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, l
 	return enriched, nil
 }
 
-func (s *ChatService) SaveMessage(ctx context.Context, msg *model.ChatMessage) error {
-	// Validate foreign keys
-	if err := s.fkValidator.ValidateForeignKeys(ctx, map[string]interface{}{
-		"rooms": msg.RoomID,
-		"users": msg.UserID,
-	}); err != nil {
-		return err
-	}
-
-	// Set timestamp
-	if msg.Timestamp.IsZero() {
-		msg.Timestamp = time.Now()
-	}
-
+// SendMessage handles all message sending logic in one place
+func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) error {
 	// Save to MongoDB
 	result, err := s.Create(ctx, *msg)
 	if err != nil {
@@ -123,37 +117,17 @@ func (s *ChatService) SaveMessage(ctx context.Context, msg *model.ChatMessage) e
 		log.Printf("Failed to cache message: %v", err)
 	}
 
-	// Create chat event
-	event := utils.ChatEvent{
-		Type:      "message",
-		RoomID:    msg.RoomID.Hex(),
-		UserID:    msg.UserID.Hex(),
-		Message:   msg.Message,
-		Timestamp: time.Now(),
-	}
-
-	// Add additional data if present
-	if msg.FileURL != "" {
-		event.Payload, _ = json.Marshal(map[string]string{
-			"fileUrl":  msg.FileURL,
-			"fileType": msg.FileType,
-			"fileName": msg.FileName,
-		})
-	}
-
-	if msg.StickerID != nil {
-		event.Payload, _ = json.Marshal(map[string]string{
-			"stickerId": msg.StickerID.Hex(),
-			"image":     msg.Image,
-		})
-	}
-
-	// Let emitter handle both WebSocket and Kafka broadcasting
+	// Emit to Kafka only once
 	if err := s.emitter.EmitMessage(ctx, msg); err != nil {
 		log.Printf("[WARN] Failed to emit message: %v", err)
 	}
 
 	return nil
+}
+
+// SaveMessage is deprecated, use SendMessage instead
+func (s *ChatService) SaveMessage(ctx context.Context, msg *model.ChatMessage) error {
+	return s.SendMessage(ctx, msg)
 }
 
 func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.MessageReaction) error {

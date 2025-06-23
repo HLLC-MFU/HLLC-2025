@@ -178,33 +178,3 @@ func (h *Hub) HandleKafkaMessage(topic string, payload []byte) error {
 	
 	return nil
 }
-
-func (h *Hub) HandleSocket(conn *websocket.Conn, roomID, userID string) {
-	rid, err := primitive.ObjectIDFromHex(roomID)
-	if err != nil {
-		_ = conn.WriteMessage(websocket.TextMessage, []byte("Invalid room ID"))
-		_ = conn.Close()
-		return
-	}
-	uid, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		_ = conn.WriteMessage(websocket.TextMessage, []byte("Invalid user ID"))
-		_ = conn.Close()
-		return
-	}
-
-	client := Client{Conn: conn, RoomID: rid, UserID: uid}
-	h.Register(client)
-	defer h.Unregister(client)
-
-	for {
-		if _, _, err := conn.ReadMessage(); err != nil {
-			log.Printf("[WS] Read error: %v", err)
-			break
-		}
-
-		// Let the controller handle the message
-		// The controller will call SaveMessage which will handle broadcasting
-		log.Printf("[WS] Received message from user %s in room %s", uid.Hex(), rid.Hex())
-	}
-}
