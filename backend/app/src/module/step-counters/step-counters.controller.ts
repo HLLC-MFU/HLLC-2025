@@ -34,6 +34,6 @@ export class StepCountersController {
 
   @Get(':schoolId/schools')
   findBySchool(@Param('schoolId') schoolId: string) {
-    return this.stepCountersService.listUsersBySchoolId(schoolId);
+    return this.stepCountersService.findAllBySchoolId(schoolId);
   }
 }
