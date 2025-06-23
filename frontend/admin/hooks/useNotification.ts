@@ -11,7 +11,7 @@ export function useNotification() {
     const [error, setError] = useState<string | null>(null)
 
     // 📥 Fetch all Student
-    const fetchnotification = async () => {
+    const fetchNotification = async () => {
         setLoading(true);
         setError(null);
         try {
@@ -29,15 +29,9 @@ export function useNotification() {
 
         try {
             setLoading(true);
-
-            const res = await fetch(`${API_BASE_URL}/notifications`, {
-                method: "POST",
-                body: NotificationData,
-                credentials: "include"
-            });
-            const data = await res.json();
+            const res = await apiRequest<{ data: Notification }>(`/notifications`, 'POST', NotificationData );
+            const data = await res.data?.data;
             console.log("Create response:", res, data);
-            
             if (data && '_id' in data) {
                 setNotification((prev) => [...prev, data]);
             }
@@ -53,11 +47,7 @@ export function useNotification() {
         try {
             setLoading(true);
 
-            const res = await apiRequest(`/notifications/${id}` , 'DELETE' , undefined,
-                {
-                    credentials: 'include',
-                }
-            );
+            const res = await apiRequest(`/notifications/${id}` , 'DELETE' );
 
             console.log('Delete response:', res);
 
@@ -67,6 +57,7 @@ export function useNotification() {
                     title: 'Notification deleted successfully!',
                     color: 'success',
                 });
+                fetchNotification();
             } else {
                 throw new Error(res.message || 'Failed to delete notification.');
             }
@@ -85,7 +76,7 @@ export function useNotification() {
     };
 
     useEffect(() => {
-        fetchnotification();
+        fetchNotification();
     }, []);
 
     return {
@@ -93,7 +84,7 @@ export function useNotification() {
         loading,
         error,
         deleteNotification,
-        fetchnotification,
+        fetchNotification,
         createNotification,
     };
 

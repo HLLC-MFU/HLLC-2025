@@ -12,6 +12,7 @@ import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { Sponsors } from "@/types/sponsors";
 import { useSponsorsType } from "@/hooks/useSponsorsType";
 import { PageHeader } from "@/components/ui/page-header";
+import AddSponsorTypeModal from "./_components/AddSponsorTypeModal";
 
 export default function SponsorPage() {
   const [isTypeOpen, setIsTypeOpen] = useState(false);
@@ -113,33 +114,13 @@ export default function SponsorPage() {
     setConfirmationModalType("delete");
   };
 
-  const handleSubmitSponsor = async (sponsorsData: Partial<Sponsors>) => {
+  const handleSubmitSponsor = async (sponsorsData: FormData) => {
     let response;
-    const formData = new FormData();
-
-    if (sponsorsData.name) {
-      if (sponsorsData.name.th) formData.append("name[th]", sponsorsData.name.th);
-      if (sponsorsData.name.en) formData.append("name[en]", sponsorsData.name.en);
-    }
-
-    const input = document.querySelector<HTMLInputElement>("#photo-input");
-    const file = input?.files?.[0];
-
-    if (file) {
-      formData.append("photo", file);
-    }
-
-    if (sponsorsData.type && sponsorsData.type !== "") {
-      formData.append("type", sponsorsData.type);
-    }
-    if (typeof sponsorsData.isShow === "boolean") {
-      formData.append("isShow", String(sponsorsData.isShow));
-    }
 
     if (modalMode === "add") {
-      response = await createSponsors(formData);
+      response = await createSponsors(sponsorsData);
     } else if (modalMode === "edit" && selectedSponsor?._id) {
-      response = updateSponsors(selectedSponsor._id, formData);
+      response = updateSponsors(selectedSponsor._id, sponsorsData);
     }
 
     setIsModalOpen(false);
@@ -240,6 +221,12 @@ export default function SponsorPage() {
           })}
         </Accordion>
       </div>
+
+      <AddSponsorTypeModal
+        isOpen={isTypeOpen}
+        onClose={() => setIsTypeOpen(false)}
+        onAddType={handleAddType}
+      />
 
       <ConfirmationModal
         body={

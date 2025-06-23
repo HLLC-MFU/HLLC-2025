@@ -1,6 +1,3 @@
-import type { Sponsors } from "@/types/sponsors";
-import type { SponsorType } from "@/types/sponsors-type";
-
 import {
   Table,
   TableHeader,
@@ -16,8 +13,8 @@ import {
   DropdownItem,
 } from "@heroui/react";
 import { EllipsisVertical, Pen, Trash } from "lucide-react";
-import Image from "next/image";
-
+import type { Sponsors } from "@/types/sponsors";
+import type { SponsorType } from "@/types/sponsors";
 import { SponsorModal } from "./SponsorModal";
 
 interface SponsorTableProps {
@@ -27,7 +24,7 @@ interface SponsorTableProps {
   onClose: () => void;
   modalMode: "edit" | "add";
   selectedSponsor?: Sponsors | Partial<Sponsors>;
-  handleSubmitSponsor: (sponsorData: Partial<Sponsors>) => void;
+  handleSubmitSponsor: (sponsorData: FormData) => void;
   sponsors: Sponsors[];
   onEdit: (s: Sponsors) => void;
   onDelete: (s: Sponsors) => void;
@@ -62,12 +59,12 @@ export default function SponsorTable({
           {sponsors.map((sponsor) => (
             <TableRow key={sponsor._id}>
               <TableCell className="text-center">
-                {sponsor.photo ? (
-                  <Image
+                {sponsor.photo && typeof sponsor.photo === "string" ? (
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.photo}`}
                     alt={sponsor.name.en}
                     className="h-16 w-16 object-contain rounded border border-default-300 bg-white mx-auto"
                     height={64}
-                    src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.photo}`}
                     width={64}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = "/placeholder.png";
