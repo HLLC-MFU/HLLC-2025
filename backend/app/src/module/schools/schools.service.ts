@@ -11,12 +11,12 @@ import {
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
-import { 
-  Appearance, 
-  AppearanceDocument, 
+import {
+  Appearance,
+  AppearanceDocument,
 } from '../appearances/schemas/apprearance.schema';
-import { 
-  Interfaces, 
+import {
+  Interfaces,
   InterfacesDocument,
 } from '../interfaces/schema/interfaces.schema';
 
@@ -24,11 +24,11 @@ import {
 export class SchoolsService {
   constructor(
     @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
-    @InjectModel(Appearance.name) 
+    @InjectModel(Appearance.name)
     private AppearanceModel: Model<AppearanceDocument>,
-    @InjectModel(Interfaces.name) 
+    @InjectModel(Interfaces.name)
     private InterfacesModel: Model<InterfacesDocument>,
-  ) { }
+  ) {}
 
   async create(createSchoolDto: CreateSchoolDto) {
     await throwIfExists(
@@ -83,7 +83,7 @@ export class SchoolsService {
     return queryFindOne<Interfaces>(
       this.InterfacesModel,
       { school: schoolId },
-      [{ path: 'school' }]
+      [{ path: 'school' }],
     );
   }
 }

@@ -1,4 +1,6 @@
-import { PartialType } from "@nestjs/swagger";
-import { CreateLamduanSettingDto } from "./create-lamduan-setting.dto";
+import { PartialType } from '@nestjs/swagger';
+import { CreateLamduanSettingDto } from './create-lamduan-setting.dto';
 
-export class UpdateLamduanSettingDto extends PartialType(CreateLamduanSettingDto) {}
+export class UpdateLamduanSettingDto extends PartialType(
+  CreateLamduanSettingDto,
+) {}

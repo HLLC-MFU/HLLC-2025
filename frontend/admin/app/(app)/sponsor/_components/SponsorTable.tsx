@@ -14,7 +14,7 @@ import {
 } from "@heroui/react";
 import { EllipsisVertical, Pen, Trash } from "lucide-react";
 import type { Sponsors } from "@/types/sponsors";
-import type { SponsorType } from "@/types/sponsors-type";
+import type { SponsorType } from "@/types/sponsors";
 import { SponsorModal } from "./SponsorModal";
 
 interface SponsorTableProps {
@@ -24,7 +24,7 @@ interface SponsorTableProps {
   onClose: () => void;
   modalMode: "edit" | "add";
   selectedSponsor?: Sponsors | Partial<Sponsors>;
-  handleSubmitSponsor: (sponsorData: Partial<Sponsors>) => void;
+  handleSubmitSponsor: (sponsorData: FormData) => void;
   sponsors: Sponsors[];
   onEdit: (s: Sponsors) => void;
   onDelete: (s: Sponsors) => void;
@@ -61,11 +61,13 @@ export default function SponsorTable({
               <TableCell className="text-center">
                 {sponsor.photo && typeof sponsor.photo === "string" ? (
                   <img
-                    src={`http://localhost:8080/uploads/${sponsor.photo}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.photo}`}
                     alt={sponsor.name.en}
                     className="h-16 w-16 object-contain rounded border border-default-300 bg-white mx-auto"
+                    height={64}
+                    width={64}
                     onError={(e) => {
-                      e.currentTarget.src = "/placeholder.png";
+                      (e.target as HTMLImageElement).src = "/placeholder.png";
                     }}
                   />
                 ) : (
@@ -82,9 +84,9 @@ export default function SponsorTable({
               </TableCell>
               <TableCell className="text-center">
                 <Chip
+                  className="cursor-pointer select-none"
                   color={sponsor.isShow ? "primary" : "danger"}
                   variant="solid"
-                  className="cursor-pointer select-none"
                 >
                   {sponsor.isShow ? "Show" : "Hide"}
                 </Chip>
@@ -107,9 +109,9 @@ export default function SponsorTable({
                       </DropdownItem>
                       <DropdownItem
                         key="delete"
-                        startContent={<Trash size={16} />}
                         className="text-danger"
                         color="danger"
+                        startContent={<Trash size={16} />}
                         onPress={() => onDelete(sponsor)}
                       >
                         Delete
@@ -124,8 +126,6 @@ export default function SponsorTable({
       </Table>
 
       <SponsorModal
-        type={type}
-        sponsorTypes={sponsorTypes}
         isOpen={isModalOpen}
         mode={modalMode}
         sponsor={
@@ -133,6 +133,8 @@ export default function SponsorTable({
             ? (selectedSponsor as Sponsors)
             : undefined
         }
+        sponsorTypes={sponsorTypes}
+        type={type}
         onClose={onClose}
         onSuccess={handleSubmitSponsor}
       />

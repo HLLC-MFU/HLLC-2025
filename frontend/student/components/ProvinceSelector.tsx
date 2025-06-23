@@ -29,17 +29,17 @@ export const ProvinceSelector = ({
       <Sheet.Overlay />
       <Sheet.Frame padding="$4">
         <Sheet.Handle />
-        <YStack space="$4">
+        <YStack gap="$4">
           <XStack justifyContent="space-between" alignItems="center">
             <SizableText fontSize={24} fontWeight="bold">เลือกจังหวัด</SizableText>
             <Button onPress={() => onOpenChange(false)} chromeless>
-              <XStack space="$2" alignItems="center">
+              <XStack gap="$2" alignItems="center">
                 <SizableText>ปิด</SizableText>
               </XStack>
             </Button>
           </XStack>
 
-          <YStack space="$2">
+          <YStack gap="$2">
             {provinces.map((province) => (
               <Button
                 key={province.id}

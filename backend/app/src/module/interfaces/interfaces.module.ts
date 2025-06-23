@@ -7,11 +7,11 @@ import { InterfaceController } from './interfaces.controller';
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: Interfaces.name, schema: InterfacesSchema }
+      { name: Interfaces.name, schema: InterfacesSchema },
     ]),
   ],
   controllers: [InterfaceController],
   providers: [InterfacesService],
-  exports: [MongooseModule, InterfacesService]
+  exports: [MongooseModule, InterfacesService],
 })
-export class InterfacesModule { }
+export class InterfacesModule {}

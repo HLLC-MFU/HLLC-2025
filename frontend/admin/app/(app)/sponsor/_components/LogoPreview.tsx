@@ -19,11 +19,11 @@ export function LogoPreview({
     onRemove,
     inputRef,
     aspectRatio = "aspect-video",
-    maxSize = "max-h-[300px]",
     containerClassName = "",
 }: LogoPreviewProps) {
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+
         if (file) onFileChange(file);
     };
 
@@ -31,11 +31,11 @@ export function LogoPreview({
         <div className={`space-y-2 ${containerClassName}`}>
             <div className="flex gap-2 w-full">
                 <Button
-                    size="sm"
-                    variant="flat"
-                    color="primary"
                     className="w-full"
+                    color="primary"
+                    size="sm"
                     startContent={<Upload size={14} />}
+                    variant="flat"
                     onPress={() => inputRef.current?.click()}
                 >
                     Upload
@@ -43,10 +43,10 @@ export function LogoPreview({
 
                 {preview && (
                     <Button
+                        isIconOnly
+                        color="danger"
                         size="sm"
                         variant="flat"
-                        color="danger"
-                        isIconOnly
                         onPress={onRemove}
                     >
                         <X size={14} />
@@ -59,9 +59,9 @@ export function LogoPreview({
             >
                 {preview ? (
                     <img
-                        src={preview}
                         alt="Preview"
                         className="object-contain max-h-full max-w-full bg-white"
+                        src={preview}
                     />
                 ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-default-400">
@@ -72,10 +72,10 @@ export function LogoPreview({
 
                 <input
                     ref={inputRef}
-                    type="file"
                     accept="image/*"
-                    onChange={handleFileChange}
                     className="hidden"
+                    type="file"
+                    onChange={handleFileChange}
                 />
             </div>
         </div>

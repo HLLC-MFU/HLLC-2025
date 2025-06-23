@@ -159,7 +159,6 @@ const useAuth = create<AuthStore>()(
       signOut: () => {
         removeToken('accessToken');
         removeToken('refreshToken');
-        console.log(getToken('accessToken'), getToken('refreshToken'));
         useProfile.getState().clearProfile();
       },
 

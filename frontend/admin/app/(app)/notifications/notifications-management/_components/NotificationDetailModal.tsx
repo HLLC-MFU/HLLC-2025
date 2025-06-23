@@ -28,7 +28,7 @@ export default function NotificationModal({
       placement="center"
       backdrop="opaque"
     >
-      <ModalContent className='max-w-xl w-full'>
+      <ModalContent className="max-w-xl w-full">
         <>
           <ModalHeader className="flex flex-col gap-1">
             Model Information
@@ -121,18 +121,22 @@ export default function NotificationModal({
                       <h1 className="text-sm font-semibold text-gray-700">
                         URL
                       </h1>
-                      <p className="text-sm text-blue-700 break-words underline">
+                      <a
+                        href={notification.redirectButton.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-700 break-words underline"
+                      >
                         {notification.redirectButton.url}
-                      </p>
+                      </a>
                     </div>
                   </div>
                 </>
               )}
 
-              {/* Optional Image */}
               {notification.image && (
                 <img
-                  src={`http://localhost:8080/api/uploads/${notification.image}`}
+                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${notification.image}`}
                   alt="Notification"
                   className="w-full h-48 object-cover rounded-lg mt-4"
                 />

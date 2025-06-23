@@ -20,7 +20,6 @@ export function useInterfaces() {
             setAssets(res.data.data[0].assets);
         } catch (err) {
             const message = err instanceof Error ? err.message : "Unexpected error";
-            console.error("❌ Error in fetch intefaces:", message);
             // set({ error: message, loading: false, hasFetched: true });
         }
     };
