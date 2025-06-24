@@ -59,11 +59,6 @@ export class SchoolsController {
     @Param('id') id: string,
     @Query() query: Record<string, string>,
   ) {
-    return this.schoolsService.findColor(id, query);
-  }
-
-  @Get(':id/interfaces')
-  findInterfaces(@Param('id') id: string) {
-    return this.schoolsService.findInterfaces(id);
+    return this.schoolsService.findAppearance(id, query);
   }
 }
