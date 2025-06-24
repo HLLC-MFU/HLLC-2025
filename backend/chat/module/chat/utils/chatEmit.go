@@ -2,6 +2,7 @@ package utils
 
 import (
 	"chat/module/chat/model"
+	userModel "chat/module/user/model"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	"context"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -35,10 +37,25 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s Text=%s", 
 		msg.ID.Hex(), msg.RoomID.Hex(), msg.Message)
 
+	// Use the existing BaseService to get populated user data
+	userService := queries.NewBaseService[userModel.User](e.mongo.Collection("users"))
+	result, err := userService.FindOneWithPopulate(ctx, bson.M{"_id": msg.UserID}, "role", "roles")
+	
+	var userID interface{} = msg.UserID.Hex() // Default to ID string
+	if err == nil && len(result.Data) > 0 {
+		// Convert the populated user data to map
+		user := result.Data[0]
+		userID = map[string]interface{}{
+			"_id":      user.ID.Hex(),
+			"username": user.Username,
+			"name":     user.Name,
+		}
+	}
+
 	event := ChatEvent{
 		Type:      "message",
 		RoomID:    msg.RoomID.Hex(),
-		UserID:    queries.GetEnrichedUserInfoWithFallback(ctx, e.mongo, msg.UserID),
+		UserID:    userID,
 		Message:   msg.Message,
 		Timestamp: time.Now(),
 	}
