@@ -49,12 +49,12 @@ describe('PosttestAnswersService', () => {
   });
 
   describe('create', () => {
-    it('should throw if user not found', async () => {
+    it('should throw NotFoundException with correct message if user not found', async () => {
       mockUserModel.exists.mockResolvedValue(null);
-      await expect(service.create({ user: '123', answers: [] })).rejects.toThrow(NotFoundException);
+      await expect(service.create({ user: '123', answers: [] })).rejects.toThrowError(new NotFoundException('User not found'));
     });
 
-    it('should throw if invalid question type', async () => {
+    it('should throw BadRequestException with correct message if invalid question type', async () => {
       mockUserModel.exists.mockResolvedValue(true);
       mockPrepostQuestionModel.find.mockReturnValueOnce({
         select: () => ({ lean: mockLean([]) }),
@@ -62,10 +62,10 @@ describe('PosttestAnswersService', () => {
       await expect(service.create({
         user: '507f1f77bcf86cd799439011',
         answers: [{ posttest: new Types.ObjectId().toHexString(), answer: '1' }],
-      })).rejects.toThrow(BadRequestException);
+      })).rejects.toThrowError(new BadRequestException('Type of display question in not Both or Post'));
     });
 
-    it('should throw if answers already exist', async () => {
+    it('should throw BadRequestException with correct message if answers already exist', async () => {
       const questionId = new Types.ObjectId().toHexString();
       mockUserModel.exists.mockResolvedValue(true);
       mockPrepostQuestionModel.find.mockReturnValueOnce({
@@ -78,7 +78,7 @@ describe('PosttestAnswersService', () => {
       await expect(service.create({
         user: '507f1f77bcf86cd799439011',
         answers: [{ posttest: questionId, answer: '2' }],
-      })).rejects.toThrow(BadRequestException);
+      })).rejects.toThrowError(new BadRequestException('Post-Test answers already exist for this user'));
     });
 
     it('should insert new answers', async () => {
@@ -109,21 +109,16 @@ describe('PosttestAnswersService', () => {
   });
 
   describe('findOne', () => {
-  it('should return a posttest answer', async () => {
-    const mockAnswer = { _id: '123', user: 'user1', answers: [] };
-    (queryFindOne as jest.Mock).mockResolvedValue({ data: [mockAnswer], message: 'found' });
+    it('should return a posttest answer', async () => {
+      const mockAnswer = { _id: '123', user: 'user1', answers: [] };
+      (queryFindOne as jest.Mock).mockResolvedValue({ data: [mockAnswer], message: 'found' });
 
-    const result = await service.findOne('123');
+      const result = await service.findOne('123');
 
-    expect(result.data).not.toBeNull();
-
-    expect(result.data?.[0]).toEqual(expect.objectContaining({ _id: '123' }));
-
-
+      expect(result.data).not.toBeNull();
+      expect(result.data?.[0]).toEqual(expect.objectContaining({ _id: '123' }));
+    });
   });
-});
-
-
 
   describe('remove', () => {
     it('should call queryDeleteOne', async () => {
@@ -146,6 +141,15 @@ describe('PosttestAnswersService', () => {
       const result = await service.averageAllPosttests();
       expect(result[0].average).toBe(4);
       expect(result[0].count).toBe(2);
+    });
+
+    it('should throw error if posttest not populated', async () => {
+      const answers = [
+        { posttest: 'not-populated', answer: '3' },
+      ];
+      (queryAll as jest.Mock).mockResolvedValue({ data: [{ answers }] });
+
+      await expect(service.averageAllPosttests()).rejects.toThrowError(new Error('Posttest not populated'));
     });
   });
 });

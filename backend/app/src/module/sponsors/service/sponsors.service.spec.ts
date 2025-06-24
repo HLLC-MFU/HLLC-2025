@@ -6,6 +6,8 @@ import { SponsorsType } from '../schema/sponsors-type.schema';
 import { CreateSponsorDto } from '../dto/sponsers/create-sponsor.dto';
 import { UpdateSponsorDto } from '../dto/sponsers/update-sponsor.dto';
 import { Types } from 'mongoose';
+import { queryAll, queryFindOne } from 'src/pkg/helper/query.util';
+import { findOrThrow } from 'src/pkg/validator/model.validator';
 
 jest.mock('src/pkg/helper/query.util', () => ({
     queryAll: jest.fn(),
@@ -15,10 +17,6 @@ jest.mock('src/pkg/helper/query.util', () => ({
 jest.mock('src/pkg/validator/model.validator', () => ({
     findOrThrow: jest.fn(),
 }));
-
-
-import { queryAll, queryFindOne } from 'src/pkg/helper/query.util';
-import { findOrThrow } from 'src/pkg/validator/model.validator';
 
 describe('SponsorsService', () => {
     let service: SponsorsService;

@@ -50,54 +50,78 @@ describe('MajorsService', () => {
   });
 
   describe('create', () => {
-    it('should create a major successfully', async () => {
-      const dto: CreateMajorDto = {
-        name: { th: 'ชื่อ', en: 'Name' },
-        acronym: 'SCI',
-        detail: { th: 'รายละเอียด', en: 'Detail' },
-        school: new Types.ObjectId().toHexString(),
-        createdAt: new Date(),
-      };
+    const expectedSchoolId = new Types.ObjectId();
 
+    const dto: CreateMajorDto = {
+      name: { th: 'ชื่อ', en: 'Name' },
+      acronym: 'SCI',
+      detail: { th: 'รายละเอียด', en: 'Detail' },
+      school: expectedSchoolId.toHexString(),
+      createdAt: new Date(),
+    };
+
+    it('should validate uniqueness with throwIfExists', async () => {
       saveMock.mockResolvedValue({ _id: '1', ...dto });
 
-      const result = await service.create(dto);
+      await service.create(dto);
 
+      expect(throwIfExists).toHaveBeenCalledTimes(1);
       expect(throwIfExists).toHaveBeenCalledWith(
         majorModel,
         { name: dto.name },
         'Major already exists'
       );
+    });
+
+    it('should validate school existence with findOrThrow', async () => {
+      saveMock.mockResolvedValue({ _id: '1', ...dto });
+
+      await service.create(dto);
+
+      expect(findOrThrow).toHaveBeenCalledTimes(1);
       expect(findOrThrow).toHaveBeenCalledWith(
         schoolModel,
         dto.school,
         'School not found'
       );
+    });
+
+    it('should create and save major', async () => {
+      saveMock.mockResolvedValue({ _id: '1', ...dto });
+
+      const result = await service.create(dto);
+
       expect(mockMajorConstructor).toHaveBeenCalledWith({
         ...dto,
-        school: expect.any(Types.ObjectId),
+        school: expectedSchoolId,
       });
       expect(saveMock).toHaveBeenCalled();
       expect(result).toHaveProperty('_id');
     });
   });
 
+
   describe('findAll', () => {
     it('should call queryAll with correct parameters and resolve populateFields correctly', async () => {
       const query = { keyword: 'science' };
       await service.findAll(query);
-      expect(queryAll).toHaveBeenCalledWith({
+      expect(queryAll).toHaveBeenCalled();
+
+      const callArgs = (queryAll as jest.Mock).mock.calls[0][0];
+
+      expect(callArgs).toMatchObject({
         model: majorModel,
         query,
         filterSchema: {},
-        populateFields: expect.any(Function),
       });
 
-      const populateFn = (queryAll as jest.Mock).mock.calls[0][0].populateFields;
-      const fields = await populateFn();
+      expect(typeof callArgs.populateFields).toBe('function');
+
+      const fields = await callArgs.populateFields();
       expect(fields).toEqual([{ path: 'school' }]);
     });
   });
+
 
   describe('findOne', () => {
     it('should call queryFindOne with specific id and populate school', async () => {

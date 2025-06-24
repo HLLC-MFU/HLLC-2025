@@ -15,8 +15,6 @@ jest.mock('firebase-admin', () => ({
   }),
 }));
 
-
-
 interface MockUserRequest extends Partial<Omit<UserRequest, 'user'>> {
   user: {
     _id: string;

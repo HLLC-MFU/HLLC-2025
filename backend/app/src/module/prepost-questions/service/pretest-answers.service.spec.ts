@@ -21,6 +21,7 @@ import {
   queryDeleteOne,
   queryUpdateOneByFilter,
 } from 'src/pkg/helper/query.util';
+import { CreatePretestAnswerDto } from '../dto/pretest-answer/create-pretest-answer.dto';
 
 const userId = new Types.ObjectId().toHexString();
 const questionId = new Types.ObjectId().toHexString();
@@ -56,49 +57,51 @@ describe('PretestAnswersService', () => {
   });
 
   describe('create', () => {
-    it('should throw if user not found', async () => {
+    it('should throw NotFoundException with correct message if user not found', async () => {
       mockUserModel.exists.mockResolvedValue(null);
 
-      await expect(
-        service.create({ user: userId, answers: [] })
-      ).rejects.toThrow(NotFoundException);
+      const dto = new CreatePretestAnswerDto();
+      dto.user = userId;
+      dto.answers = [];
+
+      await expect(service.create(dto)).rejects.toThrowError(new NotFoundException('User not found'));
     });
 
-    it('should throw if any question is invalid', async () => {
+    it('should throw BadRequestException with correct message if any question is invalid', async () => {
       mockUserModel.exists.mockResolvedValue(true);
       mockPrepostQuestionModel.find.mockReturnValueOnce({
         select: () => ({ lean: () => Promise.resolve([]) }),
       });
 
-      await expect(
-        service.create({
-          user: userId,
-          answers: [{ pretest: questionId, answer: '1' }],
-        })
-      ).rejects.toThrow(BadRequestException);
+      const dto = new CreatePretestAnswerDto();
+      dto.user = userId;
+      dto.answers = [{ pretest: questionId, answer: '1' }];
+
+      await expect(service.create(dto)).rejects.toThrowError(
+        new BadRequestException('Type of display question in not Both or Pre'),
+      );
     });
 
-    it('should throw if answers already exist', async () => {
+    it('should throw BadRequestException with correct message if answers already exist', async () => {
       mockUserModel.exists.mockResolvedValue(true);
       mockPrepostQuestionModel.find.mockReturnValueOnce({
         select: () => ({
-          lean: () =>
-            Promise.resolve([{ _id: new Types.ObjectId(questionId) }]),
+          lean: () => Promise.resolve([{ _id: new Types.ObjectId(questionId) }]),
         }),
       });
       mockPretestAnswerModel.findOne.mockReturnValueOnce({
         select: () => ({
-          lean: () =>
-            Promise.resolve({ answers: [{ pretest: questionId }] }),
+          lean: () => Promise.resolve({ answers: [{ pretest: questionId }] }),
         }),
       });
 
-      await expect(
-        service.create({
-          user: userId,
-          answers: [{ pretest: questionId, answer: '1' }],
-        })
-      ).rejects.toThrow(BadRequestException);
+      const dto = new CreatePretestAnswerDto();
+      dto.user = userId;
+      dto.answers = [{ pretest: questionId, answer: '1' }];
+
+      await expect(service.create(dto)).rejects.toThrowError(
+        new BadRequestException('Pre-Test answer already exist for this user'),
+      );
     });
 
     it('should insert new answers successfully', async () => {
@@ -116,11 +119,11 @@ describe('PretestAnswersService', () => {
       });
       (queryUpdateOneByFilter as jest.Mock).mockResolvedValue({ success: true });
 
-      const result = await service.create({
-        user: userId,
-        answers: [{ pretest: questionId, answer: '1' }],
-      });
+      const dto = new CreatePretestAnswerDto();
+      dto.user = userId;
+      dto.answers = [{ pretest: questionId, answer: '1' }];
 
+      const result = await service.create(dto);
       expect(result).toEqual({ success: true });
     });
   });
@@ -141,21 +144,20 @@ describe('PretestAnswersService', () => {
     });
   });
 
- describe('remove', () => {
-  it('should return object with deleted: true', async () => {
-    const mockResult = { deleted: true };
-    (queryDeleteOne as jest.Mock).mockResolvedValue(mockResult);
+  describe('remove', () => {
+    it('should return object with deleted: true', async () => {
+      const mockResult = { deleted: true };
+      (queryDeleteOne as jest.Mock).mockResolvedValue(mockResult);
 
-    const result = await service.remove('123');
+      const result = await service.remove('123');
 
-    expect(result).toEqual(expect.objectContaining({ deleted: true }));
+      expect(result).toEqual(expect.objectContaining({ deleted: true }));
+    });
   });
-});
-
 
   describe('averageAllPretests', () => {
     it('should return average per pretest question', async () => {
-      const mockQuestion = { _id: new Types.ObjectId(), question: 'Q1' } ;
+      const mockQuestion = { _id: new Types.ObjectId(), question: 'Q1' };
       const answers = [
         { pretest: mockQuestion, answer: '3' },
         { pretest: mockQuestion, answer: '5' },
@@ -166,6 +168,17 @@ describe('PretestAnswersService', () => {
       const result = await service.averageAllPretests();
       expect(result[0].average).toBe(4);
       expect(result[0].count).toBe(2);
+    });
+
+    it('should throw if pretest not populated', async () => {
+      const answers = [
+        { pretest: 'not-populated', answer: '3' },
+      ];
+      (queryAll as jest.Mock).mockResolvedValue({ data: [{ answers }] });
+
+      await expect(service.averageAllPretests()).rejects.toThrowError(
+        new Error('Pretest not populated'),
+      );
     });
   });
 });

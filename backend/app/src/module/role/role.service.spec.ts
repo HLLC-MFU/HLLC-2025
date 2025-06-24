@@ -184,7 +184,7 @@ describe('RoleService', () => {
 
       const result = await service.updateMetadataSchema('999', dto);
 
-      expect(findOrThrow).toHaveBeenCalledWith(expect.any(Function), '999', 'Role');
+      expect(findOrThrow).toHaveBeenCalledWith(service['roleModel'], '999', 'Role');
       expect(result.metadataSchema).toEqual(dto.metadataSchema);
       expect(saveMock).toHaveBeenCalled();
     });

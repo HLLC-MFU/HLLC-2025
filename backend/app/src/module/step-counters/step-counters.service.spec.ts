@@ -5,18 +5,24 @@ import { StepCounter } from './schema/step-counter.schema';
 import { User } from '../users/schemas/user.schema';
 import { School } from '../schools/schemas/school.schema';
 import { CreateStepCounterDto } from './dto/create-step-counter.dto';
-import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import {
+  queryAll,
+  queryDeleteOne,
+  queryFindOne,
+  queryUpdateOne,
+} from 'src/pkg/helper/query.util';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
+import { HydratedDocument, Types } from 'mongoose';
 
 jest.mock('src/pkg/helper/query.util');
 jest.mock('src/pkg/validator/model.validator');
 
 describe('StepCountersService', () => {
   let service: StepCountersService;
-  let mockSave: jest.Mock;
-  let mockStepCounterModelInstance: any;
+  let mockSave: jest.Mock<Promise<HydratedDocument<StepCounter>>, []>;
+  let mockStepCounterModelInstance: Partial<HydratedDocument<StepCounter>>;
 
-  const mockStepCounterModel = jest.fn().mockImplementation((data) => {
+  const mockStepCounterModel = jest.fn().mockImplementation((data: Partial<StepCounter>) => {
     mockStepCounterModelInstance = {
       ...data,
       save: mockSave,
@@ -29,6 +35,7 @@ describe('StepCountersService', () => {
 
   beforeEach(async () => {
     mockSave = jest.fn();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StepCountersService,
@@ -45,21 +52,42 @@ describe('StepCountersService', () => {
 
   describe('create', () => {
     it('should call save with valid user', async () => {
-      const dto: CreateStepCounterDto = { user: 'user1', stepCount: 1000 };
+      const userId = new Types.ObjectId();
+      const dto: CreateStepCounterDto = { user: userId.toHexString(), stepCount: 1000 };
+
       (findOrThrow as jest.Mock).mockResolvedValue(true);
-      mockSave.mockResolvedValue({ _id: 'id1', ...dto });
+
+      const mockResult: Partial<HydratedDocument<StepCounter>> = {
+        _id: new Types.ObjectId(),
+        user: userId,
+        stepCount: dto.stepCount,
+      };
+
+      mockSave.mockResolvedValue(mockResult as HydratedDocument<StepCounter>);
 
       const result = await service.create(dto);
 
-      expect(result).toEqual({ _id: 'id1', ...dto });
+      expect(result).toEqual(mockResult);
       expect(mockSave).toHaveBeenCalled();
     });
+
+    it('should throw error if user not found', async () => {
+      const userId = new Types.ObjectId();
+      const dto: CreateStepCounterDto = { user: userId.toHexString(), stepCount: 1000 };
+
+      (findOrThrow as jest.Mock).mockRejectedValue(new Error('User not found'));
+
+      await expect(service.create(dto)).rejects.toThrow('User not found');
+    });
+
+
   });
 
   describe('findAll', () => {
     it('should call queryAll with user populated', async () => {
       const result = { data: [], meta: { total: 0 } };
       (queryAll as jest.Mock).mockResolvedValue(result);
+
       const response = await service.findAll({});
       expect(response).toBe(result);
     });
@@ -69,6 +97,7 @@ describe('StepCountersService', () => {
     it('should return single step counter', async () => {
       const result = { _id: '123', stepCount: 500 };
       (queryFindOne as jest.Mock).mockResolvedValue(result);
+
       const response = await service.findOne('123');
       expect(response).toBe(result);
     });
@@ -78,6 +107,7 @@ describe('StepCountersService', () => {
     it('should update step counter', async () => {
       const result = { _id: 'id1', stepCount: 2000 };
       (queryUpdateOne as jest.Mock).mockResolvedValue(result);
+
       const response = await service.update('id1', { stepCount: 2000 });
       expect(response).toBe(result);
     });
@@ -86,8 +116,12 @@ describe('StepCountersService', () => {
   describe('remove', () => {
     it('should delete step counter', async () => {
       (queryDeleteOne as jest.Mock).mockResolvedValue(true);
+
       const result = await service.remove('id1');
-      expect(result).toEqual({ message: 'Step counter deleted successfully', id: 'id1' });
+      expect(result).toEqual({
+        message: 'Step counter deleted successfully',
+        id: 'id1',
+      });
     });
   });
 
@@ -110,7 +144,10 @@ describe('StepCountersService', () => {
         },
       ];
 
-      (queryAll as jest.Mock).mockResolvedValue({ data: mockUsers, meta: { total: 2 } });
+      (queryAll as jest.Mock).mockResolvedValue({
+        data: mockUsers,
+        meta: { total: 2 },
+      });
 
       const result = await service.listUsersBySchoolId('s1');
       expect(result.data.length).toBe(1);

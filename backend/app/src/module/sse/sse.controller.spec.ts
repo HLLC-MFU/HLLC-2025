@@ -6,7 +6,6 @@ import { SsePayload } from 'src/pkg/types/sse.type';
 
 describe('SseController', () => {
   let controller: SseController;
-  let sseService: SseService;
 
   const mockPayload: SsePayload = {
     type: 'REFETCH_USERS',
@@ -30,7 +29,6 @@ describe('SseController', () => {
     }).compile();
 
     controller = module.get<SseController>(SseController);
-    sseService = module.get<SseService>(SseService);
   });
 
   it('should stream SSE data correctly', (done) => {
