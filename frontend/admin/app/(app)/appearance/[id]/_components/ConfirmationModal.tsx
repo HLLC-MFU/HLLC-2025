@@ -1,21 +1,22 @@
-import { Appearance } from "@/types/appearance";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from "@heroui/react";
 
-interface ColorConfirmationModalProps {
+interface ConfirmationModalProps {
     isOpen: boolean;
+    title: string;
+    subtitle: string;
     onClose: () => void;
     onConfirm: () => void;
 }
 
-export function ColorConfirmationModal({ isOpen, onClose, onConfirm }: ColorConfirmationModalProps) {
+export function ConfirmationModal({ isOpen, title, subtitle, onClose, onConfirm }: ConfirmationModalProps) {
     return (
         <Modal isOpen={isOpen} onClose={onClose}>
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1">
-                    Confirm Change Color
+                    {title}
                 </ModalHeader>
                 <ModalBody>
-                    <p>Are you sure you want to Change the Color ?</p>
+                    {subtitle}
                 </ModalBody>
                 <ModalFooter>
                     <Button color="danger" variant="light" onPress={onClose}>

@@ -6,7 +6,7 @@ const sortOptions = [
   { name: "createdAt", label: "New-Old" },
 ];
 
-interface LamduanFlowersFiltersProps {
+interface FiltersLamduanFlowersProps {
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   sortBy: string;
@@ -15,14 +15,14 @@ interface LamduanFlowersFiltersProps {
   onSortDirectionToggle: () => void;
 }
 
-export function LamduanFlowersFilters({
+export function FiltersLamduanFlowers({
   searchQuery,
   onSearchQueryChange,
   sortBy,
   sortDirection,
   onSortByChange,
   onSortDirectionToggle,
-}: LamduanFlowersFiltersProps) {
+}: FiltersLamduanFlowersProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row gap-4">

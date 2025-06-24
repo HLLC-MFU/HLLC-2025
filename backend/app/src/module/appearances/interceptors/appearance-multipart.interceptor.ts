@@ -28,7 +28,7 @@ interface MultipartRequest extends FastifyRequest {
 export class AppearanceMultipartInterceptor
   implements NestInterceptor<MultipartRequest, AppearanceDto>
 {
-  constructor(private readonly maxSizeKbs = 500) {}
+  constructor(private readonly maxSizeMbs = 5) {}
 
   async intercept(
     context: ExecutionContext,
@@ -63,9 +63,9 @@ export class AppearanceMultipartInterceptor
 
       if (this.isFile(part) && fieldName === 'assets' && subField) {
         const buffer = await part.toBuffer();
-        if (buffer.length > this.maxSizeKbs * 1024) {
+        if (buffer.length > this.maxSizeMbs * 1024 * 1024) {
           throw new HttpException(
-            `File too large (max ${this.maxSizeKbs}KB)`,
+            `File too large (max ${this.maxSizeMbs}MB)`,
             HttpStatus.UNPROCESSABLE_ENTITY,
           );
         }
