@@ -19,6 +19,7 @@ import React from 'react';
 import { ToastProvider, ToastViewport } from '@tamagui/toast';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CurrentToast } from '@/context/ToastContext';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -28,13 +29,15 @@ export default function RootLayout() {
   const config = createTamagui(defaultConfig);
 
   return (
+    // Bugfix: Uncomment the GestureHandlerRootView to fix gesture handling issues (not fix yet)
+    //<GestureHandlerRootView style={{ flex: 1 }}>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <TamaguiProvider config={config}>
         <ToastProvider burntOptions={{ from: 'top' }}>
           <LanguageProvider>
-            <Stack>
-              <Stack.Screen name="(app)" options={{ headerShown: false }} />
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(app)"/>
+              <Stack.Screen name="(auth)"/>
               <Stack.Screen name="+not-found" />
             </Stack>
             <StatusBar style="auto" />
@@ -49,5 +52,6 @@ export default function RootLayout() {
         </ToastProvider>
       </TamaguiProvider>
     </ThemeProvider>
+    //</GestureHandlerRootView>
   );
 }

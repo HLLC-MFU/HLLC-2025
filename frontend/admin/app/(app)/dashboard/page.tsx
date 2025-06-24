@@ -4,8 +4,9 @@ import {
   buildStyles
 } from "react-circular-progressbar";
 import { Users, Ticket, ScanLine, Star, LayoutDashboard, FileQuestion, Activity } from 'lucide-react';
+import { Button } from "@heroui/react";
+import { LayoutDashboard } from 'lucide-react';
 import { useCheckin } from "@/hooks/useCheckin";
-import { useUsers } from "@/hooks/useUsers";
 import { useSponsors } from "@/hooks/useSponsors";
 import { PageHeader } from "@/components/ui/page-header";
 import { Accordion, AccordionItem } from "@heroui/react";
@@ -20,63 +21,50 @@ const icons = [
   <Ticket className="h-6 w-6 text-cyan-400" />,
   <Star className="h-6 w-6 text-emerald-400" />,
 ];
+import { useEvoucher } from "@/hooks/useEvoucher";
+import { useReports } from "@/hooks/useReports";
+import { useReportTypes } from "@/hooks/useReportTypes";
+import { ReportCharts } from "./_components/DashboardReportCharts";
+import Overview from "./_components/DashboardOverview";
+import Charts from "./_components/DashboardTimeLineCharts";
+import { useUserStatistics } from "@/hooks/useUsersytem";
+import { useActivities } from "@/hooks/useActivities";
+import { UseruseSystem } from "@/types/user-stats"
+
 
 export default function Dashboard() {
 
-  const { checkin } = useCheckin();
-  const { users } = useUsers();
+  const { checkin, loading } = useCheckin();
+  const { activities } = useActivities();
   const { sponsors } = useSponsors();
   
   const { activityProgress, loading: activityLoading } = useAssessment();
+  const { evouchers } = useEvoucher();
+  const { problems } = useReports();
+  const { reporttypes } = useReportTypes();
+  const { Userstats } = useUserStatistics();  
 
   return (
     <>
       <PageHeader description='System overview — quickly access key modules, recent activity, and system statistics.' icon={<LayoutDashboard />} />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[{
-          title: "Total Checkin",
-          value: checkin.length,
-          progressColor: "#65a30d",
-          borderColor: "border-lime-600"
-        }, {
-          title: "Total User",
-          value: users.length,
-          progressColor: "#fbbf24",
-          borderColor: "border-amber-400"
-        }, {
-          title: "E-voucher",
-          value: 10,
-          progressColor: "#22d3ee",
-          borderColor: "border-cyan-400"
-        }, {
-          title: "Sponsor",
-          value: sponsors.length,
-          progressColor: "#34d399",
-          borderColor: "border-emerald-400"
-        }].map((item, idx) => (
-          <div
-            key={idx}
-            className={`w-full h-36 border-b-[8px] ${item.borderColor} rounded-2xl shadow-md flex justify-between items-center bg-white p-4 relative`}
-          >
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                {icons[idx]}
-                <span className="text-md font-medium text-gray-700">{item.title}</span>
-              </div>
-              <span className="text-2xl font-bold text-gray-900">{item.value}</span>
-            </div>
-            <div className="w-16 h-16">
-              <CircularProgressbar
-                value={item.value}
-                maxValue={6000}
-                styles={buildStyles({
-                  pathColor: item.progressColor,
-                  trailColor: "#e5e7eb"
-                })}
-              />
-            </div>
-          </div>
-        ))}
+      <div className=" h-fit w-full flex flex-row justify-between items-center">
+        <h1 className=" text-3xl font-semibold "> Overview </h1>
+        <Button color="primary" variant="shadow" size="lg">
+          Export XLS
+        </Button>
+      </div>
+      <Overview
+        checkin={checkin}
+        Userstats={Userstats ?? {} as UseruseSystem}
+        Activities={activities}
+        Evouchers={evouchers}
+        Sponsors={sponsors}
+        isLoading={loading}
+      />
+
+      <h1 className=" text-2xl font-semibold my-6"> TimeLine </h1>
+      <div className="w-full h-96 p-4 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 bg-muted flex items-center justify-center">
+        <Charts />
       </div>
 
       {/* Assessment Results Accordion */}
@@ -122,6 +110,8 @@ export default function Dashboard() {
           </AccordionItem>
         </Accordion>
       </div>
+      <h1 className=" text-2xl font-semibold my-6">Reports</h1>
+      <ReportCharts problems={problems} reporttypes={reporttypes} />
     </>
   );
 }

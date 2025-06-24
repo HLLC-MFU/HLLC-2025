@@ -8,7 +8,10 @@ import {
 } from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
 import { Observable } from 'rxjs';
-import { generateFilename, saveFileToUploadDir } from 'src/pkg/config/storage.config';
+import {
+  generateFilename,
+  saveFileToUploadDir,
+} from 'src/pkg/config/storage.config';
 import { MultipartFile, MultipartValue } from '@fastify/multipart';
 
 interface AppearanceDto {
@@ -22,24 +25,29 @@ interface MultipartRequest extends FastifyRequest {
 }
 
 @Injectable()
-export class AppearanceMultipartInterceptor implements NestInterceptor<MultipartRequest, AppearanceDto> {
-  constructor(private readonly maxSizeKbs = 500) {}
+export class AppearanceMultipartInterceptor
+  implements NestInterceptor<MultipartRequest, AppearanceDto>
+{
+  constructor(private readonly maxSizeMbs = 5) {}
 
   async intercept(
     context: ExecutionContext,
-    next: CallHandler
+    next: CallHandler,
   ): Promise<Observable<AppearanceDto>> {
     const req = context.switchToHttp().getRequest<MultipartRequest>();
     const parts = req.parts?.();
 
     if (!parts) {
-      throw new HttpException('multipart/form-data required', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'multipart/form-data required',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const dto: AppearanceDto = {
       colors: {},
       assets: {},
-      school: ''
+      school: '',
     };
 
     for await (const part of parts) {
@@ -55,18 +63,20 @@ export class AppearanceMultipartInterceptor implements NestInterceptor<Multipart
 
       if (this.isFile(part) && fieldName === 'assets' && subField) {
         const buffer = await part.toBuffer();
-        if (buffer.length > this.maxSizeKbs * 1024) {
+        if (buffer.length > this.maxSizeMbs * 1024 * 1024) {
           throw new HttpException(
-            `File too large (max ${this.maxSizeKbs}KB)`,
+            `File too large (max ${this.maxSizeMbs}MB)`,
             HttpStatus.UNPROCESSABLE_ENTITY,
           );
         }
 
         const filename = generateFilename(part.filename);
-        await saveFileToUploadDir(filename, buffer);
+        saveFileToUploadDir(filename, buffer);
         dto.assets[subField] = filename;
       } else if (!this.isFile(part) && fieldName === 'colors' && subField) {
-        const colorValue = part.value.replace(/^"|"$/g, '').replace(/\\#/g, '#');
+        const colorValue = part.value
+          .replace(/^"|"$/g, '')
+          .replace(/\\#/g, '#');
         if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(colorValue)) {
           throw new HttpException(
             `Invalid hex color format for ${subField}: ${colorValue}`,
@@ -85,11 +95,15 @@ export class AppearanceMultipartInterceptor implements NestInterceptor<Multipart
     return next.handle();
   }
 
-  private isFile(part: MultipartFile | MultipartValue<string>): part is MultipartFile {
+  private isFile(
+    part: MultipartFile | MultipartValue<string>,
+  ): part is MultipartFile {
     return 'filename' in part;
   }
 
-  private isField(part: MultipartFile | MultipartValue<string>): part is MultipartValue<string> {
+  private isField(
+    part: MultipartFile | MultipartValue<string>,
+  ): part is MultipartValue<string> {
     return 'value' in part;
   }
-} 
+}

@@ -14,19 +14,22 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '@/context/LanguageContext';
 import useProfile from '@/hooks/useProfile';
-import { useChatRooms } from './hooks/useChatRooms';
-import { useChatAnimations } from './hooks/useChatAnimations';
-import { ChatRoom } from './types/chatTypes';
-import CreateRoomModal from './components/CreateRoomModal';
-import RoomCard from './components/RoomCard';
-import RoomListItem from './components/RoomListItem';
-import LoadingSpinner from './components/LoadingSpinner';
-import { ChatHeader } from './components/ChatHeader';
-import { ChatTabBar } from './components/ChatTabBar';
-import { CategoryFilter } from './components/CategoryFilter';
+import { useChatRooms } from '../../../hooks/chats/useChatRooms';
+import { useChatAnimations } from '../../../hooks/chats/useChatAnimations';
+import { ChatRoom } from '../../../types/chatTypes';
+import { BlurView } from 'expo-blur';
+import { chatService } from '../../../services/chats/chatService';
+import CategoryFilter from '@/components/chats/CategoryFilter';
+import ChatHeader from '@/components/chats/ChatHeader';
+import { ChatTabBar } from '@/components/chats/ChatTabBar';
+import { ConfirmJoinModal } from '@/components/chats/ConfirmJoinModal';
+import CreateRoomModal from '@/components/chats/CreateRoomModal';
+import LoadingSpinner from '@/components/chats/LoadingSpinner';
+import RoomCard from '@/components/chats/RoomCard';
+import { RoomDetailModal } from '@/components/chats/RoomDetailModal';
+import RoomListItem from '@/components/chats/RoomListItem';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -34,6 +37,10 @@ export default function ChatPage() {
   const { language } = useLanguage();
   const { user } = useProfile();
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
+  const [confirmJoinVisible, setConfirmJoinVisible] = useState(false);
+  const [pendingJoinRoom, setPendingJoinRoom] = useState<ChatRoom | null>(null);
   const userId = user?.data?.[0]?._id || '';
 
   const {
@@ -66,17 +73,31 @@ export default function ChatPage() {
   }, [loadRooms]);
 
   const joinRoom = async (roomId: string) => {
+    const room = rooms.find(r => r.id === roomId);
+    setPendingJoinRoom(room || null);
+    setConfirmJoinVisible(true);
+  };
+
+  const handleConfirmJoin = async () => {
+    if (!pendingJoinRoom) return;
+    setConfirmJoinVisible(false);
     try {
-      animateTabBar();
-      router.push({
-        pathname: "/chat/[roomId]",
-        params: { roomId, isMember: 'true' }
-      });
+      const result = await chatService.joinRoom(pendingJoinRoom.id);
+      if (result.success) {
+        router.push({
+          pathname: "/chat/[roomId]",
+          params: { roomId: pendingJoinRoom.id, isMember: 'true' }
+        });
+      } else {
+        Alert.alert(
+          language === 'th' ? 'เข้าร่วมไม่สำเร็จ' : 'Join Failed',
+          result.message || (language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room')
+        );
+      }
     } catch (error) {
-      console.error("Failed to join room:", error);
       Alert.alert(
         language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
-        language === 'th' ? 'ไม่สามารถเข้าร่วมห้องแชทได้' : 'Failed to join room'
+        language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room'
       );
     }
   };
@@ -100,37 +121,63 @@ export default function ChatPage() {
     }
   };
 
+  const handleTabChange = (tab: 'my' | 'discover') => {
+    animateTabBar();
+    setActiveTab(tab);
+  };
+
+  const handleRefresh = () => {
+    loadRooms();
+  };
+
   const renderRoomItem = ({ item, index }: { item: ChatRoom; index: number }) => {
     if (activeTab === 'my') {
       return (
         <RoomListItem 
-          room={item} 
-          language={language} 
-          onPress={() => navigateToRoom(item.id, true)} 
-          index={index}
+          room={item}
+          language={language}
+          onPress={() => navigateToRoom(item.id, true)}
+          index={index} width={0}
         />
       );
     }
+    // สำหรับ discovery: กด card ให้แสดงรายละเอียดห้อง (modal)
+    const showRoomDetail = () => {
+      setSelectedRoom(item);
+      setDetailModalVisible(true);
+    };
     return (
-      <RoomCard 
-        room={item} 
-        width={width} 
-        language={language} 
-        onPress={() => navigateToRoom(item.id, false)} 
-        onJoin={() => joinRoom(item.id)}
-        index={index}
-      />
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.9}
+      >
+        <BlurView
+          intensity={30}
+          tint="light"
+          style={styles.cardBlur}
+        >
+          <RoomCard 
+            room={item}
+            width={width}
+            language={language}
+            onJoin={() => joinRoom(item.id)}
+            onShowDetail={showRoomDetail}
+            index={index} 
+            onPress={() => {}} // ไม่ต้องใช้งานจริงใน discover
+          />
+        </BlurView>
+      </TouchableOpacity>
     );
   };
 
   if (loading && !refreshing) {
     return (
-      <LinearGradient colors={['#e0e7ff', '#f8fafc']} style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#e0e7ff" translucent />
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <LoadingSpinner text={language === 'th' ? 'กำลังโหลดชุมชน...' : 'Loading communities...'} />
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -141,8 +188,8 @@ export default function ChatPage() {
   });
 
   return (
-    <LinearGradient colors={['#e0e7ff', '#f8fafc']} style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#e0e7ff" translucent />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <SafeAreaView style={styles.safeArea}>
         <ChatHeader
           language={language}
@@ -155,7 +202,7 @@ export default function ChatPage() {
         <ChatTabBar
           language={language}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           tabBarAnimation={tabBarAnimation}
         />
         <CategoryFilter
@@ -178,7 +225,7 @@ export default function ChatPage() {
           refreshControl={
             <RefreshControl 
               refreshing={refreshing} 
-              onRefresh={() => setRefreshing(true)}
+              onRefresh={handleRefresh}
               colors={['#6366f1']}
               tintColor="#6366f1"
               progressBackgroundColor="#ffffff"
@@ -200,7 +247,6 @@ export default function ChatPage() {
         />
       </SafeAreaView>
 
-      <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabScale }] }]}>
         <TouchableOpacity
           style={styles.enhancedFab}
           onPress={() => {
@@ -209,11 +255,10 @@ export default function ChatPage() {
           }}
           activeOpacity={0.9}
         >
-          <LinearGradient colors={['#6366f1', '#8b5cf6']} style={styles.fabGradient}>
+          <BlurView intensity={0} tint="light" style={styles.fabGradient}>
             <Plus size={24} color="#fff" />
-          </LinearGradient>
+          </BlurView>
         </TouchableOpacity>
-      </Animated.View>
 
       <CreateRoomModal
         visible={createModalVisible}
@@ -221,7 +266,22 @@ export default function ChatPage() {
         onSuccess={loadRooms}
         userId={userId}
       />
-    </LinearGradient>
+
+      <RoomDetailModal
+        visible={detailModalVisible}
+        room={selectedRoom}
+        language={language}
+        onClose={() => setDetailModalVisible(false)}
+      />
+
+      <ConfirmJoinModal
+        visible={confirmJoinVisible}
+        room={pendingJoinRoom}
+        language={language}
+        onConfirm={handleConfirmJoin}
+        onCancel={() => setConfirmJoinVisible(false)}
+      />
+    </View>
   );
 }
 
@@ -240,6 +300,9 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 120,
+    flexGrow: 1,
+    minHeight: '1%',
+    alignContent: 'center'
   },
   listContentSingle: {
     gap: 12,
@@ -260,29 +323,51 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#ffffff',
     textAlign: 'center',
   },
-  fabContainer: {
-    position: 'absolute',
-    bottom: 40,
-    right: 24,
-  },
   enhancedFab: {
+    position: 'absolute',
+    bottom: 120,
+    right: 24,
     width: 60,
     height: 60,
     borderRadius: 30,
     overflow: 'hidden',
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    bottom: 60,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,200,200,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   fabGradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 18,
+    marginBottom: 12,
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  cardBlur: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(200,200,200,0.18)',
+    flex: 1,
   },
 });

@@ -63,4 +63,4 @@ export default function AddSponsorTypeModal({
       </ModalContent>
     </Modal>
   );
-}
+} 

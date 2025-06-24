@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -32,11 +33,19 @@ type Config struct {
 		Password string
 		DB       int
 	}
+	Kafka struct {
+		Host string
+		Port string
+	}
 	CORS struct {
 		AllowOrigins     string
 		AllowHeaders     string
 		AllowMethods     string
 		AllowCredentials bool
+	}
+	Storage struct {
+		UploadsDir     string
+		StickersSubDir string
 	}
 }
 
@@ -69,11 +78,19 @@ func LoadConfig(path string) *Config {
 	cfg.Redis.Password = getEnvOrDefault("REDIS_PASSWORD", "")
 	cfg.Redis.DB = getEnvAsIntOrDefault("REDIS_DB", 0)
 
+	// Kafka configuration
+	cfg.Kafka.Host = getEnvOrDefault("KAFKA_HOST", "localhost")
+	cfg.Kafka.Port = getEnvOrDefault("KAFKA_PORT", "9092")
+
 	// CORS configuration
 	cfg.CORS.AllowOrigins = getEnvOrDefault("CORS_ALLOW_ORIGINS", "http://localhost:3000")
 	cfg.CORS.AllowHeaders = getEnvOrDefault("CORS_ALLOW_HEADERS", "Origin, Content-Type, Accept, Authorization")
 	cfg.CORS.AllowMethods = getEnvOrDefault("CORS_ALLOW_METHODS", "GET, POST, PUT, DELETE")
 	cfg.CORS.AllowCredentials = getEnvOrDefault("CORS_ALLOW_CREDENTIALS", "true") == "true"
+
+	// Storage configuration
+	cfg.Storage.UploadsDir = getEnvOrDefault("UPLOADS_DIR", "./uploads")
+	cfg.Storage.StickersSubDir = getEnvOrDefault("STICKERS_SUBDIR", "stickers")
 
 	return cfg
 }
@@ -120,4 +137,15 @@ func (cfg *Config) FiberCORSConfig() cors.Config {
 		AllowHeaders:     cfg.CORS.AllowHeaders,
 		AllowMethods:     cfg.CORS.AllowMethods,
 	}
+}
+
+func EnsureDirExists(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return os.MkdirAll(path, 0755)
+	}
+	return nil
+}
+
+func (cfg *Config) KafkaAddress() string {
+	return fmt.Sprintf("%s:%s", cfg.Kafka.Host, cfg.Kafka.Port)
 }

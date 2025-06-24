@@ -1,96 +1,129 @@
 import { Injectable } from '@nestjs/common';
-
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import {
+  queryAll,
+  queryDeleteOne,
+  queryFindOne,
+  queryUpdateOne,
+} from 'src/pkg/helper/query.util';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
-
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { Sponsors, SponsorsDocument } from 'src/module/sponsors/schema/sponsors.schema';
+import {
+  Sponsors,
+  SponsorsDocument,
+} from 'src/module/sponsors/schema/sponsors.schema';
 import { CreateEvoucherDto } from '../dto/evouchers/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/evouchers/update-evoucher.dto';
-import { EvoucherType, EvoucherTypeDocument } from '../schema/evoucher-type.schema';
-import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
+import {
+  Evoucher,
+  EvoucherDocument,
+  EvoucherStatus,
+} from '../schema/evoucher.schema';
+import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
+import { EvoucherCode } from '../schema/evoucher-code.schema';
+import { buildPaginatedResponse } from 'src/pkg/helper/buildPaginatedResponse';
+import { validatePublicAvailableVoucher } from '../utils/evoucher.util';
 
 @Injectable()
 export class EvoucherService {
-
   constructor(
     @InjectModel(Evoucher.name)
     private evoucherModel: Model<EvoucherDocument>,
     @InjectModel(Sponsors.name)
     private sponsorsModel: Model<SponsorsDocument>,
-    @InjectModel(EvoucherType.name)
-    private evoucherTypeModel: Model<EvoucherTypeDocument>,
-  ) { }
+    @InjectModel(EvoucherCode.name)
+    private evoucherCodeModel: Model<EvoucherCodeDocument>,
+  ) {}
 
   async create(createEvoucherDto: CreateEvoucherDto) {
-
-    await findOrThrow(
-      this.evoucherTypeModel,
-      createEvoucherDto.type,
-      'Evoucher type not found'
-    )
-
     await findOrThrow(
       this.sponsorsModel,
       createEvoucherDto.sponsors,
-      'Sponsors not found'
-    )
+      'Sponsors not found',
+    );
 
     const evoucher = new this.evoucherModel({
       ...createEvoucherDto,
-      type: new Types.ObjectId(createEvoucherDto.type),
       sponsors: new Types.ObjectId(createEvoucherDto.sponsors),
+      expiration: createEvoucherDto.expiration,
+      maxClaims: createEvoucherDto.maxClaims,
+      status: EvoucherStatus.ACTIVE,
     });
-
-    try {
-      return await evoucher.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name')
-    }
-
+    return await evoucher.save();
   }
 
   async findAll(query: Record<string, string>) {
-    return queryAll<Evoucher>({
+    const result = await queryAll<Evoucher>({
       model: this.evoucherModel,
       query,
       filterSchema: {},
-      populateFields: () => Promise.resolve([
-        { path: 'type' },
-        { path: 'sponsors' },
-      ]),
+      populateFields: () => Promise.resolve([{ path: 'sponsors' }]),
     });
+
+    const processedData = await Promise.all(
+      result.data.map(async (evoucher: EvoucherDocument) => {
+        const currentClaims = await this.evoucherCodeModel.countDocuments({
+          evoucher: evoucher._id,
+          user: { $ne: null },
+          isUsed: false,
+        });
+
+        const { maxClaims, ...evoucherWithoutMaxClaims } = evoucher.toJSON
+          ? evoucher.toJSON()
+          : evoucher;
+
+        return {
+          ...evoucherWithoutMaxClaims,
+          claims: {
+            maxClaim: maxClaims,
+            currentClaim: currentClaims,
+          },
+        };
+      }),
+    );
+
+    return buildPaginatedResponse<Evoucher>(processedData, result.meta);
   }
 
-  async findOne(id: string) {
-    return queryFindOne<Evoucher>(
-      this.evoucherModel,
-      { _id: id },
-      [
-        { path: 'type' },
-        { path: 'sponsors' },
-      ]
-    )
+  findOne(id: string) {
+    return queryFindOne<Evoucher>(this.evoucherModel, { _id: id }, [
+      { path: 'sponsors' },
+    ]);
   }
 
-  async update(id: string, updateEvoucherDto: UpdateEvoucherDto) {
-    return queryUpdateOne<Evoucher>(
-      this.evoucherModel,
-      id,
-      updateEvoucherDto
-    )
+  async getPublicAvailableEvouchersForUser(
+    userId?: string,
+    query?: Record<string, string>,
+  ) {
+    const result = await queryAll<Evoucher>({
+      model: this.evoucherModel,
+      query: { ...query, type: 'GLOBAL', status: EvoucherStatus.ACTIVE },
+      filterSchema: {},
+      populateFields: () => Promise.resolve([{ path: 'sponsors' }]),
+    });
+
+    const processedData = await Promise.all(
+      result.data.map((evoucher: EvoucherDocument) =>
+        validatePublicAvailableVoucher(
+          evoucher,
+          this.evoucherCodeModel,
+          userId,
+        ),
+      ),
+    );
+
+    return buildPaginatedResponse<Evoucher>(processedData, result.meta);
+  }
+
+  update(id: string, updateEvoucherDto: UpdateEvoucherDto) {
+    return queryUpdateOne<Evoucher>(this.evoucherModel, id, updateEvoucherDto);
   }
 
   async remove(id: string) {
-    await queryDeleteOne<Evoucher>(
-      this.evoucherModel,
-      id
-    )
+    await queryDeleteOne<Evoucher>(this.evoucherModel, id);
     return {
       message: 'Evoucher deleted successfully',
       id,
-    }
+    };
   }
 }
