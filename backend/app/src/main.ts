@@ -30,7 +30,7 @@ async function bootstrap() {
 
   await app.register(multipart, {
     limits: {
-      fileSize: 500 * 1024,
+      fileSize: 5 * 1024 * 1024,
     },
   });
   await app.register(fastifyStatic, {
