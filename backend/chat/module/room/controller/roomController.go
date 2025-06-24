@@ -2,11 +2,9 @@ package controller
 
 import (
 	"chat/module/room/dto"
-	"chat/module/room/model"
 	"chat/module/room/service"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
-	controllerHelper "chat/pkg/helpers/controller"
 	"chat/pkg/utils"
 	"chat/pkg/validator"
 
@@ -47,7 +45,7 @@ func NewRoomController(app *fiber.App, service *service.RoomService) *RoomContro
 	controller.Get("/", controller.GetRooms)
 	controller.Post("/", controller.CreateRoom)
 	controller.Get("/:id", controller.GetRoomById)
-	controller.Put("/:id", controller.UpdateRoom)
+	// controller.Put("/:id", controller.UpdateRoom)
 	controller.Delete("/:id", controller.DeleteRoom)
 	controller.SetupRoutes()
 
@@ -136,13 +134,12 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusCreated).JSON(room)
 }
 
-func (c *RoomController) UpdateRoom(ctx *fiber.Ctx) error {
-	return controllerHelper.ControllerAction(ctx, func(room *model.Room) (any, error) {
-		room.CreatedBy = controllerHelper.GetUserID(ctx)
-
-		return c.service.UpdateRoom(ctx.Context(), ctx.Params("id"), room)
-	})
-}
+// func (c *RoomController) UpdateRoom(ctx *fiber.Ctx) error {
+// 	return controllerHelper.ControllerAction(ctx, func(room *model.Room) (any, error) {
+// 		room.CreatedBy = controllerHelper.GetUser(ctx)
+// 		return c.service.UpdateRoom(ctx.Context(), ctx.Params("id"), room)
+// 	})
+// }
 
 func (c *RoomController) DeleteRoom(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
