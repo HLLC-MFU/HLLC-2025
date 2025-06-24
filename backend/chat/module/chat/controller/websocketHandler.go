@@ -29,6 +29,51 @@ func NewWebSocketHandler(
 	}
 }
 
+// Send chat history
+func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.Conn, roomID string) {
+	messages, err := h.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
+	if err == nil {
+		for _, msg := range messages {
+			// Convert history message to regular message format
+			event := utils.ChatEvent{
+				Type:      "message",
+				RoomID:    msg.ChatMessage.RoomID.Hex(),
+				Message:   msg.ChatMessage.Message,
+				Timestamp: msg.ChatMessage.Timestamp,
+			}
+
+			// Get user details using the service's GetUserById method
+			if user, err := h.chatService.GetUserById(ctx, msg.ChatMessage.UserID.Hex()); err == nil {
+				event.UserID = map[string]interface{}{
+					"_id":      user.ID.Hex(),
+					"username": user.Username,
+					"name":     user.Name,
+				}
+			} else {
+				event.UserID = msg.ChatMessage.UserID.Hex()
+			}
+
+			// Add reactions if any
+			if len(msg.Reactions) > 0 {
+				event.Payload = map[string]interface{}{
+					"reactions": msg.Reactions,
+				}
+			}
+
+			// Add reply info if exists
+			if msg.ReplyTo != nil {
+				event.Payload = map[string]interface{}{
+					"replyTo": msg.ReplyTo,
+				}
+			}
+
+			if data, err := json.Marshal(event); err == nil {
+				conn.WriteMessage(websocket.TextMessage, data)
+			}
+		}
+	}
+}
+
 func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 	roomID := conn.Params("roomId")
 	userID := conn.Params("userId")
@@ -78,19 +123,7 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 	}
 
 	// Send chat history
-	messages, err := h.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
-	if err == nil {
-		for _, msg := range messages {
-			event := model.ChatEvent{
-				EventType: "history",
-				Payload:   msg,
-			}
-
-			if data, err := json.Marshal(event); err == nil {
-				conn.WriteMessage(websocket.TextMessage, data)
-			}
-		}
-	}
+	h.sendChatHistory(ctx, conn, roomID)
 
 	// Create client object
 	client := &model.ClientObject{

@@ -3,14 +3,19 @@ package service
 import (
 	"chat/module/chat/model"
 	"chat/module/chat/utils"
+	userModel "chat/module/user/model"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	"chat/pkg/helpers/service"
+	"context"
+	"fmt"
 	"log"
 
 	"chat/pkg/config"
 
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -73,4 +78,24 @@ func NewChatService(
 // GetHub returns the hub instance for WebSocket management
 func (s *ChatService) GetHub() *utils.Hub {
 	return s.hub
+}
+
+// GetUserById returns user details by ID
+func (s *ChatService) GetUserById(ctx context.Context, userID string) (*userModel.User, error) {
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	userService := queries.NewBaseService[userModel.User](s.mongo.Collection("users"))
+	result, err := userService.FindOneWithPopulate(ctx, bson.M{"_id": userObjID}, "role", "roles")
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Data) == 0 {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	return &result.Data[0], nil
 } 

@@ -7,6 +7,7 @@ import (
 	"chat/module/chat/utils"
 	roomModel "chat/module/room/model"
 	stickerModel "chat/module/sticker/model"
+	userModel "chat/module/user/model"
 	"chat/pkg/decorators"
 	controllerHelper "chat/pkg/helpers/controller"
 	"context"
@@ -26,6 +27,7 @@ type (
 		SubscribeToRoom(ctx context.Context, roomID string) error
 		UnsubscribeFromRoom(ctx context.Context, roomID string) error
 		DeleteRoomMessages(ctx context.Context, roomID string) error
+		GetUserById(ctx context.Context, userID string) (*userModel.User, error)
 	}
 
 	RoomService interface {
@@ -48,7 +50,7 @@ type (
 		chatService    *chatService.ChatService
 		roomService    RoomService
 		stickerService StickerService
-		wsHandler     *WebSocketHandler
+		wsHandler      *WebSocketHandler
 	}
 )
 
