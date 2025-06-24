@@ -1,16 +1,18 @@
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, ImageBackground } from 'react-native';
 import { SplashScreen, Tabs, usePathname } from 'expo-router';
 import { Redirect } from 'expo-router';
 import { BlurView } from 'expo-blur';
-import { ImageBackground } from 'expo-image';
 import useProfile from '@/hooks/useProfile';
 import { useEffect, useState } from 'react';
 import TabBar from '@/components/global/TabBar';
+import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
+import { useAppearance } from '@/hooks/useAppearance';
 
 export default function Layout() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
+  const assets = useAppearance();
 
   useEffect(() => {
     getProfile().finally(() => {
@@ -27,14 +29,11 @@ export default function Layout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <ImageBackground
-        source={require('@/assets/images/lobby.png')}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-      >
-        <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
-      </ImageBackground>
-
+      <BackgroundScreen 
+        background={assets?.assets?.background ?? null}
+        children={<BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />}
+      />
+      
       <Tabs
         screenOptions={{
           sceneStyle: { backgroundColor: 'transparent' },

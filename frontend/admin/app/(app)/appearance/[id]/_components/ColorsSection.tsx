@@ -56,7 +56,7 @@ export function ColorsSection({ colors, onSave }: ColorsSectionProps) {
                 <div className="relative">
                   <input
                     type="color"
-                    value={previewColor[key]}
+                    value={previewColor[key] ?? "#ffffff"}
                     onChange={(e) => handleColorChange(key, e.target.value)}
                     className="w-16 h-10 rounded-lg cursor-pointer border-2 border-gray-200 hover:border-gray-300 transition-colors"
                   />

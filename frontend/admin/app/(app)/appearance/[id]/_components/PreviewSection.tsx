@@ -36,7 +36,7 @@ export function PreviewSection({ appearance, colors }: PreviewSectionProps) {
               <div className="space-y-3">
                 <Card
                   className={`p-4 rounded-lg font-medium ${textColor}`}
-                  style={{ backgroundColor: colors.primary }}
+                  style={{ backgroundColor: colors[key] }}
                 >
                   {key[0].toUpperCase() + key.slice(1)} Button Style
                 </Card>

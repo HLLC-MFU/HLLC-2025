@@ -23,11 +23,8 @@ export default function ImageInput({
 }: ImageInputProps) {
   const imageRef = useRef<HTMLInputElement | null>(null);
   const [previewImage, setPreviewImage] = useState<string>('');
-  const imageSrc =
-    previewImage ||
-    (image && `${process.env.NEXT_PUBLIC_API_URL}/uploads/${image}`);
-  const isVideo =
-    imageSrc?.endsWith('.mp4') || imageSrc?.startsWith('data:video/mp4');
+  const imageSrc = previewImage || (image && `${process.env.NEXT_PUBLIC_API_URL}/uploads/${image}`);
+  const isVideo = imageSrc?.endsWith('.mp4') || imageSrc?.startsWith('data:video/mp4');
 
   if (onDiscard && previewImage) {
     setPreviewImage('');
