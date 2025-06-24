@@ -108,10 +108,10 @@ func (h *Hub) BroadcastEvent(event ChatEvent) {
 		return
 	}
 
-	h.broadcastToRoom(event.RoomID, payload)
+	h.BroadcastToRoom(event.RoomID, payload)
 }
 
-func (h *Hub) broadcastToRoom(roomID string, payload []byte) {
+func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {
 	successCount := 0
 	failCount := 0
 
@@ -168,7 +168,7 @@ func (h *Hub) HandleKafkaMessage(topic string, payload []byte) error {
 	log.Printf("[ChatMessage] Received Kafka message from topic %s: type=%s, room=%s, user=%s", 
 		topic, event.Type, event.RoomID, event.UserID)
 
-	h.broadcastToRoom(roomID, payload)
+	h.BroadcastToRoom(roomID, payload)
 	
 	return nil
 }

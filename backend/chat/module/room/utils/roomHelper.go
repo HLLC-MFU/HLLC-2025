@@ -67,3 +67,26 @@ func RemoveMember(existing []primitive.ObjectID, target primitive.ObjectID) []pr
 	}
 	return filtered
 }
+
+// Convert string IDs to ObjectIDs
+func ConvertToObjectIDs(stringIDs []string) []primitive.ObjectID {
+	if len(stringIDs) == 0 {
+		return make([]primitive.ObjectID, 0)
+	}
+	objectIDs := make([]primitive.ObjectID, len(stringIDs))
+	for i, id := range stringIDs {
+		objID, _ := primitive.ObjectIDFromHex(id)
+		objectIDs[i] = objID
+	}
+	return objectIDs
+}
+
+// Check if a member exists in the list
+func ContainsMember(members []primitive.ObjectID, target primitive.ObjectID) bool {
+	for _, member := range members {
+		if member == target {
+			return true
+		}
+	}
+	return false
+}
