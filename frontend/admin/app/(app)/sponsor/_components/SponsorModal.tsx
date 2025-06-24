@@ -160,8 +160,6 @@ export function SponsorModal({
                 ))}
               </Select>
             </div>
-
-            <div className="flex flex-col items-center w-full px-6">
               <div className="w-full">
                 <LogoPreview
                   aspectRatio="aspect-[6/3]"
@@ -180,7 +178,6 @@ export function SponsorModal({
                 </p>
               )}
             </div>
-          </div>
         </ModalBody>
         <ModalFooter>
           <Button color="danger" variant="light" onPress={onClose}>Cancel</Button>
