@@ -7,8 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type mappedConns map[string]map[string]*websocket.Conn
-
 var Clients = make(map[primitive.ObjectID]map[string]*websocket.Conn)
 var Register = make(chan ClientObject)
 var Broadcast = make(chan BroadcastObject)

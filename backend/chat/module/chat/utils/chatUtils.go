@@ -12,28 +12,29 @@ import (
 )
 
 const (
-	// Base topic for room events
 	RoomTopicPrefix = "chat-room-"
 )
 
-type ChatEvent struct {
-	Type      string      `json:"type"`
-	RoomID    string      `json:"roomId"`
-	UserID    string      `json:"userId"`
-	Message   string      `json:"message"`
-	Timestamp time.Time   `json:"timestamp"`
-	Payload   interface{} `json:"payload,omitempty"`
-}
+type(
+	ChatEvent struct {
+		Type      string      `json:"type"`
+		RoomID    string      `json:"roomId"`
+		UserID    string      `json:"userId"`
+		Message   string      `json:"message"`
+		Timestamp time.Time   `json:"timestamp"`
+		Payload   interface{} `json:"payload,omitempty"`
+	}
 
-type Client struct {
-	Conn   *websocket.Conn
-	RoomID primitive.ObjectID
-	UserID primitive.ObjectID
-}
+	Client struct {
+		Conn   *websocket.Conn
+		RoomID primitive.ObjectID
+		UserID primitive.ObjectID
+	}
 
-type Hub struct {
-	clients sync.Map
-}
+	Hub struct {
+		clients sync.Map
+	}
+) 
 
 func NewHub() *Hub {
 	return &Hub{}
@@ -66,7 +67,6 @@ func (h *Hub) Unregister(c Client) {
 		if userConns, ok := roomMap.(*sync.Map).Load(userKey); ok {
 			userConns.(*sync.Map).Delete(connID)
 
-			// Check if user has no more connections
 			hasConnections := false
 			userConns.(*sync.Map).Range(func(_, _ interface{}) bool {
 				hasConnections = true
@@ -77,7 +77,6 @@ func (h *Hub) Unregister(c Client) {
 				roomMap.(*sync.Map).Delete(userKey)
 			}
 
-			// Count users and connections after removal
 			users, conns := h.countRoomStats(roomKey)
 			log.Printf("[WS] User %s left room %s (connection: %s) - Users: %d, Connections: %d", 
 				userKey, roomKey, connID, users, conns)
@@ -103,14 +102,12 @@ func (h *Hub) BroadcastEvent(event ChatEvent) {
 	log.Printf("[ChatMessage] Broadcasting event type=%s from user %s to room %s", 
 		event.Type, event.UserID, event.RoomID)
 
-	// Marshal event for broadcasting
 	payload, err := json.Marshal(event)
 	if err != nil {
 		log.Printf("[ERROR] Failed to marshal event: %v", err)
 		return
 	}
 
-	// Broadcast only to WebSocket clients
 	h.broadcastToRoom(event.RoomID, payload)
 }
 
@@ -140,7 +137,6 @@ func (h *Hub) broadcastToRoom(roomID string, payload []byte) {
 				return true
 			})
 			
-			// If user has no active connections, remove them from room
 			if activeConns == 0 {
 				log.Printf("[WS] Removing user %s from room %s (no active connections)", userID, roomID)
 				roomMap.(*sync.Map).Delete(userID)
@@ -157,7 +153,6 @@ func (h *Hub) broadcastToRoom(roomID string, payload []byte) {
 }
 
 func (h *Hub) HandleKafkaMessage(topic string, payload []byte) error {
-	// Extract roomID from topic
 	roomID := topic[len(RoomTopicPrefix):]
 	if roomID == "" {
 		log.Printf("[ERROR] Invalid topic format: %s", topic)
@@ -173,7 +168,6 @@ func (h *Hub) HandleKafkaMessage(topic string, payload []byte) error {
 	log.Printf("[ChatMessage] Received Kafka message from topic %s: type=%s, room=%s, user=%s", 
 		topic, event.Type, event.RoomID, event.UserID)
 
-	// Only broadcast to WebSocket clients
 	h.broadcastToRoom(roomID, payload)
 	
 	return nil

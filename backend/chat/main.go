@@ -144,7 +144,7 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	majorService := service.NewMajorService(mongo)
 	roleService := service.NewRoleService(mongo)
 	userService := service.NewUserService(mongo)
-	roomService := roomService.NewRoomService(mongo, redisClient)
+	roomAndMemberService := roomService.NewRoomService(mongo, redisClient)
 	stickerService := stickerService.NewStickerService(mongo)
 
 	// Initialize Kafka bus for chat
@@ -166,9 +166,9 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	controller.NewMajorController(app, majorService)
 	controller.NewRoleController(app, roleService)
 	controller.NewUserController(app, userService)
-	roomController.NewRoomController(app, roomService)
+	roomController.NewRoomController(app, roomAndMemberService)
 	stickerController.NewStickerController(app, stickerService)
-	chatController.NewChatController(app, chatService, roomService, stickerService, roomService)
+	chatController.NewChatController(app, chatService, roomAndMemberService, stickerService)
 }
 
 // logRegisteredRoutes prints all registered routes in a formatted way

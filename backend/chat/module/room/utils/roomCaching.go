@@ -12,11 +12,8 @@ import (
 )
 
 const (
-	// Default TTL for room cache
 	defaultRoomTTL = 24 * time.Hour
-	// Default TTL for members cache
 	defaultMembersTTL = 1 * time.Hour
-	// Default TTL for connection cache
 	defaultConnectionTTL = 5 * time.Minute
 )
 
@@ -60,7 +57,6 @@ func (s *RoomCacheService) GetRoom(ctx context.Context, roomID string) (*model.R
 		return nil, err
 	}
 
-	// Refresh TTL on successful read
 	s.redis.Expire(ctx, key, defaultRoomTTL)
 
 	return &room, nil
@@ -72,28 +68,21 @@ func (s *RoomCacheService) SaveRoom(ctx context.Context, room *model.Room) error
 	if err != nil {
 		return err
 	}
-
-	// Save room with TTL
 	if err := s.redis.SetEx(ctx, key, data, defaultRoomTTL).Err(); err != nil {
 		return err
 	}
-
-	// Also update members cache
 	return s.SaveMembers(ctx, room.ID.Hex(), room.Members)
 }
 
 func (s *RoomCacheService) DeleteRoom(ctx context.Context, roomID string) error {
 	pipe := s.redis.Pipeline()
-	
-	// Delete both room and members cache
+
 	pipe.Del(ctx, s.roomKey(roomID))
 	pipe.Del(ctx, s.membersKey(roomID))
 	
 	_, err := pipe.Exec(ctx)
 	return err
 }
-
-// Members-specific cache methods
 
 func (s *RoomCacheService) GetMembers(ctx context.Context, roomID string) ([]primitive.ObjectID, error) {
 	key := s.membersKey(roomID)
@@ -110,9 +99,7 @@ func (s *RoomCacheService) GetMembers(ctx context.Context, roomID string) ([]pri
 		return nil, err
 	}
 
-	// Refresh TTL on successful read
 	s.redis.Expire(ctx, key, defaultMembersTTL)
-
 	return members, nil
 }
 
@@ -131,14 +118,12 @@ func (s *RoomCacheService) AddMember(ctx context.Context, roomID string, memberI
 		return err
 	}
 
-	// Check if member already exists
 	for _, m := range members {
 		if m == memberID {
-			return nil // Member already exists
+			return nil
 		}
 	}
 
-	// Add new member
 	members = append(members, memberID)
 	return s.SaveMembers(ctx, roomID, members)
 }
@@ -149,7 +134,6 @@ func (s *RoomCacheService) RemoveMember(ctx context.Context, roomID string, memb
 		return err
 	}
 
-	// Filter out the member to remove
 	filtered := make([]primitive.ObjectID, 0, len(members))
 	for _, m := range members {
 		if m != memberID {
@@ -182,15 +166,12 @@ func (s *RoomCacheService) GetMemberCount(ctx context.Context, roomID string) (i
 	return len(members), nil
 }
 
-// Add connection management methods
 func (s *RoomCacheService) TrackConnection(ctx context.Context, roomID, userID string) error {
 	pipe := s.redis.Pipeline()
 
-	// Add to active connections set
 	pipe.SAdd(ctx, s.activeConnectionsKey(roomID), userID)
 	pipe.Expire(ctx, s.activeConnectionsKey(roomID), defaultConnectionTTL)
 
-	// Set individual connection
 	connKey := s.connectionKey(roomID, userID)
 	pipe.Set(ctx, connKey, time.Now().Unix(), defaultConnectionTTL)
 
@@ -198,7 +179,6 @@ func (s *RoomCacheService) TrackConnection(ctx context.Context, roomID, userID s
 	return err
 }
 
-// Remove connection tracking
 func (s *RoomCacheService) RemoveConnection(ctx context.Context, roomID, userID string) error {
 	pipe := s.redis.Pipeline()
 
@@ -209,22 +189,18 @@ func (s *RoomCacheService) RemoveConnection(ctx context.Context, roomID, userID 
 	return err
 }
 
-// Get active connections count
 func (s *RoomCacheService) GetActiveConnectionsCount(ctx context.Context, roomID string) (int64, error) {
 	return s.redis.SCard(ctx, s.activeConnectionsKey(roomID)).Result()
 }
 
-// Check if user has active connection
 func (s *RoomCacheService) HasActiveConnection(ctx context.Context, roomID, userID string) (bool, error) {
 	return s.redis.SIsMember(ctx, s.activeConnectionsKey(roomID), userID).Result()
 }
 
-// Get all active users in room
 func (s *RoomCacheService) GetActiveUsers(ctx context.Context, roomID string) ([]string, error) {
 	return s.redis.SMembers(ctx, s.activeConnectionsKey(roomID)).Result()
 }
 
-// Cleanup inactive connections
 func (s *RoomCacheService) CleanupInactiveConnections(ctx context.Context, roomID string) error {
 	activeUsers, err := s.GetActiveUsers(ctx, roomID)
 	if err != nil {

@@ -15,18 +15,15 @@ import (
 
 type WebSocketHandler struct {
 	chatService    ChatService
-	memberService  MemberService
 	roomService    RoomService
 }
 
 func NewWebSocketHandler(
 	chatService ChatService,
-	memberService MemberService,
 	roomService RoomService,
 ) *WebSocketHandler {
 	return &WebSocketHandler{
 		chatService:    chatService,
-		memberService:  memberService,
 		roomService:    roomService,
 	}
 }
@@ -209,7 +206,7 @@ func (h *WebSocketHandler) handleReactionMessage(messageText string, client mode
 }
 
 func (h *WebSocketHandler) handleLeaveMessage(ctx context.Context, messageText string, client model.ClientObject) {
-	if _, err := h.memberService.RemoveUserFromRoom(ctx, client.RoomID, client.UserID.Hex()); err != nil {
+	if _, err := h.roomService.RemoveUserFromRoom(ctx, client.RoomID, client.UserID.Hex()); err != nil {
 		log.Printf("[ERROR] Failed to remove user from room: %v", err)
 	}
 } 

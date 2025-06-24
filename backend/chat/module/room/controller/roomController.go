@@ -30,10 +30,8 @@ type (
 )
 
 func NewRoomController(app *fiber.App, service *service.RoomService) *RoomController {
-	// Get room-specific file upload config
 	uploadConfig := utils.GetModuleConfig("room")
 
-	// Create image validator
 	imageValidator := validator.NewImageUploadValidator(
 		uploadConfig.MaxSize,
 		uploadConfig.AllowedTypes,
@@ -51,8 +49,6 @@ func NewRoomController(app *fiber.App, service *service.RoomService) *RoomContro
 	controller.Get("/:id", controller.GetRoomById)
 	controller.Put("/:id", controller.UpdateRoom)
 	controller.Delete("/:id", controller.DeleteRoom)
-	controller.Post("/:id/members", controller.AddRoomMember)
-	controller.Delete("/:id/members/:userId", controller.RemoveRoomMember)
 	controller.SetupRoutes()
 
 	return controller
@@ -94,54 +90,44 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 }
 
 func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
-	// Parse multipart form
 	if form, err := ctx.MultipartForm(); err == nil {
 		defer form.RemoveAll()
 	}
 
-	// Get room data
 	var createDto dto.CreateRoomDto
 	if err := ctx.BodyParser(&createDto); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
 
-	// Validate the DTO including image if present
 	if err := validator.ValidateMultipartForm(&createDto); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
-	// Handle image upload if exists
 	var imagePath string
 	file, err := ctx.FormFile("image")
 	if err == nil && file != nil {
-		// Validate image
 		if err := c.imageValidator.ValidateFile(file); err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 
-		// Save image
 		imagePath, err = c.uploadHandler.HandleFileUpload(ctx, "image")
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 	}
 
-	// Create room
 	room, err := c.service.CreateRoom(ctx.Context(), &createDto)
 	if err != nil {
-		// Clean up uploaded file if room creation fails
 		if imagePath != "" {
 			_ = c.uploadHandler.DeleteFile(imagePath)
 		}
 		return err
 	}
 
-	// Set the image path in the room model
 	if imagePath != "" {
 		room.Image = imagePath
 		room, err = c.service.UpdateRoom(ctx.Context(), room.ID.Hex(), room)
 		if err != nil {
-			// Clean up uploaded file if update fails
 			_ = c.uploadHandler.DeleteFile(imagePath)
 			return err
 		}
@@ -170,39 +156,4 @@ func (c *RoomController) DeleteRoom(ctx *fiber.Ctx) error {
 	}
 	
 	return ctx.Status(fiber.StatusOK).JSON(deletedRoom)
-}
-
-func (c *RoomController) AddRoomMember(ctx *fiber.Ctx) error {
-	return controllerHelper.ControllerAction(ctx, func(addDto *dto.AddRoomMembersDto) (any, error) {
-		// Validate the DTO
-		if err := validator.ValidateStruct(addDto); err != nil {
-			return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
-		}
-
-		// Add members
-		return c.service.AddRoomMember(ctx.Context(), ctx.Params("id"), addDto)
-	})
-}
-
-func (c *RoomController) RemoveRoomMember(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
-	userId := ctx.Params("userId")
-	
-	// Create DTO with single user ID
-	addDto := &dto.AddRoomMembersDto{
-		Members: []string{userId},
-	}
-
-	// Validate the DTO
-	if err := validator.ValidateStruct(addDto); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
-	}
-
-	// Remove member
-	removedMember, err := c.service.AddRoomMember(ctx.Context(), id, addDto)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	}
-
-	return ctx.Status(fiber.StatusOK).JSON(removedMember)
 }
