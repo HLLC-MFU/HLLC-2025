@@ -6,6 +6,9 @@ import { t } from 'i18next';
 import { apiRequest } from '@/utils/api';
 import { CheckCircle, XCircle } from 'lucide-react-native';
 import { useToastController } from '@tamagui/toast';
+import { Button } from '@react-navigation/elements';
+import { GlassLiquidButton } from '@/components/ui/GlassLiquidButton';
+
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.8;
@@ -79,29 +82,15 @@ export const EvoucherModal = ({
                                         // แสดงเมื่อ evoucher ถูกใช้แล้ว
                                         <View style={styles.usedContainer}>
                                             <View style={styles.usedIconContainer}>
-                                            <Image  source={require('@/assets/images/SD.png')} style={styles.coverImage}/>
+                                            <Image  source={require('@/assets/images/logo-sdad.png')} style={styles.coverImage}/>
                                             </View>
                                             <Text style={styles.usedText}>Used</Text>
                                         </View>
                                     ) : (
                                         // แสดงปุ่ม Use เมื่อยังไม่ถูกใช้
-                                        <TouchableOpacity 
-                                            onPress={handleUseVoucher} 
-                                            disabled={isLoading}
-                                        >
-                                            <GlassButton> 
-                                                <Text
-                                                    style={{
-                                                        color: 'white',
-                                                        fontWeight: '600',
-                                                        fontSize: 12,
-                                                        marginLeft: 0,
-                                                    }}
-                                                >
-                                                    {isLoading ? 'Claiming...' : 'Use'}
-                                                </Text>
-                                            </GlassButton>
-                                        </TouchableOpacity>
+                                        <GlassLiquidButton onPress={handleUseVoucher} disabled={isLoading}>
+                                            {isLoading ? 'Claiming...' : 'Use'}
+                                        </GlassLiquidButton>
                                     )}
                                 </View>
                             </View>
@@ -178,17 +167,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.22,
         shadowRadius: 2.22,
         elevation: 3,
-        marginBottom: -10 
-    },
-    useButton: {
-        backgroundColor: '#4CAF50',
-        paddingVertical: 12,
-        paddingHorizontal: 25,
-        borderRadius: 10,
-        marginBottom: 10,
-    },
-    useButtonText: {
-        color: '#fff', fontSize: 12, fontWeight: 'bold',
+        marginBottom: -10
     },
     flipText: {
         color: '#fff', marginTop: 15
@@ -198,7 +177,7 @@ const styles = StyleSheet.create({
         height: 50,
         resizeMode: 'cover',
         marginBottom: -20
-    }
+    },
 });
 
 export default EvoucherModal;
