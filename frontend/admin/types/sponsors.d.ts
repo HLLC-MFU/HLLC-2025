@@ -1,15 +1,11 @@
 import { Lang } from './lang';
+import { Photo } from './photo';
 import { SponsorType } from './sponsors-type';
 
 export type Sponsors = {
     _id: string;
     name: Lang;
-    photo: string;
+    photo: Photo;
     type: SponsorType;
     isShow: boolean;
-}
-
-export type SponsorType = {
-    _id: string;
-    name: string;
 }

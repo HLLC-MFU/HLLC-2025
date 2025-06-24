@@ -91,8 +91,8 @@ export function ActivityModal({
       setShortDetailsTh(activity.shortDetails?.th || "");
       setLocationEn(activity.location?.en || "");
       setLocationTh(activity.location?.th || "");
-      setBannerPreview(activity.photo?.bannerPhoto ? `http://localhost:8080/uploads/${activity.photo.bannerPhoto}` : "");
-      setLogoPreview(activity.photo?.logoPhoto ? `http://localhost:8080/uploads/${activity.photo.logoPhoto}` : "");
+      setBannerPreview(activity.photo?.bannerPhoto ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}` : "");
+      setLogoPreview(activity.photo?.logoPhoto ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.logoPhoto}` : "");
       setType(activity.type || "");
       setIsOpen(activity.metadata?.isOpen ?? true);
       setIsProgressCount(activity.metadata?.isProgressCount ?? true);
