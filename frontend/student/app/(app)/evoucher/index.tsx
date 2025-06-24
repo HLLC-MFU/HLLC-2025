@@ -85,7 +85,9 @@ export default function EvoucherPage() {
     );
 
     // Get my evoucher codes for current sponsor
-    const myCodesForCurrentSponsor = currentSponsorId ? getEvoucherCodesBySponsor(currentSponsorId) : [];
+    const myCodesForCurrentSponsor = currentSponsorId
+        ? getEvoucherCodesBySponsor(currentSponsorId).slice().sort((a, b) => Number(a.isUsed) - Number(b.isUsed))
+        : [];
 
     const currentSponsor = sponsors.find(sponsor => sponsor._id === currentSponsorId);
     const displayTitle = currentSponsor ? currentSponsor.name.en : "E-Voucher";

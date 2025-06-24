@@ -1,8 +1,8 @@
 import React from 'react';
-import { StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { StyleSheet, Image, TouchableOpacity, ImageSourcePropType } from 'react-native';
 
 interface SponsorCardProps {
-    imageSource: any;
+    imageSource: ImageSourcePropType;
     title?: string;
     onPress?: () => void;
     hasEvoucherCodes?: boolean;

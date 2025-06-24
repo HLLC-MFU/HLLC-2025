@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ImageSourcePropType } from 'react-native';
 
 interface EvoucherCodeCardProps {
-    imageSource: any;
+    imageSource: ImageSourcePropType;
     onPress?: () => void;
     isUsed?: boolean;
     code?: string;
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     usedCard: {
-        opacity: 0.7,
+        opacity: 0.5,
         borderColor: '#666',
     },
     cardImage: {
