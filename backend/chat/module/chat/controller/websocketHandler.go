@@ -99,38 +99,71 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		Conn:   conn,
 	}
 
-	// Register client with hub and broadcast join message
+	// Register client with hub first
 	h.chatService.GetHub().Register(utils.Client{
 		Conn:   conn,
 		RoomID: roomObjID,
 		UserID: userObjID,
 	})
 
-	// Broadcast user joined message
-	joinEvent := model.ChatEvent{
-		EventType: "user_joined",
-		Payload: map[string]string{
-			"userId": userID,
-			"message": fmt.Sprintf("User %s has joined the chat", userID),
+	// Send join event to the new connection itself
+	joinSelfEvent := model.ChatEvent{
+		EventType: "notice",
+		Payload: map[string]interface{}{
+			"userId": userObjID.Hex(),
+			"message": "You have joined the chat room",
+			"timestamp": time.Now(),
 		},
 	}
-	if eventBytes, err := json.Marshal(joinEvent); err == nil {
-		h.chatService.GetHub().BroadcastToRoom(roomID, eventBytes)
+	if eventBytes, err := json.Marshal(joinSelfEvent); err == nil {
+		log.Printf("[DEBUG] Sending self join notification to user %s", userObjID.Hex())
+		conn.WriteMessage(websocket.TextMessage, eventBytes)
+	}
+
+	// Then broadcast join event to all other clients
+	joinOthersEvent := model.ChatEvent{
+		EventType: "user_joined",
+		Payload: map[string]interface{}{
+			"userId": userObjID.Hex(),
+			"message": fmt.Sprintf("User %s has joined the chat room", userObjID.Hex()),
+			"timestamp": time.Now(),
+		},
+	}
+	if eventBytes, err := json.Marshal(joinOthersEvent); err == nil {
+		log.Printf("[DEBUG] Broadcasting join notification about user %s to others", userObjID.Hex())
+		h.chatService.GetHub().BroadcastToRoomExcept(roomID, userObjID.Hex(), eventBytes)
 	}
 	
 	defer func() {
-		// Broadcast user left message before unregistering
-		leaveEvent := model.ChatEvent{
+		// First broadcast leave event to all other clients
+		leaveOthersEvent := model.ChatEvent{
 			EventType: "user_left",
-			Payload: map[string]string{
-				"userId": userID,
-				"message": fmt.Sprintf("User %s has left the chat", userID),
+			Payload: map[string]interface{}{
+				"userId": userObjID.Hex(),
+				"message": fmt.Sprintf("User %s has left the chat room", userObjID.Hex()),
+				"timestamp": time.Now(),
 			},
 		}
-		if eventBytes, err := json.Marshal(leaveEvent); err == nil {
-			h.chatService.GetHub().BroadcastToRoom(roomID, eventBytes)
+		if eventBytes, err := json.Marshal(leaveOthersEvent); err == nil {
+			log.Printf("[DEBUG] Broadcasting leave notification about user %s to others", userObjID.Hex())
+			h.chatService.GetHub().BroadcastToRoomExcept(roomID, userObjID.Hex(), eventBytes)
 		}
 
+		// Send leave event to the user's own connection
+		leaveSelfEvent := model.ChatEvent{
+			EventType: "notice",
+			Payload: map[string]interface{}{
+				"userId": userObjID.Hex(),
+				"message": "You have left the chat room",
+				"timestamp": time.Now(),
+			},
+		}
+		if eventBytes, err := json.Marshal(leaveSelfEvent); err == nil {
+			log.Printf("[DEBUG] Sending self leave notification to user %s", userObjID.Hex())
+			conn.WriteMessage(websocket.TextMessage, eventBytes)
+		}
+
+		// Then unregister and cleanup
 		h.chatService.GetHub().Unregister(utils.Client{
 			Conn:   conn,
 			RoomID: roomObjID,

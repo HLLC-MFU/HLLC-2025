@@ -49,9 +49,18 @@ func (h *Hub) Register(c Client) {
 	userKey := c.UserID.Hex()
 	connID := fmt.Sprintf("%p", c.Conn)
 
+	log.Printf("[DEBUG] Registering user with ID=%s in room=%s", userKey, roomKey)
+
 	roomMap, _ := h.clients.LoadOrStore(roomKey, &sync.Map{})
 	userConns, _ := roomMap.(*sync.Map).LoadOrStore(userKey, &sync.Map{})
 	userConns.(*sync.Map).Store(connID, c.Conn)
+
+	// Log all registered users in the room
+	log.Printf("[DEBUG] Current users in room %s:", roomKey)
+	roomMap.(*sync.Map).Range(func(uid, _ interface{}) bool {
+		log.Printf("[DEBUG] - User: %v", uid)
+		return true
+	})
 
 	users, conns := h.countRoomStats(roomKey)
 	log.Printf("[WS] User %s joined room %s (connection: %s) - Users: %d, Connections: %d", 
@@ -147,6 +156,66 @@ func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {
 
 		log.Printf("[WS] Broadcast complete for room %s: %d successful, %d failed", 
 			roomID, successCount, failCount)
+	} else {
+		log.Printf("[WS] No clients found for room %s", roomID)
+	}
+}
+
+func (h *Hub) BroadcastToRoomExcept(roomID string, excludeUserID string, payload []byte) {
+	successCount := 0
+	failCount := 0
+
+	if roomMap, ok := h.clients.Load(roomID); ok {
+		log.Printf("[DEBUG] Broadcasting to room %s (excluding user %s)", roomID, excludeUserID)
+		
+		// Log all users in the room before broadcasting
+		log.Printf("[DEBUG] Current users in room %s before broadcast:", roomID)
+		roomMap.(*sync.Map).Range(func(uid, _ interface{}) bool {
+			log.Printf("[DEBUG] - Found user: %v", uid)
+			return true
+		})
+		
+		roomMap.(*sync.Map).Range(func(userID, userConns interface{}) bool {
+			uidStr, ok := userID.(string)
+			if !ok {
+				log.Printf("[ERROR] Invalid userID type in sync.Map: %T", userID)
+				return true
+			}
+
+			// Skip the excluded user - using exact string comparison
+			if uidStr == excludeUserID {
+				log.Printf("[DEBUG] Skipping excluded user: %s", uidStr)
+				return true
+			}
+
+			log.Printf("[WS] Broadcasting to user %s in room %s", uidStr, roomID)
+			
+			activeConns := 0
+			userConns.(*sync.Map).Range(func(connID, conn interface{}) bool {
+				ws := conn.(*websocket.Conn)
+				if err := ws.WriteMessage(websocket.TextMessage, payload); err != nil {
+					log.Printf("[WS] Failed to send to user %s (connection: %s): %v", uidStr, connID, err)
+					_ = ws.Close()
+					userConns.(*sync.Map).Delete(connID)
+					failCount++
+				} else {
+					log.Printf("[WS] Successfully sent message to user %s (connection: %s)", uidStr, connID)
+					successCount++
+					activeConns++
+				}
+				return true
+			})
+			
+			if activeConns == 0 {
+				log.Printf("[WS] Removing user %s from room %s (no active connections)", uidStr, roomID)
+				roomMap.(*sync.Map).Delete(userID)
+			}
+			
+			return true
+		})
+
+		log.Printf("[WS] Broadcast complete for room %s (except user %s): %d successful, %d failed", 
+			roomID, excludeUserID, successCount, failCount)
 	} else {
 		log.Printf("[WS] No clients found for room %s", roomID)
 	}
