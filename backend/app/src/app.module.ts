@@ -37,6 +37,7 @@ import { CoinCollectionsModule } from './module/coin-collections/coin-collection
 import { MapsModule } from './module/coin-collections/maps.module';
 import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
 import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
+import { StepAchievementModule } from './module/step-achievement/step-achievement.module';
 import { EvoucherModule } from './module/evoucher/evoucher.module';
 import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
 
@@ -89,6 +90,8 @@ import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
     PretestAnswersModule,
     StepCountersModule,
     FirebaseAdminModule,
+    StepCountersModule,
+    StepAchievementModule,
     LandmarksModule,
     CoinCollectionsModule,
     MapsModule,
