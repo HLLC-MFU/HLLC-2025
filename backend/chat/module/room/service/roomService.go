@@ -5,6 +5,7 @@ import (
 	"chat/module/room/model"
 	"chat/module/room/utils"
 	"chat/module/user/service"
+	"chat/pkg/config"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	serviceHelper "chat/pkg/helpers/service"
@@ -29,8 +30,8 @@ type (
 	}
 )
 
-func NewRoomService(db *mongo.Database, redis *redis.Client) *RoomService {
-	bus := kafka.New([]string{"localhost:9092"}, "room-service")
+func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config) *RoomService {
+	bus := kafka.New(cfg.Kafka.Brokers, "room-service")
 	if err := bus.Start(); err != nil {
 		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)
 	}
@@ -39,7 +40,7 @@ func NewRoomService(db *mongo.Database, redis *redis.Client) *RoomService {
 		BaseService:   queries.NewBaseService[model.Room](db.Collection("rooms")),
 		userService:   service.NewUserService(db),
 		fkValidator:   serviceHelper.NewForeignKeyValidator(db),
-		eventEmitter:  utils.NewRoomEventEmitter(bus, "localhost:9092"),
+		eventEmitter:  utils.NewRoomEventEmitter(bus, cfg),
 		cache:         utils.NewRoomCacheService(redis),
 	}
 }

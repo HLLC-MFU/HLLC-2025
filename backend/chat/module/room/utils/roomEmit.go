@@ -2,6 +2,7 @@ package utils
 
 import (
 	"chat/module/room/model"
+	"chat/pkg/config"
 	"chat/pkg/core/kafka"
 	"context"
 	"fmt"
@@ -10,12 +11,24 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type RoomEventEmitter struct {
-	bus *kafka.Bus
+const RoomTopicPrefix = "chat-room-"
+
+func GetRoomTopic(roomID string) string {
+	return RoomTopicPrefix + roomID
 }
 
-func NewRoomEventEmitter(bus *kafka.Bus, brokerAddress string) *RoomEventEmitter {
-	return &RoomEventEmitter{bus: bus}
+type RoomEventEmitter struct {
+	bus     *kafka.Bus
+	brokers string
+	config  *config.Config
+}
+
+func NewRoomEventEmitter(bus *kafka.Bus, cfg *config.Config) *RoomEventEmitter {
+	return &RoomEventEmitter{
+		bus:     bus,
+		brokers: cfg.Kafka.Brokers[0],
+		config:  cfg,
+	}
 }
 
 func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive.ObjectID, room *model.Room) {
@@ -41,13 +54,13 @@ func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive
 		return
 	}
 
-	roomTopic := fmt.Sprintf("chat-room-%s", roomID.Hex())
-	if err := kafka.EnsureTopic("localhost:9092", roomTopic, 1); err != nil {
-		log.Printf("[Kafka] Failed to create topic %s: %v", roomTopic, err)
+	topic := GetRoomTopic(roomID.Hex())
+	if err := kafka.EnsureTopic(e.brokers, topic, 1); err != nil {
+		log.Printf("[ERROR] Failed to create room topic: %v", err)
 		return
 	}
 
-	if err := e.bus.Emit(ctx, roomTopic, roomID.Hex(), eventBytes); err != nil {
+	if err := e.bus.Emit(ctx, topic, roomID.Hex(), eventBytes); err != nil {
 		EmitErrorLog(ctx, "room_created", err)
 	}
 }
@@ -67,17 +80,18 @@ func (e *RoomEventEmitter) EmitRoomDeleted(ctx context.Context, roomID primitive
 		return
 	}
 
-	roomTopic := fmt.Sprintf("chat-room-%s", roomID.Hex())
+	topic := GetRoomTopic(roomID.Hex())
 
-	if err := e.bus.Emit(ctx, roomTopic, roomID.Hex(), eventBytes); err != nil {
+	if err := e.bus.Emit(ctx, topic, roomID.Hex(), eventBytes); err != nil {
 		EmitErrorLog(ctx, "room_deleted", err)
 		return
 	}
 
-	if err := kafka.DeleteTopic("localhost:9092", roomTopic); err != nil {
-		log.Printf("[Kafka] Failed to delete topic %s: %v", roomTopic, err)
+	if err := kafka.DeleteTopic(e.brokers, topic); err != nil {
+		log.Printf("[ERROR] Failed to delete room topic: %v", err)
+		return
 	} else {
-		log.Printf("[Kafka] Deleted topic %s", roomTopic)
+		log.Printf("[Kafka] Deleted topic %s", topic)
 	}	
 }
 
@@ -103,6 +117,12 @@ func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, use
 		Payload: payloadBytes,
 	}
 
+	topic := GetRoomTopic(roomID.Hex())
+	if err := kafka.EnsureTopic(e.brokers, topic, 1); err != nil {
+		log.Printf("[ERROR] Failed to ensure room topic: %v", err)
+		return
+	}
+
 	if err := e.emitEvent(ctx, event); err != nil {
 		EmitErrorLog(ctx, fmt.Sprintf("room_member_joined room=%s user=%s", roomID.Hex(), userID.Hex()), err)
 	} else {
@@ -110,23 +130,41 @@ func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, use
 	}
 }
 
+func (e *RoomEventEmitter) EmitRoomMemberLeft(ctx context.Context, roomID, userID primitive.ObjectID) {
+	topic := GetRoomTopic(roomID.Hex())
+	if err := kafka.EnsureTopic(e.brokers, topic, 1); err != nil {
+		log.Printf("[ERROR] Failed to ensure room topic: %v", err)
+		return
+	}
+	// ... rest of the function
+}
+
+func (e *RoomEventEmitter) EmitRoomMemberRemoved(ctx context.Context, roomID, userID primitive.ObjectID) {
+	topic := GetRoomTopic(roomID.Hex())
+	if err := kafka.DeleteTopic(e.brokers, topic); err != nil {
+		log.Printf("[ERROR] Failed to delete room topic: %v", err)
+		return
+	}
+	// ... rest of the function
+}
+
 func (e *RoomEventEmitter) emitEvent(ctx context.Context, event model.RoomEvent) error {
 	if event.RoomID == "" || event.RoomID == "000000000000000000000000" {
 		return fmt.Errorf("invalid roomID in event: %s", event.RoomID)
 	}
 
-	roomTopic := fmt.Sprintf("chat-room-%s", event.RoomID)
+	topic := GetRoomTopic(event.RoomID)
 
-	if err := kafka.EnsureTopic("localhost:9092", roomTopic, 1); err != nil {
-		log.Printf("[Kafka] Failed to ensure topic %s: %v", roomTopic, err)
+	if err := kafka.EnsureTopic(e.brokers, topic, 1); err != nil {
+		log.Printf("[ERROR] Failed to ensure room topic: %v", err)
 	}
 
 	eventBytes, ok := MustMarshal(event, "generic event")
 	if !ok {
-		return fmt.Errorf("failed to marshal event for topic %s", roomTopic)
+		return fmt.Errorf("failed to marshal event for topic %s", topic)
 	}
 
-	return e.bus.Emit(ctx, roomTopic, event.RoomID, eventBytes)
+	return e.bus.Emit(ctx, topic, event.RoomID, eventBytes)
 }
 
 func (e *RoomEventEmitter) EnsureRoomTopic(ctx context.Context, roomID primitive.ObjectID) error {
@@ -134,13 +172,13 @@ func (e *RoomEventEmitter) EnsureRoomTopic(ctx context.Context, roomID primitive
 		return fmt.Errorf("invalid room ID")
 	}
 
-	roomTopic := fmt.Sprintf("chat-room-%s", roomID.Hex())
-	if err := kafka.EnsureTopic("localhost:9092", roomTopic, 1); err != nil {
-		log.Printf("[Kafka] Failed to create topic %s: %v", roomTopic, err)
+	topic := GetRoomTopic(roomID.Hex())
+	if err := kafka.EnsureTopic(e.brokers, topic, 1); err != nil {
+		log.Printf("[ERROR] Failed to create room topic: %v", err)
 		return err
 	}
 
-	log.Printf("[Kafka] Successfully created topic %s", roomTopic)
+	log.Printf("[Kafka] Successfully created topic %s", topic)
 	return nil
 }
 
@@ -149,12 +187,12 @@ func (e *RoomEventEmitter) DeleteRoomTopic(ctx context.Context, roomID primitive
 		return fmt.Errorf("invalid room ID")
 	}
 
-	roomTopic := fmt.Sprintf("chat-room-%s", roomID.Hex())
-	if err := kafka.DeleteTopic("localhost:9092", roomTopic); err != nil {
-		log.Printf("[Kafka] Failed to delete topic %s: %v", roomTopic, err)
+	topic := GetRoomTopic(roomID.Hex())
+	if err := kafka.DeleteTopic(e.brokers, topic); err != nil {
+		log.Printf("[ERROR] Failed to delete room topic: %v", err)
 		return err
 	}
 
-	log.Printf("[Kafka] Successfully deleted topic %s", roomTopic)
+	log.Printf("[Kafka] Successfully deleted topic %s", topic)
 	return nil
 }

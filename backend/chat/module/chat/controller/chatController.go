@@ -73,7 +73,6 @@ func NewChatController(
 
 func (c *ChatController) setupRoutes() {
 	c.Get("/ws/:roomId/:userId", websocket.New(c.wsHandler.HandleWebSocket))
-	
 	c.Post("/rooms/:roomId/join", c.handleJoinRoom)
 	c.Post("/rooms/:roomId/leave", c.handleLeaveRoom)
 	c.Get("/:roomId/send", c.handleSendSticker)

@@ -86,7 +86,7 @@ func main() {
 	setupMiddleware(app)
 
 	// Setup controllers
-	setupControllers(app, mongoDB, redisClient)
+	setupControllers(app, mongoDB, redisClient, cfg)
 
 	// Log all registered routes
 	logRegisteredRoutes(app)
@@ -138,13 +138,13 @@ func setupMiddleware(app *fiber.App) {
 	})
 }
 
-func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.Client) {
+func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.Client, cfg *config.Config) {
 	// Initialize services
 	schoolService := service.NewSchoolService(mongo)
 	majorService := service.NewMajorService(mongo)
 	roleService := service.NewRoleService(mongo)
 	userService := service.NewUserService(mongo)
-	roomAndMemberService := roomService.NewRoomService(mongo, redisClient)
+	roomAndMemberService := roomService.NewRoomService(mongo, redisClient, cfg)
 	stickerService := stickerService.NewStickerService(mongo)
 
 	// Initialize Kafka bus for chat
@@ -159,7 +159,7 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	}
 
 	// Initialize chat service with Kafka bus
-	chatService := chatService.NewChatService(mongo, redisClient, bus)
+	chatService := chatService.NewChatService(mongo, redisClient, bus, cfg)
 
 	// Initialize controllers
 	controller.NewSchoolController(app, schoolService)
