@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/model"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils"
@@ -53,6 +54,7 @@ type service struct {
 	roomRepo      RoomRepository.RoomRepository
 	userService   userService.UserService
 	memberService MemberService.MemberService
+	config        *config.Config
 }
 
 var (
@@ -60,13 +62,14 @@ var (
 	notified   = make(map[string]time.Time) // key: userId:roomId:message
 )
 
-func NewService(repo repository.ChatRepository, publisher kafkaPublisher.Publisher, roomRepo RoomRepository.RoomRepository, userService userService.UserService, memberService MemberService.MemberService) ChatService {
+func NewService(repo repository.ChatRepository, publisher kafkaPublisher.Publisher, roomRepo RoomRepository.RoomRepository, userService userService.UserService, memberService MemberService.MemberService, cfg *config.Config) ChatService {
 	s := &service{
 		repo:          repo,
 		publisher:     publisher,
 		roomRepo:      roomRepo,
 		userService:   userService,
 		memberService: memberService,
+		config:        cfg,
 	}
 
 	s.StartRoomConsumers()
@@ -379,7 +382,7 @@ func (s *service) StartRoomConsumers() {
 	for _, room := range rooms {
 		topic := "chat-room-" + room.ID.Hex()
 		consumer := kafkaPublisher.NewConsumer(
-			[]string{"localhost:9092"},
+			[]string{s.config.KafkaAddress()},
 			[]string{topic},
 			chatConsumerGroup,
 			s,

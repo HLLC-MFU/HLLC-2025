@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	config "github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -13,13 +14,15 @@ type Publisher interface {
 	SendMessageToTopic(topic, userID, message string) error
 }
 
-type publisherImpl struct{}
+type publisherImpl struct {
+	config *config.Config
+}
 
 func (p *publisherImpl) SendMessage(roomID, userID, message string) error {
 	topicName := "chat-room-" + roomID
 
 	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  []string{"localhost:9092"},
+		Brokers:  []string{p.config.KafkaAddress()},
 		Topic:    topicName,
 		Balancer: &kafka.LeastBytes{},
 	})
@@ -37,8 +40,8 @@ func (p *publisherImpl) SendMessage(roomID, userID, message string) error {
 	return err
 }
 
-func GetPublisher() Publisher {
-	return &publisherImpl{}
+func GetPublisher(cfg *config.Config) Publisher {
+	return &publisherImpl{config: cfg}
 }
 
 func EnsureKafkaTopic(brokerAddress, topicName string) error {
@@ -82,7 +85,6 @@ func ForceCreateTopic(brokerAddress, topicName string) error {
 		return err
 	}
 
-
 	conn, err := kafka.DialLeader(context.Background(), "tcp", brokerAddress, topicName, 0)
 	if err == nil {
 		conn.Close()
@@ -113,13 +115,13 @@ func ForceCreateTopic(brokerAddress, topicName string) error {
 
 func (p *publisherImpl) SendMessageToTopic(topic, userID, message string) error {
 
-	err := EnsureKafkaTopic("localhost:9092", topic)
+	err := EnsureKafkaTopic(p.config.KafkaAddress(), topic)
 	if err != nil {
 		log.Printf("[Kafka] Failed to ensure topic %s: %v", topic, err)
 	}
 
 	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  []string{"localhost:9092"},
+		Brokers:  []string{p.config.KafkaAddress()},
 		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
 	})
