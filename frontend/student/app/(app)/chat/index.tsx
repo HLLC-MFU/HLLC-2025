@@ -261,6 +261,17 @@ export default function ChatPage() {
           </BlurView>
         </TouchableOpacity>
 
+        {/* ปุ่มไปหน้า step-counter */}
+        <TouchableOpacity
+          style={styles.stepCounterFab}
+          onPress={() => router.push('/step-counter')}
+          activeOpacity={0.9}
+        >
+          <View style={styles.stepCounterFabInner}>
+            <Text style={styles.stepCounterFabText}>Step</Text>
+          </View>
+        </TouchableOpacity>
+
       <CreateRoomModal
         visible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
@@ -370,5 +381,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(200,200,200,0.18)',
     flex: 1,
+  },
+  stepCounterFab: {
+    position: 'absolute',
+    bottom: 190,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  stepCounterFabInner: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepCounterFabText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 1,
   },
 });
