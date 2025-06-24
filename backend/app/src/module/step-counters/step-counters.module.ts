@@ -5,7 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { StepCounter, StepCounterSchema } from './schema/step-counter.schema';
 import { School, SchoolSchema } from '../schools/schemas/school.schema';
-import { Major, MajorSchema } from '../majors/schemas/major.schema';
+import { StepAchievement, StepAchievementSchema } from '../step-achievement/schema/step-achievement.schema';
 
 @Module({
   imports: [
@@ -21,6 +21,10 @@ import { Major, MajorSchema } from '../majors/schemas/major.schema';
       {
         name: School.name,
         schema: SchoolSchema,
+      },
+      {
+        name: StepAchievement.name,
+        schema: StepAchievementSchema,
       }
     ]),
   ],
@@ -28,4 +32,4 @@ import { Major, MajorSchema } from '../majors/schemas/major.schema';
   providers: [StepCountersService],
   exports: [StepCountersService],
 })
-export class StepCountersModule {}
+export class StepCountersModule { }
