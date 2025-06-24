@@ -71,11 +71,7 @@ func (s *RoomCacheService) SaveRoom(ctx context.Context, room *model.Room) error
 	if err := s.redis.SetEx(ctx, key, data, defaultRoomTTL).Err(); err != nil {
 		return err
 	}
-	members := make([]primitive.ObjectID, len(room.Members))
-	for i, member := range room.Members {
-		members[i] = member.ID
-	}
-	return s.SaveMembers(ctx, room.ID.Hex(), members)
+	return s.SaveMembers(ctx, room.ID.Hex(), room.Members)
 }
 
 func (s *RoomCacheService) DeleteRoom(ctx context.Context, roomID string) error {
@@ -226,5 +222,4 @@ func (s *RoomCacheService) CleanupInactiveConnections(ctx context.Context, roomI
 	_, err = pipe.Exec(ctx)
 	return err
 }
-
 

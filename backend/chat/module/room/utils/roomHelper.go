@@ -1,7 +1,6 @@
 package utils
 
 import (
-	userModel "chat/module/user/model"
 	"context"
 	"encoding/json"
 	"log"
@@ -63,18 +62,6 @@ func RemoveMember(existing []primitive.ObjectID, target primitive.ObjectID) []pr
 	filtered := make([]primitive.ObjectID, 0, len(existing))
 	for _, member := range existing {
 		if member != target {
-			filtered = append(filtered, member)
-		}
-	}
-	return filtered
-}
-
-// RemoveUserFromMembers removes a user from a slice of user pointers by ID
-func RemoveUserFromMembers(members []*userModel.User, userID string) []*userModel.User {
-	uid, _ := primitive.ObjectIDFromHex(userID)
-	filtered := make([]*userModel.User, 0, len(members))
-	for _, member := range members {
-		if member.ID != uid {
 			filtered = append(filtered, member)
 		}
 	}
