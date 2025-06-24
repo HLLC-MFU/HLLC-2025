@@ -5,6 +5,7 @@ import (
 	"chat/module/chat/utils"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -53,7 +54,7 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		return
 	}
 
-	// Subscribe to room's Kafka topic for chat messages
+	// Subscribe to room's Kafka topic
 	if err := h.chatService.SubscribeToRoom(ctx, roomID); err != nil {
 		log.Printf("[WARN] Failed to subscribe to room topic: %v", err)
 	}
@@ -98,38 +99,39 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		Conn:   conn,
 	}
 
-	// Register client with hub
-	hub := h.chatService.GetHub()
-	hub.Register(utils.Client{
+	// Register client with hub and broadcast join message
+	h.chatService.GetHub().Register(utils.Client{
 		Conn:   conn,
 		RoomID: roomObjID,
 		UserID: userObjID,
 	})
 
-	// Broadcast join notification to all clients in the room except the sender
+	// Broadcast user joined message
 	joinEvent := model.ChatEvent{
 		EventType: "user_joined",
 		Payload: map[string]string{
 			"userId": userID,
+			"message": fmt.Sprintf("User %s has joined the chat", userID),
 		},
 	}
 	if eventBytes, err := json.Marshal(joinEvent); err == nil {
-		hub.BroadcastToOthers(roomID, userID, eventBytes)
+		h.chatService.GetHub().BroadcastToRoom(roomID, eventBytes)
 	}
 	
 	defer func() {
-		// Broadcast leave notification to all clients in the room except the sender
+		// Broadcast user left message before unregistering
 		leaveEvent := model.ChatEvent{
 			EventType: "user_left",
 			Payload: map[string]string{
 				"userId": userID,
+				"message": fmt.Sprintf("User %s has left the chat", userID),
 			},
 		}
 		if eventBytes, err := json.Marshal(leaveEvent); err == nil {
-			hub.BroadcastToOthers(roomID, userID, eventBytes)
+			h.chatService.GetHub().BroadcastToRoom(roomID, eventBytes)
 		}
 
-		hub.Unregister(utils.Client{
+		h.chatService.GetHub().Unregister(utils.Client{
 			Conn:   conn,
 			RoomID: roomObjID,
 			UserID: userObjID,
