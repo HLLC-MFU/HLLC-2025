@@ -35,7 +35,7 @@ func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, l
 	}
 
 	log.Printf("[ChatService] Fetching messages from MongoDB")
-	result, err := s.FindAll(ctx, opts)
+	result, err := s.FindAllWithPopulate(ctx, opts, "user_id", "users")
 	if err != nil {
 		log.Printf("[ChatService] MongoDB error: %v", err)
 		return nil, fmt.Errorf("failed to fetch messages: %w", err)
@@ -53,8 +53,9 @@ func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, l
 		}
 
 		if msg.ReplyToID != nil {
-			replyResult, err := s.FindOneById(ctx, msg.ReplyToID.Hex())
-			if err == nil && len(replyResult.Data) > 0 {
+			replyFilter := map[string]interface{}{"_id": msg.ReplyToID}
+			replyResult, err := s.FindOneWithPopulate(ctx, replyFilter, "user_id", "users")
+			if err == nil {
 				enriched[i].ReplyTo = &replyResult.Data[0]
 			}
 		}
@@ -75,14 +76,23 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 	}
 	msg.ID = result.Data[0].ID
 
+	filter := map[string]interface{}{"_id": msg.ID}
+	populated, err := s.FindOneWithPopulate(ctx, filter, "user_id", "users")
+	if err != nil {
+		log.Printf("[ChatService] Failed to populate message: %v", err)
+		populated = &queries.Response[model.ChatMessage]{
+			Data: []model.ChatMessage{*msg},
+		}
+	}
+
 	enriched := model.ChatMessageEnriched{
-		ChatMessage: *msg,
+		ChatMessage: populated.Data[0],
 	}
 	if err := s.cache.SaveMessage(ctx, msg.RoomID.Hex(), &enriched); err != nil {
 		log.Printf("[ChatService] Failed to cache message: %v", err)
 	}
 
-	if err := s.emitter.EmitMessage(ctx, msg); err != nil {
+	if err := s.emitter.EmitMessage(ctx, &populated.Data[0]); err != nil {
 		log.Printf("[ChatService] Failed to emit message: %v", err)
 	}
 

@@ -10,7 +10,7 @@ type (
 	ChatMessage struct {
 		ID        primitive.ObjectID  `bson:"_id,omitempty" json:"id"`
 		RoomID    primitive.ObjectID  `bson:"room_id" json:"room_id"`
-		UserID    primitive.ObjectID  `bson:"user_id" json:"user_id"`
+		UserID    primitive.ObjectID  `bson:"user_id" json:"user_id"` // Will be populated with user data
 		Message   string              `bson:"message" json:"message"`
 		Mentions  []string            `bson:"mentions,omitempty"`
 		ReplyToID *primitive.ObjectID `bson:"reply_to_id,omitempty" json:"reply_to_id,omitempty"`

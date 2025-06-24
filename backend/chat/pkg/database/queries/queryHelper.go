@@ -2,7 +2,6 @@ package queries
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -108,9 +107,6 @@ import (
 
     // FindAllWithPopulate finds all documents with population
     func (s *BaseService[T]) FindAllWithPopulate(ctx context.Context, opts QueryOptions, populateField string, foreignCollection string) (*Response[T], error) {
-        // Debug: Print the pipeline stages
-        fmt.Printf("Populating field: %s from collection: %s\n", populateField, foreignCollection)
-
         pipeline := []bson.M{
             {"$match": opts.Filter},
             {"$lookup": bson.M{
@@ -123,11 +119,16 @@ import (
                 "path": "$" + populateField,
                 "preserveNullAndEmptyArrays": true,
             }},
+            // Merge the populated field back into the document
+            {"$replaceRoot": bson.M{
+                "newRoot": bson.M{
+                    "$mergeObjects": []interface{}{
+                        "$$ROOT",
+                        bson.M{populateField: "$" + populateField},
+                    },
+                },
+            }},
         }
-
-        // Debug: Print the pipeline
-        pipelineBytes, _ := json.MarshalIndent(pipeline, "", "  ")
-        fmt.Printf("Pipeline: %s\n", string(pipelineBytes))
 
         // Add sort stage if specified
         if opts.Sort != "" {
@@ -144,28 +145,18 @@ import (
         // Execute aggregation
         cursor, err := s.collection.Aggregate(ctx, pipeline)
         if err != nil {
-            fmt.Printf("Aggregation error: %v\n", err)
             return nil, err
         }
         defer cursor.Close(ctx)
 
         var results []T
         if err = cursor.All(ctx, &results); err != nil {
-            fmt.Printf("Cursor decode error: %v\n", err)
             return nil, err
-        }
-
-        // Debug: Print the results
-        fmt.Printf("Found %d documents\n", len(results))
-        for i, result := range results {
-            resultBytes, _ := json.MarshalIndent(result, "", "  ")
-            fmt.Printf("Document %d: %s\n", i+1, string(resultBytes))
         }
 
         // Get total count
         total, err := s.collection.CountDocuments(ctx, opts.Filter)
         if err != nil {
-            fmt.Printf("Count error: %v\n", err)
             return nil, err
         }
 
@@ -262,6 +253,53 @@ import (
         }, nil
     }
 
+    // FindOneWithPopulate finds a document by ID and populates specified fields
+    func (s *BaseService[T]) FindOneWithPopulate(ctx context.Context, filter interface{}, populateField string, foreignCollection string) (*Response[T], error) {
+        pipeline := []bson.M{
+            {"$match": filter},
+            {"$lookup": bson.M{
+                "from":         foreignCollection,
+                "localField":   populateField,
+                "foreignField": "_id",
+                "as":          populateField,
+            }},
+            {"$unwind": bson.M{
+                "path": "$" + populateField,
+                "preserveNullAndEmptyArrays": true,
+            }},
+            // Merge the populated field back into the document
+            {"$replaceRoot": bson.M{
+                "newRoot": bson.M{
+                    "$mergeObjects": []interface{}{
+                        "$$ROOT",
+                        bson.M{populateField: "$" + populateField},
+                    },
+                },
+            }},
+            {"$limit": 1},
+        }
+
+        cursor, err := s.collection.Aggregate(ctx, pipeline)
+        if err != nil {
+            return nil, err
+        }
+        defer cursor.Close(ctx)
+
+        var results []T
+        if err = cursor.All(ctx, &results); err != nil {
+            return nil, err
+        }
+
+        if len(results) == 0 {
+            return nil, mongo.ErrNoDocuments
+        }
+
+        return &Response[T]{
+            Success: true,
+            Message: "Document fetched successfully",
+            Data:    results,
+        }, nil
+    }
 
     // Create creates a new document
     func (s *BaseService[T]) Create(ctx context.Context, document T) (*Response[T], error) {

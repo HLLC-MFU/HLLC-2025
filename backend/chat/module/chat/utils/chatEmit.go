@@ -10,34 +10,69 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type ChatEventEmitter struct {
-	hub *Hub
-	bus *kafka.Bus
+	hub   *Hub
+	bus   *kafka.Bus
 	redis *redis.Client
+	mongo *mongo.Database
 }
 
-func NewChatEventEmitter(hub *Hub, bus *kafka.Bus, redis *redis.Client) *ChatEventEmitter {
+func NewChatEventEmitter(hub *Hub, bus *kafka.Bus, redis *redis.Client, mongo *mongo.Database) *ChatEventEmitter {
 	return &ChatEventEmitter{
-		hub: hub,
-		bus: bus,
+		hub:   hub,
+		bus:   bus,
 		redis: redis,
+		mongo: mongo,
 	}
 }
 
 func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessage) error {
-	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s User=%s Text=%s", 
-		msg.ID.Hex(), msg.RoomID.Hex(), msg.UserID.Hex(), msg.Message)
+	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s Text=%s", 
+		msg.ID.Hex(), msg.RoomID.Hex(), msg.Message)
+
+	// Get user details from MongoDB
+	var user struct {
+		ID       primitive.ObjectID `bson:"_id" json:"_id"`
+		Username string            `bson:"username" json:"username"`
+		Name     struct {
+			First string `bson:"first" json:"first"`
+			Last  string `bson:"last" json:"last"`
+		} `bson:"name" json:"name"`
+	}
+	if err := e.mongo.Collection("users").FindOne(ctx, bson.M{"_id": msg.UserID}).Decode(&user); err != nil {
+		log.Printf("[WARN] Failed to get user details: %v", err)
+		// Fallback to just using the user ID if we can't get user details
+		event := ChatEvent{
+			Type:      "message",
+			RoomID:    msg.RoomID.Hex(),
+			UserID:    msg.UserID.Hex(),
+			Message:   msg.Message,
+			Timestamp: time.Now(),
+		}
+		return e.emitEvent(ctx, msg, event)
+	}
 
 	event := ChatEvent{
+		Type:      "message",
 		RoomID:    msg.RoomID.Hex(),
-		UserID:    msg.UserID.Hex(),
+		UserID:    map[string]interface{}{
+			"_id":      user.ID.Hex(),
+			"username": user.Username,
+			"name":     user.Name,
+		},
 		Message:   msg.Message,
 		Timestamp: time.Now(),
 	}
 
+	return e.emitEvent(ctx, msg, event)
+}
+
+func (e *ChatEventEmitter) emitEvent(ctx context.Context, msg *model.ChatMessage, event ChatEvent) error {
 	if msg.StickerID != nil {
 		event.Type = "sticker"
 		event.Payload = map[string]interface{}{
@@ -51,8 +86,6 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 			"fileType": msg.FileType,
 			"fileName": msg.FileName,
 		}
-	} else {
-		event.Type = "message"
 	}
 
 	eventBytes, err := json.Marshal(event)

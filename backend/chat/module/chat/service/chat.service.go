@@ -53,8 +53,8 @@ func NewChatService(
 	// Create hub
 	hub := utils.NewHub()
 
-	// Create emitter with hub, kafka bus and redis
-	emitter := utils.NewChatEventEmitter(hub, kafkaBus, redis)
+	// Create emitter with hub, kafka bus, redis and mongo
+	emitter := utils.NewChatEventEmitter(hub, kafkaBus, redis, db)
 
 	return &ChatService{
 		BaseService:  queries.NewBaseService[model.ChatMessage](collection),

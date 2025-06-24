@@ -19,7 +19,7 @@ type(
 	ChatEvent struct {
 		Type      string      `json:"type"`
 		RoomID    string      `json:"roomId"`
-		UserID    string      `json:"userId"`
+		UserID    interface{} `json:"userId"` // Can be either string or populated User object
 		Message   string      `json:"message"`
 		Timestamp time.Time   `json:"timestamp"`
 		Payload   interface{} `json:"payload,omitempty"`
