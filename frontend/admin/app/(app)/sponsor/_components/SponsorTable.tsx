@@ -69,9 +69,7 @@ export default function SponsorTable({
           case "name":
             return sponsor.name.en.toLowerCase();
           case "type":
-            return typeof sponsor.type === "object"
-              ? (sponsor.type as { name: string }).name.toLowerCase()
-              : sponsor.type.toLowerCase();
+            return sponsor.type.name.toLowerCase();
           case "isShow":
             return sponsor.isShow ? 1 : 0;
           default:
@@ -149,9 +147,7 @@ export default function SponsorTable({
               </TableCell>
 
               <TableCell className="text-center">
-                {typeof sponsor.type === "object" && sponsor.type !== null
-                  ? (sponsor.type as { name: string }).name
-                  : sponsor.type}
+                {sponsor.type.name}
               </TableCell>
 
               <TableCell className="text-center">
