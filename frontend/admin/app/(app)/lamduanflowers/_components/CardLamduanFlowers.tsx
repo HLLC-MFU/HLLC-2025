@@ -24,7 +24,7 @@ export default function CardLamduanFlowers({ lamduanflowers, onDelete, onView }:
         <CardBody className="overflow-visible py-2">
           <Image
             alt="Lamduan"
-            className="object-cover rounded-xl"
+            className="object-cover rounded-xl w-full h-[180px]"
             src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${lamduanflowers.photo}`}
             width={270}
           />
@@ -39,7 +39,7 @@ export default function CardLamduanFlowers({ lamduanflowers, onDelete, onView }:
               <Trash2 size={18} />
             </Button>
           </div>
-        </CardBody>
+        </CardBody> 
       </Card>
     </div>
   );

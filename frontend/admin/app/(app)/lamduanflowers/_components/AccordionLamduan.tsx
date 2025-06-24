@@ -28,17 +28,14 @@ export default function AccordionLamduan({
     originalRef,
 }: LamduanFlowersSettingProps) {
     const { lamduanFlowers, deleteLamduanFlowers } = useLamduanFlowers();
-
     const [searchQuery, setSearchQuery] = useState("");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
     const [selectedFlower, setSelectedFlower] = useState<LamduanFlowers | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [viewModalFlower, setViewModalFlower] = useState<LamduanFlowers | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const [rowsPerPage, setRowsPerPage] = useState<number | "All">(24);
-
+    const [rowsPerPage, setRowsPerPage] = useState<number | "All">(18);
     const resetToFirstPage = () => setCurrentPage(1);
-
     const filteredAndSortedFlowers = useMemo(() => {
         if (!lamduanFlowers) return [];
 
@@ -101,27 +98,39 @@ export default function AccordionLamduan({
                         </div>
                     )}
 
-                    <div className="flex justify-between items-center mt-6 flex-wrap gap-2">
-                        <div className="flex items-center">
-                            <p className="text-sm text-default-500 mr-4">Total: {filteredAndSortedFlowers.length} items</p>
-                            <label className="mr-2 text-sm">Items per page:</label>
-                            <select
-                                className="border rounded px-2 py-1"
-                                value={rowsPerPage}
-                                onChange={(e) => {
-                                    const value = e.target.value === "All" ? "All" : Number(e.target.value);
-                                    setRowsPerPage(value);
-                                    resetToFirstPage();
-                                }}
-                            >
-                                {[24, 50, 100, "All"].map(size => (
-                                    <option key={size} value={size}>{size}</option>
-                                ))}
-                            </select>
+                    <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <p className="text-sm text-default-500"> Total: {filteredAndSortedFlowers.length} items </p>
+                            <div className="flex items-center gap-2">
+                                <label className="text-sm">Items per page:</label>
+                                <select
+                                    className="border rounded px-2 py-1 text-sm"
+                                    value={rowsPerPage}
+                                    onChange={(e) => {
+                                        const value = e.target.value === "All" ? "All" : Number(e.target.value);
+                                        setRowsPerPage(value);
+                                        resetToFirstPage();
+                                    }}
+                                >
+                                    {[18, 50, 100, "All"].map(size => (
+                                        <option key={size} value={size}>
+                                            {size}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
-
                         {totalPages > 1 && (
-                            <Pagination showControls total={totalPages} page={currentPage} onChange={setCurrentPage} />
+                            <div className="w-full sm:w-auto overflow-x-auto overflow-y-hidden scrollbar-hide">
+                                <div className="inline-block min-w-max ml-auto sm:ml-0">
+                                    <Pagination
+                                        showControls
+                                        total={totalPages}
+                                        page={currentPage} 
+                                        onChange={setCurrentPage}
+                                    />
+                                </div>
+                            </div>
                         )}
                     </div>
                 </AccordionItem>
@@ -171,7 +180,6 @@ export default function AccordionLamduan({
                     </ModalFooter>
                 </ModalContent>
             </Modal>
-
         </>
     );
 }

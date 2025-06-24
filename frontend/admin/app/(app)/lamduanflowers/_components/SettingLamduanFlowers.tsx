@@ -40,7 +40,7 @@ export function SettingLamduanFlowers({
     if (!iso) return "";
     const date = new Date(iso);
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
+    return local.toISOString().slice(0, 16);
   };
 
   const populateForm = (data: LamduanSetting | null) => {
@@ -71,11 +71,18 @@ export function SettingLamduanFlowers({
     populateForm(latestData);
   }, [lamduanSetting]);
 
+  const clearError = (field: keyof typeof errors) => {
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
+      clearError('file');
     }
   };
 
@@ -160,7 +167,7 @@ export function SettingLamduanFlowers({
         <input ref={inputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
       </div>
       {errors.file && (
-        <p className="text-sm text-red-500 mt-1">{errors.file}</p>
+        <p className="text-sm text-danger  mt-1">{errors.file}</p>
       )}
 
       <div className="flex w-full flex-wrap md:flex-nowrap mb-2 gap-4 py-2">
@@ -171,7 +178,11 @@ export function SettingLamduanFlowers({
           placeholder="https://youtube.com/watch?v=..."
           type="url"
           value={videoLink}
-          onChange={(e) => setVideoLink(e.target.value)}
+          onChange={(e) => {
+            setVideoLink(e.target.value);
+            clearError('videoLink');
+          }}
+
           isInvalid={!!errors.videoLink}
           errorMessage={errors.videoLink}
         />
@@ -181,22 +192,32 @@ export function SettingLamduanFlowers({
         <Input
           isRequired
           label="Event start"
-          labelPlacement="outside"
+          labelPlacement="inside"
+          placeholder=" "
           type="datetime-local"
           value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
+          onChange={(e) => {
+            setStartDate(e.target.value);
+            clearError('startDate');
+          }}
           isInvalid={!!errors.startDate}
           errorMessage={errors.startDate}
+          className="w-full"
         />
         <Input
           isRequired
           label="Event end"
-          labelPlacement="outside"
+          labelPlacement="inside"
+          placeholder=" "
           type="datetime-local"
           value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
+          onChange={(e) => {
+            setEndDate(e.target.value)
+            clearError('endDate');
+          }}
           isInvalid={!!errors.endDate}
           errorMessage={errors.endDate}
+          className="w-full"
         />
       </div>
 

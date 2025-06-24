@@ -10,7 +10,6 @@ import { useLamduanSetting } from "@/hooks/useLamduanSetting";
 export default function LamduanflowersPage() {
     const originalRef = useRef<LamduanSetting | null>(null);
     const { createLamduanSetting, updateLamduanSetting, fetchLamduanSetting } = useLamduanSetting();
-
     const handleSave = async (
         isChanged: boolean,
         file: File | null,
@@ -19,7 +18,6 @@ export default function LamduanflowersPage() {
         endDate: string
     ) => {
         const original = originalRef.current;
-
         const formData = new FormData();
 
         if (file instanceof File) {
