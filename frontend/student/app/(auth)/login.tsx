@@ -155,37 +155,22 @@ export default function LoginScreen() {
         onForgotPassword={() => setIsForgotPasswordSheetOpen(true)}
       />
 
-      <Sheet
+      <RegisterForm
         open={isRegisterSheetOpen}
         onOpenChange={setIsRegisterSheetOpen}
-        zIndex={100_000}
-        snapPoints={[90, 10]}
-        animation="spring"
-        dismissOnSnapToBottom
-      >
-        <Sheet.Overlay
-          animation="lazy"
-          backgroundColor="$shadow6"
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-        />
-        <Sheet.Handle />
-        <RegisterForm
-          username={regUsername}
-          setUsername={setRegUsername}
-          password={regPassword}
-          setPassword={setRegPassword}
-          confirmPassword={regConfirmPassword}
-          setConfirmPassword={setRegConfirmPassword}
-          secret={regSecret}
-          setSecret={setRegSecret}
-          provinces={provinces}
-          isProvinceSheetOpen={isProvinceSheetOpen}
-          setIsProvinceSheetOpen={setIsProvinceSheetOpen}
-          onRegister={handleRegister}
-          onCancel={() => setIsRegisterSheetOpen(false)}
-        />
-      </Sheet>
+        username={regUsername}
+        setUsername={setRegUsername}
+        password={regPassword}
+        setPassword={setRegPassword}
+        confirmPassword={regConfirmPassword}
+        setConfirmPassword={setRegConfirmPassword}
+        secret={regSecret}
+        setSecret={setRegSecret}
+        provinces={provinces}
+        isProvinceSheetOpen={isProvinceSheetOpen}
+        setIsProvinceSheetOpen={setIsProvinceSheetOpen}
+        onRegister={handleRegister}
+      />
       <Sheet
         open={isForgotPasswordSheetOpen}
         onOpenChange={setIsForgotPasswordSheetOpen}

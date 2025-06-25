@@ -23,7 +23,7 @@ export class AppearancesService {
     await throwIfExists(
       this.apprearanceModel,
       { school: createAppearanceDto.school },
-      'School already exists',
+      'Appearance already exists',
     );
 
     const apprearance = new this.apprearanceModel({
@@ -48,7 +48,7 @@ export class AppearancesService {
     ]);
   }
 
-  async update(id: string, updateAppearanceDto: UpdateAppearanceDto) {
+  async update(id: string, updateAppearanceDto: Partial<UpdateAppearanceDto>) {
     const existing = await this.apprearanceModel.findById(id);
     if (!existing) {
       throw new NotFoundException(`Appearance with id ${id} not found`);
