@@ -8,10 +8,10 @@ import {
   Delete,
   Query,
 } from '@nestjs/common';
-import { ReportTypeService } from './report-type.service';
-import { CreateReportTypeDto } from './dto/create-type.dto';
-import { UpdateReportTypeDto } from './dto/update-report_category.dto';
-import { Public } from '../auth/decorators/public.decorator';
+import { ReportTypeService } from '../service/report-type.service';
+import { CreateReportTypeDto } from '../dto/reports-type/create-type.dto';
+import { UpdateReportTypeDto } from '../dto/reports-type/update-type.dto';
+import { Public } from 'src/module/auth/decorators/public.decorator';
 
 @Controller('report-types')
 export class ReportTypeController {

@@ -47,14 +47,7 @@ export class RoleService {
    * Finds all roles.
    */
   async findAll(): Promise<Role[]> {
-    const roles = await this.roleModel.find().lean();
-    roles.forEach((role) => {
-      // Decrypt permissions for each role
-      role.permissions = role.permissions.map((perm) => {
-        return typeof perm === 'string' ? decryptItem(perm) : perm;
-      });
-    });
-    return roles;
+    return this.roleModel.find().lean();
   }
 
   /**

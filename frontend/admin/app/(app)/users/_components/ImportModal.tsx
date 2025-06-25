@@ -1,12 +1,9 @@
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import React from "react";
 import * as XLSX from "xlsx";
-
-import { columns } from "./UserTable";
-
+import { columns } from "./user-table";
 import { User } from "@/types/user";
-import { Major } from "@/types/school";
-
+import { Major } from "@/types/major";
 
 export interface ImportModalProps {
     isOpen: boolean;
@@ -40,7 +37,6 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
     const items = React.useMemo(() => {
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
-
         return fileData.slice(start, end);
     }, [page, fileData]);
 
@@ -61,7 +57,6 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
 
             const dataForm = jsonData.map((item: JsonData) => {
                 const data: JsonData = {};
-
                 for (const key in item) {
                     try {
                         data[key] = JSON.parse(item[key]);
@@ -71,7 +66,6 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                 };
 
                 let majorId = "";
-
                 majors.find((m) => {
                     if (m.name.en === data.major_en && m._id) majorId = m._id;
                 })
@@ -146,10 +140,10 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                 onClose={() => { onClose(); setIsImportModalOpen(false); }}
             >
                 <ModalContent>
-                    <Form className="w-full" onSubmit={(e) => handleNext(e)}>
+                    <Form onSubmit={(e) => handleNext(e)} className="w-full">
                         <ModalHeader className="flex flex-col gap-1">Import file</ModalHeader>
                         <ModalBody className="w-full">
-                            <Input isRequired accept=".xlsx" errorMessage={"Please select file"} label="File" type="file" onChange={handleFileChange} />
+                            <Input isRequired onChange={handleFileChange} label="File" type="file" accept=".xlsx" errorMessage={"Please select file"} />
                             <Button color="primary" onPress={onExportTemplate}>Download template</Button>
                         </ModalBody>
                         <ModalFooter className="w-full">
@@ -166,11 +160,11 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
 
             {/* Preview Modal */}
             <Modal
-                className="w-full max-w-4xl"
                 isDismissable={false}
                 isKeyboardDismissDisabled={true}
                 isOpen={isPreviewModalOpen}
                 onClose={handleCancel}
+                className="w-full max-w-4xl"
             >
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1">Preview table</ModalHeader>
@@ -182,11 +176,11 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                                     isCompact
                                     showControls
                                     showShadow
-                                    className="flex w-full justify-center"
                                     color="primary"
                                     page={page}
                                     total={pages}
                                     onChange={(page) => setPage(page)}
+                                    className="flex w-full justify-center"
                                 />
                             }
                             classNames={{

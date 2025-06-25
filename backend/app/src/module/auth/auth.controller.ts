@@ -75,12 +75,6 @@ export class AuthController {
     return this.authService.resetPassword(resetPasswordDto);
   }
 
-  @Permissions('auth:update')
-  @Post('remove-password')
-  async removePassword(@Req() req: UserRequest) {
-    return this.authService.removePassword(req.user._id);
-  }
-
   @Post('logout')
   @UseGuards(PermissionsGuard)
   async logout(
