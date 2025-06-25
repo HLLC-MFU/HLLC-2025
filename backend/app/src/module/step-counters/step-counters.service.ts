@@ -396,11 +396,12 @@ export class StepCountersService {
       .sort((a, b) => {
         if (a.hasAchieved && !b.hasAchieved) return -1;
         if (!a.hasAchieved && b.hasAchieved) return 1;
-
-        const aDate = a.achievedDate ?? a.updatedAt ?? new Date();
-        const bDate = b.achievedDate ?? b.updatedAt ?? new Date();
-
-        return new Date(aDate).getTime() - new Date(bDate).getTime();
+        if (a.hasAchieved && b.hasAchieved) {
+          const aDate = a.achievedDate ?? a.updatedAt ?? new Date();
+          const bDate = b.achievedDate ?? b.updatedAt ?? new Date();
+          return new Date(aDate).getTime() - new Date(bDate).getTime();
+        }
+        return b.totalStep - a.totalStep;
       })
       .map((entry, index) => ({
         rank: index + 1,
