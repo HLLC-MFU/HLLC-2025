@@ -4,8 +4,20 @@ import {
   EvoucherDocument,
   EvoucherType,
   EvoucherStatus,
+  Evoucher,
 } from '../schema/evoucher.schema';
-import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
+import {
+  EvoucherCode,
+  EvoucherCodeDocument,
+} from '../schema/evoucher-code.schema';
+import { SponsorsDocument } from 'src/module/sponsors/schema/sponsors.schema';
+
+export type PopulatedEvoucherCode = Omit<EvoucherCode, 'evoucher'> & {
+  _id: Types.ObjectId;
+  evoucher: Omit<Evoucher, 'sponsors'> & {
+    sponsors: SponsorsDocument;
+  };
+};
 
 const generateRandomNumber = (length = 8): string =>
   String(Math.floor(Math.random() * 10 ** length)).padStart(length, '0');

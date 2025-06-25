@@ -12,7 +12,8 @@ import {
   validateEvoucher,
   validateClaimEligibility,
   createEvoucherCode,
-  useEvoucherCode as useEvoucherCodeUtil,
+  useEvoucherCode,
+  PopulatedEvoucherCode,
 } from '../utils/evoucher.util';
 import {
   queryAll,
@@ -21,45 +22,61 @@ import {
   queryUpdateOne,
 } from 'src/pkg/helper/query.util';
 
+
 @Injectable()
 export class EvoucherCodeService {
   constructor(
     @InjectModel(EvoucherCode.name)
     private evoucherCodeModel: Model<EvoucherCodeDocument>,
-    @InjectModel(Evoucher.name) private evoucherModel: Model<EvoucherDocument>,
+    @InjectModel(Evoucher.name)
+    private evoucherModel: Model<EvoucherDocument>,
   ) {}
 
   async create(dto: CreateEvoucherCodeDto) {
     const evoucher = await validateEvoucher(dto.evoucher, this.evoucherModel);
     await validateClaimEligibility(dto.user, evoucher, this.evoucherCodeModel);
-    return await createEvoucherCode(dto.user, evoucher, this.evoucherCodeModel);
+    return createEvoucherCode(dto.user, evoucher, this.evoucherCodeModel);
   }
 
   async claimEvoucher(userId: string, evoucherId: string) {
     const evoucher = await validateEvoucher(evoucherId, this.evoucherModel);
     await validateClaimEligibility(userId, evoucher, this.evoucherCodeModel);
-    return await createEvoucherCode(userId, evoucher, this.evoucherCodeModel);
+    return createEvoucherCode(userId, evoucher, this.evoucherCodeModel);
   }
 
   async getUserEvoucherCodes(userId: string) {
-    const codes = await queryAll<EvoucherCode>({
-      model: this.evoucherCodeModel,
-      query: { user: userId },
-      filterSchema: {},
-      populateFields: () =>
-        Promise.resolve([
-          { path: 'evoucher', populate: [{ path: 'sponsors' }] },
-        ]),
+    const userObjectId = new Types.ObjectId(userId);
+    
+    const codes = await this.evoucherCodeModel
+      .find({ user: userObjectId })
+      .populate({
+        path: 'evoucher',
+        populate: { path: 'sponsors' }
+      })
+      .lean<PopulatedEvoucherCode[]>();
+
+    const processed = codes.map((code) => {
+      const { evoucher } = code;
+      const isExpire = evoucher.expiration ? new Date() > evoucher.expiration : false;
+
+      return {
+        ...code,
+        canUse: !code.isUsed && !isExpire,
+        isExpire,
+      };
     });
 
-    const processed = codes.data.map((code) => {
-      const evoucher = code.evoucher as unknown as Evoucher;
-      const isExpire =
-        evoucher.expiration && new Date() > new Date(evoucher.expiration);
-      return { ...code, canUse: !code.isUsed && !isExpire, isExpire };
-    });
-
-    return { ...codes, data: processed };
+    const total = processed.length;
+    return {
+      data: processed,
+      meta: {
+        total,
+        page: 1,
+        limit: 20,
+        totalPages: Math.ceil(total / 20),
+        lastUpdatedAt: new Date(),
+      },
+    };
   }
 
   update(id: string, dto: UpdateEvoucherCodeDto) {
@@ -91,15 +108,20 @@ export class EvoucherCodeService {
   }
 
   async checkVoucherUsage(user: string, evoucher: string) {
-    return !!(await this.evoucherCodeModel.findOne({
-      user,
-      evoucher,
+    const userObjectId = new Types.ObjectId(user);
+    const evoucherObjectId = new Types.ObjectId(evoucher);
+    
+    const found = await this.evoucherCodeModel.findOne({
+      user: userObjectId,
+      evoucher: evoucherObjectId,
       isUsed: true,
-    }));
+    });
+
+    return Boolean(found);
   }
 
   async useEvoucherCode(userId: Types.ObjectId, codeId: string) {
-    const evoucherCode = await useEvoucherCodeUtil(
+    const evoucherCode = await useEvoucherCode(
       userId,
       codeId,
       this.evoucherCodeModel,
