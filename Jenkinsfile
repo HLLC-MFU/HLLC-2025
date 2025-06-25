@@ -9,7 +9,7 @@ pipeline {
         DOCKER_REGISTRY = 'jemiezler' // <<--- เปลี่ยนเป็น Docker Hub Username ของคุณ หรือโดเมนของ Private Registry
         KUBE_CONFIG_FILE = "/home/jenkins/.kube/config" // <<--- Path kubeconfig ภายใน Agent Container
         
-        # กำหนดโฟลเดอร์สำหรับแต่ละแอปพลิเคชันภายใน Monorepo
+        // # กำหนดโฟลเดอร์สำหรับแต่ละแอปพลิเคชันภายใน Monorepo
         NEST_APP_DIR = "app"  // <<--- โฟลเดอร์ของ NestJS App ภายใน Monorepo
         GO_CHAT_APP_DIR = "chat" // <<--- โฟลเดอร์ของ Go Chat App ภายใน Monorepo
         K8S_BASE_DIR = "k8s" // <<--- โฟลเดอร์หลักสำหรับ Kubernetes Manifests (Root ของ k8s/)
