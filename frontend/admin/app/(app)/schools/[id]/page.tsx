@@ -18,7 +18,7 @@ import { MajorModal } from './_components/MajorModal';
 import { SchoolDetailSkeleton } from './_components/SchoolDetailSkeleton';
 
 import { useSchools } from '@/hooks/useSchool';
-import { Major } from '@/types/school';
+import { Major } from '@/types/major';
 
 export default function SchoolDetailPage() {
 	const { id } = useParams<{ id: string }>();
@@ -73,16 +73,12 @@ export default function SchoolDetailPage() {
 
 	const handleConfirm = async () => {
 		if (!school || !selectedMajor) return;
-
-		// 🟩 Close modal first to avoid flicker
 		setConfirmationModalType(null);
 		setSelectedMajor(undefined);
 
 		if (confirmationModalType === 'delete' && selectedMajor._id) {
-			// ✅ Only delete if _id exists
 			await deleteMajor(school._id, selectedMajor._id);
 		} else if (confirmationModalType === 'edit') {
-			// ✅ Only edit if _id exists
 			if (selectedMajor._id) {
 				await editMajor({
 					...selectedMajor,

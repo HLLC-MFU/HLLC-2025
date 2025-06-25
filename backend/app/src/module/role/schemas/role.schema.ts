@@ -58,30 +58,13 @@ export class Role {
   >;
 
   /**
-   * ใช้สำหรับ config scan
-   * เช่น ใครสามารถ scan role ไหนได้บ้าง
+   * The metadata schema for the role.
+   * This defines additional properties that can be associated with the role.
+   * Each property should specify its type, label, and whether it is required.
+   * @example "major": { "type": "string", "label": "major", "required": true }
    */
   @Prop({ type: Object, default: {} })
-  metadataScanned: Record<
-    string,
-    {
-      scan?: boolean;
-      canScan?: string[];
-      scope?: {
-        type: 'major' | 'school'; // major or school
-        values?: string[]; // major or school id
-      }
-    }
-  >;
+  metadata: Record<string, any>;
 }
 
 export const RoleSchema = SchemaFactory.createForClass(Role);
-/**
- * Remove __v from the JSON representation
- */
-RoleSchema.set('toJSON', {
-  transform: (doc, ret) => {
-    delete ret.__v;
-    return ret;
-  },
-});

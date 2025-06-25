@@ -3,6 +3,10 @@ package server
 import (
 	"log"
 
+	majorRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/majors/repository"
+	majorService "github.com/HLLC-MFU/HLLC-2025/backend/module/majors/service"
+	roleRepo "github.com/HLLC-MFU/HLLC-2025/backend/module/roles/repository"
+	roleService "github.com/HLLC-MFU/HLLC-2025/backend/module/roles/service"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/users/handler"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/users/repository"
 	"github.com/HLLC-MFU/HLLC-2025/backend/module/users/router"
@@ -13,8 +17,13 @@ import (
 
 func (s *server) userService() {
 	userRepo := repository.NewUserRepository(s.db)
-	userService := service.NewUserService(userRepo)
-	userHandler := handler.NewUserHandler(userService)
+	roleRepo := roleRepo.NewRoleRepository(s.db)
+	majorRepo := majorRepo.NewRepository(s.db)
+	majorService := majorService.NewService(majorRepo)
+	userService := service.NewUserService(userRepo, majorService)
+	roleService := roleService.NewRoleService(roleRepo)
+	userHandler := handler.NewUserHandler(userService, roleService, majorService)
+
 	router.RegisterUserRoutes(s.app.Group("/users"), userHandler)
 
 	// Middleware
@@ -33,9 +42,5 @@ func (s *server) userService() {
 		return c.SendString("OK")
 	})
 
-	s.app.Get("/health", func(c *fiber.Ctx) error {
-		return c.SendString("OK")
-	})
-
-	log.Println("School service initialized")
+	log.Println("User service initialized")
 }

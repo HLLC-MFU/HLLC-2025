@@ -5,7 +5,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Appearance, AppearanceDocument } from './schemas/apprearance.schema';
 import { Model } from 'mongoose';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import {
   queryAll,
   queryDeleteOne,
@@ -18,23 +17,19 @@ export class AppearancesService {
   constructor(
     @InjectModel(Appearance.name)
     private apprearanceModel: Model<AppearanceDocument>,
-  ) { }
+  ) {}
 
   async create(createAppearanceDto: CreateAppearanceDto) {
     await throwIfExists(
       this.apprearanceModel,
       { school: createAppearanceDto.school },
-      'School already exists',
+      'Appearance already exists',
     );
 
     const apprearance = new this.apprearanceModel({
       ...createAppearanceDto,
     });
-    try {
-      return await apprearance.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'school');
-    }
+    return await apprearance.save();
   }
 
   async findAll(query: Record<string, string>) {
@@ -53,7 +48,7 @@ export class AppearancesService {
     ]);
   }
 
-  async update(id: string, updateAppearanceDto: UpdateAppearanceDto) {
+  async update(id: string, updateAppearanceDto: Partial<UpdateAppearanceDto>) {
     const existing = await this.apprearanceModel.findById(id);
     if (!existing) {
       throw new NotFoundException(`Appearance with id ${id} not found`);
@@ -63,7 +58,7 @@ export class AppearancesService {
     if (updateAppearanceDto.assets) {
       updateAppearanceDto.assets = {
         ...existing.assets,
-        ...updateAppearanceDto.assets
+        ...updateAppearanceDto.assets,
       };
     }
 
@@ -71,7 +66,7 @@ export class AppearancesService {
     if (updateAppearanceDto.colors) {
       updateAppearanceDto.colors = {
         ...existing.colors,
-        ...updateAppearanceDto.colors
+        ...updateAppearanceDto.colors,
       };
     }
 

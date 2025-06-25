@@ -83,8 +83,7 @@ export function useSponsors() {
       return;
     }
 
-    // Optionally remove _id from FormData
-    sponsorsData.delete('_id'); // Prevent conflict if _id is present but empty
+    sponsorsData.delete('_id');
 
     try {
       setLoading(true);

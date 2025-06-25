@@ -4,7 +4,6 @@ import {
   IsString,
   IsArray,
   IsObject,
-  IsBoolean,
 } from 'class-validator';
 
 export class CreateRoleDto {

@@ -32,10 +32,19 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
       if (scannerRef.current && isRunningRef.current) {
         try {
           await scannerRef.current.stop();
-          await scannerRef.current.clear();
         } catch (err) {
-          console.error('Error stopping scanner:', err);
+          console.warn('Scanner stop error:', err);
         }
+
+        try {
+          const region = document.getElementById(qrRegionId);
+          if (region) {
+            await scannerRef.current.clear();
+          }
+        } catch (err) {
+          console.warn('Scanner clear error (likely already unmounted):', err);
+        }
+
         isRunningRef.current = false;
       }
     };
@@ -43,8 +52,9 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
     const startScanner = async () => {
       if (selectedActivityIds.length === 0 || !isMobile) return;
 
-      const scanner = new Html5Qrcode(qrRegionId);
-      scannerRef.current = scanner;
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode(qrRegionId);
+      }
 
       try {
         const devices = await Html5Qrcode.getCameras();
@@ -58,21 +68,18 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
         }
 
         const cameraId = devices[0].id;
-        await scanner.start(
+        await scannerRef.current.start(
           cameraId,
           { fps: 10, qrbox: 250 },
           async decodedText => {
             if (!decodedText || scannedSetRef.current.has(decodedText)) return;
 
             try {
-              // ตรวจสอบรูปแบบรหัสนักศึกษา
               let studentId = decodedText;
               try {
                 const parsed = JSON.parse(decodedText);
                 studentId = parsed.username || parsed.studentId || parsed.id || decodedText;
-              } catch (e) {
-                // ถ้าไม่ใช่ JSON ใช้ค่าเดิม
-              }
+              } catch { }
 
               if (!/^\d{10}$/.test(studentId)) {
                 throw new Error('รหัสนักศึกษาไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
@@ -99,7 +106,7 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
               });
             }
           },
-          () => {},
+          () => { }
         );
 
         isRunningRef.current = true;
@@ -125,6 +132,7 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
       stopScanner();
     };
   }, [selectedActivityIds, isMobile]);
+
 
   if (!isMobile) return null;
 

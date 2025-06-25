@@ -13,7 +13,7 @@ import { EvoucherCode, EvoucherCodeSchema } from '../evoucher/schema/evoucher-co
     MongooseModule.forFeature([
       {
         name: Sponsors.name,
-        schema: SponsorsSchema
+        schema: SponsorsSchema,
       },
       {
         name: SponsorsType.name,

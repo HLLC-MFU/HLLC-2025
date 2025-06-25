@@ -42,11 +42,9 @@ const useActivitiesStore = create<ActivityStore>()(
         const state = get();
         if (state.loading) return;
         if (state.hasFetched && !forceReload) {
-          console.log("⏭️ Skipped fetchActivities: already fetched");
           return;
         }
 
-        console.log("🚀 Fetching activities for user", userId);
         set({ loading: true, error: null });
 
         try {
@@ -57,7 +55,6 @@ const useActivitiesStore = create<ActivityStore>()(
 
           const oldActivities = state.activities;
           if (isEqualActivities(res.data, oldActivities)) {
-            console.log("🟡 No changes in activities. Skip updating state.");
             set({ loading: false, hasFetched: true, lastFetchedAt: Date.now() });
             return;
           }
@@ -69,7 +66,6 @@ const useActivitiesStore = create<ActivityStore>()(
             lastFetchedAt: Date.now(),
           });
 
-          console.log("✅ Activities updated:", res.data.length);
         } catch (err) {
           const message = err instanceof Error ? err.message : "Unexpected error";
           console.error("❌ Error in fetchActivities:", message);
@@ -99,10 +95,11 @@ export function useActivities() {
     hasFetched,
     fetchActivities,
   } = useActivitiesStore();
+  const userId = user?.data?.[0]._id;
 
   useEffect(() => {
-    if (user?.id) fetchActivities(user.id);
-  }, [user?.id]);
+    if (userId) fetchActivities(userId);
+  }, [userId]);
 
   return {
     activities,

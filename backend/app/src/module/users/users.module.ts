@@ -1,12 +1,16 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schemas/user.schema';
 import { Major, MajorSchema } from '../majors/schemas/major.schema';
 import { Role, RoleSchema } from '../role/schemas/role.schema';
-import { Activities, ActivitiesSchema } from '../activities/schema/activities.schema';
-import { ActivitiesService } from '../activities/service/activities.service';
+import {
+  Activities,
+  ActivitiesSchema,
+} from '../activities/schemas/activities.schema';
+import { UserInitializerService } from './users.initializer.service';
+import { ActivitiesModule } from '../activities/activities.module';
 
 @Module({
   imports: [
@@ -16,9 +20,10 @@ import { ActivitiesService } from '../activities/service/activities.service';
       { name: Major.name, schema: MajorSchema },
       { name: Activities.name, schema: ActivitiesSchema },
     ]),
+    forwardRef(() => ActivitiesModule),
   ],
   controllers: [UsersController],
-  providers: [UsersService, ActivitiesService],
+  providers: [UsersService, UserInitializerService],
   exports: [UsersService, MongooseModule],
 })
 export class UsersModule {}

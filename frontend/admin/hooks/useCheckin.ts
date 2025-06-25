@@ -13,7 +13,7 @@ export function useCheckin() {
         setError(null);
         try {
             console.log("Fetching checkins...");
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/checkin?limit=0`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/checkins`, {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
@@ -38,13 +38,13 @@ export function useCheckin() {
             console.log("Creating checkin with data:", checkinData);
             
             const payload = {
-                username: checkinData.user,
+                user: checkinData.user,
                 activities: checkinData.activities
             };
 
             console.log("Sending payload:", payload);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/checkin`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/checkins`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {

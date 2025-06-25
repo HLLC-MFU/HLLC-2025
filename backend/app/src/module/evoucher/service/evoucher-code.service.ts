@@ -1,23 +1,31 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { EvoucherCode, EvoucherCodeDocument } from '../schema/evoucher-code.schema';
+import {
+  EvoucherCode,
+  EvoucherCodeDocument,
+} from '../schema/evoucher-code.schema';
 import { Evoucher, EvoucherDocument } from '../schema/evoucher.schema';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
-import { 
+import {
   validateEvoucher,
   validateClaimEligibility,
   createEvoucherCode,
   useEvoucherCode as useEvoucherCodeUtil,
-  validatePublicAvailableVoucher
 } from '../utils/evoucher.util';
-import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import {
+  queryAll,
+  queryDeleteOne,
+  queryFindOne,
+  queryUpdateOne,
+} from 'src/pkg/helper/query.util';
 
 @Injectable()
 export class EvoucherCodeService {
   constructor(
-    @InjectModel(EvoucherCode.name) private evoucherCodeModel: Model<EvoucherCodeDocument>,
+    @InjectModel(EvoucherCode.name)
+    private evoucherCodeModel: Model<EvoucherCodeDocument>,
     @InjectModel(Evoucher.name) private evoucherModel: Model<EvoucherDocument>,
   ) {}
 
@@ -38,14 +46,16 @@ export class EvoucherCodeService {
       model: this.evoucherCodeModel,
       query: { user: userId },
       filterSchema: {},
-      populateFields: () => Promise.resolve([
-        { path: 'evoucher', populate: [{ path: 'sponsors' }] }
-      ])
+      populateFields: () =>
+        Promise.resolve([
+          { path: 'evoucher', populate: [{ path: 'sponsors' }] },
+        ]),
     });
 
-    const processed = codes.data.map(code => {
+    const processed = codes.data.map((code) => {
       const evoucher = code.evoucher as unknown as Evoucher;
-      const isExpire = evoucher.expiration && new Date() > new Date(evoucher.expiration);
+      const isExpire =
+        evoucher.expiration && new Date() > new Date(evoucher.expiration);
       return { ...code, canUse: !code.isUsed && !isExpire, isExpire };
     });
 
@@ -61,15 +71,18 @@ export class EvoucherCodeService {
       model: this.evoucherCodeModel,
       query,
       filterSchema: {},
-      populateFields: () => Promise.resolve([
-        { path: 'evoucher', populate: [{ path: 'sponsors' }] },
-        { path: 'user' }
-      ]),
+      populateFields: () =>
+        Promise.resolve([
+          { path: 'evoucher', populate: [{ path: 'sponsors' }] },
+          { path: 'user' },
+        ]),
     });
   }
 
   findOne(id: string) {
-    return queryFindOne<EvoucherCode>(this.evoucherCodeModel, { _id: id }, [{ path: 'evoucher' }]);
+    return queryFindOne<EvoucherCode>(this.evoucherCodeModel, { _id: id }, [
+      { path: 'evoucher' },
+    ]);
   }
 
   async remove(id: string) {
@@ -78,11 +91,19 @@ export class EvoucherCodeService {
   }
 
   async checkVoucherUsage(user: string, evoucher: string) {
-    return !!await this.evoucherCodeModel.findOne({ user, evoucher, isUsed: true });
+    return !!(await this.evoucherCodeModel.findOne({
+      user,
+      evoucher,
+      isUsed: true,
+    }));
   }
 
   async useEvoucherCode(userId: Types.ObjectId, codeId: string) {
-    const evoucherCode = await useEvoucherCodeUtil(userId, codeId, this.evoucherCodeModel);
+    const evoucherCode = await useEvoucherCodeUtil(
+      userId,
+      codeId,
+      this.evoucherCodeModel,
+    );
     return { message: 'Evoucher code used successfully', code: evoucherCode };
   }
 }

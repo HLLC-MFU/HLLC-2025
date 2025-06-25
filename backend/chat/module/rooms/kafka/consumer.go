@@ -11,9 +11,8 @@ import (
 )
 
 const (
-	roomConsumerGroup      = "room-service-group"
-	roomEventsTopic        = "room-events"
-	roomNotificationsTopic = "room-notifications"
+	roomConsumerGroup = "room-service-group"
+	roomEventsTopic   = "room-events"
 )
 
 // RoomEvent represents a room-related event
@@ -24,7 +23,7 @@ type RoomEvent struct {
 }
 
 func StartKafkaConsumer(brokerAddress string, chatService service.ChatService) {
-	topics := []string{roomEventsTopic, roomNotificationsTopic}
+	topics := []string{roomEventsTopic}
 
 	for _, topic := range topics {
 		go consumeRoomTopic(brokerAddress, topic, roomConsumerGroup, chatService)
@@ -94,9 +93,6 @@ func consumeRoomTopic(brokerAddress, topic, groupID string, chatService service.
 			default:
 				log.Printf("[Room Kafka Consumer] Unknown room event type: %s", event.Type)
 			}
-
-		case roomNotificationsTopic:
-			log.Printf("[Room Kafka Consumer] Processing room notification: %s", string(msg.Value))
 		}
 	}
 }

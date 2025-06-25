@@ -1,10 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  UseInterceptors,
+  Req,
+} from '@nestjs/common';
 import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-code.dto';
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
 import { EvoucherCodeService } from '../service/evoucher-code.service';
 import { PermissionsGuard } from 'src/module/auth/guards/permissions.guard';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
-import { Permissions } from 'src/module/auth/decorators/permissions.decorator'; 
+import { Permissions } from 'src/module/auth/decorators/permissions.decorator';
 import { FastifyRequest } from 'fastify';
 import { Types } from 'mongoose';
 
@@ -12,7 +24,7 @@ import { Types } from 'mongoose';
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 export class EvoucherCodeController {
-  constructor(private readonly evoucherCodeService: EvoucherCodeService) { }
+  constructor(private readonly evoucherCodeService: EvoucherCodeService) {}
 
   @Permissions('evoucher-code:create')
   @Post()
@@ -34,7 +46,10 @@ export class EvoucherCodeController {
 
   @Permissions('evoucher-code:update')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEvoucherCodeDto: UpdateEvoucherCodeDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateEvoucherCodeDto: UpdateEvoucherCodeDto,
+  ) {
     return this.evoucherCodeService.update(id, updateEvoucherCodeDto);
   }
 
@@ -47,23 +62,71 @@ export class EvoucherCodeController {
   @Post('claim/:evoucherId')
   claimEvoucher(
     @Param('evoucherId') evoucherId: string,
-    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }
+    @Req() req: FastifyRequest & { user?: { _id?: Types.ObjectId | string } },
   ) {
-    return this.evoucherCodeService.claimEvoucher(req.user._id, evoucherId);
+    const user = req.user as { _id?: Types.ObjectId | string } | undefined;
+    let userId: string | undefined;
+    if (user && user._id) {
+      if (typeof user._id === 'string') {
+        userId = user._id;
+      } else if (
+        typeof user._id === 'object' &&
+        typeof user._id.toString === 'function'
+      ) {
+        userId = user._id.toString();
+      }
+    }
+    if (!userId) {
+      throw new Error('User ID is missing or invalid');
+    }
+    return this.evoucherCodeService.claimEvoucher(userId, evoucherId);
   }
 
   @Get('my-codes')
   getMyEvoucherCodes(
-    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }
+    @Req() req: FastifyRequest & { user?: { _id?: Types.ObjectId | string } },
   ) {
-    return this.evoucherCodeService.getUserEvoucherCodes(req.user._id);
+    const user = req.user as { _id?: Types.ObjectId | string } | undefined;
+    let userId: string | undefined;
+    if (user && user._id) {
+      if (typeof user._id === 'string') {
+        userId = user._id;
+      } else if (
+        typeof user._id === 'object' &&
+        typeof user._id.toString === 'function'
+      ) {
+        userId = user._id.toString();
+      }
+    }
+    if (!userId) {
+      throw new Error('User ID is missing or invalid');
+    }
+    return this.evoucherCodeService.getUserEvoucherCodes(userId);
   }
 
   @Post('use/:codeId')
   useEvoucherCode(
     @Param('codeId') codeId: string,
-    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }
+    @Req() req: FastifyRequest & { user?: { _id?: Types.ObjectId | string } },
   ) {
-    return this.evoucherCodeService.useEvoucherCode(req.user._id, codeId);
+    const user = req.user as { _id?: Types.ObjectId | string } | undefined;
+    let userId: string | undefined;
+    if (user && user._id) {
+      if (typeof user._id === 'string') {
+        userId = user._id;
+      } else if (
+        typeof user._id === 'object' &&
+        typeof user._id.toString === 'function'
+      ) {
+        userId = user._id.toString();
+      }
+    }
+    if (!userId) {
+      throw new Error('User ID is missing or invalid');
+    }
+    return this.evoucherCodeService.useEvoucherCode(
+      new Types.ObjectId(userId),
+      codeId,
+    );
   }
 }

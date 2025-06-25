@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseInterceptors, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseInterceptors,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
@@ -13,9 +25,7 @@ import { Permissions } from 'src/module/auth/decorators/permissions.decorator';
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
 export class EvoucherController {
-  constructor(
-    private readonly evoucherService: EvoucherService
-  ) { }
+  constructor(private readonly evoucherService: EvoucherService) {}
 
   @Permissions('evoucher:create')
   @Post()
@@ -38,10 +48,10 @@ export class EvoucherController {
 
   @Get('available')
   getAvailableEvouchers(
-    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } }
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
-    const user = req.user;
-    const userId = user?._id ?? user?.id;
+    const user = req.user as { _id?: string; id?: string } | undefined;
+    const userId: string | undefined = user?._id ?? user?.id;
 
     return this.evoucherService.getPublicAvailableEvouchersForUser(userId);
   }

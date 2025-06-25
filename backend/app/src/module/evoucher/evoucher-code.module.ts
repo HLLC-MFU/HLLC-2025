@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { EvoucherCode, EvoucherCodeSchema } from './schema/evoucher-code.schema';
+import {
+  EvoucherCode,
+  EvoucherCodeSchema,
+} from './schema/evoucher-code.schema';
 import { User } from '../users/schemas/user.schema';
 import { UserSchema } from '../users/schemas/user.schema';
 import { EvoucherCodeController } from './controller/evoucher-code.controller';
@@ -12,20 +15,20 @@ import { EvoucherCodeService } from './service/evoucher-code.service';
     MongooseModule.forFeature([
       {
         name: EvoucherCode.name,
-        schema: EvoucherCodeSchema
+        schema: EvoucherCodeSchema,
       },
       {
         name: Evoucher.name,
-        schema: EvoucherSchema
+        schema: EvoucherSchema,
       },
       {
         name: User.name,
-        schema: UserSchema
-      }
+        schema: UserSchema,
+      },
     ]),
   ],
   exports: [MongooseModule],
   controllers: [EvoucherCodeController],
   providers: [EvoucherCodeService],
 })
-export class EvoucherCodeModule { }
+export class EvoucherCodeModule {}
