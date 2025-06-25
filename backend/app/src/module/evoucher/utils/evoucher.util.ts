@@ -113,7 +113,16 @@ export const useEvoucherCode = async (
   const code = await model.findById(codeId).populate('evoucher');
   if (!code) throw new BadRequestException('Code not found');
 
-  const evoucher = code.evoucher as unknown as EvoucherDocument;
+  // Type-safe check for populated evoucher
+  if (!code.evoucher) {
+    throw new BadRequestException('Evoucher not found');
+  }
+  
+  // Check if evoucher is populated (not just ObjectId)
+  const evoucher = code.evoucher as any;
+  if (!evoucher.expiration || !evoucher.status) {
+    throw new BadRequestException('Evoucher not properly populated');
+  }
   validateEvoucherState(evoucher);
 
   if (!code.user.equals(userId))
@@ -177,17 +186,4 @@ export const validatePublicAvailableVoucher = async (
   };
 };
 
-export const validateEvoucherCodeForUsage = (
-  evoucherCode: EvoucherCodeDocument,
-  userId: Types.ObjectId,
-  evoucher: EvoucherDocument,
-) => {
-  if (!evoucherCode.user.equals(userId))
-    throw new BadRequestException('This evoucher code does not belong to you');
-  if (evoucherCode.isUsed)
-    throw new BadRequestException('This evoucher code has already been used');
-  if (evoucher.status !== EvoucherStatus.ACTIVE)
-    throw new BadRequestException('This evoucher is not active');
-  if (new Date() > new Date(evoucher.expiration))
-    throw new BadRequestException('This evoucher has expired');
-};
+

@@ -50,8 +50,8 @@ export class EvoucherController {
   getAvailableEvouchers(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
-    const user = req.user as { _id?: string; id?: string } | undefined;
-    const userId: string | undefined = user?._id ?? user?.id;
+    const user = req.user;
+    const userId = user?._id ?? user?.id;
 
     return this.evoucherService.getPublicAvailableEvouchersForUser(userId);
   }

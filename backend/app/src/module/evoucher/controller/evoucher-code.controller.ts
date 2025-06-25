@@ -62,23 +62,11 @@ export class EvoucherCodeController {
   @Post('claim/:evoucherId')
   claimEvoucher(
     @Param('evoucherId') evoucherId: string,
-    @Req() req: FastifyRequest & { user?: { _id?: Types.ObjectId | string } },
+    @Req() req: FastifyRequest & { user?: { _id?: Types.ObjectId | string; id?: string } },
   ) {
-    const user = req.user as { _id?: Types.ObjectId | string } | undefined;
-    let userId: string | undefined;
-    if (user && user._id) {
-      if (typeof user._id === 'string') {
-        userId = user._id;
-      } else if (
-        typeof user._id === 'object' &&
-        typeof user._id.toString === 'function'
-      ) {
-        userId = user._id.toString();
-      }
-    }
-    if (!userId) {
-      throw new Error('User ID is missing or invalid');
-    }
+    const userId = req.user?._id?.toString();
+    if (!userId) throw new Error('User ID is missing or invalid');
+    
     return this.evoucherCodeService.claimEvoucher(userId, evoucherId);
   }
 
@@ -86,21 +74,9 @@ export class EvoucherCodeController {
   getMyEvoucherCodes(
     @Req() req: FastifyRequest & { user?: { _id?: Types.ObjectId | string } },
   ) {
-    const user = req.user as { _id?: Types.ObjectId | string } | undefined;
-    let userId: string | undefined;
-    if (user && user._id) {
-      if (typeof user._id === 'string') {
-        userId = user._id;
-      } else if (
-        typeof user._id === 'object' &&
-        typeof user._id.toString === 'function'
-      ) {
-        userId = user._id.toString();
-      }
-    }
-    if (!userId) {
-      throw new Error('User ID is missing or invalid');
-    }
+    const userId = req.user?._id?.toString();
+    if (!userId) throw new Error('User ID is missing or invalid');
+    
     return this.evoucherCodeService.getUserEvoucherCodes(userId);
   }
 
@@ -109,21 +85,9 @@ export class EvoucherCodeController {
     @Param('codeId') codeId: string,
     @Req() req: FastifyRequest & { user?: { _id?: Types.ObjectId | string } },
   ) {
-    const user = req.user as { _id?: Types.ObjectId | string } | undefined;
-    let userId: string | undefined;
-    if (user && user._id) {
-      if (typeof user._id === 'string') {
-        userId = user._id;
-      } else if (
-        typeof user._id === 'object' &&
-        typeof user._id.toString === 'function'
-      ) {
-        userId = user._id.toString();
-      }
-    }
-    if (!userId) {
-      throw new Error('User ID is missing or invalid');
-    }
+    const userId = req.user?._id?.toString();
+    if (!userId) throw new Error('User ID is missing or invalid');
+    
     return this.evoucherCodeService.useEvoucherCode(
       new Types.ObjectId(userId),
       codeId,

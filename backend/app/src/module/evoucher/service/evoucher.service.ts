@@ -18,6 +18,7 @@ import {
   Evoucher,
   EvoucherDocument,
   EvoucherStatus,
+  EvoucherType,
 } from '../schema/evoucher.schema';
 import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
 import { EvoucherCode } from '../schema/evoucher-code.schema';
@@ -93,11 +94,11 @@ export class EvoucherService {
 
   async getPublicAvailableEvouchersForUser(
     userId?: string,
-    query?: Record<string, string>,
+    query: Record<string, string> = {},
   ) {
     const result = await queryAll<Evoucher>({
       model: this.evoucherModel,
-      query: { ...query, type: 'GLOBAL', status: EvoucherStatus.ACTIVE },
+      query: { ...query, type: EvoucherType.GLOBAL, status: EvoucherStatus.ACTIVE },
       filterSchema: {},
       populateFields: () => Promise.resolve([{ path: 'sponsors' }]),
     });
