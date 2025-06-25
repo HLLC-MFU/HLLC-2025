@@ -1,80 +1,14 @@
 import { router } from "expo-router";
 import { ChevronLeft, Medal } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Platform, Alert } from "react-native";
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
 import Svg, { Circle } from "react-native-svg";
-import GoogleFit, { Scopes } from "react-native-google-fit";
-import AppleHealthKit from "react-native-health";
 
 export default function StepCounterScreen() {
-  const [step, setStep] = useState(0);
-  const stepPercent = Math.min(step / 50000, 1); 
+  const step = 3600;
+  const stepPercent = 0.36; 
   const circleRadius = 70;
   const circleCircumference = 2 * Math.PI * circleRadius;
-
-  useEffect(() => {
-    if (Platform.OS === "android") {
-      // Google Fit
-      const options = {
-        scopes: [
-          Scopes.FITNESS_ACTIVITY_READ,
-          Scopes.FITNESS_ACTIVITY_WRITE,
-        ],
-      };
-      GoogleFit.authorize(options)
-        .then(authResult => {
-          if (authResult.success) {
-            const opt = {
-              startDate: new Date(new Date().setHours(0,0,0,0)).toISOString(), // today 00:00:00
-              endDate: new Date().toISOString(), // now
-            };
-            GoogleFit.getDailyStepCountSamples(opt)
-              .then(res => {
-                const steps = res.find(r => r.source === "com.google.android.gms:estimated_steps");
-                if (steps && steps.steps.length > 0) {
-                  setStep(steps.steps[0].value);
-                }
-              })
-              .catch(() => {
-                Alert.alert("Cannot get step count from Google Fit");
-              });
-          } else {
-            Alert.alert("Google Fit not authorized");
-          }
-        })
-        .catch(() => {
-          Alert.alert("Google Fit not available");
-        });
-    } else if (Platform.OS === "ios") {
-      // HealthKit
-      const permissions = AppleHealthKit.Constants.Permissions;
-      const options = {
-        permissions: {
-          read: [permissions.StepCount],
-          write: [],
-        },
-      };
-      AppleHealthKit.initHealthKit(options, (err) => {
-        if (err) {
-          Alert.alert("HealthKit not available");
-          return;
-        }
-        const today = new Date();
-        const startDate = new Date(today.setHours(0,0,0,0)).toISOString();
-        const endDate = new Date().toISOString();
-        AppleHealthKit.getStepCount(
-          { startDate, endDate },
-          (err, results) => {
-            if (err) {
-              Alert.alert("Cannot get step count from HealthKit");
-              return;
-            }
-            setStep(results.value);
-          }
-        );
-      });
-    }
-  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -82,25 +16,25 @@ export default function StepCounterScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
-            style={styles.stepCounterFab}
-            onPress={() => router.back()}
-            activeOpacity={0.9}
-          >
-            <View style={styles.stepCounterFabInner}>
-              <ChevronLeft size={24} color="#fff" />
-            </View>
-          </TouchableOpacity>
+          style={styles.stepCounterFab}
+          onPress={() => router.back()}
+          activeOpacity={0.9}
+        >
+          <View style={styles.stepCounterFabInner}>
+          <ChevronLeft size={24} color="#fff" />
+          </View>
+        </TouchableOpacity>
           <View style={styles.titleBox}>
             <Text style={styles.title}>NUBGAO</Text>
           </View>
           <TouchableOpacity
-            style={styles.stepCounterFab}
-            onPress={() => router.replace('/(app)/step-counter/leaderBoard')}
-            activeOpacity={0.9}
-          >
-            <View style={styles.stepCounterFabInner}>
-              <Medal size={24} color="#fff" />
-            </View>
+          style={styles.stepCounterFab}
+          onPress={() => router.replace('/(app)/step-counter/leaderBoard')}
+          activeOpacity={0.9}
+        >
+          <View style={styles.stepCounterFabInner}>
+            <Medal size={24} color="#fff" />
+          </View>
           </TouchableOpacity>
         </View>
 

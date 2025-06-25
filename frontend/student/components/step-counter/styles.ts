@@ -3,15 +3,14 @@ import { StyleSheet, Dimensions, Platform } from 'react-native';
 const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1 ,backgroundColor: 'transparent' },
   headerRow: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 0,
-    marginBottom: -height * 0.025,
+    marginBottom: height * 0.01,
     paddingHorizontal: width * 0.045,
+    marginTop: 0,
   },
   leaderboardTitle: {
     color: '#fff',
@@ -42,7 +41,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginVertical: height * 0.022,
-    marginTop: -height * 0.12,
+    marginTop: height * 0.05,
   },
   topUser: { alignItems: 'center', width: width * 0.225, position: 'relative' },
   topUserMain: { alignItems: 'center', width: width * 0.275, position: 'relative' },
@@ -146,16 +145,17 @@ const styles = StyleSheet.create({
   cardMyteam: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: width * 0.045,
     marginVertical: height * 0.007,
-    marginBottom: height * 0.12,
+    marginBottom: height * 0.06,
     padding: width * 0.03,
     paddingLeft: width * 0.045,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    shadowColor: '#333',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
   },
   cardRankCircle: {
     width: width * 0.08,
@@ -181,11 +181,23 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#b6c3d1',
   },
+  cardMyAvatar: {
+    width: width * 0.09,
+    height: width * 0.09,
+    borderRadius: width * 0.045,
+    backgroundColor: '#fff',
+    marginRight: width * 0.035,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#b6c3d1',
+    position: 'relative',
+  },
   cardAvatarEmoji: { fontSize: width * 0.055 },
   cardName: { color: '#fff', fontWeight: 'bold', flex: 1, fontSize: width * 0.0375 },
-  cardMyName:{color: '#333', fontWeight: 'bold', flex: 1, fontSize: width * 0.0375},
+  cardMyName: { color: '#fff', fontWeight: 'bold', flex: 1, fontSize: width * 0.04 },
   cardSteps: { color: '#b6c3d1', fontWeight: 'bold', fontSize: width * 0.0375 },
-  cardMySteps:{ color: '#333', fontWeight: 'bold', fontSize: width * 0.0375},
+  cardMySteps: { color: '#fff', fontWeight: 'bold', fontSize: width * 0.0375 },
   rankNumberCircle1: {
     position: 'absolute',
     bottom: -18,
@@ -289,6 +301,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     height: 48,
   },
+  cardContainer:{
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: height * 0.022,
+    marginTop: height * 0.13,
+  }
 });
 
 export default styles; 
