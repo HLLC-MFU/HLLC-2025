@@ -125,6 +125,7 @@ export class EvoucherCodeService {
       userId,
       codeId,
       this.evoucherCodeModel,
+      this.evoucherModel,
     );
     return { message: 'Evoucher code used successfully', code: evoucherCode };
   }

@@ -19,6 +19,21 @@ export type PopulatedEvoucherCode = Omit<EvoucherCode, 'evoucher'> & {
   };
 };
 
+export type PopulatedEvoucherCodeWithEvoucher = Omit<EvoucherCode, 'evoucher'> & {
+  _id: Types.ObjectId;
+  evoucher: EvoucherDocument;
+};
+
+export const findEvoucherCodeWithPopulatedEvoucher = async (
+  codeId: string,
+  model: Model<EvoucherCodeDocument>,
+): Promise<PopulatedEvoucherCodeWithEvoucher | null> => {
+  return await model
+    .findById(codeId)
+    .populate<{ evoucher: EvoucherDocument }>('evoucher')
+    .exec();
+};
+
 const generateRandomNumber = (length = 8): string =>
   String(Math.floor(Math.random() * 10 ** length)).padStart(length, '0');
 
@@ -81,7 +96,6 @@ export const createEvoucherCode = async (
 ) => {
   const userObjectId = new Types.ObjectId(userId);
 
-  // Try to find an available code first
   const availableCode = await evoucherCodeModel.findOneAndUpdate(
     { evoucher: evoucher._id, user: null, isUsed: false },
     { user: userObjectId },
@@ -90,7 +104,6 @@ export const createEvoucherCode = async (
 
   if (availableCode) return availableCode;
 
-  // Generate new code if no available code found
   for (let retry = 0; retry < 3; retry++) {
     const code = generateCode(evoucher.acronym);
 
@@ -108,21 +121,15 @@ export const createEvoucherCode = async (
 export const useEvoucherCode = async (
   userId: Types.ObjectId,
   codeId: string,
-  model: Model<EvoucherCodeDocument>,
+  evoucherCodeModel: Model<EvoucherCodeDocument>,
+  evoucherModel: Model<EvoucherDocument>,
 ) => {
-  const code = await model.findById(codeId).populate('evoucher');
+  const code = await evoucherCodeModel.findById(codeId);
   if (!code) throw new BadRequestException('Code not found');
 
-  // Type-safe check for populated evoucher
-  if (!code.evoucher) {
-    throw new BadRequestException('Evoucher not found');
-  }
+  const evoucher = await evoucherModel.findById(code.evoucher);
+  if (!evoucher) throw new BadRequestException('Evoucher not found');
   
-  // Check if evoucher is populated (not just ObjectId)
-  const evoucher = code.evoucher as any;
-  if (!evoucher.expiration || !evoucher.status) {
-    throw new BadRequestException('Evoucher not properly populated');
-  }
   validateEvoucherState(evoucher);
 
   if (!code.user.equals(userId))
@@ -185,5 +192,3 @@ export const validatePublicAvailableVoucher = async (
     },
   };
 };
-
-
