@@ -118,6 +118,38 @@ func (s *ChatCacheService) SaveReaction(ctx context.Context, roomID string, mess
 	return s.redis.SetEx(ctx, key, data, MessageTTL).Err()
 }
 
+// RemoveReaction removes a reaction from cache
+func (s *ChatCacheService) RemoveReaction(ctx context.Context, roomID string, messageID string, userID string) error {
+	key := s.roomReactionsKey(roomID, messageID)
+	
+	// Get existing reactions
+	reactions, err := s.GetReactions(ctx, roomID, messageID)
+	if err != nil {
+		return err
+	}
+
+	// Filter out the reaction from the specified user
+	filteredReactions := make([]model.MessageReaction, 0)
+	for _, reaction := range reactions {
+		if reaction.UserID.Hex() != userID {
+			filteredReactions = append(filteredReactions, reaction)
+		}
+	}
+
+	// Save filtered reactions back to Redis
+	if len(filteredReactions) == 0 {
+		// If no reactions left, delete the key
+		return s.redis.Del(ctx, key).Err()
+	}
+
+	data, err := json.Marshal(filteredReactions)
+	if err != nil {
+		return fmt.Errorf("marshal error: %w", err)
+	}
+
+	return s.redis.SetEx(ctx, key, data, MessageTTL).Err()
+}
+
 // GetReactions gets reactions for a message
 func (s *ChatCacheService) GetReactions(ctx context.Context, roomID string, messageID string) ([]model.MessageReaction, error) {
 	key := s.roomReactionsKey(roomID, messageID)

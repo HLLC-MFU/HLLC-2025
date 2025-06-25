@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 
 	"github.com/gofiber/websocket/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,12 +16,8 @@ const (
 
 type(
 	ChatEvent struct {
-		Type      string      `json:"type"`
-		RoomID    string      `json:"roomId"`
-		UserID    interface{} `json:"userId"` // Can be either string or populated User object
-		Message   string      `json:"message"`
-		Timestamp time.Time   `json:"timestamp"`
-		Payload   interface{} `json:"payload,omitempty"`
+		Type    string      `json:"type"`
+		Payload interface{} `json:"payload"`
 	}
 
 	Client struct {
@@ -108,8 +103,7 @@ func (h *Hub) countRoomStats(roomID string) (users int, connections int) {
 }
 
 func (h *Hub) BroadcastEvent(event ChatEvent) {
-	log.Printf("[ChatMessage] Broadcasting event type=%s from user %s to room %s", 
-		event.Type, event.UserID, event.RoomID)
+	log.Printf("[ChatMessage] Broadcasting event type=%s", event.Type)
 
 	payload, err := json.Marshal(event)
 	if err != nil {
@@ -117,7 +111,62 @@ func (h *Hub) BroadcastEvent(event ChatEvent) {
 		return
 	}
 
-	h.BroadcastToRoom(event.RoomID, payload)
+	// Log the payload structure for debugging
+	log.Printf("[DEBUG] Event payload structure: %+v", event.Payload)
+
+	// Extract roomID from payload - handle different payload types
+	var roomID string
+	
+	// Try to extract roomID using reflection for struct types
+	switch payload := event.Payload.(type) {
+	case map[string]interface{}:
+		// Handle map payload (old format)
+		if room, exists := payload["room"]; exists {
+			if roomData, ok := room.(map[string]interface{}); ok {
+				if roomIDVal, exists := roomData["_id"]; exists {
+					roomID = fmt.Sprintf("%v", roomIDVal)
+				} else if roomIDVal, exists := roomData["id"]; exists {
+					roomID = fmt.Sprintf("%v", roomIDVal)
+				}
+			}
+		}
+		// Fallback: try direct roomId field
+		if roomID == "" {
+			if roomIDVal, exists := payload["roomId"]; exists {
+				roomID = fmt.Sprintf("%v", roomIDVal)
+			}
+		}
+	default:
+		// Handle struct payload (new format) - convert to JSON then back to map
+		jsonBytes, err := json.Marshal(event.Payload)
+		if err == nil {
+			var payloadMap map[string]interface{}
+			if err := json.Unmarshal(jsonBytes, &payloadMap); err == nil {
+				if room, exists := payloadMap["room"]; exists {
+					if roomData, ok := room.(map[string]interface{}); ok {
+						if roomIDVal, exists := roomData["_id"]; exists {
+							roomID = fmt.Sprintf("%v", roomIDVal)
+						} else if roomIDVal, exists := roomData["id"]; exists {
+							roomID = fmt.Sprintf("%v", roomIDVal)
+						}
+					}
+				}
+				// Fallback: try direct roomId field
+				if roomID == "" {
+					if roomIDVal, exists := payloadMap["roomId"]; exists {
+						roomID = fmt.Sprintf("%v", roomIDVal)
+					}
+				}
+			}
+		}
+	}
+
+	if roomID != "" {
+		log.Printf("[DEBUG] Found room ID: %s, broadcasting to room", roomID)
+		h.BroadcastToRoom(roomID, payload)
+	} else {
+		log.Printf("[WARN] Cannot broadcast event - no room ID found in payload")
+	}
 }
 
 func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {
@@ -234,8 +283,7 @@ func (h *Hub) HandleKafkaMessage(topic string, payload []byte) error {
 		return fmt.Errorf("failed to unmarshal Kafka message: %w", err)
 	}
 
-	log.Printf("[ChatMessage] Received Kafka message from topic %s: type=%s, room=%s, user=%s", 
-		topic, event.Type, event.RoomID, event.UserID)
+	log.Printf("[ChatMessage] Received Kafka message from topic %s: type=%s", topic, event.Type)
 
 	h.BroadcastToRoom(roomID, payload)
 	

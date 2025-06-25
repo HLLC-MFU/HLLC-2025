@@ -67,8 +67,20 @@ import (
             sortBson = s.parseSort(opts.Sort)
         }
 
+        // Ensure minimum values for pagination
+        if opts.Page < 1 {
+            opts.Page = 1
+        }
+        if opts.Limit < 1 {
+            opts.Limit = 10
+        }
+
         // Set pagination
         skip := int64((opts.Page - 1) * opts.Limit)
+        if skip < 0 {
+            skip = 0
+        }
+        
         findOptions := options.Find().
             SetSort(sortBson).
             SetSkip(skip).

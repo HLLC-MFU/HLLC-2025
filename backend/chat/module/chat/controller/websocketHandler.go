@@ -5,7 +5,6 @@ import (
 	"chat/module/chat/utils"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -34,37 +33,108 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 	messages, err := h.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
 	if err == nil {
 		for _, msg := range messages {
-			// Convert history message to regular message format
-			event := utils.ChatEvent{
-				Type:      "message",
-				RoomID:    msg.ChatMessage.RoomID.Hex(),
-				Message:   msg.ChatMessage.Message,
-				Timestamp: msg.ChatMessage.Timestamp,
+					// Get user details with role populated
+		var userData map[string]interface{}
+		if user, err := h.chatService.GetUserById(ctx, msg.ChatMessage.UserID.Hex()); err == nil {
+			userData = map[string]interface{}{
+				"_id":      user.ID.Hex(),
+				"username": user.Username,
+				"name": map[string]interface{}{
+					"first":  user.Name.First,
+					"middle": user.Name.Middle,
+					"last":   user.Name.Last,
+				},
 			}
-
-			// Get user details using the service's GetUserById method
-			if user, err := h.chatService.GetUserById(ctx, msg.ChatMessage.UserID.Hex()); err == nil {
-				event.UserID = map[string]interface{}{
-					"_id":      user.ID.Hex(),
-					"username": user.Username,
-					"name":     user.Name,
+			
+			// Add role information (excluding permissions)
+			if user.Role != primitive.NilObjectID {
+				// This would need role service, but for now use basic structure
+				userData["role"] = map[string]interface{}{
+					"_id": user.Role.Hex(),
+					// Note: role name would need additional query
 				}
-			} else {
-				event.UserID = msg.ChatMessage.UserID.Hex()
 			}
+		} else {
+			userData = map[string]interface{}{
+				"_id": msg.ChatMessage.UserID.Hex(),
+			}
+		}
+
+		// Determine message type
+		var messageType string
+		if msg.ChatMessage.StickerID != nil {
+			messageType = model.MessageTypeSticker
+		} else if msg.ChatMessage.ReplyToID != nil {
+			messageType = model.MessageTypeReply
+		} else {
+			messageType = model.MessageTypeText
+		}
+
+		// Create comprehensive payload structure
+		payload := map[string]interface{}{
+			"room": map[string]interface{}{
+				"_id": roomID,
+			},
+			"message": map[string]interface{}{
+				"_id":       msg.ChatMessage.ID.Hex(),
+				"type":      messageType,
+				"message":   msg.ChatMessage.Message,
+				"timestamp": msg.ChatMessage.Timestamp,
+			},
+			"user":      userData,
+			"timestamp": msg.ChatMessage.Timestamp,
+		}
 
 			// Add reactions if any
 			if len(msg.Reactions) > 0 {
-				event.Payload = map[string]interface{}{
-					"reactions": msg.Reactions,
-				}
+				payload["reactions"] = msg.Reactions
 			}
 
 			// Add reply info if exists
 			if msg.ReplyTo != nil {
-				event.Payload = map[string]interface{}{
-					"replyTo": msg.ReplyTo,
+				// Get reply user data
+				var replyUserData map[string]interface{}
+				if replyUser, err := h.chatService.GetUserById(ctx, msg.ReplyTo.UserID.Hex()); err == nil {
+					replyUserData = map[string]interface{}{
+						"_id":      replyUser.ID.Hex(),
+						"username": replyUser.Username,
+						"name":     replyUser.Name,
+					}
+					
+					if replyUser.Role != primitive.NilObjectID {
+						replyUserData["role"] = map[string]interface{}{
+							"_id": replyUser.Role.Hex(),
+						}
+					}
+				} else {
+					replyUserData = map[string]interface{}{
+						"_id": msg.ReplyTo.UserID.Hex(),
+					}
 				}
+
+				payload["replyTo"] = map[string]interface{}{
+					"message": map[string]interface{}{
+						"_id":       msg.ReplyTo.ID.Hex(),
+						"message":   msg.ReplyTo.Message,
+						"timestamp": msg.ReplyTo.Timestamp,
+					},
+					"user": replyUserData,
+				}
+			}
+
+			// Add sticker info if exists
+			if msg.ChatMessage.StickerID != nil {
+				payload["sticker"] = map[string]interface{}{
+					"_id":   msg.ChatMessage.StickerID.Hex(),
+					"image": msg.ChatMessage.Image,
+				}
+			}
+
+			// Convert to proper Event structure
+			event := model.Event{
+				Type:      model.EventTypeHistory,
+				Payload:   payload,
+				Timestamp: msg.ChatMessage.Timestamp,
 			}
 
 			if data, err := json.Marshal(event); err == nil {
@@ -99,9 +169,9 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		return
 	}
 
-	// Subscribe to room's Kafka topic
+	// Subscribe to room's Kafka topic (non-blocking)
 	if err := h.chatService.SubscribeToRoom(ctx, roomID); err != nil {
-		log.Printf("[WARN] Failed to subscribe to room topic: %v", err)
+		log.Printf("[WARN] Failed to subscribe to room topic (continuing without Kafka): %v", err)
 	}
 
 	userObjID, err := primitive.ObjectIDFromHex(userID)
@@ -139,64 +209,14 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		UserID: userObjID,
 	})
 
-	// Send join event to the new connection itself
-	joinSelfEvent := model.ChatEvent{
-		EventType: "notice",
-		Payload: map[string]interface{}{
-			"userId": userObjID.Hex(),
-			"message": "You have joined the chat room",
-			"timestamp": time.Now(),
-		},
-	}
-	if eventBytes, err := json.Marshal(joinSelfEvent); err == nil {
-		log.Printf("[DEBUG] Sending self join notification to user %s", userObjID.Hex())
-		conn.WriteMessage(websocket.TextMessage, eventBytes)
-	}
-
-	// Then broadcast join event to all other clients
-	joinOthersEvent := model.ChatEvent{
-		EventType: "user_joined",
-		Payload: map[string]interface{}{
-			"userId": userObjID.Hex(),
-			"message": fmt.Sprintf("User %s has joined the chat room", userObjID.Hex()),
-			"timestamp": time.Now(),
-		},
-	}
-	if eventBytes, err := json.Marshal(joinOthersEvent); err == nil {
-		log.Printf("[DEBUG] Broadcasting join notification about user %s to others", userObjID.Hex())
-		h.chatService.GetHub().BroadcastToRoomExcept(roomID, userObjID.Hex(), eventBytes)
-	}
+	// WebSocket connection established - no notification needed
+	log.Printf("[DEBUG] User %s connected to WebSocket for room %s", userObjID.Hex(), roomID)
 	
 	defer func() {
-		// First broadcast leave event to all other clients
-		leaveOthersEvent := model.ChatEvent{
-			EventType: "user_left",
-			Payload: map[string]interface{}{
-				"userId": userObjID.Hex(),
-				"message": fmt.Sprintf("User %s has left the chat room", userObjID.Hex()),
-				"timestamp": time.Now(),
-			},
-		}
-		if eventBytes, err := json.Marshal(leaveOthersEvent); err == nil {
-			log.Printf("[DEBUG] Broadcasting leave notification about user %s to others", userObjID.Hex())
-			h.chatService.GetHub().BroadcastToRoomExcept(roomID, userObjID.Hex(), eventBytes)
-		}
+		// WebSocket disconnection - no notification needed
+		log.Printf("[DEBUG] User %s disconnected from WebSocket for room %s", userObjID.Hex(), roomID)
 
-		// Send leave event to the user's own connection
-		leaveSelfEvent := model.ChatEvent{
-			EventType: "notice",
-			Payload: map[string]interface{}{
-				"userId": userObjID.Hex(),
-				"message": "You have left the chat room",
-				"timestamp": time.Now(),
-			},
-		}
-		if eventBytes, err := json.Marshal(leaveSelfEvent); err == nil {
-			log.Printf("[DEBUG] Sending self leave notification to user %s", userObjID.Hex())
-			conn.WriteMessage(websocket.TextMessage, eventBytes)
-		}
-
-		// Then unregister and cleanup
+		// Unregister and cleanup
 		h.chatService.GetHub().Unregister(utils.Client{
 			Conn:   conn,
 			RoomID: roomObjID,
@@ -227,7 +247,7 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		case strings.HasPrefix(messageText, "/react"):
 			h.handleReactionMessage(messageText, *client)
 		case messageText == "/leave":
-			h.handleLeaveMessage(ctx, messageText, *client)
+			h.handleLeaveMessage(ctx, *client)
 			return
 		default:
 			// Create message and send it once
@@ -296,7 +316,7 @@ func (h *WebSocketHandler) handleReactionMessage(messageText string, client mode
 	}
 }
 
-func (h *WebSocketHandler) handleLeaveMessage(ctx context.Context, messageText string, client model.ClientObject) {
+func (h *WebSocketHandler) handleLeaveMessage(ctx context.Context, client model.ClientObject) {
 	if _, err := h.roomService.RemoveUserFromRoom(ctx, client.RoomID, client.UserID.Hex()); err != nil {
 		log.Printf("[ERROR] Failed to remove user from room: %v", err)
 	}
