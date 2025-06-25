@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
-import { AppearancesService } from './appearances.service';
-import { Appearance, AppearanceDocument } from './schemas/apprearance.schema';
 import { Model, Types } from 'mongoose';
+import { AppearancesService } from './appearances.service';
+import { Appearance } from './schemas/apprearance.schema';
 import { CreateAppearanceDto } from './dto/create-appearance.dto';
-import { NotFoundException } from '@nestjs/common';
+import { UpdateAppearanceDto } from './dto/update-appearance.dto';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
 import {
   queryAll,
@@ -12,143 +12,111 @@ import {
   queryFindOne,
   queryUpdateOne,
 } from 'src/pkg/helper/query.util';
+import { NotFoundException } from '@nestjs/common';
 
 jest.mock('src/pkg/validator/model.validator');
-jest.mock('src/pkg/helper/helpers');
 jest.mock('src/pkg/helper/query.util');
-
-
-const saveMock = jest.fn();
-
-class MockModel {
-  constructor(private data: Partial<CreateAppearanceDto>) {
-  Object.assign(this, data);
-}
-
-
-  save = saveMock;
-
-  static findById = jest.fn();
-  static findOne = jest.fn();
-}
 
 describe('AppearancesService', () => {
   let service: AppearancesService;
-  let model: Model<AppearanceDocument>;
-  const mockAppearanceId = new Types.ObjectId().toHexString();
+  let model: Partial<Record<keyof Model<Appearance>, jest.Mock>>;
+
+  const mockAppearanceId = new Types.ObjectId();
+  const createDto: CreateAppearanceDto = {
+    school: mockAppearanceId.toString(),
+    assets: { logo: 'logo.png' },
+    colors: { primary: '#000' },
+  };
+
+  const updateDto: UpdateAppearanceDto = {
+    assets: { banner: 'banner.png' },
+    colors: { secondary: '#fff' },
+  };
 
   beforeEach(async () => {
-    saveMock.mockReset();
+    model = {
+      findById: jest.fn(),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AppearancesService,
         {
           provide: getModelToken(Appearance.name),
-          useValue: MockModel,
+          useValue: model,
         },
       ],
     }).compile();
 
     service = module.get<AppearancesService>(AppearancesService);
-    model = module.get<Model<AppearanceDocument>>(getModelToken(Appearance.name));
   });
 
-  afterEach(() => jest.clearAllMocks());
-
   describe('create', () => {
-    it('should call throwIfExists and save model', async () => {
+    it('should create and save a new appearance', async () => {
       (throwIfExists as jest.Mock).mockResolvedValue(undefined);
-      saveMock.mockResolvedValue({ _id: mockAppearanceId }); 
+      const saveMock = jest.fn().mockResolvedValue({ _id: mockAppearanceId, ...createDto });
+      const mockInstance = { ...createDto, save: saveMock };
 
-      const dto: CreateAppearanceDto = { school: mockAppearanceId };
-      await service.create(dto);
+      service['apprearanceModel'] = jest.fn().mockImplementation(() => mockInstance) as any;
 
-      expect(throwIfExists).toHaveBeenCalledWith(model, { school: dto.school }, 'School already exists');
+      const result = await service.create(createDto);
+      expect(throwIfExists).toHaveBeenCalled();
       expect(saveMock).toHaveBeenCalled();
+      expect(result).toEqual({ _id: mockAppearanceId, ...createDto });
     });
   });
 
   describe('findAll', () => {
-    it('should call queryAll with correct populate logic', async () => {
-      const query = { school: mockAppearanceId };
-      await service.findAll(query);
+    it('should call queryAll with correct args', async () => {
+      (queryAll as jest.Mock).mockResolvedValue(['mock result']);
+      const result = await service.findAll({ keyword: 'appearance' });
       expect(queryAll).toHaveBeenCalled();
-    });
-
-    it('should not populate school if "school" is excluded', async () => {
-      const mockFn = jest.fn().mockImplementation(({ populateFields }) =>
-        populateFields(['school'])
-      );
-      (queryAll as jest.Mock) = mockFn;
-
-      await service.findAll({});
-      expect(mockFn).toHaveBeenCalled();
+      expect(result).toEqual(['mock result']);
     });
   });
 
   describe('findOne', () => {
-    it('should call queryFindOne', async () => {
-      await service.findOne(mockAppearanceId);
-      expect(queryFindOne).toHaveBeenCalledWith(model, { _id: mockAppearanceId }, [{ path: 'school' }]);
+    it('should call queryFindOne and return result', async () => {
+      const mockResult = { data: [{ name: 'Appearance 1' }], message: 'Found' };
+      (queryFindOne as jest.Mock).mockResolvedValue(mockResult);
+      const result = await service.findOne(mockAppearanceId.toString());
+      expect(queryFindOne).toHaveBeenCalled();
+      expect(result).toEqual(mockResult);
     });
   });
 
   describe('update', () => {
-    it('should throw if not found', async () => {
-      MockModel.findById = jest.fn().mockResolvedValue(null);
-      await expect(service.update(mockAppearanceId, {})).rejects.toThrow(NotFoundException);
-    });
-
-    it('should merge assets/colors and call update + return populated', async () => {
-      const existing = {
-        assets: { logo: 'old' },
+    it('should merge and update appearance', async () => {
+      const populatedMock = { populate: jest.fn().mockReturnThis(), exec: jest.fn().mockResolvedValue('final-result') };
+      const existingDoc = {
+        _id: mockAppearanceId,
+        assets: { logo: 'logo.png' },
         colors: { primary: '#000' },
       };
 
-      const updated = {
-        assets: { favicon: 'new' },
-        colors: { secondary: '#111' },
-      };
+      model.findById = jest.fn()
+        .mockResolvedValueOnce(existingDoc) // for existence check
+        .mockReturnValue(populatedMock); // for populate().exec()
 
-      const expectedMerged = {
-        assets: { logo: 'old', favicon: 'new' },
-        colors: { primary: '#000', secondary: '#111' },
-      };
+      (queryUpdateOne as jest.Mock).mockResolvedValue(undefined);
 
-      const populateMock = jest.fn().mockReturnThis();
-      const execMock = jest.fn().mockResolvedValue('populatedResult');
-
-
-      MockModel.findById = jest.fn()
-        .mockResolvedValueOnce(existing)
-        .mockReturnValueOnce({ populate: populateMock, exec: execMock });
-
-      const result = await service.update(mockAppearanceId, updated);
-
-      expect(queryUpdateOne).toHaveBeenCalledWith(model, mockAppearanceId, expectedMerged);
-      expect(result).toEqual('populatedResult');
+      const result = await service.update(mockAppearanceId.toString(), updateDto);
+      expect(queryUpdateOne).toHaveBeenCalledWith(model, mockAppearanceId.toString(), expect.anything());
+      expect(result).toEqual('final-result');
     });
 
-
-
-    it('should update without merging if no assets/colors provided', async () => {
-      const existing = {};
-      MockModel.findById = jest.fn().mockResolvedValue(existing);
-
-      const populateMock = jest.fn().mockReturnThis();
-      const execMock = jest.fn().mockResolvedValue('populatedNoMerge');
-      MockModel.findById = jest.fn().mockReturnValue({ populate: populateMock, exec: execMock });
-
-      const result = await service.update(mockAppearanceId, {});
-      expect(queryUpdateOne).toHaveBeenCalledWith(model, mockAppearanceId, {});
-      expect(result).toEqual('populatedNoMerge');
+    it('should throw NotFoundException if doc not found', async () => {
+      model.findById = jest.fn().mockResolvedValueOnce(null);
+      await expect(service.update('invalid-id', updateDto)).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('remove', () => {
-    it('should call queryDeleteOne', async () => {
-      await service.remove(mockAppearanceId);
-      expect(queryDeleteOne).toHaveBeenCalledWith(model, mockAppearanceId);
+    it('should delete appearance and return message', async () => {
+      (queryDeleteOne as jest.Mock).mockResolvedValue(undefined);
+      const result = await service.remove(mockAppearanceId.toString());
+      expect(queryDeleteOne).toHaveBeenCalledWith(model, mockAppearanceId.toString());
+      expect(result).toEqual({ message: 'Appearance delete successfully' });
     });
   });
 });

@@ -3,26 +3,12 @@ import { SchoolsController } from './schools.controller';
 import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { APP_GUARD } from '@nestjs/core';
-
-jest.mock('src/pkg/interceptors/multipart.interceptor', () => ({
-  MultipartInterceptor: jest.fn().mockImplementation(() => ({
-    intercept: jest.fn((_, next) => next.handle()),
-  })),
-}));
 
 describe('SchoolsController', () => {
   let controller: SchoolsController;
   let service: SchoolsService;
-
-  const mockSchool = {
-    _id: '1',
-    name: { th: 'โรงเรียน', en: 'School' },
-    acronym: 'SCH',
-    detail: { th: 'รายละเอียด', en: 'Detail' },
-    photo: 'photo.jpg',
-    createdAt: new Date(),
-  };
 
   const mockService = {
     create: jest.fn(),
@@ -30,8 +16,7 @@ describe('SchoolsController', () => {
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
-    findColor: jest.fn(),
-    findInterfaces: jest.fn(),
+    findAppearance: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -39,7 +24,7 @@ describe('SchoolsController', () => {
       controllers: [SchoolsController],
       providers: [
         { provide: SchoolsService, useValue: mockService },
-        { provide: APP_GUARD, useValue: { canActivate: () => true } }, 
+        { provide: APP_GUARD, useClass: PermissionsGuard },
       ],
     }).compile();
 
@@ -47,75 +32,70 @@ describe('SchoolsController', () => {
     service = module.get<SchoolsService>(SchoolsService);
   });
 
-  afterEach(() => jest.clearAllMocks());
+  it('should call create() with correct dto', async () => {
+    const dto: CreateSchoolDto = {
+      name: { th: 'ไทย', en: 'EN' },
+      acronym: 'TEST',
+      detail: { th: 'รายละเอียด', en: 'Details' },
+      photo: 'photo.jpg',
+      createdAt: new Date(),
+    };
+    const mockResult = { id: '1', ...dto };
+    mockService.create.mockResolvedValue(mockResult);
 
-  describe('create()', () => {
-    it('should call service.create with dto', async () => {
-      mockService.create.mockResolvedValue(mockSchool);
-      const dto: CreateSchoolDto = { ...mockSchool };
-      const result = await controller.create(dto);
-      expect(service.create).toHaveBeenCalledWith(dto);
-      expect(result).toEqual(mockSchool);
-    });
+    const result = await controller.create(dto);
+    expect(service.create).toHaveBeenCalledWith(dto);
+    expect(result).toEqual(mockResult);
   });
 
-  describe('findAll()', () => {
-    it('should call service.findAll with query', async () => {
-      const query = { keyword: 'abc' };
-      const expected = [mockSchool];
-      mockService.findAll.mockResolvedValue(expected);
-      const result = await controller.findAll(query);
-      expect(service.findAll).toHaveBeenCalledWith(query);
-      expect(result).toEqual(expected);
-    });
+  it('should call findAll() with query', async () => {
+    const query = { keyword: 'test' };
+    const mockResult = ['result'];
+    mockService.findAll.mockResolvedValue(mockResult);
+
+    const result = await controller.findAll(query);
+    expect(service.findAll).toHaveBeenCalledWith(query);
+    expect(result).toEqual(mockResult);
   });
 
-  describe('findOne()', () => {
-    it('should call service.findOne with id', async () => {
-      mockService.findOne.mockResolvedValue(mockSchool);
-      const result = await controller.findOne('1');
-      expect(service.findOne).toHaveBeenCalledWith('1');
-      expect(result).toEqual(mockSchool);
-    });
+  it('should call findOne() with id', async () => {
+    const mockResult = { id: '123' };
+    mockService.findOne.mockResolvedValue(mockResult);
+
+    const result = await controller.findOne('123');
+    expect(service.findOne).toHaveBeenCalledWith('123');
+    expect(result).toEqual(mockResult);
   });
 
-  describe('update()', () => {
-    it('should call service.update with id and dto', async () => {
-      const dto: UpdateSchoolDto = { ...mockSchool };
-      mockService.update.mockResolvedValue({ ...dto, _id: '1' });
-      const result = await controller.update('1', dto);
-      expect(service.update).toHaveBeenCalledWith('1', dto);
-      expect(result).toEqual(expect.objectContaining({ _id: '1' }));
-    });
+  it('should call update() with id and dto', async () => {
+    const dto: UpdateSchoolDto = {
+      acronym: 'UPD',
+      photo: 'updated.jpg',
+    };
+    const mockResult = { id: '123', ...dto };
+    mockService.update.mockResolvedValue(mockResult);
+
+    const result = await controller.update('123', dto);
+    expect(service.update).toHaveBeenCalledWith('123', dto);
+    expect(result).toEqual(mockResult);
   });
 
-  describe('remove()', () => {
-    it('should call service.remove with id', async () => {
-      mockService.remove.mockResolvedValue({ deleted: true });
-      const result = await controller.remove('1');
-      expect(service.remove).toHaveBeenCalledWith('1');
-      expect(result).toEqual({ deleted: true });
-    });
+  it('should call remove() with id', async () => {
+    const mockResult = { message: 'deleted', id: '123' };
+    mockService.remove.mockResolvedValue(mockResult);
+
+    const result = await controller.remove('123');
+    expect(service.remove).toHaveBeenCalledWith('123');
+    expect(result).toEqual(mockResult);
   });
 
-  describe('findAppearance()', () => {
-    it('should call service.findColor with id and query', async () => {
-      const query = { sort: 'asc' };
-      const expected = [{ color: 'blue' }];
-      mockService.findColor.mockResolvedValue(expected);
-      const result = await controller.findAppearance('1', query);
-      expect(service.findColor).toHaveBeenCalledWith('1', query);
-      expect(result).toEqual(expected);
-    });
-  });
+  it('should call findAppearance() with id and query', async () => {
+    const query = { type: 'cover' };
+    const mockResult = { appearance: 'data' };
+    mockService.findAppearance.mockResolvedValue(mockResult);
 
-  describe('findInterfaces()', () => {
-    it('should call service.findInterfaces with id', async () => {
-      const expected = [{ interface: 'mobile' }];
-      mockService.findInterfaces.mockResolvedValue(expected);
-      const result = await controller.findInterfaces('1');
-      expect(service.findInterfaces).toHaveBeenCalledWith('1');
-      expect(result).toEqual(expected);
-    });
+    const result = await controller.findAppearance('123', query);
+    expect(service.findAppearance).toHaveBeenCalledWith('123', query);
+    expect(result).toEqual(mockResult);
   });
 });
