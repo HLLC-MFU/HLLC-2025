@@ -25,8 +25,17 @@ export class StepCounter {
     @Prop({ required: true, type: Boolean, default: false })
     completeStatus: boolean
 
-    @Prop({ required: true, type: [Step] })
-    step: Step[]
+    @Prop({
+        type: [{
+            totalStep: Number,
+            step: Number,
+            date: Date,
+            createdAt: { type: Date, default: Date.now },
+            updatedAt: { type: Date, default: Date.now },
+        }],
+        default: []
+    })
+    steps: Step[];;
 }
 
 export const StepCounterSchema = SchemaFactory.createForClass(StepCounter);

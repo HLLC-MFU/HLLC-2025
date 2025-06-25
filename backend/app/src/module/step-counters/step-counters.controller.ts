@@ -27,8 +27,8 @@ export class StepCountersController {
   }
 
   @Get('leaderboard/all')
-  getAllLeaderBorad() {
-    return this.stepCountersService.getLeaderboard();
+  getAllLeaderBorad(@Query('limit') limit?: number) {
+    return this.stepCountersService.getLeaderboard(limit);
   }
 
   @Get('leaderboard/by-date')
@@ -71,17 +71,18 @@ export class StepCountersController {
     return this.stepCountersService.getLeaderboardBySchoolAndDate(schoolId, date);
   }
 
-  @Get('leaderboard/achieved')
-  getAchievementLeaderboard() {
-    return this.stepCountersService.getLeaderBoardByAchieved();
+  @Get('leaderboard/by-achieved')
+  async getByAchieved(@Query('stepAchievementId') stepAchievementId?: string) {
+    return this.stepCountersService.getLeaderBoardByAchieved(stepAchievementId);
   }
 
   @Get('rank/:userId')
   getUserRank(
     @Param('userId') userId: string,
     @Query('scope') scope: 'global' | 'school' | 'achieved' = 'global',
+    @Query('stepAchievementId') stepAchievementId?: string,
   ) {
-    return this.stepCountersService.getUserRank(userId, scope);
+    return this.stepCountersService.getUserRank(userId, scope, stepAchievementId);
   }
 
 }

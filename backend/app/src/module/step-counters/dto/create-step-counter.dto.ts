@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsArray, IsBoolean, IsDate, IsMongoId, IsNotEmpty, IsNumber, IsOptional, ValidateNested } from "class-validator";
+import { IsArray, IsBoolean, IsDate, IsISO8601, IsMongoId, IsNotEmpty, IsNumber, IsOptional, ValidateNested } from "class-validator";
 
 class Step {
     @IsOptional()
@@ -7,7 +7,8 @@ class Step {
     totalStep: number
 
     @IsOptional()
-    @IsDate()
+    @IsISO8601()
+    @Type(() => Date)
     date: Date;
 
     @IsNotEmpty()
@@ -21,7 +22,7 @@ export class CreateStepCounterDto {
 
     @ValidateNested({ each: true })
     @Type(() => Step)
-    step: Step[];
+    steps?: Step[];
 
     @IsNotEmpty()
     @IsMongoId()
