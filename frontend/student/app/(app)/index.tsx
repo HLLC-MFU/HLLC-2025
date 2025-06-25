@@ -38,20 +38,18 @@ export default function HomeScreen() {
         justifyContent: 'space-between',
       }}
     >
-      <GlassButton>
+      <GlassButton
+        onPress={() => {
+          useRouter().push('/profile');
+        }}
+      >
         {assetsImage.progress ? (
           <AssetImage
             uri={`${baseImageUrl}/uploads/${assetsImage.progress}`}
             style={{ width: 20, height: 20 }}
           />
         ) : (
-          <User
-            color="white"
-            size={20}
-            onPress={() => {
-              useRouter().push('/(auth)/login');
-            }}
-          />
+          <User color="white" size={20} />
         )}
         <Text
           style={{
