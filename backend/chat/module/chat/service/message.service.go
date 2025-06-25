@@ -86,7 +86,7 @@ func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, l
 		}
 	}
 
-	log.Printf("[ChatService] Found %d messages in MongoDB", len(enriched))
+	log.Printf("[ChatService] Found %d messages with reactions", len(enriched))
 	return enriched, nil
 }
 
