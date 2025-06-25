@@ -35,10 +35,8 @@ const CardWithPie = ({ label, value, icon, colors }: {
 
 export default function Overview({ checkin, Activities, Userstats, Evouchers, Sponsors, isLoading }: Overviewprop) {
 
+    const { student } = Userstats
     const checkInTotal = checkin.length;
-    const registered = Object.values(Userstats).reduce((sum, user) => sum + user.registered, 0)
-    const unregistered = Object.values(Userstats).reduce((sum, user) => sum + user.notRegistered, 0)
-    const totalUsers = Object.values(Userstats).reduce((sum, user) => sum + user.total, 0)
     const Evoucherstotle = Evouchers.length;
     const activityTotal = Activities.length;
     const sponsorTotal = Sponsors.length;
@@ -53,11 +51,11 @@ export default function Overview({ checkin, Activities, Userstats, Evouchers, Sp
                 colors='gray-100'
             />
             <CardWithPie
-                label={`User (${totalUsers})`}
+                label={`User (${student?.total ?? 0})`}
                 value={<div className="flex gap-1 text-base">
-                    <span > {registered}</span>
+                    <span > {student?.registered ?? 0}</span>
                     <span className="text-gray-400">|</span>
-                    <span className="text-gray-400">{unregistered}</span>
+                    <span className="text-gray-400">{student?.notRegistered ?? 0}</span>
                 </div>}
                 icon={<UserIcon />}
                 colors='blue-100'

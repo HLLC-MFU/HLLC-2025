@@ -193,7 +193,7 @@ export function transformRawAnswersToTestAnswers(
     questions: Question[]
 ): TransformedAnswer[] {
     // Combine and sort all answers by createdAt
-    const allAnswers = [...pretestAnswers, ...posttestAnswers].sort(
+    const allAnswers = [...pretestAnswers, ...posttestAnswers ].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 

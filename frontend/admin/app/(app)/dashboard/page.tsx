@@ -1,5 +1,5 @@
 'use client';
-import { Users, Ticket, ScanLine, Star, LayoutDashboard, FileQuestion, Activity } from 'lucide-react';
+import {  LayoutDashboard, FileQuestion, Activity } from 'lucide-react';
 import { Button } from "@heroui/react";
 import { useCheckin } from "@/hooks/useCheckin";
 import { useSponsors } from "@/hooks/useSponsors";
@@ -8,20 +8,13 @@ import { Accordion, AccordionItem } from "@heroui/react";
 import { useAssessment } from "@/hooks/useAssessment";
 import AssessmentOverviewDashboard from "../assessments/_components/question-overview-dashboard";
 import ActivityDashboard from "../assessments/_components/activity-dashboard";
-
-const icons = [
-  <ScanLine className="h-6 w-6 text-lime-600" />,
-  <Users className="h-6 w-6 text-amber-400" />,
-  <Ticket className="h-6 w-6 text-cyan-400" />,
-  <Star className="h-6 w-6 text-emerald-400" />,
-];
 import { useEvoucher } from "@/hooks/useEvoucher";
 import { useReports } from "@/hooks/useReports";
 import { useReportTypes } from "@/hooks/useReportTypes";
 import { ReportCharts } from "./_components/DashboardReportCharts";
 import Overview from "./_components/DashboardOverview";
 import Charts from "./_components/DashboardTimeLineCharts";
-import { useUserStatistics } from "@/hooks/useUsersytem";
+import { useUserStatistics } from "@/hooks/useUserSytem";
 import { useActivities } from "@/hooks/useActivities";
 import { UseruseSystem } from "@/types/user-stats"
 
@@ -31,13 +24,12 @@ export default function Dashboard() {
   const { checkin, loading } = useCheckin();
   const { activities } = useActivities();
   const { sponsors } = useSponsors();
-  
   const { activityProgress, loading: activityLoading } = useAssessment();
   const { evouchers } = useEvoucher();
   const { problems } = useReports();
   const { reporttypes } = useReportTypes();
-  const { Userstats } = useUserStatistics();  
-
+  const { Userstats } = useUserStatistics(); 
+  
   return (
     <>
       <PageHeader description='System overview — quickly access key modules, recent activity, and system statistics.' icon={<LayoutDashboard />} />
