@@ -18,7 +18,7 @@ import Animated, {
     runOnJS,
 } from 'react-native-reanimated';
 import { Home, Book, QrCode, Gift, Globe } from 'lucide-react-native';
-import { useInterfaces } from '@/hooks/useInterfaces';
+import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from './AssetImage';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -44,7 +44,7 @@ export default function GlassTabBar() {
 
     const prevIndexRef = useRef(0);
 
-    const { assets } = useInterfaces();
+    const { assets } = useAppearance();
     const icons = {
         home: assets?.home ?? null,
         activity: assets?.activities ?? null,
