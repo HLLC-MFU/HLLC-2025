@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateStepCounterDto } from './dto/create-step-counter.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { StepCounter, StepCounterDocument } from './schema/step-counter.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import {
@@ -25,7 +25,7 @@ export class StepCountersService {
   async create(createStepCounterDto: CreateStepCounterDto) {
     await findOrThrow(this.userModel, createStepCounterDto.user, 'User not found');
 
-    const { user, step: incomingSteps } = createStepCounterDto;
+    const { user, steps: incomingSteps = [] } = createStepCounterDto;
 
     const achievements = await this.stepCounterModel.db
       .collection('step-achievement')
@@ -60,26 +60,27 @@ export class StepCountersService {
       const newStepCounter = new this.stepCounterModel({
         user,
         achievement,
-        step: stepData,
+        steps: stepData,
         completeStatus: achievementTarget && total >= achievementTarget,
       });
 
       return await newStepCounter.save();
     }
 
+
     // merge
     for (const incoming of incomingSteps) {
       const stepDate = incoming.date ? new Date(incoming.date) : new Date();
       const dateOnly = new Date(stepDate.getFullYear(), stepDate.getMonth(), stepDate.getDate());
 
-      const existingStep = existing.step.find(s =>
+      const existingStep = existing.steps.find(s =>
         new Date(s.date).toDateString() === dateOnly.toDateString()
       );
 
       if (existingStep) {
         existingStep.step += incoming.step;
       } else {
-        existing.step.push({
+        existing.steps.push({
           step: incoming.step,
           date: dateOnly,
           totalStep: 0,
@@ -87,10 +88,10 @@ export class StepCountersService {
       }
     }
 
-    existing.step.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    existing.steps.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     let total = 0;
-    for (const s of existing.step) {
+    for (const s of existing.steps) {
       total += s.step;
       s.totalStep = total;
     }
@@ -156,7 +157,7 @@ export class StepCountersService {
   }
 
   // all leaderboard user for top 3
-  async getLeaderboard() {
+  async getLeaderboard(limit = 3) {
     const stepCounters = await this.stepCounterModel.find({})
       .populate({
         path: 'user',
@@ -172,22 +173,24 @@ export class StepCountersService {
       .lean();
 
     const withTotalSteps = stepCounters.map(sc => {
-      const total = sc.step?.reduce((sum, s) => sum + s.step, 0) || 0;
+      const total = sc.steps?.reduce((sum, s) => sum + s.step, 0) || 0;
       return {
         ...sc,
         totalStep: total,
       };
     });
+
     const top = withTotalSteps
       .sort((a, b) => b.totalStep - a.totalStep)
-      .slice(0, 3);
+      .slice(0, limit);
 
     return {
       data: top,
       metadata: {
         total: top.length,
+        limit,
       },
-      message: 'Top 3 users with highest total step fetched successfully',
+      message: `Top ${limit} users with highest total step fetched successfully`,
     };
   }
 
@@ -211,7 +214,7 @@ export class StepCountersService {
       .lean();
 
     const leaderboard = stepCounters.map((sc) => {
-      const stepsOnThatDate = (sc.step || []).filter((s) => {
+      const stepsOnThatDate = (sc.steps || []).filter((s) => {
         const sDate = new Date(s.date).toISOString().split('T')[0];
         return sDate === targetDateStr;
       });
@@ -260,7 +263,7 @@ export class StepCountersService {
       .lean();
 
     const withTotalSteps = stepCounters.map((sc) => {
-      const totalStep = (sc.step || []).reduce((sum, s) => sum + (s.step || 0), 0);
+      const totalStep = (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0);
       return { ...sc, totalStep };
     });
 
@@ -294,7 +297,7 @@ export class StepCountersService {
     const endOfDay = new Date(dateOnly.setHours(23, 59, 59, 999));
 
     const stepCounters = await this.stepCounterModel.find({
-      step: {
+      steps: {
         $elemMatch: {
           date: { $gte: startOfDay, $lte: endOfDay },
         },
@@ -316,7 +319,7 @@ export class StepCountersService {
 
     const leaderboard = stepCounters
       .map(sc => {
-        const stepsToday = (sc.step || []).filter(s =>
+        const stepsToday = (sc.steps || []).filter(s =>
           new Date(s.date).toDateString() === date.toDateString()
         );
         const totalStep = stepsToday.reduce((sum, s) => sum + (s.step || 0), 0);
@@ -344,22 +347,17 @@ export class StepCountersService {
     };
   }
 
-  // leaderboard for achievements pass
-  async getLeaderBoardByAchieved() {
-    const achievements = await this.stepCounterModel.db
-      .collection('step-achievement')
-      .find({})
-      .sort({ createdAt: 1 })
-      .toArray();
+  async getLeaderBoardByAchieved(stepAchievementId?: string) {
+    const achievement = stepAchievementId
+      ? await this.stepAchievementModel.findById(stepAchievementId).lean()
+      : await this.stepAchievementModel.findOne({}).sort({ createdAt: 1 }).lean();
 
-    const primaryAchievement = achievements[0];
-    if (!primaryAchievement) {
-      throw new Error('No achievement defined');
+    if (!achievement) {
+      throw new Error('No achievement found');
     }
 
-    const completed = await this.stepCounterModel.find({
-      completeStatus: true,
-      achievement: primaryAchievement._id,
+    const stepCounters = await this.stepCounterModel.find({
+      achievement: achievement._id,
     })
       .populate([
         {
@@ -379,34 +377,47 @@ export class StepCountersService {
       ])
       .lean();
 
-    const completedWithAchievedDate = completed.map((entry) => {
-      const reached = (entry.step || []).find((s) => s.totalStep >= primaryAchievement.achievement);
+    const withAchievedDate = stepCounters.map((sc) => {
+      const reached = (sc.steps || []).find(s => s.totalStep >= achievement.achievement);
       const achievedDate = reached?.date ?? null;
+
+      const updatedAt = (sc as any).updatedAt;
+
       return {
-        ...entry,
+        ...sc,
         achievedDate,
+        hasAchieved: !!achievedDate,
+        totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
+        updatedAt,
       };
     });
 
-    const filtered = completedWithAchievedDate.filter((entry) => entry.achievedDate);
-    filtered.sort((a, b) => new Date(a.achievedDate!).getTime() - new Date(b.achievedDate!).getTime());
+    const ranked = withAchievedDate
+      .sort((a, b) => {
+        if (a.hasAchieved && !b.hasAchieved) return -1;
+        if (!a.hasAchieved && b.hasAchieved) return 1;
 
-    const ranked = filtered.map((entry, index) => ({
-      rank: index + 1,
-      ...entry,
-    }));
+        const aDate = a.achievedDate ?? a.updatedAt ?? new Date();
+        const bDate = b.achievedDate ?? b.updatedAt ?? new Date();
+
+        return new Date(aDate).getTime() - new Date(bDate).getTime();
+      })
+      .map((entry, index) => ({
+        rank: index + 1,
+        ...entry,
+      }));
 
     return {
       data: ranked,
       metadata: {
         total: ranked.length,
+        achievementId: achievement._id,
       },
-      message: 'Users who completed the primary achievement sorted by earliest success',
+      message: `Users ranked by achievement target ${achievement.achievement}`,
     };
   }
 
-  async getUserRank(userId: string, scope: 'global' | 'school' | 'achieved') {
-    // หา target user พร้อม populate
+  async getUserRank(userId: string, scope: 'global' | 'school' | 'achieved', stepAchievementId?: string) {
     const target = await this.stepCounterModel.findOne({ user: userId })
       .populate({
         path: 'user',
@@ -421,13 +432,11 @@ export class StepCountersService {
 
     if (!target) throw new Error('User not found');
 
-    // คำนวณ total step ของ target
-    const targetTotalStep = (target.step || []).reduce((sum, s) => sum + s.step, 0);
+    const targetTotalStep = (target.steps || []).reduce((sum, s) => sum + s.step, 0);
 
     let all: any[] = [];
 
     if (scope === 'global') {
-      // โหลดทุก user
       all = await this.stepCounterModel.find({})
         .populate({
           path: 'user',
@@ -439,17 +448,14 @@ export class StepCountersService {
         })
         .lean();
 
-      // คำนวณ totalStep
       all = all.map(sc => ({
         ...sc,
-        totalStep: (sc.step || []).reduce((sum, s) => sum + s.step, 0),
+        totalStep: (sc.steps || []).reduce((sum, s) => sum + s.step, 0),
       }));
 
-      // เรียงตาม totalStep ลดหลั่น
       all.sort((a, b) => b.totalStep - a.totalStep);
 
     } else if (scope === 'school') {
-      // หา schoolId ของ target
       const schoolId = (target.user as any)?.metadata?.major?.school?._id?.toString();
       if (!schoolId) throw new Error('User has no school');
 
@@ -464,37 +470,32 @@ export class StepCountersService {
         })
         .lean();
 
-      // กรองเฉพาะ school เดียวกัน
       all = all.filter((sc) => {
         const school = (sc.user as any)?.metadata?.major?.school;
         return school && school._id?.toString() === schoolId;
       });
 
-      // คำนวณ totalStep
       all = all.map(sc => ({
         ...sc,
-        totalStep: (sc.step || []).reduce((sum, s) => sum + s.step, 0),
+        totalStep: (sc.steps || []).reduce((sum, s) => sum + s.step, 0),
       }));
 
-      // เรียงตาม totalStep ลดหลั่น
       all.sort((a, b) => b.totalStep - a.totalStep);
 
     } else if (scope === 'achieved') {
-      // โหลด achievement ทั้งหมด (เรียง _id asc)
-      const achievements = await this.stepCounterModel.db
-        .collection('step-achievement')
-        .find({})
-        .sort({ _id: 1 })
-        .toArray();
+      if (!stepAchievementId) {
+        throw new Error('stepAchievementId is required for achieved scope');
+      }
 
-      const primaryAchievement = achievements[0]?._id;
-      const achievementGoal = achievements[0]?.achievement;
-      if (!primaryAchievement) throw new Error('No primary achievement found');
+      const achievement = await this.stepAchievementModel.findById(stepAchievementId).lean();
+      if (!achievement) throw new Error('Achievement not found');
 
-      // หา users ที่สำเร็จ primary achievement
+      const achievementGoal = achievement.achievement;
+
+      const achievementObjId = new Types.ObjectId(stepAchievementId);
+
       all = await this.stepCounterModel.find({
-        achievement: primaryAchievement,
-        completeStatus: true,
+        achievement: achievementObjId,
       })
         .populate({
           path: 'user',
@@ -506,24 +507,28 @@ export class StepCountersService {
         })
         .lean();
 
-      // หาวันที่สำเร็จจริงของแต่ละ user จาก step ที่ totalStep >= เป้าหมาย
       all = all.map(sc => {
-        const achievedStep = (sc.step || []).find(s => s.totalStep >= achievementGoal);
+        const achievedStep = (sc.steps || []).find(s => s.totalStep >= achievementGoal);
         return {
           ...sc,
+          hasAchieved: !!achievedStep,
           completionDate: achievedStep ? new Date(achievedStep.date) : new Date(sc.updatedAt),
-          totalStep: (sc.step || []).reduce((sum, s) => sum + s.step, 0),
+          totalStep: (sc.steps || []).reduce((sum, s) => sum + s.step, 0),
         };
       });
 
-      // เรียงตามวันที่สำเร็จเร็วที่สุดก่อน
-      all.sort((a, b) => a.completionDate.getTime() - b.completionDate.getTime());
+      all.sort((a, b) => {
+        if (a.hasAchieved && !b.hasAchieved) return -1;
+        if (!a.hasAchieved && b.hasAchieved) return 1;
+        return a.completionDate.getTime() - b.completionDate.getTime();
+      });
     }
 
-    // หาอันดับ
-    const rank = all.findIndex(sc =>
-      sc.user?._id?.toString() === userId || sc.user?.toString() === userId
-    ) + 1;
+    // find raking
+    const rank = all.findIndex(sc => {
+      const id = typeof sc.user === 'object' ? sc.user._id?.toString() : sc.user?.toString();
+      return id === userId;
+    }) + 1;
 
     return {
       rank,
@@ -534,4 +539,5 @@ export class StepCountersService {
       message: rank > 0 ? 'User rank found' : 'User not found in ranking',
     };
   }
+
 }
