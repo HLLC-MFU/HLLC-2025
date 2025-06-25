@@ -1,16 +1,10 @@
 'use client';
-import {
-  CircularProgressbar,
-  buildStyles
-} from "react-circular-progressbar";
 import { Users, Ticket, ScanLine, Star, LayoutDashboard, FileQuestion, Activity } from 'lucide-react';
 import { Button } from "@heroui/react";
-import { LayoutDashboard } from 'lucide-react';
 import { useCheckin } from "@/hooks/useCheckin";
 import { useSponsors } from "@/hooks/useSponsors";
 import { PageHeader } from "@/components/ui/page-header";
 import { Accordion, AccordionItem } from "@heroui/react";
-import { usePrepostQuestions } from "@/hooks/usePrepostQuestions";
 import { useAssessment } from "@/hooks/useAssessment";
 import AssessmentOverviewDashboard from "../assessments/_components/question-overview-dashboard";
 import ActivityDashboard from "../assessments/_components/activity-dashboard";

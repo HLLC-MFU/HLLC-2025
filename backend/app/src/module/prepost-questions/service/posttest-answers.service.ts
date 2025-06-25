@@ -109,8 +109,6 @@ export class PosttestAnswersService {
       model: this.posttestAnswerModel,
       query,
       filterSchema: {},
-    });
-      filterSchema: {},
       populateFields: () => Promise.resolve([
         {
           path: 'user',

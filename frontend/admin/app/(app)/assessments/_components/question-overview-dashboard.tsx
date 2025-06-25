@@ -342,6 +342,7 @@ export default function AssessmentOverviewDashboard({
         const searchLower = searchQuery.toLowerCase();
 
         return combinedAnswers.filter(answer => {
+            console.log(answer)
             if (userType !== "All" && answer.user?.userType !== userType) return false;
             if (school !== "All" && answer.user?.school !== school) return false;
             if (major !== "All" && answer.user?.major !== major) return false;
@@ -350,7 +351,7 @@ export default function AssessmentOverviewDashboard({
                     ? `${answer.user.name.first} ${answer.user.name.middle || ''} ${answer.user.name.last}`.trim()
                     : answer.user?.name || '';
                 return userName.toLowerCase().includes(searchLower) ||
-                       answer.userId.toLowerCase().includes(searchLower);
+                       answer.user.username.toLowerCase().includes(searchLower);
             }
             return true;
         });
