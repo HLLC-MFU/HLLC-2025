@@ -6,7 +6,7 @@ export type AssessmentAnswerDocument = HydratedDocument<AssessmentAnswer>;
 
 @Schema({ timestamps: true, collection: 'assessment-answers' })
 export class AssessmentAnswer {
-  @Prop({ required: true, type: ObjectId })
+  @Prop({ required: true, type: ObjectId , ref: 'User' })
   user: ObjectId;
 
   @Prop([

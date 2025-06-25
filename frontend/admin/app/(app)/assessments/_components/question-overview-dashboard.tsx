@@ -447,7 +447,7 @@ export default function AssessmentOverviewDashboard({
 
             <QuestionSummary questions={questionStats} />
 
-            <ScoreDistributionChart data={stats.scoreDistribution} />
+            <ScoreDistributionChart type={type} />
 
             <CustomStudentDetailsTable
                 students={stats.studentDetails}

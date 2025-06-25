@@ -60,7 +60,7 @@ export default function ActivityDashboard() {
             if (major !== "All" && student.major !== major) return false;
             if (searchQuery) {
                 return student.name.toLowerCase().includes(searchLower) ||
-                       student.userId.toLowerCase().includes(searchLower);
+                       student.username.toLowerCase().includes(searchLower);
             }
             return true;
         });
