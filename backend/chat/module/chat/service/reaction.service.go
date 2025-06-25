@@ -55,6 +55,11 @@ func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.Messag
 		log.Printf("[ChatService] Failed to cache reaction: %v", err)
 	}
 
+	// **IMPORTANT**: Update the cached message to include this new reaction
+	if err := s.updateCachedMessageWithReaction(ctx, messageData.RoomID.Hex(), reaction.MessageID.Hex(), reaction); err != nil {
+		log.Printf("[ChatService] Failed to update cached message with reaction: %v", err)
+	}
+
 	// Emit reaction event to Kafka and WebSocket
 	log.Printf("[ChatService] About to emit reaction messageId=%s userId=%s reaction=%s roomId=%s", 
 		reaction.MessageID.Hex(), reaction.UserID.Hex(), reaction.Reaction, messageData.RoomID.Hex())
@@ -62,6 +67,77 @@ func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.Messag
 		log.Printf("[ChatService] Failed to emit reaction: %v", err)
 	} else {
 		log.Printf("[ChatService] Successfully emitted reaction to WebSocket and Kafka")
+	}
+
+	return nil
+}
+
+// updateCachedMessageWithReaction updates the cached message to include the new reaction
+func (s *ChatService) updateCachedMessageWithReaction(ctx context.Context, roomID, messageID string, reaction *model.MessageReaction) error {
+	// Get all cached messages for the room
+	messages, err := s.cache.GetRoomMessages(ctx, roomID, 1000) // Get a large number to find the message
+	if err != nil {
+		return err
+	}
+
+	// Find the message and update its reactions
+	for i, msg := range messages {
+		if msg.ChatMessage.ID.Hex() == messageID {
+			// Check if reaction already exists (shouldn't happen but just in case)
+			reactionExists := false
+			for _, existingReaction := range msg.Reactions {
+				if existingReaction.UserID == reaction.UserID && existingReaction.Reaction == reaction.Reaction {
+					reactionExists = true
+					break
+				}
+			}
+
+			// Add the new reaction if it doesn't exist
+			if !reactionExists {
+				messages[i].Reactions = append(messages[i].Reactions, *reaction)
+				
+				// Save the updated message back to cache
+				if err := s.cache.SaveMessage(ctx, roomID, &messages[i]); err != nil {
+					return err
+				}
+				log.Printf("[ChatService] Successfully updated cached message %s with new reaction", messageID)
+			}
+			break
+		}
+	}
+
+	return nil
+}
+
+// updateCachedMessageRemoveReaction updates the cached message to remove the reaction
+func (s *ChatService) updateCachedMessageRemoveReaction(ctx context.Context, roomID, messageID, userID string) error {
+	// Get all cached messages for the room
+	messages, err := s.cache.GetRoomMessages(ctx, roomID, 1000) // Get a large number to find the message
+	if err != nil {
+		return err
+	}
+
+	// Find the message and remove the reaction
+	for i, msg := range messages {
+		if msg.ChatMessage.ID.Hex() == messageID {
+			// Remove reactions from the specified user
+			filteredReactions := make([]model.MessageReaction, 0)
+			for _, reaction := range msg.Reactions {
+				if reaction.UserID.Hex() != userID {
+					filteredReactions = append(filteredReactions, reaction)
+				}
+			}
+
+			// Update the message with filtered reactions
+			messages[i].Reactions = filteredReactions
+			
+			// Save the updated message back to cache
+			if err := s.cache.SaveMessage(ctx, roomID, &messages[i]); err != nil {
+				return err
+			}
+			log.Printf("[ChatService] Successfully removed reaction from cached message %s", messageID)
+			break
+		}
 	}
 
 	return nil
@@ -118,6 +194,11 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID stri
 	// Remove reaction from cache
 	if err := s.cache.RemoveReaction(ctx, messageData.RoomID.Hex(), messageID, userID); err != nil {
 		log.Printf("[ChatService] Failed to remove reaction from cache: %v", err)
+	}
+
+	// **IMPORTANT**: Update the cached message to remove this reaction
+	if err := s.updateCachedMessageRemoveReaction(ctx, messageData.RoomID.Hex(), messageID, userID); err != nil {
+		log.Printf("[ChatService] Failed to update cached message after removing reaction: %v", err)
 	}
 
 	// Emit remove reaction event

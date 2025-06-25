@@ -16,9 +16,22 @@ import (
 func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {
 	log.Printf("[ChatService] Getting chat history for room %s with limit %d", roomID, limit)
 
+	// First try to get from cache
 	messages, err := s.cache.GetRoomMessages(ctx, roomID, int(limit))
 	if err == nil && len(messages) > 0 {
 		log.Printf("[ChatService] Found %d messages in cache", len(messages))
+		
+		// **IMPORTANT**: Always refresh reactions from database for cached messages
+		for i := range messages {
+			reactions, err := s.getMessageReactionsWithUsers(ctx, roomID, messages[i].ChatMessage.ID.Hex())
+			if err == nil {
+				messages[i].Reactions = reactions
+				log.Printf("[ChatService] Refreshed %d reactions for cached message %s", len(reactions), messages[i].ChatMessage.ID.Hex())
+			} else {
+				log.Printf("[ChatService] Failed to refresh reactions for cached message %s: %v", messages[i].ChatMessage.ID.Hex(), err)
+			}
+		}
+		
 		return messages, nil
 	}
 	if err != nil && err != redis.Nil {	
@@ -79,9 +92,12 @@ func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, l
 
 // getMessageReactionsWithUsers gets reactions for a message with populated user data
 func (s *ChatService) getMessageReactionsWithUsers(ctx context.Context, roomID, messageID string) ([]model.MessageReaction, error) {
+	log.Printf("[ChatService] Getting reactions for message %s in room %s", messageID, roomID)
+	
 	// Try cache first
 	cachedReactions, err := s.cache.GetReactions(ctx, roomID, messageID)
 	if err == nil && len(cachedReactions) > 0 {
+		log.Printf("[ChatService] Found %d reactions in cache for message %s", len(cachedReactions), messageID)
 		return cachedReactions, nil
 	}
 
@@ -114,6 +130,8 @@ func (s *ChatService) getMessageReactionsWithUsers(ctx context.Context, roomID, 
 	if err = cursor.All(ctx, &dbReactions); err != nil {
 		return []model.MessageReaction{}, nil
 	}
+	
+	log.Printf("[ChatService] Found %d reactions in database for message %s", len(dbReactions), messageID)
 
 	// Populate user data for each reaction
 	userService := queries.NewBaseService[userModel.User](s.mongo.Collection("users"))
