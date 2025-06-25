@@ -147,8 +147,19 @@ import (
             pipeline = append(pipeline, bson.M{"$sort": s.parseSort(opts.Sort)})
         }
 
+        // Ensure minimum values for pagination
+        if opts.Page < 1 {
+            opts.Page = 1
+        }
+        if opts.Limit < 1 {
+            opts.Limit = 10
+        }
+
         // Add pagination stages
         skip := int64((opts.Page - 1) * opts.Limit)
+        if skip < 0 {
+            skip = 0
+        }
         pipeline = append(pipeline,
             bson.M{"$skip": skip},
             bson.M{"$limit": int64(opts.Limit)},
@@ -226,8 +237,19 @@ import (
             pipeline = append(pipeline, bson.M{"$sort": s.parseSort(opts.Sort)})
         }
 
+        // Ensure minimum values for pagination
+        if opts.Page < 1 {
+            opts.Page = 1
+        }
+        if opts.Limit < 1 {
+            opts.Limit = 10
+        }
+
         // Pagination
         skip := int64((opts.Page - 1) * opts.Limit)
+        if skip < 0 {
+            skip = 0
+        }
         pipeline = append(pipeline,
             bson.M{"$skip": skip},
             bson.M{"$limit": int64(opts.Limit)},

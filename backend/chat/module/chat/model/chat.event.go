@@ -24,8 +24,7 @@ const (
 
 // Reaction Types - Action
 const (
-    ReactionTypeAdd    = "add"
-    ReactionTypeRemove = "remove"
+    // Note: Reaction types now handled inline as "add"/"remove" strings
 )
 
 type (
@@ -88,9 +87,12 @@ type (
 	}
 	
 	ChatReactionPayload struct {
-		BasePayload
-		Message      MessageInfo `json:"message"` // message being reacted to
-		ReactionType string      `json:"reactionType"` // add/remove
+		MessageID    string    `json:"messageId"`
+		UserID       string    `json:"userId"`
+		Username     string    `json:"username,omitempty"`
+		Reaction     string    `json:"reaction"`
+		Action       string    `json:"action"` // "add" or "remove"
+		Timestamp    time.Time `json:"timestamp"`
 	}
 	
 	ChatPresencePayload struct {

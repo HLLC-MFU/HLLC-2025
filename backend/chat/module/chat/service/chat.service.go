@@ -103,4 +103,4 @@ func (s *ChatService) GetUserById(ctx context.Context, userID string) (*userMode
 // GetMessageReactions gets reactions for a specific message
 func (s *ChatService) GetMessageReactions(ctx context.Context, roomID, messageID string) ([]model.MessageReaction, error) {
 	return s.getMessageReactionsWithUsers(ctx, roomID, messageID)
-} 
+}

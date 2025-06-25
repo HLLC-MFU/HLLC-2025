@@ -151,34 +151,47 @@ func (e *ChatEventEmitter) EmitReaction(ctx context.Context, reaction *model.Mes
 		userInfo = model.UserInfo{ID: reaction.UserID.Hex()}
 	}
 
-	// Get room data
-	roomInfo := model.RoomInfo{ID: roomID.Hex()}
-
-	// Determine reaction type (add vs remove)
-	reactionType := model.ReactionTypeAdd
+	// Determine action (add vs remove)
+	action := "add"
 	if reaction.Reaction == "remove" {
-		reactionType = model.ReactionTypeRemove
+		action = "remove"
 	}
 
-	// Create message info for reaction (message being reacted to)
-	messageInfo := model.MessageInfo{
-		ID:        reaction.MessageID.Hex(),
-		Type:      "reaction",
-		Reaction:  reaction.Reaction,
+	// Create simple reaction event (not batch - this is for real-time updates)
+	eventPayload := map[string]interface{}{
+		"messageId": reaction.MessageID.Hex(),
+		"user": map[string]interface{}{
+			"_id":      reaction.UserID.Hex(),
+			"username": userInfo.Username,
+		},
+		"reaction":  reaction.Reaction,
+		"action":    action,
+		"timestamp": reaction.Timestamp,
+	}
+
+	// Create event structure
+	event := model.Event{
+		Type:      model.EventTypeReaction,
+		Payload:   eventPayload,
 		Timestamp: reaction.Timestamp,
 	}
 
-	event := model.ChatReactionPayload{
-		BasePayload: model.BasePayload{
-			Room:      roomInfo,
-			User:      userInfo,
-			Timestamp: reaction.Timestamp,
-		},
-		Message:      messageInfo,
-		ReactionType: reactionType,
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("failed to marshal reaction event: %w", err)
 	}
 
-	return e.emitReactionEvent(ctx, roomID, event)
+	// Broadcast to WebSocket clients
+	e.hub.BroadcastToRoom(roomID.Hex(), eventBytes)
+
+	// Emit to Kafka
+	roomTopic := getRoomTopic(roomID.Hex())
+	if err := e.bus.Emit(ctx, roomTopic, roomID.Hex(), eventBytes); err != nil {
+		log.Printf("[WARN] Failed to emit reaction to Kafka (continuing without Kafka): %v", err)
+	}
+
+	log.Printf("[Kafka] Successfully published reaction event to topic %s", roomTopic)
+	return nil
 }
 
 func (e *ChatEventEmitter) EmitReactionRemoved(ctx context.Context, messageID, userID, roomID primitive.ObjectID) error {
@@ -288,11 +301,11 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 		roleResult, err := roleService.FindOne(ctx, bson.M{"_id": user.Role})
 		if err == nil && len(roleResult.Data) > 0 {
 			if roleData, ok := roleResult.Data[0].(map[string]interface{}); ok {
-				userInfo.Role = &model.RoleInfo{
+		userInfo.Role = &model.RoleInfo{
 					ID:   roleData["_id"].(primitive.ObjectID).Hex(),
 					Name: roleData["name"].(string),
-				}
-			}
+		}
+		}
 		}
 	}
 

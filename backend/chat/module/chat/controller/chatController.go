@@ -35,6 +35,7 @@ type (
 		DeleteRoomMessages(ctx context.Context, roomID string) error
 		GetUserById(ctx context.Context, userID string) (*userModel.User, error)
 		GetMessageReactions(ctx context.Context, roomID, messageID string) ([]model.MessageReaction, error)
+
 	}
 
 	RoomService interface {

@@ -32,7 +32,7 @@ func NewWebSocketHandler(
 func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.Conn, roomID string) {
 	messages, err := h.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
 	if err == nil {
-		for _, msg := range messages {
+	for _, msg := range messages {
 					// Get user details with role populated
 		var userData map[string]interface{}
 		if user, err := h.chatService.GetUserById(ctx, msg.ChatMessage.UserID.Hex()); err == nil {
@@ -83,21 +83,21 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			},
 			"user":      userData,
 			"timestamp": msg.ChatMessage.Timestamp,
-		}
+			}
 
 			// Add reactions if any
 			if len(msg.Reactions) > 0 {
 				payload["reactions"] = msg.Reactions
-			}
+		}
 
 			// Add reply info if exists
-			if msg.ReplyTo != nil {
+		if msg.ReplyTo != nil {
 				// Get reply user data
-				var replyUserData map[string]interface{}
-				if replyUser, err := h.chatService.GetUserById(ctx, msg.ReplyTo.UserID.Hex()); err == nil {
-					replyUserData = map[string]interface{}{
-						"_id":      replyUser.ID.Hex(),
-						"username": replyUser.Username,
+			var replyUserData map[string]interface{}
+			if replyUser, err := h.chatService.GetUserById(ctx, msg.ReplyTo.UserID.Hex()); err == nil {
+				replyUserData = map[string]interface{}{
+					"_id":      replyUser.ID.Hex(),
+					"username": replyUser.Username,
 						"name":     replyUser.Name,
 					}
 					
@@ -105,22 +105,22 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 						replyUserData["role"] = map[string]interface{}{
 							"_id": replyUser.Role.Hex(),
 						}
-					}
-				} else {
-					replyUserData = map[string]interface{}{
-						"_id": msg.ReplyTo.UserID.Hex(),
-					}
 				}
-
-				payload["replyTo"] = map[string]interface{}{
-					"message": map[string]interface{}{
-						"_id":       msg.ReplyTo.ID.Hex(),
-						"message":   msg.ReplyTo.Message,
-						"timestamp": msg.ReplyTo.Timestamp,
-					},
-					"user": replyUserData,
+			} else {
+				replyUserData = map[string]interface{}{
+					"_id": msg.ReplyTo.UserID.Hex(),
 				}
 			}
+
+				payload["replyTo"] = map[string]interface{}{
+				"message": map[string]interface{}{
+					"_id":       msg.ReplyTo.ID.Hex(),
+					"message":   msg.ReplyTo.Message,
+					"timestamp": msg.ReplyTo.Timestamp,
+				},
+				"user": replyUserData,
+			}
+		}
 
 			// Add sticker info if exists
 			if msg.ChatMessage.StickerID != nil {
@@ -128,17 +128,17 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 					"_id":   msg.ChatMessage.StickerID.Hex(),
 					"image": msg.ChatMessage.Image,
 				}
-			}
+	}
 
-			// Convert to proper Event structure
-			event := model.Event{
-				Type:      model.EventTypeHistory,
+	// Convert to proper Event structure
+	event := model.Event{
+		Type:      model.EventTypeHistory,
 				Payload:   payload,
 				Timestamp: msg.ChatMessage.Timestamp,
-			}
+	}
 
-			if data, err := json.Marshal(event); err == nil {
-				conn.WriteMessage(websocket.TextMessage, data)
+	if data, err := json.Marshal(event); err == nil {
+		conn.WriteMessage(websocket.TextMessage, data)
 			}
 		}
 	}
