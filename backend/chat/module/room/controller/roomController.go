@@ -47,6 +47,8 @@ func NewRoomController(app *fiber.App, service *service.RoomService) *RoomContro
 	controller.Get("/:id", controller.GetRoomById)
 	// controller.Put("/:id", controller.UpdateRoom)
 	controller.Delete("/:id", controller.DeleteRoom)
+	controller.Post("/:id/join", controller.JoinRoom)
+	controller.Post("/:id/leave", controller.LeaveRoom)
 	controller.SetupRoutes()
 
 	return controller
@@ -153,4 +155,80 @@ func (c *RoomController) DeleteRoom(ctx *fiber.Ctx) error {
 	}
 	
 	return ctx.Status(fiber.StatusOK).JSON(deletedRoom)
+}
+
+func (c *RoomController) JoinRoom(ctx *fiber.Ctx) error {
+	roomID := ctx.Params("id")
+	
+	var joinDto dto.JoinRoomDto
+	if err := ctx.BodyParser(&joinDto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid request body",
+		})
+	}
+
+	// Convert room ID to ObjectID
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid room ID",
+		})
+	}
+
+	// Join the room
+	if err := c.service.JoinRoom(ctx.Context(), roomObjID, joinDto.UserID); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "Successfully joined room",
+		"data": fiber.Map{
+			"roomId": roomID,
+			"userId": joinDto.UserID,
+		},
+	})
+}
+
+func (c *RoomController) LeaveRoom(ctx *fiber.Ctx) error {
+	roomID := ctx.Params("id")
+	
+	var leaveDto dto.LeaveRoomDto
+	if err := ctx.BodyParser(&leaveDto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid request body",
+		})
+	}
+
+	// Convert room ID to ObjectID
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid room ID",
+		})
+	}
+
+	// Leave the room
+	if err := c.service.LeaveRoom(ctx.Context(), roomObjID, leaveDto.UserID); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": err.Error(),
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "Successfully left room",
+		"data": fiber.Map{
+			"roomId": roomID,
+			"userId": leaveDto.UserID,
+		},
+	})
 }

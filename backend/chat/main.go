@@ -82,6 +82,7 @@ func main() {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 
+
 	// Setup middleware
 	setupMiddleware(app)
 
@@ -144,7 +145,6 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	majorService := service.NewMajorService(mongo)
 	roleService := service.NewRoleService(mongo)
 	userService := service.NewUserService(mongo)
-	roomAndMemberService := roomService.NewRoomService(mongo, redisClient, cfg)
 	stickerService := stickerService.NewStickerService(mongo)
 
 	// Initialize Kafka bus for chat
@@ -158,8 +158,8 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 		log.Printf("[ERROR] Failed to create Kafka topics: %v", err)
 	}
 
-	// Initialize chat service with Kafka bus
 	chatService := chatService.NewChatService(mongo, redisClient, bus, cfg)
+	roomAndMemberService := roomService.NewRoomService(mongo, redisClient, cfg, chatService.GetHub())
 
 	// Initialize controllers
 	controller.NewSchoolController(app, schoolService)

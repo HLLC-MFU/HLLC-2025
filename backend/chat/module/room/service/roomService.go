@@ -1,9 +1,10 @@
 package service
 
 import (
+	chatUtils "chat/module/chat/utils"
 	"chat/module/room/dto"
 	"chat/module/room/model"
-	"chat/module/room/utils"
+	roomUtils "chat/module/room/utils"
 	"chat/module/user/service"
 	"chat/pkg/config"
 	"chat/pkg/core/kafka"
@@ -11,6 +12,7 @@ import (
 	serviceHelper "chat/pkg/helpers/service"
 	"chat/pkg/validator"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -24,11 +26,12 @@ type RoomService struct {
 	*queries.BaseService[model.Room]
 	userService  *service.UserService
 	fkValidator  *serviceHelper.ForeignKeyValidator
-	eventEmitter *utils.RoomEventEmitter
-	cache       *utils.RoomCacheService
+	eventEmitter *roomUtils.RoomEventEmitter
+	cache       *roomUtils.RoomCacheService
+	hub         *chatUtils.Hub
 }
 
-func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config) *RoomService {
+func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config, hub *chatUtils.Hub) *RoomService {
 	bus := kafka.New(cfg.Kafka.Brokers, "room-service")
 	if err := bus.Start(); err != nil {
 		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)
@@ -38,8 +41,9 @@ func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config)
 		BaseService:  queries.NewBaseService[model.Room](db.Collection("rooms")),
 		userService:  service.NewUserService(db),
 		fkValidator:  serviceHelper.NewForeignKeyValidator(db),
-		eventEmitter: utils.NewRoomEventEmitter(bus, cfg),
-		cache:       utils.NewRoomCacheService(redis),
+		eventEmitter: roomUtils.NewRoomEventEmitter(bus, cfg),
+		cache:       roomUtils.NewRoomCacheService(redis),
+		hub:         hub,
 	}
 }
 
@@ -82,7 +86,7 @@ func (s *RoomService) CreateRoom(ctx context.Context, createDto *dto.CreateRoomD
 		CreatedBy: createDto.ToObjectID(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Members:   utils.ConvertToObjectIDs(createDto.Members),
+		Members:   roomUtils.ConvertToObjectIDs(createDto.Members),
 	}
 
 	resp, err := s.Create(ctx, *r)
@@ -124,7 +128,7 @@ func (s *RoomService) IsUserInRoom(ctx context.Context, roomID primitive.ObjectI
 		return false, err
 	}
 	uid, _ := primitive.ObjectIDFromHex(userID)
-	return utils.ContainsMember(room.Members, uid), nil
+	return roomUtils.ContainsMember(room.Members, uid), nil
 }
 
 func (s *RoomService) ValidateAndTrackConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
@@ -202,7 +206,7 @@ func (s *RoomService) RemoveUserFromRoom(ctx context.Context, roomID primitive.O
 		return nil, err
 	}
 
-	r.Members = utils.RemoveMember(r.Members, uid)
+	r.Members = roomUtils.RemoveMember(r.Members, uid)
 	r.UpdatedAt = time.Now()
 	resp, err := s.UpdateById(ctx, roomID.Hex(), *r)
 	if err != nil {
@@ -266,4 +270,135 @@ func (s *RoomService) AddUserToRoom(ctx context.Context, roomID, userID string) 
 	s.eventEmitter.EmitRoomMemberJoined(ctx, roomObjID, userObjID)
 
 	return nil
+}
+
+// JoinRoom allows a user to join a room with capacity check and broadcast
+func (s *RoomService) JoinRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+	// Get room to check capacity and current members
+	room, err := s.GetRoomById(ctx, roomID)
+	if err != nil {
+		return fmt.Errorf("room not found: %w", err)
+	}
+
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// Check if user is already in room
+	if roomUtils.ContainsMember(room.Members, userObjID) {
+		return fmt.Errorf("user is already a member of this room")
+	}
+
+	// Check capacity
+	if len(room.Members) >= room.Capacity {
+		return fmt.Errorf("room is at full capacity (%d/%d)", len(room.Members), room.Capacity)
+	}
+
+	// Add user to room members
+	room.Members = append(room.Members, userObjID)
+	room.UpdatedAt = time.Now()
+
+	// Update room in database
+	if _, err := s.UpdateById(ctx, roomID.Hex(), *room); err != nil {
+		return fmt.Errorf("failed to update room: %w", err)
+	}
+
+	// Update cache
+	if err := s.cache.SaveRoom(ctx, room); err != nil {
+		log.Printf("[WARN] Failed to update room cache after adding member: %v", err)
+	}
+
+	// Broadcast user joined event to active connections only (no Kafka, no persistence)
+	s.broadcastUserJoined(ctx, roomID.Hex(), userID)
+
+	log.Printf("[Room] User %s successfully joined room %s (%d/%d)", userID, roomID.Hex(), len(room.Members), room.Capacity)
+	return nil
+}
+
+// LeaveRoom allows a user to leave a room and broadcasts the event
+func (s *RoomService) LeaveRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// Get room
+	room, err := s.GetRoomById(ctx, roomID)
+	if err != nil {
+		return fmt.Errorf("room not found: %w", err)
+	}
+
+	// Check if user is in room
+	if !roomUtils.ContainsMember(room.Members, userObjID) {
+		return fmt.Errorf("user is not a member of this room")
+	}
+
+	// Remove user from room members
+	room.Members = roomUtils.RemoveMember(room.Members, userObjID)
+	room.UpdatedAt = time.Now()
+
+	// Update room in database
+	if _, err := s.UpdateById(ctx, roomID.Hex(), *room); err != nil {
+		return fmt.Errorf("failed to update room: %w", err)
+	}
+
+	// Update cache
+	if err := s.cache.SaveRoom(ctx, room); err != nil {
+		log.Printf("[WARN] Failed to update room cache after removing member: %v", err)
+	}
+
+	// Broadcast user left event to active connections only (no Kafka, no persistence)
+	s.broadcastUserLeft(ctx, roomID.Hex(), userID)
+
+	log.Printf("[Room] User %s successfully left room %s (%d/%d)", userID, roomID.Hex(), len(room.Members), room.Capacity)
+	return nil
+}
+
+// broadcastUserJoined broadcasts user joined event only to active WebSocket connections
+func (s *RoomService) broadcastUserJoined(ctx context.Context, roomID, userID string) {
+	event := map[string]interface{}{
+		"type": "user_joined",
+		"payload": map[string]interface{}{
+			"roomId":    roomID,
+			"userId":    userID,
+			"timestamp": time.Now(),
+		},
+		"timestamp": time.Now(),
+	}
+
+	// Marshal event to JSON
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("[ERROR] Failed to marshal user_joined event: %v", err)
+		return
+	}
+
+	// Broadcast only to active WebSocket connections in the room
+	s.hub.BroadcastToRoom(roomID, eventBytes)
+	log.Printf("[Broadcast] User joined event sent to room %s (WebSocket only)", roomID)
+}
+
+// broadcastUserLeft broadcasts user left event only to active WebSocket connections
+func (s *RoomService) broadcastUserLeft(ctx context.Context, roomID, userID string) {
+	event := map[string]interface{}{
+		"type": "user_left",
+		"payload": map[string]interface{}{
+			"roomId":    roomID,
+			"userId":    userID,
+			"timestamp": time.Now(),
+		},
+		"timestamp": time.Now(),
+	}
+
+	// Marshal event to JSON
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("[ERROR] Failed to marshal user_left event: %v", err)
+		return
+	}
+
+	// Broadcast only to active WebSocket connections in the room
+	s.hub.BroadcastToRoom(roomID, eventBytes)
+	log.Printf("[Broadcast] User left event sent to room %s (WebSocket only)", roomID)
 }

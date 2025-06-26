@@ -35,3 +35,21 @@ func (dto *AddRoomMembersDto) ToObjectIDs() []primitive.ObjectID {
 	}
 	return objectIDs
 }
+
+type JoinRoomDto struct {
+	UserID string `json:"userId" validate:"required,mongoId"`
+}
+
+type LeaveRoomDto struct {
+	UserID string `json:"userId" validate:"required,mongoId"`
+}
+
+func (dto *JoinRoomDto) ToObjectID() primitive.ObjectID {
+	id, _ := primitive.ObjectIDFromHex(dto.UserID)
+	return id
+}
+
+func (dto *LeaveRoomDto) ToObjectID() primitive.ObjectID {
+	id, _ := primitive.ObjectIDFromHex(dto.UserID)
+	return id
+}
