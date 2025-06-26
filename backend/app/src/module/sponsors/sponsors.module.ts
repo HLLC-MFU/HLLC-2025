@@ -6,7 +6,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Sponsors } from './schema/sponsors.schema';
 import { SponsorsType } from '../sponsors-type/schema/sponsors-type.schema';
 import { SponsorsTypeSchema } from '../sponsors-type/schema/sponsors-type.schema';
-import { EvoucherCode, EvoucherCodeSchema } from '../evoucher/schema/evoucher-code.schema';
+import {
+  EvoucherCode,
+  EvoucherCodeSchema,
+} from '../evouchers/schemas/evoucher-code.schema';
 
 @Module({
   imports: [
@@ -17,16 +20,16 @@ import { EvoucherCode, EvoucherCodeSchema } from '../evoucher/schema/evoucher-co
       },
       {
         name: SponsorsType.name,
-        schema: SponsorsTypeSchema
+        schema: SponsorsTypeSchema,
       },
       {
         name: EvoucherCode.name,
-        schema: EvoucherCodeSchema
-      }
-    ])
+        schema: EvoucherCodeSchema,
+      },
+    ]),
   ],
   exports: [MongooseModule],
   controllers: [SponsorsController],
   providers: [SponsorsService],
 })
-export class SponsorsModule { }
+export class SponsorsModule {}
