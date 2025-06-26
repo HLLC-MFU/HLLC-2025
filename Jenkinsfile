@@ -38,63 +38,51 @@ pipeline {
                     echo "Checking out source code for branch: ${branchToBuild}"
                     git branch: branchToBuild, url: 'https://github.com/HLLC-MFU/HLLC-2025.git'
                     echo "Source code checkout complete."
-                    sh "ls -l" // Log files in the root of the workspace
+                    sh "ls -l"
                 }
             }
         }
 
         stage('Build & Push NestJS App') {
             steps {
-                script {
-                    echo "Navigating to NestJS app directory: ${NEST_APP_DIR}"
-                    dir("${NEST_APP_DIR}") {
-                        sh "echo \"Current working directory: \$(pwd)\""
-                        sh "ls"
-                        echo "Listing contents of NestJS app directory:"
+                dir("${NEST_APP_DIR}") {
+                    script {
+                        sh "echo 'Current working directory: ' \$(pwd)"
                         sh "ls -la"
-                        sh "cat package.json || echo 'package.json not found in current directory.'"
+                        sh "cat package.json || echo 'package.json not found'"
 
                         echo "Starting Bun install and build..."
                         sh """
-                        docker run --rm -v ${WORKSPACE}/${NEST_APP_DIR}:/app -w /app oven/bun:latest bash -c "
-                        ls -la && \\
-                        echo 'Running bun install...' && \\
-                        bun install --frozen-lockfile && \\
-                        echo 'Bun install complete. Running bun build...' && \\
-                        bun run build && \\
-                        echo 'Bun build complete.'
-                        "
+                        docker run --rm \\
+                            -v \$(pwd):/app \\
+                            -w /app \\
+                            oven/bun:latest bash -c '
+                                echo "--- Inside container ---";
+                                ls -la;
+                                echo "Running bun install...";
+                                bun install --frozen-lockfile;
+                                echo "Bun install complete. Running bun build...";
+                                bun run build;
+                                echo "Bun build complete."
+                            '
                         """
 
-                        echo "Bun install and build command executed."
-
                         def nestAppImageTag = "${env.BUILD_NUMBER}"
-                        echo "NestJS app image tag: ${nestAppImageTag}"
                         echo "Building Docker image: ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
-                        // FIX: Ensure docker build context is . or specific path
                         sh "docker build -t ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag} ."
-                        echo "Docker image built successfully."
-
                         echo "Pushing Docker image: ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
                         sh "docker push ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
-                        echo "Docker image pushed successfully."
 
                         env.NEST_APP_IMAGE_TAG = nestAppImageTag
-                        echo "Set NEST_APP_IMAGE_TAG to: ${env.NEST_APP_IMAGE_TAG}"
                     }
-                    echo "Finished Build & Push NestJS App stage."
                 }
             }
         }
 
-        // Go app block is commented
-
         stage('Deploy All to Kubernetes') {
             steps {
-                script {
-                    echo "Navigating to Kubernetes base directory: ${K8S_BASE_DIR}"
-                    dir("${K8S_BASE_DIR}") {
-                        echo "Current working directory: \$(pwd)" // FIX: Escaped the $ in $(pwd) - though this specific line was not in the original error, it's good practice.
+                dir("${K8S_BASE_DIR}") {
+                    script {
                         echo "Creating shared secrets from Jenkins credentials..."
                         withCredentials([
                             string(credentialsId: 'JWT_SECRET', variable: 'JWT_SECRET'),
@@ -117,28 +105,27 @@ pipeline {
                               MONGO_URI: \$(echo -n "${MONGO_URI}" | base64)
                             EOF
                             """
-                            echo "Applying shared secrets to Kubernetes..."
-                            sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f common/shared-secrets.yaml" // FIX: Escaped KUBE_CONFIG_FILE just to be safe, though it's inside a string.
-                            echo "Shared secrets applied."
+                            sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f common/shared-secrets.yaml"
                         }
 
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f common/shared-config.yaml"
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/redis-k8s.yaml"
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/zookeeper-k8s.yaml"
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafka-k8s.yaml"
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafdrop-k8s.yaml"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f common/shared-config.yaml"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/redis-k8s.yaml"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/zookeeper-k8s.yaml"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafka-k8s.yaml"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafdrop-k8s.yaml"
 
-                        sh "sed -i 's|image: ${DOCKER_REGISTRY}/nest-app:.*|image: ${DOCKER_REGISTRY}/nest-app:\${NEST_APP_IMAGE_TAG}|' app/hllc2025-backend-app-deployment.yaml"
+                        // Update image tag in deployment manifest
+                        sh "sed -i 's|image: ${DOCKER_REGISTRY}/nest-app:.*|image: ${DOCKER_REGISTRY}/nest-app:${NEST_APP_IMAGE_TAG}|' app/hllc2025-backend-app-deployment.yaml"
 
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-deployment.yaml"
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-service.yaml"
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f backend-ingress.yaml"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-deployment.yaml"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-service.yaml"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f backend-ingress.yaml"
 
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl rollout status deployment/redis-deployment"
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl rollout status deployment/zookeeper-deployment"
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl rollout status deployment/kafka-k8s.yaml" // Assuming typo, should be kafka-deployment based on rollout.
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl rollout status deployment/kafdrop-deployment"
-                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl rollout status deployment/hllc2025-backend-app-deployment"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/redis-deployment"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/zookeeper-deployment"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/kafka-deployment"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/kafdrop-deployment"
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/hllc2025-backend-app-deployment"
 
                         sh "rm -f common/shared-secrets.yaml"
                     }
