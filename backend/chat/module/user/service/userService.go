@@ -4,7 +4,9 @@ import (
 	"chat/module/user/model"
 	"chat/pkg/database/queries"
 	"context"
+	"fmt"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -12,6 +14,7 @@ type (
 	UserService struct {
 		*queries.BaseService[model.User]
 		majorService *MajorService
+		db          *mongo.Database
 	}
 )
 
@@ -20,6 +23,7 @@ func NewUserService(db *mongo.Database) *UserService {
 	return &UserService{
 		BaseService:  queries.NewBaseService[model.User](collection),
 		majorService: NewMajorService(db),
+		db:          db,
 	}
 }
 
@@ -28,19 +32,55 @@ func (s *UserService) GetUsers(ctx context.Context, opts queries.QueryOptions) (
 		opts.Filter = make(map[string]interface{})
 	}
 
-	response, err := s.FindAllWithPopulateNested(ctx, opts, "metadata.major", "majors")
-	if err != nil {
-		return nil, err
+	// สร้าง populate configs สำหรับ major เท่านั้น (school embedded อยู่ใน major แล้ว)
+	populateConfigs := []queries.NestedPopulateConfig{
+		{
+			Field:      "role",
+			Collection: "roles",
+		},
+		{
+			Field:      "major",
+			Collection: "majors",
+			NestedPath: "metadata.major",
+		},
 	}
 
-	return response, nil
+	return s.FindAllWithNestedPopulate(ctx, opts, populateConfigs)
 }
 
 func (s *UserService) GetUserById(ctx context.Context, id string) (*model.User, error) {
-	user, err := s.FindOneById(ctx, id)
+	return s.GetUserByIdWithPopulate(ctx, id)
+}
+
+func (s *UserService) GetUserByIdWithPopulate(ctx context.Context, id string) (*model.User, error) {
+	userObjID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid user ID: %w", err)
 	}
-	return &user.Data[0], nil
+
+	// populate เฉพาะ major เท่านั้น (school embedded อยู่ใน major แล้ว)
+	populateConfigs := []queries.NestedPopulateConfig{
+		{
+			Field:      "role",
+			Collection: "roles",
+		},
+		{
+			Field:      "major",
+			Collection: "majors",
+			NestedPath: "metadata.major",
+		},
+	}
+
+	filter := map[string]interface{}{"_id": userObjID}
+	response, err := s.FindOneWithNestedPopulate(ctx, filter, populateConfigs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	if len(response.Data) == 0 {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	return &response.Data[0], nil
 }
 
