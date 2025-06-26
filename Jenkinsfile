@@ -81,7 +81,7 @@ pipeline {
                         sh '''
                             export PATH=$HOME/.bun/bin:$PATH
                             bun install --frozen-lockfile
-                            bun run build --debug
+                            bun run build
                         '''
                         def shortTag = env.GIT_COMMIT?.take(7) ?: env.BUILD_NUMBER
                         def imageTag = "${DOCKER_REGISTRY}/nest-app:${shortTag}"
