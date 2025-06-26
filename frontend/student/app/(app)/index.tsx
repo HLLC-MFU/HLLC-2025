@@ -2,7 +2,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text } from 'react-native';
 import { router, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Bell, User, Users } from 'lucide-react-native';
+import { Bell, Flower, User, Users } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
@@ -26,6 +26,7 @@ export default function HomeScreen() {
     notification: assets?.notification ?? null,
     progress: assets?.progress ?? null,
     signOut: assets?.signOut ?? null,
+    lamduan: assets?.lamduan ?? null,
   };
 
   const content = (
@@ -65,6 +66,19 @@ export default function HomeScreen() {
         </Text>
       </GlassButton>
       <View style={{ flexDirection: 'row', gap: 8 }}>
+        <GlassButton iconOnly>
+          {assetsImage.lamduan ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.lamduan}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <Flower color="white" size={20}
+              onPress={() => {
+                useRouter().push('/(app)/lamduan-flowers');
+              }} />
+          )}
+        </GlassButton>
         <GlassButton iconOnly>
           {assetsImage.profile ? (
             <AssetImage
