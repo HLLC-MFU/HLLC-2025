@@ -56,15 +56,16 @@ pipeline {
 
                         echo "Starting Bun install and build..."
                         sh """
-                        docker run --rm -v ${WORKSPACE}:/app -w /app/${NEST_APP_DIR} oven/bun:latest bash -c "
-                            ls -la && \\
-                            echo 'Running bun install...' && \\
-                            bun install --frozen-lockfile && \\
-                            echo 'Bun install complete. Running bun build...' && \\
-                            bun run build && \\
-                            echo 'Bun build complete.'
+                        docker run --rm -v ${WORKSPACE}/${NEST_APP_DIR}:/app -w /app oven/bun:latest bash -c "
+                        ls -la && \\
+                        echo 'Running bun install...' && \\
+                        bun install --frozen-lockfile && \\
+                        echo 'Bun install complete. Running bun build...' && \\
+                        bun run build && \\
+                        echo 'Bun build complete.'
                         "
                         """
+
                         echo "Bun install and build command executed."
 
                         def nestAppImageTag = "${env.BUILD_NUMBER}"
