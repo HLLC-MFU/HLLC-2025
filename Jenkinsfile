@@ -35,7 +35,10 @@ pipeline {
             steps {
                 script {
                     def branchToBuild = env.BUILD_BRANCH ?: env.BRANCH_NAME ?: 'deployment'
+                    echo "Checking out source code for branch: ${branchToBuild}"
                     git branch: branchToBuild, url: 'https://github.com/HLLC-MFU/HLLC-2025.git'
+                    echo "Source code checkout complete."
+                    sh "ls -l" // Log files in the root of the workspace
                 }
             }
         }
@@ -43,19 +46,39 @@ pipeline {
         stage('Build & Push NestJS App') {
             steps {
                 script {
+                    echo "Navigating to NestJS app directory: ${NEST_APP_DIR}"
                     dir("${NEST_APP_DIR}") {
+                        echo "Current working directory: $(pwd)"
+                        echo "Listing contents of NestJS app directory:"
+                        sh "ls -la" // List all files, including hidden ones, in the NestJS app directory
+                        sh "cat package.json || echo 'package.json not found in current directory.'" // Try to cat package.json to see its content, or log if not found
+
+                        echo "Starting Bun install and build..."
                         sh '''
                         docker run --rm -v $(pwd):/app -w /app oven/bun:latest bash -c "
+                            echo 'Running bun install...' && \
                             bun install --frozen-lockfile && \
-                            bun run build
+                            echo 'Bun install complete. Running bun build...' && \
+                            bun run build && \
+                            echo 'Bun build complete.'
                         "
                         '''
+                        echo "Bun install and build command executed."
+
                         def nestAppImageTag = "${env.BUILD_NUMBER}"
+                        echo "NestJS app image tag: ${nestAppImageTag}"
+                        echo "Building Docker image: ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
                         sh "docker build -t ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag} ."
+                        echo "Docker image built successfully."
+
+                        echo "Pushing Docker image: ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
                         sh "docker push ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
+                        echo "Docker image pushed successfully."
 
                         env.NEST_APP_IMAGE_TAG = nestAppImageTag
+                        echo "Set NEST_APP_IMAGE_TAG to: ${env.NEST_APP_IMAGE_TAG}"
                     }
+                    echo "Finished Build & Push NestJS App stage."
                 }
             }
         }
@@ -65,7 +88,10 @@ pipeline {
         stage('Deploy All to Kubernetes') {
             steps {
                 script {
+                    echo "Navigating to Kubernetes base directory: ${K8S_BASE_DIR}"
                     dir("${K8S_BASE_DIR}") {
+                        echo "Current working directory: $(pwd)"
+                        echo "Creating shared secrets from Jenkins credentials..."
                         withCredentials([
                             string(credentialsId: 'JWT_SECRET', variable: 'JWT_SECRET'),
                             string(credentialsId: 'JWT_REFRESH_SECRET', variable: 'JWT_REFRESH_SECRET'),
@@ -87,29 +113,48 @@ pipeline {
                               MONGO_URI: \$(echo -n "${MONGO_URI}" | base64)
                             EOF
                             """
+                            echo "Applying shared secrets to Kubernetes..."
                             sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f common/shared-secrets.yaml"
+                            echo "Shared secrets applied."
                         }
 
+                        echo "Applying common shared config to Kubernetes..."
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f common/shared-config.yaml"
+                        echo "Common shared config applied."
+
+                        echo "Applying infrastructure manifests..."
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/redis-k8s.yaml"
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/zookeeper-k8s.yaml"
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafka-k8s.yaml"
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafdrop-k8s.yaml"
+                        echo "Infrastructure manifests applied."
 
+                        echo "Updating NestJS app image tag in deployment manifest..."
                         sh "sed -i 's|image: ${DOCKER_REGISTRY}/nest-app:.*|image: ${DOCKER_REGISTRY}/nest-app:${NEST_APP_IMAGE_TAG}|' app/hllc2025-backend-app-deployment.yaml"
+                        echo "NestJS app image tag updated."
 
+                        echo "Applying NestJS app deployment and service..."
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-deployment.yaml"
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-service.yaml"
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f backend-ingress.yaml"
+                        echo "NestJS app deployment and service applied."
 
+                        echo "Applying backend ingress..."
+                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f backend-ingress.yaml"
+                        echo "Backend ingress applied."
+
+                        echo "Checking rollout status of deployments..."
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/redis-deployment"
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/zookeeper-deployment"
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/kafka-deployment"
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/kafdrop-deployment"
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/hllc2025-backend-app-deployment"
+                        echo "Rollout status checks complete."
 
+                        echo "Cleaning up shared-secrets.yaml..."
                         sh "rm -f common/shared-secrets.yaml"
+                        echo "shared-secrets.yaml removed."
                     }
+                    echo "Finished Deploy All to Kubernetes stage."
                 }
             }
         }
@@ -117,7 +162,9 @@ pipeline {
 
     post {
         always {
+            echo "Pipeline finished. Cleaning workspace..."
             cleanWs()
+            echo "Workspace cleaned."
         }
     }
 }
