@@ -4,8 +4,35 @@ import {
   EvoucherDocument,
   EvoucherType,
   EvoucherStatus,
+  Evoucher,
 } from '../schema/evoucher.schema';
-import { EvoucherCodeDocument } from '../schema/evoucher-code.schema';
+import {
+  EvoucherCode,
+  EvoucherCodeDocument,
+} from '../schema/evoucher-code.schema';
+import { SponsorsDocument } from 'src/module/sponsors/schema/sponsors.schema';
+
+export type PopulatedEvoucherCode = Omit<EvoucherCode, 'evoucher'> & {
+  _id: Types.ObjectId;
+  evoucher: Omit<Evoucher, 'sponsors'> & {
+    sponsors: SponsorsDocument;
+  };
+};
+
+export type PopulatedEvoucherCodeWithEvoucher = Omit<EvoucherCode, 'evoucher'> & {
+  _id: Types.ObjectId;
+  evoucher: EvoucherDocument;
+};
+
+export const findEvoucherCodeWithPopulatedEvoucher = async (
+  codeId: string,
+  model: Model<EvoucherCodeDocument>,
+): Promise<PopulatedEvoucherCodeWithEvoucher | null> => {
+  return await model
+    .findById(codeId)
+    .populate<{ evoucher: EvoucherDocument }>('evoucher')
+    .exec();
+};
 
 const generateRandomNumber = (length = 8): string =>
   String(Math.floor(Math.random() * 10 ** length)).padStart(length, '0');
@@ -69,7 +96,6 @@ export const createEvoucherCode = async (
 ) => {
   const userObjectId = new Types.ObjectId(userId);
 
-  // Try to find an available code first
   const availableCode = await evoucherCodeModel.findOneAndUpdate(
     { evoucher: evoucher._id, user: null, isUsed: false },
     { user: userObjectId },
@@ -78,7 +104,6 @@ export const createEvoucherCode = async (
 
   if (availableCode) return availableCode;
 
-  // Generate new code if no available code found
   for (let retry = 0; retry < 3; retry++) {
     const code = generateCode(evoucher.acronym);
 
@@ -96,12 +121,15 @@ export const createEvoucherCode = async (
 export const useEvoucherCode = async (
   userId: Types.ObjectId,
   codeId: string,
-  model: Model<EvoucherCodeDocument>,
+  evoucherCodeModel: Model<EvoucherCodeDocument>,
+  evoucherModel: Model<EvoucherDocument>,
 ) => {
-  const code = await model.findById(codeId).populate('evoucher');
+  const code = await evoucherCodeModel.findById(codeId);
   if (!code) throw new BadRequestException('Code not found');
 
-  const evoucher = code.evoucher as unknown as EvoucherDocument;
+  const evoucher = await evoucherModel.findById(code.evoucher);
+  if (!evoucher) throw new BadRequestException('Evoucher not found');
+  
   validateEvoucherState(evoucher);
 
   if (!code.user.equals(userId))
@@ -163,19 +191,4 @@ export const validatePublicAvailableVoucher = async (
       isExpire,
     },
   };
-};
-
-export const validateEvoucherCodeForUsage = (
-  evoucherCode: EvoucherCodeDocument,
-  userId: Types.ObjectId,
-  evoucher: EvoucherDocument,
-) => {
-  if (!evoucherCode.user.equals(userId))
-    throw new BadRequestException('This evoucher code does not belong to you');
-  if (evoucherCode.isUsed)
-    throw new BadRequestException('This evoucher code has already been used');
-  if (evoucher.status !== EvoucherStatus.ACTIVE)
-    throw new BadRequestException('This evoucher is not active');
-  if (new Date() > new Date(evoucher.expiration))
-    throw new BadRequestException('This evoucher has expired');
 };
