@@ -2,6 +2,7 @@ package service
 
 import (
 	"chat/module/chat/model"
+	"chat/module/chat/utils"
 	userModel "chat/module/user/model"
 	"chat/pkg/database/queries"
 	"context"
@@ -72,6 +73,17 @@ func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, l
 			enriched[i].ChatMessage.Reactions = reactions
 		} else {
 			log.Printf("[ChatService] Failed to get reactions for message %s: %v", msg.ID.Hex(), err)
+		}
+
+		// Parse mention info for messages that have mentions
+		if len(msg.Mentions) > 0 {
+			mentionParser := utils.NewMentionParser(s.mongo)
+			mentionInfo, _, err := mentionParser.ParseMentions(ctx, msg.Message)
+			if err == nil {
+				enriched[i].ChatMessage.MentionInfo = mentionInfo
+			} else {
+				log.Printf("[ChatService] Failed to parse mentions for message %s: %v", msg.ID.Hex(), err)
+			}
 		}
 
 		// Get reply-to message if exists

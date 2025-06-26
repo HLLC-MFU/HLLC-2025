@@ -391,3 +391,124 @@ func (e *ChatEventEmitter) emitEventStructured(ctx context.Context, msg *model.C
 	log.Printf("[Kafka] Successfully published structured event type=%s to topic %s", event.Type, roomTopic)
 	return nil
 }
+
+// EmitMentionMessage emits a message event with mention information
+func (e *ChatEventEmitter) EmitMentionMessage(ctx context.Context, msg *model.ChatMessage, mentionInfo []model.MentionInfo) error {
+	log.Printf("[TRACE] EmitMentionMessage called for message ID=%s Room=%s with %d mentions", 
+		msg.ID.Hex(), msg.RoomID.Hex(), len(mentionInfo))
+
+	// Get user data
+	userInfo, err := e.getUserInfo(ctx, msg.UserID)
+	if err != nil {
+		log.Printf("[WARN] Failed to get user info for mention message: %v", err)
+		userInfo = model.UserInfo{ID: msg.UserID.Hex()}
+	}
+
+	// Get room data (basic for now)
+	roomInfo := model.RoomInfo{ID: msg.RoomID.Hex()}
+
+	// Create message info
+	messageInfo := model.MessageInfo{
+		ID:        msg.ID.Hex(),
+		Type:      model.MessageTypeMention,
+		Message:   msg.Message,
+		Timestamp: msg.Timestamp,
+	}
+
+	// Create payload with mention information
+	manualPayload := map[string]interface{}{
+		"room": map[string]interface{}{
+			"_id": roomInfo.ID,
+		},
+		"user": map[string]interface{}{
+			"_id":      userInfo.ID,
+			"username": userInfo.Username,
+			"name":     userInfo.Name,
+		},
+		"message": map[string]interface{}{
+			"_id":       messageInfo.ID,
+			"type":      messageInfo.Type,
+			"message":   messageInfo.Message,
+			"timestamp": messageInfo.Timestamp,
+		},
+		"mentions": mentionInfo,
+		"timestamp": msg.Timestamp,
+	}
+
+	event := model.Event{
+		Type:      model.EventTypeMention,
+		Payload:   manualPayload,
+		Timestamp: msg.Timestamp,
+	}
+	
+	return e.emitEventStructured(ctx, msg, event)
+}
+
+// EmitMentionNotice sends a personal mention notification to a specific user
+func (e *ChatEventEmitter) EmitMentionNotice(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, mentionedUser *userModel.User) error {
+	log.Printf("[TRACE] EmitMentionNotice called for user %s from message %s", 
+		mentionedUser.ID.Hex(), msg.ID.Hex())
+
+	// Create sender info
+	senderInfo := model.UserInfo{
+		ID:       sender.ID.Hex(),
+		Username: sender.Username,
+		Name: map[string]interface{}{
+			"first":  sender.Name.First,
+			"middle": sender.Name.Middle,
+			"last":   sender.Name.Last,
+		},
+	}
+
+	// Create mentioned user info
+	mentionedUserInfo := model.UserInfo{
+		ID:       mentionedUser.ID.Hex(),
+		Username: mentionedUser.Username,
+		Name: map[string]interface{}{
+			"first":  mentionedUser.Name.First,
+			"middle": mentionedUser.Name.Middle,
+			"last":   mentionedUser.Name.Last,
+		},
+	}
+
+	// Create room info
+	roomInfo := model.RoomInfo{ID: msg.RoomID.Hex()}
+
+	// Create message info
+	messageInfo := model.MessageInfo{
+		ID:        msg.ID.Hex(),
+		Type:      model.MessageTypeMention,
+		Message:   msg.Message,
+		Timestamp: msg.Timestamp,
+	}
+
+	// Create mention notice payload
+	noticePayload := map[string]interface{}{
+		"type": model.EventTypeMentionNotice,
+		"payload": map[string]interface{}{
+			"room":           roomInfo,
+			"message":        messageInfo,
+			"mentionedBy":    senderInfo,
+			"mentionedUser":  mentionedUserInfo,
+			"timestamp":      msg.Timestamp,
+		},
+		"timestamp": msg.Timestamp,
+	}
+
+	eventBytes, err := json.Marshal(noticePayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal mention notice: %w", err)
+	}
+
+	// Send personal notification - create a unique topic for this user
+	userTopic := fmt.Sprintf("user-%s-mentions", mentionedUser.ID.Hex())
+	if err := e.bus.Emit(ctx, userTopic, mentionedUser.ID.Hex(), eventBytes); err != nil {
+		log.Printf("[WARN] Failed to emit mention notice to Kafka (continuing without Kafka): %v", err)
+	}
+
+	// Also broadcast to room so other clients can see who was mentioned
+	e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventBytes)
+
+	log.Printf("[Kafka] Successfully published mention notice to user %s", mentionedUser.ID.Hex())
+	return nil
+}

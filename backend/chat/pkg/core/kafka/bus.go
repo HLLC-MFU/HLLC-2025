@@ -150,6 +150,7 @@ func (b *Bus) Emit(ctx context.Context, topic, key string, payload any) error {
 // เริ่มต้นการทำงาน
 func (b *Bus) Start() error {
 	
+	// ล็อกการเข้าถึง handlers
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 

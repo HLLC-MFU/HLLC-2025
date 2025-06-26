@@ -14,6 +14,8 @@ const (
     EventTypeUserLeft   = "user_left"
     EventTypeTyping     = "typing"
     EventTypeNotice     = "notice"
+    EventTypeMention    = "mention"
+    EventTypeMentionNotice = "mention_notice"
 )
 
 // Message Types - Content
@@ -21,6 +23,7 @@ const (
     MessageTypeText    = "text"
     MessageTypeReply   = "reply"  
     MessageTypeSticker = "sticker"
+    MessageTypeMention = "mention"
 )
 
 // Reaction Types - Action
@@ -63,7 +66,7 @@ type (
 
 	MessageInfo struct {
 		ID        string    `json:"_id"`
-		Type      string    `json:"type"` // text, reply, sticker, reaction
+		Type      string    `json:"type"` // text, reply, sticker, reaction, mention
 		Message   string    `json:"message,omitempty"`
 		Reaction  string    `json:"reaction,omitempty"` // for reaction events
 		Timestamp time.Time `json:"timestamp"`
@@ -75,10 +78,19 @@ type (
 		Name  string `json:"name,omitempty"`
 	}
 
+	// Mention-related structures
+	MentionInfo struct {
+		UserID   string `json:"userId"`
+		Username string `json:"username"`
+		Position int    `json:"position"` // Position in message where mention starts
+		Length   int    `json:"length"`   // Length of the mention text
+	}
+
 	ChatMessagePayload struct {
 		BasePayload
-		Message MessageInfo  `json:"message"`
-		ReplyTo *MessageInfo `json:"replyTo,omitempty"`
+		Message MessageInfo   `json:"message"`
+		ReplyTo *MessageInfo  `json:"replyTo,omitempty"`
+		Mentions []MentionInfo `json:"mentions,omitempty"`
 	}
 
 	ChatStickerPayload struct {
@@ -94,6 +106,21 @@ type (
 		Reaction     string    `json:"reaction"`
 		Action       string    `json:"action"` // "add" or "remove"
 		Timestamp    time.Time `json:"timestamp"`
+	}
+
+	ChatMentionPayload struct {
+		BasePayload
+		Message     MessageInfo   `json:"message"`
+		Mentions    []MentionInfo `json:"mentions"`
+		MentionedBy UserInfo      `json:"mentionedBy"`
+	}
+
+	ChatMentionNoticePayload struct {
+		Room        RoomInfo    `json:"room"`
+		Message     MessageInfo `json:"message"`
+		MentionedBy UserInfo    `json:"mentionedBy"`
+		MentionedUser UserInfo  `json:"mentionedUser"`
+		Timestamp   time.Time   `json:"timestamp"`
 	}
 	
 	ChatPresencePayload struct {

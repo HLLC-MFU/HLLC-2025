@@ -267,22 +267,33 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 			h.handleReplyMessage(messageText, *client)
 		case strings.HasPrefix(messageText, "/react"):
 			h.handleReactionMessage(messageText, *client)
+		case strings.HasPrefix(messageText, "/mention"):
+			h.handleMentionMessage(messageText, *client)
 		case messageText == "/leave":
 			h.handleLeaveMessage(ctx, *client)
 			return
 		default:
-			// Create message and send it once
-			chatMsg := &model.ChatMessage{
-				RoomID:    roomObjID,
-				UserID:    userObjID,
-				Message:   messageText,
-				Timestamp: time.Now(),
-			}
-			
-			// Send message through single channel
-			if err := h.chatService.SendMessage(ctx, chatMsg); err != nil {
-				log.Printf("[ERROR] Failed to send message: %v", err)
-				continue
+			// Check if message contains mentions (detected by @ symbol)
+			if strings.Contains(messageText, "@") {
+				// Send as mention message if contains @ symbols
+				if _, err := h.chatService.SendMentionMessage(ctx, userObjID, roomObjID, messageText); err != nil {
+					log.Printf("[ERROR] Failed to send mention message: %v", err)
+					continue
+				}
+			} else {
+				// Create regular message and send it once
+				chatMsg := &model.ChatMessage{
+					RoomID:    roomObjID,
+					UserID:    userObjID,
+					Message:   messageText,
+					Timestamp: time.Now(),
+				}
+				
+				// Send message through single channel
+				if err := h.chatService.SendMessage(ctx, chatMsg); err != nil {
+					log.Printf("[ERROR] Failed to send message: %v", err)
+					continue
+				}
 			}
 		}
 	}
@@ -340,5 +351,20 @@ func (h *WebSocketHandler) handleReactionMessage(messageText string, client mode
 func (h *WebSocketHandler) handleLeaveMessage(ctx context.Context, client model.ClientObject) {
 	if _, err := h.roomService.RemoveUserFromRoom(ctx, client.RoomID, client.UserID.Hex()); err != nil {
 		log.Printf("[ERROR] Failed to remove user from room: %v", err)
+	}
+}
+
+func (h *WebSocketHandler) handleMentionMessage(messageText string, client model.ClientObject) {
+	// Parse mention command: "/mention @username1 @username2 Hello everyone!"
+	parts := strings.SplitN(messageText, " ", 2)
+	if len(parts) < 2 {
+		return
+	}
+
+	message := parts[1] // Get everything after "/mention "
+
+	// Send mention message
+	if _, err := h.chatService.SendMentionMessage(context.Background(), client.UserID, client.RoomID, message); err != nil {
+		log.Printf("[ERROR] Failed to send mention message: %v", err)
 	}
 } 
