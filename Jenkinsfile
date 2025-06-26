@@ -45,7 +45,7 @@ pipeline {
                 script {
                     dir("${NEST_APP_DIR}") {
                         sh '''
-                        docker run --rm -v $(pwd):/app -w /app oven/bun:latest bash -c "
+                        docker run --rm -v $(pwd):/backend/app -w /backend/app oven/bun:latest bash -c "
                             bun install --frozen-lockfile && \
                             bun run build
                         "
