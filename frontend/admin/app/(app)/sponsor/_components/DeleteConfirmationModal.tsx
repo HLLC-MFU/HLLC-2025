@@ -1,5 +1,6 @@
-import { Sponsors } from "@/types/sponsors";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from "@heroui/react";
+
+import { Sponsors } from "@/types/sponsors";
 
 interface DeleteConfirmationModalProps {
     isOpen: boolean;

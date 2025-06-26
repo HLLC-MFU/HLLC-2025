@@ -1,42 +1,58 @@
-import { IsBoolean, IsDate, IsMongoId, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
-import { Localization, Photo } from "src/pkg/types/common";
+import {
+  IsBoolean,
+  IsDate,
+  IsEnum,
+  IsMongoId,
+  IsNotEmpty,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { Localization, Photo } from 'src/pkg/types/common';
+import { EvoucherType } from '../../schema/evoucher.schema';
+import { Type } from 'class-transformer';
 
 export class CreateEvoucherDto {
+  @IsString()
+  @IsNotEmpty()
+  discount: string;
 
-    @IsNumber()
-    @IsNotEmpty()
-    discount: number;
+  @IsString()
+  @IsNotEmpty()
+  acronym: string;
 
-    @IsString()
-    @IsNotEmpty()
-    acronym: string;
+  @IsEnum(EvoucherType)
+  @IsNotEmpty()
+  type: EvoucherType;
 
-    @IsMongoId()
-    @IsNotEmpty()
-    type: string;
+  @IsMongoId()
+  @IsNotEmpty()
+  sponsors: string;
 
-    @IsMongoId()
-    @IsNotEmpty()
-    sponsors: string;
+  @IsDate()
+  @IsNotEmpty()
+  @Type(() => Date)
+  expiration: Date;
 
-    @IsDate()
-    @IsNotEmpty()
-    expiration: Date;
+  @IsObject()
+  @IsNotEmpty()
+  detail: Localization;
 
-    @IsObject()
-    @IsNotEmpty()
-    detail: Localization;
+  @IsObject()
+  @IsNotEmpty()
+  photo: Photo;
 
-    @IsObject()
-    @IsNotEmpty()
-    photo: Photo;
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
 
-    @IsBoolean()
-    @IsOptional()
-    status?: boolean;
+  @IsObject()
+  @IsOptional()
+  metadata?: Record<string, string>;
 
-    @IsObject()
-    @IsOptional()
-    metadata?: Record<string, string>;
-
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  maxClaims?: number;
 }

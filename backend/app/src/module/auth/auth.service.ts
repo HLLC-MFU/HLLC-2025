@@ -30,27 +30,36 @@ interface LoginOptions {
 
 @Injectable()
 export class AuthService {
+  private readonly isProduction: boolean;
   constructor(
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly discoveryService: DiscoveryService,
     private readonly reflector: Reflector,
-  ) {}
+  ) {
+    this.isProduction =
+      this.configService.get<boolean>('isProduction') ?? false;
+  }
 
-  async validateUser(username: string, pass: string): Promise<UserDocument> {
-    const user = await this.userModel
-      .findOne({ username })
-      .select('+password')
-      .populate('role', 'name permissions');
+  async validateUser(username: string, pass: string) {
+    const userDoc = await this.userModel
+      .findOne({ username }, '+password')
+      .populate({
+        path: 'role',
+        select: 'name permissions metadataSchema',
+      })
+      .select('username name password metadata.major')
+      .lean();
 
-    if (!user) throw new UnauthorizedException('User not found');
-    if (!user.password) throw new UnauthorizedException('User not registered');
+    if (!userDoc) throw new UnauthorizedException('User not found');
+    if (!userDoc.password)
+      throw new UnauthorizedException('User not registered');
 
-    const isMatch = await bcrypt.compare(pass, user.password);
+    const isMatch = await bcrypt.compare(pass, userDoc.password);
     if (!isMatch) throw new UnauthorizedException('Invalid password');
 
-    // Decrypt role.permissions before returning
+    const { ...user } = userDoc;
     let role: RoleDocument | null = null;
     if (
       user.role &&
@@ -67,10 +76,17 @@ export class AuthService {
   }
 
   async login(
-    user: UserDocument,
+    user: Partial<UserDocument>,
     options?: LoginOptions,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const payload = { sub: user._id.toString(), username: user.username };
+    if (!user._id || !user.username) {
+      throw new Error('Invalid user object passed to login()');
+    }
+
+    const payload = {
+      sub: user._id.toString(),
+      username: user.username,
+    };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
@@ -82,33 +98,29 @@ export class AuthService {
       }),
     ]);
 
-    user.refreshToken = await bcrypt.hash(refreshToken, 10);
-    (await user.save()).toObject({ virtuals: true });
+    await this.userModel.updateOne(
+      { _id: user._id },
+      { $set: { refreshToken: await bcrypt.hash(refreshToken, 10) } },
+    );
 
     if (options?.useCookie && options.response) {
-      const reply = options.response as FastifyReply & {
-        setCookie: (
-          name: string,
-          value: string,
-          options?: Record<string, string>,
-        ) => FastifyReply;
-      };
-      reply.setCookie('accessToken', accessToken, {
+      const reply = options.response;
+      const cookieOptions = {
         httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
+        secure: this.isProduction,
+        sameSite: this.isProduction ? ('strict' as const) : ('lax' as const),
         path: '/',
+        domain: this.configService.get<string>('COOKIE_DOMAIN') ?? 'localhost',
+      };
+
+      reply.setCookie('accessToken', accessToken, {
+        ...cookieOptions,
         maxAge: 60 * 60,
-        domain: 'localhost',
       });
 
       reply.setCookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
-        path: '/',
+        ...cookieOptions,
         maxAge: 60 * 60 * 24 * 7,
-        domain: 'localhost',
       });
     }
 
@@ -118,7 +130,6 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const { username, password, confirmPassword, metadata } = registerDto;
 
-    // First check if user exists
     const existingUser = await this.userModel
       .findOne({ username })
       .select('+password')
@@ -208,6 +219,25 @@ export class AuthService {
       console.error(err); // For debugging, remove in production
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+
+  async getRegisteredUser(username: string) {
+    const user = await this.userModel.findOne({ username }, '+password');
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.password) {
+      throw new BadRequestException(
+        'This User already has a password set, Please signin.',
+      );
+    }
+
+    return {
+      username: user.username,
+      name: user.name,
+    };
   }
 
   async removePassword(username: string) {

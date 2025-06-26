@@ -10,6 +10,8 @@ export default function QRCodeGenerator({ username }: { username: string }) {
           size={250}
           logo={Logo}
           logoSize={50}
+          color="white"
+          backgroundColor="transparent"
           logoBackgroundColor="transparent"
         />
   );

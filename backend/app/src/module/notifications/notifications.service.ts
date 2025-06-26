@@ -87,21 +87,26 @@ export class NotificationsService {
    * @returns Updated NotificationRead document.
    * @throws NotFoundException if the user or notification **does not exist**.
    */
-  async markNotification(
-    dto: ReadNotificationDto,
-    read: boolean,
-  ) {
-
+  async markNotification(dto: ReadNotificationDto, read: boolean) {
     const userExists = await this.userModel.exists({ _id: dto.userId });
     if (!userExists) throw new NotFoundException('User not found');
 
-    const notificationsExists = await this.notificationModel.exists({ _id: dto.notificationId });
-    if (!notificationsExists) throw new NotFoundException('Notification not found');
+    const notificationsExists = await this.notificationModel.exists({
+      _id: dto.notificationId,
+    });
+    if (!notificationsExists)
+      throw new NotFoundException('Notification not found');
 
     const filter = { userId: new Types.ObjectId(dto.userId) };
     const update = read
-      ? { $addToSet: { readNotifications: new Types.ObjectId(dto.notificationId) } }
-      : { $pull: { readNotifications: new Types.ObjectId(dto.notificationId) } };
+      ? {
+          $addToSet: {
+            readNotifications: new Types.ObjectId(dto.notificationId),
+          },
+        }
+      : {
+          $pull: { readNotifications: new Types.ObjectId(dto.notificationId) },
+        };
 
     const options = read ? { upsert: true } : undefined;
 
@@ -113,7 +118,7 @@ export class NotificationsService {
     );
   }
 
-  async getUserNotifications(user: UserRequest["user"]) {
+  async getUserNotifications(user: UserRequest['user']) {
     const userNotifications = await this.notificationModel
       .find({
         $or: [

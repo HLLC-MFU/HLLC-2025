@@ -1,15 +1,26 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { CreatePosttestAnswerDto } from '../dto/posttest-answer/create-posttest-answer.dto';
-import { PosttestAnswersService } from '../service/posttest-answers.service'
+import { PosttestAnswersService } from '../service/posttest-answers.service';
 
 @UseGuards(PermissionsGuard)
 @ApiTags('posttest-answers')
 @Controller('posttest-answers')
 export class PosttestAnswersController {
-  constructor(private readonly posttestAnswersService: PosttestAnswersService) { }
+  constructor(
+    private readonly posttestAnswersService: PosttestAnswersService,
+  ) {}
 
   @Post()
   @Permissions('posttest-answers:create')

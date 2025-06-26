@@ -7,7 +7,6 @@ import { Reflector } from '@nestjs/core';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from 'src/module/users/schemas/user.schema';
-
 @Injectable()
 export class SystemStatusGuard implements CanActivate {
   constructor(
@@ -16,7 +15,7 @@ export class SystemStatusGuard implements CanActivate {
     private systemStatusModel: Model<SystemStatus>,
     @InjectModel(User.name)
     private userModel: Model<User>,
-  ) { }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -39,11 +38,15 @@ export class SystemStatusGuard implements CanActivate {
       .populate('role')
       .exec();
 
-    if (!fullUser?.role || typeof fullUser.role === 'object' && !('name' in fullUser.role)) {
+    if (
+      !fullUser?.role ||
+      (typeof fullUser.role === 'object' && !('name' in fullUser.role))
+    ) {
       throw new ForbiddenException('User role not found.');
     }
 
-    const roleName = typeof fullUser.role === 'object' ? fullUser.role.name : fullUser.role;
+    const roleName =
+      typeof fullUser.role === 'object' ? fullUser.role.name : fullUser.role;
     if (roleName === 'User') {
       throw new ForbiddenException('System is closed for your role.');
     }

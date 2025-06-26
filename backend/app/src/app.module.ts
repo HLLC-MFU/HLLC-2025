@@ -22,10 +22,7 @@ import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { SponsorsTypeModule } from './module/sponsors/sponsors-type.module';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesModule } from './module/activities/activities.module';
-import { EvoucherModule } from './module/evoucher/evoucher.module';
-import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
-import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
-import { ActivitiesTypeModule } from './module/activities-type/activities-type.module';
+import { ActivitiesTypeModule } from './module/activities/activities-type.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
 import { KafkaBootstrapModule } from './module/kafka/kafka-bootstrap.module';
 import { AssessmentsModule } from './module/assessments/assessments.module';
@@ -34,11 +31,18 @@ import { PrepostQuestionsModule } from './module/prepost-questions/prepost-quest
 import { PosttestAnswersModule } from './module/prepost-questions/posttest-answer.module';
 import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
 import { StepCountersModule } from './module/step-counters/step-counters.module';
+import { FirebaseAdminModule } from './module/firebase/firebase-admin.module';
+import { LandmarksModule } from './module/coin-collections/landmarks.module';
+import { CoinCollectionsModule } from './module/coin-collections/coin-collections.module';
+import { MapsModule } from './module/coin-collections/maps.module';
+import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
+import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       load: [configuration],
+      envFilePath: '.env.production',
       isGlobal: true,
     }),
     MongooseModule.forRootAsync({
@@ -74,9 +78,6 @@ import { StepCountersModule } from './module/step-counters/step-counters.module'
     SseModule,
     CheckinModule,
     ActivitiesModule,
-    EvoucherModule,
-    EvoucherCodeModule,
-    EvoucherTypeModule,
     NotificationsModule,
     KafkaBootstrapModule,
     AssessmentsModule,
@@ -84,7 +85,13 @@ import { StepCountersModule } from './module/step-counters/step-counters.module'
     PrepostQuestionsModule,
     PosttestAnswersModule,
     PretestAnswersModule,
-    StepCountersModule
+    StepCountersModule,
+    FirebaseAdminModule,
+    LandmarksModule,
+    CoinCollectionsModule,
+    MapsModule,
+    LamduanFlowersModule,
+    LamduanSettingModule
   ],
   providers: [
     {
@@ -97,4 +104,4 @@ import { StepCountersModule } from './module/step-counters/step-counters.module'
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

@@ -1,4 +1,14 @@
-import { Controller, Delete, Get, Param, Patch, Post, Query, Req, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseInterceptors,
+} from '@nestjs/common';
 import { SponsorsService } from '../service/sponsors.service';
 import { CreateSponsorDto } from '../dto/sponsers/create-sponsor.dto';
 import { UpdateSponsorDto } from '../dto/sponsers/update-sponsor.dto';

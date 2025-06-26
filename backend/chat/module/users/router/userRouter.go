@@ -6,9 +6,6 @@ import (
 )
 
 func RegisterUserRoutes(router fiber.Router, h *handler.UserHTTPHandler) {
-	router.Post("/", h.CreateUser)
 	router.Get("/:id", h.GetUser)
 	router.Get("/", h.ListUsers)
-	router.Patch("/:id", h.UpdateUser)
-	router.Delete("/:id", h.DeleteUser)
 }

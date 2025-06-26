@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react"
-import { Student, Notification } from "@/types/student"
+import { Notification } from "@/types/notification"
 import { apiRequest } from "@/utils/api"
+import { addToast } from "@heroui/react";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function useNotification() {
     const [notification, setNotification] = useState<Notification[]>([])
@@ -8,7 +11,7 @@ export function useNotification() {
     const [error, setError] = useState<string | null>(null)
 
     // 📥 Fetch all Student
-    const fetchnoti = async () => {
+    const fetchNotification = async () => {
         setLoading(true);
         setError(null);
         try {
@@ -22,21 +25,17 @@ export function useNotification() {
     };
 
     // ➕ Create new Notification
-    const createNotification = async (NotificationData: Partial<Notification>) => {
+    const createNotification = async (NotificationData: FormData) => {
+
         try {
             setLoading(true);
-            const res = await apiRequest<Notification>("/notifications", "POST", NotificationData);
-            console.log("Create response:", res);
-
-            if (res.data) {
-                await new Promise((resolve) => {
-                    setNotification((prev) => {
-                        const updated = [...prev, res.data as Notification];
-                        resolve(updated);
-                        return updated;
-                    });
-                });
+            const res = await apiRequest<{ data: Notification }>(`/notifications`, 'POST', NotificationData );
+            const data = await res.data?.data;
+            console.log("Create response:", res, data);
+            if (data && '_id' in data) {
+                setNotification((prev) => [...prev, data]);
             }
+            return res;
         } catch (err: any) {
             setError(err.message || "Failed to create school.");
         } finally {
@@ -44,15 +43,48 @@ export function useNotification() {
         }
     };
 
+    const deleteNotification = async (id: string): Promise<void> => {
+        try {
+            setLoading(true);
+
+            const res = await apiRequest(`/notifications/${id}` , 'DELETE' );
+
+            console.log('Delete response:', res);
+
+            if (res.statusCode === 200 || res.statusCode === 204) {
+                setNotification((prev) => prev.filter((a) => a._id !== id));
+                addToast({
+                    title: 'Notification deleted successfully!',
+                    color: 'success',
+                });
+                fetchNotification();
+            } else {
+                throw new Error(res.message || 'Failed to delete notification.');
+            }
+        } catch (err: any) {
+            console.error('Error notification activity:', err);
+            const errorMessage = err.message || 'Failed to delete notification.';
+            setError(errorMessage);
+            addToast({
+                title: 'Failed to delete notification',
+                description: errorMessage,
+                color: 'danger',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        fetchnoti();
+        fetchNotification();
     }, []);
 
     return {
         notification,
         loading,
         error,
-        fetchnoti,
+        deleteNotification,
+        fetchNotification,
         createNotification,
     };
 
