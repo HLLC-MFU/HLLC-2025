@@ -71,10 +71,10 @@ pipeline {
                         }
                     }
 
-                    sh "node --version || error('Node.js is not installed, please install Node.js to proceed.')"
-                    sh "go version || error('Go is not installed, please install Go to proceed.')"
-                    sh "docker --version || error('Docker is not installed, please install Docker to proceed.')"
-                    sh "kubectl version --client || error('kubectl is not installed, please install kubectl to proceed.')"
+                    sh "node --version || node error"
+                    sh "go version || Go error"
+                    sh "docker --version || Docker error"
+                    sh "kubectl version --client || kubectl error"
                     sh "echo 'Environment check completed.'"
                 }
             }
