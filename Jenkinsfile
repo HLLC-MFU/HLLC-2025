@@ -49,14 +49,15 @@ pipeline {
                     echo "Navigating to NestJS app directory: ${NEST_APP_DIR}"
                     dir("${NEST_APP_DIR}") {
                         sh "echo \"Current working directory: \$(pwd)\""
+                        sh "ls"
                         echo "Listing contents of NestJS app directory:"
                         sh "ls -la"
                         sh "cat package.json || echo 'package.json not found in current directory.'"
 
                         echo "Starting Bun install and build..."
-                        // FIX: Use WORKSPACE for the absolute path in the volume mount
                         sh """
                         docker run --rm -v ${WORKSPACE}:/app -w /app/${NEST_APP_DIR} oven/bun:latest bash -c "
+                            ls -la && \\
                             echo 'Running bun install...' && \\
                             bun install --frozen-lockfile && \\
                             echo 'Bun install complete. Running bun build...' && \\
