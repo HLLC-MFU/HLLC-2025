@@ -71,7 +71,6 @@ pipeline {
                         }
                     }
 
-                    sh "node --version || node error"
                     sh "go version || Go error"
                     sh "docker --version || Docker error"
                     sh "kubectl version --client || kubectl error"
