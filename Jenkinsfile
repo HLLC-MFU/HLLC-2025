@@ -51,28 +51,14 @@ pipeline {
                         sh "ls -la"
                         sh "cat package.json || echo 'package.json not found'"
 
-                        echo "Starting Bun install and build..."
-                        sh """
-                        docker run --rm \\
-                            -v \$(pwd):/app \\
-                            -w /app \\
-                            oven/bun:latest bash -c '
-                                echo "--- Inside container ---";
-                                ls -la;
-                                echo "Running bun install...";
-                                bun install --frozen-lockfile;
-                                echo "Bun install complete. Running bun build...";
-                                bun run build;
-                                echo "Bun build complete."
-                            '
-                        """
+                        echo "Running bun install and build **outside** Docker..."
+                        sh "bun install --frozen-lockfile"
+                        sh "bun run build"
 
                         def nestAppImageTag = "${env.BUILD_NUMBER}"
                         echo "Building Docker image: ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
                         sh "docker build -t ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag} ."
-                        echo "Pushing Docker image: ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
                         sh "docker push ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
-
                         env.NEST_APP_IMAGE_TAG = nestAppImageTag
                     }
                 }
