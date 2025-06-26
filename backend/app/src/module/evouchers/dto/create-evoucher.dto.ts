@@ -20,15 +20,15 @@ class LocalizationDto {
 
 class EvoucherPhotoDto {
   @IsString()
-  @IsNotEmpty()
+  // @IsNotEmpty()
   front: string;
 
   @IsString()
-  @IsNotEmpty()
+  // @IsNotEmpty()
   back: string;
 
   @IsString()
-  @IsNotEmpty()
+  // @IsNotEmpty()
   home: string;
 }
 

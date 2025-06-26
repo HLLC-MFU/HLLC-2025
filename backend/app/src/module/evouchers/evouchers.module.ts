@@ -9,6 +9,8 @@ import {
   EvoucherCode,
   EvoucherCodeSchema,
 } from './schemas/evoucher-code.schema';
+import { Sponsors, SponsorsSchema } from '../sponsors/schemas/sponsors.schema';
+import { SponsorsModule } from '../sponsors/sponsors.module';
 
 @Module({
   imports: [
@@ -21,7 +23,12 @@ import {
         name: EvoucherCode.name,
         schema: EvoucherCodeSchema,
       },
+      {
+        name: Sponsors.name,
+        schema: SponsorsSchema,
+      },
     ]),
+    SponsorsModule,
   ],
   controllers: [EvoucherCodesController, EvouchersController],
   providers: [EvouchersService, EvoucherCodesService],
