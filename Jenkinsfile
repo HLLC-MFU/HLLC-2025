@@ -48,27 +48,28 @@ pipeline {
                 script {
                     echo "Navigating to NestJS app directory: ${NEST_APP_DIR}"
                     dir("${NEST_APP_DIR}") {
-                        // FIX: Escaped the $ in $(pwd)
-                        sh "echo \"Current working directory: \$(pwd)\"" // Use "sh" with double quotes here for simple string
+                        sh "echo \"Current working directory: \$(pwd)\""
                         echo "Listing contents of NestJS app directory:"
-                        sh "ls -la" // List all files, including hidden ones, in the NestJS app directory
-                        sh "cat package.json || echo 'package.json not found in current directory.'" // Try to cat package.json to see its content, or log if not found
+                        sh "ls -la"
+                        sh "cat package.json || echo 'package.json not found in current directory.'"
 
                         echo "Starting Bun install and build..."
-                        sh '''
-                        docker run --rm -v $(pwd):/app -w /app oven/bun:latest bash -c "
-                            echo 'Running bun install...' && \
-                            bun install --frozen-lockfile && \
-                            echo 'Bun install complete. Running bun build...' && \
-                            bun run build && \
+                        // FIX: Use WORKSPACE for the absolute path in the volume mount
+                        sh """
+                        docker run --rm -v ${WORKSPACE}:/app -w /app oven/bun:latest bash -c "
+                            echo 'Running bun install...' && \\
+                            bun install --frozen-lockfile && \\
+                            echo 'Bun install complete. Running bun build...' && \\
+                            bun run build && \\
                             echo 'Bun build complete.'
                         "
-                        '''
+                        """
                         echo "Bun install and build command executed."
 
                         def nestAppImageTag = "${env.BUILD_NUMBER}"
                         echo "NestJS app image tag: ${nestAppImageTag}"
                         echo "Building Docker image: ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
+                        // FIX: Ensure docker build context is . or specific path
                         sh "docker build -t ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag} ."
                         echo "Docker image built successfully."
 
