@@ -2,17 +2,18 @@ import { Card, CardHeader, CardBody, Progress } from "@heroui/react";
 import { Users, UserCheck, Award, Clock } from "lucide-react";
 import { getProgressColor } from "./utils/assessment-utils";
 import { useStatistics } from "@/hooks/useStatistics";
-import { useUsers } from "@/hooks/useUsers";
 import { useAssessment } from "@/hooks/useAssessment";
 import { ActivityProgress, AssessmentType, RawPretestAnswer, RawPosttestAnswer } from "@/types/assessment";
+import { useUserStatistics } from "@/hooks/useUserSytem";
 
 interface StatisticsCardsProps {
     type: AssessmentType;
 }
 
 export function StatisticsCards({ type }: StatisticsCardsProps) {
-    const { stats, loading, error } = useStatistics();
-    const { users } = useUsers();
+    const { loading, error } = useStatistics();
+    const { userstats } = useUserStatistics();
+    const studentstats = userstats?.student;
     const { activityProgress, pretestProgress, posttestProgress } = useAssessment();
 
     // Calculate completion rate based on the assessment type
@@ -21,7 +22,7 @@ export function StatisticsCards({ type }: StatisticsCardsProps) {
         : type === "posttest" 
             ? posttestProgress 
             : activityProgress;
-    
+
     // Extract user IDs, handling different data structures
     const usersWithAnswers = new Set(
         progressData.map(progress => {
@@ -34,7 +35,9 @@ export function StatisticsCards({ type }: StatisticsCardsProps) {
         }).filter(id => id !== null)
     ).size;
 
-    const submitRate = users.length > 0 ? (usersWithAnswers / users.length) * 100 : 0;
+    const usersWithNotAnswers =  (studentstats?.registered ?? 0) - usersWithAnswers;
+
+    const submitRate = (studentstats?.registered ?? 0) > 0 ? (usersWithAnswers / (studentstats?.registered ?? 1)) * 100 : 0;
 
     // Get the appropriate title based on type
     const getTitle = () => {
@@ -99,17 +102,27 @@ export function StatisticsCards({ type }: StatisticsCardsProps) {
                     <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardBody>
-                    <div className="text-2xl font-bold">{users.length}</div>
+                    <div className="text-2xl font-bold">{studentstats?.registered}</div>
                 </CardBody>
             </Card>
 
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <p className="text-sm font-medium">Registered Users</p>
+                    <p className="text-sm font-medium">Completed Pretest</p>
                     <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardBody>
-                    <div className="text-2xl font-bold">{users.length}</div>
+                    <div className="text-2xl font-bold">{usersWithAnswers}</div>
+                </CardBody>
+            </Card>
+            
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <p className="text-sm font-medium">Pending Pretest</p>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardBody>
+                    <div className="text-2xl font-bold">{usersWithNotAnswers}</div>
                 </CardBody>
             </Card>
 
@@ -127,7 +140,7 @@ export function StatisticsCards({ type }: StatisticsCardsProps) {
                         size="sm"
                     />
                     <div className="text-sm text-muted-foreground mt-1">
-                        {usersWithAnswers} of {users.length} users submitted {getSubmissionText()}
+                        {usersWithAnswers} of {studentstats?.registered} users submitted {getSubmissionText()}
                     </div>
                 </CardBody>
             </Card>

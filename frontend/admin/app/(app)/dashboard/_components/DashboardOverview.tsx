@@ -1,18 +1,12 @@
 import React from 'react';
-import { ScanBarcode, User as UserIcon, Activity as ActivityIcon, Ticket, Gem, } from 'lucide-react';
+import { ScanBarcode, User as UserIcon, Activity as ActivityIcon, Ticket, Gem, UserRoundX } from 'lucide-react';
 import { Checkin } from '@/types/checkin';
-import { Activities } from '@/types/activities';
-import { Evoucher } from '@/types/evoucher';
-import { Sponsors } from '@/types/sponsors';
 import { Card } from '@heroui/react';
 import { UseruseSystem } from '@/types/user-stats'
 
 interface Overviewprop {
     checkin: Checkin[];
     Userstats: UseruseSystem;
-    Activities: Activities[];
-    Evouchers: Evoucher[];
-    Sponsors: Sponsors[];
     isLoading: boolean;
 }
 
@@ -33,48 +27,43 @@ const CardWithPie = ({ label, value, icon, colors }: {
     </Card>
 );
 
-export default function Overview({ checkin, Activities, Userstats, Evouchers, Sponsors, isLoading }: Overviewprop) {
+export default function Overview({ checkin, Userstats, isLoading }: Overviewprop) {
 
-    const { student } = Userstats
+    const studentstats  = Userstats?.student
     const checkInTotal = checkin.length;
-    const Evoucherstotle = Evouchers.length;
-    const activityTotal = Activities.length;
-    const sponsorTotal = Sponsors.length;
+
     
-    if (isLoading) return <p>Loading...</p>;
+    if (isLoading || !studentstats) return <p>Loading...</p>;
+
     return (
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 my-6">
             <CardWithPie
-                label="Check In"
+                label="Check In Staff"
                 value={checkInTotal.toString()}
                 icon={<ScanBarcode />}
                 colors='gray-100'
             />
             <CardWithPie
-                label={`User (${student?.total ?? 0})`}
-                value={<div className="flex gap-1 text-base">
-                    <span > {student?.registered ?? 0}</span>
-                    <span className="text-gray-400">|</span>
-                    <span className="text-gray-400">{student?.notRegistered ?? 0}</span>
-                </div>}
+                label="Check In Student"
+                value={checkInTotal.toString()}
                 icon={<UserIcon />}
                 colors='blue-100'
             />
             <CardWithPie
-                label="Activity"
-                value={activityTotal.toString()}
+                label="Totel Student"
+                value={studentstats?.total  ?? 0}
                 icon={<ActivityIcon />}
                 colors='green-100'
             />
             <CardWithPie
-                label="Evoucher"
-                value={Evoucherstotle.toString()}
+                label="RegisterStudent"
+                value={studentstats?.registered  ?? 0}
                 icon={<Ticket />}
                 colors='red-100'
             />
             <CardWithPie
-                label="Sponsors"
-                value={sponsorTotal.toString()}
+                label="NotRegisterStudent"
+                value={studentstats?.notRegistered ?? 0}
                 icon={<Gem />}
                 colors='purple-100'
             />

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import {UseruseSystem} from '@/types/user-stats'
 
 export const useUserStatistics = () => {
-  const [Userstats, setUserStats] = useState<UseruseSystem | null>(null);
+  const [userstats, setUserStats] = useState<UseruseSystem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,5 +26,5 @@ export const useUserStatistics = () => {
     fetchStatistics();
   }, []);
 
-  return { Userstats, loading, error };
+  return { userstats, loading, error };
 };

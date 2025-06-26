@@ -1,34 +1,25 @@
 'use client';
-import {  LayoutDashboard, FileQuestion, Activity } from 'lucide-react';
+import {  LayoutDashboard, FileQuestion, Activity, BookOpenText, UserCog } from 'lucide-react';
 import { Button } from "@heroui/react";
 import { useCheckin } from "@/hooks/useCheckin";
-import { useSponsors } from "@/hooks/useSponsors";
 import { PageHeader } from "@/components/ui/page-header";
 import { Accordion, AccordionItem } from "@heroui/react";
-import { useAssessment } from "@/hooks/useAssessment";
 import AssessmentOverviewDashboard from "../assessments/_components/question-overview-dashboard";
 import ActivityDashboard from "../assessments/_components/activity-dashboard";
-import { useEvoucher } from "@/hooks/useEvoucher";
 import { useReports } from "@/hooks/useReports";
 import { useReportTypes } from "@/hooks/useReportTypes";
 import { ReportCharts } from "./_components/DashboardReportCharts";
 import Overview from "./_components/DashboardOverview";
-import Charts from "./_components/DashboardTimeLineCharts";
 import { useUserStatistics } from "@/hooks/useUserSytem";
-import { useActivities } from "@/hooks/useActivities";
 import { UseruseSystem } from "@/types/user-stats"
 
 
 export default function Dashboard() {
 
   const { checkin, loading } = useCheckin();
-  const { activities } = useActivities();
-  const { sponsors } = useSponsors();
-  const { activityProgress, loading: activityLoading } = useAssessment();
-  const { evouchers } = useEvoucher();
   const { problems } = useReports();
   const { reporttypes } = useReportTypes();
-  const { Userstats } = useUserStatistics(); 
+  const { userstats } = useUserStatistics(); 
   
   return (
     <>
@@ -41,22 +32,37 @@ export default function Dashboard() {
       </div>
       <Overview
         checkin={checkin}
-        Userstats={Userstats ?? {} as UseruseSystem}
-        Activities={activities}
-        Evouchers={evouchers}
-        Sponsors={sponsors}
+        Userstats={userstats ?? {} as UseruseSystem}
         isLoading={loading}
       />
 
-      <h1 className=" text-2xl font-semibold my-6"> TimeLine </h1>
-      <div className="w-full h-96 p-4 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 bg-muted flex items-center justify-center">
-        <Charts />
-      </div>
+      <h1 className=" text-2xl font-semibold my-6">Check in</h1>
+      <Accordion variant="splitted" className="px-0" defaultExpandedKeys={['student']}>
+        <AccordionItem
+          key="student"
+          aria-label="Student Checkin"
+          startContent={<BookOpenText className='h-5 w-5 text-primary' />}
+          title="Student Checkin"
+          className='font-medium mb-2'
+        >
+         {/* <CheckinOverviewDashboard
+         
+         /> */}
+        </AccordionItem>
+        <AccordionItem
+          key="staff"
+          aria-label="Staff Checkin"
+          startContent={<UserCog className='h-5 w-5 text-primary' />}
+          title="Staff Checkin"
+          className='font-medium mb-2'
+        >
+        
+        </AccordionItem>
+      </Accordion>
 
-      {/* Assessment Results Accordion */}
+      <h1 className=" text-2xl font-semibold my-6">Assessments</h1>
       <div className="mt-6">
-        <Accordion variant="splitted" className="px-0">
-          {/* Pretest Results */}
+        <Accordion variant="splitted" className="px-0" defaultExpandedKeys={['pretest']}>
           <AccordionItem
             key="pretest"
             aria-label="Pretest Results"
@@ -70,7 +76,6 @@ export default function Dashboard() {
             />
           </AccordionItem>
 
-          {/* Posttest Results */}
           <AccordionItem
             key="posttest"
             aria-label="Posttest Results"
@@ -84,7 +89,6 @@ export default function Dashboard() {
             />
           </AccordionItem>
 
-          {/* Activity Dashboard */}
           <AccordionItem
             key="activity"
             aria-label="Activity Dashboard"

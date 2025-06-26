@@ -179,8 +179,8 @@ const assessmentService = {
     }
   },
 
-  async fetchActivityProgress(activityId: string) {
-    const response = await fetch(`${API_BASE_URL}/assessments/${activityId}/progress`, {
+  async fetchActivityProgress() {
+    const response = await fetch(`${API_BASE_URL}/assessment-answers`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -339,8 +339,8 @@ export function useAssessment() {
   }, [state.data.questions]);
 
   // Activity progress operations
-  const fetchActivityProgress = useCallback((activityId: string) => 
-    handleFetch(() => assessmentService.fetchActivityProgress(activityId), 'activityProgress'), 
+  const fetchActivityProgress = useCallback(() => 
+    handleFetch(() => assessmentService.fetchActivityProgress(), 'activityProgress'), 
     [handleFetch]
   );
 
@@ -365,7 +365,8 @@ export function useAssessment() {
   useEffect(() => {
     fetchPretestProgress();
     fetchPosttestProgress();
-  }, [fetchPretestProgress, fetchPosttestProgress]);
+    fetchActivityProgress();
+  }, [fetchPretestProgress, fetchPosttestProgress, fetchActivityProgress]);
 
   return {
     // State
