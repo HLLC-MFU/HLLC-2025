@@ -69,8 +69,8 @@ func LoadConfig(path string) *Config {
 	cfg.Jwt.ApiDuration = getEnvAsInt64OrDefault("JWT_API_DURATION", 31536000)
 
 	// Database configuration
-	cfg.Db.Url = getEnvOrFatal("DB_URL")
-	cfg.Db.Database = getEnvOrDefault("DB_NAME", "hllc")
+	cfg.Db.Url = getEnvOrFatal("MONGO_URI")
+	cfg.Db.Database = getEnvOrDefault("DB_NAME", "hllc2025-chat")
 
 	// Redis configuration
 	cfg.Redis.Host = getEnvOrFatal("REDIS_HOST")

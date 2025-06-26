@@ -2,7 +2,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text } from 'react-native';
 import { router, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Bell, User, Users } from 'lucide-react-native';
+import { Award, Bell, Footprints, User, Users } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
@@ -17,7 +17,7 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const handleSignOut = async () => {
     await useAuth.getState().signOut();
-    router.replace('/(auth)/login'); // ✅ redirect กลับหน้า login (หรือหน้าอื่น)
+    router.replace('/(auth)/login');
   };
   const { assets } = useAppearance();
   const assetsImage = {
