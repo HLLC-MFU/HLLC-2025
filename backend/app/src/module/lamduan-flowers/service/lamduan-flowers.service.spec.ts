@@ -10,6 +10,7 @@ import { UpdateLamduanFlowerDto } from '../dto/lamduan-flower/update-lamduan-flo
 import * as helper from 'src/pkg/helper/query.util';
 import * as validator from 'src/pkg/validator/model.validator';
 import * as utils from '../utils/lamduan.utils';
+import { createMock } from '@golevelup/ts-jest';
 
 jest.mock('../utils/lamduan.utils');
 
@@ -51,15 +52,27 @@ describe('LamduanFlowersService', () => {
 
     service = module.get<LamduanFlowersService>(LamduanFlowersService);
 
-    jest.spyOn(validator, 'findOrThrow').mockResolvedValue({} as any);
+    const mockUserDoc = createMock<UserDocument>({
+      _id: new Types.ObjectId(),
+      name: {
+        first: 'mock',
+        middle: 'user',
+        last: 'doc',
+      },
+    });
 
-    jest.spyOn(utils, 'validateLamduanTime').mockResolvedValue({
+    jest.spyOn(validator, 'findOrThrow').mockResolvedValue(mockUserDoc);
+
+
+
+    const mockSettingDoc = createMock<LamduanSettingDocument>({
       _id: new Types.ObjectId(),
       startAt: new Date(Date.now() - 1000),
       endAt: new Date(Date.now() + 1000),
       save: jest.fn(),
-      toJSON: () => ({}),
-    } as any);
+    });
+
+    jest.spyOn(utils, 'validateLamduanTime').mockResolvedValue(mockSettingDoc);
 
     jest.spyOn(utils, 'validateUserAlreadySentLamduan').mockResolvedValue();
 
@@ -75,7 +88,10 @@ describe('LamduanFlowersService', () => {
       message: 'success',
     });
 
-    jest.spyOn(helper, 'queryFindOne').mockResolvedValue({} as any);
+    jest.spyOn(helper, 'queryFindOne').mockResolvedValue({
+      data: [],
+      message: 'mock message',
+    });
     jest.spyOn(helper, 'queryUpdateOne').mockResolvedValue({ updated: true });
     jest.spyOn(helper, 'queryDeleteOne').mockResolvedValue({ deleted: true });
   });
@@ -104,15 +120,23 @@ describe('LamduanFlowersService', () => {
   });
 
   describe('findAll', () => {
-    it('should call queryAll with correct arguments', async () => {
+    it('should call queryAll with correct populateFields logic', async () => {
       const query = { keyword: 'test' };
       await service.findAll(query);
-      expect(helper.queryAll).toHaveBeenCalledWith({
-        model: lamduanModelMock,
-        query,
-        filterSchema: {},
-        populateFields: expect.any(Function),
-      });
+      const callArgs = (helper.queryAll as jest.Mock).mock.calls[0][0];
+      const populateFields = callArgs.populateFields;
+      expect(typeof populateFields).toBe('function');
+      const result = await populateFields();
+
+      expect(result).toEqual([
+        {
+          path: 'user',
+          select: '-name -role -metadata -createdAt -updatedAt',
+        },
+        {
+          path: 'setting',
+        },
+      ]);
     });
   });
 

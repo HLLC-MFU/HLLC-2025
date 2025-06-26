@@ -5,6 +5,36 @@ import { CreateEvoucherCodeDto } from '../dto/evoucher-codes/create-evoucher-cod
 import { UpdateEvoucherCodeDto } from '../dto/evoucher-codes/update-evoucher-code.dto';
 import { Types } from 'mongoose';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { FastifyRequest } from 'fastify';
+import type { IncomingMessage } from 'http';
+
+const fakeRaw = {} as IncomingMessage;
+
+interface AuthenticatedRequest extends FastifyRequest {
+  params: { id: string };
+  user: { _id: string | Types.ObjectId };
+}
+
+function createMockRequest(
+  overrides?: Partial<AuthenticatedRequest>,
+): AuthenticatedRequest {
+  return {
+    id: 'mock-request-id',
+    params: { id: 'some-id' },
+    query: {},
+    headers: {},
+    raw: fakeRaw,
+    log: {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+    },
+    user: { _id: new Types.ObjectId() },
+
+    ...overrides,
+  } as AuthenticatedRequest;
+}
 
 describe('EvoucherCodeController', () => {
   let controller: EvoucherCodeController;
@@ -31,6 +61,16 @@ describe('EvoucherCodeController', () => {
     getUserEvoucherCodes: jest.fn().mockResolvedValue([mockEvoucherCode]),
     useEvoucherCode: jest.fn().mockResolvedValue({ used: true }),
   };
+
+  const reqString = createMockRequest({
+    params: { id: 'some-id' },
+    user: { _id: mockObjectIdStr },
+  });
+
+  const reqObjectId = createMockRequest({
+    params: { id: 'some-id' },
+    user: { _id: mockObjectId },
+  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -100,15 +140,13 @@ describe('EvoucherCodeController', () => {
 
   describe('claimEvoucher', () => {
     it('should claim evoucher for a user (string _id)', async () => {
-      const req = { user: { _id: mockObjectIdStr } } as any;
-      const result = await controller.claimEvoucher(mockObjectIdStr, req);
+      const result = await controller.claimEvoucher(mockObjectIdStr, reqString);
       expect(result).toEqual({ claimed: true });
       expect(service.claimEvoucher).toHaveBeenCalledWith(mockObjectIdStr, mockObjectIdStr);
     });
 
     it('should claim evoucher for a user (ObjectId _id)', async () => {
-      const req = { user: { _id: mockObjectId } } as any;
-      const result = await controller.claimEvoucher(mockObjectIdStr, req);
+      const result = await controller.claimEvoucher(mockObjectIdStr, reqObjectId);
       expect(result).toEqual({ claimed: true });
       expect(service.claimEvoucher).toHaveBeenCalledWith(mockObjectIdStr, mockObjectIdStr);
     });
@@ -116,15 +154,13 @@ describe('EvoucherCodeController', () => {
 
   describe('getMyEvoucherCodes', () => {
     it('should get evoucher codes (string _id)', async () => {
-      const req = { user: { _id: mockObjectIdStr } } as any;
-      const result = await controller.getMyEvoucherCodes(req);
+      const result = await controller.getMyEvoucherCodes(reqString);
       expect(result).toEqual([mockEvoucherCode]);
       expect(service.getUserEvoucherCodes).toHaveBeenCalledWith(mockObjectIdStr);
     });
 
     it('should get evoucher codes (ObjectId _id)', async () => {
-      const req = { user: { _id: mockObjectId } } as any;
-      const result = await controller.getMyEvoucherCodes(req);
+      const result = await controller.getMyEvoucherCodes(reqObjectId);
       expect(result).toEqual([mockEvoucherCode]);
       expect(service.getUserEvoucherCodes).toHaveBeenCalledWith(mockObjectIdStr);
     });
@@ -132,15 +168,13 @@ describe('EvoucherCodeController', () => {
 
   describe('useEvoucherCode', () => {
     it('should mark evoucher code as used (string _id)', async () => {
-      const req = { user: { _id: mockObjectIdStr } } as any;
-      const result = await controller.useEvoucherCode('code-id', req);
+      const result = await controller.useEvoucherCode('code-id', reqString);
       expect(result).toEqual({ used: true });
       expect(service.useEvoucherCode).toHaveBeenCalledWith(new Types.ObjectId(mockObjectIdStr), 'code-id');
     });
 
     it('should mark evoucher code as used (ObjectId _id)', async () => {
-      const req = { user: { _id: mockObjectId } } as any;
-      const result = await controller.useEvoucherCode('code-id', req);
+      const result = await controller.useEvoucherCode('code-id', reqObjectId);
       expect(result).toEqual({ used: true });
       expect(service.useEvoucherCode).toHaveBeenCalledWith(mockObjectId, 'code-id');
     });

@@ -5,7 +5,7 @@ import { Sponsors } from 'src/module/sponsors/schema/sponsors.schema';
 import { Evoucher, EvoucherStatus, EvoucherType } from '../schema/evoucher.schema';
 import { EvoucherCode } from '../schema/evoucher-code.schema';
 import { CreateEvoucherDto } from '../dto/evouchers/create-evoucher.dto';
-import { Types } from 'mongoose';
+import { Types, Model } from 'mongoose';
 
 jest.mock('src/pkg/validator/model.validator', () => ({
   findOrThrow: jest.fn(),
@@ -147,15 +147,30 @@ describe('EvoucherService', () => {
     });
   });
 
-  describe('findOne', () => {
-    it('should return one evoucher with populated fields', async () => {
-      (queryFindOne as jest.Mock).mockResolvedValue({ _id: '123' });
+  
 
-      const result = await service.findOne('123');
-      expect(queryFindOne).toHaveBeenCalledWith(expect.anything(), { _id: '123' }, expect.any(Array));
-      expect(result).toEqual({ _id: '123' });
-    });
+describe('findOne', () => {
+  it('should return one evoucher with populated fields', async () => {
+    const expectedId = '123';
+    const expectedResult = { _id: expectedId };
+
+    (queryFindOne as jest.Mock).mockResolvedValue(expectedResult);
+
+    const mockEvoucherModel: Partial<Model<Evoucher>> = {};
+    Object.defineProperty(service, 'evoucherModel', { value: mockEvoucherModel });
+
+    const result = await service.findOne(expectedId);
+
+    expect(queryFindOne).toHaveBeenCalledWith(
+      mockEvoucherModel,
+      { _id: expectedId },
+      [{ path:'sponsors' }] 
+    );
+
+    expect(result).toEqual(expectedResult);
   });
+});
+
 
   describe('update', () => {
     it('should call queryUpdateOne', async () => {

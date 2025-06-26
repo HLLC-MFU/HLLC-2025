@@ -6,6 +6,8 @@ import { UpdateEvoucherDto } from '../dto/evouchers/update-evoucher.dto';
 import { Evoucher, EvoucherType, EvoucherStatus } from '../schema/evoucher.schema';
 import { Types } from 'mongoose';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { FastifyRequest } from 'fastify';
+
 
 
 describe('EvoucherController', () => {
@@ -42,16 +44,16 @@ describe('EvoucherController', () => {
     remove: jest.fn().mockResolvedValue({ deleted: true }),
   };
 
- 
 
-beforeEach(async () => {
-  const module: TestingModule = await Test.createTestingModule({
-    controllers: [EvoucherController],
-    providers: [
-      { provide: EvoucherService, useValue: mockService },
-      { provide: CACHE_MANAGER, useValue: {} }, 
-    ],
-  }).compile();
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [EvoucherController],
+      providers: [
+        { provide: EvoucherService, useValue: mockService },
+        { provide: CACHE_MANAGER, useValue: {} },
+      ],
+    }).compile();
     controller = module.get<EvoucherController>(EvoucherController);
     service = module.get<EvoucherService>(EvoucherService);
   });
@@ -99,21 +101,23 @@ beforeEach(async () => {
     });
   });
 
+
   describe('getAvailableEvouchers', () => {
     it('should use user._id if present', async () => {
-      const req = { user: { _id: 'user-id' } } as any;
+      const req = { user: { _id: 'user-id' } } as FastifyRequest & { user: { _id: string } };
       const result = await controller.getAvailableEvouchers(req);
       expect(result).toEqual([mockEvoucher]);
       expect(service.getPublicAvailableEvouchersForUser).toHaveBeenCalledWith('user-id');
     });
 
     it('should fallback to user.id if _id is not present', async () => {
-      const req = { user: { id: 'user-id-alt' } } as any;
+      const req = { user: { id: 'user-id-alt' } } as FastifyRequest & { user: { id: string } };
       const result = await controller.getAvailableEvouchers(req);
       expect(result).toEqual([mockEvoucher]);
       expect(service.getPublicAvailableEvouchersForUser).toHaveBeenCalledWith('user-id-alt');
     });
   });
+
 
   describe('update', () => {
     it('should update an evoucher by id', async () => {

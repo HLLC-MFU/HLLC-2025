@@ -41,7 +41,7 @@ describe('LamduanSettingService', () => {
       const dto = {
         tutorialPhoto: { 
           coverPhoto: 'lamduan.png' },
-        tutorialVideo: 'https://youtube.com/example',
+        tutorialVideo: 'https://youtube.com/wasan',
         startAt: new Date().toISOString(),
         endAt: new Date(Date.now() + 86400000).toISOString(),
       };

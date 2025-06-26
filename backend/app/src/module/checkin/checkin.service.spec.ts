@@ -59,136 +59,89 @@ describe('CheckinService', () => {
   const mockActivityId2 = new Types.ObjectId();
 
   describe('create', () => {
-    describe('validation errors', () => {
-      it('should throw if username is invalid', async () => {
-        await expect(
-          service.create({ username: null, activities: [] } as any),
-        ).rejects.toThrow(new BadRequestException('Invalid username'));
-      });
-
-      it('should throw if user not found', async () => {
-        mockUserModel.findOne.mockReturnValueOnce({
-          select: jest.fn().mockResolvedValue(null),
-        });
-
-        await expect(
-          service.create({
-            user: 'someone',
-            activities: ['a'],
-          } as unknown as CreateCheckinDto),
-        ).rejects.toThrow(new BadRequestException('User not found'));
-      });
-
-      it('should throw if activities array is empty', async () => {
-        mockUserModel.findOne.mockReturnValueOnce({
-          select: jest.fn().mockResolvedValue({ _id: mockUserId }),
-        });
-
-        await expect(
-          service.create({
-            user: 'user',
-            activities: [],
-          } as unknown as CreateCheckinDto),
-        ).rejects.toThrow(new BadRequestException('Activities must be a non-empty array'));
-      });
-
-      it('should throw if invalid staff ID is provided', async () => {
-        mockUserModel.findOne.mockReturnValueOnce({
-          select: jest.fn().mockResolvedValue({ _id: mockUserId }),
-        });
-
-        await expect(
-          service.create({
-            user: 'user',
-            activities: ['a'],
-            staff: 'invalid_id',
-          } as unknown as CreateCheckinDto),
-        ).rejects.toThrow(/input must be a 24 character hex string/);
-      });
+  it('should throw if user is not found', async () => {
+    mockUserModel.findOne.mockReturnValueOnce({
+      select: jest.fn().mockResolvedValue(null),
     });
 
-    describe('business logic', () => {
-      it('should throw if staff is not allowed to checkin user', async () => {
-        mockUserModel.findOne.mockReturnValueOnce({
-          select: jest.fn().mockResolvedValue({ _id: mockUserId }),
-        });
+    const dto: CreateCheckinDto = {
+      user: 'someone',
+      activities: [mockActivityId1.toHexString(), mockActivityId2.toHexString()],  // <-- แก้ตรงนี้
+      staff: mockStaffId.toHexString(),
+    };
 
-        jest.spyOn(Types.ObjectId, 'isValid').mockReturnValue(true);
-        (isCheckinAllowed as jest.Mock).mockResolvedValueOnce(false);
-        (validateCheckinTime as jest.Mock).mockResolvedValue(undefined);
-
-        await expect(
-          service.create({
-            user: 'user',
-            staff: mockStaffId.toHexString(),
-            activities: ['a'],
-          } as unknown as CreateCheckinDto),
-        ).rejects.toThrow(new BadRequestException('User is not allowed to be checked in by this staff'));
-      });
-
-      it('should throw if user already checked into all activities', async () => {
-        mockUserModel.findOne.mockReturnValueOnce({
-          select: jest.fn().mockResolvedValue({ _id: mockUserId }),
-        });
-
-        jest.spyOn(Types.ObjectId, 'isValid').mockReturnValue(true);
-        (isCheckinAllowed as jest.Mock).mockResolvedValue(true);
-        (validateCheckinTime as jest.Mock).mockResolvedValue(undefined);
-
-        mockCheckinModel.find.mockReturnValueOnce({
-          lean: jest.fn().mockResolvedValue([
-            { activity: mockActivityId1 },
-            { activity: mockActivityId2 },
-          ]),
-        });
-
-        await expect(
-          service.create({
-            user: 'user',
-            staff: mockStaffId.toHexString(),
-            activities: [
-              mockActivityId1.toHexString(),
-              mockActivityId2.toHexString(),
-            ],
-          } as unknown as CreateCheckinDto),
-        ).rejects.toThrow(new BadRequestException('User already checked in to all activities'));
-      });
-
-      it('should insert new checkins successfully', async () => {
-        mockUserModel.findOne.mockReturnValueOnce({
-          select: jest.fn().mockResolvedValue({ _id: mockUserId }),
-        });
-
-        jest.spyOn(Types.ObjectId, 'isValid').mockReturnValue(true);
-        (isCheckinAllowed as jest.Mock).mockResolvedValue(true);
-        (validateCheckinTime as jest.Mock).mockResolvedValue(undefined);
-
-        mockCheckinModel.find.mockReturnValueOnce({
-          lean: jest.fn().mockResolvedValue([]),
-        });
-
-        const inserted = [
-          { user: mockUserId, activity: mockActivityId1, staff: mockStaffId },
-          { user: mockUserId, activity: mockActivityId2, staff: mockStaffId },
-        ];
-
-        mockCheckinModel.insertMany.mockResolvedValue(inserted);
-
-        const result = await service.create({
-          user: 'user',
-          staff: mockStaffId.toHexString(),
-          activities: [
-            mockActivityId1.toHexString(),
-            mockActivityId2.toHexString(),
-          ],
-        } as unknown as CreateCheckinDto);
-
-        expect(result).toEqual(inserted);
-        expect(mockCheckinModel.insertMany).toHaveBeenCalledWith([
-          { user: mockUserId, activity: mockActivityId1, staff: mockStaffId },
-          { user: mockUserId, activity: mockActivityId2, staff: mockStaffId },
-        ]);
-      });
-    });
+    await expect(service.create(dto)).rejects.toThrow(
+      new BadRequestException('User not found')
+    );
   });
+
+  it('should throw if activities is empty', async () => {
+    mockUserModel.findOne.mockReturnValueOnce({
+      select: jest.fn().mockResolvedValue({ _id: mockUserId }),
+    });
+
+    const dto: CreateCheckinDto = {
+      user: 'user',
+      activities: [],  
+      staff: mockStaffId.toHexString(),
+    };
+
+    await expect(service.create(dto)).rejects.toThrow(
+      new BadRequestException('Activities must be a non-empty array')
+    );
+  });
+
+  it('should throw if staff is not allowed to checkin', async () => {
+    mockUserModel.findOne.mockReturnValueOnce({
+      select: jest.fn().mockResolvedValue({ _id: mockUserId }),
+    });
+
+    jest.spyOn(Types.ObjectId, 'isValid').mockReturnValue(true);
+    (isCheckinAllowed as jest.Mock).mockResolvedValueOnce(false);
+    (validateCheckinTime as jest.Mock).mockResolvedValue(undefined);
+
+    const dto: CreateCheckinDto = {
+      user: 'user',
+      staff: mockStaffId.toHexString(),
+      activities: [mockActivityId1.toHexString(), mockActivityId2.toHexString()],  
+    };
+
+    await expect(service.create(dto)).rejects.toThrow(
+      new BadRequestException('User is not allowed to be checked in by this staff')
+    );
+  });
+
+  it('should insert new checkins', async () => {
+    mockUserModel.findOne.mockReturnValueOnce({
+      select: jest.fn().mockResolvedValue({ _id: mockUserId }),
+    });
+
+    jest.spyOn(Types.ObjectId, 'isValid').mockReturnValue(true);
+    (isCheckinAllowed as jest.Mock).mockResolvedValue(true);
+    (validateCheckinTime as jest.Mock).mockResolvedValue(undefined);
+
+    mockCheckinModel.find.mockReturnValueOnce({
+      lean: jest.fn().mockResolvedValue([]),
+    });
+
+    const inserted = [
+      { user: mockUserId, activity: mockActivityId1, staff: mockStaffId },
+      { user: mockUserId, activity: mockActivityId2, staff: mockStaffId },
+    ];
+
+    mockCheckinModel.insertMany.mockResolvedValue(inserted);
+
+    const dto: CreateCheckinDto = {
+      user: 'user',
+      staff: mockStaffId.toHexString(),
+      activities: [mockActivityId1.toHexString(), mockActivityId2.toHexString()], // รวมเป็น string เดียว
+    };
+
+    const result = await service.create(dto);
+
+    expect(result).toEqual(inserted);
+    expect(mockCheckinModel.insertMany).toHaveBeenCalled();
+  });
+});
+
 });

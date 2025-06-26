@@ -6,7 +6,9 @@ import {
   KafkaMessage,
   EachMessagePayload,
   ConsumerRunConfig,
+  Logger,
 } from 'kafkajs';
+import { createMock } from '@golevelup/ts-jest';
 
 jest.mock('kafkajs');
 
@@ -25,8 +27,29 @@ describe('KafkaService', () => {
   let service: KafkaService;
   let mockConsumer: jest.Mocked<Consumer>;
 
+  // Mock logger object ให้ครบ interface Logger
+  const mockLogger: Logger = {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    setLogLevel: jest.fn(),
+    namespace: jest.fn(() => mockLogger),
+  };
+
+  beforeAll(() => {
+    // Mock Kafka class ที่จะถูก new ใน service
+    const KafkaMock = Kafka as jest.MockedClass<typeof Kafka>;
+    KafkaMock.mockImplementation(() => ({
+      consumer: () => mockConsumer,
+      producer: jest.fn(),
+      admin: jest.fn(),
+      logger: () => mockLogger,
+    }));
+  });
+
   beforeEach(async () => {
-    mockConsumer = {
+    mockConsumer = createMock<Consumer>({
       connect: jest.fn(),
       subscribe: jest.fn(),
       run: jest.fn(),
@@ -39,13 +62,12 @@ describe('KafkaService', () => {
       on: jest.fn(),
       commitOffsets: jest.fn(),
       paused: jest.fn(),
+      events: {
+        CONNECT: 'consumer.connect',
+        DISCONNECT: 'consumer.disconnect',
+      },
       logger: undefined,
-      events: {} as any,
-    } as unknown as jest.Mocked<Consumer>;
-
-    (Kafka as unknown as jest.Mock).mockImplementation(() => ({
-      consumer: () => mockConsumer,
-    }));
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [KafkaService],
