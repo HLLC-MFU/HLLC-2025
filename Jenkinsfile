@@ -7,6 +7,7 @@ pipeline {
         NEST_APP_DIR = "backend/app"
         GO_CHAT_APP_DIR = "backend/chat"
         K8S_BASE_DIR = "k8s"
+        PATH = "/opt/bun/bin:$PATH" // ให้มั่นใจว่า bun ใช้งานได้
     }
 
     stages {
@@ -21,7 +22,6 @@ pipeline {
 
                     if (actualBranch != expectedBranch) {
                         echo "--- SKIPPING DEPLOYMENT ---"
-                        echo "Pushed branch '${actualBranch}' does not match expected deployment branch '${expectedBranch}'."
                         currentBuild.result = 'ABORTED'
                         error "Pipeline aborted: Not the deployment branch."
                     } else {
@@ -35,9 +35,7 @@ pipeline {
             steps {
                 script {
                     def branchToBuild = env.BUILD_BRANCH ?: env.BRANCH_NAME ?: 'deployment'
-                    echo "Checking out source code for branch: ${branchToBuild}"
                     git branch: branchToBuild, url: 'https://github.com/HLLC-MFU/HLLC-2025.git'
-                    echo "Source code checkout complete."
                     sh "ls -l"
                 }
             }
@@ -47,19 +45,18 @@ pipeline {
             steps {
                 dir("${NEST_APP_DIR}") {
                     script {
-                        sh "echo 'Current working directory: ' \$(pwd)"
-                        sh "ls -la"
-                        sh "cat package.json || echo 'package.json not found'"
-
-                        echo "Running bun install and build **outside** Docker..."
+                        echo "Running bun install and build..."
                         sh "bun install --frozen-lockfile"
                         sh "bun run build"
 
-                        def nestAppImageTag = "${env.BUILD_NUMBER}"
-                        echo "Building Docker image: ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
-                        sh "docker build -t ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag} ."
-                        sh "docker push ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
-                        env.NEST_APP_IMAGE_TAG = nestAppImageTag
+                        def shortTag = env.GIT_COMMIT?.take(7) ?: env.BUILD_NUMBER
+                        def imageTag = "${DOCKER_REGISTRY}/nest-app:${shortTag}"
+
+                        echo "Building Docker image: ${imageTag}"
+                        sh "docker build -t ${imageTag} ."
+                        sh "docker push ${imageTag}"
+
+                        env.NEST_APP_IMAGE_TAG = shortTag
                     }
                 }
             }
@@ -69,7 +66,6 @@ pipeline {
             steps {
                 dir("${K8S_BASE_DIR}") {
                     script {
-                        echo "Creating shared secrets from Jenkins credentials..."
                         withCredentials([
                             string(credentialsId: 'JWT_SECRET', variable: 'JWT_SECRET'),
                             string(credentialsId: 'JWT_REFRESH_SECRET', variable: 'JWT_REFRESH_SECRET'),
@@ -91,6 +87,7 @@ pipeline {
                               MONGO_URI: \$(echo -n "${MONGO_URI}" | base64)
                             EOF
                             """
+
                             sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f common/shared-secrets.yaml"
                         }
 
@@ -100,8 +97,8 @@ pipeline {
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafka-k8s.yaml"
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafdrop-k8s.yaml"
 
-                        // Update image tag in deployment manifest
-                        sh "sed -i 's|image: ${DOCKER_REGISTRY}/nest-app:.*|image: ${DOCKER_REGISTRY}/nest-app:${NEST_APP_IMAGE_TAG}|' app/hllc2025-backend-app-deployment.yaml"
+                        // อัปเดต image tag ใน deployment
+                        sh "sed -i.bak 's|image: ${DOCKER_REGISTRY}/nest-app:.*|image: ${DOCKER_REGISTRY}/nest-app:${NEST_APP_IMAGE_TAG}|' app/hllc2025-backend-app-deployment.yaml"
 
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-deployment.yaml"
                         sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-service.yaml"
@@ -122,7 +119,10 @@ pipeline {
 
     post {
         always {
-            cleanWs()
+            script {
+                echo "Cleaning up workspace..."
+                deleteDir()
+            }
         }
     }
 }
