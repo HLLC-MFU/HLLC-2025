@@ -20,13 +20,19 @@ type (
 		Timestamp time.Time           `bson:"timestamp" json:"timestamp"`
 		StickerID *primitive.ObjectID `bson:"sticker_id,omitempty" json:"stickerId,omitempty"`
 		Image     string              `bson:"image,omitempty" json:"image,omitempty"`
+		
+		// Reactions field - NOT stored in database, only for response aggregation
+		Reactions []MessageReaction `bson:"-" json:"reactions,omitempty"`
 	}
 
 	MessageReaction struct {
-		MessageID primitive.ObjectID `bson:"message_id"`
-		UserID    primitive.ObjectID `bson:"user_id"`
-		Reaction  string             `bson:"reaction"`
-		Timestamp time.Time          `bson:"timestamp"`
+		MessageID primitive.ObjectID `bson:"message_id" json:"message_id"`
+		UserID    primitive.ObjectID `bson:"user_id" json:"user_id"`
+		Reaction  string             `bson:"reaction" json:"reaction"`
+		Timestamp time.Time          `bson:"timestamp" json:"timestamp"`
+		
+		// User data - populated when needed, not stored in database
+		User interface{} `bson:"-" json:"user,omitempty"`
 	}
 
 	ChatMessageEnriched struct {

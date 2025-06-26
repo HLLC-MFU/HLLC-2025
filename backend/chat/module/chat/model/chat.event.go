@@ -9,6 +9,7 @@ const (
     EventTypeReply      = "reply"
     EventTypeSticker    = "sticker"
     EventTypeReaction   = "reaction"
+    EventTypeMessageReactionUpdate = "message_reaction_update"
     EventTypeUserJoined = "user_joined"
     EventTypeUserLeft   = "user_left"
     EventTypeTyping     = "typing"

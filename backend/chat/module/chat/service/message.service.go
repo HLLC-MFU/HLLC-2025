@@ -26,6 +26,8 @@ func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, l
 			reactions, err := s.getMessageReactionsWithUsers(ctx, roomID, messages[i].ChatMessage.ID.Hex())
 			if err == nil {
 				messages[i].Reactions = reactions
+				// **NEW**: Also populate reactions into ChatMessage for direct access
+				messages[i].ChatMessage.Reactions = reactions
 				log.Printf("[ChatService] Refreshed %d reactions for cached message %s", len(reactions), messages[i].ChatMessage.ID.Hex())
 			} else {
 				log.Printf("[ChatService] Failed to refresh reactions for cached message %s: %v", messages[i].ChatMessage.ID.Hex(), err)
@@ -66,6 +68,8 @@ func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, l
 		reactions, err := s.getMessageReactionsWithUsers(ctx, roomID, msg.ID.Hex())
 		if err == nil {
 			enriched[i].Reactions = reactions
+			// **NEW**: Also populate reactions into ChatMessage for direct access
+			enriched[i].ChatMessage.Reactions = reactions
 		} else {
 			log.Printf("[ChatService] Failed to get reactions for message %s: %v", msg.ID.Hex(), err)
 		}

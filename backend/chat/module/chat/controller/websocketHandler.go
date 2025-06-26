@@ -85,10 +85,31 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			"timestamp": msg.ChatMessage.Timestamp,
 			}
 
-			// Add reactions if any
+			// **UPDATED: Always include reactions from database (real-time data)**
 			if len(msg.Reactions) > 0 {
-				payload["reactions"] = msg.Reactions
-		}
+				// Format reactions with user info
+				formattedReactions := make([]map[string]interface{}, 0, len(msg.Reactions))
+				for _, reaction := range msg.Reactions {
+					reactionData := map[string]interface{}{
+						"messageId": reaction.MessageID.Hex(),
+						"userId":    reaction.UserID.Hex(),
+						"reaction":  reaction.Reaction,
+						"timestamp": reaction.Timestamp,
+					}
+					
+					// Try to get user info for reaction
+					if reactionUser, err := h.chatService.GetUserById(ctx, reaction.UserID.Hex()); err == nil {
+						reactionData["user"] = map[string]interface{}{
+							"_id":      reactionUser.ID.Hex(),
+							"username": reactionUser.Username,
+							"name":     reactionUser.Name,
+						}
+					}
+					
+					formattedReactions = append(formattedReactions, reactionData)
+				}
+				payload["reactions"] = formattedReactions
+			}
 
 			// Add reply info if exists
 		if msg.ReplyTo != nil {

@@ -153,7 +153,7 @@ func (c *ChatController) handleLeaveRoom(ctx *fiber.Ctx) error {
 
 func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
 	roomID := ctx.Params("roomId")
-	
+
 	var stickerDto dto.SendStickerDto
 	if err := ctx.BodyParser(&stickerDto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -549,4 +549,3 @@ func (c *ChatController) emitUserLeftEvent(ctx context.Context, roomID primitive
 
 	return nil
 }
-

@@ -76,71 +76,85 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 			ID:    msg.StickerID.Hex(),
 			Image: msg.Image,
 		}
-		
-		payload := model.ChatStickerPayload{
-			BasePayload: model.BasePayload{
-				Room:      roomInfo,
-				User:      userInfo,
-				Timestamp: msg.Timestamp,
+
+		// Create payload without reactions (new messages don't have reactions yet)
+		manualPayload := map[string]interface{}{
+			"room": map[string]interface{}{
+				"_id": roomInfo.ID,
 			},
-			Message: messageInfo,
-			Sticker: stickerInfo,
+			"user": map[string]interface{}{
+				"_id":      userInfo.ID,
+				"username": userInfo.Username,
+				"name":     userInfo.Name,
+			},
+			"message": map[string]interface{}{
+				"_id":       messageInfo.ID,
+				"type":      messageInfo.Type,
+				"message":   messageInfo.Message,
+				"timestamp": messageInfo.Timestamp,
+			},
+			"sticker": map[string]interface{}{
+				"_id":   stickerInfo.ID,
+				"image": stickerInfo.Image,
+			},
+			"timestamp": msg.Timestamp,
 		}
 
 		event := model.Event{
 			Type:      eventType,
-			Payload:   payload,
+			Payload:   manualPayload,
 			Timestamp: msg.Timestamp,
 		}
 		
 		return e.emitEventStructured(ctx, msg, event)
 	} else {
 		// Text or reply message
-		payload := model.ChatMessagePayload{
-			BasePayload: model.BasePayload{
-				Room:      roomInfo,
-				User:      userInfo,
-				Timestamp: msg.Timestamp,
-			},
-			Message: messageInfo,
-		}
-
-		// Add reply information if this is a reply
+		// Get reply information if this is a reply
+		var replyToInfo *model.MessageInfo
 		if msg.ReplyToID != nil {
 			if replyToMsg, err := e.getReplyToMessage(ctx, *msg.ReplyToID); err == nil {
-				payload.ReplyTo = replyToMsg
+				replyToInfo = replyToMsg
+			}
+		}
+
+		// Create payload without reactions (new messages don't have reactions yet)
+		manualPayload := map[string]interface{}{
+			"room": map[string]interface{}{
+				"_id": roomInfo.ID,
+			},
+			"user": map[string]interface{}{
+				"_id":      userInfo.ID,
+				"username": userInfo.Username,
+				"name":     userInfo.Name,
+			},
+			"message": map[string]interface{}{
+				"_id":       messageInfo.ID,
+				"type":      messageInfo.Type,
+				"message":   messageInfo.Message,
+				"timestamp": messageInfo.Timestamp,
+			},
+			"timestamp": msg.Timestamp,
+		}
+
+		// Add reply info if exists
+		if replyToInfo != nil {
+			manualPayload["replyTo"] = map[string]interface{}{
+				"message": map[string]interface{}{
+					"_id":       replyToInfo.ID,
+					"message":   replyToInfo.Message,
+					"timestamp": replyToInfo.Timestamp,
+				},
 			}
 		}
 
 		event := model.Event{
 			Type:      eventType,
-			Payload:   payload,
+			Payload:   manualPayload,
 			Timestamp: msg.Timestamp,
 		}
 		
 		return e.emitEventStructured(ctx, msg, event)
 	}
-}
-
-func (e *ChatEventEmitter) emitEvent(ctx context.Context, msg *model.ChatMessage, event ChatEvent) error {
-	// Don't modify the event payload here - it's already been set correctly
-	
-	eventBytes, err := json.Marshal(event)
-	if err != nil {
-		return fmt.Errorf("failed to marshal event: %w", err)
-	}
-
-	e.hub.BroadcastEvent(event)
-
-	roomTopic := getRoomTopic(msg.RoomID.Hex())
-
-	if err := e.bus.Emit(ctx, roomTopic, msg.RoomID.Hex(), eventBytes); err != nil {
-		log.Printf("[WARN] Failed to emit to Kafka (continuing without Kafka): %v", err)
-		// Don't return error - continue without Kafka
-	}
-
-	log.Printf("[Kafka] Successfully published message ID=%s to topic %s", msg.ID.Hex(), roomTopic)
-	return nil
 }
 
 func (e *ChatEventEmitter) EmitReaction(ctx context.Context, reaction *model.MessageReaction, roomID primitive.ObjectID) error {
@@ -157,28 +171,47 @@ func (e *ChatEventEmitter) EmitReaction(ctx context.Context, reaction *model.Mes
 		action = "remove"
 	}
 
-	// Create simple reaction event (not batch - this is for real-time updates)
-	eventPayload := map[string]interface{}{
-		"messageId": reaction.MessageID.Hex(),
-		"user": map[string]interface{}{
-			"_id":      reaction.UserID.Hex(),
-			"username": userInfo.Username,
+	// **SIMPLIFIED: Just get updated reactions for this message (lighter query)**
+	reactionCollection := e.mongo.Collection("message_reactions")
+	cursor, err := reactionCollection.Find(ctx, bson.M{"message_id": reaction.MessageID})
+	if err != nil {
+		log.Printf("[ERROR] Failed to get updated reactions: %v", err)
+		return err
+	}
+	defer cursor.Close(ctx)
+
+	var updatedReactions []model.MessageReaction
+	if err = cursor.All(ctx, &updatedReactions); err != nil {
+		log.Printf("[ERROR] Failed to decode reactions: %v", err)
+		return err
+	}
+
+	// **NEW: Create lightweight reaction update event (no full message)**
+	reactionUpdateEvent := map[string]interface{}{
+		"type": "message_reaction_update",
+		"payload": map[string]interface{}{
+			"messageId": reaction.MessageID.Hex(),
+			"reactionUpdate": map[string]interface{}{
+				"action":    action,
+				"reaction":  reaction.Reaction,
+				"user": map[string]interface{}{
+					"_id":      userInfo.ID,
+					"username": userInfo.Username,
+					"name":     userInfo.Name,
+				},
+			},
+			"reactions": updatedReactions, // All current reactions for this message
+			"room": map[string]interface{}{
+				"_id": roomID.Hex(),
+			},
+			"timestamp": reaction.Timestamp,
 		},
-		"reaction":  reaction.Reaction,
-		"action":    action,
 		"timestamp": reaction.Timestamp,
 	}
 
-	// Create event structure
-	event := model.Event{
-		Type:      model.EventTypeReaction,
-		Payload:   eventPayload,
-		Timestamp: reaction.Timestamp,
-	}
-
-	eventBytes, err := json.Marshal(event)
+	eventBytes, err := json.Marshal(reactionUpdateEvent)
 	if err != nil {
-		return fmt.Errorf("failed to marshal reaction event: %w", err)
+		return fmt.Errorf("failed to marshal reaction update event: %w", err)
 	}
 
 	// Broadcast to WebSocket clients
@@ -187,10 +220,10 @@ func (e *ChatEventEmitter) EmitReaction(ctx context.Context, reaction *model.Mes
 	// Emit to Kafka
 	roomTopic := getRoomTopic(roomID.Hex())
 	if err := e.bus.Emit(ctx, roomTopic, roomID.Hex(), eventBytes); err != nil {
-		log.Printf("[WARN] Failed to emit reaction to Kafka (continuing without Kafka): %v", err)
+		log.Printf("[WARN] Failed to emit reaction update to Kafka (continuing without Kafka): %v", err)
 	}
 
-	log.Printf("[Kafka] Successfully published reaction event to topic %s", roomTopic)
+	log.Printf("[Kafka] Successfully published lightweight reaction update to topic %s", roomTopic)
 	return nil
 }
 
@@ -356,32 +389,5 @@ func (e *ChatEventEmitter) emitEventStructured(ctx context.Context, msg *model.C
 	}
 
 	log.Printf("[Kafka] Successfully published structured event type=%s to topic %s", event.Type, roomTopic)
-	return nil
-}
-
-func (e *ChatEventEmitter) emitReactionEvent(ctx context.Context, roomID primitive.ObjectID, payload model.ChatReactionPayload) error {
-	// Create proper Event structure
-	event := model.Event{
-		Type:      model.EventTypeReaction,
-		Payload:   payload,
-		Timestamp: payload.Timestamp,
-	}
-
-	eventBytes, err := json.Marshal(event)
-	if err != nil {
-		return fmt.Errorf("failed to marshal reaction event: %w", err)
-	}
-
-	// Broadcast directly to room instead of using BroadcastEvent
-	e.hub.BroadcastToRoom(roomID.Hex(), eventBytes)
-
-	// Emit to Kafka
-	roomTopic := getRoomTopic(roomID.Hex())
-	if err := e.bus.Emit(ctx, roomTopic, roomID.Hex(), eventBytes); err != nil {
-		log.Printf("[WARN] Failed to emit reaction to Kafka (continuing without Kafka): %v", err)
-		// Don't return error - continue without Kafka
-	}
-
-	log.Printf("[Kafka] Successfully published reaction event type=%s to topic %s", event.Type, roomTopic)
 	return nil
 }
