@@ -47,39 +47,56 @@ func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config,
 	}
 }
 
+// ดึง list room จาก cache
 func (s *RoomService) GetRooms(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.Room], error) {
+
+	// ตรวจสอบว่า filter มีค่าไหม
 	if opts.Filter == nil {
 		opts.Filter = make(map[string]interface{})
 	}
+
+	// ดึง list room จาก database
 	return s.FindAll(ctx, opts)
 }
 
+// ดึง room จาก cache
 func (s *RoomService) GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*model.Room, error) {
+
+	// ดึง room จาก cache
 	if room, err := s.cache.GetRoom(ctx, roomID.Hex()); err == nil && room != nil {
 		return room, nil
 	}
 
+	// ดึง room จาก database
 	room, err := s.FindOneById(ctx, roomID.Hex())
 	if err != nil {
 		return nil, err
 	}
 
+	// บันทึก room ลง cache
 	result := &room.Data[0]
 	if err := s.cache.SaveRoom(ctx, result); err != nil {
 		log.Printf("[WARN] Failed to cache room: %v", err)
 	}
+
+	// คืนค่า room
 	return result, nil
 }
 
+// สร้าง room
 func (s *RoomService) CreateRoom(ctx context.Context, createDto *dto.CreateRoomDto) (*model.Room, error) {
+
+	// ตรวจสอบว่า createDto มีค่าไหม (**ทำ lib เอาไว้**)
 	if err := validator.ValidateStruct(createDto); err != nil {
 		return nil, fmt.Errorf("validation error: %w", err)
 	}
 
+	// ตรวจสอบว่า members มีค่าไหม
 	if err := s.validateMembers(ctx, createDto); err != nil {
 		return nil, err
 	}
 
+	// สร้าง room dto
 	r := &model.Room{
 		Name:      createDto.Name,
 		Capacity:  createDto.Capacity,
@@ -89,74 +106,104 @@ func (s *RoomService) CreateRoom(ctx context.Context, createDto *dto.CreateRoomD
 		Members:   roomUtils.ConvertToObjectIDs(createDto.Members),
 	}
 
+	// สร้าง room ลงใน database
 	resp, err := s.Create(ctx, *r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create room: %w", err)
 	}
 
+	// บันทึก room ลง cache
 	created := &resp.Data[0]
 	s.handleRoomCreated(ctx, created)
 	return created, nil
 }
 
+// อัพเดต room
 func (s *RoomService) UpdateRoom(ctx context.Context, id string, room *model.Room) (*model.Room, error) {
+
+	// อัพเดต room
 	room.UpdatedAt = time.Now()
+
+	// อัพเดต room ลงใน database
 	resp, err := s.UpdateById(ctx, id, *room)
 	if err != nil {
 		return nil, err
 	}
 
+	// บันทึก room ลง cache
 	updated := &resp.Data[0]
 	s.cache.SaveRoom(ctx, updated)
 	return updated, nil
 }
 
+// ลบ room
 func (s *RoomService) DeleteRoom(ctx context.Context, id string) (*model.Room, error) {
+
+	// ลบ room จาก database
 	room, err := s.DeleteById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
+	// ลบ room จาก cache
 	deleted := &room.Data[0]
 	s.handleRoomDeleted(ctx, deleted)
 	return deleted, nil
 }
 
+// ตรวจสอบว่ามี user นั้นอยู่ใน room หรือไม่
 func (s *RoomService) IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+
+	// ดึง room จาก cache มา check
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return false, err
 	}
+
+	// แปลง userID เป็น ObjectID
 	uid, _ := primitive.ObjectIDFromHex(userID)
+
+	// ตรวจสอบว่ามี user นั้นอยู่ใน room หรือไม่
 	return roomUtils.ContainsMember(room.Members, uid), nil
 }
 
+// ตรวจสอบว่ามี user นั้นอยู่ใน room และมี connection นั้นอยู่ใน room หรือไม่ (สำคัญ) 
 func (s *RoomService) ValidateAndTrackConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+
+	// ดึง room จาก cache มา check
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return fmt.Errorf("room not found: %w", err)
 	}
 
+	// ตรวจสอบว่ามี user นั้นอยู่ใน room หรือไม่
 	if isMember, err := s.IsUserInRoom(ctx, roomID, userID); err != nil || !isMember {
 		return fmt.Errorf("user is not a member of this room")
 	}
 
+	// ตรวจสอบว่ามี connection นั้นอยู่ใน room หรือไม่
 	if count, err := s.cache.GetActiveConnectionsCount(ctx, roomID.Hex()); err == nil && count >= int64(room.Capacity) {
 		return fmt.Errorf("room is at capacity: %d/%d", count, room.Capacity)
 	}
 
+	// บันทึก connection ลง cache
 	return s.cache.TrackConnection(ctx, roomID.Hex(), userID)
 }
 
+// ดึงข้อมูลของ room
 func (s *RoomService) GetRoomStatus(ctx context.Context, roomID primitive.ObjectID) (map[string]interface{}, error) {
+
+	// ดึง room จาก cache
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return nil, err
 	}
 
+	// ดึงจำนวน connection จาก cache
 	activeCount, _ := s.cache.GetActiveConnectionsCount(ctx, roomID.Hex())
 	activeUsers, _ := s.cache.GetActiveUsers(ctx, roomID.Hex())
 
+	// คืนค่า room status
 	return map[string]interface{}{
 		"roomId":      roomID.Hex(),
 		"capacity":    room.Capacity,
@@ -167,196 +214,241 @@ func (s *RoomService) GetRoomStatus(ctx context.Context, roomID primitive.Object
 	}, nil
 }
 
-// Helper methods
+// ตรวจสอบว่ามี user นั้นอยู่ใน room หรือไม่
 func (s *RoomService) validateMembers(ctx context.Context, createDto *dto.CreateRoomDto) error {
+
+	// ตรวจสอบว่ามี user นั้นอยู่ใน room หรือไม่
 	if err := s.fkValidator.ValidateForeignKey(ctx, "users", createDto.CreatedBy); err != nil {
 		return fmt.Errorf("foreign key validation error: %w", err)
 	}
 
+	// ตรวจสอบว่ามี user นั้นอยู่ใน room หรือไม่
 	for i, memberID := range createDto.Members {
+
+		// ตรวจสอบ foreign key มีค่าไหมตรงกับที่ reference ไหม
 		if err := s.fkValidator.ValidateForeignKey(ctx, "users", memberID); err != nil {
 			return fmt.Errorf("invalid member at index %d: %w", i, err)
 		}
 	}
+
+	// คืนค่าเป็นสำเร็จ
 	return nil
 }
 
+// บันทึก room ลง cache
 func (s *RoomService) handleRoomCreated(ctx context.Context, room *model.Room) {
+
+	// บันทึก room ลง cache
 	if err := s.cache.SaveRoom(ctx, room); err != nil {
 		log.Printf("[WARN] Failed to cache new room: %v", err)
 	}
+
+	// สร้าง topic สำหรับ room
 	if err := s.eventEmitter.EnsureRoomTopic(ctx, room.ID); err != nil {
 		log.Printf("[WARN] Failed to create Kafka topic for room: %v", err)
 	}
 }
 
+// ลบ room จาก cache
 func (s *RoomService) handleRoomDeleted(ctx context.Context, room *model.Room) {
+
+	// ลบ room จาก cache
 	if err := s.cache.DeleteRoom(ctx, room.ID.Hex()); err != nil {
 		log.Printf("[WARN] Failed to delete room from cache: %v", err)
 	}
+
+	// ลบ topic สำหรับ room
 	if err := s.eventEmitter.DeleteRoomTopic(ctx, room.ID); err != nil {
 		log.Printf("[WARN] Failed to delete Kafka topic for room: %v", err)
 	}
 }
 
+// ลบ user จาก room
 func (s *RoomService) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (*model.Room, error) {
+
+	// แปลง userID เป็น ObjectID
 	uid, _ := primitive.ObjectIDFromHex(userID)
+
+	// ดึง room จาก cache
 	r, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return nil, err
 	}
 
+	// ลบ user จาก room
 	r.Members = roomUtils.RemoveMember(r.Members, uid)
 	r.UpdatedAt = time.Now()
+
+	// อัพเดต room ลงใน database
 	resp, err := s.UpdateById(ctx, roomID.Hex(), *r)
 	if err != nil {
 		return nil, err
 	}
 
+	// บันทึก room ลง cache
 	updated := &resp.Data[0]
-	
+
+	// บันทึก room ลง cache
 	if err := s.cache.SaveRoom(ctx, updated); err != nil {
 		log.Printf("[WARN] Failed to update room cache after removing member: %v", err)
 	}
 
+	// คืนค่า room
 	return updated, err
 }
 
+// ลบ connection จาก cache
 func (s *RoomService) RemoveConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+
+	// ลบ connection จาก cache
 	if err := s.cache.RemoveConnection(ctx, roomID.Hex(), userID); err != nil {
 		log.Printf("[WARN] Failed to remove connection: %v", err)
 	}
 	return nil
 }
 
+// นับจำนวน connection ใน room
 func (s *RoomService) GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID) (int64, error) {
 	return s.cache.GetActiveConnectionsCount(ctx, roomID.Hex())
 }
 
+// เพิ่ม user ลง room
 func (s *RoomService) AddUserToRoom(ctx context.Context, roomID, userID string) error {
+
+	// แปลง roomID เป็น ObjectID
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
 		return fmt.Errorf("invalid room ID: %w", err)
 	}
 
+	// ดึง room จาก cache
 	room, err := s.GetRoomById(ctx, roomObjID)
 	if err != nil {
 		return fmt.Errorf("failed to get room: %w", err)
 	}
 
+	// แปลง userID เป็น ObjectID
 	userObjID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	// Check if user is already in room
+	// ตรวจสอบว่ามี user นั้นอยู่ใน room หรือไม่
 	for _, member := range room.Members {
 		if member == userObjID {
-			return nil // User is already in room
+			return nil // มี user นั้นอยู่ใน room แล้ว
 		}
 	}
 
+	// เพิ่ม user ลง room
 	room.Members = append(room.Members, userObjID)
 	room.UpdatedAt = time.Now()
 
+	// อัพเดต room ลงใน database
 	if _, err := s.UpdateById(ctx, roomID, *room); err != nil {
 		return fmt.Errorf("failed to update room: %w", err)
 	}
 
+	// บันทึก room ลง cache
 	if err := s.cache.SaveRoom(ctx, room); err != nil {
 		log.Printf("[WARN] Failed to update room cache after adding member: %v", err)
 	}
 
+	// ส่ง event ไปยัง topic สำหรับ room_member_joined
 	s.eventEmitter.EmitRoomMemberJoined(ctx, roomObjID, userObjID)
 
 	return nil
 }
 
-// JoinRoom allows a user to join a room with capacity check and broadcast
+// เข้า room (** Broadcast เท่านั้น ไม่มี Kafka หรือ db มาเกี่ยวข้อง **)
 func (s *RoomService) JoinRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
-	// Get room to check capacity and current members
+
+	// ดึง room จาก cache
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return fmt.Errorf("room not found: %w", err)
 	}
 
+	// แปลง userID เป็น ObjectID
 	userObjID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	// Check if user is already in room
+	// ตรวจสอบว่ามี user นั้นอยู่ใน room หรือไม่
 	if roomUtils.ContainsMember(room.Members, userObjID) {
 		return fmt.Errorf("user is already a member of this room")
 	}
 
-	// Check capacity
+	// ตรวจสอบว่ามี capacity หรือไม่
 	if len(room.Members) >= room.Capacity {
 		return fmt.Errorf("room is at full capacity (%d/%d)", len(room.Members), room.Capacity)
 	}
 
-	// Add user to room members
+	// เพิ่ม user ลง room members
 	room.Members = append(room.Members, userObjID)
 	room.UpdatedAt = time.Now()
 
-	// Update room in database
+	// อัพเดต room ลงใน database
 	if _, err := s.UpdateById(ctx, roomID.Hex(), *room); err != nil {
 		return fmt.Errorf("failed to update room: %w", err)
 	}
 
-	// Update cache
+	// บันทึก room ลง cache
 	if err := s.cache.SaveRoom(ctx, room); err != nil {
 		log.Printf("[WARN] Failed to update room cache after adding member: %v", err)
 	}
 
-	// Broadcast user joined event to active connections only (no Kafka, no persistence)
-	s.broadcastUserJoined(ctx, roomID.Hex(), userID)
+	// ส่ง event ไปยัง topic สำหรับ room_member_joined
+	s.broadcastUserJoined(roomID.Hex(), userID)
 
 	log.Printf("[Room] User %s successfully joined room %s (%d/%d)", userID, roomID.Hex(), len(room.Members), room.Capacity)
 	return nil
 }
 
-// LeaveRoom allows a user to leave a room and broadcasts the event
+// เข้า room (** Broadcast เท่านั้น ไม่มี Kafka หรือ db มาเกี่ยวข้อง **)
 func (s *RoomService) LeaveRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+
+	// แปลง userID เป็น ObjectID
 	userObjID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	// Get room
+	// ดึง room จาก cache
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return fmt.Errorf("room not found: %w", err)
 	}
 
-	// Check if user is in room
+	// ตรวจสอบว่ามี user นั้นอยู่ใน room หรื
 	if !roomUtils.ContainsMember(room.Members, userObjID) {
 		return fmt.Errorf("user is not a member of this room")
 	}
 
-	// Remove user from room members
+	// ลบ user จาก room members
 	room.Members = roomUtils.RemoveMember(room.Members, userObjID)
 	room.UpdatedAt = time.Now()
 
-	// Update room in database
+	// อัพเดต room ลงใน database
 	if _, err := s.UpdateById(ctx, roomID.Hex(), *room); err != nil {
 		return fmt.Errorf("failed to update room: %w", err)
 	}
 
-	// Update cache
+	// บันทึก room ลง cache
 	if err := s.cache.SaveRoom(ctx, room); err != nil {
 		log.Printf("[WARN] Failed to update room cache after removing member: %v", err)
 	}
 
-	// Broadcast user left event to active connections only (no Kafka, no persistence)
-	s.broadcastUserLeft(ctx, roomID.Hex(), userID)
+	// ส่ง event ไปยัง topic สำหรับ room_member_left
+	s.broadcastUserLeft(roomID.Hex(), userID)
 
 	log.Printf("[Room] User %s successfully left room %s (%d/%d)", userID, roomID.Hex(), len(room.Members), room.Capacity)
 	return nil
 }
 
-// broadcastUserJoined broadcasts user joined event only to active WebSocket connections
-func (s *RoomService) broadcastUserJoined(ctx context.Context, roomID, userID string) {
+// ส่ง event ไปยัง topic สำหรับ room_member_joined
+func (s *RoomService) broadcastUserJoined(roomID, userID string) {
 	event := map[string]interface{}{
 		"type": "user_joined",
 		"payload": map[string]interface{}{
@@ -379,8 +471,8 @@ func (s *RoomService) broadcastUserJoined(ctx context.Context, roomID, userID st
 	log.Printf("[Broadcast] User joined event sent to room %s (WebSocket only)", roomID)
 }
 
-// broadcastUserLeft broadcasts user left event only to active WebSocket connections
-func (s *RoomService) broadcastUserLeft(ctx context.Context, roomID, userID string) {
+// ส่ง event ไปยัง topic สำหรับ room_member_left
+func (s *RoomService) broadcastUserLeft(roomID, userID string) {
 	event := map[string]interface{}{
 		"type": "user_left",
 		"payload": map[string]interface{}{
@@ -391,14 +483,14 @@ func (s *RoomService) broadcastUserLeft(ctx context.Context, roomID, userID stri
 		"timestamp": time.Now(),
 	}
 
-	// Marshal event to JSON
+	// แปลง event เป็น JSON
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		log.Printf("[ERROR] Failed to marshal user_left event: %v", err)
 		return
 	}
 
-	// Broadcast only to active WebSocket connections in the room
+	// ส่ง event ไปยัง topic สำหรับ room_member_left
 	s.hub.BroadcastToRoom(roomID, eventBytes)
 	log.Printf("[Broadcast] User left event sent to room %s (WebSocket only)", roomID)
 }

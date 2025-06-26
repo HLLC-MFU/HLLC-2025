@@ -17,7 +17,7 @@ type (
 		CreatedBy   primitive.ObjectID            `bson:"createdBy" json:"createdBy"`
 		CreatedAt   time.Time         `bson:"createdAt" json:"createdAt"`
 		UpdatedAt   time.Time         `bson:"updatedAt" json:"updatedAt"`
-		Image       string             `bson:"image,omitempty" json:"image,omitempty"` // Base64 encoded image, max 256KB
+		Image       string             `bson:"image,omitempty" json:"image,omitempty"`
 	}
 
 	RoomEvent struct {

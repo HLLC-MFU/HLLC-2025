@@ -168,7 +168,6 @@ func (c *RoomController) JoinRoom(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Convert room ID to ObjectID
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -177,7 +176,6 @@ func (c *RoomController) JoinRoom(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Join the room
 	if err := c.service.JoinRoom(ctx.Context(), roomObjID, joinDto.UserID); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -206,7 +204,6 @@ func (c *RoomController) LeaveRoom(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Convert room ID to ObjectID
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -214,8 +211,7 @@ func (c *RoomController) LeaveRoom(ctx *fiber.Ctx) error {
 			"message": "Invalid room ID",
 		})
 	}
-
-	// Leave the room
+	
 	if err := c.service.LeaveRoom(ctx.Context(), roomObjID, leaveDto.UserID); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,

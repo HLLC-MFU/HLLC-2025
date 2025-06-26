@@ -26,7 +26,7 @@ func ValidateUserID(userID primitive.ObjectID, context string) bool {
 	return true
 }
 
-// helper สำหรับ marshal พร้อม log error
+// ฟังก์ชันช่วย marshal พร้อม log error
 func MustMarshal(value any, context string) ([]byte, bool) {
 	data, err := json.Marshal(value)
 	if err != nil {
@@ -36,28 +36,12 @@ func MustMarshal(value any, context string) ([]byte, bool) {
 	return data, true
 }
 
-// log error และ return ทันทีใน emit event
+// บันทึก error และ return ทันทีใน emit event
 func EmitErrorLog(ctx context.Context, label string, err error) {
 	log.Printf("[Kafka] Failed to emit %s: %v", label, err)
 }
 
-// This's one will be used in service to merge members ** Do not touch it**
-func MergeMembers(existing []primitive.ObjectID, new []primitive.ObjectID) []primitive.ObjectID {
-	set := make(map[primitive.ObjectID]struct{})
-	for _, m := range existing {
-		set[m] = struct{}{}
-	}
-	for _, n := range new {
-		set[n] = struct{}{}
-	}
-	merged := make([]primitive.ObjectID, 0, len(set))
-	for id := range set {
-		merged = append(merged, id)
-	}
-	return merged
-}
-
-// This's one will be used in service to remove members ** Do not touch it**
+// นี่คือฟังก์ชันที่จะใช้ใน service เพื่อลบ members ** อย่าสังเขปมัน **
 func RemoveMember(existing []primitive.ObjectID, target primitive.ObjectID) []primitive.ObjectID {
 	filtered := make([]primitive.ObjectID, 0, len(existing))
 	for _, member := range existing {
@@ -68,7 +52,7 @@ func RemoveMember(existing []primitive.ObjectID, target primitive.ObjectID) []pr
 	return filtered
 }
 
-// Convert string IDs to ObjectIDs
+// แปลง string IDs เป็น ObjectIDs
 func ConvertToObjectIDs(stringIDs []string) []primitive.ObjectID {
 	if len(stringIDs) == 0 {
 		return make([]primitive.ObjectID, 0)
@@ -81,7 +65,7 @@ func ConvertToObjectIDs(stringIDs []string) []primitive.ObjectID {
 	return objectIDs
 }
 
-// Check if a member exists in the list
+// ตรวจสอบว่ามี member นั้นอยู่ใน list หรือไม่
 func ContainsMember(members []primitive.ObjectID, target primitive.ObjectID) bool {
 	for _, member := range members {
 		if member == target {

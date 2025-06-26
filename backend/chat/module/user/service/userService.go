@@ -32,7 +32,6 @@ func (s *UserService) GetUsers(ctx context.Context, opts queries.QueryOptions) (
 		opts.Filter = make(map[string]interface{})
 	}
 
-	// สร้าง populate configs สำหรับ major เท่านั้น (school embedded อยู่ใน major แล้ว)
 	populateConfigs := []queries.NestedPopulateConfig{
 		{
 			Field:      "role",

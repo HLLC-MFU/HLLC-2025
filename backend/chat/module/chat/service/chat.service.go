@@ -19,7 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// Core service struct
 type ChatService struct {
 	*queries.BaseService[model.ChatMessage]
 	cache       *utils.ChatCacheService
@@ -32,8 +31,7 @@ type ChatService struct {
 	redis       *redis.Client
 	Config      *config.Config
 }
-
-// NewChatService creates a new chat service instance
+	
 func NewChatService(
 	db *mongo.Database,
 	redis *redis.Client,
@@ -42,12 +40,10 @@ func NewChatService(
 ) *ChatService {
 	collection := db.Collection("chat_messages")
 	
-	// Start Kafka bus
 	if err := kafkaBus.Start(); err != nil {
 		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)
 	}
 
-	// Create default topics
 	if err := kafka.CreateTopics([]string{
 		kafka.RoomEventsTopic,
 		kafka.ChatEventsTopic,
@@ -55,10 +51,8 @@ func NewChatService(
 		log.Printf("[ERROR] Failed to create default topics: %v", err)
 	}
 	
-	// Create hub
 	hub := utils.NewHub()
 
-	// Create emitter with hub, kafka bus, redis and mongo
 	emitter := utils.NewChatEventEmitter(hub, kafkaBus, redis, db)
 
 	return &ChatService{
@@ -75,12 +69,10 @@ func NewChatService(
 	}
 }
 
-// GetHub returns the hub instance for WebSocket management
 func (s *ChatService) GetHub() *utils.Hub {
 	return s.hub
 }
 
-// GetUserById returns user details by ID
 func (s *ChatService) GetUserById(ctx context.Context, userID string) (*userModel.User, error) {
 	userObjID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
@@ -100,7 +92,6 @@ func (s *ChatService) GetUserById(ctx context.Context, userID string) (*userMode
 	return &result.Data[0], nil
 }
 
-// GetMessageReactions gets reactions for a specific message
 func (s *ChatService) GetMessageReactions(ctx context.Context, roomID, messageID string) ([]model.MessageReaction, error) {
 	return s.getMessageReactionsWithUsers(ctx, roomID, messageID)
 }
