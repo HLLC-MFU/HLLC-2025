@@ -65,7 +65,7 @@ pipeline {
                                 # $HOME and $PATH are now interpreted by the shell, not Groovy.
                                 export PATH="$HOME/.bun/bin:$PATH" 
                                 
-                                bun --version || error('Bun installation failed. Please install Bun manually or check installation script issues.')
+                                bun --version || error
                             """
                             echo "Bun installed successfully."
                         }
