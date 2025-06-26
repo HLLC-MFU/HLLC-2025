@@ -40,32 +40,34 @@ pipeline {
                 }
             }
         }
-        stage('Check Environment') {
+        stage('Check Environment'){
             steps {
                 script {
-                    echo 'Checking environment...'
+                    sh "echo 'Checking environment...'"
 
-                    def bunInstalled = sh(script: 'command -v bun >/dev/null 2>&1 && echo true || echo false', returnStdout: true).trim()
-
-                    if (bunInstalled == 'true') {
-                        echo "bun is already installed: $(bun --version)"
-                    } else {
-                        echo "bun is not installed, installing bun..."
-                        // ติดตั้ง bun ตามคำสั่ง official
-                        sh '''
-                        curl -fsSL https://bun.sh/install | bash
-                        export BUN_INSTALL="$HOME/.bun"
-                        export PATH="$BUN_INSTALL/bin:$PATH"
-                        echo "bun installed: $(bun --version)"
-                        '''
+                    // Check and install Bun if not present
+                    script {
+                        try {
+                            sh "bun --version"
+                            echo "Bun is already installed."
+                        } catch (Exception e) {
+                            echo "Bun is not installed. Attempting to install Bun..."
+                            sh "curl -fsSL https://bun.sh/install | bash"
+                            // Add Bun to PATH for the current shell session if it's not automatically sourced
+                            // This often depends on the Jenkins agent's shell configuration.
+                            // A common approach is to source the bun env file, or explicitly add the install dir to PATH.
+                            // For simplicity, assuming bun's installer might modify a common profile, or the path for subsequent commands is inherited.
+                            // If not, you might need: sh "export PATH=\"$HOME/.bun/bin:$PATH\"" or similar.
+                            sh "bun --version || error('Bun installation failed. Please install Bun manually or check installation script issues.')"
+                            echo "Bun installed successfully."
+                        }
                     }
 
-                    // เช็คตัวอื่นๆ (go, docker, kubectl)
-                    sh "go version || echo 'Go is not installed, please install Go to proceed.'"
-                    sh "docker --version || echo 'Docker is not installed, please install Docker to proceed.'"
-                    sh "kubectl version --client || echo 'kubectl is not installed, please install kubectl to proceed.'"
-
-                    echo 'Environment check completed.'
+                    sh "node --version || error('Node.js is not installed, please install Node.js to proceed.')"
+                    sh "go version || error('Go is not installed, please install Go to proceed.')"
+                    sh "docker --version || error('Docker is not installed, please install Docker to proceed.')"
+                    sh "kubectl version --client || error('kubectl is not installed, please install kubectl to proceed.')"
+                    sh "echo 'Environment check completed.'"
                 }
             }
         }
