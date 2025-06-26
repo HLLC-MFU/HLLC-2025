@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/HLLC-MFU/HLLC-2025/backend/config"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -11,11 +12,13 @@ type Publisher interface {
 	SendMessage(topic, userID, message string) error
 }
 
-type publisherImpl struct{}
+type publisherImpl struct {
+	config *config.Config
+}
 
 func (p *publisherImpl) SendMessage(topic, userID, message string) error {
 	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  []string{"localhost:9092"},
+		Brokers:  []string{p.config.KafkaAddress()},
 		Topic:    "chat-room-" + topic,
 		Balancer: &kafka.LeastBytes{},
 	})

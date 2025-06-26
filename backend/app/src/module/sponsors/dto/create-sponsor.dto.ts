@@ -1,21 +1,30 @@
-import { IsMongoId, IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
+import {
+  IsMongoId,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { Types } from 'mongoose';
+import { Localization } from 'src/pkg/types/common';
 
-import { Localization, Photo } from "src/pkg/types/common";
 export class CreateSponsorDto {
+  @IsObject()
+  @IsNotEmpty()
+  name: Localization;
 
-    @IsNotEmpty()
-    @IsString()
-    name: Localization;
+  @IsString()
+  @IsNotEmpty()
+  logo: string;
 
-    @IsNotEmpty()
-    @IsObject()
-    photo: Photo;
+  @IsMongoId()
+  @IsNotEmpty()
+  type: Types.ObjectId;
 
-    @IsNotEmpty()
-    @IsMongoId()
-    type: string;
-
-    @IsObject()
-    @IsOptional()
-    metadata?: Record<string, string>;
+  @IsOptional()
+  @IsObject()
+  color: {
+    primary: string;
+    secondary: string;
+  };
 }

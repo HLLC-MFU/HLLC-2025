@@ -1,17 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
-  Card,
   Input,
-  Chip,
-  ScrollShadow,
   Button,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
+  ScrollShadow,
 } from '@heroui/react';
-import { Search, X, ChevronDown } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
-interface ScopeSelectorProps<T> {
+type ScopeSelectorProps<T> = {
   label: string;
   icon: React.ElementType;
   items: T[];
@@ -24,6 +19,8 @@ interface ScopeSelectorProps<T> {
   getName: (item: T) => string;
   getId: (item: T) => string;
   searchFields: (item: T) => (string | undefined)[];
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
 export function ScopeSelector<T>({
@@ -39,25 +36,18 @@ export function ScopeSelector<T>({
   getName,
   getId,
   searchFields,
+  searchQuery,
+  setSearchQuery,
 }: ScopeSelectorProps<T>) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim()) return items;
 
     return items.filter((item) =>
-      searchFields(item).some(
-        (field) =>
-          field && field.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
+      searchFields(item).some((field) =>
+        field?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
     );
   }, [items, searchQuery, searchFields]);
-
-  const selectedItemsData = useMemo(
-    () => items.filter((item) => selectedItems.includes(getId(item))),
-    [items, selectedItems, getId],
-  );
 
   return (
     <div className="flex flex-col gap-2">
@@ -66,99 +56,56 @@ export function ScopeSelector<T>({
         <span className="text-sm font-medium">{label}</span>
       </div>
 
-      <Popover 
-        isOpen={isOpen && !isDisabled} 
-        onOpenChange={(open) => !isDisabled && setIsOpen(open)}
-        placement="bottom"
-      >
-        <PopoverTrigger>
-          <Button
-            variant="flat"
-            className="w-full justify-between h-unit-12 px-3"
-            endContent={<ChevronDown className="text-default-500" size={16} />}
-            isDisabled={isDisabled}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-default-500">
-                {selectedItems.length
-                  ? `${selectedItems.length} selected`
-                  : placeholder}
-              </span>
-            </div>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[300px] p-0">
-          <Card className="w-full shadow-none border-none">
-            <div className="p-2 border-b">
-              <Input
-                value={searchQuery}
-                onValueChange={setSearchQuery}
-                placeholder="Search..."
-                size="sm"
-                startContent={<Search size={16} className="text-default-400" />}
-                endContent={
-                  searchQuery ? (
-                    <Button
-                      isIconOnly
-                      variant="light"
-                      size="sm"
-                      onPress={() => setSearchQuery('')}
-                    >
-                      <X size={14} />
-                    </Button>
-                  ) : null
-                }
-              />
-            </div>
-            <ScrollShadow className="max-h-[300px]">
-              <div className="p-2 flex flex-col gap-1">
-                {isLoading ? (
-                  <div className="p-2 text-center text-default-500">Loading...</div>
-                ) : filteredItems.length === 0 ? (
-                  <div className="p-2 text-center text-default-500">No items found</div>
-                ) : (
-                  filteredItems.map((item) => {
-                    const id = getId(item);
-                    const isSelected = selectedItems.includes(id);
-                    return (
-                      <Button
-                        key={id}
-                        className={`w-full justify-start h-unit-10 px-2 ${
-                          isSelected ? 'bg-primary/10 text-primary' : ''
-                        }`}
-                        variant={isSelected ? 'flat' : 'light'}
-                        onPress={() => {
-                          if (isSelected) {
-                            onRemove(id);
-                          } else {
-                            onSelect(id);
-                          }
-                        }}
-                      >
-                        {getName(item)}
-                      </Button>
-                    );
-                  })
-                )}
-              </div>
-            </ScrollShadow>
-          </Card>
-        </PopoverContent>
-      </Popover>
+      <Input
+        value={searchQuery}
+        onValueChange={setSearchQuery}
+        placeholder={placeholder}
+        size="sm"
+        isDisabled={isDisabled}
+        startContent={<Search size={16} className="text-default-400" />}
+        endContent={
+          searchQuery ? (
+            <Button
+              isIconOnly
+              variant="light"
+              size="sm"
+              onPress={() => setSearchQuery("")}
+            >
+              <X size={14} />
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="flex flex-wrap gap-1 min-h-[40px]">
-        {selectedItemsData.map((item) => (
-          <Chip
-            key={getId(item)}
-            onClose={() => !isDisabled && onRemove(getId(item))}
-            variant="flat"
-            size="sm"
-            isDisabled={isDisabled}
-          >
-            {getName(item)}
-          </Chip>
-        ))}
-      </div>
+      <ScrollShadow className="max-h-[250px] px-2 py-1">
+        {isLoading ? (
+          <div className="text-center text-default-500 py-2">Loading...</div>
+        ) : filteredItems.length === 0 ? (
+          <div className="text-center text-default-500 py-2">No users found</div>
+        ) : (
+          filteredItems.map((item) => {
+            const id = getId(item);
+            const isSelected = selectedItems.includes(id);
+            return (
+              <Button
+                key={id}
+                className={`w-full justify-start h-unit-10 px-2 ${isSelected ? 'bg-primary/10 text-primary' : ''
+                  }`}
+                variant={isSelected ? 'flat' : 'light'}
+                onPress={() => {
+                  if (isSelected) {
+                    onRemove(id);
+                  } else {
+                    onSelect(id);
+                  }
+                }}
+              >
+                {getName(item)}
+              </Button>
+            );
+          })
+        )}
+      </ScrollShadow>
     </div>
   );
-} 
+}

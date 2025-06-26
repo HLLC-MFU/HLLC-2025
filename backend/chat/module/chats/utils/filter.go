@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	censor "github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils/cencor"
+	censor "github.com/HLLC-MFU/HLLC-2025/backend/module/chats/utils/censor"
 )
 
 var badWords = append(censor.EnCensorWordsList,

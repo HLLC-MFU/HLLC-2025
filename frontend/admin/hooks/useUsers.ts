@@ -23,6 +23,24 @@ export function useUsers() {
         }
     };
 
+    //Fetch user by username
+    const fetchByUsername = async (username: string) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await apiRequest<{ data: User[] }>(`/users?username=${username}`, "GET");
+
+            setUsers(Array.isArray(res.data?.data) ? res.data.data : []);
+            return res.data?.data || [];
+        } catch (err: any) {
+            setError(err.message || "Failed to fetch users.");
+            return [];
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
     // Create new user
     const createUser = async (userData: Partial<User>) => {
         try {
@@ -125,7 +143,7 @@ export function useUsers() {
             } else {
                 setUsers((prev) => prev.filter((u) => !ids.includes(u._id)));
             }
-            
+
             return res;
         } catch (err: any) {
             setError(err.message || "Failed to delete user.");
@@ -143,6 +161,7 @@ export function useUsers() {
         loading,
         error,
         fetchUsers,
+        fetchByUsername,
         createUser,
         uploadUser,
         updateUser,

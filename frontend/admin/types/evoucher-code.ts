@@ -10,8 +10,8 @@ export enum EvoucherCodeStatus {
 export type EvoucherCode = {
     _id: string;
     code: string;
-    user?: User;
-    evoucher?: Evoucher;
+    user?: User | string;
+    evoucher?: Evoucher | string;
     isUsed: boolean;
     metadata: Record<string, string>;
     createdAt: string;

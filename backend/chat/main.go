@@ -18,10 +18,18 @@ import (
  */
 
 func main() {
+	// Load environment variables from .env file
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
+	log.Println("KAFKA_HOST:", os.Getenv("KAFKA_HOST"))
+
 	// Initialize context
 	ctx := context.Background()
 
-	// Load configuration from .env file
+	// Load configuration from environment
 	cfg := config.LoadConfig(".env")
 
 	// Connect to the database
@@ -34,14 +42,6 @@ func main() {
 
 	// Create server instance
 	srv := server.NewServer(cfg, db)
-
-	// Load environment variables from .env file
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
-
-	log.Println("JWT_SECRET:", os.Getenv("JWT_SECRET"))
 
 	// Start the server
 	if err := srv.Start(); err != nil {

@@ -1,0 +1,38 @@
+# k8s/hllc2025-backend-chat-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hllc2025-backend-chat-deployment # ชื่อ Deployment
+  labels:
+    app: hllc2025-backend-chat            # Label สำหรับ Deployment นี้
+spec:
+  replicas: 1 # จำนวน Pods ที่ต้องการให้รัน (สามารถปรับเป็น 2 หรือมากกว่าได้)
+  selector:
+    matchLabels:
+      app: hllc2025-backend-chat          # ต้องตรงกับ Label ใน Pod template
+  template:
+    metadata:
+      labels:
+        app: hllc2025-backend-chat        # Label ของ Pod
+    spec:
+      containers:
+      - name: hllc2025-backend-chat-container # ชื่อ Container
+        image: jemiezler/hllc2025-backend-chat:latest # <<--- Docker Image ของ Go Chat App
+        ports:
+        - containerPort: 8080 # <<--- พอร์ตที่ Go Chat App ฟังอยู่จริงๆ (เช่น 8080)
+        resources:
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+        envFrom: # กำหนด Environment Variables ที่ต้องการ
+        - configMapRef:
+            name: shared-config # <<--- ชื่อ ConfigMap ที่เก็บ Environment Variables
+        - secretRef:
+            name: shared-secrets # <<--- ชื่อ Secret ที่เก็บข้อมูลลับ
+        - configMapRef:
+            name: chat-config # <<--- ชื่อ ConfigMap สำหรับ Redis (ถ้ามี)
+        - secretRef:
+            name: chat-secrets # <<--- ชื่อ Secret สำหรับ Redis (ถ้ามี)

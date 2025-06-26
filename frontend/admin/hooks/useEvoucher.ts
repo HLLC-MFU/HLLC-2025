@@ -27,66 +27,66 @@ export function useEvoucher() {
         }
     };
 
-   // Create evoucher code
-   const createEvoucher = async (evoucherData: FormData): Promise<ApiResponse<{ data: Evoucher }>> => {
-    setLoading(true);
-    try {
-        const res = await apiRequest<{ data: Evoucher }>("/evoucher", "POST", evoucherData);
-        const newEvoucher = res.data?.data;
-        if (newEvoucher) {
-            setEvouchers(prev => [...prev, newEvoucher]);
+    // Create evoucher code
+    const createEvoucher = async (evoucherData: FormData) => {
+        try {
+            setLoading(true);
+            const res = await apiRequest<{ data: Evoucher }>("/evoucher", "POST", evoucherData);
+            const newEvoucher = res.data?.data;
+            if (newEvoucher) {
+                setEvouchers(prev => [...prev, newEvoucher]);
+            }
+            return res;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to create evoucher.';
+            setError(errorMessage);
+            throw new Error(errorMessage);
+        } finally {
+            setLoading(false);
         }
-        return res;
-    } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to create evoucher.';
-        setError(errorMessage);
-        throw new Error(errorMessage);
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
-// Update evoucher code
-const updateEvoucher = async (evoucherId: string, evoucherData: FormData): Promise<ApiResponse<{ data: Evoucher }>> => {
-    setLoading(true);
-    try {
-        const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "PATCH", evoucherData);
-        const updatedEvoucher = res.data?.data;
-        if (updatedEvoucher) {
-            setEvouchers(prev => 
-                prev.map(evoucher => 
-                    evoucher._id === evoucherId ? updatedEvoucher : evoucher
-                )
-            );
+    // Update evoucher code
+    const updateEvoucher = async (evoucherId: string, evoucherData: FormData) => {
+        try {
+            setLoading(true);
+            const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "PATCH", evoucherData);
+            const updatedEvoucher = res.data?.data;
+            if (updatedEvoucher) {
+                setEvouchers(prev =>
+                    prev.map(evoucher =>
+                        evoucher._id === evoucherId ? updatedEvoucher : evoucher
+                    )
+                );
+            }
+            return res;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to update evoucher.';
+            setError(errorMessage);
+            throw new Error(errorMessage);
+        } finally {
+            setLoading(false);
         }
-        return res;
-    } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to update evoucher.';
-        setError(errorMessage);
-        throw new Error(errorMessage);
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
-// Delete evoucher code
-const deleteEvoucher = async (evoucherId: string): Promise<ApiResponse<{ data: Evoucher }>> => {
-    setLoading(true);
-    try {
-        const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "DELETE");
-        const deletedEvoucher = res.data?.data;
-        if (deletedEvoucher) {
-            setEvouchers(prev => prev.filter(evoucher => evoucher._id !== evoucherId));
+    // Delete evoucher code
+    const deleteEvoucher = async (evoucherId: string): Promise<ApiResponse<{ data: Evoucher }>> => {
+        setLoading(true);
+        try {
+            const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "DELETE");
+            const deletedEvoucher = res.data?.data;
+            if (deletedEvoucher) {
+                setEvouchers(prev => prev.filter(evoucher => evoucher._id !== evoucherId));
+            }
+            return res;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to delete evoucher.';
+            setError(errorMessage);
+            throw new Error(errorMessage);
+        } finally {
+            setLoading(false);
         }
-        return res;
-    } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to delete evoucher.';
-        setError(errorMessage);
-        throw new Error(errorMessage);
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
     useEffect(() => {
         fetchEvouchers();

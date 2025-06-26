@@ -18,7 +18,7 @@ import { MajorModal } from './_components/MajorModal';
 import { SchoolDetailSkeleton } from './_components/SchoolDetailSkeleton';
 
 import { useSchools } from '@/hooks/useSchool';
-import { Major } from '@/types/school';
+import { Major } from '@/types/major';
 
 export default function SchoolDetailPage() {
 	const { id } = useParams<{ id: string }>();

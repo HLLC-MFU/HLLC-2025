@@ -15,19 +15,13 @@ import {
   Appearance,
   AppearanceDocument,
 } from '../appearances/schemas/apprearance.schema';
-import {
-  Interfaces,
-  InterfacesDocument,
-} from '../interfaces/schema/interfaces.schema';
-
 @Injectable()
 export class SchoolsService {
   constructor(
-    @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
+    @InjectModel(School.name)
+    private schoolModel: Model<SchoolDocument>,
     @InjectModel(Appearance.name)
     private AppearanceModel: Model<AppearanceDocument>,
-    @InjectModel(Interfaces.name)
-    private InterfacesModel: Model<InterfacesDocument>,
   ) {}
 
   async create(createSchoolDto: CreateSchoolDto) {
@@ -71,17 +65,9 @@ export class SchoolsService {
     };
   }
 
-  async findColor(schoolId: string, query: Record<string, string>) {
+  async findAppearance(schoolId: string, query: Record<string, string>) {
     return queryFindOne<Appearance>(
       this.AppearanceModel,
-      { school: schoolId },
-      [{ path: 'school' }],
-    );
-  }
-
-  async findInterfaces(schoolId: string) {
-    return queryFindOne<Interfaces>(
-      this.InterfacesModel,
       { school: schoolId },
       [{ path: 'school' }],
     );

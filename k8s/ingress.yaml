@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hllc-mfu-ac-th-ingress
+  annotations:
+    # Annotation สำหรับ Nginx Ingress Controller เพื่อ Rewrite Path
+    # จะเปลี่ยน Path ที่มี Prefix (เช่น /2025/something) ให้เหลือแค่ /something ก่อนส่งให้ Backend App
+    nginx.ingress.kubernetes.io/rewrite-target: /$2 
+    # หาก Backend App คาดหวัง Path เต็ม (เช่น /2025/api) และคุณไม่ต้องการ Rewrite
+    # คุณสามารถคอมเมนต์บรรทัดข้างบนแล้วใช้ Path ใน Rule ให้ตรงกับ Backend ได้เลย
+spec:
+  ingressClassName: nginx # <<--- บอกให้ Kubernetes ใช้ Nginx Ingress Controller
+  rules:
+  # --- Rule สำหรับ hllc.mfu.ac.th ---
+  - host: hllc.mfu.ac.th # <--- Domain หลักของคุณ (ต้องตรงกับ server_name ใน Nginx Host Config)
+    http:
+      paths:
+      # Rule สำหรับ NestJS App: รับ Request ที่ hllc.mfu.ac.th/2025/
+      # Nginx Host Proxy มาที่นี่ (path: /2025/)
+      - path: /2025/api(/|$)(.*) # <--- ใช้ Regular Expression เพื่อจับ Path /2025/ และส่วนที่เหลือ
+        pathType: ImplementationSpecific # <--- ต้องใช้สำหรับ Regex Path
+        backend:
+          service:
+            name: backend-app-service # <<--- ชี้ไปที่ Service ของ NestJS App (backend-app-service.yaml)
+            port:
+              number: 8080 # <<--- พอร์ตของ NestJS Service (port ใน Service YAML)
+      
+      # Rule สำหรับ Go Chat App: รับ Request ที่ hllc.mfu.ac.th/2025/chat
+      - path: /2025/chat(/|$)(.*) # <--- ใช้ Regular Expression
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: go-chat-service # <<--- ชี้ไปที่ Service ของ Go Chat App (backend-chat-service.yaml)
+            port:
+              number: 8080 # <<--- พอร์ตของ Go Chat Service (port ใน Service YAML)

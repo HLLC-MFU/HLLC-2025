@@ -66,7 +66,6 @@ export const siteConfig: {
       items: [
         { label: "Settings", href: "/settings", icon: SettingsIcon, permission: "system:read" },
         { label: "Appearance", href: "/appearance", icon: Palette, permission: "appearance:read" },
-        { label: "Interfaces", href: "/interfaces", icon: MonitorSmartphone, permission: "interface:read" },
       ],
     },
     {

@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
-import { SponsorsService } from './sponsors.service';
-import { SponsorsController } from './sponsors.controller';
-import { SponsorsSchema } from './schema/sponsors.schema';
+import { SponsorsController } from './controllers/sponsors.controller';
+import { SponsorsService } from './services/sponsors.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Sponsors } from './schema/sponsors.schema';
-import { SponsorsType } from '../sponsors-type/schema/sponsors-type.schema';
-import { SponsorsTypeSchema } from '../sponsors-type/schema/sponsors-type.schema';
+import { Sponsors, SponsorsSchema } from './schemas/sponsors.schema';
+import {
+  SponsorsType,
+  SponsorsTypeSchema,
+} from './schemas/sponsors-type.schema';
 
 @Module({
   imports: [
@@ -20,8 +21,8 @@ import { SponsorsTypeSchema } from '../sponsors-type/schema/sponsors-type.schema
       },
     ]),
   ],
-  exports: [MongooseModule],
   controllers: [SponsorsController],
   providers: [SponsorsService],
+  exports: [SponsorsService],
 })
 export class SponsorsModule {}

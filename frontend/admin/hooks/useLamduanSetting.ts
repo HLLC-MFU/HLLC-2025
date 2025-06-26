@@ -1,4 +1,4 @@
-import { LamduanSetting } from "@/types/lamduan-setting";
+import { LamduanSetting } from "@/types/lamduan-flowers";
 import { apiRequest } from "@/utils/api";
 import { addToast } from "@heroui/react";
 import { useEffect, useState } from "react";
@@ -22,6 +22,26 @@ export function useLamduanSetting() {
                     ? (err as { message?: string }).message || 'Failed to fetch lamduan setting.'
                     : 'Failed to fetch lamduan setting.',
             );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const createLamduanSetting = async (settingData: FormData) => {
+        try {
+            setLoading(true);
+
+            const res = await apiRequest<LamduanSetting>('/lamduan-setting', 'POST' , settingData);
+
+            if(res.data) {
+                setLamduanSetting((prev) => [...prev, res.data as LamduanSetting]);
+                addToast({ 
+                    title: "Setting created successfully", 
+                    color: "success" });
+            }
+            return res;
+        } catch (err : any) {
+            setError(err.message || 'Failed to update lamduan setting.');
         } finally {
             setLoading(false);
         }
@@ -89,6 +109,7 @@ export function useLamduanSetting() {
         lamduanSetting,
         loading,
         error,
+        createLamduanSetting,
         updateLamduanSetting,
         fetchLamduanSetting,
         deleteLamduanSetting,
