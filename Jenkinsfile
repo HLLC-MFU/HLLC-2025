@@ -44,9 +44,12 @@ pipeline {
             steps {
                 script {
                     dir("${NEST_APP_DIR}") {
-                        sh 'bun install --frozen-lockfile'
-                        sh 'bun run build'
-
+                        sh '''
+                        docker run --rm -v $(pwd):/app -w /app oven/bun:latest bash -c "
+                            bun install --frozen-lockfile && \
+                            bun run build
+                        "
+                        '''
                         def nestAppImageTag = "${env.BUILD_NUMBER}"
                         sh "docker build -t ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag} ."
                         sh "docker push ${DOCKER_REGISTRY}/nest-app:${nestAppImageTag}"
