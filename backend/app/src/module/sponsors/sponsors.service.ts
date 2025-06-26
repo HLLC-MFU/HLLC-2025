@@ -9,7 +9,7 @@ import { SponsorsType } from '../sponsors-type/schema/sponsors-type.schema';
 import { SponsorsTypeDocument } from '../sponsors-type/schema/sponsors-type.schema';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { queryAll, queryFindOne } from 'src/pkg/helper/query.util';
-import { EvoucherCode } from '../evoucher/schema/evoucher-code.schema';
+import { EvoucherCode } from '../evouchers/schemas/evoucher-code.schema';
 
 @Injectable()
 export class SponsorsService {
@@ -19,8 +19,8 @@ export class SponsorsService {
     @InjectModel(SponsorsType.name)
     private sponsorsTypeModel: Model<SponsorsTypeDocument>,
     @InjectModel(EvoucherCode.name)
-    private evoucherCodeModel: Model<EvoucherCode>
-  ) { }
+    private evoucherCodeModel: Model<EvoucherCode>,
+  ) {}
 
   async create(createSponsorDto: CreateSponsorDto) {
     await findOrThrow(
@@ -74,15 +74,19 @@ export class SponsorsService {
     return await this.sponsorsModel.findByIdAndDelete(_id);
   }
 
-  async findEvoucherCodesBySponsorId(sponsorId: string, query: Record<string, string>) {
-    const res = await this.evoucherCodeModel.find(query)
+  async findEvoucherCodesBySponsorId(
+    sponsorId: string,
+    query: Record<string, string>,
+  ) {
+    const res = await this.evoucherCodeModel
+      .find(query)
       .populate({
         path: 'evoucher',
         match: { sponsors: new Types.ObjectId(sponsorId) },
-        populate: { path: 'sponsors' }
+        populate: { path: 'sponsors' },
       })
       .populate('user')
-      .then(results => results.filter(code => code.evoucher));
-    return res
+      .then((results) => results.filter((code) => code.evoucher));
+    return res;
   }
 }

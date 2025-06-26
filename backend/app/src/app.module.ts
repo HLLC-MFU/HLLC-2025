@@ -37,6 +37,7 @@ import { CoinCollectionsModule } from './module/coin-collections/coin-collection
 import { MapsModule } from './module/coin-collections/maps.module';
 import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
 import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
+import { EvouchersModule } from './module/evouchers/evouchers.module';
 
 @Module({
   imports: [
@@ -91,7 +92,8 @@ import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.m
     CoinCollectionsModule,
     MapsModule,
     LamduanFlowersModule,
-    LamduanSettingModule
+    LamduanSettingModule,
+    EvouchersModule,
   ],
   providers: [
     {
@@ -104,4 +106,4 @@ import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.m
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

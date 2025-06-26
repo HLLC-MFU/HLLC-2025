@@ -1,0 +1,247 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { Accordion, AccordionItem, Button, Skeleton } from '@heroui/react';
+import { ArrowLeft, BadgeDollarSign, Plus } from 'lucide-react';
+import SponsorTable from './_components/SponsorTable';
+import { useSponsors } from '@/hooks/useSponsors';
+import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
+import { Sponsors } from '@/types/sponsors';
+import { useSponsorsType } from '@/hooks/useSponsorsType';
+import { PageHeader } from '@/components/ui/page-header';
+import AddSponsorTypeModal from './_components/AddSponsorTypeModal';
+import { useRouter } from 'next/navigation';
+
+export default function SponsorPage() {
+  const router = useRouter();
+  const [isTypeOpen, setIsTypeOpen] = useState(false);
+  const [searchQueries, setSearchQueries] = useState<Record<string, string>>(
+    {},
+  );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedSponsor, setSelectedSponsor] = useState<
+    Sponsors | Partial<Sponsors>
+  >();
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [confirmationModalType, setConfirmationModalType] = useState<
+    'delete' | 'edit' | null
+  >(null);
+
+  const {
+    sponsors,
+    loading: sponsorsLoading,
+    createSponsors,
+    updateSponsors,
+    deleteSponsors,
+    fetchSponsors,
+  } = useSponsors();
+
+  const { sponsorsType, createSponsorsType } = useSponsorsType();
+
+  const groupedSponsors = useMemo(() => {
+    const groups: Record<string, Sponsors[]> = {};
+
+    sponsorsType.forEach((type) => {
+      groups[type.name] = [];
+    });
+
+    sponsors?.forEach((s) => {
+      const typeName =
+        typeof s.type === 'object' && s.type !== null && 'name' in s.type
+          ? (s.type as { name: string }).name
+          : s.type || 'Unknown';
+
+      if (!groups[typeName]) groups[typeName] = [];
+      groups[typeName].push(s);
+    });
+
+    return groups;
+  }, [sponsors, sponsorsType]);
+
+  const handleSearchQueryChange = (type: string, value: string) => {
+    setSearchQueries((prev) => ({ ...prev, [type]: value }));
+  };
+
+  const getFilteredSortedSponsors = (
+    sponsors: Sponsors[],
+    type: string,
+  ): Sponsors[] => {
+    let filtered = [...sponsors];
+    const search = searchQueries[type]?.toLowerCase() ?? '';
+
+    if (search.trim() !== '') {
+      filtered = filtered.filter(
+        (s) =>
+          s.name?.en?.toLowerCase().includes(search) ||
+          s.name?.th?.toLowerCase().includes(search),
+      );
+    }
+
+    return filtered;
+  };
+
+  const handleAddSponsor = () => {
+    setModalMode('add');
+    setSelectedSponsor(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleEditSponsor = (sponsor: Sponsors) => {
+    setModalMode('edit');
+    setSelectedSponsor(sponsor);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteSponsor = (sponsor: Sponsors) => {
+    setSelectedSponsor(sponsor);
+    setConfirmationModalType('delete');
+  };
+
+  const handleSubmitSponsor = async (sponsorsData: FormData) => {
+    let response;
+
+    if (modalMode === 'add') {
+      response = await createSponsors(sponsorsData);
+    } else if (modalMode === 'edit' && selectedSponsor?._id) {
+      response = updateSponsors(selectedSponsor._id, sponsorsData);
+    }
+
+    setIsModalOpen(false);
+    if (response) await fetchSponsors();
+  };
+
+  const handleConfirm = async () => {
+    if (selectedSponsor?._id) {
+      await deleteSponsors(selectedSponsor._id);
+      await fetchSponsors();
+    }
+    setConfirmationModalType(null);
+    setSelectedSponsor(undefined);
+  };
+
+  const handleAddType = async (type: { name: string }) => {
+    await createSponsorsType(type);
+    setIsTypeOpen(false);
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <div className="container mx-auto">
+        <PageHeader
+          description="Manage sponsor"
+          icon={<BadgeDollarSign />}
+          right={
+            <div className="w-full sm:w-auto">
+              <Button
+                color="primary"
+                endContent={<Plus size={20} />}
+                size="lg"
+                onPress={() => setIsTypeOpen(true)}
+              >
+                New sponsor type
+              </Button>
+            </div>
+          }
+          title="Sponsor"
+        />
+        <div className="flex items-center gap-4 w-full mx-auto mb-4">
+          <Button
+            variant="flat"
+            size="lg"
+            startContent={<ArrowLeft className="w-4 h-4" />}
+            onPress={() => router.back()}
+            className="hover:bg-gray-100 transition-colors mb-2"
+          >
+            Back
+          </Button>
+        </div>
+
+        <div className="flex flex-col gap-6">
+          <Accordion className="p-0" variant="splitted">
+            {sponsorsLoading
+              ? Array.from({ length: 3 }).map((_, index) => (
+                  <AccordionItem
+                    key={`skeleton-${index}`}
+                    aria-label={`Loading ${index}`}
+                    title={
+                      <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
+                    }
+                  >
+                    <Skeleton className="h-[100px] w-full bg-gray-100 rounded-md" />
+                  </AccordionItem>
+                ))
+              : Object.entries(groupedSponsors).map(([type, sponsors]) => {
+                  const filtered = getFilteredSortedSponsors(sponsors, type);
+
+                  return (
+                    <AccordionItem
+                      key={type}
+                      aria-label={type}
+                      subtitle={
+                        <p className="flex">
+                          Total sponsors:{' '}
+                          <span className="text-primary ml-1">
+                            {sponsors.length}
+                          </span>
+                        </p>
+                      }
+                      title={`${type}`}
+                    >
+                      <SponsorTable
+                        handleSubmitSponsor={handleSubmitSponsor}
+                        isModalOpen={isModalOpen}
+                        modalMode={modalMode}
+                        selectedSponsor={selectedSponsor}
+                        sponsorTypes={sponsorsType}
+                        sponsors={filtered}
+                        type={type}
+                        onClose={() => setIsModalOpen(false)}
+                        onDelete={handleDeleteSponsor}
+                        onEdit={handleEditSponsor}
+                        onToggleShow={(s) => {
+                          const formData = new FormData();
+
+                          formData.append('isShow', String(!s.isShow));
+                          updateSponsors(s._id, formData);
+                        }}
+                      />
+
+                      {filtered.length === 0 && !sponsorsLoading && (
+                        <p className="text-center text-sm text-default-500">
+                          No sponsors found. Please add a new sponsor.
+                        </p>
+                      )}
+                    </AccordionItem>
+                  );
+                })}
+          </Accordion>
+        </div>
+      </div>
+
+      <AddSponsorTypeModal
+        isOpen={isTypeOpen}
+        onClose={() => setIsTypeOpen(false)}
+        onAddType={handleAddType}
+      />
+
+      <ConfirmationModal
+        body={
+          confirmationModalType === 'edit'
+            ? `Are you sure you want to save the changes for "${selectedSponsor?.name?.en}"?`
+            : `Are you sure you want to delete the sponsor "${selectedSponsor?.name?.en}"? This action cannot be undone.`
+        }
+        confirmColor={confirmationModalType === 'edit' ? 'primary' : 'danger'}
+        confirmText={confirmationModalType === 'edit' ? 'Save' : 'Delete'}
+        isOpen={confirmationModalType !== null}
+        title={
+          confirmationModalType === 'edit' ? 'Save Sponsor' : 'Delete Sponsor'
+        }
+        onClose={() => {
+          setConfirmationModalType(null);
+          setSelectedSponsor(undefined);
+        }}
+        onConfirm={handleConfirm}
+      />
+    </div>
+  );
+}
