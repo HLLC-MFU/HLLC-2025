@@ -4,8 +4,8 @@ pipeline {
     environment {
         DOCKER_REGISTRY = 'jemiezler'
         KUBE_CONFIG_FILE = "/home/jenkins/.kube/config"
-        NEST_APP_DIR = "app"
-        GO_CHAT_APP_DIR = "chat"
+        NEST_APP_DIR = "backend/app"
+        GO_CHAT_APP_DIR = "backend/chat"
         K8S_BASE_DIR = "k8s"
     }
 
@@ -45,7 +45,7 @@ pipeline {
                 script {
                     dir("${NEST_APP_DIR}") {
                         sh '''
-                        docker run --rm -v $(pwd):/backend/app -w /backend/app oven/bun:latest bash -c "
+                        docker run --rm -v $(pwd):/app -w /app oven/bun:latest bash -c "
                             bun install --frozen-lockfile && \
                             bun run build
                         "
