@@ -52,12 +52,6 @@ pipeline {
                             echo "Bun is already installed."
                         } catch (Exception e) {
                             echo "Bun is not installed. Attempting to install Bun..."
-                            sh "curl -fsSL https://bun.sh/install | bash"
-                            // Add Bun to PATH for the current shell session if it's not automatically sourced
-                            // This often depends on the Jenkins agent's shell configuration.
-                            // A common approach is to source the bun env file, or explicitly add the install dir to PATH.
-                            // For simplicity, assuming bun's installer might modify a common profile, or the path for subsequent commands is inherited.
-                            // If not, you might need: sh "export PATH=\"$HOME/.bun/bin:$PATH\"" or similar.
                             sh """
                                 bash -c 'curl -fsSL https://bun.sh/install | bash'
                                 
@@ -87,11 +81,8 @@ pipeline {
                         sh '''
                             export PATH=$HOME/.bun/bin:$PATH
                             bun install --frozen-lockfile
-                            bun run build
+                            bun run build --verbose
                         '''
-                        sh "bun install --frozen-lockfile"
-                        sh "bun run build"
-
                         def shortTag = env.GIT_COMMIT?.take(7) ?: env.BUILD_NUMBER
                         def imageTag = "${DOCKER_REGISTRY}/nest-app:${shortTag}"
 
