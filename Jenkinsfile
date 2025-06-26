@@ -84,6 +84,7 @@ pipeline {
                 dir("${NEST_APP_DIR}") {
                     script {
                         echo "Running bun install and build..."
+                        sh "source ~/.bashrc"
                         sh "bun install --frozen-lockfile"
                         sh "bun run build"
 
