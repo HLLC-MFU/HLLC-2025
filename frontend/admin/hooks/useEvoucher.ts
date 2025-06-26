@@ -14,6 +14,7 @@ export function useEvoucher() {
         setError(null);
         try {
             const res = await apiRequest<{ data: Evoucher[] }>("/evoucher?limit=0", "GET");
+            
             setEvouchers(Array.isArray(res.data?.data) ? res.data.data : []);
             return res;
         } catch (err) {
@@ -29,8 +30,8 @@ export function useEvoucher() {
 
     // Create evoucher code
     const createEvoucher = async (evoucherData: FormData) => {
+        setLoading(true);
         try {
-            setLoading(true);
             const res = await apiRequest<{ data: Evoucher }>("/evoucher", "POST", evoucherData);
             const newEvoucher = res.data?.data;
             if (newEvoucher) {
@@ -48,8 +49,8 @@ export function useEvoucher() {
 
     // Update evoucher code
     const updateEvoucher = async (evoucherId: string, evoucherData: FormData) => {
+        setLoading(true);
         try {
-            setLoading(true);
             const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "PATCH", evoucherData);
             const updatedEvoucher = res.data?.data;
             if (updatedEvoucher) {

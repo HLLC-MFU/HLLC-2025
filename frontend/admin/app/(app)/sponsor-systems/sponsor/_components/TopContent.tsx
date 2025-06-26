@@ -1,39 +1,36 @@
-import {
-  PlusIcon,
-  SearchIcon,
-} from "lucide-react";
-import {
-  Button,
-  Input,
-} from "@heroui/react";
+import { PlusIcon, SearchIcon } from 'lucide-react';
+import { Button, Input } from '@heroui/react';
 
 interface TopContentProps {
-  searchQuery: string;
-  onSearchQueryChange: (value: string) => void;
-  onAddSponsor: () => void;
+  filterValue: string;
+  onSearchChange: (value: string) => void;
+  onAdd: () => void;
+  onClear: () => void;
 }
 
 export function TopContent({
-  searchQuery,
-  onSearchQueryChange,
-  onAddSponsor,
+  filterValue,
+  onSearchChange,
+  onAdd,
+  onClear,
 }: TopContentProps) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex justify-between gap-3 items-end">
         <Input
           isClearable
-          className="w-full"
+          className="w-full sm:max-w-[44%]"
           placeholder="Search sponsors..."
-          startContent={<SearchIcon className="text-default-400" />}
-          value={searchQuery}
-          onValueChange={onSearchQueryChange}
+          startContent={<SearchIcon />}
+          value={filterValue}
+          onValueChange={onSearchChange}
+          onClear={onClear}
         />
         <Button
           className="flex-1 sm:flex-none"
           color="primary"
           endContent={<PlusIcon />}
-          onPress={onAddSponsor}
+          onPress={onAdd}
         >
           Add Sponsor
         </Button>

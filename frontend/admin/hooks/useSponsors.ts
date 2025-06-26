@@ -38,7 +38,6 @@ export function useSponsors() {
       return [];
     }
 
-    setLoading(true);
     setError(null);
     try {
       const res = await apiRequest<{ data: EvoucherCode[] }>(`/sponsors/${id}/evoucher-codes`);
@@ -46,16 +45,13 @@ export function useSponsors() {
     } catch (err: any) {
       setError(err.message || 'Failed to fetch evoucher codes.');
       return [];
-    } finally {
-      setLoading(false);
     }
   };
 
   // Create sponsor
   const createSponsors = async (sponsorData: FormData) => {
+    setLoading(true);
     try {
-      setLoading(true);
-
       const res = await apiRequest<Sponsors>('/sponsors', 'POST', sponsorData);
 
       if (res.data) {
@@ -85,8 +81,8 @@ export function useSponsors() {
 
     sponsorsData.delete('_id');
 
+    setLoading(true);
     try {
-      setLoading(true);
       const res = await apiRequest<Sponsors>(
         `/sponsors/${id}`,
         'PATCH',
@@ -109,8 +105,8 @@ export function useSponsors() {
 
 
   const deleteSponsors = async (id: string): Promise<void> => {
+    setLoading(true);
     try {
-      setLoading(true);
       const res = await apiRequest(`/sponsors/${id}`, 'DELETE');
 
       if (res.statusCode === 200) {

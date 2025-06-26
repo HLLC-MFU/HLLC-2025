@@ -7,7 +7,8 @@ import {
   DropdownMenu,
   DropdownTrigger,
 } from '@heroui/react';
-import { EllipsisVertical, Pen, Trash } from 'lucide-react';
+import { EllipsisVertical, ImageIcon, Pen, Trash } from 'lucide-react';
+import { useState } from 'react';
 
 export type SponsorColumnKey = 'logo' | 'name' | 'type' | 'display' | 'actions';
 
@@ -24,30 +25,38 @@ export default function SponsorCellRenderer({
   onEdit,
   onDelete,
 }: SponsorCellRendererProps) {
+  const [imgError, setImgError] = useState(false);
+
+  if (!sponsor.photo || imgError) {
+    return (
+      <div className="flex justify-center items-center h-20 w-20 border border-default-300 rounded">
+        <ImageIcon className="text-gray-500"/>
+      </div>
+    );
+  }
+  
   switch (columnKey) {
     case 'logo':
-      return sponsor.photo ? (
+      return sponsor.photo && (
         <img
           src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.photo}`}
           alt={sponsor.name.en}
-          className="rounded border border-default-300 bg-white"
+          className="w-20 h-20 rounded border border-default-300"
           height={64}
           width={64}
-          onError={(e) => ((e.target as HTMLImageElement).src = '')}
+          onError={() => setImgError(true)}
         />
-      ) : (
-        <span className="text-default-500 italic bg-blue">No Logo</span>
       );
     case 'name':
       return (
         <div className="flex flex-col">
-          <div className="flex text-sm text-default-900 gap-2">
-            <label className="font-medium text-default-400">EN :</label>
-            <label>{sponsor.name.en}</label>
+          <div className="flex text-sm text-default-900 gap-1">
+            <span className="font-medium text-default-400">EN :</span>
+            <span>{sponsor.name.en}</span>
           </div>
-          <div className="flex text-sm text-default-900 gap-2">
-            <label className="font-medium text-default-400">TH :</label>
-            <label>{sponsor.name.th}</label>
+          <div className="flex text-sm text-default-900 gap-1">
+            <span className="font-medium text-default-400">TH :</span>
+            <span>{sponsor.name.th}</span>
           </div>
         </div>
       );

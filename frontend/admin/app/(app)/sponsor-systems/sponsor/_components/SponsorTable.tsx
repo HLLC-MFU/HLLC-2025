@@ -24,18 +24,19 @@ interface SponsorTableProps {
   onClose: () => void;
   modalMode: 'edit' | 'add';
   selectedSponsor?: Sponsors | Partial<Sponsors>;
-  handleSubmitSponsor: (sponsorData: FormData) => void;
   sponsors: Sponsors[];
+  onAdd: () => void;
   onEdit: (s: Sponsors) => void;
   onDelete: (s: Sponsors) => void;
   onToggleShow: (s: Sponsors) => void;
+  handleSubmitSponsor: (sponsorData: FormData) => void;
 }
 
 const COLUMNS = [
   { name: 'LOGO', uid: 'logo' },
-  { name: 'SPONSOR NAME', uid: 'name', sortable: true },
+  { name: 'SPONSOR NAME', uid: 'name' },
   { name: 'TYPE', uid: 'type' },
-  { name: 'DISPLAY', uid: 'display', sortable: true },
+  { name: 'DISPLAY', uid: 'display' },
   { name: 'ACTIONS', uid: 'actions' },
 ];
 
@@ -46,10 +47,11 @@ export default function SponsorTable({
   isModalOpen,
   modalMode,
   selectedSponsor,
-  handleSubmitSponsor,
+  onAdd,
   onEdit,
   onDelete,
   onClose,
+  handleSubmitSponsor,
 }: SponsorTableProps) {
   const [filterValue, setFilterValue] = useState('');
   const [page, setPage] = useState(1);
@@ -57,6 +59,8 @@ export default function SponsorTable({
     column: 'name',
     direction: 'ascending',
   });
+  const hasSearchFilter = Boolean(filterValue);
+  const rowsPerPage = 5;
 
   const handleSearch = (value: string) => {
     setFilterValue(value);
@@ -69,56 +73,25 @@ export default function SponsorTable({
   };
 
   const filteredItems = useMemo(() => {
-    const query = filterValue.toLowerCase();
-    return sponsors.filter(
-      (sponsor) =>
-        sponsor.photo.toLowerCase().includes(query) ||
-        sponsor.name.en.toLowerCase().includes(query) ||
-        sponsor.type.name.toString().includes(query) ||
-        sponsor.isShow.toString().includes(query),
-    );
+    let filteredSponsors = [...(sponsors ?? [])];
+
+    if (hasSearchFilter) {
+      filteredSponsors = sponsors.filter(
+        (sponsor) =>
+          sponsor.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
+          sponsor.name.th.toLowerCase().includes(filterValue.toLowerCase()) ||
+          sponsor.type.name.toLowerCase().includes(filterValue.toLowerCase()),
+      );
+    }
+    return filteredSponsors;
   }, [sponsors, filterValue]);
 
-  const sortedSponsors = useMemo(() => {
-    return [...sponsors].sort((a, b) => {
-      const col = sortDescriptor.column;
-
-      const getValue = (sponsor: Sponsors) => {
-        switch (col) {
-          case 'name':
-            return sponsor.name.en.toLowerCase();
-          case 'type':
-            return sponsor.type.name.toLowerCase();
-          case 'display':
-            return sponsor.isShow ? 1 : 0;
-          default:
-            return '';
-        }
-      };
-
-      const firstValue = getValue(a);
-      const secondValue = getValue(b);
-
-      let comparisonResult = 0;
-
-      if (firstValue < secondValue) {
-        comparisonResult = -1;
-      } else if (firstValue > secondValue) {
-        comparisonResult = 1;
-      }
-
-      return sortDescriptor.direction === 'descending'
-        ? -comparisonResult
-        : comparisonResult;
-    });
-  }, [filteredItems, sortDescriptor]);
-
-  const rowsPerPage = 5;
-
-  const pagedItems = useMemo(() => {
+  const sponsorItems = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
-    return sortedSponsors.slice(start, start + rowsPerPage);
-  }, [sortedSponsors, page]);
+    const end = start + rowsPerPage;
+
+    return filteredItems.slice(start, end);
+  }, [page, filteredItems, rowsPerPage]);
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
@@ -136,14 +109,6 @@ export default function SponsorTable({
     [onEdit, onDelete],
   );
 
-  // <SponsorFilters
-  //   searchQuery={searchQueries[type] ?? ''}
-  //   onAddSponsor={handleAddSponsor}
-  //   onSearchQueryChange={(v) =>
-  //     handleSearchQueryChange(type, v)
-  //   }
-  // />
-
   return (
     <>
       <Table
@@ -151,13 +116,14 @@ export default function SponsorTable({
         sortDescriptor={sortDescriptor}
         onSortChange={setSortDescriptor}
         topContentPlacement="outside"
-        //         topContent={
-        //           <TopContent
-        // searchQuery={}
-        //   onSearchQueryChange={}
-        //   onAddSponsor={}
-        //           />
-        //         }
+        topContent={
+          <TopContent
+            filterValue={filterValue}
+            onSearchChange={handleSearch}
+            onAdd={onAdd}
+            onClear={handleClear}
+          />
+        }
         bottomContentPlacement="outside"
         bottomContent={
           <BottomContent page={page} pages={pages} setPage={setPage} />
@@ -168,7 +134,6 @@ export default function SponsorTable({
             <TableColumn
               key={column.uid}
               align={column.uid === 'actions' ? 'center' : 'start'}
-              allowsSorting={column.sortable}
               className="w-1/4"
             >
               {column.name}
@@ -181,7 +146,7 @@ export default function SponsorTable({
               <span className="text-default-400">No sponsors found</span>
             </div>
           }
-          items={pagedItems}
+          items={sponsorItems}
         >
           {(sponsor) => (
             <TableRow

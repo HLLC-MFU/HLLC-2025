@@ -9,10 +9,11 @@ import AddRoleModal from "./_components/AddRoleModal";
 
 import { useUsers } from "@/hooks/useUsers";
 import { useRoles } from "@/hooks/useRoles";
-import { Role, User } from "@/types/user";
+import { User } from "@/types/user";
 import { useSchools } from "@/hooks/useSchool";
 import { PageHeader } from "@/components/ui/page-header";
 import { useMajors } from "@/hooks/useMajor";
+import { Role } from "@/types/role";
 
 export default function ManagementPage() {
   const { users, loading: usersLoading } = useUsers();

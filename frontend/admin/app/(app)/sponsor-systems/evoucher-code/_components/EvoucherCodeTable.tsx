@@ -119,12 +119,6 @@ export default function EvoucherCodeTable({
                         filterValue={filterValue}
                         onClear={handleClear}
                         onSearchChange={handleSearch}
-                        filteredItems={filteredItems}
-                        page={page}
-                        pages={pages}
-                        setPage={setPage}
-                        onPreviousPage={() => setPage((p) => Math.max(1, p - 1))}
-                        onNextPage={() => setPage((p) => Math.min(p + 1, pages))}
                     />
                 }
                 bottomContent={

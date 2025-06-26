@@ -5,21 +5,15 @@ import React from "react";
 interface TopContentProps {
     setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
-    filteredItems: EvoucherCode[];
-    page: number;
-    pages: number;
-    setPage: (page: number) => void;
-    onPreviousPage: () => void;
-    onNextPage: () => void;
     onClear: () => void;
     onSearchChange: (value: string) => void;
 }
 
 export default function TopContent({
-    setActionText,
     filterValue,
-    onClear,
     onSearchChange,
+    setActionText,
+    onClear,
 }: TopContentProps) {
     return (
         <div className="flex flex-col gap-4">
@@ -30,8 +24,8 @@ export default function TopContent({
                     placeholder="Search evoucher code"
                     startContent={<SearchIcon />}
                     value={filterValue}
-                    onClear={() => onClear()}
                     onValueChange={onSearchChange}
+                    onClear={() => onClear()}
                 />
                 <div className="flex gap-3">
                     <Button onPress={() => { setActionText("Add"); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher Code</Button>

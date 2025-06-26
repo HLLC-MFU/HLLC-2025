@@ -15,9 +15,6 @@ import { useRouter } from 'next/navigation';
 export default function SponsorPage() {
   const router = useRouter();
   const [isTypeOpen, setIsTypeOpen] = useState(false);
-  const [searchQueries, setSearchQueries] = useState<Record<string, string>>(
-    {},
-  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSponsor, setSelectedSponsor] = useState<
     Sponsors | Partial<Sponsors>
@@ -57,28 +54,6 @@ export default function SponsorPage() {
 
     return groups;
   }, [sponsors, sponsorsType]);
-
-  const handleSearchQueryChange = (type: string, value: string) => {
-    setSearchQueries((prev) => ({ ...prev, [type]: value }));
-  };
-
-  const getFilteredSortedSponsors = (
-    sponsors: Sponsors[],
-    type: string,
-  ): Sponsors[] => {
-    let filtered = [...sponsors];
-    const search = searchQueries[type]?.toLowerCase() ?? '';
-
-    if (search.trim() !== '') {
-      filtered = filtered.filter(
-        (s) =>
-          s.name?.en?.toLowerCase().includes(search) ||
-          s.name?.th?.toLowerCase().includes(search),
-      );
-    }
-
-    return filtered;
-  };
 
   const handleAddSponsor = () => {
     setModalMode('add');
@@ -171,15 +146,13 @@ export default function SponsorPage() {
                   </AccordionItem>
                 ))
               : Object.entries(groupedSponsors).map(([type, sponsors]) => {
-                  const filtered = getFilteredSortedSponsors(sponsors, type);
-
                   return (
                     <AccordionItem
                       key={type}
                       aria-label={type}
                       subtitle={
-                        <p className="flex">
-                          Total sponsors:{' '}
+                        <p className="flex gap-1">
+                          <span>Total sponsors :</span>
                           <span className="text-primary ml-1">
                             {sponsors.length}
                           </span>
@@ -193,8 +166,9 @@ export default function SponsorPage() {
                         modalMode={modalMode}
                         selectedSponsor={selectedSponsor}
                         sponsorTypes={sponsorsType}
-                        sponsors={filtered}
+                        sponsors={sponsors}
                         type={type}
+                        onAdd={handleAddSponsor}
                         onClose={() => setIsModalOpen(false)}
                         onDelete={handleDeleteSponsor}
                         onEdit={handleEditSponsor}
@@ -206,7 +180,7 @@ export default function SponsorPage() {
                         }}
                       />
 
-                      {filtered.length === 0 && !sponsorsLoading && (
+                      {sponsors.length === 0 && !sponsorsLoading && (
                         <p className="text-center text-sm text-default-500">
                           No sponsors found. Please add a new sponsor.
                         </p>

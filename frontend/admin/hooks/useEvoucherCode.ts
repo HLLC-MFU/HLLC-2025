@@ -31,7 +31,7 @@ export function useEvoucherCode() {
     };
 
     // Fetch single evoucher code
-    const fetchEvoucherCode = async (id: string): Promise<EvoucherCode | null> => {
+    const fetchEvoucherCodeById = async (id: string): Promise<EvoucherCode | null> => {
         setLoading(true);
         try {
             const res = await apiRequest<{ data: EvoucherCode }>(`/evoucher-code/${id}`, "GET");
@@ -89,7 +89,7 @@ export function useEvoucherCode() {
         setLoading(true);
         try {
             // First fetch the current data
-            const currentData = await fetchEvoucherCode(evoucherCodeId);
+            const currentData = await fetchEvoucherCodeById(evoucherCodeId);
             if (!currentData) {
                 throw new Error('Failed to fetch current evoucher code data');
             }
@@ -178,7 +178,7 @@ export function useEvoucherCode() {
         createEvoucherCode,
         updateEvoucherCode,
         deleteEvoucherCode,
-        fetchEvoucherCode,
+        fetchEvoucherCodeById,
         fetchEvoucherCodes,
     };
 }
