@@ -36,8 +36,12 @@ export class EvouchersController {
   }
 
   @Patch(':id')
+  @UseInterceptors(new MultipartInterceptor(500))
   update(@Param('id') id: string, @Req() req: FastifyRequest) {
     const evoucher = req.body as UpdateEvoucherDto;
+    if (!evoucher) {
+      throw new Error('Evoucher data is required for update');
+    }
     return this.evouchersService.update(id, evoucher);
   }
 
