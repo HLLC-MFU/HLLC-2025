@@ -75,7 +75,7 @@ export default function HomeScreen() {
           ) : (
             <Flower color="white" size={20}
               onPress={() => {
-                useRouter().push('/(app)/lamduan-flowers');
+                useRouter().push('/(app)/lamduanflowers');
               }} />
           )}
         </GlassButton>

@@ -1,8 +1,8 @@
-import { User } from "./user";
+import { UserData } from "./user";
 
 export type LamduanFlower = {
     _id: string;
-    user: User;
+    user: UserData;
     comment: string;
     photo: string;
     createdAt: string;
