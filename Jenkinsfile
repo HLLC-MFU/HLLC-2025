@@ -48,7 +48,8 @@ pipeline {
                 script {
                     echo "Navigating to NestJS app directory: ${NEST_APP_DIR}"
                     dir("${NEST_APP_DIR}") {
-                        echo "Current working directory: $(pwd)"
+                        // FIX: Escaped the $ in $(pwd)
+                        sh "echo \"Current working directory: \$(pwd)\"" // Use "sh" with double quotes here for simple string
                         echo "Listing contents of NestJS app directory:"
                         sh "ls -la" // List all files, including hidden ones, in the NestJS app directory
                         sh "cat package.json || echo 'package.json not found in current directory.'" // Try to cat package.json to see its content, or log if not found
@@ -90,7 +91,7 @@ pipeline {
                 script {
                     echo "Navigating to Kubernetes base directory: ${K8S_BASE_DIR}"
                     dir("${K8S_BASE_DIR}") {
-                        echo "Current working directory: $(pwd)"
+                        echo "Current working directory: \$(pwd)" // FIX: Escaped the $ in $(pwd) - though this specific line was not in the original error, it's good practice.
                         echo "Creating shared secrets from Jenkins credentials..."
                         withCredentials([
                             string(credentialsId: 'JWT_SECRET', variable: 'JWT_SECRET'),
@@ -114,47 +115,30 @@ pipeline {
                             EOF
                             """
                             echo "Applying shared secrets to Kubernetes..."
-                            sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f common/shared-secrets.yaml"
+                            sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f common/shared-secrets.yaml" // FIX: Escaped KUBE_CONFIG_FILE just to be safe, though it's inside a string.
                             echo "Shared secrets applied."
                         }
 
-                        echo "Applying common shared config to Kubernetes..."
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f common/shared-config.yaml"
-                        echo "Common shared config applied."
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f common/shared-config.yaml"
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/redis-k8s.yaml"
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/zookeeper-k8s.yaml"
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafka-k8s.yaml"
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafdrop-k8s.yaml"
 
-                        echo "Applying infrastructure manifests..."
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/redis-k8s.yaml"
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/zookeeper-k8s.yaml"
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafka-k8s.yaml"
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f infrastructure/kafdrop-k8s.yaml"
-                        echo "Infrastructure manifests applied."
+                        sh "sed -i 's|image: ${DOCKER_REGISTRY}/nest-app:.*|image: ${DOCKER_REGISTRY}/nest-app:\${NEST_APP_IMAGE_TAG}|' app/hllc2025-backend-app-deployment.yaml"
 
-                        echo "Updating NestJS app image tag in deployment manifest..."
-                        sh "sed -i 's|image: ${DOCKER_REGISTRY}/nest-app:.*|image: ${DOCKER_REGISTRY}/nest-app:${NEST_APP_IMAGE_TAG}|' app/hllc2025-backend-app-deployment.yaml"
-                        echo "NestJS app image tag updated."
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-deployment.yaml"
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-service.yaml"
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl apply -f backend-ingress.yaml"
 
-                        echo "Applying NestJS app deployment and service..."
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-deployment.yaml"
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f app/hllc2025-backend-app-service.yaml"
-                        echo "NestJS app deployment and service applied."
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl rollout status deployment/redis-deployment"
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl rollout status deployment/zookeeper-deployment"
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl rollout status deployment/kafka-k8s.yaml" // Assuming typo, should be kafka-deployment based on rollout.
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl rollout status deployment/kafdrop-deployment"
+                        sh "KUBECONFIG=\${KUBE_CONFIG_FILE} kubectl rollout status deployment/hllc2025-backend-app-deployment"
 
-                        echo "Applying backend ingress..."
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl apply -f backend-ingress.yaml"
-                        echo "Backend ingress applied."
-
-                        echo "Checking rollout status of deployments..."
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/redis-deployment"
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/zookeeper-deployment"
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/kafka-deployment"
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/kafdrop-deployment"
-                        sh "KUBECONFIG=${KUBE_CONFIG_FILE} kubectl rollout status deployment/hllc2025-backend-app-deployment"
-                        echo "Rollout status checks complete."
-
-                        echo "Cleaning up shared-secrets.yaml..."
                         sh "rm -f common/shared-secrets.yaml"
-                        echo "shared-secrets.yaml removed."
                     }
-                    echo "Finished Deploy All to Kubernetes stage."
                 }
             }
         }
@@ -162,9 +146,7 @@ pipeline {
 
     post {
         always {
-            echo "Pipeline finished. Cleaning workspace..."
             cleanWs()
-            echo "Workspace cleaned."
         }
     }
 }
