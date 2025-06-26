@@ -56,7 +56,7 @@ pipeline {
                         echo "Starting Bun install and build..."
                         // FIX: Use WORKSPACE for the absolute path in the volume mount
                         sh """
-                        docker run --rm -v ${WORKSPACE}:/app -w /app oven/bun:latest bash -c "
+                        docker run --rm -v ${WORKSPACE}:/app -w /app/${NEST_APP_DIR} oven/bun:latest bash -c "
                             echo 'Running bun install...' && \\
                             bun install --frozen-lockfile && \\
                             echo 'Bun install complete. Running bun build...' && \\
