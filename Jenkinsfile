@@ -58,7 +58,9 @@ pipeline {
                             // A common approach is to source the bun env file, or explicitly add the install dir to PATH.
                             // For simplicity, assuming bun's installer might modify a common profile, or the path for subsequent commands is inherited.
                             // If not, you might need: sh "export PATH=\"$HOME/.bun/bin:$PATH\"" or similar.
-                            sh "source /home/jenkins/.bashrc "
+                            sh "export PATH=\"\$HOME/.bun/bin:\$PATH\"" 
+                            
+                            sh "bun --version || error('Bun installation failed. Please install Bun manually or check installation script issues.')"
                             echo "Bun installed successfully."
                         }
                     }
