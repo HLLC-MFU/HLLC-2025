@@ -58,16 +58,19 @@ func (s *UserService) GetUserByIdWithPopulate(ctx context.Context, id string) (*
 		return nil, fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	// populate เฉพาะ major เท่านั้น (school embedded อยู่ใน major แล้ว)
 	populateConfigs := []queries.NestedPopulateConfig{
 		{
 			Field:      "role",
 			Collection: "roles",
 		},
 		{
-			Field:      "major",
+			Field:      "metadata.major",
 			Collection: "majors",
 			NestedPath: "metadata.major",
+			SubPopulate: &queries.NestedPopulateConfig{
+				Field:      "school",
+				Collection: "schools",
+			},
 		},
 	}
 

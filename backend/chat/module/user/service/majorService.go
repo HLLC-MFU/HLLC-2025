@@ -4,7 +4,9 @@ import (
 	"chat/module/user/model"
 	"chat/pkg/database/queries"
 	"context"
+	"fmt"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -29,9 +31,17 @@ func (s *MajorService) GetMajors(ctx context.Context, opts queries.QueryOptions)
 }
 
 func (s *MajorService) GetMajorById(ctx context.Context, id string) (*model.Major, error) {
-	major, err := s.FindOneById(ctx, id)
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid major ID: %w", err)
+	}
+	
+	response, err := s.FindOneWithPopulate(ctx, map[string]interface{}{"_id": objID}, "school", "schools")	
 	if err != nil {
 		return nil, err
 	}
-	return &major.Data[0], nil
+	if len(response.Data) == 0 {
+		return nil, fmt.Errorf("major not found")
+	}
+	return &response.Data[0], nil
 }

@@ -49,5 +49,10 @@ func (c *UserController) GetUserById(ctx *fiber.Ctx) error {
 			"message": err.Error(),
 		})
 	}
-	return ctx.JSON(user)
+	
+	return ctx.JSON(fiber.Map{
+		"success": true,
+		"message": "User found successfully",
+		"data": user,
+	})
 }

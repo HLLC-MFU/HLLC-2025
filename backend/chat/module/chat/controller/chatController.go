@@ -10,11 +10,7 @@ import (
 	stickerModel "chat/module/sticker/model"
 	userModel "chat/module/user/model"
 	"chat/pkg/decorators"
-	controllerHelper "chat/pkg/helpers/controller"
 	"context"
-	"encoding/json"
-	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -83,8 +79,6 @@ func NewChatController(
 
 func (c *ChatController) setupRoutes() {
 	c.Get("/ws/:roomId/:userId", websocket.New(c.wsHandler.HandleWebSocket))
-	c.Post("/rooms/:roomId/join", c.handleJoinRoom)
-	c.Post("/rooms/:roomId/leave", c.handleLeaveRoom)
 	c.Post("/rooms/:roomId/stickers", c.handleSendSticker)
 	c.Delete("/rooms/:roomId/cache", c.handleClearCache)
 
@@ -95,60 +89,6 @@ func (c *ChatController) setupRoutes() {
 	c.Get("/rooms/:roomId/history", c.handleGetChatHistory)
 
 	c.SetupRoutes()
-}
-
-func (c *ChatController) handleJoinRoom(ctx *fiber.Ctx) error {
-	roomID := ctx.Params("roomId")
-	userID := controllerHelper.GetUserID(ctx)
-
-	roomObjID, err := primitive.ObjectIDFromHex(roomID)
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid room ID",
-		})
-	}
-
-	if err := c.roomService.AddUserToRoom(ctx.Context(), roomID, userID.Hex()); err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to join room",
-		})
-	}
-
-	// Emit user joined event with proper structure
-	if err := c.emitUserJoinedEvent(ctx.Context(), roomObjID, userID); err != nil {
-		log.Printf("[WARN] Failed to emit user joined event: %v", err)
-	}
-
-	return ctx.JSON(fiber.Map{
-		"message": "joined room successfully",
-	})
-}
-
-func (c *ChatController) handleLeaveRoom(ctx *fiber.Ctx) error {
-	roomID := ctx.Params("roomId")
-	userID := controllerHelper.GetUserID(ctx)
-
-	roomObjID, err := primitive.ObjectIDFromHex(roomID)
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid room ID",
-		})
-	}
-
-	if _, err := c.roomService.RemoveUserFromRoom(ctx.Context(), roomObjID, userID.Hex()); err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to leave room",
-		})
-	}
-
-	// Emit user left event with proper structure
-	if err := c.emitUserLeftEvent(ctx.Context(), roomObjID, userID); err != nil {
-		log.Printf("[WARN] Failed to emit user left event: %v", err)
-	}
-
-	return ctx.JSON(fiber.Map{
-		"message": "left room successfully",
-	})
 }
 
 func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
@@ -502,50 +442,4 @@ func (c *ChatController) handleGetChatHistory(ctx *fiber.Ctx) error {
 			"limit": limit,
 		},
 	})
-}
-
-// Helper methods for emitting user events
-
-func (c *ChatController) emitUserJoinedEvent(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) error {
-	// Create user joined event structure as requested
-	event := model.Event{
-		Type:      model.EventTypeUserJoined,
-		Payload:   map[string]string{
-			"roomId": roomID.Hex(),
-			"userId": userID.Hex(),
-		},
-		Timestamp: time.Now(),
-	}
-
-	eventBytes, err := json.Marshal(event)
-	if err != nil {
-		return fmt.Errorf("failed to marshal user joined event: %w", err)
-	}
-
-	// Broadcast to WebSocket clients
-	c.chatService.GetHub().BroadcastToRoom(roomID.Hex(), eventBytes)
-
-	return nil
-}
-
-func (c *ChatController) emitUserLeftEvent(ctx context.Context, roomID primitive.ObjectID, userID primitive.ObjectID) error {
-	// Create user left event structure as requested
-	event := model.Event{
-		Type:      model.EventTypeUserLeft,
-		Payload:   map[string]string{
-			"roomId": roomID.Hex(),
-			"userId": userID.Hex(),
-		},
-		Timestamp: time.Now(),
-	}
-
-	eventBytes, err := json.Marshal(event)
-	if err != nil {
-		return fmt.Errorf("failed to marshal user left event: %w", err)
-	}
-
-	// Broadcast to WebSocket clients
-	c.chatService.GetHub().BroadcastToRoom(roomID.Hex(), eventBytes)
-
-	return nil
 }
