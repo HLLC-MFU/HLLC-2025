@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { CreateSponsorsTypeDto } from './dto/create-sponsors-type.dto';
-import { UpdateSponsorsTypeDto } from './dto/update-sponsors-type.dto';
+import { CreateSponsorsTypeDto } from '../dto/sponsers-type/create-sponsors-type.dto';
+import { UpdateSponsorsTypeDto } from '../dto/sponsers-type/update-sponsors-type.dto';
 import {
   SponsorsType,
   SponsorsTypeDocument,
-} from './schema/sponsors-type.schema';
+} from '../schema/sponsors-type.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {

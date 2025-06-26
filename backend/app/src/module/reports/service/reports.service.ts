@@ -6,15 +6,15 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-import { Report, ReportDocument } from './schemas/reports.schema';
-import { User, UserDocument } from '../users/schemas/user.schema';
+import { Report, ReportDocument } from '../schemas/reports.schema';
+import { User, UserDocument } from '../../users/schemas/user.schema';
 import {
   ReportType,
   ReportTypeDocument,
-} from '../report-type/schemas/report-type.schema';
+} from '../schemas/report-type.schema';
 
-import { CreateReportDto } from './dto/create-report.dto';
-import { UpdateReportDto } from './dto/update-report.dto';
+import { CreateReportDto } from '../dto/reports/create-report.dto';
+import { UpdateReportDto } from '../dto/reports/update-report.dto';
 
 import {
   queryAll,
