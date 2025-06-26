@@ -40,15 +40,32 @@ pipeline {
                 }
             }
         }
-        stage('Check Environment'){
+        stage('Check Environment') {
             steps {
                 script {
-                    sh "echo 'Checking environment...'"
-                    sh "bun --version || echo 'bun is not installed, please install bun to proceed.'"
+                    echo 'Checking environment...'
+
+                    def bunInstalled = sh(script: 'command -v bun >/dev/null 2>&1 && echo true || echo false', returnStdout: true).trim()
+
+                    if (bunInstalled == 'true') {
+                        echo "bun is already installed: $(bun --version)"
+                    } else {
+                        echo "bun is not installed, installing bun..."
+                        // ติดตั้ง bun ตามคำสั่ง official
+                        sh '''
+                        curl -fsSL https://bun.sh/install | bash
+                        export BUN_INSTALL="$HOME/.bun"
+                        export PATH="$BUN_INSTALL/bin:$PATH"
+                        echo "bun installed: $(bun --version)"
+                        '''
+                    }
+
+                    // เช็คตัวอื่นๆ (go, docker, kubectl)
                     sh "go version || echo 'Go is not installed, please install Go to proceed.'"
                     sh "docker --version || echo 'Docker is not installed, please install Docker to proceed.'"
                     sh "kubectl version --client || echo 'kubectl is not installed, please install kubectl to proceed.'"
-                    sh "echo 'Environment check completed.'"
+
+                    echo 'Environment check completed.'
                 }
             }
         }
