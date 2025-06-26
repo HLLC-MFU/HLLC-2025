@@ -84,7 +84,11 @@ pipeline {
                 dir("${NEST_APP_DIR}") {
                     script {
                         echo "Running bun install and build..."
-                        sh ". /home/jenkins/.bashrc"
+                        sh '''
+                            export PATH=$HOME/.bun/bin:$PATH
+                            bun install --frozen-lockfile
+                            bun run build
+                        '''
                         sh "bun install --frozen-lockfile"
                         sh "bun run build"
 
