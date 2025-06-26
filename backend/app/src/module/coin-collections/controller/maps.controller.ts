@@ -18,6 +18,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { FastifyRequest } from 'fastify';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { CreateMapDto } from '../../coin-collections/dto/maps/create-map.dto';
+import { Public } from 'src/module/auth/decorators/public.decorator';
 
 @UseGuards(PermissionsGuard)
 @ApiTags('maps')
@@ -34,7 +35,7 @@ export class MapsController {
   }
 
   @Get()
-  @Permissions('maps:read')
+  @Public()
   findAll(@Query() query: Record<string, string>) {
     return this.mapsService.findAll(query);
   }
