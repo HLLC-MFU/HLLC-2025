@@ -40,6 +40,18 @@ pipeline {
                 }
             }
         }
+        stage('Check Environment'){
+            steps {
+                script {
+                    sh "echo 'Checking environment...'"
+                    sh "bun --version || echo 'bun is not installed, please install bun to proceed.'"
+                    sh "go version || echo 'Go is not installed, please install Go to proceed.'"
+                    sh "docker --version || echo 'Docker is not installed, please install Docker to proceed.'"
+                    sh "kubectl version --client || echo 'kubectl is not installed, please install kubectl to proceed.'"
+                    sh "echo 'Environment check completed.'"
+                }
+            }
+        }
 
         stage('Build & Push NestJS App') {
             steps {
