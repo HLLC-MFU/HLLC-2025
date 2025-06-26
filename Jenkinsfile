@@ -58,9 +58,15 @@ pipeline {
                             // A common approach is to source the bun env file, or explicitly add the install dir to PATH.
                             // For simplicity, assuming bun's installer might modify a common profile, or the path for subsequent commands is inherited.
                             // If not, you might need: sh "export PATH=\"$HOME/.bun/bin:$PATH\"" or similar.
-                            sh "export PATH=\"\$HOME/.bun/bin:\$PATH\"" 
-                            
-                            sh "bun --version || error('Bun installation failed. Please install Bun manually or check installation script issues.')"
+                            sh """
+                                bash -c 'curl -fsSL https://bun.sh/install | bash'
+                                
+                                # Add Bun to PATH for the current shell session for subsequent commands in this script block
+                                # $HOME and $PATH are now interpreted by the shell, not Groovy.
+                                export PATH="$HOME/.bun/bin:$PATH" 
+                                
+                                bun --version || error('Bun installation failed. Please install Bun manually or check installation script issues.')
+                            """
                             echo "Bun installed successfully."
                         }
                     }
