@@ -1,5 +1,6 @@
 import { Lang } from "@/types/lang";
 import { Tab, Tabs } from "@heroui/react";
+import Image from "next/image";
 
 type LanguageTabsProps = {
 	languageOptions: { key: keyof Lang; label: string; icon: string }[];
@@ -19,7 +20,12 @@ export default function LanguageTabs({ languageOptions, previewLanguage, setPrev
 					key={lang.key}
 					title={
 						<div className="flex items-center space-x-2">
-							<img src={lang.icon} width={20}/>
+							<Image 
+								src={lang.icon} 
+								alt={`${lang.key} icon`} 
+								width={20}
+								height={15}
+							/>
 							<span>{lang.label}</span>
 						</div>
 					}

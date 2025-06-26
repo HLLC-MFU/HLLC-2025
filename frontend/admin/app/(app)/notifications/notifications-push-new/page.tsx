@@ -22,31 +22,6 @@ type SelectionScope =
   | 'global'
   | { type: 'individual' | 'school' | 'major'; id: string[] }[];
 
-function isValidUrl(url?: string): boolean {
-  if (!url) return true;
-  try {
-    new URL(url);
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-function isFormComplete(data?: NotificationFormData): boolean {
-  if (!data) return false;
-
-  const { title, subtitle, body } = data;
-
-  return Boolean(
-    title?.th?.trim() &&
-      title?.en?.trim() &&
-      subtitle?.th?.trim() &&
-      subtitle?.en?.trim() &&
-      body?.th?.trim() &&
-      body?.en?.trim(),
-  );
-}
-
 export default function NotificationPush() {
   const { createNotification } = useNotification();
   const [notificationFormData, setNotificationFormData] = useState<NotificationFormData>({
@@ -65,7 +40,8 @@ export default function NotificationPush() {
   const [previewLanguage, setPreviewLanguage] = useState<keyof Lang>('en');
   const [scope, setScope] = useState<SelectionScope>('global');
 
-  const submitNotification = () => {
+  const submitNotification = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     const formData = new FormData();
 
     formData.append('title', JSON.stringify(notificationFormData.title));
@@ -89,16 +65,6 @@ export default function NotificationPush() {
     }
 
     createNotification(formData);
-
-    // addToast({ title: `Notification created`, color: 'success' });
-    
-    // setNotificationFormData({
-    //   title: { en: '', th: '' },
-    //   subtitle: { en: '', th: '' },
-    //   body: { en: '', th: '' },
-    //   icon: '',
-    //   scope: 'global',
-    // });
   };
 
   return (
@@ -119,6 +85,7 @@ export default function NotificationPush() {
                 <NotificationForm 
                   notification={notificationFormData} 
                   onChange={setNotificationFormData}
+                  onSubmit={submitNotification}
                 />
               </div>
             </div>
@@ -160,7 +127,6 @@ export default function NotificationPush() {
                 form='notification-form'
                 color='primary'
                 endContent={<SendHorizontal />}
-                onPress={submitNotification}
               >
                 <p className="text-medium">Send Notification</p>
               </Button>

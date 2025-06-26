@@ -15,9 +15,10 @@ const notificationIcons = [
 type NotificationFormProps = {
   notification: Notification;
   onChange: React.Dispatch<React.SetStateAction<Notification>>;
+  onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void;
 };
 
-export function NotificationForm({ notification, onChange }: NotificationFormProps) {
+export function NotificationForm({ notification, onChange, onSubmit }: NotificationFormProps) {
 
   const handleImageChange = (file: File) => {
     onChange((prev) => ({
@@ -42,14 +43,15 @@ export function NotificationForm({ notification, onChange }: NotificationFormPro
   );
 
   return (
-    <Form id='notification-form' className="flex flex-col gap-4">
+    <Form id='notification-form' className="flex flex-col gap-4" onSubmit={onSubmit}>
       <div className="flex flex-row justify-between w-full">
         <h1 className="text-xl font-bold">
-          Notification Body
+          Notification Form
         </h1>
         <div className=" w-full max-w-48 h-full">
 
           <Autocomplete
+            isRequired
             label="Notification Icon"
             placeholder="Select Icon"
             size='sm'
