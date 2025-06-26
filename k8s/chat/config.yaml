@@ -4,12 +4,11 @@ metadata:
   name: chat-config
   namespace: default
 data:
-  APP_STAGE: dev
+  APP_STAGE: production
   APP_NAME: monolith
-  APP_URL: 0.0.0.0:1334
+  APP_URL: hllc.mfu.ac.th/api/chat
 
   # MongoDB
-  DB_URL: mongodb://localhost:27017/hllc-2025
   DB_NAME: hllc2025-chat
 
   # Redis
@@ -23,4 +22,4 @@ data:
   KAFKA_PORT: "9092"
 
   #Allow Origin
-  CORS_ALLOW_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+  CORS_ALLOW_ORIGINS: https://hllc.mfu.ac.th
