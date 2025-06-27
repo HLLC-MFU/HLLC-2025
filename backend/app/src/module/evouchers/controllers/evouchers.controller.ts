@@ -15,6 +15,7 @@ import { UpdateEvoucherDto } from '../dto/update-evoucher.dto';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
 import { EvoucherCodesService } from '../services/evoucher-codes.service';
+import { Types } from 'mongoose';
 
 @Controller('evouchers')
 export class EvouchersController {
@@ -56,7 +57,11 @@ export class EvouchersController {
   }
 
   @Post(':id/claim')
-  claim(@Param('id') id: string, @Body('user') userId: string) {
+  claim(
+    @Param('id') id: string,
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }
+  ) {
+    const userId = req.user._id.toString();
     return this.evoucherCodesService.claimEvoucherCode(id, userId);
   }
 }

@@ -7,7 +7,6 @@ import {
   Body,
   Patch,
   Req,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { EvoucherCodesService } from '../services/evoucher-codes.service';
 import { UpdateEvoucherCodeDto } from '../dto/update-evouchercodes.dto';
@@ -43,8 +42,8 @@ export class EvoucherCodesController {
   }
 
   @Post(':id/used')
-  used(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.evoucherCodesService.useEvoucher(id)
+  used(@Param('id') id: string, @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
+    return this.evoucherCodesService.useEvoucher(id);
   }
 
   @Get('my-code')

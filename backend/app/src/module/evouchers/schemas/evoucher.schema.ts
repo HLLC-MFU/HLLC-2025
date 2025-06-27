@@ -40,6 +40,9 @@ export class Evoucher {
 
   @Prop({ type: Types.ObjectId, ref: 'Sponsor' })
   sponsor: Types.ObjectId;
+
+  @Prop({ type: Object, default: {} })
+  metadata?: Record<string, string>;
 }
 
 export const EvoucherSchema = SchemaFactory.createForClass(Evoucher);
