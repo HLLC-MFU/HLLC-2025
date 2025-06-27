@@ -8,6 +8,9 @@ import { CheckCircle, XCircle } from 'lucide-react-native';
 import { useToastController } from '@tamagui/toast';
 import { GlassLiquidButton } from '@/components/ui/GlassLiquidButton';
 import * as SecureStore from 'expo-secure-store';
+import { BlurView } from 'expo-blur';
+import GlassConfirmModal from './GlassConfirmModal';
+import { useEvoucher } from '@/hooks/useEvoucher';
 
 
 const { width } = Dimensions.get('window');
@@ -35,7 +38,9 @@ export const EvoucherModal = ({
 }: EvoucherModalProps) => {
     const [isUsed, setIsUsed] = useState(initialIsUsed);
     const [isLoading, setIsLoading] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
     const toast = useToastController();
+    const { useVoucherCode } = useEvoucher();
 
     const handleUseVoucher = async () => {
         if (!evoucherCodeId) {
@@ -43,23 +48,19 @@ export const EvoucherModal = ({
             return;
         }
         setIsLoading(true);
-        try {
-            const userId = await SecureStore.getItemAsync('userId');
-            if (!userId) throw new Error('User ID not found');
-            const response = await apiRequest(`/evoucher-codes/${evoucherCodeId}/used`, 'POST', { userId });
-            if (response.statusCode === 200 || response.statusCode === 201) {
+        await useVoucherCode(
+            evoucherCodeId,
+            () => {
                 setIsUsed(true);
                 toast.show('แลกรับ E-Voucher สำเร็จ', { message: 'Evoucher code claimed successfully!', type: 'success' });
                 onClaimSuccess?.();
-            } else {
-                toast.show('เกิดข้อผิดพลาด', { message: response.message || 'Failed to claim evoucher code', type: 'error' });
+                setIsLoading(false);
+            },
+            (msg: string) => {
+                toast.show('เกิดข้อผิดพลาด', { message: msg || 'Failed to claim evoucher code', type: 'error' });
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error('Error claiming evoucher code:', error);
-            toast.show('เกิดข้อผิดพลาด', { message: 'Failed to claim evoucher code. Please try again.', type: 'error' });
-        } finally {
-            setIsLoading(false);
-        }
+        );
     };
 
     return (
@@ -88,7 +89,7 @@ export const EvoucherModal = ({
                                         </View>
                                     ) : (
                                         // แสดงปุ่ม Use เมื่อยังไม่ถูกใช้
-                                        <GlassLiquidButton onPress={handleUseVoucher} disabled={isLoading}>
+                                        <GlassLiquidButton onPress={() => setShowConfirmModal(true)} disabled={isLoading}>
                                             {isLoading ? 'Claiming...' : 'Use'}
                                         </GlassLiquidButton>
                                     )}
@@ -99,6 +100,21 @@ export const EvoucherModal = ({
                     <Text style={styles.flipText}>Click Voucher to Flip</Text>
                 </View>
             </View>
+
+            {/* Custom Confirm Modal */}
+            <GlassConfirmModal
+                visible={showConfirmModal}
+                onCancel={() => setShowConfirmModal(false)}
+                onConfirm={async () => {
+                    setShowConfirmModal(false);
+                    await handleUseVoucher();
+                }}
+                isLoading={isLoading}
+                title="ยืนยันการใช้ E-Voucher"
+                message="คุณแน่ใจหรือไม่ว่าต้องการใช้ E-Voucher นี้?"
+                confirmText="ยืนยัน"
+                cancelText="ยกเลิก"
+            />
         </Modal>
     );
 };
@@ -177,6 +193,65 @@ const styles = StyleSheet.create({
         height: 50,
         resizeMode: 'cover',
         marginBottom: -20
+    },
+    confirmOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    confirmContainer: {
+        borderRadius: 16,
+        padding: 24,
+        width: 300,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+        backgroundColor: 'rgba(255,255,255,0.18)',
+    },
+    confirmTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 12,
+        color: '#222',
+    },
+    confirmMessage: {
+        fontSize: 15,
+        color: '#444',
+        marginBottom: 24,
+        textAlign: 'center',
+    },
+    confirmButtonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    confirmButton: {
+        flex: 1,
+        paddingVertical: 10,
+        marginHorizontal: 5,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    cancelButton: {
+        backgroundColor: '#eee',
+    },
+    confirmButtonActive: {
+        backgroundColor: '#4caf50',
+    },
+    cancelButtonText: {
+        color: '#888',
+        fontWeight: 'bold',
+    },
+    confirmButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
     },
 });
 

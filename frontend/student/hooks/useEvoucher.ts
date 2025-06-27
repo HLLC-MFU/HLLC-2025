@@ -152,6 +152,29 @@ export function useEvoucher() {
     }
   };
 
+  // Mark an evoucher code as used (use voucher)
+  const useVoucherCode = async (
+    evoucherCodeId: string,
+    onSuccess?: () => void,
+    onError?: (msg: string) => void
+  ) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await apiRequest(`/evoucher-codes/${evoucherCodeId}/used`, 'POST', {});
+      if (response.statusCode === 200 || response.statusCode === 201) {
+        onSuccess?.();
+      } else {
+        onError?.(response.message || 'Failed to use evoucher code');
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'Failed to use evoucher code. Please try again.';
+      onError?.(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     evouchers,
     evoucherCodes,
@@ -165,5 +188,6 @@ export function useEvoucher() {
     getEvoucherCodesBySponsor,
     hasEvoucherCodesForSponsor,
     claimEvoucherCode,
+    useVoucherCode,
   };
 } 
