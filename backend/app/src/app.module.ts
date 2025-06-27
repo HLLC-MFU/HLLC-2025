@@ -18,8 +18,6 @@ import { AppearancesModule } from './module/appearances/appearances.module';
 import { SystemStatusModule } from './module/system-status/system-status.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
-import { SponsorsModule } from './module/sponsors/sponsors.module';
-import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesModule } from './module/activities/activities.module';
 import { ActivitiesTypeModule } from './module/activities/activities-type.module';
@@ -37,9 +35,9 @@ import { CoinCollectionsModule } from './module/coin-collections/coin-collection
 import { MapsModule } from './module/coin-collections/maps.module';
 import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
 import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
+import { EvouchersModule } from './module/evouchers/evouchers.module';
+import { SponsorsModule } from './module/sponsors/sponsors.module';
 import { StepAchievementModule } from './module/step-achievement/step-achievement.module';
-import { EvoucherModule } from './module/evoucher/evoucher.module';
-import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
 
 @Module({
   imports: [
@@ -52,6 +50,7 @@ import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         uri: configService.get<string>('MONGO_URI'),
+        autoIndex: true,
       }),
       inject: [ConfigService],
     }),
@@ -71,8 +70,6 @@ import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
     RoleModule,
     UsersModule,
     SchoolsModule,
-    SponsorsModule,
-    SponsorsTypeModule,
     MajorsModule,
     ReportTypeModule,
     SystemStatusModule,
@@ -97,8 +94,8 @@ import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
     MapsModule,
     LamduanFlowersModule,
     LamduanSettingModule,
-    EvoucherModule,
-    EvoucherCodeModule,
+    EvouchersModule,
+    SponsorsModule,
   ],
   providers: [
     {
@@ -111,4 +108,4 @@ import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
