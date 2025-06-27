@@ -2,10 +2,10 @@ import {
   Controller,
   Get,
   Post,
-  Put,
   Delete,
   Param,
   Body,
+  Patch,
 } from '@nestjs/common';
 import { EvoucherCodesService } from '../services/evoucher-codes.service';
 import { UpdateEvoucherCodeDto } from '../dto/update-evouchercodes.dto';
@@ -23,7 +23,7 @@ export class EvoucherCodesController {
     return this.evoucherCodesService.findOne(id);
   }
 
-  @Put(':id')
+  @Patch(':id')
   update(@Param('id') id: string, @Body() updateDto: UpdateEvoucherCodeDto) {
     return this.evoucherCodesService.update(id, updateDto);
   }
