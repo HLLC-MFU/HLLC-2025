@@ -66,10 +66,12 @@ func New(brokers []string, groupID string) *Bus {
 
 // สร้าง topic
 func (b *Bus) CreateTopics(topics []string) error {
+	log.Printf("[Kafka] Creating topics: %v", topics)
  
 	// สร้าง connection ไปยัง broker
 	conn, err := kafka.Dial("tcp", b.brokers[0])
 	if err != nil {
+		log.Printf("[Kafka] Failed to dial broker %s: %v", b.brokers[0], err)
 		return err
 	}
 	defer conn.Close()
@@ -77,12 +79,17 @@ func (b *Bus) CreateTopics(topics []string) error {
 	// ดึง controller จาก broker
 	controller, err := conn.Controller()
 	if err != nil {
+		log.Printf("[Kafka] Failed to get controller: %v", err)
 		return err
 	}
 
-	// สร้าง connection ไปยัง controller
-	controllerConn, err := kafka.Dial("tcp", controller.Host)
+	// สร้าง connection ไปยัง controller (with proper port)
+	controllerAddr := fmt.Sprintf("%s:%d", controller.Host, controller.Port)
+	log.Printf("[Kafka] Connecting to controller at %s", controllerAddr)
+	
+	controllerConn, err := kafka.Dial("tcp", controllerAddr)
 	if err != nil {
+		log.Printf("[Kafka] Failed to connect to controller %s: %v", controllerAddr, err)
 		return err
 	}
 	defer controllerConn.Close()
@@ -90,7 +97,8 @@ func (b *Bus) CreateTopics(topics []string) error {
 	// สร้าง topic
 	topicConfigs := make([]kafka.TopicConfig, len(topics))
 	for i, topic := range topics {
-
+		log.Printf("[Kafka] Preparing to create topic: %s", topic)
+		
 		// สร้าง topic
 		topicConfigs[i] = kafka.TopicConfig{
 			Topic:             topic,
@@ -102,9 +110,11 @@ func (b *Bus) CreateTopics(topics []string) error {
 	// สร้าง topic
 	err = controllerConn.CreateTopics(topicConfigs...)
 	if err != nil {
+		log.Printf("[Kafka] Failed to create topics: %v", err)
 		return err
 	}
 
+	log.Printf("[Kafka] Successfully created %d topics", len(topics))
 	return nil
 }
 
@@ -123,11 +133,12 @@ func (b *Bus) On(topic string, handler HandlerFunc) {
 func (b *Bus) Emit(ctx context.Context, topic, key string, payload any) error {
 	data, err := json.Marshal(payload)
 	if err != nil {
+		log.Printf("[Kafka] Failed to marshal payload for topic=%s key=%s: %v", topic, key, err)
 		return err
 	}
 
 	// บันทึกการส่ง message
-	log.Printf("[Kafka] Emitting message to topic=%s key=%s", topic, key)
+	log.Printf("[Kafka] Emitting message to topic=%s key=%s size=%d bytes", topic, key, len(data))
 
 	// สร้าง message
 	msg := kafka.Message{
@@ -139,11 +150,12 @@ func (b *Bus) Emit(ctx context.Context, topic, key string, payload any) error {
 	// ส่ง message ไปยัง topic
 	err = b.writer.WriteMessages(ctx, msg)
 	if err != nil {
+		log.Printf("[Kafka] FAILED to write message to topic=%s key=%s: %v", topic, key, err)
 		return fmt.Errorf("failed to write message: %w", err)
 	}
 
 	// บันทึกการส่ง message
-	log.Printf("[Kafka] Successfully emitted message to topic=%s key=%s", topic, key)
+	log.Printf("[Kafka] SUCCESS: emitted message to topic=%s key=%s", topic, key)
 	return nil
 }
 

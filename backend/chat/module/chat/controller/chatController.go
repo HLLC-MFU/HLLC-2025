@@ -93,6 +93,11 @@ func (c *ChatController) setupRoutes() {
 	c.Post("/rooms/:roomId/mentions", c.handleSendMention)
 	c.Get("/users/:userId/mentions", c.handleGetUserMentions)
 
+	// **NEW: Admin notification monitoring endpoints**
+	c.Get("/admin/notifications/logs", c.handleGetNotificationLogs)
+	c.Get("/admin/notifications/stats", c.handleGetNotificationStats)
+	c.Post("/admin/notifications/test", c.handleTestNotification)
+
 	c.SetupRoutes()
 }
 
@@ -542,6 +547,107 @@ func (c *ChatController) handleGetUserMentions(ctx *fiber.Ctx) error {
 		"meta": fiber.Map{
 			"count": len(mentions),
 			"limit": limit,
+		},
+	})
+}
+
+func (c *ChatController) handleGetNotificationLogs(ctx *fiber.Ctx) error {
+	// Get query parameters
+	page := ctx.QueryInt("page", 1)
+	limit := ctx.QueryInt("limit", 50)
+	notificationType := ctx.Query("type")
+	status := ctx.Query("status")
+	receiver := ctx.Query("receiver")
+	
+	// Calculate skip
+	skip := (page - 1) * limit
+	
+	// Build filter
+	filter := make(map[string]interface{})
+	if notificationType != "" {
+		filter["type"] = notificationType
+	}
+	if status != "" {
+		filter["status"] = status
+	}
+	if receiver != "" {
+		filter["receiver"] = receiver
+	}
+	
+	// Get logs from service
+	logs, total, err := c.chatService.GetNotificationLogs(ctx.Context(), filter, skip, limit)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to get notification logs",
+			"error":   err.Error(),
+		})
+	}
+	
+	return ctx.JSON(fiber.Map{
+		"success": true,
+		"message": "Notification logs retrieved successfully",
+		"data":    logs,
+		"meta": fiber.Map{
+			"page":       page,
+			"limit":      limit,
+			"total":      total,
+			"totalPages": (total + int64(limit) - 1) / int64(limit),
+		},
+	})
+}
+
+func (c *ChatController) handleGetNotificationStats(ctx *fiber.Ctx) error {
+	// Get date range from query (optional)
+	startDate := ctx.Query("start_date") // format: 2024-01-01
+	endDate := ctx.Query("end_date")     // format: 2024-01-31
+	
+	stats, err := c.chatService.GetNotificationStats(ctx.Context(), startDate, endDate)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to get notification stats",
+			"error":   err.Error(),
+		})
+	}
+	
+	return ctx.JSON(fiber.Map{
+		"success": true,
+		"message": "Notification stats retrieved successfully",
+		"data":    stats,
+	})
+}
+
+func (c *ChatController) handleTestNotification(ctx *fiber.Ctx) error {
+	var req model.TestNotificationRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid request body",
+		})
+	}
+	
+	// Get admin user ID from context/JWT (simplified for now)
+	adminUserID := ctx.Get("X-User-ID", "admin-test-user")
+	
+	// Send test notification
+	err := c.chatService.SendTestNotification(ctx.Context(), req, adminUserID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to send test notification",
+			"error":   err.Error(),
+		})
+	}
+	
+	return ctx.JSON(fiber.Map{
+		"success": true,
+		"message": "Test notification sent successfully",
+		"data": fiber.Map{
+			"receiver_id": req.ReceiverID,
+			"type":        req.Type,
+			"message":     req.Message,
+			"sent_at":     time.Now(),
 		},
 	})
 }

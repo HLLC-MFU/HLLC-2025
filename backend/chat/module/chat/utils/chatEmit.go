@@ -310,14 +310,39 @@ func (e *ChatEventEmitter) EmitUserLeft(ctx context.Context, roomID, userID stri
 // Helper methods for mobile event structure
 
 func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.ObjectID) (model.UserInfo, error) {
-	userService := queries.NewBaseService[userModel.User](e.mongo.Collection("users"))
-	result, err := userService.FindOneWithPopulate(ctx, bson.M{"_id": userID}, "role", "roles")
+	log.Printf("[DEBUG] Getting user info for ID: %s", userID.Hex())
 	
-	if err != nil || len(result.Data) == 0 {
-		return model.UserInfo{ID: userID.Hex()}, err
+	// **USE SIMPLE QUERY WITHOUT POPULATE TO AVOID ROLE DECODING ISSUES**
+	userService := queries.NewBaseService[userModel.User](e.mongo.Collection("users"))
+	result, err := userService.FindOne(ctx, bson.M{"_id": userID})
+	
+	if err != nil {
+		log.Printf("[ERROR] Failed to query user %s: %v", userID.Hex(), err)
+		return model.UserInfo{}, fmt.Errorf("failed to query user %s: %w", userID.Hex(), err)
+	}
+	
+	if len(result.Data) == 0 {
+		log.Printf("[ERROR] User %s not found in database", userID.Hex())
+		return model.UserInfo{}, fmt.Errorf("user %s not found in database", userID.Hex())
 	}
 
 	user := result.Data[0]
+	
+	// **LOG RAW DATA FOR DEBUGGING**
+	log.Printf("[DEBUG] Raw user data: ID=%s, Username='%s', Name.First='%s', Name.Middle='%s', Name.Last='%s'", 
+		user.ID.Hex(), user.Username, user.Name.First, user.Name.Middle, user.Name.Last)
+
+	// **BUILD USER INFO WITH VALIDATION**
+	if user.Username == "" {
+		log.Printf("[ERROR] User %s has empty username", userID.Hex())
+		return model.UserInfo{}, fmt.Errorf("user %s has empty username", userID.Hex())
+	}
+	
+	if user.Name.First == "" && user.Name.Last == "" {
+		log.Printf("[ERROR] User %s has empty name", userID.Hex())
+		return model.UserInfo{}, fmt.Errorf("user %s has empty name", userID.Hex())
+	}
+
 	userInfo := model.UserInfo{
 		ID:       user.ID.Hex(),
 		Username: user.Username,
@@ -328,20 +353,29 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 		},
 	}
 
-	// Add role information if available
+	// **GET ROLE SEPARATELY TO AVOID POPULATION ISSUES**
 	if user.Role != primitive.NilObjectID {
+		log.Printf("[DEBUG] Getting role for user %s, role ID: %s", userID.Hex(), user.Role.Hex())
 		roleService := queries.NewBaseService[interface{}](e.mongo.Collection("roles"))
 		roleResult, err := roleService.FindOne(ctx, bson.M{"_id": user.Role})
 		if err == nil && len(roleResult.Data) > 0 {
 			if roleData, ok := roleResult.Data[0].(map[string]interface{}); ok {
-		userInfo.Role = &model.RoleInfo{
-					ID:   roleData["_id"].(primitive.ObjectID).Hex(),
-					Name: roleData["name"].(string),
-		}
-		}
+				if roleID, exists := roleData["_id"]; exists {
+					if roleName, exists := roleData["name"]; exists {
+						userInfo.Role = &model.RoleInfo{
+							ID:   roleID.(primitive.ObjectID).Hex(),
+							Name: roleName.(string),
+						}
+						log.Printf("[DEBUG] Successfully added role: %s", roleName.(string))
+					}
+				}
+			}
+		} else {
+			log.Printf("[WARNING] Failed to get role %s: %v", user.Role.Hex(), err)
 		}
 	}
 
+	log.Printf("[SUCCESS] Built userInfo: ID=%s, Username=%s, Name=%+v", userInfo.ID, userInfo.Username, userInfo.Name)
 	return userInfo, nil
 }
 

@@ -229,14 +229,14 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 		log.Printf("[ChatService] Successfully emitted message ID=%s to WebSocket and Kafka", populatedMsg.ID.Hex())
 	}
 
-	// **NEW: Notify offline users in room (similar to user's existing pattern)**
-	s.notifyOfflineUsersInRoom(msg)
+	// **NEW: Notify all users in room for external notification system**
+	s.notifyAllUsersInRoom(msg)
 
 	return nil
 }
 
-// **NEW: Simple notification for offline users in room**
-func (s *ChatService) notifyOfflineUsersInRoom(msg *model.ChatMessage) {
+// **NEW: Simple notification for all users in room**
+func (s *ChatService) notifyAllUsersInRoom(msg *model.ChatMessage) {
 	// Get all online users in the room from hub
 	onlineUsers := s.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
 	
@@ -268,7 +268,7 @@ func (s *ChatService) notifyOfflineUsersInRoom(msg *model.ChatMessage) {
 		messageType = "mention"
 	}
 
-	// Notify offline users
+	// Notify ALL users (both online and offline) for external notification system
 	for _, memberID := range room.Members {
 		memberIDStr := memberID.Hex()
 		
@@ -277,14 +277,15 @@ func (s *ChatService) notifyOfflineUsersInRoom(msg *model.ChatMessage) {
 			continue
 		}
 		
-		// Skip if user is online
+		// Log user status but send notification regardless
 		if onlineUserMap[memberIDStr] {
-			log.Printf("[ChatService] User %s is online, skipping offline notification", memberIDStr)
-			continue
+			log.Printf("[ChatService] User %s is online, but sending notification anyway for external system", memberIDStr)
+		} else {
+			log.Printf("[ChatService] User %s is offline, sending notification", memberIDStr)
 		}
 
-		// Use enhanced notification function with message ID
-		s.NotifyOfflineUserWithMessageID(
+		// Use enhanced notification function with message ID for ALL users
+		s.NotifyUserWithMessageID(
 			memberIDStr,
 			msg.RoomID.Hex(),
 			msg.UserID.Hex(),
@@ -296,8 +297,8 @@ func (s *ChatService) notifyOfflineUsersInRoom(msg *model.ChatMessage) {
 }
 
 // Enhanced notification function for messages with ID (moved from mention.service.go)
-func (s *ChatService) NotifyOfflineUserWithMessageID(userID, roomID, senderID, message, eventType, messageID string) {
-	log.Printf("[ChatService] NotifyOfflineUserWithMessageID called: user=%s, room=%s, sender=%s, type=%s, msgID=%s", 
+func (s *ChatService) NotifyUserWithMessageID(userID, roomID, senderID, message, eventType, messageID string) {
+	log.Printf("[ChatService] NotifyUserWithMessageID called: user=%s, room=%s, sender=%s, type=%s, msgID=%s", 
 		userID, roomID, senderID, eventType, messageID)
 
 	ctx := context.Background()
@@ -308,6 +309,7 @@ func (s *ChatService) NotifyOfflineUserWithMessageID(userID, roomID, senderID, m
 		log.Printf("[ChatService] Failed to get sender info: %v", err)
 		return
 	}
+	log.Printf("[ChatService] Successfully got sender info: %s", sender.Username)
 
 	// Get room info with populated data
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
@@ -328,6 +330,7 @@ func (s *ChatService) NotifyOfflineUserWithMessageID(userID, roomID, senderID, m
 		log.Printf("[ChatService] Failed to get room info: %v", err)
 		return
 	}
+	log.Printf("[ChatService] Successfully got room info: %s", room.ID.Hex())
 
 	// Create complete notification payload with message ID
 	notificationPayload := map[string]interface{}{
@@ -366,11 +369,53 @@ func (s *ChatService) NotifyOfflineUserWithMessageID(userID, roomID, senderID, m
 		return
 	}
 
+	log.Printf("[ChatService] About to emit notification to topic %s with payload size: %d bytes", 
+		notificationTopic, len(payloadBytes))
+
 	// Emit to Kafka for external notification system
 	if err := s.kafkaBus.Emit(context.Background(), notificationTopic, userID, payloadBytes); err != nil {
-		log.Printf("[ChatService] Failed to send notification to Kafka: %v", err)
+		log.Printf("[ChatService] FAILED to send notification to Kafka topic %s: %v", notificationTopic, err)
+		s.logNotification(userID, roomID, senderID, message, eventType, messageID, "failed", err.Error(), notificationPayload)
 	} else {
-		log.Printf("[ChatService] Successfully sent complete notification to topic %s", notificationTopic)
+		log.Printf("[ChatService] SUCCESS: sent complete notification to topic %s for user %s", 
+			notificationTopic, userID)
+		s.logNotification(userID, roomID, senderID, message, eventType, messageID, "sent", "", notificationPayload)
+	}
+}
+
+// logNotification saves notification log to database for admin monitoring
+func (s *ChatService) logNotification(userID, roomID, senderID, message, eventType, messageID, status, errorMsg string, payload interface{}) {
+	// **CONVERT PAYLOAD TO JSON STRING FOR NEW ENTRIES**
+	var payloadToStore interface{}
+	if payload != nil {
+		if payloadBytes, err := json.Marshal(payload); err == nil {
+			payloadToStore = string(payloadBytes) // Store as string for new format
+		} else {
+			log.Printf("[ERROR] Failed to marshal payload for notification log: %v", err)
+			payloadToStore = "{}"
+		}
+	} else {
+		payloadToStore = "{}"
+	}
+
+	notificationLog := model.NotificationLog{
+		Type:      eventType,
+		Receiver:  userID,
+		Sender:    senderID,
+		RoomID:    roomID,
+		MessageID: messageID,
+		Payload:   payloadToStore, // Store as JSON string for new entries
+		Status:    status,
+		Error:     errorMsg,
+		Timestamp: time.Now(),
+	}
+
+	// Save to notification_logs collection
+	logCollection := s.mongo.Collection("notification_logs")
+	if _, err := logCollection.InsertOne(context.Background(), notificationLog); err != nil {
+		log.Printf("[ERROR] Failed to save notification log: %v", err)
+	} else {
+		log.Printf("[DEBUG] Successfully saved notification log for user %s", userID)
 	}
 }
 

@@ -57,8 +57,6 @@ var defaults = map[string]string{
 	"MONGO_URI":              "mongodb://localhost:27017",
 	"MONGO_DATABASE":         "hllc_chat",
 	"KAFKA_BROKERS":          "localhost:9092",
-	"KAFKA_TOPICS_ROOM_EVENTS": "room-events",
-	"KAFKA_TOPICS_CHAT_EVENTS": "chat-events",
 	"UPLOAD_PATH":            "uploads",
 }
 
