@@ -16,12 +16,15 @@ export class EvoucherCode {
   @Prop({ type: Date, default: null })
   usedAt?: Date;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   user: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Evoucher' })
+  @Prop({ type: Types.ObjectId, ref: 'Evoucher', index: true })
   evoucher: Types.ObjectId;
+
+  @Prop({ type: Object, default: {} })
+  metadata?: Record<string, string | number>;
 }
 
 export const EvoucherCodeSchema = SchemaFactory.createForClass(EvoucherCode);
-EvoucherCodeSchema.index({ code: 1, isUsed: 1 }, { unique: true });
+EvoucherCodeSchema.index({ code: 1, isUsed: 1, user: 1, evoucher: 1 }, { unique: true });

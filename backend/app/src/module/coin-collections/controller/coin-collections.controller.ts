@@ -6,15 +6,18 @@ import {
   Param,
   Delete,
   Query,
+  Req,
 } from '@nestjs/common';
 import { CoinCollectionsService } from '../service/coin-collections.service';
 import { CollectCoinDto } from '../dto/coin-collections/coin-collectoin.dto';
+import { FastifyRequest } from 'fastify';
+import { Types } from 'mongoose';
 
 @Controller('coin-collections')
 export class CoinCollectionsController {
   constructor(
     private readonly coinCollectionsService: CoinCollectionsService,
-  ) {}
+  ) { }
 
   @Post('collect')
   async collectCoin(@Body() collectCoinDto: CollectCoinDto) {
@@ -37,12 +40,17 @@ export class CoinCollectionsController {
   }
 
   @Get('leaderboard')
-  async getLeaderboard(@Query('limit') limit: number) {
-    return await this.coinCollectionsService.getLeaderboard(limit);
+  async getLeaderboard(@Query() query: Record<string, string>) {
+    return await this.coinCollectionsService.getLeaderboard(query);
   }
 
-  @Get(':userId/leaderboard')
-  async getUserRank(@Param('userId') userId: string) {
-    return await this.coinCollectionsService.getUserRank(userId);
+  @Get('my-rank')
+  async getUserRank(@Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
+    return this.coinCollectionsService.getUserRank(req.user._id.toString());
+  }
+
+  @Get('sponsor/reward')
+  async getAllUserReward() {
+    return this.coinCollectionsService.getSponsorRewardUsers();
   }
 }
