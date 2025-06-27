@@ -32,5 +32,6 @@ import { SponsorsModule } from '../sponsors/sponsors.module';
   ],
   controllers: [EvoucherCodesController, EvouchersController],
   providers: [EvouchersService, EvoucherCodesService],
+  exports: [EvoucherCodesService]
 })
-export class EvouchersModule {}
+export class EvouchersModule { }
