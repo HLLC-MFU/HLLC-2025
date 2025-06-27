@@ -9,6 +9,7 @@ import {
 import { useEffect, useState } from 'react';
 import { NotificationFormData } from "../page";
 import { Lang } from '@/types/lang';
+import * as LucideIcons from 'lucide-react';
 
 type InAppNotificationProps = {
   notification: NotificationFormData
@@ -17,7 +18,11 @@ type InAppNotificationProps = {
 
 export function InAppNotificationPreview({ notification, language }: InAppNotificationProps) {
   const [now, setNow] = useState(new Date());
-  const SelectedIcon = notification?.icon.charAt(0).toUpperCase() + notification?.icon.slice(1);
+
+  const iconName = notification.icon;
+  const SelectedIconComponent = iconName && iconName in LucideIcons
+    ? LucideIcons[iconName as keyof typeof LucideIcons] as React.ComponentType<LucideIcons.LucideProps>
+    : null;
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
@@ -43,7 +48,7 @@ export function InAppNotificationPreview({ notification, language }: InAppNotifi
           <div className="flex flex-col w-full">
             <div className="flex flex-row justify-between items-center w-full space-x-4">
               <div className="flex items-center gap-2 pr-36">
-                {SelectedIcon}
+                {SelectedIconComponent && <SelectedIconComponent size={24} />}
                 <div className='pr-28 w-80'>
                   <p className="text-xl font-medium break-words ">
                     {notification.title[language] || '{title}'}

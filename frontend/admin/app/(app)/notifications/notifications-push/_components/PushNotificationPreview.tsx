@@ -13,7 +13,6 @@ type PushNotificationProps = {
 
 export function PushNotificationPreview ({ notification, language }: PushNotificationProps) {
   const [now, setNow] = useState(new Date());
-  const SelectedIcon = notification?.icon;
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
@@ -41,7 +40,6 @@ export function PushNotificationPreview ({ notification, language }: PushNotific
               <div className="bg-[url('/HLLC.jpg')] bg-cover w-14 aspect-square rounded-xl" />
               <div className="flex flex-col w-full min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  {SelectedIcon}
                   <div className='pr-28 w-80'>
                     <p className="text-xl font-medium break-words ">
                       {notification.title[language] || '{title}'}
@@ -54,7 +52,7 @@ export function PushNotificationPreview ({ notification, language }: PushNotific
                 </p>
               </div>
               <p className="absolute top-4 right-5 text-sm text-gray-500 ">
-                {dateString} | {timeString}
+                Now
               </p>
             </div>
           </div>
