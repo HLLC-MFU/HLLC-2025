@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
-import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import {
+  queryAll,
+  queryDeleteOne,
+  queryFindOne,
+  queryUpdateOne,
+} from 'src/pkg/helper/query.util';
 import { CreateAssessmentDto } from '../dto/assessments/create-assessment.dto';
 import { UpdateAssessmentDto } from '../dto/assessments/update-assessment.dto';
 import { Assessment, AssessmentDocument } from '../schema/assessment.schema';
@@ -12,18 +16,14 @@ export class AssessmentsService {
   constructor(
     @InjectModel(Assessment.name)
     private assessmentModel: Model<AssessmentDocument>,
-  ) { }
+  ) {}
 
   async create(createAssessmentDto: CreateAssessmentDto) {
     const assessment = new this.assessmentModel({
       ...createAssessmentDto,
     });
 
-    try {
-      return await assessment.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'order');
-    }
+    return await assessment.save();
   }
 
   async findAll(query: Record<string, string>) {
@@ -35,13 +35,19 @@ export class AssessmentsService {
     });
   }
 
-  async findOne(id: string): Promise<{ data: Assessment[] | null; message: string }> {
+  async findOne(
+    id: string,
+  ): Promise<{ data: Assessment[] | null; message: string }> {
     const result = await queryFindOne(this.assessmentModel, { _id: id });
     return result;
   }
 
   async update(id: string, updateAssessmentDto: UpdateAssessmentDto) {
-    return queryUpdateOne<Assessment>(this.assessmentModel, id, updateAssessmentDto);
+    return queryUpdateOne<Assessment>(
+      this.assessmentModel,
+      id,
+      updateAssessmentDto,
+    );
   }
 
   async remove(id: string) {

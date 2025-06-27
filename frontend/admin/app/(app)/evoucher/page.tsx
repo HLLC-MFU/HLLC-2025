@@ -1,72 +1,121 @@
 "use client"
 
 import React, { useState } from "react";
-import {
-    Accordion,
-    AccordionItem,
-    Button,
-} from "@heroui/react";
-import EvoucherTable from './_components/EvoucherTable'
 import { PageHeader } from "@/components/ui/page-header";
-import { Plus, Ticket } from "lucide-react";
-import { Evoucher } from "@/types/evoucher";
+import { Ticket } from "lucide-react";
+import EvoucherAccordion from "./_components/EvoucherAccordion";
 import { useEvoucher } from "@/hooks/useEvoucher";
-import { useEvoucherType } from "@/hooks/useEvoucherType";
+import { Evoucher, EvoucherType } from "@/types/evoucher";
+import { addToast } from "@heroui/react";
+import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
+import { EvoucherModal } from "./_components/EvoucherModal";
 import { useSponsors } from "@/hooks/useSponsors";
-import AddTypeModal from "./_components/AddTypeModal";
-import { EvoucherType } from "@/types/evoucher-type";
+
 
 export default function EvoucherPage() {
-    const { evouchers } = useEvoucher();
-    const { evoucherType, createEvoucherType } = useEvoucherType();
-    const { sponsors } = useSponsors();
-    const [isTypeOpen, setIsTypeOpen] = useState(false);
+    const { evouchers, loading: evouchersLoading, createEvoucher, deleteEvoucher, updateEvoucher, fetchEvouchers, } = useEvoucher();
+    const isLoading = evouchersLoading;
+    const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [confirmationModalType, setConfirmationModalType] = useState<
+        'delete' | 'edit' | null
+    >(null);
+    const [selectedEvoucher, setSelectedEvoucher] = useState<
+        Evoucher | Partial<Evoucher> | undefined
+    >();
+    const { sponsors, loading: sponsorsLoading } = useSponsors();
 
-    const groupedEvouchers: Record<string, Evoucher[]> = {};
-    evouchers.forEach((evoucher) => {
-        const sponsorName = evoucher.sponsors?.name?.en || "Unknown";
-        if (!groupedEvouchers[sponsorName]) groupedEvouchers[sponsorName] = [];
-        groupedEvouchers[sponsorName].push(evoucher);
-    });
 
-    const handleAddType = (TypeName: Partial<EvoucherType>) => {
-        createEvoucherType(TypeName);
-        setIsTypeOpen(false);
-      };
+    const handleAddEvoucher = (type?: EvoucherType) => {
+        setModalMode('add');
+        setSelectedEvoucher(type ? { type } : undefined);
+        setIsModalOpen(true);
+    };
+
+    const handleEditEvoucher = (evoucher: Evoucher) => {
+        setModalMode('edit');
+        setSelectedEvoucher(evoucher);
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = (evoucher: Evoucher) => {
+        setSelectedEvoucher(evoucher);
+        setConfirmationModalType('delete');
+    };
+
+    const handleSubmitEvoucher = async (formData: FormData, mode: "add" | "edit") => {
+        try {
+            if (mode === "edit" && selectedEvoucher && "_id" in selectedEvoucher && selectedEvoucher._id) {
+                await updateEvoucher(selectedEvoucher._id, formData);
+            } else if (mode === "add") {
+                await createEvoucher(formData);
+            }
+
+            await fetchEvouchers();
+            addToast({ title: `Evoucher ${mode === "add" ? "added" : "updated"} successfully!`, color: "success" });
+        } catch (err) {
+            addToast({ title: "Error while saving evoucher", color: "danger" });
+        } finally {
+            setIsModalOpen(false);
+        }
+    };
+
+    const handleConfirm = async () => {
+        if (
+            confirmationModalType === 'delete' &&
+            selectedEvoucher &&
+            selectedEvoucher._id
+        ) {
+            await deleteEvoucher(selectedEvoucher._id);
+            await fetchEvouchers();
+            addToast({ title: 'Evoucher deleted successfully!', color: 'success' });
+        }
+        setConfirmationModalType(null);
+        setSelectedEvoucher(undefined);
+    };
 
     return (
         <>
-            <PageHeader description='This is Management Page' icon={<Ticket />} right={
-                <Button color="primary" size="lg" endContent={<Plus size={20}/>} onPress={() => setIsTypeOpen(true)}>New Type</Button>
-            }/>
-            <div className="flex flex-col min-h-screen">
-                <div className="container mx-auto">
-                    <div className="flex flex-col gap-6">
-                        <Accordion variant="splitted" selectionMode="multiple">
-                            {Object.entries(groupedEvouchers).map(([sponsorName, evouchers]) => (
-                                <AccordionItem
-                                    key={sponsorName}
-                                    aria-label={sponsorName}
-                                    title={sponsorName}
-                                    className="font-medium mb-2"
-                                >
-                                    <EvoucherTable
-                                        sponsorName={sponsorName}
-                                        evouchers={evouchers}
-                                        EvoucherType={evoucherType}
-                                        sponsors={sponsors}
-                                    />
-                                </AccordionItem>
-                            ))}
-                        </Accordion>
-                    </div>
-                </div>
+            <PageHeader
+                description="Manage evouchers and their codes"
+                icon={<Ticket />}
+                title="Evoucher Management"
+            />
+            <div className="flex flex-col gap-6">
+                {isLoading ? (
+                    <p>Loading...</p>
+                ) : (
+                    <EvoucherAccordion
+                        evouchers={evouchers}
+                        onAdd={handleAddEvoucher}
+                        onEdit={handleEditEvoucher}
+                        onDelete={handleDelete}
+                    />
+                )}
             </div>
 
-            <AddTypeModal 
-                isOpen={isTypeOpen}
-                onClose={() => setIsTypeOpen(false)}
-                onAddType={handleAddType}
+            {/* Modals */}
+            <EvoucherModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={handleSubmitEvoucher}
+                mode={modalMode}
+                evoucherType={selectedEvoucher?.type ?? EvoucherType.GLOBAL}
+                sponsors={sponsors}
+                evoucher={
+                    modalMode === "edit" && selectedEvoucher && "_id" in selectedEvoucher
+                        ? (selectedEvoucher as Evoucher)
+                        : undefined
+                }
+            />
+
+            <ConfirmationModal
+                isOpen={confirmationModalType === "delete"}
+                onClose={() => setConfirmationModalType(null)}
+                onConfirm={handleConfirm}
+                title="Delete evoucher"
+                body="Are you sure you want to delete this item?"
+                confirmColor="danger"
             />
         </>
     )

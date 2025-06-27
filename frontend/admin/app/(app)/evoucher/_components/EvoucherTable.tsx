@@ -1,249 +1,176 @@
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, SortDescriptor, Image, addToast, } from "@heroui/react";
-import React, { Key, useCallback, useMemo, useState } from "react";
-import { EllipsisVertical } from "lucide-react";
-import { Evoucher } from "@/types/evoucher";
-import { Sponsors } from "@/types/sponsors";
-import TableContent from "./TableContent";
-import AddModal from "./AddEvoucherModal";
-import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
-import { EvoucherType } from "@/types/evoucher-type";
-import { useEvoucher } from "@/hooks/useEvoucher";
+import React, { useCallback, useMemo, useState } from "react";
+import { Evoucher, EvoucherType } from "@/types/evoucher";
+import EvoucherCellRenderer, { EvoucherColumnKey } from "./EvoucherCellRenderer";
+import { SortDescriptor, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import TopContent from "./TopContent";
+import BottomContent from "./BottomContent";
 import type { Selection } from "@react-types/shared";
 
-export const columns = [
+export const COLUMNS = [
     { name: "SPONSOR", uid: "sponsors", sortable: true },
     { name: "ACRONYM", uid: "acronym", sortable: true },
-    { name: "DETAIL", uid: "detail", },
+    { name: "DETAIL", uid: "detail" },
     { name: "DISCOUNT", uid: "discount", sortable: true },
     { name: "EXPIRATION", uid: "expiration", sortable: true },
-    { name: "TYPE", uid: "type", sortable: true },
-    { name: "COVER", uid: "cover", },
-    { name: "BANNER", uid: "banner", },
-    { name: "THUMPNAIL", uid: "thumpnail", },
-    { name: "LOGO", uid: "logo", },
+    { name: "STATUS", uid: "status", sortable: true },
+    { name: "CLAIMS", uid: "claims" },
+    { name: "COVER", uid: "cover" },
+    { name: "ACTIONS", uid: "actions" },
 ];
 
-export function capitalize(s: string) {
-    return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+export type TableColumnType = {
+    uid: string;
+    name: string;
+    sortable?: boolean;
 }
 
-const INITIAL_VISIBLE_COLUMNS = [
-    "sponsors",
-    "acronym",
-    "detail",
-    "discount",
-    "expiration",
-    "type",
-    "cover",
-];
+type EvoucherTableProps = {
+    sponsorName: string;
+    evouchers: Evoucher[];
+    evoucherType: EvoucherType;
+    onAdd: () => void;
+    onEdit: (evoucher: Evoucher) => void;
+    onDelete: (evoucher: Evoucher) => void;
+};
 
 export default function EvoucherTable({
-    sponsorName,
     evouchers,
-    EvoucherType,
-    sponsors,
-}: {
-    sponsorName: string,
-    evouchers: Evoucher[];
-    EvoucherType: EvoucherType[];
-    sponsors: Sponsors[];
-}) {
-    const { createEvoucher } = useEvoucher();
-
+    onAdd,
+    onEdit,
+    onDelete,
+}: EvoucherTableProps) {
     const [filterValue, setFilterValue] = useState("");
-    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set<string>());
-    const [visibleColumns, setVisibleColumns] = useState(
-        new Set(INITIAL_VISIBLE_COLUMNS),
-    );
-    const [typeFilter, setTypeFilter] = useState<Selection>("all");
-    const [rowsPerPage, setRowsPerPage] = useState(5);
-    const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-        column: "acronym",
-        direction: "ascending",
-    });
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
     const [page, setPage] = useState(1);
-    const [actionText, setActionText] = useState<"Add" | "Edit">("Add");
-    const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
-    const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false);
+    const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({ column: "acronym", direction: "ascending" });
+    const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 
-    const hasSearchFilter = Boolean(filterValue);
+    const handleSearch = (value: string) => {
+        setFilterValue(value);
+        setPage(1);
+    };
 
-    const headerColumns = useMemo(() => {
-        return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
-    }, [visibleColumns]);
+    const handleClear = () => {
+        setFilterValue("");
+        setPage(1);
+    };
+
+    const handlePreviousPage = () => setPage((prev) => Math.max(1, prev - 1));
+    const handleNextPage = () => setPage((prev) => prev + 1);
 
     const filteredItems = useMemo(() => {
-        let filteredEvoucher = [...evouchers];
+        const query = filterValue.toLowerCase();
+        return evouchers.filter((evoucher) =>
+            evoucher.sponsors.name.en.toLowerCase().includes(query) ||
+            evoucher.discount.toString().includes(query) ||
+            evoucher.acronym.toLowerCase().includes(query) ||
+            evoucher.detail.en.toLowerCase().includes(query) ||
+            evoucher.expiration.toString().includes(query)
+        );
+    }, [evouchers, filterValue]);
 
-        if (hasSearchFilter) {
-            filteredEvoucher = filteredEvoucher.filter((evoucher) =>
-                evoucher.sponsors.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
-                evoucher.type.name.toLowerCase().includes(filterValue.toLowerCase()) ||
-                evoucher.discount.toString().includes(filterValue.toLowerCase()) ||
-                evoucher.acronym.toLowerCase().includes(filterValue.toLowerCase()) ||
-                evoucher.detail.en.toLowerCase().includes(filterValue.toLowerCase()) ||
-                evoucher.expiration.toString().includes(filterValue.toLowerCase())
-            );
-        }
-        if (typeFilter !== "all" && Array.from(typeFilter).length !== EvoucherType.length) {
-            filteredEvoucher = filteredEvoucher.filter((evoucher) =>
-                Array.from(typeFilter).includes(evoucher.type.name),
-            );
-        }
+    const sortedItems = useMemo(() => {
+        return [...filteredItems].sort((a, b) => {
+            const first = a[sortDescriptor.column as keyof Evoucher] as any;
+            const second = b[sortDescriptor.column as keyof Evoucher] as any;
+            const cmp = first < second ? -1 : first > second ? 1 : 0;
+            return sortDescriptor.direction === "descending" ? -cmp : cmp;
+        });
+    }, [filteredItems, sortDescriptor]);
 
-        return filteredEvoucher;
-    }, [evouchers, filterValue, typeFilter]);
-
+    const rowsPerPage = 5;
+    const pagedItems = useMemo(() => {
+        const start = (page - 1) * rowsPerPage;
+        return sortedItems.slice(start, start + rowsPerPage);
+    }, [sortedItems, page]);
 
     const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
-    const items = useMemo(() => {
-        const start = (page - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-
-        return filteredItems.slice(start, end);
-    }, [page, filteredItems, rowsPerPage]);
-
-    const sortedItems = useMemo(() => {
-        return [...items].sort((a: Evoucher, b: Evoucher) => {
-            const first = a[sortDescriptor.column as keyof Evoucher] as number;
-            const second = b[sortDescriptor.column as keyof Evoucher] as number;
-            const cmp = first < second ? -1 : first > second ? 1 : 0;
-
-            return sortDescriptor.direction === "descending" ? -cmp : cmp;
-        });
-    }, [sortDescriptor, items]);
-
-    const renderCell = useCallback((evoucher: Evoucher, columnKey: Key) => {
-        const cellValue = evoucher[columnKey as keyof Evoucher];
-
-        switch (columnKey) {
-            case "sponsors":
-                return (cellValue as Sponsors).name.en;
-            case "discount":
-                return cellValue
-            case "acronym":
-                return cellValue;
-            case "detail":
-                return (cellValue as { en: string }).en;
-            case "type":
-                return (cellValue as { name: string }).name
-            case "expiration":
-                if (typeof cellValue === "string" || cellValue instanceof Date) {
-                    return new Date(cellValue).toLocaleString("en-US", {
-                        dateStyle: 'long',
-                        timeStyle: 'short',
-                        timeZone: 'UTC'
-                    });
-                }
-            case "cover":
-                return (
-                    <Image
-                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo?.coverPhoto}`}
-                        alt="Cover"
-                        width={100}
-                    />
-                );
-            case "actions":
-                return (
-                    <div className="relative flex justify-end items-center gap-2">
-                        <Dropdown>
-                            <DropdownTrigger>
-                                <Button isIconOnly size="sm" variant="light">
-                                    <EllipsisVertical className="text-default-300" />
-                                </Button>
-                            </DropdownTrigger>
-                            <DropdownMenu>
-                                <DropdownItem key="edit" onPress={() => { setActionText("Edit"); setIsAddOpen(true); }}>Edit</DropdownItem>
-                                <DropdownItem key="delete" onPress={() => setIsDeleteOpen(true)}>Delete</DropdownItem>
-                            </DropdownMenu>
-                        </Dropdown>
-                    </div>
-                );
-            default:
-                return cellValue || "";
-        }
-    }, []);
-
-    const handleAdd = async (evoucher: FormData) => {
-        try {
-            const response = await createEvoucher(evoucher);
-            setIsAddOpen(false);
-
-            addToast({
-                title: "Add Successfully",
-                description: "Data has been added successfully",
-            });
-
-            if (response) window.location.reload();
-        } catch (error) {
-            addToast({
-                title: "Failed to Add",
-                description: (error as Error)?.message || "An error occurred while adding data.",
-                color: "danger",
-            });
-        }
-    };
-
-    const handleDelete = () => {
-        setIsDeleteOpen(true);
-    };
+    const renderCell = useCallback(
+        (evoucher: Evoucher, columnKey: EvoucherColumnKey) => {
+            return (
+                <EvoucherCellRenderer
+                    evoucher={evoucher}
+                    columnKey={columnKey}
+                    onEdit={() => onEdit(evoucher)}
+                    onDelete={() => onDelete(evoucher)}
+                />
+            );
+        },
+        [onEdit, onDelete]
+    );
 
     return (
         <div>
-            <TableContent
-                setIsAddOpen={setIsAddOpen}
-                setActionText={setActionText}
-                sortDescriptor={sortDescriptor}
-                setSortDescriptor={setSortDescriptor}
-                headerColumns={headerColumns}
-                sortedItems={sortedItems}
-                renderCell={renderCell}
-                filterValue={filterValue}
-                typeFilter={typeFilter}
-                setTypeFilter={setTypeFilter}
-                EvoucherType={EvoucherType}
-                capitalize={capitalize}
-                visibleColumns={visibleColumns}
-                setVisibleColumns={(columns: Set<string>) => setVisibleColumns(new Set(columns))}
-                columns={columns}
+            <Table
+                isHeaderSticky
+                aria-label="Table header"
+
+                topContent={
+                    <TopContent
+                        setActionText={onAdd}
+                        filterValue={filterValue}
+                        capitalize={capitalize}
+                        onClear={handleClear}
+                        onSearchChange={handleSearch}
+                        filteredItems={filteredItems}
+                        page={page}
+                        pages={pages}
+                        setPage={setPage}
+                        onPreviousPage={handlePreviousPage}
+                        onNextPage={handleNextPage}
+                    />
+                }
+                topContentPlacement="outside"
                 selectedKeys={selectedKeys}
-                setSelectedKeys={setSelectedKeys}
-                filteredItems={filteredItems}
-                page={page}
-                pages={pages}
-                setPage={setPage}
-                onPreviousPage={() => setPage((page) => Math.max(1, page - 1))}
-                onNextPage={() => setPage((page) => page + 1)}
-                onClear={() => {
-                    setFilterValue("");
-                    setPage(1);
-                }}
-                onSearchChange={(val) => {
-                    setFilterValue(val);
-                    setPage(1);
-                }}
-            />
-
-            {/* Add evoucher modal */}
-            <AddModal
-                isOpen={isAddOpen}
-                onClose={() => setIsAddOpen(false)}
-                onAdd={handleAdd}
-                title={actionText}
-                type={EvoucherType}
-                sponsors={sponsors}
-            />
-
-            {/* Delete evoucher modal */}
-            <ConfirmationModal
-                isOpen={isDeleteOpen}
-                onClose={() => setIsDeleteOpen(false)}
-                onConfirm={handleDelete}
-                title={"Delete evoucher"}
-                body={"Are you sure you want to delete this item?"}
-                confirmColor='danger'
-            />
+                selectionMode="multiple"
+                onSelectionChange={setSelectedKeys}
+                sortDescriptor={sortDescriptor}
+                onSortChange={setSortDescriptor}
+                bottomContent={
+                    <BottomContent
+                        selectedKeys={selectedKeys}
+                        filteredItems={filteredItems}
+                        page={page}
+                        pages={pages}
+                        setPage={setPage}
+                        onPreviousPage={handlePreviousPage}
+                        onNextPage={handleNextPage}
+                    />
+                }
+                bottomContentPlacement="outside"
+            >
+                <TableHeader columns={COLUMNS}>
+                    {(column) => (
+                        <TableColumn
+                            key={column.uid}
+                            align={column.uid === "actions" ? "center" : "start"}
+                            className={`${column.uid} py-4 bg-default-50`}
+                            allowsSorting={column.sortable}
+                        >
+                            <span className="text-bold text-small uppercase tracking-wider">{column.name}</span>
+                        </TableColumn>
+                    )}
+                </TableHeader>
+                <TableBody
+                    emptyContent={
+                        <div className="flex flex-col items-center justify-center py-8">
+                            <span className="text-default-400">No evouchers found</span>
+                        </div>
+                    }
+                    items={pagedItems}
+                >
+                    {(item) => (
+                        <TableRow key={item._id} className="hover:bg-default-50 transition-colors">
+                            {(columnKey) => (
+                                <TableCell className={`${columnKey.toString()} py-4`}>
+                                    {renderCell(item, columnKey as EvoucherColumnKey)}
+                                </TableCell>
+                            )}
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
         </div>
-    )
-};
+    );
+}

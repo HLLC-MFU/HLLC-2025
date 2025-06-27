@@ -1,3 +1,4 @@
+import { EvoucherCode } from "@/types/evoucher-code";
 import { Sponsors } from "@/types/sponsors";
 import { apiRequest } from "@/utils/api";
 import { addToast } from "@heroui/react";
@@ -25,6 +26,26 @@ export function useSponsors() {
           ? (err as { message?: string }).message || 'Failed to fetch sponsors.'
           : 'Failed to fetch sponsors.',
       );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // FetchEvoucherCodeBySponsorId
+  const fetchEvoucherCodeBySponsorId = async (id: string): Promise<EvoucherCode[]> => {
+    if (!id) {
+      console.error("Invalid sponsor ID");
+      return [];
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiRequest<{ data: EvoucherCode[] }>(`/sponsors/${id}/evoucher-codes`);
+      return Array.isArray(res.data) ? res.data : [];
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch evoucher codes.');
+      return [];
     } finally {
       setLoading(false);
     }
@@ -62,8 +83,7 @@ export function useSponsors() {
       return;
     }
 
-    // Optionally remove _id from FormData
-    sponsorsData.delete('_id'); // Prevent conflict if _id is present but empty
+    sponsorsData.delete('_id');
 
     try {
       setLoading(true);
@@ -121,5 +141,6 @@ export function useSponsors() {
     createSponsors,
     updateSponsors,
     deleteSponsors,
+    fetchEvoucherCodeBySponsorId,
   };
 }

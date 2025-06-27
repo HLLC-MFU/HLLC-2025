@@ -1,7 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AssessmentAnswersService } from '../service/assessment-answers.service';
 import { CreateAssessmentAnswerDto } from '../dto/assessment-answers/create-assessment-answer.dto';
-import { UpdateAssessmentAnswerDto } from '../dto/assessment-answers/update-assessment-answer.dto';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
@@ -10,7 +18,9 @@ import { Permissions } from '../../auth/decorators/permissions.decorator';
 @ApiTags('assessment-answers')
 @Controller('assessment-answers')
 export class AssessmentAnswersController {
-  constructor(private readonly assessmentAnswersService: AssessmentAnswersService) { }
+  constructor(
+    private readonly assessmentAnswersService: AssessmentAnswersService,
+  ) {}
 
   @Post()
   @Permissions('assessment-answers:create')
@@ -45,7 +55,8 @@ export class AssessmentAnswersController {
   @Get('/:activityId/average')
   @Permissions('assessment-answers:read')
   getAverageByActivity(@Param('activityId') activityId: string) {
-    return this.assessmentAnswersService.averageAssessmentsByActivity(activityId);
+    return this.assessmentAnswersService.averageAssessmentsByActivity(
+      activityId,
+    );
   }
-
 }

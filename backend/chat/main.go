@@ -25,6 +25,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/websocket/v2"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -32,65 +33,38 @@ import (
 
 // Route structure to store route information
 type Route struct {
-	Method      string
-	Path        string
-	Handler     string
-	Module      string
-	Middleware  []string
+	Method     string
+	Path       string
+	Handler    string
+	Module     string
+	Middleware []string
 }
 
 func main() {
-	// Print current working directory for debugging
-	pwd, err := os.Getwd()
+	// Load environment variables from .env file
+	err := godotenv.Load(".env")
 	if err != nil {
-		log.Printf("Warning: Could not get working directory: %v", err)
-	} else {
-		log.Printf("Current working directory: %s", pwd)
+		log.Fatalf("Error loading .env file")
 	}
 
-	// Load configuration
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		log.Printf("Error details: %v", err)
-		log.Fatalf("Failed to load config: %v", err)
-	}
+	log.Println("KAFKA_HOST:", os.Getenv("KAFKA_HOST"))
 
-	// Print loaded configuration for debugging
-	log.Printf("Loaded configuration: App Port=%s, MongoDB URI=%s", 
-		cfg.App.Port, 
-		cfg.Mongo.URI,
-	)
+	// Initialize context
+	ctx := context.Background()
 
-	// Create Fiber app
-	app := fiber.New()
+	// Load configuration from environment
+	cfg := config.LoadConfig(".env")
 
-	// Setup MongoDB
-	mongoDB, err := setupMongo(cfg)
-	if err != nil {
-		log.Fatalf("Failed to setup MongoDB: %v", err)
-	}
+	// Connect to the database
+	db := core.DbConnect(ctx, cfg)
+	defer core.DbDisconnect(ctx, db)
 
-	// Setup Redis
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     cfg.Redis.Addr,
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
-	})
+	// Connect to Redis
+	redis := core.RedisConnect(ctx, cfg)
+	defer core.RedisDisconnect(ctx, redis)
 
-	// Test Redis connection
-	if err := redisClient.Ping(context.Background()).Err(); err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
-	}
-
-
-	// Setup middleware
-	setupMiddleware(app)
-
-	// Setup controllers
-	setupControllers(app, mongoDB, redisClient, cfg)
-
-	// Log all registered routes
-	logRegisteredRoutes(app)
+	// Create server instance
+	srv := server.NewServer(cfg, db)
 
 	// Start server
 	port := fmt.Sprintf(":%s", cfg.App.Port)
@@ -152,7 +126,7 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 
 	// Create required topics
 	if err := bus.CreateTopics([]string{
-		"room-events",      // For room events (create, update, delete)
+		"room-events",                   // For room events (create, update, delete)
 		chatUtils.RoomTopicPrefix + "*", // For room-specific chat messages
 	}); err != nil {
 		log.Printf("[ERROR] Failed to create Kafka topics: %v", err)
@@ -186,10 +160,10 @@ func logRegisteredRoutes(app *fiber.App) {
 		// Determine module based on path
 		module := "Other"
 		switch {
-		case strings.Contains(route.Path, "/api/users") || 
-			 strings.Contains(route.Path, "/api/roles") || 
-			 strings.Contains(route.Path, "/api/schools") ||
-			 strings.Contains(route.Path, "/api/majors"):
+		case strings.Contains(route.Path, "/api/users") ||
+			strings.Contains(route.Path, "/api/roles") ||
+			strings.Contains(route.Path, "/api/schools") ||
+			strings.Contains(route.Path, "/api/majors"):
 			module = "User"
 		case strings.Contains(route.Path, "/api/rooms"):
 			module = "Room"
@@ -244,9 +218,9 @@ func logRegisteredRoutes(app *fiber.App) {
 			if len(route.Middleware) > 0 {
 				middleware = strings.Join(route.Middleware, ", ")
 			}
-			log.Printf("%-7s %-50s %-30s %s\n", 
-				route.Method, 
-				route.Path, 
+			log.Printf("%-7s %-50s %-30s %s\n",
+				route.Method,
+				route.Path,
 				middleware,
 				route.Handler,
 			)
@@ -256,4 +230,3 @@ func logRegisteredRoutes(app *fiber.App) {
 	log.Println(strings.Repeat("=", 120))
 	log.Printf("\nTotal Routes: %d\n", len(app.GetRoutes()))
 }
-

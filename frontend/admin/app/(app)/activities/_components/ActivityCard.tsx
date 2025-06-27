@@ -30,8 +30,8 @@ export function ActivityCard({ activity, onEdit, onDelete }: ActivityCardProps) 
             <div className="relative w-full pt-[56.25%]">
                 <img
                     src={activity.photo?.bannerPhoto 
-                        ? `http://localhost:8080/uploads/${activity.photo.bannerPhoto}`
-                        : "http://localhost:8080/uploads/default-banner.jpg"}
+                        ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`
+                        : `${process.env.NEXT_PUBLIC_API_URL}/uploads/default-banner.jpg`}
                     alt={activity.name.en}
                     className="absolute top-0 left-0 w-full h-full object-cover"
                 />

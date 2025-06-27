@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import {
   NestFastifyApplication,
   FastifyAdapter,
@@ -12,8 +12,10 @@ import { fastifyStatic } from '@fastify/static';
 import path from 'path';
 import multipart from '@fastify/multipart';
 import { MongoExceptionFilter } from './pkg/filters/mongo.filter';
+import * as dotenv from 'dotenv';
 
 async function bootstrap() {
+  dotenv.config();
   Logger.log(`Server is running on port ${process.env.PORT ?? 3000}`);
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
@@ -28,12 +30,12 @@ async function bootstrap() {
 
   await app.register(multipart, {
     limits: {
-      fileSize: 500 * 1024,
+      fileSize: 5 * 1024 * 1024,
     },
   });
   await app.register(fastifyStatic, {
     root: path.join(__dirname, '..', 'uploads'),
-    prefix: '/uploads/',
+    prefix: '/api/uploads/',
   });
 
   app.setGlobalPrefix('api');
@@ -42,6 +44,7 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
+  
 
   await app.register(cookie);
   const config = new DocumentBuilder()
@@ -53,6 +56,9 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
   app.useGlobalFilters(new MongoExceptionFilter());
-  void app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  Logger.log(`Server is running on port ${process.env.PORT}`);
 }
-void bootstrap();
+bootstrap().catch((err) => {
+  Logger.error('Error starting server', err);
+});
