@@ -270,6 +270,64 @@ func (h *Hub) BroadcastToRoomExcept(roomID string, excludeUserID string, payload
 	}
 }
 
+// IsUserOnlineInRoom checks if a user is currently connected to a specific room
+func (h *Hub) IsUserOnlineInRoom(roomID string, userID string) bool {
+	if roomMap, ok := h.clients.Load(roomID); ok {
+		if userConns, ok := roomMap.(*sync.Map).Load(userID); ok {
+			// Check if user has any active connections
+			hasActiveConnection := false
+			userConns.(*sync.Map).Range(func(_, _ interface{}) bool {
+				hasActiveConnection = true
+				return false // Stop iteration once we find one connection
+			})
+			return hasActiveConnection
+		}
+	}
+	return false
+}
+
+// GetOnlineUsersInRoom returns a list of users currently online in a specific room
+func (h *Hub) GetOnlineUsersInRoom(roomID string) []string {
+	var onlineUsers []string
+	
+	if roomMap, ok := h.clients.Load(roomID); ok {
+		roomMap.(*sync.Map).Range(func(userID, userConns interface{}) bool {
+			if userIDStr, ok := userID.(string); ok {
+				// Check if user has any active connections
+				hasActiveConnection := false
+				userConns.(*sync.Map).Range(func(_, _ interface{}) bool {
+					hasActiveConnection = true
+					return false // Stop iteration once we find one connection
+				})
+				
+				if hasActiveConnection {
+					onlineUsers = append(onlineUsers, userIDStr)
+				}
+			}
+			return true
+		})
+	}
+	
+	return onlineUsers
+}
+
+// GetActiveConnectionsCount returns the total number of active connections in a room
+func (h *Hub) GetActiveConnectionsCount(roomID string) int {
+	connectionCount := 0
+	
+	if roomMap, ok := h.clients.Load(roomID); ok {
+		roomMap.(*sync.Map).Range(func(_, userConns interface{}) bool {
+			userConns.(*sync.Map).Range(func(_, _ interface{}) bool {
+				connectionCount++
+				return true
+			})
+			return true
+		})
+	}
+	
+	return connectionCount
+}
+
 func (h *Hub) HandleKafkaMessage(topic string, payload []byte) error {
 	roomID := topic[len(RoomTopicPrefix):]
 	if roomID == "" {

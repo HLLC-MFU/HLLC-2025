@@ -32,98 +32,104 @@ func NewWebSocketHandler(
 func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.Conn, roomID string) {
 	messages, err := h.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
 	if err == nil {
-	for _, msg := range messages {
-					// Get user details with role populated
-		var userData map[string]interface{}
-		if user, err := h.chatService.GetUserById(ctx, msg.ChatMessage.UserID.Hex()); err == nil {
-			userData = map[string]interface{}{
-				"_id":      user.ID.Hex(),
-				"username": user.Username,
-				"name": map[string]interface{}{
-					"first":  user.Name.First,
-					"middle": user.Name.Middle,
-					"last":   user.Name.Last,
-				},
-			}
-			
-			// Add role information (excluding permissions)
-			if user.Role != primitive.NilObjectID {
-				// This would need role service, but for now use basic structure
-				userData["role"] = map[string]interface{}{
-					"_id": user.Role.Hex(),
-					// Note: role name would need additional query
-				}
-			}
-		} else {
-			userData = map[string]interface{}{
-				"_id": msg.ChatMessage.UserID.Hex(),
-			}
-		}
-
-		// Determine message type
-		var messageType string
-		if msg.ChatMessage.StickerID != nil {
-			messageType = model.MessageTypeSticker
-		} else if msg.ChatMessage.ReplyToID != nil {
-			messageType = model.MessageTypeReply
-		} else {
-			messageType = model.MessageTypeText
-		}
-
-		// Create comprehensive payload structure
-		payload := map[string]interface{}{
-			"room": map[string]interface{}{
-				"_id": roomID,
-			},
-			"message": map[string]interface{}{
-				"_id":       msg.ChatMessage.ID.Hex(),
-				"type":      messageType,
-				"message":   msg.ChatMessage.Message,
-				"timestamp": msg.ChatMessage.Timestamp,
-			},
-			"user":      userData,
-			"timestamp": msg.ChatMessage.Timestamp,
-			}
-
-					// **UPDATED: Always include reactions from database (real-time data)**
-		if len(msg.Reactions) > 0 {
-			// Format reactions with user info
-			formattedReactions := make([]map[string]interface{}, 0, len(msg.Reactions))
-			for _, reaction := range msg.Reactions {
-				reactionData := map[string]interface{}{
-					"messageId": reaction.MessageID.Hex(),
-					"userId":    reaction.UserID.Hex(),
-					"reaction":  reaction.Reaction,
-					"timestamp": reaction.Timestamp,
+		for _, msg := range messages {
+			// Get user details with role populated
+			var userData map[string]interface{}
+			if user, err := h.chatService.GetUserById(ctx, msg.ChatMessage.UserID.Hex()); err == nil {
+				userData = map[string]interface{}{
+					"_id":      user.ID.Hex(),
+					"username": user.Username,
+					"name": map[string]interface{}{
+						"first":  user.Name.First,
+						"middle": user.Name.Middle,
+						"last":   user.Name.Last,
+					},
 				}
 				
-				// Try to get user info for reaction
-				if reactionUser, err := h.chatService.GetUserById(ctx, reaction.UserID.Hex()); err == nil {
-					reactionData["user"] = map[string]interface{}{
-						"_id":      reactionUser.ID.Hex(),
-						"username": reactionUser.Username,
-						"name":     reactionUser.Name,
+				// Add role information (excluding permissions)
+				if user.Role != primitive.NilObjectID {
+					// This would need role service, but for now use basic structure
+					userData["role"] = map[string]interface{}{
+						"_id": user.Role.Hex(),
+						// Note: role name would need additional query
 					}
 				}
-				
-				formattedReactions = append(formattedReactions, reactionData)
+			} else {
+				userData = map[string]interface{}{
+					"_id": msg.ChatMessage.UserID.Hex(),
+				}
 			}
-			payload["reactions"] = formattedReactions
-		}
 
-		// **NEW: Include mention info if available**
-		if len(msg.ChatMessage.MentionInfo) > 0 {
-			payload["mentions"] = msg.ChatMessage.MentionInfo
-		}
+			// **UPDATED: Determine actual event type and message type based on message content**
+			var eventType, messageType string
+			if msg.ChatMessage.StickerID != nil {
+				eventType = model.EventTypeSticker
+				messageType = model.MessageTypeSticker
+			} else if msg.ChatMessage.ReplyToID != nil {
+				eventType = model.EventTypeReply
+				messageType = model.MessageTypeReply
+			} else if len(msg.ChatMessage.MentionInfo) > 0 {
+				eventType = model.EventTypeMention
+				messageType = model.MessageTypeMention
+			} else {
+				eventType = model.EventTypeMessage
+				messageType = model.MessageTypeText
+			}
+
+			// Create comprehensive payload structure
+			payload := map[string]interface{}{
+				"room": map[string]interface{}{
+					"_id": roomID,
+				},
+				"message": map[string]interface{}{
+					"_id":       msg.ChatMessage.ID.Hex(),
+					"type":      messageType,
+					"message":   msg.ChatMessage.Message,
+					"timestamp": msg.ChatMessage.Timestamp,
+				},
+				"user":      userData,
+				"timestamp": msg.ChatMessage.Timestamp,
+			}
+
+			// **UPDATED: Always include reactions from database (real-time data)**
+			if len(msg.Reactions) > 0 {
+				// Format reactions with user info
+				formattedReactions := make([]map[string]interface{}, 0, len(msg.Reactions))
+				for _, reaction := range msg.Reactions {
+					reactionData := map[string]interface{}{
+						"messageId": reaction.MessageID.Hex(),
+						"userId":    reaction.UserID.Hex(),
+						"reaction":  reaction.Reaction,
+						"timestamp": reaction.Timestamp,
+					}
+					
+					// Try to get user info for reaction
+					if reactionUser, err := h.chatService.GetUserById(ctx, reaction.UserID.Hex()); err == nil {
+						reactionData["user"] = map[string]interface{}{
+							"_id":      reactionUser.ID.Hex(),
+							"username": reactionUser.Username,
+							"name":     reactionUser.Name,
+						}
+					}
+					
+					formattedReactions = append(formattedReactions, reactionData)
+				}
+				payload["reactions"] = formattedReactions
+			}
+
+			// **UPDATED: Include mention info if available**
+			if len(msg.ChatMessage.MentionInfo) > 0 {
+				payload["mentions"] = msg.ChatMessage.MentionInfo
+			}
 
 			// Add reply info if exists
-		if msg.ReplyTo != nil {
+			if msg.ReplyTo != nil {
 				// Get reply user data
-			var replyUserData map[string]interface{}
-			if replyUser, err := h.chatService.GetUserById(ctx, msg.ReplyTo.UserID.Hex()); err == nil {
-				replyUserData = map[string]interface{}{
-					"_id":      replyUser.ID.Hex(),
-					"username": replyUser.Username,
+				var replyUserData map[string]interface{}
+				if replyUser, err := h.chatService.GetUserById(ctx, msg.ReplyTo.UserID.Hex()); err == nil {
+					replyUserData = map[string]interface{}{
+						"_id":      replyUser.ID.Hex(),
+						"username": replyUser.Username,
 						"name":     replyUser.Name,
 					}
 					
@@ -131,22 +137,22 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 						replyUserData["role"] = map[string]interface{}{
 							"_id": replyUser.Role.Hex(),
 						}
+					}
+				} else {
+					replyUserData = map[string]interface{}{
+						"_id": msg.ReplyTo.UserID.Hex(),
+					}
 				}
-			} else {
-				replyUserData = map[string]interface{}{
-					"_id": msg.ReplyTo.UserID.Hex(),
-				}
-			}
 
 				payload["replyTo"] = map[string]interface{}{
-				"message": map[string]interface{}{
-					"_id":       msg.ReplyTo.ID.Hex(),
-					"message":   msg.ReplyTo.Message,
-					"timestamp": msg.ReplyTo.Timestamp,
-				},
-				"user": replyUserData,
+					"message": map[string]interface{}{
+						"_id":       msg.ReplyTo.ID.Hex(),
+						"message":   msg.ReplyTo.Message,
+						"timestamp": msg.ReplyTo.Timestamp,
+					},
+					"user": replyUserData,
+				}
 			}
-		}
 
 			// Add sticker info if exists
 			if msg.ChatMessage.StickerID != nil {
@@ -154,17 +160,17 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 					"_id":   msg.ChatMessage.StickerID.Hex(),
 					"image": msg.ChatMessage.Image,
 				}
-	}
+			}
 
-	// Convert to proper Event structure
-	event := model.Event{
-		Type:      model.EventTypeHistory,
+			// **UPDATED: Use actual event type instead of "history"**
+			event := model.Event{
+				Type:      eventType,
 				Payload:   payload,
 				Timestamp: msg.ChatMessage.Timestamp,
-	}
+			}
 
-	if data, err := json.Marshal(event); err == nil {
-		conn.WriteMessage(websocket.TextMessage, data)
+			if data, err := json.Marshal(event); err == nil {
+				conn.WriteMessage(websocket.TextMessage, data)
 			}
 		}
 	}

@@ -4,7 +4,6 @@ import "time"
 
 // Event Types - Global constants
 const (
-    EventTypeHistory    = "history"
     EventTypeMessage    = "message" 
     EventTypeReply      = "reply"
     EventTypeSticker    = "sticker"
