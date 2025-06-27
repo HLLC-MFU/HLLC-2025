@@ -22,14 +22,8 @@ export function MediaCard() {
     : null;
 
   const tutorialPhotoUrl = latestSetting?.tutorialPhoto
-    ? `http://localhost:8080/api/uploads/${latestSetting.tutorialPhoto}`
+    ? `${process.env.EXPO_PUBLIC_API_URL}/uploads/${latestSetting.tutorialPhoto}`
     : null;
-
-  // console.log('tutorialVideo:', latestSetting?.tutorialVideo);
-  // console.log('extracted videoId:', videoId);
-  // console.log('lamduanSetting:', lamduanSetting);
-  // console.log('latestSetting:', latestSetting);
-
 
   return (
     <View style={styles.wrapper}>
