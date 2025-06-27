@@ -44,8 +44,6 @@ describe('SponsorsService', () => {
         metadata: { key: 'value' },
     };
 
-
-
     const updateSponsorDto: UpdateSponsorDto = {
         name: { th: 'อัปเดต', en: 'Updated' },
         photo: {

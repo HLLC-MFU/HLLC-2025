@@ -66,7 +66,7 @@ describe('CheckinService', () => {
 
     const dto: CreateCheckinDto = {
       user: 'someone',
-      activities: [mockActivityId1.toHexString(), mockActivityId2.toHexString()],  // <-- แก้ตรงนี้
+      activities: mockActivityId1.toHexString(), 
       staff: mockStaffId.toHexString(),
     };
 
@@ -82,7 +82,7 @@ describe('CheckinService', () => {
 
     const dto: CreateCheckinDto = {
       user: 'user',
-      activities: [],  
+      activities: '',  
       staff: mockStaffId.toHexString(),
     };
 
@@ -103,7 +103,7 @@ describe('CheckinService', () => {
     const dto: CreateCheckinDto = {
       user: 'user',
       staff: mockStaffId.toHexString(),
-      activities: [mockActivityId1.toHexString(), mockActivityId2.toHexString()],  
+      activities: mockActivityId1.toHexString(),  
     };
 
     await expect(service.create(dto)).rejects.toThrow(
@@ -134,7 +134,7 @@ describe('CheckinService', () => {
     const dto: CreateCheckinDto = {
       user: 'user',
       staff: mockStaffId.toHexString(),
-      activities: [mockActivityId1.toHexString(), mockActivityId2.toHexString()], // รวมเป็น string เดียว
+      activities: mockActivityId1.toHexString(),
     };
 
     const result = await service.create(dto);
