@@ -64,7 +64,7 @@ export class CoinCollectionsService {
       await userCollection.save();
     }
 
-    const droppedEvoucher = await this.dropEvoucherIfNeeded(landmarkObjectId, userObjectId);
+    const droppedEvoucher = await this.dropEvoucherRate(landmarkObjectId, userObjectId);
 
     return {
       message: droppedEvoucher
@@ -101,62 +101,6 @@ export class CoinCollectionsService {
       id,
     }
   }
-
-  // async getLeaderboard(limit = 5) {
-  //   const collections = await this.coinCollectionModel.find({}).populate('user')
-  //     .populate({
-  //       path: 'user',
-  //       select: ['username', 'name',],
-  //     })
-  //     .populate({
-  //       path: 'landmarks.landmark',
-  //       model: 'Landmark',
-  //       select: 'type',
-  //     })
-  //     .lean();
-
-  //   // 2. คำนวณ coinCount เฉพาะที่เป็น type === 'normal'
-  //   const leaderboard = collections.map(c => {
-  //     const normalLandmarks = c.landmarks.filter(l =>
-  //       (l.landmark as any as LandmarkDocument)?.type === 'normal'
-  //     );
-
-  //     const latestCollectedAt = c.landmarks.reduce((latest, curr) => {
-  //       return !latest || new Date(curr.collectedAt) > latest
-  //         ? new Date(curr.collectedAt)
-  //         : latest;
-  //     }, null as Date | null);
-
-  //     const user = c.user as any as UserDocument;
-
-  //     return {
-  //       userId: user._id,
-  //       username: user.username,
-  //       name: user.name,
-  //       coinCount: normalLandmarks.length,
-  //       latestCollectedAt,
-  //     };
-  //   });
-
-  //   // 3. เรียงลำดับตาม coinCount และ latestCollectedAt
-  //   leaderboard.sort((a, b) => {
-  //     if (b.coinCount !== a.coinCount) return b.coinCount - a.coinCount;
-  //     const aTime = a.latestCollectedAt?.getTime() ?? 0;
-  //     const bTime = b.latestCollectedAt?.getTime() ?? 0;
-  //     return aTime - bTime;
-  //   });
-
-  //   // 4. ตัดให้เหลือตาม limit และใส่อันดับ
-  //   const leaderboardWithRank = leaderboard.slice(0, limit).map((entry, index) => ({
-  //     ...entry,
-  //     rank: index + 1,
-  //   }));
-
-  //   return {
-  //     message: 'Leaderboard fetched successfully (NORMAL landmarks only)',
-  //     data: leaderboardWithRank,
-  //   };
-  // }
 
   async getLeaderboard(query: Record<string, string>) {
     const limit = Number(query.limit) || 5;
@@ -259,7 +203,7 @@ export class CoinCollectionsService {
     };
   }
 
-  async getSponsorRewardUsers() {
+  async getSponsorRewardUsers(landmarkId: string) {
     const collections = await this.coinCollectionModel.find({})
       .populate({
         path: 'user',
@@ -268,13 +212,19 @@ export class CoinCollectionsService {
       .populate({
         path: 'landmarks.landmark',
         model: 'Landmark',
-        select: 'type name hint location coinAmount',
+        select: 'type name',
       }).lean();
 
     const listUserReward = collections.map(c => {
-      const sponsorLandmarks = c.landmarks.filter(l => (l.landmark as any)?.type === 'sponsor');
+      const sponsorLandmarks = c.landmarks.filter(l => {
+        const lm = l.landmark as any;
+        return lm.type === 'sponsor' && lm._id.toString() === landmarkId;
+      });
 
-      const latestCollectedAt = c.landmarks.reduce((latest, curr) => {
+      console.log('this is sponsorLandmakr', sponsorLandmarks);
+
+
+      const latestCollectedAt = sponsorLandmarks.reduce((latest, curr) => {
         return !latest || new Date(curr.collectedAt) > latest
           ? new Date(curr.collectedAt)
           : latest;
@@ -292,12 +242,21 @@ export class CoinCollectionsService {
           collectedAt: l.collectedAt,
         })),
       };
+    }).filter(u => u.coinCount > 0);
+
+    const ranked = listUserReward.sort((a, b) => {
+      const aTime = a.latestCollectedAt?.getTime() ?? 0;
+      const bTime = b.latestCollectedAt?.getTime() ?? 0;
+      return aTime - bTime;
     });
 
-    return listUserReward;
+    return ranked.map((u, index) => ({
+      ...u,
+      rank: index + 1,
+    }));
   }
 
-  async dropEvoucherIfNeeded(landmarkId: Types.ObjectId, userId: Types.ObjectId) {
+  async dropEvoucherRate(landmarkId: Types.ObjectId, userId: Types.ObjectId) {
     const collectedCount = await this.coinCollectionModel.countDocuments({
       landmarks: { $elemMatch: { landmark: landmarkId } }
     });
