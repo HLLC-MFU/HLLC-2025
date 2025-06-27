@@ -1,68 +1,120 @@
 import { router } from 'expo-router';
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import {
+  SafeAreaView,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  Dimensions,
+  Image,
+} from 'react-native';
+import { TutorialModal } from './_components/TutorialModal';
+import { ConfirmModal } from './_components/ConfirmModal';
+
+const { width } = Dimensions.get('window');
 
 export default function LamduanOrigamiPage() {
+  const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [isTutorialModalVisible, setTutorialModalVisible] = useState(false);
+  const [username, setUsername] = useState('Waritpon');
+
+  const handleConfirmSubmit = () => {
+    setConfirmModalVisible(false);
+  };
+
+  const handleTurtorialModal = () => {
+    setTutorialModalVisible(false);
+  };
+
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => {
-          router.back();
-        }}
-      >
-        <Text style={styles.backButtonText}>Back</Text>
-      </TouchableOpacity>
-
-      <View style={styles.box}>
-        <Text>Picture Banner</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Lamduan Origami</Text>
-        <Text style={styles.cardText}>
-          Enhance you knowledge of the university through the origami flower. Additionally,
-          immerse yourself in instructional origami videos that showcase the important information
-          about the university
-        </Text>
-
-        <View style={styles.youtubeBox}>
-          <Text>Video Youtube</Text>
-        </View>
-
-        <TouchableOpacity style={styles.modalButton}>
-          <Text>Tutorial Modal</Text>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-      </View>
 
-      <View style={styles.formBox}>
-        <View style={styles.uploadBox}>
-          <Text>Upload Picture</Text>
+        <View style={styles.box}>
+          <Image
+            source={{ uri: 'https://www.royalparkrajapruek.org/img/upload/20210309-6046ece04a35c.jpg' }}
+            style={styles.bannerImage}
+          />
         </View>
 
-        <TextInput
-          placeholder="Type message..."
-          placeholderTextColor="#aaa"
-          style={styles.input}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Lamduan Origami</Text>
+          <Text style={styles.cardText}>
+            Enhance your knowledge of the university through the origami flower...
+          </Text>
+
+          <View style={styles.youtubeBox}>
+            <Text>Video Youtube</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.modalButton}
+            onPress={() => setTutorialModalVisible(true)}
+          >
+            <Text>Tutorial Modal</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.formBox}>
+          <View style={styles.uploadBox}>
+            <Text>Upload Picture</Text>
+          </View>
+
+          <TextInput
+            placeholder="Type message..."
+            placeholderTextColor="#000"
+            style={styles.input}
+          />
+
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={() => setConfirmModalVisible(true)}
+          >
+            <Text>Submit</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TutorialModal
+          isVisible={isTutorialModalVisible}
+          onClose={() => setTutorialModalVisible(false)}
         />
 
-        <TouchableOpacity style={styles.submitButton}>
-          <Text>Submit</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        <ConfirmModal
+          isVisible={isConfirmModalVisible}
+          onCancel={() => setConfirmModalVisible(false)}
+          onConfirm={() => {
+            setConfirmModalVisible(false);
+          }}
+          username={username}
+        />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
+  },
+  container: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    alignItems: 'center',
   },
   backButton: {
     alignSelf: 'flex-start',
-    backgroundColor: '#ddd',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -71,9 +123,16 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 16,
   },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
   box: {
+    width: '100%',
     height: 120,
-    backgroundColor: '#eee',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -81,12 +140,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   card: {
-    backgroundColor: '#ddd',
+    width: '100%',
+    maxWidth: 500,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#007bff',
+    borderWidth: 1,
   },
   cardTitle: {
     fontWeight: 'bold',
@@ -113,7 +173,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   formBox: {
-    backgroundColor: '#fff',
+    width: '100%',
+    maxWidth: 500,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,

@@ -1,0 +1,34 @@
+import React from 'react';
+import { Image, StyleSheet, View } from 'react-native';
+
+export function BannerImage() {
+  return (
+    <View style={styles.box}>
+      <Image
+        source={{
+          uri: 'https://www.royalparkrajapruek.org/img/upload/20210309-6046ece04a35c.jpg',
+        }}
+        style={styles.bannerImage}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  box: {
+    width: '100%',
+    height: 120,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
+});
