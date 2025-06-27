@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Search, ArrowLeft } from 'lucide-react-native';
 import { SponsorCard } from '../../../components/evoucher/SponsorCard';
@@ -29,6 +30,7 @@ export default function EvoucherPage() {
   // ใช้ currentSponsorId แทน showMyCodes
   const [currentSponsorId, setCurrentSponsorId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Custom hooks
   const {
@@ -87,12 +89,11 @@ export default function EvoucherPage() {
     setCurrentSponsorId(null);
   };
 
-  // Filter sponsors based on search query and isShow status
+  // Filter sponsors based on search query
   const filteredSponsors = sponsors.filter(
     sponsor =>
-      sponsor.isShow &&
-      (sponsor.name.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        sponsor.name.th.toLowerCase().includes(searchQuery.toLowerCase())),
+      sponsor.name.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sponsor.name.th.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Filter evouchers based on search query
@@ -117,6 +118,15 @@ export default function EvoucherPage() {
     sponsor => sponsor._id === currentSponsorId,
   );
   const displayTitle = currentSponsor ? currentSponsor.name.en : 'E-Voucher';
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchSponsorsWithEvouchers(),
+      fetchMyEvoucherCodes(),
+    ]);
+    setRefreshing(false);
+  }, [fetchSponsorsWithEvouchers, fetchMyEvoucherCodes]);
 
   // Loading state
   if (sponsorsLoading && sponsors.length === 0) {
@@ -182,6 +192,9 @@ export default function EvoucherPage() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
+        }
       >
         {currentSponsorId ? (
           <View style={styles.evoucherGrid}>
@@ -198,7 +211,10 @@ export default function EvoucherPage() {
                     imageSource={{
                       uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${
                         evoucherCode.evoucher.photo.evoucherImage ||
-                        evoucherCode.evoucher.photo.coverPhoto
+                        (evoucherCode.evoucher.photo as any)?.home ||
+                        (evoucherCode.evoucher.photo as any)?.front ||
+                        (evoucherCode.evoucher.photo as any)?.back ||
+                        ''
                       }`,
                     }}
                     onPress={() =>
@@ -247,7 +263,7 @@ export default function EvoucherPage() {
                 <SponsorCard
                   key={sponsor._id}
                   imageSource={{
-                    uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${sponsor.photo.logoPhoto}`,
+                    uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${sponsor.photo?.logoPhoto || sponsor.logo?.logoPhoto}`,
                   }}
                   onPress={() => handleSponsorCardPress(sponsor._id)}
                   hasEvoucherCodes={hasEvoucherCodesForSponsor(sponsor._id)}
@@ -272,15 +288,21 @@ export default function EvoucherPage() {
           onClose={handleCloseModal}
           evoucherImageFront={{
             uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${
-              modalState.evoucher.photo.evoucherImageFront ||
-              modalState.evoucher.photo.coverPhoto
+              (modalState.evoucher.photo as any)?.evoucherImageFront ||
+              (modalState.evoucher.photo as any)?.front ||
+              (modalState.evoucher.photo as any)?.coverPhoto ||
+              (modalState.evoucher.photo as any)?.home ||
+              ''
             }`,
           }}
           evoucherImageBack={{
             uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${
-              modalState.evoucher.photo.evoucherImageBack ||
-              modalState.evoucher.photo.bannerPhoto ||
-              modalState.evoucher.photo.coverPhoto
+              (modalState.evoucher.photo as any)?.evoucherImageBack ||
+              (modalState.evoucher.photo as any)?.back ||
+              (modalState.evoucher.photo as any)?.bannerPhoto ||
+              (modalState.evoucher.photo as any)?.coverPhoto ||
+              (modalState.evoucher.photo as any)?.home ||
+              ''
             }`,
           }}
           evoucherCodeId={modalState.evoucherCode?._id}

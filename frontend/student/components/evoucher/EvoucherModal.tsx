@@ -6,8 +6,8 @@ import { t } from 'i18next';
 import { apiRequest } from '@/utils/api';
 import { CheckCircle, XCircle } from 'lucide-react-native';
 import { useToastController } from '@tamagui/toast';
-import { Button } from '@react-navigation/elements';
 import { GlassLiquidButton } from '@/components/ui/GlassLiquidButton';
+import * as SecureStore from 'expo-secure-store';
 
 
 const { width } = Dimensions.get('window');
@@ -42,11 +42,11 @@ export const EvoucherModal = ({
             toast.show('เกิดข้อผิดพลาด', { message: 'No evoucher code ID provided', type: 'error' });
             return;
         }
-
         setIsLoading(true);
         try {
-            const response = await apiRequest(`/evoucher-code/use/${evoucherCodeId}`, 'POST', {});
-            
+            const userId = await SecureStore.getItemAsync('userId');
+            if (!userId) throw new Error('User ID not found');
+            const response = await apiRequest(`/evoucher-codes/${evoucherCodeId}/used`, 'POST', { userId });
             if (response.statusCode === 200 || response.statusCode === 201) {
                 setIsUsed(true);
                 toast.show('แลกรับ E-Voucher สำเร็จ', { message: 'Evoucher code claimed successfully!', type: 'success' });
