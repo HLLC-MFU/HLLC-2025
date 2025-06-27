@@ -8,30 +8,23 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Dimensions,
-  Image,
+  Platform,
 } from 'react-native';
-import { TutorialModal } from './_components/TutorialModal';
-import { ConfirmModal } from './_components/ConfirmModal';
 
-const { width } = Dimensions.get('window');
+import { ConfirmModal } from './_components/ConfirmModal';
+import { BannerImage } from './_components/BannerImage';
+import { MediaCard } from './_components/MediaCard';
 
 export default function LamduanOrigamiPage() {
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
-  const [isTutorialModalVisible, setTutorialModalVisible] = useState(false);
   const [username, setUsername] = useState('Waritpon');
-
-  const handleConfirmSubmit = () => {
-    setConfirmModalVisible(false);
-  };
-
-  const handleTurtorialModal = () => {
-    setTutorialModalVisible(false);
-  };
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingBottom: 120 }]}
+        showsVerticalScrollIndicator={false}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
@@ -39,29 +32,17 @@ export default function LamduanOrigamiPage() {
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
-        <View style={styles.box}>
-          <Image
-            source={{ uri: 'https://www.royalparkrajapruek.org/img/upload/20210309-6046ece04a35c.jpg' }}
-            style={styles.bannerImage}
-          />
-        </View>
+        <BannerImage />
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Lamduan Origami</Text>
           <Text style={styles.cardText}>
-            Enhance your knowledge of the university through the origami flower...
+            Enhance your knowledge of the university through the origami flower. Additionally,
+            immerse yourself in instructional origami videos that showcase the important information
+            about the university.
           </Text>
 
-          <View style={styles.youtubeBox}>
-            <Text>Video Youtube</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.modalButton}
-            onPress={() => setTutorialModalVisible(true)}
-          >
-            <Text>Tutorial Modal</Text>
-          </TouchableOpacity>
+          <MediaCard />
         </View>
 
         <View style={styles.formBox}>
@@ -83,17 +64,10 @@ export default function LamduanOrigamiPage() {
           </TouchableOpacity>
         </View>
 
-        <TutorialModal
-          isVisible={isTutorialModalVisible}
-          onClose={() => setTutorialModalVisible(false)}
-        />
-
         <ConfirmModal
           isVisible={isConfirmModalVisible}
           onCancel={() => setConfirmModalVisible(false)}
-          onConfirm={() => {
-            setConfirmModalVisible(false);
-          }}
+          onConfirm={() => setConfirmModalVisible(false)}
           username={username}
         />
       </ScrollView>
@@ -109,7 +83,6 @@ const styles = StyleSheet.create({
   container: {
     paddingTop: 20,
     paddingHorizontal: 20,
-    paddingBottom: 30,
     alignItems: 'center',
   },
   backButton: {
@@ -122,22 +95,6 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
-    resizeMode: 'cover',
-  },
-  box: {
-    width: '100%',
-    height: 120,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
   },
   card: {
     width: '100%',
@@ -158,20 +115,6 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 12,
   },
-  youtubeBox: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modalButton: {
-    backgroundColor: '#fff',
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    alignSelf: 'center',
-  },
   formBox: {
     width: '100%',
     maxWidth: 500,
@@ -179,6 +122,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
+    marginBottom: 20,
   },
   uploadBox: {
     height: 100,

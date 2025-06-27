@@ -1,24 +1,65 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Linking } from 'react-native';
+import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import { TutorialModal } from './TutorialModal';
 
 export function MediaCard() {
   const [isModalVisible, setModalVisible] = useState(false);
+  const { lamduanSetting } = useLamduanFlowers();
 
-  const openModal = () => setModalVisible(true);
-  const closeModal = () => setModalVisible(false);
+  const latestSetting = lamduanSetting?.[0];
+
+  const extractYouTubeId = (url: string) => {
+    const regex = /(?:youtube\.com.*(?:\?|&)v=|youtu\.be\/)([^&\n?#]+)/;
+    const match = url?.match(regex);
+    return match ? match[1] : null;
+  };
+
+
+  const videoId = latestSetting?.tutorialVideo ? extractYouTubeId(latestSetting.tutorialVideo) : null;
+  const thumbnailUrl = videoId
+    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    : null;
+
+  const tutorialPhotoUrl = latestSetting?.tutorialPhoto
+    ? `http://localhost:8080/api/uploads/${latestSetting.tutorialPhoto}`
+    : null;
+
+  // console.log('tutorialVideo:', latestSetting?.tutorialVideo);
+  // console.log('extracted videoId:', videoId);
+  // console.log('lamduanSetting:', lamduanSetting);
+  // console.log('latestSetting:', latestSetting);
+
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.youtubeBox}>
-        <Text style={styles.title}>Video Youtube</Text>
-      </View>
+      <Text style={styles.title}>Tutorial Video</Text>
 
-      <TouchableOpacity style={styles.modalButton} onPress={openModal}>
+      <TouchableOpacity
+        style={styles.youtubeBox}
+        onPress={() => {
+          if (latestSetting?.tutorialVideo) {
+            Linking.openURL(latestSetting.tutorialVideo);
+          }
+        }}
+        disabled={!videoId}
+      >
+        {thumbnailUrl ? (
+          <Image source={{ uri: thumbnailUrl }} style={styles.thumbnail} />
+        ) : (
+          <Text>No Video Found</Text>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(true)}>
         <Text>Tutorial Modal</Text>
       </TouchableOpacity>
 
-      <TutorialModal isVisible={isModalVisible} onClose={closeModal} />
+      <TutorialModal
+        isVisible={isModalVisible}
+        onClose={() => setModalVisible(false)}
+        photoUrl={tutorialPhotoUrl}
+      />
     </View>
   );
 }
@@ -26,22 +67,32 @@ export function MediaCard() {
 const styles = StyleSheet.create({
   wrapper: {
     marginBottom: 16,
-  },
-  youtubeBox: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 12,
-    padding: 24,
     alignItems: 'center',
-    marginBottom: 12,
   },
   title: {
     fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  youtubeBox: {
+    width: '100%',
+    maxWidth: 300,
+    aspectRatio: 16 / 9,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+    backgroundColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   modalButton: {
     backgroundColor: '#fff',
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 999,
-    alignSelf: 'center',
   },
 });
