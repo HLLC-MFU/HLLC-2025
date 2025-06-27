@@ -1,0 +1,66 @@
+# k8s/infrastructure/zookeeper-k8s.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper-deployment
+  labels:
+    app: zookeeper
+spec:
+  replicas: 1 # สำหรับการทดสอบ Zookeeper ต้องการอย่างน้อย 3 สำหรับ HA
+  selector:
+    matchLabels:
+      app: zookeeper
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+    spec:
+      containers:
+      - name: zookeeper-container
+        image: confluentinc/cp-zookeeper:7.4.0
+        ports:
+        - containerPort: 2181
+          name: client-port
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        env:
+        - name: ZOOKEEPER_CLIENT_PORT
+          value: "2181"
+        - name: ZOOKEEPER_TICK_TIME
+          value: "2000"
+        readinessProbe: # Healthcheck สำหรับ Zookeeper
+          exec:
+            command: ["bash", "-c", "echo ruok | nc localhost 2181"]
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+        livenessProbe: # Healthcheck สำหรับ Zookeeper
+          exec:
+            command: ["bash", "-c", "echo ruok | nc localhost 2181"]
+          initialDelaySeconds: 20
+          periodSeconds: 20
+          timeoutSeconds: 10
+          failureThreshold: 5
+      # Docker Compose's depends_on: condition: service_healthy จะไม่ถูกแปลโดยตรง
+      # Kubernetes จะจัดการการขึ้นต่อกันผ่าน Service Discovery
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper-service # <<--- ชื่อ Service ที่ Kafka จะใช้เชื่อมต่อ
+  labels:
+    app: zookeeper
+spec:
+  selector:
+    app: zookeeper
+  ports:
+    - protocol: TCP
+      port: 2181 # Port ที่ Service จะเปิดใน Cluster
+      targetPort: client-port
+  type: ClusterIP
