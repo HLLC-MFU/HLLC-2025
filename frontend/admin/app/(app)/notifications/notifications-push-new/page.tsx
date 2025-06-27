@@ -2,28 +2,31 @@
 import { PageHeader } from '@/components/ui/page-header';
 import { useNotification } from '@/hooks/useNotification';
 import { Notification } from '@/types/notification';
-import { Button, Card, CardBody, Divider, Select, SelectItem, Tab, Tabs } from '@heroui/react';
-import { BellPlus, BellRing, SendHorizontal } from 'lucide-react';
+import { addToast, Button, Card, CardBody } from '@heroui/react';
+import { BellPlus, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { NotificationForm } from './_components/NotificationForm';
-import { SelectStudentType } from './_components/NotificationSelectStudentType';
 import { InAppNotificationPreview } from './_components/InAppNotificationPreview';
 import { PushNotificationPreview } from './_components/PushNotificationPreview';
 import { Lang } from '@/types/lang';
 import LanguageTabs from './_components/LanguageTabs';
-
-
+import { NotificationScopeSelector } from './_components/NotificationScopeSelector';
+import { useUsers } from '@/hooks/useUsers';
+import { useSchools } from '@/hooks/useSchool';
+import { useMajors } from '@/hooks/useMajor';
+import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
 
 export type NotificationFormData = Notification & {
   imageURL?: string;
 };
 
-type SelectionScope =
-  | 'global'
-  | { type: 'individual' | 'school' | 'major'; id: string[] }[];
-
 export default function NotificationPush() {
   const { createNotification } = useNotification();
+  const { schools } = useSchools();
+  const { majors } = useMajors()
+  const { users } = useUsers();
+  const [isConfirmModal, setIsConfirmModal] = useState<boolean>(false)
+
   const [notificationFormData, setNotificationFormData] = useState<NotificationFormData>({
     title: { en: '', th: '' },
     subtitle: { en: '', th: '' },
@@ -38,17 +41,25 @@ export default function NotificationPush() {
   ];
 
   const [previewLanguage, setPreviewLanguage] = useState<keyof Lang>('en');
-  const [scope, setScope] = useState<SelectionScope>('global');
 
-  const submitNotification = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const submitNotification = () => {
+    setIsConfirmModal(false)
     const formData = new FormData();
 
     formData.append('title', JSON.stringify(notificationFormData.title));
     formData.append('subtitle', JSON.stringify(notificationFormData.subtitle));
     formData.append('body', JSON.stringify(notificationFormData.body));
-    formData.append('scope', JSON.stringify(notificationFormData.scope));
     formData.append('icon', notificationFormData.icon );
+
+    if (notificationFormData.scope.length === 0) {
+      addToast({
+        title: 'Please select at least one target',
+        description: 'Target group is empty',
+        color: 'danger',
+      });
+      return;
+    }
+    formData.append('scope', JSON.stringify(notificationFormData.scope));
 
     if (notificationFormData.image) {
       formData.append('image', notificationFormData.image);
@@ -78,14 +89,21 @@ export default function NotificationPush() {
         <div className="flex row-span-2 w-full">
             <div className="flex flex-col w-full gap-3">
               <div className="flex flex-col w-full px-5 py-6 gap-6 rounded-2xl border border-gray-300 shadow-md">
-                <h1 className="text-2xl font-bold">Preview</h1>
-                <SelectStudentType onScopeChange={setScope} />
+                <h1 className="text-xl font-bold">Target Group</h1>
+                <NotificationScopeSelector
+                  notification={notificationFormData} 
+                  onChange={setNotificationFormData}
+                  schools={schools}
+                  majors={majors}
+                  users={users}
+                />
+                
               </div>
               <div className="px-5 py-6 rounded-2xl border border-gray-300 shadow-md">
                 <NotificationForm 
                   notification={notificationFormData} 
                   onChange={setNotificationFormData}
-                  onSubmit={submitNotification}
+                  onSubmit={() => setIsConfirmModal(true)}
                 />
               </div>
             </div>
@@ -136,6 +154,14 @@ export default function NotificationPush() {
         </div>
 
       </div>
+			<ConfirmationModal
+        title='Send Notification'
+        body='Are you sure to send notification'
+        cancelColor='danger'
+        isOpen={isConfirmModal} 
+        onClose={() => setIsConfirmModal(false)}
+        onConfirm={submitNotification}
+      />
     </>
   );
 }

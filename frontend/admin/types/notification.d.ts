@@ -1,7 +1,7 @@
 import { Lang } from './lang';
 
 export type Target = {
-  type: 'school' | 'major' | 'individual';
+  type: 'school' | 'major' | 'user';
   id: string[];
 };
 

@@ -1,5 +1,5 @@
 import { Input, Textarea } from '@heroui/input';
-import { Accordion, AccordionItem, Autocomplete, AutocompleteItem, Form } from '@heroui/react';
+import { Accordion, AccordionItem, Autocomplete, AutocompleteItem, Button, Form, Tooltip } from '@heroui/react';
 import { Star, School, BookMarked, CircleCheckBig, Link, Image } from 'lucide-react';
 import { Notification } from '@/types/notification';
 import ImageInput from '@/components/ui/imageInput';
@@ -15,7 +15,7 @@ const notificationIcons = [
 type NotificationFormProps = {
   notification: Notification;
   onChange: React.Dispatch<React.SetStateAction<Notification>>;
-  onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: () => void;
 };
 
 export function NotificationForm({ notification, onChange, onSubmit }: NotificationFormProps) {
@@ -43,7 +43,14 @@ export function NotificationForm({ notification, onChange, onSubmit }: Notificat
   );
 
   return (
-    <Form id='notification-form' className="flex flex-col gap-4" onSubmit={onSubmit}>
+    <Form 
+      id='notification-form' 
+      className="flex flex-col gap-4" 
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
       <div className="flex flex-row justify-between w-full">
         <h1 className="text-xl font-bold">
           Notification Form
