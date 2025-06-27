@@ -23,9 +23,6 @@ export class Evoucher {
   @Prop({ required: true, type: Number })
   order: number;
 
-  @Prop({ required: true, type: String })
-  code: Types.ObjectId;
-
   @Prop({ required: true, type: Date })
   startAt: Date;
 
