@@ -45,8 +45,8 @@ func (s *ChatService) SendMentionMessage(ctx context.Context, userID, roomID pri
 		RoomID:      roomID,
 		UserID:      userID,
 		Message:     messageText,
-		Mentions:    validMentionUserIDs,
-		MentionInfo: mentionInfo,
+		Mentions:    validMentionUserIDs,  // Array of user IDs for easy querying
+		MentionInfo: mentionInfo,          // Detailed mention info stored in database
 		Timestamp:   time.Now(),
 	}
 
@@ -143,12 +143,8 @@ func (s *ChatService) GetMentionsForUser(ctx context.Context, userID string, lim
 			ChatMessage: msg,
 		}
 
-		// Parse mention info for display
-		mentionParser := utils.NewMentionParser(s.mongo)
-		mentionInfo, _, err := mentionParser.ParseMentions(ctx, msg.Message)
-		if err == nil {
-			enriched[i].ChatMessage.MentionInfo = mentionInfo
-		}
+		// MentionInfo is already stored in database and populated from query
+		// No need to parse mentions again
 	}
 
 	return enriched, nil

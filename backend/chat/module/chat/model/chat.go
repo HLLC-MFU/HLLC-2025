@@ -12,7 +12,8 @@ type (
 		RoomID    primitive.ObjectID  `bson:"room_id" json:"room_id"`
 		UserID    primitive.ObjectID  `bson:"user_id" json:"user_id"` // Will be populated with user data
 		Message   string              `bson:"message" json:"message"`
-		Mentions  []string            `bson:"mentions,omitempty" json:"mentions,omitempty"` // Array of mentioned user IDs
+		Mentions  []string            `bson:"mentions,omitempty" json:"mentions,omitempty"` // Array of mentioned user IDs (for easy querying)
+		MentionInfo []MentionInfo     `bson:"mention_info,omitempty" json:"mentionInfo,omitempty"` // Detailed mention information
 		ReplyToID *primitive.ObjectID `bson:"reply_to_id,omitempty" json:"reply_to_id,omitempty"`
 		FileURL   string              `bson:"file_url,omitempty" json:"file_url,omitempty"`
 		FileType  string              `bson:"file_type,omitempty" json:"file_type,omitempty"`
@@ -23,7 +24,6 @@ type (
 		
 		// Fields NOT stored in database, only for response aggregation
 		Reactions   []MessageReaction `bson:"-" json:"reactions,omitempty"`
-		MentionInfo []MentionInfo     `bson:"-" json:"mentionInfo,omitempty"` // Parsed mention information
 	}
 
 	MessageReaction struct {
