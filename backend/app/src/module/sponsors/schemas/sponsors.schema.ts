@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { Localization } from 'src/pkg/types/common';
+import { Localization, Photo } from 'src/pkg/types/common';
 
 export type SponsorsDocument = HydratedDocument<Sponsors>;
 
@@ -10,7 +10,7 @@ export class Sponsors {
   name: Localization;
 
   @Prop({ required: true, type: Object })
-  logo: string;
+  logo: Photo;
 
   @Prop({ required: true, type: Types.ObjectId, ref: 'SponsorsType' })
   type: Types.ObjectId;

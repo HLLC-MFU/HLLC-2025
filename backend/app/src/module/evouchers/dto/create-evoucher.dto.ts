@@ -44,10 +44,6 @@ export class CreateEvoucherDto {
   @IsNumber()
   order: number;
 
-  @IsString()
-  @IsNotEmpty()
-  code: string;
-
   @IsDateString()
   startAt: string;
 

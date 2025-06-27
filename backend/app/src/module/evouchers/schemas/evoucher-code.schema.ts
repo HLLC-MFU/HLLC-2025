@@ -18,6 +18,9 @@ export class EvoucherCode {
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   user: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Evoucher' })
+  evoucher: Types.ObjectId;
 }
 
 export const EvoucherCodeSchema = SchemaFactory.createForClass(EvoucherCode);
