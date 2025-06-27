@@ -1,5 +1,15 @@
 package model
 
+const (
+	NotificationTypeMention = "mention"
+	NotificationTypeReply = "reply"
+	NotificationTypeReaction = "reaction"
+	NotificationTypeSticker = "sticker"
+	NotificationTypeMessage = "message"
+	NotificationTypePresence = "presence"
+	NotificationTypeTyping = "typing"
+)
+
 type (
 	NotificationPayload struct {
 		Receiver string `json:"receiver"`

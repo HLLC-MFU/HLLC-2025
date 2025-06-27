@@ -3,8 +3,6 @@ package service
 import (
 	chatModel "chat/module/chat/model"
 	"chat/module/chat/utils"
-	notifyModel "chat/module/notification/model"
-	notificationService "chat/module/notification/service"
 	userModel "chat/module/user/model"
 	"chat/pkg/database/queries"
 	"context"
@@ -80,8 +78,8 @@ func (s *ChatService) SendMentionMessage(ctx context.Context, userID, roomID pri
 		}
 	}
 
-	// **NEW: Send offline notifications to mentioned users**
-	go s.sendOfflineMentionNotifications(ctx, msg, mentionedUsers)
+	// **SIMPLE: Send offline notifications to mentioned users**
+	s.notifyOfflineMentionedUsers(msg, mentionedUsers)
 
 	log.Printf("[ChatService] Successfully sent mention message with %d mentions", len(mentionInfo))
 	return msg, nil
@@ -155,26 +153,9 @@ func (s *ChatService) GetMentionsForUser(ctx context.Context, userID string, lim
 	return enriched, nil
 }
 
-// **NEW: Send offline notifications to mentioned users**
-func (s *ChatService) sendOfflineMentionNotifications(ctx context.Context, msg *chatModel.ChatMessage, mentionedUsers []userModel.User) {
-	if s.notificationService == nil {
-		log.Printf("[ChatService] Notification service not available for offline mentions")
-		return
-	}
-
-	// Get sender info for notification
-	sender, err := s.GetUserById(ctx, msg.UserID.Hex())
-	if err != nil {
-		log.Printf("[ChatService] Failed to get sender info for offline notifications: %v", err)
-		return
-	}
-
-	senderName := sender.Username
-	if sender.Name.First != "" {
-		senderName = fmt.Sprintf("%s %s", sender.Name.First, sender.Name.Last)
-	}
-
-	// Send notification to each mentioned user
+// **SIMPLE: Send offline notifications to mentioned users**
+func (s *ChatService) notifyOfflineMentionedUsers(msg *chatModel.ChatMessage, mentionedUsers []userModel.User) {
+	// Send notification to each mentioned user who is offline
 	for _, mentionedUser := range mentionedUsers {
 		// Check if user is currently online in this room
 		isOnline := s.hub.IsUserOnlineInRoom(msg.RoomID.Hex(), mentionedUser.ID.Hex())
@@ -183,36 +164,14 @@ func (s *ChatService) sendOfflineMentionNotifications(ctx context.Context, msg *
 			continue
 		}
 
-		// Create notification request
-		req := notificationService.NotificationRequest{
-			UserID:     mentionedUser.ID.Hex(),
-			RoomID:     msg.RoomID.Hex(),
-			MessageID:  msg.ID.Hex(),
-			FromUserID: msg.UserID.Hex(),
-			EventType:  notifyModel.NotificationTypeMention,
-			Title:      fmt.Sprintf("%s mentioned you", senderName),
-			Message:    msg.Message,
-			Priority:   notifyModel.NotificationPriorityHigh,
-			Data: map[string]interface{}{
-				"room_id":     msg.RoomID.Hex(),
-				"message_id":  msg.ID.Hex(),
-				"sender_id":   msg.UserID.Hex(),
-				"sender_name": senderName,
-				"mentioned_user": mentionedUser.Username,
-				"message_preview": func() string {
-					if len(msg.Message) > 100 {
-						return msg.Message[:100] + "..."
-					}
-					return msg.Message
-				}(),
-			},
-		}
-
-		// Send notification
-		if err := s.notificationService.NotifyOfflineUser(ctx, req); err != nil {
-			log.Printf("[ChatService] Failed to notify offline mentioned user %s: %v", mentionedUser.ID.Hex(), err)
-		} else {
-			log.Printf("[ChatService] Sent offline mention notification to user %s", mentionedUser.ID.Hex())
-		}
+		// Use enhanced NotifyOfflineUser function for mentions
+		s.NotifyOfflineUserWithMessageID(
+			mentionedUser.ID.Hex(),
+			msg.RoomID.Hex(),
+			msg.UserID.Hex(),
+			msg.Message,
+			"mention",
+			msg.ID.Hex(),
+		)
 	}
 } 

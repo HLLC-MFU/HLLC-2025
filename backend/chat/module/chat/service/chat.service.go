@@ -3,14 +3,15 @@ package service
 import (
 	"chat/module/chat/model"
 	"chat/module/chat/utils"
-	notifyService "chat/module/notification/service"
 	userModel "chat/module/user/model"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	"chat/pkg/helpers/service"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"chat/pkg/config"
 
@@ -31,9 +32,6 @@ type ChatService struct {
 	mongo       *mongo.Database
 	redis       *redis.Client
 	Config      *config.Config
-	
-	// NEW: Notification service for offline users
-	notificationService *notifyService.NotificationService
 }
 	
 func NewChatService(
@@ -56,10 +54,9 @@ func NewChatService(
 	}
 	
 	hub := utils.NewHub()
-
 	emitter := utils.NewChatEventEmitter(hub, kafkaBus, redis, db)
 
-	service := &ChatService{
+	return &ChatService{
 		BaseService:  queries.NewBaseService[model.ChatMessage](collection),
 		cache:       utils.NewChatCacheService(redis),
 		hub:         hub,
@@ -71,47 +68,6 @@ func NewChatService(
 		redis:       redis,
 		Config:      cfg,
 	}
-
-	// Initialize notification service with configuration
-	notificationConfig := notifyService.NotificationConfig{
-		ExternalTopic: "chat-notifications",  // Configure your external notification topic
-		Enabled:       true,                  // Enable/disable notifications
-		Templates:     nil,                   // Use default templates
-	}
-	
-	// Create a simple room service interface implementation
-	roomServiceAdapter := &roomServiceAdapter{db: db}
-	
-	service.notificationService = notifyService.NewNotificationService(
-		db,
-		redis, 
-		kafkaBus,
-		roomServiceAdapter,
-		notificationConfig,
-		hub, // Pass the hub for online status checking
-	)
-
-	return service
-}
-
-// Simple adapter to make room service compatible with notification service
-type roomServiceAdapter struct {
-	db *mongo.Database
-}
-
-func (r *roomServiceAdapter) IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
-	userObjID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return false, err
-	}
-
-	roomCollection := r.db.Collection("rooms")
-	count, err := roomCollection.CountDocuments(ctx, bson.M{
-		"_id":     roomID,
-		"members": userObjID,
-	})
-	
-	return count > 0, err
 }
 
 func (s *ChatService) GetHub() *utils.Hub {
@@ -141,73 +97,80 @@ func (s *ChatService) GetMessageReactions(ctx context.Context, roomID, messageID
 	return s.getMessageReactionsWithUsers(ctx, roomID, messageID)
 }
 
-// GetNotificationService returns the notification service instance
-func (s *ChatService) GetNotificationService() *notifyService.NotificationService {
-	return s.notificationService
-}
+// Simple notification function - sends to external notification system
+func (s *ChatService) NotifyOfflineUser(userID, roomID, senderID, message, eventType string) {
+	log.Printf("[ChatService] NotifyOfflineUser called: user=%s, room=%s, sender=%s, type=%s", 
+		userID, roomID, senderID, eventType)
 
-// Helper method to notify offline users for different events
-func (s *ChatService) NotifyOfflineUsers(ctx context.Context, roomID string, fromUserID string, eventType string, message string, excludeUserIDs ...string) {
-	if s.notificationService == nil {
-		log.Printf("[ChatService] Notification service not available")
+	ctx := context.Background()
+
+	// Get complete user info (sender)
+	sender, err := s.GetUserById(ctx, senderID)
+	if err != nil {
+		log.Printf("[ChatService] Failed to get sender info: %v", err)
 		return
 	}
 
-	// Get room members
+	// Get room info with populated data
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
-		log.Printf("[ChatService] Invalid room ID for notifications: %v", err)
+		log.Printf("[ChatService] Invalid room ID: %v", err)
 		return
 	}
 
-	// Get room to find members
 	roomCollection := s.mongo.Collection("rooms")
 	var room struct {
-		Members []primitive.ObjectID `bson:"members"`
+		ID    primitive.ObjectID `bson:"_id"`
+		Name  map[string]string  `bson:"name"`
+		Image string             `bson:"image"`
 	}
 	
 	err = roomCollection.FindOne(ctx, bson.M{"_id": roomObjID}).Decode(&room)
 	if err != nil {
-		log.Printf("[ChatService] Failed to get room members for notifications: %v", err)
+		log.Printf("[ChatService] Failed to get room info: %v", err)
 		return
 	}
 
-	// Create exclude map for faster lookup
-	excludeMap := make(map[string]bool)
-	for _, userID := range excludeUserIDs {
-		excludeMap[userID] = true
-	}
-	excludeMap[fromUserID] = true // Don't notify the sender
-
-	// Notify each member (except excluded ones)
-	for _, memberID := range room.Members {
-		memberIDStr := memberID.Hex()
-		if excludeMap[memberIDStr] {
-			continue
-		}
-
-		// Check if user is currently online (has active WebSocket connection)
-		isOnline := s.hub.IsUserOnlineInRoom(roomID, memberIDStr)
-		if isOnline {
-			log.Printf("[ChatService] User %s is online, skipping offline notification", memberIDStr)
-			continue
-		}
-
-		// Send offline notification
-		req := notifyService.NotificationRequest{
-			UserID:     memberIDStr,
-			RoomID:     roomID,
-			FromUserID: fromUserID,
-			EventType:  eventType,
-			Message:    message,
-			Data: map[string]interface{}{
-				"room_id": roomID,
-				"sender":  fromUserID,
+	// Create complete notification payload similar to message format
+	notificationPayload := map[string]interface{}{
+		"type": eventType,
+		"payload": map[string]interface{}{
+			"room": map[string]interface{}{
+				"_id":   room.ID.Hex(),
+				"name":  room.Name,
+				"image": room.Image,
 			},
-		}
+			"user": map[string]interface{}{
+				"_id":      sender.ID.Hex(),
+				"username": sender.Username,
+				"name": map[string]interface{}{
+					"first":  sender.Name.First,
+					"middle": sender.Name.Middle,
+					"last":   sender.Name.Last,
+				},
+			},
+			"message": map[string]interface{}{
+				"message": message,
+				"type":    eventType,
+			},
+			// Add receiver info for notification system
+			"receiver": userID,
+			"timestamp": time.Now(),
+		},
+	}
 
-		if err := s.notificationService.NotifyOfflineUser(ctx, req); err != nil {
-			log.Printf("[ChatService] Failed to notify offline user %s: %v", memberIDStr, err)
-		}
+	// Send to external notification topic (to be consumed by NestJS backend)
+	notificationTopic := "chat-notifications"
+	payloadBytes, err := json.Marshal(notificationPayload)
+	if err != nil {
+		log.Printf("[ChatService] Failed to marshal notification payload: %v", err)
+		return
+	}
+
+	// Emit to Kafka for external notification system
+	if err := s.kafkaBus.Emit(context.Background(), notificationTopic, userID, payloadBytes); err != nil {
+		log.Printf("[ChatService] Failed to send notification to Kafka: %v", err)
+	} else {
+		log.Printf("[ChatService] Successfully sent complete offline notification to topic %s", notificationTopic)
 	}
 }

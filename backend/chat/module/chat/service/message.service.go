@@ -5,8 +5,10 @@ import (
 	userModel "chat/module/user/model"
 	"chat/pkg/database/queries"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
@@ -227,7 +229,149 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 		log.Printf("[ChatService] Successfully emitted message ID=%s to WebSocket and Kafka", populatedMsg.ID.Hex())
 	}
 
+	// **NEW: Notify offline users in room (similar to user's existing pattern)**
+	s.notifyOfflineUsersInRoom(msg)
+
 	return nil
+}
+
+// **NEW: Simple notification for offline users in room**
+func (s *ChatService) notifyOfflineUsersInRoom(msg *model.ChatMessage) {
+	// Get all online users in the room from hub
+	onlineUsers := s.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
+	
+	// Create a map for faster lookup
+	onlineUserMap := make(map[string]bool)
+	for _, userID := range onlineUsers {
+		onlineUserMap[userID] = true
+	}
+	
+	// Get room members from database
+	roomCollection := s.mongo.Collection("rooms")
+	var room struct {
+		Members []primitive.ObjectID `bson:"members"`
+	}
+	
+	err := roomCollection.FindOne(context.Background(), bson.M{"_id": msg.RoomID}).Decode(&room)
+	if err != nil {
+		log.Printf("[ChatService] Failed to get room members for notifications: %v", err)
+		return
+	}
+
+	// Determine message type for notification
+	messageType := "text"
+	if msg.ReplyToID != nil {
+		messageType = "reply"
+	} else if msg.StickerID != nil {
+		messageType = "sticker"
+	} else if len(msg.MentionInfo) > 0 {
+		messageType = "mention"
+	}
+
+	// Notify offline users
+	for _, memberID := range room.Members {
+		memberIDStr := memberID.Hex()
+		
+		// Skip the sender
+		if memberIDStr == msg.UserID.Hex() {
+			continue
+		}
+		
+		// Skip if user is online
+		if onlineUserMap[memberIDStr] {
+			log.Printf("[ChatService] User %s is online, skipping offline notification", memberIDStr)
+			continue
+		}
+
+		// Use enhanced notification function with message ID
+		s.NotifyOfflineUserWithMessageID(
+			memberIDStr,
+			msg.RoomID.Hex(),
+			msg.UserID.Hex(),
+			msg.Message,
+			messageType,
+			msg.ID.Hex(),
+		)
+	}
+}
+
+// Enhanced notification function for messages with ID (moved from mention.service.go)
+func (s *ChatService) NotifyOfflineUserWithMessageID(userID, roomID, senderID, message, eventType, messageID string) {
+	log.Printf("[ChatService] NotifyOfflineUserWithMessageID called: user=%s, room=%s, sender=%s, type=%s, msgID=%s", 
+		userID, roomID, senderID, eventType, messageID)
+
+	ctx := context.Background()
+
+	// Get complete user info (sender)
+	sender, err := s.GetUserById(ctx, senderID)
+	if err != nil {
+		log.Printf("[ChatService] Failed to get sender info: %v", err)
+		return
+	}
+
+	// Get room info with populated data
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		log.Printf("[ChatService] Invalid room ID: %v", err)
+		return
+	}
+
+	roomCollection := s.mongo.Collection("rooms")
+	var room struct {
+		ID    primitive.ObjectID `bson:"_id"`
+		Name  map[string]string  `bson:"name"`
+		Image string             `bson:"image"`
+	}
+	
+	err = roomCollection.FindOne(ctx, bson.M{"_id": roomObjID}).Decode(&room)
+	if err != nil {
+		log.Printf("[ChatService] Failed to get room info: %v", err)
+		return
+	}
+
+	// Create complete notification payload with message ID
+	notificationPayload := map[string]interface{}{
+		"type": eventType,
+		"payload": map[string]interface{}{
+			"room": map[string]interface{}{
+				"_id":   room.ID.Hex(),
+				"name":  room.Name,
+				"image": room.Image,
+			},
+			"user": map[string]interface{}{
+				"_id":      sender.ID.Hex(),
+				"username": sender.Username,
+				"name": map[string]interface{}{
+					"first":  sender.Name.First,
+					"middle": sender.Name.Middle,
+					"last":   sender.Name.Last,
+				},
+			},
+			"message": map[string]interface{}{
+				"_id":     messageID,
+				"message": message,
+				"type":    eventType,
+			},
+			// Add receiver info for notification system
+			"receiver": userID,
+			"timestamp": time.Now(),
+		},
+	}
+
+	// Send to external notification topic
+	notificationTopic := "chat-notifications"
+	payloadBytes, err := json.Marshal(notificationPayload)
+	if err != nil {
+		log.Printf("[ChatService] Failed to marshal notification payload: %v", err)
+		return
+	}
+
+	// Emit to Kafka for external notification system
+	if err := s.kafkaBus.Emit(context.Background(), notificationTopic, userID, payloadBytes); err != nil {
+		log.Printf("[ChatService] Failed to send notification to Kafka: %v", err)
+	} else {
+		log.Printf("[ChatService] Successfully sent complete notification to topic %s", notificationTopic)
+	}
 }
 
 func (s *ChatService) DeleteRoomMessages(ctx context.Context, roomID string) error {
