@@ -8,8 +8,12 @@ import {
 } from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
 import { Observable } from 'rxjs';
-import { generateFilename, saveFileToUploadDir } from '../config/storage.config';
+import {
+  generateFilename,
+  saveFileToUploadDir,
+} from '../config/storage.config';
 import { MultipartFile } from '@fastify/multipart';
+import sharp from 'sharp';
 
 // Omit type from MultipartFile since we're redefining it
 type MultipartPart = Omit<MultipartFile, 'type'> & {
@@ -20,7 +24,11 @@ type MultipartPart = Omit<MultipartFile, 'type'> & {
   toBuffer(): Promise<Buffer>;
 };
 
-type NestedValue = string | boolean | NestedObject | Array<string | NestedObject>;
+type NestedValue =
+  | string
+  | boolean
+  | NestedObject
+  | Array<string | NestedObject>;
 
 interface NestedObject {
   [key: string]: NestedValue;
@@ -34,15 +42,23 @@ type RequestData = {
 } & FastifyRequest;
 
 @Injectable()
-export class MultipartInterceptor implements NestInterceptor<RequestData, ResponseData> {
+export class MultipartInterceptor
+  implements NestInterceptor<RequestData, ResponseData>
+{
   constructor(private readonly maxSizeKbs = 256) {}
 
-  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<ResponseData>> {
+  async intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Promise<Observable<ResponseData>> {
     const req = context.switchToHttp().getRequest<FastifyRequest>();
     const parts = req.parts?.();
 
     if (!parts) {
-      throw new HttpException('multipart/form-data required', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'multipart/form-data required',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const dto: NestedObject = {};
@@ -53,11 +69,36 @@ export class MultipartInterceptor implements NestInterceptor<RequestData, Respon
       // Handle file upload
       if (part.type === 'file') {
         const buffer = await part.toBuffer();
+        let finalBuffer = buffer;
+
         if (buffer.length > this.maxSizeKbs * 1024) {
-          throw new HttpException(
-            `File too large (max ${this.maxSizeKbs}KB)`,
-            HttpStatus.UNPROCESSABLE_ENTITY,
-          );
+          const mime = part.mimetype;
+
+          if (mime.startsWith('image/')) {
+            try {
+              // Resize image to max width 800px (orปรับได้ตามต้องการ)
+              finalBuffer = await sharp(buffer)
+                .resize({ width: 800, withoutEnlargement: true })
+                .toBuffer();
+            } catch {
+              throw new HttpException(
+                'Failed to resize image',
+                HttpStatus.BAD_REQUEST,
+              );
+            }
+
+            if (finalBuffer.length > this.maxSizeKbs * 4096) {
+              throw new HttpException(
+                `Resized image still too large (max ${this.maxSizeKbs}KB)`,
+                HttpStatus.UNPROCESSABLE_ENTITY,
+              );
+            }
+          } else {
+            throw new HttpException(
+              `File too large and not resizable (max ${this.maxSizeKbs}KB)`,
+              HttpStatus.UNPROCESSABLE_ENTITY,
+            );
+          }
         }
 
         const filename = generateFilename(part.filename);
@@ -154,7 +195,10 @@ export class MultipartInterceptor implements NestInterceptor<RequestData, Respon
       if ('isOpen' in metadata && typeof metadata.isOpen === 'string') {
         metadata.isOpen = metadata.isOpen === 'true';
       }
-      if ('isProgressCount' in metadata && typeof metadata.isProgressCount === 'string') {
+      if (
+        'isProgressCount' in metadata &&
+        typeof metadata.isProgressCount === 'string'
+      ) {
         metadata.isProgressCount = metadata.isProgressCount === 'true';
       }
       if ('isVisible' in metadata && typeof metadata.isVisible === 'string') {
