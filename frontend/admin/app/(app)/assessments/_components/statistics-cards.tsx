@@ -102,7 +102,7 @@ export function StatisticsCards({ type }: StatisticsCardsProps) {
                     <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardBody>
-                    <div className="text-2xl font-bold">{studentstats?.registered}</div>
+                    <div className="text-2xl font-bold text-center items-center w-full">{studentstats?.registered}</div>
                 </CardBody>
             </Card>
 
@@ -112,7 +112,7 @@ export function StatisticsCards({ type }: StatisticsCardsProps) {
                     <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardBody>
-                    <div className="text-2xl font-bold">{usersWithAnswers}</div>
+                    <div className="text-2xl font-bold text-center items-center w-full">{usersWithAnswers}</div>
                 </CardBody>
             </Card>
             
@@ -122,7 +122,7 @@ export function StatisticsCards({ type }: StatisticsCardsProps) {
                     <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardBody>
-                    <div className="text-2xl font-bold">{usersWithNotAnswers}</div>
+                    <div className="text-2xl font-bold text-center items-center w-full">{usersWithNotAnswers}</div>
                 </CardBody>
             </Card>
 
@@ -132,7 +132,7 @@ export function StatisticsCards({ type }: StatisticsCardsProps) {
                     <UserCheck className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardBody>
-                    <div className="text-2xl font-bold">{Math.round(submitRate)}%</div>
+                    <div className="text-2xl font-bold  text-center items-center w-full">{Math.round(submitRate)}%</div>
                     <Progress
                         value={submitRate}
                         className="mt-2"

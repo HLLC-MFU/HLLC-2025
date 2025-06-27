@@ -4,7 +4,7 @@ import { addToast } from "@heroui/react";
 
 export function useCheckin() {
     const [checkin, setCheckin] = useState<Checkin[]>([]);
-    const [checkinCreate, setCheckinCreate] = useState<CheckinCreate | null>(null);
+    const [checkinCreate] = useState<CheckinCreate | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -57,17 +57,6 @@ export function useCheckin() {
             const res = await response.json();
             console.log("Checkin create response:", res);
 
-            if (response.ok && res.data) {
-                setCheckin((prev) => [...prev, res.data]);
-                addToast({
-                    title: "Check-in successful",
-                    description: "User has been checked in successfully",
-                    color: "success"
-                });
-                return res.data;
-            } else {
-                throw new Error(res.message || "Failed to create check-in");
-            }
         } catch (err: any) {
             console.error("Checkin error:", err);
             addToast({

@@ -321,12 +321,6 @@ export default function AssessmentOverviewDashboard({
     const { pretestAnswers, posttestAnswers, allQuestions, loading: loadingAnswers } = useAssessmentData();
     const { filterData, loading: filterLoading } = useFilterData();
 
-    // Use the appropriate answers based on type
-    const answers = useMemo(() => {
-        if (loadingAnswers) return [];
-        return type === 'pretest' ? pretestAnswers : posttestAnswers;
-    }, [type, pretestAnswers, posttestAnswers, loadingAnswers]);
-
     // Memoized data transformations
     const combinedAnswers = useMemo(() => {
         if (loadingAnswers) return [];
@@ -342,7 +336,6 @@ export default function AssessmentOverviewDashboard({
         const searchLower = searchQuery.toLowerCase();
 
         return combinedAnswers.filter(answer => {
-            console.log(answer)
             if (userType !== "All" && answer.user?.userType !== userType) return false;
             if (school !== "All" && answer.user?.school !== school) return false;
             if (major !== "All" && answer.user?.major !== major) return false;

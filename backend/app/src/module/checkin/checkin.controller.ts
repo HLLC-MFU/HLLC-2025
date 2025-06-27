@@ -4,6 +4,8 @@ import {
   Body,
   Req,
   BadRequestException,
+  Get,
+  Query,
 } from '@nestjs/common';
 import { CheckinService } from './checkin.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
@@ -33,5 +35,10 @@ export class CheckinController {
         error instanceof Error ? error.message : 'Check-in failed';
       throw new BadRequestException(message);
     }
+  }
+
+  @Get()
+  async findAll (@Query() query: Record<string, string>){
+    return this.checkinService.findAll(query)
   }
 }

@@ -4,15 +4,16 @@ import { Model, Types } from 'mongoose';
 
 import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { User } from 'src/module/users/schemas/user.schema';
-import { Checkin } from './schema/checkin.schema';
+import { Checkin, CheckinDocument } from './schema/checkin.schema';
 import { Role } from '../role/schemas/role.schema';
 import { Activities } from 'src/module/activities/schemas/activities.schema';
 import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
+import { queryAll } from 'src/pkg/helper/query.util';
 
 @Injectable()
 export class CheckinService {
   constructor(
-    @InjectModel(Checkin.name) private readonly checkinModel: Model<Checkin>,
+    @InjectModel(Checkin.name) private readonly checkinModel: Model<CheckinDocument>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(Role.name) private readonly roleModel: Model<Role>,
     @InjectModel(Activities.name)
@@ -88,5 +89,21 @@ export class CheckinService {
     }));
 
     return this.checkinModel.insertMany(docs) as unknown as Checkin[];
+  }
+
+  async findAll (query: Record<string,string>) {
+    return await queryAll<Checkin>({
+      model: this.checkinModel,
+      query: {
+        ...query
+      },
+      filterSchema: {},
+      populateFields: () =>
+        Promise.resolve([
+          {path : 'user'},
+          {path : 'staff'},
+          {path : 'activity'}
+        ])
+    })
   }
 }
