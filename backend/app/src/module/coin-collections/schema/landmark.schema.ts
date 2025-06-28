@@ -1,6 +1,7 @@
 import { Prop, raw, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument } from "mongoose";
 import { Localization, Location } from "src/pkg/types/common";
+import { LandmarkType } from "../enum/landmark-types.enum";
 
 export type LandmarkDocument = HydratedDocument<Landmark>;
 
@@ -18,15 +19,18 @@ export class Landmark {
 
     @Prop(raw({
         latitude: { type: Number, required: true, },
-        longitude: { type: Number, required: true},
+        longitude: { type: Number, required: true },
     }),)
     location: Location;
 
     @Prop({ required: true, type: Number, default: 0 })
-    coinAmount: number;
-
-    @Prop({ required: true, type: Number, default: 0 })
     cooldown: number;
+
+    @Prop({ required: true, type: Number, default: 50 })
+    limitDistance: number
+
+    @Prop({ required: true, type: String, enum: LandmarkType })
+    type: LandmarkType;
 }
 
 export const LandmarkSchema = SchemaFactory.createForClass(Landmark);

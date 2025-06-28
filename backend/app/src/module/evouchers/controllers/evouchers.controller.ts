@@ -7,16 +7,22 @@ import {
   UseInterceptors,
   Req,
   Patch,
+  Body,
 } from '@nestjs/common';
 import { EvouchersService } from '../services/evouchers.service';
 import { CreateEvoucherDto } from '../dto/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/update-evoucher.dto';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
+import { EvoucherCodesService } from '../services/evoucher-codes.service';
+import { Types } from 'mongoose';
 
 @Controller('evouchers')
 export class EvouchersController {
-  constructor(private readonly evouchersService: EvouchersService) {}
+  constructor(
+    private readonly evouchersService: EvouchersService,
+    private readonly evoucherCodesService: EvoucherCodesService,
+  ) { }
 
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))
@@ -48,5 +54,14 @@ export class EvouchersController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.evouchersService.remove(id);
+  }
+
+  @Post(':id/claim')
+  claim(
+    @Param('id') id: string,
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }
+  ) {
+    const userId = req.user._id.toString();
+    return this.evoucherCodesService.claimEvoucherCode(id, userId);
   }
 }
