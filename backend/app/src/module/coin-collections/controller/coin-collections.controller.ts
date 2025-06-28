@@ -49,8 +49,8 @@ export class CoinCollectionsController {
     return this.coinCollectionsService.getUserRank(req.user._id.toString());
   }
 
-  @Get('sponsor/reward')
-  async getAllUserReward() {
-    return this.coinCollectionsService.getSponsorRewardUsers();
+  @Get('sponsor-reward')
+  getSponsorRewardUsers(@Query('landmarkId') landmarkId: string) {
+    return this.coinCollectionsService.getSponsorRewardUsers(landmarkId);
   }
 }
