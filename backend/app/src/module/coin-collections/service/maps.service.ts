@@ -17,11 +17,7 @@ export class MapsService {
     const map = new this.mapModel({
       ...createMapDto,
     })
-    try {
-      return await map.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'map')
-    }
+    return await map.save();
   }
 
   async findAll(query: Record<string, string>) {

@@ -262,45 +262,48 @@ export class CoinCollectionsService {
     });
     if (collectedCount === 0) return null;
 
-    const randomOffset = Math.floor(Math.random() * 26);
-    if ((collectedCount + randomOffset) % 27 === 0) {
-      const alreadyClaimed = await this.evoucherCodeModel.findOne({
-        user: userId,
-        'metadata.source': 'auto-drop',
-        'metadata.landmark': landmarkId.toString(),
-        'metadata.round': collectedCount,
-      });
-      if (alreadyClaimed) return;
-
-      const now = new Date();
-      const exclude = await this.evoucherCodeModel.distinct('evoucher', { user: userId });
-      const evoucher = await this.evoucherModel.findOne({
-        startAt: { $lte: now },
-        endAt: { $gte: now },
-        _id: { $nin: exclude },
-      });
-      if (!evoucher) throw new BadRequestException('No new evoucher available for you');
-
-      const claimed = await this.forceClaimEvoucherCode(
-        evoucher._id.toString(),
-        userId.toString(),
-      );
-
-      await this.evoucherCodeModel.updateOne(
-        { code: claimed.code },
-        {
-          $set: {
-            'metadata.source': 'auto-drop',
-            'metadata.landmark': landmarkId.toString(),
-            'metadata.round': collectedCount,
-          },
-        },
-      );
-
-      return claimed;
+    //ใช้โอกาสแจกตรง ๆ เช่น 1 ใน 27
+    const dropChance = 1 / 27;
+    if (Math.random() >= dropChance) {
+      return null; // ไม่แจกครั้งนี้
     }
 
-    return null;
+    // หา user เคยได้ landmark + รอบนี้แล้วหรือยัง
+    const alreadyClaimed = await this.evoucherCodeModel.findOne({
+      user: userId,
+      'metadata.source': 'auto-drop',
+      'metadata.landmark': landmarkId.toString(),
+      'metadata.round': collectedCount,
+    });
+    if (alreadyClaimed) return;
+
+    // หา evoucher ที่ยังไม่เคยได้
+    const now = new Date();
+    const exclude = await this.evoucherCodeModel.distinct('evoucher', { user: userId });
+    const evoucher = await this.evoucherModel.findOne({
+      startAt: { $lte: now },
+      endAt: { $gte: now },
+      _id: { $nin: exclude },
+    });
+    if (!evoucher) throw new BadRequestException('No new evoucher available for you');
+
+    // claim code
+    const claimed = await this.forceClaimEvoucherCode(
+      evoucher._id.toString(),
+      userId.toString(),
+    );
+
+    await this.evoucherCodeModel.updateOne(
+      { code: claimed.code },
+      {
+        $set: {
+          'metadata.source': 'auto-drop',
+          'metadata.landmark': landmarkId.toString(),
+        },
+      },
+    );
+
+    return claimed;
   }
 
   async forceClaimEvoucherCode(evoucherId: string, userId: string) {
