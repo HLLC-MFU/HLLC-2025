@@ -3,7 +3,6 @@ package service
 import (
 	"chat/module/chat/model"
 	"chat/module/chat/utils"
-	notificationService "chat/module/notification/service"
 	userModel "chat/module/user/model"
 	"chat/pkg/config"
 	"chat/pkg/core/kafka"
@@ -33,7 +32,8 @@ type ChatService struct {
 	mongo       *mongo.Database
 	redis       *redis.Client
 	Config      *config.Config
-	notificationService *notificationService.NotificationService
+	notificationService *NotificationService
+	historyService      *HistoryService
 }
 	
 func NewChatService(
@@ -80,7 +80,8 @@ func NewChatService(
 		mongo:       db,
 		redis:       redis,
 		Config:      cfg,
-		notificationService: notificationService.NewNotificationService(db, kafkaBus),
+		notificationService: NewNotificationService(db, kafkaBus),
+		historyService:      NewHistoryService(db, utils.NewChatCacheService(redis)),
 	}
 }
 
@@ -176,10 +177,20 @@ func (s *ChatService) GetUserById(ctx context.Context, userID string) (*userMode
 }
 
 func (s *ChatService) GetMessageReactions(ctx context.Context, roomID, messageID string) ([]model.MessageReaction, error) {
-	return s.getMessageReactionsWithUsers(ctx, roomID, messageID)
+	return s.historyService.getMessageReactionsWithUsers(ctx, roomID, messageID)
 }
 
 // GetNotificationService returns the notification service for admin operations
-func (s *ChatService) GetNotificationService() *notificationService.NotificationService {
+func (s *ChatService) GetNotificationService() *NotificationService {
 	return s.notificationService
+}
+
+// GetChatHistoryByRoom delegates to HistoryService
+func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {
+	return s.historyService.GetChatHistoryByRoom(ctx, roomID, limit)
+}
+
+// DeleteRoomMessages delegates to HistoryService
+func (s *ChatService) DeleteRoomMessages(ctx context.Context, roomID string) error {
+	return s.historyService.DeleteRoomMessages(ctx, roomID)
 }

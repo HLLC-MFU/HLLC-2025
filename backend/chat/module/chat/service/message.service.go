@@ -2,254 +2,50 @@ package service
 
 import (
 	"chat/module/chat/model"
-	userModel "chat/module/user/model"
-	"chat/pkg/database/queries"
 	"context"
 	"fmt"
 	"log"
-
-	"github.com/redis/go-redis/v9"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {
-	log.Printf("[ChatService] Getting chat history for room %s with limit %d", roomID, limit)
-
-	// First try to get from cache
-	messages, err := s.cache.GetRoomMessages(ctx, roomID, int(limit))
-	if err == nil && len(messages) > 0 {
-		log.Printf("[ChatService] Found %d messages in cache", len(messages))
-		
-		// **IMPORTANT**: Always refresh reactions from database for cached messages
-		for i := range messages {
-			reactions, err := s.getMessageReactionsWithUsers(ctx, roomID, messages[i].ChatMessage.ID.Hex())
-			if err == nil {
-				messages[i].Reactions = reactions
-				// **NEW**: Also populate reactions into ChatMessage for direct access
-				messages[i].ChatMessage.Reactions = reactions
-				log.Printf("[ChatService] Refreshed %d reactions for cached message %s", len(reactions), messages[i].ChatMessage.ID.Hex())
-			} else {
-				log.Printf("[ChatService] Failed to refresh reactions for cached message %s: %v", messages[i].ChatMessage.ID.Hex(), err)
-			}
-		}
-		
-		return messages, nil
-	}
-	if err != nil && err != redis.Nil {	
-		log.Printf("[ChatService] Cache error: %v", err)
-	}
-
-	roomObjID, err := primitive.ObjectIDFromHex(roomID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid room ID: %w", err)
-	}
-
-	opts := queries.QueryOptions{
-		Filter: map[string]interface{}{"room_id": roomObjID},
-		Sort:   "-timestamp",
-		Limit:  int(limit),
-	}
-
-	log.Printf("[ChatService] Fetching messages from MongoDB")
-	result, err := s.FindAllWithPopulate(ctx, opts, "user_id", "users")
-	if err != nil {
-		log.Printf("[ChatService] MongoDB error: %v", err)
-		return nil, fmt.Errorf("failed to fetch messages: %w", err)
-	}
-
-	enriched := make([]model.ChatMessageEnriched, len(result.Data))
-	for i, msg := range result.Data {
-		enriched[i] = model.ChatMessageEnriched{
-			ChatMessage: msg,
-		}
-
-		// Get reactions for this message
-		reactions, err := s.getMessageReactionsWithUsers(ctx, roomID, msg.ID.Hex())
-		if err == nil {
-			enriched[i].Reactions = reactions
-			// **NEW**: Also populate reactions into ChatMessage for direct access
-			enriched[i].ChatMessage.Reactions = reactions
-		} else {
-			log.Printf("[ChatService] Failed to get reactions for message %s: %v", msg.ID.Hex(), err)
-		}
-
-		// MentionInfo is now stored in database, so we don't need to parse it again
-		// The MentionInfo field is already populated from the database
-
-		// Get reply-to message if exists
-		if msg.ReplyToID != nil {
-			replyToMsg, err := s.getReplyToMessageWithUser(ctx, *msg.ReplyToID)
-			if err == nil {
-				enriched[i].ReplyTo = replyToMsg
-			} else {
-				log.Printf("[ChatService] Failed to get reply-to message %s: %v", msg.ReplyToID.Hex(), err)
-			}
-		}
-
-		// Cache each enriched message
-		if err := s.cache.SaveMessage(ctx, roomID, &enriched[i]); err != nil {
-			log.Printf("[ChatService] Failed to cache message: %v", err)
-		}
-	}
-
-	log.Printf("[ChatService] Found %d messages with reactions", len(enriched))
-	return enriched, nil
-}
-
-// getMessageReactionsWithUsers gets reactions for a message with populated user data
-func (s *ChatService) getMessageReactionsWithUsers(ctx context.Context, roomID, messageID string) ([]model.MessageReaction, error) {
-	log.Printf("[ChatService] Getting reactions for message %s in room %s", messageID, roomID)
-	
-	// Try cache first
-	cachedReactions, err := s.cache.GetReactions(ctx, roomID, messageID)
-	if err == nil && len(cachedReactions) > 0 {
-		log.Printf("[ChatService] Found %d reactions in cache for message %s", len(cachedReactions), messageID)
-		return cachedReactions, nil
-	}
-
-	// Get from MongoDB with user population
-	messageObjID, err := primitive.ObjectIDFromHex(messageID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Find message and get its reactions
-	msg, err := s.FindOneById(ctx, messageID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get reactions from message document (if stored directly)
-	if len(msg.Data) == 0 {
-		return []model.MessageReaction{}, nil
-	}
-
-	// Query reactions collection if it exists separately
-	reactionCollection := s.mongo.Collection("message_reactions")
-	cursor, err := reactionCollection.Find(ctx, bson.M{"message_id": messageObjID})
-	if err != nil {
-		return []model.MessageReaction{}, nil
-	}
-	defer cursor.Close(ctx)
-
-	var dbReactions []model.MessageReaction
-	if err = cursor.All(ctx, &dbReactions); err != nil {
-		return []model.MessageReaction{}, nil
-	}
-	
-	log.Printf("[ChatService] Found %d reactions in database for message %s", len(dbReactions), messageID)
-
-	// Populate user data for each reaction
-	userService := queries.NewBaseService[userModel.User](s.mongo.Collection("users"))
-	for i := range dbReactions {
-		userResult, err := userService.FindOneById(ctx, dbReactions[i].UserID.Hex())
-		if err == nil && len(userResult.Data) > 0 {
-			// Store user info in a field (you might need to add this to MessageReaction model)
-			log.Printf("[ChatService] Found user for reaction: %s", userResult.Data[0].Username)
-		}
-	}
-
-	return dbReactions, nil
-}
-
-// getReplyToMessageWithUser gets the reply-to message with populated user data
-func (s *ChatService) getReplyToMessageWithUser(ctx context.Context, replyToID primitive.ObjectID) (*model.ChatMessage, error) {
-	filter := map[string]interface{}{"_id": replyToID}
-	replyResult, err := s.FindOneWithPopulate(ctx, filter, "user_id", "users")
-	if err != nil {
-		return nil, err
-	}
-
-	if len(replyResult.Data) == 0 {
-		return nil, fmt.Errorf("reply-to message not found")
-	}
-
-	return &replyResult.Data[0], nil
-}
-
+// SendMessage sends a chat message
 func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) error {
+	log.Printf("[ChatService] SendMessage called for room %s by user %s", msg.RoomID.Hex(), msg.UserID.Hex())
+
+	// Validate foreign keys
+	if err := s.fkValidator.ValidateForeignKeys(ctx, map[string]interface{}{
+		"users": msg.UserID,
+		"rooms": msg.RoomID,
+	}); err != nil {
+		return fmt.Errorf("foreign key validation failed: %w", err)
+	}
+
+	// Create message in database
 	result, err := s.Create(ctx, *msg)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to save message: %w", err)
 	}
 	msg.ID = result.Data[0].ID
 
-	// Get the message with populated user data, but handle errors gracefully
-	var populatedMsg model.ChatMessage
-	
-	// First try to get without population to ensure clean data
-	if directMsg, err := s.FindOneById(ctx, msg.ID.Hex()); err == nil && len(directMsg.Data) > 0 {
-		populatedMsg = directMsg.Data[0]
-		log.Printf("[ChatService] Successfully retrieved message without population")
-	} else {
-		log.Printf("[ChatService] Failed to get message directly, using original: %v", err)
-		populatedMsg = *msg
-	}
-	
-	// Skip population for now to avoid embedded document errors
-	// TODO: Fix population issue later
-	log.Printf("[ChatService] Using message without user population to avoid embedded document error")
+	log.Printf("[ChatService] Message saved to database with ID: %s", msg.ID.Hex())
 
+	// Cache the message
 	enriched := model.ChatMessageEnriched{
-		ChatMessage: populatedMsg,
+		ChatMessage: *msg,
 	}
-
-	// If this is a reply, populate the reply-to message
-	if msg.ReplyToID != nil {
-		replyToMsg, err := s.getReplyToMessageWithUser(ctx, *msg.ReplyToID)
-		if err == nil {
-			enriched.ReplyTo = replyToMsg
-		} else {
-			log.Printf("[ChatService] Failed to populate reply-to message: %v", err)
-		}
-	}
-
 	if err := s.cache.SaveMessage(ctx, msg.RoomID.Hex(), &enriched); err != nil {
 		log.Printf("[ChatService] Failed to cache message: %v", err)
 	}
 
-	log.Printf("[ChatService] About to emit message ID=%s Room=%s Type=%s", 
-		populatedMsg.ID.Hex(), populatedMsg.RoomID.Hex(), 
-		func() string {
-			if populatedMsg.ReplyToID != nil {
-				return "reply"
-			}
-			if populatedMsg.StickerID != nil {
-				return "sticker"
-			}
-			return "text"
-		}())
-
-	if err := s.emitter.EmitMessage(ctx, &populatedMsg); err != nil {
+	// Emit message to WebSocket and Kafka
+	if err := s.emitter.EmitMessage(ctx, msg); err != nil {
 		log.Printf("[ChatService] Failed to emit message: %v", err)
 	} else {
-		log.Printf("[ChatService] Successfully emitted message ID=%s to WebSocket and Kafka", populatedMsg.ID.Hex())
+		log.Printf("[ChatService] Successfully emitted message ID=%s to WebSocket and Kafka", msg.ID.Hex())
 	}
 
 	// **NEW: Notify all users in room using NotificationService**
 	onlineUsers := s.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
 	s.notificationService.NotifyUsersInRoom(ctx, msg, onlineUsers)
-
-	return nil
-}
-
-func (s *ChatService) DeleteRoomMessages(ctx context.Context, roomID string) error {
-	roomObjID, err := primitive.ObjectIDFromHex(roomID)
-	if err != nil {
-		return fmt.Errorf("invalid room ID: %w", err)
-	}
-
-	filter := map[string]interface{}{
-		"room_id": roomObjID,
-	}
-	if _, err := s.collection.DeleteMany(ctx, filter); err != nil {
-		return fmt.Errorf("failed to delete messages from MongoDB: %w", err)
-	}
-
-	if err := s.cache.DeleteRoomMessages(ctx, roomID); err != nil {
-		log.Printf("[ChatService] Failed to delete messages from cache: %v", err)
-	}
 
 	return nil
 } 

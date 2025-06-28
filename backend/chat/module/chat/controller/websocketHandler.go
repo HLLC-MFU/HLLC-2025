@@ -15,15 +15,21 @@ import (
 
 type WebSocketHandler struct {
 	chatService    ChatService
+	mentionService MentionChatService
+	reactionService ReactionChatService
 	roomService    RoomService
 }
 
 func NewWebSocketHandler(
 	chatService ChatService,
+	mentionService MentionChatService,
+	reactionService ReactionChatService,
 	roomService RoomService,
 ) *WebSocketHandler {
 	return &WebSocketHandler{
 		chatService:    chatService,
+		mentionService: mentionService,
+		reactionService: reactionService,
 		roomService:    roomService,
 	}
 }
@@ -287,7 +293,7 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 			// Check if message contains mentions (detected by @ symbol)
 			if strings.Contains(messageText, "@") {
 				// Send as mention message if contains @ symbols
-				if _, err := h.chatService.SendMentionMessage(ctx, userObjID, roomObjID, messageText); err != nil {
+				if _, err := h.mentionService.SendMentionMessage(ctx, userObjID, roomObjID, messageText); err != nil {
 					log.Printf("[ERROR] Failed to send mention message: %v", err)
 					continue
 				}
@@ -354,7 +360,7 @@ func (h *WebSocketHandler) handleReactionMessage(messageText string, client mode
 		Timestamp: time.Now(),
 	}
 
-	if err := h.chatService.HandleReaction(context.Background(), reaction); err != nil {
+	if err := h.reactionService.HandleReaction(context.Background(), reaction); err != nil {
 		log.Printf("[ERROR] Failed to handle reaction: %v", err)
 	}
 }
@@ -375,7 +381,7 @@ func (h *WebSocketHandler) handleMentionMessage(messageText string, client model
 	message := parts[1] // Get everything after "/mention "
 
 	// Send mention message
-	if _, err := h.chatService.SendMentionMessage(context.Background(), client.UserID, client.RoomID, message); err != nil {
+	if _, err := h.mentionService.SendMentionMessage(context.Background(), client.UserID, client.RoomID, message); err != nil {
 		log.Printf("[ERROR] Failed to send mention message: %v", err)
 	}
 } 
