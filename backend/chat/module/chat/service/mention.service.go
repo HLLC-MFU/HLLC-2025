@@ -164,14 +164,8 @@ func (s *ChatService) notifyOfflineMentionedUsers(msg *chatModel.ChatMessage, me
 			continue
 		}
 
-		// Use enhanced NotifyOfflineUser function for mentions
-		s.NotifyUserWithMessageID(
-			mentionedUser.ID.Hex(),
-			msg.RoomID.Hex(),
-			msg.UserID.Hex(),
-			msg.Message,
-			"mention",
-			msg.ID.Hex(),
-		)
+		// Use NotificationService to send mention notification
+		ctx := context.Background()
+		s.notificationService.SendMessageNotification(ctx, mentionedUser.ID.Hex(), msg, "mention")
 	}
 } 

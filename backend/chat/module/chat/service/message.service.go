@@ -5,10 +5,8 @@ import (
 	userModel "chat/module/user/model"
 	"chat/pkg/database/queries"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
@@ -229,194 +227,11 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 		log.Printf("[ChatService] Successfully emitted message ID=%s to WebSocket and Kafka", populatedMsg.ID.Hex())
 	}
 
-	// **NEW: Notify all users in room for external notification system**
-	s.notifyAllUsersInRoom(msg)
+	// **NEW: Notify all users in room using NotificationService**
+	onlineUsers := s.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
+	s.notificationService.NotifyUsersInRoom(ctx, msg, onlineUsers)
 
 	return nil
-}
-
-// **NEW: Simple notification for all users in room**
-func (s *ChatService) notifyAllUsersInRoom(msg *model.ChatMessage) {
-	// Get all online users in the room from hub
-	onlineUsers := s.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
-	
-	// Create a map for faster lookup
-	onlineUserMap := make(map[string]bool)
-	for _, userID := range onlineUsers {
-		onlineUserMap[userID] = true
-	}
-	
-	// Get room members from database
-	roomCollection := s.mongo.Collection("rooms")
-	var room struct {
-		Members []primitive.ObjectID `bson:"members"`
-	}
-	
-	err := roomCollection.FindOne(context.Background(), bson.M{"_id": msg.RoomID}).Decode(&room)
-	if err != nil {
-		log.Printf("[ChatService] Failed to get room members for notifications: %v", err)
-		return
-	}
-
-	// Determine message type for notification
-	messageType := "text"
-	if msg.ReplyToID != nil {
-		messageType = "reply"
-	} else if msg.StickerID != nil {
-		messageType = "sticker"
-	} else if len(msg.MentionInfo) > 0 {
-		messageType = "mention"
-	}
-
-	// Notify ALL users (both online and offline) for external notification system
-	for _, memberID := range room.Members {
-		memberIDStr := memberID.Hex()
-		
-		// Skip the sender
-		if memberIDStr == msg.UserID.Hex() {
-			continue
-		}
-		
-		// Log user status but send notification regardless
-		if onlineUserMap[memberIDStr] {
-			log.Printf("[ChatService] User %s is online, but sending notification anyway for external system", memberIDStr)
-		} else {
-			log.Printf("[ChatService] User %s is offline, sending notification", memberIDStr)
-		}
-
-		// Use enhanced notification function with message ID for ALL users
-		s.NotifyUserWithMessageID(
-			memberIDStr,
-			msg.RoomID.Hex(),
-			msg.UserID.Hex(),
-			msg.Message,
-			messageType,
-			msg.ID.Hex(),
-		)
-	}
-}
-
-// Enhanced notification function for messages with ID (moved from mention.service.go)
-func (s *ChatService) NotifyUserWithMessageID(userID, roomID, senderID, message, eventType, messageID string) {
-	log.Printf("[ChatService] NotifyUserWithMessageID called: user=%s, room=%s, sender=%s, type=%s, msgID=%s", 
-		userID, roomID, senderID, eventType, messageID)
-
-	ctx := context.Background()
-
-	// Get complete user info (sender)
-	sender, err := s.GetUserById(ctx, senderID)
-	if err != nil {
-		log.Printf("[ChatService] Failed to get sender info: %v", err)
-		return
-	}
-	log.Printf("[ChatService] Successfully got sender info: %s", sender.Username)
-
-	// Get room info with populated data
-	roomObjID, err := primitive.ObjectIDFromHex(roomID)
-	if err != nil {
-		log.Printf("[ChatService] Invalid room ID: %v", err)
-		return
-	}
-
-	roomCollection := s.mongo.Collection("rooms")
-	var room struct {
-		ID    primitive.ObjectID `bson:"_id"`
-		Name  map[string]string  `bson:"name"`
-		Image string             `bson:"image"`
-	}
-	
-	err = roomCollection.FindOne(ctx, bson.M{"_id": roomObjID}).Decode(&room)
-	if err != nil {
-		log.Printf("[ChatService] Failed to get room info: %v", err)
-		return
-	}
-	log.Printf("[ChatService] Successfully got room info: %s", room.ID.Hex())
-
-	// Create complete notification payload with message ID
-	notificationPayload := map[string]interface{}{
-		"type": eventType,
-		"payload": map[string]interface{}{
-			"room": map[string]interface{}{
-				"_id":   room.ID.Hex(),
-				"name":  room.Name,
-				"image": room.Image,
-			},
-			"user": map[string]interface{}{
-				"_id":      sender.ID.Hex(),
-				"username": sender.Username,
-				"name": map[string]interface{}{
-					"first":  sender.Name.First,
-					"middle": sender.Name.Middle,
-					"last":   sender.Name.Last,
-				},
-			},
-			"message": map[string]interface{}{
-				"_id":     messageID,
-				"message": message,
-				"type":    eventType,
-			},
-			// Add receiver info for notification system
-			"receiver": userID,
-			"timestamp": time.Now(),
-		},
-	}
-
-	// Send to external notification topic
-	notificationTopic := "chat-notifications"
-	payloadBytes, err := json.Marshal(notificationPayload)
-	if err != nil {
-		log.Printf("[ChatService] Failed to marshal notification payload: %v", err)
-		return
-	}
-
-	log.Printf("[ChatService] About to emit notification to topic %s with payload size: %d bytes", 
-		notificationTopic, len(payloadBytes))
-
-	// Emit to Kafka for external notification system
-	if err := s.kafkaBus.Emit(context.Background(), notificationTopic, userID, payloadBytes); err != nil {
-		log.Printf("[ChatService] FAILED to send notification to Kafka topic %s: %v", notificationTopic, err)
-		s.logNotification(userID, roomID, senderID, message, eventType, messageID, "failed", err.Error(), notificationPayload)
-	} else {
-		log.Printf("[ChatService] SUCCESS: sent complete notification to topic %s for user %s", 
-			notificationTopic, userID)
-		s.logNotification(userID, roomID, senderID, message, eventType, messageID, "sent", "", notificationPayload)
-	}
-}
-
-// logNotification saves notification log to database for admin monitoring
-func (s *ChatService) logNotification(userID, roomID, senderID, message, eventType, messageID, status, errorMsg string, payload interface{}) {
-	// **CONVERT PAYLOAD TO JSON STRING FOR NEW ENTRIES**
-	var payloadToStore interface{}
-	if payload != nil {
-		if payloadBytes, err := json.Marshal(payload); err == nil {
-			payloadToStore = string(payloadBytes) // Store as string for new format
-		} else {
-			log.Printf("[ERROR] Failed to marshal payload for notification log: %v", err)
-			payloadToStore = "{}"
-		}
-	} else {
-		payloadToStore = "{}"
-	}
-
-	notificationLog := model.NotificationLog{
-		Type:      eventType,
-		Receiver:  userID,
-		Sender:    senderID,
-		RoomID:    roomID,
-		MessageID: messageID,
-		Payload:   payloadToStore, // Store as JSON string for new entries
-		Status:    status,
-		Error:     errorMsg,
-		Timestamp: time.Now(),
-	}
-
-	// Save to notification_logs collection
-	logCollection := s.mongo.Collection("notification_logs")
-	if _, err := logCollection.InsertOne(context.Background(), notificationLog); err != nil {
-		log.Printf("[ERROR] Failed to save notification log: %v", err)
-	} else {
-		log.Printf("[DEBUG] Successfully saved notification log for user %s", userID)
-	}
 }
 
 func (s *ChatService) DeleteRoomMessages(ctx context.Context, roomID string) error {

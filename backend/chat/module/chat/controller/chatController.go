@@ -33,6 +33,9 @@ type (
 		GetMessageReactions(ctx context.Context, roomID, messageID string) ([]model.MessageReaction, error)
 		SendMentionMessage(ctx context.Context, userID, roomID primitive.ObjectID, message string) (*model.ChatMessage, error)
 		GetMentionsForUser(ctx context.Context, userID string, limit int64) ([]model.ChatMessageEnriched, error)
+		GetNotificationLogs(ctx context.Context, page, limit int, status, notificationType, receiver, search string) (map[string]interface{}, error)
+		GetNotificationStats(ctx context.Context, startDate, endDate string) (map[string]interface{}, error)
+		SendTestNotification(ctx context.Context, req model.TestNotificationRequest, adminUserID string) error
 	}
 
 	RoomService interface {
@@ -559,42 +562,17 @@ func (c *ChatController) handleGetNotificationLogs(ctx *fiber.Ctx) error {
 	status := ctx.Query("status")
 	receiver := ctx.Query("receiver")
 	
-	// Calculate skip
-	skip := (page - 1) * limit
-	
-	// Build filter
-	filter := make(map[string]interface{})
-	if notificationType != "" {
-		filter["type"] = notificationType
-	}
-	if status != "" {
-		filter["status"] = status
-	}
-	if receiver != "" {
-		filter["receiver"] = receiver
-	}
-	
-	// Get logs from service
-	logs, total, err := c.chatService.GetNotificationLogs(ctx.Context(), filter, skip, limit)
+	// Get logs from Kafka
+	result, err := c.chatService.GetNotificationLogs(ctx.Context(), page, limit, status, notificationType, receiver, "")
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
-			"message": "Failed to get notification logs",
+			"message": "Failed to get notification logs from Kafka",
 			"error":   err.Error(),
 		})
 	}
 	
-	return ctx.JSON(fiber.Map{
-		"success": true,
-		"message": "Notification logs retrieved successfully",
-		"data":    logs,
-		"meta": fiber.Map{
-			"page":       page,
-			"limit":      limit,
-			"total":      total,
-			"totalPages": (total + int64(limit) - 1) / int64(limit),
-		},
-	})
+	return ctx.JSON(result)
 }
 
 func (c *ChatController) handleGetNotificationStats(ctx *fiber.Ctx) error {
@@ -606,14 +584,14 @@ func (c *ChatController) handleGetNotificationStats(ctx *fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
-			"message": "Failed to get notification stats",
+			"message": "Failed to get notification stats from Kafka",
 			"error":   err.Error(),
 		})
 	}
 	
 	return ctx.JSON(fiber.Map{
 		"success": true,
-		"message": "Notification stats retrieved successfully",
+		"message": "Notification stats retrieved from Kafka",
 		"data":    stats,
 	})
 }
