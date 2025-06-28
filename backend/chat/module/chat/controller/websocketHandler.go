@@ -176,7 +176,6 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 				payload["evoucher"] = map[string]interface{}{
 					"title":       msg.ChatMessage.EvoucherInfo.Title,
 					"description": msg.ChatMessage.EvoucherInfo.Description,
-					"imageUrl":    msg.ChatMessage.EvoucherInfo.ImageURL,
 					"claimUrl":    msg.ChatMessage.EvoucherInfo.ClaimURL,
 				}
 			}

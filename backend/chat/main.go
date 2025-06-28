@@ -10,7 +10,6 @@ import (
 
 	chatController "chat/module/chat/controller"
 	chatService "chat/module/chat/service"
-	chatUtils "chat/module/chat/utils"
 	roomController "chat/module/room/controller"
 	roomService "chat/module/room/service"
 	stickerController "chat/module/sticker/controller"
@@ -82,7 +81,6 @@ func main() {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 
-
 	// Setup middleware
 	setupMiddleware(app)
 
@@ -149,14 +147,6 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 
 	// Initialize Kafka bus for chat
 	bus := kafka.New([]string{"localhost:9092"}, "chat-service")
-
-	// Create required topics
-	if err := bus.CreateTopics([]string{
-		"room-events",      // For room events (create, update, delete)
-		chatUtils.RoomTopicPrefix + "*", // For room-specific chat messages
-	}); err != nil {
-		log.Printf("[ERROR] Failed to create Kafka topics: %v", err)
-	}
 
 	chatService := chatService.NewChatService(mongo, redisClient, bus, cfg)
 	roomAndMemberService := roomService.NewRoomService(mongo, redisClient, cfg, chatService.GetHub())

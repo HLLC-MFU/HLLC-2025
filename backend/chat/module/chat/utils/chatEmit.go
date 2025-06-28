@@ -172,7 +172,7 @@ func (e *ChatEventEmitter) EmitReaction(ctx context.Context, reaction *model.Mes
 	}
 
 	// **SIMPLIFIED: Just get updated reactions for this message (lighter query)**
-	reactionCollection := e.mongo.Collection("message_reactions")
+	reactionCollection := e.mongo.Collection("message-reactions")
 	cursor, err := reactionCollection.Find(ctx, bson.M{"message_id": reaction.MessageID})
 	if err != nil {
 		log.Printf("[ERROR] Failed to get updated reactions: %v", err)
@@ -381,7 +381,7 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 
 func (e *ChatEventEmitter) getReplyToMessage(ctx context.Context, replyToID primitive.ObjectID) (*model.MessageInfo, error) {
 	// Get the original message being replied to
-	replyToService := queries.NewBaseService[model.ChatMessage](e.mongo.Collection("chat_messages"))
+	replyToService := queries.NewBaseService[model.ChatMessage](e.mongo.Collection("chat-messages"))
 	replyResult, err := replyToService.FindOne(ctx, bson.M{"_id": replyToID})
 	
 	if err != nil || len(replyResult.Data) == 0 {
@@ -589,7 +589,6 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 		"evoucher": map[string]interface{}{
 			"title":       msg.EvoucherInfo.Title,
 			"description": msg.EvoucherInfo.Description,
-			"imageUrl":    msg.EvoucherInfo.ImageURL,
 			"claimUrl":    msg.EvoucherInfo.ClaimURL,
 		},
 		"timestamp": msg.Timestamp,

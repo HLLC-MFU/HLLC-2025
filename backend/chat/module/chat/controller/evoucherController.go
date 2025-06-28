@@ -88,7 +88,6 @@ func (c *EvoucherController) handleSendEvoucher(ctx *fiber.Ctx) error {
 	evoucherInfo := &model.EvoucherInfo{
 		Title:       evoucherDto.Title,
 		Description: evoucherDto.Description,
-		ImageURL:    evoucherDto.ImageURL,
 		ClaimURL:    evoucherDto.ClaimURL,
 	}
 

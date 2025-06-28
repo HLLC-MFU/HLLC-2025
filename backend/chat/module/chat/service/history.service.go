@@ -20,7 +20,7 @@ type HistoryService struct {
 }
 
 func NewHistoryService(db *mongo.Database, cache *utils.ChatCacheService) *HistoryService {
-	collection := db.Collection("chat_messages")
+	collection := db.Collection("chat-messages")
 	return &HistoryService{
 		BaseService: queries.NewBaseService[model.ChatMessage](collection),
 		cache:       cache,
@@ -114,7 +114,7 @@ func (h *HistoryService) getMessageReactionsWithUsers(ctx context.Context, roomI
 		return nil, err
 	}
 
-	reactionCollection := h.mongo.Collection("message_reactions")
+	reactionCollection := h.mongo.Collection("message-reactions")
 	cursor, err := reactionCollection.Find(ctx, bson.M{"message_id": messageObjID})
 	if err != nil {
 		return nil, err
@@ -151,7 +151,7 @@ func (h *HistoryService) DeleteRoomMessages(ctx context.Context, roomID string) 
 	}
 
 	// Use direct collection operation
-	collection := h.mongo.Collection("chat_messages")
+	collection := h.mongo.Collection("chat-messages")
 	filter := bson.M{"room_id": roomObjID}
 	
 	if _, err := collection.DeleteMany(ctx, filter); err != nil {

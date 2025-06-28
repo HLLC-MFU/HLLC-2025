@@ -42,7 +42,7 @@ func NewChatService(
 	kafkaBus *kafka.Bus,
 	cfg *config.Config,
 ) *ChatService {
-	collection := db.Collection("chat_messages")
+	collection := db.Collection("chat-messages")
 	
 	if err := kafkaBus.Start(); err != nil {
 		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)

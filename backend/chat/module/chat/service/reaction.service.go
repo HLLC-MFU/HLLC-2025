@@ -26,7 +26,7 @@ func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.Messag
 	messageData := msg.Data[0]
 	
 	// Create separate reaction document in reactions collection
-	reactionCollection := s.mongo.Collection("message_reactions")
+	reactionCollection := s.mongo.Collection("message-reactions")
 	
 	// Check if reaction already exists to prevent duplicates
 	existingReaction := reactionCollection.FindOne(ctx, bson.M{
@@ -170,7 +170,7 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID stri
 	messageData := msg.Data[0]
 
 	// Remove reaction from reactions collection
-	reactionCollection := s.mongo.Collection("message_reactions")
+	reactionCollection := s.mongo.Collection("message-reactions")
 	
 	deleteResult, err := reactionCollection.DeleteOne(ctx, bson.M{
 		"message_id": messageObjID,

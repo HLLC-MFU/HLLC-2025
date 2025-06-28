@@ -10,7 +10,6 @@ type (
 		RoomID      string                 `json:"roomId" validate:"required,mongoId"`
 		Title       string                 `json:"title" validate:"required"`
 		Description string                 `json:"description" validate:"required"`
-		ImageURL    string                 `json:"imageUrl,omitempty"`
 		ClaimURL    string                 `json:"claimUrl" validate:"required"`
 	}
 

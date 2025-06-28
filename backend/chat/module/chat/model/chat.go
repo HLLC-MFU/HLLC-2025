@@ -51,7 +51,6 @@ type (
 	EvoucherInfo struct {
 		Title       string                 `bson:"title" json:"title"`
 		Description string                 `bson:"description" json:"description"`
-		ImageURL    string                 `bson:"image_url,omitempty" json:"imageUrl,omitempty"`
 		ClaimURL    string                 `bson:"claim_url" json:"claimUrl"`
 	}
 )
