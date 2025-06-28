@@ -44,7 +44,6 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
-  
 
   await app.register(cookie);
   const config = new DocumentBuilder()
