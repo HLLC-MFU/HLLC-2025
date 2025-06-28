@@ -8,7 +8,7 @@ export type MapDocument = HydratedDocument<Map>;
 export class Map {
     @Prop({ required: true, type: String })
     map: string;
-
+    
     @Prop({ required: true, type: Number })
     x: string
 
@@ -19,7 +19,7 @@ export class Map {
     mapUrl: string
 
     @Prop({ required: true, type: Types.ObjectId })
-        : Types.ObjectId
+    landmark: Types.ObjectId
 
 }
 
