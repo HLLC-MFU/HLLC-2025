@@ -546,3 +546,60 @@ func (e *ChatEventEmitter) EmitMentionNotice(ctx context.Context, msg *model.Cha
 	log.Printf("[Kafka] Successfully published mention notice to user %s", mentionedUser.ID.Hex())
 	return nil
 }
+
+// EmitEvoucherMessage emits an evoucher message event
+func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.ChatMessage) error {
+	log.Printf("[TRACE] EmitEvoucherMessage called for message ID=%s Room=%s EvoucherID=%s", 
+		msg.ID.Hex(), msg.RoomID.Hex())
+
+	// Get user data
+	userInfo, err := e.getUserInfo(ctx, msg.UserID)
+	if err != nil {
+		log.Printf("[WARN] Failed to get user info for evoucher message: %v", err)
+		userInfo = model.UserInfo{ID: msg.UserID.Hex()}
+	}
+
+	// Get room data (basic for now)
+	roomInfo := model.RoomInfo{ID: msg.RoomID.Hex()}
+
+	// Create message info
+	messageInfo := model.MessageInfo{
+		ID:        msg.ID.Hex(),
+		Type:      model.MessageTypeEvoucher,
+		Message:   msg.Message,
+		Timestamp: msg.Timestamp,
+	}
+
+	// Create evoucher payload with complete evoucher information
+	manualPayload := map[string]interface{}{
+		"room": map[string]interface{}{
+			"_id": roomInfo.ID,
+		},
+		"user": map[string]interface{}{
+			"_id":      userInfo.ID,
+			"username": userInfo.Username,
+			"name":     userInfo.Name,
+		},
+		"message": map[string]interface{}{
+			"_id":       messageInfo.ID,
+			"type":      messageInfo.Type,
+			"message":   messageInfo.Message,
+			"timestamp": messageInfo.Timestamp,
+		},
+		"evoucher": map[string]interface{}{
+			"title":       msg.EvoucherInfo.Title,
+			"description": msg.EvoucherInfo.Description,
+			"imageUrl":    msg.EvoucherInfo.ImageURL,
+			"claimUrl":    msg.EvoucherInfo.ClaimURL,
+		},
+		"timestamp": msg.Timestamp,
+	}
+
+	event := model.Event{
+		Type:      model.EventTypeEvoucher,
+		Payload:   manualPayload,
+		Timestamp: msg.Timestamp,
+	}
+	
+	return e.emitEventStructured(ctx, msg, event)
+}

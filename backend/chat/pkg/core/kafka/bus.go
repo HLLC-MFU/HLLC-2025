@@ -98,7 +98,7 @@ func (b *Bus) CreateTopics(topics []string) error {
 	topicConfigs := make([]kafka.TopicConfig, len(topics))
 	for i, topic := range topics {
 		log.Printf("[Kafka] Preparing to create topic: %s", topic)
-		
+
 		// สร้าง topic
 		topicConfigs[i] = kafka.TopicConfig{
 			Topic:             topic,

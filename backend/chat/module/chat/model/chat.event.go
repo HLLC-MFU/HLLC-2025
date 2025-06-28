@@ -15,6 +15,7 @@ const (
     EventTypeNotice     = "notice"
     EventTypeMention    = "mention"
     EventTypeMentionNotice = "mention_notice"
+    EventTypeEvoucher   = "evoucher"
 )
 
 // Message Types - Content
@@ -23,6 +24,7 @@ const (
     MessageTypeReply   = "reply"  
     MessageTypeSticker = "sticker"
     MessageTypeMention = "mention"
+    MessageTypeEvoucher = "evoucher"
 )
 
 // Reaction Types - Action

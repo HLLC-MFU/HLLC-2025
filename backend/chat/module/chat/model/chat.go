@@ -22,6 +22,10 @@ type (
 		StickerID *primitive.ObjectID `bson:"sticker_id,omitempty" json:"stickerId,omitempty"`
 		Image     string              `bson:"image,omitempty" json:"image,omitempty"`
 		
+		// **NEW: Evoucher fields**
+		EvoucherID   *string           `bson:"evoucher_id,omitempty" json:"evoucherId,omitempty"`
+		EvoucherInfo *EvoucherInfo     `bson:"evoucher_info,omitempty" json:"evoucherInfo,omitempty"`
+		
 		// Fields NOT stored in database, only for response aggregation
 		Reactions   []MessageReaction `bson:"-" json:"reactions,omitempty"`
 	}
@@ -41,5 +45,13 @@ type (
 		Reactions   []MessageReaction `bson:"reactions"`
 		ReplyTo     *ChatMessage      `bson:"replyTo,omitempty"`
 		Username    string            `bson:"username,omitempty"`
+	}
+
+	// **NEW: Evoucher information structure**
+	EvoucherInfo struct {
+		Title       string                 `bson:"title" json:"title"`
+		Description string                 `bson:"description" json:"description"`
+		ImageURL    string                 `bson:"image_url,omitempty" json:"imageUrl,omitempty"`
+		ClaimURL    string                 `bson:"claim_url" json:"claimUrl"`
 	}
 )

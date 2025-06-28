@@ -27,7 +27,7 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 	msg.ID = result.Data[0].ID
 
 	log.Printf("[ChatService] Message saved to database with ID: %s", msg.ID.Hex())
-
+	
 	// Cache the message
 	enriched := model.ChatMessageEnriched{
 		ChatMessage: *msg,

@@ -77,6 +77,9 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			} else if len(msg.ChatMessage.MentionInfo) > 0 {
 				eventType = model.EventTypeMention
 				messageType = model.MessageTypeMention
+			} else if msg.ChatMessage.EvoucherID != nil {
+				eventType = model.EventTypeEvoucher
+				messageType = model.MessageTypeEvoucher
 			} else {
 				eventType = model.EventTypeMessage
 				messageType = model.MessageTypeText
@@ -165,6 +168,16 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 				payload["sticker"] = map[string]interface{}{
 					"_id":   msg.ChatMessage.StickerID.Hex(),
 					"image": msg.ChatMessage.Image,
+				}
+			}
+
+			// **NEW: Add evoucher info if exists**
+			if msg.ChatMessage.EvoucherID != nil && msg.ChatMessage.EvoucherInfo != nil {
+				payload["evoucher"] = map[string]interface{}{
+					"title":       msg.ChatMessage.EvoucherInfo.Title,
+					"description": msg.ChatMessage.EvoucherInfo.Description,
+					"imageUrl":    msg.ChatMessage.EvoucherInfo.ImageURL,
+					"claimUrl":    msg.ChatMessage.EvoucherInfo.ClaimURL,
 				}
 			}
 

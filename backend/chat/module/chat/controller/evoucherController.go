@@ -1,0 +1,169 @@
+package controller
+
+import (
+	"chat/module/chat/dto"
+	"chat/module/chat/model"
+	chatService "chat/module/chat/service"
+	userModel "chat/module/user/model"
+	"chat/pkg/decorators"
+	"context"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+type (
+	EvoucherController struct {
+		*decorators.BaseController
+		chatService EvoucherChatService
+		roomService EvoucherRoomService
+	}
+
+	EvoucherChatService interface {
+		SendEvoucherMessage(ctx context.Context, userID, roomID primitive.ObjectID, evoucherInfo *model.EvoucherInfo) (*model.ChatMessage, error)
+		GetUserById(ctx context.Context, userID string) (*userModel.User, error)
+	}
+
+	EvoucherRoomService interface {
+		IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+	}
+)
+
+func NewEvoucherController(
+	app *fiber.App,
+	chatService *chatService.ChatService,
+	roomService EvoucherRoomService,
+) *EvoucherController {
+	controller := &EvoucherController{
+		BaseController: decorators.NewBaseController(app, "/api/evouchers"),
+		chatService:    chatService,
+		roomService:    roomService,
+	}
+
+	controller.setupRoutes()
+	return controller
+}
+
+func (c *EvoucherController) setupRoutes() {
+	c.Post("/send", c.handleSendEvoucher)
+	c.Post("/:evoucherId/claim", c.handleClaimEvoucher)
+	c.SetupRoutes()
+}
+
+func (c *EvoucherController) handleSendEvoucher(ctx *fiber.Ctx) error {
+	var evoucherDto dto.SendEvoucherDto
+	if err := ctx.BodyParser(&evoucherDto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid request body",
+		})
+	}
+
+	// Convert IDs to ObjectIDs
+	userObjID, roomObjID, err := evoucherDto.ToObjectIDs()
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid ID format",
+		})
+	}
+
+	// Check if user is in room
+	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, evoucherDto.UserID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to verify room membership",
+		})
+	}
+	if !isInRoom {
+		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"success": false,
+			"message": "User is not a member of this room",
+		})
+	}
+
+	// Create evoucher info
+	evoucherInfo := &model.EvoucherInfo{
+		Title:       evoucherDto.Title,
+		Description: evoucherDto.Description,
+		ImageURL:    evoucherDto.ImageURL,
+		ClaimURL:    evoucherDto.ClaimURL,
+	}
+
+	// Send evoucher message
+	message, err := c.chatService.SendEvoucherMessage(ctx.Context(), userObjID, roomObjID, evoucherInfo)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to send evoucher message",
+		})
+	}
+
+	// Create response
+	responseData := map[string]interface{}{
+		"message_id":    message.ID.Hex(),
+		"roomId":        message.RoomID.Hex(),
+		"userId":        message.UserID.Hex(),
+		"message":       message.Message,
+		"evoucherId":    message.EvoucherID,
+		"evoucherInfo":  message.EvoucherInfo,
+		"timestamp":     message.Timestamp,
+	}
+
+	return ctx.JSON(fiber.Map{
+		"success": true,
+		"message": "Evoucher message sent successfully",
+		"data":    responseData,
+	})
+}
+
+func (c *EvoucherController) handleClaimEvoucher(ctx *fiber.Ctx) error {
+	evoucherID := ctx.Params("evoucherId")
+	
+	var claimDto dto.ClaimEvoucherDto
+	if err := ctx.BodyParser(&claimDto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid request body",
+		})
+	}
+
+	// Validate user exists
+	userObjID, err := claimDto.ToObjectID()
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid user ID format",
+		})
+	}
+
+	// Verify user exists
+	user, err := c.chatService.GetUserById(ctx.Context(), claimDto.UserID)
+	if err != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "User not found",
+		})
+	}
+
+	// Here you would typically:
+	// 1. Make API call to NestJS backend to claim the evoucher
+	// 2. Handle the response
+	// 3. Maybe send a notification back to the room about successful claim
+	
+	// For now, we'll just return a success response
+	// In real implementation, you would call your NestJS API here
+	
+	return ctx.JSON(fiber.Map{
+		"success": true,
+		"message": "Evoucher claim initiated successfully",
+		"data": fiber.Map{
+			"evoucherId": evoucherID,
+			"userId":     userObjID.Hex(),
+			"username":   user.Username,
+			"claimTime":  time.Now(),
+		},
+	})
+} 

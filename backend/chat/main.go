@@ -169,6 +169,7 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	roomController.NewRoomController(app, roomAndMemberService)
 	stickerController.NewStickerController(app, stickerService)
 	chatController.NewChatController(app, chatService, roomAndMemberService, stickerService)
+	chatController.NewEvoucherController(app, chatService, roomAndMemberService)
 }
 
 // logRegisteredRoutes prints all registered routes in a formatted way
