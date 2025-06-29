@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiRequest } from '@/utils/api';
 import { IEvoucher, IEvoucherCode, IEvoucherCodeResponse, IEvoucherResponse } from '@/types/evoucher';
+import * as SecureStore from 'expo-secure-store';
 
 
 export function useEvoucher() {
@@ -15,7 +16,7 @@ export function useEvoucher() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiRequest<IEvoucherResponse>('/evoucher?limit=0', 'GET');
+      const response = await apiRequest<IEvoucherResponse>('/evouchers?limit=0', 'GET');
       
       if (response.data) {
         setEvouchers(response.data.data || []);
@@ -37,7 +38,7 @@ export function useEvoucher() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiRequest<IEvoucherResponse>(`/evoucher?sponsors=${sponsorId}&limit=0`, 'GET');
+      const response = await apiRequest<IEvoucherResponse>(`/evouchers?sponsors=${sponsorId}&limit=0`, 'GET');
       
       if (response.data) {
         setEvouchers(response.data.data || []);
@@ -59,13 +60,17 @@ export function useEvoucher() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiRequest<IEvoucherCodeResponse>(`/evoucher-code?evoucher=${evoucherId}&limit=0`, 'GET');
-      
-      if (response.data) {
-        setEvoucherCodes(response.data.data || []);
+      const response = await apiRequest<IEvoucherCodeResponse>(`/evoucher-codes?evoucher=${evoucherId}&limit=0`, 'GET');
+      let codes: IEvoucherCode[] = [];
+      if (Array.isArray(response.data)) {
+        codes = response.data;
+      } else if (response.data && Array.isArray((response.data as any).data)) {
+        codes = (response.data as any).data;
       }
+      setEvoucherCodes(codes);
       return response;
     } catch (err) {
+      setEvoucherCodes([]);
       const errorMessage = err && typeof err === 'object' && 'message' in err 
         ? (err as { message?: string }).message || 'Failed to fetch evoucher codes.'
         : 'Failed to fetch evoucher codes.';
@@ -81,13 +86,20 @@ export function useEvoucher() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiRequest<IEvoucherCodeResponse>('/evoucher-code/my-codes', 'GET');
-      
-      if (response.data) {
-        setMyEvoucherCodes(response.data.data || []);
+      const response = await apiRequest<IEvoucherCodeResponse>('/evoucher-codes/my-code', 'GET');
+      let codes: IEvoucherCode[] = [];
+      if (
+        response.data &&
+        typeof response.data === 'object' &&
+        'data' in response.data &&
+        Array.isArray((response.data as any).data.data)
+      ) {
+        codes = (response.data as any).data.data;
       }
+      setMyEvoucherCodes(codes);
       return response;
     } catch (err) {
+      setMyEvoucherCodes([]);
       const errorMessage = err && typeof err === 'object' && 'message' in err 
         ? (err as { message?: string }).message || 'Failed to fetch my evoucher codes.'
         : 'Failed to fetch my evoucher codes.';
@@ -100,12 +112,22 @@ export function useEvoucher() {
 
   // Get evoucher codes for a specific sponsor
   const getEvoucherCodesBySponsor = (sponsorId: string) => {
-    return myEvoucherCodes.filter(code => code.evoucher.sponsors._id === sponsorId);
+    const codes = Array.isArray(myEvoucherCodes) ? myEvoucherCodes : [];
+    return codes.filter(code => {
+      const sponsorIdFromObject = code?.evoucher?.sponsors?._id;
+      const sponsorIdFromString = code?.evoucher?.sponsor;
+      return sponsorIdFromObject === sponsorId || sponsorIdFromString === sponsorId;
+    });
   };
 
   // Check if user has evoucher codes for a sponsor
   const hasEvoucherCodesForSponsor = (sponsorId: string) => {
-    return myEvoucherCodes.some(code => code.evoucher.sponsors._id === sponsorId);
+    const codes = Array.isArray(myEvoucherCodes) ? myEvoucherCodes : [];
+    return codes.some(code => {
+      const sponsorIdFromObject = code?.evoucher?.sponsors?._id;
+      const sponsorIdFromString = code?.evoucher?.sponsor;
+      return sponsorIdFromObject === sponsorId || sponsorIdFromString === sponsorId;
+    });
   };
 
   // Claim an evoucher code
@@ -113,11 +135,11 @@ export function useEvoucher() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiRequest<IEvoucherCode>(`/evoucher-code/claim/${evoucherId}`, 'POST');
-      
+      const userId = await SecureStore.getItemAsync('userId');
+      if (!userId) throw new Error('User ID not found');
+      const response = await apiRequest<IEvoucherCode>(`/evouchers/${evoucherId}/claim`, 'POST', { user: userId });
       // Refresh my evoucher codes after claiming
       await fetchMyEvoucherCodes();
-      
       return response;
     } catch (err) {
       const errorMessage = err && typeof err === 'object' && 'message' in err 
@@ -125,6 +147,29 @@ export function useEvoucher() {
         : 'Failed to claim evoucher code.';
       setError(errorMessage);
       throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mark an evoucher code as used (use voucher)
+  const useVoucherCode = async (
+    evoucherCodeId: string,
+    onSuccess?: () => void,
+    onError?: (msg: string) => void
+  ) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await apiRequest(`/evoucher-codes/${evoucherCodeId}/used`, 'POST', {});
+      if (response.statusCode === 200 || response.statusCode === 201) {
+        onSuccess?.();
+      } else {
+        onError?.(response.message || 'Failed to use evoucher code');
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'Failed to use evoucher code. Please try again.';
+      onError?.(msg);
     } finally {
       setLoading(false);
     }
@@ -143,5 +188,6 @@ export function useEvoucher() {
     getEvoucherCodesBySponsor,
     hasEvoucherCodesForSponsor,
     claimEvoucherCode,
+    useVoucherCode,
   };
 } 

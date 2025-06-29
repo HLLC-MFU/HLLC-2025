@@ -50,4 +50,6 @@ export const useMessageGrouping = (messages: Message[]) => {
     
     return result;
   }, [messages]);
-}; 
+};
+
+export default useMessageGrouping; 

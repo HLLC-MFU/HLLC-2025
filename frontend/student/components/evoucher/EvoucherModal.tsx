@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { Modal, View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, Alert, ImageSourcePropType } from 'react-native';
 import { FlipCard } from './FlipCard'; // import ตัว premium component ที่เพิ่งสร้าง
 import { GlassButton } from '@/components/ui/GlassButton';
 import { t } from 'i18next';
 import { apiRequest } from '@/utils/api';
 import { CheckCircle, XCircle } from 'lucide-react-native';
+import { useToastController } from '@tamagui/toast';
+import { GlassLiquidButton } from '@/components/ui/GlassLiquidButton';
+import * as SecureStore from 'expo-secure-store';
+import { BlurView } from 'expo-blur';
+import GlassConfirmModal from './GlassConfirmModal';
+import { useEvoucher } from '@/hooks/useEvoucher';
+import { useTranslation } from 'react-i18next';
+
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.8;
@@ -13,8 +21,8 @@ const CARD_HEIGHT = 400;
 interface EvoucherModalProps {
     isVisible: boolean;
     onClose: () => void;
-    evoucherImageFront: any;
-    evoucherImageBack: any;
+    evoucherImageFront: ImageSourcePropType;
+    evoucherImageBack: ImageSourcePropType;
     evoucherCodeId?: string; // ID ของ evoucher code ที่จะ claim
     onClaimSuccess?: () => void; // Callback เมื่อ claim สำเร็จ
     isUsed?: boolean; // เพิ่ม prop เพื่อรับสถานะ used จาก parent
@@ -31,30 +39,30 @@ export const EvoucherModal = ({
 }: EvoucherModalProps) => {
     const [isUsed, setIsUsed] = useState(initialIsUsed);
     const [isLoading, setIsLoading] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const toast = useToastController();
+    const { useVoucherCode } = useEvoucher();
+    const { t } = useTranslation();
 
     const handleUseVoucher = async () => {
         if (!evoucherCodeId) {
-            Alert.alert('Error', 'No evoucher code ID provided');
+            toast.show('เกิดข้อผิดพลาด', { message: 'No evoucher code ID provided', type: 'error' });
             return;
         }
-
         setIsLoading(true);
-        try {
-            const response = await apiRequest(`/evoucher-code/use/${evoucherCodeId}`, 'POST', {});
-            
-            if (response.statusCode === 200 || response.statusCode === 201) {
+        await useVoucherCode(
+            evoucherCodeId,
+            () => {
                 setIsUsed(true);
-                Alert.alert('Success', 'Evoucher code claimed successfully!');
+                toast.show('แลกรับ E-Voucher สำเร็จ', { message: 'Evoucher code claimed successfully!', type: 'success' });
                 onClaimSuccess?.();
-            } else {
-                Alert.alert('Error', response.message || 'Failed to claim evoucher code');
+                setIsLoading(false);
+            },
+            (msg: string) => {
+                toast.show('เกิดข้อผิดพลาด', { message: msg || 'Failed to claim evoucher code', type: 'error' });
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error('Error claiming evoucher code:', error);
-            Alert.alert('Error', 'Failed to claim evoucher code. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
+        );
     };
 
     return (
@@ -77,29 +85,15 @@ export const EvoucherModal = ({
                                         // แสดงเมื่อ evoucher ถูกใช้แล้ว
                                         <View style={styles.usedContainer}>
                                             <View style={styles.usedIconContainer}>
-                                            <Image  source={require('@/assets/images/SD.png')} style={styles.coverImage}/>
+                                            <Image  source={require('@/assets/images/logo-sdad.png')} style={styles.coverImage}/>
                                             </View>
                                             <Text style={styles.usedText}>Used</Text>
                                         </View>
                                     ) : (
                                         // แสดงปุ่ม Use เมื่อยังไม่ถูกใช้
-                                        <TouchableOpacity 
-                                            onPress={handleUseVoucher} 
-                                            disabled={isLoading}
-                                        >
-                                            <GlassButton> 
-                                                <Text
-                                                    style={{
-                                                        color: 'white',
-                                                        fontWeight: '600',
-                                                        fontSize: 12,
-                                                        marginLeft: 0,
-                                                    }}
-                                                >
-                                                    {isLoading ? 'Claiming...' : 'Use'}
-                                                </Text>
-                                            </GlassButton>
-                                        </TouchableOpacity>
+                                        <GlassLiquidButton onPress={() => setShowConfirmModal(true)} disabled={isLoading}>
+                                            {isLoading ? 'Claiming...' : 'Use'}
+                                        </GlassLiquidButton>
                                     )}
                                 </View>
                             </View>
@@ -108,6 +102,21 @@ export const EvoucherModal = ({
                     <Text style={styles.flipText}>Click Voucher to Flip</Text>
                 </View>
             </View>
+
+            {/* Custom Confirm Modal */}
+            <GlassConfirmModal
+                visible={showConfirmModal}
+                onCancel={() => setShowConfirmModal(false)}
+                onConfirm={async () => {
+                    setShowConfirmModal(false);
+                    await handleUseVoucher();
+                }}
+                isLoading={isLoading}
+                title={t('evoucher.confirmTitle')}
+                message={t('evoucher.confirmMessage')}
+                confirmText={t('global.confirm')}
+                cancelText={t('global.cancel')}
+            />
         </Modal>
     );
 };
@@ -176,17 +185,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.22,
         shadowRadius: 2.22,
         elevation: 3,
-        marginBottom: -10 
-    },
-    useButton: {
-        backgroundColor: '#4CAF50',
-        paddingVertical: 12,
-        paddingHorizontal: 25,
-        borderRadius: 10,
-        marginBottom: 10,
-    },
-    useButtonText: {
-        color: '#fff', fontSize: 12, fontWeight: 'bold',
+        marginBottom: -10
     },
     flipText: {
         color: '#fff', marginTop: 15
@@ -196,5 +195,66 @@ const styles = StyleSheet.create({
         height: 50,
         resizeMode: 'cover',
         marginBottom: -20
-    }
+    },
+    confirmOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    confirmContainer: {
+        borderRadius: 16,
+        padding: 24,
+        width: 300,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+        backgroundColor: 'rgba(255,255,255,0.18)',
+    },
+    confirmTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 12,
+        color: '#222',
+    },
+    confirmMessage: {
+        fontSize: 15,
+        color: '#444',
+        marginBottom: 24,
+        textAlign: 'center',
+    },
+    confirmButtonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    confirmButton: {
+        flex: 1,
+        paddingVertical: 10,
+        marginHorizontal: 5,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    cancelButton: {
+        backgroundColor: '#eee',
+    },
+    confirmButtonActive: {
+        backgroundColor: '#4caf50',
+    },
+    cancelButtonText: {
+        color: '#888',
+        fontWeight: 'bold',
+    },
+    confirmButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+    },
 });
+
+export default EvoucherModal;

@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react';
 import { apiRequest } from '@/utils/api';
-import { ISponsor, ISponsorResponse } from '@/types/sponsor';
+import { ISponsor } from '@/types/sponsor';
+
+type SponsorRaw = {
+  _id: string;
+  name: { en: string; th: string };
+  logo?: { logoPhoto: string };
+  photo?: { logoPhoto: string };
+  type: any;
+  color?: any;
+  createdAt: string;
+  updatedAt: string;
+  [key: string]: any;
+};
 
 export function useSponsors() {
   const [sponsors, setSponsors] = useState<ISponsor[]>([]);
@@ -12,10 +24,15 @@ export function useSponsors() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiRequest<ISponsorResponse>('/sponsors', 'GET');
+      const response = await apiRequest<{ data: SponsorRaw[] }>('/sponsors', 'GET');
       
       if (response.data) {
-        setSponsors(response.data.data || []);
+        // Map photo.logoPhoto จาก logo.logoPhoto เสมอ
+        const sponsorsWithPhoto: ISponsor[] = (response.data.data || []).map((s: SponsorRaw) => ({
+          ...s,
+          photo: { logoPhoto: s.logo?.logoPhoto || '' },
+        }));
+        setSponsors(sponsorsWithPhoto);
       }
       return response;
     } catch (err) {
@@ -34,10 +51,14 @@ export function useSponsors() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiRequest<ISponsorResponse>('/sponsors', 'GET');
-      
+      const response = await apiRequest<{ data: SponsorRaw[] }>('/sponsors', 'GET');
       if (response.data) {
-        setSponsors(response.data.data || []);
+        const sponsorsRaw = response.data?.data || response.data || [];
+        const sponsorsWithPhoto: ISponsor[] = sponsorsRaw.map((s: SponsorRaw) => ({
+          ...s,
+          photo: { logoPhoto: s.logo?.logoPhoto || '' },
+        }));
+        setSponsors(sponsorsWithPhoto);
       }
       return response;
     } catch (err) {

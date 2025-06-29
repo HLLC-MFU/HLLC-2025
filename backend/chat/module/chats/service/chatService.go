@@ -41,6 +41,7 @@ type ChatService interface {
 	StartRoomConsumers()
 	NotifyOfflineUser(userID, roomID, fromUserID, message, eventType string)
 	HandleMessage(ctx context.Context, msg *model.ChatMessage) error
+	GetMessageByID(ctx context.Context, id primitive.ObjectID) (*model.ChatMessage, error)
 }
 
 const (
@@ -410,6 +411,7 @@ func (s *service) HandleMessage(ctx context.Context, msg *model.ChatMessage) err
 			FileName:  kafkaMsg.FileName,
 			Timestamp: kafkaMsg.Timestamp,
 			Image:     kafkaMsg.Image,
+			ReplyToID: kafkaMsg.ReplyToID,
 		}
 	}
 
@@ -476,4 +478,8 @@ func (s *service) HandleMessage(ctx context.Context, msg *model.ChatMessage) err
 	}
 
 	return nil
+}
+
+func (s *service) GetMessageByID(ctx context.Context, id primitive.ObjectID) (*model.ChatMessage, error) {
+	return s.repo.GetMessageByID(ctx, id)
 }

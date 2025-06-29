@@ -91,4 +91,6 @@ const styles = StyleSheet.create({
   categoryFilterTextActive: {
     color: '#ffffff',
   },
-}); 
+});
+
+export default CategoryFilter; 

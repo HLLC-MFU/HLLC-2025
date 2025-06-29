@@ -138,4 +138,6 @@ const styles = StyleSheet.create({
   tabBtnTextActive: {
     color: '#fff',
   },
-}); 
+});
+
+export default ChatTabBar; 

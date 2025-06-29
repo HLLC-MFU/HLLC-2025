@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
-import { chatService } from '../../services/chats/chatService';
 import { ChatRoom } from '../../types/chatTypes';
+import chatService from '@/services/chats/chatService';
 
 export const useChatRooms = () => {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);

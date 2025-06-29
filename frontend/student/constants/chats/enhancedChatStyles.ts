@@ -228,3 +228,5 @@ export const enhancedChatStyles = StyleSheet.create({
     bottom: 0,
   },
 });
+
+export default enhancedChatStyles;

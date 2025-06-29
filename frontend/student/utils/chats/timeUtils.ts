@@ -19,4 +19,6 @@ export const formatTime = (timestamp: string): string => {
     console.error('Error formatting time:', e);
     return '';
   }
-}; 
+};
+
+export default formatTime; 

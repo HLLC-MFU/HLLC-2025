@@ -121,15 +121,20 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     // Handle text messages with potential replyTo
     let messageContent = data.message;
     let replyTo = undefined;
-    
-    try {
-      const parsedContent = JSON.parse(data.message);
-      if (parsedContent.message && parsedContent.replyTo) {
-        messageContent = parsedContent.message;
-        replyTo = parsedContent.replyTo;
-      }
-    } catch (e) {
-      messageContent = data.message;
+    if (data.replyTo) {
+      replyTo = {
+        id: String(data.replyTo.id || data.reply_to_id || ''),
+        text: String(data.replyTo.message || data.replyTo.text || ''),
+        senderId: String(data.replyTo.user_id || data.replyTo.senderId || ''),
+        senderName: String(data.replyTo.username || data.replyTo.senderName || ''),
+      };
+    } else if (data.reply_to_id) {
+      replyTo = {
+        id: String(data.reply_to_id),
+        text: '',
+        senderId: '',
+        senderName: '',
+      };
     }
 
     return {
@@ -539,4 +544,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
     ws: state.ws,
     addMessage
   };
-}; 
+};
+
+export default useWebSocket; 

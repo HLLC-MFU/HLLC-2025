@@ -125,21 +125,29 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 				username = user.Username
 			}
 
+			// Get replyTo message if exists
+			var replyTo *model.ChatMessage
+			if msg.ReplyToID != nil {
+				replyTo, _ = h.service.GetMessageByID(ctx, *msg.ReplyToID)
+			}
+
 			event := ChatEvent{
 				EventType: "history",
 				Payload: map[string]interface{}{
-					"id":        msg.ID.Hex(),
-					"room_id":   msg.RoomID.Hex(),
-					"user_id":   msg.UserID.Hex(),
-					"username":  username,
-					"message":   msg.Message,
-					"Mentions":  msg.Mentions,
-					"timestamp": msg.Timestamp,
-					"file_url":  msg.FileURL,
-       				"file_type": msg.FileType,
-       				"file_name": msg.FileName,
-        			"stickerId": msg.StickerID, 
-        			"image":     msg.Image,
+					"id":          msg.ID.Hex(),
+					"room_id":     msg.RoomID.Hex(),
+					"user_id":     msg.UserID.Hex(),
+					"username":    username,
+					"message":     msg.Message,
+					"Mentions":    msg.Mentions,
+					"timestamp":   msg.Timestamp,
+					"file_url":    msg.FileURL,
+					"file_type":   msg.FileType,
+					"file_name":   msg.FileName,
+					"stickerId":   msg.StickerID,
+					"image":       msg.Image,
+					"reply_to_id": msg.ReplyToID,
+					"replyTo":     replyTo,
 				},
 			}
 			eventJSON, _ := json.Marshal(event)
@@ -158,21 +166,29 @@ func (h *ChatHTTPHandler) HandleWebSocket(conn *websocket.Conn, userID, username
 					username = user.Username
 				}
 
+				// replyTo object (enriched)
+				var replyTo *model.ChatMessage
+				if msg.ChatMessage.ReplyToID != nil {
+					replyTo, _ = h.service.GetMessageByID(ctx, *msg.ChatMessage.ReplyToID)
+				}
+
 				event := ChatEvent{
 					EventType: "history",
 					Payload: map[string]interface{}{
-						"id":        msg.ChatMessage.ID.Hex(),
-						"room_id":   msg.ChatMessage.RoomID.Hex(),
-						"user_id":   msg.ChatMessage.UserID.Hex(),
-						"username":  username,
-						"message":   msg.ChatMessage.Message,
-						"Mentions":  msg.ChatMessage.Mentions,
-						"timestamp": msg.ChatMessage.Timestamp,
-						"file_url":  msg.ChatMessage.FileURL,
-        				"file_type": msg.ChatMessage.FileType,
-       					"file_name": msg.ChatMessage.FileName,
-       					"stickerId": msg.ChatMessage.StickerID,
-       					"image":     msg.ChatMessage.Image,
+						"id":          msg.ChatMessage.ID.Hex(),
+						"room_id":     msg.ChatMessage.RoomID.Hex(),
+						"user_id":     msg.ChatMessage.UserID.Hex(),
+						"username":    username,
+						"message":     msg.ChatMessage.Message,
+						"Mentions":    msg.ChatMessage.Mentions,
+						"timestamp":   msg.ChatMessage.Timestamp,
+						"file_url":    msg.ChatMessage.FileURL,
+						"file_type":   msg.ChatMessage.FileType,
+						"file_name":   msg.ChatMessage.FileName,
+						"stickerId":   msg.ChatMessage.StickerID,
+						"image":       msg.ChatMessage.Image,
+						"reply_to_id": msg.ChatMessage.ReplyToID,
+						"replyTo":     replyTo,
 					},
 				}
 				eventJSON, _ := json.Marshal(event)

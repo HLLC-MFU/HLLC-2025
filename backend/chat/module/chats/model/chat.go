@@ -86,15 +86,16 @@ func BroadcastMessage(b BroadcastObject) {
 
 // KafkaMessage represents a message format specifically for Kafka, without MongoDB-specific fields
 type KafkaMessage struct {
-	RoomID    primitive.ObjectID `json:"room_id"`
-	UserID    primitive.ObjectID `json:"user_id"`
-	Message   string             `json:"message"`
-	Mentions  []string           `json:"mentions,omitempty"`
-	FileURL   string             `json:"file_url,omitempty"`
-	FileType  string             `json:"file_type,omitempty"`
-	FileName  string             `json:"file_name,omitempty"`
-	Timestamp time.Time          `json:"timestamp"`
-	Image     string             `json:"image,omitempty"`
+	RoomID    primitive.ObjectID  `json:"room_id"`
+	UserID    primitive.ObjectID  `json:"user_id"`
+	Message   string              `json:"message"`
+	Mentions  []string            `json:"mentions,omitempty"`
+	FileURL   string              `json:"file_url,omitempty"`
+	FileType  string              `json:"file_type,omitempty"`
+	FileName  string              `json:"file_name,omitempty"`
+	Timestamp time.Time           `json:"timestamp"`
+	Image     string              `json:"image,omitempty"`
+	ReplyToID *primitive.ObjectID `json:"reply_to_id,omitempty"`
 }
 
 // ToKafkaMessage converts a ChatMessage to KafkaMessage format
@@ -109,5 +110,6 @@ func (m *ChatMessage) ToKafkaMessage() *KafkaMessage {
 		FileName:  m.FileName,
 		Timestamp: m.Timestamp,
 		Image:     m.Image,
+		ReplyToID: m.ReplyToID,
 	}
 }

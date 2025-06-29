@@ -37,6 +37,7 @@ import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.m
 import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
 import { EvouchersModule } from './module/evouchers/evouchers.module';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
+import { StepAchievementModule } from './module/step-achievement/step-achievement.module';
 
 @Module({
   imports: [
@@ -86,6 +87,8 @@ import { SponsorsModule } from './module/sponsors/sponsors.module';
     PretestAnswersModule,
     StepCountersModule,
     FirebaseAdminModule,
+    StepCountersModule,
+    StepAchievementModule,
     LandmarksModule,
     CoinCollectionsModule,
     MapsModule,

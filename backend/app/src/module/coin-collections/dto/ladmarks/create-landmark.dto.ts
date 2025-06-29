@@ -1,5 +1,6 @@
-import { IsNotEmpty, IsNumber, IsObject, IsString } from "class-validator";
+import { IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
 import { Localization, Location } from "src/pkg/types/common";
+import { LandmarkType } from "../../enum/landmark-types.enum";
 
 export class CreateLandmarkDto {
     @IsObject()
@@ -20,9 +21,13 @@ export class CreateLandmarkDto {
 
     @IsNotEmpty()
     @IsNumber()
-    coinAmount: number;
-
-    @IsNotEmpty()
-    @IsNumber()
     cooldown: number;
+
+    @IsNumber()
+    @IsOptional()
+    limitDistance: number;
+
+    @IsEnum(LandmarkType)
+    @IsNotEmpty()
+    type: LandmarkType;
 }   

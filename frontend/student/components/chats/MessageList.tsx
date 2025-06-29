@@ -3,11 +3,15 @@ import {
   View,
   FlatList,
   StyleSheet,
+  Text,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import MessageBubble from './MessageBubble';
 import SystemMessage from './SystemMessage';
 import TypingIndicator from './TypingIndicator';
 import { Message } from '@/types/chatTypes';
+import useProfile from '@/hooks/useProfile';
 
 interface MessageListProps {
   messages: Message[][];
@@ -17,7 +21,7 @@ interface MessageListProps {
   onReply: (message: Message) => void;
   onRetry?: (message: Message) => void;
   scrollToBottom: () => void;
-  onScroll?: (event: any) => void;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   scrollEventThrottle?: number;
 }
 
@@ -32,19 +36,65 @@ const MessageList = ({
   onScroll,
   scrollEventThrottle,
 }: MessageListProps) => {
+  const { user } = useProfile();
+  const currentUsername = user?.data?.[0]?.username || '';
+
+  // flatten all messages for replyTo enrichment (sort จากเก่าไปใหม่)
+  const allMessages = React.useMemo(() => {
+    return messages
+      .flat()
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }, [messages]);
+
+  // ฟังก์ชัน scroll ไปยังข้อความต้นทาง
+  const handleReplyPreviewClick = (replyToId: string) => {
+    const flat = allMessages;
+    const index = flat.findIndex(m => m.id === replyToId);
+    if (index !== -1 && flatListRef.current) {
+      // หา group index และ message index ใน group
+      let groupIdx = 0;
+      let msgIdx = 0;
+      let count = 0;
+      for (let i = 0; i < messages.length; i++) {
+        for (let j = 0; j < messages[i].length; j++) {
+          if (messages[i][j].id === replyToId) {
+            groupIdx = i;
+            msgIdx = j;
+            break;
+          }
+          count++;
+        }
+      }
+      // scroll ไปยัง group index (FlatList)
+      flatListRef.current.scrollToIndex({ index: groupIdx, animated: true });
+    }
+  };
+
   const renderItem = ({ item }: { item: Message[] }) => {
     if (item.length === 1 && (item[0].type === 'join' || item[0].type === 'leave')) {
       return <SystemMessage text={item[0].text || ''} timestamp={item[0].timestamp} />;
     }
-    
     return (
       <View style={styles.messageGroup}>
         {item.map((message: Message, index: number) => {
+          if (
+            !message ||
+            !message.id ||
+            !message.senderId ||
+            !message.type ||
+            !message.timestamp
+          ) {
+            console.warn('Invalid message format:', message);
+            return (
+              <View key={`invalid-${index}`} style={{ padding: 8, backgroundColor: '#fdd', borderRadius: 8, marginBottom: 4 }}>
+                <Text style={{ color: '#900', fontSize: 14 }}>Invalid message format</Text>
+              </View>
+            );
+          }
           const isMyMessage = message.senderId === userId;
           const isLastInGroup = index === item.length - 1;
           const isFirstInGroup = index === 0;
           const senderName = message.username || message.senderName || message.senderId;
-          
           return (
             <MessageBubble 
               key={message.id || `msg-${index}`}
@@ -57,6 +107,9 @@ const MessageList = ({
               isLastInGroup={isLastInGroup}
               isFirstInGroup={isFirstInGroup}
               onReply={onReply}
+              allMessages={allMessages}
+              onReplyPreviewClick={handleReplyPreviewClick}
+              currentUsername={currentUsername}
             />
           );
         })}

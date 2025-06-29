@@ -7,20 +7,23 @@ export type ISponsor ={
   photo: {
     logoPhoto: string;
   };
+  logo?: {
+    logoPhoto: string;
+  };
   type: {
     _id: string;
     name: string;
     createdAt: string;
     updatedAt: string;
   };
-  isShow: boolean;
+  isShow?: boolean;
   createdAt: string;
   updatedAt: string;
   budget?: string;
   no?: number;
 }
 
-export type ISponsorResponse ={
+export type ISponsorResponse = {
   data: ISponsor[];
   meta: {
     total: number;
