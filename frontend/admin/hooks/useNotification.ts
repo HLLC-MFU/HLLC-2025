@@ -4,7 +4,7 @@ import { apiRequest } from "@/utils/api"
 import { addToast } from "@heroui/react";
 
 export function useNotification() {
-	const [notification, setNotification] = useState<Notification[]>([])
+	const [notifications, setNotifications] = useState<Notification[]>([])
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
@@ -14,7 +14,7 @@ export function useNotification() {
 
 		try {
 			const res = await apiRequest<{ data: Notification[] }>("/notifications", "GET");
-			setNotification(Array.isArray(res.data?.data) ? res.data.data : []);
+			setNotifications(Array.isArray(res.data?.data) ? res.data.data : []);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to fetch notifications.');
 			addToast({
@@ -63,7 +63,7 @@ export function useNotification() {
 				throw new Error(res.message || 'Failed to delete notification.');
 			}
 
-			setNotification((prev) => prev.filter((a) => a._id !== id));
+			setNotifications((prev) => prev.filter((a) => a._id !== id));
 
 			addToast({
 				title: 'Notification deleted successfully!',
@@ -87,7 +87,7 @@ export function useNotification() {
 	}, []);
 
 	return {
-		notification,
+		notifications,
 		loading,
 		error,
 		deleteNotification,
