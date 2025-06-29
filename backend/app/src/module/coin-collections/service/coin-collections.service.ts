@@ -221,9 +221,6 @@ export class CoinCollectionsService {
         return lm.type === 'sponsor' && lm._id.toString() === landmarkId;
       });
 
-      console.log('this is sponsorLandmakr', sponsorLandmarks);
-
-
       const latestCollectedAt = sponsorLandmarks.reduce((latest, curr) => {
         return !latest || new Date(curr.collectedAt) > latest
           ? new Date(curr.collectedAt)

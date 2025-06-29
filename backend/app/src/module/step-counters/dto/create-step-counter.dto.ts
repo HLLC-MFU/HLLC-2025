@@ -1,10 +1,13 @@
 import { Type } from "class-transformer";
-import { IsMongoId, IsNotEmpty, IsNumber, ValidateNested } from "class-validator";
+import { IsDateString, IsMongoId, IsNotEmpty, IsNumber, ValidateNested } from "class-validator";
 
 class Step {
     @IsNotEmpty()
     @IsNumber()
     step: number
+
+    @IsDateString()
+    date: Date;
 }
 export class CreateStepCounterDto {
     @IsMongoId()
