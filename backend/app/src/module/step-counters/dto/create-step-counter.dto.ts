@@ -1,19 +1,13 @@
 import { Type } from "class-transformer";
-import { IsArray, IsBoolean, IsDate, IsISO8601, IsMongoId, IsNotEmpty, IsNumber, IsOptional, ValidateNested } from "class-validator";
+import { IsDateString, IsMongoId, IsNotEmpty, IsNumber, ValidateNested } from "class-validator";
 
 class Step {
-    @IsOptional()
-    @IsNumber()
-    totalStep: number
-
-    @IsOptional()
-    @IsISO8601()
-    @Type(() => Date)
-    date: Date;
-
     @IsNotEmpty()
     @IsNumber()
     step: number
+
+    @IsDateString()
+    date: Date;
 }
 export class CreateStepCounterDto {
     @IsMongoId()
@@ -23,12 +17,4 @@ export class CreateStepCounterDto {
     @ValidateNested({ each: true })
     @Type(() => Step)
     steps?: Step[];
-
-    @IsNotEmpty()
-    @IsMongoId()
-    achievement: string
-
-    @IsOptional()
-    @IsBoolean()
-    completeStatus: boolean
 }

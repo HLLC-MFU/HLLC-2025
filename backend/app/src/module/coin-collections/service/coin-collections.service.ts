@@ -4,7 +4,7 @@ import { CoinCollection, CoinCollectionDocument } from '../schema/coin-collectio
 import { Model, Types } from 'mongoose';
 import { Landmark, LandmarkDocument } from '../schema/landmark.schema';
 import { queryAll, queryDeleteOne, queryFindOne } from 'src/pkg/helper/query.util';
-import { CollectCoinDto } from '../dto/coin-collections/coin-collectoin.dto';
+import { CreateCoinCollectionDto } from '../dto/coin-collections/create-coin-collection.dto';
 import { UserDocument } from 'src/module/users/schemas/user.schema';
 import { CoinCollectionsHelper } from '../utils/coin-collections.helper';
 import { EvoucherCode, EvoucherCodeDocument } from 'src/module/evouchers/schemas/evoucher-code.schema';
@@ -22,15 +22,15 @@ export class CoinCollectionsService {
     private coinCollectionsHelper: CoinCollectionsHelper,
   ) { }
 
-  async collectCoin(collectCoinDto: CollectCoinDto) {
-    const landmarkObjectId = new Types.ObjectId(collectCoinDto.landmark);
-    const userObjectId = new Types.ObjectId(collectCoinDto.user);
+  async collectCoin(createCoinCollectionDto: CreateCoinCollectionDto) {
+    const landmarkObjectId = new Types.ObjectId(createCoinCollectionDto.landmark);
+    const userObjectId = new Types.ObjectId(createCoinCollectionDto.user);
 
     const landmark = await this.landmarkModel.findById(landmarkObjectId);
     this.coinCollectionsHelper.checkLandmarkExists(landmark);
     this.coinCollectionsHelper.checkDistance(
-      collectCoinDto.userLat,
-      collectCoinDto.userLong,
+      createCoinCollectionDto.userLat,
+      createCoinCollectionDto.userLong,
       landmark.location.latitude,
       landmark.location.longitude,
       landmark.limitDistance,
@@ -221,9 +221,6 @@ export class CoinCollectionsService {
         return lm.type === 'sponsor' && lm._id.toString() === landmarkId;
       });
 
-      console.log('this is sponsorLandmakr', sponsorLandmarks);
-
-
       const latestCollectedAt = sponsorLandmarks.reduce((latest, curr) => {
         return !latest || new Date(curr.collectedAt) > latest
           ? new Date(curr.collectedAt)
@@ -323,5 +320,16 @@ export class CoinCollectionsService {
     };
   }
 
+  async myCoin(userId: string) {
+    const coin = await queryAll<CoinCollection>({
+      model: this.coinCollectionModel,
+      query: { user: userId },
+      populateFields: () => Promise.resolve([
+        { path: 'user' },
+        { path: 'landmarks.landmark' }
+      ])
+    })
+    return coin
+  }
 
 }

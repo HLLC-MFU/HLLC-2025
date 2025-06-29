@@ -10,7 +10,7 @@ import {
   Body,
 } from '@nestjs/common';
 import { EvouchersService } from '../services/evouchers.service';
-import { CreateEvoucherDto } from '../dto/create-evoucher.dto';
+import { AddEvoucherCodeByRoleDto, AddEvoucherCodeDto, CreateEvoucherDto } from '../dto/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/update-evoucher.dto';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
@@ -63,5 +63,20 @@ export class EvouchersController {
   ) {
     const userId = req.user._id.toString();
     return this.evoucherCodesService.claimEvoucherCode(id, userId);
+  }
+
+  @Post(':id/add')
+  addEvoucherCode(@Param('id') id: string, @Body() addEvoucherCodeDto: AddEvoucherCodeDto) {
+    const { userId } = addEvoucherCodeDto;
+    return this.evoucherCodesService.addEvoucherCode(userId, id);
+  }
+
+  @Post(':id/add-by-role')
+  addEvoucherCodeByRole(
+    @Param('id') evoucherId: string,
+    @Body() addEvoucherCodeByRoleDto: AddEvoucherCodeByRoleDto,
+  ) {
+    const { roleId } = addEvoucherCodeByRoleDto
+    return this.evoucherCodesService.addEvoucherCodeByRole(roleId, evoucherId);
   }
 }
