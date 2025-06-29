@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import Svg, { Polygon } from 'react-native-svg';
 
 interface StampModalProps {
   visible: boolean;
@@ -8,10 +9,38 @@ interface StampModalProps {
   onGetReward?: () => void;
 }
 
-const STAMP_LAYOUT = [5, 4, 5]; // จำนวนวงในแต่ละแถว
+const HEX_SIZE = 48; // ขนาดของหกเหลี่ยมแต่ละช่อง
+const HEX_HEIGHT = HEX_SIZE * Math.sqrt(3);
+const STAMP_HEX_POSITIONS = [
+  // กำหนดตำแหน่ง (x, y) ของแต่ละช่องใน grid (ต้องปรับให้เหมาะสมกับ layout จริง)
+  { x: 2, y: 0 },
+  { x: 1, y: 1 },
+  { x: 2, y: 1 },
+  { x: 3, y: 1 },
+  { x: 0, y: 2 },
+  { x: 1, y: 2 },
+  { x: 2, y: 2 },
+  { x: 3, y: 2 },
+  { x: 4, y: 2 },
+  { x: 1, y: 3 },
+  { x: 2, y: 3 },
+  { x: 3, y: 3 },
+  { x: 2, y: 4 },
+  { x: 2, y: 5 },
+];
+
+function getHexPoints(size: number) {
+  const points = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = Math.PI / 3 * i - Math.PI / 6;
+    const x = size + size * Math.cos(angle);
+    const y = size + size * Math.sin(angle);
+    points.push(`${x},${y}`);
+  }
+  return points.join(' ');
+}
 
 export default function StampModal({ visible, onClose, stamps = 0, onGetReward }: StampModalProps) {
-  let stampIndex = 0;
   return (
     <Modal
       visible={visible}
@@ -21,30 +50,30 @@ export default function StampModal({ visible, onClose, stamps = 0, onGetReward }
     >
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-            <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold' }}>×</Text>
-          </TouchableOpacity>
           <Text style={styles.title}>Collection</Text>
-          <View style={styles.stampGrid}>
-            {STAMP_LAYOUT.map((count, rowIdx) => (
-              <View key={rowIdx} style={styles.stampRow}>
-                {Array.from({ length: count }).map((_, col) => {
-                  const idx = stampIndex++;
-                  return (
-                    <View key={col} style={styles.stampCircleWrapper}>
-                      {idx < stamps ? (
-                        <Image source={require('@/assets/images/logo-sdad.png')} style={styles.stampIcon} />
-                      ) : (
-                        <View style={styles.stampCircle} />
-                      )}
-                    </View>
-                  );
-                })}
+          <View style={styles.stampHexGridContainer}>
+            {STAMP_HEX_POSITIONS.map((pos, idx) => (
+              <View
+                key={idx}
+                style={{
+                  position: 'absolute',
+                  left: pos.x * (HEX_SIZE * 0.88) + 10,
+                  top: pos.y * (HEX_HEIGHT * 0.5) + 10,
+                }}
+              >
+                <Svg width={HEX_SIZE * 2} height={HEX_SIZE * 2}>
+                  <Polygon
+                    points={getHexPoints(HEX_SIZE)}
+                    fill={idx < stamps ? '#FFD700' : '#E0E0E0'}
+                    stroke="#B0B0B0"
+                    strokeWidth={2}
+                  />
+                </Svg>
               </View>
             ))}
           </View>
-          <TouchableOpacity style={styles.rewardBtn} onPress={onGetReward} activeOpacity={0.7}>
-            <Text style={styles.rewardBtnText}>Get Reward</Text>
+          <TouchableOpacity style={styles.rewardBtn} onPress={onClose} activeOpacity={0.7}>
+            <Text style={styles.rewardBtnText}>Close</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -55,7 +84,7 @@ export default function StampModal({ visible, onClose, stamps = 0, onGetReward }
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -65,7 +94,6 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 18,
     alignItems: 'center',
-    backgroundColor: '#AFAFAF',
     position: 'relative',
   },
   closeBtn: {
@@ -83,32 +111,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  stampGrid: {
-    marginBottom: 24,
-  },
-  stampRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  stampCircleWrapper: {
-    width: 44,
-    height: 44,
-    marginHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stampCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#fff',
-    opacity: 1,
-  },
-  stampIcon: {
-    width: 36,
-    height: 36,
-    resizeMode: 'contain',
+  stampHexGridContainer: {
+    width: 280,
+    height: 320,
+    position: 'relative',
+    marginVertical: 24,
   },
   rewardBtn: {
     backgroundColor: '#D9D9D9',

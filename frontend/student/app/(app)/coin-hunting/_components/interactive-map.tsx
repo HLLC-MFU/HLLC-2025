@@ -19,7 +19,7 @@ import {
   PinchGestureHandlerGestureEvent,
 } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
-import { apiRequest } from '@/utils/api';
+const mapsImage = require('@/assets/images/maps.png');
 
 const screen = Dimensions.get('window');
 
@@ -40,42 +40,23 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
 
   const [imageSize, setImageSize] = useState({ width: 1, height: 1 });
   const [minScale, setMinScale] = useState(1);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await apiRequest<any>('/maps');
-        const maps = res.data?.data || [];
-        if (maps.length > 0) {
-          const url = `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${
-            maps[0].map
-          }`;
-          setImageUrl(url);
-          // โหลดขนาดภาพ
-          Image.getSize(
-            url,
-            (w, h) => {
-              setImageSize({ width: w, height: h });
-              const scaleW = screen.width / w;
-              const scaleH = screen.height / h;
-              const min = Math.max(scaleW, scaleH);
-              setMinScale(min);
-              scale.value = min;
-              onImageLoad?.({ width: w, height: h });
-            },
-            err => {
-              setError('Failed to load map image.');
-            },
-          );
-        } else {
-          setError('No map data found.');
-        }
-      } catch (e) {
-        setError('An error occurred while loading the map.');
-      }
-    })();
+    Image.getSize(
+      Image.resolveAssetSource(mapsImage).uri,
+      (w, h) => {
+        setImageSize({ width: w, height: h });
+        const scaleW = screen.width / w;
+        const scaleH = screen.height / h;
+        const min = Math.max(scaleW, scaleH);
+        setMinScale(min);
+        scale.value = min;
+        onImageLoad?.({ width: w, height: h });
+      },
+      err => {
+        setImageSize({ width: screen.width, height: screen.height });
+      },
+    );
   }, []);
 
   const pinchHandler = useAnimatedGestureHandler<
@@ -128,33 +109,7 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
     ],
   }));
 
-  if (error) {
-    return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: 'center', alignItems: 'center' },
-        ]}
-      >
-        <View
-          style={{ padding: 24, backgroundColor: '#fff2f2', borderRadius: 12 }}
-        >
-          <Text
-            style={{
-              color: '#d00',
-              fontSize: 18,
-              fontWeight: 'bold',
-              textAlign: 'center',
-            }}
-          >
-            {error}
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  if (!imageSize.width || !imageUrl) return null;
+  if (!imageSize.width) return null;
 
   return (
     <PanGestureHandler onGestureEvent={panHandler}>
@@ -163,7 +118,7 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
           <Animated.View style={[animatedStyle, styles.imageWrapper]}>
             {/* 🗺️ แผนที่ */}
             <Image
-              source={{ uri: imageUrl }}
+              source={mapsImage}
               style={{ width: '100%', height: '100%' }}
               resizeMode="contain"
             />
