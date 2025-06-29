@@ -5,7 +5,7 @@ import NotificationList from "./_components/notificationList";
 
 import { PageHeader } from "@/components/ui/page-header";
 
-export default function SettingsPage() {
+export default function notifications() {
     const elements = [{
         title: "Notification Push",
         description: "Create Notification",
