@@ -34,10 +34,6 @@ export function useLamduanFlowers() {
 
             if (res.statusCode === 200) {
                 setLamduanFlowers((prev) => prev.filter((s) => s._id !== id));
-                addToast({
-                    title: 'Lamduan Flowers deleted successfully!',
-                    color: 'success',
-                });
             } else {
               throw new Error(res.message || 'Failed to delete lamduan flowers.');
             }

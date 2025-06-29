@@ -1,6 +1,6 @@
-import { useState, useMemo, RefObject } from "react";
+import { useState, useMemo, useEffect, RefObject } from "react";
 import {
-    Accordion, AccordionItem, Button, Modal, ModalBody,
+    Accordion, AccordionItem, addToast, Button, Modal, ModalBody,
     ModalContent, ModalFooter, ModalHeader, Pagination
 } from "@heroui/react";
 import { Flower2, Settings } from "lucide-react";
@@ -36,15 +36,24 @@ export default function AccordionLamduan({
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState<number | "All">(18);
     const resetToFirstPage = () => setCurrentPage(1);
+
+    useEffect(() => {
+        if (!lamduanFlowers || lamduanFlowers.length === 0) return;
+        const flowersWithoutUser = lamduanFlowers.filter(item => !item.user);
+        flowersWithoutUser.forEach(flower => {
+            deleteLamduanFlowers(flower._id);
+        });
+    }, [lamduanFlowers]);
+
     const filteredAndSortedFlowers = useMemo(() => {
         if (!lamduanFlowers) return [];
-
+        const flowersWithUser = lamduanFlowers.filter(item => item.user);
         const filtered = searchQuery.trim()
-            ? lamduanFlowers.filter(({ user, comment }) => {
+            ? flowersWithUser.filter(({ user, comment }) => {
                 const q = searchQuery.toLowerCase();
                 return user.username.toLowerCase().includes(q) || comment.toLowerCase().includes(q);
             })
-            : lamduanFlowers;
+            : flowersWithUser;
 
         return [...filtered].sort((a, b) => {
             const timeA = new Date(a.createdAt).getTime();
@@ -61,8 +70,14 @@ export default function AccordionLamduan({
 
     const totalPages = rowsPerPage === "All" ? 1 : Math.ceil(filteredAndSortedFlowers.length / rowsPerPage);
 
-    const handleDelete = () => {
-        if (selectedFlower) deleteLamduanFlowers(selectedFlower._id);
+    const handleDelete = async () => {
+        if (selectedFlower) {
+            await deleteLamduanFlowers(selectedFlower._id);
+            addToast({
+                title: `Deleted ${selectedFlower.user?.username} flower.`,
+                color: "success",
+            });
+        }
         setIsModalOpen(false);
     };
 
@@ -126,7 +141,7 @@ export default function AccordionLamduan({
                                     <Pagination
                                         showControls
                                         total={totalPages}
-                                        page={currentPage} 
+                                        page={currentPage}
                                         onChange={setCurrentPage}
                                     />
                                 </div>
