@@ -40,7 +40,7 @@ export class StepCountersService {
 
     const achievement = primaryAchievement._id;
 
-    let existing = await this.stepCounterModel.findOne({ user, achievement });
+    let existing = await this.stepCounterModel.findOne({ user: new Types.ObjectId(user), achievement });
 
     const achievementTarget = (primaryAchievement as any)?.achievement;
 
@@ -58,7 +58,7 @@ export class StepCountersService {
       });
 
       const newStepCounter = new this.stepCounterModel({
-        user,
+        user: new Types.ObjectId(user),
         achievement,
         steps: stepData,
         completeStatus: achievementTarget && total >= achievementTarget,
@@ -527,7 +527,7 @@ export class StepCountersService {
     // find raking
     const rank = all.findIndex(sc => {
       const id = typeof sc.user === 'object' ? sc.user._id?.toString() : sc.user?.toString();
-      return id === userId;
+      return id === userId.toString();
     }) + 1;
 
     return {
