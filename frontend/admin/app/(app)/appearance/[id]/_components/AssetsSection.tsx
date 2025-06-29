@@ -85,6 +85,11 @@ export default function AssetsSection({
                               ? 'video/mp4, image/*'
                               : 'image/*'
                           }
+                          sizeLimit={
+                            asset.title === 'Background'
+                              ? 5 * 1024 * 1024
+                              : 500 * 1024
+                          }
                         />
                       </div>
                     );
