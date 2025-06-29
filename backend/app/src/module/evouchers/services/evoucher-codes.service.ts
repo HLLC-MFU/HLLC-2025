@@ -9,6 +9,7 @@ import { Model, Types } from 'mongoose';
 import * as crypto from 'crypto';
 import { UpdateEvoucherCodeDto } from '../dto/update-evouchercodes.dto';
 import { queryAll } from 'src/pkg/helper/query.util';
+import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 
 @Injectable()
 export class EvoucherCodesService {
@@ -17,6 +18,8 @@ export class EvoucherCodesService {
     private evoucherModel: Model<EvoucherDocument>,
     @InjectModel(EvoucherCode.name)
     private codeModel: Model<EvoucherCodeDocument>,
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
   ) { }
 
   async findAll() {
@@ -147,6 +150,42 @@ export class EvoucherCodesService {
       ])
     });
 
-    return { ...codes, data: codes };
+    return codes;
   }
+
+  async addEvoucherCode(userId: string, evoucherId: string) {
+    const code = await this.claimEvoucherCode(userId, evoucherId);
+    return {
+      message: 'Evoucher added successfully'
+      , code
+    }
+  }
+
+  async addEvoucherCodeByRole(roleId: string, evoucherId: string) {
+    const users = await this.userModel.find({
+      role: new Types.ObjectId(roleId),
+    }).lean();
+
+    if (users.length === 0) {
+      throw new NotFoundException('No users found with this role');
+    }
+
+    const results: { userId: string; status: string; code?: string }[] = [];
+
+    for (const user of users) {
+      try {
+        const claimed = await this.claimEvoucherCode(evoucherId, user._id.toString());
+        results.push({ userId: user._id.toString(), status: 'success', code: claimed.code });
+      } catch (err) {
+        results.push({ userId: user._id.toString(), status: 'failed', code: err.message });
+      }
+    }
+
+    return {
+      message: `Evoucher codes processed for role ${roleId}`,
+      total: users.length,
+      results,
+    };
+  }
+
 }

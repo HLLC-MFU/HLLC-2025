@@ -11,6 +11,7 @@ import {
 } from './schemas/evoucher-code.schema';
 import { Sponsors, SponsorsSchema } from '../sponsors/schemas/sponsors.schema';
 import { SponsorsModule } from '../sponsors/sponsors.module';
+import { User, UserSchema } from '../users/schemas/user.schema';
 
 @Module({
   imports: [
@@ -26,6 +27,10 @@ import { SponsorsModule } from '../sponsors/sponsors.module';
       {
         name: Sponsors.name,
         schema: SponsorsSchema,
+      },
+      {
+        name: User.name,
+        schema: UserSchema,
       },
     ]),
     SponsorsModule,
