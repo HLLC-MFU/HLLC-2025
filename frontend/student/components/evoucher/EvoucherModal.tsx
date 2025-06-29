@@ -11,6 +11,7 @@ import * as SecureStore from 'expo-secure-store';
 import { BlurView } from 'expo-blur';
 import GlassConfirmModal from './GlassConfirmModal';
 import { useEvoucher } from '@/hooks/useEvoucher';
+import { useTranslation } from 'react-i18next';
 
 
 const { width } = Dimensions.get('window');
@@ -41,6 +42,7 @@ export const EvoucherModal = ({
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const toast = useToastController();
     const { useVoucherCode } = useEvoucher();
+    const { t } = useTranslation();
 
     const handleUseVoucher = async () => {
         if (!evoucherCodeId) {
@@ -110,10 +112,10 @@ export const EvoucherModal = ({
                     await handleUseVoucher();
                 }}
                 isLoading={isLoading}
-                title="ยืนยันการใช้ E-Voucher"
-                message="คุณแน่ใจหรือไม่ว่าต้องการใช้ E-Voucher นี้?"
-                confirmText="ยืนยัน"
-                cancelText="ยกเลิก"
+                title={t('evoucher.confirmTitle')}
+                message={t('evoucher.confirmMessage')}
+                confirmText={t('global.confirm')}
+                cancelText={t('global.cancel')}
             />
         </Modal>
     );
