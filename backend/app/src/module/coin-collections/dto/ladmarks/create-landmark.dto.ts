@@ -1,11 +1,15 @@
 import { IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
-import { Localization, Location } from "src/pkg/types/common";
+import { Localization, Location, mapCoordinate } from "src/pkg/types/common";
 import { LandmarkType } from "../../enum/landmark-types.enum";
 
 export class CreateLandmarkDto {
     @IsObject()
     @IsNotEmpty()
     name: Localization;
+
+    @IsNotEmpty()
+    @IsString()
+    coinImage: string
 
     @IsObject()
     @IsNotEmpty()
@@ -30,4 +34,8 @@ export class CreateLandmarkDto {
     @IsEnum(LandmarkType)
     @IsNotEmpty()
     type: LandmarkType;
+
+    @IsObject()
+    @IsNotEmpty()
+    mapCoordinates: mapCoordinate
 }   

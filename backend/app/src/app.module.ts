@@ -32,12 +32,11 @@ import { StepCountersModule } from './module/step-counters/step-counters.module'
 import { FirebaseAdminModule } from './module/firebase/firebase-admin.module';
 import { LandmarksModule } from './module/coin-collections/landmarks.module';
 import { CoinCollectionsModule } from './module/coin-collections/coin-collections.module';
-import { MapsModule } from './module/coin-collections/maps.module';
 import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
 import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
+import { StepAchievementModule } from './module/step-achievement/step-achievement.module';
 import { EvouchersModule } from './module/evouchers/evouchers.module';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
-import { StepAchievementModule } from './module/step-achievement/step-achievement.module';
 
 @Module({
   imports: [
@@ -91,7 +90,6 @@ import { StepAchievementModule } from './module/step-achievement/step-achievemen
     StepAchievementModule,
     LandmarksModule,
     CoinCollectionsModule,
-    MapsModule,
     LamduanFlowersModule,
     LamduanSettingModule,
     EvouchersModule,
