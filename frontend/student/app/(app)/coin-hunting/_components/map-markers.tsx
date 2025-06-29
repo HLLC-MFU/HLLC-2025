@@ -1,45 +1,80 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, ViewStyle } from 'react-native';
+import { apiRequest } from '@/utils/api';
 
-// 🎯 Marker positions (pixel coordinates relative to original image)
-// Mockup: เพิ่มข้อมูล image, description, mapsUrl
-const markers = [
-  {
-    x: 600,
-    y: 1100,
-    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
-    description:
-      'ใต้ถุนอาคาร E2 ประกอบด้วยร้านอาหาร 8 ร้าน ร้านอาหารว่างและเครื่องดื่ม 3 ร้าน เปิดบริการตั้งแต่เวลา 07.00 - 18.00 น.ทุกวัน ด้วยความจุ 350 ที่นั่ง สามารถรองรับผู้ใช้บริการได้กว่า 1,500 คนต่อวัน',
-    mapsUrl: 'https://maps.app.goo.gl/FUoQPiJTsr6rQHAQA?g_st=ipc',
-  },
-  {
-    x: 900,
-    y: 400,
-    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
-    description:
-      'ใต้ถุนอาคาร E2 ประกอบด้วยร้านอาหาร 8 ร้าน ร้านอาหารว่างและเครื่องดื่ม 3 ร้าน เปิดบริการตั้งแต่เวลา 07.00 - 18.00 น.ทุกวัน ด้วยความจุ 350 ที่นั่ง สามารถรองรับผู้ใช้บริการได้กว่า 1,500 คนต่อวัน',
-    mapsUrl: 'https://maps.app.goo.gl/FUoQPiJTsr6rQHAQA?g_st=ipc',
-  },
-];
+interface Marker {
+  x: number;
+  y: number;
+  image: string;
+  description: string;
+  mapsUrl: string;
+  _id: string;
+}
 
 interface MapMarkersProps {
-  onMarkerPress: (marker: typeof markers[0]) => void;
+  onMarkerPress: (marker: Marker) => void;
 }
 
 export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
+  console.log('MapMarkers RENDER');
+  const [markers, setMarkers] = useState<Marker[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      const url = `${process.env.EXPO_PUBLIC_API_URL?.trim()}/landmarks`;
+      console.log('FETCH URL:', url);
+      try {
+        const res = await apiRequest<any>('/landmarks');
+        console.log('API RESPONSE:', res);
+        if (res.data && Array.isArray(res.data.data)) {
+          const mapped = res.data.data.map((item: any) => ({
+            x: item.mapCoordinates?.x ?? 0,
+            y: item.mapCoordinates?.y ?? 0,
+            image: item.hintImage
+              ? `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${item.hintImage}`
+              : '',
+            description: item.hint?.th || item.hint?.en || '',
+            mapsUrl: item.location?.mapUrl || '',
+            _id: item._id,
+          }));
+          if (mounted) {
+            setMarkers(mapped);
+            console.log('MARKERS:', mapped);
+          }
+        } else {
+          if (mounted) setError('No data');
+        }
+      } catch (e: any) {
+        console.log('LANDMARKS ERROR:', e);
+        if (mounted) setError(e.message || 'Error fetching landmarks');
+      } finally {
+        console.log('LANDMARKS FINALLY');
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  if (loading || error) return null;
+
   return (
     <>
       {/* 📌 Markers */}
       {markers.map((m, i) => (
         <TouchableOpacity
-          key={i}
+          key={m._id || i}
           style={[
             {
               position: 'absolute',
-              width: 20,
-              height: 20,
-              backgroundColor: 'red',
-              borderRadius: 10,
+              width: 80,
+              height: 80,
+              backgroundColor: 'rgba(255,0,0,0.5)',
+              borderRadius: 40,
               borderWidth: 2,
               borderColor: '#fff',
               zIndex: 5,
@@ -53,6 +88,4 @@ export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
       ))}
     </>
   );
-}
-
-export { markers }; 
+} 

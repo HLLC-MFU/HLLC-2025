@@ -1,26 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Dimensions,
   Image,
   StyleSheet,
   View,
+  TouchableWithoutFeedback,
   ViewStyle,
-  Text,
 } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedGestureHandler,
   useAnimatedStyle,
+  runOnJS,
+  withSpring,
+  withDecay,
+  interpolate,
+  Extrapolate,
 } from 'react-native-reanimated';
 import {
   PanGestureHandler,
   PinchGestureHandler,
   PanGestureHandlerGestureEvent,
   PinchGestureHandlerGestureEvent,
+  State,
 } from 'react-native-gesture-handler';
-import { LinearGradient } from 'expo-linear-gradient';
-const mapsImage = require('@/assets/images/maps.png');
 
+const mapsImage = require('@/assets/images/maps.png');
 const screen = Dimensions.get('window');
 
 function clamp(value: number, min: number, max: number): number {
@@ -28,46 +33,134 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max));
 }
 
-interface InteractiveMapProps {
+type InteractiveMapProps = {
   onImageLoad?: (imageSize: { width: number; height: number }) => void;
   children?: React.ReactNode;
-}
+};
 
-export default function InteractiveMap({ onImageLoad, children }: InteractiveMapProps) {
+export default function InteractiveMap({
+  onImageLoad,
+  children,
+}: InteractiveMapProps) {
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
+  const focalX = useSharedValue(0);
+  const focalY = useSharedValue(0);
+  const panVelocityX = useSharedValue(0);
+  const panVelocityY = useSharedValue(0);
 
-  const [imageSize, setImageSize] = useState({ width: 1, height: 1 });
-  const [minScale, setMinScale] = useState(1);
+  const [imageSize, setImageSize] = useState({ width: 6000, height: 2469 });
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+
+  // Memoize initial scale calculation
+  const initialScale = useMemo(() => {
+    const scaleW = screen.width / imageSize.width;
+    const scaleH = screen.height / imageSize.height;
+    return Math.max(scaleW, scaleH);
+  }, [imageSize.width, imageSize.height]);
 
   useEffect(() => {
-    Image.getSize(
-      Image.resolveAssetSource(mapsImage).uri,
-      (w, h) => {
-        setImageSize({ width: w, height: h });
-        const scaleW = screen.width / w;
-        const scaleH = screen.height / h;
-        const min = Math.max(scaleW, scaleH);
-        setMinScale(min);
-        scale.value = min;
-        onImageLoad?.({ width: w, height: h });
-      },
-      err => {
-        setImageSize({ width: screen.width, height: screen.height });
-      },
-    );
-  }, []);
+    const resolvedSource = Image.resolveAssetSource(mapsImage);
+    
+    if (resolvedSource?.uri) {
+      Image.getSize(
+        resolvedSource.uri,
+        (width, height) => {
+          setImageSize({ width, height });
+          
+          const scaleW = screen.width / width;
+          const scaleH = screen.height / height;
+          const initialScale = Math.max(scaleW, scaleH);
+          
+          scale.value = withSpring(initialScale, {
+            damping: 20,
+            stiffness: 200,
+          });
+          
+          setIsImageLoaded(true);
+          onImageLoad?.({ width, height });
+        },
+        () => {
+          scale.value = withSpring(initialScale, {
+            damping: 20,
+            stiffness: 200,
+          });
+          setIsImageLoaded(true);
+        }
+      );
+    } else {
+      scale.value = withSpring(initialScale, {
+        damping: 20,
+        stiffness: 200,
+      });
+      setIsImageLoaded(true);
+    }
+  }, [initialScale]);
 
   const pinchHandler = useAnimatedGestureHandler<
     PinchGestureHandlerGestureEvent,
-    { startScale: number }
+    { 
+      startScale: number;
+      startFocalX: number;
+      startFocalY: number;
+      startTranslateX: number;
+      startTranslateY: number;
+    }
   >({
-    onStart: (_, ctx) => {
+    onStart: (event, ctx) => {
       ctx.startScale = scale.value;
+      ctx.startFocalX = event.focalX;
+      ctx.startFocalY = event.focalY;
+      ctx.startTranslateX = translateX.value;
+      ctx.startTranslateY = translateY.value;
     },
     onActive: (event, ctx) => {
-      scale.value = clamp(ctx.startScale * event.scale, minScale, 3);
+      const scaleW = screen.width / imageSize.width;
+      const scaleH = screen.height / imageSize.height;
+      const minScale = Math.max(scaleW, scaleH);
+      const maxScale = 3;
+      
+      const newScale = clamp(ctx.startScale * event.scale, minScale, maxScale);
+      scale.value = newScale;
+      
+      // Focal point adjustment for smooth pinch-to-zoom
+      const focalPointX = ctx.startFocalX - screen.width / 2;
+      const focalPointY = ctx.startFocalY - screen.height / 2;
+      
+      const scaleDiff = newScale - ctx.startScale;
+      translateX.value = ctx.startTranslateX - (focalPointX * scaleDiff) / ctx.startScale;
+      translateY.value = ctx.startTranslateY - (focalPointY * scaleDiff) / ctx.startScale;
+      
+      // Apply bounds
+      const scaledWidth = imageSize.width * newScale;
+      const scaledHeight = imageSize.height * newScale;
+      const boundX = Math.max(0, (scaledWidth - screen.width) / 2);
+      const boundY = Math.max(0, (scaledHeight - screen.height) / 2);
+      
+      translateX.value = clamp(translateX.value, -boundX, boundX);
+      translateY.value = clamp(translateY.value, -boundY, boundY);
+    },
+    onEnd: () => {
+      // Smooth spring back to bounds if needed
+      const scaledWidth = imageSize.width * scale.value;
+      const scaledHeight = imageSize.height * scale.value;
+      const boundX = Math.max(0, (scaledWidth - screen.width) / 2);
+      const boundY = Math.max(0, (scaledHeight - screen.height) / 2);
+      
+      if (translateX.value < -boundX || translateX.value > boundX) {
+        translateX.value = withSpring(clamp(translateX.value, -boundX, boundX), {
+          damping: 15,
+          stiffness: 200,
+        });
+      }
+      
+      if (translateY.value < -boundY || translateY.value > boundY) {
+        translateY.value = withSpring(clamp(translateY.value, -boundY, boundY), {
+          damping: 15,
+          stiffness: 200,
+        });
+      }
     },
   });
 
@@ -83,8 +176,8 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
       const scaledWidth = imageSize.width * scale.value;
       const scaledHeight = imageSize.height * scale.value;
 
-      const boundX = (scaledWidth - screen.width) / 2;
-      const boundY = (scaledHeight - screen.height) / 2;
+      const boundX = Math.max(0, (scaledWidth - screen.width) / 2);
+      const boundY = Math.max(0, (scaledHeight - screen.height) / 2);
 
       translateX.value = clamp(
         ctx.startX + event.translationX,
@@ -96,51 +189,92 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
         -boundY,
         boundY,
       );
+      
+      // Store velocity for decay animation
+      panVelocityX.value = event.velocityX;
+      panVelocityY.value = event.velocityY;
+    },
+    onEnd: () => {
+      // Apply decay animation for smooth momentum scrolling
+      const scaledWidth = imageSize.width * scale.value;
+      const scaledHeight = imageSize.height * scale.value;
+      const boundX = Math.max(0, (scaledWidth - screen.width) / 2);
+      const boundY = Math.max(0, (scaledHeight - screen.height) / 2);
+      
+      translateX.value = withDecay({
+        velocity: panVelocityX.value * 0.8, // Dampen velocity
+        clamp: [-boundX, boundX],
+        deceleration: 0.998,
+      });
+      
+      translateY.value = withDecay({
+        velocity: panVelocityY.value * 0.8,
+        clamp: [-boundY, boundY],
+        deceleration: 0.998,
+      });
     },
   });
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    width: imageSize.width,
-    height: imageSize.height,
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
-    ],
-  }));
+  const imageAnimatedStyle = useAnimatedStyle(() => {
+    // Optimize rendering by limiting updates when values are very close
+    const threshold = 0.001;
+    const roundedScale = Math.round(scale.value / threshold) * threshold;
+    const roundedX = Math.round(translateX.value / threshold) * threshold;
+    const roundedY = Math.round(translateY.value / threshold) * threshold;
+    
+    return {
+      width: imageSize.width,
+      height: imageSize.height,
+      transform: [
+        { translateX: roundedX },
+        { translateY: roundedY },
+        { scale: roundedScale },
+      ],
+    };
+  });
 
-  if (!imageSize.width) return null;
+  // Add a handler to log tap position
+  const handleMapPress = (event: any) => {
+    // Get tap position relative to the image
+    const { locationX, locationY } = event.nativeEvent;
+    console.log('[MAP TAP]', { x: Math.round(locationX), y: Math.round(locationY) });
+  };
 
   return (
-    <PanGestureHandler onGestureEvent={panHandler}>
-      <Animated.View style={StyleSheet.absoluteFill}>
-        <PinchGestureHandler onGestureEvent={pinchHandler}>
-          <Animated.View style={[animatedStyle, styles.imageWrapper]}>
-            {/* 🗺️ แผนที่ */}
-            <Image
-              source={mapsImage}
-              style={{ width: '100%', height: '100%' }}
-              resizeMode="contain"
-            />
-
-            {/* Render children (markers) */}
-            {children}
-
-            {/* 🌫️ เงาด้านบน */}
-            <LinearGradient
-              colors={['rgba(0,0,0,0.5)', 'transparent']}
-              style={styles.topShadow}
-            />
-
-            {/* 🌫️ เงาด้านล่าง */}
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.5)']}
-              style={styles.bottomShadow}
-            />
-          </Animated.View>
-        </PinchGestureHandler>
-      </Animated.View>
-    </PanGestureHandler>
+    <View style={styles.container}>
+      <PanGestureHandler 
+        onGestureEvent={panHandler}
+        minPointers={1}
+        maxPointers={1}
+        avgTouches={true}
+      >
+        <Animated.View style={styles.gestureContainer}>
+          <PinchGestureHandler 
+            onGestureEvent={pinchHandler}
+            simultaneousHandlers={[]}
+          >
+            <Animated.View style={styles.gestureContainer}>
+              <TouchableWithoutFeedback onPress={handleMapPress}>
+                <View style={styles.imageContainer}>
+                  <Animated.View style={[{ width: imageSize.width, height: imageSize.height }, imageAnimatedStyle]}>
+                    <Animated.Image
+                      source={mapsImage}
+                      style={[styles.image]}
+                      resizeMode="contain"
+                      onLoad={() => setIsImageLoaded(true)}
+                      fadeDuration={300}
+                      progressiveRenderingEnabled={true}
+                    />
+                    {/* Render children (markers) on top of the image, sharing the same transform */}
+                    {isImageLoaded && children}
+                  </Animated.View>
+                </View>
+              </TouchableWithoutFeedback>
+            </Animated.View>
+          </PinchGestureHandler>
+        </Animated.View>
+      </PanGestureHandler>
+    </View>
   );
 }
 
@@ -148,26 +282,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
-    overflow: 'hidden',
   },
-  imageWrapper: {
+  gestureContainer: {
     flex: 1,
-    alignSelf: 'center',
   },
-  topShadow: {
+  imageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  image: {
+    // Performance optimizations
+    opacity: 1,
+  },
+  childrenContainer: {
     position: 'absolute',
+    width: '100%',
+    height: '100%',
     top: 0,
     left: 0,
-    right: 0,
-    height: 250,
-    zIndex: 10,
+    pointerEvents: 'box-none', // Allow touches to pass through to children
   },
-  bottomShadow: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 250,
-    zIndex: 10,
-  },
-}); 
+});
