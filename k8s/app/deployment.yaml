@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hllc2025-backend-app-deployment # ชื่อ Deployment (เช่น nest-app-deployment)
+  labels:
+    app: hllc2025-backend-app            # Label สำหรับ Deployment นี้
+spec:
+  replicas: 2 # จำนวน Pods ที่ต้องการให้รัน
+  selector:
+    matchLabels:
+      app: hllc2025-backend-app          # ต้องตรงกับ Label ใน Pod template
+  template:
+    metadata:
+      labels:
+        app: hllc2025-backend-app       # Label ของ Pod (Service จะใช้ Label นี้)
+    spec:
+      containers:
+      - name: hllc2025-backend-app-container # ชื่อ Container ภายใน Pod
+        image: jemiezler/hllc2025-backend-app:latest # <<--- เปลี่ยนเป็น Docker Image ของคุณ
+        ports:
+        - containerPort: 3000 # <<--- พอร์ตที่ NestJS App ฟังอยู่จริงๆ (เช่น 3000)
+        resources: # (Optional) การกำหนด Resource Limits (แนะนำ)
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+        envFrom: # กำหนด Environment Variables ที่ต้องการ
+        - configMapRef:
+            name: shared-config # <<--- ชื่อ ConfigMap ที่เก็บ Environment Variables
+        - secretRef:
+            name: shared-secrets # <<--- ชื่อ Secret ที่เก็บข้อมูลลับ
+        - configMapRef:
+            name: app-config # <<--- ชื่อ ConfigMap สำหรับ Redis (ถ้ามี)
+        - secretRef:
+            name: app-secrets # <<--- ชื่อ Secret สำหรับ Redis (ถ้ามี)
