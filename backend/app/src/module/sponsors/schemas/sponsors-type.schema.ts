@@ -3,7 +3,7 @@ import { HydratedDocument } from 'mongoose';
 
 export type SponsorsTypeDocument = HydratedDocument<SponsorsType>;
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, collection: 'sponsor-types' })
 export class SponsorsType {
   @Prop({ required: true, type: String, unique: true })
   name: string;

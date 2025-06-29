@@ -44,10 +44,6 @@ export class CreateEvoucherDto {
   @IsNumber()
   order: number;
 
-  @IsString()
-  @IsNotEmpty()
-  code: string;
-
   @IsDateString()
   startAt: string;
 
@@ -68,4 +64,12 @@ export class CreateEvoucherDto {
   @IsOptional()
   @IsString()
   sponsor?: string;
+}
+
+export class AddEvoucherCodeDto {
+  userId: string;
+}
+
+export class AddEvoucherCodeByRoleDto {
+  roleId: string;
 }

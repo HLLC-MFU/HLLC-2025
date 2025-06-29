@@ -5,6 +5,7 @@ import { Role } from './schemas/role.schema';
 import { RoleSchema } from './schemas/role.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CheckinModule } from '../checkin/checkin.module';
+import { RoleInitializerService } from './role.initializer.service';
 
 @Module({
   imports: [
@@ -13,6 +14,6 @@ import { CheckinModule } from '../checkin/checkin.module';
   ],
   exports: [MongooseModule],
   controllers: [RoleController],
-  providers: [RoleService],
+  providers: [RoleService, RoleInitializerService],
 })
 export class RoleModule {}

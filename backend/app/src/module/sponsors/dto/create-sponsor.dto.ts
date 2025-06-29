@@ -6,16 +6,16 @@ import {
   IsString,
 } from 'class-validator';
 import { Types } from 'mongoose';
-import { Localization } from 'src/pkg/types/common';
+import { Localization, Photo } from 'src/pkg/types/common';
 
 export class CreateSponsorDto {
   @IsObject()
   @IsNotEmpty()
   name: Localization;
 
-  @IsString()
+  @IsObject()
   @IsNotEmpty()
-  logo: string;
+  logo: Photo;
 
   @IsMongoId()
   @IsNotEmpty()
