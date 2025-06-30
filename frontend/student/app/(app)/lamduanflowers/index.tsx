@@ -11,10 +11,11 @@ import {
   Image,
   Alert,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
-
 import { ConfirmModal } from './_components/ConfirmModal';
 import { BannerImage } from './_components/BannerImage';
 import { MediaCard } from './_components/MediaCard';
@@ -26,37 +27,58 @@ const maxImageHeight = 400;
 
 export default function LamduanOrigamiPage() {
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
-  const [username, setUsername] = useState('Waritpon');
-
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
   const [message, setMessage] = useState('');
 
   const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert('Permission Denied', 'Please allow access to your photo library.');
-      return;
-    }
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Denied', 'Please allow access to your photo library.');
+        return;
+      }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 1,
-    });
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: false,
+        quality: 1,
+      });
 
-    if (!result.canceled) {
+      if (result.canceled) return;
+
       const uri = result.assets[0].uri;
       setImageUri(uri);
 
-      Image.getSize(uri, (width, height) => {
-        setImageSize({ width, height });
-      });
+      const getImageSize = (uri: string) =>
+        new Promise<{ width: number; height: number }>((resolve, reject) => {
+          Image.getSize(
+            uri,
+            (width, height) => resolve({ width, height }),
+            (error) => reject(error),
+          );
+        });
+
+      try {
+        const size = await getImageSize(uri);
+        setImageSize(size);
+      } catch (err) {
+        console.warn('Failed to get image size:', err);
+        setImageSize(null);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick an image. Please try again.');
+      console.error('pickImage error:', error);
     }
   };
 
+
   return (
     <SafeAreaView style={styles.safe}>
+    <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
       <ScrollView
         contentContainerStyle={[styles.container, { paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
@@ -123,9 +145,9 @@ export default function LamduanOrigamiPage() {
           onConfirm={() => {
             setConfirmModalVisible(false);
           }}
-          username={username}
         />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -201,7 +223,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     alignSelf: 'flex-end',
-    backgroundColor: '#99c7fb',
+    backgroundColor: '#66aaf9',
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 999,
