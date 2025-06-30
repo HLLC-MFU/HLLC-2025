@@ -1,7 +1,8 @@
+import { Lang } from '@/types/lang';
 import { Sponsors } from '@/types/sponsors';
 import {
   Button,
-  Chip,
+  Card,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -10,7 +11,12 @@ import {
 import { EllipsisVertical, ImageIcon, Pen, Trash } from 'lucide-react';
 import { useState } from 'react';
 
-export type SponsorColumnKey = 'logo' | 'name' | 'type' | 'display' | 'actions';
+export type SponsorColumnKey =
+  | 'logo'
+  | 'name'
+  | 'colors'
+  | 'priority'
+  | 'actions';
 
 type SponsorCellRendererProps = {
   sponsor: Sponsors;
@@ -27,46 +33,65 @@ export default function SponsorCellRenderer({
 }: SponsorCellRendererProps) {
   const [imgError, setImgError] = useState(false);
 
-  if (!sponsor.photo || imgError) {
+  if (!sponsor.logo.logoPhoto || imgError) {
     return (
       <div className="flex justify-center items-center h-20 w-20 border border-default-300 rounded">
-        <ImageIcon className="text-gray-500"/>
+        <ImageIcon className="text-gray-500" />
       </div>
     );
   }
-  
+
   switch (columnKey) {
     case 'logo':
-      return sponsor.photo && (
-        <img
-          src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.photo}`}
-          alt={sponsor.name.en}
-          className="w-20 h-20 rounded border border-default-300"
-          height={64}
-          width={64}
-          onError={() => setImgError(true)}
-        />
+      return (
+        sponsor.logo && (
+          <img
+            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.logo.logoPhoto}`}
+            alt={sponsor.name.en}
+            className="w-20 h-20 rounded border border-default-300"
+            height={64}
+            width={64}
+            onError={() => setImgError(true)}
+          />
+        )
       );
     case 'name':
       return (
-        <div className="flex flex-col">
-          <div className="flex text-sm text-default-900 gap-1">
-            <span className="font-medium text-default-400">EN :</span>
-            <span>{sponsor.name.en}</span>
-          </div>
-          <div className="flex text-sm text-default-900 gap-1">
-            <span className="font-medium text-default-400">TH :</span>
-            <span>{sponsor.name.th}</span>
-          </div>
+        <div className="flex flex-col gap-4">
+          {(['en', 'th'] as (keyof Lang)[]).map((lang) => (
+            <div key={lang} className="flex text-sm text-default-900 gap-1">
+              <span className="font-medium text-default-400">
+                {lang.toUpperCase()} :
+              </span>
+              <span>{sponsor.name?.[lang]}</span>
+            </div>
+          ))}
         </div>
       );
-    case 'type':
-      return sponsor.type.name;
-    case 'display':
+    case 'priority':
+      return sponsor.priority;
+    case 'colors':
       return (
-        <Chip color={sponsor.isShow ? 'primary' : 'danger'} variant="solid">
-          {sponsor.isShow ? 'Show' : 'Hide'}
-        </Chip>
+        <div className="flex flex-col gap-2">
+          {(['primary', 'secondary'] as const).map((value) => (
+            <div
+              key={value}
+              className="flex items-center text-sm text-default-900 gap-1"
+            >
+              <span className="font-medium text-default-400">
+                {value[0].toUpperCase() + value.slice(1)} :
+              </span>
+              {sponsor.color?.[value] ? (
+                <Card
+                  className="w-20 p-4 rounded"
+                  style={{ backgroundColor: sponsor.color?.[value] }}
+                />
+              ) : (
+                '-'
+              )}
+            </div>
+          ))}
+        </div>
       );
     case 'actions':
       return (

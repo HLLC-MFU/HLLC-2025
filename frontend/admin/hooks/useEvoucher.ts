@@ -13,9 +13,9 @@ export function useEvoucher() {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: Evoucher[] }>("/evoucher?limit=0", "GET");
+            const res = await apiRequest<{ data: Evoucher[] }>("/evouchers?limit=0", "GET");
             
-            setEvouchers(Array.isArray(res.data?.data) ? res.data.data : []);
+            setEvouchers(Array.isArray(res.data) ? res.data : []);
             return res;
         } catch (err) {
             setError(
@@ -32,7 +32,7 @@ export function useEvoucher() {
     const createEvoucher = async (evoucherData: FormData) => {
         setLoading(true);
         try {
-            const res = await apiRequest<{ data: Evoucher }>("/evoucher", "POST", evoucherData);
+            const res = await apiRequest<{ data: Evoucher }>("/evouchers", "POST", evoucherData);
             const newEvoucher = res.data?.data;
             if (newEvoucher) {
                 setEvouchers(prev => [...prev, newEvoucher]);
@@ -51,7 +51,7 @@ export function useEvoucher() {
     const updateEvoucher = async (evoucherId: string, evoucherData: FormData) => {
         setLoading(true);
         try {
-            const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "PATCH", evoucherData);
+            const res = await apiRequest<{ data: Evoucher }>(`/evouchers/${evoucherId}`, "PATCH", evoucherData);
             const updatedEvoucher = res.data?.data;
             if (updatedEvoucher) {
                 setEvouchers(prev =>
@@ -74,7 +74,7 @@ export function useEvoucher() {
     const deleteEvoucher = async (evoucherId: string): Promise<ApiResponse<{ data: Evoucher }>> => {
         setLoading(true);
         try {
-            const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "DELETE");
+            const res = await apiRequest<{ data: Evoucher }>(`/evouchers/${evoucherId}`, "DELETE");
             const deletedEvoucher = res.data?.data;
             if (deletedEvoucher) {
                 setEvouchers(prev => prev.filter(evoucher => evoucher._id !== evoucherId));

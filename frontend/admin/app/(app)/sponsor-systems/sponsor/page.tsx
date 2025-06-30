@@ -33,13 +33,17 @@ export default function SponsorPage() {
     fetchSponsors,
   } = useSponsors();
 
-  const { sponsorsType, createSponsorsType } = useSponsorsType();
+  const { loading: typeLoading, sponsorsType, createSponsorsType } = useSponsorsType();
 
   const groupedSponsors = useMemo(() => {
-    const groups: Record<string, Sponsors[]> = {};
+    const groups: Record<string, { priority: number; sponsors: Sponsors[] }> =
+      {};
 
     sponsorsType.forEach((type) => {
-      groups[type.name] = [];
+      groups[type.name] = {
+        priority: type.priority,
+        sponsors: [],
+      };
     });
 
     sponsors?.forEach((s) => {
@@ -48,8 +52,12 @@ export default function SponsorPage() {
           ? (s.type as { name: string }).name
           : s.type || 'Unknown';
 
-      if (!groups[typeName]) groups[typeName] = [];
-      groups[typeName].push(s);
+      if (!groups[typeName])
+        groups[typeName] = {
+          priority: 999,
+          sponsors: [],
+        };
+      groups[typeName].sponsors.push(s);
     });
 
     return groups;
@@ -94,7 +102,7 @@ export default function SponsorPage() {
     setSelectedSponsor(undefined);
   };
 
-  const handleAddType = async (type: { name: string }) => {
+  const handleAddType = async (type: { name: string; priority: number }) => {
     await createSponsorsType(type);
     setIsTypeOpen(false);
   };
@@ -133,7 +141,7 @@ export default function SponsorPage() {
 
         <div className="flex flex-col gap-6">
           <Accordion className="p-0" variant="splitted">
-            {sponsorsLoading
+            {sponsorsLoading || typeLoading
               ? Array.from({ length: 3 }).map((_, index) => (
                   <AccordionItem
                     key={`skeleton-${index}`}
@@ -145,49 +153,56 @@ export default function SponsorPage() {
                     <Skeleton className="h-[100px] w-full bg-gray-100 rounded-md" />
                   </AccordionItem>
                 ))
-              : Object.entries(groupedSponsors).map(([type, sponsors]) => {
-                  return (
-                    <AccordionItem
-                      key={type}
-                      aria-label={type}
-                      subtitle={
-                        <p className="flex gap-1">
-                          <span>Total sponsors :</span>
-                          <span className="text-primary ml-1">
-                            {sponsors.length}
-                          </span>
-                        </p>
-                      }
-                      title={`${type}`}
-                    >
-                      <SponsorTable
-                        handleSubmitSponsor={handleSubmitSponsor}
-                        isModalOpen={isModalOpen}
-                        modalMode={modalMode}
-                        selectedSponsor={selectedSponsor}
-                        sponsorTypes={sponsorsType}
-                        sponsors={sponsors}
-                        type={type}
-                        onAdd={handleAddSponsor}
-                        onClose={() => setIsModalOpen(false)}
-                        onDelete={handleDeleteSponsor}
-                        onEdit={handleEditSponsor}
-                        onToggleShow={(s) => {
-                          const formData = new FormData();
+              : Object.entries(groupedSponsors)
+                  .sort(([, prev], [, next]) => prev.priority - next.priority)
+                  .map(([type, sponsors]) => {
+                    return (
+                      <AccordionItem
+                        key={sponsors.priority}
+                        aria-label={type}
+                        title={`${type}`}
+                        subtitle={
+                          <p className="flex gap-1">
+                            <span>Total sponsors :</span>
+                            <span className="text-primary ml-1">
+                              {sponsors.sponsors.length}
+                            </span>
+                          </p>
+                        }
+                        startContent={
+                          <div className="p-3 w-12 h-12 rounded-xl bg-gradient-to-r bg-gray-200 border">
+                            <span className="font-semibold text-gray-500">
+                              {sponsors.priority ?? '-'}
+                            </span>
+                          </div>
+                        }
+                      >
+                        <SponsorTable
+                          handleSubmitSponsor={handleSubmitSponsor}
+                          isModalOpen={isModalOpen}
+                          modalMode={modalMode}
+                          selectedSponsor={selectedSponsor}
+                          sponsorTypes={sponsorsType}
+                          sponsors={sponsors.sponsors}
+                          type={type}
+                          onAdd={handleAddSponsor}
+                          onClose={() => setIsModalOpen(false)}
+                          onDelete={handleDeleteSponsor}
+                          onEdit={handleEditSponsor}
+                          onToggleShow={(s) => {
+                            const formData = new FormData();
+                            updateSponsors(s._id, formData);
+                          }}
+                        />
 
-                          formData.append('isShow', String(!s.isShow));
-                          updateSponsors(s._id, formData);
-                        }}
-                      />
-
-                      {sponsors.length === 0 && !sponsorsLoading && (
-                        <p className="text-center text-sm text-default-500">
-                          No sponsors found. Please add a new sponsor.
-                        </p>
-                      )}
-                    </AccordionItem>
-                  );
-                })}
+                        {sponsors.sponsors.length === 0 && !sponsorsLoading && (
+                          <p className="text-center text-sm text-default-500">
+                            No sponsors found. Please add a new sponsor.
+                          </p>
+                        )}
+                      </AccordionItem>
+                    );
+                  })}
           </Accordion>
         </div>
       </div>
@@ -196,6 +211,7 @@ export default function SponsorPage() {
         isOpen={isTypeOpen}
         onClose={() => setIsTypeOpen(false)}
         onAddType={handleAddType}
+        sponsorsType={sponsorsType}
       />
 
       <ConfirmationModal

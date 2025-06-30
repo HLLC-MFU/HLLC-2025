@@ -15,6 +15,9 @@ export class Sponsors {
   @Prop({ required: true, type: Types.ObjectId, ref: 'SponsorsType' })
   type: Types.ObjectId;
 
+  @Prop({ required: true, type: Number, unique: true })
+  priority: number;
+
   @Prop({ required: false, type: Object })
   color: {
     primary: string;

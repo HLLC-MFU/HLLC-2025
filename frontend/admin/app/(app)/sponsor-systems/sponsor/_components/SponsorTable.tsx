@@ -35,8 +35,8 @@ interface SponsorTableProps {
 const COLUMNS = [
   { name: 'LOGO', uid: 'logo' },
   { name: 'SPONSOR NAME', uid: 'name' },
-  { name: 'TYPE', uid: 'type' },
-  { name: 'DISPLAY', uid: 'display' },
+  { name: 'PRIORITY', uid: 'priority' },
+  { name: 'COLORS', uid: 'colors' },
   { name: 'ACTIONS', uid: 'actions' },
 ];
 
@@ -134,7 +134,7 @@ export default function SponsorTable({
             <TableColumn
               key={column.uid}
               align={column.uid === 'actions' ? 'center' : 'start'}
-              className="w-1/4"
+              className='w-1/4'
             >
               {column.name}
             </TableColumn>
@@ -146,11 +146,11 @@ export default function SponsorTable({
               <span className="text-default-400">No sponsors found</span>
             </div>
           }
-          items={sponsorItems}
+          items={[...sponsorItems].sort((a, b) => a.priority - b.priority)}
         >
           {(sponsor) => (
             <TableRow
-              key={sponsor._id}
+              key={sponsor.priority}
               className="hover:bg-default-50 transition-colors"
             >
               {(columnKey) => (
@@ -171,6 +171,7 @@ export default function SponsorTable({
             ? (selectedSponsor as Sponsors)
             : undefined
         }
+        allSponsors={sponsors}
         sponsorTypes={sponsorTypes}
         type={type}
         onClose={onClose}

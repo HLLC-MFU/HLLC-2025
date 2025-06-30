@@ -4,8 +4,6 @@ import { apiRequest } from "@/utils/api";
 import { addToast } from "@heroui/react";
 import { useEffect, useState } from "react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export function useSponsors() {
   const [sponsors, setSponsors] = useState<Sponsors[]>([]);
   const [loading, setLoading] = useState(false);
@@ -18,7 +16,7 @@ export function useSponsors() {
     try {
       const res = await apiRequest<{ data: Sponsors[] }>("/sponsors?limit=0", "GET");
 
-      setSponsors(Array.isArray(res.data?.data) ? res.data.data : []);
+      setSponsors(Array.isArray(res.data) ? res.data : []);
       return res;
     } catch (err) {
       setError(
@@ -41,7 +39,7 @@ export function useSponsors() {
     setError(null);
     try {
       const res = await apiRequest<{ data: EvoucherCode[] }>(`/sponsors/${id}/evoucher-codes`);
-      return Array.isArray(res.data) ? res.data : [];
+      return Array.isArray(res.data?.data) ? res.data.data : [];
     } catch (err: any) {
       setError(err.message || 'Failed to fetch evoucher codes.');
       return [];

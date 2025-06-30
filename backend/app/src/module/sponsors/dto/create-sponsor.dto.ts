@@ -1,6 +1,7 @@
 import {
   IsMongoId,
   IsNotEmpty,
+  IsNumber,
   IsObject,
   IsOptional,
   IsString,
@@ -20,6 +21,10 @@ export class CreateSponsorDto {
   @IsMongoId()
   @IsNotEmpty()
   type: Types.ObjectId;
+
+  @IsNumber()
+  @IsNotEmpty()
+  priority: number;
 
   @IsOptional()
   @IsObject()
