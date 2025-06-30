@@ -21,6 +21,14 @@ type(
 		Members []string `json:"members" validate:"mongoId,optional"`
 		RoomID  string   `json:"roomId" validate:"mongoId"`
 	} 
+
+	JoinRoomDto struct {
+		UserID string `json:"userId" validate:"required,mongoId"`
+	}
+	
+	LeaveRoomDto struct {
+		UserID string `json:"userId" validate:"required,mongoId"`
+	}
 ) 
 
 func (dto *CreateRoomDto) ToObjectID() primitive.ObjectID {
@@ -37,20 +45,13 @@ func (dto *AddRoomMembersDto) ToObjectIDs() []primitive.ObjectID {
 	return objectIDs
 }
 
-type JoinRoomDto struct {
-	UserID string `json:"userId" validate:"required,mongoId"`
-}
-
-type LeaveRoomDto struct {
-	UserID string `json:"userId" validate:"required,mongoId"`
-}
-
 func (dto *JoinRoomDto) ToObjectID() primitive.ObjectID {
 	id, _ := primitive.ObjectIDFromHex(dto.UserID)
 	return id
 }
 
 func (dto *LeaveRoomDto) ToObjectID() primitive.ObjectID {
-	id, _ := primitive.ObjectIDFromHex(dto.UserID)
-	return id
+	objID, _ := primitive.ObjectIDFromHex(dto.UserID)
+	return objID
 }
+

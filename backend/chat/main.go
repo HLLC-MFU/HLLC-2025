@@ -147,9 +147,17 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 
 	// Initialize Kafka bus for chat
 	bus := kafka.New([]string{"localhost:9092"}, "chat-service")
+	
+	// Start Kafka bus
+	if err := bus.Start(); err != nil {
+		log.Fatalf("Failed to start Kafka bus: %v", err)
+	}
 
 	chatService := chatService.NewChatService(mongo, redisClient, bus, cfg)
 	roomAndMemberService := roomService.NewRoomService(mongo, redisClient, cfg, chatService.GetHub())
+	
+	// Initialize Group Room Service
+	groupRoomService := roomService.NewGroupRoomService(mongo, redisClient, cfg, chatService.GetHub(), roomAndMemberService, bus)
 
 	// Initialize controllers
 	controller.NewSchoolController(app, schoolService)
@@ -157,6 +165,7 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	controller.NewRoleController(app, roleService)
 	controller.NewUserController(app, userService)
 	roomController.NewRoomController(app, roomAndMemberService)
+	roomController.NewGroupRoomController(app, groupRoomService, roomAndMemberService)
 	stickerController.NewStickerController(app, stickerService)
 	chatController.NewChatController(app, chatService, roomAndMemberService, stickerService, chatService.GetModerationService())
 	chatController.NewMentionController(app, chatService, roomAndMemberService)

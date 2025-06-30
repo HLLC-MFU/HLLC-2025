@@ -78,14 +78,3 @@ func (s *ChatService) SendEvoucherMessage(ctx context.Context, userID, roomID pr
 
 	return msg, nil
 }
-
-// Helper function to format currency
-func formatCurrency(value float64, currency string) string {
-	if currency == "" {
-		currency = "THB"
-	}
-	if value == 0 {
-		return "Free!"
-	}
-	return fmt.Sprintf("%.2f %s", value, currency)
-} 

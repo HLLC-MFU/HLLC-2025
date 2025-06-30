@@ -5,6 +5,7 @@ import (
 	"chat/pkg/database/queries"
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -287,5 +288,197 @@ func (s *UserService) GetUserByIdWithPopulate(ctx context.Context, id string) (*
 // GetDB returns the database instance for debugging
 func (s *UserService) GetDB() *mongo.Database {
 	return s.db
+}
+
+// GetUsersByMetadataField ค้นหา users ตาม metadata field
+func (s *UserService) GetUsersByMetadataField(ctx context.Context, field string, value interface{}) ([]*model.User, error) {
+	log.Printf("[GetUsersByMetadataField] Searching by field: %s, value: %v", field, value)
+	
+	// จัดการ field พิเศษที่ต้องใช้ logic เฉพาะ
+	switch field {
+	case "school":
+		valueStr := fmt.Sprintf("%v", value)
+		log.Printf("[GetUsersByMetadataField] Using GetUsersBySchool for school: %s", valueStr)
+		return s.GetUsersBySchool(ctx, valueStr)
+	case "major":
+		valueStr := fmt.Sprintf("%v", value)
+		log.Printf("[GetUsersByMetadataField] Using GetUsersByMajor for major: %s", valueStr)
+		return s.GetUsersByMajor(ctx, valueStr)
+	}
+	
+	// สำหรับ field อื่นๆ ใช้การค้นหาปกติ
+	log.Printf("[GetUsersByMetadataField] Using generic metadata search for field: %s", field)
+	var users []*model.User
+	
+	// สร้าง filter สำหรับ metadata field
+	filter := bson.M{
+		fmt.Sprintf("metadata.%s", field): value,
+	}
+	
+	log.Printf("[GetUsersByMetadataField] Filter: %+v", filter)
+	
+	collection := s.db.Collection("users")
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find users by metadata field %s: %w", field, err)
+	}
+	defer cursor.Close(ctx)
+	
+	if err = cursor.All(ctx, &users); err != nil {
+		return nil, fmt.Errorf("failed to decode users: %w", err)
+	}
+	
+	log.Printf("[GetUsersByMetadataField] Found %d users for field %s", len(users), field)
+	return users, nil
+}
+
+// GetUsersByMajor ค้นหา users ตาม major ID
+func (s *UserService) GetUsersByMajor(ctx context.Context, majorID string) ([]*model.User, error) {
+	// ใช้ metadata.major ที่เก็บเป็น string ID
+	filter := bson.M{
+		"metadata.major": majorID,
+	}
+	
+	collection := s.db.Collection("users")
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find users by major: %w", err)
+	}
+	defer cursor.Close(ctx)
+	
+	var users []*model.User
+	if err = cursor.All(ctx, &users); err != nil {
+		return nil, fmt.Errorf("failed to decode users: %w", err)
+	}
+	
+	return users, nil
+}
+
+// GetUsersBySchool ค้นหา users ตาม school ID ผ่าน majors ที่อยู่ใน school นั้น
+func (s *UserService) GetUsersBySchool(ctx context.Context, schoolID string) ([]*model.User, error) {
+	log.Printf("[GetUsersBySchool] Looking for users in school: %s", schoolID)
+	
+	// ขั้นตอนที่ 1: หา majors ทั้งหมดที่อยู่ใน school นี้
+	schoolObjID, err := primitive.ObjectIDFromHex(schoolID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid school ID: %w", err)
+	}
+
+	majorsCollection := s.db.Collection("majors")
+	majorsCursor, err := majorsCollection.Find(ctx, bson.M{"school": schoolObjID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to find majors in school: %w", err)
+	}
+	defer majorsCursor.Close(ctx)
+
+	var majors []bson.M
+	if err = majorsCursor.All(ctx, &majors); err != nil {
+		return nil, fmt.Errorf("failed to decode majors: %w", err)
+	}
+
+	log.Printf("[GetUsersBySchool] Found %d majors in school %s", len(majors), schoolID)
+
+	if len(majors) == 0 {
+		log.Printf("[GetUsersBySchool] No majors found in school %s", schoolID)
+		return []*model.User{}, nil // ไม่มี majors ใน school นี้
+	}
+
+	// สร้าง array ของ major IDs
+	var majorIDs []interface{}
+	for _, major := range majors {
+		majorID := major["_id"].(primitive.ObjectID).Hex()
+		majorIDs = append(majorIDs, majorID)
+		log.Printf("[GetUsersBySchool] Major ID: %s", majorID)
+	}
+
+	// ขั้นตอนที่ 2: หา users ที่มี metadata.major อยู่ใน list ของ major IDs
+	filter := bson.M{
+		"metadata.major": bson.M{"$in": majorIDs},
+	}
+
+	log.Printf("[GetUsersBySchool] Searching users with filter: %+v", filter)
+
+	collection := s.db.Collection("users")
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find users by school: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var users []*model.User
+	if err = cursor.All(ctx, &users); err != nil {
+		return nil, fmt.Errorf("failed to decode users: %w", err)
+	}
+
+	log.Printf("[GetUsersBySchool] Found %d users in school %s", len(users), schoolID)
+	
+	for _, user := range users {
+		log.Printf("[GetUsersBySchool] User: %s (ID: %s) with major: %v", user.Username, user.ID.Hex(), user.Metadata["major"])
+	}
+
+	return users, nil
+}
+
+// GetUsersMetadataStats สถิติการแบ่งกลุ่ม users ตาม metadata
+func (s *UserService) GetUsersMetadataStats(ctx context.Context) (map[string]interface{}, error) {
+	pipeline := []bson.M{
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"major":  "$metadata.major",
+					"school": "$metadata.school",
+				},
+				"count": bson.M{"$sum": 1},
+				"users": bson.M{"$push": bson.M{
+					"_id":      "$_id",
+					"username": "$username",
+					"name":     "$name",
+				}},
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": nil,
+				"majorStats": bson.M{
+					"$push": bson.M{
+						"major": "$_id.major",
+						"count": "$count",
+						"users": "$users",
+					},
+				},
+				"schoolStats": bson.M{
+					"$push": bson.M{
+						"school": "$_id.school", 
+						"count":  "$count",
+						"users":  "$users",
+					},
+				},
+			},
+		},
+	}
+	
+	collection := s.db.Collection("users")
+	cursor, err := collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get metadata stats: %w", err)
+	}
+	defer cursor.Close(ctx)
+	
+	var results []bson.M
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("failed to decode stats: %w", err)
+	}
+	
+	if len(results) == 0 {
+		return map[string]interface{}{
+			"majorStats":  []interface{}{},
+			"schoolStats": []interface{}{},
+		}, nil
+	}
+	
+	return map[string]interface{}{
+		"majorStats":  results[0]["majorStats"],
+		"schoolStats": results[0]["schoolStats"],
+	}, nil
 }
 

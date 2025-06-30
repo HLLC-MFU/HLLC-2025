@@ -52,7 +52,7 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 		// **FIXED: เรียงลำดับจากใหม่สุด (บนสุด) ไปเก่าสุด (ล่างสุด)**
 		log.Printf("[WebSocket] Sending %d chat messages for room %s (newest first)", len(messages), roomID)
 		
-		for _, msg := range messages {
+	for _, msg := range messages {
 					// Get user details with role populated
 		var userData map[string]interface{}
 		if user, err := h.chatService.GetUserById(ctx, msg.ChatMessage.UserID.Hex()); err == nil {

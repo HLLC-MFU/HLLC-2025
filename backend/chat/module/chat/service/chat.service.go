@@ -84,10 +84,10 @@ func NewChatService(
 		notificationService: NewNotificationService(db, kafkaBus),
 		historyService:      NewHistoryService(db, utils.NewChatCacheService(redis)),
 	}
-
+	
 	// สร้าง ModerationService หลังจาก ChatService เสร็จแล้ว (เพื่อหลีกเลี่ยง circular dependency)
 	chatService.moderationService = NewModerationService(db, chatService)
-	
+
 	return chatService
 }
 
@@ -194,7 +194,7 @@ func (s *ChatService) GetNotificationService() *NotificationService {
 // GetModerationService returns the moderation service for admin operations
 func (s *ChatService) GetModerationService() *ModerationService {
 	return s.moderationService
-}
+	}
 
 // GetChatHistoryByRoom delegates to HistoryService
 func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {

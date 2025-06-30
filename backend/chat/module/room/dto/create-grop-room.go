@@ -1,0 +1,76 @@
+// JoinRoomByGroupDto สำหรับการเข้าห้องตามกลุ่ม
+package dto
+
+import (
+	"chat/pkg/common"
+	"fmt"
+	"mime/multipart"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+type (
+	JoinRoomByGroupDto struct {
+		RoomID     string `json:"roomId" validate:"required,mongoId"`
+		GroupType  string `json:"groupType" validate:"required"` // "major" หรือ "school"
+		GroupValue string `json:"groupValue" validate:"required"`
+	}
+
+	CreateRoomByGroupDto struct {
+		Name       common.LocalizedName  `form:"name" validate:"notEmpty"`
+		GroupType  string                `form:"groupType" validate:"required"`  // "major" หรือ "school"
+		GroupValue string                `form:"groupValue" validate:"required"` // ID ของ major หรือ school
+		Type       string                `form:"type" validate:"roomType"`       // ประเภทห้อง (normal, readonly)
+		CreatedBy  string                `form:"createdBy" validate:"required,mongoId"`
+		Image      *multipart.FileHeader `form:"image" validate:"optional"`      // รูปภาพห้อง (ไม่บังคับ)
+		// หมายเหตุ: ไม่ต้องระบุ capacity เพราะห้องกลุ่มจะเป็น unlimited (capacity = 0)
+	}
+
+	BulkAddUsersDto struct {
+		RoomID  string   `json:"roomId" validate:"required,mongoId"`
+		UserIDs []string `json:"userIds" validate:"required"`
+	}
+
+	GroupRoomStatsDto struct {
+		GroupType  string `query:"groupType" validate:"required"`  // "major" หรือ "school"
+		GroupValue string `query:"groupValue" validate:"required"` // ID ของ major หรือ school
+	}
+)
+
+// ToObjectIDs แปลง string IDs เป็น ObjectIDs
+func (dto *JoinRoomByGroupDto) ToObjectID() primitive.ObjectID {
+	id, _ := primitive.ObjectIDFromHex(dto.RoomID)
+	return id
+}
+
+func (dto *CreateRoomByGroupDto) ToObjectID() primitive.ObjectID {
+    id, _ := primitive.ObjectIDFromHex(dto.CreatedBy)
+    return id
+}
+
+func (dto *BulkAddUsersDto) ToObjectIDs() (roomObjID primitive.ObjectID, userObjIDs []primitive.ObjectID) {
+	roomObjID, _ = primitive.ObjectIDFromHex(dto.RoomID)
+
+	userObjIDs = make([]primitive.ObjectID, 0, len(dto.UserIDs))
+	for _, userID := range dto.UserIDs {
+		userObjID, _ := primitive.ObjectIDFromHex(userID)
+		userObjIDs = append(userObjIDs, userObjID)
+	}
+
+	return
+}
+
+// ValidateGroupType ตรวจสอบประเภทกลุ่มที่ถูกต้อง
+func (dto *JoinRoomByGroupDto) ValidateGroupType() error {
+	if dto.GroupType != "major" && dto.GroupType != "school" {
+		return fmt.Errorf("invalid group type: %s (must be 'major' or 'school')", dto.GroupType)
+	}
+	return nil
+}
+
+func (dto *CreateRoomByGroupDto) ValidateGroupType() error {
+	if dto.GroupType != "major" && dto.GroupType != "school" {
+		return fmt.Errorf("invalid group type: %s (must be 'major' or 'school')", dto.GroupType)
+	}
+	return nil
+}

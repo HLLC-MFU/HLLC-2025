@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -60,10 +61,16 @@ func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive
 		return
 	}
 
-	// สร้าง topic
+	// สร้าง topic และรอให้พร้อม
 	topic := GetRoomTopic(roomID.Hex())
 	if err := kafka.EnsureTopic(e.brokers, topic, 1); err != nil {
 		log.Printf("[ERROR] Failed to create room topic: %v", err)
+		return
+	}
+
+	// รอให้ topic พร้อมใช้งาน
+	if err := kafka.WaitForTopic(e.brokers, topic, 5*time.Second); err != nil {
+		log.Printf("[ERROR] Room topic not ready: %v", err)
 		return
 	}
 
@@ -207,12 +214,19 @@ func (e *RoomEventEmitter) EmitRoomMemberRemoved(ctx context.Context, roomID, us
 // ส่ง event ไปยัง topic
 func (e *RoomEventEmitter) emitEvent(ctx context.Context, event model.RoomEvent) error {
 
-	// สร้าง topic
+	// สร้าง topic และรอให้พร้อม
 	topic := GetRoomTopic(event.RoomID)
 
 	// ตรวจสอบว่า topic มีค่าไหม
 	if err := kafka.EnsureTopic(e.brokers, topic, 1); err != nil {
 		log.Printf("[ERROR] Failed to ensure room topic: %v", err)
+		return err
+	}
+
+	// รอให้ topic พร้อมใช้งาน
+	if err := kafka.WaitForTopic(e.brokers, topic, 3*time.Second); err != nil {
+		log.Printf("[ERROR] Room topic not ready: %v", err)
+		return err
 	}
 
 	// สร้าง event
