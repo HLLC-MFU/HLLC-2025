@@ -12,7 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// UnsendMessage ลบข้อความที่ส่งแล้ว (เฉพาะเจ้าของข้อความเท่านั้น)
+// UnsendMessage ทำ soft delete ข้อความที่ส่งแล้ว (เฉพาะเจ้าของข้อความเท่านั้น)
 func (s *ChatService) UnsendMessage(ctx context.Context, messageID, userID primitive.ObjectID) error {
 	log.Printf("[ChatService] UnsendMessage called for message %s by user %s", messageID.Hex(), userID.Hex())
 
@@ -29,6 +29,12 @@ func (s *ChatService) UnsendMessage(ctx context.Context, messageID, userID primi
 
 	messageData := msg.Data[0]
 
+	// ตรวจสอบว่าข้อความได้ถูก unsend ไปแล้วหรือไม่
+	if messageData.IsDeleted != nil && *messageData.IsDeleted {
+		log.Printf("[ChatService] Message %s is already unsent", messageID.Hex())
+		return fmt.Errorf("message has already been unsent")
+	}
+
 	// ตรวจสอบว่า user เป็นเจ้าของข้อความหรือไม่
 	if messageData.UserID != userID {
 		log.Printf("[ChatService] User %s is not the owner of message %s (owner: %s)", 
@@ -36,30 +42,36 @@ func (s *ChatService) UnsendMessage(ctx context.Context, messageID, userID primi
 		return fmt.Errorf("you can only unsend your own messages")
 	}
 
-	// **Hard Delete** - ลบข้อความออกจาก database โดยสมบูรณ์
-	deleteResult, err := s.collection.DeleteOne(ctx, bson.M{"_id": messageID})
+	// **Soft Delete** - ทำเครื่องหมายว่าข้อความถูก delete แต่เก็บไว้ใน database เป็น backup
+	now := time.Now()
+	isDeleted := true
+	
+	updateResult, err := s.collection.UpdateOne(ctx, 
+		bson.M{"_id": messageID}, 
+		bson.M{
+			"$set": bson.M{
+				"is_deleted": &isDeleted,
+				"deleted_at": &now,
+				"deleted_by": userID,
+			},
+		})
 	if err != nil {
-		log.Printf("[ChatService] Failed to delete message from database: %v", err)
-		return fmt.Errorf("failed to delete message: %w", err)
+		log.Printf("[ChatService] Failed to soft delete message from database: %v", err)
+		return fmt.Errorf("failed to unsend message: %w", err)
 	}
 
-	if deleteResult.DeletedCount == 0 {
+	if updateResult.MatchedCount == 0 {
 		return fmt.Errorf("message not found or already deleted")
 	}
 
-	log.Printf("[ChatService] Successfully deleted message %s from database", messageID.Hex())
+	log.Printf("[ChatService] Successfully soft deleted message %s from database (kept as backup)", messageID.Hex())
 
-	// ลบข้อความจาก cache
+	// ลบข้อความจาก cache เพื่อไม่ให้แสดงใน UI
 	if err := s.removeMessageFromCache(ctx, messageData.RoomID.Hex(), messageID.Hex()); err != nil {
 		log.Printf("[ChatService] Failed to remove message from cache: %v", err)
 	}
 
-	// ลบ reactions ที่เกี่ยวข้องกับข้อความนี้
-	if err := s.deleteMessageReactions(ctx, messageID); err != nil {
-		log.Printf("[ChatService] Failed to delete message reactions: %v", err)
-	}
-
-	// Emit unsend event ไป WebSocket เพื่อให้ frontend ลบข้อความ
+	// **สำคัญ**: ยังคงส่ง unsend event ไป WebSocket เพื่อให้ frontend ลบข้อความออกจาก UI
 	if err := s.emitUnsendEvent(ctx, &messageData, userID); err != nil {
 		log.Printf("[ChatService] Failed to emit unsend event: %v", err)
 	} else {
@@ -98,19 +110,6 @@ func (s *ChatService) removeMessageFromCache(ctx context.Context, roomID, messag
 	}
 
 	log.Printf("[ChatService] Successfully removed message %s from cache", messageID)
-	return nil
-}
-
-// deleteMessageReactions ลบ reactions ทั้งหมดที่เกี่ยวข้องกับข้อความนี้
-func (s *ChatService) deleteMessageReactions(ctx context.Context, messageID primitive.ObjectID) error {
-	reactionCollection := s.mongo.Collection("message-reactions")
-	
-	deleteResult, err := reactionCollection.DeleteMany(ctx, bson.M{"message_id": messageID})
-	if err != nil {
-		return fmt.Errorf("failed to delete reactions: %w", err)
-	}
-
-	log.Printf("[ChatService] Deleted %d reactions for message %s", deleteResult.DeletedCount, messageID.Hex())
 	return nil
 }
 

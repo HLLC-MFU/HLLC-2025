@@ -67,7 +67,7 @@ func NewChatController(
 	moderationService ModerationChatService,
 ) *ChatController {
 	controller := &ChatController{
-		BaseController: decorators.NewBaseController(app, "/api/chat"),
+		BaseController: decorators.NewBaseController(app, "/chat"),
 		chatService:    chatService,
 		roomService:    roomService,
 		stickerService: stickerService,

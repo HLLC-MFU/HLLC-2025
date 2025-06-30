@@ -29,6 +29,11 @@ type (
 		// **NEW: Moderation fields**
 		ModerationInfo *ModerationMessageInfo `bson:"moderation_info,omitempty" json:"moderationInfo,omitempty"`
 		
+		// **NEW: Soft delete fields for unsend functionality**
+		IsDeleted *bool               `bson:"is_deleted,omitempty" json:"isDeleted,omitempty"`
+		DeletedAt *time.Time          `bson:"deleted_at,omitempty" json:"deletedAt,omitempty"`
+		DeletedBy *primitive.ObjectID `bson:"deleted_by,omitempty" json:"deletedBy,omitempty"`
+		
 		// Fields NOT stored in database, only for response aggregation
 		Reactions   []MessageReaction `bson:"-" json:"reactions,omitempty"`
 	}

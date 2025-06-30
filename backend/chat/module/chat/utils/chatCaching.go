@@ -40,7 +40,7 @@ func (s *ChatCacheService) GetRoomMessages(ctx context.Context, roomID string, l
 	key := s.roomMessagesKey(roomID)
 	
 	// Get messages using ZREVRANGE (newest first by timestamp score)
-	data, err := s.redis.ZRevRange(ctx, key, 0, int64(limit-1)).Result()
+	data, err := s.redis.ZRevRange(ctx, key, 0, int64(limit*2)).Result() // ขอมากกว่าเผื่อต้องกรอง
 	if err == redis.Nil {
 		return []model.ChatMessageEnriched{}, nil
 	}
@@ -55,7 +55,18 @@ func (s *ChatCacheService) GetRoomMessages(ctx context.Context, roomID string, l
 			log.Printf("Warning: Failed to unmarshal message: %v", err)
 			continue
 		}
+
+		// กรองข้อความที่ถูก soft delete ออก
+		if msg.ChatMessage.IsDeleted != nil && *msg.ChatMessage.IsDeleted {
+			continue // ข้าม soft deleted messages
+		}
+
 		messages = append(messages, msg)
+		
+		// หยุดเมื่อได้จำนวนที่ต้องการแล้ว
+		if len(messages) >= limit {
+			break
+		}
 	}
 
 	// Log cache sorting info
