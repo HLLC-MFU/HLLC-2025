@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import { TutorialModal } from './TutorialModal';
 
 export function MediaCard() {
   const [isModalVisible, setModalVisible] = useState(false);
   const { lamduanSetting } = useLamduanFlowers();
-
   const latestSetting = lamduanSetting?.[0];
 
   const extractYouTubeId = (url: string) => {
@@ -15,35 +15,27 @@ export function MediaCard() {
     return match ? match[1] : null;
   };
 
-
   const videoId = latestSetting?.tutorialVideo ? extractYouTubeId(latestSetting.tutorialVideo) : null;
-  const thumbnailUrl = videoId
-    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-    : null;
-
   const tutorialPhotoUrl = latestSetting?.tutorialPhoto
     ? `${process.env.EXPO_PUBLIC_API_URL}/uploads/${latestSetting.tutorialPhoto}`
     : null;
 
+  const screenWidth = Dimensions.get('window').width;
+  const videoHeight = (screenWidth * 9) / 16;
+
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.title}>Tutorial Video</Text>
-
-      <TouchableOpacity
-        style={styles.youtubeBox}
-        onPress={() => {
-          if (latestSetting?.tutorialVideo) {
-            Linking.openURL(latestSetting.tutorialVideo);
-          }
-        }}
-        disabled={!videoId}
-      >
-        {thumbnailUrl ? (
-          <Image source={{ uri: thumbnailUrl }} style={styles.thumbnail} />
-        ) : (
-          <Text>No Video Found</Text>
-        )}
-      </TouchableOpacity>
+      {videoId ? (
+        <View style={{ width: '100%', height: 200, borderRadius: 12, overflow: 'hidden', marginBottom: 12 }}>
+          <WebView
+            source={{ uri: `https://www.youtube.com/embed/${videoId}` }}
+            style={{ flex: 1 }}
+            allowsFullscreenVideo
+          />
+        </View>
+      ) : (
+        <Text>No Video Found</Text>
+      )}
 
       <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(true)}>
         <Text>Tutorial Modal</Text>
@@ -62,26 +54,13 @@ const styles = StyleSheet.create({
   wrapper: {
     marginBottom: 16,
     alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 16,
   },
   title: {
     fontWeight: 'bold',
     marginBottom: 8,
-  },
-  youtubeBox: {
-    width: '100%',
-    maxWidth: 300,
-    aspectRatio: 16 / 9,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 12,
-    backgroundColor: '#ccc',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+    fontSize: 16,
   },
   modalButton: {
     backgroundColor: '#fff',
