@@ -28,6 +28,7 @@ type (
 
 	ReactionRoomService interface {
 		IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+		CanUserSendReaction(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
 	}
 )
 
@@ -93,6 +94,21 @@ func (c *ReactionController) handleAddReaction(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"success": false,
 			"message": "User is not a member of this room",
+		})
+	}
+
+	// ตรวจสอบสิทธิ์การส่ง reaction (รวมถึง room type)
+	canSend, err := c.roomService.CanUserSendReaction(ctx.Context(), roomObjID, reactionDto.UserID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to check user permissions",
+		})
+	}
+	if !canSend {
+		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"success": false,
+			"message": "User cannot send reactions in this room (read-only or restricted)",
 		})
 	}
 

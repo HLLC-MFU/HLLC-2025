@@ -26,6 +26,7 @@ type (
 
 	MentionRoomService interface {
 		IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+		CanUserSendMessage(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
 	}
 )
 
@@ -85,6 +86,21 @@ func (c *MentionController) handleSendMention(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"success": false,
 			"message": "User is not a member of this room",
+		})
+	}
+
+	// ตรวจสอบสิทธิ์การส่งข้อความ (รวมถึง room type)
+	canSend, err := c.roomService.CanUserSendMessage(ctx.Context(), roomObjID, mentionDto.UserID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to check user permissions",
+		})
+	}
+	if !canSend {
+		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"success": false,
+			"message": "User cannot send messages in this room (read-only or restricted)",
 		})
 	}
 

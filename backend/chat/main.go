@@ -159,6 +159,8 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	roomController.NewRoomController(app, roomAndMemberService)
 	stickerController.NewStickerController(app, stickerService)
 	chatController.NewChatController(app, chatService, roomAndMemberService, stickerService, chatService.GetModerationService())
+	chatController.NewMentionController(app, chatService, roomAndMemberService)
+	chatController.NewReactionController(app, chatService, roomAndMemberService)
 	chatController.NewEvoucherController(app, chatService, roomAndMemberService)
 	chatController.NewModerationController(app, chatService.GetModerationService())
 }
