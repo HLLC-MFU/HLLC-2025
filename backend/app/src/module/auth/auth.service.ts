@@ -182,7 +182,11 @@ export class AuthService {
 
     await user.save();
 
-    return { message: 'User registered successfully', accessToken, refreshToken };
+    return {
+      message: 'User registered successfully', data: {
+        accessToken, refreshToken
+      }
+    };
   }
 
   async refreshToken(oldRefreshToken: string) {
