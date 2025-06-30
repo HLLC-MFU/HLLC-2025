@@ -16,7 +16,6 @@ interface MapMarkersProps {
 }
 
 export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
-  console.log('MapMarkers RENDER');
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,10 +26,8 @@ export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
       setLoading(true);
       setError(null);
       const url = `${process.env.EXPO_PUBLIC_API_URL?.trim()}/landmarks`;
-      console.log('FETCH URL:', url);
       try {
         const res = await apiRequest<any>('/landmarks');
-        console.log('API RESPONSE:', res);
         if (res.data && Array.isArray(res.data.data)) {
           const mapped = res.data.data.map((item: any) => ({
             x: item.mapCoordinates?.x ?? 0,
@@ -44,16 +41,13 @@ export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
           }));
           if (mounted) {
             setMarkers(mapped);
-            console.log('MARKERS:', mapped);
           }
         } else {
           if (mounted) setError('No data');
         }
       } catch (e: any) {
-        console.log('LANDMARKS ERROR:', e);
         if (mounted) setError(e.message || 'Error fetching landmarks');
       } finally {
-        console.log('LANDMARKS FINALLY');
         if (mounted) setLoading(false);
       }
     })();

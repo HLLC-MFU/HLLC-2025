@@ -1,29 +1,37 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useRouter } from 'expo-router';
 
 interface TopBarProps {
   onScan: () => void;
   onStamp: () => void;
   centerText?: string;
+  onLeaderboard?: () => void;
 }
 
 export default function TopBar({
   onScan,
   onStamp,
-  centerText = '',
+  onLeaderboard,
 }: TopBarProps) {
+  const router = useRouter();
   return (
     <View style={styles.container}>
       <View style={styles.innerRow}>
         <TouchableOpacity style={styles.iconBtn} onPress={onScan}>
           <MaterialCommunityIcons name="qrcode-scan" size={24} color="#fff" />
         </TouchableOpacity>
+
         <TouchableOpacity style={styles.iconBtn} onPress={onStamp}>
           <Image
             source={require('@/assets/images/logo-sdad.png')}
             style={styles.stampIcon}
           />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconBtn} onPress={onLeaderboard ?? (() => router.push('./leaderboard'))}>
+          <Image source={require('@/assets/images/glyph.png')}
+          style={styles.stampIcon}/>
         </TouchableOpacity>
       </View>
     </View>
@@ -44,7 +52,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     width: '100%',
     minWidth: 260,
-    paddingEnd: 20
+    paddingEnd: 20,
   },
   iconBtn: {
     width: 36,

@@ -10,6 +10,7 @@ import AlertModal from './_components/alert-modal';
 import TopBar from './_components/top-bar';
 import StampModal from './_components/stamp-modal';
 import useCoinHunting from '@/hooks/useCoinHunting';
+import { useRouter } from 'expo-router';
 
 export default function CoinHuntingScreen() {
   const {
@@ -26,6 +27,7 @@ export default function CoinHuntingScreen() {
     closeModal,
     markers,
   } = useCoinHunting();
+  const router = useRouter();
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -33,6 +35,7 @@ export default function CoinHuntingScreen() {
         onScan={handleCheckIn}
         onStamp={() => handleGoToStamp()}
         centerText="Bloom possible"
+        onLeaderboard={() => router.replace('/(app)/coin-hunting/leaderboard')}
       />
       <InteractiveMap>
         <MapMarkers onMarkerPress={handleMarkerPress} />

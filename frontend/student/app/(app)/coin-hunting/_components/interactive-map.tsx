@@ -25,7 +25,7 @@ import {
   State,
 } from 'react-native-gesture-handler';
 
-const mapsImage = require('@/assets/images/maps.png');
+const mapsImage = require('@/assets/images/map.png');
 const screen = Dimensions.get('window');
 
 function clamp(value: number, min: number, max: number): number {
@@ -100,7 +100,7 @@ export default function InteractiveMap({
 
   const pinchHandler = useAnimatedGestureHandler<
     PinchGestureHandlerGestureEvent,
-    { 
+    {
       startScale: number;
       startFocalX: number;
       startFocalY: number;
@@ -110,34 +110,32 @@ export default function InteractiveMap({
   >({
     onStart: (event, ctx) => {
       ctx.startScale = scale.value;
-      ctx.startFocalX = event.focalX;
-      ctx.startFocalY = event.focalY;
       ctx.startTranslateX = translateX.value;
       ctx.startTranslateY = translateY.value;
+      ctx.startFocalX = event.focalX;
+      ctx.startFocalY = event.focalY;
     },
     onActive: (event, ctx) => {
       const scaleW = screen.width / imageSize.width;
       const scaleH = screen.height / imageSize.height;
       const minScale = Math.max(scaleW, scaleH);
-      const maxScale = 3;
-      
+      const maxScale = 1;
       const newScale = clamp(ctx.startScale * event.scale, minScale, maxScale);
+
+      // focal point relative to image center and current translate
+      const focalX = event.focalX - screen.width / 2 - ctx.startTranslateX;
+      const focalY = event.focalY - screen.height / 2 - ctx.startTranslateY;
+
+      translateX.value = ctx.startTranslateX + (1 - event.scale) * focalX;
+      translateY.value = ctx.startTranslateY + (1 - event.scale) * focalY;
       scale.value = newScale;
-      
-      // Focal point adjustment for smooth pinch-to-zoom
-      const focalPointX = ctx.startFocalX - screen.width / 2;
-      const focalPointY = ctx.startFocalY - screen.height / 2;
-      
-      const scaleDiff = newScale - ctx.startScale;
-      translateX.value = ctx.startTranslateX - (focalPointX * scaleDiff) / ctx.startScale;
-      translateY.value = ctx.startTranslateY - (focalPointY * scaleDiff) / ctx.startScale;
-      
+
       // Apply bounds
       const scaledWidth = imageSize.width * newScale;
       const scaledHeight = imageSize.height * newScale;
       const boundX = Math.max(0, (scaledWidth - screen.width) / 2);
       const boundY = Math.max(0, (scaledHeight - screen.height) / 2);
-      
+
       translateX.value = clamp(translateX.value, -boundX, boundX);
       translateY.value = clamp(translateY.value, -boundY, boundY);
     },
