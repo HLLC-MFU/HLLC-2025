@@ -18,11 +18,12 @@ interface UserData {
 interface LeaderboardListProps {
   usersData: UserData[];
   getFullName: (name: Name) => string;
+  valueLabel?: string;
 }
 
 const { width } = Dimensions.get('window');
 
-const LeaderboardList = ({ usersData, getFullName }:LeaderboardListProps) => (
+const LeaderboardList = ({ usersData, getFullName, valueLabel = 'steps' }:LeaderboardListProps) => (
   <FlatList
     data={usersData}
     keyExtractor={(_, idx) => idx.toString()}
@@ -49,7 +50,7 @@ const LeaderboardList = ({ usersData, getFullName }:LeaderboardListProps) => (
             ? item.name.first + ' ' + item.name.last
             : getFullName(item.name)}
         </Text>
-        <Text style={styles.cardSteps}>{item.stepCount} steps</Text>
+        <Text style={styles.cardSteps}>{item.stepCount} {valueLabel}</Text>
       </View>
     )}
     showsVerticalScrollIndicator={false}

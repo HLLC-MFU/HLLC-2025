@@ -5,10 +5,9 @@ import LeaderboardList from '../../../components/step-counter/LeaderboardList';
 import SwitchButton from '../../../components/step-counter/SwitchButton';
 import styles from '../../../components/step-counter/styles';
 import useProfile from '../../../hooks/useProfile';
-import useStepLeaderboard, { useGroupStepLeaderboard } from '../../../hooks/useStepLeaderboard';
-import useUserRank from '../../../hooks/useUserRank';
+import useStepLeaderboard from '../../../hooks/useStepLeaderboard';
 import SegmentedToggle from '@/components/step-counter/SegmentedToggle';
-import DynamicLeaderboard from '../../../components/step-counter/DynamicLeaderboard';
+import DynamicLeaderboard, { LeaderboardUser } from '../../../components/step-counter/DynamicLeaderboard';
 import useStepAchievement from '../../../hooks/useStepAchievement';
 
 
@@ -25,42 +24,31 @@ export default function LeaderBoardScreen() {
     achievedLeaderboard: achievementUsers,
     achievedLoading: achievementLoading,
     achievedError: achievementError,
+    individualUserRank,
+    schoolUserRank,
+    achievementUserRank,
+    userRankLoading,
+    userRankError,
+    setLastAchievementId,
   } = useStepLeaderboard();
 
-  const {
-    users: groupUsers,
-    loading: groupLoading,
-    error: groupError,
-  } = useGroupStepLeaderboard(schoolId);
-
   const { achievements, loading: achievementIdLoading } = useStepAchievement();
-  const currentAchievementId = achievements[0]?._id; // เลือกอันแรกสุด (หรือปรับ logic ได้)
+  const currentAchievementId = achievements[0]?._id;
+  React.useEffect(() => {
+    if (currentAchievementId) setLastAchievementId(currentAchievementId);
+  }, [currentAchievementId, setLastAchievementId]);
 
-  // ใช้ hook ใหม่สำหรับดึงข้อมูล rank ของผู้ใช้เอง
-  const { userRank: individualUserRank, loading: individualUserRankLoading } = useUserRank('global');
-  const { userRank: schoolUserRank, loading: schoolUserRankLoading } = useUserRank('school');
-  const { userRank: achievementUserRank, loading: achievementUserRankLoading } = useUserRank('achieved', currentAchievementId);
+  // ใช้ allLeaderboard สำหรับ groupUsers ด้วย (ถ้าไม่มี group leaderboard แยก)
+  const groupUsers: LeaderboardUser[] = individualUsers;
+  const groupLoading = individualLoading;
+  const groupError = individualError;
 
-  const users = selectedTab === 0
+  const users: LeaderboardUser[] = selectedTab === 0
     ? individualUsers
     : selectedTab === 1
-      ? groupUsers.map(u => ({
-          name: {
-            first: u.user?.name?.first || 'Unknown',
-            middle: u.user?.name?.middle || '',
-            last: u.user?.name?.last || '',
-          },
-          stepCount: u.totalStep,
-        }))
+      ? groupUsers
       : selectedTab === 2
-        ? achievementUsers.map(u => ({
-            name: {
-              first: u.user?.name?.first || 'Unknown',
-              middle: u.user?.name?.middle || '',
-              last: u.user?.name?.last || '',
-            },
-            stepCount: u.totalStep,
-          }))
+        ? achievementUsers
         : [];
 
   const loading = selectedTab === 0 ? individualLoading : selectedTab === 1 ? groupLoading : selectedTab === 2 ? achievementLoading : false;
@@ -99,20 +87,14 @@ export default function LeaderBoardScreen() {
     return [name.first, name.middle, name.last].filter(Boolean).join(' ');
   };
 
-  // สร้างข้อมูลผู้ใช้เองจาก API response
-  const getCurrentUserData = () => {
-    const currentUserRank = selectedTab === 0 
+  // สร้างฟังก์ชันใหม่สำหรับดึง currentUserData ตาม tab
+  const getCurrentUserDataForTab = (tabIdx: number) => {
+    const currentUserRank = tabIdx === 0 
       ? individualUserRank 
-      : selectedTab === 1 
+      : tabIdx === 1 
         ? schoolUserRank 
         : achievementUserRank;
-    
-    const currentUserLoading = selectedTab === 0 
-      ? individualUserRankLoading 
-      : selectedTab === 1 
-        ? schoolUserRankLoading 
-        : achievementUserRankLoading;
-
+    const currentUserLoading = userRankLoading || (tabIdx === 2 && achievementIdLoading);
     if (currentUserLoading || !currentUserRank) {
       return {
         name: { first: 'Loading...', last: '' },
@@ -121,7 +103,6 @@ export default function LeaderBoardScreen() {
         isLoading: true,
       };
     }
-
     return {
       name: currentUserRank.name || { first: 'Unknown', last: '' },
       stepCount: currentUserRank.stepCount || 0,
@@ -129,15 +110,6 @@ export default function LeaderBoardScreen() {
       isLoading: false,
     };
   };
-
-  const currentUserData = getCurrentUserData();
-
-  // ตรวจสอบ loading state รวม
-  const isOverallLoading = loading || 
-    individualUserRankLoading || 
-    schoolUserRankLoading || 
-    achievementUserRankLoading ||
-    achievementIdLoading;
 
   // usersData สำหรับ FlatList (ไม่รวมทีม) - แก้ไขการ slice
   const usersDataIndividual = individualUsers.length > 3 
@@ -165,7 +137,7 @@ export default function LeaderBoardScreen() {
       }))
     : [];
 
-  if (isOverallLoading) {
+  if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }}>
         <Text style={{ color: '#fff', fontSize: 18 }}>Loading...</Text>
@@ -204,7 +176,7 @@ export default function LeaderBoardScreen() {
         <DynamicLeaderboard
           users={individualUsers}
           usersData={usersDataIndividual}
-          currentUserData={currentUserData}
+          currentUserData={getCurrentUserDataForTab(0)}
           getFullName={getFullName}
           width={width}
           height={height}
@@ -214,7 +186,7 @@ export default function LeaderBoardScreen() {
         <DynamicLeaderboard
           users={groupUsers}
           usersData={usersDataGroup}
-          currentUserData={currentUserData}
+          currentUserData={getCurrentUserDataForTab(1)}
           getFullName={getFullName}
           width={width}
           height={height}
@@ -224,7 +196,7 @@ export default function LeaderBoardScreen() {
         <DynamicLeaderboard
           users={achievementUsers}
           usersData={usersDataAchievement}
-          currentUserData={currentUserData}
+          currentUserData={getCurrentUserDataForTab(2)}
           getFullName={getFullName}
           width={width}
           height={height}

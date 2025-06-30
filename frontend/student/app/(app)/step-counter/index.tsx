@@ -29,7 +29,7 @@ export default function StepCounterScreen() {
           </View>
           <TouchableOpacity
           style={styles.stepCounterFab}
-          onPress={() => router.replace('/(app)/step-counter/leaderBoard')}
+          onPress={() => router.replace('/(app)/step-counter/leaderboard')}
           activeOpacity={0.9}
         >
           <View style={styles.stepCounterFabInner}>

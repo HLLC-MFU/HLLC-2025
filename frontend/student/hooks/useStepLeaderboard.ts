@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiRequest } from '@/utils/api';
 import {
   LeaderboardApiResponse,
   UserRankApiResponse,
   LeaderboardEntry,
 } from '../types/stepLeaderboard';
+import useProfile from './useProfile';
 
 interface LeaderboardState {
   data: LeaderboardEntry[];
@@ -18,248 +19,184 @@ interface UserRankState {
   error: string | null;
 }
 
+type UserRankScope = 'global' | 'school' | 'achieved';
+type LeaderboardType = 'all' | 'daily' | 'school' | 'schoolDate' | 'achieved';
+type UserRankAllState = Record<UserRankScope, UserRankState>;
+type LeaderboardsState = Record<LeaderboardType, LeaderboardState>;
+
+const initialUserRankState: UserRankState = { data: null, loading: false, error: null };
+const initialLeaderboardState: LeaderboardState = { data: [], loading: false, error: null };
+
 const useStepLeaderboard = () => {
-  // รวม state ของแต่ละ leaderboard
-  const [allLeaderboard, setAllLeaderboard] = useState<LeaderboardState>({
-    data: [],
-    loading: false,
-    error: null,
+  const [leaderboards, setLeaderboards] = useState<LeaderboardsState>({
+    all: { ...initialLeaderboardState },
+    daily: { ...initialLeaderboardState },
+    school: { ...initialLeaderboardState },
+    schoolDate: { ...initialLeaderboardState },
+    achieved: { ...initialLeaderboardState },
   });
 
-  const [dailyLeaderboard, setDailyLeaderboard] = useState<LeaderboardState>({
-    data: [],
-    loading: false,
-    error: null,
+  const [userRank, setUserRank] = useState<UserRankAllState>({
+    global: { ...initialUserRankState },
+    school: { ...initialUserRankState },
+    achieved: { ...initialUserRankState },
   });
 
-  const [schoolLeaderboard, setSchoolLeaderboard] = useState<LeaderboardState>({
-    data: [],
-    loading: false,
-    error: null,
-  });
+  const [lastAchievementId, setLastAchievementId] = useState<string>();
+  const { user } = useProfile();
+  const userId = user?.data?.[0]?._id;
 
-  const [schoolDateLeaderboard, setSchoolDateLeaderboard] = useState<LeaderboardState>({
-    data: [],
-    loading: false,
-    error: null,
-  });
+  const updateLeaderboard = useCallback((type: LeaderboardType, updates: Partial<LeaderboardState>) => {
+    setLeaderboards(prev => ({ ...prev, [type]: { ...prev[type], ...updates } }));
+  }, []);
 
-  const [achievedLeaderboard, setAchievedLeaderboard] = useState<LeaderboardState>({
-    data: [],
-    loading: false,
-    error: null,
-  });
+  const updateUserRank = useCallback((scope: UserRankScope, updates: Partial<UserRankState>) => {
+    setUserRank(prev => ({ ...prev, [scope]: { ...prev[scope], ...updates } }));
+  }, []);
 
-  const [userRank, setUserRank] = useState<UserRankState>({
-    data: null,
-    loading: false,
-    error: null,
-  });
-
-  // 1. All Leaderboard
-  const fetchAllLeaderboard = async () => {
-    setAllLeaderboard(prev => ({ ...prev, loading: true, error: null }));
+  const fetchAllLeaderboard = useCallback(async () => {
+    updateLeaderboard('all', { loading: true, error: null });
     try {
-      const response = await apiRequest<LeaderboardApiResponse>(
-        '/step-counters/leaderboard/all?limit=20',
-        'GET'
-      );
-      setAllLeaderboard({
-        data: response.data?.data || [],
-        loading: false,
-        error: null,
-      });
+      const response = await apiRequest<LeaderboardApiResponse>('/step-counters/leaderboard/all?limit=20', 'GET');
+      updateLeaderboard('all', { data: response.data?.data || [], loading: false, error: null });
       return response;
     } catch (err) {
-      setAllLeaderboard(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to fetch all leaderboard',
-      }));
+      updateLeaderboard('all', { loading: false, error: 'Failed to fetch all leaderboard' });
       throw err;
     }
-  };
+  }, [updateLeaderboard]);
 
-  // 2. Daily Leaderboard (by date)
-  const fetchDailyLeaderboard = async (date: string) => {
-    setDailyLeaderboard(prev => ({ ...prev, loading: true, error: null }));
+  const fetchDailyLeaderboard = useCallback(async (date: string) => {
+    updateLeaderboard('daily', { loading: true, error: null });
     try {
       const response = await apiRequest<LeaderboardApiResponse>(
-        `/step-counters/leaderboard/by-date?date=${encodeURIComponent(date)}`,
-        'GET'
+        `/step-counters/leaderboard/by-date?date=${encodeURIComponent(date)}`, 'GET'
       );
-      setDailyLeaderboard({
-        data: response.data?.data || [],
-        loading: false,
-        error: null,
-      });
+      updateLeaderboard('daily', { data: response.data?.data || [], loading: false, error: null });
       return response;
     } catch (err) {
-      setDailyLeaderboard(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to fetch daily leaderboard',
-      }));
+      updateLeaderboard('daily', { loading: false, error: 'Failed to fetch daily leaderboard' });
       throw err;
     }
-  };
+  }, [updateLeaderboard]);
 
-  // 3. School Leaderboard (by schoolId)
-  const fetchSchoolLeaderboard = async (schoolId: string) => {
-    setSchoolLeaderboard(prev => ({ ...prev, loading: true, error: null }));
+  const fetchSchoolLeaderboard = useCallback(async (schoolId: string) => {
+    updateLeaderboard('school', { loading: true, error: null });
     try {
       const response = await apiRequest<LeaderboardApiResponse>(
-        `/step-counters/leaderboard/by-school?schoolId=${encodeURIComponent(schoolId)}`,
-        'GET'
+        `/step-counters/leaderboard/by-school?schoolId=${encodeURIComponent(schoolId)}`, 'GET'
       );
-      setSchoolLeaderboard({
-        data: response.data?.data || [],
-        loading: false,
-        error: null,
-      });
+      updateLeaderboard('school', { data: response.data?.data || [], loading: false, error: null });
       return response;
     } catch (err) {
-      setSchoolLeaderboard(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to fetch school leaderboard',
-      }));
+      updateLeaderboard('school', { loading: false, error: 'Failed to fetch school leaderboard' });
       throw err;
     }
-  };
+  }, [updateLeaderboard]);
 
-  // 4. School + Date Leaderboard
-  const fetchSchoolDateLeaderboard = async (schoolId: string, date: string) => {
-    setSchoolDateLeaderboard(prev => ({ ...prev, loading: true, error: null }));
+  const fetchSchoolDateLeaderboard = useCallback(async (schoolId: string, date: string) => {
+    updateLeaderboard('schoolDate', { loading: true, error: null });
     try {
       const response = await apiRequest<LeaderboardApiResponse>(
-        `/step-counters/leaderboard/by-school-and-date?schoolId=${encodeURIComponent(schoolId)}&date=${encodeURIComponent(date)}`,
-        'GET'
+        `/step-counters/leaderboard/by-school-and-date?schoolId=${encodeURIComponent(schoolId)}&date=${encodeURIComponent(date)}`, 'GET'
       );
-      setSchoolDateLeaderboard({
-        data: response.data?.data || [],
-        loading: false,
-        error: null,
-      });
+      updateLeaderboard('schoolDate', { data: response.data?.data || [], loading: false, error: null });
       return response;
     } catch (err) {
-      setSchoolDateLeaderboard(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to fetch school+date leaderboard',
-      }));
+      updateLeaderboard('schoolDate', { loading: false, error: 'Failed to fetch school+date leaderboard' });
       throw err;
     }
-  };
+  }, [updateLeaderboard]);
 
-  // 5. Achievement Leaderboard
-  const fetchAchievedLeaderboard = async (stepAchievementId?: string) => {
-    setAchievedLeaderboard(prev => ({ ...prev, loading: true, error: null }));
+  const fetchAchievedLeaderboard = useCallback(async (stepAchievementId?: string) => {
+    updateLeaderboard('achieved', { loading: true, error: null });
     try {
       const url = stepAchievementId
         ? `/step-counters/leaderboard/by-achieved?stepAchievementId=${encodeURIComponent(stepAchievementId)}`
         : '/step-counters/leaderboard/by-achieved';
-      const response = await apiRequest<LeaderboardApiResponse>(
-        url,
-        'GET'
-      );
-      setAchievedLeaderboard({
-        data: response.data?.data || [],
-        loading: false,
-        error: null,
-      });
+      const response = await apiRequest<LeaderboardApiResponse>(url, 'GET');
+      updateLeaderboard('achieved', { data: response.data?.data || [], loading: false, error: null });
       return response;
     } catch (err) {
-      setAchievedLeaderboard(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to fetch achievement leaderboard',
-      }));
+      updateLeaderboard('achieved', { loading: false, error: 'Failed to fetch achievement leaderboard' });
       throw err;
     }
-  };
+  }, [updateLeaderboard]);
 
-  // 6. User Rank
-  const fetchUserRank = async (
-    userId: string,
-    scope: 'global' | 'school' | 'achieved' = 'global',
-    stepAchievementId?: string
-  ) => {
-    setUserRank(prev => ({ ...prev, loading: true, error: null }));
+  const fetchUserRank = useCallback(async (scope: UserRankScope, stepAchievementId?: string) => {
+    updateUserRank(scope, { loading: true, error: null });
     try {
-      let url = `/step-counters/rank/${userId}?scope=${scope}`;
-      if (stepAchievementId) {
-        url += `&stepAchievementId=${encodeURIComponent(stepAchievementId)}`;
-      }
-      const response = await apiRequest<UserRankApiResponse>(
-        url,
-        'GET'
-      );
-      setUserRank({
-        data: response.data || null,
-        loading: false,
-        error: null,
-      });
+      let url = `/step-counters/my-rank?scope=${scope}`;
+      if (stepAchievementId) url += `&stepAchievementId=${encodeURIComponent(stepAchievementId)}`;
+      const response = await apiRequest<UserRankApiResponse>(url, 'GET');
+      updateUserRank(scope, { data: response.data || null, loading: false, error: null });
       return response;
     } catch (err) {
-      setUserRank(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to fetch user rank',
-      }));
+      updateUserRank(scope, { loading: false, error: 'Failed to fetch user rank' });
       throw err;
     }
-  };
+  }, [updateUserRank]);
 
-  // Auto-fetch all and achievement leaderboard on mount
+  // Auto-fetch
   useEffect(() => {
     fetchAllLeaderboard();
     fetchAchievedLeaderboard();
-  }, []);
+  }, [fetchAllLeaderboard, fetchAchievedLeaderboard]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchUserRank('global');
+      fetchUserRank('school');
+    }
+  }, [userId, fetchUserRank]);
+
+  useEffect(() => {
+    if (userId && lastAchievementId) {
+      fetchUserRank('achieved', lastAchievementId);
+    }
+  }, [userId, lastAchievementId, fetchUserRank]);
 
   return {
     // All
-    allLeaderboard: allLeaderboard.data,
-    allLoading: allLeaderboard.loading,
-    allError: allLeaderboard.error,
+    allLeaderboard: leaderboards.all.data,
+    allLoading: leaderboards.all.loading,
+    allError: leaderboards.all.error,
     fetchAllLeaderboard,
     // Daily
-    dailyLeaderboard: dailyLeaderboard.data,
-    dailyLoading: dailyLeaderboard.loading,
-    dailyError: dailyLeaderboard.error,
+    dailyLeaderboard: leaderboards.daily.data,
+    dailyLoading: leaderboards.daily.loading,
+    dailyError: leaderboards.daily.error,
     fetchDailyLeaderboard,
     // School
-    schoolLeaderboard: schoolLeaderboard.data,
-    schoolLoading: schoolLeaderboard.loading,
-    schoolError: schoolLeaderboard.error,
+    schoolLeaderboard: leaderboards.school.data,
+    schoolLoading: leaderboards.school.loading,
+    schoolError: leaderboards.school.error,
     fetchSchoolLeaderboard,
     // School+Date
-    schoolDateLeaderboard: schoolDateLeaderboard.data,
-    schoolDateLoading: schoolDateLeaderboard.loading,
-    schoolDateError: schoolDateLeaderboard.error,
+    schoolDateLeaderboard: leaderboards.schoolDate.data,
+    schoolDateLoading: leaderboards.schoolDate.loading,
+    schoolDateError: leaderboards.schoolDate.error,
     fetchSchoolDateLeaderboard,
     // Achieved
-    achievedLeaderboard: achievedLeaderboard.data,
-    achievedLoading: achievedLeaderboard.loading,
-    achievedError: achievedLeaderboard.error,
+    achievedLeaderboard: leaderboards.achieved.data,
+    achievedLoading: leaderboards.achieved.loading,
+    achievedError: leaderboards.achieved.error,
     fetchAchievedLeaderboard,
     // User Rank
-    userRank: userRank.data,
-    userRankLoading: userRank.loading,
-    userRankError: userRank.error,
+    individualUserRank: userRank.global.data,
+    schoolUserRank: userRank.school.data,
+    achievementUserRank: userRank.achieved.data,
+    userRankLoading: userRank.global.loading || userRank.school.loading || userRank.achieved.loading,
+    userRankError: userRank.global.error || userRank.school.error || userRank.achieved.error,
     fetchUserRank,
+    setLastAchievementId,
   };
 };
 
-// Group leaderboard (by schoolId)
 export const useGroupStepLeaderboard = (schoolId?: string) => {
-  const [state, setState] = useState<LeaderboardState>({
-    data: [],
-    loading: false,
-    error: null,
-  });
+  const [state, setState] = useState<LeaderboardState>(initialLeaderboardState);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     if (!schoolId) {
       setState({ data: [], loading: false, error: 'No schoolId' });
       return;
@@ -267,29 +204,19 @@ export const useGroupStepLeaderboard = (schoolId?: string) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const response = await apiRequest<LeaderboardApiResponse>(
-        `/step-counters/leaderboard/by-school?schoolId=${encodeURIComponent(schoolId)}`,
-        'GET'
+        `/step-counters/leaderboard/by-school?schoolId=${encodeURIComponent(schoolId)}`, 'GET'
       );
-      setState({
-        data: response.data?.data || [],
-        loading: false,
-        error: null,
-      });
+      setState({ data: response.data?.data || [], loading: false, error: null });
       return response;
     } catch (err) {
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to fetch group leaderboard',
-      }));
+      setState(prev => ({ ...prev, loading: false, error: 'Failed to fetch group leaderboard' }));
       throw err;
     }
-  };
-
-  // fetch on mount or when schoolId changes
-  React.useEffect(() => {
-    if (schoolId) fetchLeaderboard();
   }, [schoolId]);
+
+  useEffect(() => {
+    if (schoolId) fetchLeaderboard();
+  }, [schoolId, fetchLeaderboard]);
 
   return {
     users: state.data,
@@ -299,4 +226,4 @@ export const useGroupStepLeaderboard = (schoolId?: string) => {
   };
 };
 
-export default useStepLeaderboard; 
+export default useStepLeaderboard;

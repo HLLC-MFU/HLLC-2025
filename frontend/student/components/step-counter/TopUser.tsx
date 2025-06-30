@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text, Image, ImageSourcePropType } from 'react-native';
 import { BlurView } from 'expo-blur';
 import styles from './styles';
 
@@ -19,10 +19,11 @@ interface TopUserProps {
   user?: User;
   isMain?: boolean;
   getFullName: (name: Name) => string;
-  crownImageSource?: any;
+  crownImageSource?: ImageSourcePropType;
+  valueLabel?: string;
 }
 
-const TopUser = ({ rank, user, isMain, getFullName, crownImageSource }:TopUserProps) => {
+const TopUser = ({ rank, user, isMain, getFullName, crownImageSource, valueLabel = 'steps' }:TopUserProps) => {
   const name = user ? getFullName(user.name) : '-';
   const steps = user ? user.stepCount : '-';
 
@@ -54,7 +55,7 @@ const TopUser = ({ rank, user, isMain, getFullName, crownImageSource }:TopUserPr
       </View>
       <Text style={nameStyle}>{name}</Text>
       <View style={underlineStyle} />
-      <Text style={stepsStyle}>{steps} steps</Text>
+      <Text style={stepsStyle}>{steps} {valueLabel}</Text>
     </View>
   );
 };

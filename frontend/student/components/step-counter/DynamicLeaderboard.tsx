@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Dimensions } from 'react-native';
+import { View, Text, Dimensions, StyleProp, TextStyle } from 'react-native';
 import TopUser from './TopUser';
 import LeaderboardList from './LeaderboardList';
 import styles from './styles';
@@ -8,6 +8,14 @@ interface Name {
   first: string;
   middle?: string;
   last?: string;
+}
+
+export interface LeaderboardUser {
+  user: {
+    _id?: string;
+    name: Name;
+  };
+  totalStep: number;
 }
 
 interface UserData {
@@ -25,13 +33,14 @@ interface CurrentUserData {
 }
 
 interface DynamicLeaderboardProps {
-  users: any[];
+  users: LeaderboardUser[];
   usersData: UserData[];
   currentUserData: CurrentUserData;
   getFullName: (name: Name) => string;
   width: number;
   height: number;
-  cardNameStyle?: any;
+  cardNameStyle?: StyleProp<TextStyle>;
+  valueLabel?: string;
 }
 
 const DynamicLeaderboard = ({
@@ -42,6 +51,7 @@ const DynamicLeaderboard = ({
   width,
   height,
   cardNameStyle = styles.cardName,
+  valueLabel = 'steps',
 }: DynamicLeaderboardProps) => {
   return (
     <View style={{ width, flex: 1 }}>
@@ -51,6 +61,7 @@ const DynamicLeaderboard = ({
             rank={2}
             user={{ name: users[1].user?.name || { first: 'Unknown' }, stepCount: users[1].totalStep }}
             getFullName={getFullName}
+            valueLabel={valueLabel}
           />
         )}
         {users[0] && (
@@ -60,6 +71,7 @@ const DynamicLeaderboard = ({
             isMain
             getFullName={getFullName}
             crownImageSource={require('@/assets/images/crown3d.png')}
+            valueLabel={valueLabel}
           />
         )}
         {users[2] && (
@@ -67,11 +79,12 @@ const DynamicLeaderboard = ({
             rank={3}
             user={{ name: users[2].user?.name || { first: 'Unknown' }, stepCount: users[2].totalStep }}
             getFullName={getFullName}
+            valueLabel={valueLabel}
           />
         )}
       </View>
       <View style={{ flex: 1 }}>
-        <LeaderboardList usersData={usersData.slice(0, 20)} getFullName={getFullName} />
+        <LeaderboardList usersData={usersData.slice(0, 20)} getFullName={getFullName} valueLabel={valueLabel} />
         <View style={styles.cardContainer}>
         <View
           style={{
@@ -115,7 +128,7 @@ const DynamicLeaderboard = ({
               {currentUserData.isLoading ? 'Loading...' : currentUserData.name.first + ' ' + currentUserData.name.last}
             </Text>
             <Text style={styles.cardSteps}>
-              {currentUserData.isLoading ? '...' : `${currentUserData.stepCount} steps`}
+              {currentUserData.isLoading ? '...' : `${currentUserData.stepCount} ${valueLabel}`}
             </Text>
           </View>
         </View>
