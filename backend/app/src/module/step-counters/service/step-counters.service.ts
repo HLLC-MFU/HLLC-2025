@@ -1,16 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { CreateStepCounterDto } from './dto/create-step-counter.dto';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { CreateStepCounterDto } from '../dto/step-counters/create-step-counter.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { StepCounter, StepCounterDocument } from './schema/step-counter.schema';
+import { StepCounter, StepCounterDocument } from '../schema/step-counter.schema';
 import { Model, Types } from 'mongoose';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
-import { User, UserDocument } from '../users/schemas/user.schema';
+import { User, UserDocument } from '../../users/schemas/user.schema';
 import {
   queryAll,
   queryDeleteOne,
   queryFindOne,
 } from 'src/pkg/helper/query.util';
-import { StepAchievement, StepAchievementDocument, } from '../step-achievement/schema/step-achievement.schema';
+import { StepAchievement, StepAchievementDocument, } from '../schema/step-achievement.schema';
 @Injectable()
 export class StepCountersService {
   constructor(
@@ -35,7 +35,7 @@ export class StepCountersService {
 
     const primaryAchievement = achievements[0];
     if (!primaryAchievement) {
-      throw new Error('No available achievement found');
+      throw new NotFoundException('No available achievement found');
     }
 
     const achievement = primaryAchievement._id;
@@ -353,7 +353,7 @@ export class StepCountersService {
       : await this.stepAchievementModel.findOne({}).sort({ createdAt: 1 }).lean();
 
     if (!achievement) {
-      throw new Error('No achievement found');
+      throw new NotFoundException('No achievement found');
     }
 
     const stepCounters = await this.stepCounterModel.find({
@@ -430,7 +430,7 @@ export class StepCountersService {
       .populate('achievement')
       .lean();
 
-    if (!target) throw new Error('User not found');
+    if (!target) throw new NotFoundException('User not found');
 
     const targetTotalStep = (target.steps || []).reduce((sum, s) => sum + s.step, 0);
 
@@ -457,7 +457,7 @@ export class StepCountersService {
 
     } else if (scope === 'school') {
       const schoolId = (target.user as any)?.metadata?.major?.school?._id?.toString();
-      if (!schoolId) throw new Error('User has no school');
+      if (!schoolId) throw new NotFoundException('User has no school');
 
       all = await this.stepCounterModel.find({})
         .populate({
@@ -484,11 +484,11 @@ export class StepCountersService {
 
     } else if (scope === 'achieved') {
       if (!stepAchievementId) {
-        throw new Error('stepAchievementId is required for achieved scope');
+        throw new BadRequestException('stepAchievementId is required for achieved scope');
       }
 
       const achievement = await this.stepAchievementModel.findById(stepAchievementId).lean();
-      if (!achievement) throw new Error('Achievement not found');
+      if (!achievement) throw new NotFoundException('Achievement not found');
 
       const achievementGoal = achievement.achievement;
 

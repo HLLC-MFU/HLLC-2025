@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { CreateStepAchievementDto } from './dto/create-step-achievement.dto';
-import { UpdateStepAchievementDto } from './dto/update-step-achievement.dto';
+import { CreateStepAchievementDto } from '../dto/step-achievement/create-step-achievement.dto';
+import { UpdateStepAchievementDto } from '../dto/step-achievement/update-step-achievement.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { StepAchievement, StepAchievementDocument } from './schema/step-achievement.schema';
+import { StepAchievement, StepAchievementDocument } from '../schema/step-achievement.schema';
 import { Model } from 'mongoose';
 import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
 
