@@ -35,11 +35,11 @@ func (s *ChatCacheService) roomReactionsKey(roomID, messageID string) string {
 	return fmt.Sprintf("chat:room:%s:reactions:%s", roomID, messageID)
 }
 
-// GetRoomMessages gets messages from cache
+// GetRoomMessages gets messages from cache (จากใหม่สุดไปเก่าสุด)
 func (s *ChatCacheService) GetRoomMessages(ctx context.Context, roomID string, limit int) ([]model.ChatMessageEnriched, error) {
 	key := s.roomMessagesKey(roomID)
 	
-	// Get messages using ZREVRANGE (newest first)
+	// Get messages using ZREVRANGE (newest first by timestamp score)
 	data, err := s.redis.ZRevRange(ctx, key, 0, int64(limit-1)).Result()
 	if err == redis.Nil {
 		return []model.ChatMessageEnriched{}, nil
@@ -56,6 +56,14 @@ func (s *ChatCacheService) GetRoomMessages(ctx context.Context, roomID string, l
 			continue
 		}
 		messages = append(messages, msg)
+	}
+
+	// Log cache sorting info
+	log.Printf("[Cache] Retrieved %d messages from cache for room %s (newest first)", len(messages), roomID)
+	if len(messages) > 0 {
+		log.Printf("[Cache] First cached message: %v, Last cached message: %v", 
+			messages[0].ChatMessage.Timestamp, 
+			messages[len(messages)-1].ChatMessage.Timestamp)
 	}
 
 	// Refresh TTL on successful read

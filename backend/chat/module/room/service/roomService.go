@@ -96,9 +96,16 @@ func (s *RoomService) CreateRoom(ctx context.Context, createDto *dto.CreateRoomD
 		return nil, err
 	}
 
+	// กำหนด room type (default เป็น normal ถ้าไม่ได้ระบุ)
+	roomType := createDto.Type
+	if roomType == "" {
+		roomType = model.RoomTypeNormal
+	}
+
 	// สร้าง room dto
 	r := &model.Room{
 		Name:      createDto.Name,
+		Type:      roomType,
 		Capacity:  createDto.Capacity,
 		CreatedBy: createDto.ToObjectID(),
 		CreatedAt: time.Now(),
@@ -310,6 +317,39 @@ func (s *RoomService) RemoveConnection(ctx context.Context, roomID primitive.Obj
 // นับจำนวน connection ใน room
 func (s *RoomService) GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID) (int64, error) {
 	return s.cache.GetActiveConnectionsCount(ctx, roomID.Hex())
+}
+
+// ตรวจสอบว่า user สามารถส่งข้อความในห้องนี้ได้หรือไม่
+func (s *RoomService) CanUserSendMessage(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+	// ดึง room จาก cache
+	room, err := s.GetRoomById(ctx, roomID)
+	if err != nil {
+		return false, fmt.Errorf("room not found: %w", err)
+	}
+
+	// ตรวจสอบว่าเป็นห้อง read-only หรือไม่
+	if room.IsReadOnly() {
+		log.Printf("[RoomService] User %s cannot send message in read-only room %s", userID, roomID.Hex())
+		return false, nil
+	}
+
+	// ตรวจสอบว่า user เป็นสมาชิกของห้องหรือไม่
+	isMember, err := s.IsUserInRoom(ctx, roomID, userID)
+	if err != nil || !isMember {
+		return false, fmt.Errorf("user is not a member of this room")
+	}
+
+	return true, nil
+}
+
+// ตรวจสอบว่า user สามารถส่ง sticker ในห้องนี้ได้หรือไม่
+func (s *RoomService) CanUserSendSticker(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+	return s.CanUserSendMessage(ctx, roomID, userID)
+}
+
+// ตรวจสอบว่า user สามารถส่ง reaction ในห้องนี้ได้หรือไม่
+func (s *RoomService) CanUserSendReaction(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+	return s.CanUserSendMessage(ctx, roomID, userID)
 }
 
 // เพิ่ม user ลง room

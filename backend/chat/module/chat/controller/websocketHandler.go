@@ -5,6 +5,7 @@ import (
 	"chat/module/chat/utils"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -48,7 +49,10 @@ func NewWebSocketHandler(
 func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.Conn, roomID string) {
 	messages, err := h.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
 	if err == nil {
-	for _, msg := range messages {
+		// **FIXED: เรียงลำดับจากใหม่สุด (บนสุด) ไปเก่าสุด (ล่างสุด)**
+		log.Printf("[WebSocket] Sending %d chat messages for room %s (newest first)", len(messages), roomID)
+		
+		for _, msg := range messages {
 					// Get user details with role populated
 		var userData map[string]interface{}
 		if user, err := h.chatService.GetUserById(ctx, msg.ChatMessage.UserID.Hex()); err == nil {
@@ -317,11 +321,20 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 			h.handleReactionMessage(messageText, *client)
 		case strings.HasPrefix(messageText, "/mention"):
 			h.handleMentionMessage(messageText, *client)
+		case strings.HasPrefix(messageText, "/unsend"):
+			h.handleUnsendMessage(messageText, *client)
 		case messageText == "/leave":
 			h.handleLeaveMessage(ctx, *client)
 			return
 		default:
-			// **NEW: ตรวจสอบ moderation status ก่อนส่งข้อความ**
+			// **NEW: ตรวจสอบสิทธิ์การส่งข้อความ (moderation + room type)**
+			canSend, err := h.roomService.CanUserSendMessage(ctx, roomObjID, userID)
+			if err != nil || !canSend {
+				conn.WriteMessage(websocket.TextMessage, []byte("You cannot send messages in this room (read-only or restricted)"))
+				continue
+			}
+
+			// **ตรวจสอบ moderation status เพิ่มเติม**
 			if !h.moderationService.CanUserSendMessages(ctx, userObjID, roomObjID) {
 				if h.moderationService.IsUserBanned(ctx, userObjID, roomObjID) {
 					conn.WriteMessage(websocket.TextMessage, []byte("You are banned from this room"))
@@ -361,6 +374,13 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 
 // Helper methods for WebSocket message handling
 func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.ClientObject) {
+	// **ตรวจสอบสิทธิ์การส่งข้อความก่อน**
+	canSend, err := h.roomService.CanUserSendMessage(context.Background(), client.RoomID, client.UserID.Hex())
+	if err != nil || !canSend {
+		client.Conn.WriteMessage(websocket.TextMessage, []byte("You cannot send messages in this room (read-only or restricted)"))
+		return
+	}
+
 	parts := strings.SplitN(messageText, " ", 3)
 	if len(parts) < 3 {
 		return
@@ -386,25 +406,76 @@ func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.C
 }
 
 func (h *WebSocketHandler) handleReactionMessage(messageText string, client model.ClientObject) {
-	parts := strings.Split(messageText, " ")
-	if len(parts) != 3 {
+	// Parse reaction command: /react messageID emoji
+	parts := strings.SplitN(messageText, " ", 3)
+	if len(parts) < 3 {
+		log.Printf("[WS] Invalid reaction format from user %s", client.UserID.Hex())
 		return
 	}
 
-	messageID, err := primitive.ObjectIDFromHex(parts[1])
+	messageID := parts[1]
+	reaction := parts[2]
+
+	log.Printf("[WS] User %s wants to react to message %s with %s", 
+		client.UserID.Hex(), messageID, reaction)
+
+	// **Check room type permissions before processing reaction**
+	canSendReaction, err := h.roomService.CanUserSendReaction(context.Background(), client.RoomID, client.UserID.Hex())
 	if err != nil {
+		log.Printf("[WS] Error checking reaction permissions for user %s in room %s: %v", 
+			client.UserID.Hex(), client.RoomID.Hex(), err)
 		return
 	}
 
-	reaction := &model.MessageReaction{
-		MessageID: messageID,
+	if !canSendReaction {
+		log.Printf("[WS] User %s cannot send reactions in read-only room %s", 
+			client.UserID.Hex(), client.RoomID.Hex())
+		
+		// Send error message to user
+		errorEvent := model.Event{
+			Type: "error",
+			Payload: model.ChatNoticePayload{
+				Room: model.RoomInfo{ID: client.RoomID.Hex()},
+				Message: "Reactions are not allowed in read-only rooms",
+				Timestamp: time.Now(),
+			},
+			Timestamp: time.Now(),
+		}
+		
+		if eventData, err := json.Marshal(errorEvent); err == nil {
+			client.Conn.WriteMessage(websocket.TextMessage, eventData)
+		}
+		return
+	}
+
+	// Check moderation permissions
+	if h.moderationService.IsUserBanned(context.Background(), client.UserID, client.RoomID) {
+		log.Printf("[WS] Banned user %s tried to react in room %s", client.UserID.Hex(), client.RoomID.Hex())
+		return
+	}
+
+	if h.moderationService.IsUserMuted(context.Background(), client.UserID, client.RoomID) {
+		log.Printf("[WS] Muted user %s tried to react in room %s", client.UserID.Hex(), client.RoomID.Hex())
+		return
+	}
+
+	// Create reaction
+	reactionObj := &model.MessageReaction{
 		UserID:    client.UserID,
-		Reaction:  parts[2],
+		Reaction:  reaction,
 		Timestamp: time.Now(),
 	}
 
-	if err := h.reactionService.HandleReaction(context.Background(), reaction); err != nil {
-		log.Printf("[ERROR] Failed to handle reaction: %v", err)
+	// Convert messageID to ObjectID
+	if messageObjID, err := primitive.ObjectIDFromHex(messageID); err == nil {
+		reactionObj.MessageID = messageObjID
+		
+		// Handle reaction
+		if err := h.reactionService.HandleReaction(context.Background(), reactionObj); err != nil {
+			log.Printf("[WS] Failed to handle reaction: %v", err)
+		}
+	} else {
+		log.Printf("[WS] Invalid message ID for reaction: %s", messageID)
 	}
 }
 
@@ -415,6 +486,13 @@ func (h *WebSocketHandler) handleLeaveMessage(ctx context.Context, client model.
 }
 
 func (h *WebSocketHandler) handleMentionMessage(messageText string, client model.ClientObject) {
+	// **ตรวจสอบสิทธิ์การส่งข้อความก่อน**
+	canSend, err := h.roomService.CanUserSendMessage(context.Background(), client.RoomID, client.UserID.Hex())
+	if err != nil || !canSend {
+		client.Conn.WriteMessage(websocket.TextMessage, []byte("You cannot send messages in this room (read-only or restricted)"))
+		return
+	}
+
 	// Parse mention command: "/mention @username1 @username2 Hello everyone!"
 	parts := strings.SplitN(messageText, " ", 2)
 	if len(parts) < 2 {
@@ -427,4 +505,59 @@ func (h *WebSocketHandler) handleMentionMessage(messageText string, client model
 	if _, err := h.mentionService.SendMentionMessage(context.Background(), client.UserID, client.RoomID, message); err != nil {
 		log.Printf("[ERROR] Failed to send mention message: %v", err)
 	}
+}
+
+// **NEW: handleUnsendMessage processes unsend message commands**
+func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.ClientObject) {
+	// Parse unsend command: /unsend messageID
+	parts := strings.SplitN(messageText, " ", 2)
+	if len(parts) < 2 {
+		log.Printf("[WS] Invalid unsend format from user %s", client.UserID.Hex())
+		return
+	}
+
+	messageID := parts[1]
+
+	log.Printf("[WS] User %s wants to unsend message %s", client.UserID.Hex(), messageID)
+
+	// Check moderation permissions first
+	if h.moderationService.IsUserBanned(context.Background(), client.UserID, client.RoomID) {
+		log.Printf("[WS] Banned user %s tried to unsend message in room %s", client.UserID.Hex(), client.RoomID.Hex())
+		return
+	}
+
+	if h.moderationService.IsUserMuted(context.Background(), client.UserID, client.RoomID) {
+		log.Printf("[WS] Muted user %s tried to unsend message in room %s", client.UserID.Hex(), client.RoomID.Hex())
+		return
+	}
+
+	// Convert messageID to ObjectID
+	messageObjID, err := primitive.ObjectIDFromHex(messageID)
+	if err != nil {
+		log.Printf("[WS] Invalid message ID for unsend: %s", messageID)
+		return
+	}
+
+	// Call unsend service
+	if err := h.chatService.UnsendMessage(context.Background(), messageObjID, client.UserID); err != nil {
+		log.Printf("[WS] Failed to unsend message %s by user %s: %v", messageID, client.UserID.Hex(), err)
+		
+		// Send error message to user
+		errorEvent := model.Event{
+			Type: "error",
+			Payload: model.ChatNoticePayload{
+				Room: model.RoomInfo{ID: client.RoomID.Hex()},
+				Message: fmt.Sprintf("Failed to unsend message: %s", err.Error()),
+				Timestamp: time.Now(),
+			},
+			Timestamp: time.Now(),
+		}
+		
+		if eventData, err := json.Marshal(errorEvent); err == nil {
+			client.Conn.WriteMessage(websocket.TextMessage, eventData)
+		}
+		return
+	}
+
+	log.Printf("[WS] Successfully unsent message %s by user %s", messageID, client.UserID.Hex())
 } 

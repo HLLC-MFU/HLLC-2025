@@ -75,6 +75,20 @@ func IsMongoID(field interface{}, fieldName string) error {
 	return nil
 }
 
+// IsValidRoomType validates that a field is a valid room type
+func IsValidRoomType(field interface{}, fieldName string) error {
+	switch v := field.(type) {
+	case string:
+		if v != "normal" && v != "readonly" {
+			return &ValidationError{Field: fieldName, Message: "must be either 'normal' or 'readonly'"}
+		}
+	default:
+		return &ValidationError{Field: fieldName, Message: "must be a string"}
+	}
+
+	return nil
+}
+
 // ValidateStruct validates a struct using field tags
 func ValidateStruct(s interface{}) error {
 	value := reflect.ValueOf(s)
@@ -107,6 +121,8 @@ func ValidateStruct(s interface{}) error {
 				err = IsNotEmpty(field.Interface(), fieldName)
 			case "mongoId":
 				err = IsMongoID(field.Interface(), fieldName)
+			case "roomType":
+				err = IsValidRoomType(field.Interface(), fieldName)
 			}
 
 			if err != nil {

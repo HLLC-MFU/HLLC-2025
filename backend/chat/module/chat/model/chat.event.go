@@ -16,6 +16,7 @@ const (
     EventTypeMention    = "mention"
     EventTypeMentionNotice = "mention_notice"
     EventTypeEvoucher   = "evoucher"
+    EventTypeUnsendMessage = "unsend_message" // **NEW: Unsend message event**
     EventTypeModerationBan   = "moderation_ban"
     EventTypeModerationMute  = "moderation_mute"
     EventTypeModerationKick  = "moderation_kick"
@@ -30,6 +31,7 @@ const (
     MessageTypeSticker = "sticker"
     MessageTypeMention = "mention"
     MessageTypeEvoucher = "evoucher"
+    MessageTypeUnsend  = "unsend" // **NEW: Unsend message type**
     MessageTypeModerationBan   = "moderation_ban"
     MessageTypeModerationMute  = "moderation_mute"
     MessageTypeModerationKick  = "moderation_kick"
@@ -163,5 +165,14 @@ type (
 		EndTime       *time.Time `json:"endTime,omitempty"` // เวลาสิ้นสุด (ถ้าเป็น temporary)
 		Restriction   string    `json:"restriction,omitempty"` // สำหรับ mute: "can_view" หรือ "cannot_view"
 		Message       MessageInfo `json:"message"`     // Message ที่เก็บใน database
+	}
+
+	// **NEW: Unsend Message Payload**
+	ChatUnsendPayload struct {
+		Room        RoomInfo    `json:"room"`
+		User        UserInfo    `json:"user"`        // User ที่ unsend ข้อความ
+		MessageID   string      `json:"messageId"`   // ID ของข้อความที่ถูก unsend
+		MessageType string      `json:"messageType"` // ประเภทข้อความที่ถูก unsend
+		Timestamp   time.Time   `json:"timestamp"`
 	}
 )

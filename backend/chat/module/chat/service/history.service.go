@@ -53,12 +53,12 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 		return nil, fmt.Errorf("invalid room ID: %w", err)
 	}
 
-	// Query database with populated user data
+	// Query database with populated user data - เรียงจากใหม่สุดไปเก่าสุด
 	opts := queries.QueryOptions{
 		Filter: map[string]interface{}{
 			"room_id": roomObjID,
 		},
-		Sort:  "-timestamp",
+		Sort:  "-timestamp", // ใหม่สุดก่อน (descending order)
 		Limit: int(limit),
 	}
 
@@ -95,6 +95,13 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 		enrichedMessages[i] = enriched
 	}
 
+	// Log sorting verification
+	if len(enrichedMessages) > 0 {
+		log.Printf("[HistoryService] Database sort verification - First: %v, Last: %v", 
+			enrichedMessages[0].ChatMessage.Timestamp, 
+			enrichedMessages[len(enrichedMessages)-1].ChatMessage.Timestamp)
+	}
+
 	// Cache the enriched messages
 	for _, enriched := range enrichedMessages {
 		if err := h.cache.SaveMessage(ctx, roomID, &enriched); err != nil {
@@ -102,7 +109,7 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 		}
 	}
 
-	log.Printf("[HistoryService] Successfully retrieved %d messages from database for room %s", len(enrichedMessages), roomID)
+	log.Printf("[HistoryService] Successfully retrieved %d messages from database for room %s (newest first)", len(enrichedMessages), roomID)
 	return enrichedMessages, nil
 }
 

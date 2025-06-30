@@ -46,6 +46,7 @@ func NewRoomController(app *fiber.App, service *service.RoomService) *RoomContro
 	controller.Post("/", controller.CreateRoom)
 	controller.Get("/:id", controller.GetRoomById)
 	// controller.Put("/:id", controller.UpdateRoom)
+	controller.Patch("/:id/type", controller.UpdateRoomType) // เปลี่ยน room type
 	controller.Delete("/:id", controller.DeleteRoom)
 	controller.Post("/:id/join", controller.JoinRoom)
 	controller.Post("/:id/leave", controller.LeaveRoom)
@@ -226,5 +227,65 @@ func (c *RoomController) LeaveRoom(ctx *fiber.Ctx) error {
 			"roomId": roomID,
 			"userId": leaveDto.UserID,
 		},
+	})
+}
+
+// UpdateRoomType เปลี่ยนประเภทของห้อง (normal/readonly)
+func (c *RoomController) UpdateRoomType(ctx *fiber.Ctx) error {
+	roomID := ctx.Params("id")
+	
+	type UpdateRoomTypeDto struct {
+		Type string `json:"type" validate:"roomType"`
+	}
+	
+	var updateDto UpdateRoomTypeDto
+	if err := ctx.BodyParser(&updateDto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid request body",
+		})
+	}
+
+	// Validate room type
+	if err := validator.ValidateStruct(&updateDto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": err.Error(),
+		})
+	}
+
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid room ID",
+		})
+	}
+
+	// Get existing room
+	room, err := c.service.GetRoomById(ctx.Context(), roomObjID)
+	if err != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "Room not found",
+		})
+	}
+
+	// Update room type
+	room.Type = updateDto.Type
+
+	// Update room in database
+	updatedRoom, err := c.service.UpdateRoom(ctx.Context(), roomID, room)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to update room type",
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "Room type updated successfully",
+		"data": updatedRoom,
 	})
 }
