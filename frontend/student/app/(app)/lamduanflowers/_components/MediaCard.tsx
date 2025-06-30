@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import { WebView } from 'react-native-webview';
 import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import { TutorialModal } from './TutorialModal';
+import { BlurView } from 'expo-blur';
 
 export function MediaCard() {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -37,9 +38,11 @@ export function MediaCard() {
         <Text>No Video Found</Text>
       )}
 
-      <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(true)}>
-        <Text>Tutorial Modal</Text>
-      </TouchableOpacity>
+      <BlurView intensity={40} tint="light" style={styles.modalButton}>
+        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.modalButtonInner}>
+          <Text style={styles.modalButtonText}>Lamduan Tutorial</Text>
+        </TouchableOpacity>
+      </BlurView>
 
       <TutorialModal
         isVisible={isModalVisible}
@@ -63,9 +66,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   modalButton: {
-    backgroundColor: '#fff',
-    paddingVertical: 6,
-    paddingHorizontal: 16,
     borderRadius: 999,
+    overflow: 'hidden',
+    alignSelf: 'center',
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  modalButtonInner: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    color: '#fff',
   },
 });

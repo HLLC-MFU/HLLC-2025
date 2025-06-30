@@ -19,16 +19,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 12,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    borderWidth: 1,
   },
   bannerImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 12,
+    borderRadius: 20,
     resizeMode: 'cover',
   },
 });

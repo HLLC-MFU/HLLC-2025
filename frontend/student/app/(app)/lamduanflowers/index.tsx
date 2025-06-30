@@ -8,16 +8,52 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Platform,
+  Image,
+  Alert,
+  Dimensions,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { BlurView } from 'expo-blur';
 
 import { ConfirmModal } from './_components/ConfirmModal';
 import { BannerImage } from './_components/BannerImage';
 import { MediaCard } from './_components/MediaCard';
 
+const screenWidth = Dimensions.get('window').width;
+const horizontalPadding = 40;
+const maxImageWidth = screenWidth - horizontalPadding;
+const maxImageHeight = 400;
+
 export default function LamduanOrigamiPage() {
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
   const [username, setUsername] = useState('Waritpon');
+
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
+  const [message, setMessage] = useState('');
+
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Denied', 'Please allow access to your photo library.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      setImageUri(uri);
+
+      Image.getSize(uri, (width, height) => {
+        setImageSize({ width, height });
+      });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -25,35 +61,52 @@ export default function LamduanOrigamiPage() {
         contentContainerStyle={[styles.container, { paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
         <BannerImage />
 
-        <View style={styles.card}>
+        <BlurView intensity={40} tint="light" style={styles.card}>
           <Text style={styles.cardTitle}>Lamduan Origami</Text>
           <Text style={styles.cardText}>
             Enhance your knowledge of the university through the origami flower. Additionally,
             immerse yourself in instructional origami videos that showcase the important information
             about the university.
           </Text>
-
           <MediaCard />
-        </View>
+        </BlurView>
 
-        <View style={styles.formBox}>
-          <View style={styles.uploadBox}>
-            <Text>Upload Picture</Text>
-          </View>
+        <BlurView intensity={40} tint="light" style={styles.formBox}>
+          <TouchableOpacity onPress={pickImage}>
+            {imageUri && imageSize ? (
+              <Image
+                source={{ uri: imageUri }}
+                style={{
+                  width: maxImageWidth,
+                  height: Math.min(
+                    (imageSize.height / imageSize.width) * maxImageWidth,
+                    maxImageHeight
+                  ),
+                  resizeMode: 'contain',
+                  borderRadius: 12,
+                  marginBottom: 12,
+                  alignSelf: 'center',
+                }}
+              />
+            ) : (
+              <View style={styles.uploadPlaceholder}>
+                <Text style={styles.uploadText}>Upload Picture</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
           <TextInput
             placeholder="Type message..."
-            placeholderTextColor="#000"
+            placeholderTextColor="#fff"
             style={styles.input}
+            value={message}
+            onChangeText={setMessage}
           />
 
           <TouchableOpacity
@@ -62,12 +115,14 @@ export default function LamduanOrigamiPage() {
           >
             <Text>Submit</Text>
           </TouchableOpacity>
-        </View>
+        </BlurView>
 
         <ConfirmModal
           isVisible={isConfirmModalVisible}
           onCancel={() => setConfirmModalVisible(false)}
-          onConfirm={() => setConfirmModalVisible(false)}
+          onConfirm={() => {
+            setConfirmModalVisible(false);
+          }}
           username={username}
         />
       </ScrollView>
@@ -99,41 +154,45 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 500,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
+    overflow: 'hidden',
   },
   cardTitle: {
     fontWeight: 'bold',
     fontSize: 16,
     marginBottom: 8,
+    color: '#fff',
   },
   cardText: {
     fontSize: 13,
-    color: '#000',
+    color: '#fff',
     marginBottom: 12,
   },
   formBox: {
     width: '100%',
     maxWidth: 500,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
-    borderWidth: 1,
     marginBottom: 20,
+    overflow: 'hidden',
   },
-  uploadBox: {
-    height: 100,
-    backgroundColor: '#ddd',
-    borderRadius: 12,
+  uploadPlaceholder: {
+    backgroundColor: '#eee',
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    height: 180,
     marginBottom: 12,
+    width: 300,
+    alignSelf: 'center',
+  },
+  uploadText: {
+    fontSize: 16,
+    color: '#888',
   },
   input: {
-    borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -142,7 +201,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     alignSelf: 'flex-end',
-    backgroundColor: '#ddd',
+    backgroundColor: '#99c7fb',
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 999,
