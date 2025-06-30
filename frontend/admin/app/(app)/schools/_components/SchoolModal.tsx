@@ -1,7 +1,7 @@
 "use client";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Textarea } from "@heroui/react";
-import { useState, useEffect } from "react";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Textarea, Form } from "@heroui/react";
+import { useState, useEffect, FormEvent } from "react";
 import type { School } from "@/types/school";
 
 interface SchoolModalProps {
@@ -33,15 +33,21 @@ export function SchoolModal({
       setDetailTh(school.detail?.th || "");
       setAcronym(school.acronym || "");
     } else {
-      setNameEn("");
-      setNameTh("");
-      setDetailEn("");
-      setDetailTh("");
-      setAcronym("");
+      resetField()
     }
   }, [school]);
 
-  const handleSubmit = () => {
+  const resetField = () => {
+    setNameEn("");
+    setNameTh("");
+    setDetailEn("");
+    setDetailTh("");
+    setAcronym("");
+  }
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
     if (!nameEn.trim() || !nameTh.trim()) return;
 
     const updatedSchool: Partial<School> = {
@@ -56,60 +62,70 @@ export function SchoolModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-      <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">
-          {mode === "add" ? "Add New School" : "Edit School"}
-        </ModalHeader>
-        <ModalBody>
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <Modal isOpen={isOpen} onClose={() => { onClose(); resetField(); }} size="2xl">
+      <Form
+        className="w-full"
+        onSubmit={(e) => handleSubmit(e)}
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            {mode === "add" ? "Add New School" : "Edit School"}
+          </ModalHeader>
+          <ModalBody>
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  isRequired
+                  label="School Name (English)"
+                  placeholder="Enter school name in English"
+                  value={nameEn}
+                  onValueChange={setNameEn}
+                />
+                <Input
+                  isRequired
+                  label="School Name (Thai)"
+                  placeholder="Enter school name in Thai"
+                  value={nameTh}
+                  onValueChange={setNameTh}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Textarea
+                  isRequired
+                  label="Description (English)"
+                  placeholder="Enter description in English"
+                  value={detailEn}
+                  onValueChange={setDetailEn}
+                  minRows={4}
+                />
+                <Textarea
+                  isRequired
+                  label="Description (Thai)"
+                  placeholder="Enter description in Thai"
+                  value={detailTh}
+                  onValueChange={setDetailTh}
+                  minRows={4}
+                />
+              </div>
               <Input
-                label="School Name (English)"
-                placeholder="Enter school name in English"
-                value={nameEn}
-                onValueChange={setNameEn}
-              />
-              <Input
-                label="School Name (Thai)"
-                placeholder="Enter school name in Thai"
-                value={nameTh}
-                onValueChange={setNameTh}
+                isRequired
+                label="Acronym"
+                placeholder="Enter school acronym"
+                value={acronym}
+                onValueChange={setAcronym}
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Textarea
-                label="Description (English)"
-                placeholder="Enter description in English"
-                value={detailEn}
-                onValueChange={setDetailEn}
-                minRows={4}
-              />
-              <Textarea
-                label="Description (Thai)"
-                placeholder="Enter description in Thai"
-                value={detailTh}
-                onValueChange={setDetailTh}
-                minRows={4}
-              />
-            </div>
-            <Input
-              label="Acronym"
-              placeholder="Enter school acronym"
-              value={acronym}
-              onValueChange={setAcronym}
-            />
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="danger" variant="light" onPress={onClose}>
-            Cancel
-          </Button>
-          <Button color="primary" onPress={handleSubmit}>
-            {mode === "add" ? "Add" : "Save"}
-          </Button>
-        </ModalFooter>
-      </ModalContent>
+          </ModalBody>
+          <ModalFooter>
+            <Button color="danger" variant="light" onPress={() => { onClose(); resetField(); }}>
+              Cancel
+            </Button>
+            <Button color="primary" type="submit">
+              {mode === "add" ? "Add" : "Save"}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Form>
     </Modal>
   );
 }

@@ -20,6 +20,7 @@ import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RoleDocument } from '../role/schemas/role.schema';
 import { decryptItem } from './utils/crypto';
+import { RemovePasswordDto } from './dto/remove-password.dto';
 
 type Permission = string;
 
@@ -240,7 +241,9 @@ export class AuthService {
     };
   }
 
-  async removePassword(username: string) {
+  async removePassword(removePasswordDto: RemovePasswordDto) {
+    const { username } = removePasswordDto;
+
     const user = await this.userModel.findOne({ username }).select('+password');
     if (!user) {
       throw new NotFoundException('User not found');
