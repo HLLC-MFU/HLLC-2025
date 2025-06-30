@@ -12,12 +12,12 @@ import { Dispatch, SetStateAction } from 'react';
 interface TopContentProps {
   search: string;
   setSearch: Dispatch<SetStateAction<string>>;
-  selectedTypes: string[];
-  setSelectedTypes: Dispatch<SetStateAction<string[]>>;
+  types: string[];
+  setTypes: Dispatch<SetStateAction<string[]>>;
   uniqueScopes: string[];
 }
 
-export default function TopContent({search,setSearch,selectedTypes,setSelectedTypes,uniqueScopes}: TopContentProps) {
+export default function TopContent({search,setSearch,types,setTypes,uniqueScopes}: TopContentProps) {
   return (
     <>
       <div className="flex justify-between gap-3 items-end">
@@ -47,11 +47,11 @@ export default function TopContent({search,setSearch,selectedTypes,setSelectedTy
             <DropdownMenu
               aria-label="Select Types"
               closeOnSelect={false}
-              selectedKeys={new Set(selectedTypes)}
+              selectedKeys={new Set(types)}
               selectionMode="multiple"
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys) as string[];
-                setSelectedTypes(selected);
+                setTypes(selected);
               }}
               className="max-h-48 overflow-y-auto"
             >
