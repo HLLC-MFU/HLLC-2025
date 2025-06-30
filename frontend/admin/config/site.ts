@@ -12,6 +12,7 @@ import {
   LogOutIcon,
   Flower,
   CircleDollarSign,
+  Footprints
 } from "lucide-react";
 
 import type { NavSection } from "@/types/nav";
@@ -40,6 +41,7 @@ export const siteConfig: {
         { label: "Activities", href: "/activities", icon: University, permission: "activities:read" },
         { label: "Checkin", href: "/checkin", icon: CircleCheckBig, permission: "checkin:read" },
         { label: "Reports", href: "/reports", icon: ShieldAlert, permission: "reports:read" },
+        { label: "Stepconters", href: "/step-conters", icon: Footprints , permission: "Stepconters:read"}, // ไม่มีขื่อแบบทางการ
       ],
     },
     {

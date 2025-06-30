@@ -4,75 +4,76 @@ import { CoinCollection, CoinCollectionDocument } from '../schema/coin-collectio
 import { Model, Types } from 'mongoose';
 import { Landmark, LandmarkDocument } from '../schema/landmark.schema';
 import { queryAll, queryDeleteOne, queryFindOne } from 'src/pkg/helper/query.util';
-import { CollectCoinDto } from '../dto/coin-collections/coin-collectoin.dto';
+import { CreateCoinCollectionDto } from '../dto/coin-collections/create-coin-collection.dto';
+import { UserDocument } from 'src/module/users/schemas/user.schema';
+import { CoinCollectionsHelper } from '../utils/coin-collections.helper';
+import { EvoucherCode, EvoucherCodeDocument } from 'src/module/evouchers/schemas/evoucher-code.schema';
+import { Evoucher, EvoucherDocument } from 'src/module/evouchers/schemas/evoucher.schema';
+import { EvoucherCodesService } from 'src/module/evouchers/services/evoucher-codes.service';
 
 @Injectable()
 export class CoinCollectionsService {
   constructor(
     @InjectModel(CoinCollection.name) private coinCollectionModel: Model<CoinCollectionDocument>,
-    @InjectModel(Landmark.name) private landmarkModel: Model<LandmarkDocument>
+    @InjectModel(Landmark.name) private landmarkModel: Model<LandmarkDocument>,
+    @InjectModel(EvoucherCode.name) private evoucherCodeModel: Model<EvoucherCodeDocument>,
+    @InjectModel(Evoucher.name) private evoucherModel: Model<EvoucherDocument>,
+    private evoucherCodeService: EvoucherCodesService,
+    private coinCollectionsHelper: CoinCollectionsHelper,
   ) { }
 
-  async collectCoin(collectCoinDto: CollectCoinDto) {
-    const landmarkObjectId = new Types.ObjectId(collectCoinDto.landmark);
+  async collectCoin(createCoinCollectionDto: CreateCoinCollectionDto) {
+    const landmarkObjectId = new Types.ObjectId(createCoinCollectionDto.landmark);
+    const userObjectId = new Types.ObjectId(createCoinCollectionDto.user);
 
-    const landmark = await this.landmarkModel.findById(landmarkObjectId)
-    if (!landmark) throw new NotFoundException('Landmark not found');
-
-    const distance = calculateDistance(
-      collectCoinDto.userLat,
-      collectCoinDto.userLong,
+    const landmark = await this.landmarkModel.findById(landmarkObjectId);
+    this.coinCollectionsHelper.checkLandmarkExists(landmark);
+    this.coinCollectionsHelper.checkDistance(
+      createCoinCollectionDto.userLat,
+      createCoinCollectionDto.userLong,
       landmark.location.latitude,
-      landmark.location.longitude
+      landmark.location.longitude,
+      landmark.limitDistance,
     );
-    if (distance > 50)
-      throw new BadRequestException('You are too far from the landmark');
 
     const cooldownCheck = await this.coinCollectionModel.find({
       landmarks: {
         $elemMatch: {
           landmark: landmarkObjectId,
-          collectedAt: { $gte: new Date(Date.now() - landmark.cooldown) }
-        }
-      }
+          collectedAt: { $gte: new Date(Date.now() - landmark.cooldown) },
+        },
+      },
     });
+    this.coinCollectionsHelper.checkCooldown(cooldownCheck);
 
-    if (cooldownCheck.length > 0)
-      throw new BadRequestException('Landmark is in cooldown');
-
-    const userObjectId = new Types.ObjectId(collectCoinDto.user);
-    const userCollection = await this.coinCollectionModel.findOne({ user: userObjectId });
-
-    if (userCollection?.landmarks.some(item => item.landmark.equals(landmarkObjectId)))
-      throw new BadRequestException('Already collected this landmark');
-
-    if ((userCollection?.landmarks?.length ?? 0) >= 14)
-      throw new BadRequestException('Maximum coins collected');
-
-    if (landmark.coinAmount <= 0) {
-      throw new BadRequestException('No coins available for this landmark');
-    }
+    const userCollection = await this.coinCollectionModel.findOne({
+      user: userObjectId,
+    });
+    this.coinCollectionsHelper.checkAlreadyCollected(userCollection, landmarkObjectId);
 
     if (!userCollection) {
-      await this.coinCollectionModel.create({
-        user: userObjectId,
-        landmarks: [{ landmark: landmarkObjectId, collectedAt: new Date() }]
-      });
+      const newCollection = this.coinCollectionsHelper.buildNewCoinCollection(
+        userObjectId,
+        landmarkObjectId,
+      );
+      await this.coinCollectionModel.create(newCollection);
     } else {
-      userCollection.landmarks.push({
-        landmark: landmarkObjectId,
-        collectedAt: new Date()
-      });
+      userCollection.landmarks.push(
+        this.coinCollectionsHelper.buildCollectedLandmark(landmarkObjectId),
+      );
       await userCollection.save();
     }
 
-    await this.landmarkModel.findByIdAndUpdate(
-      landmarkObjectId,
-      { $inc: { coinAmount: -1 } }
-    );
+    const droppedEvoucher = await this.dropEvoucherRate(landmarkObjectId, userObjectId);
 
-    return { message: 'Coin collected successfully' };
+    return {
+      message: droppedEvoucher
+        ? `Coin collected successfully, and you got an evoucher: ${droppedEvoucher.code}`
+        : 'Coin collected successfully',
+      evoucher: droppedEvoucher ?? null,
+    };
   }
+
 
   async findAll(query: Record<string, string>) {
     return await queryAll<CoinCollection>({
@@ -101,118 +102,234 @@ export class CoinCollectionsService {
     }
   }
 
-  async getLeaderboard(limit = 5) {
-    const leaderboard = await this.coinCollectionModel.aggregate([
-      {
-        $project: {
-          user: 1,
-          coinCount: { $size: '$landmarks' },
-          latestCollectedAt: { $max: '$landmarks.collectedAt' }
-        }
-      },
-      { $sort: { coinCount: -1, latestCollectedAt: 1 } },
-      { $limit: limit },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'user',
-          foreignField: '_id',
-          as: 'userInfo'
-        }
-      },
-      { $unwind: '$userInfo' },
-      {
-        $project: {
-          userId: '$user',
-          username: '$userInfo.username',
-          coinCount: 1
-        }
-      }
-    ]);
-    const leaderboardWithRank = leaderboard.map((item, index) => ({
+  async getLeaderboard(query: Record<string, string>) {
+    const limit = Number(query.limit) || 5;
+    const collections = await this.coinCollectionModel.find({})
+      .populate({
+        path: 'user',
+        select: ['username', 'name'],
+      })
+      .populate({
+        path: 'landmarks.landmark',
+        model: 'Landmark',
+        select: 'type',
+      })
+      .lean();
+
+    const leaderboard = collections.map(c => {
+      const normalLandmarks = c.landmarks.filter(l =>
+        (l.landmark as any)?.type === 'normal'
+      );
+
+      const latestCollectedAt = c.landmarks.reduce((latest, curr) => {
+        return !latest || new Date(curr.collectedAt) > latest
+          ? new Date(curr.collectedAt)
+          : latest;
+      }, null as Date | null);
+
+      const user = c.user as any;
+
+      return {
+        userId: user._id,
+        username: user.username,
+        name: user.name,
+        coinCount: normalLandmarks.length,
+        latestCollectedAt,
+      };
+    });
+
+    leaderboard.sort((a, b) => {
+      if (b.coinCount !== a.coinCount) return b.coinCount - a.coinCount;
+      const aTime = a.latestCollectedAt?.getTime() ?? 0;
+      const bTime = b.latestCollectedAt?.getTime() ?? 0;
+      return aTime - bTime;
+    });
+
+    const leaderboardWithRank = leaderboard.slice(0, limit).map((entry, index) => ({
+      ...entry,
       rank: index + 1,
-      ...item
     }));
 
-
     return {
-      message: 'Leaderboard fetched successfully',
+      message: 'Leaderboard fetched successfully (NORMAL landmarks only)',
       data: leaderboardWithRank,
     };
   }
 
   async getUserRank(userId: string) {
-    const userObjectId = new Types.ObjectId(userId);
+    // ดึง coin collection ทั้งหมด พร้อม populate landmark และ user
+    const allCollections = await this.coinCollectionModel.find({})
+      .populate([
+        { path: 'landmarks.landmark', model: 'Landmark', select: 'type', },
+        { path: 'user', model: 'User', select: 'username name', },
+      ]).lean();
+    // สร้าง leaderboard ขึ้นมาจาก type === 'normal'
+    const leaderboard = allCollections.map(c => {
+      const normalLandmarks = c.landmarks.filter(l => (l.landmark as any)?.type === 'normal');
 
-    const userData = await this.coinCollectionModel.aggregate([
-      { $match: { user: userObjectId } },
-      {
-        $project: {
-          coinCount: { $size: "$landmarks" },
-          latestCollectedAt: { $max: "$landmarks.collectedAt" }
-        }
-      }
-    ]);
+      const latestCollectedAt = c.landmarks.reduce((latest, curr) => {
+        return !latest || new Date(curr.collectedAt) > latest ? new Date(curr.collectedAt) : latest;
+      }, null as Date | null);
 
-    if (userData.length === 0) {
-      throw new NotFoundException("User not found in coin collection");
-    }
+      const user = c.user as any as UserDocument;
 
-    const myCoinCount = userData[0].coinCount;
-    const myLatestCollectedAt = userData[0].latestCollectedAt;
+      return {
+        userId: user._id,
+        username: user.username,
+        name: user.name,
+        coinCount: normalLandmarks.length,
+        latestCollectedAt,
+      };
+    });
 
-    const higherRankCount = await this.coinCollectionModel.aggregate([
-      {
-        $project: {
-          coinCount: { $size: "$landmarks" },
-          latestCollectedAt: { $max: "$landmarks.collectedAt" }
-        }
-      },
-      {
-        $match: {
-          $or: [
-            { coinCount: { $gt: myCoinCount } },
-            {
-              coinCount: myCoinCount,
-              latestCollectedAt: { $lt: myLatestCollectedAt }
-            }
-          ]
-        }
-      },
-      { $count: "rankBeforeMe" }
-    ]);
+    // เรียงตาม coinCount และ collectedAt (เร็วที่สุดอยู่บน)
+    leaderboard.sort((a, b) => {
+      if (b.coinCount !== a.coinCount) return b.coinCount - a.coinCount;
+      const aTime = a.latestCollectedAt?.getTime() ?? 0;
+      const bTime = b.latestCollectedAt?.getTime() ?? 0;
+      return aTime - bTime;
+    });
 
-    const myRank = (higherRankCount[0]?.rankBeforeMe ?? 0) + 1;
+    // หาอันดับของ user
+    const userIndex = leaderboard.findIndex(entry => entry.userId.toString() === userId);
 
+    if (userIndex === -1) { throw new NotFoundException('User not found in coin collection'); }
+    // Return rank and user info
     return {
-      userId,
-      coinCount: myCoinCount,
-      rank: myRank
+      username: leaderboard[userIndex].username,
+      name: leaderboard[userIndex].name,
+      coinCount: leaderboard[userIndex].coinCount,
+      rank: userIndex + 1,
     };
   }
 
-}
+  async getSponsorRewardUsers(landmarkId: string) {
+    const collections = await this.coinCollectionModel.find({})
+      .populate({
+        path: 'user',
+        select: ['username', 'name'],
+      })
+      .populate({
+        path: 'landmarks.landmark',
+        model: 'Landmark',
+        select: 'type name',
+      }).lean();
 
-function calculateDistance(
-  userLat: number,
-  userLong: number,
-  latitude: number,
-  longitude: number
-): number {
-  const toRad = (value: number) => (value * Math.PI) / 180;
-  const R = 6371000; // Earth's radius in meters
+    const listUserReward = collections.map(c => {
+      const sponsorLandmarks = c.landmarks.filter(l => {
+        const lm = l.landmark as any;
+        return lm.type === 'sponsor' && lm._id.toString() === landmarkId;
+      });
 
-  const dLat = toRad(latitude - userLat);
-  const dLon = toRad(longitude - userLong);
+      const latestCollectedAt = sponsorLandmarks.reduce((latest, curr) => {
+        return !latest || new Date(curr.collectedAt) > latest
+          ? new Date(curr.collectedAt)
+          : latest;
+      }, null as Date | null);
 
-  const lat1 = toRad(userLat);
-  const lat2 = toRad(latitude);
+      const user = c.user as any;
 
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+      return {
+        username: user.username,
+        name: user.name,
+        coinCount: sponsorLandmarks.length,
+        latestCollectedAt,
+        landmarks: sponsorLandmarks.map(l => ({
+          landmark: l.landmark,
+          collectedAt: l.collectedAt,
+        })),
+      };
+    }).filter(u => u.coinCount > 0);
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const ranked = listUserReward.sort((a, b) => {
+      const aTime = a.latestCollectedAt?.getTime() ?? 0;
+      const bTime = b.latestCollectedAt?.getTime() ?? 0;
+      return aTime - bTime;
+    });
 
-  return R * c;
+    return ranked.map((u, index) => ({
+      ...u,
+      rank: index + 1,
+    }));
+  }
+
+  async dropEvoucherRate(landmarkId: Types.ObjectId, userId: Types.ObjectId) {
+    const collectedCount = await this.coinCollectionModel.countDocuments({
+      landmarks: { $elemMatch: { landmark: landmarkId } }
+    });
+    if (collectedCount === 0) return null;
+
+    //ใช้โอกาสแจกตรง ๆ เช่น 1 ใน 27
+    const dropChance = 1 / 27;
+    if (Math.random() >= dropChance) {
+      return null; // ไม่แจกครั้งนี้
+    }
+
+    // หา user เคยได้ landmark + รอบนี้แล้วหรือยัง
+    const alreadyClaimed = await this.evoucherCodeModel.findOne({
+      user: userId,
+      'metadata.source': 'auto-drop',
+      'metadata.landmark': landmarkId.toString(),
+      'metadata.round': collectedCount,
+    });
+    if (alreadyClaimed) return;
+
+    // หา evoucher ที่ยังไม่เคยได้
+    const now = new Date();
+    const exclude = await this.evoucherCodeModel.distinct('evoucher', { user: userId });
+    const evoucher = await this.evoucherModel.findOne({
+      startAt: { $lte: now },
+      endAt: { $gte: now },
+      _id: { $nin: exclude },
+    });
+    if (!evoucher) throw new BadRequestException('No new evoucher available for you');
+
+    // claim code
+    const claimed = await this.forceClaimEvoucherCode(
+      evoucher._id.toString(),
+      userId.toString(),
+    );
+
+    await this.evoucherCodeModel.updateOne(
+      { code: claimed.code },
+      {
+        $set: {
+          'metadata.source': 'auto-drop',
+          'metadata.landmark': landmarkId.toString(),
+        },
+      },
+    );
+
+    return claimed;
+  }
+
+  async forceClaimEvoucherCode(evoucherId: string, userId: string) {
+    const code = await this.evoucherCodeModel.findOneAndUpdate(
+      { isUsed: false, user: null, evoucher: new Types.ObjectId(evoucherId) },
+      { $set: { user: new Types.ObjectId(userId) } },
+      { sort: { createdAt: 1 }, new: true },
+    );
+
+    if (!code) {
+      throw new NotFoundException('No available evoucher codes to claim');
+    }
+
+    return {
+      message: 'Evoucher code claimed successfully',
+      code: code.code,
+    };
+  }
+
+  async myCoin(userId: string) {
+    const coin = await queryAll<CoinCollection>({
+      model: this.coinCollectionModel,
+      query: { user: userId },
+      populateFields: () => Promise.resolve([
+        { path: 'user' },
+        { path: 'landmarks.landmark' }
+      ])
+    })
+    return coin
+  }
+
 }

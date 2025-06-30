@@ -155,6 +155,21 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
+    const payload = {
+      sub: user._id.toString(),
+      username: user.username,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('JWT_EXPIRATION'),
+      }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      }),
+    ]);
+
     // Set password (will be hashed by pre-save hook)
     user.password = password;
 
@@ -167,7 +182,11 @@ export class AuthService {
 
     await user.save();
 
-    return { message: 'User registered successfully' };
+    return {
+      message: 'User registered successfully', tokens: {
+        accessToken, refreshToken
+      }
+    };
   }
 
   async refreshToken(oldRefreshToken: string) {

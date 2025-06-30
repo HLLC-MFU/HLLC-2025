@@ -10,11 +10,12 @@ import {
   Body,
 } from '@nestjs/common';
 import { EvouchersService } from '../services/evouchers.service';
-import { CreateEvoucherDto } from '../dto/create-evoucher.dto';
+import { AddEvoucherCodeByRoleDto, AddEvoucherCodeDto, CreateEvoucherDto } from '../dto/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/update-evoucher.dto';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
 import { EvoucherCodesService } from '../services/evoucher-codes.service';
+import { Types } from 'mongoose';
 
 @Controller('evouchers')
 export class EvouchersController {
@@ -56,7 +57,26 @@ export class EvouchersController {
   }
 
   @Post(':id/claim')
-  claim(@Param('id') id: string, @Body('user') userId: string) {
+  claim(
+    @Param('id') id: string,
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }
+  ) {
+    const userId = req.user._id.toString();
     return this.evoucherCodesService.claimEvoucherCode(id, userId);
+  }
+
+  @Post(':id/add')
+  addEvoucherCode(@Param('id') evoucherId: string, @Body() addEvoucherCodeDto: AddEvoucherCodeDto) {
+    const { userId } = addEvoucherCodeDto;
+    return this.evoucherCodesService.addEvoucherCode(userId, evoucherId);
+  }
+
+  @Post(':id/add-by-role')
+  addEvoucherCodeByRole(
+    @Param('id') evoucherId: string,
+    @Body() addEvoucherCodeByRoleDto: AddEvoucherCodeByRoleDto,
+  ) {
+    const { roleId } = addEvoucherCodeByRoleDto
+    return this.evoucherCodesService.addEvoucherCodeByRole(roleId, evoucherId);
   }
 }
