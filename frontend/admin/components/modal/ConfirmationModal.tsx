@@ -16,6 +16,7 @@ interface ConfirmationModalProps {
 	confirmText?: string;
 	confirmColor?: 'primary' | 'danger' | 'success' | 'warning' | 'secondary';
 	cancelText?: string;
+	cancelColor?: 'primary' | 'danger' | 'success' | 'warning' | 'secondary';
 }
 
 export function ConfirmationModal({
@@ -27,6 +28,7 @@ export function ConfirmationModal({
 	confirmText = 'Confirm',
 	confirmColor = 'primary',
 	cancelText = 'Cancel',
+	cancelColor = 'danger',
 }: ConfirmationModalProps) {
 	return (
 		<Modal isOpen={isOpen} onClose={onClose}>
@@ -36,7 +38,7 @@ export function ConfirmationModal({
 					<p>{body}</p>
 				</ModalBody>
 				<ModalFooter>
-					<Button color={confirmColor} variant="light" onPress={onClose}>
+					<Button color={cancelColor} variant="light" onPress={onClose}>
 						{cancelText}
 					</Button>
 					<Button color={confirmColor} onPress={onConfirm}>
