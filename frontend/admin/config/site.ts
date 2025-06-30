@@ -45,7 +45,7 @@ export const siteConfig: {
         { label: "Activities", href: "/activities", icon: University, permission: "activities:read" },
         { label: "Checkin", href: "/checkin", icon: CircleCheckBig, permission: "checkin:read" },
         { label: "Reports", href: "/reports", icon: ShieldAlert, permission: "reports:read" },
-        { label: "Stepconters", href: "/step-conters", icon: Footprints , permission: "Stepconters:read"}, // ไม่มีขื่อแบบทางการ
+        { label: "Step Conters", href: "/step-conters", icon: Footprints , permission: "Stepconters:read"}, 
       ],
     },
     {
@@ -57,6 +57,7 @@ export const siteConfig: {
         { label: "Campaign", href: "/campaigns", icon: Megaphone, permission: "campaigns:read" },
       ],
     },
+
     {
       section: "Lamduan",
       items: [

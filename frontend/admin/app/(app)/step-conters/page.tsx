@@ -18,7 +18,7 @@ export default function StepContersPage() {
   return (
     <>
       <PageHeader
-        title="StepConters"
+        title="Step Conters"
         description="View The Steps And LeaderBoard"
         icon={<Footprints />}
         right={
