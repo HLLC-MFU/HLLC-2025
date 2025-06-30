@@ -183,7 +183,7 @@ export class AuthService {
     await user.save();
 
     return {
-      message: 'User registered successfully', data: {
+      message: 'User registered successfully', tokens: {
         accessToken, refreshToken
       }
     };
