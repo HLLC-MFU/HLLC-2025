@@ -34,6 +34,7 @@ type ChatService struct {
 	Config      *config.Config
 	notificationService *NotificationService
 	historyService      *HistoryService
+	moderationService   *ModerationService
 }
 	
 func NewChatService(
@@ -69,7 +70,7 @@ func NewChatService(
 	hub := utils.NewHub()
 	emitter := utils.NewChatEventEmitter(hub, kafkaBus, redis, db)
 
-	return &ChatService{
+	chatService := &ChatService{
 		BaseService:  queries.NewBaseService[model.ChatMessage](collection),
 		cache:       utils.NewChatCacheService(redis),
 		hub:         hub,
@@ -83,6 +84,11 @@ func NewChatService(
 		notificationService: NewNotificationService(db, kafkaBus),
 		historyService:      NewHistoryService(db, utils.NewChatCacheService(redis)),
 	}
+
+	// สร้าง ModerationService หลังจาก ChatService เสร็จแล้ว (เพื่อหลีกเลี่ยง circular dependency)
+	chatService.moderationService = NewModerationService(db, chatService)
+	
+	return chatService
 }
 
 // Helper function to verify notification topic exists
@@ -183,6 +189,11 @@ func (s *ChatService) GetMessageReactions(ctx context.Context, roomID, messageID
 // GetNotificationService returns the notification service for admin operations
 func (s *ChatService) GetNotificationService() *NotificationService {
 	return s.notificationService
+}
+
+// GetModerationService returns the moderation service for admin operations
+func (s *ChatService) GetModerationService() *ModerationService {
+	return s.moderationService
 }
 
 // GetChatHistoryByRoom delegates to HistoryService

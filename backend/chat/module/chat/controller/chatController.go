@@ -59,6 +59,7 @@ func NewChatController(
 	chatService *chatService.ChatService,
 	roomService RoomService,
 	stickerService StickerService,
+	moderationService ModerationChatService,
 ) *ChatController {
 	controller := &ChatController{
 		BaseController: decorators.NewBaseController(app, "/chat"),
@@ -67,7 +68,7 @@ func NewChatController(
 		stickerService: stickerService,
 	}
 
-	controller.wsHandler = NewWebSocketHandler(chatService, chatService, chatService, roomService)
+	controller.wsHandler = NewWebSocketHandler(chatService, chatService, chatService, roomService, moderationService)
 
 	controller.setupRoutes()
 	return controller

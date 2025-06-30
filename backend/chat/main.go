@@ -158,8 +158,9 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	controller.NewUserController(app, userService)
 	roomController.NewRoomController(app, roomAndMemberService)
 	stickerController.NewStickerController(app, stickerService)
-	chatController.NewChatController(app, chatService, roomAndMemberService, stickerService)
+	chatController.NewChatController(app, chatService, roomAndMemberService, stickerService, chatService.GetModerationService())
 	chatController.NewEvoucherController(app, chatService, roomAndMemberService)
+	chatController.NewModerationController(app, chatService.GetModerationService())
 }
 
 // logRegisteredRoutes prints all registered routes in a formatted way

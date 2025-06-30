@@ -26,6 +26,9 @@ type (
 		EvoucherID   *string           `bson:"evoucher_id,omitempty" json:"evoucherId,omitempty"`
 		EvoucherInfo *EvoucherInfo     `bson:"evoucher_info,omitempty" json:"evoucherInfo,omitempty"`
 		
+		// **NEW: Moderation fields**
+		ModerationInfo *ModerationMessageInfo `bson:"moderation_info,omitempty" json:"moderationInfo,omitempty"`
+		
 		// Fields NOT stored in database, only for response aggregation
 		Reactions   []MessageReaction `bson:"-" json:"reactions,omitempty"`
 	}
@@ -52,5 +55,16 @@ type (
 		Title       string                 `bson:"title" json:"title"`
 		Description string                 `bson:"description" json:"description"`
 		ClaimURL    string                 `bson:"claim_url" json:"claimUrl"`
+	}
+
+	// **NEW: Moderation message information**
+	ModerationMessageInfo struct {
+		Action        string              `bson:"action" json:"action"`                // "ban", "mute", "kick", "unban", "unmute"
+		TargetUserID  primitive.ObjectID  `bson:"target_user_id" json:"targetUserId"` // User ที่ถูกลงโทษ
+		ModeratorID   primitive.ObjectID  `bson:"moderator_id" json:"moderatorId"`    // Admin ที่ทำการลงโทษ
+		Reason        string              `bson:"reason" json:"reason"`               // เหตุผล
+		Duration      string              `bson:"duration" json:"duration"`           // "temporary" หรือ "permanent"
+		EndTime       *time.Time          `bson:"end_time,omitempty" json:"endTime,omitempty"` // เวลาสิ้นสุด
+		Restriction   string              `bson:"restriction,omitempty" json:"restriction,omitempty"` // สำหรับ mute
 	}
 )

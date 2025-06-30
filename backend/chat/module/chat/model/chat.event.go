@@ -16,6 +16,11 @@ const (
     EventTypeMention    = "mention"
     EventTypeMentionNotice = "mention_notice"
     EventTypeEvoucher   = "evoucher"
+    EventTypeModerationBan   = "moderation_ban"
+    EventTypeModerationMute  = "moderation_mute"
+    EventTypeModerationKick  = "moderation_kick"
+    EventTypeModerationUnban = "moderation_unban"
+    EventTypeModerationUnmute = "moderation_unmute"
 )
 
 // Message Types - Content
@@ -25,6 +30,11 @@ const (
     MessageTypeSticker = "sticker"
     MessageTypeMention = "mention"
     MessageTypeEvoucher = "evoucher"
+    MessageTypeModerationBan   = "moderation_ban"
+    MessageTypeModerationMute  = "moderation_mute"
+    MessageTypeModerationKick  = "moderation_kick"
+    MessageTypeModerationUnban = "moderation_unban"
+    MessageTypeModerationUnmute = "moderation_unmute"
 )
 
 // Reaction Types - Action
@@ -140,5 +150,18 @@ type (
 		Room      RoomInfo  `json:"room"`
 		Message   string    `json:"message"`
 		Timestamp time.Time `json:"timestamp"`
+	}
+
+	// **NEW: Moderation Payloads**
+	ChatModerationPayload struct {
+		BasePayload
+		Action        string    `json:"action"`        // "ban", "mute", "kick", "unban", "unmute"
+		TargetUser    UserInfo  `json:"targetUser"`    // User ที่ถูกลงโทษ
+		Moderator     UserInfo  `json:"moderator"`     // Admin ที่ทำการลงโทษ
+		Reason        string    `json:"reason"`        // เหตุผล
+		Duration      string    `json:"duration"`      // "temporary" หรือ "permanent"
+		EndTime       *time.Time `json:"endTime,omitempty"` // เวลาสิ้นสุด (ถ้าเป็น temporary)
+		Restriction   string    `json:"restriction,omitempty"` // สำหรับ mute: "can_view" หรือ "cannot_view"
+		Message       MessageInfo `json:"message"`     // Message ที่เก็บใน database
 	}
 )

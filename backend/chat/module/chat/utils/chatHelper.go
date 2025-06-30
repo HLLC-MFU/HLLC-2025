@@ -328,6 +328,47 @@ func (h *Hub) GetActiveConnectionsCount(roomID string) int {
 	return connectionCount
 }
 
+// BroadcastToUser ส่งข้อความไปยัง user เฉพาะ (ทุกห้องที่ user นั้นอยู่)
+func (h *Hub) BroadcastToUser(targetUserID string, payload []byte) {
+	successCount := 0
+	failCount := 0
+	
+	log.Printf("[WS] Broadcasting to user %s across all rooms", targetUserID)
+	
+	// วนลูปทุก room เพื่อหา user
+	h.clients.Range(func(roomIDInterface, roomMapInterface interface{}) bool {
+		roomID, ok := roomIDInterface.(string)
+		if !ok {
+			return true
+		}
+		
+		roomMap := roomMapInterface.(*sync.Map)
+		
+		// ตรวจสอบว่า user อยู่ใน room นี้หรือไม่
+		if userConns, exists := roomMap.Load(targetUserID); exists {
+			log.Printf("[WS] Found user %s in room %s, sending message", targetUserID, roomID)
+			
+			// ส่งข้อความไปยังทุก connection ของ user ใน room นี้
+			userConns.(*sync.Map).Range(func(connID, conn interface{}) bool {
+				ws := conn.(*websocket.Conn)
+				if err := ws.WriteMessage(websocket.TextMessage, payload); err != nil {
+					log.Printf("[WS] Failed to send to user %s (connection: %s): %v", targetUserID, connID, err)
+					_ = ws.Close()
+					userConns.(*sync.Map).Delete(connID)
+					failCount++
+				} else {
+					log.Printf("[WS] Successfully sent message to user %s (connection: %s) in room %s", targetUserID, connID, roomID)
+					successCount++
+				}
+				return true
+			})
+		}
+		return true
+	})
+	
+	log.Printf("[WS] Broadcast to user %s complete: %d successful, %d failed", targetUserID, successCount, failCount)
+}
+
 func (h *Hub) HandleKafkaMessage(topic string, payload []byte) error {
 	roomID := topic[len(RoomTopicPrefix):]
 	if roomID == "" {

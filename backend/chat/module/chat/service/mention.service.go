@@ -15,6 +15,18 @@ import (
 
 // SendMentionMessage sends a message with mentions
 func (s *ChatService) SendMentionMessage(ctx context.Context, userID, roomID primitive.ObjectID, messageText string) (*chatModel.ChatMessage, error) {
+	// **NEW: ตรวจสอบ moderation status ก่อนส่งข้อความ**
+	if !s.moderationService.CanUserSendMessages(ctx, userID, roomID) {
+		// ตรวจสอบว่าถูก ban หรือ mute
+		if s.moderationService.IsUserBanned(ctx, userID, roomID) {
+			return nil, fmt.Errorf("user is banned from this room")
+		}
+		if s.moderationService.IsUserMuted(ctx, userID, roomID) {
+			return nil, fmt.Errorf("user is muted in this room")
+		}
+		return nil, fmt.Errorf("user cannot send messages in this room")
+	}
+
 	// Initialize mention parser
 	mentionParser := utils.NewMentionParser(s.mongo)
 	

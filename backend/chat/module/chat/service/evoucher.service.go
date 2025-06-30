@@ -15,6 +15,18 @@ func (s *ChatService) SendEvoucherMessage(ctx context.Context, userID, roomID pr
 	log.Printf("[ChatService] SendEvoucherMessage called for room %s by user %s, evoucher: %s", 
 		roomID.Hex(), userID.Hex())
 
+	// **NEW: ตรวจสอบ moderation status ก่อนส่งข้อความ**
+	if !s.moderationService.CanUserSendMessages(ctx, userID, roomID) {
+		// ตรวจสอบว่าถูก ban หรือ mute
+		if s.moderationService.IsUserBanned(ctx, userID, roomID) {
+			return nil, fmt.Errorf("user is banned from this room")
+		}
+		if s.moderationService.IsUserMuted(ctx, userID, roomID) {
+			return nil, fmt.Errorf("user is muted in this room")
+		}
+		return nil, fmt.Errorf("user cannot send messages in this room")
+	}
+
 	// Validate foreign keys
 	if err := s.fkValidator.ValidateForeignKeys(ctx, map[string]interface{}{
 		"users": userID,

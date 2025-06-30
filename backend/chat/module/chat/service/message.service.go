@@ -11,6 +11,18 @@ import (
 func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) error {
 	log.Printf("[ChatService] SendMessage called for room %s by user %s", msg.RoomID.Hex(), msg.UserID.Hex())
 
+	// **NEW: ตรวจสอบ moderation status ก่อนส่งข้อความ**
+	if !s.moderationService.CanUserSendMessages(ctx, msg.UserID, msg.RoomID) {
+		// ตรวจสอบว่าถูก ban หรือ mute
+		if s.moderationService.IsUserBanned(ctx, msg.UserID, msg.RoomID) {
+			return fmt.Errorf("user is banned from this room")
+		}
+		if s.moderationService.IsUserMuted(ctx, msg.UserID, msg.RoomID) {
+			return fmt.Errorf("user is muted in this room")
+		}
+		return fmt.Errorf("user cannot send messages in this room")
+	}
+
 	// Validate foreign keys
 	if err := s.fkValidator.ValidateForeignKeys(ctx, map[string]interface{}{
 		"users": msg.UserID,
