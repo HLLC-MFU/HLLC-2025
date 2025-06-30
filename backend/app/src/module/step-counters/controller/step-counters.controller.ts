@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, Delete, Query, BadRequestException, Req } from '@nestjs/common';
-import { StepCountersService } from './step-counters.service';
-import { CreateStepCounterDto } from './dto/create-step-counter.dto';
+import { StepCountersService } from '../service/step-counters.service';
+import { CreateStepCounterDto } from '../dto/step-counters/create-step-counter.dto';
 import { FastifyRequest } from 'fastify';
 import { Types } from 'mongoose';
 

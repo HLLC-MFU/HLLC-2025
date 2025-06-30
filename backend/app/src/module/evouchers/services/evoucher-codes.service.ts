@@ -154,7 +154,7 @@ export class EvoucherCodesService {
   }
 
   async addEvoucherCode(userId: string, evoucherId: string) {
-    const code = await this.claimEvoucherCode(userId, evoucherId);
+    const code = await this.claimEvoucherCode(evoucherId, userId.toString());
     return {
       message: 'Evoucher added successfully'
       , code

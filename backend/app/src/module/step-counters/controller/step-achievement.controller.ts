@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { StepAchievementService } from './step-achievement.service';
-import { CreateStepAchievementDto } from './dto/create-step-achievement.dto';
-import { UpdateStepAchievementDto } from './dto/update-step-achievement.dto';
+import { StepAchievementService } from '../service/step-achievement.service';
+import { CreateStepAchievementDto } from '../dto/step-achievement/create-step-achievement.dto';
+import { UpdateStepAchievementDto } from '../dto/step-achievement/update-step-achievement.dto';
 
 @Controller('step-achievement')
 export class StepAchievementController {
