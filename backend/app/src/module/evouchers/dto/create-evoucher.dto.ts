@@ -6,6 +6,7 @@ import {
   IsOptional,
   ValidateNested,
   IsDateString,
+  IsMongoId,
 } from 'class-validator';
 
 class LocalizationDto {
@@ -67,6 +68,7 @@ export class CreateEvoucherDto {
 }
 
 export class AddEvoucherCodeDto {
+  @IsMongoId()
   userId: string;
 }
 

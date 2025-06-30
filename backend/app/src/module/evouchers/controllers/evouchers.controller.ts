@@ -66,9 +66,9 @@ export class EvouchersController {
   }
 
   @Post(':id/add')
-  addEvoucherCode(@Param('id') id: string, @Body() addEvoucherCodeDto: AddEvoucherCodeDto) {
+  addEvoucherCode(@Param('id') evoucherId: string, @Body() addEvoucherCodeDto: AddEvoucherCodeDto) {
     const { userId } = addEvoucherCodeDto;
-    return this.evoucherCodesService.addEvoucherCode(userId, id);
+    return this.evoucherCodesService.addEvoucherCode(userId, evoucherId);
   }
 
   @Post(':id/add-by-role')
