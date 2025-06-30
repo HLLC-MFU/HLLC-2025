@@ -7,13 +7,13 @@ import InformationCard from './_components/NotificationInfoCard';
 import TopContent from './_components/NotificationTopContent';
 
 export default function NotificationManagement() {
-  const { notification } = useNotification();
+  const { notifications } = useNotification();
   const [search, setSearch] = useState('');
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [types, setTypes] = useState<string[]>([]);
 
   const uniqueScopes = useMemo(() => {
-    const scopes = notification.flatMap((notification) => {
-      const scope = notification.scope;
+    const scopes = notifications.flatMap((notifications) => {
+      const scope = notifications.scope;
       if (Array.isArray(scope)) {
         return scope.map((t) => t.type);
       }
@@ -21,9 +21,9 @@ export default function NotificationManagement() {
     });
 
     return Array.from(new Set(scopes));
-  }, [notification]);
+  }, [notifications]);
 
-  const filteredNotifications = notification.filter((item) => {
+  const filteredNotifications = notifications.filter((item) => {
     const matchSearch =
       item.title.en.toLowerCase().includes(search.toLowerCase()) ||
       item.body.en.toLowerCase().includes(search.toLowerCase());
@@ -33,8 +33,8 @@ export default function NotificationManagement() {
       : [item.scope];
 
     const matchType =
-      selectedTypes.length === 0 ||
-      scopeList.some((scope) => selectedTypes.includes(scope));
+      types.length === 0 ||
+      scopeList.some((scope) => types.includes(scope));
 
     return matchSearch && matchType;
   });
@@ -49,11 +49,11 @@ export default function NotificationManagement() {
       <TopContent
         search={search}
         setSearch={setSearch}
-        selectedTypes={selectedTypes}
-        setSelectedTypes={setSelectedTypes}
+        types={types}
+        setTypes={setTypes}
         uniqueScopes={uniqueScopes}
       />
-      <InformationCard notification={filteredNotifications} />
+      <InformationCard notifications={filteredNotifications} />
     </>
   );
 }
