@@ -2,16 +2,18 @@ import { Stack } from "expo-router";
 
 export default function ActivitiesLayout( ) {
     return (
-        <Stack>
+        <Stack screenOptions={{
+            contentStyle: { backgroundColor: 'transparent' },
+        }}>
             <Stack.Screen
-                name="activities/index"
+                name="index"
                 options={{
                     title: 'Activities',
                     headerShown: false,
                 }}
             />
             <Stack.Screen
-                name="activities/[id]"
+                name="[id]"
                 options={{
                     title: 'Activity Details',
                     headerShown: false,

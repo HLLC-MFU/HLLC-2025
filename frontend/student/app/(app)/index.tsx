@@ -2,21 +2,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text } from 'react-native';
 import { router, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Award, Bell, Footprints, User, Users } from 'lucide-react-native';
+import { Award, Bell, Footprints, MapPin, User, Users } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
-import { DoorClosedLocked } from '@tamagui/lucide-icons';
 import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from '@/components/global/AssetImage';
 import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
+import { Progress, Separator, XStack, YStack } from 'tamagui';
+import { DoorClosedLocked } from '@tamagui/lucide-icons';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
   const { t } = useTranslation();
   const handleSignOut = async () => {
-    await useAuth.getState().signOut();
+    useAuth.getState().signOut();
     router.replace('/(auth)/login');
   };
   const { assets } = useAppearance();
@@ -47,25 +48,74 @@ export default function HomeScreen() {
         ) : (
           <User
             color="white"
+            style={{ marginRight: 8 }}
             size={20}
             onPress={() => {
               useRouter().push('/(auth)/login');
             }}
           />
         )}
-        <Text
-          style={{
-            color: 'white',
-            fontWeight: '600',
-            fontSize: 20,
-            marginLeft: 8,
-          }}
-        >
-          {t('nav.progress')}
-        </Text>
+        <YStack gap={4}>
+          {/* Progress */}
+          <YStack>
+            <Text
+              style={{
+                color: 'white',
+                fontWeight: '600',
+                fontSize: 12,
+                marginLeft: 8,
+                marginBottom: 2,
+              }}
+            >
+              {t('nav.progress')}
+            </Text>
+            {/* Progress Bar */}
+            <XStack alignItems="center" gap={4}>
+              <Progress value={60} size="$1" width={120} height={12} marginLeft={8}>
+                <Progress.Indicator />
+              </Progress>
+              <Text style={{
+                color: 'white',
+                fontWeight: '600',
+                fontSize: 12,
+                marginLeft: 4,
+                marginBottom: 2,
+              }}>60%</Text>
+            </XStack>
+          </YStack>
+          {/* Separator */}
+          <Separator marginLeft={8} borderColor={"#ffffff40"} />
+          <XStack justifyContent='space-evenly'>
+            <XStack style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Footprints size={14} color={"white"} />
+              <Text
+                style={{
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: 14,
+                  marginLeft: 8,
+                }}>
+                85
+              </Text>
+            </XStack>
+            <Separator vertical borderColor={"#ffffff40"} />
+            <XStack style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Award size={14} color={"white"} />
+              <Text
+                style={{
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: 14,
+                  marginLeft: 8,
+                }}>
+                85
+              </Text>
+            </XStack>
+          </XStack>
+        </YStack>
       </GlassButton>
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <GlassButton iconOnly>
+        {/* <GlassButton iconOnly>
           {assetsImage.profile ? (
             <AssetImage
               uri={`${baseImageUrl}/uploads/${assetsImage.profile}`}
@@ -74,7 +124,7 @@ export default function HomeScreen() {
           ) : (
             <Users color="white" size={20} />
           )}
-        </GlassButton>
+        </GlassButton> */}
         <GlassButton iconOnly>
           {assetsImage.notification ? (
             <AssetImage

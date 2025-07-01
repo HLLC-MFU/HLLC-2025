@@ -7,7 +7,6 @@ import {
     useWindowDimensions,
     ViewStyle,
     TextStyle,
-    Image,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useRouter, usePathname } from 'expo-router';
@@ -15,35 +14,31 @@ import Animated, {
     useSharedValue,
     useAnimatedStyle,
     withSpring,
-    runOnJS,
+
 } from 'react-native-reanimated';
 import { Home, Book, QrCode, Gift, Globe } from 'lucide-react-native';
 import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from './AssetImage';
+import { useTranslation } from 'react-i18next';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 type AllowedRoutes = "/" | "/qrcode" | "/evoucher" | "/chat" | "/activities";
 
-const tabs: { label: string; icon: React.ComponentType<{ size?: number; color?: string }>; route: AllowedRoutes }[] = [
-    { label: 'Home', icon: Home, route: '/' },
-    { label: 'Activity', icon: Book, route: '/activities' },
-    { label: 'QRCode', icon: QrCode, route: '/qrcode' },
-    { label: 'Voucher', icon: Gift, route: '/evoucher' },
-    { label: 'Chat', icon: Globe, route: '/chat' },
-];
 
 export default function GlassTabBar() {
     const router = useRouter();
     const pathname = usePathname();
     const { width } = useWindowDimensions();
+    const { t } = useTranslation();
 
-    const tabWidth = (width - 48) / tabs.length;
-    const offsetX = useSharedValue(0);
-    const scale = useSharedValue(1);
-
-    const prevIndexRef = useRef(0);
-
+    const tabs: { label: string; icon: React.ComponentType<{ size?: number; color?: string }>; route: AllowedRoutes }[] = [
+        { label: t("nav.home"), icon: Home, route: '/' },
+        { label: t("nav.activity"), icon: Book, route: '/activities' },
+        { label: t("nav.qrCode"), icon: QrCode, route: '/qrcode' },
+        { label: t("nav.evoucher"), icon: Gift, route: '/evoucher' },
+        { label: t("nav.community"), icon: Globe, route: '/chat' },
+    ];
     const { assets } = useAppearance();
     const icons = {
         home: assets?.home ?? null,
@@ -52,6 +47,11 @@ export default function GlassTabBar() {
         voucher: assets?.evoucher ?? null,
         chat: assets?.community ?? null,
     };
+
+    const tabWidth = (width - 48) / tabs.length;
+    const offsetX = useSharedValue(0);
+    const scale = useSharedValue(1);
+    const prevIndexRef = useRef(0);
 
     useEffect(() => {
         const currentIndex = tabs.findIndex((tab) => tab.route === pathname);
@@ -90,7 +90,8 @@ export default function GlassTabBar() {
                 </Animated.View>
 
                 {tabs.map((tab) => {
-                    const assetIcon = icons[tab.label.toLowerCase() as keyof typeof icons];
+                    const labelKey = tab.label ? tab.label.toLowerCase() : '';
+                    const assetIcon = icons[labelKey as keyof typeof icons];
                     const isActive = pathname === tab.route;
                     const Icon = tab.icon;
 
@@ -106,7 +107,7 @@ export default function GlassTabBar() {
                             activeOpacity={1}
                         >
                             {assetIcon ? (
-                                <AssetImage uri={`${baseImageUrl}/uploads/${assetIcon}`} style={{ width: 32, height: 32 }}/>
+                                <AssetImage uri={`${baseImageUrl}/uploads/${assetIcon}`} style={{ width: 32, height: 32 }} />
                             ) : (
                                 <Icon size={32} color={isActive ? '#fff' : '#ffffff70'} />
                             )}

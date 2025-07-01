@@ -18,6 +18,8 @@ import { useSponsors } from '@/hooks/useSponsors';
 import { useEvoucher } from '@/hooks/useEvoucher';
 import { ISponsor } from '@/types/sponsor';
 import { IEvoucher, IEvoucherCode } from '@/types/evoucher';
+import { useTranslation } from 'react-i18next';
+import { YStack } from 'tamagui';
 
 export default function EvoucherPage() {
   // รวม modalState
@@ -31,6 +33,7 @@ export default function EvoucherPage() {
   const [currentSponsorId, setCurrentSponsorId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const { t } = useTranslation();
 
   // Custom hooks
   const {
@@ -107,17 +110,17 @@ export default function EvoucherPage() {
   // Filter myCodesForCurrentSponsor ตาม searchQuery
   const filteredMyCodesForCurrentSponsor = currentSponsorId
     ? getEvoucherCodesBySponsor(currentSponsorId)
-        .filter(code =>
-          code.evoucher.acronym.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          code.code.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        .sort((a, b) => Number(a.isUsed) - Number(b.isUsed))
+      .filter(code =>
+        code.evoucher.acronym.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        code.code.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .sort((a, b) => Number(a.isUsed) - Number(b.isUsed))
     : [];
 
   const currentSponsor = sponsors.find(
     sponsor => sponsor._id === currentSponsorId,
   );
-  const displayTitle = currentSponsor ? currentSponsor.name.en : 'E-Voucher';
+  const displayTitle = currentSponsor ? currentSponsor.name.en : t('evoucher.title');
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -131,7 +134,7 @@ export default function EvoucherPage() {
   // Loading state
   if (sponsorsLoading && sponsors.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={{flex:1}}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#fff" />
           <Text style={styles.loadingText}>Loading sponsors...</Text>
@@ -143,7 +146,7 @@ export default function EvoucherPage() {
   // Error state
   if (sponsorsError && sponsors.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={{flex:1}}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Error: {sponsorsError}</Text>
           <TouchableOpacity
@@ -158,152 +161,150 @@ export default function EvoucherPage() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
-        {currentSponsorId && (
-          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-            <ArrowLeft size={24} color="#fff" />
-          </TouchableOpacity>
-        )}
-        <Text
-          style={[
-            styles.headerTitle,
-            !currentSponsorId && styles.headerTitlePadded,
-          ]}
-        >
-          {displayTitle}
-        </Text>
-        {currentSponsorId && <View style={styles.placeholder} />}
-      </View>
+    <SafeAreaView style={{ flex: 1 }}>
+      <YStack padding="$4" gap="$4">
+        <View style={styles.headerContainer}>
+          {currentSponsorId && (
+            <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+              <ArrowLeft size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
+          <Text
+            style={[
+              styles.headerTitle,
+              !currentSponsorId && styles.headerTitlePadded,
+            ]}
+          >
+            {displayTitle}
+          </Text>
+          {currentSponsorId && <View style={styles.placeholder} />}
+        </View>
 
-      <View style={styles.searchContainer}>
-        <Search size={20} color="#888" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder={
-            currentSponsorId ? 'Search Voucher...' : 'Search Sponsor...'
+        <View style={styles.searchContainer}>
+          <Search size={20} color="#888" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={
+              currentSponsorId ? 'Search Voucher...' : 'Search Sponsor...'
+            }
+            placeholderTextColor="#888"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
           }
-          placeholderTextColor="#888"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
-        }
-      >
-        {currentSponsorId ? (
-          <View style={styles.evoucherGrid}>
-            {evouchersLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#fff" />
-                <Text style={styles.loadingText}>Loading evouchers...</Text>
-              </View>
-            ) : filteredMyCodesForCurrentSponsor.length > 0 ? (
-              <>
-                {filteredMyCodesForCurrentSponsor.map((evoucherCode: IEvoucherCode) => (
-                  <EvoucherCodeCard
-                    key={evoucherCode._id}
-                    imageSource={{
-                      uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${
-                        evoucherCode.evoucher.photo.evoucherImage ||
-                        (evoucherCode.evoucher.photo as any)?.home ||
-                        (evoucherCode.evoucher.photo as any)?.front ||
-                        (evoucherCode.evoucher.photo as any)?.back ||
-                        ''
-                      }`,
-                    }}
-                    onPress={() =>
-                      handleEvoucherCodePress(
-                        evoucherCode.evoucher,
-                        evoucherCode,
-                      )
-                    }
-                    isUsed={evoucherCode.isUsed}
-                    code={evoucherCode.code}
-                  />
-                ))}
-              </>
-            ) : filteredEvouchers.length > 0 ? (
-              <>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Available Evouchers</Text>
+        >
+          {currentSponsorId ? (
+            <View style={styles.evoucherGrid}>
+              {evouchersLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#fff" />
+                  <Text style={styles.loadingText}>Loading evouchers...</Text>
                 </View>
-                {filteredEvouchers.map((evoucher: IEvoucher) => (
-                  <EvoucherCodeCard
-                    key={evoucher._id}
+              ) : filteredMyCodesForCurrentSponsor.length > 0 ? (
+                <>
+                  {filteredMyCodesForCurrentSponsor.map((evoucherCode: IEvoucherCode) => (
+                    <EvoucherCodeCard
+                      key={evoucherCode._id}
+                      imageSource={{
+                        uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${evoucherCode.evoucher.photo.evoucherImage ||
+                          (evoucherCode.evoucher.photo as any)?.home ||
+                          (evoucherCode.evoucher.photo as any)?.front ||
+                          (evoucherCode.evoucher.photo as any)?.back ||
+                          ''
+                          }`,
+                      }}
+                      onPress={() =>
+                        handleEvoucherCodePress(
+                          evoucherCode.evoucher,
+                          evoucherCode,
+                        )
+                      }
+                      isUsed={evoucherCode.isUsed}
+                      code={evoucherCode.code}
+                    />
+                  ))}
+                </>
+              ) : filteredEvouchers.length > 0 ? (
+                <>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Available Evouchers</Text>
+                  </View>
+                  {filteredEvouchers.map((evoucher: IEvoucher) => (
+                    <EvoucherCodeCard
+                      key={evoucher._id}
+                      imageSource={{
+                        uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${evoucher.photo.evoucherImage ||
+                          evoucher.photo.coverPhoto
+                          }`,
+                      }}
+                      onPress={() => handleEvoucherCodePress(evoucher)}
+                    />
+                  ))}
+                </>
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
+                    {searchQuery
+                      ? 'No evouchers found matching your search.'
+                      : 'No evouchers available for this sponsor.'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.sponsorGrid}>
+              {filteredSponsors.length > 0 ? (
+                filteredSponsors.map((sponsor: ISponsor) => (
+                  <SponsorCard
+                    key={sponsor._id}
                     imageSource={{
-                      uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${
-                        evoucher.photo.evoucherImage ||
-                        evoucher.photo.coverPhoto
-                      }`,
+                      uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${sponsor.photo?.logoPhoto || sponsor.logo?.logoPhoto}`,
                     }}
-                    onPress={() => handleEvoucherCodePress(evoucher)}
+                    onPress={() => handleSponsorCardPress(sponsor._id)}
+                    hasEvoucherCodes={hasEvoucherCodesForSponsor(sponsor._id)}
                   />
-                ))}
-              </>
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
-                  {searchQuery
-                    ? 'No evouchers found matching your search.'
-                    : 'No evouchers available for this sponsor.'}
-                </Text>
-              </View>
-            )}
-          </View>
-        ) : (
-          <View style={styles.sponsorGrid}>
-            {filteredSponsors.length > 0 ? (
-              filteredSponsors.map((sponsor: ISponsor) => (
-                <SponsorCard
-                  key={sponsor._id}
-                  imageSource={{
-                    uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${sponsor.photo?.logoPhoto || sponsor.logo?.logoPhoto}`,
-                  }}
-                  onPress={() => handleSponsorCardPress(sponsor._id)}
-                  hasEvoucherCodes={hasEvoucherCodesForSponsor(sponsor._id)}
-                />
-              ))
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
-                  {searchQuery
-                    ? 'No sponsors found matching your search.'
-                    : 'No sponsors available.'}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-      </ScrollView>
-
+                ))
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
+                    {searchQuery
+                      ? 'No sponsors found matching your search.'
+                      : 'No sponsors available.'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+        </ScrollView>
+      </YStack>
       {modalState.show && modalState.evoucher && (
         <EvoucherModal
           isVisible={modalState.show}
           onClose={handleCloseModal}
           evoucherImageFront={{
-            uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${
-              (modalState.evoucher.photo as any)?.evoucherImageFront ||
+            uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${(modalState.evoucher.photo as any)?.evoucherImageFront ||
               (modalState.evoucher.photo as any)?.front ||
               (modalState.evoucher.photo as any)?.coverPhoto ||
               (modalState.evoucher.photo as any)?.home ||
               ''
-            }`,
+              }`,
           }}
           evoucherImageBack={{
-            uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${
-              (modalState.evoucher.photo as any)?.evoucherImageBack ||
+            uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${(modalState.evoucher.photo as any)?.evoucherImageBack ||
               (modalState.evoucher.photo as any)?.back ||
               (modalState.evoucher.photo as any)?.bannerPhoto ||
               (modalState.evoucher.photo as any)?.coverPhoto ||
               (modalState.evoucher.photo as any)?.home ||
               ''
-            }`,
+              }`,
           }}
           evoucherCodeId={modalState.evoucherCode?._id}
           onClaimSuccess={handleClaimSuccess}
@@ -315,28 +316,18 @@ export default function EvoucherPage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 50,
-  },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
-    paddingHorizontal: 20,
   },
   headerTitle: {
-    fontSize: 30,
+    fontSize: 34,
     fontWeight: 'bold',
     color: '#fff',
-    flex: 1,
     textAlign: 'left',
-    paddingLeft: 20,
   },
   headerTitlePadded: {
-    paddingStart: 20,
     textAlign: 'left',
   },
   backButton: {
@@ -356,8 +347,6 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
     paddingHorizontal: 15,
     height: 50,
-    marginLeft: 10,
-    marginRight: 10,
     marginBottom: 20,
   },
   searchInput: {

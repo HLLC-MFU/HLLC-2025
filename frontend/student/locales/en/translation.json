@@ -1,3 +1,4 @@
+
 {
     "global": {
         "loading": "Loading...",
@@ -47,10 +48,15 @@
     },
     "nav": {
         "welcome": "Welcome Back",
-        "progress": "Progress"
+        "progress": "Progress",
+        "home": "Home",
+        "activity": "Activity",
+        "qrCode": "QR Code",
+        "evoucher": "E-Voucher",
+        "community": "Community"
     },
     "home": {
-        "activities": "Activities",
+        "allActivities": "Activities",
         "seeAll": "See all"
     },
     "activty": {
@@ -70,5 +76,11 @@
         "activity": "Activity",
         "evoucher": "E-Voucher",
         "community": "Community"
+    },
+    "qrCode": {
+                "qrCode": "QR Code",
+        "camera": "Camera",
+        "schoolOf": "School of ",
+        "studentId": "Student ID"
     }
 }

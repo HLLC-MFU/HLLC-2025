@@ -3,7 +3,7 @@ import { useRouter } from "expo-router"
 import { ScrollView, SafeAreaView } from "react-native"
 import { Search } from "lucide-react-native"
 import {
-  H2,
+  Text,
   H4,
   Input,
   Paragraph,
@@ -21,10 +21,11 @@ import { BlurView } from "expo-blur"
 import FadeView from "@/components/ui/FadeView"
 import UpcomingActivityCard from "./_components/upcoming-activity-card"
 import ActivityCard from "./_components/activity-card"
-import React from "react"
+import { useTranslation } from "react-i18next"
 
 export default function ActivitiesPage() {
   const router = useRouter()
+  const {t} = useTranslation()
   const [activities, setActivities] = useState<UserActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -72,7 +73,7 @@ export default function ActivitiesPage() {
     <FadeView>
       <SafeAreaView style={{ flex: 1 }}>
         <YStack padding="$4" gap="$4" flex={1}>
-          <H2 fontWeight="bold" color={"white"}>Activities</H2>
+          <Text fontWeight="bold" fontSize={34} color={"white"}>{t("activty.allActivities")}</Text>
 
           <XStack
             alignItems="center"
@@ -123,7 +124,7 @@ export default function ActivitiesPage() {
               )}
 
               <YStack gap="$3" marginBottom="$10">
-                <H4 fontWeight="bold" color={"white"}>All Activities</H4>
+                <Text fontWeight="bold" color={"white"} fontSize={28}>{t("activty.allActivities")}</Text>
                 <XStack flexWrap="wrap" justifyContent="space-between">
                   {filteredActivities.length > 0 ? (
                     filteredActivities.map((activity) => (
