@@ -112,7 +112,7 @@ export default function CoinHuntingLeaderboard() {
       </View>
       <DynamicLeaderboard
         users={users}
-        usersData={usersData}
+        usersData={usersData.slice(3, 20)}
         currentUserData={currentUserData}
         getFullName={getFullName}
         width={width}
