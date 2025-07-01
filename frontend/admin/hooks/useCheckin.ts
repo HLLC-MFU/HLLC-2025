@@ -4,7 +4,6 @@ import { addToast } from "@heroui/react";
 
 export function useCheckin() {
     const [checkin, setCheckin] = useState<Checkin[]>([]);
-    const [checkinCreate, setCheckinCreate] = useState<CheckinCreate | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -12,7 +11,6 @@ export function useCheckin() {
         setLoading(true);
         setError(null);
         try {
-            console.log("Fetching checkins...");
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/checkins`, {
                 method: 'GET',
                 credentials: 'include',
@@ -21,7 +19,6 @@ export function useCheckin() {
                 }
             });
             const res = await response.json();
-            console.log("Checkin fetch response:", res);
             setCheckin(Array.isArray(res.data) ? res.data : []);
         } catch (err: any) {
             console.error("Error fetching checkins:", err);
@@ -34,15 +31,11 @@ export function useCheckin() {
     const createcheckin = async (checkinData: Partial<CheckinCreate>) => {
         setLoading(true);
         setError(null);
-        try {
-            console.log("Creating checkin with data:", checkinData);
-            
+        try {            
             const payload = {
                 user: checkinData.user,
                 activities: checkinData.activities
             };
-
-            console.log("Sending payload:", payload);
 
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/checkins`, {
                 method: 'POST',
@@ -55,7 +48,6 @@ export function useCheckin() {
             });
 
             const res = await response.json();
-            console.log("Checkin create response:", res);
 
             if (response.ok && res.data) {
                 setCheckin((prev) => [...prev, res.data]);
@@ -88,7 +80,6 @@ export function useCheckin() {
 
     return {
         checkin,
-        checkinCreate,
         loading,
         error,
         fetchcheckin,

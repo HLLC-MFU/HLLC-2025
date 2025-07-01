@@ -23,8 +23,6 @@ export function Typing({ isOpen, onClose }: TypingProps) {
   const { createcheckin } = useCheckin();
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
 
-  console.log( )
-
   const handleSubmit = () => {
     const trimmed = studentId.trim();
     if (!trimmed) return;

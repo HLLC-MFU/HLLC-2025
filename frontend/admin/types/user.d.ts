@@ -4,7 +4,11 @@ import { School } from "./school";
 
 export type User = {
     _id: string;
-    name: UserName;
+    name: {
+        first: string;
+        middle?: string;
+        last?: string;
+    };
     username: string;
     role: Role;
     metadata?: Metadata[];
