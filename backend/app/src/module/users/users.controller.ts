@@ -107,22 +107,4 @@ export class UsersController {
     return this.usersService.removeMultiple(ids);
   }
 
-  @Post(':id/device-token')
-  // @CacheKey('users:read:id')
-  @Public()
-  registerDeviceToken(
-    @Param('id') id: string,
-    @Body() registerTokenDto: Record<string, string>,
-  ) {
-    return this.usersService.registerDeviceToken(id, registerTokenDto);
-  }
-
-  @Delete(':id/device-token/:deviceToken')
-  @Public()
-  removeDeviceToken(
-    @Param('id') id: string,
-    @Param('deviceToken') deviceToken: string,
-  ) {
-    return this.usersService.removeDeviceToken(id, deviceToken);
-  }
 }

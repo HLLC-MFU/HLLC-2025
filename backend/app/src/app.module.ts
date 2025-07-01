@@ -37,6 +37,7 @@ import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.m
 import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
 import { EvouchersModule } from './module/evouchers/evouchers.module';
 import { SponsorsModule } from './module/sponsors/sponsors.module';
+import { DevicesModule } from './module/devices/devices.module';
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { SponsorsModule } from './module/sponsors/sponsors.module';
     LamduanSettingModule,
     EvouchersModule,
     SponsorsModule,
+    DevicesModule,
   ],
   providers: [
     {
