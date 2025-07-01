@@ -19,17 +19,45 @@ import { BlurView } from 'expo-blur';
 import { ConfirmModal } from './_components/ConfirmModal';
 import { BannerImage } from './_components/BannerImage';
 import { MediaCard } from './_components/MediaCard';
+import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
+import useProfile from '@/hooks/useProfile';
 
 const screenWidth = Dimensions.get('window').width;
 const horizontalPadding = 40;
 const maxImageWidth = screenWidth - horizontalPadding;
-const maxImageHeight = 400;
 
 export default function LamduanOrigamiPage() {
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
-  const [message, setMessage] = useState('');
+  const [comment, setComment] = useState('');
+  const { lamduanSetting, createLamduanFlowers } = useLamduanFlowers();
+  const { user } = useProfile();
+
+  const handleSave = async (
+    file: File,
+    user: string,
+    comment: string,
+    setting: string,
+  ) => {
+    const formData = new FormData();
+
+    formData.append('photo', file);
+    formData.append('comment', comment);
+    formData.append('user', user);
+    formData.append('setting', setting);
+
+    formData.forEach((value, key) => {
+      console.log(`${key}: ${value}`);
+    })
+
+    try {
+      await createLamduanFlowers(formData);
+      Alert.alert("Success", "Flower submitted successfully!");
+    } catch (err) {
+      Alert.alert("Error", "Error submitting flower");
+    }
+  };
 
   const pickImage = async () => {
     try {
@@ -71,82 +99,100 @@ export default function LamduanOrigamiPage() {
     }
   };
 
-
   return (
     <SafeAreaView style={styles.safe}>
-    <KeyboardAvoidingView
+      <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingBottom: 120 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-
-        <BannerImage />
-
-        <BlurView intensity={40} tint="light" style={styles.card}>
-          <Text style={styles.cardTitle}>Lamduan Origami</Text>
-          <Text style={styles.cardText}>
-            Enhance your knowledge of the university through the origami flower. Additionally,
-            immerse yourself in instructional origami videos that showcase the important information
-            about the university.
-          </Text>
-          <MediaCard />
-        </BlurView>
-
-        <BlurView intensity={40} tint="light" style={styles.formBox}>
-          <TouchableOpacity onPress={pickImage}>
-            {imageUri && imageSize ? (
-              <Image
-                source={{ uri: imageUri }}
-                style={{
-                  width: maxImageWidth,
-                  height: Math.min(
-                    (imageSize.height / imageSize.width) * maxImageWidth,
-                    maxImageHeight
-                  ),
-                  resizeMode: 'contain',
-                  borderRadius: 12,
-                  marginBottom: 12,
-                  alignSelf: 'center',
-                }}
-              />
-            ) : (
-              <View style={styles.uploadPlaceholder}>
-                <Text style={styles.uploadText}>Upload Picture</Text>
-              </View>
-            )}
+        <ScrollView
+          contentContainerStyle={[styles.container, { paddingBottom: 120 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
 
-          <TextInput
-            placeholder="Type message..."
-            placeholderTextColor="#fff"
-            style={styles.input}
-            value={message}
-            onChangeText={setMessage}
+          <BannerImage />
+
+          <BlurView intensity={40} tint="light" style={styles.card}>
+            <Text style={styles.cardTitle}>Lamduan Origami</Text>
+            <Text style={styles.cardText}>
+              Enhance your knowledge of the university through the origami flower. Additionally,
+              immerse yourself in instructional origami videos that showcase the important information
+              about the university.
+            </Text>
+            <MediaCard />
+          </BlurView>
+
+          <BlurView intensity={40} tint="light" style={styles.formBox}>
+            <TouchableOpacity onPress={pickImage}>
+              {imageUri && imageSize ? (
+                <Image
+                  source={{ uri: imageUri }}
+                  style={{
+                    width: '100%',
+                    maxWidth: maxImageWidth,
+                    height: undefined,
+                    aspectRatio: imageSize.width / imageSize.height,
+                    resizeMode: 'contain',
+                    borderRadius: 12,
+                    marginBottom: 12,
+                    alignSelf: 'center',
+                  }}
+                />
+              ) : (
+                <View style={styles.uploadPlaceholder}>
+                  <Text style={styles.uploadText}>Upload Picture</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TextInput
+              placeholder="Type message..."
+              placeholderTextColor="#fff"
+              style={styles.input}
+              value={comment}
+              onChangeText={setComment}
+              multiline
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={() => setConfirmModalVisible(true)}
+            >
+              <Text>Submit</Text>
+            </TouchableOpacity>
+          </BlurView>
+
+          <ConfirmModal
+            isVisible={isConfirmModalVisible}
+            onCancel={() => setConfirmModalVisible(false)}
+            onConfirm={async () => {
+              setConfirmModalVisible(false);
+
+              if (!imageUri) {
+                Alert.alert('Error', 'Please select an image first.');
+                return;
+              }
+
+              try {
+                const file = {
+                  uri: imageUri,
+                  name: 'photo.jpg',
+                  type: 'image/jpeg',
+                } as any;
+
+                await handleSave(file, user?.data[0]._id!, comment, lamduanSetting[0]._id);
+              } catch (error) {
+                console.error('Submit error:', error);
+                Alert.alert('Error', 'Submission failed.');
+              }
+            }}
           />
-
-          <TouchableOpacity
-            style={styles.submitButton}
-            onPress={() => setConfirmModalVisible(true)}
-          >
-            <Text>Submit</Text>
-          </TouchableOpacity>
-        </BlurView>
-
-        <ConfirmModal
-          isVisible={isConfirmModalVisible}
-          onCancel={() => setConfirmModalVisible(false)}
-          onConfirm={() => {
-            setConfirmModalVisible(false);
-          }}
-        />
-      </ScrollView>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -185,10 +231,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     marginBottom: 8,
+    paddingLeft: 10,
     color: '#fff',
   },
   cardText: {
     fontSize: 13,
+    paddingLeft: 10,
     color: '#fff',
     marginBottom: 12,
   },
@@ -215,11 +263,13 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   input: {
-    borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 12,
-    height: 40,
+    paddingVertical: 8,
+    minHeight: 40,
+    maxHeight: 200,
     marginBottom: 12,
+    color: '#fff',
   },
   submitButton: {
     alignSelf: 'flex-end',
