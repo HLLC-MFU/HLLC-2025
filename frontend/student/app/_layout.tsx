@@ -13,7 +13,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { LanguageProvider } from '@/context/LanguageContext';
-import { createTamagui, TamaguiProvider, View } from 'tamagui';
+import { createTamagui, TamaguiProvider } from 'tamagui';
 import { defaultConfig } from '@tamagui/config/v4';
 import React from 'react';
 import { ToastProvider, ToastViewport } from '@tamagui/toast';
