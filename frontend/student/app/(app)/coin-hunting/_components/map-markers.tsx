@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { TouchableOpacity, ViewStyle } from 'react-native';
+import { TouchableOpacity, ViewStyle, Image, View } from 'react-native';
 import { apiRequest } from '@/utils/api';
+import { BlurView } from 'expo-blur';
 
 interface Marker {
   x: number;
@@ -9,6 +10,7 @@ interface Marker {
   description: string;
   mapsUrl: string;
   _id: string;
+  coinImage?: string;
 }
 
 interface MapMarkersProps {
@@ -17,6 +19,7 @@ interface MapMarkersProps {
 
 export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
   const [markers, setMarkers] = useState<Marker[]>([]);
+  const [collectedIds, setCollectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,11 +28,13 @@ export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
     (async () => {
       setLoading(true);
       setError(null);
-      const url = `${process.env.EXPO_PUBLIC_API_URL?.trim()}/landmarks`;
       try {
-        const res = await apiRequest<any>('/landmarks');
-        if (res.data && Array.isArray(res.data.data)) {
-          const mapped = res.data.data.map((item: any) => ({
+        const [landmarksRes, collectionsRes] = await Promise.all([
+          apiRequest<any>('/landmarks'),
+          apiRequest<any>('/coin-collections'),
+        ]);
+        if (landmarksRes.data && Array.isArray(landmarksRes.data.data)) {
+          const mapped = landmarksRes.data.data.map((item: any) => ({
             x: item.mapCoordinates?.x ?? 0,
             y: item.mapCoordinates?.y ?? 0,
             image: item.hintImage
@@ -38,12 +43,19 @@ export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
             description: item.hint?.th || item.hint?.en || '',
             mapsUrl: item.location?.mapUrl || '',
             _id: item._id,
+            coinImage: item.coinImage,
           }));
           if (mounted) {
             setMarkers(mapped);
           }
         } else {
           if (mounted) setError('No data');
+        }
+        // Extract collected landmark ids
+        if (collectionsRes.data && Array.isArray(collectionsRes.data.data)) {
+          const allLandmarks = collectionsRes.data.data.flatMap((c: any) => c.landmarks || []);
+          const ids = allLandmarks.map((l: any) => l.landmark?._id).filter(Boolean);
+          if (mounted) setCollectedIds(ids);
         }
       } catch (e: any) {
         if (mounted) setError(e.message || 'Error fetching landmarks');
@@ -59,27 +71,37 @@ export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
   return (
     <>
       {/* 📌 Markers */}
-      {markers.map((m, i) => (
-        <TouchableOpacity
-          key={m._id || i}
-          style={[
-            {
-              position: 'absolute',
-              width: 80,
-              height: 80,
-              backgroundColor: 'rgba(255,0,0,0.5)',
-              borderRadius: 40,
-              borderWidth: 2,
-              borderColor: '#fff',
-              zIndex: 5,
-              top: m.y,
-              left: m.x,
-            } as ViewStyle,
-          ]}
-          onPress={() => onMarkerPress(m)}
-          activeOpacity={0.7}
-        />
-      ))}
+      {markers.map((m, i) => {
+        const isCollected = collectedIds.includes(m._id);
+        return (
+          <TouchableOpacity
+            key={m._id || i}
+            style={[
+              {
+                position: 'absolute',
+                width: 80,
+                height: 80,
+                zIndex: 5,
+                top: m.y,
+                left: m.x,
+                justifyContent: 'center',
+                alignItems: 'center',
+              } as ViewStyle,
+            ]}
+            onPress={() => onMarkerPress(m)}
+            activeOpacity={0.7}
+          >
+            <Image
+              source={m.coinImage
+                ? { uri: `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${m.coinImage}` }
+                : require('@/assets/images/14coin.png')
+              }
+              style={{ width: 80, height: 80, resizeMode: 'contain' }}
+              blurRadius={!isCollected ? 30 : 0}
+            />
+          </TouchableOpacity>
+        );
+      })}
     </>
   );
 } 

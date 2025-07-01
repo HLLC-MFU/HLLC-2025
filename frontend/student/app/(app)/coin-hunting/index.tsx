@@ -26,6 +26,7 @@ export default function CoinHuntingScreen() {
     handleAlert,
     closeModal,
     markers,
+    collectedCoinImages,
   } = useCoinHunting();
   const router = useRouter();
 
@@ -68,6 +69,7 @@ export default function CoinHuntingScreen() {
         onClose={closeModal}
         stamps={stampCount}
         onGetReward={() => {}}
+        coinImages={collectedCoinImages.filter(Boolean) as string[]}
       />
     </GestureHandlerRootView>
   );

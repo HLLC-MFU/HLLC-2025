@@ -48,13 +48,17 @@ export default function useCoinHunting() {
     alertType: null,
   });
 
-  // อื่น ๆ ที่ไม่ควรรวม (image, permission, etc)
-  const [imageSize, setImageSize] = useState({ width: 1, height: 1 });
-  const [minScale, setMinScale] = useState(1);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [stampCount, setStampCount] = useState(0);
-  const [scanning, setScanning] = useState(false);
+  // รวม UI state ที่เกี่ยวข้องไว้ใน object เดียว
+  const [uiState, setUiState] = useState({
+    imageSize: { width: 1, height: 1 },
+    minScale: 1,
+    imageUrl: null as string | null,
+    error: null as string | null,
+    stampCount: 0,
+    scanning: false,
+    collectedCoinImages: [] as (string | undefined)[],
+  });
+
   const [permission, requestPermission] = useCameraPermissions();
   const router = useRouter();
   const { user } = useProfile();
@@ -67,39 +71,51 @@ export default function useCoinHunting() {
         const maps = res.data?.data || [];
         if (maps.length > 0) {
           const url = `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${maps[0].map}`;
-          setImageUrl(url);
           Image.getSize(
             url,
             (w, h) => {
-              setImageSize({ width: w, height: h });
               const scaleW = screen.width / w;
               const scaleH = screen.height / h;
               const min = Math.max(scaleW, scaleH);
-              setMinScale(min);
+              setUiState(s => ({
+                ...s,
+                imageUrl: url,
+                imageSize: { width: w, height: h },
+                minScale: min,
+                error: null,
+              }));
             },
             err => {
-              setError('Failed to load map image.');
+              setUiState(s => ({ ...s, error: 'Failed to load map image.' }));
             },
           );
         } else {
-          setError('No map data found.');
+          setUiState(s => ({ ...s, error: 'No map data found.' }));
         }
       } catch (e) {
-        setError('An error occurred while loading the map.');
+        setUiState(s => ({ ...s, error: 'An error occurred while loading the map.' }));
       }
     })();
   }, []);
 
-  // Fetch stamp count when open stamp modal
+  // Fetch stamp count and coin images when open stamp modal
   useEffect(() => {
     if (state.modal === 'stamp') {
       const fetchStamps = async () => {
         try {
           const res = await apiRequest('/coin-collections') as { data?: { data?: { landmarks?: any[] }[] } };
-          const count = res?.data?.data?.[0]?.landmarks?.length || 0;
-          setStampCount(count);
+          const landmarks = res?.data?.data?.[0]?.landmarks || [];
+          const NUM_SLOTS = 14;
+          const imagesByOrder: (string | undefined)[] = Array(NUM_SLOTS).fill(undefined);
+          landmarks.forEach((l: any) => {
+            const order = l.landmark?.order;
+            if (order && order >= 1 && order <= NUM_SLOTS && l.landmark?.coinImage) {
+              imagesByOrder[order - 1] = `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${l.landmark.coinImage}`;
+            }
+          });
+          setUiState(s => ({ ...s, stampCount: landmarks.length, collectedCoinImages: imagesByOrder }));
         } catch (e) {
-          setStampCount(0);
+          setUiState(s => ({ ...s, stampCount: 0, collectedCoinImages: [] }));
         }
       };
       fetchStamps();
@@ -129,19 +145,24 @@ export default function useCoinHunting() {
 
   const closeModal = () => setState(s => ({ ...s, modal: null }));
 
+  // เพิ่ม setter สำหรับ scanning
+  const setScanning = (scanning: boolean) => {
+    setUiState(s => ({ ...s, scanning }));
+  };
+
   return {
     // map image
-    imageSize,
-    minScale,
-    imageUrl,
-    error,
+    imageSize: uiState.imageSize,
+    minScale: uiState.minScale,
+    imageUrl: uiState.imageUrl,
+    error: uiState.error,
     // modal/logic state
     modal: state.modal,
     selectedMarker: state.selectedMarker,
     evoucher: state.evoucher,
     alertType: state.alertType,
-    stampCount,
-    scanning,
+    stampCount: uiState.stampCount,
+    scanning: uiState.scanning,
     setScanning,
     permission,
     requestPermission,
@@ -149,6 +170,7 @@ export default function useCoinHunting() {
     user,
     markers,
     clamp,
+    collectedCoinImages: uiState.collectedCoinImages,
     // handlers
     handleMarkerPress,
     handleCheckIn,
