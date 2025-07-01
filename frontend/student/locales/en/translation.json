@@ -1,3 +1,4 @@
+
 {
     "global": {
         "loading": "Loading...",
@@ -75,5 +76,11 @@
         "activity": "Activity",
         "evoucher": "E-Voucher",
         "community": "Community"
+    },
+    "qrCode": {
+                "qrCode": "QR Code",
+        "camera": "Camera",
+        "schoolOf": "School of ",
+        "studentId": "Student ID"
     }
 }

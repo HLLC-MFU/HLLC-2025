@@ -25,7 +25,6 @@ const useProfile = create<ProfileStore>((set) => ({
         return null;
       }
     } catch (err) {
-      console.error("❌ Failed to fetch profile", err);
       return null;
     }
   },

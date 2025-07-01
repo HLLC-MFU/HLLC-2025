@@ -2,8 +2,6 @@ import { SafeAreaView, View, Text, StyleSheet, Alert, useWindowDimensions } from
 import { useEffect, useState } from 'react';
 
 import QRCodeGenerator from '@/components/qrcode/generator';
-import { MotiView } from 'moti';
-import { useRouter } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import useProfile from '@/hooks/useProfile';
 import { BlurView } from 'expo-blur';
@@ -11,19 +9,22 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { apiRequest } from '@/utils/api';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { useLanguage } from '@/context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 export default function QRCodePage() {
   const { user, getProfile } = useProfile();
-  const router = useRouter();
+  const {t} = useTranslation();
   const [showScanner, setShowScanner] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'qr' | 'scan'>('qr');
   const { width } = useWindowDimensions();
   const tabBarPadding = 8;
-  const tabWidth = (width - 42 - tabBarPadding * 2) / 2; // 2 tabs
+  const tabWidth = (width - 128 - tabBarPadding * 2) / 2; // 2 tabs
   const offsetX = useSharedValue(0);
   const scale = useSharedValue(1);
   const [scanning, setScanning] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
+  const { language } = useLanguage();
 
   useEffect(() => {
     getProfile();
@@ -97,7 +98,7 @@ export default function QRCodePage() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+      style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'center'  }}
     >
       {/* Animated Segmented Toggle (fixed at top) */}
       <View style={styles.tabBarWrapper}>
@@ -122,7 +123,7 @@ export default function QRCodePage() {
               }}
               activeOpacity={0.85}
             >
-              <Text style={[styles.tabBtnText, selectedTab === 'qr' && styles.tabBtnTextActive]}>QR Code</Text>
+              <Text style={[styles.tabBtnText, selectedTab === 'qr' && styles.tabBtnTextActive]}>{t("qrCode.qrCode")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.tabBtn}
@@ -132,7 +133,7 @@ export default function QRCodePage() {
               }}
               activeOpacity={0.85}
             >
-              <Text style={[styles.tabBtnText, selectedTab === 'scan' && styles.tabBtnTextActive]}>Scan</Text>
+              <Text style={[styles.tabBtnText, selectedTab === 'scan' && styles.tabBtnTextActive]}>{t("qrCode.camera")}</Text>
             </TouchableOpacity>
           </View>
         </BlurView>
@@ -156,7 +157,8 @@ export default function QRCodePage() {
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fff' }}>
               {user?.data[0].name.first}  {user?.data[0].name.last}
             </Text>
-            <Text style={{color: '#fff', marginBottom: 16}}>Student ID: {user?.data[0].username}</Text>
+            <Text style={{color: '#fff'}}>{t("qrCode.studentId")}: {user?.data[0].username}</Text>
+            <Text style={{color: '#fff', marginBottom: 16}}>{t("qrCode.schoolOf")}{user?.data[0].metadata.major.school.name[language]}</Text>
           </View>
 
           <QRCodeGenerator username={user?.data[0].username ?? 'defaultUsername'} />
@@ -213,10 +215,10 @@ export default function QRCodePage() {
 
 const styles = StyleSheet.create({
   tabBarWrapper: {
-    marginHorizontal: 20,
-    marginTop: 24,
-    marginBottom: 18,
-    borderRadius: 18,
+    marginHorizontal: 64,
+    marginTop: 84,
+    marginBottom: 72,
+    borderRadius: 99,
     overflow: 'hidden',
     shadowColor: '#a5b4fc',
     shadowOffset: { width: 0, height: 2 },
@@ -227,14 +229,14 @@ const styles = StyleSheet.create({
   },
   tabBarBlur: {
     backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 18,
+    borderRadius: 99,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.25)',
   },
   tabBarContainer: {
     flexDirection: 'row',
     backgroundColor: 'transparent',
-    borderRadius: 18,
+    borderRadius: 99,
     padding: 4,
     position: 'relative',
     alignItems: 'center',
@@ -245,7 +247,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 4,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 99,
     overflow: 'hidden',
     zIndex: 0,
     shadowColor: '#fff',

@@ -74,5 +74,11 @@
         "activity": "กิจกรรม",
         "evoucher": "คูปอง",
         "community": "ชุมชน"
+    },
+    "qrCode": {
+        "qrCode": "คิวอาร์โคด",
+        "camera": "กล้อง",
+        "schoolOf": "สำนักวิชา",
+        "studentId": "รหัสนักศึกษา"
     }
 }

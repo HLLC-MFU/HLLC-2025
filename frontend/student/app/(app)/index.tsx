@@ -10,6 +10,7 @@ import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from '@/components/global/AssetImage';
 import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
 import { Progress, Separator, XStack, YStack } from 'tamagui';
+import { DoorClosedLocked } from '@tamagui/lucide-icons';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -83,7 +84,7 @@ export default function HomeScreen() {
             </XStack>
           </YStack>
           {/* Separator */}
-          <Separator marginLeft={8} />
+          <Separator marginLeft={8} borderColor={"#ffffff40"} />
           <XStack justifyContent='space-evenly'>
             <XStack style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Footprints size={14} color={"white"} />
@@ -97,7 +98,7 @@ export default function HomeScreen() {
                 85
               </Text>
             </XStack>
-            <Separator vertical />
+            <Separator vertical borderColor={"#ffffff40"} />
             <XStack style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Award size={14} color={"white"} />
               <Text
@@ -134,7 +135,7 @@ export default function HomeScreen() {
             <Bell fill={'white'} color="white" size={20} />
           )}
         </GlassButton>
-        {/* <GlassButton onPress={handleSignOut} iconOnly>
+        <GlassButton onPress={handleSignOut} iconOnly>
           {assetsImage.signOut ? (
             <AssetImage
               uri={`${baseImageUrl}/uploads/${assetsImage.signOut}`}
@@ -143,7 +144,7 @@ export default function HomeScreen() {
           ) : (
             <DoorClosedLocked color="white" size={20} />
           )}
-        </GlassButton> */}
+        </GlassButton>
       </View>
     </SafeAreaView>
   );
