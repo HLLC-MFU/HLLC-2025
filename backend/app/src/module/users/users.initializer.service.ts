@@ -27,11 +27,10 @@ export class UserInitializerService implements OnModuleInit {
     const adminRole = await this.roleModel.findOne({ name: 'Administrator' });
     if (!adminRole) throw new Error('Admin role not found. Cannot create admin user.');
 
-    const hashedPassword = await bcrypt.hash('user1234', 10);
 
     await this.userModel.create({
       username,
-      password: hashedPassword,
+      password: 'user1234',
       name: {
         first: 'Admin',
         last: 'User',
