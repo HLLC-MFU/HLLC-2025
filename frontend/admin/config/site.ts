@@ -45,7 +45,7 @@ export const siteConfig: {
         { label: "Activities", href: "/activities", icon: University, permission: "activities:read" },
         { label: "Checkin", href: "/checkin", icon: CircleCheckBig, permission: "checkin:read" },
         { label: "Reports", href: "/reports", icon: ShieldAlert, permission: "reports:read" },
-        { label: "Step Conters", href: "/step-conters", icon: Footprints , permission: "Stepconters:read"}, 
+        { label: "Step Counters", href: "/step-counters", icon: Footprints , permission: "Stepcounters:read"}, 
       ],
     },
     {
