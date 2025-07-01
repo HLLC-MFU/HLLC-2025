@@ -11,21 +11,25 @@
     },
     "login": {
         "title": "Login",
-        "subtitle": "Please enter your credentials",
-        "username": "Username",
+        "subtitle": "Let's start your journey",
+        "username": "Student ID",
         "password": "Password",
         "loginButton": "Login",
         "forgotPassword": "Forgot Password?",
-        "register": "Register"
+        "register": "Register",
+        "contactUs": "Contact Us"
     },
     "register": {
         "title": "Register",
         "subtitle": "Create a new account",
-        "username": "Username",
+        "username": "Student ID",
+        "studentName": "Full Name",
         "password": "Password",
         "confirmPassword": "Confirm Password",
+        "province": "Province",
         "registerButton": "Register",
-        "loginPrompt": "Already have an account? Login"
+        "loginPrompt": "Already have an account?",
+        "login": "Login"
     },
     "profile": {
         "title": "Profile",
