@@ -1,12 +1,17 @@
 'use client';
-import { LayoutDashboard, FileQuestion, Activity, Download } from 'lucide-react';
+import {
+  LayoutDashboard,
+  FileQuestion,
+  Activity,
+  Download,
+} from 'lucide-react';
 import {
   Button,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
-  Chip
+  Chip,
 } from '@heroui/react';
 import { useCheckin } from '@/hooks/useCheckin';
 import { PageHeader } from '@/components/ui/page-header';
@@ -38,13 +43,13 @@ import { type } from 'os';
 import { useCallback } from 'react';
 
 const CheckinActivitytDataMock = [
-  { activity: "Yoga Class", value: 200 },
-  { activity: "Team Meeting", value: 240 },
-  { activity: "Design ", value: 180 },
-  { activity: "Coding Bootcamp", value: 250 },
-  { activity: "Weekly Recap", value: 190 },
-  { activity: "Volunteer Activity", value: 155 },
-  { activity: "Open Day Event", value: 200 },
+  { activity: 'Yoga Class', value: 200 },
+  { activity: 'Team Meeting', value: 240 },
+  { activity: 'Design ', value: 180 },
+  { activity: 'Coding Bootcamp', value: 250 },
+  { activity: 'Weekly Recap', value: 190 },
+  { activity: 'Volunteer Activity', value: 155 },
+  { activity: 'Open Day Event', value: 200 },
 ];
 
 export default function Dashboard() {
@@ -61,51 +66,61 @@ export default function Dashboard() {
   const StudentStatsChartsData = [
     { name: 'Total', value: StudentStats?.total, color: '#DCDCDC' },
     { name: 'Register', value: StudentStats?.registered, color: '#708CFF' },
-    { name: 'Not Register', value: StudentStats?.notRegistered, color: '#8DD8FF'}
+    {
+      name: 'Not Register',
+      value: StudentStats?.notRegistered,
+      color: '#8DD8FF',
+    },
   ];
 
   const UserNotCheckIn = (StudentStats?.registered ?? 0) - checkin.length;
 
-const downloadCSV = useCallback(() => {
-  
-  if (!checkin?.length) return;
+  const downloadCSV = useCallback(() => {
+    if (!checkin?.length) return;
 
-  const dataToExport = checkin.map(checkin => ({
-    "Student ID": checkin.user?.username || '',
-    "Name": [
-      checkin.user?.name?.first || '',
-      checkin.user?.name?.middle || '',
-      checkin.user?.name?.last || ''
-    ].filter(Boolean).join(' '),
-    "School": checkin.user?.metadata?.[0]?.major?.school || '',
-    "Major": checkin.user?.metadata?.[0]?.major || '',
-    "Activity": checkin.activities?.name?.en || ''
-  }));
+    const dataToExport = checkin.map((checkin) => ({
+      'Student ID': checkin.user?.username || '',
+      Name: [
+        checkin.user?.name?.first || '',
+        checkin.user?.name?.middle || '',
+        checkin.user?.name?.last || '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+      School: checkin.user?.metadata?.[0]?.major?.school || '',
+      Major: checkin.user?.metadata?.[0]?.major || '',
+      Activity: checkin.activity?.name?.en || '',
+    }));
 
-  const headers = Object.keys(dataToExport[0]);
+    const headers = Object.keys(dataToExport[0]);
 
-  const escapeValue = (val: string | number) =>
-    `"${String(val).replace(/"/g, '""')}"`; // escape เครื่องหมายคำพูด
+    const escapeValue = (val: string | number) =>
+      `"${String(val).replace(/"/g, '""')}"`; // escape เครื่องหมายคำพูด
 
-  const csvContent = [
-    headers.map(escapeValue).join(","),
-    ...dataToExport.map(row =>
-      headers.map(header => escapeValue((row as Record<string, any>)[header] || '')).join(",")
-    )
-  ].join("\n");
+    const csvContent = [
+      headers.map(escapeValue).join(','),
+      ...dataToExport.map((row) =>
+        headers
+          .map((header) =>
+            escapeValue((row as Record<string, any>)[header] || ''),
+          )
+          .join(','),
+      ),
+    ].join('\n');
 
-  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
+    const blob = new Blob(['\uFEFF' + csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    });
+    const url = URL.createObjectURL(blob);
 
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${type}_student_details.csv`;
-  link.click();
-  URL.revokeObjectURL(url); // cleanup
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${type}_student_details.csv`;
+    link.click();
+    URL.revokeObjectURL(url); // cleanup
+  }, [checkin, type]);
 
-}, [checkin, type]);
-
-return (
+  return (
     <>
       <PageHeader
         description="System overview — quickly access key modules, recent activity, and system statistics."
@@ -167,55 +182,26 @@ return (
           <CardHeader>
             <div className=" flex w-full justify-between px-3">
               <h1 className=" text-2xl font-semibold"> Check In</h1>
-              <div className=" flex gap-4">
-                <Chip
-                  size="lg"
-                  startContent={<User/>}
-                  variant="flat"
-                  color="primary"
-                >
-                  <h1> student {StudentStats?.registered} </h1>
-                </Chip>
-                <Chip
-                  size="lg"
-                  startContent={<User />}
-                  variant="flat"
-                  color="success"
-                >
-                  <h1> Checkin {checkin.length} </h1>
-                </Chip>
-
-                <Chip
-                  size="lg"
-                  startContent={<User />}
-                  variant="flat"
-                  color="warning"
-                >
-                  <h1> Not Checkin {UserNotCheckIn} </h1>
-                </Chip>
-
-                <Button
-                color='primary'
-                startContent= {<Download className="w-4 h-4" />}
+              <Button
+                color="primary"
+                startContent={<Download className="w-4 h-4" />}
                 onPress={downloadCSV}
-                variant='flat'
+                variant="flat"
                 isDisabled={checkin.length === 0}
-                size='sm'
-                >
-                  Export CSV
-                </Button>
-
-              </div>
+                size="sm"
+              >
+                Export CSV
+              </Button>
             </div>
           </CardHeader>
           <CardBody>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={CheckinActivitytDataMock} margin={{right:60}}>
+              <BarChart data={CheckinActivitytDataMock} margin={{ right: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="activity" />
                 <Tooltip />
                 <YAxis />
-                <Bar dataKey="value" fill="#8884d8" barSize={30}/>
+                <Bar dataKey="value" fill="#8884d8" barSize={30} />
               </BarChart>
             </ResponsiveContainer>
           </CardBody>

@@ -1,6 +1,7 @@
 import { Lang } from './lang';
 
 export type Activities = {
+    [x: string]: any;
     _id: string;
     name: Lang;
     acronym: string;

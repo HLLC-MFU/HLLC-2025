@@ -6,7 +6,7 @@ export type Checkin = {
   _id: string;
   user: User;
   staff: User;
-  activities: Activities;
+  activity: Activities;
   createdAt: string;
   updatedAt: string;
 };
