@@ -79,10 +79,6 @@ export function useActivities() {
         try {
             setLoading(true);
 
-            // Log FormData content
-            formData.forEach((value, key) => {
-            });
-
             const res = await apiRequest<Activities>(
                 '/activities',
                 'POST',
@@ -91,7 +87,6 @@ export function useActivities() {
                     credentials: 'include',
                 }
             );
-
 
             if (res.data) {
                 setActivities((prev) => [...prev, res.data as Activities]);
@@ -170,10 +165,6 @@ export function useActivities() {
                 formData.append('photo[logoPhoto]', logoPhoto);
             }
 
-            // Log FormData content
-            formData.forEach((value, key) => {
-            });
-
             const res = await apiRequest<Activities>(
                 `/activities/${id}`,
                 'PATCH',
@@ -222,7 +213,6 @@ export function useActivities() {
                     credentials: 'include',
                 }
             );
-
 
             if (res.statusCode === 200 || res.statusCode === 204) {
                 setActivities((prev) => prev.filter((a) => a._id !== id));
