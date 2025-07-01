@@ -1,13 +1,11 @@
 'use client';
-
-import { TableLog } from './_components/TableLog';
 import { QrCodeScanner } from './_components/QrCodeScanner';
 import { useState } from 'react';
 import Selectdropdown from './_components/Select';
 import { PageHeader } from '@/components/ui/page-header';
-import { UserRound, Plus } from 'lucide-react';
+import { UserRound } from 'lucide-react';
 
-export default function checkin() {
+export default function CheckinPage() {
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
   const [forceVisible] = useState(false);
   return (

@@ -1,6 +1,7 @@
-import React from 'react';
-import { Button, Sheet, YStack, XStack, SizableText } from 'tamagui';
-import { Province } from '@/types/auth';
+import React, { useRef, useCallback, useEffect } from "react";
+import { Button, YStack, XStack, SizableText, Text } from "tamagui";
+import BottomSheet, { BottomSheetModal, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import { Province } from "@/types/auth";
 
 interface ProvinceSelectorProps {
   isOpen: boolean;
@@ -16,51 +17,77 @@ export const ProvinceSelector = ({
   provinces,
   selectedProvince,
   onSelect,
-}:ProvinceSelectorProps) => {
-  return (
-    <Sheet
-      open={isOpen}
-      onOpenChange={onOpenChange}
-      snapPoints={[90]}
-      position={0}
-      dismissOnSnapToBottom
-      modal
-    >
-      <Sheet.Overlay />
-      <Sheet.Frame padding="$4">
-        <Sheet.Handle />
-        <YStack gap="$4">
-          <XStack justifyContent="space-between" alignItems="center">
-            <SizableText fontSize={24} fontWeight="bold">เลือกจังหวัด</SizableText>
-            <Button onPress={() => onOpenChange(false)} chromeless>
-              <XStack gap="$2" alignItems="center">
-                <SizableText>ปิด</SizableText>
-              </XStack>
-            </Button>
-          </XStack>
+}: ProvinceSelectorProps) => {
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
 
-          <YStack gap="$2">
-            {provinces.map((province) => (
+  // เปิด/ปิด modal ให้ถูกต้อง
+  useEffect(() => {
+    if (isOpen) {
+      bottomSheetRef.current?.present();  // เรียก present() เพื่อเปิด modal
+    } else {
+      bottomSheetRef.current?.close();
+    }
+  }, [isOpen]);
+
+  // ฟังเหตุการณ์เปลี่ยนสถานะ bottom sheet
+  const handleSheetChanges = useCallback(
+    (index: number) => {
+      if (index === -1) {
+        onOpenChange(false);
+      }
+    },
+    [onOpenChange]
+  );
+
+  return (
+    <BottomSheetModal
+      ref={bottomSheetRef}
+      index={0} // เริ่มปิดก็ใช้ -1 แต่ถ้จะให้พร้อมเปิดตั้งแต่แรกใช้ 0
+      snapPoints={["90%"]} // ความสูงของ modal ปรับได้ตามชอบ
+      enableDynamicSizing={false}
+      onChange={handleSheetChanges}
+      enablePanDownToClose
+    >
+      <XStack justifyContent="space-between" alignItems="center" marginBottom="$4" paddingHorizontal="$4">
+        <Text fontSize={24} fontWeight="bold">
+          Select Province
+        </Text>
+        <Button
+          onPress={() => {
+            bottomSheetRef.current?.close();
+            onOpenChange(false);
+          }}
+          chromeless
+        >
+          ปิด
+        </Button>
+      </XStack>
+
+      <BottomSheetScrollView style={{ flex: 1, padding: 16 }}>
+
+        <YStack gap="$2">
+          {provinces.map((province) => {
+            const isSelected = selectedProvince === province.name_en;
+            return (
               <Button
                 key={province.id}
                 onPress={() => {
                   onSelect(province.name_en);
+                  bottomSheetRef.current?.close();
                   onOpenChange(false);
                 }}
-                backgroundColor={selectedProvince === province.name_en ? '$colorFocus' : 'white'}
+                backgroundColor={isSelected ? "$colorFocus" : "white"}
                 borderWidth={1}
                 borderColor="$borderColor"
               >
-                <SizableText
-                  color={selectedProvince === province.name_en ? 'white' : '$color'}
-                >
-                  {province.name_th}
+                <SizableText color={isSelected ? "white" : "$color"}>
+                  {province.name_en}
                 </SizableText>
               </Button>
-            ))}
-          </YStack>
+            );
+          })}
         </YStack>
-      </Sheet.Frame>
-    </Sheet>
+      </BottomSheetScrollView>
+    </BottomSheetModal>
   );
-}; 
+};

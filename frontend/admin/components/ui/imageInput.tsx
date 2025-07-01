@@ -11,7 +11,6 @@ export type ImageInputProps = {
   aspectRatio?: string;
   fileAccept?: string;
   sizeLimit?: number;
-  allowReupload?: boolean;
 };
 
 export default function ImageInput({
@@ -23,7 +22,6 @@ export default function ImageInput({
   aspectRatio = 'aspect-square',
   fileAccept = 'image/*',
   sizeLimit = 500 * 1024, // in byte, 1024 byte = 1 KB, 1024 * 1024 byte = 1 MB
-  allowReupload = true,
 }: ImageInputProps) {
   const [error, setError] = useState<boolean>(false);
   const imageRef = useRef<HTMLInputElement | null>(null);
@@ -37,7 +35,6 @@ export default function ImageInput({
     sizeLimit >= 1024 * 1024
       ? `${sizeLimit / (1024 * 1024)} MB`
       : `${sizeLimit / 1024} KB`;
-
   if (onDiscard && previewImage) {
     setPreviewImage('');
   }

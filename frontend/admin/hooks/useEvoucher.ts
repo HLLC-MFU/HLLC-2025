@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { apiRequest, ApiResponse } from "@/utils/api";
 import { Evoucher } from "@/types/evoucher";
 
-
 export function useEvoucher() {
     const [evouchers, setEvouchers] = useState<Evoucher[]>([]);
     const [loading, setLoading] = useState(false);
