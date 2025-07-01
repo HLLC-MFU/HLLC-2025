@@ -1,7 +1,11 @@
 import React from 'react';
-import { Button, Input, SizableText, View, YStack, XStack } from 'tamagui';
+import { Button, Input, Text, View, XStack, YStack } from 'tamagui';
 import { PasswordInput } from '@/components/PasswordInput';
-import { Linking, Image } from 'react-native';
+import { Linking, Image, Pressable } from 'react-native';
+import { t } from 'i18next';
+import { Globe } from 'lucide-react-native';
+import { useLanguage } from '@/context/LanguageContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface LoginFormProps {
   username: string;
@@ -21,25 +25,35 @@ export const LoginForm = ({
   onLogin,
   onRegister,
   onForgotPassword,
-}:LoginFormProps) => {
+}: LoginFormProps) => {
+  const { language, changeLanguage } = useLanguage();
+  const toggleLanguage = () => {
+    changeLanguage(language === 'en' ? 'th' : 'en');
+  };
+
   return (
     <View flex={1} justifyContent="center" alignItems="center" padding="$4" rowGap={12}>
-      <Image 
+      <SafeAreaView style={{ position: 'absolute', top: 0, right: 0, padding: 10 }}>
+        <Pressable onPress={toggleLanguage} style={{ padding: 10 }}>
+          <Globe size={24} color="#333" />
+        </Pressable>
+      </SafeAreaView>
+      <Image
         source={require('@/assets/images/logo-sdad.png')}
         style={{ width: 120, height: 120, marginBottom: 16 }}
         resizeMode="contain"
       />
-      
-      <SizableText fontSize={24} fontWeight="bold" textAlign="center">Sign In</SizableText>
-      <SizableText fontSize={18} fontWeight="bold" textAlign="center">Let's start your journey</SizableText>
-      
+
+      <Text fontSize={24} fontWeight="bold" textAlign="center">{t("login.title")}</Text>
+      <Text fontSize={18} fontWeight="bold" textAlign="center">{t("login.subtitle")}</Text>
+
       <YStack gap="$4" width={'100%'}>
         <Input
           height={50}
           width={'100%'}
           borderWidth={2}
           focusStyle={{ borderColor: '$colorFocus' }}
-          placeholder="Username"
+          placeholder={t("login.username")}
           value={username}
           onChangeText={setUsername}
           style={{ backgroundColor: 'white' }}
@@ -47,22 +61,22 @@ export const LoginForm = ({
         <PasswordInput
           value={password}
           onChangeText={setPassword}
-          placeholder="Password"
+          placeholder={t("login.password")}
         />
       </YStack>
 
-      <SizableText width={'100%'} textAlign="right" onPress={onForgotPassword}>
-        Forgot Password?
-      </SizableText>
+      <Text width={'100%'} textAlign="right" onPress={onForgotPassword}>
+        {t("login.forgotPassword")}
+      </Text>
 
       <View style={{ width: '100%', flexDirection: 'row', gap: 10 }}>
-        <Button flex={1} onPress={onRegister}>Register</Button>
-        <Button flex={1} onPress={onLogin}>Sign In</Button>
+        <Button flex={1} onPress={onRegister}>{t("login.register")}</Button>
+        <Button flex={1} onPress={onLogin}>{t("login.loginButton")}</Button>
       </View>
 
       <View style={{ backgroundColor: '#00000025', height: 1, width: '100%' }} />
       <Button width={'100%'} onPress={() => Linking.openURL('https://www.facebook.com/mfuactivities/')}>
-        CONTACT US
+        {t("login.contactUs")}
       </Button>
     </View>
   );
