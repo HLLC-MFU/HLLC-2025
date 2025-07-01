@@ -1,13 +1,19 @@
 import BottomContent from "./BottomContent"
-import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react"
+import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, SortDescriptor } from "@heroui/react"
 import { User } from "@/types/user"
 import TopContent from "./TopContent"
+import { Key, ReactNode, SetStateAction } from "react"
 
-interface TableContentProps {
-    setIsAddOpen: (value: boolean) => void;
-    setIsImportOpen: (value: boolean) => void;
-    setIsExportOpen: (value: boolean) => void;
-    setActionText: (value: "Add" | "Edit") => void;
+type ModalState = {
+    add: boolean;
+    import: boolean;
+    export: boolean;
+    confirm: boolean;
+}
+
+type TableContentProps = {
+    setModal: (value: SetStateAction<ModalState>) => void;
+    setActionMode: (value: "Add" | "Edit") => void;
     filterValue: string;
     visibleColumns: Set<string>;
     columns: Array<{ uid: string; name: string; sortable?: boolean }>;
@@ -23,18 +29,16 @@ interface TableContentProps {
     onPreviousPage: () => void;
     onNextPage: () => void;
     setSelectedKeys: (keys: "all" | Set<string | number>) => void;
-    sortDescriptor: { column: string | number; direction: "ascending" | "descending" };
-    setSortDescriptor: (sortDescriptor: { column: string | number; direction: "ascending" | "descending" }) => void;
+    sortDescriptor: SortDescriptor;
+    setSortDescriptor: (sortDescriptor: SortDescriptor) => void;
     headerColumns: Array<{ uid: string; name: string; sortable?: boolean }>;
     sortedItems: User[];
-    renderCell: (item: User, columnKey: React.Key, index: number) => string;
+    renderCell: (item: User, columnKey: Key, index: number) => ReactNode;
 }
 
 export default function TableContent({
-    setIsAddOpen,
-    setIsImportOpen,
-    setIsExportOpen,
-    setActionText,
+    setModal,
+    setActionMode,
     filterValue,
     visibleColumns,
     columns,
@@ -77,10 +81,8 @@ export default function TableContent({
             selectionMode="multiple"
             sortDescriptor={sortDescriptor}
             topContent={<TopContent
-                setIsAddOpen={setIsAddOpen}
-                setIsImportOpen={setIsImportOpen}
-                setIsExportOpen={setIsExportOpen}
-                setActionText={setActionText}
+                setModal={setModal}
+                setActionMode={setActionMode}
                 filterValue={filterValue}
                 visibleColumns={visibleColumns}
                 columns={columns}
