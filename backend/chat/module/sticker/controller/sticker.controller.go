@@ -7,6 +7,7 @@ import (
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
 	controllerHelper "chat/pkg/helpers/controller"
+	"chat/pkg/middleware"
 	"chat/pkg/utils"
 	"fmt"
 	"os"
@@ -19,24 +20,26 @@ type (
 		*decorators.BaseController
 		service *service.StickerService
 		uploadHandler *utils.FileUploadHandler
+		rbac middleware.IRBACMiddleware
 	}
 )
 
-func NewStickerController(app *fiber.App, service *service.StickerService) *StickerController {
-	controller := &StickerController{
+func NewStickerController(app *fiber.App, service *service.StickerService, rbac middleware.IRBACMiddleware) *StickerController {
+	c := &StickerController{
 		BaseController: decorators.NewBaseController(app, "/api/stickers"),
 		service: service,
 		uploadHandler: utils.NewModuleFileHandler("sticker"),
+		rbac: rbac,
 	}
 
-	controller.Get("/", controller.GetAllStickers)
-	controller.Get("/:id", controller.GetStickerById)
-	controller.Post("/", controller.CreateSticker)
-	controller.Put("/:id", controller.UpdateSticker)
-	controller.Delete("/:id", controller.DeleteSticker)
-	controller.SetupRoutes()
+	c.Get("/", c.GetAllStickers)
+	c.Get("/:id", c.GetStickerById)
+	c.Post("/", c.CreateSticker, c.rbac.RequireAdministrator())
+	c.Put("/:id", c.UpdateSticker, c.rbac.RequireAdministrator())
+	c.Delete("/:id", c.DeleteSticker, c.rbac.RequireAdministrator())
+	c.SetupRoutes()
 
-	return controller
+	return c
 }
 
 func (c *StickerController) GetAllStickers(ctx *fiber.Ctx) error {

@@ -4,6 +4,7 @@ import (
 	"chat/module/user/service"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
+	"chat/pkg/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -12,20 +13,22 @@ type (
 	RoleController struct {
 		*decorators.BaseController
 		service *service.RoleService
+		rbac middleware.IRBACMiddleware
 	}
 )
 
-func NewRoleController(app *fiber.App, service *service.RoleService) *RoleController {
-	controller := &RoleController{
+func NewRoleController(app *fiber.App, service *service.RoleService, rbac middleware.IRBACMiddleware) *RoleController {
+	c := &RoleController{
 		BaseController: decorators.NewBaseController(app, "/api/roles"),
 		service: service,
+		rbac: rbac,
 	}
 
-	controller.Get("/", controller.GetRoles)
-	controller.Get("/:id", controller.GetRoleById)
-	controller.SetupRoutes()
+	c.Get("/", c.GetRoles, c.rbac.RequireAdministrator())
+	c.Get("/:id", c.GetRoleById, c.rbac.RequireAdministrator())
+	c.SetupRoutes()
 
-	return controller
+	return c
 }
 
 func (c *RoleController) GetRoles(ctx *fiber.Ctx) error {

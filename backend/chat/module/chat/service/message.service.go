@@ -18,6 +18,15 @@ func (s *ChatService) CanUserSendMessages(ctx context.Context, userID, roomID pr
 	return true
 }
 
+// CanUserViewMessages checks if a user can view messages in a room
+func (s *ChatService) CanUserViewMessages(ctx context.Context, userID, roomID primitive.ObjectID) bool {
+	// Check if user is banned (muted users can still view)
+	if s.restrictionService.IsUserBanned(ctx, userID, roomID) {
+		return false
+	}
+	return true
+}
+
 // SendMessage sends a chat message
 func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) error {
 	log.Printf("[ChatService] SendMessage called for room %s by user %s", msg.RoomID.Hex(), msg.UserID.Hex())

@@ -10,6 +10,7 @@ import (
 	stickerModel "chat/module/sticker/model"
 	userModel "chat/module/user/model"
 	"chat/pkg/decorators"
+	"chat/pkg/middleware"
 	"context"
 	"log"
 	"strconv"
@@ -56,6 +57,7 @@ type (
 		roomService    RoomService
 		stickerService StickerService
 		wsHandler      *WebSocketHandler
+		rbac           middleware.IRBACMiddleware
 	}
 )
 
@@ -64,16 +66,18 @@ func NewChatController(
 	chatService *chatService.ChatService,
 	roomService RoomService,
 	stickerService StickerService,
-	moderationService ModerationChatService,
+	restrictionService RestrictionServiceChatService,
+	rbac middleware.IRBACMiddleware,
 ) *ChatController {
 	controller := &ChatController{
 		BaseController: decorators.NewBaseController(app, "/chat"),
 		chatService:    chatService,
 		roomService:    roomService,
 		stickerService: stickerService,
+		rbac:           rbac,
 	}
 
-	controller.wsHandler = NewWebSocketHandler(chatService, chatService, chatService, roomService, moderationService)
+	controller.wsHandler = NewWebSocketHandler(chatService, chatService, chatService, roomService, restrictionService)
 
 	controller.setupRoutes()
 	return controller
@@ -81,11 +85,12 @@ func NewChatController(
 
 func (c *ChatController) setupRoutes() {
 	c.Post("/rooms/:roomId/stickers", c.handleSendSticker)
-	c.Delete("/rooms/:roomId/cache", c.handleClearCache)
 	c.Post("/rooms/:roomId/reply", c.handleReplyMessage)
 	c.Get("/rooms/:roomId/history", c.handleGetChatHistory)
 	c.Delete("/rooms/:roomId/messages/:messageId", c.handleUnsendMessage)
 	c.Get("/ws/:roomId/:userId", websocket.New(c.wsHandler.HandleWebSocket))
+
+	c.Delete("/rooms/:roomId/cache", c.handleClearCache, c.rbac.RequireAdministrator())
 	c.SetupRoutes()
 }
 

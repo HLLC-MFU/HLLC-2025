@@ -19,10 +19,10 @@ type WebSocketHandler struct {
 	mentionService MentionChatService
 	reactionService ReactionChatService
 	roomService    RoomService
-	moderationService ModerationChatService
+	restrictionService RestrictionServiceChatService
 }
 
-type ModerationChatService interface {
+type RestrictionServiceChatService interface {
 	CanUserSendMessages(ctx context.Context, userID, roomID primitive.ObjectID) bool
 	CanUserViewMessages(ctx context.Context, userID, roomID primitive.ObjectID) bool
 	IsUserBanned(ctx context.Context, userID, roomID primitive.ObjectID) bool
@@ -34,14 +34,14 @@ func NewWebSocketHandler(
 	mentionService MentionChatService,
 	reactionService ReactionChatService,
 	roomService RoomService,
-	moderationService ModerationChatService,
+	restrictionService RestrictionServiceChatService,
 ) *WebSocketHandler {
 	return &WebSocketHandler{
 		chatService:    chatService,
 		mentionService: mentionService,
 		reactionService: reactionService,
 		roomService:    roomService,
-		moderationService: moderationService,
+		restrictionService: restrictionService,
 	}
 }
 
@@ -247,7 +247,7 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 	}
 
 	// **NEW: ตรวจสอบ BAN status หลังจาก validate user ID แล้ว**
-	if h.moderationService.IsUserBanned(ctx, userObjID, roomObjID) {
+	if h.restrictionService.IsUserBanned(ctx, userObjID, roomObjID) {
 		log.Printf("[BANNED] User %s is banned from room %s", userID, roomID)
 		h.roomService.RemoveConnection(ctx, roomObjID, userID)
 		conn.WriteMessage(websocket.TextMessage, []byte("You are banned from this room"))
@@ -335,10 +335,10 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 			}
 
 			// **ตรวจสอบ moderation status เพิ่มเติม**
-			if !h.moderationService.CanUserSendMessages(ctx, userObjID, roomObjID) {
-				if h.moderationService.IsUserBanned(ctx, userObjID, roomObjID) {
+			if !h.restrictionService.CanUserSendMessages(ctx, userObjID, roomObjID) {
+				if h.restrictionService.IsUserBanned(ctx, userObjID, roomObjID) {
 					conn.WriteMessage(websocket.TextMessage, []byte("You are banned from this room"))
-				} else if h.moderationService.IsUserMuted(ctx, userObjID, roomObjID) {
+				} else if h.restrictionService.IsUserMuted(ctx, userObjID, roomObjID) {
 					conn.WriteMessage(websocket.TextMessage, []byte("You are muted in this room"))
 				} else {
 					conn.WriteMessage(websocket.TextMessage, []byte("You cannot send messages in this room"))
@@ -449,12 +449,12 @@ func (h *WebSocketHandler) handleReactionMessage(messageText string, client mode
 	}
 
 	// Check moderation permissions
-	if h.moderationService.IsUserBanned(context.Background(), client.UserID, client.RoomID) {
+	if h.restrictionService.IsUserBanned(context.Background(), client.UserID, client.RoomID) {
 		log.Printf("[WS] Banned user %s tried to react in room %s", client.UserID.Hex(), client.RoomID.Hex())
 		return
 	}
 
-	if h.moderationService.IsUserMuted(context.Background(), client.UserID, client.RoomID) {
+	if h.restrictionService.IsUserMuted(context.Background(), client.UserID, client.RoomID) {
 		log.Printf("[WS] Muted user %s tried to react in room %s", client.UserID.Hex(), client.RoomID.Hex())
 		return
 	}
@@ -521,12 +521,12 @@ func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.
 	log.Printf("[WS] User %s wants to unsend message %s", client.UserID.Hex(), messageID)
 
 	// Check moderation permissions first
-	if h.moderationService.IsUserBanned(context.Background(), client.UserID, client.RoomID) {
+	if h.restrictionService.IsUserBanned(context.Background(), client.UserID, client.RoomID) {
 		log.Printf("[WS] Banned user %s tried to unsend message in room %s", client.UserID.Hex(), client.RoomID.Hex())
 		return
 	}
 
-	if h.moderationService.IsUserMuted(context.Background(), client.UserID, client.RoomID) {
+	if h.restrictionService.IsUserMuted(context.Background(), client.UserID, client.RoomID) {
 		log.Printf("[WS] Muted user %s tried to unsend message in room %s", client.UserID.Hex(), client.RoomID.Hex())
 		return
 	}

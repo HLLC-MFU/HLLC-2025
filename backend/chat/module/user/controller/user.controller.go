@@ -4,6 +4,7 @@ import (
 	"chat/module/user/service"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
+	"chat/pkg/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -12,17 +13,19 @@ type (
 	UserController struct {
 		*decorators.BaseController
 		service *service.UserService
+		rbac middleware.IRBACMiddleware
 	}
 )
 
-func NewUserController(app *fiber.App, service *service.UserService) *UserController {
+func NewUserController(app *fiber.App, service *service.UserService, rbac middleware.IRBACMiddleware) *UserController {
 	controller := &UserController{
 		BaseController: decorators.NewBaseController(app, "/api/users"),
 		service: service,
+		rbac: rbac,
 	}
 
-	controller.Get("/", controller.GetUsers)
-	controller.Get("/:id", controller.GetUserById)
+	controller.Get("/", controller.GetUsers, controller.rbac.RequireAdministrator())
+	controller.Get("/:id", controller.GetUserById, controller.rbac.RequireAdministrator())
 	controller.SetupRoutes()
 
 	return controller

@@ -21,6 +21,7 @@ import (
 	"chat/module/user/service"
 	"chat/pkg/config"
 	"chat/pkg/core/kafka"
+	"chat/pkg/middleware"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -148,44 +149,43 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	userService := service.NewUserService(mongo)
 	stickerService := stickerService.NewStickerService(mongo)
 
+	// Initialize RBAC middleware
+	rbacMiddleware := middleware.NewRBACMiddleware(mongo)
+
 	// Initialize Kafka bus for chat
 	bus := kafka.New([]string{"localhost:9092"}, "chat-service")
-	
+
 	// Start Kafka bus
 	if err := bus.Start(); err != nil {
 		log.Fatalf("Failed to start Kafka bus: %v", err)
 	}
 
+	// Initialize chat service and hub
 	chatService := chatService.NewChatService(mongo, redisClient, bus, cfg)
-	roomAndMemberService := roomService.NewRoomService(mongo, redisClient, cfg, chatService.GetHub())
-	
-	// Initialize Group Room Service
-	groupRoomService := roomService.NewGroupRoomService(mongo, redisClient, cfg, chatService.GetHub(), roomAndMemberService, bus)
+	hub := chatService.GetHub()
+
+	// Initialize room services
+	roomAndMemberService := roomService.NewRoomService(mongo, redisClient, cfg, hub)
+	groupRoomService := roomService.NewGroupRoomService(mongo, redisClient, cfg, hub, roomAndMemberService, bus)
+
+	// Initialize evoucher service
+	evoucherService := evoucherSvc.NewEvoucherService(mongo, redisClient, chatService.GetRestrictionService(), chatService.GetNotificationService(), hub)
 
 	// Initialize controllers
 	controller.NewSchoolController(app, schoolService)
 	controller.NewMajorController(app, majorService)
-	controller.NewRoleController(app, roleService)
-	controller.NewUserController(app, userService)
+	controller.NewRoleController(app, roleService, rbacMiddleware)
+	controller.NewUserController(app, userService, rbacMiddleware)
 	roomController.NewRoomController(app, roomAndMemberService)
-	roomController.NewGroupRoomController(app, groupRoomService, roomAndMemberService)
-	stickerController.NewStickerController(app, stickerService)
-	chatController.NewChatController(app, chatService, roomAndMemberService, stickerService, chatService.GetRestrictionService())
+	roomController.NewGroupRoomController(app, groupRoomService, roomAndMemberService, rbacMiddleware)
+	stickerController.NewStickerController(app, stickerService, rbacMiddleware)
+	chatController.NewChatController(app, chatService, roomAndMemberService, stickerService, chatService.GetRestrictionService(), rbacMiddleware)
 	chatController.NewMentionController(app, chatService, roomAndMemberService)
 	chatController.NewReactionController(app, chatService, roomAndMemberService)
-	
-	// Evoucher controller (separate module)
-	evoucherService := evoucherSvc.NewEvoucherService(
-		mongo,
-		redisClient,
-		chatService.GetRestrictionService(),
-		chatService.GetNotificationService(),
-		chatService.GetHub(),
-	)
-	evoucherController.NewEvoucherController(app, evoucherService, roomAndMemberService)
+	evoucherController.NewEvoucherController(app, evoucherService, roomAndMemberService, rbacMiddleware)
 	
 	// Restriction controller (was moderation)
-	restrictionController.NewModerationController(app, chatService.GetRestrictionService())
+	restrictionController.NewModerationController(app, chatService.GetRestrictionService(), rbacMiddleware)
 }
 
 // logRegisteredRoutes prints all registered routes in a formatted way

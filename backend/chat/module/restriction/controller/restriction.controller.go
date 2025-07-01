@@ -5,6 +5,7 @@ import (
 	restrictionService "chat/module/restriction/service"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
+	"chat/pkg/middleware"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -15,16 +16,19 @@ type (
 	RestrictionController struct {
 		*decorators.BaseController
 		moderationService *restrictionService.RestrictionService
+		rbac middleware.IRBACMiddleware
 	}
 )
 
 func NewModerationController(
 	app *fiber.App,
 	moderationService *restrictionService.RestrictionService,
+	rbac middleware.IRBACMiddleware,
 ) *RestrictionController {
 	controller := &RestrictionController{
 		BaseController:    decorators.NewBaseController(app, "/api/restriction"),
 		moderationService: moderationService,
+		rbac: rbac,
 	}
 
 	controller.setupRoutes()
@@ -33,19 +37,19 @@ func NewModerationController(
 
 func (c *RestrictionController) setupRoutes() {
 	// Ban operations
-	c.Post("/ban", c.handleBanUser)
-	c.Post("/unban", c.handleUnbanUser)
+	c.Post("/ban", c.handleBanUser, c.rbac.RequireAdministrator())
+	c.Post("/unban", c.handleUnbanUser, c.rbac.RequireAdministrator())
 	
 	// Mute operations
-	c.Post("/mute", c.handleMuteUser)
-	c.Post("/unmute", c.handleUnmuteUser)
+	c.Post("/mute", c.handleMuteUser, c.rbac.RequireAdministrator())
+	c.Post("/unmute", c.handleUnmuteUser, c.rbac.RequireAdministrator())
 	
 	// Kick operation
-	c.Post("/kick", c.handleKickUser)
+	c.Post("/kick", c.handleKickUser, c.rbac.RequireAdministrator())
 	
 	// Status and history
-	c.Get("/status/:roomId/:userId", c.handleGetModerationStatus)
-	c.Get("/history", c.handleGetModerationHistory)
+	c.Get("/status/:roomId/:userId", c.handleGetModerationStatus, c.rbac.RequireAdministrator())
+	c.Get("/history", c.handleGetModerationHistory, c.rbac.RequireAdministrator())
 	
 	c.SetupRoutes()
 }

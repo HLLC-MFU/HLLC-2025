@@ -5,6 +5,7 @@ import (
 	"chat/module/sendEvoucher/dto"
 	"chat/module/sendEvoucher/service"
 	"chat/pkg/decorators"
+	"chat/pkg/middleware"
 	"context"
 	"time"
 
@@ -17,6 +18,7 @@ type (
 		*decorators.BaseController
 		evoucherService *service.EvoucherService
 		roomService     EvoucherRoomService
+		rbac middleware.IRBACMiddleware
 	}
 
 	EvoucherRoomService interface {
@@ -28,11 +30,13 @@ func NewEvoucherController(
 	app *fiber.App,
 	evoucherService *service.EvoucherService,
 	roomService EvoucherRoomService,
+	rbac middleware.IRBACMiddleware,
 ) *EvoucherController {
 	controller := &EvoucherController{
 		BaseController:  decorators.NewBaseController(app, "/api/evouchers"),
 		evoucherService: evoucherService,
 		roomService:     roomService,
+		rbac: rbac,
 	}
 
 	controller.setupRoutes()
@@ -40,8 +44,8 @@ func NewEvoucherController(
 }
 
 func (c *EvoucherController) setupRoutes() {
-	c.Post("/send", c.handleSendEvoucher)
-	c.Post("/:evoucherId/claim", c.handleClaimEvoucher)
+	c.Post("/send", c.handleSendEvoucher, c.rbac.RequireAdministrator())
+	c.Post("/:evoucherId/claim", c.handleClaimEvoucher, c.rbac.RequireAdministrator())
 	c.SetupRoutes()
 }
 

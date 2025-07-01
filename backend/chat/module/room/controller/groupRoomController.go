@@ -5,6 +5,7 @@ import (
 	"chat/module/room/service"
 	roomUtils "chat/module/room/utils"
 	"chat/pkg/decorators"
+	"chat/pkg/middleware"
 	"chat/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
@@ -17,9 +18,10 @@ type GroupRoomController struct {
 	roomService      *service.RoomService
 	uploadHandler    *utils.FileUploadHandler
 	validationHelper *roomUtils.RoomValidationHelper
+	rbac middleware.IRBACMiddleware
 }
 
-func NewGroupRoomController(app *fiber.App, groupService *service.GroupRoomService, roomService *service.RoomService) *GroupRoomController {
+func NewGroupRoomController(app *fiber.App, groupService *service.GroupRoomService, roomService *service.RoomService, rbac middleware.IRBACMiddleware) *GroupRoomController {
 	uploadConfig := utils.GetModuleConfig("room")
 	
 	var validationHelper *roomUtils.RoomValidationHelper
@@ -35,6 +37,7 @@ func NewGroupRoomController(app *fiber.App, groupService *service.GroupRoomServi
 		roomService:      roomService,
 		uploadHandler:    utils.NewModuleFileHandler("room"),
 		validationHelper: validationHelper,
+		rbac:            rbac,
 	}
 
 	controller.setupRoutes()
@@ -42,14 +45,14 @@ func NewGroupRoomController(app *fiber.App, groupService *service.GroupRoomServi
 }
 
 func (c *GroupRoomController) setupRoutes() {
-	c.Post("/group", c.CreateRoomByGroup)
-	c.Post("/:id/join-group", c.JoinRoomByGroup)
-	c.Post("/:id/bulk-add", c.BulkAddUsers)
-	c.Get("/group/stats", c.GetGroupRoomStats)
+	c.Post("/group", c.CreateRoomByGroup, c.rbac.RequireAdministrator())
+	c.Post("/:id/join-group", c.JoinRoomByGroup, c.rbac.RequireAdministrator())
+	c.Post("/:id/bulk-add", c.BulkAddUsers, c.rbac.RequireAdministrator())
+	c.Get("/group/stats", c.GetGroupRoomStats, c.rbac.RequireAdministrator())
 	c.Get("/group/rooms", c.GetRoomsByGroup)
-	c.Post("/auto-add/:userId", c.AutoAddUserToGroupRooms)
-	c.Get("/auto-addable", c.GetAutoAddableGroupRooms)
-	c.Patch("/:id/auto-add", c.ToggleGroupRoomAutoAdd)
+	c.Post("/auto-add/:userId", c.AutoAddUserToGroupRooms, c.rbac.RequireAdministrator())
+	c.Get("/auto-addable", c.GetAutoAddableGroupRooms, c.rbac.RequireAdministrator())
+	c.Patch("/:id/auto-add", c.ToggleGroupRoomAutoAdd, c.rbac.RequireAdministrator())
 	c.SetupRoutes()
 }
 
