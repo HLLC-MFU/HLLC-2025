@@ -65,7 +65,9 @@
     "evoucher": {
         "title": "คูปอง",
         "subtitle": "กำลังมา เร็วๆนี้...",
-        "backward": "ย้อนกลับ"
+        "backward": "ย้อนกลับ",
+        "confirmTitle": "ยืนยันการใช้ E-Voucher",
+        "confirmMessage": "คุณแน่ใจหรือไม่ว่าต้องการใช้ E-Voucher นี้?"
     },
     "bottomNav": {
         "home": "หน้าแรก",

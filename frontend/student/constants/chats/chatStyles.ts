@@ -104,4 +104,6 @@ export const chatStyles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
   },
-}); 
+});
+
+export default chatStyles; 

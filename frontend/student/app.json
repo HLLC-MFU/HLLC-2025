@@ -8,8 +8,10 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "jsEngine": "jsc",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hllc2025.student"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +19,11 @@
         "backgroundColor": "#ffffff"
       },
       "softwareKeyboardLayoutMode": "pan",
-      "package": "com.jemiezler.student"
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.hllc2025.student"
     },
     "web": {
       "bundler": "metro",
@@ -35,6 +41,14 @@
           "backgroundColor": "#ffffff"
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow this app to access your camera.",
+          "microphonePermission": "Allow this app to access your microphone.",
+          "recordAudioAndroid": true
+        }
+      ],
       "expo-font"
     ],
     "experiments": {
@@ -42,3 +56,4 @@
     }
   }
 }
+

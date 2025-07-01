@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { ChatRoom } from '@/types/chatTypes';
-import { chatService } from '@/services/chats/chatService';
 import { API_BASE_URL } from '@/configs/chats/chatConfig';
 import { GlassButton } from '../ui/GlassButton';
+import chatService from '@/services/chats/chatService';
 
 interface RoomDetailModalProps {
   visible: boolean;
