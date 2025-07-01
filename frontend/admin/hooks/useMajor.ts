@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Major } from '@/types/school';
+import { Major } from '@/types/major';
 import { apiRequest } from "@/utils/api"
 
 export function useMajors() {
