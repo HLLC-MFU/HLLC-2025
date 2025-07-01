@@ -6,9 +6,6 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { useToastController } from '@tamagui/toast';
 import provincesData from '@/data/provinces.json';
-import { Button, XStack } from 'tamagui';
-import { useLanguage } from '@/context/LanguageContext';
-import { Globe } from '@tamagui/lucide-icons';
 export default function LoginScreen() {
   // State
   const [username, setUsername] = useState('');

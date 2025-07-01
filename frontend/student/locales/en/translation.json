@@ -47,7 +47,12 @@
     },
     "nav": {
         "welcome": "Welcome Back",
-        "progress": "Progress"
+        "progress": "Progress",
+        "home": "Home",
+        "activity": "Activity",
+        "qrCode": "QR Code",
+        "evoucher": "E-Voucher",
+        "community": "Community"
     },
     "home": {
         "activities": "Activities",

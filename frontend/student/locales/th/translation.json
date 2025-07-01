@@ -46,7 +46,12 @@
     },
     "nav": {
         "welcome": "ยินดีต้อนรับกลับมา",
-        "progress": "ความคืบหน้า"
+        "progress": "ความคืบหน้า",
+        "home": "หน้าแรก",
+        "activity": "กิจกรรม",
+        "qrCode": "คิวอาร์โคด",
+        "evoucher": "คูปอง",
+        "community": "ชุมชน"
     },
     "home": {
         "activities": "กิจกรรม",
