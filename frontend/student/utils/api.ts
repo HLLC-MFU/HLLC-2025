@@ -24,9 +24,10 @@ export async function apiRequest<T>(
 ): Promise<ApiResponse<T>> {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
+     const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
     const headers: HeadersInit = {
-      "Content-Type": "application/json",
+      ...(!isFormData && body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { "Authorization": `Bearer ${token.trim()}` } : {}),
       ...options.headers,
     };
@@ -34,7 +35,11 @@ export async function apiRequest<T>(
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: body
+        ? isFormData
+          ? (body as FormData)
+          : JSON.stringify(body)
+        : undefined,
       ...options,
     });
     const responseData = await response.json(); // ✅ Read full response

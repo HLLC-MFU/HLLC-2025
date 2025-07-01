@@ -47,10 +47,6 @@ export default function LamduanOrigamiPage() {
     formData.append('user', user);
     formData.append('setting', setting);
 
-    formData.forEach((value, key) => {
-      console.log(`${key}: ${value}`);
-    })
-
     try {
       await createLamduanFlowers(formData);
       Alert.alert("Success", "Flower submitted successfully!");
