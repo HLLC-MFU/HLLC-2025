@@ -54,7 +54,7 @@ type (
 	}
 
 	// GetModerationHistoryDto สำหรับดูประวัติการลงโทษ
-	GetModerationHistoryDto struct {
+	GetRestrictionHistoryDto struct {
 		RoomID string `query:"roomId,omitempty"`
 		UserID string `query:"userId,omitempty"`
 		Type   string `query:"type,omitempty"` // ban, mute, kick

@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"chat/module/chat/dto"
-	chatService "chat/module/chat/service"
+	restrictionDto "chat/module/restriction/dto"
+	restrictionService "chat/module/restriction/service"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
 	"strconv"
@@ -12,18 +12,18 @@ import (
 )
 
 type (
-	ModerationController struct {
+	RestrictionController struct {
 		*decorators.BaseController
-		moderationService *chatService.ModerationService
+		moderationService *restrictionService.RestrictionService
 	}
 )
 
 func NewModerationController(
 	app *fiber.App,
-	moderationService *chatService.ModerationService,
-) *ModerationController {
-	controller := &ModerationController{
-		BaseController:    decorators.NewBaseController(app, "/api/moderation"),
+	moderationService *restrictionService.RestrictionService,
+) *RestrictionController {
+	controller := &RestrictionController{
+		BaseController:    decorators.NewBaseController(app, "/api/restriction"),
 		moderationService: moderationService,
 	}
 
@@ -31,7 +31,7 @@ func NewModerationController(
 	return controller
 }
 
-func (c *ModerationController) setupRoutes() {
+func (c *RestrictionController) setupRoutes() {
 	// Ban operations
 	c.Post("/ban", c.handleBanUser)
 	c.Post("/unban", c.handleUnbanUser)
@@ -51,8 +51,8 @@ func (c *ModerationController) setupRoutes() {
 }
 
 // handleBanUser บัน user
-func (c *ModerationController) handleBanUser(ctx *fiber.Ctx) error {
-	var banDto dto.BanUserDto
+func (c *RestrictionController) handleBanUser(ctx *fiber.Ctx) error {
+	var banDto restrictionDto.BanUserDto
 	if err := ctx.BodyParser(&banDto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -128,8 +128,8 @@ func (c *ModerationController) handleBanUser(ctx *fiber.Ctx) error {
 }
 
 // handleUnbanUser ยกเลิกการบัน user
-func (c *ModerationController) handleUnbanUser(ctx *fiber.Ctx) error {
-	var unbanDto dto.UnbanUserDto
+func (c *RestrictionController) handleUnbanUser(ctx *fiber.Ctx) error {
+	var unbanDto restrictionDto.UnbanUserDto
 	if err := ctx.BodyParser(&unbanDto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -168,8 +168,8 @@ func (c *ModerationController) handleUnbanUser(ctx *fiber.Ctx) error {
 }
 
 // handleMuteUser mute user
-func (c *ModerationController) handleMuteUser(ctx *fiber.Ctx) error {
-	var muteDto dto.MuteUserDto
+func (c *RestrictionController) handleMuteUser(ctx *fiber.Ctx) error {
+	var muteDto restrictionDto.MuteUserDto
 	if err := ctx.BodyParser(&muteDto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -247,8 +247,8 @@ func (c *ModerationController) handleMuteUser(ctx *fiber.Ctx) error {
 }
 
 // handleUnmuteUser ยกเลิกการ mute user
-func (c *ModerationController) handleUnmuteUser(ctx *fiber.Ctx) error {
-	var unmuteDto dto.UnmuteUserDto
+func (c *RestrictionController) handleUnmuteUser(ctx *fiber.Ctx) error {
+	var unmuteDto restrictionDto.UnmuteUserDto
 	if err := ctx.BodyParser(&unmuteDto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -287,8 +287,8 @@ func (c *ModerationController) handleUnmuteUser(ctx *fiber.Ctx) error {
 }
 
 // handleKickUser kick user ออกจากห้อง
-func (c *ModerationController) handleKickUser(ctx *fiber.Ctx) error {
-	var kickDto dto.KickUserDto
+func (c *RestrictionController) handleKickUser(ctx *fiber.Ctx) error {
+	var kickDto restrictionDto.KickUserDto
 	if err := ctx.BodyParser(&kickDto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -340,7 +340,7 @@ func (c *ModerationController) handleKickUser(ctx *fiber.Ctx) error {
 }
 
 // handleGetModerationStatus ดูสถานะการลงโทษของ user ในห้อง
-func (c *ModerationController) handleGetModerationStatus(ctx *fiber.Ctx) error {
+func (c *RestrictionController) handleGetModerationStatus(ctx *fiber.Ctx) error {
 	roomID := ctx.Params("roomId")
 	userID := ctx.Params("userId")
 
@@ -362,7 +362,7 @@ func (c *ModerationController) handleGetModerationStatus(ctx *fiber.Ctx) error {
 	}
 
 	// Get moderation status
-	status, err := c.moderationService.GetUserModerationStatus(ctx.Context(), userObjID, roomObjID)
+	status, err := c.moderationService.GetUserRestrictionStatus(ctx.Context(), userObjID, roomObjID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -379,7 +379,7 @@ func (c *ModerationController) handleGetModerationStatus(ctx *fiber.Ctx) error {
 }
 
 // handleGetModerationHistory ดูประวัติการลงโทษ
-func (c *ModerationController) handleGetModerationHistory(ctx *fiber.Ctx) error {
+func (c *RestrictionController) handleGetModerationHistory(ctx *fiber.Ctx) error {
 	// Parse query parameters
 	page, _ := strconv.Atoi(ctx.Query("page", "1"))
 	limit, _ := strconv.Atoi(ctx.Query("limit", "20"))

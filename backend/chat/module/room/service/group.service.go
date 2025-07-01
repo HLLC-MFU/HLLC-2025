@@ -8,6 +8,7 @@ import (
 	userService "chat/module/user/service"
 	"chat/pkg/config"
 	"chat/pkg/core/kafka"
+
 	"chat/pkg/database/queries"
 	serviceHelper "chat/pkg/helpers/service"
 	"chat/pkg/utils"

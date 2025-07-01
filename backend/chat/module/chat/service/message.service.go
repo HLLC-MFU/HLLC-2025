@@ -5,19 +5,30 @@ import (
 	"context"
 	"fmt"
 	"log"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+// CanUserSendMessages checks if a user can send messages in a room
+func (s *ChatService) CanUserSendMessages(ctx context.Context, userID, roomID primitive.ObjectID) bool {
+	// Check if user is banned or muted
+	if s.restrictionService.IsUserBanned(ctx, userID, roomID) || s.restrictionService.IsUserMuted(ctx, userID, roomID) {
+		return false
+	}
+	return true
+}
 
 // SendMessage sends a chat message
 func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) error {
 	log.Printf("[ChatService] SendMessage called for room %s by user %s", msg.RoomID.Hex(), msg.UserID.Hex())
 
 	// **NEW: ตรวจสอบ moderation status ก่อนส่งข้อความ**
-	if !s.moderationService.CanUserSendMessages(ctx, msg.UserID, msg.RoomID) {
+	if !s.CanUserSendMessages(ctx, msg.UserID, msg.RoomID) {
 		// ตรวจสอบว่าถูก ban หรือ mute
-		if s.moderationService.IsUserBanned(ctx, msg.UserID, msg.RoomID) {
+		if s.restrictionService.IsUserBanned(ctx, msg.UserID, msg.RoomID) {
 			return fmt.Errorf("user is banned from this room")
 		}
-		if s.moderationService.IsUserMuted(ctx, msg.UserID, msg.RoomID) {
+		if s.restrictionService.IsUserMuted(ctx, msg.UserID, msg.RoomID) {
 			return fmt.Errorf("user is muted in this room")
 		}
 		return fmt.Errorf("user cannot send messages in this room")

@@ -3,11 +3,13 @@ package service
 import (
 	"chat/module/chat/model"
 	"chat/module/chat/utils"
+	notificationService "chat/module/notification/service"
+	restrictionService "chat/module/restriction/service"
 	userModel "chat/module/user/model"
 	"chat/pkg/config"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
-	serviceHelper "chat/pkg/helpers/service"
+	"chat/pkg/helpers/service"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -25,16 +27,16 @@ type ChatService struct {
 	*queries.BaseService[model.ChatMessage]
 	cache       *utils.ChatCacheService
 	hub         *utils.Hub
-	fkValidator *serviceHelper.ForeignKeyValidator
+	fkValidator *service.ForeignKeyValidator
 	collection  *mongo.Collection
 	emitter     *utils.ChatEventEmitter
 	kafkaBus    *kafka.Bus
 	mongo       *mongo.Database
 	redis       *redis.Client
 	Config      *config.Config
-	notificationService *NotificationService
+	notificationService *notificationService.NotificationService
 	historyService      *HistoryService
-	moderationService   *ModerationService
+	restrictionService   *restrictionService.RestrictionService
 }
 	
 func NewChatService(
@@ -74,19 +76,19 @@ func NewChatService(
 		BaseService:  queries.NewBaseService[model.ChatMessage](collection),
 		cache:       utils.NewChatCacheService(redis),
 		hub:         hub,
-		fkValidator: serviceHelper.NewForeignKeyValidator(db),
+		fkValidator: service.NewForeignKeyValidator(db),
 		collection:  collection,
 		emitter:     emitter,
 		kafkaBus:    kafkaBus,
 		mongo:       db,
 		redis:       redis,
 		Config:      cfg,
-		notificationService: NewNotificationService(db, kafkaBus),
+		notificationService: notificationService.NewNotificationService(db, kafkaBus),
 		historyService:      NewHistoryService(db, utils.NewChatCacheService(redis)),
 	}
 	
 	// สร้าง ModerationService หลังจาก ChatService เสร็จแล้ว (เพื่อหลีกเลี่ยง circular dependency)
-	chatService.moderationService = NewModerationService(db, chatService)
+	chatService.restrictionService = restrictionService.NewRestrictionService(db, chatService)
 
 	return chatService
 }
@@ -187,13 +189,13 @@ func (s *ChatService) GetMessageReactions(ctx context.Context, roomID, messageID
 }
 
 // GetNotificationService returns the notification service for admin operations
-func (s *ChatService) GetNotificationService() *NotificationService {
+func (s *ChatService) GetNotificationService() *notificationService.NotificationService {
 	return s.notificationService
 }
 
 // GetModerationService returns the moderation service for admin operations
-func (s *ChatService) GetModerationService() *ModerationService {
-	return s.moderationService
+func (s *ChatService) GetRestrictionService() *restrictionService.RestrictionService {
+	return s.restrictionService
 	}
 
 // GetChatHistoryByRoom delegates to HistoryService

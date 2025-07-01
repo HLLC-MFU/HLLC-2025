@@ -2,7 +2,7 @@ package service
 
 import (
 	"chat/module/chat/model"
-	"chat/module/chat/utils"
+	chatModel "chat/module/notification/model"
 	userModel "chat/module/user/model"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
@@ -16,14 +16,18 @@ import (
 )
 
 type NotificationService struct {
-	mongo    *mongo.Database
-	kafkaBus *kafka.Bus
+	*queries.BaseService[chatModel.NotificationPayload]
+	kafkaBus   *kafka.Bus
+	collection *mongo.Collection
 }
 
-func NewNotificationService(mongo *mongo.Database, kafkaBus *kafka.Bus) *NotificationService {
+func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus) *NotificationService {
+	collection := db.Collection("notifications")
+	
 	return &NotificationService{
-		mongo:    mongo,
-		kafkaBus: kafkaBus,
+		BaseService: queries.NewBaseService[chatModel.NotificationPayload](collection),
+		kafkaBus:    kafkaBus,
+		collection:  collection,
 	}
 }
 
@@ -88,7 +92,7 @@ func (ns *NotificationService) SendMessageNotification(ctx context.Context, rece
 	}
 
 	// Create simplified payload using helper
-	payload := utils.CreateSimpleNotificationPayload(
+	payload := chatModel.CreateSimpleNotificationPayload(
 		messageType,
 		room.ID,
 		room.NameTh, room.NameEn,
@@ -116,7 +120,7 @@ func (ns *NotificationService) SendTestNotification(ctx context.Context, receive
 	}
 
 	// Create simple test payload
-	payload := utils.CreateSimpleNotificationPayload(
+	payload := chatModel.CreateSimpleNotificationPayload(
 		messageType,
 		roomID,
 		"ห้องทดสอบ", "Test Room",
@@ -132,7 +136,7 @@ func (ns *NotificationService) SendTestNotification(ctx context.Context, receive
 
 // Helper methods
 func (ns *NotificationService) getRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error) {
-	roomCollection := ns.mongo.Collection("rooms")
+	roomCollection := ns.collection.Database().Collection("rooms")
 	var room struct {
 		Members []primitive.ObjectID `bson:"members"`
 	}
@@ -177,7 +181,7 @@ func (ns *NotificationService) getUserById(ctx context.Context, userID string) (
 		return nil, err
 	}
 
-	userService := queries.NewBaseService[userModel.User](ns.mongo.Collection("users"))
+	userService := queries.NewBaseService[userModel.User](ns.collection.Database().Collection("users"))
 	result, err := userService.FindOne(ctx, bson.M{"_id": userObjID})
 	if err != nil {
 		return nil, err
@@ -202,7 +206,7 @@ func (ns *NotificationService) getRoomById(ctx context.Context, roomID string) (
 		return nil, err
 	}
 
-	roomCollection := ns.mongo.Collection("rooms")
+	roomCollection := ns.collection.Database().Collection("rooms")
 	var room struct {
 		ID   primitive.ObjectID    `bson:"_id"`
 		Name map[string]string     `bson:"name"`
@@ -220,7 +224,7 @@ func (ns *NotificationService) getRoomById(ctx context.Context, roomID string) (
 	}, nil
 }
 
-func (ns *NotificationService) sendToKafka(ctx context.Context, receiverID string, payload utils.NotificationPayload, roomID, senderID, message, eventType, messageID string) bool {
+func (ns *NotificationService) sendToKafka(ctx context.Context, receiverID string, payload chatModel.NotificationPayload, roomID, senderID, message, eventType, messageID string) bool {
 	notificationTopic := "chat-notifications"
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {

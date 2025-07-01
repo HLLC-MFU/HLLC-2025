@@ -10,8 +10,11 @@ import (
 
 	chatController "chat/module/chat/controller"
 	chatService "chat/module/chat/service"
+	restrictionController "chat/module/restriction/controller"
 	roomController "chat/module/room/controller"
 	roomService "chat/module/room/service"
+	evoucherController "chat/module/sendEvoucher/controller"
+	evoucherSvc "chat/module/sendEvoucher/service"
 	stickerController "chat/module/sticker/controller"
 	stickerService "chat/module/sticker/service"
 	"chat/module/user/controller"
@@ -167,11 +170,22 @@ func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.
 	roomController.NewRoomController(app, roomAndMemberService)
 	roomController.NewGroupRoomController(app, groupRoomService, roomAndMemberService)
 	stickerController.NewStickerController(app, stickerService)
-	chatController.NewChatController(app, chatService, roomAndMemberService, stickerService, chatService.GetModerationService())
+	chatController.NewChatController(app, chatService, roomAndMemberService, stickerService, chatService.GetRestrictionService())
 	chatController.NewMentionController(app, chatService, roomAndMemberService)
 	chatController.NewReactionController(app, chatService, roomAndMemberService)
-	chatController.NewEvoucherController(app, chatService, roomAndMemberService)
-	chatController.NewModerationController(app, chatService.GetModerationService())
+	
+	// Evoucher controller (separate module)
+	evoucherService := evoucherSvc.NewEvoucherService(
+		mongo,
+		redisClient,
+		chatService.GetRestrictionService(),
+		chatService.GetNotificationService(),
+		chatService.GetHub(),
+	)
+	evoucherController.NewEvoucherController(app, evoucherService, roomAndMemberService)
+	
+	// Restriction controller (was moderation)
+	restrictionController.NewModerationController(app, chatService.GetRestrictionService())
 }
 
 // logRegisteredRoutes prints all registered routes in a formatted way

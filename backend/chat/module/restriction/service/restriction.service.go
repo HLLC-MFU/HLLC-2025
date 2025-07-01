@@ -3,6 +3,7 @@ package service
 import (
 	"chat/module/chat/model"
 	"chat/module/chat/utils"
+	restrictionModel "chat/module/restriction/model"
 	"chat/pkg/database/queries"
 	"context"
 	"encoding/json"
@@ -15,37 +16,37 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type ModerationService struct {
-	*queries.BaseService[model.UserModeration]
-	mongo *mongo.Database
-	chatService ChatModerationService
-}
+type (
+	RestrictionService struct {
+		*queries.BaseService[restrictionModel.UserRestriction]
+		mongo *mongo.Database
+		chatService ChatRestrictionService
+	}
 
-// Interface เพื่อหลีกเลี่ยง circular dependency
-type ChatModerationService interface {
-	SendMessage(ctx context.Context, msg *model.ChatMessage) error
-	GetHub() *utils.Hub
-}
+	ChatRestrictionService interface {
+		SendMessage(ctx context.Context, msg *model.ChatMessage) error
+		GetHub() *utils.Hub
+	}
 
-// ModerationBroadcastType ประเภทการ broadcast
-type ModerationBroadcastType string
+	RestrictionBroadcastType string
+)
 
 const (
 	BroadcastToTarget = "target"  // ส่งไปยังผู้ที่ถูกลงโทษเฉพาะ
 	BroadcastToRoom   = "room"    // ส่งไปยังคนอื่นในห้อง
 )
 
-func NewModerationService(db *mongo.Database, chatService ChatModerationService) *ModerationService {
-	collection := db.Collection("user-moderations")
-	return &ModerationService{
-		BaseService: queries.NewBaseService[model.UserModeration](collection),
+func NewRestrictionService(db *mongo.Database, chatService ChatRestrictionService) *RestrictionService {
+	collection := db.Collection("user-restrictions")
+	return &RestrictionService{
+		BaseService: queries.NewBaseService[restrictionModel.UserRestriction](collection),
 		mongo:       db,
 		chatService: chatService,
 	}
 }
 
 // BanUser บัน user ในห้อง
-func (s *ModerationService) BanUser(ctx context.Context, userID, roomID, moderatorID primitive.ObjectID, duration string, endTime *time.Time, reason string) (*model.UserModeration, error) {
+func (s *RestrictionService) BanUser(ctx context.Context, userID, roomID, moderatorID primitive.ObjectID, duration string, endTime *time.Time, reason string) (*restrictionModel.UserRestriction, error) {
 	log.Printf("[ModerationService] Banning user %s in room %s by moderator %s", userID.Hex(), roomID.Hex(), moderatorID.Hex())
 
 	// ตรวจสอบว่า user ถูก ban อยู่แล้วหรือไม่
@@ -55,11 +56,11 @@ func (s *ModerationService) BanUser(ctx context.Context, userID, roomID, moderat
 	}
 
 	// สร้าง ban record
-	banRecord := &model.UserModeration{
+	banRecord := &restrictionModel.UserRestriction{
 		RoomID:      roomID,
 		UserID:      userID,
 		ModeratorID: moderatorID,
-		Type:        model.ModerationTypeBan,
+		Type:        restrictionModel.RestrictionTypeBan,
 		Duration:    duration,
 		StartTime:   time.Now(),
 		EndTime:     endTime,
@@ -79,7 +80,7 @@ func (s *ModerationService) BanUser(ctx context.Context, userID, roomID, moderat
 	log.Printf("[ModerationService] Successfully banned user %s for %s", userID.Hex(), duration)
 
 	// **NEW: Broadcast moderation action**
-	if err := s.broadcastModerationAction(ctx, "ban", userID, roomID, moderatorID, reason, endTime, ""); err != nil {
+	if err := s.broadcastRestrictionAction(ctx, "ban", userID, roomID, moderatorID, reason, endTime, ""); err != nil {
 		log.Printf("[ERROR] Failed to broadcast ban action: %v", err)
 	}
 
@@ -87,7 +88,7 @@ func (s *ModerationService) BanUser(ctx context.Context, userID, roomID, moderat
 }
 
 // MuteUser mute user ในห้อง
-func (s *ModerationService) MuteUser(ctx context.Context, userID, roomID, moderatorID primitive.ObjectID, duration string, endTime *time.Time, restriction, reason string) (*model.UserModeration, error) {
+func (s *RestrictionService) MuteUser(ctx context.Context, userID, roomID, moderatorID primitive.ObjectID, duration string, endTime *time.Time, restriction, reason string) (*restrictionModel.UserRestriction, error) {
 	log.Printf("[ModerationService] Muting user %s in room %s by moderator %s", userID.Hex(), roomID.Hex(), moderatorID.Hex())
 
 	// ตรวจสอบว่า user ถูก mute อยู่แล้วหรือไม่
@@ -97,11 +98,11 @@ func (s *ModerationService) MuteUser(ctx context.Context, userID, roomID, modera
 	}
 
 	// สร้าง mute record
-	muteRecord := &model.UserModeration{
+	muteRecord := &restrictionModel.UserRestriction{
 		RoomID:      roomID,
 		UserID:      userID,
 		ModeratorID: moderatorID,
-		Type:        model.ModerationTypeMute,
+		Type:        restrictionModel.RestrictionTypeMute,
 		Duration:    duration,
 		StartTime:   time.Now(),
 		EndTime:     endTime,
@@ -122,7 +123,7 @@ func (s *ModerationService) MuteUser(ctx context.Context, userID, roomID, modera
 	log.Printf("[ModerationService] Successfully muted user %s for %s", userID.Hex(), duration)
 
 	// **NEW: Broadcast moderation action**
-	if err := s.broadcastModerationAction(ctx, "mute", userID, roomID, moderatorID, reason, endTime, restriction); err != nil {
+	if err := s.broadcastRestrictionAction(ctx, "mute", userID, roomID, moderatorID, reason, endTime, restriction); err != nil {
 		log.Printf("[ERROR] Failed to broadcast mute action: %v", err)
 	}
 
@@ -130,15 +131,15 @@ func (s *ModerationService) MuteUser(ctx context.Context, userID, roomID, modera
 }
 
 // KickUser kick user ออกจากห้อง
-func (s *ModerationService) KickUser(ctx context.Context, userID, roomID, moderatorID primitive.ObjectID, reason string) (*model.UserModeration, error) {
+func (s *RestrictionService) KickUser(ctx context.Context, userID, roomID, moderatorID primitive.ObjectID, reason string) (*restrictionModel.UserRestriction, error) {
 	log.Printf("[ModerationService] Kicking user %s from room %s by moderator %s", userID.Hex(), roomID.Hex(), moderatorID.Hex())
 
 	// สร้าง kick record
-	kickRecord := &model.UserModeration{
+	kickRecord := &restrictionModel.UserRestriction{
 		RoomID:      roomID,
 		UserID:      userID,
 		ModeratorID: moderatorID,
-		Type:        model.ModerationTypeKick,
+		Type:        restrictionModel.RestrictionTypeKick,
 		Duration:    "instant", // kick เป็นการกระทำชั่วขณะ
 		StartTime:   time.Now(),
 		Reason:      reason,
@@ -157,7 +158,7 @@ func (s *ModerationService) KickUser(ctx context.Context, userID, roomID, modera
 	log.Printf("[ModerationService] Successfully kicked user %s from room", userID.Hex())
 
 	// **NEW: Broadcast moderation action**
-	if err := s.broadcastModerationAction(ctx, "kick", userID, roomID, moderatorID, reason, nil, ""); err != nil {
+	if err := s.broadcastRestrictionAction(ctx, "kick", userID, roomID, moderatorID, reason, nil, ""); err != nil {
 		log.Printf("[ERROR] Failed to broadcast kick action: %v", err)
 	}
 
@@ -165,7 +166,7 @@ func (s *ModerationService) KickUser(ctx context.Context, userID, roomID, modera
 }
 
 // UnbanUser ยกเลิก ban user
-func (s *ModerationService) UnbanUser(ctx context.Context, userID, roomID, moderatorID primitive.ObjectID) error {
+func (s *RestrictionService) UnbanUser(ctx context.Context, userID, roomID, moderatorID primitive.ObjectID) error {
 	log.Printf("[ModerationService] Unbanning user %s in room %s by moderator %s", userID.Hex(), roomID.Hex(), moderatorID.Hex())
 
 	// หา active ban record
@@ -196,7 +197,7 @@ func (s *ModerationService) UnbanUser(ctx context.Context, userID, roomID, moder
 	}
 
 	// **NEW: Broadcast moderation action**
-	if err := s.broadcastModerationAction(ctx, "unban", userID, roomID, moderatorID, "Ban revoked", nil, ""); err != nil {
+	if err := s.broadcastRestrictionAction(ctx, "unban", userID, roomID, moderatorID, "Ban revoked", nil, ""); err != nil {
 		log.Printf("[ERROR] Failed to broadcast unban action: %v", err)
 	}
 
@@ -205,7 +206,7 @@ func (s *ModerationService) UnbanUser(ctx context.Context, userID, roomID, moder
 }
 
 // UnmuteUser ยกเลิก mute user
-func (s *ModerationService) UnmuteUser(ctx context.Context, userID, roomID, moderatorID primitive.ObjectID) error {
+func (s *RestrictionService) UnmuteUser(ctx context.Context, userID, roomID, moderatorID primitive.ObjectID) error {
 	log.Printf("[ModerationService] Unmuting user %s in room %s by moderator %s", userID.Hex(), roomID.Hex(), moderatorID.Hex())
 
 	// หา active mute record
@@ -236,7 +237,7 @@ func (s *ModerationService) UnmuteUser(ctx context.Context, userID, roomID, mode
 	}
 
 	// **NEW: Broadcast moderation action**
-	if err := s.broadcastModerationAction(ctx, "unmute", userID, roomID, moderatorID, "Mute revoked", nil, ""); err != nil {
+	if err := s.broadcastRestrictionAction(ctx, "unmute", userID, roomID, moderatorID, "Mute revoked", nil, ""); err != nil {
 		log.Printf("[ERROR] Failed to broadcast unmute action: %v", err)
 	}
 
@@ -245,8 +246,8 @@ func (s *ModerationService) UnmuteUser(ctx context.Context, userID, roomID, mode
 }
 
 // GetUserModerationStatus ตรวจสอบสถานะการลงโทษของ user ในห้อง
-func (s *ModerationService) GetUserModerationStatus(ctx context.Context, userID, roomID primitive.ObjectID) (*model.ModerationStatus, error) {
-	status := &model.ModerationStatus{
+func (s *RestrictionService) GetUserRestrictionStatus(ctx context.Context, userID, roomID primitive.ObjectID) (*restrictionModel.RestrictionStatus, error) {
+	status := &restrictionModel.RestrictionStatus{
 		UserID: userID.Hex(),
 		RoomID: roomID.Hex(),
 	}
@@ -270,11 +271,11 @@ func (s *ModerationService) GetUserModerationStatus(ctx context.Context, userID,
 }
 
 // GetActiveBan หา active ban record
-func (s *ModerationService) GetActiveBan(ctx context.Context, userID, roomID primitive.ObjectID) (*model.UserModeration, error) {
+func (s *RestrictionService) GetActiveBan(ctx context.Context, userID, roomID primitive.ObjectID) (*restrictionModel.UserRestriction, error) {
 	filter := bson.M{
 		"user_id": userID,
 		"room_id": roomID,
-		"type":    model.ModerationTypeBan,
+		"type":    restrictionModel.RestrictionTypeBan,
 		"status":  "active",
 	}
 
@@ -300,11 +301,11 @@ func (s *ModerationService) GetActiveBan(ctx context.Context, userID, roomID pri
 }
 
 // GetActiveMute หา active mute record
-func (s *ModerationService) GetActiveMute(ctx context.Context, userID, roomID primitive.ObjectID) (*model.UserModeration, error) {
+func (s *RestrictionService) GetActiveMute(ctx context.Context, userID, roomID primitive.ObjectID) (*restrictionModel.UserRestriction, error) {
 	filter := bson.M{
 		"user_id": userID,
 		"room_id": roomID,
-		"type":    model.ModerationTypeMute,
+		"type":    restrictionModel.RestrictionTypeMute,
 		"status":  "active",
 	}
 
@@ -330,19 +331,19 @@ func (s *ModerationService) GetActiveMute(ctx context.Context, userID, roomID pr
 }
 
 // GetModerationHistory ดูประวัติการลงโทษ
-func (s *ModerationService) GetModerationHistory(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.UserModeration], error) {
+func (s *RestrictionService) GetModerationHistory(ctx context.Context, opts queries.QueryOptions) (*queries.Response[restrictionModel.UserRestriction], error) {
 	// ใช้ populate เพื่อดึงข้อมูล user, moderator, และ room
 	return s.FindAllWithPopulate(ctx, opts, "user_id", "users")
 }
 
 // CleanupExpiredModerations ทำความสะอาด moderation records ที่หมดอายุ
-func (s *ModerationService) CleanupExpiredModerations(ctx context.Context) error {
+func (s *RestrictionService) CleanupExpiredModerations(ctx context.Context) error {
 	log.Printf("[ModerationService] Starting cleanup of expired moderations")
 
 	now := time.Now()
 	filter := bson.M{
 		"status": "active",
-		"duration": model.DurationTemporary,
+		"duration": restrictionModel.DurationTemporary,
 		"end_time": bson.M{"$lt": now},
 	}
 
@@ -364,7 +365,7 @@ func (s *ModerationService) CleanupExpiredModerations(ctx context.Context) error
 }
 
 // markAsExpired อัปเดตสถานะเป็น expired
-func (s *ModerationService) markAsExpired(ctx context.Context, moderationID primitive.ObjectID) {
+func (s *RestrictionService) markAsExpired(ctx context.Context, moderationID primitive.ObjectID) {
 	filter := bson.M{"_id": moderationID}
 	update := bson.M{
 		"$set": bson.M{
@@ -381,24 +382,24 @@ func (s *ModerationService) markAsExpired(ctx context.Context, moderationID prim
 }
 
 // IsUserBanned ตรวจสอบว่า user ถูก ban หรือไม่
-func (s *ModerationService) IsUserBanned(ctx context.Context, userID, roomID primitive.ObjectID) bool {
+func (s *RestrictionService) IsUserBanned(ctx context.Context, userID, roomID primitive.ObjectID) bool {
 	activeBan, err := s.GetActiveBan(ctx, userID, roomID)
 	return err == nil && activeBan != nil && activeBan.IsActive()
 }
 
 // IsUserMuted ตรวจสอบว่า user ถูก mute หรือไม่
-func (s *ModerationService) IsUserMuted(ctx context.Context, userID, roomID primitive.ObjectID) bool {
+func (s *RestrictionService) IsUserMuted(ctx context.Context, userID, roomID primitive.ObjectID) bool {
 	activeMute, err := s.GetActiveMute(ctx, userID, roomID)
 	return err == nil && activeMute != nil && activeMute.IsActive()
 }
 
 // CanUserSendMessages ตรวจสอบว่า user สามารถส่งข้อความได้หรือไม่
-func (s *ModerationService) CanUserSendMessages(ctx context.Context, userID, roomID primitive.ObjectID) bool {
+func (s *RestrictionService) CanUserSendMessages(ctx context.Context, userID, roomID primitive.ObjectID) bool {
 	return !s.IsUserBanned(ctx, userID, roomID) && !s.IsUserMuted(ctx, userID, roomID)
 }
 
 // CanUserViewMessages ตรวจสอบว่า user สามารถดูข้อความได้หรือไม่
-func (s *ModerationService) CanUserViewMessages(ctx context.Context, userID, roomID primitive.ObjectID) bool {
+func (s *RestrictionService) CanUserViewMessages(ctx context.Context, userID, roomID primitive.ObjectID) bool {
 	// ถ้าถูก ban ดูไม่ได้เลย
 	if s.IsUserBanned(ctx, userID, roomID) {
 		return false
@@ -407,7 +408,7 @@ func (s *ModerationService) CanUserViewMessages(ctx context.Context, userID, roo
 	// ถ้าถูก mute ให้ตรวจสอบ restriction
 	activeMute, err := s.GetActiveMute(ctx, userID, roomID)
 	if err == nil && activeMute != nil && activeMute.IsActive() {
-		return activeMute.Restriction != model.MuteRestrictionCannotView
+		return activeMute.Restriction != restrictionModel.MuteRestrictionCannotView
 	}
 
 	return true
@@ -416,11 +417,11 @@ func (s *ModerationService) CanUserViewMessages(ctx context.Context, userID, roo
 // **NEW: Broadcast และ Kafka Integration Methods**
 
 // broadcastModerationAction ส่ง moderation event ไปยัง room และเก็บใน database
-func (s *ModerationService) broadcastModerationAction(ctx context.Context, action string, userID, roomID, moderatorID primitive.ObjectID, reason string, endTime *time.Time, restriction string) error {
+func (s *RestrictionService) broadcastRestrictionAction(ctx context.Context, action string, userID, roomID, moderatorID primitive.ObjectID, reason string, endTime *time.Time, restriction string) error {
 	log.Printf("[MODERATION] Broadcasting %s action for user %s in room %s", action, userID.Hex(), roomID.Hex())
 
 	// 1. เก็บ moderation message ใน database (ผ่าน Kafka)
-	if err := s.saveModerationMessage(ctx, action, userID, roomID, moderatorID, reason, endTime, restriction); err != nil {
+	if err := s.saveRestrictionMessage(ctx, action, userID, roomID, moderatorID, reason, endTime, restriction); err != nil {
 		log.Printf("[ERROR] Failed to save moderation message: %v", err)
 		// ไม่ return error เพราะ moderation action สำเร็จแล้ว
 	}
@@ -435,7 +436,7 @@ func (s *ModerationService) broadcastModerationAction(ctx context.Context, actio
 }
 
 // generateModerationMessage สร้างข้อความสำหรับ moderation actions
-func (s *ModerationService) generateModerationMessage(action, reason string) string {
+func (s *RestrictionService) generateRestrictionMessage(action, reason string) string {
 	switch action {
 	case "ban":
 		return fmt.Sprintf("🚫 User has been banned. Reason: %s", reason)
@@ -453,7 +454,7 @@ func (s *ModerationService) generateModerationMessage(action, reason string) str
 }
 
 // getDurationString แปลง endTime เป็น duration string
-func (s *ModerationService) getDurationString(endTime *time.Time) string {
+func (s *RestrictionService) getDurationString(endTime *time.Time) string {
 	if endTime == nil {
 		return "permanent"
 	}
@@ -461,7 +462,7 @@ func (s *ModerationService) getDurationString(endTime *time.Time) string {
 }
 
 // generateUserModerationMessage สร้างข้อความสำหรับผู้ที่ถูกลงโทษ
-func (s *ModerationService) generateUserModerationMessage(action, reason string, endTime *time.Time) string {
+func (s *RestrictionService) generateUserRestrictionMessage(action, reason string, endTime *time.Time) string {
 	var timeStr string
 	if endTime != nil {
 		timeStr = fmt.Sprintf(" until %s", endTime.Format("2006-01-02 15:04:05"))
@@ -486,7 +487,7 @@ func (s *ModerationService) generateUserModerationMessage(action, reason string,
 }
 
 // generateRoomAnnouncementMessage สร้างข้อความประกาศสำหรับคนอื่นในห้อง
-func (s *ModerationService) generateRoomAnnouncementMessage(action, reason string) string {
+func (s *RestrictionService) generateRoomAnnouncementMessage(action, reason string) string {
 	switch action {
 	case "ban":
 		return fmt.Sprintf("A user has been banned from this room. Reason: %s", reason)
@@ -504,12 +505,12 @@ func (s *ModerationService) generateRoomAnnouncementMessage(action, reason strin
 }
 
 // saveModerationMessage เก็บ moderation message ใน database ผ่าน Kafka
-func (s *ModerationService) saveModerationMessage(ctx context.Context, action string, userID, roomID, moderatorID primitive.ObjectID, reason string, endTime *time.Time, restriction string) error {
+func (s *RestrictionService) saveRestrictionMessage(ctx context.Context, action string, userID, roomID, moderatorID primitive.ObjectID, reason string, endTime *time.Time, restriction string) error {
 	// สร้าง moderation message สำหรับเก็บใน database
 	moderationMsg := &model.ChatMessage{
 		RoomID:    roomID,
 		UserID:    moderatorID, // ผู้ส่งคือ moderator
-		Message:   s.generateModerationMessage(action, reason),
+		Message:   s.generateRestrictionMessage(action, reason),
 		Timestamp: time.Now(),
 		ModerationInfo: &model.ModerationMessageInfo{
 			Action:       action,
@@ -532,7 +533,7 @@ func (s *ModerationService) saveModerationMessage(ctx context.Context, action st
 }
 
 // broadcastToTarget ส่ง direct message ไปยังผู้ที่ถูกลงโทษเฉพาะ
-func (s *ModerationService) broadcastToTarget(userID, roomID primitive.ObjectID, action string, moderatorID primitive.ObjectID, reason string, endTime *time.Time, restriction string) {
+func (s *RestrictionService) broadcastToTarget(userID, roomID primitive.ObjectID, action string, moderatorID primitive.ObjectID, reason string, endTime *time.Time, restriction string) {
 	// สร้าง targeted moderation payload สำหรับ frontend condition
 	payload := map[string]interface{}{
 		"type":      "moderation_targeted",
@@ -546,7 +547,7 @@ func (s *ModerationService) broadcastToTarget(userID, roomID primitive.ObjectID,
 			"endTime":       endTime,
 			"restriction":   restriction,
 			"timestamp":     time.Now(),
-			"message":       s.generateUserModerationMessage(action, reason, endTime),
+			"message":       s.generateUserRestrictionMessage(action, reason, endTime),
 		},
 	}
 
@@ -560,7 +561,7 @@ func (s *ModerationService) broadcastToTarget(userID, roomID primitive.ObjectID,
 }
 
 // broadcastToRoomMembers ส่งข้อความแจ้งเตือนไปยังคนอื่นในห้อง
-func (s *ModerationService) broadcastToRoomMembers(roomID primitive.ObjectID, action string, userID, moderatorID primitive.ObjectID, reason string, endTime *time.Time, restriction string) {
+func (s *RestrictionService) broadcastToRoomMembers(roomID primitive.ObjectID, action string, userID, moderatorID primitive.ObjectID, reason string, endTime *time.Time, restriction string) {
 	// สร้าง room announcement payload
 	payload := map[string]interface{}{
 		"type":      "moderation_announcement",

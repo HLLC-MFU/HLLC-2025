@@ -311,23 +311,6 @@ func (h *Hub) GetOnlineUsersInRoom(roomID string) []string {
 	return onlineUsers
 }
 
-// GetActiveConnectionsCount returns the total number of active connections in a room
-func (h *Hub) GetActiveConnectionsCount(roomID string) int {
-	connectionCount := 0
-	
-	if roomMap, ok := h.clients.Load(roomID); ok {
-		roomMap.(*sync.Map).Range(func(_, userConns interface{}) bool {
-			userConns.(*sync.Map).Range(func(_, _ interface{}) bool {
-				connectionCount++
-				return true
-			})
-			return true
-		})
-	}
-	
-	return connectionCount
-}
-
 // BroadcastToUser ส่งข้อความไปยัง user เฉพาะ (ทุกห้องที่ user นั้นอยู่)
 func (h *Hub) BroadcastToUser(targetUserID string, payload []byte) {
 	successCount := 0

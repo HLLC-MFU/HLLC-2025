@@ -6,11 +6,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// Moderation action types
+// Restriction action types
 const (
-	ModerationTypeBan  = "ban"
-	ModerationTypeMute = "mute"
-	ModerationTypeKick = "kick"
+	RestrictionTypeBan  = "ban"
+	RestrictionTypeMute = "mute"
+	RestrictionTypeKick = "kick"
 )
 
 // Ban/Mute durations
@@ -26,8 +26,8 @@ const (
 )
 
 type (
-	// UserModeration เก็บประวัติการลงโทษ
-	UserModeration struct {
+	// UserRestriction เก็บประวัติการลงโทษ
+	UserRestriction struct {
 		ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 		RoomID      primitive.ObjectID `bson:"room_id" json:"room_id"`
 		UserID      primitive.ObjectID `bson:"user_id" json:"user_id"`
@@ -63,8 +63,8 @@ type (
 		Room      interface{} `bson:"-" json:"room,omitempty"`
 	}
 
-	// ModerationStatus สถานะการลงโทษปัจจุบันของ user ในห้อง
-	ModerationStatus struct {
+	// RestrictionStatus สถานะการลงโทษปัจจุบันของ user ในห้อง
+	RestrictionStatus struct {
 		UserID      string     `json:"user_id"`
 		RoomID      string     `json:"room_id"`
 		IsBanned    bool       `json:"is_banned"`
@@ -75,8 +75,8 @@ type (
 		Restriction string     `json:"restriction,omitempty"`
 	}
 
-	// ModerationAction สำหรับ API response
-	ModerationAction struct {
+	// RestrictionAction สำหรับ API response
+	RestrictionAction struct {
 		ID          string    `json:"id"`
 		Type        string    `json:"type"`
 		Duration    string    `json:"duration"`
@@ -89,7 +89,7 @@ type (
 )
 
 // IsActive ตรวจสอบว่าการลงโทษยังมีผลอยู่หรือไม่
-func (m *UserModeration) IsActive() bool {
+func (m *UserRestriction) IsActive() bool {
 	if m.Status != "active" {
 		return false
 	}
@@ -108,32 +108,10 @@ func (m *UserModeration) IsActive() bool {
 }
 
 // IsExpired ตรวจสอบว่าการลงโทษหมดอายุแล้วหรือไม่
-func (m *UserModeration) IsExpired() bool {
+func (m *UserRestriction) IsExpired() bool {
 	if m.Duration == DurationPermanent {
 		return false
 	}
 	
 	return m.EndTime != nil && time.Now().After(*m.EndTime)
 }
-
-// CanViewMessages ตรวจสอบว่า user สามารถดูข้อความได้หรือไม่
-func (s *ModerationStatus) CanViewMessages() bool {
-	if s.IsBanned {
-		return false
-	}
-	
-	if s.IsMuted && s.Restriction == MuteRestrictionCannotView {
-		return false
-	}
-	
-	return true
-}
-
-// CanSendMessages ตรวจสอบว่า user สามารถส่งข้อความได้หรือไม่
-func (s *ModerationStatus) CanSendMessages() bool {
-	if s.IsBanned || s.IsMuted {
-		return false
-	}
-	
-	return true
-} 

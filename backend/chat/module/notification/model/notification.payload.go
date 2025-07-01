@@ -1,10 +1,7 @@
-package utils
+package model
 
-import (
-	"time"
-)
+import "time"
 
-// Simplified notification structures for external consumption
 type (
 	NotificationPayload struct {
 		Type      string               `json:"type"`
@@ -34,7 +31,6 @@ type (
 	}
 )
 
-// CreateNotificationPayload creates a simplified notification payload
 func CreateNotificationPayload(
 	eventType string,
 	roomID string, roomName map[string]string, roomImage string,
@@ -97,4 +93,4 @@ func CreateSimpleNotificationPayload(
 		Receiver:  receiverID,
 		Timestamp: time.Now(),
 	}
-} 
+}

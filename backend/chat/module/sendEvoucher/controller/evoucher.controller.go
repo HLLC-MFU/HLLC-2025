@@ -1,10 +1,9 @@
 package controller
 
 import (
-	"chat/module/chat/dto"
 	"chat/module/chat/model"
-	chatService "chat/module/chat/service"
-	userModel "chat/module/user/model"
+	"chat/module/sendEvoucher/dto"
+	"chat/module/sendEvoucher/service"
 	"chat/pkg/decorators"
 	"context"
 	"time"
@@ -16,13 +15,8 @@ import (
 type (
 	EvoucherController struct {
 		*decorators.BaseController
-		chatService EvoucherChatService
-		roomService EvoucherRoomService
-	}
-
-	EvoucherChatService interface {
-		SendEvoucherMessage(ctx context.Context, userID, roomID primitive.ObjectID, evoucherInfo *model.EvoucherInfo) (*model.ChatMessage, error)
-		GetUserById(ctx context.Context, userID string) (*userModel.User, error)
+		evoucherService *service.EvoucherService
+		roomService     EvoucherRoomService
 	}
 
 	EvoucherRoomService interface {
@@ -32,13 +26,13 @@ type (
 
 func NewEvoucherController(
 	app *fiber.App,
-	chatService *chatService.ChatService,
+	evoucherService *service.EvoucherService,
 	roomService EvoucherRoomService,
 ) *EvoucherController {
 	controller := &EvoucherController{
-		BaseController: decorators.NewBaseController(app, "/api/evouchers"),
-		chatService:    chatService,
-		roomService:    roomService,
+		BaseController:  decorators.NewBaseController(app, "/api/evouchers"),
+		evoucherService: evoucherService,
+		roomService:     roomService,
 	}
 
 	controller.setupRoutes()
@@ -92,7 +86,7 @@ func (c *EvoucherController) handleSendEvoucher(ctx *fiber.Ctx) error {
 	}
 
 	// Send evoucher message
-	message, err := c.chatService.SendEvoucherMessage(ctx.Context(), userObjID, roomObjID, evoucherInfo)
+	message, err := c.evoucherService.SendEvoucherMessage(ctx.Context(), userObjID, roomObjID, evoucherInfo)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -139,7 +133,7 @@ func (c *EvoucherController) handleClaimEvoucher(ctx *fiber.Ctx) error {
 	}
 
 	// Verify user exists
-	user, err := c.chatService.GetUserById(ctx.Context(), claimDto.UserID)
+	user, err := c.evoucherService.GetUserById(ctx.Context(), claimDto.UserID)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
