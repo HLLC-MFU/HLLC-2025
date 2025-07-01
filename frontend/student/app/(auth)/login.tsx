@@ -1,17 +1,14 @@
 import useAuth from '@/hooks/useAuth';
-import { usePasswordValidation } from '@/hooks/usePasswordValidation';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { RegisterForm } from '@/components/auth/RegisterForm';
-import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
 import { Province } from '@/types/auth';
-import React, { useRef, useState } from 'react';
-import { Sheet, View } from 'tamagui';
-import { Animated, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { useToastController } from '@tamagui/toast';
 import provincesData from '@/data/provinces.json';
-import { apiRequest } from '@/utils/api';
-import { RegisterSheet } from '@/components/auth/register-modal';
-
+import { Button, XStack } from 'tamagui';
+import { useLanguage } from '@/context/LanguageContext';
+import { Globe } from '@tamagui/lucide-icons';
 export default function LoginScreen() {
   // State
   const [username, setUsername] = useState('');
@@ -30,13 +27,10 @@ export default function LoginScreen() {
   const [isRegisterSheetOpen, setIsRegisterSheetOpen] = useState(false);
   const [isForgotPasswordSheetOpen, setIsForgotPasswordSheetOpen] = useState(false);
   const [isProvinceSheetOpen, setIsProvinceSheetOpen] = useState(false);
-  const [isResetProvinceSheetOpen, setIsResetProvinceSheetOpen] = useState(false);
 
   // Hooks
   const { signIn, signUp, resetPassword } = useAuth();
-  const { validateStudentId, validatePassword } = usePasswordValidation();
   const toast = useToastController();
-  const shiftAnim = useRef(new Animated.Value(0)).current;
   const [provinces] = useState<Province[]>(provincesData);
 
   const handleLogin = async () => {
@@ -154,6 +148,7 @@ export default function LoginScreen() {
     }
   };
 
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -185,7 +180,7 @@ export default function LoginScreen() {
         setIsProvinceSheetOpen={setIsProvinceSheetOpen}
         onRegister={handleRegister}
       />
-      <Sheet
+      {/* <Sheet
         open={isForgotPasswordSheetOpen}
         onOpenChange={setIsForgotPasswordSheetOpen}
         snapPoints={[100]}
@@ -210,7 +205,7 @@ export default function LoginScreen() {
           onReset={handleResetPassword}
           onClose={() => setIsForgotPasswordSheetOpen(false)}
         />
-      </Sheet>
+      </Sheet> */}
     </KeyboardAvoidingView>
   );
 }

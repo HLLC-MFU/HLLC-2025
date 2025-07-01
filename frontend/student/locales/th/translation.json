@@ -11,21 +11,24 @@
     },
     "login": {
         "title": "เข้าสู่ระบบ",
-        "subtitle": "กรุณาใส่ข้อมูลรับรองของคุณ",
-        "username": "ชื่อผู้ใช้",
+        "subtitle": "เริ่มต้นการเดินทางของคุณ",
+        "username": "รหัสนักศึกษา",
         "password": "รหัสผ่าน",
         "loginButton": "เข้าสู่ระบบ",
         "forgotPassword": "ลืมรหัสผ่าน?",
-        "register": "ลงทะเบียน"
+        "register": "ลงทะเบียน",
+        "contactUs": "ติดต่อเรา"
     },
     "register": {
         "title": "ลงทะเบียน",
-        "subtitle": "สร้างบัญชีใหม่",
-        "username": "ชื่อผู้ใช้",
+        "username": "รหัสนักศึกษา",
+        "studentName": "ชื่อ-นามสกุล",
         "password": "รหัสผ่าน",
         "confirmPassword": "ยืนยันรหัสผ่าน",
+        "province": "จังหวัด",
         "registerButton": "ลงทะเบียน",
-        "loginPrompt": "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ"
+        "loginPrompt": "มีบัญชีอยู่แล้ว?",
+        "login": "เข้าสู่ระบบ"
     },
     "profile": {
         "title": "โปรไฟล์",

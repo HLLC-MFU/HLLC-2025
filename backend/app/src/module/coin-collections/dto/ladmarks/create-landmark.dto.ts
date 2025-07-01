@@ -8,6 +8,10 @@ export class CreateLandmarkDto {
     name: Localization;
 
     @IsNotEmpty()
+    @IsNumber()
+    order: number
+
+    @IsNotEmpty()
     @IsString()
     coinImage: string
 
