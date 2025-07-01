@@ -14,7 +14,7 @@ interface StampModalProps {
   onClose: () => void;
   stamps?: number; // จำนวน stamp ที่ได้
   onGetReward?: () => void;
-  coinImages?: string[]; // <-- add this prop
+  coinImages?: (string | undefined)[]; 
 }
 
 const NUM_SQUARES = 7;

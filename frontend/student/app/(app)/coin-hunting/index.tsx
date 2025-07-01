@@ -69,7 +69,7 @@ export default function CoinHuntingScreen() {
         onClose={closeModal}
         stamps={stampCount}
         onGetReward={() => {}}
-        coinImages={collectedCoinImages.filter(Boolean) as string[]}
+        coinImages={collectedCoinImages}
       />
     </GestureHandlerRootView>
   );
