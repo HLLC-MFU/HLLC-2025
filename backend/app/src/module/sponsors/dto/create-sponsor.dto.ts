@@ -4,7 +4,6 @@ import {
   IsNumber,
   IsObject,
   IsOptional,
-  IsString,
 } from 'class-validator';
 import { Types } from 'mongoose';
 import { Localization, Photo } from 'src/pkg/types/common';

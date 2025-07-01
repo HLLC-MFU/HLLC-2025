@@ -1,64 +1,47 @@
-import { Accordion, AccordionItem } from '@heroui/react';
+import { Accordion, AccordionItem, Image } from '@heroui/react';
 import EvoucherCodeTable from './EvoucherCodeTable';
-import { Sponsors } from '@/types/sponsors';
 import { EvoucherCode } from '@/types/evoucher-code';
-import { useEffect, useState } from 'react';
+import { Evoucher } from '@/types/evoucher';
 
 type EvoucherCodeAccordionProps = {
-  sponsors: Sponsors[];
-  evoucherCodes: (sponsorId: string) => Promise<EvoucherCode[]>;
-  onAdd: () => void;
-  onEdit: (evoucherCode: EvoucherCode) => void;
-  onDelete: (evoucherCode: EvoucherCode) => void;
+  evouchers: Evoucher[];
+  evoucherName: string;
+  evoucherCodes: EvoucherCode[];
+  setUsedModal: (value: boolean) => void;
 };
 
 export default function EvoucherCodeAccordion({
-  sponsors,
+  evouchers,
+  evoucherName,
   evoucherCodes,
-  onAdd,
-  onEdit,
-  onDelete,
+  setUsedModal,
 }: EvoucherCodeAccordionProps) {
+  const evoucherPhoto = evouchers.find((evoucher) => evoucher.name.en === evoucherName)?.photo.home; 
+  
   return (
-    <Accordion className="p-0" variant="splitted">
-      {sponsors.map((sponsor) => {
-        const [evoucherCode, setEvoucherCode] = useState<EvoucherCode[] | null>(null);
-        useEffect(() => {
-                const fetchCodes = async () => {
-                    try {
-                        const result = await evoucherCodes(sponsor._id);
-                        setEvoucherCode(result || []);
-                    } catch (err) {
-                        console.error("Failed to fetch evoucher codes", err);
-                        setEvoucherCode([]);
-                    }
-                };
-        
-                fetchCodes();
-            }, [sponsor._id]);
-        
-
-        return (
-          <AccordionItem
-            key={sponsor._id}
-            aria-label={sponsor.name.en}
-            title={sponsor.name.en}
-            subtitle={
-              <p className="flex">
-                Total evoucher codes:{' '}
-                <span className="text-primary ml-1">{evoucherCode?.length}</span>
-              </p>
-            }
-          >
-            <EvoucherCodeTable
-              evoucherCode={evoucherCode}
-              onAdd={onAdd}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          </AccordionItem>
-        );
-      })}
+    <Accordion className="m-0 p-0" variant="splitted">
+      <AccordionItem
+        key={evoucherName}
+        aria-label={evoucherName}
+        title={evoucherName}
+        subtitle={
+          <p className="flex">
+            <span>Total evoucher codes :</span>
+            <span className="text-primary ml-1">{evoucherCodes?.length}</span>
+          </p>
+        }
+        startContent={
+          <Image
+            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucherPhoto}`}
+            className="h-12 w-12 rounded-md"
+          />
+        }
+      >
+        <EvoucherCodeTable
+          evoucherCodes={evoucherCodes}
+          setUsedModal={setUsedModal}
+        />
+      </AccordionItem>
     </Accordion>
   );
 }

@@ -1,19 +1,18 @@
-import { EvoucherCode } from "@/types/evoucher-code";
 import { Button, Input } from "@heroui/react";
-import { PlusIcon, SearchIcon } from "lucide-react";
+import { Plus, SearchIcon } from "lucide-react";
 import React from "react";
 interface TopContentProps {
-    setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
     onClear: () => void;
     onSearchChange: (value: string) => void;
+    setUsedModal: (value: boolean) => void;
 }
 
 export default function TopContent({
     filterValue,
     onSearchChange,
-    setActionText,
     onClear,
+    setUsedModal,
 }: TopContentProps) {
     return (
         <div className="flex flex-col gap-4">
@@ -27,9 +26,13 @@ export default function TopContent({
                     onValueChange={onSearchChange}
                     onClear={() => onClear()}
                 />
-                <div className="flex gap-3">
-                    <Button onPress={() => { setActionText("Add"); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher Code</Button>
-                </div>
+                <Button
+                    color='primary'
+                    onPress={() => setUsedModal(true)}
+                    endContent={<Plus />}
+                >
+                    Add Evoucher Code
+                </Button>
             </div>
         </div>
     )

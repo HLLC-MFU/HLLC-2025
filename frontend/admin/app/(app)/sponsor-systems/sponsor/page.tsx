@@ -20,9 +20,7 @@ export default function SponsorPage() {
     Sponsors | Partial<Sponsors>
   >();
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [confirmationModalType, setConfirmationModalType] = useState<
-    'delete' | 'edit' | null
-  >(null);
+  const [confirmationModal, setConfirmationModal] = useState<boolean>(false);
 
   const {
     sponsors,
@@ -34,10 +32,11 @@ export default function SponsorPage() {
   } = useSponsors();
 
   const { loading: typeLoading, sponsorsType, createSponsorsType } = useSponsorsType();
+  
+  const isLoading = sponsorsLoading || typeLoading;
 
   const groupedSponsors = useMemo(() => {
-    const groups: Record<string, { priority: number; sponsors: Sponsors[] }> =
-      {};
+    const groups: Record<string, { priority: number; sponsors: Sponsors[] }> = {};
 
     sponsorsType.forEach((type) => {
       groups[type.name] = {
@@ -77,7 +76,7 @@ export default function SponsorPage() {
 
   const handleDeleteSponsor = (sponsor: Sponsors) => {
     setSelectedSponsor(sponsor);
-    setConfirmationModalType('delete');
+    setConfirmationModal(true);
   };
 
   const handleSubmitSponsor = async (sponsorsData: FormData) => {
@@ -86,7 +85,7 @@ export default function SponsorPage() {
     if (modalMode === 'add') {
       response = await createSponsors(sponsorsData);
     } else if (modalMode === 'edit' && selectedSponsor?._id) {
-      response = updateSponsors(selectedSponsor._id, sponsorsData);
+      response = await updateSponsors(selectedSponsor._id, sponsorsData);
     }
 
     setIsModalOpen(false);
@@ -98,7 +97,7 @@ export default function SponsorPage() {
       await deleteSponsors(selectedSponsor._id);
       await fetchSponsors();
     }
-    setConfirmationModalType(null);
+    setConfirmationModal(false);
     setSelectedSponsor(undefined);
   };
 
@@ -141,8 +140,8 @@ export default function SponsorPage() {
 
         <div className="flex flex-col gap-6">
           <Accordion className="p-0" variant="splitted">
-            {sponsorsLoading || typeLoading
-              ? Array.from({ length: 3 }).map((_, index) => (
+            {isLoading
+              ? Array(3).fill(0).map((_, index) => (
                   <AccordionItem
                     key={`skeleton-${index}`}
                     aria-label={`Loading ${index}`}
@@ -215,22 +214,16 @@ export default function SponsorPage() {
       />
 
       <ConfirmationModal
-        body={
-          confirmationModalType === 'edit'
-            ? `Are you sure you want to save the changes for "${selectedSponsor?.name?.en}"?`
-            : `Are you sure you want to delete the sponsor "${selectedSponsor?.name?.en}"? This action cannot be undone.`
-        }
-        confirmColor={confirmationModalType === 'edit' ? 'primary' : 'danger'}
-        confirmText={confirmationModalType === 'edit' ? 'Save' : 'Delete'}
-        isOpen={confirmationModalType !== null}
-        title={
-          confirmationModalType === 'edit' ? 'Save Sponsor' : 'Delete Sponsor'
-        }
+        isOpen={confirmationModal}
         onClose={() => {
-          setConfirmationModalType(null);
+          setConfirmationModal(false);
           setSelectedSponsor(undefined);
         }}
         onConfirm={handleConfirm}
+        title='Delete Sponsor'
+        body={`Are you sure you want to delete the sponsor "${selectedSponsor?.name?.en}"? This action cannot be undone.`}
+        confirmText='Delete'
+        confirmColor='danger'
       />
     </div>
   );

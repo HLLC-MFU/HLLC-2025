@@ -1,97 +1,66 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { ArrowLeft, TicketCheck } from 'lucide-react';
-import { useEvoucherCode } from '@/hooks/useEvoucherCode';
-import { useSponsors } from '@/hooks/useSponsors';
-import { useEvoucher } from '@/hooks/useEvoucher';
-import EvoucherCodeAccordion from './_components/EvoucherCodeAccordion';
-import { EvoucherCode } from '@/types/evoucher-code';
 import {
   Accordion,
   AccordionItem,
-  addToast,
   Button,
   Skeleton,
+  Image,
 } from '@heroui/react';
-import { EvoucherCodeModal } from './_components/EvoucherCodeModal';
-import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
 import { useRouter } from 'next/navigation';
+import { useEvoucher } from '@/hooks/useEvoucher';
+import { useEvoucherCode } from '@/hooks/useEvoucherCode';
+import { EvoucherCode } from '@/types/evoucher-code';
+import EvoucherCodeTable from './_components/EvoucherCodeTable';
+import { useUsers } from '@/hooks/useUsers';
+import { useRoles } from '@/hooks/useRoles';
+import { Evoucher } from '@/types/evoucher';
 
 export default function EvoucherCodePage() {
   const router = useRouter();
-  const { createEvoucherCode, deleteEvoucherCode } = useEvoucherCode();
+  const [addModal, setAddModal] = useState<boolean>(false);
+  const { evouchers, loading: EvoucherLoading } = useEvoucher();
   const {
-    sponsors,
-    loading: sponsorsLoading,
-    fetchEvoucherCodeBySponsorId: rawFetcher,
-  } = useSponsors();
-  const { evouchers, loading: evouchersLoading } = useEvoucher();
-  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedEvoucherCode, setSelectedEvoucherCode] = useState<
-    EvoucherCode | undefined
-  >();
-  const [confirmationModalType, setConfirmationModalType] = useState<
-    'delete' | 'edit' | null
-  >(null);
-  const fetchEvoucherCodeBySponsorId = useCallback(
-    async (sponsorId: string) => {
-      const res = await rawFetcher(sponsorId);
-      return res;
-    },
-    [rawFetcher],
-  );
+    evoucherCodes,
+    loading: EvoucherCodeLoading,
+    fetchEvoucherCodes,
+    addEvoucherCode,
+    addByRoleEvoucherCode,
+  } = useEvoucherCode();
+  const { users, loading: usersLoading } = useUsers();
+  const { roles, loading: rolesLoading } = useRoles();
 
-  const isLoading = sponsorsLoading || evouchersLoading;
+  const isLoading = EvoucherLoading || EvoucherCodeLoading || usersLoading || rolesLoading;
 
-  const handleAddEvoucherCode = () => {
-    setModalMode('add');
-    setIsModalOpen(true);
-  };
+  const groupedEvoucherCodes = useMemo(() => {
+    const groups: Record<string, EvoucherCode[]> = {};
 
-  const handleEditEvoucherCode = (evoucherCode: EvoucherCode) => {
-    setModalMode('edit');
-    setSelectedEvoucherCode(evoucherCode);
-    setIsModalOpen(true);
-  };
+    evoucherCodes.forEach((code) => {
+      const evoucherId = (code.evoucher as Evoucher)?._id;
 
-  const handleDelete = (evoucherCode: EvoucherCode) => {
-    setSelectedEvoucherCode(evoucherCode);
-    setConfirmationModalType('delete');
-  };
+      if (!groups[evoucherId]) groups[evoucherId] = [];
+      groups[evoucherId].push(code);
+    });
 
-  const handleSubmitEvoucherCode = async (
-    evoucherCodeData: Partial<EvoucherCode>,
-  ) => {
-    if (
-      selectedEvoucherCode &&
-      '_id' in selectedEvoucherCode &&
-      selectedEvoucherCode._id
-    ) {
-      setSelectedEvoucherCode({ ...selectedEvoucherCode, ...evoucherCodeData });
-      setConfirmationModalType('edit');
-    } else {
-      await createEvoucherCode(evoucherCodeData);
+    return groups;
+  }, [evoucherCodes]);
+
+  const handleAddEvoucherCode = async (evoucherId: string, userId?: string, roleId?: string) => {
+    let response;
+    if (userId) {
+      response = await addEvoucherCode(evoucherId, userId);
     }
-    setIsModalOpen(false);
-  };
-
-  const handleConfirm = async () => {
-    if (
-      confirmationModalType === 'delete' &&
-      selectedEvoucherCode &&
-      selectedEvoucherCode._id
-    ) {
-      await deleteEvoucherCode(selectedEvoucherCode._id);
-      addToast({
-        title: 'Evoucher code deleted successfully!',
-        color: 'success',
-      });
+    if (roleId) {
+      response = await addByRoleEvoucherCode(evoucherId, roleId);
     }
-    setConfirmationModalType(null);
-    setSelectedEvoucherCode(undefined);
+
+    if (response) {
+      await fetchEvoucherCodes()
+      setAddModal(false)
+    };
   };
 
   return (
@@ -113,55 +82,61 @@ export default function EvoucherCodePage() {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-6">
-        {isLoading ? (
-          <Accordion className="p-0" variant="splitted">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <AccordionItem
-                key={`skeleton-${index}`}
-                aria-label={`Loading ${index}`}
-                title={
-                  <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
-                }
-              >
-                <Skeleton className="h-[100px] w-full bg-gray-100 rounded-md" />
-              </AccordionItem>
-            ))}
-          </Accordion>
-        ) : (
-          <EvoucherCodeAccordion
-            sponsors={sponsors}
-            evoucherCodes={fetchEvoucherCodeBySponsorId}
-            onAdd={handleAddEvoucherCode}
-            onEdit={handleEditEvoucherCode}
-            onDelete={handleDelete}
-          />
-        )}
+      <div className="fl                                                                                                                                                                                                        ex flex-col gap-6">
+        <Accordion className="p-0" variant="splitted">
+          {isLoading
+            ? Array(3)
+                .fill(0)
+                .map((_, index) => (
+                  <AccordionItem
+                    key={`skeleton-${index}`}
+                    aria-label={`Loading ${index}`}
+                    title={
+                      <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
+                    }
+                  >
+                    <Skeleton className="h-[100px] w-full bg-gray-100 rounded-md" />
+                  </AccordionItem>
+                ))
+            : Object.entries(groupedEvoucherCodes).map(([evoucher, codes]) => {
+                const evoucherName = evouchers.find((e) => e._id === evoucher)
+                  ?.name.en!;
+                const evoucherPhoto = evouchers.find(
+                  (evoucher) => evoucher.name.en === evoucherName,
+                )?.photo.home;
+                return (
+                  <AccordionItem
+                    key={evoucherName}
+                    aria-label={evoucherName}
+                    title={evoucherName}
+                    subtitle={
+                      <p className="flex">
+                        <span>Total evoucher codes :</span>
+                        <span className="text-primary ml-1">
+                          {codes?.length}
+                        </span>
+                      </p>
+                    }
+                    startContent={
+                      <Image
+                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucherPhoto}`}
+                        className="h-12 w-12 rounded-md"
+                      />
+                    }
+                  >
+                    <EvoucherCodeTable
+                      evoucherCodes={codes}
+                      setAddModal={setAddModal}
+                      handleAddEvoucherCode={handleAddEvoucherCode}
+                      addModal={addModal}
+                      roles={roles}
+                      users={users}
+                    />
+                  </AccordionItem>
+                );
+              })}
+        </Accordion>
       </div>
-
-      <EvoucherCodeModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-        }}
-        onSuccess={handleSubmitEvoucherCode}
-        mode={modalMode}
-        evouchers={evouchers}
-        evoucherCode={selectedEvoucherCode}
-        sponsorId={sponsors[0]?._id}
-      />
-
-      <ConfirmationModal
-        isOpen={confirmationModalType === 'delete'}
-        onClose={() => {
-          setConfirmationModalType(null);
-          setSelectedEvoucherCode(undefined);
-        }}
-        onConfirm={handleConfirm}
-        title={'Delete evoucher code'}
-        body={'Are you sure you want to delete this Evoucher code?'}
-        confirmColor="danger"
-      />
     </>
   );
 }

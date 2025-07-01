@@ -1,193 +1,129 @@
-"use client";
+'use   client';
 
-import React, { useEffect, useState } from "react";
+import { User } from '@/types/user';
 import {
-  Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, addToast,
-} from "@heroui/react";
-import { EvoucherCode } from "@/types/evoucher-code";
-import { Evoucher } from "@/types/evoucher";
-import { ScopeSelector } from "@/app/(app)/sponsor-systems/evoucher-code/_components/ScopeSelector";
-import { Users } from "lucide-react";
-import { EvoucherSelect } from "./EvoucherSelect";
-import { useUsers } from "@/hooks/useUsers";
-
-function useDebounce<T>(value: T, delay: number = 10000): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debouncedValue;
-}
+  Autocomplete,
+  AutocompleteItem,
+  Button,
+  Divider,
+  Form,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+} from '@heroui/react';
+import React, { FormEvent, Key, useState } from 'react';
+import { Role } from '@/types/role';
+import { EvoucherCode } from '@/types/evoucher-code';
+import { Evoucher } from '@/types/evoucher';
 
 type AddEvoucherCodeProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (evoucherCode: Partial<EvoucherCode>, mode: "add" | "edit") => void;
-  mode: "add" | "edit";
-  evouchers: Evoucher[];
-  evoucherCode?: EvoucherCode;
-  sponsorId?: string;
-}
+  onSuccess: (evoucherId: string, userId?: string, roleId?: string) => void;
+  evoucherCodes: EvoucherCode[];
+  roles: Role[];
+  users: User[];
+};
 
 export function EvoucherCodeModal({
   isOpen,
   onClose,
   onSuccess,
-  mode,
-  evoucherCode,
-  evouchers,
-  sponsorId,
+  evoucherCodes,
+  roles,
+  users,
 }: AddEvoucherCodeProps) {
-  const { fetchByUsername } = useUsers();
+  const [userId, setUserId] = useState<Key | null>(null);
+  const [roleId, setRoleId] = useState<Key | null>(null);
 
-  const [selectedEvoucher, setSelectedEvoucher] = useState<string>("");
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [usersLoading, setUsersLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const debouncedSearch = useDebounce(searchQuery, 500);
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-  useEffect(() => {
-    if (mode === "edit" && evoucherCode) {
-      setSelectedEvoucher(
-        typeof evoucherCode.evoucher === "string"
-          ? evoucherCode.evoucher
-          : evoucherCode.evoucher?._id || ""
+    if (userId || roleId) {
+      onSuccess(
+        (evoucherCodes[0].evoucher as Evoucher)._id,
+        userId?.toString() || '',
+        roleId?.toString() || '',
       );
-      setSelectedUsers([
-        typeof evoucherCode.user === "string"
-          ? evoucherCode.user
-          : evoucherCode.user?._id || "",
-      ]);
-    } else {
-      setSelectedEvoucher("");
-      setSelectedUsers([]);
     }
-  }, [isOpen, mode, evoucherCode]);
 
-  useEffect(() => {
-    const fetchAvailableUsers = async () => {
-      if (!selectedEvoucher || !debouncedSearch.trim()) {
-        setAvailableUsers([]);
-        return;
-      }
+    setUserId(null);
+    setRoleId(null);
+  };
 
-      setUsersLoading(true);
-      try {
-        const users = await fetchByUsername(debouncedSearch.trim());
-        setAvailableUsers(users ?? []);
-      } catch (err) {
-        console.error("Failed to fetch users", err);
-        setAvailableUsers([]);
-      } finally {
-        setUsersLoading(false);
-      }
-    };
-    fetchAvailableUsers();
-  }, [selectedEvoucher, debouncedSearch]);
-
-  const handleSubmit = async () => {
-    if (!selectedEvoucher || selectedUsers.length === 0) return;
-
-    setIsSubmitting(true);
-    try {
-      for (const userId of selectedUsers) {
-        const evoucherCode: Partial<EvoucherCode> = {
-          evoucher: selectedEvoucher,
-          user: userId,
-        };
-
-        await onSuccess(evoucherCode, mode);
-      }
-
-      addToast({
-        title: "Success",
-        description: `Successfully ${mode === "add" ? "created" : "updated"} evoucher code(s).`,
-        color: "success",
-      });
-
-      onClose();
-    } catch {
-      addToast({
-        title: "Error",
-        description: "Failed to process evoucher code.",
-        color: "danger",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleCancel = () => {
+    onClose();
+    setUserId(null);
+    setRoleId(null);
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl" scrollBehavior="inside">
+    <Modal isOpen={isOpen} onClose={handleCancel} isDismissable={false}>
       <ModalContent>
-        <ModalHeader>{mode === "add" ? "Add Evoucher Code" : "Edit Evoucher Code"}</ModalHeader>
-        <ModalBody className="flex flex-col gap-6">
-          <EvoucherSelect
-            value={selectedEvoucher}
-            onChange={(evoucherId) => {
-              setSelectedEvoucher(evoucherId);
-              setSelectedUsers([]);
-            }}
-            evouchers={evouchers.filter((e) => e.sponsors._id === sponsorId)}
-            isDisabled={mode === "edit" || isSubmitting}
-          />
-
-          <div className="flex flex-col gap-4">
-            <ScopeSelector
-              isDisabled={!!!selectedEvoucher}
-              label="Select Users"
-              icon={Users}
-              items={availableUsers}
-              selectedItems={selectedUsers}
-              onSelect={(id) => {
-                const stringId = id.toString();
-                if (selectedUsers.includes(stringId)) return;
-
-                const updated = mode === "edit" ? [stringId] : [...selectedUsers, stringId];
-                setSelectedUsers(updated);
+        <Form onSubmit={handleSubmit}>
+          <ModalHeader>
+            Add {(evoucherCodes[0].evoucher as Evoucher)?.name?.en} Evoucher
+            Code
+          </ModalHeader>
+          <ModalBody className="flex gap-4 w-full">
+            <span className="font-medium">Add by user</span>
+            <Autocomplete
+              isRequired={!!!roleId}
+              isDisabled={!!roleId}
+              label="User"
+              placeholder="Select an user"
+              defaultItems={users}
+              onSelectionChange={setUserId}
+            >
+              {(user) => {
+                const userName = [
+                  user.name.first,
+                  user.name.middle,
+                  user.name.last,
+                ]
+                  .filter(Boolean)
+                  .join(' ');
+                return (
+                  <AutocompleteItem
+                    key={user._id}
+                    textValue={[userName, user.username]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    <div className="flex flex-col">
+                      <span>{userName}</span>
+                      <span className="text-default-500">{user.username}</span>
+                    </div>
+                  </AutocompleteItem>
+                );
               }}
-              onRemove={(id) => {
-                const stringId = id.toString();
-                if (mode === "edit" && selectedUsers.length <= 1) return;
-                setSelectedUsers(selectedUsers.filter((u) => u !== stringId));
-              }}
-              isLoading={usersLoading}
-              placeholder="Select users..."
-              getName={(user) => user.username}
-              getId={(user) => user._id.toString()}
-              searchFields={(user) => [
-                user.username,
-                user.metadata?.[0]?.major?.name?.th,
-                user.metadata?.[0]?.major?.name?.en,
-                user.metadata?.[0]?.major?.school?.name?.th,
-                user.metadata?.[0]?.major?.school?.name?.en,
-              ]}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-            />
-          </div>
-        </ModalBody>
-
-        <ModalFooter>
-          <Button color="danger" variant="light" onPress={onClose}>
-            Cancel
-          </Button>
-          <Button
-            color="primary"
-            onPress={handleSubmit}
-            isDisabled={!selectedEvoucher || selectedUsers.length === 0}
-            isLoading={isSubmitting}
-          >
-            {mode === "add"
-              ? `Add Evoucher Code${selectedUsers.length > 1 ? "s" : ""} (${selectedUsers.length})`
-              : "Save Changes"}
-          </Button>
-        </ModalFooter>
+            </Autocomplete>
+            <Divider />
+            <span className="font-medium">Add by role</span>
+            <Autocomplete
+              isRequired={!!!userId}
+              isDisabled={!!userId}
+              label="Role"
+              placeholder="Select a role"
+              defaultItems={roles}
+              onSelectionChange={setRoleId}
+            >
+              {(role) => (
+                <AutocompleteItem key={role._id}>{role.name}</AutocompleteItem>
+              )}
+            </Autocomplete>
+          </ModalBody>
+          <ModalFooter className="w-full">
+            <Button color="danger" variant="light" onPress={handleCancel}>
+              Cancel
+            </Button>
+            <Button color="primary" type="submit">
+              Add
+            </Button>
+          </ModalFooter>
+        </Form>
       </ModalContent>
     </Modal>
   );

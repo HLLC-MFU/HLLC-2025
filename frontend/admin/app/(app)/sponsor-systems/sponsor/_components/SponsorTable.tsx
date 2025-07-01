@@ -126,7 +126,7 @@ export default function SponsorTable({
         }
         bottomContentPlacement="outside"
         bottomContent={
-          <BottomContent page={page} pages={pages} setPage={setPage} />
+          <BottomContent page={page} pages={pages} setPage={setPage}/>
         }
       >
         <TableHeader columns={COLUMNS}>
