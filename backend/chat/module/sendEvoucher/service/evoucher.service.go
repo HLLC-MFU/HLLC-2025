@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -127,10 +128,42 @@ func (s *EvoucherService) SendEvoucherMessage(ctx context.Context, userID, roomI
 		}
 	}
 
-	// Notify all users in room using NotificationService
-	if s.notificationService != nil && s.hub != nil {
-		onlineUsers := s.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
+	// Get all room members for notification
+	roomCollection := s.db.Collection("rooms")
+	var room struct {
+		Members []primitive.ObjectID `bson:"members"`
+	}
+	if err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room); err != nil {
+		log.Printf("[EvoucherService] Failed to get room members: %v", err)
+		return msg, nil
+	}
+
+	// Get online users
+	onlineUsers := s.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
+	onlineUsersMap := make(map[string]bool)
+	for _, userID := range onlineUsers {
+		onlineUsersMap[userID] = true
+	}
+
+	// Send notifications to online users
+	if s.notificationService != nil {
 		s.notificationService.NotifyUsersInRoom(ctx, msg, onlineUsers)
+	}
+
+	// Send notifications to offline users
+	if s.notificationService != nil {
+		for _, memberID := range room.Members {
+			memberIDStr := memberID.Hex()
+			
+			// Skip sender and online users
+			if memberIDStr == userID.Hex() || onlineUsersMap[memberIDStr] {
+				continue
+			}
+
+			// Send offline notification
+			log.Printf("[EvoucherService] Sending offline notification to user %s", memberIDStr)
+			s.notificationService.SendOfflineNotification(ctx, memberIDStr, msg, "evoucher")
+		}
 	}
 
 	return msg, nil

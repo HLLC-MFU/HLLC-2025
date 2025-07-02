@@ -174,9 +174,77 @@ func (s *ChatService) SaveMessageBatchToCache(ctx context.Context, roomID string
 	return err
 }
 
-func (s *ChatService) SendNotifications(ctx context.Context, msg *model.ChatMessage, onlineUsers []string) error {
-	s.notificationService.NotifyUsersInRoom(ctx, msg, onlineUsers)
+// SendNotifications sends notifications to offline users
+func (s *ChatService) SendNotifications(ctx context.Context, message *model.ChatMessage, onlineUsers []string) error {
+	log.Printf("[ChatService] Sending notifications for message %s", message.ID.Hex())
+
+	// Get room members
+	roomMembers, err := s.getRoomMembers(ctx, message.RoomID)
+	if err != nil {
+		log.Printf("[ChatService] Failed to get room members: %v", err)
+		return err
+	}
+
+	// Create online user lookup map
+	onlineUserMap := make(map[string]bool)
+	for _, userID := range onlineUsers {
+		onlineUserMap[userID] = true
+	}
+
+	// Determine message type
+	messageType := s.determineMessageType(message)
+
+	// Send notification to offline members only (except sender)
+	for _, memberID := range roomMembers {
+		memberIDStr := memberID.Hex()
+
+		// Skip the sender
+		if memberIDStr == message.UserID.Hex() {
+			continue
+		}
+
+		// Skip online users
+		if onlineUserMap[memberIDStr] {
+			continue
+		}
+
+		// Send notification with proper message type and file info
+		s.notificationService.SendOfflineNotification(ctx, memberIDStr, message, messageType)
+	}
+
 	return nil
+}
+
+// getRoomMembers gets all members of a room
+func (s *ChatService) getRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error) {
+	roomCollection := s.collection.Database().Collection("rooms")
+	var room struct {
+		Members []primitive.ObjectID `bson:"members"`
+	}
+
+	err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+	if err != nil {
+		return nil, err
+	}
+
+	return room.Members, nil
+}
+
+// determineMessageType determines the type of message for notification
+func (s *ChatService) determineMessageType(message *model.ChatMessage) string {
+	if message.FileURL != "" {
+		return "upload"
+	}
+	if message.StickerID != nil {
+		return "sticker"
+	}
+	if message.EvoucherInfo != nil {
+		return "evoucher"
+	}
+	if message.MentionInfo != nil {
+		return "mention"
+	}
+	return "text"
 }
 
 func (s *ChatService) CreateMessageStatus(messageID primitive.ObjectID, roomID primitive.ObjectID) error {

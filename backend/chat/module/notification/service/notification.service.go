@@ -98,15 +98,30 @@ func (ns *NotificationService) SendOfflineNotification(ctx context.Context, rece
 		return
 	}
 
-	// Create notification payload specifically for offline users
-	payload := chatModel.CreateSimpleNotificationPayload(
-		messageType,
-		room.ID,
-		room.NameTh, room.NameEn,
-		sender.ID, sender.Username, sender.FirstName, sender.LastName,
-		message.ID.Hex(), message.Message,
-		receiverID,
-	)
+	var payload chatModel.NotificationPayload
+
+	// Use specific payload creator for file uploads
+	if message.FileURL != "" {
+		payload = chatModel.CreateUploadNotificationPayload(
+			messageType,
+			room.ID,
+			room.NameTh, room.NameEn,
+			sender.ID, sender.Username, sender.FirstName, sender.LastName,
+			message.ID.Hex(), message.Message,
+			receiverID,
+			message.FileURL, message.FileType, message.FileName,
+		)
+	} else {
+		// Create notification payload for other types
+		payload = chatModel.CreateSimpleNotificationPayload(
+			messageType,
+			room.ID,
+			room.NameTh, room.NameEn,
+			sender.ID, sender.Username, sender.FirstName, sender.LastName,
+			message.ID.Hex(), message.Message,
+			receiverID,
+		)
+	}
 
 	// ✅ Send to dedicated offline notification topic
 	success := ns.sendOfflineToKafka(ctx, receiverID, payload, message.RoomID.Hex(), message.UserID.Hex(), message.Message, messageType, message.ID.Hex())
@@ -275,14 +290,17 @@ func (ns *NotificationService) getRoomMembers(ctx context.Context, roomID primit
 }
 
 func (ns *NotificationService) determineMessageType(message *model.ChatMessage) string {
-	if message.ReplyToID != nil {
-		return "reply"
-	} else if message.StickerID != nil {
+	if message.FileURL != "" {
+		return "upload"
+	}
+	if message.StickerID != nil {
 		return "sticker"
-	} else if len(message.MentionInfo) > 0 {
-		return "mention"
-	} else if message.EvoucherInfo != nil {
+	}
+	if message.EvoucherInfo != nil {
 		return "evoucher"
+	}
+	if message.MentionInfo != nil {
+		return "mention"
 	}
 	return "text"
 }

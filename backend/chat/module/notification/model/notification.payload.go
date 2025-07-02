@@ -25,9 +25,13 @@ type (
 	}
 
 	NotificationMessage struct {
-		ID      string `json:"id"`
-		Message string `json:"message"`
-		Type    string `json:"type"`
+		ID        string    `json:"id"`
+		Message   string    `json:"message"`
+		Type      string    `json:"type"`
+		FileURL   string    `json:"fileUrl,omitempty"`
+		FileType  string    `json:"fileType,omitempty"`
+		FileName  string    `json:"fileName,omitempty"`
+		Timestamp time.Time `json:"timestamp"`
 	}
 )
 
@@ -93,4 +97,29 @@ func CreateSimpleNotificationPayload(
 		Receiver:  receiverID,
 		Timestamp: time.Now(),
 	}
+}
+
+// CreateUploadNotificationPayload creates a notification payload specifically for file uploads
+func CreateUploadNotificationPayload(
+	eventType string,
+	roomID, roomNameTh, roomNameEn string,
+	userID, username, userFirstName, userLastName string,
+	messageID, messageText string,
+	receiverID string,
+	fileURL, fileType, fileName string,
+) NotificationPayload {
+	payload := CreateSimpleNotificationPayload(
+		eventType,
+		roomID, roomNameTh, roomNameEn,
+		userID, username, userFirstName, userLastName,
+		messageID, messageText,
+		receiverID,
+	)
+	
+	payload.Message.Type = "upload"
+	payload.Message.FileURL = fileURL
+	payload.Message.FileType = fileType
+	payload.Message.FileName = fileName
+	
+	return payload
 }

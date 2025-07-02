@@ -115,7 +115,7 @@ func (c *UploadController) handleUpload(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Create chat message
+	// Create message object
 	now := time.Now()
 	msgID := primitive.NewObjectID()
 	msg := &model.ChatMessage{
@@ -123,25 +123,30 @@ func (c *UploadController) handleUpload(ctx *fiber.Ctx) error {
 		RoomID:    roomObjID,
 		UserID:    userObjID,
 		Message:   "",
-		Image:     filename,
+		FileURL:   filePath,
+		FileType:  "image",
+		FileName:  filename,
 		Timestamp: now,
-		CreatedAt: now,
-		UpdatedAt: now,
 	}
 
-	// Create broadcast message
+	// Create broadcast message with proper type and file info
 	broadcastMsg := map[string]interface{}{
 		"type": "upload",
 		"payload": map[string]interface{}{
 			"filename": filename,
 			"file": map[string]interface{}{
-				"path": filePath,
+				"path":     filePath,
+				"type":     "image",
+				"filename": filename,
 			},
 			"message": map[string]interface{}{
 				"_id":       msgID.Hex(),
 				"message":   "",
 				"timestamp": now,
 				"type":      "upload",
+				"fileUrl":   filePath,
+				"fileType":  "image",
+				"fileName":  filename,
 			},
 			"room": map[string]interface{}{
 				"_id": roomID,
@@ -173,17 +178,17 @@ func (c *UploadController) handleUpload(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Send notifications to offline users
+	// Send notifications to offline users with proper message type
 	go c.chatService.SendNotifications(ctx.Context(), msg, onlineUsers)
 
-	// Return success response with simple format
+	// Return success response
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"message": "File uploaded successfully",
 		"data": map[string]interface{}{
 			"filename": filename,
-			"user": userObjID.Hex(),
-			"room": roomObjID.Hex(),
+			"user":     userObjID.Hex(),
+			"room":     roomObjID.Hex(),
 		},
 	})
 }
