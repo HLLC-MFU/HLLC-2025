@@ -4,11 +4,11 @@ import { Card, CardBody, CardHeader } from '@heroui/react';
 import { GraduationCap, CalendarDays, User, Footprints } from 'lucide-react';
 
 interface TopThreeUser {
-  name: string;
   id: string;
-  steps: number;
+  name: string;
   school: string;
   major: string;
+  steps: number;
   rank: number;
 }
 
@@ -44,6 +44,8 @@ const StepContersCardList: FC<Props> = ({ data, variant }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {data.map((user: any, idx) => {
+
+
         if (variant === 'topThree') {
           return (
             <div
