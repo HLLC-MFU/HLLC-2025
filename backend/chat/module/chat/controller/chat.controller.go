@@ -29,7 +29,7 @@ type (
 	ChatService interface {
 		GetHub() *utils.Hub
 		GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error)
-		SendMessage(ctx context.Context, msg *model.ChatMessage) error
+		SendMessage(ctx context.Context, msg *model.ChatMessage, metadata interface{}) error
 		UnsendMessage(ctx context.Context, messageID, userID primitive.ObjectID) error
 		SubscribeToRoom(ctx context.Context, roomID string) error
 		UnsubscribeFromRoom(ctx context.Context, roomID string) error
@@ -85,7 +85,6 @@ func NewChatController(
 		rbac:           rbac,
 		connManager:    connManager,
 	}
-
 	controller.wsHandler = NewWebSocketHandler(
 		chatService,
 		chatService,
@@ -175,9 +174,8 @@ func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
 		Image:     sticker.Image,
 		Timestamp: time.Now(),
 	}
-
 	// Send message
-	if err := c.chatService.SendMessage(ctx.Context(), msg); err != nil {
+	if err := c.chatService.SendMessage(ctx.Context(), msg, nil); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "Failed to send sticker",
@@ -255,9 +253,8 @@ func (c *ChatController) handleReplyMessage(ctx *fiber.Ctx) error {
 		ReplyToID: &replyToObjID,
 		Timestamp: time.Now(),
 	}
-
 	// Send message
-	if err := c.chatService.SendMessage(ctx.Context(), msg); err != nil {
+	if err := c.chatService.SendMessage(ctx.Context(), msg, nil); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "Failed to send reply",

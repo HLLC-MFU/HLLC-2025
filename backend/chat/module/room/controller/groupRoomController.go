@@ -65,7 +65,7 @@ func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 	}
 
 	// Handle image upload if present
-	imagePath, err := c.handleImageUpload(ctx)
+	filename, err := c.handleImageUpload(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
@@ -77,8 +77,8 @@ func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 	}
 
 	// Update room image if provided
-	if imagePath != "" {
-		room.Image = imagePath
+	if filename != "" {
+		room.Image = filename
 		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), room)
 		if err != nil {
 			return c.validationHelper.BuildInternalErrorResponse(ctx, err)

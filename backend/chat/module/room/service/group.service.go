@@ -82,15 +82,28 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		roomType = model.RoomTypeNormal
 	}
 
-	// สร้างห้องใหม่พร้อม metadata สำหรับ group room
+	// Ensure createdBy is in members (string id)
+	members := []string{}
+	alreadyMember := false
+	for _, m := range members {
+		if m == createDto.CreatedBy {
+			alreadyMember = true
+			break
+		}
+	}
+	if !alreadyMember && createDto.CreatedBy != "" {
+		members = append(members, createDto.CreatedBy)
+	}
+
 	room := &model.Room{
 		Name:      createDto.Name,
 		Type:      roomType,
-		Capacity:  0, // unlimited capacity สำหรับ group room
-		CreatedBy: createDto.ToObjectID(),
+		Capacity:  0, // unlimited capacity
+		CreatedBy: createDto.CreatedBy,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Members:   []primitive.ObjectID{}, // เริ่มต้นเป็น array เปล่า
+		Members:   members,
+		Image:     createDto.Image,
 		Metadata: map[string]interface{}{
 			"isGroupRoom": true,
 			"groupType":   createDto.GroupType,
@@ -99,7 +112,6 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		},
 	}
 
-	// บันทึกลงฐานข้อมูล
 	resp, err := gs.Create(ctx, *room)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create group room: %w", err)
@@ -107,7 +119,7 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 
 	created := &resp.Data[0]
 
-	// เพิ่มสมาชิกกลุ่มอัตโนมัติ
+	// เพิ่มสมาชิกกลุ่ม (bulk add)
 	addedCount, err := gs.addGroupMembersAndWait(ctx, created.ID, createDto.GroupType, createDto.GroupValue)
 	if err != nil {
 		log.Printf("[GroupService] Warning: failed to add group members: %v", err)
@@ -115,7 +127,6 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		log.Printf("[GroupService] Added %d members to room %s", addedCount, created.ID.Hex())
 	}
 
-	// ดึงข้อมูลห้องล่าสุดจากฐานข้อมูลพร้อม members ที่อัพเดทแล้ว
 	finalRoom, err := gs.getFreshRoomFromDB(ctx, created.ID)
 	if err != nil {
 		log.Printf("[GroupService] Warning: failed to get updated room: %v", err)
@@ -124,6 +135,7 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 
 	// Emit event และ handle room created
 	gs.eventEmitter.EmitRoomCreated(ctx, finalRoom.ID, finalRoom)
+
 	return finalRoom, nil
 }
 

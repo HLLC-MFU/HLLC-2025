@@ -13,6 +13,7 @@ import (
 
 	chatController "chat/module/chat/controller"
 	healthController "chat/module/chat/controller"
+	uploadController "chat/module/chat/controller"
 	chatService "chat/module/chat/service"
 	restrictionController "chat/module/restriction/controller"
 	restrictionService "chat/module/restriction/service"
@@ -129,7 +130,6 @@ func main() {
 	// Initialize services
 	chatSvc := chatService.NewChatService(db, redis, kafkaBus, cfg)
 	chatHub := chatSvc.GetHub()
-
 	// Initialize all services
 	schoolSvc := userService.NewSchoolService(db)
 	majorSvc := userService.NewMajorService(db)
@@ -152,13 +152,15 @@ func main() {
 	roomController.NewRoomController(app, roomSvc)
 	roomController.NewGroupRoomController(app, groupRoomSvc, roomSvc, rbacMiddleware)
 	stickerController.NewStickerController(app, stickerSvc, rbacMiddleware)
-	chatController.NewChatController(app,chatSvc,roomSvc,stickerSvc,restrictionSvc,rbacMiddleware,
+	uploadController.NewUploadController(app, rbacMiddleware, chatSvc, userSvc)
+	chatController.NewChatController(app, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware,
 		connManager,
 	)
 	chatController.NewMentionController(app, chatSvc, roomSvc)
 	chatController.NewReactionController(app, chatSvc, roomSvc)
 	evoucherController.NewEvoucherController(app, evoucherSvc, roomSvc, rbacMiddleware)
 	healthController.NewHealthController(app, chatSvc, rbacMiddleware)
+	
 	
 	// Restriction controller (was moderation)
 	restrictionController.NewModerationController(app, restrictionSvc, rbacMiddleware)
@@ -242,6 +244,7 @@ func logRegisteredRoutes(app *fiber.App) {
 		"Room":    {},
 		"Chat":    {},
 		"Sticker": {},
+		"Upload":  {},
 		"Other":   {},
 	}
 
@@ -260,6 +263,8 @@ func logRegisteredRoutes(app *fiber.App) {
 			module = "Chat"
 		case strings.Contains(route.Path, "/api/stickers"):
 			module = "Sticker"
+		case strings.Contains(route.Path, "/api/uploads"):
+			module = "Upload"
 		}
 
 		// Get middleware names

@@ -23,6 +23,7 @@ const (
     EventTypeModerationUnban = "moderation_unban"
     EventTypeModerationUnmute = "moderation_unmute"
     EventTypePresence     = "presence"
+    EventTypeUpload       = "upload"
 )
 
 // Message Types - Content
@@ -38,6 +39,7 @@ const (
     MessageTypeModerationKick  = "moderation_kick"
     MessageTypeModerationUnban = "moderation_unban"
     MessageTypeModerationUnmute = "moderation_unmute"
+    MessageTypeUpload   = "upload"
 )
 
 // Reaction Types - Action

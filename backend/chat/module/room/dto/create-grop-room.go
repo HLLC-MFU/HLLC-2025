@@ -4,7 +4,6 @@ package dto
 import (
 	"chat/pkg/common"
 	"fmt"
-	"mime/multipart"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -22,7 +21,7 @@ type (
 		GroupValue string                `form:"groupValue" validate:"required"` // ID ของ major หรือ school
 		Type       string                `form:"type" validate:"roomType"`       // ประเภทห้อง (normal, readonly)
 		CreatedBy  string                `form:"createdBy" validate:"required,mongoId"`
-		Image      *multipart.FileHeader `form:"image" validate:"optional"`      // รูปภาพห้อง (ไม่บังคับ)
+		Image      string                `form:"image" validate:"optional"`
 		// หมายเหตุ: ไม่ต้องระบุ capacity เพราะห้องกลุ่มจะเป็น unlimited (capacity = 0)
 	}
 

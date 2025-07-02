@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"path/filepath"
 
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
@@ -32,7 +33,7 @@ func NewChatEventEmitter(hub *Hub, bus *kafka.Bus, redis *redis.Client, mongo *m
 	}
 }
 
-func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessage) error {
+func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessage, metadata interface{}) error {
 	log.Printf("[TRACE] EmitMessage called for message ID=%s Room=%s Text=%s", 
 		msg.ID.Hex(), msg.RoomID.Hex(), msg.Message)
 
@@ -46,11 +47,28 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 	// Get room data (basic for now)
 	roomInfo := model.RoomInfo{ID: msg.RoomID.Hex()}
 
-	// Determine message type and event type
+	// If metadata is a complete event, use it directly
+	if metadataMap, ok := metadata.(map[string]interface{}); ok {
+		if eventType, hasType := metadataMap["type"]; hasType {
+			if payload, hasPayload := metadataMap["payload"]; hasPayload {
+				event := model.Event{
+					Type:      eventType.(string),
+					Payload:   payload,
+					Timestamp: msg.Timestamp,
+				}
+				return e.emitEventStructured(ctx, msg, event)
+			}
+		}
+	}
+
+	// Otherwise, determine message type from metadata or message content
 	var messageType string
 	var eventType string
 	
-	if msg.StickerID != nil {
+	if metadataMap, ok := metadata.(map[string]interface{}); ok && metadataMap["type"] != nil {
+		messageType = metadataMap["type"].(string)
+		eventType = messageType
+	} else if msg.StickerID != nil {
 		eventType = model.EventTypeSticker
 		messageType = model.MessageTypeSticker
 	} else if msg.ReplyToID != nil {
@@ -102,6 +120,38 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 
 		event := model.Event{
 			Type:      eventType,
+			Payload:   manualPayload,
+			Timestamp: msg.Timestamp,
+		}
+		
+		return e.emitEventStructured(ctx, msg, event)
+	} else if msg.Image != "" {
+		// File upload message
+		filePath := filepath.Join("uploads", msg.Image)
+		manualPayload := map[string]interface{}{
+			"room": map[string]interface{}{
+				"_id": roomInfo.ID,
+			},
+			"user": map[string]interface{}{
+				"_id":      userInfo.ID,
+				"username": userInfo.Username,
+				"name":     userInfo.Name,
+			},
+			"message": map[string]interface{}{
+				"_id":       messageInfo.ID,
+				"type":      "upload",
+				"message":   messageInfo.Message,
+				"timestamp": messageInfo.Timestamp,
+			},
+			"filename": msg.Image,
+			"file": map[string]interface{}{
+				"path": filePath,
+			},
+			"timestamp": msg.Timestamp,
+		}
+
+		event := model.Event{
+			Type:      "upload",
 			Payload:   manualPayload,
 			Timestamp: msg.Timestamp,
 		}
@@ -599,4 +649,26 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 
 	// Emit event using common emitter
 	return e.emitEventStructured(ctx, msg, event)
+}
+
+// EmitEvent emits a custom event
+func (e *ChatEventEmitter) EmitEvent(ctx context.Context, msg *model.ChatMessage, event interface{}) error {
+	// Convert event to JSON
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event: %w", err)
+	}
+
+	// Broadcast to room
+	e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventBytes)
+
+	// Publish to Kafka
+	roomTopic := getRoomTopic(msg.RoomID.Hex())
+	if err := e.bus.Emit(ctx, roomTopic, msg.RoomID.Hex(), event); err != nil {
+		log.Printf("[WARN] Failed to emit to Kafka (continuing without Kafka): %v", err)
+		// Don't return error - continue without Kafka
+	}
+
+	log.Printf("[Kafka] Successfully published event to topic %s", roomTopic)
+	return nil
 }

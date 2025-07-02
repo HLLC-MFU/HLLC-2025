@@ -2,7 +2,6 @@ package dto
 
 import (
 	"chat/pkg/common"
-	"mime/multipart"
 
 	"chat/module/room/model"
 
@@ -14,9 +13,9 @@ type(
 		Name      common.LocalizedName `form:"name" validate:"notEmpty"`
 		Type      string               `form:"type" validate:"roomType"`      // ประเภทห้อง (normal, readonly)
 		Capacity  int                  `form:"capacity" validate:"notEmpty"`
-		Members   []string            `form:"members" validate:"mongoId,optional"`
-		CreatedBy string              `form:"createdBy" validate:"mongoId"`
-		Image     *multipart.FileHeader `form:"image" validate:"optional"`
+		Members   []string             `form:"members" validate:"mongoId,optional"`
+		CreatedBy string               `form:"createdBy" validate:"mongoId"`
+		Image     string               `form:"image" validate:"optional"`
 	}
 
 	UpdateRoomDto struct {

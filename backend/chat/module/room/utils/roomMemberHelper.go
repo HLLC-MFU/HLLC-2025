@@ -60,7 +60,7 @@ func (h *RoomMemberHelper) AddUserToRoom(ctx context.Context, roomID, userID str
 	}
 
 	// Update cache with the new room state
-	room.Members = append(room.Members, userObjID)
+	room.Members = append(room.Members, userID)
 	room.UpdatedAt = time.Now()
 	if err := h.cache.SaveRoom(ctx, &room); err != nil {
 		log.Printf("[MemberHelper] Warning: Failed to update cache: %v", err)
@@ -103,7 +103,7 @@ func (h *RoomMemberHelper) RemoveUserFromRoom(ctx context.Context, roomID primit
 	}
 
 	// Update cache with the new room state
-	room.Members = RemoveMember(room.Members, userObjID)
+	room.Members = RemoveMemberString(room.Members, userID)
 	room.UpdatedAt = time.Now()
 	if err := h.cache.SaveRoom(ctx, &room); err != nil {
 		log.Printf("[MemberHelper] Warning: Failed to update cache: %v", err)

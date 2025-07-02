@@ -389,7 +389,10 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 				}
 				
 				// Send message through single channel
-				if err := h.chatService.SendMessage(ctx, chatMsg); err != nil {
+				metadata := map[string]interface{}{
+					"type": "message",
+				}
+				if err := h.chatService.SendMessage(ctx, chatMsg, metadata); err != nil {
 					log.Printf("[ERROR] Failed to send message: %v", err)
 					continue
 				}
@@ -428,9 +431,11 @@ func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.C
 		ReplyToID: &replyToID,
 		Timestamp: time.Now(),
 	}
-
 	// ส่งข้อความ reply ไปยังห้อง
-	if err := h.chatService.SendMessage(context.Background(), msg); err != nil {
+	metadata := map[string]interface{}{
+		"type": "reply",
+	}
+	if err := h.chatService.SendMessage(context.Background(), msg, metadata); err != nil {
 		log.Printf("[ERROR] Failed to send reply message: %v", err)
 	}
 }

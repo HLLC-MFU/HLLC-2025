@@ -14,9 +14,7 @@ import (
 type FileUploadConfig struct {
 	AllowedTypes []string
 	MaxSize      int64
-	UploadDir    string
 	NamePrefix   string
-	Module       string
 }
 
 // ModuleConfig holds standard configurations for different modules
@@ -24,30 +22,22 @@ var ModuleConfig = map[string]FileUploadConfig{
 	"room": {
 		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
 		MaxSize:      256 * 1024, // 256KB
-		UploadDir:    "uploads/rooms",
 		NamePrefix:   "room",
-		Module:       "room",
 	},
 	"user": {
 		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
 		MaxSize:      256 * 1024,
-		UploadDir:    "uploads/users",
 		NamePrefix:   "user",
-		Module:       "user",
 	},
 	"chat": {
 		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png", "image/gif"},
 		MaxSize:      1024 * 1024, // 1MB
-		UploadDir:    "uploads/chat",
 		NamePrefix:   "chat",
-		Module:       "chat",
 	},
 	"sticker": {
 		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
 		MaxSize:      256 * 1024,
-		UploadDir:    "uploads/stickers",
 		NamePrefix:   "sticker",
-		Module:       "sticker",
 	},
 }
 
@@ -55,7 +45,6 @@ func DefaultImageConfig() FileUploadConfig {
 	return FileUploadConfig{
 		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
 		MaxSize:      256 * 1024, // 256KB
-		UploadDir:    "uploads/images",
 		NamePrefix:   "img",
 	}
 }
@@ -73,29 +62,26 @@ func NewFileUploadHandler(config FileUploadConfig) *FileUploadHandler {
 func (h *FileUploadHandler) HandleFileUpload(ctx *fiber.Ctx, fieldName string) (string, error) {
 	file, err := ctx.FormFile(fieldName)
 	if err != nil {
-		return "", fmt.Errorf("no file uploaded: %w", err)
+		return "", err
 	}
 
-	// Validate file before reading it
 	if err := h.validateFile(file); err != nil {
 		return "", err
 	}
 
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(h.Config.UploadDir, 0755); err != nil {
-		return "", fmt.Errorf("failed to create upload directory: %w", err)
+	dir := "uploads"
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.MkdirAll(dir, os.ModePerm)
 	}
 
-	// Generate filename once
 	filename := h.generateFilename(file.Filename)
-	filepath := filepath.Join(h.Config.UploadDir, filename)
+	filePath := filepath.Join(dir, filename)
 
-	// Use FastHTTP's built-in SaveFile for better performance
-	if err := ctx.SaveFile(file, filepath); err != nil {
-		return "", fmt.Errorf("failed to save file: %w", err)
+	if err := ctx.SaveFile(file, filePath); err != nil {
+		return "", err
 	}
 
-	return filepath, nil
+	return filename, nil
 }
 
 func (h *FileUploadHandler) DeleteFile(filepath string) error {
@@ -145,21 +131,8 @@ func (h *FileUploadHandler) generateFilename(originalName string) string {
 }
 
 // GetFileURL converts file path to URL
-func (h *FileUploadHandler) GetFileURL(filepath string) string {
-	// Use a more efficient string builder for path manipulation
-	var sb strings.Builder
-	sb.WriteString("/api/uploads/")
-
-	// Remove the leading "./uploads/" or "uploads/" if present
-	cleanPath := filepath
-	if strings.HasPrefix(cleanPath, "./uploads/") {
-		cleanPath = cleanPath[len("./uploads/"):]
-	} else if strings.HasPrefix(cleanPath, "uploads/") {
-		cleanPath = cleanPath[len("uploads/"):]
-	}
-	
-	sb.WriteString(cleanPath)
-	return sb.String()
+func (h *FileUploadHandler) GetFileURL(filename string) string {
+	return filename
 }
 
 func IsImage(contentType string) bool {

@@ -16,16 +16,16 @@ const (
 
 type (
 	Room struct {
-		ID          primitive.ObjectID     `bson:"_id,omitempty" json:"_id,omitempty"`
-		Name        common.LocalizedName   `bson:"name" json:"name"`
-		Type        string                 `bson:"type" json:"type"` // ประเภทห้อง (normal, readonly)
-		Capacity    int                    `bson:"capacity" json:"capacity"`
-		Members     []primitive.ObjectID   `bson:"members" json:"members"`
-		CreatedBy   primitive.ObjectID     `bson:"createdBy" json:"createdBy"`
-		CreatedAt   time.Time              `bson:"createdAt" json:"createdAt"`
-		UpdatedAt   time.Time              `bson:"updatedAt" json:"updatedAt"`
-		Image       string                 `bson:"image,omitempty" json:"image,omitempty"`
-		Metadata    map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"` // สำหรับ group room info
+		ID        primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
+		Name      common.LocalizedName `bson:"name" json:"name"`
+		Type      string              `bson:"type" json:"type"`
+		Capacity  int                 `bson:"capacity" json:"capacity"`
+		Members   []string            `bson:"members" json:"members"`
+		CreatedBy string              `bson:"createdBy" json:"createdBy"`
+		Image     string              `bson:"image,omitempty" json:"image,omitempty"`
+		CreatedAt time.Time           `bson:"createdAt" json:"createdAt"`
+		UpdatedAt time.Time           `bson:"updatedAt" json:"updatedAt"`
+		Metadata  map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"`
 	}
 
 	RoomEvent struct {

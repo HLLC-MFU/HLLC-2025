@@ -88,9 +88,16 @@ func (s *RoomCacheService) SaveRoom(ctx context.Context, room *model.Room) error
 	if err := s.redis.SetEx(ctx, key, data, defaultRoomTTL).Err(); err != nil {
 		return err
 	}
-
 	// บันทึก members ลง cache
-	return s.SaveMembers(ctx, room.ID.Hex(), room.Members)
+	members := make([]primitive.ObjectID, len(room.Members))
+	for i, id := range room.Members {
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return err
+		}
+		members[i] = objectID
+	}
+	return s.SaveMembers(ctx, room.ID.Hex(), members)
 }
 
 // ลบ room จาก cache

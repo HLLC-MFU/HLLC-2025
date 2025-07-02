@@ -77,7 +77,7 @@ func (c *StickerController) CreateSticker(ctx *fiber.Ctx) error {
 	}
 
 	// Upload file
-	filepath, err := c.uploadHandler.HandleFileUpload(ctx, "image")
+	filename, err := c.uploadHandler.HandleFileUpload(ctx, "image")
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -91,7 +91,7 @@ func (c *StickerController) CreateSticker(ctx *fiber.Ctx) error {
 			En: ctx.FormValue("name.en"),
 			Th: ctx.FormValue("name.th"),
 		},
-		Image: c.uploadHandler.GetFileURL(filepath),
+		Image: filename,
 	}
 
 	// Create sticker
@@ -99,8 +99,7 @@ func (c *StickerController) CreateSticker(ctx *fiber.Ctx) error {
 	result, err := c.service.CreateSticker(ctx.Context(), sticker)
 	if err != nil {
 		// Cleanup uploaded file on error
-		if err := os.Remove(filepath); err != nil {
-			// Just log the error, don't return it
+		if err := os.Remove(filename); err != nil {
 			fmt.Printf("Failed to delete file: %v\n", err)
 		}
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

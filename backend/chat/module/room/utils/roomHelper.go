@@ -48,8 +48,8 @@ func EmitErrorLog(ctx context.Context, label string, err error) {
 }
 
 // นี่คือฟังก์ชันที่จะใช้ใน service เพื่อลบ members ** อย่าสังเขปมัน **
-func RemoveMember(existing []primitive.ObjectID, target primitive.ObjectID) []primitive.ObjectID {
-	filtered := make([]primitive.ObjectID, 0, len(existing))
+func RemoveMemberString(existing []string, target string) []string {
+	filtered := make([]string, 0, len(existing))
 	for _, member := range existing {
 		if member != target {
 			filtered = append(filtered, member)
@@ -86,9 +86,9 @@ func ValidateAndTrackConnection(ctx context.Context, room *model.Room, userID st
 
 	// แปลง userID เป็น ObjectID
 	uid, _ := primitive.ObjectIDFromHex(userID)
-
 	// ตรวจสอบว่ามี user อยู่ใน room หรือไม่
-	if !ContainsMember(room.Members, uid) {
+	members := ConvertToObjectIDs(room.Members)
+	if !ContainsMember(members, uid) {
 		return fmt.Errorf("user is not a member of this room")
 	}
 
@@ -141,7 +141,7 @@ func CanUserSendMessage(ctx context.Context, room *model.Room, userID string) (b
 	uid, _ := primitive.ObjectIDFromHex(userID)
 
 	// ตรวจสอบว่ามี user อยู่ใน room หรือไม่
-	if !ContainsMember(room.Members, uid) {
+	if !ContainsMember(ConvertToObjectIDs(room.Members), uid) {
 		return false, fmt.Errorf("user is not a member of this room")
 	}
 

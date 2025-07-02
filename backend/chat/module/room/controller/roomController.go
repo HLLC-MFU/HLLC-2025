@@ -93,25 +93,32 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	// Handle image upload if present
-	imagePath, err := c.handleImageUpload(ctx)
-	if err != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+	// Handle image if provided
+	if file, err := ctx.FormFile("image"); err == nil {
+		if err := c.validationHelper.ValidateImageUpload(file); err != nil {
+			return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+		}
+
+		filename, err := c.uploadHandler.HandleFileUpload(ctx, "image")
+		if err != nil {
+			return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+		}
+		createDto.Image = filename // set string filename
 	}
 
 	// Create room
 	room, err := c.service.CreateRoom(ctx.Context(), &createDto)
 	if err != nil {
-		c.cleanupUploadedFile(imagePath)
+		c.cleanupUploadedFile(createDto.Image)
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 
 	// Update room with image if uploaded
-	if imagePath != "" {
-		room.Image = imagePath
+	if createDto.Image != "" {
+		room.Image = createDto.Image
 		room, err = c.service.UpdateRoom(ctx.Context(), room.ID.Hex(), room)
 		if err != nil {
-			c.cleanupUploadedFile(imagePath)
+			c.cleanupUploadedFile(createDto.Image)
 			return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 		}
 	}

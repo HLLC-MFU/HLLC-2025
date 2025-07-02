@@ -92,9 +92,22 @@ func (s *RoomService) CreateRoom(ctx context.Context, createDto *dto.CreateRoomD
 		return nil, fmt.Errorf("validation error: %w", err)
 	}
 
+	// Ensure createdBy is in members
+	alreadyMember := false
+	for _, m := range createDto.Members {
+		if m == createDto.CreatedBy {
+			alreadyMember = true
+			break
+		}
+	}
+	if !alreadyMember && createDto.CreatedBy != "" {
+		createDto.Members = append(createDto.Members, createDto.CreatedBy)
+	}
+
 	if err := s.validateMembers(ctx, createDto); err != nil {
 		return nil, err
 	}
+
 
 	roomType := createDto.Type
 	if roomType == "" {
@@ -105,10 +118,10 @@ func (s *RoomService) CreateRoom(ctx context.Context, createDto *dto.CreateRoomD
 		Name:      createDto.Name,
 		Type:      roomType,
 		Capacity:  createDto.Capacity,
-		CreatedBy: createDto.ToObjectID(),
+		CreatedBy: createDto.CreatedBy,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Members:   roomUtils.ConvertToObjectIDs(createDto.Members),
+		Members:   createDto.Members,
 	}
 
 	resp, err := s.Create(ctx, *r)
@@ -155,7 +168,7 @@ func (s *RoomService) IsUserInRoom(ctx context.Context, roomID primitive.ObjectI
 	}
 
 	uid, _ := primitive.ObjectIDFromHex(userID)
-	return roomUtils.ContainsMember(room.Members, uid), nil
+	return roomUtils.ContainsMember(roomUtils.ConvertToObjectIDs(room.Members), uid), nil
 }
 
 // ตรวจสอบว่ามี user นั้นอยู่ใน room และมี connection นั้นอยู่ใน room หรือไม่

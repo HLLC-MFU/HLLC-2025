@@ -30,7 +30,7 @@ func (s *ChatService) CanUserViewMessages(ctx context.Context, userID, roomID pr
 // **ENHANCED: SendMessage with robust error handling and phantom prevention**
 
 // Optimize ให้ Support SendMsg ให้ handling phantom message (ข้อความผี = ไม่ได้ save ลงใน DB)
-func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) error {
+func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage, metadata interface{}) error {
 	log.Printf("[ChatService] SendMessage called for room %s by user %s", msg.RoomID.Hex(), msg.UserID.Hex())
 
 	// ตรวจสอบ moderation status ก่อนส่งข้อความ
@@ -68,7 +68,7 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 	broadcastStart := primitive.NewObjectID().Timestamp()
 	
 	// ถ้า error จะต้องลบ message ออกจาก cache ด้วย
-	if err := s.emitter.EmitMessage(ctx, msg); err != nil {
+	if err := s.emitter.EmitMessage(ctx, msg, metadata); err != nil {
 		log.Printf("[ChatService] ❌ CRITICAL: Failed to emit message to WebSocket: %v", err)
 		
 		// Fallback ถ้า  message ส่งไม่ได้ จะต้องลบ message ออกจาก cache ด้วย
