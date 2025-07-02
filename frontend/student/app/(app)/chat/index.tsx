@@ -20,7 +20,6 @@ import { useChatRooms } from '../../../hooks/chats/useChatRooms';
 import { useChatAnimations } from '../../../hooks/chats/useChatAnimations';
 import { ChatRoom } from '../../../types/chatTypes';
 import { BlurView } from 'expo-blur';
-import { chatService } from '../../../services/chats/chatService';
 import CategoryFilter from '@/components/chats/CategoryFilter';
 import ChatHeader from '@/components/chats/ChatHeader';
 import { ChatTabBar } from '@/components/chats/ChatTabBar';
@@ -30,6 +29,8 @@ import LoadingSpinner from '@/components/chats/LoadingSpinner';
 import RoomCard from '@/components/chats/RoomCard';
 import { RoomDetailModal } from '@/components/chats/RoomDetailModal';
 import RoomListItem from '@/components/chats/RoomListItem';
+import chatService from '@/services/chats/chatService';
+import { t, getLocalizedField } from '@/utils/i18n';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -90,14 +91,14 @@ export default function ChatPage() {
         });
       } else {
         Alert.alert(
-          language === 'th' ? 'เข้าร่วมไม่สำเร็จ' : 'Join Failed',
-          result.message || (language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room')
+          t('joinFailed', language),
+          result.message || t('joinFailedMessage', language)
         );
       }
     } catch (error) {
       Alert.alert(
-        language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
-        language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room'
+        t('error', language),
+        t('cannotJoin', language)
       );
     }
   };
@@ -115,8 +116,8 @@ export default function ChatPage() {
     } catch (error) {
       console.error('Error navigating to room:', error);
       Alert.alert(
-        language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
-        language === 'th' ? 'ไม่สามารถเข้าห้องแชทได้' : 'Cannot access chat room'
+        t('error', language),
+        t('cannotAccess', language)
       );
     }
   };
@@ -175,7 +176,7 @@ export default function ChatPage() {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
-          <LoadingSpinner text={language === 'th' ? 'กำลังโหลดชุมชน...' : 'Loading communities...'} />
+          <LoadingSpinner text={t('loadingCommunities', language)} />
         </View>
       </View>
     );
@@ -226,8 +227,8 @@ export default function ChatPage() {
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={handleRefresh}
-              colors={['#6366f1']}
-              tintColor="#6366f1"
+              colors={['#fff']}
+              tintColor="#fff"
               progressBackgroundColor="#ffffff"
             />
           }
@@ -240,7 +241,7 @@ export default function ChatPage() {
             <View style={styles.emptyState}>
               <Sparkles size={48} color="#a5b4fc" />
               <Text style={styles.emptyStateText}>
-                {language === 'th' ? 'ไม่พบชุมชนในหมวดหมู่นี้' : 'No communities found in this category'}
+                {t('noCommunities', language)}
               </Text>
             </View>
           )}
@@ -258,6 +259,28 @@ export default function ChatPage() {
           <BlurView intensity={0} tint="light" style={styles.fabGradient}>
             <Plus size={24} color="#fff" />
           </BlurView>
+        </TouchableOpacity>
+
+
+        <TouchableOpacity
+          style={styles.coinHuntingFab}
+          onPress={() => router.push('/coin-hunting')}
+          activeOpacity={0.9}
+        >
+          <View style={styles.stepCounterFabInner}>
+            <Text style={styles.stepCounterFabText}>Coin</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* ปุ่มไปหน้า step-counter */}
+        <TouchableOpacity
+          style={styles.stepCounterFab}
+          onPress={() => router.push('/step-counter')}
+          activeOpacity={0.9}
+        >
+          <View style={styles.stepCounterFabInner}>
+            <Text style={styles.stepCounterFabText}>Step</Text>
+          </View>
         </TouchableOpacity>
 
       <CreateRoomModal
@@ -369,5 +392,48 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(200,200,200,0.18)',
     flex: 1,
+  },
+  coinHuntingFab:{
+    position: 'absolute',
+    bottom: 260,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  stepCounterFab: {
+    position: 'absolute',
+    bottom: 190,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  stepCounterFabInner: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepCounterFabText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 1,
   },
 });

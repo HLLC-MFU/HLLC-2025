@@ -22,6 +22,7 @@ export type IEvoucher = {
     createdAt: string;
     updatedAt: string;
   };
+  sponsor?: string;
   detail: {
     en: string;
     th: string;
@@ -73,7 +74,7 @@ export type IEvoucherResponse = {
 }
 
 export type IEvoucherCodeResponse = {
-  data: IEvoucherCode[];
+  data: IEvoucherCode[] | { data: IEvoucherCode[]; meta?: any; message?: string };
   meta: {
     total: number;
     page: number;
