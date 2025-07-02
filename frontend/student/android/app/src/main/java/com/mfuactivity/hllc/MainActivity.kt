@@ -1,4 +1,4 @@
-package com.jemiezler.student
+package com.mfuactivity.hllc
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -1,4 +1,4 @@
-import { View, StyleSheet, ActivityIndicator, ImageBackground } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { SplashScreen, Tabs, usePathname } from 'expo-router';
 import { Redirect } from 'expo-router';
 import { BlurView } from 'expo-blur';
@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import TabBar from '@/components/global/TabBar';
 import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
 import { useAppearance } from '@/hooks/useAppearance';
+import messaging from '@react-native-firebase/messaging';
 
 export default function Layout() {
   const { user, getProfile } = useProfile();
@@ -23,6 +24,12 @@ export default function Layout() {
 
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
   if (!user) return <Redirect href="/(auth)/login" />;
+
+  requestUserPermission();
+
+  messaging().setBackgroundMessageHandler(async remoteMessage => {
+    console.log('Message handled in the background!', remoteMessage);
+  });
 
   // Check if we're in the chat room section
   const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
@@ -62,4 +69,19 @@ export default function Layout() {
       </Tabs>
     </View>
   );
+}
+
+async function requestUserPermission() {
+  const authStatus = await messaging().requestPermission();
+  const enabled =
+    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+  if (enabled) {
+    console.log('Notification permission granted.');
+  }
+
+  const token = await messaging().getToken();
+  console.log('FCM Token:', token);
+  return token;
 }

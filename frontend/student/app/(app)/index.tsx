@@ -1,5 +1,5 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import { router, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Award, Bell, Footprints, MapPin, User, Users } from 'lucide-react-native';
@@ -11,6 +11,8 @@ import AssetImage from '@/components/global/AssetImage';
 import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
 import { Progress, Separator, XStack, YStack } from 'tamagui';
 import { DoorClosedLocked } from '@tamagui/lucide-icons';
+import { useEffect } from 'react';
+import messaging from '@react-native-firebase/messaging';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -28,6 +30,14 @@ export default function HomeScreen() {
     progress: assets?.progress ?? null,
     signOut: assets?.signOut ?? null,
   };
+
+  useEffect(() => {
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
+    });
+
+    return unsubscribe;
+  }, []);
 
   const content = (
     <SafeAreaView
