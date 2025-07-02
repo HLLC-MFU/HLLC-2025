@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 export function useLamduanFlowers() {
     const [flowers, setFlowers] = useState<LamduanFlower[]>([]);
-     const [lamduanSetting, setLamduanSetting] = useState<LamduanSetting[]>([]);
+    const [lamduanSetting, setLamduanSetting] = useState<LamduanSetting[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -21,6 +21,25 @@ export function useLamduanFlowers() {
                 err && typeof err === 'object' && 'message' in err
                     ? (err as { message?: string }).message || 'Failed to fetch lamduan setting.'
                     : 'Failed to fetch lamduan setting.',
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchLamduanFlowers = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await apiRequest<{ data: LamduanFlower[] }>('/lamduan-flowers?limit=0', 'GET');
+
+            setFlowers(Array.isArray(res.data?.data) ? res.data.data : []);
+            return res;
+        } catch (err) {
+            setError(
+                err && typeof err === 'object' && 'message' in err
+                    ? (err as { message?: string }).message || 'Failed to fetch lamduan flowers.'
+                    : 'Failed to fetch lamduan flowers.',
             );
         } finally {
             setLoading(false);
@@ -44,6 +63,34 @@ export function useLamduanFlowers() {
         }
     };
 
+    const updateLamduanFlowers = async (
+        id: string,
+        flowersData: FormData,
+    ): Promise<void> => {
+        if (!id) {
+            console.error("Invalid flower ID");
+            return;
+        }
+
+        flowersData.delete('_id');
+
+        try {
+            setLoading(true);
+            const res = await apiRequest<LamduanFlower>(
+                `/lamduan-flowers/${id}`, 
+                'PATCH', 
+                flowersData);
+
+            if (res.data) {
+                setFlowers((prev) => prev.map((s) => (s._id === id ? res.data! : s)));
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to update lamduan flowers.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchLamduanSetting();
     }, []);
@@ -54,7 +101,9 @@ export function useLamduanFlowers() {
         loading,
         error,
         fetchLamduanSetting,
+        fetchLamduanFlowers,
         createLamduanFlowers,
+        updateLamduanFlowers,
     };
 
 }

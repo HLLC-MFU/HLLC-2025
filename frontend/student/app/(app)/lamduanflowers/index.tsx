@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   SafeAreaView,
   View,
@@ -11,6 +11,8 @@ import {
   Image,
   Alert,
   Dimensions,
+  Keyboard,
+  TextInput as RNTextInput,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -21,6 +23,7 @@ import { BannerImage } from './_components/BannerImage';
 import { MediaCard } from './_components/MediaCard';
 import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import useProfile from '@/hooks/useProfile';
+import { LamduanFlower } from '@/types/lamduan-flowers';
 
 const screenWidth = Dimensions.get('window').width;
 const horizontalPadding = 40;
@@ -31,8 +34,12 @@ export default function LamduanOrigamiPage() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
   const [comment, setComment] = useState('');
-  const { lamduanSetting, createLamduanFlowers } = useLamduanFlowers();
   const { user } = useProfile();
+  const { lamduanSetting, createLamduanFlowers, updateLamduanFlowers } = useLamduanFlowers();
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const originalRef = useRef<LamduanFlower | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const inputRef = useRef<RNTextInput>(null);
 
   const handleSave = async (
     file: File,
@@ -43,7 +50,7 @@ export default function LamduanOrigamiPage() {
     const formData = new FormData();
 
     formData.append('photo', file);
-    formData.append('comment', comment);
+    formData.append('comment', comment.trim() === '' ? ' ' : comment);
     formData.append('user', user);
     formData.append('setting', setting);
 
@@ -54,6 +61,15 @@ export default function LamduanOrigamiPage() {
       Alert.alert("Error", "Error submitting flower");
     }
   };
+
+  const getImageSize = (uri: string) =>
+    new Promise<{ width: number; height: number }>((resolve, reject) => {
+      Image.getSize(
+        uri,
+        (width, height) => resolve({ width, height }),
+        (error) => reject(error),
+      );
+    });
 
   const pickImage = async () => {
     try {
@@ -73,15 +89,6 @@ export default function LamduanOrigamiPage() {
       const uri = result.assets[0].uri;
       setImageUri(uri);
 
-      const getImageSize = (uri: string) =>
-        new Promise<{ width: number; height: number }>((resolve, reject) => {
-          Image.getSize(
-            uri,
-            (width, height) => resolve({ width, height }),
-            (error) => reject(error),
-          );
-        });
-
       try {
         const size = await getImageSize(uri);
         setImageSize(size);
@@ -95,14 +102,55 @@ export default function LamduanOrigamiPage() {
     }
   };
 
+  const takePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Denied', 'Please allow camera access to take a photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        quality: 1,
+      });
+
+      if (result.canceled) return;
+
+      const uri = result.assets[0].uri;
+      setImageUri(uri);
+
+      try {
+        const size = await getImageSize(uri);
+        setImageSize(size);
+      } catch (err) {
+        console.warn('Failed to get image size:', err);
+        setImageSize(null);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to take a photo. Please try again.');
+      console.error('takePhoto error:', error);
+    }
+  };
+
+  const handleUploadPress = () => {
+    Alert.alert('Upload Picture', 'Choose an option', [
+      { text: 'Take Photo', onPress: takePhoto },
+      { text: 'Choose from Gallery', onPress: pickImage },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+  
+
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        keyboardVerticalOffset={0}
       >
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={[styles.container, { paddingBottom: 120 }]}
           showsVerticalScrollIndicator={false}
         >
@@ -123,7 +171,7 @@ export default function LamduanOrigamiPage() {
           </BlurView>
 
           <BlurView intensity={40} tint="light" style={styles.formBox}>
-            <TouchableOpacity onPress={pickImage}>
+            <TouchableOpacity onPress={handleUploadPress} style={styles.imageUploadButton}>
               {imageUri && imageSize ? (
                 <Image
                   source={{ uri: imageUri }}
@@ -134,7 +182,6 @@ export default function LamduanOrigamiPage() {
                     aspectRatio: imageSize.width / imageSize.height,
                     resizeMode: 'contain',
                     borderRadius: 12,
-                    marginBottom: 12,
                     alignSelf: 'center',
                   }}
                 />
@@ -146,20 +193,54 @@ export default function LamduanOrigamiPage() {
             </TouchableOpacity>
 
             <TextInput
+              ref={inputRef}
               placeholder="Type message..."
               placeholderTextColor="#fff"
               style={styles.input}
               value={comment}
-              onChangeText={setComment}
+              onChangeText={(text) => {
+                const words = text.trim().split(/\s+/);
+                if (words.length <= 144) {
+                  setComment(text);
+                } else {
+                  setComment(words.slice(0, 144).join(' '));
+                }
+              }}
+              onFocus={() => {
+                setTimeout(() => {
+                  inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
+                    scrollViewRef.current?.scrollTo({ y: pageY - 0, animated: true });
+                  });
+                }, 0);
+              }}
               multiline
               textAlignVertical="top"
             />
 
             <TouchableOpacity
               style={styles.submitButton}
-              onPress={() => setConfirmModalVisible(true)}
+              onPress={async () => {
+                if (!imageUri) {
+                  Alert.alert('Error', 'Please select an image first.');
+                  return;
+                }
+
+                const file = {
+                  uri: imageUri,
+                  name: 'photo.jpg',
+                  type: 'image/jpeg',
+                } as any;
+
+                if (hasSubmitted) {
+                  await handleSave(file, user?.data[0]._id!, comment, lamduanSetting[0]._id);
+                } else {
+                  setConfirmModalVisible(true);
+                }
+              }}
             >
-              <Text>Submit</Text>
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                {hasSubmitted ? 'Save' : 'Submit'}
+              </Text>
             </TouchableOpacity>
           </BlurView>
 
@@ -182,6 +263,8 @@ export default function LamduanOrigamiPage() {
                 } as any;
 
                 await handleSave(file, user?.data[0]._id!, comment, lamduanSetting[0]._id);
+
+                setHasSubmitted(true);
               } catch (error) {
                 console.error('Submit error:', error);
                 Alert.alert('Error', 'Submission failed.');
@@ -244,13 +327,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     overflow: 'hidden',
   },
+  imageUploadButton: {
+    marginBottom: 12,
+  },
   uploadPlaceholder: {
     backgroundColor: '#eee',
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     height: 180,
-    marginBottom: 12,
     width: 300,
     alignSelf: 'center',
   },
@@ -270,8 +355,8 @@ const styles = StyleSheet.create({
   submitButton: {
     alignSelf: 'flex-end',
     backgroundColor: '#66aaf9',
-    paddingVertical: 6,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
     borderRadius: 999,
   },
 });
