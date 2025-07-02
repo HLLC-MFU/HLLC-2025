@@ -13,7 +13,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mfuactivity.hllc",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSHealthShareUsageDescription": "Allow $(PRODUCT_NAME) to read health data.",
+        "NSHealthUpdateUsageDescription": "Allow $(PRODUCT_NAME) to write health data."
       },
       "googleServicesFile": "./GoogleService-Info.plist"
     },
@@ -25,7 +27,9 @@
       "softwareKeyboardLayoutMode": "pan",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "com.google.android.gms.permission.ACTIVITY_RECOGNITION"
       ],
       "package": "com.mfuactivity.hllc",
       "googleServicesFile": "./google-services.json"
@@ -60,9 +64,9 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0",
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0",
             "minSdkVersion": 29
           }
         }
