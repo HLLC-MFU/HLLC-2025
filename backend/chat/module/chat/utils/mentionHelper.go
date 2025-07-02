@@ -103,33 +103,6 @@ func (mp *MentionParser) ValidateMentionUsers(ctx context.Context, userIDs []str
 
 	return users, nil
 }
-
-// FormatMentionMessage formats a message with mention highlights
-func (mp *MentionParser) FormatMentionMessage(messageText string, mentions []model.MentionInfo) string {
-	if len(mentions) == 0 {
-		return messageText
-	}
-
-	// Replace @username with highlighted version (for frontend)
-	result := messageText
-	for _, mention := range mentions {
-		oldText := "@" + mention.Username
-		newText := fmt.Sprintf(`<span class="mention" data-user-id="%s">@%s</span>`, mention.UserID, mention.Username)
-		result = strings.ReplaceAll(result, oldText, newText)
-	}
-
-	return result
-}
-
-// ExtractMentionedUserIDs extracts user IDs from mentions
-func ExtractMentionedUserIDs(mentions []model.MentionInfo) []string {
-	userIDs := make([]string, len(mentions))
-	for i, mention := range mentions {
-		userIDs[i] = mention.UserID
-	}
-	return userIDs
-}
-
 // getUserByUsername finds a user by username
 func (mp *MentionParser) getUserByUsername(ctx context.Context, username string) (*userModel.User, error) {
 	var user userModel.User
