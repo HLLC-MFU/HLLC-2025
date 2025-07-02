@@ -47,19 +47,18 @@ export class CreateRoleDto {
   /**
    * ใช้สำหรับ config scan
    * เช่น ใครสามารถ scan role ไหนได้บ้าง
-   * @example { "default": { scan: true, canScan: ["student", "staff"] } }
+   * @example { "metadata": { canCheckin: { user: [*], major: [majorId], school: [schoolId] } } }
    */
   @IsOptional()
   @IsObject()
-  metadataScanned?: Record<
+  metadata?: Record<
     string,
     {
-      scan?: boolean;
-      canScan?: string[];
-      scope?: {
-        type: 'major' | 'school'; // major or school
-        values?: string[]; // major or school id
-      };
+      canCheckin?: {
+        user: string[],   /// ["*"]
+        school: string[], /// [schoolId]
+        major: string[]   /// [majorId]
+      }
     }
   >;
 }
