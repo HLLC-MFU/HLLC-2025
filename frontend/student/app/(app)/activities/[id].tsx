@@ -5,7 +5,6 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Button, Separator } from "tamagui";
 import { ArrowLeft, Compass } from "@tamagui/lucide-icons";
-import { SharedElement, SharedElementCompatRoute } from "react-navigation-shared-element";
 import CheckinStatusChip from "./_components/checkin-status-chip";
 import DateBadge from "./_components/date-badge";
 
@@ -25,13 +24,13 @@ export default function ActivityDetailPage() {
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
       {/* Image Section */}
       <View style={{ position: "relative", width: "100%", aspectRatio: 4 / 3 }}>
-        <SharedElement id={`activity-image-${activity._id}`} style={{ width: "100%", height: "100%" }}>
+        <View id={`activity-image-${activity._id}`} style={{ width: "100%", height: "100%" }}>
           <Image
             source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.banner}` }}
             contentFit="cover"
             style={{ width: "100%", height: "100%" }}
           />
-        </SharedElement>
+        </View>
 
         <LinearGradient
           colors={["transparent", "#ffffff80", "#ffffff"]}
@@ -116,15 +115,3 @@ export default function ActivityDetailPage() {
     </View>
   );
 }
-
-ActivityDetailPage.sharedElements = (route: SharedElementCompatRoute) => {
-  const { id } = route.params ?? {};
-  return [
-    {
-      id: `activity-image-${id}`,
-      animation: "move",
-      resize: "clip",
-      align: "center-top",
-    },
-  ];
-};
