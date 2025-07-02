@@ -2,8 +2,8 @@
 
 import { PageHeader } from '@/components/ui/page-header';
 import { ArrowLeft, Footprints } from 'lucide-react';
-import TopThreeCards from '../_components/StepContersCard';
-import StepcontersUserTable from '../_components/StepcontersUserTable';
+import TopThreeCards from '../_components/StepCountersCard';
+import StepcontersUserTable from '../_components/StepcountersUserTable';
 import { useRouter } from 'next/navigation';
 import { Button } from '@heroui/button';
 
@@ -39,7 +39,7 @@ export default function TopOverallPage() {
 							Back
 						</Button>
 
-                <TopThreeCards topThree={topThree} />
+                <TopThreeCards data={topThree} variant="topThree" />
                 <StepcontersUserTable stepCounters={users} />
             </div>
         </div>
