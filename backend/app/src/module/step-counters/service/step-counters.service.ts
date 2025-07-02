@@ -347,6 +347,26 @@ export class StepCountersService {
     };
   }
 
+
+  private getAchievedSortedList(stepCounters: any[], achievementGoal: number) {
+    return stepCounters.map(sc => {
+      const achievedStep = (sc.steps || []).find(s => s.totalStep >= achievementGoal);
+      return {
+        ...sc,
+        hasAchieved: !!achievedStep,
+        completionDate: achievedStep ? new Date(achievedStep.date) : new Date(sc.updatedAt),
+        totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
+      };
+    }).sort((a, b) => {
+      if (a.hasAchieved && !b.hasAchieved) return -1;
+      if (!a.hasAchieved && b.hasAchieved) return 1;
+      if (a.hasAchieved && b.hasAchieved) {
+        return a.completionDate.getTime() - b.completionDate.getTime();
+      }
+      return b.totalStep - a.totalStep;
+    });
+  }
+
   async getLeaderBoardByAchieved(stepAchievementId?: string) {
     const achievement = stepAchievementId
       ? await this.stepAchievementModel.findById(stepAchievementId).lean()
@@ -377,31 +397,7 @@ export class StepCountersService {
       ])
       .lean();
 
-    const withAchievedDate = stepCounters.map((sc) => {
-      const reached = (sc.steps || []).find(s => s.totalStep >= achievement.achievement);
-      const achievedDate = reached?.date ?? null;
-
-      const updatedAt = (sc as any).updatedAt;
-
-      return {
-        ...sc,
-        achievedDate,
-        hasAchieved: !!achievedDate,
-        totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
-        updatedAt,
-      };
-    });
-
-    const ranked = withAchievedDate
-      .sort((a, b) => {
-        if (a.hasAchieved && !b.hasAchieved) return -1;
-        if (!a.hasAchieved && b.hasAchieved) return 1;
-
-        const aDate = a.achievedDate ?? a.updatedAt ?? new Date();
-        const bDate = b.achievedDate ?? b.updatedAt ?? new Date();
-
-        return new Date(aDate).getTime() - new Date(bDate).getTime();
-      })
+    const ranked = this.getAchievedSortedList(stepCounters, achievement.achievement)
       .map((entry, index) => ({
         rank: index + 1,
         ...entry,
@@ -491,7 +487,6 @@ export class StepCountersService {
       if (!achievement) throw new NotFoundException('Achievement not found');
 
       const achievementGoal = achievement.achievement;
-
       const achievementObjId = new Types.ObjectId(stepAchievementId);
 
       all = await this.stepCounterModel.find({
@@ -507,24 +502,10 @@ export class StepCountersService {
         })
         .lean();
 
-      all = all.map(sc => {
-        const achievedStep = (sc.steps || []).find(s => s.totalStep >= achievementGoal);
-        return {
-          ...sc,
-          hasAchieved: !!achievedStep,
-          completionDate: achievedStep ? new Date(achievedStep.date) : new Date(sc.updatedAt),
-          totalStep: (sc.steps || []).reduce((sum, s) => sum + s.step, 0),
-        };
-      });
-
-      all.sort((a, b) => {
-        if (a.hasAchieved && !b.hasAchieved) return -1;
-        if (!a.hasAchieved && b.hasAchieved) return 1;
-        return a.completionDate.getTime() - b.completionDate.getTime();
-      });
+      all = this.getAchievedSortedList(all, achievementGoal);
     }
 
-    // find raking
+    // find ranking
     const rank = all.findIndex(sc => {
       const id = typeof sc.user === 'object' ? sc.user._id?.toString() : sc.user?.toString();
       return id === userId.toString();
