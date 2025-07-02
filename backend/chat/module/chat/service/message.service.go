@@ -27,11 +27,11 @@ func (s *ChatService) CanUserViewMessages(ctx context.Context, userID, roomID pr
 	return true
 }
 
-// SendMessage sends a chat message
+// **ENHANCED: SendMessage with robust error handling and phantom prevention**
 func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) error {
 	log.Printf("[ChatService] SendMessage called for room %s by user %s", msg.RoomID.Hex(), msg.UserID.Hex())
 
-	// **NEW: ตรวจสอบ moderation status ก่อนส่งข้อความ**
+	// **1. FAST VALIDATION: ตรวจสอบ moderation status ก่อนส่งข้อความ**
 	if !s.CanUserSendMessages(ctx, msg.UserID, msg.RoomID) {
 		// ตรวจสอบว่าถูก ban หรือ mute
 		if s.restrictionService.IsUserBanned(ctx, msg.UserID, msg.RoomID) {
@@ -43,7 +43,7 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 		return fmt.Errorf("user cannot send messages in this room")
 	}
 
-	// Validate foreign keys
+	// **2. QUICK VALIDATION: Foreign key validation (ใช้ cache ถ้าเป็นไปได้)**
 	if err := s.fkValidator.ValidateForeignKeys(ctx, map[string]interface{}{
 		"users": msg.UserID,
 		"rooms": msg.RoomID,
@@ -51,33 +51,94 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 		return fmt.Errorf("foreign key validation failed: %w", err)
 	}
 
-	// Create message in database
-	result, err := s.Create(ctx, *msg)
-	if err != nil {
-		return fmt.Errorf("failed to save message: %w", err)
-	}
-	msg.ID = result.Data[0].ID
-
-	log.Printf("[ChatService] Message saved to database with ID: %s", msg.ID.Hex())
+	// **3. GENERATE MESSAGE ID: สร้าง ID ก่อน (เพื่อ tracking)**
+	msg.ID = primitive.NewObjectID()
+	log.Printf("[ChatService] Generated message ID: %s", msg.ID.Hex())
 	
-	// Cache the message
-	enriched := model.ChatMessageEnriched{
-		ChatMessage: *msg,
-	}
-	if err := s.cache.SaveMessage(ctx, msg.RoomID.Hex(), &enriched); err != nil {
-		log.Printf("[ChatService] Failed to cache message: %v", err)
+	// **4. CREATE STATUS TRACKING: สร้าง tracking record ก่อน broadcast**
+	if err := s.createMessageStatus(msg.ID, msg.RoomID); err != nil {
+		log.Printf("[ChatService] ⚠️ Failed to create message status tracking: %v", err)
+		// Continue anyway - this is not critical for UX
 	}
 
-	// Emit message to WebSocket and Kafka
+	// **5. IMMEDIATE BROADCAST: ส่งไป WebSocket ทันที (ความสำคัญสูงสุด)**
+	log.Printf("[ChatService] 🚀 Broadcasting message ID=%s immediately to WebSocket", msg.ID.Hex())
+	broadcastStart := primitive.NewObjectID().Timestamp()
+	
 	if err := s.emitter.EmitMessage(ctx, msg); err != nil {
-		log.Printf("[ChatService] Failed to emit message: %v", err)
+		log.Printf("[ChatService] ❌ CRITICAL: Failed to emit message to WebSocket: %v", err)
+		
+		// **FALLBACK: Update status as broadcast failed**
+		s.updateMessageStatusWithError(msg.ID, fmt.Sprintf("broadcast failed: %v", err), 0)
+		
+		// This is critical - return error if we can't broadcast
+		return fmt.Errorf("failed to broadcast message: %w", err)
+	}
+	
+	broadcastDuration := primitive.NewObjectID().Timestamp().Sub(broadcastStart)
+	log.Printf("[ChatService] ✅ WebSocket broadcast successful in %v for message ID=%s", 
+		broadcastDuration, msg.ID.Hex())
+
+	// **6. ASYNC BACKGROUND PROCESSING: ไม่ block UX**
+	bgCtx := context.Background()
+	
+	// **ENHANCED: Submit jobs with better error handling**
+	jobsSubmitted := 0
+	totalJobs := 3
+	
+	// Submit database save job (highest priority for persistence)
+	if s.SubmitDatabaseJob("save_message", msg, bgCtx) {
+		jobsSubmitted++
+		log.Printf("[ChatService] ✅ DB save job submitted for message %s", msg.ID.Hex())
 	} else {
-		log.Printf("[ChatService] Successfully emitted message ID=%s to WebSocket and Kafka", msg.ID.Hex())
+		log.Printf("[ChatService] ⚠️ CRITICAL: DB save job queue full for message %s", msg.ID.Hex())
+		
+		// **FALLBACK: Try immediate save as fallback**
+		go func() {
+			if _, err := s.Create(bgCtx, *msg); err != nil {
+				log.Printf("[ChatService] ❌ FALLBACK: Direct DB save failed for message %s: %v", 
+					msg.ID.Hex(), err)
+				s.updateMessageStatusWithError(msg.ID, "fallback db save failed", 0)
+			} else {
+				log.Printf("[ChatService] ✅ FALLBACK: Direct DB save successful for message %s", 
+					msg.ID.Hex())
+				s.updateMessageStatus(msg.ID, "saved_to_db", true)
+			}
+		}()
+	}
+	
+	// Submit cache job (medium priority)
+	if s.SubmitDatabaseJob("cache_message", msg, bgCtx) {
+		jobsSubmitted++
+		log.Printf("[ChatService] ✅ Cache job submitted for message %s", msg.ID.Hex())
+	} else {
+		log.Printf("[ChatService] ⚠️ Cache job queue full for message %s", msg.ID.Hex())
 	}
 
-	// **NEW: Notify all users in room using NotificationService**
+	// Submit notification job (lower priority)
 	onlineUsers := s.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
-	s.notificationService.NotifyUsersInRoom(ctx, msg, onlineUsers)
+	if s.SubmitNotificationJob(msg, onlineUsers, bgCtx) {
+		jobsSubmitted++
+		log.Printf("[ChatService] ✅ Notification job submitted for message %s (%d online users)", 
+			msg.ID.Hex(), len(onlineUsers))
+	} else {
+		log.Printf("[ChatService] ⚠️ Notification job queue full for message %s", msg.ID.Hex())
+	}
 
+	// **7. PERFORMANCE METRICS: Log performance and reliability metrics**
+	successRate := float64(jobsSubmitted) / float64(totalJobs) * 100
+	log.Printf("[ChatService] 📊 Message %s processing: Broadcast=✅, Jobs=%d/%d (%.1f%% success)", 
+		msg.ID.Hex(), jobsSubmitted, totalJobs, successRate)
+
+	// **8. RELIABILITY CHECK: เตือนถ้า success rate ต่ำ**
+	if successRate < 66.0 { // Less than 2/3 jobs submitted
+		log.Printf("[ChatService] ⚠️ WARNING: Low job submission rate %.1f%% for message %s - system may be under high load", 
+			successRate, msg.ID.Hex())
+	}
+
+	// **SUCCESS: Message ส่งสำเร็จ (broadcast แล้ว, jobs queued)**
+	log.Printf("[ChatService] ✅ Message %s processed successfully - UX immediate, background jobs queued", 
+		msg.ID.Hex())
+	
 	return nil
 } 

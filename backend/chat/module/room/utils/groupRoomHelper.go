@@ -4,7 +4,6 @@ import (
 	"chat/module/room/model"
 	userModel "chat/module/user/model"
 	userService "chat/module/user/service"
-	"chat/pkg/common"
 	"context"
 	"fmt"
 	"log"
@@ -27,44 +26,6 @@ func NewGroupRoomHelper(userService *userService.UserService, db *mongo.Database
 	}
 }
 
-// CreateGroupRoom สร้างห้องกลุ่มใหม่
-func (gh *GroupRoomHelper) CreateGroupRoom(ctx context.Context, name map[string]string, groupType, groupValue string, createdBy primitive.ObjectID) (*model.Room, error) {
-	log.Printf("[GroupHelper] Creating group room: type=%s, value=%s", groupType, groupValue)
-
-	// สร้างห้องใหม่ (unlimited capacity สำหรับ group room)
-	room := &model.Room{
-		Name: common.LocalizedName{
-			Th: name["th"],
-			En: name["en"],
-		},
-		Type:      "normal", // group room เป็น normal type
-		Capacity:  0,        // unlimited capacity
-		Members:   []primitive.ObjectID{}, // เริ่มต้นเป็น array เปล่า
-		CreatedBy: createdBy,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Metadata: map[string]interface{}{
-			"isGroupRoom": true,
-			"groupType":   groupType,
-			"groupValue":  groupValue,
-			"autoAdd":     true, // เปิด auto-add ตั้งแต่แรก
-		},
-	}
-
-	// บันทึกลง database
-	collection := gh.db.Collection("rooms")
-	result, err := collection.InsertOne(ctx, room)
-	if err != nil {
-		log.Printf("[GroupHelper] Failed to create room: %v", err)
-		return nil, fmt.Errorf("failed to create room: %w", err)
-	}
-
-	// อัพเดท ID จาก result
-	room.ID = result.InsertedID.(primitive.ObjectID)
-
-	log.Printf("[GroupHelper] Created group room: %s (ID: %s)", room.Name.Th, room.ID.Hex())
-	return room, nil
-}
 
 // GetUsersByGroup ดึง users ตาม group type
 func (gh *GroupRoomHelper) GetUsersByGroup(ctx context.Context, groupType, groupValue string) ([]*userModel.User, error) {
@@ -97,44 +58,6 @@ func (gh *GroupRoomHelper) ValidateGroupType(groupType string) error {
 		return fmt.Errorf("invalid group type: %s (must be 'major' or 'school')", groupType)
 	}
 	return nil
-}
-
-// CanUserJoinGroup ตรวจสอบว่า user สามารถเข้าร่วม group ได้หรือไม่
-func (gh *GroupRoomHelper) CanUserJoinGroup(ctx context.Context, userID, groupType, groupValue string) (bool, error) {
-	log.Printf("[GroupHelper] Checking if user %s can join group: type=%s, value=%s", userID, groupType, groupValue)
-
-	// ดึงข้อมูล user
-	user, err := gh.userService.GetUserById(ctx, userID)
-	if err != nil {
-		return false, fmt.Errorf("user not found: %w", err)
-	}
-
-	// ตรวจสอบ metadata ของ user
-	if user.Metadata == nil {
-		log.Printf("[GroupHelper] User %s has no metadata", userID)
-		return false, nil
-	}
-
-	switch groupType {
-	case "major":
-		userMajor, exists := user.Metadata["major"]
-		if !exists {
-			log.Printf("[GroupHelper] User %s has no major in metadata", userID)
-			return false, nil
-		}
-		return userMajor == groupValue, nil
-
-	case "school":
-		userSchool, exists := user.Metadata["school"]
-		if !exists {
-			log.Printf("[GroupHelper] User %s has no school in metadata", userID)
-			return false, nil
-		}
-		return userSchool == groupValue, nil
-
-	default:
-		return false, fmt.Errorf("invalid group type: %s", groupType)
-	}
 }
 
 // GetGroupRooms ดึงห้องกลุ่มตาม criteria

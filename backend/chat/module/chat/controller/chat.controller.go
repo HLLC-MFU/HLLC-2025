@@ -9,8 +9,10 @@ import (
 	roomModel "chat/module/room/model"
 	stickerModel "chat/module/sticker/model"
 	userModel "chat/module/user/model"
+	"chat/pkg/core/connection"
 	"chat/pkg/decorators"
 	"chat/pkg/middleware"
+	"chat/pkg/validator"
 	"context"
 	"log"
 	"strconv"
@@ -18,7 +20,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
+	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type (
@@ -31,6 +35,8 @@ type (
 		UnsubscribeFromRoom(ctx context.Context, roomID string) error
 		DeleteRoomMessages(ctx context.Context, roomID string) error
 		GetUserById(ctx context.Context, userID string) (*userModel.User, error)
+		GetRedis() *redis.Client
+		GetMongo() *mongo.Database
 	}
 
 	RoomService interface {
@@ -58,6 +64,7 @@ type (
 		stickerService StickerService
 		wsHandler      *WebSocketHandler
 		rbac           middleware.IRBACMiddleware
+		connManager    *connection.ConnectionManager
 	}
 )
 
@@ -68,6 +75,7 @@ func NewChatController(
 	stickerService StickerService,
 	restrictionService RestrictionServiceChatService,
 	rbac middleware.IRBACMiddleware,
+	connManager *connection.ConnectionManager,
 ) *ChatController {
 	controller := &ChatController{
 		BaseController: decorators.NewBaseController(app, "/chat"),
@@ -75,9 +83,17 @@ func NewChatController(
 		roomService:    roomService,
 		stickerService: stickerService,
 		rbac:           rbac,
+		connManager:    connManager,
 	}
 
-	controller.wsHandler = NewWebSocketHandler(chatService, chatService, chatService, roomService, restrictionService)
+	controller.wsHandler = NewWebSocketHandler(
+		chatService,
+		chatService,
+		chatService,
+		roomService,
+		restrictionService,
+		connManager,
+	)
 
 	controller.setupRoutes()
 	return controller
@@ -91,6 +107,7 @@ func (c *ChatController) setupRoutes() {
 	c.Get("/ws/:roomId/:userId", websocket.New(c.wsHandler.HandleWebSocket))
 
 	c.Delete("/rooms/:roomId/cache", c.handleClearCache, c.rbac.RequireAdministrator())
+	
 	c.SetupRoutes()
 }
 
@@ -305,13 +322,24 @@ func (c *ChatController) handleGetChatHistory(ctx *fiber.Ctx) error {
 func (c *ChatController) handleUnsendMessage(ctx *fiber.Ctx) error {
 	roomID := ctx.Params("roomId")
 	messageID := ctx.Params("messageId")
-	userID := ctx.Query("userId")
-
-	// Validate required userID parameter
-	if userID == "" {
+	
+	// ใช้ UnsendMessageDto แทนการ parse manual
+	var unsendDto dto.UnsendMessageDto
+	unsendDto.MessageID = messageID
+	
+	// Get userID from request body
+	if err := ctx.BodyParser(&unsendDto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "userId query parameter is required",
+			"message": "Invalid request body",
+		})
+	}
+
+	// Validate DTO
+	if err := validator.ValidateStruct(&unsendDto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Validation failed",
 		})
 	}
 
@@ -324,26 +352,17 @@ func (c *ChatController) handleUnsendMessage(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Convert message ID from URL to ObjectID
-	messageObjID, err := primitive.ObjectIDFromHex(messageID)
+	// Convert IDs using DTO helper
+	messageObjID, userObjID, err := unsendDto.ToObjectIDs()
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Invalid message ID",
-		})
-	}
-
-	// Convert user ID from query to ObjectID
-	userObjID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid user ID",
+			"message": "Invalid ID format",
 		})
 	}
 
 	// ตรวจสอบว่า user เป็นสมาชิกของห้องหรือไม่
-	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, userID)
+	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, unsendDto.UserID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -369,8 +388,8 @@ func (c *ChatController) handleUnsendMessage(ctx *fiber.Ctx) error {
 		"success": true,
 		"message": "Message unsent successfully",
 		"data": fiber.Map{
-			"messageId": messageID,
-			"userId":    userID,
+			"messageId": unsendDto.MessageID,
+			"userId":    unsendDto.UserID,
 			"roomId":    roomID,
 		},
 	})

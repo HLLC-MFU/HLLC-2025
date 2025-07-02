@@ -54,6 +54,7 @@ func (s *ChatService) SendMentionMessage(ctx context.Context, userID, roomID pri
 
 	// Create message with mentions
 	msg := &chatModel.ChatMessage{
+		ID:          primitive.NewObjectID(), // **PERFORMANCE: Generate ID first**
 		RoomID:      roomID,
 		UserID:      userID,
 		Message:     messageText,
@@ -62,25 +63,32 @@ func (s *ChatService) SendMentionMessage(ctx context.Context, userID, roomID pri
 		Timestamp:   time.Now(),
 	}
 
-	// Send message
-	result, err := s.Create(ctx, *msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to save mention message: %w", err)
-	}
-	msg.ID = result.Data[0].ID
-
-	// Cache the message
-	enriched := chatModel.ChatMessageEnriched{
-		ChatMessage: *msg,
-	}
-	if err := s.cache.SaveMessage(ctx, roomID.Hex(), &enriched); err != nil {
-		log.Printf("[ChatService] Failed to cache mention message: %v", err)
-	}
-
-	// Emit message event
+	// **IMMEDIATE: Broadcast mention message first**
 	if err := s.emitter.EmitMentionMessage(ctx, msg, mentionInfo); err != nil {
 		log.Printf("[ChatService] Failed to emit mention message: %v", err)
+	} else {
+		log.Printf("[ChatService] ✅ Mention message broadcasted immediately ID=%s", msg.ID.Hex())
 	}
+
+	// **ASYNC: Save to DB and cache in background**
+	go func() {
+		bgCtx := context.Background()
+		
+		// Save to database (async)
+		if _, err := s.Create(bgCtx, *msg); err != nil {
+			log.Printf("[ChatService] ❌ Failed to save mention message to DB (async): %v", err)
+		} else {
+			log.Printf("[ChatService] ✅ Mention message saved to DB (async) ID=%s", msg.ID.Hex())
+		}
+
+		// Cache the message (async)
+		enriched := chatModel.ChatMessageEnriched{
+			ChatMessage: *msg,
+		}
+		if err := s.cache.SaveMessage(bgCtx, roomID.Hex(), &enriched); err != nil {
+			log.Printf("[ChatService] ❌ Failed to cache mention message (async): %v", err)
+		}
+	}()
 
 	// Send individual mention notifications to mentioned users
 	for _, mentionedUser := range mentionedUsers {
@@ -165,7 +173,7 @@ func (s *ChatService) GetMentionsForUser(ctx context.Context, userID string, lim
 	return enriched, nil
 }
 
-// **SIMPLE: Send offline notifications to mentioned users**
+// **ENHANCED: Send offline notifications to mentioned users**
 func (s *ChatService) notifyOfflineMentionedUsers(msg *chatModel.ChatMessage, mentionedUsers []userModel.User) {
 	// Send notification to each mentioned user who is offline
 	for _, mentionedUser := range mentionedUsers {
@@ -176,8 +184,10 @@ func (s *ChatService) notifyOfflineMentionedUsers(msg *chatModel.ChatMessage, me
 			continue
 		}
 
-		// Use NotificationService to send mention notification
+		log.Printf("[ChatService] User %s is OFFLINE, sending mention notification", mentionedUser.ID.Hex())
+		
+		// ✅ Send offline notification using existing method 
 		ctx := context.Background()
-		s.notificationService.SendMessageNotification(ctx, mentionedUser.ID.Hex(), msg, "mention")
+		s.notificationService.SendOfflineNotification(ctx, mentionedUser.ID.Hex(), msg, "mention")
 	}
 } 

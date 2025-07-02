@@ -31,7 +31,7 @@ type (
 		groupID   string // รหัส group
 		handlers  map[string][]HandlerFunc // จับคู่ topic กับ handler
 		readers   map[string]*kafka.Reader // ใช้ดึง message จาก Kafka
-		writer    *kafka.Writer 
+		writers   map[string]*kafka.Writer // writer สำหรับแต่ละ topic
 		ctx       context.Context
 		cancel    context.CancelFunc
 		wg        sync.WaitGroup
@@ -42,23 +42,13 @@ type (
 // สร้าง bus
 func New(brokers []string, groupID string) *Bus {
 	ctx, cancel := context.WithCancel(context.Background())
+
 	return &Bus{
 		brokers:  brokers,
 		groupID:  groupID,
 		handlers: map[string][]HandlerFunc{},
 		readers:  map[string]*kafka.Reader{},
-		writer: kafka.NewWriter(kafka.WriterConfig{
-			Brokers:      brokers, 
-			Balancer:     &kafka.LeastBytes{}, // จัดส่ง message ไปยัง partition ที่มีค่าน้อยที่สุด
-			RequiredAcks: int(kafka.RequireOne), // ต้องรับการยืนยันจากทุก partition
-			Async:        false, // ส่ง message อย่างน้อย 1 ครั้ง
-			MaxAttempts:  3, // ส่ง message อย่างน้อย 3 ครั้ง
-			BatchTimeout: 100 * time.Millisecond, // รอจนกว่าจะมีการส่ง message 100 มิลลิวินาที
-			BatchSize:    100, // ส่ง message 100 ครั้ง
-			BatchBytes:   1024 * 1024, // ส่ง message 1024 * 1024 บิต
-			ReadTimeout:  2 * time.Second, // รอจนกว่าจะมีการส่ง message 2 วินาที
-			WriteTimeout: 2 * time.Second, // รอจนกว่าจะมีการส่ง message 2 วินาที
-		}),
+		writers:  map[string]*kafka.Writer{},
 		ctx:      ctx,
 		cancel:   cancel,
 	}
@@ -129,34 +119,60 @@ func (b *Bus) On(topic string, handler HandlerFunc) {
 	b.handlers[topic] = append(b.handlers[topic], handler)
 }
 
-// ส่ง message ไปยัง topic
+// getWriter returns a dedicated writer for the specified topic
+func (b *Bus) getWriter(topic string) (*kafka.Writer, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	// ตรวจสอบว่ามี writer สำหรับ topic นี้แล้วหรือไม่
+	if writer, exists := b.writers[topic]; exists {
+		return writer, nil
+	}
+
+	// หา broker ที่รับผิดชอบ topic นี้
+	broker, exists := GetTopicBroker(topic)
+	if !exists {
+		// ถ้ายังไม่มี topic ให้สร้างใหม่
+		if err := EnsureTopic(b.brokers, topic, 20); err != nil {
+			return nil, fmt.Errorf("failed to create topic %s: %v", topic, err)
+		}
+		broker, _ = GetTopicBroker(topic)
+	}
+
+	// สร้าง writer ใหม่สำหรับ topic นี้
+	writer := kafka.NewWriter(kafka.WriterConfig{
+		Brokers:      []string{broker}, // ใช้เฉพาะ broker ที่รับผิดชอบ topic นี้
+		Topic:        topic,
+		Balancer:     &kafka.Hash{}, // ใช้ Hash partitioner
+		RequiredAcks: int(kafka.RequireOne),
+		Async:        true,
+		BatchTimeout: 50 * time.Millisecond,
+		BatchSize:    1000,
+		BatchBytes:   1024 * 1024 * 5,
+		ReadTimeout:  2 * time.Second,
+		WriteTimeout: 2 * time.Second,
+	})
+
+	b.writers[topic] = writer
+	return writer, nil
+}
+
+// Emit ส่ง message ไปยัง topic
 func (b *Bus) Emit(ctx context.Context, topic, key string, payload any) error {
-	data, err := json.Marshal(payload)
+	writer, err := b.getWriter(topic)
 	if err != nil {
-		log.Printf("[Kafka] Failed to marshal payload for topic=%s key=%s: %v", topic, key, err)
+		return fmt.Errorf("failed to get writer for topic %s: %v", topic, err)
+	}
+
+	value, err := json.Marshal(payload)
+	if err != nil {
 		return err
 	}
 
-	// บันทึกการส่ง message
-	log.Printf("[Kafka] Emitting message to topic=%s key=%s size=%d bytes", topic, key, len(data))
-
-	// สร้าง message
-	msg := kafka.Message{
-		Topic: topic,
+	return writer.WriteMessages(ctx, kafka.Message{
 		Key:   []byte(key),
-		Value: data,
-	}
-
-	// ส่ง message ไปยัง topic
-	err = b.writer.WriteMessages(ctx, msg)
-	if err != nil {
-		log.Printf("[Kafka] FAILED to write message to topic=%s key=%s: %v", topic, key, err)
-		return fmt.Errorf("failed to write message: %w", err)
-	}
-
-	// บันทึกการส่ง message
-	log.Printf("[Kafka] SUCCESS: emitted message to topic=%s key=%s", topic, key)
-	return nil
+		Value: value,
+	})
 }
 
 // เริ่มต้นการทำงาน
@@ -196,13 +212,15 @@ func (b *Bus) Stop() {
 	b.cancel()
 	b.wg.Wait()
 
-	// ปิด reader
-	for _, r := range b.readers {
-		_ = r.Close()
+	// ปิด writers ทั้งหมด
+	for _, writer := range b.writers {
+		writer.Close()
 	}
 
-	// ปิด writer
-	_ = b.writer.Close()
+	// ปิด readers ทั้งหมด
+	for _, reader := range b.readers {
+		reader.Close()
+	}
 }
 
 // ดึง message จาก topic

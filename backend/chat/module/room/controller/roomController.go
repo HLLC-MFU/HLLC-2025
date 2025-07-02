@@ -7,6 +7,7 @@ import (
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
 	"chat/pkg/utils"
+	"chat/pkg/validator"
 	"mime/multipart"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,10 +23,6 @@ type (
 
 	UpdateRoomImageDto struct {
 		Image *multipart.FileHeader `form:"image" validate:"required"`
-	}
-
-	UpdateRoomTypeDto struct {
-		Type string `json:"type" validate:"roomType"`
 	}
 )
 
@@ -47,6 +44,7 @@ func (c *RoomController) setupRoutes() {
 	// Basic room operations
 	c.Get("/", c.GetRooms)
 	c.Get("/:id", c.GetRoomById)
+	c.Patch("/:id", c.UpdateRoom)
 	c.Post("/", c.CreateRoom)
 	c.Delete("/:id", c.DeleteRoom)
 	c.Post("/:id/join", c.JoinRoom)
@@ -121,6 +119,25 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 	return c.validationHelper.BuildSuccessResponse(ctx, room, "Room created successfully", fiber.StatusCreated)
 }
 
+func (c *RoomController) UpdateRoom(ctx *fiber.Ctx) error {
+	roomObjID, err := c.validationHelper.ParseAndValidateRoomID(ctx)
+	if err != nil {
+		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+	}
+
+	var updateDto dto.UpdateRoomDto
+	if err := ctx.BodyParser(&updateDto); err != nil {
+		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+	}
+
+	room, err := c.service.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateDto.ToRoom())
+	if err != nil {
+		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+	}
+
+	return c.validationHelper.BuildSuccessResponse(ctx, room, "Room updated successfully")
+}
+
 // DeleteRoom ลบห้อง
 func (c *RoomController) DeleteRoom(ctx *fiber.Ctx) error {
 	roomObjID, err := c.validationHelper.ParseAndValidateRoomID(ctx)
@@ -148,19 +165,25 @@ func (c *RoomController) JoinRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	userID := ctx.FormValue("userId")
-	if userID == "" {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, fiber.NewError(fiber.StatusBadRequest, "userId is required"))
+	// ใช้ JoinRoomDto แทนการ parse manual
+	var joinDto dto.JoinRoomDto
+	if err := ctx.BodyParser(&joinDto); err != nil {
+		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	err = c.service.JoinRoom(ctx.Context(), roomObjID, userID)
+	// Validate DTO
+	if err := validator.ValidateStruct(&joinDto); err != nil {
+		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+	}
+
+	err = c.service.JoinRoom(ctx.Context(), roomObjID, joinDto.UserID)
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 
 	return c.validationHelper.BuildSuccessResponse(ctx, fiber.Map{
 		"roomId": roomObjID.Hex(),
-		"userId": userID,
+		"userId": joinDto.UserID,
 	}, "Successfully joined room")
 }
 
@@ -171,19 +194,25 @@ func (c *RoomController) LeaveRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	userID := ctx.FormValue("userId")
-	if userID == "" {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, fiber.NewError(fiber.StatusBadRequest, "userId is required"))
+	// ใช้ LeaveRoomDto แทนการ parse manual
+	var leaveDto dto.LeaveRoomDto
+	if err := ctx.BodyParser(&leaveDto); err != nil {
+		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	err = c.service.LeaveRoom(ctx.Context(), roomObjID, userID)
+	// Validate DTO
+	if err := validator.ValidateStruct(&leaveDto); err != nil {
+		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+	}
+
+	err = c.service.LeaveRoom(ctx.Context(), roomObjID, leaveDto.UserID)
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 
 	return c.validationHelper.BuildSuccessResponse(ctx, fiber.Map{
 		"roomId": roomObjID.Hex(),
-		"userId": userID,
+		"userId": leaveDto.UserID,
 	}, "Successfully left room")
 }
 
@@ -194,7 +223,7 @@ func (c *RoomController) UpdateRoomType(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	var updateDto UpdateRoomTypeDto
+	var updateDto dto.UpdateRoomTypeDto
 	if err := ctx.BodyParser(&updateDto); err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}

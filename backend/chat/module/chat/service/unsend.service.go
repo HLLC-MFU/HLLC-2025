@@ -157,9 +157,12 @@ func (s *ChatService) emitUnsendEvent(ctx context.Context, messageData *model.Ch
 	// ส่ง event ไป WebSocket ใน room นี้
 	s.hub.BroadcastToRoom(messageData.RoomID.Hex(), eventData)
 
-	// **เซฟ unsend event ไป Kafka (สำหรับ audit log) - ใช้ EmitMessage แทน**
-	if err := s.emitter.EmitMessage(ctx, messageData); err != nil {
-		log.Printf("[ChatService] Failed to emit unsend event to Kafka: %v", err)
+	// **ส่ง structured unsend event ไป Kafka (สำหรับ audit log)**
+	roomTopic := "room-" + messageData.RoomID.Hex()
+	if err := s.kafkaBus.Emit(ctx, roomTopic, messageData.RoomID.Hex(), event); err != nil {
+		log.Printf("[ChatService] Failed to emit structured unsend event to Kafka: %v", err)
+	} else {
+		log.Printf("[ChatService] Successfully emitted structured unsend event to Kafka")
 	}
 
 	return nil

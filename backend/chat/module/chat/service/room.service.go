@@ -11,7 +11,7 @@ import (
 func (s *ChatService) SubscribeToRoom(ctx context.Context, roomID string) error {
 	topic := utils.RoomTopicPrefix + roomID
 
-	if err := kafka.EnsureTopic(s.Config.Kafka.Brokers[0], topic, 1); err != nil {
+	if err := kafka.EnsureTopic([]string{s.Config.Kafka.Brokers[0]}, topic, 1); err != nil {
 		return fmt.Errorf("failed to create topic: %w", err)
 	}
 

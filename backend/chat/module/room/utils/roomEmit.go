@@ -22,14 +22,14 @@ func GetRoomTopic(roomID string) string {
 // RoomEventEmitter สำหรับส่ง event ไปยัง topic
 type RoomEventEmitter struct {
 	bus     *kafka.Bus
-	brokers string
+	brokers []string
 	config  *config.Config
 }
 
 func NewRoomEventEmitter(bus *kafka.Bus, cfg *config.Config) *RoomEventEmitter {
 	return &RoomEventEmitter{
 		bus:     bus,
-		brokers: cfg.Kafka.Brokers[0],
+		brokers: []string{cfg.Kafka.Brokers[0]},
 		config:  cfg,
 	}
 }
@@ -69,7 +69,7 @@ func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive
 	}
 
 	// รอให้ topic พร้อมใช้งาน
-	if err := kafka.WaitForTopic(e.brokers, topic, 5*time.Second); err != nil {
+	if err := kafka.WaitForTopic(e.brokers[0], topic, 5*time.Second); err != nil {
 		log.Printf("[ERROR] Room topic not ready: %v", err)
 		return
 	}
@@ -110,7 +110,7 @@ func (e *RoomEventEmitter) EmitRoomDeleted(ctx context.Context, roomID primitive
 	}
 
 	// ลบ topic
-	if err := kafka.DeleteTopic(e.brokers, topic); err != nil {
+	if err := kafka.DeleteTopic(e.brokers[0], topic); err != nil {
 		log.Printf("[ERROR] Failed to delete room topic: %v", err)
 		return
 	} else {
@@ -204,7 +204,7 @@ func (e *RoomEventEmitter) EmitRoomMemberRemoved(ctx context.Context, roomID, us
 	topic := GetRoomTopic(roomID.Hex())
 
 	// ลบ topic
-	if err := kafka.DeleteTopic(e.brokers, topic); err != nil {
+	if err := kafka.DeleteTopic(e.brokers[0], topic); err != nil {
 		log.Printf("[ERROR] Failed to delete room topic: %v", err)
 		return
 	}
@@ -224,7 +224,7 @@ func (e *RoomEventEmitter) emitEvent(ctx context.Context, event model.RoomEvent)
 	}
 
 	// รอให้ topic พร้อมใช้งาน
-	if err := kafka.WaitForTopic(e.brokers, topic, 3*time.Second); err != nil {
+	if err := kafka.WaitForTopic(e.brokers[0], topic, 3*time.Second); err != nil {
 		log.Printf("[ERROR] Room topic not ready: %v", err)
 		return err
 	}
@@ -267,7 +267,7 @@ func (e *RoomEventEmitter) DeleteRoomTopic(ctx context.Context, roomID primitive
 
 	// สร้าง topic
 	topic := GetRoomTopic(roomID.Hex())
-	if err := kafka.DeleteTopic(e.brokers, topic); err != nil {
+	if err := kafka.DeleteTopic(e.brokers[0], topic); err != nil {
 		log.Printf("[ERROR] Failed to delete room topic: %v", err)
 		return err
 	}

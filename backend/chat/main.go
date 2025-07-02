@@ -5,21 +5,25 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"sort"
 	"strings"
+	"syscall"
 
 	chatController "chat/module/chat/controller"
 	chatService "chat/module/chat/service"
 	restrictionController "chat/module/restriction/controller"
+	restrictionService "chat/module/restriction/service"
 	roomController "chat/module/room/controller"
 	roomService "chat/module/room/service"
 	evoucherController "chat/module/sendEvoucher/controller"
-	evoucherSvc "chat/module/sendEvoucher/service"
+	evoucherService "chat/module/sendEvoucher/service"
 	stickerController "chat/module/sticker/controller"
 	stickerService "chat/module/sticker/service"
-	"chat/module/user/controller"
-	"chat/module/user/service"
+	userController "chat/module/user/controller"
+	userService "chat/module/user/service"
 	"chat/pkg/config"
+	mananger "chat/pkg/core/connection"
 	"chat/pkg/core/kafka"
 	"chat/pkg/middleware"
 
@@ -40,6 +44,38 @@ type Route struct {
 	Handler     string
 	Module      string
 	Middleware  []string
+}
+
+// Package-level variable for connection manager
+var connManager *mananger.ConnectionManager
+
+// Helper functions for database connections
+func connectMongoDB(cfg *config.Config) (*mongo.Database, error) {
+	ctx := context.Background()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.Mongo.URI))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.Ping(ctx, nil); err != nil {
+		return nil, err
+	}
+
+	return client.Database(cfg.Mongo.Database), nil
+}
+
+func connectRedis(cfg *config.Config) (*redis.Client, error) {
+	client := redis.NewClient(&redis.Options{
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+
+	if err := client.Ping(context.Background()).Err(); err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 func main() {
@@ -64,55 +100,109 @@ func main() {
 		cfg.Mongo.URI,
 	)
 
-	// Create Fiber app
-	app := fiber.New()
-
-	// Setup MongoDB
-	mongoDB, err := setupMongo(cfg)
+	// Initialize MongoDB connection
+	mongoDB, err := connectMongoDB(cfg)
 	if err != nil {
-		log.Fatalf("Failed to setup MongoDB: %v", err)
+		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 
-	// Setup Redis
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     cfg.Redis.Addr,
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
-	})
-
-	// Test Redis connection
-	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+	// Initialize Redis connection
+	redisClient, err := connectRedis(cfg)
+	if err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
+
+	// Initialize Kafka bus
+	kafkaBus := kafka.New(cfg.Kafka.Brokers, "chat-service")
+	if err := kafkaBus.Start(); err != nil {
+		log.Fatalf("Failed to start Kafka bus: %v", err)
+	}
+
+	// Create connection manager with default config
+	connManager = mananger.NewConnectionManager(mananger.DefaultConfig())
+
+	// Initialize Fiber app with matching buffer sizes
+	app := fiber.New(fiber.Config{
+		ReadBufferSize:  32 * 1024,  // Match WebSocket buffer size
+		WriteBufferSize: 32 * 1024,  // Match WebSocket buffer size
+	})
 
 	// Setup middleware
 	setupMiddleware(app)
 
-	// Setup controllers
-	setupControllers(app, mongoDB, redisClient, cfg)
+	// Initialize services
+	chatSvc := chatService.NewChatService(mongoDB, redisClient, kafkaBus, cfg)
+	chatHub := chatSvc.GetHub()
+
+	// Initialize all services
+	schoolSvc := userService.NewSchoolService(mongoDB)
+	majorSvc := userService.NewMajorService(mongoDB)
+	roleSvc := userService.NewRoleService(mongoDB)
+	userSvc := userService.NewUserService(mongoDB)
+	roomSvc := roomService.NewRoomService(mongoDB, redisClient, cfg, chatHub)
+	groupRoomSvc := roomService.NewGroupRoomService(mongoDB, redisClient, cfg, chatHub, roomSvc, kafkaBus)
+	stickerSvc := stickerService.NewStickerService(mongoDB)
+	restrictionSvc := restrictionService.NewRestrictionService(mongoDB, chatHub)
+	evoucherSvc := evoucherService.NewEvoucherService(mongoDB, redisClient, restrictionSvc, chatSvc.GetNotificationService(), chatHub)
+
+	// Initialize RBAC middleware
+	rbacMiddleware := middleware.NewRBACMiddleware(mongoDB)
+
+	// Initialize controllers
+	userController.NewUserController(app, userSvc, rbacMiddleware)
+	userController.NewRoleController(app, roleSvc, rbacMiddleware)
+	userController.NewSchoolController(app, schoolSvc)
+	userController.NewMajorController(app, majorSvc)
+	roomController.NewRoomController(app, roomSvc)
+	roomController.NewGroupRoomController(app, groupRoomSvc, roomSvc, rbacMiddleware)
+	stickerController.NewStickerController(app, stickerSvc, rbacMiddleware)
+	chatController.NewChatController(app,chatSvc,roomSvc,stickerSvc,restrictionSvc,rbacMiddleware,
+		connManager,
+	)
+	chatController.NewMentionController(app, chatSvc, roomSvc)
+	chatController.NewReactionController(app, chatSvc, roomSvc)
+	evoucherController.NewEvoucherController(app, evoucherSvc, roomSvc, rbacMiddleware)
+	
+	// Restriction controller (was moderation)
+	restrictionController.NewModerationController(app, restrictionSvc, rbacMiddleware)
 
 	// Log all registered routes
 	logRegisteredRoutes(app)
 
-	// Start server
+	// **NEW: Setup graceful shutdown**
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	// Start server in goroutine
 	port := fmt.Sprintf(":%s", cfg.App.Port)
-	log.Printf("Server starting on port %s", port)
-	if err := app.Listen(port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
-}
+	log.Printf("🚀 Server starting on port %s", port)
+	
+	go func() {
+		if err := app.Listen(port); err != nil {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
 
-func setupMongo(cfg *config.Config) (*mongo.Database, error) {
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cfg.Mongo.URI))
-	if err != nil {
-		return nil, err
+	// Wait for shutdown signal
+	<-c
+	log.Printf("🛑 Shutdown signal received, starting graceful shutdown...")
+
+	// **NEW: Graceful shutdown sequence**
+	// 1. Stop accepting new connections
+	log.Printf("📡 Stopping HTTP server...")
+	if err := app.Shutdown(); err != nil {
+		log.Printf("❌ Error shutting down HTTP server: %v", err)
 	}
 
-	if err := client.Ping(context.Background(), nil); err != nil {
-		return nil, err
-	}
+	// 2. Shutdown chat service worker pools  
+	log.Printf("👷 Shutting down worker pools...")
+	chatSvc.Shutdown()
 
-	return client.Database(cfg.Mongo.Database), nil
+	// 3. Stop Kafka bus
+	log.Printf("📤 Stopping Kafka bus...")
+	kafkaBus.Stop()
+
+	log.Printf("✅ Graceful shutdown completed")
 }
 
 func setupMiddleware(app *fiber.App) {
@@ -134,58 +224,17 @@ func setupMiddleware(app *fiber.App) {
 	// WebSocket middleware - apply to all WebSocket routes
 	app.Use("/chat/ws/*", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
+			// Check connection limits
+			if err := connManager.HandleNewConnection(c.IP()); err != nil {
+				return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+			}
+
 			c.Locals("allowed", true)
+			c.Locals("ws_config", connManager.GetWebSocketConfig())
 			return c.Next()
 		}
 		return fiber.ErrUpgradeRequired
 	})
-}
-
-func setupControllers(app *fiber.App, mongo *mongo.Database, redisClient *redis.Client, cfg *config.Config) {
-	// Initialize services
-	schoolService := service.NewSchoolService(mongo)
-	majorService := service.NewMajorService(mongo)
-	roleService := service.NewRoleService(mongo)
-	userService := service.NewUserService(mongo)
-	stickerService := stickerService.NewStickerService(mongo)
-
-	// Initialize RBAC middleware
-	rbacMiddleware := middleware.NewRBACMiddleware(mongo)
-
-	// Initialize Kafka bus for chat
-	bus := kafka.New([]string{"localhost:9092"}, "chat-service")
-
-	// Start Kafka bus
-	if err := bus.Start(); err != nil {
-		log.Fatalf("Failed to start Kafka bus: %v", err)
-	}
-
-	// Initialize chat service and hub
-	chatService := chatService.NewChatService(mongo, redisClient, bus, cfg)
-	hub := chatService.GetHub()
-
-	// Initialize room services
-	roomAndMemberService := roomService.NewRoomService(mongo, redisClient, cfg, hub)
-	groupRoomService := roomService.NewGroupRoomService(mongo, redisClient, cfg, hub, roomAndMemberService, bus)
-
-	// Initialize evoucher service
-	evoucherService := evoucherSvc.NewEvoucherService(mongo, redisClient, chatService.GetRestrictionService(), chatService.GetNotificationService(), hub)
-
-	// Initialize controllers
-	controller.NewSchoolController(app, schoolService)
-	controller.NewMajorController(app, majorService)
-	controller.NewRoleController(app, roleService, rbacMiddleware)
-	controller.NewUserController(app, userService, rbacMiddleware)
-	roomController.NewRoomController(app, roomAndMemberService)
-	roomController.NewGroupRoomController(app, groupRoomService, roomAndMemberService, rbacMiddleware)
-	stickerController.NewStickerController(app, stickerService, rbacMiddleware)
-	chatController.NewChatController(app, chatService, roomAndMemberService, stickerService, chatService.GetRestrictionService(), rbacMiddleware)
-	chatController.NewMentionController(app, chatService, roomAndMemberService)
-	chatController.NewReactionController(app, chatService, roomAndMemberService)
-	evoucherController.NewEvoucherController(app, evoucherService, roomAndMemberService, rbacMiddleware)
-	
-	// Restriction controller (was moderation)
-	restrictionController.NewModerationController(app, chatService.GetRestrictionService(), rbacMiddleware)
 }
 
 // logRegisteredRoutes prints all registered routes in a formatted way

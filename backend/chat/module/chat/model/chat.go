@@ -36,6 +36,10 @@ type (
 		
 		// Fields NOT stored in database, only for response aggregation
 		Reactions   []MessageReaction `bson:"-" json:"reactions,omitempty"`
+		
+		// **NEW: CreatedAt and UpdatedAt fields**
+		CreatedAt time.Time `bson:"created_at" json:"created_at"`
+		UpdatedAt time.Time `bson:"updated_at" json:"updated_at"`
 	}
 
 	MessageReaction struct {

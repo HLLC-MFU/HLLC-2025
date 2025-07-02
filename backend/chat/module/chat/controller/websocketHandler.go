@@ -3,6 +3,7 @@ package controller
 import (
 	"chat/module/chat/model"
 	"chat/module/chat/utils"
+	"chat/pkg/core/connection"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -15,11 +16,12 @@ import (
 )
 
 type WebSocketHandler struct {
-	chatService    ChatService
-	mentionService MentionChatService
-	reactionService ReactionChatService
-	roomService    RoomService
+	chatService        ChatService
+	mentionService    MentionChatService
+	reactionService   ReactionChatService
+	roomService       RoomService
 	restrictionService RestrictionServiceChatService
+	connManager       *connection.ConnectionManager
 }
 
 type RestrictionServiceChatService interface {
@@ -35,13 +37,15 @@ func NewWebSocketHandler(
 	reactionService ReactionChatService,
 	roomService RoomService,
 	restrictionService RestrictionServiceChatService,
+	connManager *connection.ConnectionManager,
 ) *WebSocketHandler {
 	return &WebSocketHandler{
-		chatService:    chatService,
-		mentionService: mentionService,
-		reactionService: reactionService,
-		roomService:    roomService,
+		chatService:        chatService,
+		mentionService:    mentionService,
+		reactionService:   reactionService,
+		roomService:       roomService,
 		restrictionService: restrictionService,
+		connManager:       connManager,
 	}
 }
 
@@ -49,10 +53,22 @@ func NewWebSocketHandler(
 func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.Conn, roomID string) {
 	messages, err := h.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
 	if err == nil {
-		// **FIXED: เรียงลำดับจากใหม่สุด (บนสุด) ไปเก่าสุด (ล่างสุด)**
-		log.Printf("[WebSocket] Sending %d chat messages for room %s (newest first)", len(messages), roomID)
+		// **DEBUG: Log message order verification**
+		if len(messages) > 0 {
+			log.Printf("[WebSocket] First message timestamp: %v", messages[0].ChatMessage.Timestamp)
+			log.Printf("[WebSocket] Last message timestamp: %v", messages[len(messages)-1].ChatMessage.Timestamp)
+		}
 		
-	for _, msg := range messages {
+		// **PROBLEM FIX: ส่งจากเก่าสุดไปใหม่สุด เพื่อให้ client แสดงถูกต้อง**
+		// Reverse array เพื่อให้ client ได้รับ oldest first สำหรับการแสดงผล
+		reversedMessages := make([]model.ChatMessageEnriched, len(messages))
+		for i, j := 0, len(messages)-1; i < len(messages); i, j = i+1, j-1 {
+			reversedMessages[i] = messages[j]
+		}
+		
+		log.Printf("[WebSocket] Sending %d chat messages for room %s (oldest first for proper display)", len(reversedMessages), roomID)
+		
+	for _, msg := range reversedMessages {
 					// Get user details with role populated
 		var userData map[string]interface{}
 		if user, err := h.chatService.GetUserById(ctx, msg.ChatMessage.UserID.Hex()); err == nil {
@@ -209,6 +225,13 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 }
 
 func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
+	// Setup ping/pong handlers
+	h.connManager.SetupPingPong(conn)
+
+	// Get client IP for cleanup
+	clientIP := conn.RemoteAddr().String()
+	defer h.connManager.RemoveConnection(clientIP)
+
 	roomID := conn.Params("roomId")
 	userID := conn.Params("userId")
 
@@ -313,28 +336,23 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 
 		messageText := strings.TrimSpace(string(msg))
 
-		// Handle different message types
+		// **IMPROVED: Enhanced WebSocket command handling**
 		switch {
-		case strings.HasPrefix(messageText, "/reply"):
+		case strings.HasPrefix(messageText, "/reply "):
 			h.handleReplyMessage(messageText, *client)
-		case strings.HasPrefix(messageText, "/react"):
+		case strings.HasPrefix(messageText, "/react "):
 			h.handleReactionMessage(messageText, *client)
-		case strings.HasPrefix(messageText, "/mention"):
-			h.handleMentionMessage(messageText, *client)
-		case strings.HasPrefix(messageText, "/unsend"):
+		case strings.HasPrefix(messageText, "/unsend "):
 			h.handleUnsendMessage(messageText, *client)
-		case messageText == "/leave":
-			h.handleLeaveMessage(ctx, *client)
-			return
 		default:
-			// **NEW: ตรวจสอบสิทธิ์การส่งข้อความ (moderation + room type)**
+			// **NEW: ตรวจสอบสิทธิ์การส่งข้อความ (restriction + room type)**
 			canSend, err := h.roomService.CanUserSendMessage(ctx, roomObjID, userID)
 			if err != nil || !canSend {
 				conn.WriteMessage(websocket.TextMessage, []byte("You cannot send messages in this room (read-only or restricted)"))
 				continue
 			}
 
-			// **ตรวจสอบ moderation status เพิ่มเติม**
+			// **ตรวจสอบ restriction status เพิ่มเติม**
 			if !h.restrictionService.CanUserSendMessages(ctx, userObjID, roomObjID) {
 				if h.restrictionService.IsUserBanned(ctx, userObjID, roomObjID) {
 					conn.WriteMessage(websocket.TextMessage, []byte("You are banned from this room"))
@@ -479,34 +497,6 @@ func (h *WebSocketHandler) handleReactionMessage(messageText string, client mode
 	}
 }
 
-func (h *WebSocketHandler) handleLeaveMessage(ctx context.Context, client model.ClientObject) {
-	if _, err := h.roomService.RemoveUserFromRoom(ctx, client.RoomID, client.UserID.Hex()); err != nil {
-		log.Printf("[ERROR] Failed to remove user from room: %v", err)
-	}
-}
-
-func (h *WebSocketHandler) handleMentionMessage(messageText string, client model.ClientObject) {
-	// **ตรวจสอบสิทธิ์การส่งข้อความก่อน**
-	canSend, err := h.roomService.CanUserSendMessage(context.Background(), client.RoomID, client.UserID.Hex())
-	if err != nil || !canSend {
-		client.Conn.WriteMessage(websocket.TextMessage, []byte("You cannot send messages in this room (read-only or restricted)"))
-		return
-	}
-
-	// Parse mention command: "/mention @username1 @username2 Hello everyone!"
-	parts := strings.SplitN(messageText, " ", 2)
-	if len(parts) < 2 {
-		return
-	}
-
-	message := parts[1] // Get everything after "/mention "
-
-	// Send mention message
-	if _, err := h.mentionService.SendMentionMessage(context.Background(), client.UserID, client.RoomID, message); err != nil {
-		log.Printf("[ERROR] Failed to send mention message: %v", err)
-	}
-}
-
 // **NEW: handleUnsendMessage processes unsend message commands**
 func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.ClientObject) {
 	// Parse unsend command: /unsend messageID
@@ -560,4 +550,4 @@ func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.
 	}
 
 	log.Printf("[WS] Successfully unsent message %s by user %s", messageID, client.UserID.Hex())
-} 
+}

@@ -4,6 +4,8 @@ import (
 	"chat/pkg/common"
 	"mime/multipart"
 
+	"chat/module/room/model"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -17,6 +19,12 @@ type(
 		Image     *multipart.FileHeader `form:"image" validate:"optional"`
 	}
 
+	UpdateRoomDto struct {
+		Name     common.LocalizedName `json:"name" validate:"notEmpty"`
+		Type     string              `json:"type" validate:"roomType"`
+		Capacity int                 `json:"capacity" validate:"notEmpty"`
+	}
+
 	AddRoomMembersDto struct {
 		Members []string `json:"members" validate:"mongoId,optional"`
 		RoomID  string   `json:"roomId" validate:"mongoId"`
@@ -28,6 +36,10 @@ type(
 	
 	LeaveRoomDto struct {
 		UserID string `json:"userId" validate:"required,mongoId"`
+	}
+
+	UpdateRoomTypeDto struct {
+		Type string `json:"type" validate:"roomType"`
 	}
 ) 
 
@@ -51,7 +63,15 @@ func (dto *JoinRoomDto) ToObjectID() primitive.ObjectID {
 }
 
 func (dto *LeaveRoomDto) ToObjectID() primitive.ObjectID {
-	objID, _ := primitive.ObjectIDFromHex(dto.UserID)
-	return objID
+	id, _ := primitive.ObjectIDFromHex(dto.UserID)
+	return id
+}
+
+func (dto *UpdateRoomDto) ToRoom() *model.Room {
+	return &model.Room{
+		Name:     dto.Name,
+		Type:     dto.Type,
+		Capacity: dto.Capacity,
+	}
 }
 

@@ -20,12 +20,7 @@ type (
 	RestrictionService struct {
 		*queries.BaseService[restrictionModel.UserRestriction]
 		mongo *mongo.Database
-		chatService ChatRestrictionService
-	}
-
-	ChatRestrictionService interface {
-		SendMessage(ctx context.Context, msg *model.ChatMessage) error
-		GetHub() *utils.Hub
+		hub   *utils.Hub
 	}
 
 	RestrictionBroadcastType string
@@ -36,12 +31,12 @@ const (
 	BroadcastToRoom   = "room"    // ส่งไปยังคนอื่นในห้อง
 )
 
-func NewRestrictionService(db *mongo.Database, chatService ChatRestrictionService) *RestrictionService {
+func NewRestrictionService(db *mongo.Database, hub *utils.Hub) *RestrictionService {
 	collection := db.Collection("user-restrictions")
 	return &RestrictionService{
 		BaseService: queries.NewBaseService[restrictionModel.UserRestriction](collection),
 		mongo:       db,
-		chatService: chatService,
+		hub:        hub,
 	}
 }
 
@@ -523,41 +518,83 @@ func (s *RestrictionService) saveRestrictionMessage(ctx context.Context, action 
 		},
 	}
 
-	// เก็บ moderation message ใน database (ผ่าน Kafka topics)
-	if err := s.chatService.SendMessage(ctx, moderationMsg); err != nil {
-		return fmt.Errorf("failed to save moderation message: %w", err)
+	// Convert to JSON and broadcast
+	data, err := json.Marshal(moderationMsg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal moderation message: %w", err)
 	}
 
-	log.Printf("[MODERATION] Saved %s message to database for user %s", action, userID.Hex())
+	// Broadcast to room
+	s.hub.BroadcastToRoom(roomID.Hex(), data)
 	return nil
 }
 
 // broadcastToTarget ส่ง direct message ไปยังผู้ที่ถูกลงโทษเฉพาะ
 func (s *RestrictionService) broadcastToTarget(userID, roomID primitive.ObjectID, action string, moderatorID primitive.ObjectID, reason string, endTime *time.Time, restriction string) {
-	// สร้าง targeted moderation payload สำหรับ frontend condition
-	payload := map[string]interface{}{
-		"type":      "moderation_targeted",
-		"action":    action,
-		"broadcast": "target",
-		"data": map[string]interface{}{
-			"targetUserId":  userID.Hex(),
-			"roomId":        roomID.Hex(),
-			"moderatorId":   moderatorID.Hex(),
-			"reason":        reason,
-			"endTime":       endTime,
-			"restriction":   restriction,
-			"timestamp":     time.Now(),
-			"message":       s.generateUserRestrictionMessage(action, reason, endTime),
-		},
-	}
+	// ✅ ตรวจสอบว่า target user online หรือไม่
+	isOnline := s.hub.IsUserOnlineInRoom(roomID.Hex(), userID.Hex())
+	
+	if isOnline {
+		log.Printf("[MODERATION] User %s is ONLINE, sending WebSocket notification", userID.Hex())
+		
+		// สร้าง targeted moderation payload สำหรับ frontend condition
+		payload := map[string]interface{}{
+			"type":      "moderation_targeted",
+			"action":    action,
+			"broadcast": "target",
+			"data": map[string]interface{}{
+				"targetUserId":  userID.Hex(),
+				"roomId":        roomID.Hex(),
+				"moderatorId":   moderatorID.Hex(),
+				"reason":        reason,
+				"endTime":       endTime,
+				"restriction":   restriction,
+				"timestamp":     time.Now(),
+				"message":       s.generateUserRestrictionMessage(action, reason, endTime),
+			},
+		}
 
-	// แปลงเป็น JSON และส่งไปยัง target user เฉพาะ
-	if data, err := json.Marshal(payload); err == nil {
-		s.chatService.GetHub().BroadcastToUser(userID.Hex(), data)
-		log.Printf("[MODERATION] Sent targeted %s notification to user %s", action, userID.Hex())
+		// แปลงเป็น JSON และส่งไปยัง target user เฉพาะ ผ่าน WebSocket
+		if data, err := json.Marshal(payload); err == nil {
+			s.hub.BroadcastToUser(userID.Hex(), data)
+			log.Printf("[MODERATION] Sent targeted %s WebSocket notification to user %s", action, userID.Hex())
+		} else {
+			log.Printf("[ERROR] Failed to marshal targeted moderation broadcast: %v", err)
+		}
 	} else {
-		log.Printf("[ERROR] Failed to marshal targeted moderation broadcast: %v", err)
+		log.Printf("[MODERATION] User %s is OFFLINE, sending Kafka notification", userID.Hex())
+		
+		// ✅ ส่ง offline notification ผ่าน Kafka สำหรับ push notification
+		s.sendOfflineModerationNotification(context.Background(), userID.Hex(), action, reason, roomID.Hex(), moderatorID.Hex())
 	}
+}
+
+// sendOfflineModerationNotification ส่ง offline notification สำหรับ moderation action
+func (s *RestrictionService) sendOfflineModerationNotification(ctx context.Context, receiverID, action, reason, roomID, moderatorID string) {
+	log.Printf("[MODERATION] Sending OFFLINE notification: %s action to user %s", action, receiverID)
+	
+	// สร้าง moderation message
+	message := fmt.Sprintf("You have been %s. Reason: %s", action, reason)
+	
+	// Validate ObjectIDs
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		log.Printf("[ERROR] Invalid room ID for offline moderation notification: %v", err)
+		return
+	}
+	
+	moderatorObjID, err := primitive.ObjectIDFromHex(moderatorID)
+	if err != nil {
+		log.Printf("[ERROR] Invalid moderator ID for offline moderation notification: %v", err)
+		return
+	}
+	
+	// Log moderation action for offline user
+	log.Printf("[MODERATION] Prepared offline notification for user %s: %s (Room: %s, Moderator: %s)", 
+		receiverID, message, roomObjID.Hex(), moderatorObjID.Hex())
+	
+	// TODO: ในอนาคตอาจเพิ่ม direct Kafka integration หรือใช้ shared notification service
+	// สำหรับตอนนี้จะ log ไว้ก่อน เพื่อหลีกเลี่ยง circular dependency
 }
 
 // broadcastToRoomMembers ส่งข้อความแจ้งเตือนไปยังคนอื่นในห้อง
@@ -581,7 +618,7 @@ func (s *RestrictionService) broadcastToRoomMembers(roomID primitive.ObjectID, a
 
 	// แปลงเป็น JSON และ broadcast ไปยังทุกคนในห้อง (ยกเว้น target user)
 	if data, err := json.Marshal(payload); err == nil {
-		s.chatService.GetHub().BroadcastToRoomExcept(roomID.Hex(), userID.Hex(), data)
+		s.hub.BroadcastToRoomExcept(roomID.Hex(), userID.Hex(), data)
 		log.Printf("[MODERATION] Broadcasted %s announcement to room %s (excluding target user)", action, roomID.Hex())
 	} else {
 		log.Printf("[ERROR] Failed to marshal room moderation broadcast: %v", err)

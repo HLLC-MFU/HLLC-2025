@@ -14,14 +14,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	kafka_go "github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+// Add monitoring thresholds
+const (
+	QueueCapacityThreshold = 80  // Percentage
+	ErrorRateThreshold     = 5   // Percentage
+	HighLoadThreshold      = 100 // Messages per second
+)
+
+type SystemMetrics struct {
+	QueueCapacity    float64
+	ErrorRate        float64
+	MessageRate      float64
+	LastAlertTime    time.Time
+	AlertCooldown    time.Duration
+}
 
 type ChatService struct {
 	*queries.BaseService[model.ChatMessage]
@@ -37,6 +52,11 @@ type ChatService struct {
 	notificationService *notificationService.NotificationService
 	historyService      *HistoryService
 	restrictionService   *restrictionService.RestrictionService
+	
+	// **NEW: Async helper for worker pools and error handling**
+	asyncHelper       *utils.AsyncHelper
+	statusCollection  *mongo.Collection
+	mu               sync.RWMutex
 }
 	
 func NewChatService(
@@ -46,29 +66,21 @@ func NewChatService(
 	cfg *config.Config,
 ) *ChatService {
 	collection := db.Collection("chat-messages")
+	statusCollection := db.Collection("message-status")
 	
 	if err := kafkaBus.Start(); err != nil {
 		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)
 	}
 
-	// Create notification topic only
+	// Create notification topics
 	if err := kafkaBus.CreateTopics([]string{
-		"chat-notifications", // Notification topic for offline users
+		"chat-notifications",
 	}); err != nil {
 		log.Printf("[ERROR] Failed to create Kafka topics: %v", err)
 	} else {
-		log.Printf("[INFO] Successfully created chat-notifications topic")
+		log.Printf("[INFO] Successfully created notification topics")
 	}
 
-	// Verify that notification topic exists
-	go func() {
-		time.Sleep(2 * time.Second) // Wait a bit for topic creation
-		verifyNotificationTopic(cfg.Kafka.Brokers[0])
-	}()
-
-	// **NEW: Start debug consumer for notifications**
-	go startNotificationDebugConsumer(cfg.Kafka.Brokers)
-	
 	hub := utils.NewHub()
 	emitter := utils.NewChatEventEmitter(hub, kafkaBus, redis, db)
 
@@ -85,76 +97,196 @@ func NewChatService(
 		Config:      cfg,
 		notificationService: notificationService.NewNotificationService(db, kafkaBus),
 		historyService:      NewHistoryService(db, utils.NewChatCacheService(redis)),
+		statusCollection:    statusCollection,
 	}
 	
-	// สร้าง ModerationService หลังจาก ChatService เสร็จแล้ว (เพื่อหลีกเลี่ยง circular dependency)
-	chatService.restrictionService = restrictionService.NewRestrictionService(db, chatService)
+	// **NEW: Initialize async helper**
+	chatService.asyncHelper = utils.NewAsyncHelper(db, cfg)
+	chatService.asyncHelper.SetPhantomDetectorHandler(chatService)
+	
+	chatService.restrictionService = restrictionService.NewRestrictionService(db, chatService.hub)
+
+	// Start monitoring
+	go chatService.monitorSystemHealth()
 
 	return chatService
 }
 
-// Helper function to verify notification topic exists
-func verifyNotificationTopic(broker string) {
-	conn, err := kafka_go.Dial("tcp", broker)
-	if err != nil {
-		log.Printf("[DEBUG] Failed to connect to broker for verification: %v", err)
-		return
-	}
-	defer conn.Close()
+// **Interface implementations for AsyncHelper**
+func (s *ChatService) SaveMessageToDB(ctx context.Context, msg *model.ChatMessage) error {
+	_, err := s.Create(ctx, *msg)
+	return err
+}
 
-	partitions, err := conn.ReadPartitions("chat-notifications")
+func (s *ChatService) SaveMessageToCache(ctx context.Context, msg *model.ChatMessage) error {
+	enriched := model.ChatMessageEnriched{
+		ChatMessage: *msg,
+	}
+	return s.cache.SaveMessage(ctx, msg.RoomID.Hex(), &enriched)
+}
+
+// **NEW: Batch processing methods**
+func (s *ChatService) SaveMessageBatch(ctx context.Context, msgs []*model.ChatMessage) error {
+	if len(msgs) == 0 {
+		return nil
+	}
+	
+	// Convert to interface slice for bulk insert
+	docs := make([]interface{}, len(msgs))
+	for i, msg := range msgs {
+		docs[i] = *msg
+	}
+	
+	// Perform bulk insert
+	_, err := s.collection.InsertMany(ctx, docs)
+	return err
+}
+
+func (s *ChatService) SaveMessageBatchToCache(ctx context.Context, roomID string, msgs []*model.ChatMessage) error {
+	if len(msgs) == 0 {
+		return nil
+	}
+	
+	// Convert to enriched messages and save in batches
+	pipeline := s.redis.Pipeline()
+	for _, msg := range msgs {
+		enriched := model.ChatMessageEnriched{
+			ChatMessage: *msg,
+		}
+		
+		jsonData, err := json.Marshal(enriched)
+		if err != nil {
+			return fmt.Errorf("failed to marshal message: %w", err)
+		}
+		
+		key := fmt.Sprintf("chat:room:%s:messages", roomID)
+		score := float64(msg.Timestamp.UnixNano())
+		pipeline.ZAdd(ctx, key, redis.Z{
+			Score:  score,
+			Member: jsonData,
+		})
+	}
+	
+	// Execute pipeline
+	_, err := pipeline.Exec(ctx)
+	return err
+}
+
+func (s *ChatService) SendNotifications(ctx context.Context, msg *model.ChatMessage, onlineUsers []string) error {
+	s.notificationService.NotifyUsersInRoom(ctx, msg, onlineUsers)
+	return nil
+}
+
+func (s *ChatService) CreateMessageStatus(messageID primitive.ObjectID, roomID primitive.ObjectID) error {
+	return s.createMessageStatus(messageID, roomID)
+}
+
+func (s *ChatService) UpdateMessageStatus(messageID primitive.ObjectID, field string, value interface{}) {
+	s.updateMessageStatus(messageID, field, value)
+}
+
+func (s *ChatService) UpdateMessageStatusWithError(messageID primitive.ObjectID, errorMsg string, retryCount int) {
+	s.updateMessageStatusWithError(messageID, errorMsg, retryCount)
+}
+
+func (s *ChatService) RetrieveMessage(messageID primitive.ObjectID) (*model.ChatMessage, error) {
+	filter := bson.M{"_id": messageID}
+	var message model.ChatMessage
+	
+	err := s.collection.FindOne(context.Background(), filter).Decode(&message)
+	if err == nil {
+		return &message, nil
+	}
+	
+	return nil, fmt.Errorf("message not found: %s", messageID.Hex())
+}
+
+// **Delegate to AsyncHelper**
+func (s *ChatService) SubmitDatabaseJob(jobType string, msg *model.ChatMessage, ctx context.Context) bool {
+	return s.asyncHelper.SubmitDatabaseJob(jobType, msg, ctx, s)
+}
+
+func (s *ChatService) SubmitNotificationJob(msg *model.ChatMessage, onlineUsers []string, ctx context.Context) bool {
+	return s.asyncHelper.SubmitNotificationJob(msg, onlineUsers, ctx, s)
+}
+
+// **Message Status Management**
+func (s *ChatService) createMessageStatus(messageID primitive.ObjectID, roomID primitive.ObjectID) error {
+	status := &utils.MessageStatus{
+		ID:              primitive.NewObjectID(),
+		MessageID:       messageID,
+		RoomID:          roomID,
+		BroadcastAt:     time.Now(),
+		SavedToDB:       false,
+		SavedToCache:    false,
+		NotificationSent: false,
+		RetryCount:      0,
+		Status:          "pending",
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+	}
+	
+	_, err := s.statusCollection.InsertOne(context.Background(), status)
 	if err != nil {
-		log.Printf("[DEBUG] Failed to read chat-notifications partitions: %v", err)
-	} else {
-		log.Printf("[DEBUG] chat-notifications topic verified with %d partitions", len(partitions))
+		return fmt.Errorf("failed to create message status: %v", err)
+	}
+	
+	return nil
+}
+
+func (s *ChatService) updateMessageStatus(messageID primitive.ObjectID, field string, value interface{}) {
+	filter := bson.M{"message_id": messageID}
+	update := bson.M{
+		"$set": bson.M{
+			field:        value,
+			"updated_at": time.Now(),
+		},
+	}
+	
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	_, err := s.statusCollection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		log.Printf("[ERROR] Failed to update message status %s.%s: %v", messageID.Hex(), field, err)
 	}
 }
 
-// **NEW: Debug consumer to monitor notifications**
-func startNotificationDebugConsumer(brokers []string) {
-	log.Printf("[DEBUG] Starting notification debug consumer...")
-	
-	// Wait a bit for topic to be ready
-	time.Sleep(3 * time.Second)
-	
-	reader := kafka_go.NewReader(kafka_go.ReaderConfig{
-		Brokers:     brokers,
-		Topic:       "chat-notifications",
-		GroupID:     "debug-consumer-group",
-		StartOffset: kafka_go.LastOffset, // Read from latest messages
-	})
-	defer reader.Close()
-
-	log.Printf("[DEBUG] Notification debug consumer started - listening for messages...")
-
-	for {
-		msg, err := reader.ReadMessage(context.Background())
-		if err != nil {
-			log.Printf("[DEBUG] Error reading notification message: %v", err)
-			time.Sleep(time.Second)
-			continue
-		}
-
-		log.Printf("[DEBUG] ========== NOTIFICATION RECEIVED ==========")
-		log.Printf("[DEBUG] Topic: %s", msg.Topic)
-		log.Printf("[DEBUG] Key: %s", string(msg.Key))
-		log.Printf("[DEBUG] Partition: %d, Offset: %d", msg.Partition, msg.Offset)
-		log.Printf("[DEBUG] Timestamp: %s", msg.Time.Format("2006-01-02 15:04:05"))
-		
-		// Pretty print the JSON payload
-		var payload map[string]interface{}
-		if err := json.Unmarshal(msg.Value, &payload); err == nil {
-			prettyJSON, _ := json.MarshalIndent(payload, "", "  ")
-			log.Printf("[DEBUG] Payload:\n%s", string(prettyJSON))
-		} else {
-			log.Printf("[DEBUG] Raw Payload: %s", string(msg.Value))
-		}
-		log.Printf("[DEBUG] ============================================")
+func (s *ChatService) updateMessageStatusWithError(messageID primitive.ObjectID, errorMsg string, retryCount int) {
+	filter := bson.M{"message_id": messageID}
+	update := bson.M{
+		"$set": bson.M{
+			"last_error":   errorMsg,
+			"retry_count":  retryCount,
+			"updated_at":   time.Now(),
+		},
 	}
+	
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	_, err := s.statusCollection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		log.Printf("[ERROR] Failed to update message status with error %s: %v", messageID.Hex(), err)
+	}
+}
+
+func (s *ChatService) Shutdown() {
+	log.Printf("[ChatService] Starting graceful shutdown...")
+	s.asyncHelper.Shutdown()
+	log.Printf("[ChatService] Graceful shutdown completed")
 }
 
 func (s *ChatService) GetHub() *utils.Hub {
 	return s.hub
+}
+
+func (s *ChatService) GetRedis() *redis.Client {
+	return s.redis
+}
+
+func (s *ChatService) GetMongo() *mongo.Database {
+	return s.mongo
 }
 
 func (s *ChatService) GetUserById(ctx context.Context, userID string) (*userModel.User, error) {
@@ -166,7 +298,6 @@ func (s *ChatService) GetUserById(ctx context.Context, userID string) (*userMode
 		return nil, err
 	}
 
-	// **USE SIMPLE QUERY WITHOUT POPULATE TO AVOID ROLE DECODING ISSUES**
 	userService := queries.NewBaseService[userModel.User](s.mongo.Collection("users"))
 	result, err := userService.FindOne(ctx, bson.M{"_id": userObjID})
 	if err != nil {
@@ -188,22 +319,77 @@ func (s *ChatService) GetMessageReactions(ctx context.Context, roomID, messageID
 	return s.historyService.getMessageReactionsWithUsers(ctx, roomID, messageID)
 }
 
-// GetNotificationService returns the notification service for admin operations
 func (s *ChatService) GetNotificationService() *notificationService.NotificationService {
 	return s.notificationService
 }
 
-// GetModerationService returns the moderation service for admin operations
 func (s *ChatService) GetRestrictionService() *restrictionService.RestrictionService {
 	return s.restrictionService
-	}
+}
 
-// GetChatHistoryByRoom delegates to HistoryService
 func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {
 	return s.historyService.GetChatHistoryByRoom(ctx, roomID, limit)
 }
 
-// DeleteRoomMessages delegates to HistoryService
 func (s *ChatService) DeleteRoomMessages(ctx context.Context, roomID string) error {
 	return s.historyService.DeleteRoomMessages(ctx, roomID)
 }
+
+// **NEW: Health check methods for HealthController**
+func (s *ChatService) GetWorkerPoolStatus() map[string]interface{} {
+	return s.asyncHelper.GetWorkerPoolStatus()
+}
+
+func (s *ChatService) TriggerPhantomMessageFix() error {
+	s.asyncHelper.TriggerPhantomMessageDetection()
+	return nil
+}
+
+func (s *ChatService) monitorSystemHealth() {
+	metrics := &SystemMetrics{
+		AlertCooldown: 5 * time.Minute,
+	}
+
+	ticker := time.NewTicker(30 * time.Second)
+	for range ticker.C {
+		s.checkSystemMetrics(metrics)
+	}
+}
+
+func (s *ChatService) checkSystemMetrics(metrics *SystemMetrics) {
+	// Check queue capacity
+	dbQueueSize, dbQueueCapacity := s.asyncHelper.GetDatabaseWorkerQueueMetrics()
+	queueCapacityPercentage := float64(dbQueueSize) / float64(dbQueueCapacity) * 100
+	
+	if queueCapacityPercentage > QueueCapacityThreshold {
+		s.alertHighQueueCapacity(queueCapacityPercentage)
+	}
+
+	// Check error rate
+	if metrics.ErrorRate > ErrorRateThreshold {
+		s.alertHighErrorRate(metrics.ErrorRate)
+	}
+
+	// Check message rate
+	if metrics.MessageRate > HighLoadThreshold {
+		s.alertHighLoad(metrics.MessageRate)
+	}
+}
+
+func (s *ChatService) alertHighQueueCapacity(capacity float64) {
+	log.Printf("[ALERT] High queue capacity: %.2f%% (threshold: %d%%)", 
+		capacity, QueueCapacityThreshold)
+	// Implement alert notification (e.g., Slack, email, etc.)
+}
+
+func (s *ChatService) alertHighErrorRate(rate float64) {
+	log.Printf("[ALERT] High error rate: %.2f%% (threshold: %d%%)", 
+		rate, ErrorRateThreshold)
+	// Implement alert notification
+}
+
+func (s *ChatService) alertHighLoad(rate float64) {
+	log.Printf("[ALERT] High message rate: %.2f/s (threshold: %d/s)", 
+		rate, HighLoadThreshold)
+	// Implement alert notification
+} 

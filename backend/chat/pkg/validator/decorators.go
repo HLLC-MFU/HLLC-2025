@@ -140,19 +140,6 @@ func ValidateStruct(s interface{}) error {
 	return nil
 }
 
-// FileUploadDto represents a file upload request
-type FileUploadDto struct {
-	File        *multipart.FileHeader `form:"file" validate:"required"`
-	ContentType string                `form:"-"` // Will be set from File header
-}
-
-// ImageUploadDto represents an image upload request with specific validation
-type ImageUploadDto struct {
-	FileUploadDto
-	MaxSize      int64    `form:"-"` // Set by validator
-	AllowedTypes []string `form:"-"` // Set by validator
-}
-
 // ValidateFileUpload is a decorator for basic file upload validation
 func ValidateFileUpload(file *multipart.FileHeader) error {
 	if file == nil {

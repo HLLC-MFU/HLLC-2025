@@ -408,6 +408,7 @@ func (e *ChatEventEmitter) getReplyToMessage(ctx context.Context, replyToID prim
 
 // emitEventStructured handles the new unified Event structure
 func (e *ChatEventEmitter) emitEventStructured(ctx context.Context, msg *model.ChatMessage, event model.Event) error {
+	// For WebSocket broadcasting, marshal to bytes (needed for WebSocket protocol)
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal structured event: %w", err)
@@ -416,8 +417,9 @@ func (e *ChatEventEmitter) emitEventStructured(ctx context.Context, msg *model.C
 	// Broadcast directly to room instead of using BroadcastEvent
 	e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventBytes)
 
+	// For Kafka, send structured payload directly (no double marshaling)
 	roomTopic := getRoomTopic(msg.RoomID.Hex())
-	if err := e.bus.Emit(ctx, roomTopic, msg.RoomID.Hex(), eventBytes); err != nil {
+	if err := e.bus.Emit(ctx, roomTopic, msg.RoomID.Hex(), event); err != nil {
 		log.Printf("[WARN] Failed to emit to Kafka (continuing without Kafka): %v", err)
 		// Don't return error - continue without Kafka
 	}
@@ -516,31 +518,25 @@ func (e *ChatEventEmitter) EmitMentionNotice(ctx context.Context, msg *model.Cha
 		Timestamp: msg.Timestamp,
 	}
 
-	// Create mention notice payload
-	noticePayload := map[string]interface{}{
-		"type": model.EventTypeMentionNotice,
-		"payload": map[string]interface{}{
+	// Create structured mention notice event
+	noticeEvent := model.Event{
+		Type: model.EventTypeMentionNotice,
+		Payload: map[string]interface{}{
 			"room":           roomInfo,
 			"message":        messageInfo,
 			"mentionedBy":    senderInfo,
 			"mentionedUser":  mentionedUserInfo,
 			"timestamp":      msg.Timestamp,
 		},
-		"timestamp": msg.Timestamp,
+		Timestamp: msg.Timestamp,
 	}
 
-	eventBytes, err := json.Marshal(noticePayload)
+	// For WebSocket, marshal to bytes (needed for WebSocket protocol)
+	eventBytes, err := json.Marshal(noticeEvent)
 	if err != nil {
 		return fmt.Errorf("failed to marshal mention notice: %w", err)
 	}
-
-	// Send personal notification - create a unique topic for this user
-	userTopic := fmt.Sprintf("user-%s-mentions", mentionedUser.ID.Hex())
-	if err := e.bus.Emit(ctx, userTopic, mentionedUser.ID.Hex(), eventBytes); err != nil {
-		log.Printf("[WARN] Failed to emit mention notice to Kafka (continuing without Kafka): %v", err)
-	}
-
-	// Also broadcast to room so other clients can see who was mentioned
+	// Also broadcast to room so other clients can see who was mentioned (WebSocket needs bytes)
 	e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventBytes)
 
 	log.Printf("[Kafka] Successfully published mention notice to user %s", mentionedUser.ID.Hex())

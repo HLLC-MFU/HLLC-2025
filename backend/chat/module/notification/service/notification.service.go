@@ -7,8 +7,9 @@ import (
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	"context"
-	"encoding/json"
+	"fmt"
 	"log"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -31,9 +32,9 @@ func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus) *Notificati
 	}
 }
 
-// NotifyUsersInRoom sends notifications to all users in a room (except sender)
+// NotifyUsersInRoom sends notifications to offline users in a room only (not online users)
 func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *model.ChatMessage, onlineUsers []string) {
-	log.Printf("[NotificationService] Starting notification process for room %s", message.RoomID.Hex())
+	log.Printf("[NotificationService] Starting offline notification process for room %s", message.RoomID.Hex())
 
 	// Create online user lookup map
 	onlineUserMap := make(map[string]bool)
@@ -50,8 +51,11 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 
 	// Determine message type
 	messageType := ns.determineMessageType(message)
+	
+	offlineCount := 0
+	totalMembers := 0
 
-	// Send notification to each member (except sender)
+	// Send notification to OFFLINE members only (except sender)
 	for _, memberID := range roomMembers {
 		memberIDStr := memberID.Hex()
 
@@ -59,22 +63,62 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 		if memberIDStr == message.UserID.Hex() {
 			continue
 		}
+		
+		totalMembers++
 
-		// Log user status
-		if onlineUserMap[memberIDStr] {
-			log.Printf("[NotificationService] User %s is online, but sending notification anyway for external system", memberIDStr)
+		// ✅ ส่ง notification เฉพาะ OFFLINE users เท่านั้น
+		if !onlineUserMap[memberIDStr] {
+			log.Printf("[NotificationService] User %s is OFFLINE, sending notification", memberIDStr)
+			ns.SendOfflineNotification(ctx, memberIDStr, message, messageType)
+			offlineCount++
 		} else {
-			log.Printf("[NotificationService] User %s is offline, sending notification", memberIDStr)
+			log.Printf("[NotificationService] User %s is ONLINE, skipping notification (will receive via WebSocket)", memberIDStr)
 		}
+	}
+	
+	log.Printf("[NotificationService] Notification summary: %d offline users notified out of %d total members", offlineCount, totalMembers)
+}
 
-		// Send notification
-		ns.SendMessageNotification(ctx, memberIDStr, message, messageType)
+// SendOfflineNotification sends notification specifically for offline users
+func (ns *NotificationService) SendOfflineNotification(ctx context.Context, receiverID string, message *model.ChatMessage, messageType string) {
+	log.Printf("[NotificationService] Sending OFFLINE notification: receiver=%s, message=%s, type=%s", 
+		receiverID, message.ID.Hex(), messageType)
+
+	// Get sender info
+	sender, err := ns.getUserById(ctx, message.UserID.Hex())
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get sender info for offline notification: %v", err)
+		return
+	}
+
+	// Get room info
+	room, err := ns.getRoomById(ctx, message.RoomID.Hex())
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get room info for offline notification: %v", err)
+		return
+	}
+
+	// Create notification payload specifically for offline users
+	payload := chatModel.CreateSimpleNotificationPayload(
+		messageType,
+		room.ID,
+		room.NameTh, room.NameEn,
+		sender.ID, sender.Username, sender.FirstName, sender.LastName,
+		message.ID.Hex(), message.Message,
+		receiverID,
+	)
+
+	// ✅ Send to dedicated offline notification topic
+	success := ns.sendOfflineToKafka(ctx, receiverID, payload, message.RoomID.Hex(), message.UserID.Hex(), message.Message, messageType, message.ID.Hex())
+	
+	if success {
+		log.Printf("[NotificationService] SUCCESS: sent offline notification to %s", receiverID)
 	}
 }
 
-// SendMessageNotification sends a notification for a chat message
+// SendMessageNotification sends a notification for a chat message (generic method)
 func (ns *NotificationService) SendMessageNotification(ctx context.Context, receiverID string, message *model.ChatMessage, messageType string) {
-	log.Printf("[NotificationService] Sending notification: receiver=%s, message=%s, type=%s", 
+	log.Printf("[NotificationService] Sending generic notification: receiver=%s, message=%s, type=%s", 
 		receiverID, message.ID.Hex(), messageType)
 
 	// Get sender info
@@ -101,13 +145,94 @@ func (ns *NotificationService) SendMessageNotification(ctx context.Context, rece
 		receiverID,
 	)
 
-	// Send to Kafka
+	// Send to generic notification topic
 	success := ns.sendToKafka(ctx, receiverID, payload, message.RoomID.Hex(), message.UserID.Hex(), message.Message, messageType, message.ID.Hex())
 	
 	// Mark as sent only if successful
 	if success {
 		log.Printf("[NotificationService] SUCCESS: sent notification to %s", receiverID)
 	}
+}
+
+// SendOfflineMentionNotification sends mention notification to offline user
+func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Context, receiverID string, message *model.ChatMessage, senderInfo *SimpleUser, roomInfo *SimpleRoom) {
+	log.Printf("[NotificationService] Sending OFFLINE mention notification to %s from %s", receiverID, senderInfo.Username)
+
+	// Create enhanced mention payload
+	payload := chatModel.CreateSimpleNotificationPayload(
+		"mention",
+		roomInfo.ID,
+		roomInfo.NameTh, roomInfo.NameEn,
+		senderInfo.ID, senderInfo.Username, senderInfo.FirstName, senderInfo.LastName,
+		message.ID.Hex(), message.Message,
+		receiverID,
+	)
+
+	// Send specifically to offline notification topic
+	ns.sendOfflineToKafka(ctx, receiverID, payload, roomInfo.ID, senderInfo.ID, message.Message, "mention", message.ID.Hex())
+}
+
+// SendOfflineModerationNotification sends moderation notification to offline user
+func (ns *NotificationService) SendOfflineModerationNotification(ctx context.Context, receiverID string, action, reason string, roomID string, moderatorInfo *SimpleUser) {
+	log.Printf("[NotificationService] Sending OFFLINE moderation notification (%s) to %s by %s", action, receiverID, moderatorInfo.Username)
+
+	// Get room info
+	room, err := ns.getRoomById(ctx, roomID)
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get room info for moderation notification: %v", err)
+		return
+	}
+
+	// Create moderation message
+	moderationMessage := fmt.Sprintf("You have been %s in %s. Reason: %s", action, room.NameEn, reason)
+
+	// Create moderation payload
+	payload := chatModel.CreateSimpleNotificationPayload(
+		"moderation_"+action,
+		room.ID,
+		room.NameTh, room.NameEn,
+		moderatorInfo.ID, moderatorInfo.Username, moderatorInfo.FirstName, moderatorInfo.LastName,
+		"moderation-"+time.Now().Format("20060102150405"), moderationMessage,
+		receiverID,
+	)
+
+	// Send to offline notification topic
+	ns.sendOfflineToKafka(ctx, receiverID, payload, roomID, moderatorInfo.ID, moderationMessage, "moderation_"+action, "moderation-notification")
+}
+
+// NotifyOfflineUsersOnly sends notifications ONLY to users who are currently offline
+func (ns *NotificationService) NotifyOfflineUsersOnly(ctx context.Context, message *model.ChatMessage, onlineUsers []string, roomMembers []primitive.ObjectID) {
+	log.Printf("[NotificationService] Notifying OFFLINE users only for message %s", message.ID.Hex())
+
+	// Create online user lookup map
+	onlineUserMap := make(map[string]bool)
+	for _, userID := range onlineUsers {
+		onlineUserMap[userID] = true
+	}
+
+	// Determine message type
+	messageType := ns.determineMessageType(message)
+	
+	offlineCount := 0
+
+	// Send notification to OFFLINE members only (except sender)
+	for _, memberID := range roomMembers {
+		memberIDStr := memberID.Hex()
+
+		// Skip the sender
+		if memberIDStr == message.UserID.Hex() {
+			continue
+		}
+
+		// ✅ Send notification only to OFFLINE users
+		if !onlineUserMap[memberIDStr] {
+			log.Printf("[NotificationService] Notifying offline user %s", memberIDStr)
+			ns.SendOfflineNotification(ctx, memberIDStr, message, messageType)
+			offlineCount++
+		}
+	}
+	
+	log.Printf("[NotificationService] Notified %d offline users", offlineCount)
 }
 
 // SendTestNotification sends a test notification for admin testing
@@ -224,21 +349,42 @@ func (ns *NotificationService) getRoomById(ctx context.Context, roomID string) (
 	}, nil
 }
 
+// sendOfflineToKafka sends notifications specifically for offline users to dedicated topic
+func (ns *NotificationService) sendOfflineToKafka(ctx context.Context, receiverID string, payload chatModel.NotificationPayload, roomID, senderID, message, eventType, messageID string) bool {
+	// ✅ Dedicated topic for offline notifications (for mobile push notifications, email, etc.)
+	offlineNotificationTopic := "chat-notifications"
+	
+	log.Printf("[NotificationService] Sending OFFLINE notification to topic %s for receiver %s", offlineNotificationTopic, receiverID)
+	log.Printf("[NotificationService] Offline payload type: %s, message: %s", payload.Type, payload.Message.Message)
+
+	// Add offline-specific metadata to payload
+	enhancedPayload := payload
+	enhancedPayload.Type = "offline_" + payload.Type  // แยกแยะว่าเป็น offline notification
+	
+	// ส่ง enhanced payload แบบ structured ไปยัง offline topic
+	if err := ns.kafkaBus.Emit(ctx, offlineNotificationTopic, receiverID, enhancedPayload); err != nil {
+		log.Printf("[NotificationService] FAILED to send offline notification to Kafka: %v", err)
+		return false
+	} else {
+		log.Printf("[NotificationService] SUCCESS: sent offline notification to %s via topic %s", receiverID, offlineNotificationTopic)
+		return true
+	}
+}
+
+// sendToKafka sends notifications to generic topic (for online users or general notifications)
 func (ns *NotificationService) sendToKafka(ctx context.Context, receiverID string, payload chatModel.NotificationPayload, roomID, senderID, message, eventType, messageID string) bool {
 	notificationTopic := "chat-notifications"
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		log.Printf("[NotificationService] Failed to marshal payload: %v", err)
-		return false
-	}
+	
+	log.Printf("[NotificationService] Sending generic notification to topic %s for receiver %s", notificationTopic, receiverID)
+	log.Printf("[NotificationService] Payload type: %s, message: %s", payload.Type, payload.Message.Message)
 
-	log.Printf("[NotificationService] Sending to topic %s, payload size: %d bytes", notificationTopic, len(payloadBytes))
-
-	if err := ns.kafkaBus.Emit(ctx, notificationTopic, receiverID, payloadBytes); err != nil {
+	// ส่ง payload แบบ structured ตรงๆ ไม่ต้อง marshal เป็น bytes
+	// Kafka Bus จะจัดการ marshaling เองและได้ structured JSON
+	if err := ns.kafkaBus.Emit(ctx, notificationTopic, receiverID, payload); err != nil {
 		log.Printf("[NotificationService] FAILED to send to Kafka: %v", err)
 		return false
 	} else {
-		log.Printf("[NotificationService] SUCCESS: sent notification to %s", receiverID)
+		log.Printf("[NotificationService] SUCCESS: sent generic notification to %s", receiverID)
 		return true
 	}
 } 

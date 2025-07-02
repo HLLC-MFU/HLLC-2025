@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -15,6 +16,8 @@ type Config struct {
 	Redis  RedisConfig
 	Kafka  KafkaConfig
 	Upload UploadConfig
+	AsyncFlow            AsyncFlowConfig       `env:",prefix=ASYNC_"`
+	ReliabilityThresholds ReliabilityThresholds `env:",prefix=RELIABILITY_"`
 }
 
 type AppConfig struct {
@@ -47,6 +50,75 @@ type KafkaConfig struct {
 type UploadConfig struct {
 	BaseURL string
 	Path    string
+}
+
+// **NEW: Async-first Flow Configuration**
+type AsyncFlowConfig struct {
+	// Database worker configuration
+	DatabaseWorkers struct {
+		WorkerCount  int           `env:"DB_WORKER_COUNT" envDefault:"100"`
+		QueueSize    int           `env:"DB_QUEUE_SIZE" envDefault:"20000"`
+		BatchSize    int           `env:"DB_BATCH_SIZE" envDefault:"200"`
+		FlushTimeout time.Duration `env:"DB_FLUSH_TIMEOUT" envDefault:"2s"`
+	}
+
+	// Notification worker configuration
+	NotificationWorkers struct {
+		WorkerCount  int           `env:"NOTIFICATION_WORKER_COUNT" envDefault:"50"`
+		QueueSize    int           `env:"NOTIFICATION_QUEUE_SIZE" envDefault:"10000"`
+		BatchSize    int           `env:"NOTIFICATION_BATCH_SIZE" envDefault:"100"`
+		FlushTimeout time.Duration `env:"NOTIFICATION_FLUSH_TIMEOUT" envDefault:"2s"`
+	}
+
+	// Retry configuration
+	Retry struct {
+		MaxRetries     int           `env:"RETRY_MAX_RETRIES" envDefault:"5"`
+		InitialDelay   time.Duration `env:"RETRY_INITIAL_DELAY" envDefault:"500ms"`
+		MaxDelay       time.Duration `env:"RETRY_MAX_DELAY" envDefault:"10s"`
+		BackoffFactor  float64       `env:"RETRY_BACKOFF_FACTOR" envDefault:"1.5"`
+		RetryQueueSize int           `env:"RETRY_QUEUE_SIZE" envDefault:"5000"`
+	}
+
+	// Phantom message detection
+	PhantomDetection struct {
+		Enabled         bool          `env:"PHANTOM_DETECTION_ENABLED" envDefault:"true"`
+		CheckInterval   time.Duration `env:"PHANTOM_CHECK_INTERVAL" envDefault:"30s"`
+		MaxAge          time.Duration `env:"PHANTOM_MAX_AGE" envDefault:"10m"`
+		BatchSize       int           `env:"PHANTOM_BATCH_SIZE" envDefault:"100"`
+		FixAutomatically bool         `env:"PHANTOM_AUTO_FIX" envDefault:"true"`
+	}
+
+	// Circuit breaker configuration
+	CircuitBreaker struct {
+		Enabled            bool          `env:"CIRCUIT_BREAKER_ENABLED" envDefault:"true"`
+		FailureThreshold   int           `env:"CIRCUIT_FAILURE_THRESHOLD" envDefault:"10"`
+		SuccessThreshold   int           `env:"CIRCUIT_SUCCESS_THRESHOLD" envDefault:"5"`
+		Timeout            time.Duration `env:"CIRCUIT_TIMEOUT" envDefault:"30s"`
+		HalfOpenMaxCalls   int           `env:"CIRCUIT_HALF_OPEN_MAX_CALLS" envDefault:"3"`
+	}
+
+	// Message status tracking
+	MessageStatus struct {
+		Enabled       bool          `env:"MESSAGE_STATUS_ENABLED" envDefault:"true"`
+		TTL           time.Duration `env:"MESSAGE_STATUS_TTL" envDefault:"24h"`
+		CleanupInterval time.Duration `env:"MESSAGE_STATUS_CLEANUP_INTERVAL" envDefault:"1h"`
+	}
+
+	// Performance monitoring
+	Monitoring struct {
+		MetricsEnabled    bool          `env:"METRICS_ENABLED" envDefault:"true"`
+		MetricsInterval   time.Duration `env:"METRICS_INTERVAL" envDefault:"10s"`
+		SlowQueryThreshold time.Duration `env:"SLOW_QUERY_THRESHOLD" envDefault:"1s"`
+		AlertThreshold    float64       `env:"ALERT_THRESHOLD" envDefault:"0.95"` // 95% success rate
+	}
+}
+
+// **NEW: Message reliability thresholds**
+type ReliabilityThresholds struct {
+	BroadcastTimeout    time.Duration `env:"BROADCAST_TIMEOUT" envDefault:"500ms"`
+	DatabaseTimeout     time.Duration `env:"DATABASE_TIMEOUT" envDefault:"5s"`
+	NotificationTimeout time.Duration `env:"NOTIFICATION_TIMEOUT" envDefault:"3s"`
+	CacheTimeout        time.Duration `env:"CACHE_TIMEOUT" envDefault:"1s"`
 }
 
 var defaults = map[string]string{
