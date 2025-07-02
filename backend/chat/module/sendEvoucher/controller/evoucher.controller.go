@@ -104,7 +104,6 @@ func (c *EvoucherController) handleSendEvoucher(ctx *fiber.Ctx) error {
 		"roomId":        message.RoomID.Hex(),
 		"userId":        message.UserID.Hex(),
 		"message":       message.Message,
-		"evoucherId":    message.EvoucherID,
 		"evoucherInfo":  message.EvoucherInfo,
 		"timestamp":     message.Timestamp,
 	}

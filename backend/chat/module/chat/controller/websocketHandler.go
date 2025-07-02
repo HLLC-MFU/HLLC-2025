@@ -109,7 +109,7 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			} else if len(msg.ChatMessage.MentionInfo) > 0 {
 				eventType = model.EventTypeMention
 				messageType = model.MessageTypeMention
-			} else if msg.ChatMessage.EvoucherID != nil {
+			} else if msg.ChatMessage.EvoucherInfo != nil {
 				eventType = model.EventTypeEvoucher
 				messageType = model.MessageTypeEvoucher
 		} else {
@@ -203,8 +203,8 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 	}
 
 			// **NEW: Add evoucher info if exists**
-			if msg.ChatMessage.EvoucherID != nil && msg.ChatMessage.EvoucherInfo != nil {
-				payload["evoucher"] = map[string]interface{}{
+			if msg.ChatMessage.EvoucherInfo != nil {
+				payload["evoucherInfo"] = map[string]interface{}{
 					"title":       msg.ChatMessage.EvoucherInfo.Title,
 					"description": msg.ChatMessage.EvoucherInfo.Description,
 					"claimUrl":    msg.ChatMessage.EvoucherInfo.ClaimURL,

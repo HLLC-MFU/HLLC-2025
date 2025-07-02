@@ -545,7 +545,7 @@ func (e *ChatEventEmitter) EmitMentionNotice(ctx context.Context, msg *model.Cha
 
 // EmitEvoucherMessage emits an evoucher message event
 func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.ChatMessage) error {
-	log.Printf("[TRACE] EmitEvoucherMessage called for message ID=%s Room=%s EvoucherID=%s", 
+	log.Printf("[TRACE] EmitEvoucherMessage called for message ID=%s Room=%s", 
 		msg.ID.Hex(), msg.RoomID.Hex())
 
 	// Get user data
@@ -566,7 +566,7 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 		Timestamp: msg.Timestamp,
 	}
 
-	// Create evoucher payload with complete evoucher information
+	// Create manual payload structure to match expected format
 	manualPayload := map[string]interface{}{
 		"room": map[string]interface{}{
 			"_id": roomInfo.ID,
@@ -582,7 +582,7 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 			"message":   messageInfo.Message,
 			"timestamp": messageInfo.Timestamp,
 		},
-		"evoucher": map[string]interface{}{
+		"evoucherInfo": map[string]interface{}{
 			"title":       msg.EvoucherInfo.Title,
 			"description": msg.EvoucherInfo.Description,
 			"claimUrl":    msg.EvoucherInfo.ClaimURL,
@@ -590,11 +590,13 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 		"timestamp": msg.Timestamp,
 	}
 
+	// Create event
 	event := model.Event{
 		Type:      model.EventTypeEvoucher,
 		Payload:   manualPayload,
 		Timestamp: msg.Timestamp,
 	}
-	
+
+	// Emit event using common emitter
 	return e.emitEventStructured(ctx, msg, event)
 }

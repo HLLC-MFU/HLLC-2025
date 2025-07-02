@@ -22,6 +22,7 @@ const (
     EventTypeModerationKick  = "moderation_kick"
     EventTypeModerationUnban = "moderation_unban"
     EventTypeModerationUnmute = "moderation_unmute"
+    EventTypePresence     = "presence"
 )
 
 // Message Types - Content
@@ -174,5 +175,12 @@ type (
 		MessageID   string      `json:"messageId"`   // ID ของข้อความที่ถูก unsend
 		MessageType string      `json:"messageType"` // ประเภทข้อความที่ถูก unsend
 		Timestamp   time.Time   `json:"timestamp"`
+	}
+
+	// **NEW: Evoucher Payload**
+	ChatEvoucherPayload struct {
+		BasePayload
+		Message     MessageInfo   `json:"message"`
+		EvoucherInfo EvoucherInfo `json:"evoucherInfo"`
 	}
 )

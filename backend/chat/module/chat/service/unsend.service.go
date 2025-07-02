@@ -176,7 +176,7 @@ func (s *ChatService) getMessageType(msg *model.ChatMessage) string {
 		return model.MessageTypeReply
 	} else if len(msg.MentionInfo) > 0 {
 		return model.MessageTypeMention
-	} else if msg.EvoucherID != nil {
+	} else if msg.EvoucherInfo != nil {
 		return model.MessageTypeEvoucher
 	}
 	return model.MessageTypeText

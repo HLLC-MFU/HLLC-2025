@@ -139,7 +139,7 @@ func main() {
 	groupRoomSvc := roomService.NewGroupRoomService(db, redis, cfg, chatHub, roomSvc, kafkaBus)
 	stickerSvc := stickerService.NewStickerService(db)
 	restrictionSvc := restrictionService.NewRestrictionService(db, chatHub)
-	evoucherSvc := evoucherService.NewEvoucherService(db, redis, restrictionSvc, chatSvc.GetNotificationService(), chatHub)
+	evoucherSvc := evoucherService.NewEvoucherService(db, redis, restrictionSvc, chatSvc.GetNotificationService(), chatHub, kafkaBus)
 
 	// Initialize RBAC middleware
 	rbacMiddleware := middleware.NewRBACMiddleware(db)

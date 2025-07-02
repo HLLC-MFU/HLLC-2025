@@ -281,7 +281,7 @@ func (ns *NotificationService) determineMessageType(message *model.ChatMessage) 
 		return "sticker"
 	} else if len(message.MentionInfo) > 0 {
 		return "mention"
-	} else if message.EvoucherID != nil {
+	} else if message.EvoucherInfo != nil {
 		return "evoucher"
 	}
 	return "text"

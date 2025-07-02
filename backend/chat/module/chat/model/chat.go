@@ -23,7 +23,6 @@ type (
 		Image     string              `bson:"image,omitempty" json:"image,omitempty"`
 		
 		// **NEW: Evoucher fields**
-		EvoucherID   *string           `bson:"evoucher_id,omitempty" json:"evoucherId,omitempty"`
 		EvoucherInfo *EvoucherInfo     `bson:"evoucher_info,omitempty" json:"evoucherInfo,omitempty"`
 		
 		// **NEW: Moderation fields**

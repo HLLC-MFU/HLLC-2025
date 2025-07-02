@@ -6,6 +6,7 @@ import (
 	"chat/module/notification/service"
 	restrctionService "chat/module/restriction/service"
 	userModel "chat/module/user/model"
+	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	serviceHelper "chat/pkg/helpers/service"
 	"context"
@@ -37,15 +38,14 @@ func NewEvoucherService(
 	restrictionService *restrctionService.RestrictionService,
 	notificationService *service.NotificationService,
 	hub *chatUtils.Hub,
+	kafkaBus *kafka.Bus,
 ) *EvoucherService {
 	collection := db.Collection("chat_messages")
 	fkValidator := serviceHelper.NewForeignKeyValidator(db)
 	cache := chatUtils.NewChatCacheService(redis)
 	
-	// For now, emitter is nil - will be set when kafka bus is available
-	var emitter *chatUtils.ChatEventEmitter
-	// TODO: Add kafka bus parameter when needed
-	// emitter = chatUtils.NewChatEventEmitter(hub, kafkaBus, redis, db)
+	// Initialize emitter with all required dependencies
+	emitter := chatUtils.NewChatEventEmitter(hub, kafkaBus, redis, db)
 	
 	return &EvoucherService{
 		BaseService:         queries.NewBaseService[model.ChatMessage](collection),
