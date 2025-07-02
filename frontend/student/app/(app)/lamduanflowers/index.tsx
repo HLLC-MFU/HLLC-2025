@@ -140,7 +140,7 @@ export default function LamduanOrigamiPage() {
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
-  
+
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -199,11 +199,10 @@ export default function LamduanOrigamiPage() {
               style={styles.input}
               value={comment}
               onChangeText={(text) => {
-                const words = text.trim().split(/\s+/);
-                if (words.length <= 144) {
+                if (text.length <= 144) {
                   setComment(text);
                 } else {
-                  setComment(words.slice(0, 144).join(' '));
+                  setComment(text.slice(0, 144));
                 }
               }}
               onFocus={() => {
@@ -217,31 +216,44 @@ export default function LamduanOrigamiPage() {
               textAlignVertical="top"
             />
 
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={async () => {
-                if (!imageUri) {
-                  Alert.alert('Error', 'Please select an image first.');
-                  return;
-                }
-
-                const file = {
-                  uri: imageUri,
-                  name: 'photo.jpg',
-                  type: 'image/jpeg',
-                } as any;
-
-                if (hasSubmitted) {
-                  await handleSave(file, user?.data[0]._id!, comment, lamduanSetting[0]._id);
-                } else {
-                  setConfirmModalVisible(true);
-                }
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+                marginTop: 16,
               }}
             >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>
-                {hasSubmitted ? 'Save' : 'Submit'}
+              <Text style={{ color: '#fff', fontSize: 13 }}>
+                {comment.length} / 144
               </Text>
-            </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={async () => {
+                  if (!imageUri) {
+                    Alert.alert('Error', 'Please select an image first.');
+                    return;
+                  }
+
+                  const file = {
+                    uri: imageUri,
+                    name: 'photo.jpg',
+                    type: 'image/jpeg',
+                  } as any;
+
+                  if (hasSubmitted) {
+                    await handleSave(file, user?.data[0]._id!, comment, lamduanSetting[0]._id);
+                  } else {
+                    setConfirmModalVisible(true);
+                  }
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                  {hasSubmitted ? 'Save' : 'Submit'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </BlurView>
 
           <ConfirmModal
