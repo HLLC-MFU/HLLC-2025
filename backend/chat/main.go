@@ -9,8 +9,10 @@ import (
 	"sort"
 	"strings"
 	"syscall"
+	"time"
 
 	chatController "chat/module/chat/controller"
+	healthController "chat/module/chat/controller"
 	chatService "chat/module/chat/service"
 	restrictionController "chat/module/restriction/controller"
 	restrictionService "chat/module/restriction/service"
@@ -79,74 +81,68 @@ func connectRedis(cfg *config.Config) (*redis.Client, error) {
 }
 
 func main() {
-	// Print current working directory for debugging
-	pwd, err := os.Getwd()
-	if err != nil {
-		log.Printf("Warning: Could not get working directory: %v", err)
-	} else {
-		log.Printf("Current working directory: %s", pwd)
-	}
-
-	// Load configuration
+	// Load config
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Printf("Error details: %v", err)
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Print loaded configuration for debugging
-	log.Printf("Loaded configuration: App Port=%s, MongoDB URI=%s", 
-		cfg.App.Port, 
-		cfg.Mongo.URI,
-	)
+	// Setup logging
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
+	log.SetPrefix("[SERVER] ")
 
-	// Initialize MongoDB connection
-	mongoDB, err := connectMongoDB(cfg)
+	// Add test log handler
+	testLogChan := make(chan string, 1000)
+	go func() {
+		for msg := range testLogChan {
+			log.Printf("[TEST] %s", msg)
+		}
+	}()
+
+	// Connect to MongoDB
+	db, err := connectMongoDB(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 
-	// Initialize Redis connection
-	redisClient, err := connectRedis(cfg)
+	// Connect to Redis
+	redis, err := connectRedis(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 
-	// Initialize Kafka bus
+	// Create Kafka bus
 	kafkaBus := kafka.New(cfg.Kafka.Brokers, "chat-service")
-	if err := kafkaBus.Start(); err != nil {
-		log.Fatalf("Failed to start Kafka bus: %v", err)
-	}
 
-	// Create connection manager with default config
-	connManager = mananger.NewConnectionManager(mananger.DefaultConfig())
-
-	// Initialize Fiber app with matching buffer sizes
+	// Create Fiber app
 	app := fiber.New(fiber.Config{
-		ReadBufferSize:  32 * 1024,  // Match WebSocket buffer size
-		WriteBufferSize: 32 * 1024,  // Match WebSocket buffer size
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	})
+
+	// Initialize connection manager with default config
+	connManager = mananger.NewConnectionManager(mananger.DefaultConfig())
 
 	// Setup middleware
 	setupMiddleware(app)
 
 	// Initialize services
-	chatSvc := chatService.NewChatService(mongoDB, redisClient, kafkaBus, cfg)
+	chatSvc := chatService.NewChatService(db, redis, kafkaBus, cfg)
 	chatHub := chatSvc.GetHub()
 
 	// Initialize all services
-	schoolSvc := userService.NewSchoolService(mongoDB)
-	majorSvc := userService.NewMajorService(mongoDB)
-	roleSvc := userService.NewRoleService(mongoDB)
-	userSvc := userService.NewUserService(mongoDB)
-	roomSvc := roomService.NewRoomService(mongoDB, redisClient, cfg, chatHub)
-	groupRoomSvc := roomService.NewGroupRoomService(mongoDB, redisClient, cfg, chatHub, roomSvc, kafkaBus)
-	stickerSvc := stickerService.NewStickerService(mongoDB)
-	restrictionSvc := restrictionService.NewRestrictionService(mongoDB, chatHub)
-	evoucherSvc := evoucherService.NewEvoucherService(mongoDB, redisClient, restrictionSvc, chatSvc.GetNotificationService(), chatHub)
+	schoolSvc := userService.NewSchoolService(db)
+	majorSvc := userService.NewMajorService(db)
+	roleSvc := userService.NewRoleService(db)
+	userSvc := userService.NewUserService(db)
+	roomSvc := roomService.NewRoomService(db, redis, cfg, chatHub)
+	groupRoomSvc := roomService.NewGroupRoomService(db, redis, cfg, chatHub, roomSvc, kafkaBus)
+	stickerSvc := stickerService.NewStickerService(db)
+	restrictionSvc := restrictionService.NewRestrictionService(db, chatHub)
+	evoucherSvc := evoucherService.NewEvoucherService(db, redis, restrictionSvc, chatSvc.GetNotificationService(), chatHub)
 
 	// Initialize RBAC middleware
-	rbacMiddleware := middleware.NewRBACMiddleware(mongoDB)
+	rbacMiddleware := middleware.NewRBACMiddleware(db)
 
 	// Initialize controllers
 	userController.NewUserController(app, userSvc, rbacMiddleware)
@@ -162,6 +158,7 @@ func main() {
 	chatController.NewMentionController(app, chatSvc, roomSvc)
 	chatController.NewReactionController(app, chatSvc, roomSvc)
 	evoucherController.NewEvoucherController(app, evoucherSvc, roomSvc, rbacMiddleware)
+	healthController.NewHealthController(app, chatSvc, rbacMiddleware)
 	
 	// Restriction controller (was moderation)
 	restrictionController.NewModerationController(app, restrictionSvc, rbacMiddleware)

@@ -112,8 +112,11 @@ func (c *ChatController) setupRoutes() {
 }
 
 func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
+
+	// อ่านจาก param
 	roomID := ctx.Params("roomId")
 
+	// อ่านจาก body dto
 	var stickerDto dto.SendStickerDto
 	if err := ctx.BodyParser(&stickerDto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{

@@ -46,9 +46,9 @@ func New(brokers []string, groupID string) *Bus {
 	return &Bus{
 		brokers:  brokers,
 		groupID:  groupID,
-		handlers: map[string][]HandlerFunc{},
-		readers:  map[string]*kafka.Reader{},
-		writers:  map[string]*kafka.Writer{},
+		handlers: map[string][]HandlerFunc{}, // จับคู่ topic กับ handler
+		readers:  map[string]*kafka.Reader{}, // ตัวอ่าน
+		writers:  map[string]*kafka.Writer{}, // ทำการเขีน
 		ctx:      ctx,
 		cancel:   cancel,
 	}
@@ -92,8 +92,8 @@ func (b *Bus) CreateTopics(topics []string) error {
 		// สร้าง topic
 		topicConfigs[i] = kafka.TopicConfig{
 			Topic:             topic,
-			NumPartitions:     1,
-			ReplicationFactor: 1,
+			NumPartitions:     1, // แบ่ง broker ให้ 1 ตัว ถ้าเป็น 2 ตัวก็จะแบ่งเป็น 2 ตัว
+			ReplicationFactor: 1, // กำหนดจำนวนการทำงานของ broker ถ้าเป็น 2 ตัวก็จะทำงาน 2 ตัว
 		}
 	}
 

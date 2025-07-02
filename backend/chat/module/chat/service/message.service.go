@@ -28,10 +28,12 @@ func (s *ChatService) CanUserViewMessages(ctx context.Context, userID, roomID pr
 }
 
 // **ENHANCED: SendMessage with robust error handling and phantom prevention**
+
+// Optimize ให้ Support SendMsg ให้ handling phantom message (ข้อความผี = ไม่ได้ save ลงใน DB)
 func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) error {
 	log.Printf("[ChatService] SendMessage called for room %s by user %s", msg.RoomID.Hex(), msg.UserID.Hex())
 
-	// **1. FAST VALIDATION: ตรวจสอบ moderation status ก่อนส่งข้อความ**
+	// ตรวจสอบ moderation status ก่อนส่งข้อความ
 	if !s.CanUserSendMessages(ctx, msg.UserID, msg.RoomID) {
 		// ตรวจสอบว่าถูก ban หรือ mute
 		if s.restrictionService.IsUserBanned(ctx, msg.UserID, msg.RoomID) {
@@ -43,7 +45,7 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 		return fmt.Errorf("user cannot send messages in this room")
 	}
 
-	// **2. QUICK VALIDATION: Foreign key validation (ใช้ cache ถ้าเป็นไปได้)**
+	// Foreign key validation (ใช้ cache ถ้าเป็นไปได้)
 	if err := s.fkValidator.ValidateForeignKeys(ctx, map[string]interface{}{
 		"users": msg.UserID,
 		"rooms": msg.RoomID,
@@ -51,49 +53,53 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 		return fmt.Errorf("foreign key validation failed: %w", err)
 	}
 
-	// **3. GENERATE MESSAGE ID: สร้าง ID ก่อน (เพื่อ tracking)**
+	// สร้าง ID ก่อน (เพื่อ tracking)
 	msg.ID = primitive.NewObjectID()
 	log.Printf("[ChatService] Generated message ID: %s", msg.ID.Hex())
 	
-	// **4. CREATE STATUS TRACKING: สร้าง tracking record ก่อน broadcast**
+	// สร้าง tracking record ก่อน broadcast
 	if err := s.createMessageStatus(msg.ID, msg.RoomID); err != nil {
 		log.Printf("[ChatService] ⚠️ Failed to create message status tracking: %v", err)
 		// Continue anyway - this is not critical for UX
 	}
 
-	// **5. IMMEDIATE BROADCAST: ส่งไป WebSocket ทันที (ความสำคัญสูงสุด)**
+	// BROADCAST: ส่งไป WebSocket ทันที **สำคัญโครตพ่อโครตแม่**
 	log.Printf("[ChatService] 🚀 Broadcasting message ID=%s immediately to WebSocket", msg.ID.Hex())
 	broadcastStart := primitive.NewObjectID().Timestamp()
 	
+	// ถ้า error จะต้องลบ message ออกจาก cache ด้วย
 	if err := s.emitter.EmitMessage(ctx, msg); err != nil {
 		log.Printf("[ChatService] ❌ CRITICAL: Failed to emit message to WebSocket: %v", err)
 		
-		// **FALLBACK: Update status as broadcast failed**
+		// Fallback ถ้า  message ส่งไม่ได้ จะต้องลบ message ออกจาก cache ด้วย
 		s.updateMessageStatusWithError(msg.ID, fmt.Sprintf("broadcast failed: %v", err), 0)
 		
 		// This is critical - return error if we can't broadcast
 		return fmt.Errorf("failed to broadcast message: %w", err)
 	}
 	
+	// broadcast สำเร็จ จะต้องลบ message ออกจาก cache ด้วย
 	broadcastDuration := primitive.NewObjectID().Timestamp().Sub(broadcastStart)
 	log.Printf("[ChatService] ✅ WebSocket broadcast successful in %v for message ID=%s", 
 		broadcastDuration, msg.ID.Hex())
 
-	// **6. ASYNC BACKGROUND PROCESSING: ไม่ block UX**
+	// Async ทำงานแบบ pararel ด้วย อยู่ใน Background **สำคัญโครตพ่อโครตแม่**
 	bgCtx := context.Background()
 	
 	// **ENHANCED: Submit jobs with better error handling**
-	jobsSubmitted := 0
-	totalJobs := 3
+	jobsSubmitted := 0 // จำนวน jobs ที่ส่งไป
+	totalJobs := 3 // จำนวน jobs ที่ต้องส่งไป
 	
 	// Submit database save job (highest priority for persistence)
+
+	// save ลงใน Database **สำคัญโครตพ่อโครตแม่**
 	if s.SubmitDatabaseJob("save_message", msg, bgCtx) {
-		jobsSubmitted++
+		jobsSubmitted++ // เพิ้ม job submit
 		log.Printf("[ChatService] ✅ DB save job submitted for message %s", msg.ID.Hex())
 	} else {
 		log.Printf("[ChatService] ⚠️ CRITICAL: DB save job queue full for message %s", msg.ID.Hex())
-		
-		// **FALLBACK: Try immediate save as fallback**
+
+		// Fallback กลับมา ถ้า ส่งไม่ได้ จะต้องลบ message ออกจาก cache ด้วย
 		go func() {
 			if _, err := s.Create(bgCtx, *msg); err != nil {
 				log.Printf("[ChatService] ❌ FALLBACK: Direct DB save failed for message %s: %v", 
@@ -106,8 +112,8 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 			}
 		}()
 	}
-	
-	// Submit cache job (medium priority)
+
+	// Save บวใน cache ด้วย (สำคัญ) ถ้าเกิดข้อผิดพลาดจะต้องลบ message ออกจาก cache ด้วย
 	if s.SubmitDatabaseJob("cache_message", msg, bgCtx) {
 		jobsSubmitted++
 		log.Printf("[ChatService] ✅ Cache job submitted for message %s", msg.ID.Hex())
@@ -115,7 +121,7 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 		log.Printf("[ChatService] ⚠️ Cache job queue full for message %s", msg.ID.Hex())
 	}
 
-	// Submit notification job (lower priority)
+	//  ส่งการแจ้งเตือนไปยังผู้ใช้งานที่ออนไลน์ในห้อง (สำคัญกลาง)
 	onlineUsers := s.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
 	if s.SubmitNotificationJob(msg, onlineUsers, bgCtx) {
 		jobsSubmitted++
@@ -125,13 +131,13 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 		log.Printf("[ChatService] ⚠️ Notification job queue full for message %s", msg.ID.Hex())
 	}
 
-	// **7. PERFORMANCE METRICS: Log performance and reliability metrics**
+	// ตรวจสอบว่า message ส่งเสร็จจริงไหม ถ้าไม่ได้ส่งเสร็จจริงไหม จะต้องลบ message ออกจาก cache ด้วย
 	successRate := float64(jobsSubmitted) / float64(totalJobs) * 100
 	log.Printf("[ChatService] 📊 Message %s processing: Broadcast=✅, Jobs=%d/%d (%.1f%% success)", 
 		msg.ID.Hex(), jobsSubmitted, totalJobs, successRate)
 
-	// **8. RELIABILITY CHECK: เตือนถ้า success rate ต่ำ**
-	if successRate < 66.0 { // Less than 2/3 jobs submitted
+	// ตรวจสอบว่า rate ต่ำกว่่า 66 ไหม เตือนถ้า success rate ต่ำ
+	if successRate < 66.0 { // น้อยกว่า 2/3 jobs submitted
 		log.Printf("[ChatService] ⚠️ WARNING: Low job submission rate %.1f%% for message %s - system may be under high load", 
 			successRate, msg.ID.Hex())
 	}
@@ -139,6 +145,6 @@ func (s *ChatService) SendMessage(ctx context.Context, msg *model.ChatMessage) e
 	// **SUCCESS: Message ส่งสำเร็จ (broadcast แล้ว, jobs queued)**
 	log.Printf("[ChatService] ✅ Message %s processed successfully - UX immediate, background jobs queued", 
 		msg.ID.Hex())
-	
+
 	return nil
 } 

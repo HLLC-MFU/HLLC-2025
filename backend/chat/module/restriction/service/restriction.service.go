@@ -537,30 +537,30 @@ func (s *RestrictionService) broadcastToTarget(userID, roomID primitive.ObjectID
 	if isOnline {
 		log.Printf("[MODERATION] User %s is ONLINE, sending WebSocket notification", userID.Hex())
 		
-		// สร้าง targeted moderation payload สำหรับ frontend condition
-		payload := map[string]interface{}{
-			"type":      "moderation_targeted",
-			"action":    action,
-			"broadcast": "target",
-			"data": map[string]interface{}{
-				"targetUserId":  userID.Hex(),
-				"roomId":        roomID.Hex(),
-				"moderatorId":   moderatorID.Hex(),
-				"reason":        reason,
-				"endTime":       endTime,
-				"restriction":   restriction,
-				"timestamp":     time.Now(),
-				"message":       s.generateUserRestrictionMessage(action, reason, endTime),
-			},
-		}
+	// สร้าง targeted moderation payload สำหรับ frontend condition
+	payload := map[string]interface{}{
+		"type":      "moderation_targeted",
+		"action":    action,
+		"broadcast": "target",
+		"data": map[string]interface{}{
+			"targetUserId":  userID.Hex(),
+			"roomId":        roomID.Hex(),
+			"moderatorId":   moderatorID.Hex(),
+			"reason":        reason,
+			"endTime":       endTime,
+			"restriction":   restriction,
+			"timestamp":     time.Now(),
+			"message":       s.generateUserRestrictionMessage(action, reason, endTime),
+		},
+	}
 
 		// แปลงเป็น JSON และส่งไปยัง target user เฉพาะ ผ่าน WebSocket
-		if data, err := json.Marshal(payload); err == nil {
+	if data, err := json.Marshal(payload); err == nil {
 			s.hub.BroadcastToUser(userID.Hex(), data)
 			log.Printf("[MODERATION] Sent targeted %s WebSocket notification to user %s", action, userID.Hex())
-		} else {
-			log.Printf("[ERROR] Failed to marshal targeted moderation broadcast: %v", err)
-		}
+	} else {
+		log.Printf("[ERROR] Failed to marshal targeted moderation broadcast: %v", err)
+	}
 	} else {
 		log.Printf("[MODERATION] User %s is OFFLINE, sending Kafka notification", userID.Hex())
 		

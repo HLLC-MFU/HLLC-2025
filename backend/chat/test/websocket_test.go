@@ -27,7 +27,10 @@ const (
 )
 
 // 🔧 ดึง ObjectId string จาก ObjectId(...) ด้วย regex
-var objectIdRegex = regexp.MustCompile(`ObjectId\(([^)]+)\)`)
+var (
+	// 🔧 ดึง ObjectId string จาก ObjectId(...) ด้วย regex
+	objectIdRegex = regexp.MustCompile(`ObjectId\(([^)]+)\)`)
+)
 
 // ✅ ฟังก์ชันโหลด user id จากไฟล์ CSV
 func loadUserIDsFromCSV(path string) ([]string, error) {
@@ -62,7 +65,7 @@ var testUsers []string
 
 func init() {
 	var err error
-	testUsers, err = loadUserIDsFromCSV("../user_ids.csv")
+	testUsers, err = loadUserIDsFromCSV("./hllc-2025.users.csv")
 	if err != nil {
 		log.Fatalf("❌ Failed to load user IDs from CSV: %v", err)
 		}
@@ -303,4 +306,3 @@ func TestMassiveConnections(t *testing.T) {
 		log.Printf("🚀 EXCELLENT PERFORMANCE: Successfully maintained %d concurrent WebSocket connections!", successCount)
 	}
 }
-

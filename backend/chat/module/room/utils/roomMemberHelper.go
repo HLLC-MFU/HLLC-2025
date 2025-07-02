@@ -53,19 +53,22 @@ func (h *RoomMemberHelper) AddUserToRoom(ctx context.Context, roomID, userID str
 		"$set":      bson.M{"updatedAt": time.Now()},
 	}
 
-	result, err := collection.UpdateOne(ctx, filter, update)
+	var room model.Room
+	err = collection.FindOneAndUpdate(ctx, filter, update).Decode(&room)
 	if err != nil {
 		return fmt.Errorf("failed to add user to room: %w", err)
 	}
 
-	if result.ModifiedCount == 0 {
-		log.Printf("[MemberHelper] User %s already in room %s", userID, roomID)
-		return nil
+	// Update cache with the new room state
+	room.Members = append(room.Members, userObjID)
+	room.UpdatedAt = time.Now()
+	if err := h.cache.SaveRoom(ctx, &room); err != nil {
+		log.Printf("[MemberHelper] Warning: Failed to update cache: %v", err)
 	}
 
-	// ลบ cache
-	if err := h.cache.DeleteRoom(ctx, roomID); err != nil {
-		log.Printf("[MemberHelper] Warning: Failed to invalidate cache: %v", err)
+	// Also update the members cache
+	if err := h.cache.AddMember(ctx, roomID, userObjID); err != nil {
+		log.Printf("[MemberHelper] Warning: Failed to update members cache: %v", err)
 	}
 
 	// Broadcast event
@@ -99,9 +102,16 @@ func (h *RoomMemberHelper) RemoveUserFromRoom(ctx context.Context, roomID primit
 		return nil, fmt.Errorf("failed to remove user from room: %w", err)
 	}
 
-	// ลบ cache
-	if err := h.cache.DeleteRoom(ctx, roomID.Hex()); err != nil {
-		log.Printf("[MemberHelper] Warning: Failed to invalidate cache: %v", err)
+	// Update cache with the new room state
+	room.Members = RemoveMember(room.Members, userObjID)
+	room.UpdatedAt = time.Now()
+	if err := h.cache.SaveRoom(ctx, &room); err != nil {
+		log.Printf("[MemberHelper] Warning: Failed to update cache: %v", err)
+	}
+
+	// Also update the members cache
+	if err := h.cache.RemoveMember(ctx, roomID.Hex(), userObjID); err != nil {
+		log.Printf("[MemberHelper] Warning: Failed to update members cache: %v", err)
 	}
 
 	// Remove connection

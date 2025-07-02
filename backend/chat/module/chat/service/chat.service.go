@@ -23,41 +23,43 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// Add monitoring thresholds
+// กำหนดค่าตรวจสอบสถานะระบบ
 const (
-	QueueCapacityThreshold = 80  // Percentage
-	ErrorRateThreshold     = 5   // Percentage
-	HighLoadThreshold      = 100 // Messages per second
+	QueueCapacityThreshold = 80  // จำนวน Queue ต่อหน่วยความจำ
+	ErrorRateThreshold     = 5   // อัตราความผิดพลาด
+	HighLoadThreshold      = 100 // จำนวนข้อความต่อวินาที
 )
 
-type SystemMetrics struct {
-	QueueCapacity    float64
-	ErrorRate        float64
-	MessageRate      float64
-	LastAlertTime    time.Time
-	AlertCooldown    time.Duration
-}
+type (
+	SystemMetrics struct {
+		QueueCapacity    float64 // กำหนดจำนวน queue ต่อหน่วยความจำ
+		ErrorRate        float64 // กำหนดอัตราความผิดพลาด
+		MessageRate      float64 // กำหนดจำนวนข้อความต่อวินาที
+		LastAlertTime    time.Time // กำหนดวันที่ของการแจ้งเตือนล่าสุด
+		AlertCooldown    time.Duration // กำหนดระยะเวลาการแจ้งเตือน
+	}
 
-type ChatService struct {
-	*queries.BaseService[model.ChatMessage]
-	cache       *utils.ChatCacheService
-	hub         *utils.Hub
-	fkValidator *service.ForeignKeyValidator
-	collection  *mongo.Collection
-	emitter     *utils.ChatEventEmitter
-	kafkaBus    *kafka.Bus
-	mongo       *mongo.Database
-	redis       *redis.Client
-	Config      *config.Config
-	notificationService *notificationService.NotificationService
-	historyService      *HistoryService
-	restrictionService   *restrictionService.RestrictionService
-	
-	// **NEW: Async helper for worker pools and error handling**
-	asyncHelper       *utils.AsyncHelper
-	statusCollection  *mongo.Collection
-	mu               sync.RWMutex
-}
+	ChatService struct {
+		*queries.BaseService[model.ChatMessage]
+		cache       *utils.ChatCacheService
+		hub         *utils.Hub
+		fkValidator *service.ForeignKeyValidator
+		collection  *mongo.Collection
+		emitter     *utils.ChatEventEmitter
+		kafkaBus    *kafka.Bus
+		mongo       *mongo.Database
+		redis       *redis.Client
+		Config      *config.Config
+		notificationService *notificationService.NotificationService
+		historyService      *HistoryService
+		restrictionService   *restrictionService.RestrictionService
+		
+		// **NEW: Async helper for worker pools and error handling**
+		asyncHelper       *utils.AsyncHelper
+		statusCollection  *mongo.Collection
+		mu               sync.RWMutex
+	}
+)
 	
 func NewChatService(
 	db *mongo.Database,
@@ -325,7 +327,7 @@ func (s *ChatService) GetNotificationService() *notificationService.Notification
 
 func (s *ChatService) GetRestrictionService() *restrictionService.RestrictionService {
 	return s.restrictionService
-}
+	}
 
 func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {
 	return s.historyService.GetChatHistoryByRoom(ctx, roomID, limit)
@@ -340,6 +342,7 @@ func (s *ChatService) GetWorkerPoolStatus() map[string]interface{} {
 	return s.asyncHelper.GetWorkerPoolStatus()
 }
 
+// ถ้าเกิด message  สร้างไม่เสร็จ ไป trigger ให้มัน retry 3 รอบ
 func (s *ChatService) TriggerPhantomMessageFix() error {
 	s.asyncHelper.TriggerPhantomMessageDetection()
 	return nil
@@ -392,4 +395,4 @@ func (s *ChatService) alertHighLoad(rate float64) {
 	log.Printf("[ALERT] High message rate: %.2f/s (threshold: %d/s)", 
 		rate, HighLoadThreshold)
 	// Implement alert notification
-} 
+}
