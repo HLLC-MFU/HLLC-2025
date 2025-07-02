@@ -2,8 +2,13 @@ package test
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
 	"log"
+	"os"
+	"regexp"
+	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -21,859 +26,47 @@ const (
 	dbName     = "hllc_db"
 )
 
-// The user IDs provided have been added to this list.
-var testUsers = []string{
-	"68638cf29aed0ff1a4f7f079","68638cf29aed0ff1a4f7f081","68638cf29aed0ff1a4f7f089","68638cf29aed0ff1a4f7f092","68638cf29aed0ff1a4f7f09d","68638cf29aed0ff1a4f7f0a2","68638cf29aed0ff1a4f7f0aa","68638cf29aed0ff1a4f7f0b4","68638cf29aed0ff1a4f7f0ba","68638cf29aed0ff1a4f7f0c4","68638cf29aed0ff1a4f7f0cb","68638cf29aed0ff1a4f7f0d8",
-	"68638cf29aed0ff1a4f7f0de","68638cf29aed0ff1a4f7f0e3","68638cf29aed0ff1a4f7f0f1","68638cf29aed0ff1a4f7f0f5","68638cf29aed0ff1a4f7f0fb","68638cf29aed0ff1a4f7f108","68638cf29aed0ff1a4f7f10f","68638cf29aed0ff1a4f7f113","68638cf29aed0ff1a4f7f124","68638cf29aed0ff1a4f7f127","68638cf39aed0ff1a4f7f135",
-	"68638cf39aed0ff1a4f7f139",
-	"68638cf39aed0ff1a4f7f13d",
-	"68638cf39aed0ff1a4f7f145",
-	"68638cf39aed0ff1a4f7f157",
-	"68638cf39aed0ff1a4f7f15b",
-	"68638cf39aed0ff1a4f7f15d",
-	"68638cf39aed0ff1a4f7f166",
-	"68638cf39aed0ff1a4f7f170",
-	"68638cf39aed0ff1a4f7f178",
-	"68638cf39aed0ff1a4f7f189",
-	"68638cf39aed0ff1a4f7f18f",
-	"68638cf39aed0ff1a4f7f193",
-	"68638cf39aed0ff1a4f7f195",
-	"68638cf39aed0ff1a4f7f1a8",
-	"68638cf39aed0ff1a4f7f1b2",
-	"68638cf39aed0ff1a4f7f1b5",
-	"68638cf39aed0ff1a4f7f1bd",
-	"68638cf39aed0ff1a4f7f1c4",
-	"68638cf39aed0ff1a4f7f1c8",
-	"68638cf39aed0ff1a4f7f1da",
-	"68638cf39aed0ff1a4f7f1e4",
-	"68638cf39aed0ff1a4f7f1e8",
-	"68638cf39aed0ff1a4f7f1ea",
-	"68638cf39aed0ff1a4f7f1f6",
-	"68638cf39aed0ff1a4f7f204",
-	"68638cf49aed0ff1a4f7f20b",
-	"68638cf49aed0ff1a4f7f20e",
-	"68638cf49aed0ff1a4f7f213",
-	"68638cf49aed0ff1a4f7f21f",
-	"68638cf49aed0ff1a4f7f228",
-	"68638cf49aed0ff1a4f7f22d",
-	"68638cf49aed0ff1a4f7f23c",
-	"68638cf49aed0ff1a4f7f24a",
-	"68638cf49aed0ff1a4f7f251",
-	"68638cf49aed0ff1a4f7f255",
-	"68638cf49aed0ff1a4f7f25e",
-	"68638cf49aed0ff1a4f7f260",
-	"68638cf49aed0ff1a4f7f265",
-	"68638cf49aed0ff1a4f7f269",
-	"68638cf49aed0ff1a4f7f27f",
-	"68638cf49aed0ff1a4f7f286",
-	"68638cf49aed0ff1a4f7f299",
-	"68638cf49aed0ff1a4f7f29c",
-	"68638cf49aed0ff1a4f7f29e",
-	"68638cf49aed0ff1a4f7f2a0",
-	"68638cf49aed0ff1a4f7f2ab",
-	"68638cf49aed0ff1a4f7f2ad",
-	"68638cf49aed0ff1a4f7f2b3",
-	"68638cf59aed0ff1a4f7f2ca",
-	"68638cf59aed0ff1a4f7f2d5",
-	"68638cf59aed0ff1a4f7f2df",
-	"68638cf59aed0ff1a4f7f2ea",
-	"68638cf59aed0ff1a4f7f2ec",
-	"68638cf59aed0ff1a4f7f2ef",
-	"68638cf59aed0ff1a4f7f2f9",
-	"68638cf59aed0ff1a4f7f2fb",
-	"68638cf59aed0ff1a4f7f303",
-	"68638cf59aed0ff1a4f7f319",
-	"68638cf59aed0ff1a4f7f31c",
-	"68638cf59aed0ff1a4f7f321",
-	"68638cf59aed0ff1a4f7f32c",
-	"68638cf69aed0ff1a4f7f33c",
-	"68638cf69aed0ff1a4f7f346",
-	"68638cf69aed0ff1a4f7f348",
-	"68638cf69aed0ff1a4f7f34b",
-	"68638cf69aed0ff1a4f7f355",
-	"68638cf69aed0ff1a4f7f358",
-	"68638cf69aed0ff1a4f7f363",
-	"68638cf69aed0ff1a4f7f371",
-	"68638cf69aed0ff1a4f7f37b",
-	"68638cf69aed0ff1a4f7f382",
-	"68638cf69aed0ff1a4f7f38b",
-	"68638cf69aed0ff1a4f7f392",
-	"68638cf69aed0ff1a4f7f39b",
-	"68638cf79aed0ff1a4f7f3b9",
-	"68638cf79aed0ff1a4f7f3bc",
-	"68638cf79aed0ff1a4f7f3c1",
-	"68638cf79aed0ff1a4f7f3c3",
-	"68638cf79aed0ff1a4f7f3c5",
-	"68638cf79aed0ff1a4f7f3cf",
-	"68638cf79aed0ff1a4f7f3d3",
-	"68638cf79aed0ff1a4f7f3dc",
-	"68638cf79aed0ff1a4f7f3df",
-	"68638cf79aed0ff1a4f7f3e1",
-	"68638cf79aed0ff1a4f7f3f8",
-	"68638cf79aed0ff1a4f7f3fc",
-	"68638cf79aed0ff1a4f7f401",
-	"68638cf79aed0ff1a4f7f40c",
-	"68638cf79aed0ff1a4f7f412",
-	"68638cf89aed0ff1a4f7f432",
-	"68638cf89aed0ff1a4f7f43f",
-	"68638cf89aed0ff1a4f7f441",
-	"68638cf89aed0ff1a4f7f446",
-	"68638cf89aed0ff1a4f7f448",
-	"68638cf89aed0ff1a4f7f455",
-	"68638cf89aed0ff1a4f7f457",
-	"68638cf89aed0ff1a4f7f45a",
-	"68638cf89aed0ff1a4f7f45c",
-	"68638cf89aed0ff1a4f7f466",
-	"68638cf89aed0ff1a4f7f468",
-	"68638cf89aed0ff1a4f7f46a",
-	"68638cf89aed0ff1a4f7f485",
-	"68638cf89aed0ff1a4f7f487",
-	"68638cf89aed0ff1a4f7f4ad",
-	"68638cf89aed0ff1a4f7f4b4",
-	"68638cf89aed0ff1a4f7f4b9",
-	"68638cf89aed0ff1a4f7f4c3",
-	"68638cf89aed0ff1a4f7f4c9",
-	"68638cf99aed0ff1a4f7f4ce",
-	"68638cf99aed0ff1a4f7f4d8",
-	"68638cf99aed0ff1a4f7f4da",
-	"68638cf99aed0ff1a4f7f4de",
-	"68638cf99aed0ff1a4f7f4e0",
-	"68638cf99aed0ff1a4f7f4ee",
-	"68638cf99aed0ff1a4f7f4f0",
-	"68638cf99aed0ff1a4f7f4f2",
-	"68638cf99aed0ff1a4f7f4f5",
-	"68638cf99aed0ff1a4f7f4f7",
-	"68638cf99aed0ff1a4f7f507",
-	"68638cf99aed0ff1a4f7f509",
-	"68638cf99aed0ff1a4f7f517",
-	"68638cf99aed0ff1a4f7f536",
-	"68638cf99aed0ff1a4f7f542",
-	"68638cf99aed0ff1a4f7f544",
-	"68638cf99aed0ff1a4f7f55e",
-	"68638cf99aed0ff1a4f7f570",
-	"68638cf99aed0ff1a4f7f572",
-	"68638cf99aed0ff1a4f7f574",
-	"68638cf99aed0ff1a4f7f57b",
-	"68638cf99aed0ff1a4f7f57d",
-	"68638cf99aed0ff1a4f7f57f",
-	"68638cf99aed0ff1a4f7f587",
-	"68638cf99aed0ff1a4f7f58a",
-	"68638cf99aed0ff1a4f7f58c",
-	"68638cfa9aed0ff1a4f7f591",
-	"68638cfa9aed0ff1a4f7f5a0",
-	"68638cfa9aed0ff1a4f7f5a2",
-	"68638cfa9aed0ff1a4f7f5a4",
-	"68638cfa9aed0ff1a4f7f5b2",
-	"68638cfa9aed0ff1a4f7f5b4",
-	"68638cfa9aed0ff1a4f7f5b8",
-	"68638cfa9aed0ff1a4f7f5bb",
-	"68638cfa9aed0ff1a4f7f5e1",
-	"68638cfa9aed0ff1a4f7f5e8",
-	"68638cfa9aed0ff1a4f7f5f4",
-	"68638cfa9aed0ff1a4f7f5f9",
-	"68638cfa9aed0ff1a4f7f60b",
-	"68638cfa9aed0ff1a4f7f60d",
-	"68638cfa9aed0ff1a4f7f60f",
-	"68638cfa9aed0ff1a4f7f614",
-	"68638cfa9aed0ff1a4f7f62c",
-	"68638cfa9aed0ff1a4f7f640",
-	"68638cfa9aed0ff1a4f7f642",
-	"68638cfa9aed0ff1a4f7f644",
-	"68638cfa9aed0ff1a4f7f649",
-	"68638cfa9aed0ff1a4f7f64b",
-	"68638cfb9aed0ff1a4f7f661",
-	"68638cfb9aed0ff1a4f7f664",
-	"68638cfb9aed0ff1a4f7f669",
-	"68638cfb9aed0ff1a4f7f66b",
-	"68638cfb9aed0ff1a4f7f67d",
-	"68638cfb9aed0ff1a4f7f67f",
-	"68638cfb9aed0ff1a4f7f681",
-	"68638cfb9aed0ff1a4f7f690",
-	"68638cfb9aed0ff1a4f7f692",
-	"68638cfb9aed0ff1a4f7f694",
-	"68638cfb9aed0ff1a4f7f6a0",
-	"68638cfb9aed0ff1a4f7f6a2",
-	"68638cfb9aed0ff1a4f7f6b0",
-	"68638cfb9aed0ff1a4f7f6b2",
-	"68638cfb9aed0ff1a4f7f6c9",
-	"68638cfb9aed0ff1a4f7f6cb",
-	"68638cfb9aed0ff1a4f7f6d7",
-	"68638cfb9aed0ff1a4f7f6e3",
-	"68638cfb9aed0ff1a4f7f6ec",
-	"68638cfb9aed0ff1a4f7f6f9",
-	"68638cfb9aed0ff1a4f7f6fb",
-	"68638cfb9aed0ff1a4f7f6fe",
-	"68638cfc9aed0ff1a4f7f710",
-	"68638cfc9aed0ff1a4f7f712",
-	"68638cfc9aed0ff1a4f7f717",
-	"68638cfc9aed0ff1a4f7f719",
-	"68638cfc9aed0ff1a4f7f71f",
-	"68638cfc9aed0ff1a4f7f72f",
-	"68638cfc9aed0ff1a4f7f731",
-	"68638cfc9aed0ff1a4f7f733",
-	"68638cfc9aed0ff1a4f7f739",
-	"68638cfc9aed0ff1a4f7f74f",
-	"68638cfc9aed0ff1a4f7f775",
-	"68638cfc9aed0ff1a4f7f786",
-	"68638cfc9aed0ff1a4f7f789",
-	"68638cfc9aed0ff1a4f7f793",
-	"68638cfc9aed0ff1a4f7f795",
-	"68638cfc9aed0ff1a4f7f79b",
-	"68638cfc9aed0ff1a4f7f79d",
-	"68638cfc9aed0ff1a4f7f79f",
-	"68638cfc9aed0ff1a4f7f7ac",
-	"68638cfd9aed0ff1a4f7f7b6",
-	"68638cfd9aed0ff1a4f7f7ba",
-	"68638cfd9aed0ff1a4f7f7bd",
-	"68638cfd9aed0ff1a4f7f7bf",
-	"68638cfd9aed0ff1a4f7f7cc",
-	"68638cfd9aed0ff1a4f7f7ce",
-	"68638cfd9aed0ff1a4f7f7d9",
-	"68638cfd9aed0ff1a4f7f7db",
-	"68638cfd9aed0ff1a4f7f7f0",
-	"68638cfd9aed0ff1a4f7f7f2",
-	"68638cfd9aed0ff1a4f7f7f6",
-	"68638cfd9aed0ff1a4f7f7fd",
-	"68638cfd9aed0ff1a4f7f810",
-	"68638cfd9aed0ff1a4f7f812",
-	"68638cfd9aed0ff1a4f7f814",
-	"68638cfd9aed0ff1a4f7f818",
-	"68638cfd9aed0ff1a4f7f82d",
-	"68638cfd9aed0ff1a4f7f832",
-	"68638cfd9aed0ff1a4f7f836",
-	"68638cfd9aed0ff1a4f7f842",
-	"68638cfd9aed0ff1a4f7f844",
-	"68638cfd9aed0ff1a4f7f864",
-	"68638cfd9aed0ff1a4f7f86f",
-	"68638cfd9aed0ff1a4f7f873",
-	"68638cfd9aed0ff1a4f7f876",
-	"68638cfe9aed0ff1a4f7f891",
-	"68638cfe9aed0ff1a4f7f894",
-	"68638cfe9aed0ff1a4f7f8b0",
-	"68638cfe9aed0ff1a4f7f8b2",
-	"68638cfe9aed0ff1a4f7f8b8",
-	"68638cfe9aed0ff1a4f7f8ba",
-	"68638cfe9aed0ff1a4f7f8c1",
-	"68638cfe9aed0ff1a4f7f8c7",
-	"68638cfe9aed0ff1a4f7f8c9",
-	"68638cfe9aed0ff1a4f7f8d9",
-	"68638cfe9aed0ff1a4f7f8e2",
-	"68638cfe9aed0ff1a4f7f8e5",
-	"68638cfe9aed0ff1a4f7f8e7",
-	"68638cfe9aed0ff1a4f7f8e9",
-	"68638cfe9aed0ff1a4f7f8eb",
-	"68638cfe9aed0ff1a4f7f8ed",
-	"68638cfe9aed0ff1a4f7f900",
-	"68638cfe9aed0ff1a4f7f902",
-	"68638cfe9aed0ff1a4f7f905",
-	"68638cfe9aed0ff1a4f7f90a",
-	"68638cfe9aed0ff1a4f7f90d",
-	"68638cfe9aed0ff1a4f7f90f",
-	"68638cff9aed0ff1a4f7f923",
-	"68638cff9aed0ff1a4f7f926",
-	"68638cff9aed0ff1a4f7f928",
-	"68638cff9aed0ff1a4f7f934",
-	"68638cff9aed0ff1a4f7f948",
-	"68638cff9aed0ff1a4f7f94a",
-	"68638cff9aed0ff1a4f7f95d",
-	"68638cff9aed0ff1a4f7f970",
-	"68638cff9aed0ff1a4f7f972",
-	"68638cff9aed0ff1a4f7f97c",
-	"68638cff9aed0ff1a4f7f97f",
-	"68638cff9aed0ff1a4f7f98b",
-	"68638cff9aed0ff1a4f7f9a2",
-	"68638cff9aed0ff1a4f7f9c0",
-	"68638cff9aed0ff1a4f7f9c2",
-	"68638cff9aed0ff1a4f7f9d3",
-	"68638cff9aed0ff1a4f7f9da",
-	"68638cff9aed0ff1a4f7f9ef",
-	"68638d009aed0ff1a4f7f9f6",
-	"68638d009aed0ff1a4f7f9f9",
-	"68638d009aed0ff1a4f7f9fb",
-	"68638d009aed0ff1a4f7f9fd",
-	"68638d009aed0ff1a4f7f9ff",
-	"68638d009aed0ff1a4f7fa01",
-	"68638d009aed0ff1a4f7fa09",
-	"68638d009aed0ff1a4f7fa0b",
-	"68638d009aed0ff1a4f7fa0d",
-	"68638d009aed0ff1a4f7fa22",
-	"68638d009aed0ff1a4f7fa24",
-	"68638d009aed0ff1a4f7fa27",
-	"68638d009aed0ff1a4f7fa2a",
-	"68638d009aed0ff1a4f7fa2c",
-	"68638d009aed0ff1a4f7fa2e",
-	"68638d009aed0ff1a4f7fa46",
-	"68638d009aed0ff1a4f7fa48",
-	"68638d009aed0ff1a4f7fa4a",
-	"68638d009aed0ff1a4f7fa4c",
-	"68638d009aed0ff1a4f7fa50",
-	"68638d009aed0ff1a4f7fa71",
-	"68638d009aed0ff1a4f7fa7b",
-	"68638d009aed0ff1a4f7fa92",
-	"68638d009aed0ff1a4f7fa9b",
-	"68638d009aed0ff1a4f7fa9d",
-	"68638d009aed0ff1a4f7fa9f",
-	"68638d009aed0ff1a4f7faa6",
-	"68638d009aed0ff1a4f7faad",
-	"68638d019aed0ff1a4f7faca",
-	"68638d019aed0ff1a4f7facc",
-	"68638d019aed0ff1a4f7fadf",
-	"68638d019aed0ff1a4f7fae1",
-	"68638d019aed0ff1a4f7faf3",
-	"68638d019aed0ff1a4f7faf5",
-	"68638d019aed0ff1a4f7faf7",
-	"68638d019aed0ff1a4f7faf9",
-	"68638d019aed0ff1a4f7fafb",
-	"68638d019aed0ff1a4f7fb22",
-	"68638d019aed0ff1a4f7fb24",
-	"68638d019aed0ff1a4f7fb2b",
-	"68638d019aed0ff1a4f7fb32",
-	"68638d019aed0ff1a4f7fb34",
-	"68638d019aed0ff1a4f7fb36",
-	"68638d019aed0ff1a4f7fb38",
-	"68638d019aed0ff1a4f7fb3a",
-	"68638d019aed0ff1a4f7fb58",
-	"68638d019aed0ff1a4f7fb5a",
-	"68638d019aed0ff1a4f7fb5d",
-	"68638d019aed0ff1a4f7fb5f",
-	"68638d019aed0ff1a4f7fb61",
-	"68638d019aed0ff1a4f7fb63",
-	"68638d019aed0ff1a4f7fb67",
-	"68638d029aed0ff1a4f7fb81",
-	"68638d029aed0ff1a4f7fb83",
-	"68638d029aed0ff1a4f7fb85",
-	"68638d029aed0ff1a4f7fb88",
-	"68638d029aed0ff1a4f7fb8a",
-	"68638d029aed0ff1a4f7fb8d",
-	"68638d029aed0ff1a4f7fb8f",
-	"68638d029aed0ff1a4f7fb91",
-	"68638d029aed0ff1a4f7fb98",
-	"68638d029aed0ff1a4f7fbb6",
-	"68638d029aed0ff1a4f7fbcc",
-	"68638d029aed0ff1a4f7fbce",
-	"68638d029aed0ff1a4f7fbd0",
-	"68638d029aed0ff1a4f7fbd2",
-	"68638d029aed0ff1a4f7fbd4",
-	"68638d029aed0ff1a4f7fbfc",
-	"68638d029aed0ff1a4f7fbfe",
-	"68638d029aed0ff1a4f7fc03",
-	"68638d029aed0ff1a4f7fc2b",
-	"68638d029aed0ff1a4f7fc2d",
-	"68638d029aed0ff1a4f7fc2f",
-	"68638d029aed0ff1a4f7fc31",
-	"68638d029aed0ff1a4f7fc39",
-	"68638d029aed0ff1a4f7fc3b",
-	"68638d029aed0ff1a4f7fc5b",
-	"68638d029aed0ff1a4f7fc5d",
-	"68638d029aed0ff1a4f7fc5f",
-	"68638d029aed0ff1a4f7fc61",
-	"68638d029aed0ff1a4f7fc64",
-	"68638d039aed0ff1a4f7fc6b",
-	"68638d039aed0ff1a4f7fc6d",
-	"68638d039aed0ff1a4f7fc93",
-	"68638d039aed0ff1a4f7fc95",
-	"68638d039aed0ff1a4f7fc97",
-	"68638d039aed0ff1a4f7fc99",
-	"68638d039aed0ff1a4f7fcc4",
-	"68638d039aed0ff1a4f7fcc6",
-	"68638d039aed0ff1a4f7fcc8",
-	"68638d039aed0ff1a4f7fccb",
-	"68638d039aed0ff1a4f7fccf",
-	"68638d039aed0ff1a4f7fcd1",
-	"68638d039aed0ff1a4f7fcd3",
-	"68638d039aed0ff1a4f7fcd5",
-	"68638d039aed0ff1a4f7fcd7",
-	"68638d039aed0ff1a4f7fcec",
-	"68638d039aed0ff1a4f7fcfa",
-	"68638d039aed0ff1a4f7fcfc",
-	"68638d039aed0ff1a4f7fcfe",
-	"68638d039aed0ff1a4f7fd00",
-	"68638d039aed0ff1a4f7fd02",
-	"68638d039aed0ff1a4f7fd04",
-	"68638d039aed0ff1a4f7fd06",
-	"68638d039aed0ff1a4f7fd2a",
-	"68638d039aed0ff1a4f7fd2c",
-	"68638d039aed0ff1a4f7fd2e",
-	"68638d049aed0ff1a4f7fd59",
-	"68638d049aed0ff1a4f7fd5b",
-	"68638d049aed0ff1a4f7fd5d",
-	"68638d049aed0ff1a4f7fd5f",
-	"68638d049aed0ff1a4f7fd6e",
-	"68638d049aed0ff1a4f7fd70",
-	"68638d049aed0ff1a4f7fd72",
-	"68638d049aed0ff1a4f7fd74",
-	"68638d049aed0ff1a4f7fd93",
-	"68638d049aed0ff1a4f7fd95",
-	"68638d049aed0ff1a4f7fd97",
-	"68638d049aed0ff1a4f7fd99",
-	"68638d049aed0ff1a4f7fd9b",
-	"68638d049aed0ff1a4f7fdc7",
-	"68638d049aed0ff1a4f7fdc9",
-	"68638d049aed0ff1a4f7fdcb",
-	"68638d049aed0ff1a4f7fdcd",
-	"68638d049aed0ff1a4f7fdd6",
-	"68638d049aed0ff1a4f7fdd8",
-	"68638d049aed0ff1a4f7fdda",
-	"68638d049aed0ff1a4f7fdfa",
-	"68638d049aed0ff1a4f7fdfc",
-	"68638d049aed0ff1a4f7fdfe",
-	"68638d049aed0ff1a4f7fe00",
-	"68638d059aed0ff1a4f7fe2e",
-	"68638d059aed0ff1a4f7fe30",
-	"68638d059aed0ff1a4f7fe32",
-	"68638d059aed0ff1a4f7fe34",
-	"68638d059aed0ff1a4f7fe36",
-	"68638d059aed0ff1a4f7fe42",
-	"68638d059aed0ff1a4f7fe6c",
-	"68638d059aed0ff1a4f7fe70",
-	"68638d059aed0ff1a4f7fe72",
-	"68638d059aed0ff1a4f7fe74",
-	"68638d059aed0ff1a4f7fe76",
-	"68638d059aed0ff1a4f7fe78",
-	"68638d059aed0ff1a4f7fe7a",
-	"68638d059aed0ff1a4f7fe7c",
-	"68638d059aed0ff1a4f7fe7f",
-	"68638d059aed0ff1a4f7fe81",
-	"68638d059aed0ff1a4f7fe83",
-	"68638d059aed0ff1a4f7fe85",
-	"68638d059aed0ff1a4f7fead",
-	"68638d059aed0ff1a4f7feaf",
-	"68638d059aed0ff1a4f7feb1",
-	"68638d069aed0ff1a4f7fedc",
-	"68638d069aed0ff1a4f7fede",
-	"68638d069aed0ff1a4f7fee0",
-	"68638d069aed0ff1a4f7fee2",
-	"68638d069aed0ff1a4f7fee4",
-	"68638d069aed0ff1a4f7fee6",
-	"68638d069aed0ff1a4f7fee8",
-	"68638d069aed0ff1a4f7feea",
-	"68638d069aed0ff1a4f7feec",
-	"68638d069aed0ff1a4f7ff1e",
-	"68638d069aed0ff1a4f7ff20",
-	"68638d069aed0ff1a4f7ff22",
-	"68638d069aed0ff1a4f7ff24",
-	"68638d069aed0ff1a4f7ff26",
-	"68638d069aed0ff1a4f7ff40",
-	"68638d069aed0ff1a4f7ff47",
-	"68638d069aed0ff1a4f7ff56",
-	"68638d069aed0ff1a4f7ff58",
-	"68638d069aed0ff1a4f7ff5a",
-	"68638d069aed0ff1a4f7ff5c",
-	"68638d069aed0ff1a4f7ff5e",
-	"68638d069aed0ff1a4f7ff60",
-	"68638d069aed0ff1a4f7ff64",
-	"68638d069aed0ff1a4f7ff68",
-	"68638d079aed0ff1a4f7ff93",
-	"68638d079aed0ff1a4f7ff95",
-	"68638d079aed0ff1a4f7ff97",
-	"68638d079aed0ff1a4f7ff99",
-	"68638d079aed0ff1a4f7ff9b",
-	"68638d079aed0ff1a4f7ffc6",
-	"68638d079aed0ff1a4f7ffc8",
-	"68638d079aed0ff1a4f7ffca",
-	"68638d079aed0ff1a4f7ffcc",
-	"68638d079aed0ff1a4f7ffce",
-	"68638d079aed0ff1a4f7ffd0",
-	"68638d079aed0ff1a4f7ffd2",
-	"68638d079aed0ff1a4f7ffd4",
-	"68638d079aed0ff1a4f7fff5",
-	"68638d079aed0ff1a4f80008",
-	"68638d079aed0ff1a4f8000a",
-	"68638d079aed0ff1a4f8000c",
-	"68638d079aed0ff1a4f8000e",
-	"68638d079aed0ff1a4f80010",
-	"68638d079aed0ff1a4f80015",
-	"68638d079aed0ff1a4f80017",
-	"68638d079aed0ff1a4f8001a",
-	"68638d079aed0ff1a4f8001c",
-	"68638d089aed0ff1a4f80049",
-	"68638d089aed0ff1a4f8004b",
-	"68638d089aed0ff1a4f8004d",
-	"68638d089aed0ff1a4f8007d",
-	"68638d089aed0ff1a4f8007f",
-	"68638d089aed0ff1a4f80081",
-	"68638d089aed0ff1a4f80083",
-	"68638d089aed0ff1a4f80085",
-	"68638d089aed0ff1a4f80087",
-	"68638d089aed0ff1a4f80089",
-	"68638d089aed0ff1a4f8008b",
-	"68638d089aed0ff1a4f8008d",
-	"68638d089aed0ff1a4f8008f",
-	"68638d089aed0ff1a4f800c6",
-	"68638d089aed0ff1a4f800c8",
-	"68638d089aed0ff1a4f800ca",
-	"68638d089aed0ff1a4f800cc",
-	"68638d089aed0ff1a4f800ff",
-	"68638d089aed0ff1a4f80101",
-	"68638d089aed0ff1a4f80103",
-	"68638d089aed0ff1a4f80105",
-	"68638d089aed0ff1a4f80107",
-	"68638d089aed0ff1a4f80109",
-	"68638d089aed0ff1a4f8010b",
-	"68638d089aed0ff1a4f8010d",
-	"68638d099aed0ff1a4f80112",
-	"68638d099aed0ff1a4f80121",
-	"68638d099aed0ff1a4f80139",
-	"68638d099aed0ff1a4f8013b",
-	"68638d099aed0ff1a4f8014d",
-	"68638d099aed0ff1a4f8014f",
-	"68638d099aed0ff1a4f80151",
-	"68638d099aed0ff1a4f80158",
-	"68638d099aed0ff1a4f8015a",
-	"68638d099aed0ff1a4f80185",
-	"68638d099aed0ff1a4f80187",
-	"68638d099aed0ff1a4f80189",
-	"68638d099aed0ff1a4f8018b",
-	"68638d099aed0ff1a4f8018d",
-	"68638d099aed0ff1a4f8018f",
-	"68638d099aed0ff1a4f80191",
-	"68638d099aed0ff1a4f8019e",
-	"68638d0a9aed0ff1a4f801c8",
-	"68638d0a9aed0ff1a4f801ca",
-	"68638d0a9aed0ff1a4f801cc",
-	"68638d0a9aed0ff1a4f801ce",
-	"68638d0a9aed0ff1a4f801d0",
-	"68638d0a9aed0ff1a4f801d2",
-	"68638d0a9aed0ff1a4f801f4",
-	"68638d0a9aed0ff1a4f801f6",
-	"68638d0a9aed0ff1a4f801fc",
-	"68638d0a9aed0ff1a4f801fe",
-	"68638d0a9aed0ff1a4f8020b",
-	"68638d0a9aed0ff1a4f80237",
-	"68638d0a9aed0ff1a4f80239",
-	"68638d0a9aed0ff1a4f8023b",
-	"68638d0a9aed0ff1a4f8023d",
-	"68638d0a9aed0ff1a4f8023f",
-	"68638d0a9aed0ff1a4f80241",
-	"68638d0a9aed0ff1a4f8024b",
-	"68638d0a9aed0ff1a4f8024d",
-	"68638d0a9aed0ff1a4f8024f",
-	"68638d0a9aed0ff1a4f80251",
-	"68638d0a9aed0ff1a4f80254",
-	"68638d0a9aed0ff1a4f80256",
-	"68638d0a9aed0ff1a4f80258",
-	"68638d0a9aed0ff1a4f8025a",
-	"68638d0a9aed0ff1a4f8025c",
-	"68638d0b9aed0ff1a4f80284",
-	"68638d0b9aed0ff1a4f80286",
-	"68638d0b9aed0ff1a4f80288",
-	"68638d0b9aed0ff1a4f8028a",
-	"68638d0b9aed0ff1a4f802b7",
-	"68638d0b9aed0ff1a4f802b9",
-	"68638d0b9aed0ff1a4f802bb",
-	"68638d0b9aed0ff1a4f802bd",
-	"68638d0b9aed0ff1a4f802bf",
-	"68638d0b9aed0ff1a4f802c1",
-	"68638d0b9aed0ff1a4f802c3",
-	"68638d0b9aed0ff1a4f802c5",
-	"68638d0b9aed0ff1a4f802c7",
-	"68638d0b9aed0ff1a4f802c9",
-	"68638d0b9aed0ff1a4f802cb",
-	"68638d0b9aed0ff1a4f802d0",
-	"68638d0b9aed0ff1a4f802d2",
-	"68638d0b9aed0ff1a4f802f6",
-	"68638d0b9aed0ff1a4f802f8",
-	"68638d0b9aed0ff1a4f80303",
-	"68638d0b9aed0ff1a4f80305",
-	"68638d0b9aed0ff1a4f80307",
-	"68638d0b9aed0ff1a4f80309",
-	"68638d0b9aed0ff1a4f8030b",
-	"68638d0c9aed0ff1a4f8033e",
-	"68638d0c9aed0ff1a4f80340",
-	"68638d0c9aed0ff1a4f80342",
-	"68638d0c9aed0ff1a4f80344",
-	"68638d0c9aed0ff1a4f80346",
-	"68638d0c9aed0ff1a4f80348",
-	"68638d0c9aed0ff1a4f8034a",
-	"68638d0c9aed0ff1a4f8034c",
-	"68638d0c9aed0ff1a4f8034e",
-	"68638d0c9aed0ff1a4f8038a",
-	"68638d0c9aed0ff1a4f8038c",
-	"68638d0c9aed0ff1a4f8038e",
-	"68638d0c9aed0ff1a4f80390",
-	"68638d0c9aed0ff1a4f80392",
-	"68638d0d9aed0ff1a4f803d2",
-	"68638d0d9aed0ff1a4f803d4",
-	"68638d0d9aed0ff1a4f803d6",
-	"68638d0d9aed0ff1a4f803d8",
-	"68638d0d9aed0ff1a4f803da",
-	"68638d0d9aed0ff1a4f803dc",
-	"68638d0d9aed0ff1a4f80416",
-	"68638d0d9aed0ff1a4f80422",
-	"68638d0d9aed0ff1a4f80424",
-	"68638d0d9aed0ff1a4f80426",
-	"68638d0d9aed0ff1a4f80428",
-	"68638d0d9aed0ff1a4f8042a",
-	"68638d0d9aed0ff1a4f80462",
-	"68638d0d9aed0ff1a4f8046e",
-	"68638d0d9aed0ff1a4f80470",
-	"68638d0d9aed0ff1a4f80472",
-	"68638d0d9aed0ff1a4f80474",
-	"68638d0d9aed0ff1a4f80476",
-	"68638d0d9aed0ff1a4f80478",
-	"68638d0d9aed0ff1a4f8047a",
-	"68638d0d9aed0ff1a4f8047c",
-	"68638d0d9aed0ff1a4f8047e",
-	"68638d0d9aed0ff1a4f80480",
-	"68638d0e9aed0ff1a4f8048a",
-	"68638d0e9aed0ff1a4f8048c",
-	"68638d0e9aed0ff1a4f804c0",
-	"68638d0e9aed0ff1a4f804c2",
-	"68638d0e9aed0ff1a4f804c4",
-	"68638d0e9aed0ff1a4f804c6",
-	"68638d0e9aed0ff1a4f804c8",
-	"68638d0e9aed0ff1a4f804ca",
-	"68638d0e9aed0ff1a4f804cc",
-	"68638d0e9aed0ff1a4f804d7",
-	"68638d0e9aed0ff1a4f804d9",
-	"68638d0e9aed0ff1a4f804e5",
-	"68638d0f9aed0ff1a4f8050c",
-	"68638d0f9aed0ff1a4f8050e",
-	"68638d0f9aed0ff1a4f80510",
-	"68638d0f9aed0ff1a4f80512",
-	"68638d0f9aed0ff1a4f80514",
-	"68638d0f9aed0ff1a4f80516",
-	"68638d0f9aed0ff1a4f80518",
-	"68638d0f9aed0ff1a4f8051a",
-	"68638d0f9aed0ff1a4f8052f",
-	"68638d0f9aed0ff1a4f80531",
-	"68638d0f9aed0ff1a4f80551",
-	"68638d0f9aed0ff1a4f80553",
-	"68638d0f9aed0ff1a4f80555",
-	"68638d0f9aed0ff1a4f80557",
-	"68638d0f9aed0ff1a4f80559",
-	"68638d0f9aed0ff1a4f8055b",
-	"68638d0f9aed0ff1a4f8055d",
-	"68638d0f9aed0ff1a4f8055f",
-	"68638d0f9aed0ff1a4f80561",
-	"68638d0f9aed0ff1a4f80563",
-	"68638d0f9aed0ff1a4f80565",
-	"68638d0f9aed0ff1a4f80567",
-	"68638d0f9aed0ff1a4f80583",
-	"68638d0f9aed0ff1a4f80585",
-	"68638d109aed0ff1a4f80592",
-	"68638d109aed0ff1a4f805a2",
-	"68638d109aed0ff1a4f805a4",
-	"68638d109aed0ff1a4f805a6",
-	"68638d109aed0ff1a4f805a8",
-	"68638d109aed0ff1a4f805aa",
-	"68638d109aed0ff1a4f805ac",
-	"68638d109aed0ff1a4f805c4",
-	"68638d109aed0ff1a4f805c6",
-	"68638d109aed0ff1a4f805c8",
-	"68638d109aed0ff1a4f805ca",
-	"68638d109aed0ff1a4f805cc",
-	"68638d109aed0ff1a4f805ce",
-	"68638d109aed0ff1a4f805d0",
-	"68638d109aed0ff1a4f805d2",
-	"68638d109aed0ff1a4f805e1",
-	"68638d109aed0ff1a4f8060c",
-	"68638d109aed0ff1a4f8060e",
-	"68638d109aed0ff1a4f80610",
-	"68638d109aed0ff1a4f80612",
-	"68638d109aed0ff1a4f80614",
-	"68638d109aed0ff1a4f80616",
-	"68638d109aed0ff1a4f80625",
-	"68638d109aed0ff1a4f80652",
-	"68638d109aed0ff1a4f80654",
-	"68638d119aed0ff1a4f8065b",
-	"68638d119aed0ff1a4f8065d",
-	"68638d119aed0ff1a4f8065f",
-	"68638d119aed0ff1a4f806aa",
-	"68638d119aed0ff1a4f806ac",
-	"68638d119aed0ff1a4f806ae",
-	"68638d119aed0ff1a4f806b0",
-	"68638d119aed0ff1a4f806b2",
-	"68638d119aed0ff1a4f806b4",
-	"68638d119aed0ff1a4f806b6",
-	"68638d119aed0ff1a4f80709",
-	"68638d119aed0ff1a4f8070b",
-	"68638d119aed0ff1a4f8070d",
-	"68638d119aed0ff1a4f8070f",
-	"68638d119aed0ff1a4f80711",
-	"68638d119aed0ff1a4f80713",
-	"68638d129aed0ff1a4f80753",
-	"68638d129aed0ff1a4f80755",
-	"68638d129aed0ff1a4f80757",
-	"68638d129aed0ff1a4f80759",
-	"68638d129aed0ff1a4f8075b",
-	"68638d129aed0ff1a4f8075d",
-	"68638d129aed0ff1a4f8075f",
-	"68638d129aed0ff1a4f80761",
-	"68638d129aed0ff1a4f80763",
-	"68638d129aed0ff1a4f80765",
-	"68638d129aed0ff1a4f80767",
-	"68638d129aed0ff1a4f80769",
-	"68638d129aed0ff1a4f8076b",
-	"68638d129aed0ff1a4f8076d",
-	"68638d129aed0ff1a4f807af",
-	"68638d129aed0ff1a4f807b1",
-	"68638d129aed0ff1a4f807b3",
-	"68638d129aed0ff1a4f807b6",
-	"68638d129aed0ff1a4f807b8",
-	"68638d129aed0ff1a4f807ba",
-	"68638d129aed0ff1a4f807bc",
-	"68638d129aed0ff1a4f807be",
-	"68638d129aed0ff1a4f807c0",
-	"68638d129aed0ff1a4f807c2",
-	"68638d129aed0ff1a4f807c4",
-	"68638d139aed0ff1a4f80800",
-	"68638d139aed0ff1a4f80802",
-	"68638d139aed0ff1a4f80804",
-	"68638d139aed0ff1a4f80806",
-	"68638d139aed0ff1a4f80808",
-	"68638d139aed0ff1a4f8080a",
-	"68638d139aed0ff1a4f8080c",
-	"68638d139aed0ff1a4f8080e",
-	"68638d139aed0ff1a4f80810",
-	"68638d139aed0ff1a4f80812",
-	"68638d139aed0ff1a4f80814",
-	"68638d139aed0ff1a4f80816",
-	"68638d139aed0ff1a4f80828",
-	"68638d139aed0ff1a4f80851",
-	"68638d139aed0ff1a4f80853",
-	"68638d139aed0ff1a4f80855",
-	"68638d139aed0ff1a4f80857",
-	"68638d139aed0ff1a4f80859",
-	"68638d139aed0ff1a4f80863",
-	"68638d139aed0ff1a4f80865",
-	"68638d139aed0ff1a4f80867",
-	"68638d139aed0ff1a4f80869",
-	"68638d139aed0ff1a4f8086b",
-	"68638d139aed0ff1a4f8086d",
-	"68638d149aed0ff1a4f8089b",
-	"68638d149aed0ff1a4f8089d",
-	"68638d149aed0ff1a4f8089f",
-	"68638d149aed0ff1a4f808a1",
-	"68638d149aed0ff1a4f808a3",
-	"68638d149aed0ff1a4f808a5",
-	"68638d149aed0ff1a4f808af",
-	"68638d149aed0ff1a4f808b1",
-	"68638d149aed0ff1a4f808b3",
-	"68638d149aed0ff1a4f808b5",
-	"68638d149aed0ff1a4f808b7",
-	"68638d149aed0ff1a4f808b9",
-	"68638d149aed0ff1a4f808bb",
-	"68638d149aed0ff1a4f808bd",
-	"68638d149aed0ff1a4f808bf",
-	"68638d149aed0ff1a4f808dd",
-	"68638d149aed0ff1a4f808df",
-	"68638d149aed0ff1a4f808e1",
-	"68638d149aed0ff1a4f808e3",
-	"68638d149aed0ff1a4f808e5",
-	"68638d149aed0ff1a4f808e7",
-	"68638d149aed0ff1a4f808e9",
-	"68638d149aed0ff1a4f808f7",
-	"68638d149aed0ff1a4f808f9",
-	"68638d149aed0ff1a4f8092a",
-	"68638d149aed0ff1a4f8092c",
-	"68638d149aed0ff1a4f8092e",
-	"68638d149aed0ff1a4f80930",
-	"68638d149aed0ff1a4f80932",
-	"68638d149aed0ff1a4f8098a",
-	"68638d149aed0ff1a4f809af",
-	"68638d149aed0ff1a4f809b1",
-	"68638d149aed0ff1a4f809b3",
-	"68638d149aed0ff1a4f809fb",
-	"68638d149aed0ff1a4f809fd",
-	"68638d149aed0ff1a4f809ff",
-	"68638d149aed0ff1a4f80a01",
-	"68638d149aed0ff1a4f80a03",
-	"68638d149aed0ff1a4f80a05",
-	"68638d149aed0ff1a4f80a07",
-	"68638d159aed0ff1a4f80a5e",
-	"68638d159aed0ff1a4f80a60",
-	"68638d159aed0ff1a4f80a62",
-	"68638d159aed0ff1a4f80a64",
-	"68638d159aed0ff1a4f80a66",
-	"68638d159aed0ff1a4f80a68",
-	"68638d159aed0ff1a4f80a6a",
-	"68638d159aed0ff1a4f80a71",
-	"68638d159aed0ff1a4f80a73",
-	"68638d159aed0ff1a4f80a75",
-	"68638d159aed0ff1a4f80a77",
-	"68638d159aed0ff1a4f80a79",
-	"68638d159aed0ff1a4f80a80",
-	"68638d169aed0ff1a4f80a9d",
-}
+// 🔧 ดึง ObjectId string จาก ObjectId(...) ด้วย regex
+var objectIdRegex = regexp.MustCompile(`ObjectId\(([^)]+)\)`)
 
-func TestWebSocketConnections(t *testing.T) {
-	// Connect to MongoDB
-	ctx := context.Background()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+// ✅ ฟังก์ชันโหลด user id จากไฟล์ CSV
+func loadUserIDsFromCSV(path string) ([]string, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		t.Fatalf("Failed to connect to MongoDB: %v", err)
+		return nil, err
 	}
-	defer client.Disconnect(ctx)
+	defer file.Close()
 
-	db := client.Database(dbName)
-
-	// Create a test room
-	roomID, err := createTestRoom(ctx, db)
+	reader := csv.NewReader(file)
+	lines, err := reader.ReadAll()
 	if err != nil {
-		t.Fatalf("Failed to create test room: %v", err)
+		return nil, err
 	}
 
-	// Add test users to room
-	if err := addUsersToRoom(ctx, db, roomID, testUsers); err != nil {
-		t.Fatalf("Failed to add users to room: %v", err)
-	}
-
-	log.Printf("Created test room %s with %d initial members", roomID.Hex(), len(testUsers))
-
-	// Test concurrent WebSocket connections
-	totalConnections := 793
-	var wg sync.WaitGroup
-	wg.Add(totalConnections)
-
-	connections := make([]*websocket.Conn, totalConnections)
-	errors := make(chan error, totalConnections)
-
-	for i := 0; i < totalConnections; i++ {
-		go func(index int) {
-			defer wg.Done()
-
-			// Use one of the test users in round-robin fashion
-			userID := testUsers[index%len(testUsers)]
-
-			// Connect to WebSocket
-			url := fmt.Sprintf(wsEndpoint, roomID.Hex(), userID)
-			conn, _, err := websocket.DefaultDialer.Dial(url, nil)
-			if err != nil {
-				errors <- fmt.Errorf("connection %d failed: %v", index, err)
-				return
-			}
-
-			connections[index] = conn
-			log.Printf("Connection %d established for user %s", index, userID)
-
-			// Keep connection alive for a while
-			time.Sleep(2 * time.Second)
-		}(i)
-	}
-
-	// Wait for all connections
-	wg.Wait()
-	close(errors)
-
-	// Check for errors
-	errCount := 0
-	for err := range errors {
-		errCount++
-		log.Printf("Error: %v", err)
-	}
-
-	// Close all successful connections
-	for _, conn := range connections {
-		if conn != nil {
-			conn.Close()
+	var ids []string
+	for i, line := range lines {
+		if i == 0 {
+			continue // skip header
+		}
+		raw := strings.TrimSpace(line[0])
+		matches := objectIdRegex.FindStringSubmatch(raw)
+		if len(matches) == 2 {
+			ids = append(ids, matches[1])
 		}
 	}
 
-	log.Printf("Test completed: %d successful connections, %d failed", totalConnections-errCount, errCount)
-	if errCount > 0 {
-		t.Errorf("%d connections failed", errCount)
-	}
+	return ids, nil
+}
+
+var testUsers []string
+
+func init() {
+	var err error
+	testUsers, err = loadUserIDsFromCSV("../user_ids.csv")
+	if err != nil {
+		log.Fatalf("❌ Failed to load user IDs from CSV: %v", err)
+		}
+	log.Printf("✅ Loaded %d user IDs from CSV", len(testUsers))
 }
 
 func createTestRoom(ctx context.Context, db *mongo.Database) (primitive.ObjectID, error) {
@@ -883,7 +76,7 @@ func createTestRoom(ctx context.Context, db *mongo.Database) (primitive.ObjectID
 			"en": "WebSocket Test Room",
 		},
 		"type":      "normal",
-		"capacity":  1000,
+		"capacity":  0,
 		"members":   []primitive.ObjectID{},
 		"createdAt": time.Now(),
 		"updatedAt": time.Now(),
@@ -914,3 +107,200 @@ func addUsersToRoom(ctx context.Context, db *mongo.Database, roomID primitive.Ob
 	)
 	return err
 }
+
+// TestMassiveConnections ทดสอบการเชื่อมต่อ WebSocket จำนวนมากพร้อมกัน
+func TestMassiveConnections(t *testing.T) {
+	ctx := context.Background()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		t.Fatalf("Failed to connect to MongoDB: %v", err)
+	}
+	defer client.Disconnect(ctx)
+
+	db := client.Database(dbName)
+
+	roomID, err := createTestRoom(ctx, db)
+	if err != nil {
+		t.Fatalf("Failed to create test room: %v", err)
+	}
+
+	if err := addUsersToRoom(ctx, db, roomID, testUsers); err != nil {
+		t.Fatalf("Failed to add users to room: %v", err)
+	}
+
+	log.Printf("Created test room %s with %d initial members", roomID.Hex(), len(testUsers))
+
+	// กำหนดค่าพารามิเตอร์สำหรับการทดสอบ
+	totalConnections := 10000
+	concurrentLimit := 200     // จำนวน goroutines ที่จะรันพร้อมกัน
+	connectionTimeout := 30 * time.Second
+	
+	log.Printf("🔥 MASSIVE CONNECTION TEST: Attempting %d concurrent connections...", totalConnections)
+	log.Printf("Settings: Concurrent Limit=%d, Timeout=%v", concurrentLimit, connectionTimeout)
+
+	// สร้าง connection pool และ channels สำหรับจัดการผลลัพธ์
+	connections := make([]*websocket.Conn, totalConnections)
+	errors := make(chan error, totalConnections)
+	successes := make(chan int, totalConnections)
+	semaphore := make(chan struct{}, concurrentLimit)
+
+	// สร้าง WaitGroup สำหรับรอให้ทุก connection เสร็จสิ้น
+	var wg sync.WaitGroup
+	wg.Add(totalConnections)
+
+	// เริ่มจับเวลา
+	start := time.Now()
+
+	// Monitor goroutine สำหรับแสดงความคืบหน้า
+	progressTicker := time.NewTicker(5 * time.Second)
+	go func() {
+		for range progressTicker.C {
+			successCount := len(successes)
+			errorCount := len(errors)
+			totalDone := successCount + errorCount
+			if totalDone >= totalConnections {
+				progressTicker.Stop()
+				return
+			}
+			log.Printf("Progress: %d/%d connections (Success: %d, Failed: %d)", 
+				totalDone, totalConnections, successCount, errorCount)
+		}
+	}()
+
+	// เริ่มสร้าง connections
+	for i := 0; i < totalConnections; i++ {
+		go func(index int) {
+			defer wg.Done()
+			
+			// รอ semaphore
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			userIndex := index % len(testUsers)
+			userID := testUsers[userIndex]
+			url := fmt.Sprintf(wsEndpoint, roomID.Hex(), userID)
+
+			// สร้าง dialer with timeout
+			dialer := websocket.Dialer{
+				HandshakeTimeout: connectionTimeout,
+				ReadBufferSize:  1024,
+				WriteBufferSize: 1024,
+			}
+
+			// พยายามเชื่อมต่อ
+			conn, _, err := dialer.Dial(url, nil)
+			if err != nil {
+				errors <- fmt.Errorf("connection %d (user %s) failed: %v", index, userID, err)
+				return
+			}
+
+			connections[index] = conn
+			successes <- index
+
+			// แสดงความคืบหน้าทุก 500 connections
+			if index%500 == 0 {
+				log.Printf("Connection milestone: %d connections established", index)
+			}
+
+		}(i)
+	}
+
+	// รอให้ทุก connection เสร็จสิ้น
+	wg.Wait()
+	progressTicker.Stop()
+
+	// ปิด channels
+	close(errors)
+	close(successes)
+	duration := time.Since(start)
+
+	// นับจำนวน successes และ errors
+	successCount := len(successes)
+	errorCount := len(errors)
+
+	// แสดงตัวอย่างของ errors (ถ้ามี)
+	if errorCount > 0 {
+		log.Printf("Sample of connection errors:")
+		errorSamples := 0
+		for err := range errors {
+			if errorSamples < 5 {
+				log.Printf("- %v", err)
+				errorSamples++
+			} else {
+				break
+			}
+		}
+	}
+
+	// ปิด connections ที่สำเร็จ
+	log.Printf("Closing %d successful connections...", successCount)
+	closeStart := time.Now()
+	
+	// ใช้ mutex เพื่อป้องกัน race condition ในการนับ connections
+	var closeMutex sync.Mutex
+	closedCount := 0
+	
+	// สร้าง channel สำหรับรอการปิด connections
+	closeDone := make(chan struct{})
+	
+	// เริ่มปิด connections แบบ parallel
+	for i, conn := range connections {
+		if conn != nil {
+			go func(index int, c *websocket.Conn) {
+				defer func() {
+					closeMutex.Lock()
+					closedCount++
+					if closedCount == successCount {
+						close(closeDone)
+					}
+					closeMutex.Unlock()
+				}()
+				
+				// ส่ง close message ก่อนปิด connection
+				c.WriteControl(websocket.CloseMessage, 
+					websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), 
+					time.Now().Add(time.Second))
+				c.Close()
+			}(i, conn)
+		}
+	}
+	
+	// รอให้ปิด connections เสร็จสิ้น (timeout 30 วินาที)
+	select {
+	case <-closeDone:
+		log.Printf("All connections closed successfully")
+	case <-time.After(30 * time.Second):
+		log.Printf("Warning: Connection close timeout after 30 seconds")
+	}
+	
+	closeDuration := time.Since(closeStart)
+
+	// แสดงผลสรุป
+	log.Printf("\n=== MASSIVE CONNECTION TEST SUMMARY ===")
+	log.Printf("Total test duration: %v", duration)
+	log.Printf("Connection close duration: %v", closeDuration)
+	log.Printf("Total connections attempted: %d", totalConnections)
+	log.Printf("Successful connections: %d", successCount)
+	log.Printf("Failed connections: %d", errorCount)
+	log.Printf("Success rate: %.2f%%", float64(successCount)/float64(totalConnections)*100)
+	log.Printf("Average connection time: %.2f ms/conn", float64(duration.Milliseconds())/float64(totalConnections))
+	log.Printf("Connection rate: %.2f conn/sec", float64(successCount)/duration.Seconds())
+	
+	// คำนวณ memory usage
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	log.Printf("Memory usage: %.2f MB", float64(m.Alloc)/1024/1024)
+	log.Printf("Total memory allocated: %.2f MB", float64(m.TotalAlloc)/1024/1024)
+	log.Printf("Memory obtained from system: %.2f MB", float64(m.Sys)/1024/1024)
+
+	// เช็คเงื่อนไขความสำเร็จ
+	successRate := float64(successCount) / float64(totalConnections)
+	if successRate < 0.8 {
+		t.Errorf("Connection success rate too low: %.2f%% (expected at least 80%%)", successRate*100)
+	}
+
+	if successCount > 8000 {
+		log.Printf("🚀 EXCELLENT PERFORMANCE: Successfully maintained %d concurrent WebSocket connections!", successCount)
+	}
+}
+
