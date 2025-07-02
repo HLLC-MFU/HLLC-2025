@@ -41,9 +41,12 @@ target 'student' do
     :app_path => "#{Pod::Config.instance.installation_root}/..",
     :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
   )
-  pod 'FirebaseCoreInternal', :modular_headers => true
+
   pod 'FirebaseCore', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'FirebaseInstallations', :modular_headers => true
   pod 'GoogleUtilities', :modular_headers => true
+  # pod 'PromisesObjC', :modular_headers => true
 
   post_install do |installer|
     react_native_post_install(

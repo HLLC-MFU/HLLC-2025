@@ -1,4 +1,4 @@
-package com.jemiezler.student
+package com.mfuactivity.hllc
 
 import android.app.Application
 import android.content.res.Configuration
