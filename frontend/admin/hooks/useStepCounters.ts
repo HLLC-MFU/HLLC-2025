@@ -1,46 +1,101 @@
 import { useEffect, useState } from 'react';
 import { addToast } from '@heroui/react';
 import { apiRequest } from '@/utils/api';
-import { StepsConters } from '@/types/step-conters';
+import { StepsCounters } from '@/types/step-counters';
 
-export function useStepConters() {
-  const [stepCounters, setStepCounters] = useState<StepsConters[]>([]);
+export function useStepCounters() {
+  const [topOverall, setTopOverall] = useState<StepsCounters[]>([]);
+  const [topBySchool, setTopBySchool] = useState<StepsCounters[]>([]);
+  const [firstAchievers, setFirstAchievers] = useState<StepsCounters[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<String | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchStepConters = async () => {
+  const fetchTopOverall = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiRequest<{ data: StepsConters[] }>(
-        '/step-counters',
+      const res = await apiRequest<{ data: StepsCounters[] }>(
+        '/step-counters/leaderboard/all?limit=3',
         'GET',
       );
-      setStepCounters(Array.isArray(res.data?.data) ? res.data.data : []);
+      setTopOverall(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (err) {
       addToast({
-        title: 'Failed to fetch StepsConters Data',
+        title: 'Failed to fetch Top Overall data.',
         color: 'danger',
       });
       setError(
         err && typeof err === 'object' && 'message' in err
-          ? (err as { message?: string }).message ||
-              'Failed to fetch StepsConters type.'
-          : 'Failed to fetch StepsConters type.',
+          ? (err as { message?: string }).message || 'Failed to fetch Top Overall data.'
+          : 'Failed to fetch Top Overall data.',
       );
-    }finally{
-      setLoading(false)
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTopBySchool = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiRequest<{ data: StepsCounters[] }>(
+        '/step-counters/leaderboard/by-top-per-school',
+        'GET',
+      );
+      setTopBySchool(Array.isArray(res.data?.data) ? res.data.data : []);
+    } catch (err) {
+      addToast({
+        title: 'Failed to fetch Top by School data.',
+        color: 'danger',
+      });
+      setError(
+        err && typeof err === 'object' && 'message' in err
+          ? (err as { message?: string }).message || 'Failed to fetch Top by School data.'
+          : 'Failed to fetch Top by School data.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFirstAchievers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiRequest<{ data: StepsCounters[] }>(
+        '/step-counters/leaderboard/by-achieved',
+        'GET',
+      );
+      setFirstAchievers(Array.isArray(res.data?.data) ? res.data.data : []);
+    } catch (err) {
+      addToast({
+        title: 'Failed to fetch First Achievers data.',
+        color: 'danger',
+      });
+      setError(
+        err && typeof err === 'object' && 'message' in err
+          ? (err as { message?: string }).message || 'Failed to fetch First Achievers data.'
+          : 'Failed to fetch First Achievers data.',
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStepConters();
-  }, [])
+    fetchTopOverall();
+    fetchTopBySchool();
+    fetchFirstAchievers();
+  }, []);
 
-  return{
-    stepCounters,
+  return {
+    topOverall,
+    topBySchool,
+    firstAchievers,
     loading,
     error,
-    fetchStepConters
-  }
+    fetchTopOverall,
+    fetchTopBySchool,
+    fetchFirstAchievers,
+  };
 }

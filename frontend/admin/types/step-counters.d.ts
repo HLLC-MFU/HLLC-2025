@@ -1,6 +1,6 @@
 import { User as UserType } from "./user";
 
-export type StepsConters = {
+export type StepsCounters = {
   _id: string;
   user: UserType
   stepCount: number;
