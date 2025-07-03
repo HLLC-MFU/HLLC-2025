@@ -117,14 +117,16 @@ export class CheckinService {
 
   async getCheckinCountByActivity() {
     // หาค่าไม่ซ้ำของ actvity จาก checkin
-    const activityIds = await this.checkinModel.distinct("activity");
+    const activityIds = await this.checkinModel.distinct('activity');
     const studentRole = await this.roleModel.findOne({ name: 'student' });
-    const userCount = await this.userModel.countDocuments({ role: studentRole?._id });
+    const studentCount = await this.userModel.countDocuments({
+      role: studentRole?._id,
+    });
 
     // หากิจกรรมที่มี ID ตรงกับ activityIds แล้วดึงชื่อกิจกรรม
     const activities = await this.activityModel
       .find({ _id: { $in: activityIds } })
-      .select('name type')
+      .select('name type acronym')
       .populate('type', 'name')
       .lean();
 
@@ -134,20 +136,18 @@ export class CheckinService {
           activity: activity._id,
         });
 
-        const notCheckin = userCount - countCheckin;
+        const notCheckin = studentCount - countCheckin;
 
         return {
-          _id: activity._id,
-          name: activity.name,
-          activity:
-            typeof activity.type === 'object' &&
-            activity.type !== null &&
-            'name' in activity.type
-              ? (activity.type as { name: string }).name
-              : '',
-          checkin: countCheckin,
-          notCheckin: notCheckin,
-          total: userCount,
+        _id: activity._id,
+        activityType: typeof activity.type === 'object' && activity.type !== null &&'name' in activity.type
+          ? (activity.type as any).name
+          : 'Unknown',
+        name: activity.name,
+        acronym: activity.acronym,
+        checkin: countCheckin,
+        notCheckin: notCheckin,
+        studentTotal: studentCount,
         };
       }),
     );
