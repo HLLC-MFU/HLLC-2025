@@ -226,6 +226,12 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 	if updateErr != nil {
 		return nil, updateErr
 	}
+
+	// Save updated room to cache (if cache is enabled)
+	if s.cache != nil {
+		_ = s.cache.SaveRoom(ctx, &updatedRoom)
+	}
+
 	return &updatedRoom, nil
 }
 
