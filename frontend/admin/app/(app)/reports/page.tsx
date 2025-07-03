@@ -18,6 +18,8 @@ import SendNotiButton from './_components/SendNotiButton';
 import { useReportTypes } from '@/hooks/useReportTypes';
 import { useReports } from '@/hooks/useReports';
 import { ProblemModal } from './_components/ProblemModal';
+import { PageHeader } from '@/components/ui/page-header';
+import { Megaphone, Plus } from 'lucide-react';
 
 export default function ReportsPage() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -55,19 +57,29 @@ export default function ReportsPage() {
   
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="container mx-auto flex items-center justify-between px-4 py-6">
-        <h1 className="text-3xl font-bold">Reports</h1>
-        <Button
-          color="primary"
-          onPress={() => {
-            setSelectedCategory(undefined);
-            setIsCategoryModalOpen(true);
-          }}
-        >
-          Add Category
-        </Button>
-      </div>
+    <>
+  <div className="flex flex-col min-h-screen">
+    <div className="container mx-auto px-4 py-6">
+      <PageHeader
+        title="Reports Management"
+        description="This is Report Page"
+        icon={<Megaphone />}
+        right={
+          <div className="w-full sm:w-auto">
+            <Button
+              color="primary"
+              endContent={<Plus size={20} />}
+              size="lg"
+              onPress={() => {
+                setSelectedCategory(undefined);
+                setIsCategoryModalOpen(true);
+              }}
+            >
+              Add Category
+            </Button>
+          </div>
+        }
+      />
 
       <ProblemCharts problems={problems} reporttypes={reporttypes} />
 
@@ -92,8 +104,7 @@ export default function ReportsPage() {
                   <Button
                     size="sm"
                     variant="flat"
-                    onClick={e => {
-                      e.stopPropagation();
+                    onPress={() => {
                       setSelectedCategory(category);
                       setIsCategoryModalOpen(true);
                     }}
@@ -104,8 +115,7 @@ export default function ReportsPage() {
                     size="sm"
                     color="danger"
                     variant="light"
-                    onClick={async e => {
-                      e.stopPropagation();
+                    onPress={async () => {
                       try {
                         await deleteReportTypes(category.id);
                         await removeByCategory(category.id);
@@ -190,5 +200,7 @@ export default function ReportsPage() {
         mode={selectedProblem ? 'edit' : 'add'}
       />
     </div>
+    </div>
+    </>
   );
 }
