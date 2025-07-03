@@ -69,7 +69,7 @@ type (
 	ModerationMessageInfo struct {
 		Action        string              `bson:"action" json:"action"`                // "ban", "mute", "kick", "unban", "unmute"
 		TargetUserID  primitive.ObjectID  `bson:"target_user_id" json:"targetUserId"` // User ที่ถูกลงโทษ
-		ModeratorID   primitive.ObjectID  `bson:"moderator_id" json:"moderatorId"`    // Admin ที่ทำการลงโทษ
+		RestrictorID  primitive.ObjectID  `bson:"restrictor_id" json:"restrictorId"`    // Admin ที่ทำการลงโทษ
 		Reason        string              `bson:"reason" json:"reason"`               // เหตุผล
 		Duration      string              `bson:"duration" json:"duration"`           // "temporary" หรือ "permanent"
 		EndTime       *time.Time          `bson:"end_time,omitempty" json:"endTime,omitempty"` // เวลาสิ้นสุด

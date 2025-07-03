@@ -3,6 +3,7 @@ package utils
 import (
 	chatUtils "chat/module/chat/utils"
 	"chat/module/room/model"
+	"chat/pkg/middleware"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -19,6 +20,7 @@ type RoomMemberHelper struct {
 	cache        *RoomCacheService
 	eventEmitter *RoomEventEmitter
 	hub          *chatUtils.Hub
+	rbac         *middleware.RBACMiddleware
 }
 
 func NewRoomMemberHelper(db *mongo.Database, cache *RoomCacheService, eventEmitter *RoomEventEmitter, hub *chatUtils.Hub) *RoomMemberHelper {
@@ -27,6 +29,7 @@ func NewRoomMemberHelper(db *mongo.Database, cache *RoomCacheService, eventEmitt
 		cache:        cache,
 		eventEmitter: eventEmitter,
 		hub:          hub,
+		rbac:         middleware.NewRBACMiddleware(db),
 	}
 }
 
@@ -34,22 +37,17 @@ func NewRoomMemberHelper(db *mongo.Database, cache *RoomCacheService, eventEmitt
 func (h *RoomMemberHelper) AddUserToRoom(ctx context.Context, roomID, userID string) error {
 	log.Printf("[MemberHelper] Adding user %s to room %s", userID, roomID)
 
-	// แปลง ID
+	// แปลง roomID เป็น ObjectID
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
 		return fmt.Errorf("invalid room ID: %w", err)
 	}
 
-	userObjID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return fmt.Errorf("invalid user ID: %w", err)
-	}
-
-	// อัพเดทใน database
+	// อัพเดทใน database (ใช้ userID string)
 	collection := h.db.Collection("rooms")
 	filter := bson.M{"_id": roomObjID}
 	update := bson.M{
-		"$addToSet": bson.M{"members": userObjID},
+		"$addToSet": bson.M{"members": userID},
 		"$set":      bson.M{"updatedAt": time.Now()},
 	}
 
@@ -67,7 +65,7 @@ func (h *RoomMemberHelper) AddUserToRoom(ctx context.Context, roomID, userID str
 	}
 
 	// Also update the members cache
-	if err := h.cache.AddMember(ctx, roomID, userObjID); err != nil {
+	if err := h.cache.AddMember(ctx, roomID, primitive.NilObjectID); err != nil {
 		log.Printf("[MemberHelper] Warning: Failed to update members cache: %v", err)
 	}
 
@@ -82,22 +80,16 @@ func (h *RoomMemberHelper) AddUserToRoom(ctx context.Context, roomID, userID str
 func (h *RoomMemberHelper) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (*model.Room, error) {
 	log.Printf("[MemberHelper] Removing user %s from room %s", userID, roomID.Hex())
 
-	// แปลง userID เป็น ObjectID
-	userObjID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID: %w", err)
-	}
-
-	// อัพเดทใน database
+	// อัพเดทใน database (ใช้ userID string)
 	collection := h.db.Collection("rooms")
 	filter := bson.M{"_id": roomID}
 	update := bson.M{
-		"$pull": bson.M{"members": userObjID},
+		"$pull": bson.M{"members": userID},
 		"$set":  bson.M{"updatedAt": time.Now()},
 	}
 
 	var room model.Room
-	err = collection.FindOneAndUpdate(ctx, filter, update).Decode(&room)
+	err := collection.FindOneAndUpdate(ctx, filter, update).Decode(&room)
 	if err != nil {
 		return nil, fmt.Errorf("failed to remove user from room: %w", err)
 	}
@@ -110,7 +102,7 @@ func (h *RoomMemberHelper) RemoveUserFromRoom(ctx context.Context, roomID primit
 	}
 
 	// Also update the members cache
-	if err := h.cache.RemoveMember(ctx, roomID.Hex(), userObjID); err != nil {
+	if err := h.cache.RemoveMember(ctx, roomID.Hex(), primitive.NilObjectID); err != nil {
 		log.Printf("[MemberHelper] Warning: Failed to update members cache: %v", err)
 	}
 
@@ -161,8 +153,29 @@ func (h *RoomMemberHelper) JoinRoom(ctx context.Context, roomID primitive.Object
 		return fmt.Errorf("room is at full capacity")
 	}
 
+	// **NEW: ตรวจสอบ role และ group room restrictions**
+	if err := h.validateUserRoleForRoom(ctx, userID, &room); err != nil {
+		log.Printf("[MemberHelper] Role validation failed for user %s joining room %s: %v", userID, roomID.Hex(), err)
+		return err
+	}
+
 	// เพิ่ม user เข้าห้อง
 	return h.AddUserToRoom(ctx, roomID.Hex(), userID)
+}
+
+// **NEW: validateUserRoleForRoom ตรวจสอบ role และสิทธิ์ในการเข้าห้อง**
+func (h *RoomMemberHelper) validateUserRoleForRoom(ctx context.Context, userID string, room *model.Room) error {
+	if room.IsGroupRoom() {
+		roleName, err := h.rbac.GetUserRole(userID)
+		if err != nil {
+			return fmt.Errorf("failed to get user role: %w", err)
+		}
+
+		if roleName != "Administrator" && roleName != "Staff" {
+			return fmt.Errorf("only Administrator and Staff can join group rooms")
+		}
+	}
+	return nil
 }
 
 // LeaveRoom ออกจากห้อง

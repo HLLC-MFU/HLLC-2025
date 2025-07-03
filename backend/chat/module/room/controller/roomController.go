@@ -9,8 +9,11 @@ import (
 	"chat/pkg/decorators"
 	"chat/pkg/middleware"
 	"chat/pkg/utils"
-	"chat/pkg/validator"
 	"mime/multipart"
+	"strings"
+
+	"encoding/base64"
+	"encoding/json"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -187,25 +190,36 @@ func (c *RoomController) JoinRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	// ใช้ JoinRoomDto แทนการ parse manual
-	var joinDto dto.JoinRoomDto
-	if err := ctx.BodyParser(&joinDto); err != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
-	}
-
-	// Validate DTO
-	if err := validator.ValidateStruct(&joinDto); err != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
-	}
-
-	err = c.roomService.JoinRoom(ctx.Context(), roomObjID, joinDto.UserID)
+	userObjID, err := extractUserIDFromJWT(ctx)
 	if err != nil {
+		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+	}
+
+	err = c.roomService.JoinRoom(ctx.Context(), roomObjID, userObjID.Hex())
+	if err != nil {
+		if strings.Contains(err.Error(), "not allowed to join group rooms") {
+			return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"success": false,
+				"message": "Access denied: Users with role 'user' cannot join group rooms",
+				"error":   "ROLE_RESTRICTION",
+			})
+		}
+		if strings.Contains(err.Error(), "full capacity") {
+			return ctx.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"success": false,
+				"message": "Room is at full capacity",
+				"error":   "ROOM_FULL",
+			})
+		}
+		if strings.Contains(err.Error(), "room not found") {
+			return c.validationHelper.BuildNotFoundErrorResponse(ctx, "Room")
+		}
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 
 	return c.validationHelper.BuildSuccessResponse(ctx, fiber.Map{
 		"roomId": roomObjID.Hex(),
-		"userId": joinDto.UserID,
+		"userId": userObjID.Hex(),
 	}, "Successfully joined room")
 }
 
@@ -216,25 +230,19 @@ func (c *RoomController) LeaveRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	// ใช้ LeaveRoomDto แทนการ parse manual
-	var leaveDto dto.LeaveRoomDto
-	if err := ctx.BodyParser(&leaveDto); err != nil {
+	userObjID, err := extractUserIDFromJWT(ctx)
+	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	// Validate DTO
-	if err := validator.ValidateStruct(&leaveDto); err != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
-	}
-
-	err = c.roomService.LeaveRoom(ctx.Context(), roomObjID, leaveDto.UserID)
+	err = c.roomService.LeaveRoom(ctx.Context(), roomObjID, userObjID.Hex())
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 
 	return c.validationHelper.BuildSuccessResponse(ctx, fiber.Map{
 		"roomId": roomObjID.Hex(),
-		"userId": leaveDto.UserID,
+		"userId": userObjID.Hex(),
 	}, "Successfully left room")
 }
 
@@ -381,4 +389,42 @@ func (c *RoomController) handleSetRoomReadOnly(ctx *fiber.Ctx) error {
 			"room":     updatedRoom,
 		},
 	})
+}
+
+// ฟังก์ชันช่วย extract user id จาก JWT token (Authorization header)
+func extractUserIDFromJWT(ctx *fiber.Ctx) (primitive.ObjectID, error) {
+	authHeader := ctx.Get("Authorization")
+	if authHeader == "" {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Missing Authorization header")
+	}
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid Authorization header format")
+	}
+	token := parts[1]
+	// decode JWT payload (base64)
+	payloadPart := strings.Split(token, ".")
+	if len(payloadPart) < 2 {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT token")
+	}
+	payload, err := decodeBase64URL(payloadPart[1])
+	if err != nil {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT payload")
+	}
+	type jwtPayload struct {
+		Sub string `json:"sub"`
+	}
+	var p jwtPayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT payload structure")
+	}
+	return primitive.ObjectIDFromHex(p.Sub)
+}
+
+func decodeBase64URL(s string) ([]byte, error) {
+	missing := len(s) % 4
+	if missing != 0 {
+		s += strings.Repeat("=", 4-missing)
+	}
+	return base64.URLEncoding.DecodeString(s)
 }
