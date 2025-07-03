@@ -69,14 +69,9 @@ func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.Messag
 		log.Printf("[ChatService] Successfully emitted reaction to WebSocket and Kafka")
 	}
 
-	// --- NEW: Send offline notification to message owner if they are offline ---
-	ownerID := messageData.UserID.Hex()
-	log.Printf("[DEBUG] [Reaction] ownerID=%s, reactionUserID=%s", ownerID, reaction.UserID.Hex())
-	if ownerID != reaction.UserID.Hex() {
-		s.notifyOfflineReact(ctx, &messageData, reaction)
-	} else {
-		log.Printf("[DEBUG] [Reaction] ownerID == reactionUserID, skip notification")
-	}
+	// --- Send offline notification to all room members (except sender) ---
+	log.Printf("[DEBUG] [Reaction] Sending notifications to all offline room members (except sender %s)", reaction.UserID.Hex())
+	s.notifyOfflineReact(ctx, &messageData, reaction)
 
 	return nil
 }
@@ -224,19 +219,14 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID stri
 		log.Printf("[ChatService] Successfully emitted reaction removal to WebSocket and Kafka")
 	}
 
-	// --- NEW: Send offline notification to message owner if they are offline (for remove) ---
-	ownerID := messageData.UserID.Hex()
-	log.Printf("[DEBUG] [RemoveReaction] ownerID=%s, userID=%s", ownerID, userID)
-	if ownerID != userID {
-		s.notifyOfflineReact(ctx, &messageData, &model.MessageReaction{
-			MessageID: messageObjID,
-			UserID:    userObjID,
-			Reaction:  "remove",
-			Timestamp: time.Now(),
-		})
-	} else {
-		log.Printf("[DEBUG] [RemoveReaction] ownerID == userID, skip notification")
-	}
+	// --- Send offline notification to all room members (except sender) ---
+	log.Printf("[DEBUG] [RemoveReaction] Sending notifications to all offline room members (except sender %s)", userID)
+	s.notifyOfflineReact(ctx, &messageData, &model.MessageReaction{
+		MessageID: messageObjID,
+		UserID:    userObjID,
+		Reaction:  "remove",
+		Timestamp: time.Now(),
+	})
 
 	return nil
 }
@@ -250,6 +240,7 @@ func (s *ChatService) notifyOfflineReact(ctx context.Context, message *model.Cha
 		return
 	}
 
+	// loop
 	reactionUserID := reaction.UserID.Hex()
 	for _, memberID := range roomMembers {
 		memberIDStr := memberID.Hex()
