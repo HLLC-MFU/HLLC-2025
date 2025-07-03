@@ -6,7 +6,10 @@ import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { Checkin, CheckinDocument } from './schema/checkin.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
-import { Activities, ActivityDocument } from 'src/module/activities/schemas/activities.schema';
+import {
+  Activities,
+  ActivityDocument,
+} from 'src/module/activities/schemas/activities.schema';
 import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
 import { queryAll } from 'src/pkg/helper/query.util';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
@@ -17,9 +20,10 @@ export class CheckinService {
     @InjectModel(Checkin.name) private checkinModel: Model<CheckinDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Role.name) private roleModel: Model<RoleDocument>,
-    @InjectModel(Activities.name) private activityModel: Model<ActivityDocument>,
+    @InjectModel(Activities.name)
+    private activityModel: Model<ActivityDocument>,
     @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
-  ) { }
+  ) {}
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
     const { staff: staffId, user: username, activities } = createCheckinDto;
@@ -120,9 +124,15 @@ export class CheckinService {
     // หาค่าไม่ซ้ำของ actvity จาก checkin
     const activityIds = await this.checkinModel.distinct('activity');
     const studentRole = await this.roleModel.findOne({ name: 'student' });
+    const internRole = await this.roleModel.findOne({ name: 'intern' });
     const studentCount = await this.userModel.countDocuments({
       role: studentRole?._id,
     });
+    const internCount = await this.userModel.countDocuments({
+      role: internRole?._id,
+    });
+
+    const totalUser = studentCount + internCount
 
     // หากิจกรรมที่มี ID ตรงกับ activityIds แล้วดึงชื่อกิจกรรม
     const activities = await this.activityModel
@@ -131,24 +141,46 @@ export class CheckinService {
       .populate('type', 'name')
       .lean();
 
+    interface PopulatedUser {
+      role?: { name: string };
+    }
+
     const result = await Promise.all(
       activities.map(async (activity) => {
-        const countCheckin = await this.checkinModel.countDocuments({
-          activity: activity._id,
-        });
+        const checkins = await this.checkinModel
+          .find({ activity: activity._id })
+          .populate({
+            path: 'user',
+            populate: { path: 'role', select: 'name' },
+          })
+          .lean();
 
-        const notCheckin = studentCount - countCheckin;
+        const studentCheckinCount = checkins.filter(
+          (c) => (c.user as PopulatedUser)?.role?.name === 'student',
+        ).length;
+
+        const internCheckinCount = checkins.filter(
+          (c) => (c.user as PopulatedUser)?.role?.name === 'intern',
+        ).length;
+
+        const totalCheckin = internCheckinCount + studentCheckinCount;
+        const notCheckin = studentCount + internCount - totalCheckin;
 
         return {
-        _id: activity._id,
-        activityType: typeof activity.type === 'object' && activity.type !== null &&'name' in activity.type
-          ? (activity.type as any).name
-          : 'Unknown',
-        name: activity.name,
-        acronym: activity.acronym,
-        checkin: countCheckin,
-        notCheckin: notCheckin,
-        studentTotal: studentCount,
+          _id: activity._id,
+          activityType:
+            typeof activity.type === 'object' &&
+            activity.type !== null &&
+            'name' in activity.type
+              ? (activity.type as any).name
+              : 'Unknown',
+          name: activity.name,
+          acronym: activity.acronym,
+          internCheckin: internCheckinCount,
+          studentCheckin: studentCheckinCount,
+          totalCheckin: totalCheckin,
+          notCheckin: notCheckin,
+          totalUser: totalUser,
         };
       }),
     );

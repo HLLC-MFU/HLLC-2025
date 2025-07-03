@@ -26,13 +26,14 @@ export default function CheckinBarChart() {
 
   const customTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const { activity, checkin, notCheckin, studentTotal } =payload[0].payload;
+      const { activity, internCheckin, studentCheckin, notCheckin, totalUser } =payload[0].payload;
       return (
         <div className="bg-white p-2 rounded shadow">
           <p className="font-bold">{activity}</p>
-          <p className="text-primary">Attendance: {checkin} </p>
-          <p className="text-danger"> Missing: {notCheckin} </p>
-          <p className="text-default-500"> Total Students: {studentTotal} </p>
+          <p className="text-primary">Student Attendance : {studentCheckin} </p>
+          <p className="text-warning">Intern Acttendance: {internCheckin}</p>
+          <p className="text-danger"> Absen: {notCheckin} </p>
+          <p className="text-default-500"> Total Attendance: {totalUser} </p>
         </div>
       );
     }
@@ -42,10 +43,14 @@ export default function CheckinBarChart() {
     activity: item.name.en,
     activityType: item.activityType,
     acronym: item.acronym,
-    checkin: item.checkin,
+    internCheckin: item.internCheckin,
+    studentCheckin: item.studentCheckin,
+    totalCheckin: item.totalCheckin,
     notCheckin: item.notCheckin,
-    studentTotal: item.studentTotal,
+    totalUser: item.totalUser,
   }));
+
+  console.log(studentCheckinChartsData)
 
   const downloadCSV = () => {
     const activityNames = Array.from(
@@ -158,7 +163,8 @@ export default function CheckinBarChart() {
             <XAxis dataKey="acronym" tick={{ fontSize: 14, fontWeight: 600 }} />
             <Tooltip content={customTooltip} />
             <YAxis />
-            <Bar dataKey="checkin" fill="#486CFF" barSize={30} radius={[4, 4, 0, 0]}/>
+            <Bar dataKey="internCheckin" fill="#F7B750" barSize={30} radius={[4, 4, 0, 0]}/>
+            <Bar dataKey="studentCheckin" fill="#486CFF" barSize={30} radius={[4, 4, 0, 0]}/>
           </BarChart>
         </ResponsiveContainer>
       </CardBody>
