@@ -11,8 +11,9 @@ import AssetImage from '@/components/global/AssetImage';
 import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
 import { Progress, Separator, XStack, YStack } from 'tamagui';
 import { DoorClosedLocked } from '@tamagui/lucide-icons';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import messaging from '@react-native-firebase/messaging';
+import  useHealthData  from '@/hooks/health/useHealthData';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -38,6 +39,8 @@ export default function HomeScreen() {
 
     return unsubscribe;
   }, []);
+    const [date, setDate] = useState(new Date());
+  const { steps } = useHealthData(date);
 
   const content = (
     <SafeAreaView
@@ -105,7 +108,7 @@ export default function HomeScreen() {
                   fontSize: 14,
                   marginLeft: 8,
                 }}>
-                85
+                {steps || 0}
               </Text>
             </XStack>
             <Separator vertical borderColor={"#ffffff40"} />
