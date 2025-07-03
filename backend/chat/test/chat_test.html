@@ -3,110 +3,594 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Test</title>
+    <title>HLLC Chat Test - Enhanced</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
         }
-        .connection-form {
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .user-container {
+            background: white;
+            border-radius: 15px;
             margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            transition: transform 0.3s ease;
         }
+
+        .user-container:hover {
+            transform: translateY(-5px);
+        }
+
+        .connection-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            padding: 20px;
+            color: white;
+        }
+
+        .connection-header h3 {
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.9);
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            background: white;
+            transform: scale(1.02);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status.connected {
+            background: rgba(40, 167, 69, 0.2);
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .status.disconnected {
+            background: rgba(220, 53, 69, 0.2);
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
         .chat-container {
             display: none;
-            margin-top: 20px;
+            padding: 20px;
         }
+
         .chat-box {
-            border: 1px solid #ccc;
-            padding: 10px;
-            height: 300px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            height: 400px;
             overflow-y: auto;
+            margin-bottom: 20px;
+            border: 3px solid #e9ecef;
+            position: relative;
+        }
+
+        .chat-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            word-wrap: break-word;
+            position: relative;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.sent {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+            margin-right: 0;
+        }
+
+        .message.received {
+            background: white;
+            border: 2px solid #e9ecef;
+            margin-left: 0;
+            margin-right: auto;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        .message-type-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-message { background: #007bff; color: white; }
+        .badge-sticker { background: #ffc107; color: black; }
+        .badge-reply { background: #28a745; color: white; }
+        .badge-reaction { background: #dc3545; color: white; }
+        .badge-upload { background: #6f42c1; color: white; }
+        .badge-evoucher { background: #fd7e14; color: white; }
+        .badge-mention { background: #17a2b8; color: white; }
+        .badge-system { background: #6c757d; color: white; }
+
+        .message-content {
+            line-height: 1.4;
+        }
+
+        .sticker-message {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .sticker-message img {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 8px;
+        }
+
+        .reply-message {
+            border-left: 4px solid #28a745;
+            padding-left: 12px;
+        }
+
+        .reply-original {
+            background: rgba(40, 167, 69, 0.1);
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .reaction-message {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reaction-emoji {
+            font-size: 1.5em;
+        }
+
+        .upload-message {
+            border-left: 4px solid #6f42c1;
+            padding-left: 12px;
+        }
+
+        .file-info {
+            background: rgba(111, 66, 193, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 5px;
+        }
+
+        .file-icon {
+            color: #6f42c1;
+            margin-right: 8px;
+        }
+
+        .evoucher-message {
+            border: 2px solid #fd7e14;
+            border-radius: 8px;
+            padding: 15px;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+
+        .evoucher-title {
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 5px;
+        }
+
+        .evoucher-description {
+            color: #856404;
             margin-bottom: 10px;
         }
+
+        .evoucher-button {
+            background: #fd7e14;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+        }
+
         .message-form {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
+
         .message-input {
             flex: 1;
-            padding: 5px;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1em;
+            transition: all 0.3s ease;
         }
-        .user-container {
-            border: 1px solid #eee;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 5px;
+
+        .message-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        .status {
-            margin-top: 10px;
-            padding: 5px;
-            border-radius: 3px;
-        }
-        .connected {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .disconnected {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .message {
-            margin: 5px 0;
-            padding: 5px;
-            border-radius: 3px;
-            background-color: #f8f9fa;
-        }
-        .message.sent {
-            background-color: #e3f2fd;
-            margin-left: 20px;
-        }
-        .message.received {
-            background-color: #f5f5f5;
-            margin-right: 20px;
-        }
-        button {
-            padding: 5px 10px;
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .add-user-btn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            transition: all 0.3s ease;
+        }
+
+        .add-user-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(17, 153, 142, 0.3);
+        }
+
+        .timestamp {
+            font-size: 0.7em;
+            opacity: 0.6;
+            margin-left: auto;
+        }
+
+        .user-info {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .message.sent .user-info {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #dc3545;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .message-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .test-reaction { background: #ff6b6b; color: white; }
+        .test-upload { background: #4ecdc4; color: white; }
+        .test-evoucher { background: #ffe66d; color: black; }
+
+        .empty-chat {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        .mention-message {
+            border-left: 4px solid #17a2b8;
+            padding-left: 12px;
+        }
+
+        .mention-user {
+            background: rgba(23, 162, 184, 0.2);
+            color: #0c5460;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .mention-list {
+            background: rgba(23, 162, 184, 0.1);
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 0.9em;
+        }
+
+        .mention-item {
+            background: #17a2b8;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-right: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Chat Test</h1>
-    
-    <!-- Connection Template -->
-    <template id="user-template">
-        <div class="user-container">
-            <div class="connection-form">
-                <h3>User Connection</h3>
-                <div>
-                    <label>JWT Token:</label><br>
-                    <input type="text" class="jwt-token" style="width: 100%" placeholder="Enter JWT token">
-                </div>
-                <div>
-                    <label>Room ID:</label><br>
-                    <input type="text" class="room-id" placeholder="Enter room ID">
-                </div>
-                <div style="margin-top: 10px;">
-                    <button class="connect-btn">Connect</button>
-                    <button class="disconnect-btn" disabled>Disconnect</button>
-                </div>
-                <div class="status disconnected">Disconnected</div>
-            </div>
-            
-            <div class="chat-container">
-                <div class="chat-box"></div>
-                <div class="message-form">
-                    <input type="text" class="message-input" placeholder="Type a message...">
-                    <button class="send-btn">Send</button>
-                </div>
-            </div>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-comments"></i> HLLC Chat Test</h1>
+            <p>Advanced Chat Testing Interface with Multi-Message Type Support</p>
         </div>
-    </template>
+        
+        <!-- User Template -->
+        <template id="user-template">
+            <div class="user-container">
+                <div class="connection-header">
+                    <h3><i class="fas fa-user"></i> User Connection</h3>
+                    
+                    <div class="input-group">
+                        <label><i class="fas fa-key"></i> JWT Token:</label>
+                        <input type="text" class="jwt-token" placeholder="Enter your JWT token">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label><i class="fas fa-door-open"></i> Room ID:</label>
+                        <input type="text" class="room-id" placeholder="Enter room ID">
+                    </div>
+                    
+                    <div class="button-group">
+                        <button class="btn btn-primary connect-btn">
+                            <i class="fas fa-plug"></i> Connect
+                        </button>
+                        <button class="btn btn-danger disconnect-btn" disabled>
+                            <i class="fas fa-times"></i> Disconnect
+                        </button>
+                        <button class="btn btn-info test-join-btn">
+                            <i class="fas fa-sign-in-alt"></i> Test Join Room
+                        </button>
+                    </div>
+                    
+                    <div class="status disconnected">
+                        <div class="connection-status">
+                            <div class="status-dot disconnected"></div>
+                            <span>Disconnected</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-container">
+                    <div class="chat-box">
+                        <div class="empty-chat">
+                            <i class="fas fa-comment-dots"></i>
+                            <p>No messages yet. Start chatting!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="message-actions">
+                        <button class="action-btn test-reaction">
+                            <i class="fas fa-heart"></i> Test Reaction
+                        </button>
+                        <button class="action-btn test-upload">
+                            <i class="fas fa-upload"></i> Test Upload
+                        </button>
+                        <button class="action-btn test-evoucher">
+                            <i class="fas fa-gift"></i> Test E-voucher
+                        </button>
+                    </div>
+                    
+                    <div class="message-form">
+                        <input type="text" class="message-input" placeholder="Type your message...">
+                        <button class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
 
-    <button id="add-user">Add Another User</button>
+        <button class="add-user-btn" id="add-user">
+            <i class="fas fa-user-plus"></i> Add Another User
+        </button>
+    </div>
 
     <script>
         class ChatUser {
@@ -122,20 +606,33 @@
                 this.roomId = this.container.querySelector('.room-id');
                 this.connectBtn = this.container.querySelector('.connect-btn');
                 this.disconnectBtn = this.container.querySelector('.disconnect-btn');
+                this.testJoinBtn = this.container.querySelector('.test-join-btn');
                 this.chatContainer = this.container.querySelector('.chat-container');
                 this.chatBox = this.container.querySelector('.chat-box');
                 this.messageInput = this.container.querySelector('.message-input');
                 this.sendBtn = this.container.querySelector('.send-btn');
                 this.status = this.container.querySelector('.status');
+                this.statusDot = this.container.querySelector('.status-dot');
+                
+                // Action buttons
+                this.testReactionBtn = this.container.querySelector('.test-reaction');
+                this.testUploadBtn = this.container.querySelector('.test-upload');
+                this.testEvoucherBtn = this.container.querySelector('.test-evoucher');
             }
 
             setupEventListeners() {
                 this.connectBtn.addEventListener('click', () => this.connect());
                 this.disconnectBtn.addEventListener('click', () => this.disconnect());
+                this.testJoinBtn.addEventListener('click', () => this.testJoinRoom());
                 this.sendBtn.addEventListener('click', () => this.sendMessage());
                 this.messageInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') this.sendMessage();
                 });
+                
+                // Action button listeners
+                this.testReactionBtn.addEventListener('click', () => this.testReaction());
+                this.testUploadBtn.addEventListener('click', () => this.testUpload());
+                this.testEvoucherBtn.addEventListener('click', () => this.testEvoucher());
             }
 
             connect() {
@@ -144,12 +641,12 @@
                     return;
                 }
 
-                // Pass JWT as query param
                 const wsUrl = `ws://localhost:1334/chat/ws/${this.roomId.value}?token=${encodeURIComponent(this.jwtToken.value)}`;
                 this.ws = new WebSocket(wsUrl);
 
                 this.ws.onopen = () => {
                     this.updateStatus(true);
+                    this.clearEmptyState();
                 };
 
                 this.ws.onmessage = (event) => {
@@ -157,7 +654,11 @@
                     try {
                         message = JSON.parse(event.data);
                     } catch (e) {
-                        message = { message: event.data, timestamp: new Date().toISOString() };
+                        message = { 
+                            type: 'system',
+                            content: event.data, 
+                            timestamp: new Date().toISOString() 
+                        };
                     }
                     this.displayMessage(message, false);
                 };
@@ -179,120 +680,438 @@
             }
 
             updateStatus(connected) {
-                this.status.textContent = connected ? 'Connected' : 'Disconnected';
+                const statusText = this.status.querySelector('span');
+                statusText.textContent = connected ? 'Connected' : 'Disconnected';
                 this.status.className = `status ${connected ? 'connected' : 'disconnected'}`;
+                this.statusDot.className = `status-dot ${connected ? '' : 'disconnected'}`;
+                
                 this.connectBtn.disabled = connected;
                 this.disconnectBtn.disabled = !connected;
                 this.chatContainer.style.display = connected ? 'block' : 'none';
             }
 
+            clearEmptyState() {
+                const emptyChat = this.chatBox.querySelector('.empty-chat');
+                if (emptyChat) {
+                    emptyChat.remove();
+                }
+            }
+
             sendMessage() {
                 if (!this.messageInput.value.trim() || !this.ws) return;
 
-                // Send plain text message (WebSocket handler expects this format)
                 this.ws.send(this.messageInput.value.trim());
                 
-                // Display the sent message locally
                 const message = {
+                    type: 'message',
                     content: this.messageInput.value.trim(),
-                    roomId: this.roomId.value,
+                    user: 'You',
                     timestamp: new Date().toISOString()
                 };
+                
                 this.displayMessage(message, true);
                 this.messageInput.value = '';
             }
 
+            async testJoinRoom() {
+                if (!this.jwtToken.value || !this.roomId.value) {
+                    alert('Please fill in JWT token and Room ID first');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`http://localhost:1334/room/${this.roomId.value}/join`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.jwtToken.value}`
+                        },
+                        body: JSON.stringify({
+                            userId: this.extractUserIdFromToken(this.jwtToken.value)
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    const message = {
+                        type: 'system',
+                        content: response.ok ? 
+                            `✅ Successfully joined room: ${result.message}` : 
+                            `❌ Failed to join room: ${result.message} (${result.error})`,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    this.displayMessage(message, false);
+                } catch (error) {
+                    this.displayMessage({
+                        type: 'system',
+                        content: `❌ Network error: ${error.message}`,
+                        timestamp: new Date().toISOString()
+                    }, false);
+                }
+            }
+
+            testReaction() {
+                const message = {
+                    type: 'reaction',
+                    reaction: '❤️',
+                    action: 'add',
+                    content: 'Added heart reaction',
+                    user: 'You',
+                    timestamp: new Date().toISOString()
+                };
+                this.displayMessage(message, true);
+            }
+
+            testUpload() {
+                const message = {
+                    type: 'upload',
+                    content: 'File uploaded successfully',
+                    fileName: 'document.pdf',
+                    fileType: 'application/pdf',
+                    fileUrl: '#',
+                    user: 'You',
+                    timestamp: new Date().toISOString()
+                };
+                this.displayMessage(message, true);
+            }
+
+            testEvoucher() {
+                const message = {
+                    type: 'evoucher',
+                    content: 'E-voucher sent',
+                    evoucherInfo: {
+                        title: '50% Off Discount',
+                        description: 'Get 50% off your next purchase at our store!',
+                        claimUrl: 'https://example.com/claim'
+                    },
+                    user: 'You',
+                    timestamp: new Date().toISOString()
+                };
+                this.displayMessage(message, true);
+            }
+
+            extractUserIdFromToken(token) {
+                try {
+                    const base64Url = token.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join(''));
+                    
+                    const payload = JSON.parse(jsonPayload);
+                    return payload.sub;
+                } catch (error) {
+                    console.error('Error extracting user ID from token:', error);
+                    return '';
+                }
+            }
+
             displayMessage(message, sent) {
+                this.clearEmptyState();
+                
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${sent ? 'sent' : 'received'}`;
                 
-                let displayText = '';
-                let userId = 'System';
-                let timestamp = new Date();
+                let messageType = this.determineMessageType(message);
+                let content = this.buildMessageContent(message, messageType);
                 
-                // Handle different message structures
-                if (message.type && message.payload) {
-                    // Backend message structure
-                    const payload = message.payload;
-                    if (payload.message && payload.message.message) {
-                        displayText = payload.message.message ? payload.message._id : payload.message.message;
-                        userId = payload.user ? payload.user.username || payload.user._id : 'Unknown';
-                        timestamp = new Date(payload.message.timestamp || payload.timestamp || message.timestamp);
-                    } else if (payload.message) {
-                        displayText = payload.message;
-                        userId = payload.user ? payload.user.username || payload.user._id : 'Unknown';
-                        timestamp = new Date(payload.timestamp || message.timestamp);
-                    }
-                } else if (message.content) {
-                    // Frontend message structure (sent messages)
-                    displayText = message.content;
-                    userId = 'You'; // Since we don't have userId from input field anymore
-                    timestamp = new Date(message.timestamp);
-                } else if (message.message) {
-                    // Fallback for simple messages
-                    displayText = message.message;
-                    userId = message.userId || 'System';
-                    timestamp = new Date(message.timestamp || Date.now());
-                } else {
-                    // Unknown structure
-                    displayText = JSON.stringify(message);
-                    userId = 'System';
-                    timestamp = new Date();
-                }
-                
-                const time = timestamp.toLocaleTimeString();
-                messageDiv.textContent = `[${time}] ${userId}: ${displayText}`;
+                messageDiv.innerHTML = content;
                 this.chatBox.appendChild(messageDiv);
                 this.chatBox.scrollTop = this.chatBox.scrollHeight;
             }
+
+            determineMessageType(message) {
+                // Check for backend message structure
+                if (message.type && message.payload) {
+                    return message.type;
+                }
+                
+                // Check for explicit type
+                if (message.type) {
+                    return message.type;
+                }
+                
+                // Check content for type indicators
+                if (message.sticker || (message.payload && message.payload.sticker)) {
+                    return 'sticker';
+                }
+                
+                if (message.reaction || (message.payload && message.payload.reaction)) {
+                    return 'reaction';
+                }
+                
+                if (message.replyTo || (message.payload && message.payload.replyTo)) {
+                    return 'reply';
+                }
+                
+                if (message.fileUrl || message.fileName || (message.payload && (message.payload.message && message.payload.message.fileUrl))) {
+                    return 'upload';
+                }
+                
+                                 if (message.evoucherInfo || (message.payload && message.payload.message && message.payload.message.evoucherInfo)) {
+                     return 'evoucher';
+                 }
+                 
+                 if (message.mentions || (message.payload && message.payload.mentions)) {
+                     return 'mention';
+                 }
+                 
+                 return 'message';
+            }
+
+            buildMessageContent(message, messageType) {
+                let user = this.extractUser(message);
+                let timestamp = this.extractTimestamp(message);
+                let content = this.extractContent(message, messageType);
+                
+                let html = `
+                    <div class="message-header">
+                        <span class="message-type-badge badge-${messageType}">
+                            ${this.getTypeIcon(messageType)} ${messageType}
+                        </span>
+                        <span class="user-info">${user}</span>
+                        <span class="timestamp">${timestamp}</span>
+                    </div>
+                    <div class="message-content">
+                        ${content}
+                    </div>
+                `;
+                
+                return html;
+            }
+
+            getTypeIcon(type) {
+                                 const icons = {
+                     message: '<i class="fas fa-comment"></i>',
+                     sticker: '<i class="fas fa-smile"></i>',
+                     reply: '<i class="fas fa-reply"></i>',
+                     reaction: '<i class="fas fa-heart"></i>',
+                     upload: '<i class="fas fa-file"></i>',
+                     evoucher: '<i class="fas fa-gift"></i>',
+                     mention: '<i class="fas fa-at"></i>',
+                     system: '<i class="fas fa-cog"></i>'
+                 };
+                return icons[type] || '<i class="fas fa-comment"></i>';
+            }
+
+            extractUser(message) {
+                if (message.payload && message.payload.user) {
+                    return message.payload.user.username || message.payload.user._id || 'Unknown';
+                }
+                return message.user || message.userId || 'System';
+            }
+
+            extractTimestamp(message) {
+                let timestamp;
+                if (message.payload && message.payload.timestamp) {
+                    timestamp = new Date(message.payload.timestamp);
+                } else if (message.payload && message.payload.message && message.payload.message.timestamp) {
+                    timestamp = new Date(message.payload.message.timestamp);
+                } else {
+                    timestamp = new Date(message.timestamp || Date.now());
+                }
+                return timestamp.toLocaleTimeString();
+            }
+
+                         extractContent(message, messageType) {
+                 switch (messageType) {
+                     case 'sticker':
+                         return this.buildStickerContent(message);
+                     case 'reply':
+                         return this.buildReplyContent(message);
+                     case 'reaction':
+                         return this.buildReactionContent(message);
+                     case 'upload':
+                         return this.buildUploadContent(message);
+                     case 'evoucher':
+                         return this.buildEvoucherContent(message);
+                     case 'mention':
+                         return this.buildMentionContent(message);
+                     default:
+                         return this.buildRegularContent(message);
+                 }
+             }
+
+            buildStickerContent(message) {
+                let stickerData = message.sticker || (message.payload && message.payload.sticker);
+                if (stickerData) {
+                    return `
+                        <div class="sticker-message">
+                            <img src="${stickerData.image || stickerData.Image}" alt="Sticker">
+                            <p>${stickerData.name || stickerData.Name || 'Sticker'}</p>
+                        </div>
+                    `;
+                }
+                return this.buildRegularContent(message);
+            }
+
+            buildReplyContent(message) {
+                let replyData = message.replyTo || (message.payload && message.payload.replyTo);
+                let mainContent = this.buildRegularContent(message);
+                
+                if (replyData) {
+                    return `
+                        <div class="reply-message">
+                            <div class="reply-original">
+                                <strong>Replying to:</strong> ${replyData.message || replyData.Message || 'Original message'}
+                            </div>
+                            ${mainContent}
+                        </div>
+                    `;
+                }
+                
+                return `<div class="reply-message">${mainContent}</div>`;
+            }
+
+            buildReactionContent(message) {
+                let reaction = message.reaction || (message.payload && message.payload.reaction);
+                let action = message.action || (message.payload && message.payload.action) || 'add';
+                
+                return `
+                    <div class="reaction-message">
+                        <span class="reaction-emoji">${reaction || '❤️'}</span>
+                        <span>${action === 'add' ? 'Added' : 'Removed'} reaction</span>
+                    </div>
+                `;
+            }
+
+            buildUploadContent(message) {
+                let fileName = message.fileName || (message.payload && message.payload.message && message.payload.message.fileName);
+                let fileType = message.fileType || (message.payload && message.payload.message && message.payload.message.fileType);
+                let fileUrl = message.fileUrl || (message.payload && message.payload.message && message.payload.message.fileUrl);
+                let content = this.buildRegularContent(message);
+                
+                return `
+                    <div class="upload-message">
+                        ${content}
+                        ${fileName ? `
+                            <div class="file-info">
+                                <i class="fas fa-file file-icon"></i>
+                                <strong>${fileName}</strong>
+                                ${fileType ? `<br><small>Type: ${fileType}</small>` : ''}
+                                ${fileUrl ? `<br><a href="${fileUrl}" target="_blank">Download</a>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            buildEvoucherContent(message) {
+                let evoucherInfo = message.evoucherInfo || (message.payload && message.payload.message && message.payload.message.evoucherInfo);
+                
+                if (evoucherInfo) {
+                    return `
+                        <div class="evoucher-message">
+                            <div class="evoucher-title">${evoucherInfo.title || 'E-voucher'}</div>
+                            <div class="evoucher-description">${evoucherInfo.description || 'Special offer for you!'}</div>
+                            ${evoucherInfo.claimUrl ? `
+                                <a href="${evoucherInfo.claimUrl}" class="evoucher-button" target="_blank">
+                                    <i class="fas fa-gift"></i> Claim Now
+                                </a>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+                
+                                 return this.buildRegularContent(message);
+             }
+
+             buildMentionContent(message) {
+                 // Handle new payload structure
+                 if (message.payload && message.payload.mentions) {
+                     let mentions = message.payload.mentions;
+                     let messageContent = message.payload.message ? message.payload.message.message : '';
+                     
+                     // Parse mentions in the message content
+                     let displayMessage = messageContent;
+                     if (mentions && mentions.length > 0) {
+                         // Sort mentions by position (descending) to replace from end to start
+                         mentions.sort((a, b) => b.position - a.position);
+                         
+                         mentions.forEach(mention => {
+                             let mentionText = displayMessage.substring(mention.position, mention.position + mention.length);
+                             let mentionSpan = `<span class="mention-user">${mentionText}</span>`;
+                             displayMessage = displayMessage.substring(0, mention.position) + 
+                                            mentionSpan + 
+                                            displayMessage.substring(mention.position + mention.length);
+                         });
+                     }
+                     
+                     return `
+                         <div class="mention-message">
+                             <div>${displayMessage}</div>
+                             ${mentions && mentions.length > 0 ? `
+                                 <div class="mention-list">
+                                     <strong>Mentions:</strong>
+                                     ${mentions.map(mention => `
+                                         <span class="mention-item">@${mention.username}</span>
+                                     `).join('')}
+                                 </div>
+                             ` : ''}
+                         </div>
+                     `;
+                 }
+                 
+                 // Legacy support
+                 let mentions = message.mentions;
+                 if (mentions && mentions.length > 0) {
+                     let content = this.buildRegularContent(message);
+                     return `
+                         <div class="mention-message">
+                             ${content}
+                             <div class="mention-list">
+                                 <strong>Mentions:</strong>
+                                 ${mentions.map(mentionId => `
+                                     <span class="mention-item">@${mentionId}</span>
+                                 `).join('')}
+                             </div>
+                         </div>
+                     `;
+                 }
+                 
+                 return this.buildRegularContent(message);
+             }
+
+             buildRegularContent(message) {
+                // Extract message content from various possible structures
+                if (message.content) {
+                    return message.content;
+                }
+                
+                if (message.payload && message.payload.message) {
+                    if (message.payload.message.message) {
+                        return message.payload.message.message;
+                    }
+                    if (message.payload.message.Message) {
+                        return message.payload.message.Message;
+                    }
+                }
+                
+                if (message.message) {
+                    return message.message;
+                }
+                
+                if (message.Message) {
+                    return message.Message;
+                }
+                
+                return JSON.stringify(message);
+            }
         }
 
-        // Initialize first user
+        // Initialize
         const template = document.getElementById('user-template');
         const addUserBtn = document.getElementById('add-user');
 
         function addNewUser() {
             const clone = template.content.cloneNode(true);
-            document.body.insertBefore(clone, addUserBtn);
+            document.querySelector('.container').insertBefore(clone, addUserBtn);
             new ChatUser(document.querySelector('.user-container:last-of-type'));
         }
 
         addUserBtn.addEventListener('click', addNewUser);
         addNewUser(); // Add first user automatically
-
-        // Test sticker sending
-        async function testSendSticker() {
-            const stickerId = '507f1f77bcf86cd799439011'; // Example sticker ID
-            const roomId = document.querySelector('.room-id').value;
-            
-            try {
-                const response = await fetch(`http://localhost:1334/chat/rooms/${roomId}/stickers`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${document.querySelector('.jwt-token').value}`
-                    },
-                    body: JSON.stringify({
-                        stickerId: stickerId
-                    })
-                });
-                
-                const result = await response.json();
-                console.log('Sticker sent:', result);
-                
-                if (result.success) {
-                    chatApp.displayMessage({
-                        type: 'sticker',
-                        payload: {
-                            message: { message: 'Sticker sent!', type: 'sticker' },
-                            user: { _id: 'You' }
-                        }
-                    }, true);
-                }
-            } catch (error) {
-                console.error('Error sending sticker:', error);
-            }
-        }
     </script>
 </body>
 </html> 

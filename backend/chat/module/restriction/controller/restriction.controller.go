@@ -6,7 +6,10 @@ import (
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
 	"chat/pkg/middleware"
+	"encoding/base64"
+	"encoding/json"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -54,7 +57,46 @@ func (c *RestrictionController) setupRoutes() {
 	c.SetupRoutes()
 }
 
-// handleBanUser บัน user
+// ฟังก์ชันช่วย extract user id จาก JWT token (Authorization header)
+func extractUserIDFromJWT(ctx *fiber.Ctx) (primitive.ObjectID, error) {
+	authHeader := ctx.Get("Authorization")
+	if authHeader == "" {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Missing Authorization header")
+	}
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid Authorization header format")
+	}
+	token := parts[1]
+	// decode JWT payload (base64)
+	payloadPart := strings.Split(token, ".")
+	if len(payloadPart) < 2 {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT token")
+	}
+	payload, err := decodeBase64URL(payloadPart[1])
+	if err != nil {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT payload")
+	}
+	type jwtPayload struct {
+		Sub string `json:"sub"`
+	}
+	var p jwtPayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT payload structure")
+	}
+	return primitive.ObjectIDFromHex(p.Sub)
+}
+
+func decodeBase64URL(s string) ([]byte, error) {
+	// pad base64 if needed
+	missing := len(s) % 4
+	if missing != 0 {
+		s += strings.Repeat("=", 4-missing)
+	}
+	return base64.URLEncoding.DecodeString(s)
+}
+
+// handleBanUser แบน user
 func (c *RestrictionController) handleBanUser(ctx *fiber.Ctx) error {
 	var banDto restrictionDto.BanUserDto
 	if err := ctx.BodyParser(&banDto); err != nil {
@@ -64,8 +106,6 @@ func (c *RestrictionController) handleBanUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Validate DTO
 	if err := banDto.Validate(); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -73,9 +113,7 @@ func (c *RestrictionController) handleBanUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Convert string IDs to ObjectIDs
-	userObjID, roomObjID, moderatorObjID, err := banDto.ToObjectIDs()
+	userObjID, roomObjID, err := banDto.ToObjectIDs()
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -83,8 +121,14 @@ func (c *RestrictionController) handleBanUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Calculate end time
+	restrictorId, err := extractUserIDFromJWT(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Unauthorized",
+			"error":   err.Error(),
+		})
+	}
 	endTime, err := banDto.CalculateEndTime()
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -93,13 +137,11 @@ func (c *RestrictionController) handleBanUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Ban user
 	banRecord, err := c.moderationService.BanUser(
 		ctx.Context(),
 		userObjID,
 		roomObjID,
-		moderatorObjID,
+		restrictorId,
 		banDto.Duration,
 		endTime,
 		banDto.Reason,
@@ -111,7 +153,6 @@ func (c *RestrictionController) handleBanUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
 	return ctx.JSON(fiber.Map{
 		"success": true,
 		"message": "User banned successfully",
@@ -119,7 +160,7 @@ func (c *RestrictionController) handleBanUser(ctx *fiber.Ctx) error {
 			"id":           banRecord.ID.Hex(),
 			"userId":       banRecord.UserID.Hex(),
 			"roomId":       banRecord.RoomID.Hex(),
-			"moderatorId":  banRecord.ModeratorID.Hex(),
+			"restrictorId": restrictorId.Hex(),
 			"type":         banRecord.Type,
 			"duration":     banRecord.Duration,
 			"reason":       banRecord.Reason,
@@ -141,9 +182,7 @@ func (c *RestrictionController) handleUnbanUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Convert string IDs to ObjectIDs
-	userObjID, roomObjID, moderatorObjID, err := unbanDto.ToObjectIDs()
+	userObjID, roomObjID, err := unbanDto.ToObjectIDs()
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -151,22 +190,28 @@ func (c *RestrictionController) handleUnbanUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Unban user
-	if err := c.moderationService.UnbanUser(ctx.Context(), userObjID, roomObjID, moderatorObjID); err != nil {
+	restrictorId, err := extractUserIDFromJWT(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Unauthorized",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.moderationService.UnbanUser(ctx.Context(), userObjID, roomObjID, restrictorId); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "Failed to unban user",
 			"error":   err.Error(),
 		})
 	}
-
 	return ctx.JSON(fiber.Map{
 		"success": true,
 		"message": "User unbanned successfully",
 		"data": fiber.Map{
 			"userId": unbanDto.UserID,
 			"roomId": unbanDto.RoomID,
+			"restrictorId": restrictorId.Hex(),
 		},
 	})
 }
@@ -181,8 +226,6 @@ func (c *RestrictionController) handleMuteUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Validate DTO
 	if err := muteDto.Validate(); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -190,9 +233,7 @@ func (c *RestrictionController) handleMuteUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Convert string IDs to ObjectIDs
-	userObjID, roomObjID, moderatorObjID, err := muteDto.ToObjectIDs()
+	userObjID, roomObjID, err := muteDto.ToObjectIDs()
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -200,8 +241,14 @@ func (c *RestrictionController) handleMuteUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Calculate end time
+	restrictorId, err := extractUserIDFromJWT(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Unauthorized",
+			"error":   err.Error(),
+		})
+	}
 	endTime, err := muteDto.CalculateEndTime()
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -210,13 +257,11 @@ func (c *RestrictionController) handleMuteUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Mute user
 	muteRecord, err := c.moderationService.MuteUser(
 		ctx.Context(),
 		userObjID,
 		roomObjID,
-		moderatorObjID,
+		restrictorId,
 		muteDto.Duration,
 		endTime,
 		muteDto.Restriction,
@@ -229,7 +274,6 @@ func (c *RestrictionController) handleMuteUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
 	return ctx.JSON(fiber.Map{
 		"success": true,
 		"message": "User muted successfully",
@@ -237,7 +281,7 @@ func (c *RestrictionController) handleMuteUser(ctx *fiber.Ctx) error {
 			"id":           muteRecord.ID.Hex(),
 			"userId":       muteRecord.UserID.Hex(),
 			"roomId":       muteRecord.RoomID.Hex(),
-			"moderatorId":  muteRecord.ModeratorID.Hex(),
+			"restrictorId": restrictorId.Hex(),
 			"type":         muteRecord.Type,
 			"duration":     muteRecord.Duration,
 			"restriction":  muteRecord.Restriction,
@@ -260,9 +304,7 @@ func (c *RestrictionController) handleUnmuteUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Convert string IDs to ObjectIDs
-	userObjID, roomObjID, moderatorObjID, err := unmuteDto.ToObjectIDs()
+	userObjID, roomObjID, err := unmuteDto.ToObjectIDs()
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -270,22 +312,28 @@ func (c *RestrictionController) handleUnmuteUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Unmute user
-	if err := c.moderationService.UnmuteUser(ctx.Context(), userObjID, roomObjID, moderatorObjID); err != nil {
+	restrictorId, err := extractUserIDFromJWT(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Unauthorized",
+			"error":   err.Error(),
+		})
+	}
+	if err := c.moderationService.UnmuteUser(ctx.Context(), userObjID, roomObjID, restrictorId); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "Failed to unmute user",
 			"error":   err.Error(),
 		})
 	}
-
 	return ctx.JSON(fiber.Map{
 		"success": true,
 		"message": "User unmuted successfully",
 		"data": fiber.Map{
 			"userId": unmuteDto.UserID,
 			"roomId": unmuteDto.RoomID,
+			"restrictorId": restrictorId.Hex(),
 		},
 	})
 }
@@ -300,9 +348,7 @@ func (c *RestrictionController) handleKickUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Convert string IDs to ObjectIDs
-	userObjID, roomObjID, moderatorObjID, err := kickDto.ToObjectIDs()
+	userObjID, roomObjID, err := kickDto.ToObjectIDs()
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -310,15 +356,15 @@ func (c *RestrictionController) handleKickUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
-	// Kick user
-	kickRecord, err := c.moderationService.KickUser(
-		ctx.Context(),
-		userObjID,
-		roomObjID,
-		moderatorObjID,
-		kickDto.Reason,
-	)
+	restrictorId, err := extractUserIDFromJWT(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Unauthorized",
+			"error":   err.Error(),
+		})
+	}
+	kickRecord, err := c.moderationService.KickUser(ctx.Context(), userObjID, roomObjID, restrictorId, kickDto.Reason)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -326,7 +372,6 @@ func (c *RestrictionController) handleKickUser(ctx *fiber.Ctx) error {
 			"error":   err.Error(),
 		})
 	}
-
 	return ctx.JSON(fiber.Map{
 		"success": true,
 		"message": "User kicked successfully",
@@ -334,7 +379,7 @@ func (c *RestrictionController) handleKickUser(ctx *fiber.Ctx) error {
 			"id":          kickRecord.ID.Hex(),
 			"userId":      kickRecord.UserID.Hex(),
 			"roomId":      kickRecord.RoomID.Hex(),
-			"moderatorId": kickRecord.ModeratorID.Hex(),
+			"restrictorId": restrictorId.Hex(),
 			"type":        kickRecord.Type,
 			"reason":      kickRecord.Reason,
 			"kickTime":    kickRecord.StartTime,

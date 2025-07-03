@@ -31,7 +31,7 @@ type (
 		ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 		RoomID      primitive.ObjectID `bson:"room_id" json:"room_id"`
 		UserID      primitive.ObjectID `bson:"user_id" json:"user_id"`
-		ModeratorID primitive.ObjectID `bson:"moderator_id" json:"moderator_id"`
+		RestrictorID primitive.ObjectID `bson:"restrictor_id" json:"restrictor_id"`
 		
 		// ประเภทการลงโทษ: ban, mute, kick
 		Type        string `bson:"type" json:"type"`
@@ -84,7 +84,7 @@ type (
 		StartTime   time.Time `json:"start_time"`
 		EndTime     *time.Time `json:"end_time,omitempty"`
 		Status      string    `json:"status"`
-		Moderator   string    `json:"moderator"`
+		Restrictor   string    `json:"restrictor"`
 	}
 )
 

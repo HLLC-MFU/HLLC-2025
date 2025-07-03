@@ -16,7 +16,6 @@ type (
 		TimeValue  int    `json:"timeValue,omitempty"`         // จำนวนเวลา (ถ้าเป็น temporary)
 		TimeUnit   string `json:"timeUnit,omitempty"`          // "minutes" หรือ "hours"
 		Reason     string `json:"reason" validate:"required"`
-		ModeratorID string `json:"moderatorId" validate:"required,mongoId"`
 	}
 
 	// MuteUserDto สำหรับ mute user
@@ -28,7 +27,6 @@ type (
 		TimeUnit    string `json:"timeUnit,omitempty"`             // "minutes" หรือ "hours"
 		Restriction string `json:"restriction" validate:"required"` // "can_view" หรือ "cannot_view"
 		Reason      string `json:"reason" validate:"required"`
-		ModeratorID string `json:"moderatorId" validate:"required,mongoId"`
 	}
 
 	// KickUserDto สำหรับ kick user
@@ -36,21 +34,18 @@ type (
 		UserID      string `json:"userId" validate:"required,mongoId"`
 		RoomID      string `json:"roomId" validate:"required,mongoId"`
 		Reason      string `json:"reason" validate:"required"`
-		ModeratorID string `json:"moderatorId" validate:"required,mongoId"`
 	}
 
 	// UnbanUserDto สำหรับ unban user
 	UnbanUserDto struct {
 		UserID      string `json:"userId" validate:"required,mongoId"`
 		RoomID      string `json:"roomId" validate:"required,mongoId"`
-		ModeratorID string `json:"moderatorId" validate:"required,mongoId"`
 	}
 
 	// UnmuteUserDto สำหรับ unmute user
 	UnmuteUserDto struct {
 		UserID      string `json:"userId" validate:"required,mongoId"`
 		RoomID      string `json:"roomId" validate:"required,mongoId"`
-		ModeratorID string `json:"moderatorId" validate:"required,mongoId"`
 	}
 
 	// GetModerationHistoryDto สำหรับดูประวัติการลงโทษ
@@ -65,23 +60,18 @@ type (
 )
 
 // ToObjectIDs แปลง string IDs เป็น ObjectIDs สำหรับ BanUserDto
-func (dto *BanUserDto) ToObjectIDs() (userObjID, roomObjID, moderatorObjID primitive.ObjectID, err error) {
+func (dto *BanUserDto) ToObjectIDs() (userObjID, roomObjID primitive.ObjectID, err error) {
 	userObjID, err = primitive.ObjectIDFromHex(dto.UserID)
 	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid user ID: %w", err)
+		return primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid user ID: %w", err)
 	}
 
 	roomObjID, err = primitive.ObjectIDFromHex(dto.RoomID)
 	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid room ID: %w", err)
+		return primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid room ID: %w", err)
 	}
 
-	moderatorObjID, err = primitive.ObjectIDFromHex(dto.ModeratorID)
-	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid moderator ID: %w", err)
-	}
-
-	return userObjID, roomObjID, moderatorObjID, nil
+	return userObjID, roomObjID, nil
 }
 
 // CalculateEndTime คำนวณเวลาสิ้นสุดสำหรับ BanUserDto
@@ -109,23 +99,18 @@ func (dto *BanUserDto) CalculateEndTime() (*time.Time, error) {
 }
 
 // ToObjectIDs แปลง string IDs เป็น ObjectIDs สำหรับ MuteUserDto
-func (dto *MuteUserDto) ToObjectIDs() (userObjID, roomObjID, moderatorObjID primitive.ObjectID, err error) {
+func (dto *MuteUserDto) ToObjectIDs() (userObjID, roomObjID primitive.ObjectID, err error) {
 	userObjID, err = primitive.ObjectIDFromHex(dto.UserID)
 	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid user ID: %w", err)
+		return primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid user ID: %w", err)
 	}
 
 	roomObjID, err = primitive.ObjectIDFromHex(dto.RoomID)
 	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid room ID: %w", err)
+		return primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid room ID: %w", err)
 	}
 
-	moderatorObjID, err = primitive.ObjectIDFromHex(dto.ModeratorID)
-	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid moderator ID: %w", err)
-	}
-
-	return userObjID, roomObjID, moderatorObjID, nil
+	return userObjID, roomObjID, nil
 }
 
 // CalculateEndTime คำนวณเวลาสิ้นสุดสำหรับ MuteUserDto
@@ -153,63 +138,48 @@ func (dto *MuteUserDto) CalculateEndTime() (*time.Time, error) {
 }
 
 // ToObjectIDs แปลง string IDs เป็น ObjectIDs สำหรับ KickUserDto
-func (dto *KickUserDto) ToObjectIDs() (userObjID, roomObjID, moderatorObjID primitive.ObjectID, err error) {
+func (dto *KickUserDto) ToObjectIDs() (userObjID, roomObjID primitive.ObjectID, err error) {
 	userObjID, err = primitive.ObjectIDFromHex(dto.UserID)
 	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid user ID: %w", err)
+		return primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid user ID: %w", err)
 	}
 
 	roomObjID, err = primitive.ObjectIDFromHex(dto.RoomID)
 	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid room ID: %w", err)
+		return primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid room ID: %w", err)
 	}
 
-	moderatorObjID, err = primitive.ObjectIDFromHex(dto.ModeratorID)
-	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid moderator ID: %w", err)
-	}
-
-	return userObjID, roomObjID, moderatorObjID, nil
+	return userObjID, roomObjID, nil
 }
 
 // ToObjectIDs แปลง string IDs เป็น ObjectIDs สำหรับ UnbanUserDto
-func (dto *UnbanUserDto) ToObjectIDs() (userObjID, roomObjID, moderatorObjID primitive.ObjectID, err error) {
+func (dto *UnbanUserDto) ToObjectIDs() (userObjID, roomObjID primitive.ObjectID, err error) {
 	userObjID, err = primitive.ObjectIDFromHex(dto.UserID)
 	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid user ID: %w", err)
+		return primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid user ID: %w", err)
 	}
 
 	roomObjID, err = primitive.ObjectIDFromHex(dto.RoomID)
 	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid room ID: %w", err)
+		return primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid room ID: %w", err)
 	}
 
-	moderatorObjID, err = primitive.ObjectIDFromHex(dto.ModeratorID)
-	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid moderator ID: %w", err)
-	}
-
-	return userObjID, roomObjID, moderatorObjID, nil
+	return userObjID, roomObjID, nil
 }
 
 // ToObjectIDs แปลง string IDs เป็น ObjectIDs สำหรับ UnmuteUserDto
-func (dto *UnmuteUserDto) ToObjectIDs() (userObjID, roomObjID, moderatorObjID primitive.ObjectID, err error) {
+func (dto *UnmuteUserDto) ToObjectIDs() (userObjID, roomObjID primitive.ObjectID, err error) {
 	userObjID, err = primitive.ObjectIDFromHex(dto.UserID)
 	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid user ID: %w", err)
+		return primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid user ID: %w", err)
 	}
 
 	roomObjID, err = primitive.ObjectIDFromHex(dto.RoomID)
 	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid room ID: %w", err)
+		return primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid room ID: %w", err)
 	}
 
-	moderatorObjID, err = primitive.ObjectIDFromHex(dto.ModeratorID)
-	if err != nil {
-		return primitive.NilObjectID, primitive.NilObjectID, primitive.NilObjectID, fmt.Errorf("invalid moderator ID: %w", err)
-	}
-
-	return userObjID, roomObjID, moderatorObjID, nil
+	return userObjID, roomObjID, nil
 }
 
 // Validate ตรวจสอบความถูกต้องของ BanUserDto
