@@ -10,6 +10,8 @@ import (
 	"chat/pkg/database/queries"
 	"context"
 	"log"
+	"path/filepath"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -109,39 +111,95 @@ func (ns *NotificationService) SendOfflineNotification(ctx context.Context, rece
 		return
 	}
 
-	var payload chatModel.NotificationPayload
-
-	// Use specific payload creator for file uploads
-	if message.FileURL != "" {
-		payload = chatModel.CreateUploadNotificationPayload(
-			messageType,
-			room.ID,
-			room.NameTh, room.NameEn,
-			sender.ID, sender.Username, sender.FirstName, sender.LastName,
-			message.ID.Hex(), message.Message,
-			receiverID,
-			message.FileURL, message.FileType, message.FileName,
-			role,
-		)
-	} else {
-		// Create notification payload for other types
-		payload = chatModel.CreateSimpleNotificationPayload(
-			messageType,
-			room.ID,
-			room.NameTh, room.NameEn,
-			sender.ID, sender.Username, sender.FirstName, sender.LastName,
-			message.ID.Hex(), message.Message,
-			receiverID,
-			role,
-		)
+	// --- สร้าง payload แบบเดียวกับ broadcast (websocket) ---
+	userData := map[string]interface{}{
+		"_id":      sender.ID,
+		"username": sender.Username,
+		"name": map[string]interface{}{
+			"first":  sender.FirstName,
+			"middle": "",
+			"last":   sender.LastName,
+		},
+	}
+	if role != nil {
+		userData["role"] = map[string]interface{}{
+			"_id": role.ID,
+			"name": role.Name,
+		}
 	}
 
-	// ✅ Send to dedicated offline notification topic
-	success := ns.sendOfflineToKafka(ctx, receiverID, payload, message.RoomID.Hex(), message.UserID.Hex(), message.Message, messageType, message.ID.Hex())
-	
-	if success {
-		log.Printf("[NotificationService] SUCCESS: sent offline notification to %s", receiverID)
+	messageData := map[string]interface{}{
+		"_id":       message.ID.Hex(),
+		"type":      messageType,
+		"message":   message.Message,
+		"timestamp": message.Timestamp,
 	}
+
+	payload := map[string]interface{}{
+		"room": map[string]interface{}{
+			"_id": room.ID,
+		},
+		"user": userData,
+		"message": messageData,
+		"timestamp": message.Timestamp,
+	}
+
+	// Sticker
+	if message.StickerID != nil {
+		payload["sticker"] = map[string]interface{}{
+			"_id":   message.StickerID.Hex(),
+			"image": message.Image,
+		}
+	}
+
+	// Upload (file/image)
+	if message.Image != "" && message.StickerID == nil {
+		filename := filepath.Base(message.Image)
+		payload["file"] = filename
+	}
+
+	// Evoucher
+	if message.EvoucherInfo != nil {
+		payload["evoucherInfo"] = map[string]interface{}{
+			"title":       message.EvoucherInfo.Title,
+			"description": message.EvoucherInfo.Description,
+			"claimUrl":    message.EvoucherInfo.ClaimURL,
+		}
+	}
+
+	// Mention
+	if len(message.MentionInfo) > 0 {
+		payload["mentions"] = message.MentionInfo
+	}
+
+	// Reply
+	if message.ReplyToID != nil {
+		// (Optional: ดึงข้อมูล replyTo message ถ้าต้องการ)
+		payload["replyTo"] = map[string]interface{}{
+			"message": map[string]interface{}{
+				"_id": message.ReplyToID.Hex(),
+			},
+		}
+	}
+
+	// --- END payload ---
+
+	// สร้าง root event object
+	event := map[string]interface{}{
+		"type": messageType,
+		"payload": payload,
+		"receiver": receiverID,
+		"timestamp": message.Timestamp,
+	}
+
+	// ส่งไป Kafka (topic เดิม) เป็น object ตรงๆ ไม่ต้อง marshal เป็น string
+	topic := "chat-notifications"
+	err = ns.kafkaBus.Emit(ctx, topic, receiverID, event)
+	if err != nil {
+		log.Printf("[NotificationService] Failed to send event to Kafka: %v", err)
+		return
+	}
+	log.Printf("[NotificationService] SUCCESS: sent offline notification to %s", receiverID)
 }
 
 // SendMessageNotification sends a notification for a chat message (generic method)
@@ -203,44 +261,32 @@ func (ns *NotificationService) SendOfflineReactionNotification(ctx context.Conte
 		return
 	}
 
-	// Build message info
-	msgInfo := map[string]interface{}{
-		"_id":       message.ID.Hex(),
-		"message":   message.Message,
-		"timestamp": message.Timestamp,
-		"type":      "reaction",
-	}
-
-	// Build user info
-	userInfo := map[string]interface{}{
-		"_id":      sender.ID,
-		"username": sender.Username,
-		"name": map[string]interface{}{
-			"first":  sender.FirstName,
-			"last":   sender.LastName,
-		},
-	}
-
 	// Build rich payload
 	payload := map[string]interface{}{
-		"message":   msgInfo,
-		"user":      userInfo,
-		"reaction":  reaction.Reaction,
-		"action":    reaction.Reaction, // ใช้ action จริง (add/remove)
-		"timestamp": reaction.Timestamp,
-	}
-
-	notification := map[string]interface{}{
-		"type":      "reaction",
-		"payload":   payload,
+		"type": "reaction",
+		"payload": map[string]interface{}{
+			"action": reaction.Reaction,
+			"reactToId": map[string]interface{}{
+				"_id": message.ID.Hex(),
+			},
+			"reaction": reaction.Reaction,
+			"timestamp": reaction.Timestamp,
+			"user": map[string]interface{}{
+				"_id":      sender.ID,
+				"username": sender.Username,
+				"name": map[string]interface{}{
+					"first":  sender.FirstName,
+					"last":   sender.LastName,
+					"middle": "",
+				},
+			},
+		},
 		"timestamp": reaction.Timestamp,
 		"receiver":  receiverID,
 	}
 
-	log.Printf("[NotificationService] DEBUG: Sending notification payload: %+v", notification)
-
 	topic := "chat-notifications"
-	if err := ns.kafkaBus.Emit(ctx, topic, receiverID, notification); err != nil {
+	if err := ns.kafkaBus.Emit(ctx, topic, receiverID, payload); err != nil {
 		log.Printf("[NotificationService] Failed to send offline reaction notification to Kafka: %v", err)
 	} else {
 		log.Printf("[NotificationService] SUCCESS: sent offline reaction notification to %s via topic %s", receiverID, topic)
@@ -383,6 +429,7 @@ func (ns *NotificationService) SendOfflineEvoucherNotification(ctx context.Conte
 // SendOfflineUploadNotification sends upload notification to offline user
 func (ns *NotificationService) SendOfflineUploadNotification(ctx context.Context, receiverID string, message *model.ChatMessage) {
 	log.Printf("[NotificationService] Sending OFFLINE upload notification: receiver=%s, message=%s", receiverID, message.ID.Hex())
+	// Get sender info
 	sender, err := ns.getUserById(ctx, message.UserID.Hex())
 	if err != nil {
 		log.Printf("[NotificationService] Failed to get sender info for upload notification: %v", err)
@@ -393,16 +440,45 @@ func (ns *NotificationService) SendOfflineUploadNotification(ctx context.Context
 		log.Printf("[NotificationService] Failed to get room info for upload notification: %v", err)
 		return
 	}
-	payload := chatModel.CreateUploadNotificationPayload(
-		"upload",
-		room.ID, room.NameTh, room.NameEn,
-		sender.ID, sender.Username, sender.FirstName, sender.LastName,
-		message.ID.Hex(), message.Message,
-		receiverID,
-		message.FileURL, message.FileType, message.FileName,
-		&chatModel.NotificationUserRole{}, // Add missing NotificationUserRole argument
-	)
-	_ = ns.sendOfflineToKafka(ctx, receiverID, payload, room.ID, sender.ID, message.Message, "upload", message.ID.Hex())
+
+	filename := message.Image
+	if idx := strings.LastIndex(filename, "/"); idx != -1 {
+		filename = filename[idx+1:]
+	}
+	payload := map[string]interface{}{
+		"type": "upload",
+		"payload": map[string]interface{}{
+			"file": filename,
+			"message": map[string]interface{}{
+				"_id":       message.ID.Hex(),
+				"type":      "upload",
+				"message":   message.Message,
+				"timestamp": message.Timestamp,
+			},
+			"room": map[string]interface{}{
+				"_id": room.ID,
+			},
+			"timestamp": message.Timestamp,
+			"user": map[string]interface{}{
+				"_id":      sender.ID,
+				"username": sender.Username,
+				"name": map[string]interface{}{
+					"first":  sender.FirstName,
+					"last":   sender.LastName,
+					"middle": "",
+				},
+			},
+		},
+		"timestamp": message.Timestamp,
+		"receiver":  receiverID,
+	}
+
+	topic := "chat-notifications"
+	if err := ns.kafkaBus.Emit(ctx, topic, receiverID, payload); err != nil {
+		log.Printf("[NotificationService] Failed to send offline upload notification to Kafka: %v", err)
+	} else {
+		log.Printf("[NotificationService] SUCCESS: sent offline upload notification to %s via topic %s", receiverID, topic)
+	}
 }
 
 // NotifyOfflineUsersOnly sends notifications ONLY to users who are currently offline
@@ -602,5 +678,60 @@ func (ns *NotificationService) getNotificationUserRole(ctx context.Context, user
 	return &chatModel.NotificationUserRole{
 		ID:   roleID,
 		Name: roleName,
+	}
+}
+
+// SendOfflineStickerNotification sends sticker notification to offline user
+func (ns *NotificationService) SendOfflineStickerNotification(ctx context.Context, receiverID string, message *model.ChatMessage) {
+	log.Printf("[NotificationService] Sending OFFLINE sticker notification: receiver=%s, message=%s", receiverID, message.ID.Hex())
+	// Get sender info
+	sender, err := ns.getUserById(ctx, message.UserID.Hex())
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get sender info for sticker notification: %v", err)
+		return
+	}
+	room, err := ns.getRoomById(ctx, message.RoomID.Hex())
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get room info for sticker notification: %v", err)
+		return
+	}
+
+	// Build payload to match broadcast structure
+	payload := map[string]interface{}{
+		"type": "sticker",
+		"payload": map[string]interface{}{
+			"sticker": map[string]interface{}{
+				"_id":   message.StickerID.Hex(),
+				"image": message.Image,
+			},
+			"message": map[string]interface{}{
+				"_id":       message.ID.Hex(),
+				"type":      "sticker",
+				"message":   message.Message,
+				"timestamp": message.Timestamp,
+			},
+			"room": map[string]interface{}{
+				"_id": room.ID,
+			},
+			"timestamp": message.Timestamp,
+			"user": map[string]interface{}{
+				"_id":      sender.ID,
+				"username": sender.Username,
+				"name": map[string]interface{}{
+					"first":  sender.FirstName,
+					"last":   sender.LastName,
+					"middle": "",
+				},
+			},
+		},
+		"timestamp": message.Timestamp,
+		"receiver":  receiverID,
+	}
+
+	topic := "chat-notifications"
+	if err := ns.kafkaBus.Emit(ctx, topic, receiverID, payload); err != nil {
+		log.Printf("[NotificationService] Failed to send offline sticker notification to Kafka: %v", err)
+	} else {
+		log.Printf("[NotificationService] SUCCESS: sent offline sticker notification to %s via topic %s", receiverID, topic)
 	}
 } 

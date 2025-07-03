@@ -35,9 +35,14 @@ var ModuleConfig = map[string]FileUploadConfig{
 		NamePrefix:   "chat",
 	},
 	"sticker": {
+			AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
+			MaxSize:      256 * 1024,
+			NamePrefix:   "sticker",
+	},
+	"upload": {
 		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
 		MaxSize:      256 * 1024,
-		NamePrefix:   "sticker",
+		NamePrefix:   "upload",
 	},
 }
 

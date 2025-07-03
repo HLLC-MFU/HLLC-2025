@@ -113,7 +113,7 @@ func (s *ChatService) removeMessageFromCache(ctx context.Context, roomID, messag
 	return nil
 }
 
-// emitUnsendEvent ส่ง unsend event ไป WebSocket
+// emitUnsendEvent ส่ง unsend event ไป WebSocket และเฉพาะ notification topic (ไม่ส่งไป room topic อีก)
 func (s *ChatService) emitUnsendEvent(ctx context.Context, messageData *model.ChatMessage, userID primitive.ObjectID) error {
 	// ดึงข้อมูล user
 	user, err := s.GetUserById(ctx, userID.Hex())
@@ -122,7 +122,7 @@ func (s *ChatService) emitUnsendEvent(ctx context.Context, messageData *model.Ch
 		return err
 	}
 
-	// สร้าง payload สำหรับ unsend event
+	// สร้าง payload สำหรับ unsend event (WebSocket)
 	payload := model.ChatUnsendPayload{
 		Room: model.RoomInfo{
 			ID: messageData.RoomID.Hex(),
@@ -141,7 +141,7 @@ func (s *ChatService) emitUnsendEvent(ctx context.Context, messageData *model.Ch
 		Timestamp:   time.Now(),
 	}
 
-	// สร้าง event
+	// สร้าง event สำหรับ WebSocket
 	event := model.Event{
 		Type:      model.EventTypeUnsendMessage,
 		Payload:   payload,
@@ -157,12 +157,71 @@ func (s *ChatService) emitUnsendEvent(ctx context.Context, messageData *model.Ch
 	// ส่ง event ไป WebSocket ใน room นี้
 	s.hub.BroadcastToRoom(messageData.RoomID.Hex(), eventData)
 
-	// **ส่ง structured unsend event ไป Kafka (สำหรับ audit log)**
-	roomTopic := "room-" + messageData.RoomID.Hex()
-	if err := s.kafkaBus.Emit(ctx, roomTopic, messageData.RoomID.Hex(), event); err != nil {
-		log.Printf("[ChatService] Failed to emit structured unsend event to Kafka: %v", err)
+	// --- ส่ง delete event ไปที่ chat-message-<roomId> topic ด้วย ---
+	deleteEvent := model.Event{
+		Type: "message_deleted",
+		Payload: struct {
+			MessageID string         `json:"messageId"`
+			User      model.UserInfo `json:"user"`
+			Timestamp time.Time      `json:"timestamp"`
+		}{
+			MessageID: messageData.ID.Hex(),
+			User: model.UserInfo{
+				ID:       user.ID.Hex(),
+				Username: user.Username,
+				Name: map[string]interface{}{
+					"first":  user.Name.First,
+					"middle": user.Name.Middle,
+					"last":   user.Name.Last,
+				},
+			},
+			Timestamp: time.Now(),
+		},
+		Timestamp: time.Now(),
+	}
+	roomTopic := "chat-room-" + messageData.RoomID.Hex()
+	if err := s.kafkaBus.Emit(ctx, roomTopic, messageData.RoomID.Hex(), deleteEvent); err != nil {
+		log.Printf("[ChatService] Failed to emit message_deleted event to Kafka: %v", err)
 	} else {
-		log.Printf("[ChatService] Successfully emitted structured unsend event to Kafka")
+		log.Printf("[ChatService] Successfully emitted message_deleted event to Kafka")
+	}
+
+	// --- ส่ง notification event ไปที่ chat-notifications topic เท่านั้น ---
+	notiPayload := struct {
+		User    model.UserInfo    `json:"user"`
+		Message struct {
+			Message   string    `json:"message"`
+			Timestamp time.Time `json:"timestamp"`
+		} `json:"message"`
+	}{
+		User: model.UserInfo{
+			ID:       user.ID.Hex(),
+			Username: user.Username,
+			Name: map[string]interface{}{
+				"first":  user.Name.First,
+				"middle": user.Name.Middle,
+				"last":   user.Name.Last,
+			},
+		},
+		Message: struct {
+			Message   string    `json:"message"`
+			Timestamp time.Time `json:"timestamp"`
+		}{
+			Message:   "User " + user.Username + " has removed a message",
+			Timestamp: time.Now(),
+		},
+	}
+
+	notiEvent := model.Event{
+		Type:      "unsend_notification",
+		Payload:   notiPayload,
+		Timestamp: time.Now(),
+	}
+
+	if err := s.kafkaBus.Emit(ctx, "chat-notifications", messageData.RoomID.Hex(), notiEvent); err != nil {
+		log.Printf("[ChatService] Failed to emit unsend notification event to Kafka: %v", err)
+	} else {
+		log.Printf("[ChatService] Successfully emitted unsend notification event to Kafka")
 	}
 
 	return nil
