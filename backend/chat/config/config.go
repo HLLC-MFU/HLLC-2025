@@ -60,17 +60,9 @@ func LoadConfig(path string) *Config {
 	cfg.App.Name = getEnvOrFatal("APP_NAME")
 	cfg.App.Url = getEnvOrFatal("APP_URL")
 
-	// JWT configuration
-	cfg.Jwt.AccessSecretKey = getEnvOrFatal("JWT_ACCESS_SECRET_KEY")
-	cfg.Jwt.RefreshSecretKey = getEnvOrFatal("JWT_REFRESH_SECRET_KEY")
-	cfg.Jwt.ApiSecretKey = getEnvOrFatal("JWT_API_SECRET_KEY")
-	cfg.Jwt.AccessDuration = getEnvAsInt64OrDefault("JWT_ACCESS_DURATION", 86400)
-	cfg.Jwt.RefreshDuration = getEnvAsInt64OrDefault("JWT_REFRESH_DURATION", 604800)
-	cfg.Jwt.ApiDuration = getEnvAsInt64OrDefault("JWT_API_DURATION", 31536000)
-
-	// Database configuration
-	cfg.Db.Url = getEnvOrFatal("DB_URL")
-	cfg.Db.Database = getEnvOrDefault("DB_NAME", "hllc")
+	//Database configuration
+	cfg.Db.Url = getEnvOrFatal("MONGO_URI")
+	cfg.Db.Database = getEnvOrDefault("DB_NAME", "hllc2025-chat")
 
 	// Redis configuration
 	cfg.Redis.Host = getEnvOrFatal("REDIS_HOST")

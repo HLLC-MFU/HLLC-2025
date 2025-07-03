@@ -140,7 +140,7 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
     <div className="w-full max-w-sm mx-auto mb-4 sm:overflow-hidden sm:hidden">
       {selectedActivityIds.length === 0 ? (
         <div className="w-full h-[250px] bg-black flex items-center justify-center text-white text-base font-bold rounded-lg">
-          กรุณาเลือกกิจกรรม
+          Please select activities
         </div>
       ) : (
         <div
