@@ -244,6 +244,15 @@ func (s *ChatService) determineMessageType(message *model.ChatMessage) string {
 	if message.MentionInfo != nil {
 		return "mention"
 	}
+	if message.Reactions != nil {
+		return "reactions"
+	}
+	if message.ReplyToID != nil {
+		return "reply"
+	}
+	if message.ModerationInfo != nil {
+		return "restriction"
+	}
 	return "text"
 }
 

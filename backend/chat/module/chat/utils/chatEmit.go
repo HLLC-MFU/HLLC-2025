@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
@@ -215,65 +216,88 @@ func (e *ChatEventEmitter) EmitReaction(ctx context.Context, reaction *model.Mes
 		userInfo = model.UserInfo{ID: reaction.UserID.Hex()}
 	}
 
-	// Determine action (add vs remove)
-	action := "add"
-	if reaction.Reaction == "remove" {
-		action = "remove"
+	// Get message info for the message being reacted to
+	msgCollection := e.mongo.Collection("chat-messages")
+	var msgDoc struct {
+		ID        primitive.ObjectID `bson:"_id"`
+		Message   string             `bson:"message"`
+		Timestamp time.Time          `bson:"timestamp"`
+		Type      string             `bson:"type"`
 	}
-
-	// **SIMPLIFIED: Just get updated reactions for this message (lighter query)**
-	reactionCollection := e.mongo.Collection("message-reactions")
-	cursor, err := reactionCollection.Find(ctx, bson.M{"message_id": reaction.MessageID})
+	err = msgCollection.FindOne(ctx, bson.M{"_id": reaction.MessageID}).Decode(&msgDoc)
 	if err != nil {
-		log.Printf("[ERROR] Failed to get updated reactions: %v", err)
-		return err
-	}
-	defer cursor.Close(ctx)
-
-	var updatedReactions []model.MessageReaction
-	if err = cursor.All(ctx, &updatedReactions); err != nil {
-		log.Printf("[ERROR] Failed to decode reactions: %v", err)
-		return err
+		log.Printf("[WARN] Failed to get message info for reaction: %v", err)
+		msgDoc.ID = reaction.MessageID
+		msgDoc.Message = ""
+		msgDoc.Timestamp = reaction.Timestamp
+		msgDoc.Type = "reaction"
+	} else if msgDoc.Type == "" {
+		msgDoc.Type = "reaction"
 	}
 
-	// **NEW: Create lightweight reaction update event (no full message)**
-	reactionUpdateEvent := map[string]interface{}{
-		"type": "message_reaction_update",
-		"payload": map[string]interface{}{
-			"messageId": reaction.MessageID.Hex(),
-			"reactionUpdate": map[string]interface{}{
-				"action":    action,
-				"reaction":  reaction.Reaction,
-				"user": map[string]interface{}{
-					"_id":      userInfo.ID,
-					"username": userInfo.Username,
-					"name":     userInfo.Name,
-				},
-			},
-			"reactions": updatedReactions, // All current reactions for this message
-			"room": map[string]interface{}{
-				"_id": roomID.Hex(),
-			},
-			"timestamp": reaction.Timestamp,
+	reactionCollection := e.mongo.Collection("message-reactions")
+	// Find if user already reacted to this message (any emoji)
+	filterAny := bson.M{"message_id": reaction.MessageID, "user_id": reaction.UserID}
+	var existing model.MessageReaction
+	action := "add"
+	err = reactionCollection.FindOne(ctx, filterAny).Decode(&existing)
+	if err == nil {
+		if existing.Reaction == reaction.Reaction {
+			// Same emoji: emit event, do not insert again
+			action = "add"
+			// ไม่ต้อง insert ซ้ำ
+		} else {
+			// Different emoji: update (remove old, insert new)
+			_, _ = reactionCollection.DeleteOne(ctx, filterAny)
+			_, err := reactionCollection.InsertOne(ctx, reaction)
+			if err != nil {
+				log.Printf("[EmitReaction] Failed to update reaction: %v", err)
+				return err
+			}
+			action = "update"
+		}
+	} else if err != mongo.ErrNoDocuments {
+		// Some other error
+		log.Printf("[EmitReaction] DB error: %v", err)
+		return err
+	} else {
+		// No previous reaction: insert new
+		_, err = reactionCollection.InsertOne(ctx, reaction)
+		if err != nil {
+			log.Printf("[EmitReaction] Failed to insert reaction: %v", err)
+			return err
+		}
+		action = "add"
+	}
+
+	// --- สร้าง rich payload ---
+	payload := map[string]interface{}{
+		"message": map[string]interface{}{
+			"_id":       msgDoc.ID.Hex(),
+			"message":   msgDoc.Message,
+			"timestamp": msgDoc.Timestamp,
+			"type":      msgDoc.Type,
 		},
+		"user": map[string]interface{}{
+			"_id":      userInfo.ID,
+			"username": userInfo.Username,
+			"name":     userInfo.Name,
+			"role":     userInfo.Role,
+		},
+		"reaction":  reaction.Reaction,
+		"action":    action,
 		"timestamp": reaction.Timestamp,
 	}
-
-	eventBytes, err := json.Marshal(reactionUpdateEvent)
-	if err != nil {
-		return fmt.Errorf("failed to marshal reaction update event: %w", err)
+	event := model.Event{
+		Type:      model.EventTypeReaction,
+		Payload:   payload,
+		Timestamp: reaction.Timestamp,
 	}
 
-	// Broadcast to WebSocket clients
-	e.hub.BroadcastToRoom(roomID.Hex(), eventBytes)
+	// ส่ง standardized event ไปยัง WebSocket และ Kafka
+	e.emitEventStructured(ctx, &model.ChatMessage{RoomID: roomID}, event)
 
-	// Emit to Kafka
-	roomTopic := getRoomTopic(roomID.Hex())
-	if err := e.bus.Emit(ctx, roomTopic, roomID.Hex(), eventBytes); err != nil {
-		log.Printf("[WARN] Failed to emit reaction update to Kafka (continuing without Kafka): %v", err)
-	}
-
-	log.Printf("[Kafka] Successfully published lightweight reaction update to topic %s", roomTopic)
+	log.Printf("[EmitReaction] %s reaction: user %s reacted with %s on message %s", action, reaction.UserID.Hex(), reaction.Reaction, reaction.MessageID.Hex())
 	return nil
 }
 
@@ -650,6 +674,7 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 	// Emit event using common emitter
 	return e.emitEventStructured(ctx, msg, event)
 }
+
 
 // EmitEvent emits a custom event
 func (e *ChatEventEmitter) EmitEvent(ctx context.Context, msg *model.ChatMessage, event interface{}) error {

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"chat/module/room/model"
+	"chat/pkg/middleware"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -147,11 +148,17 @@ func CanUserSendMessage(ctx context.Context, room *model.Room, userID string) (b
 
 	// ตรวจสอบว่าห้องเป็น read-only หรือไม่
 	if room.IsReadOnly() {
-		return false, fmt.Errorf("room is read-only")
-	}
+		// ดึง role ของ user จาก context
+		userRole := ctx.Value("userRole").(string)
+		if userRole == "" {
+			return false, fmt.Errorf("user role not found in context")
+		}
 
-	// ตรวจสอบ permission เพิ่มเติมตามต้องการ
-	// เช่น mute status, ban status, etc.
+		// อนุญาตให้เฉพาะ Administrator และ Staff สามารถส่งข้อความในห้อง read-only ได้
+		if userRole != middleware.RoleAdministrator && userRole != middleware.RoleStaff {
+			return false, fmt.Errorf("room is read-only and user does not have write permission")
+		}
+	}
 
 	return true, nil
 }

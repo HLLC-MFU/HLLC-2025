@@ -41,7 +41,7 @@ func NewEvoucherService(
 	hub *chatUtils.Hub,
 	kafkaBus *kafka.Bus,
 ) *EvoucherService {
-	collection := db.Collection("chat_messages")
+	collection := db.Collection("chat-messages")
 	fkValidator := serviceHelper.NewForeignKeyValidator(db)
 	cache := chatUtils.NewChatCacheService(redis)
 	

@@ -45,7 +45,7 @@ func NewEvoucherController(
 
 func (c *EvoucherController) setupRoutes() {
 	c.Post("/send", c.handleSendEvoucher, c.rbac.RequireAdministrator())
-	c.Post("/:evoucherId/claim", c.handleClaimEvoucher, c.rbac.RequireAdministrator())
+	c.Post("/:evoucherId/claim", c.handleClaimEvoucher)
 	c.SetupRoutes()
 }
 
@@ -58,6 +58,18 @@ func (c *EvoucherController) handleSendEvoucher(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Extract userID from JWT token
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid authentication token",
+		})
+	}
+
+	// Set userID from JWT token
+	evoucherDto.UserID = userID
+
 	// Convert IDs to ObjectIDs
 	userObjID, roomObjID, err := evoucherDto.ToObjectIDs()
 	if err != nil {
@@ -68,7 +80,7 @@ func (c *EvoucherController) handleSendEvoucher(ctx *fiber.Ctx) error {
 	}
 
 	// Check if user is in room
-	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, evoucherDto.UserID)
+	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,

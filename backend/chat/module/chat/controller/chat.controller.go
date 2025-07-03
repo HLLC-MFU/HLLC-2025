@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"time"
 
+	userService "chat/module/user/service"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 	"github.com/redis/go-redis/v9"
@@ -65,6 +67,7 @@ type (
 		wsHandler      *WebSocketHandler
 		rbac           middleware.IRBACMiddleware
 		connManager    *connection.ConnectionManager
+		roleService    *userService.RoleService
 	}
 )
 
@@ -76,6 +79,7 @@ func NewChatController(
 	restrictionService RestrictionServiceChatService,
 	rbac middleware.IRBACMiddleware,
 	connManager *connection.ConnectionManager,
+	roleService *userService.RoleService,
 ) *ChatController {
 	controller := &ChatController{
 		BaseController: decorators.NewBaseController(app, "/chat"),
@@ -84,6 +88,7 @@ func NewChatController(
 		stickerService: stickerService,
 		rbac:           rbac,
 		connManager:    connManager,
+		roleService:    roleService,
 	}
 	controller.wsHandler = NewWebSocketHandler(
 		chatService,
@@ -92,6 +97,8 @@ func NewChatController(
 		roomService,
 		restrictionService,
 		connManager,
+		roleService,
+		rbac,
 	)
 
 	controller.setupRoutes()
@@ -99,11 +106,16 @@ func NewChatController(
 }
 
 func (c *ChatController) setupRoutes() {
-	c.Post("/rooms/:roomId/stickers", c.handleSendSticker)
+	// Add the SetUserRoleInContext middleware to all routes
+	c.App.Use(c.rbac.SetUserRoleInContext())
+
+	c.Post("/rooms/:roomId/stickers", c.handleSendSticker, c.rbac.RequireReadOnlyAccess())
 	c.Post("/rooms/:roomId/reply", c.handleReplyMessage)
 	c.Get("/rooms/:roomId/history", c.handleGetChatHistory)
 	c.Delete("/rooms/:roomId/messages/:messageId", c.handleUnsendMessage)
-	c.Get("/ws/:roomId/:userId", websocket.New(c.wsHandler.HandleWebSocket))
+	
+	// Add RBAC middleware to WebSocket route
+	c.Get("/ws/:roomId", c.rbac.RequireReadOnlyAccess(), websocket.New(c.wsHandler.HandleWebSocket))
 
 	c.Delete("/rooms/:roomId/cache", c.handleClearCache, c.rbac.RequireAdministrator())
 	
@@ -124,6 +136,15 @@ func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Extract userID from JWT token
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid authentication token",
+		})
+	}
+
 	// Convert room ID from URL to ObjectID
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
@@ -134,16 +155,24 @@ func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
 	}
 
 	// Convert string IDs to ObjectIDs
-	stickerObjID, userObjID, err := stickerDto.ToObjectIDs()
+	stickerObjID, err := primitive.ObjectIDFromHex(stickerDto.StickerID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Invalid ID format",
+			"message": "Invalid sticker ID format",
+		})
+	}
+
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid user ID format",
 		})
 	}
 
 	// ตรวจสอบสิทธิ์การส่ง sticker (รวมถึง room type)
-	canSend, err := c.roomService.CanUserSendSticker(ctx.Context(), roomObjID, stickerDto.UserID)
+	canSend, err := c.roomService.CanUserSendSticker(ctx.Context(), roomObjID, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -212,6 +241,15 @@ func (c *ChatController) handleReplyMessage(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Extract userID from JWT token
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid authentication token",
+		})
+	}
+
 	// Convert room ID from URL to ObjectID
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
@@ -222,16 +260,24 @@ func (c *ChatController) handleReplyMessage(ctx *fiber.Ctx) error {
 	}
 
 	// Convert string IDs to ObjectIDs
-	replyToObjID, userObjID, err := replyDto.ToObjectIDs()
+	replyToObjID, err := primitive.ObjectIDFromHex(replyDto.ReplyToId)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Invalid ID format",
+			"message": "Invalid reply to ID format",
+		})
+	}
+
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid user ID format",
 		})
 	}
 
 	// ตรวจสอบสิทธิ์การส่งข้อความ (รวมถึง room type)
-	canSend, err := c.roomService.CanUserSendMessage(ctx.Context(), roomObjID, replyDto.UserID)
+	canSend, err := c.roomService.CanUserSendMessage(ctx.Context(), roomObjID, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -327,11 +373,12 @@ func (c *ChatController) handleUnsendMessage(ctx *fiber.Ctx) error {
 	var unsendDto dto.UnsendMessageDto
 	unsendDto.MessageID = messageID
 	
-	// Get userID from request body
-	if err := ctx.BodyParser(&unsendDto); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+	// Get userID from JWT token
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"success": false,
-			"message": "Invalid request body",
+			"message": "Invalid authentication token",
 		})
 	}
 
@@ -353,16 +400,24 @@ func (c *ChatController) handleUnsendMessage(ctx *fiber.Ctx) error {
 	}
 
 	// Convert IDs using DTO helper
-	messageObjID, userObjID, err := unsendDto.ToObjectIDs()
+	messageObjID, err := primitive.ObjectIDFromHex(unsendDto.MessageID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Invalid ID format",
+			"message": "Invalid message ID format",
+		})
+	}
+
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid user ID format",
 		})
 	}
 
 	// ตรวจสอบว่า user เป็นสมาชิกของห้องหรือไม่
-	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, unsendDto.UserID)
+	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -389,7 +444,7 @@ func (c *ChatController) handleUnsendMessage(ctx *fiber.Ctx) error {
 		"message": "Message unsent successfully",
 		"data": fiber.Map{
 			"messageId": unsendDto.MessageID,
-			"userId":    unsendDto.UserID,
+			"userId":    userID,
 			"roomId":    roomID,
 		},
 	})

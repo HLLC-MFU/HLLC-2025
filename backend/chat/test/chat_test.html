@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .connection-form {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .chat-container {
+            display: none;
+            margin-top: 20px;
+        }
+        .chat-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .message-form {
+            display: flex;
+            gap: 10px;
+        }
+        .message-input {
+            flex: 1;
+            padding: 5px;
+        }
+        .user-container {
+            border: 1px solid #eee;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .message {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+            background-color: #f8f9fa;
+        }
+        .message.sent {
+            background-color: #e3f2fd;
+            margin-left: 20px;
+        }
+        .message.received {
+            background-color: #f5f5f5;
+            margin-right: 20px;
+        }
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chat Test</h1>
+    
+    <!-- Connection Template -->
+    <template id="user-template">
+        <div class="user-container">
+            <div class="connection-form">
+                <h3>User Connection</h3>
+                <div>
+                    <label>JWT Token:</label><br>
+                    <input type="text" class="jwt-token" style="width: 100%" placeholder="Enter JWT token">
+                </div>
+                <div>
+                    <label>Room ID:</label><br>
+                    <input type="text" class="room-id" placeholder="Enter room ID">
+                </div>
+                <div style="margin-top: 10px;">
+                    <button class="connect-btn">Connect</button>
+                    <button class="disconnect-btn" disabled>Disconnect</button>
+                </div>
+                <div class="status disconnected">Disconnected</div>
+            </div>
+            
+            <div class="chat-container">
+                <div class="chat-box"></div>
+                <div class="message-form">
+                    <input type="text" class="message-input" placeholder="Type a message...">
+                    <button class="send-btn">Send</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <button id="add-user">Add Another User</button>
+
+    <script>
+        class ChatUser {
+            constructor(container) {
+                this.container = container;
+                this.ws = null;
+                this.setupElements();
+                this.setupEventListeners();
+            }
+
+            setupElements() {
+                this.jwtToken = this.container.querySelector('.jwt-token');
+                this.roomId = this.container.querySelector('.room-id');
+                this.connectBtn = this.container.querySelector('.connect-btn');
+                this.disconnectBtn = this.container.querySelector('.disconnect-btn');
+                this.chatContainer = this.container.querySelector('.chat-container');
+                this.chatBox = this.container.querySelector('.chat-box');
+                this.messageInput = this.container.querySelector('.message-input');
+                this.sendBtn = this.container.querySelector('.send-btn');
+                this.status = this.container.querySelector('.status');
+            }
+
+            setupEventListeners() {
+                this.connectBtn.addEventListener('click', () => this.connect());
+                this.disconnectBtn.addEventListener('click', () => this.disconnect());
+                this.sendBtn.addEventListener('click', () => this.sendMessage());
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+            }
+
+            connect() {
+                if (!this.jwtToken.value || !this.roomId.value) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+
+                // Pass JWT as query param
+                const wsUrl = `ws://localhost:1334/chat/ws/${this.roomId.value}?token=${encodeURIComponent(this.jwtToken.value)}`;
+                this.ws = new WebSocket(wsUrl);
+
+                this.ws.onopen = () => {
+                    this.updateStatus(true);
+                };
+
+                this.ws.onmessage = (event) => {
+                    let message;
+                    try {
+                        message = JSON.parse(event.data);
+                    } catch (e) {
+                        message = { message: event.data, timestamp: new Date().toISOString() };
+                    }
+                    this.displayMessage(message, false);
+                };
+
+                this.ws.onclose = () => {
+                    this.updateStatus(false);
+                };
+
+                this.ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    this.updateStatus(false);
+                };
+            }
+
+            disconnect() {
+                if (this.ws) {
+                    this.ws.close();
+                }
+            }
+
+            updateStatus(connected) {
+                this.status.textContent = connected ? 'Connected' : 'Disconnected';
+                this.status.className = `status ${connected ? 'connected' : 'disconnected'}`;
+                this.connectBtn.disabled = connected;
+                this.disconnectBtn.disabled = !connected;
+                this.chatContainer.style.display = connected ? 'block' : 'none';
+            }
+
+            sendMessage() {
+                if (!this.messageInput.value.trim() || !this.ws) return;
+
+                // Send plain text message (WebSocket handler expects this format)
+                this.ws.send(this.messageInput.value.trim());
+                
+                // Display the sent message locally
+                const message = {
+                    content: this.messageInput.value.trim(),
+                    roomId: this.roomId.value,
+                    timestamp: new Date().toISOString()
+                };
+                this.displayMessage(message, true);
+                this.messageInput.value = '';
+            }
+
+            displayMessage(message, sent) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sent ? 'sent' : 'received'}`;
+                
+                let displayText = '';
+                let userId = 'System';
+                let timestamp = new Date();
+                
+                // Handle different message structures
+                if (message.type && message.payload) {
+                    // Backend message structure
+                    const payload = message.payload;
+                    if (payload.message && payload.message.message) {
+                        displayText = payload.message.message ? payload.message._id : payload.message.message;
+                        userId = payload.user ? payload.user.username || payload.user._id : 'Unknown';
+                        timestamp = new Date(payload.message.timestamp || payload.timestamp || message.timestamp);
+                    } else if (payload.message) {
+                        displayText = payload.message;
+                        userId = payload.user ? payload.user.username || payload.user._id : 'Unknown';
+                        timestamp = new Date(payload.timestamp || message.timestamp);
+                    }
+                } else if (message.content) {
+                    // Frontend message structure (sent messages)
+                    displayText = message.content;
+                    userId = 'You'; // Since we don't have userId from input field anymore
+                    timestamp = new Date(message.timestamp);
+                } else if (message.message) {
+                    // Fallback for simple messages
+                    displayText = message.message;
+                    userId = message.userId || 'System';
+                    timestamp = new Date(message.timestamp || Date.now());
+                } else {
+                    // Unknown structure
+                    displayText = JSON.stringify(message);
+                    userId = 'System';
+                    timestamp = new Date();
+                }
+                
+                const time = timestamp.toLocaleTimeString();
+                messageDiv.textContent = `[${time}] ${userId}: ${displayText}`;
+                this.chatBox.appendChild(messageDiv);
+                this.chatBox.scrollTop = this.chatBox.scrollHeight;
+            }
+        }
+
+        // Initialize first user
+        const template = document.getElementById('user-template');
+        const addUserBtn = document.getElementById('add-user');
+
+        function addNewUser() {
+            const clone = template.content.cloneNode(true);
+            document.body.insertBefore(clone, addUserBtn);
+            new ChatUser(document.querySelector('.user-container:last-of-type'));
+        }
+
+        addUserBtn.addEventListener('click', addNewUser);
+        addNewUser(); // Add first user automatically
+
+        // Test sticker sending
+        async function testSendSticker() {
+            const stickerId = '507f1f77bcf86cd799439011'; // Example sticker ID
+            const roomId = document.querySelector('.room-id').value;
+            
+            try {
+                const response = await fetch(`http://localhost:1334/chat/rooms/${roomId}/stickers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${document.querySelector('.jwt-token').value}`
+                    },
+                    body: JSON.stringify({
+                        stickerId: stickerId
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('Sticker sent:', result);
+                
+                if (result.success) {
+                    chatApp.displayMessage({
+                        type: 'sticker',
+                        payload: {
+                            message: { message: 'Sticker sent!', type: 'sticker' },
+                            user: { _id: 'You' }
+                        }
+                    }, true);
+                }
+            } catch (error) {
+                console.error('Error sending sticker:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

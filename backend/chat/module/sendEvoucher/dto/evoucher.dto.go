@@ -6,11 +6,11 @@ import (
 
 type (
 	SendEvoucherDto struct {
-		UserID      string                 `json:"userId" validate:"required,mongoId"`
-		RoomID      string                 `json:"roomId" validate:"required,mongoId"`
-		Title       string                 `json:"title" validate:"required"`
-		Description string                 `json:"description" validate:"required"`
-		ClaimURL    string                 `json:"claimUrl" validate:"required"`
+		UserID      string `json:"userId"`
+		RoomID      string `json:"roomId" validate:"required,mongoId"`
+		Title       string `json:"title" validate:"required"`
+		Description string `json:"description" validate:"required"`
+		ClaimURL    string `json:"claimUrl" validate:"required"`
 	}
 
 	ClaimEvoucherDto struct {

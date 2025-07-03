@@ -27,7 +27,7 @@ import (
 type GroupRoomService struct {
 	*queries.BaseService[model.Room]
 	userService   *userService.UserService
-	roomService   *RoomService
+	roomService   RoomService
 	fkValidator   *serviceHelper.ForeignKeyValidator
 	eventEmitter  *roomUtils.RoomEventEmitter
 	cache         *roomUtils.RoomCacheService
@@ -42,7 +42,7 @@ func NewGroupRoomService(
 	redis *redis.Client,
 	cfg *config.Config,
 	hub *chatUtils.Hub,
-	roomService *RoomService,
+	roomService RoomService,
 	bus *kafka.Bus,
 ) *GroupRoomService {
 	collection := db.Collection("rooms")

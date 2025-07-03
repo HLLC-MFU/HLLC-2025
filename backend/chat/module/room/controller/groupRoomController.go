@@ -15,13 +15,13 @@ import (
 type GroupRoomController struct {
 	*decorators.BaseController
 	groupService     *service.GroupRoomService
-	roomService      *service.RoomService
+	roomService      service.RoomService
 	uploadHandler    *utils.FileUploadHandler
 	validationHelper *roomUtils.RoomValidationHelper
 	rbac middleware.IRBACMiddleware
 }
 
-func NewGroupRoomController(app *fiber.App, groupService *service.GroupRoomService, roomService *service.RoomService, rbac middleware.IRBACMiddleware) *GroupRoomController {
+func NewGroupRoomController(app *fiber.App, groupService *service.GroupRoomService, roomService service.RoomService, rbac middleware.IRBACMiddleware) *GroupRoomController {
 	uploadConfig := utils.GetModuleConfig("room")
 	
 	var validationHelper *roomUtils.RoomValidationHelper

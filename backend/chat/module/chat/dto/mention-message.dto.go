@@ -6,7 +6,6 @@ type (
 	MentionMessageDto struct {
 		Message  string   `json:"message" validate:"required"`
 		Mentions []string `json:"mentions" validate:"required"` // Array of userIDs to mention
-		UserID   string   `json:"userId" validate:"required,mongoId"`
 		RoomID   string   `json:"roomId" validate:"required,mongoId"`
 	}
 
@@ -19,12 +18,7 @@ type (
 	}
 )
 
-func (dto *MentionMessageDto) ToObjectIDs() (userObjID, roomObjID primitive.ObjectID, mentionObjIDs []primitive.ObjectID, err error) {
-	userObjID, err = primitive.ObjectIDFromHex(dto.UserID)
-	if err != nil {
-		return
-	}
-	
+func (dto *MentionMessageDto) ToObjectIDs() (roomObjID primitive.ObjectID, mentionObjIDs []primitive.ObjectID, err error) {
 	roomObjID, err = primitive.ObjectIDFromHex(dto.RoomID)
 	if err != nil {
 		return

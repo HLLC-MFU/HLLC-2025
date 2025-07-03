@@ -10,6 +10,7 @@ import (
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	serviceHelper "chat/pkg/helpers/service"
+	"chat/pkg/middleware"
 	"chat/pkg/validator"
 	"context"
 	"fmt"
@@ -21,7 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type RoomService struct {
+type RoomServiceImpl struct {
 	*queries.BaseService[model.Room]
 	userService      *userService.UserService
 	fkValidator      *serviceHelper.ForeignKeyValidator
@@ -32,7 +33,27 @@ type RoomService struct {
 	memberHelper     *roomUtils.RoomMemberHelper
 }
 
-func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config, hub *chatUtils.Hub) *RoomService {
+type RoomService interface {
+	GetRooms(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.Room], error)
+	GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*model.Room, error)
+	CreateRoom(ctx context.Context, createDto *dto.CreateRoomDto) (*model.Room, error)
+	UpdateRoom(ctx context.Context, id string, room *model.Room) (*model.Room, error)
+	DeleteRoom(ctx context.Context, id string) (*model.Room, error)
+	IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+	ValidateAndTrackConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error
+	GetRoomStatus(ctx context.Context, roomID primitive.ObjectID) (map[string]interface{}, error)
+	RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (*model.Room, error)
+	RemoveConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error
+	GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID) (int64, error)
+	CanUserSendMessage(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+	CanUserSendSticker(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+	CanUserSendReaction(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+	AddUserToRoom(ctx context.Context, roomID, userID string) error
+	JoinRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error
+	LeaveRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error
+}
+
+func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config, hub *chatUtils.Hub) RoomService {
 	bus := kafka.New(cfg.Kafka.Brokers, "room-service")
 	if err := bus.Start(); err != nil {
 		log.Printf("[ERROR] Failed to start Kafka bus: %v", err)
@@ -42,7 +63,7 @@ func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config,
 	cache := roomUtils.NewRoomCacheService(redis)
 	eventEmitter := roomUtils.NewRoomEventEmitter(bus, cfg)
 	
-	service := &RoomService{
+	service := &RoomServiceImpl{
 		BaseService:      queries.NewBaseService[model.Room](db.Collection("rooms")),
 		userService:      userSvc,
 		fkValidator:      serviceHelper.NewForeignKeyValidator(db),
@@ -57,7 +78,7 @@ func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config,
 }
 
 // ดึง list room จาก cache
-func (s *RoomService) GetRooms(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.Room], error) {
+func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.Room], error) {
 	if opts.Filter == nil {
 		opts.Filter = make(map[string]interface{})
 	}
@@ -65,7 +86,7 @@ func (s *RoomService) GetRooms(ctx context.Context, opts queries.QueryOptions) (
 }
 
 // ดึง room จาก cache
-func (s *RoomService) GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*model.Room, error) {
+func (s *RoomServiceImpl) GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*model.Room, error) {
 	// ดึง room จาก cache
 	if room, err := s.cache.GetRoom(ctx, roomID.Hex()); err == nil && room != nil {
 		return room, nil
@@ -87,7 +108,7 @@ func (s *RoomService) GetRoomById(ctx context.Context, roomID primitive.ObjectID
 }
 
 // สร้าง room
-func (s *RoomService) CreateRoom(ctx context.Context, createDto *dto.CreateRoomDto) (*model.Room, error) {
+func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateRoomDto) (*model.Room, error) {
 	if err := validator.ValidateStruct(createDto); err != nil {
 		return nil, fmt.Errorf("validation error: %w", err)
 	}
@@ -135,7 +156,7 @@ func (s *RoomService) CreateRoom(ctx context.Context, createDto *dto.CreateRoomD
 }
 
 // อัพเดต room
-func (s *RoomService) UpdateRoom(ctx context.Context, id string, room *model.Room) (*model.Room, error) {
+func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, room *model.Room) (*model.Room, error) {
 	room.UpdatedAt = time.Now()
 
 	resp, err := s.UpdateById(ctx, id, *room)
@@ -149,7 +170,7 @@ func (s *RoomService) UpdateRoom(ctx context.Context, id string, room *model.Roo
 }
 
 // ลบ room
-func (s *RoomService) DeleteRoom(ctx context.Context, id string) (*model.Room, error) {
+func (s *RoomServiceImpl) DeleteRoom(ctx context.Context, id string) (*model.Room, error) {
 	room, err := s.DeleteById(ctx, id)
 	if err != nil {
 		return nil, err
@@ -161,7 +182,7 @@ func (s *RoomService) DeleteRoom(ctx context.Context, id string) (*model.Room, e
 }
 
 // ตรวจสอบว่ามี user นั้นอยู่ใน room หรือไม่
-func (s *RoomService) IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+func (s *RoomServiceImpl) IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return false, err
@@ -172,7 +193,7 @@ func (s *RoomService) IsUserInRoom(ctx context.Context, roomID primitive.ObjectI
 }
 
 // ตรวจสอบว่ามี user นั้นอยู่ใน room และมี connection นั้นอยู่ใน room หรือไม่
-func (s *RoomService) ValidateAndTrackConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+func (s *RoomServiceImpl) ValidateAndTrackConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return fmt.Errorf("room not found: %w", err)
@@ -182,7 +203,7 @@ func (s *RoomService) ValidateAndTrackConnection(ctx context.Context, roomID pri
 }
 
 // ดึงข้อมูลของ room
-func (s *RoomService) GetRoomStatus(ctx context.Context, roomID primitive.ObjectID) (map[string]interface{}, error) {
+func (s *RoomServiceImpl) GetRoomStatus(ctx context.Context, roomID primitive.ObjectID) (map[string]interface{}, error) {
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return nil, err
@@ -192,27 +213,56 @@ func (s *RoomService) GetRoomStatus(ctx context.Context, roomID primitive.Object
 }
 
 // Delegate methods to helpers
-func (s *RoomService) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (*model.Room, error) {
+func (s *RoomServiceImpl) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (*model.Room, error) {
 	return s.memberHelper.RemoveUserFromRoom(ctx, roomID, userID)
 }
 
-func (s *RoomService) RemoveConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+func (s *RoomServiceImpl) RemoveConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
 	return roomUtils.RemoveConnection(ctx, roomID, userID, s.cache)
 }
 
-func (s *RoomService) GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID) (int64, error) {
+func (s *RoomServiceImpl) GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID) (int64, error) {
 	return roomUtils.GetActiveConnectionsCount(ctx, roomID, s.cache)
 }
 
-func (s *RoomService) CanUserSendMessage(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+// CanUserSendMessage ตรวจสอบว่า user สามารถส่งข้อความได้หรือไม่
+func (s *RoomServiceImpl) CanUserSendMessage(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+	// ดึงข้อมูลห้อง
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get room: %w", err)
 	}
-	return roomUtils.CanUserSendMessage(ctx, room, userID)
+
+	// แปลง userID เป็น ObjectID
+	uid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return false, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// ตรวจสอบว่า user อยู่ในห้องหรือไม่
+	if !roomUtils.ContainsMember(roomUtils.ConvertToObjectIDs(room.Members), uid) {
+		return false, fmt.Errorf("user is not a member of this room")
+	}
+
+	// ตรวจสอบว่าห้องเป็น read-only หรือไม่
+	if room.IsReadOnly() {
+		userRoleVal := ctx.Value("userRole")
+		userRole, ok := userRoleVal.(string)
+		if !ok || userRole == "" {
+			log.Printf("[ERROR] userRole missing or not a string in context: %#v", userRoleVal)
+			return false, fmt.Errorf("user role not found in context")
+		}
+		log.Printf("[DEBUG] userRole in context: %s", userRole)
+		// อนุญาตให้เฉพาะ Administrator และ Staff สามารถส่งข้อความในห้อง read-only ได้
+		if userRole != middleware.RoleAdministrator && userRole != middleware.RoleStaff {
+			return false, fmt.Errorf("room is read-only and user does not have write permission")
+		}
+	}
+
+	return true, nil
 }
 
-func (s *RoomService) CanUserSendSticker(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+func (s *RoomServiceImpl) CanUserSendSticker(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return false, err
@@ -220,7 +270,7 @@ func (s *RoomService) CanUserSendSticker(ctx context.Context, roomID primitive.O
 	return roomUtils.CanUserSendSticker(ctx, room, userID)
 }
 
-func (s *RoomService) CanUserSendReaction(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+func (s *RoomServiceImpl) CanUserSendReaction(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
 	room, err := s.GetRoomById(ctx, roomID)
 	if err != nil {
 		return false, err
@@ -228,22 +278,22 @@ func (s *RoomService) CanUserSendReaction(ctx context.Context, roomID primitive.
 	return roomUtils.CanUserSendReaction(ctx, room, userID)
 }
 
-func (s *RoomService) AddUserToRoom(ctx context.Context, roomID, userID string) error {
+func (s *RoomServiceImpl) AddUserToRoom(ctx context.Context, roomID, userID string) error {
 	return s.memberHelper.AddUserToRoom(ctx, roomID, userID)
 }
 
-func (s *RoomService) JoinRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+func (s *RoomServiceImpl) JoinRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
 	return s.memberHelper.JoinRoom(ctx, roomID, userID)
 }
 
-func (s *RoomService) LeaveRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+func (s *RoomServiceImpl) LeaveRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
 	return s.memberHelper.LeaveRoom(ctx, roomID, userID)
 }
 
 
 
 // Helper methods
-func (s *RoomService) validateMembers(ctx context.Context, createDto *dto.CreateRoomDto) error {
+func (s *RoomServiceImpl) validateMembers(ctx context.Context, createDto *dto.CreateRoomDto) error {
 	if err := s.fkValidator.ValidateForeignKey(ctx, "users", createDto.CreatedBy); err != nil {
 		return fmt.Errorf("foreign key validation error: %w", err)
 	}
@@ -256,7 +306,7 @@ func (s *RoomService) validateMembers(ctx context.Context, createDto *dto.Create
 	return nil
 }
 
-func (s *RoomService) handleRoomCreated(ctx context.Context, room *model.Room) {
+func (s *RoomServiceImpl) handleRoomCreated(ctx context.Context, room *model.Room) {
 	if err := s.cache.SaveRoom(ctx, room); err != nil {
 		log.Printf("[WARN] Failed to cache created room: %v", err)
 	}
@@ -264,7 +314,7 @@ func (s *RoomService) handleRoomCreated(ctx context.Context, room *model.Room) {
 	log.Printf("[INFO] Room created: %s", room.ID.Hex())
 }
 
-func (s *RoomService) handleRoomDeleted(ctx context.Context, room *model.Room) {
+func (s *RoomServiceImpl) handleRoomDeleted(ctx context.Context, room *model.Room) {
 	if err := s.cache.DeleteRoom(ctx, room.ID.Hex()); err != nil {
 		log.Printf("[WARN] Failed to delete room from cache: %v", err)
 	}

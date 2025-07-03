@@ -4,12 +4,15 @@ import (
 	"chat/module/chat/model"
 	"chat/module/chat/utils"
 	"chat/pkg/core/connection"
+	"chat/pkg/middleware"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 	"time"
+
+	userService "chat/module/user/service"
 
 	"github.com/gofiber/websocket/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -18,11 +21,13 @@ import (
 type (
 	WebSocketHandler struct {
 		chatService        ChatService
-		mentionService    MentionChatService
-		reactionService   ReactionChatService
+		mentionService     MentionChatService
+		reactionService    ReactionChatService
 		roomService       RoomService
 		restrictionService RestrictionServiceChatService
 		connManager       *connection.ConnectionManager
+		roleService        *userService.RoleService
+		rbacMiddleware     middleware.IRBACMiddleware
 	}
 
 	RestrictionServiceChatService interface {
@@ -40,14 +45,18 @@ func NewWebSocketHandler(
 	roomService RoomService,
 	restrictionService RestrictionServiceChatService,
 	connManager *connection.ConnectionManager,
+	roleService *userService.RoleService,
+	rbacMiddleware middleware.IRBACMiddleware,
 ) *WebSocketHandler {
 	return &WebSocketHandler{
 		chatService:        chatService,
-		mentionService:    mentionService,
-		reactionService:   reactionService,
+		mentionService:     mentionService,
+		reactionService:    reactionService,
 		roomService:       roomService,
 		restrictionService: restrictionService,
 		connManager:       connManager,
+		roleService:        roleService,
+		rbacMiddleware:     rbacMiddleware,
 	}
 }
 
@@ -98,7 +107,7 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			}
 		}
 
-		
+			// Determine event type and message type (same logic as ChatEventEmitter)
 			var eventType, messageType string
 		if msg.ChatMessage.StickerID != nil {
 				eventType = model.EventTypeSticker
@@ -112,57 +121,60 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			} else if msg.ChatMessage.EvoucherInfo != nil {
 				eventType = model.EventTypeEvoucher
 				messageType = model.MessageTypeEvoucher
+			} else if msg.ChatMessage.Image != "" {
+				eventType = "upload"
+				messageType = "upload"
 		} else {
 				eventType = model.EventTypeMessage
 			messageType = model.MessageTypeText
 		}
 
-		// Create comprehensive payload structure
+			// Create payload structure that matches ChatEventEmitter exactly
 		payload := map[string]interface{}{
 			"room": map[string]interface{}{
 				"_id": roomID,
 			},
+				"user": userData,
 			"message": map[string]interface{}{
 				"_id":       msg.ChatMessage.ID.Hex(),
 				"type":      messageType,
 				"message":   msg.ChatMessage.Message,
 				"timestamp": msg.ChatMessage.Timestamp,
 			},
-			"user":      userData,
 			"timestamp": msg.ChatMessage.Timestamp,
 			}
 
-		if len(msg.Reactions) > 0 {
-			// Format reactions with user info
-			formattedReactions := make([]map[string]interface{}, 0, len(msg.Reactions))
-			for _, reaction := range msg.Reactions {
-				reactionData := map[string]interface{}{
-					"messageId": reaction.MessageID.Hex(),
-					"userId":    reaction.UserID.Hex(),
-					"reaction":  reaction.Reaction,
-					"timestamp": reaction.Timestamp,
+			// Add sticker info if exists (matches ChatEventEmitter)
+			if msg.ChatMessage.StickerID != nil {
+				payload["sticker"] = map[string]interface{}{
+					"_id":   msg.ChatMessage.StickerID.Hex(),
+					"image": msg.ChatMessage.Image,
 				}
-				
-				// Try to get user info for reaction
-				if reactionUser, err := h.chatService.GetUserById(ctx, reaction.UserID.Hex()); err == nil {
-					reactionData["user"] = map[string]interface{}{
-						"_id":      reactionUser.ID.Hex(),
-						"username": reactionUser.Username,
-						"name":     reactionUser.Name,
-					}
-				}
-				
-				formattedReactions = append(formattedReactions, reactionData)
 			}
-			payload["reactions"] = formattedReactions
+
+			// Add file upload info if exists (matches ChatEventEmitter)
+			if msg.ChatMessage.Image != "" && msg.ChatMessage.StickerID == nil {
+				payload["filename"] = msg.ChatMessage.Image
+				payload["file"] = map[string]interface{}{
+					"path": msg.ChatMessage.Image, // Simplified path for consistency
+				}
+				}
+				
+			// Add evoucher info if exists (matches ChatEventEmitter)
+			if msg.ChatMessage.EvoucherInfo != nil {
+				payload["evoucherInfo"] = map[string]interface{}{
+					"title":       msg.ChatMessage.EvoucherInfo.Title,
+					"description": msg.ChatMessage.EvoucherInfo.Description,
+					"claimUrl":    msg.ChatMessage.EvoucherInfo.ClaimURL,
+				}
 		}
 
-			// **UPDATED: Include mention info if available**
+			// Add mention info if exists (matches ChatEventEmitter)
 		if len(msg.ChatMessage.MentionInfo) > 0 {
 			payload["mentions"] = msg.ChatMessage.MentionInfo
 		}
 
-			// Add reply info if exists
+			// Add reply info if exists (matches ChatEventEmitter)
 		if msg.ReplyTo != nil {
 				// Get reply user data
 			var replyUserData map[string]interface{}
@@ -194,24 +206,31 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			}
 		}
 
-			// Add sticker info if exists
-			if msg.ChatMessage.StickerID != nil {
-				payload["sticker"] = map[string]interface{}{
-					"_id":   msg.ChatMessage.StickerID.Hex(),
-					"image": msg.ChatMessage.Image,
+			// Add reactions if exists (this is additional info for history)
+			if len(msg.Reactions) > 0 {
+				// Format reactions with user info
+				formattedReactions := make([]map[string]interface{}, 0, len(msg.Reactions))
+				for _, reaction := range msg.Reactions {
+					reactionData := map[string]interface{}{
+						"messageId": reaction.MessageID.Hex(),
+						"userId":    reaction.UserID.Hex(),
+						"reaction":  reaction.Reaction,
+						"timestamp": reaction.Timestamp,
 				}
-	}
-
-			// **NEW: Add evoucher info if exists**
-			if msg.ChatMessage.EvoucherInfo != nil {
-				payload["evoucherInfo"] = map[string]interface{}{
-					"title":       msg.ChatMessage.EvoucherInfo.Title,
-					"description": msg.ChatMessage.EvoucherInfo.Description,
-					"claimUrl":    msg.ChatMessage.EvoucherInfo.ClaimURL,
+					// Try to get user info for reaction
+					if reactionUser, err := h.chatService.GetUserById(ctx, reaction.UserID.Hex()); err == nil {
+						reactionData["user"] = map[string]interface{}{
+							"_id":      reactionUser.ID.Hex(),
+							"username": reactionUser.Username,
+							"name":     reactionUser.Name,
+						}
+					}
+					formattedReactions = append(formattedReactions, reactionData)
 				}
+				payload["reactions"] = formattedReactions
 			}
 
-			// **UPDATED: Use actual event type instead of "history"**
+			// Create event with consistent structure
 	event := model.Event{
 				Type:      eventType,
 				Payload:   payload,
@@ -234,15 +253,39 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 	defer h.connManager.RemoveConnection(clientIP)
 
 	roomID := conn.Params("roomId")
-	userID := conn.Params("userId")
 
-	if userID == "" || roomID == "" {
-		conn.WriteMessage(websocket.TextMessage, []byte("Missing roomID or userID"))
+	if roomID == "" {
+		conn.WriteMessage(websocket.TextMessage, []byte("Missing roomID"))
 		conn.Close()
 		return
 	}
 
 	ctx := context.Background()
+	
+	// Extract userID from JWT token
+	userID, err := h.rbacMiddleware.ExtractUserIDFromContext(conn)
+	if err != nil {
+		log.Printf("[WebSocket] Failed to extract userID from token: %v", err)
+		conn.WriteMessage(websocket.TextMessage, []byte("Invalid authentication token"))
+		conn.Close()
+		return
+	}
+
+	// --- Set userRole in context for permission checks ---
+	user, err := h.chatService.GetUserById(ctx, userID)
+	var userRole string
+	if err == nil && user != nil {
+		userRole = ""
+		if user.Role != primitive.NilObjectID {
+			roleObj, err := h.roleService.GetRoleById(ctx, user.Role.Hex())
+			if err == nil && roleObj != nil {
+				userRole = roleObj.Name
+			}
+		}
+	}
+	ctx = context.WithValue(ctx, "userRole", userRole)
+	// --- End set userRole ---
+
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
 		conn.WriteMessage(websocket.TextMessage, []byte("Invalid room ID"))
@@ -283,8 +326,6 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 	}
 
 	// Send room status
-
-	// ส่ง Room Status
 	if status, err := h.roomService.GetRoomStatus(ctx, roomObjID); err == nil {
 		if statusBytes, err := json.Marshal(map[string]interface{}{
 			"type": "room_status",
@@ -347,11 +388,11 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		// ให้มัน support action ต่างๆใน socket message เช่น /reply /react /unsend
 		switch {
 		case strings.HasPrefix(messageText, "/reply "):
-			h.handleReplyMessage(messageText, *client)
+			h.handleReplyMessage(messageText, *client, ctx)
 		case strings.HasPrefix(messageText, "/react "):
-			h.handleReactionMessage(messageText, *client)
+			h.handleReactionMessage(messageText, *client, ctx)
 		case strings.HasPrefix(messageText, "/unsend "):
-			h.handleUnsendMessage(messageText, *client)
+			h.handleUnsendMessage(messageText, *client, ctx)
 		default:
 			// ตรวจสอบสิทธิ์การส่งข้อความ (restriction + room type)
 			canSend, err := h.roomService.CanUserSendMessage(ctx, roomObjID, userID)
@@ -402,10 +443,9 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 }
 
 // Helper methods for WebSocket message handling
-func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.ClientObject) {
-	
+func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.ClientObject, ctx context.Context) {
 	// ตรวจสอบสิทธิ์การส่งข้อความก่อน
-	canSend, err := h.roomService.CanUserSendMessage(context.Background(), client.RoomID, client.UserID.Hex())
+	canSend, err := h.roomService.CanUserSendMessage(ctx, client.RoomID, client.UserID.Hex())
 	if err != nil || !canSend {
 		client.Conn.WriteMessage(websocket.TextMessage, []byte("You cannot send messages in this room (read-only or restricted)"))
 		return
@@ -435,12 +475,12 @@ func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.C
 	metadata := map[string]interface{}{
 		"type": "reply",
 	}
-	if err := h.chatService.SendMessage(context.Background(), msg, metadata); err != nil {
+	if err := h.chatService.SendMessage(ctx, msg, metadata); err != nil {
 		log.Printf("[ERROR] Failed to send reply message: %v", err)
 	}
 }
 
-func (h *WebSocketHandler) handleReactionMessage(messageText string, client model.ClientObject) {
+func (h *WebSocketHandler) handleReactionMessage(messageText string, client model.ClientObject, ctx context.Context) {
 	// Parse reaction command: /react messageID emoji
 	parts := strings.SplitN(messageText, " ", 3)
 	if len(parts) < 3 {
@@ -455,7 +495,7 @@ func (h *WebSocketHandler) handleReactionMessage(messageText string, client mode
 		client.UserID.Hex(), messageID, reaction)
 
 	// ตรวจสอบสิทธิ์การส่งข้อความก่อน
-	canSendReaction, err := h.roomService.CanUserSendReaction(context.Background(), client.RoomID, client.UserID.Hex())
+	canSendReaction, err := h.roomService.CanUserSendReaction(ctx, client.RoomID, client.UserID.Hex())
 	if err != nil {
 		log.Printf("[WS] Error checking reaction permissions for user %s in room %s: %v", 
 			client.UserID.Hex(), client.RoomID.Hex(), err)
@@ -485,12 +525,12 @@ func (h *WebSocketHandler) handleReactionMessage(messageText string, client mode
 	}
 
 	// ตรวจสอบสิทธิ์การส่งข้อความก่อน
-	if h.restrictionService.IsUserBanned(context.Background(), client.UserID, client.RoomID) {
+	if h.restrictionService.IsUserBanned(ctx, client.UserID, client.RoomID) {
 		log.Printf("[WS] Banned user %s tried to react in room %s", client.UserID.Hex(), client.RoomID.Hex())
 		return
 	}
 
-	if h.restrictionService.IsUserMuted(context.Background(), client.UserID, client.RoomID) {
+	if h.restrictionService.IsUserMuted(ctx, client.UserID, client.RoomID) {
 		log.Printf("[WS] Muted user %s tried to react in room %s", client.UserID.Hex(), client.RoomID.Hex())
 		return
 	}
@@ -507,7 +547,7 @@ func (h *WebSocketHandler) handleReactionMessage(messageText string, client mode
 		reactionObj.MessageID = messageObjID
 		
 		// Handle reaction
-		if err := h.reactionService.HandleReaction(context.Background(), reactionObj); err != nil {
+		if err := h.reactionService.HandleReaction(ctx, reactionObj); err != nil {
 			log.Printf("[WS] Failed to handle reaction: %v", err)
 		}
 	} else {
@@ -516,8 +556,7 @@ func (h *WebSocketHandler) handleReactionMessage(messageText string, client mode
 }
 
 // handleUnsendMessage จะต้องมีการตรวจสอบสิทธิ์การส่งข้อความก่อน
-func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.ClientObject) {
-
+func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.ClientObject, ctx context.Context) {
 	// เช็คว่ามีการส่ง messageID หรือไม่
 	parts := strings.SplitN(messageText, " ", 2)
 	if len(parts) < 2 {
@@ -531,13 +570,13 @@ func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.
 	log.Printf("[WS] User %s wants to unsend message %s", client.UserID.Hex(), messageID)
 
 	// ตรวจสอบสิทธิ์การส่งข้อความก่อน
-	if h.restrictionService.IsUserBanned(context.Background(), client.UserID, client.RoomID) {
+	if h.restrictionService.IsUserBanned(ctx, client.UserID, client.RoomID) {
 		log.Printf("[WS] Banned user %s tried to unsend message in room %s", client.UserID.Hex(), client.RoomID.Hex())
 		return
 	}
 
 	// ตรวจสอบสิทธิ์การส่งข้อความก่อน
-	if h.restrictionService.IsUserMuted(context.Background(), client.UserID, client.RoomID) {
+	if h.restrictionService.IsUserMuted(ctx, client.UserID, client.RoomID) {
 		log.Printf("[WS] Muted user %s tried to unsend message in room %s", client.UserID.Hex(), client.RoomID.Hex())
 		return
 	}
@@ -550,7 +589,7 @@ func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.
 	}
 
 	// ส่งข้อความ unsend ไปยังห้อง
-	if err := h.chatService.UnsendMessage(context.Background(), messageObjID, client.UserID); err != nil {
+	if err := h.chatService.UnsendMessage(ctx, messageObjID, client.UserID); err != nil {
 		log.Printf("[WS] Failed to unsend message %s by user %s: %v", messageID, client.UserID.Hex(), err)
 		
 		// ส่ง error message ไปยัง user

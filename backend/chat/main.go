@@ -12,7 +12,6 @@ import (
 	"time"
 
 	chatController "chat/module/chat/controller"
-	healthController "chat/module/chat/controller"
 	uploadController "chat/module/chat/controller"
 	chatService "chat/module/chat/service"
 	restrictionController "chat/module/restriction/controller"
@@ -149,19 +148,15 @@ func main() {
 	userController.NewRoleController(app, roleSvc, rbacMiddleware)
 	userController.NewSchoolController(app, schoolSvc)
 	userController.NewMajorController(app, majorSvc)
-	roomController.NewRoomController(app, roomSvc)
+	roomController.NewRoomController(app, roomSvc, rbacMiddleware, db)
 	roomController.NewGroupRoomController(app, groupRoomSvc, roomSvc, rbacMiddleware)
 	stickerController.NewStickerController(app, stickerSvc, rbacMiddleware)
 	uploadController.NewUploadController(app, rbacMiddleware, chatSvc, userSvc)
-	chatController.NewChatController(app, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware,
-		connManager,
-	)
-	chatController.NewMentionController(app, chatSvc, roomSvc)
-	chatController.NewReactionController(app, chatSvc, roomSvc)
+	chatController.NewChatController(app, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc)
+	chatController.NewMentionController(app, chatSvc, roomSvc) // Fixed: Removed extra arguments to match interface
+	chatController.NewReactionController(app, chatSvc, roomSvc, rbacMiddleware)
+	chatController.NewHealthController(app, chatSvc, rbacMiddleware)
 	evoucherController.NewEvoucherController(app, evoucherSvc, roomSvc, rbacMiddleware)
-	healthController.NewHealthController(app, chatSvc, rbacMiddleware)
-	
-	
 	// Restriction controller (was moderation)
 	restrictionController.NewModerationController(app, restrictionSvc, rbacMiddleware)
 

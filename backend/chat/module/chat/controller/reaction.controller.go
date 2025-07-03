@@ -6,6 +6,7 @@ import (
 	chatService "chat/module/chat/service"
 	userModel "chat/module/user/model"
 	"chat/pkg/decorators"
+	"chat/pkg/middleware"
 	"context"
 	"time"
 
@@ -18,6 +19,7 @@ type (
 		*decorators.BaseController
 		chatService ReactionChatService
 		roomService ReactionRoomService
+		rbac        middleware.IRBACMiddleware
 	}
 
 	ReactionChatService interface {
@@ -36,11 +38,13 @@ func NewReactionController(
 	app *fiber.App,
 	chatService *chatService.ChatService,
 	roomService ReactionRoomService,
+	rbac middleware.IRBACMiddleware,
 ) *ReactionController {
 	controller := &ReactionController{
 		BaseController: decorators.NewBaseController(app, "/chat"),
 		chatService:    chatService,
 		roomService:    roomService,
+		rbac:           rbac,
 	}
 
 	controller.setupRoutes()
@@ -73,17 +77,33 @@ func (c *ReactionController) handleAddReaction(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Convert string IDs to ObjectIDs
-	messageObjID, userObjID, err := reactionDto.ToObjectIDs()
+	// Extract userID from JWT token
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid authentication token",
+		})
+	}
+	userObjID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Invalid ID format",
+			"message": "Invalid user ID format",
+		})
+	}
+
+	// Convert messageID to ObjectID
+	messageObjID, err := primitive.ObjectIDFromHex(reactionDto.MessageID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid message ID format",
 		})
 	}
 
 	// Check if user is in room
-	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, reactionDto.UserID)
+	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -98,7 +118,7 @@ func (c *ReactionController) handleAddReaction(ctx *fiber.Ctx) error {
 	}
 
 	// ตรวจสอบสิทธิ์การส่ง reaction (รวมถึง room type)
-	canSend, err := c.roomService.CanUserSendReaction(ctx.Context(), roomObjID, reactionDto.UserID)
+	canSend, err := c.roomService.CanUserSendReaction(ctx.Context(), roomObjID, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -129,7 +149,7 @@ func (c *ReactionController) handleAddReaction(ctx *fiber.Ctx) error {
 	}
 
 	// Get populated user data for response
-	user, err := c.chatService.GetUserById(ctx.Context(), reactionDto.UserID)
+	user, err := c.chatService.GetUserById(ctx.Context(), userID)
 	if err == nil {
 		return ctx.JSON(fiber.Map{
 			"success": true,
@@ -171,6 +191,15 @@ func (c *ReactionController) handleRemoveReaction(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Extract userID from JWT token
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid authentication token",
+		})
+	}
+
 	// Convert room ID from URL to ObjectID
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
@@ -181,16 +210,24 @@ func (c *ReactionController) handleRemoveReaction(ctx *fiber.Ctx) error {
 	}
 
 	// Convert string IDs to ObjectIDs
-	messageObjID, userObjID, err := removeDto.ToObjectIDs()
+	messageObjID, err := primitive.ObjectIDFromHex(removeDto.MessageID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Invalid ID format",
+			"message": "Invalid message ID format",
+		})
+	}
+
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid user ID format",
 		})
 	}
 
 	// Check if user is in room
-	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, removeDto.UserID)
+	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -205,7 +242,7 @@ func (c *ReactionController) handleRemoveReaction(ctx *fiber.Ctx) error {
 	}
 
 	// Remove reaction
-	if err := c.chatService.RemoveReaction(ctx.Context(), removeDto.MessageID, removeDto.UserID); err != nil {
+	if err := c.chatService.RemoveReaction(ctx.Context(), removeDto.MessageID, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "Failed to remove reaction",

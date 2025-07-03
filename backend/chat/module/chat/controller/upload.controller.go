@@ -56,12 +56,12 @@ func NewUploadController(
 }
 
 func (c *UploadController) setupRoutes() {
-	c.Post("/", c.handleUpload)
+	c.Post("/", c.handleUpload, c.rbac.RequireReadOnlyAccess())
 	c.SetupRoutes()
 }
 
 func (c *UploadController) handleUpload(ctx *fiber.Ctx) error {
-	// Get roomId and userId from form
+	// Get roomId from form
 	roomID := ctx.FormValue("roomId", "")
 	if roomID == "" {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -70,11 +70,12 @@ func (c *UploadController) handleUpload(ctx *fiber.Ctx) error {
 		})
 	}
 
-	userID := ctx.FormValue("userId", "")
-	if userID == "" {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+	// Extract userID from JWT token
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"success": false,
-			"message": "userId is required",
+			"message": "Invalid authentication token",
 		})
 	}
 
@@ -87,11 +88,12 @@ func (c *UploadController) handleUpload(ctx *fiber.Ctx) error {
 		})
 	}
 
+	// Convert userID to ObjectID
 	userObjID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "Invalid userId",
+			"message": "Invalid user ID format",
 		})
 	}
 
@@ -133,42 +135,32 @@ func (c *UploadController) handleUpload(ctx *fiber.Ctx) error {
 	broadcastMsg := map[string]interface{}{
 		"type": "upload",
 		"payload": map[string]interface{}{
-			"filename": filename,
-			"file": map[string]interface{}{
-				"path":     filePath,
-				"type":     "image",
-				"filename": filename,
-			},
-			"message": map[string]interface{}{
-				"_id":       msgID.Hex(),
-				"message":   "",
-				"timestamp": now,
-				"type":      "upload",
-				"fileUrl":   filePath,
-				"fileType":  "image",
-				"fileName":  filename,
-			},
 			"room": map[string]interface{}{
 				"_id": roomID,
 			},
 			"user": map[string]interface{}{
-				"_id":      userID,
+				"_id":      userObjID.Hex(),
+				"username": user.Username,
 				"name": map[string]interface{}{
 					"first":  user.Name.First,
 					"middle": user.Name.Middle,
 					"last":   user.Name.Last,
 				},
-				"role":     map[string]interface{}{"_id": user.Role.Hex()},
-				"username": user.Username,
+			},
+			"message": map[string]interface{}{
+				"_id":       msgID.Hex(),
+				"type":      "upload",
+				"message":   "",
+				"timestamp": now,
+			},
+			"filename": filename,
+			"file": map[string]interface{}{
+				"path": filePath,
 			},
 			"timestamp": now,
 		},
 		"timestamp": now,
 	}
-
-	// Get online users in room
-	hub := c.chatService.GetHub()
-	onlineUsers := hub.GetOnlineUsersInRoom(roomID)
 
 	// Send message
 	if err := c.chatService.SendMessage(ctx.Context(), msg, broadcastMsg); err != nil {
@@ -177,9 +169,6 @@ func (c *UploadController) handleUpload(ctx *fiber.Ctx) error {
 			"message": "Error sending message",
 		})
 	}
-
-	// Send notifications to offline users with proper message type
-	go c.chatService.SendNotifications(ctx.Context(), msg, onlineUsers)
 
 	// Return success response
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{

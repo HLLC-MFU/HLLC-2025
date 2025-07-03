@@ -2,21 +2,27 @@ package controller
 
 import (
 	"chat/module/room/dto"
+	"chat/module/room/model"
 	"chat/module/room/service"
 	roomUtils "chat/module/room/utils"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
+	"chat/pkg/middleware"
 	"chat/pkg/utils"
 	"chat/pkg/validator"
 	"mime/multipart"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type (
 	RoomController struct {
 		*decorators.BaseController
-		service           *service.RoomService
+		roomService       service.RoomService
+		rbac              middleware.IRBACMiddleware
+		db                *mongo.Database
 		uploadHandler     *utils.FileUploadHandler
 		validationHelper  *roomUtils.RoomValidationHelper
 	}
@@ -26,12 +32,19 @@ type (
 	}
 )
 
-func NewRoomController(app *fiber.App, service *service.RoomService) *RoomController {
+func NewRoomController(
+	app *fiber.App,
+	roomService service.RoomService,
+	rbac middleware.IRBACMiddleware,
+	db *mongo.Database,
+) *RoomController {
 	uploadConfig := utils.GetModuleConfig("room")
 
 	controller := &RoomController{
 		BaseController:   decorators.NewBaseController(app, "/api/rooms"),
-		service:          service,
+		roomService:      roomService,
+		rbac:             rbac,
+		db:               db,
 		uploadHandler:    utils.NewModuleFileHandler("room"),
 		validationHelper: roomUtils.NewRoomValidationHelper(uploadConfig.MaxSize, uploadConfig.AllowedTypes),
 	}
@@ -45,12 +58,14 @@ func (c *RoomController) setupRoutes() {
 	c.Get("/", c.GetRooms)
 	c.Get("/:id", c.GetRoomById)
 	c.Patch("/:id", c.UpdateRoom)
-	c.Post("/", c.CreateRoom)
+	c.Post("/", c.CreateRoom, c.rbac.RequireAdministrator())
 	c.Delete("/:id", c.DeleteRoom)
 	c.Post("/:id/join", c.JoinRoom)
 	c.Post("/:id/leave", c.LeaveRoom)
 	c.Patch("/:id/type", c.UpdateRoomType)
 	c.Patch("/:id/image", c.UpdateRoomImage)
+	// Add new endpoint for setting read-only status
+	c.Put("/:id/readonly", c.handleSetRoomReadOnly, c.rbac.RequireAdministrator())
 	
 	c.SetupRoutes()
 }
@@ -59,7 +74,7 @@ func (c *RoomController) setupRoutes() {
 func (c *RoomController) GetRooms(ctx *fiber.Ctx) error {
 	opts := queries.ParseQueryOptions(ctx)
 	
-	response, err := c.service.GetRooms(ctx.Context(), opts)
+	response, err := c.roomService.GetRooms(ctx.Context(), opts)
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
@@ -74,7 +89,7 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	room, err := c.service.GetRoomById(ctx.Context(), roomObjID)
+	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
 	if err != nil {
 		return c.validationHelper.BuildNotFoundErrorResponse(ctx, "Room")
 	}
@@ -107,7 +122,7 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 	}
 
 	// Create room
-	room, err := c.service.CreateRoom(ctx.Context(), &createDto)
+	room, err := c.roomService.CreateRoom(ctx.Context(), &createDto)
 	if err != nil {
 		c.cleanupUploadedFile(createDto.Image)
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
@@ -116,7 +131,7 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 	// Update room with image if uploaded
 	if createDto.Image != "" {
 		room.Image = createDto.Image
-		room, err = c.service.UpdateRoom(ctx.Context(), room.ID.Hex(), room)
+		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), room)
 		if err != nil {
 			c.cleanupUploadedFile(createDto.Image)
 			return c.validationHelper.BuildInternalErrorResponse(ctx, err)
@@ -137,7 +152,7 @@ func (c *RoomController) UpdateRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	room, err := c.service.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateDto.ToRoom())
+	room, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateDto.ToRoom())
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
@@ -152,7 +167,7 @@ func (c *RoomController) DeleteRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	deletedRoom, err := c.service.DeleteRoom(ctx.Context(), roomObjID.Hex())
+	deletedRoom, err := c.roomService.DeleteRoom(ctx.Context(), roomObjID.Hex())
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
@@ -183,7 +198,7 @@ func (c *RoomController) JoinRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	err = c.service.JoinRoom(ctx.Context(), roomObjID, joinDto.UserID)
+	err = c.roomService.JoinRoom(ctx.Context(), roomObjID, joinDto.UserID)
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
@@ -212,7 +227,7 @@ func (c *RoomController) LeaveRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	err = c.service.LeaveRoom(ctx.Context(), roomObjID, leaveDto.UserID)
+	err = c.roomService.LeaveRoom(ctx.Context(), roomObjID, leaveDto.UserID)
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
@@ -240,14 +255,14 @@ func (c *RoomController) UpdateRoomType(ctx *fiber.Ctx) error {
 	}
 
 	// Get current room
-	room, err := c.service.GetRoomById(ctx.Context(), roomObjID)
+	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
 	if err != nil {
 		return c.validationHelper.BuildNotFoundErrorResponse(ctx, "Room")
 	}
 
 	// Update room type
 	room.Type = updateDto.Type
-	updatedRoom, err := c.service.UpdateRoom(ctx.Context(), roomObjID.Hex(), room)
+	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), room)
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
@@ -273,7 +288,7 @@ func (c *RoomController) UpdateRoomImage(ctx *fiber.Ctx) error {
 	}
 
 	// Get current room
-	room, err := c.service.GetRoomById(ctx.Context(), roomObjID)
+	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
 	if err != nil {
 		c.cleanupUploadedFile(imagePath)
 		return c.validationHelper.BuildNotFoundErrorResponse(ctx, "Room")
@@ -284,7 +299,7 @@ func (c *RoomController) UpdateRoomImage(ctx *fiber.Ctx) error {
 
 	// Update room image
 	room.Image = imagePath
-	updatedRoom, err := c.service.UpdateRoom(ctx.Context(), roomObjID.Hex(), room)
+	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), room)
 	if err != nil {
 		c.cleanupUploadedFile(imagePath)
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
@@ -316,4 +331,54 @@ func (c *RoomController) cleanupUploadedFile(filePath string) {
 	if filePath != "" {
 		_ = c.uploadHandler.DeleteFile(filePath)
 	}
+}
+
+// SetRoomReadOnly sets a room's read-only status
+func (c *RoomController) handleSetRoomReadOnly(ctx *fiber.Ctx) error {
+	roomID := ctx.Params("roomId")
+	isReadOnly := ctx.QueryBool("readOnly", true)  // Default to true if not specified
+
+	// Convert room ID to ObjectID
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid room ID",
+		})
+	}
+
+	// Get current room
+	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
+	if err != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "Room not found",
+		})
+	}
+
+	// Set room type
+	room.Type = model.RoomTypeReadOnly
+	if !isReadOnly {
+		room.Type = model.RoomTypeNormal
+	}
+
+	// Update room
+	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomID, room)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to update room type",
+			"error":   err.Error(),
+		})
+	}
+
+	return ctx.JSON(fiber.Map{
+		"success": true,
+		"message": "Room read-only status updated successfully",
+		"data": fiber.Map{
+			"roomId":   roomID,
+			"readOnly": isReadOnly,
+			"room":     updatedRoom,
+		},
+	})
 }

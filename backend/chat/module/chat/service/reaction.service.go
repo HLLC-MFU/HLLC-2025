@@ -69,6 +69,15 @@ func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.Messag
 		log.Printf("[ChatService] Successfully emitted reaction to WebSocket and Kafka")
 	}
 
+	// --- NEW: Send offline notification to message owner if they are offline ---
+	ownerID := messageData.UserID.Hex()
+	log.Printf("[DEBUG] [Reaction] ownerID=%s, reactionUserID=%s", ownerID, reaction.UserID.Hex())
+	if ownerID != reaction.UserID.Hex() {
+		s.notifyOfflineReact(ctx, &messageData, reaction)
+	} else {
+		log.Printf("[DEBUG] [Reaction] ownerID == reactionUserID, skip notification")
+	}
+
 	return nil
 }
 
@@ -215,5 +224,68 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID stri
 		log.Printf("[ChatService] Successfully emitted reaction removal to WebSocket and Kafka")
 	}
 
+	// --- NEW: Send offline notification to message owner if they are offline (for remove) ---
+	ownerID := messageData.UserID.Hex()
+	log.Printf("[DEBUG] [RemoveReaction] ownerID=%s, userID=%s", ownerID, userID)
+	if ownerID != userID {
+		s.notifyOfflineReact(ctx, &messageData, &model.MessageReaction{
+			MessageID: messageObjID,
+			UserID:    userObjID,
+			Reaction:  "remove",
+			Timestamp: time.Now(),
+		})
+	} else {
+		log.Printf("[DEBUG] [RemoveReaction] ownerID == userID, skip notification")
+	}
+
 	return nil
-} 
+}
+
+// notifyOfflineReact now loops all room members (except sender) and sends notification to offline users, like mention
+func (s *ChatService) notifyOfflineReact(ctx context.Context, message *model.ChatMessage, reaction *model.MessageReaction) {
+	// Get all room members
+	roomMembers, err := s.getRoomMembers(ctx, message.RoomID)
+	if err != nil {
+		log.Printf("[ReactionNotifyJob] Failed to get room members: %v", err)
+		return
+	}
+
+	reactionUserID := reaction.UserID.Hex()
+	for _, memberID := range roomMembers {
+		memberIDStr := memberID.Hex()
+		// Skip the sender (the one who reacted)
+		if memberIDStr == reactionUserID {
+			continue
+		}
+		isOnline := s.hub.IsUserOnlineInRoom(message.RoomID.Hex(), memberIDStr)
+		log.Printf("[ReactionNotifyJob] Check member %s: isOnline=%v", memberIDStr, isOnline)
+		if !isOnline {
+			log.Printf("[ReactionNotifyJob] Submitting reaction notification job for offline user %s", memberIDStr)
+			s.asyncHelper.SubmitNotificationJob(message, []string{}, ctx, &reactionNotificationHandler{
+				s:        s,
+				ownerID:  memberIDStr,
+				reaction: reaction,
+			})
+		}
+	}
+}
+
+// reactionNotificationHandler implements NotificationJobHandler for reaction notification
+// (ใช้ struct แยกเพื่อส่ง reaction object เข้า handler)
+type reactionNotificationHandler struct {
+	s       *ChatService
+	ownerID string
+	reaction *model.MessageReaction
+}
+
+func (h *reactionNotificationHandler) SendNotifications(ctx context.Context, msg *model.ChatMessage, onlineUsers []string) error {
+	log.Printf("[ReactionNotifyJob] Worker pool is sending reaction notification to %s", h.ownerID)
+	if h.s.notificationService != nil {
+		h.s.notificationService.SendOfflineReactionNotification(ctx, h.ownerID, msg, h.reaction)
+		return nil
+	}
+	return fmt.Errorf("notificationService is nil")
+}
+
+func (h *reactionNotificationHandler) UpdateMessageStatus(messageID primitive.ObjectID, field string, value interface{}) {}
+func (h *reactionNotificationHandler) UpdateMessageStatusWithError(messageID primitive.ObjectID, errorMsg string, retryCount int) {} 

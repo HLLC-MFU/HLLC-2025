@@ -66,7 +66,7 @@ func (c *MentionController) handleSendMention(ctx *fiber.Ctx) error {
 	mentionDto.RoomID = roomID
 
 	// Convert IDs to ObjectIDs
-	userObjID, roomObjID, _, err := mentionDto.ToObjectIDs()
+	userObjID, roomObjID, err := mentionDto.ToObjectIDs()
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -75,7 +75,7 @@ func (c *MentionController) handleSendMention(ctx *fiber.Ctx) error {
 	}
 
 	// Check if user is in room
-	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID, mentionDto.UserID)
+	isInRoom, err := c.roomService.IsUserInRoom(ctx.Context(), roomObjID[0], userObjID.Hex())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -90,7 +90,7 @@ func (c *MentionController) handleSendMention(ctx *fiber.Ctx) error {
 	}
 
 	// ตรวจสอบสิทธิ์การส่งข้อความ (รวมถึง room type)
-	canSend, err := c.roomService.CanUserSendMessage(ctx.Context(), roomObjID, mentionDto.UserID)
+	canSend, err := c.roomService.CanUserSendMessage(ctx.Context(), roomObjID[0], userObjID.Hex())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -105,7 +105,7 @@ func (c *MentionController) handleSendMention(ctx *fiber.Ctx) error {
 	}
 
 	// Send mention message
-	message, err := c.chatService.SendMentionMessage(ctx.Context(), userObjID, roomObjID, mentionDto.Message)
+	message, err := c.chatService.SendMentionMessage(ctx.Context(), userObjID, roomObjID[0], mentionDto.Message)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
