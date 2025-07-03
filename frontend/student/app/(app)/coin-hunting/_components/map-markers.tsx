@@ -15,9 +15,10 @@ interface Marker {
 
 interface MapMarkersProps {
   onMarkerPress: (marker: Marker) => void;
+  refreshKey?: number;
 }
 
-export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
+export default function MapMarkers({ onMarkerPress, refreshKey }: MapMarkersProps) {
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [collectedIds, setCollectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,7 @@ export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [refreshKey]);
 
   if (loading || error) return null;
 

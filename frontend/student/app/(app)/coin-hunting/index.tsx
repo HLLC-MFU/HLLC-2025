@@ -1,4 +1,4 @@
-import React from 'react';
+import  { useCallback, useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import InteractiveMap from './_components/interactive-map';
@@ -28,16 +28,22 @@ export default function CoinHuntingScreen() {
   } = useCoinHunting();
   const router = useRouter();
   const params = useLocalSearchParams();
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  React.useEffect(() => {
+  const handleScannerSuccessWithRefresh = useCallback((data?: any) => {
+    handleScannerSuccess(data);
+    setRefreshKey((k) => k + 1);
+  }, [handleScannerSuccess]);
+
+  useEffect(() => {
     if (params.modal === 'success') {
-      handleScannerSuccess(params.code ? { code: params.code as string } : undefined);
+      handleScannerSuccessWithRefresh(params.code ? { code: params.code as string } : undefined);
       router.replace('/coin-hunting');
     } else if (params.modal === 'alert' && params.type) {
       handleAlert(params.type as any);
       router.replace('/coin-hunting');
     }
-  }, [params.modal, params.type, params.code]);
+  }, [params.modal, params.type, params.code, handleScannerSuccessWithRefresh]);
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -48,7 +54,7 @@ export default function CoinHuntingScreen() {
         onLeaderboard={() => router.replace('/coin-hunting/leaderboard')}
       />
       <InteractiveMap>
-        <MapMarkers onMarkerPress={handleMarkerPress} />
+        <MapMarkers onMarkerPress={handleMarkerPress} refreshKey={refreshKey} />
       </InteractiveMap>
       <MarkerDetailModal
         visible={modal === 'marker-detail'}
