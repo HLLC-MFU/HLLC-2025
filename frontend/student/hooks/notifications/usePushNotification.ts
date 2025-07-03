@@ -1,5 +1,5 @@
 import { getToken, saveToken } from '@/utils/storage';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging, AuthorizationStatus } from '@react-native-firebase/messaging';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 
@@ -16,8 +16,10 @@ export default function usePushNotification() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const messaging = getMessaging();
+
   const getPermission = useCallback(async () => {
-    const status = await messaging().hasPermission();
+    const status = await messaging.hasPermission();
     setPermission({ granted: status === 1, status });
     return status === 1;
   }, []);
@@ -28,10 +30,12 @@ export default function usePushNotification() {
       const alreadyRequested = await getToken(PERMISSION_KEY);
 
       if (!alreadyRequested) {
-        const authStatus = await messaging().requestPermission();
+        // const authStatus = await Notification.requestPermission();
+        const authStatus = await messaging.requestPermission();
+        
         const granted =
-          authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-          authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+          authStatus === AuthorizationStatus.AUTHORIZED ||
+          authStatus === AuthorizationStatus.PROVISIONAL;
 
         setPermission({ granted, status: authStatus });
 
@@ -52,7 +56,7 @@ export default function usePushNotification() {
   }, [getPermission]);
 
   const registerToken = useCallback(async () => {
-    const newToken = await messaging().getToken();
+    const newToken = await messaging.getToken();
     const oldToken = await getToken(TOKEN_KEY);
 
     if (newToken && newToken !== oldToken) {
@@ -73,9 +77,9 @@ export default function usePushNotification() {
   }, []);
 
   const listenForegroundNotifications = useCallback(() => {
-    return messaging().onMessage(async remoteMessage => {
+    return messaging.onMessage(async remoteMessage => {
       console.log('[FCM] Foreground:', remoteMessage);
-      Alert.alert('Notification', remoteMessage?.notification?.title ?? 'New message');
+      Alert.alert('Notification', JSON.stringify(remoteMessage?.notification) ?? 'New message');
     });
   }, []);
 

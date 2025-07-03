@@ -1,5 +1,7 @@
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging } from '@react-native-firebase/messaging';
 
-messaging().setBackgroundMessageHandler(async remoteMessage => {
+const messaging = getMessaging();
+
+messaging.setBackgroundMessageHandler(async remoteMessage => {
   console.log('[FCM] 📦 Background message received:', remoteMessage);
 });
