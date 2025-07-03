@@ -9,7 +9,7 @@ import Overview from './_components/DashboardOverview';
 import CheckinBarChart from './_components/DashboardCheckinBarChart';
 import StudentChart from './_components/DashbaordStudentChart';
 
-export default function DashboarPage() {
+export default function DashboardPage() {
 
   return (
     <>
