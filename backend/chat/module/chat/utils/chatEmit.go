@@ -2,6 +2,7 @@ package utils
 
 import (
 	"chat/module/chat/model"
+	restrictionModel "chat/module/restriction/model"
 	userModel "chat/module/user/model"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
@@ -619,8 +620,8 @@ func (e *ChatEventEmitter) EmitMentionNotice(ctx context.Context, msg *model.Cha
 
 // EmitEvoucherMessage emits an evoucher message event
 func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.ChatMessage) error {
-	log.Printf("[TRACE] EmitEvoucherMessage called for message ID=%s Room=%s", 
-		msg.ID.Hex(), msg.RoomID.Hex())
+		log.Printf("[TRACE] EmitEvoucherMessage called for message ID=%s Room=%s", 
+			msg.ID.Hex(), msg.RoomID.Hex())
 
 	// Get user data
 	userInfo, err := e.getUserInfo(ctx, msg.UserID)
@@ -675,6 +676,74 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 	return e.emitEventStructured(ctx, msg, event)
 }
 
+func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, restriction *restrictionModel.UserRestriction) error {
+	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s", 
+		restriction.ID.Hex(), restriction.RoomID.Hex())
+
+	//Create sender info
+	senderInfo := model.UserInfo{
+		ID: sender.ID.Hex(),
+		Username: sender.Username,
+		Name: map[string]interface{}{
+			"first": sender.Name.First,
+			"middle": sender.Name.Middle,
+			"last": sender.Name.Last,
+		},
+	}
+
+	//Create restriction info
+	restrictionInfo := model.RestrictionInfo{
+		ID: restriction.ID.Hex(),
+		RoomID: restriction.RoomID.Hex(),
+		UserID: restriction.UserID.Hex(),
+		Restriction: restriction.Restriction,
+	}
+
+	//Create message info (use msg.ID, msg.Timestamp, msg.Message)
+	messageInfo := model.MessageInfo{
+		ID: msg.ID.Hex(),
+		Type: model.MessageTypeRestriction,
+		Message: msg.Message,
+		Timestamp: msg.Timestamp,
+	}
+
+	// Create Structured Restriction notice event
+	restrictionEvent := model.Event{
+		Type: model.EventTypeRestriction,
+		Payload: map[string]interface{}{
+			"room": map[string]interface{}{
+				"_id": restrictionInfo.RoomID,
+			},
+			"user": map[string]interface{}{
+				"_id": senderInfo.ID,
+				"username": senderInfo.Username,
+				"name": senderInfo.Name,
+			},
+			"restriction": restrictionInfo,
+			"message": messageInfo,
+		},
+		Timestamp: msg.Timestamp,
+	}
+
+	// For WebSocket, marshal to bytes (needed for WebSocket protocol)
+	eventBytes, err := json.Marshal(restrictionEvent)
+	if err != nil {
+		return fmt.Errorf("failed to marshal restriction event: %w", err)
+	}
+
+	// Broadcast to room (WebSocket)
+	e.hub.BroadcastToRoom(restriction.RoomID.Hex(), eventBytes)
+
+	// Publish to Kafka topic chat-room-<roomId>
+	roomTopic := getRoomTopic(restriction.RoomID.Hex())
+	if err := e.bus.Emit(ctx, roomTopic, restriction.RoomID.Hex(), restrictionEvent); err != nil {
+		log.Printf("[WARN] Failed to emit restriction event to Kafka (continuing without Kafka): %v", err)
+		// Don't return error - continue without Kafka
+	}
+
+	log.Printf("[Kafka] Successfully published restriction notice to topic %s", roomTopic)
+	return nil
+}
 
 // EmitEvent emits a custom event
 func (e *ChatEventEmitter) EmitEvent(ctx context.Context, msg *model.ChatMessage, event interface{}) error {
@@ -696,4 +765,9 @@ func (e *ChatEventEmitter) EmitEvent(ctx context.Context, msg *model.ChatMessage
 
 	log.Printf("[Kafka] Successfully published event to topic %s", roomTopic)
 	return nil
+}
+
+// GetHub returns the chat hub (for use in restriction/event helpers)
+func (e *ChatEventEmitter) GetHub() *Hub {
+	return e.hub
 }

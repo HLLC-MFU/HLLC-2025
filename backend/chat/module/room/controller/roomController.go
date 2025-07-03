@@ -58,8 +58,9 @@ func NewRoomController(
 
 func (c *RoomController) setupRoutes() {
 	// Basic room operations
-	c.Get("/", c.GetRooms)
-	c.Get("/:id", c.GetRoomById)
+	c.Get("/", c.rbac.RequireReadOnlyAccess(), c.GetRooms)
+	c.Get("/non-group", c.rbac.RequireReadOnlyAccess(), c.GetNonGroupRooms)
+	c.Get("/:id", c.rbac.RequireReadOnlyAccess(), c.GetRoomById)
 	c.Patch("/:id", c.UpdateRoom)
 	c.Post("/", c.CreateRoom, c.rbac.RequireAdministrator())
 	c.Delete("/:id", c.DeleteRoom)
@@ -427,4 +428,22 @@ func decodeBase64URL(s string) ([]byte, error) {
 		s += strings.Repeat("=", 4-missing)
 	}
 	return base64.URLEncoding.DecodeString(s)
+}
+
+// NEW: GetNonGroupRooms - ดึงเฉพาะห้องที่ไม่ใช่ group room
+func (c *RoomController) GetNonGroupRooms(ctx *fiber.Ctx) error {
+	opts := queries.ParseQueryOptions(ctx)
+	if opts.Filter == nil {
+		opts.Filter = make(map[string]interface{})
+	}
+	// Filter: metadata.isGroupRoom != true
+	opts.Filter["$or"] = []map[string]interface{}{
+		{"metadata.isGroupRoom": map[string]interface{}{"$ne": true}},
+		{"metadata.isGroupRoom": map[string]interface{}{"$exists": false}},
+	}
+	response, err := c.roomService.GetRooms(ctx.Context(), opts)
+	if err != nil {
+		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+	}
+	return ctx.Status(fiber.StatusOK).JSON(response)
 }

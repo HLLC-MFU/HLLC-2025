@@ -3,7 +3,9 @@ package service
 import (
 	"chat/module/chat/model"
 	chatModel "chat/module/notification/model"
+	restrictionModel "chat/module/restriction/model"
 	userModel "chat/module/user/model"
+	userService "chat/module/user/service"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
 	"context"
@@ -18,15 +20,17 @@ type NotificationService struct {
 	*queries.BaseService[chatModel.NotificationPayload]
 	kafkaBus   *kafka.Bus
 	collection *mongo.Collection
+	roleService *userService.RoleService
 }
 
-func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus) *NotificationService {
+func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService *userService.RoleService) *NotificationService {
 	collection := db.Collection("notifications")
 	
 	return &NotificationService{
 		BaseService: queries.NewBaseService[chatModel.NotificationPayload](collection),
 		kafkaBus:    kafkaBus,
 		collection:  collection,
+		roleService: roleService,
 	}
 }
 
@@ -89,6 +93,15 @@ func (ns *NotificationService) SendOfflineNotification(ctx context.Context, rece
 		return
 	}
 
+	// Get sender user model for role
+	var senderUser *userModel.User
+	userService := queries.NewBaseService[userModel.User](ns.collection.Database().Collection("users"))
+	result, err := userService.FindOne(ctx, bson.M{"_id": message.UserID})
+	if err == nil && len(result.Data) > 0 {
+		senderUser = &result.Data[0]
+	}
+	role := ns.getNotificationUserRole(ctx, senderUser)
+
 	// Get room info
 	room, err := ns.getRoomById(ctx, message.RoomID.Hex())
 	if err != nil {
@@ -108,6 +121,7 @@ func (ns *NotificationService) SendOfflineNotification(ctx context.Context, rece
 			message.ID.Hex(), message.Message,
 			receiverID,
 			message.FileURL, message.FileType, message.FileName,
+			role,
 		)
 	} else {
 		// Create notification payload for other types
@@ -118,6 +132,7 @@ func (ns *NotificationService) SendOfflineNotification(ctx context.Context, rece
 			sender.ID, sender.Username, sender.FirstName, sender.LastName,
 			message.ID.Hex(), message.Message,
 			receiverID,
+			role,
 		)
 	}
 
@@ -141,6 +156,15 @@ func (ns *NotificationService) SendMessageNotification(ctx context.Context, rece
 		return
 	}
 
+	// Get sender user model for role
+	var senderUser *userModel.User
+	userService := queries.NewBaseService[userModel.User](ns.collection.Database().Collection("users"))
+	result, err := userService.FindOne(ctx, bson.M{"_id": message.UserID})
+	if err == nil && len(result.Data) > 0 {
+		senderUser = &result.Data[0]
+	}
+	role := ns.getNotificationUserRole(ctx, senderUser)
+
 	// Get room info
 	room, err := ns.getRoomById(ctx, message.RoomID.Hex())
 	if err != nil {
@@ -156,6 +180,7 @@ func (ns *NotificationService) SendMessageNotification(ctx context.Context, rece
 		sender.ID, sender.Username, sender.FirstName, sender.LastName,
 		message.ID.Hex(), message.Message,
 		receiverID,
+		role,
 	)
 
 	// Send to generic notification topic
@@ -220,6 +245,41 @@ func (ns *NotificationService) SendOfflineReactionNotification(ctx context.Conte
 	} else {
 		log.Printf("[NotificationService] SUCCESS: sent offline reaction notification to %s via topic %s", receiverID, topic)
 	}
+}
+
+func (ns *NotificationService) SendOfflineRestrictionNotification(ctx context.Context, receiverID string, message *model.ChatMessage, restriction *restrictionModel.UserRestriction) {
+	log.Printf("[NotificationService] Sending OFFLINE restriction notification: receiver=%s, message=%s", receiverID, message.ID.Hex())
+	sender, err := ns.getUserById(ctx, message.UserID.Hex())
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get sender info for restriction notification: %v", err)
+		return
+	}
+	room, err := ns.getRoomById(ctx, message.RoomID.Hex())
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get room info for restriction notification: %v", err)
+		return
+	}
+	payload := chatModel.NotificationPayload{
+		Type: "restriction",
+		Room: chatModel.NotificationRoom{
+			ID:   room.ID,
+			Name: map[string]string{"th": room.NameTh, "en": room.NameEn},
+		},
+		User: chatModel.NotificationUser{
+			ID:       sender.ID,
+		Username: sender.Username,
+		Name:     map[string]interface{}{ "first": sender.FirstName, "last": sender.LastName },
+	},
+	Message: chatModel.NotificationMessage{
+		ID: message.ID.Hex(),
+		Message: message.Message,
+		Type: "restriction",
+		Timestamp: message.Timestamp,
+	},
+	Receiver: receiverID,
+	Timestamp: message.Timestamp,
+}
+_ = ns.sendOfflineToKafka(ctx, receiverID, payload, room.ID, sender.ID, message.Message, "restriction", message.ID.Hex())
 }
 
 // SendOfflineReplyNotification sends a reply notification to offline user
@@ -340,6 +400,7 @@ func (ns *NotificationService) SendOfflineUploadNotification(ctx context.Context
 		message.ID.Hex(), message.Message,
 		receiverID,
 		message.FileURL, message.FileType, message.FileName,
+		&chatModel.NotificationUserRole{}, // Add missing NotificationUserRole argument
 	)
 	_ = ns.sendOfflineToKafka(ctx, receiverID, payload, room.ID, sender.ID, message.Message, "upload", message.ID.Hex())
 }
@@ -377,30 +438,6 @@ func (ns *NotificationService) NotifyOfflineUsersOnly(ctx context.Context, messa
 	}
 	
 	log.Printf("[NotificationService] Notified %d offline users", offlineCount)
-}
-
-// SendTestNotification sends a test notification for admin testing
-func (ns *NotificationService) SendTestNotification(ctx context.Context, receiverID, messageType, messageText, roomID, adminUserID string) error {
-	log.Printf("[NotificationService] Admin %s sending test notification to %s", adminUserID, receiverID)
-
-	// Use default room if not specified
-	if roomID == "" {
-		roomID = "test-room-id"
-	}
-
-	// Create simple test payload
-	payload := chatModel.CreateSimpleNotificationPayload(
-		messageType,
-		roomID,
-		"ห้องทดสอบ", "Test Room",
-		adminUserID, "admin", "Admin", "User",
-		"test-message-id", messageText,
-		receiverID,
-	)
-
-	// Send to Kafka
-	ns.sendToKafka(ctx, receiverID, payload, roomID, adminUserID, messageText, messageType, "test-message-id")
-	return nil
 }
 
 // Helper methods
@@ -533,5 +570,37 @@ func (ns *NotificationService) sendToKafka(ctx context.Context, receiverID strin
 	} else {
 		log.Printf("[NotificationService] SUCCESS: sent generic notification to %s", receiverID)
 		return true
+	}
+}
+
+// Helper to get NotificationUserRole by user
+func (ns *NotificationService) getNotificationUserRole(ctx context.Context, user *userModel.User) *chatModel.NotificationUserRole {
+	if user == nil {
+		return nil
+	}
+	var roleID, roleName string
+	// Try to handle as primitive.ObjectID (from User struct)
+	if oid, ok := any(user.Role).(primitive.ObjectID); ok {
+		roleID = oid.Hex()
+		if ns.roleService != nil {
+			roleObj, err := ns.roleService.GetRoleById(ctx, roleID)
+			if err == nil && roleObj != nil {
+				roleName = roleObj.Name
+			}
+		}
+	} else if v, ok := any(user.Role).(map[string]interface{}); ok {
+		if id, ok := v["id"].(string); ok {
+			roleID = id
+		}
+		if name, ok := v["name"].(string); ok {
+			roleName = name
+		}
+	}
+	if roleID == "" {
+		return nil
+	}
+	return &chatModel.NotificationUserRole{
+		ID:   roleID,
+		Name: roleName,
 	}
 } 

@@ -17,11 +17,7 @@ const (
     EventTypeMentionNotice = "mention_notice"
     EventTypeEvoucher   = "evoucher"
     EventTypeUnsendMessage = "unsend_message" // **NEW: Unsend message event**
-    EventTypeModerationBan   = "moderation_ban"
-    EventTypeModerationMute  = "moderation_mute"
-    EventTypeModerationKick  = "moderation_kick"
-    EventTypeModerationUnban = "moderation_unban"
-    EventTypeModerationUnmute = "moderation_unmute"
+	EventTypeRestriction = "restriction"
     EventTypePresence     = "presence"
     EventTypeUpload       = "upload"
 )
@@ -34,11 +30,7 @@ const (
     MessageTypeMention = "mention"
     MessageTypeEvoucher = "evoucher"
     MessageTypeUnsend  = "unsend" // **NEW: Unsend message type**
-    MessageTypeModerationBan   = "moderation_ban"
-    MessageTypeModerationMute  = "moderation_mute"
-    MessageTypeModerationKick  = "moderation_kick"
-    MessageTypeModerationUnban = "moderation_unban"
-    MessageTypeModerationUnmute = "moderation_unmute"
+	MessageTypeRestriction = "restriction"
     MessageTypeUpload   = "upload"
 )
 
@@ -100,6 +92,14 @@ type (
 		Username string `json:"username"`
 		Position int    `json:"position"` // Position in message where mention starts
 		Length   int    `json:"length"`   // Length of the mention text
+	}
+
+	//Restriction-related structures
+	RestrictionInfo struct {
+		ID string `json:"_id"`
+		RoomID string `json:"roomId"`
+		UserID string `json:"userId"`
+		Restriction string `json:"restriction"`
 	}
 
 	ChatMessagePayload struct {

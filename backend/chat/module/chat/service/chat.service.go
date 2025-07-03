@@ -6,6 +6,7 @@ import (
 	notificationService "chat/module/notification/service"
 	restrictionService "chat/module/restriction/service"
 	userModel "chat/module/user/model"
+	userService "chat/module/user/service"
 	"chat/pkg/config"
 	"chat/pkg/core/kafka"
 	"chat/pkg/database/queries"
@@ -86,6 +87,9 @@ func NewChatService(
 	hub := utils.NewHub()
 	emitter := utils.NewChatEventEmitter(hub, kafkaBus, redis, db)
 
+	// Create role service
+	roleService := userService.NewRoleService(db)
+
 	chatService := &ChatService{
 		BaseService:  queries.NewBaseService[model.ChatMessage](collection),
 		cache:       utils.NewChatCacheService(redis),
@@ -97,7 +101,7 @@ func NewChatService(
 		mongo:       db,
 		redis:       redis,
 		Config:      cfg,
-		notificationService: notificationService.NewNotificationService(db, kafkaBus),
+		notificationService: notificationService.NewNotificationService(db, kafkaBus, roleService),
 		historyService:      NewHistoryService(db, utils.NewChatCacheService(redis)),
 		statusCollection:    statusCollection,
 	}
@@ -106,7 +110,7 @@ func NewChatService(
 	chatService.asyncHelper = utils.NewAsyncHelper(db, cfg)
 	chatService.asyncHelper.SetPhantomDetectorHandler(chatService)
 	
-	chatService.restrictionService = restrictionService.NewRestrictionService(db, chatService.hub)
+	chatService.restrictionService = restrictionService.NewRestrictionService(db, chatService.hub, chatService.emitter, chatService.notificationService, kafkaBus)
 
 	// Start monitoring
 	go chatService.monitorSystemHealth()
@@ -404,7 +408,7 @@ func (s *ChatService) GetNotificationService() *notificationService.Notification
 
 func (s *ChatService) GetRestrictionService() *restrictionService.RestrictionService {
 	return s.restrictionService
-	}
+}
 
 func (s *ChatService) GetChatHistoryByRoom(ctx context.Context, roomID string, limit int64) ([]model.ChatMessageEnriched, error) {
 	return s.historyService.GetChatHistoryByRoom(ctx, roomID, limit)

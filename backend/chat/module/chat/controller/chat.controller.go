@@ -6,6 +6,7 @@ import (
 	"chat/module/chat/model"
 	chatService "chat/module/chat/service"
 	"chat/module/chat/utils"
+	restrictionService "chat/module/restriction/service"
 	roomModel "chat/module/room/model"
 	stickerModel "chat/module/sticker/model"
 	userModel "chat/module/user/model"
@@ -39,6 +40,7 @@ type (
 		GetUserById(ctx context.Context, userID string) (*userModel.User, error)
 		GetRedis() *redis.Client
 		GetMongo() *mongo.Database
+		GetRestrictionService() *restrictionService.RestrictionService
 	}
 
 	RoomService interface {
@@ -123,10 +125,37 @@ func (c *ChatController) setupRoutes() {
 }
 
 func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
-
-	// อ่านจาก param
 	roomID := ctx.Params("roomId")
-
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid authentication token",
+		})
+	}
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid room ID",
+		})
+	}
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid user ID format",
+		})
+	}
+	log.Printf("[Controller] Checking restriction for sticker: userID=%s roomID=%s", userObjID.Hex(), roomObjID.Hex())
+	if !c.chatService.GetRestrictionService().CanUserSendMessages(ctx.Context(), userObjID, roomObjID) {
+		log.Printf("[Controller] User %s is muted or banned in room %s", userObjID.Hex(), roomObjID.Hex())
+		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"success": false,
+			"message": "You are muted or banned in this room",
+		})
+	}
+	log.Printf("[Controller] User %s passed restriction check for sticker in room %s", userObjID.Hex(), roomObjID.Hex())
 	// อ่านจาก body dto
 	var stickerDto dto.SendStickerDto
 	if err := ctx.BodyParser(&stickerDto); err != nil {
@@ -136,38 +165,12 @@ func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// Extract userID from JWT token
-	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
-	if err != nil {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid authentication token",
-		})
-	}
-
-	// Convert room ID from URL to ObjectID
-	roomObjID, err := primitive.ObjectIDFromHex(roomID)
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid room ID",
-		})
-	}
-
 	// Convert string IDs to ObjectIDs
 	stickerObjID, err := primitive.ObjectIDFromHex(stickerDto.StickerID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "Invalid sticker ID format",
-		})
-	}
-
-	userObjID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid user ID format",
 		})
 	}
 
@@ -232,7 +235,6 @@ func (c *ChatController) handleClearCache(ctx *fiber.Ctx) error {
 
 func (c *ChatController) handleReplyMessage(ctx *fiber.Ctx) error {
 	roomID := ctx.Params("roomId")
-	
 	var replyDto dto.ReplyMessageDto
 	if err := ctx.BodyParser(&replyDto); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -240,8 +242,6 @@ func (c *ChatController) handleReplyMessage(ctx *fiber.Ctx) error {
 			"message": "Invalid request body",
 		})
 	}
-
-	// Extract userID from JWT token
 	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
 	if err != nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -249,8 +249,6 @@ func (c *ChatController) handleReplyMessage(ctx *fiber.Ctx) error {
 			"message": "Invalid authentication token",
 		})
 	}
-
-	// Convert room ID from URL to ObjectID
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -258,8 +256,6 @@ func (c *ChatController) handleReplyMessage(ctx *fiber.Ctx) error {
 			"message": "Invalid room ID",
 		})
 	}
-
-	// Convert string IDs to ObjectIDs
 	replyToObjID, err := primitive.ObjectIDFromHex(replyDto.ReplyToId)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -267,7 +263,6 @@ func (c *ChatController) handleReplyMessage(ctx *fiber.Ctx) error {
 			"message": "Invalid reply to ID format",
 		})
 	}
-
 	userObjID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -275,7 +270,15 @@ func (c *ChatController) handleReplyMessage(ctx *fiber.Ctx) error {
 			"message": "Invalid user ID format",
 		})
 	}
-
+	log.Printf("[Controller] Checking restriction for reply: userID=%s roomID=%s", userObjID.Hex(), roomObjID.Hex())
+	if !c.chatService.GetRestrictionService().CanUserSendMessages(ctx.Context(), userObjID, roomObjID) {
+		log.Printf("[Controller] User %s is muted or banned in room %s", userObjID.Hex(), roomObjID.Hex())
+		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"success": false,
+			"message": "You are muted or banned in this room",
+		})
+	}
+	log.Printf("[Controller] User %s passed restriction check for reply in room %s", userObjID.Hex(), roomObjID.Hex())
 	// ตรวจสอบสิทธิ์การส่งข้อความ (รวมถึง room type)
 	canSend, err := c.roomService.CanUserSendMessage(ctx.Context(), roomObjID, userID)
 	if err != nil {

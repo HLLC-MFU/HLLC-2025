@@ -22,6 +22,12 @@ type (
 		ID       string                 `json:"id"`
 		Username string                 `json:"username"`
 		Name     map[string]interface{} `json:"name"`
+		Role     *NotificationUserRole  `json:"role,omitempty"`
+	}
+
+	NotificationUserRole struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
 	}
 
 	NotificationMessage struct {
@@ -41,6 +47,7 @@ func CreateNotificationPayload(
 	userID, username string, userName map[string]interface{},
 	messageID, messageText, messageType string,
 	receiverID string,
+	role *NotificationUserRole,
 ) NotificationPayload {
 	return NotificationPayload{
 		Type: eventType,
@@ -53,6 +60,7 @@ func CreateNotificationPayload(
 			ID:       userID,
 			Username: username,
 			Name:     userName,
+			Role:     role,
 		},
 		Message: NotificationMessage{
 			ID:      messageID,
@@ -71,6 +79,7 @@ func CreateSimpleNotificationPayload(
 	userID, username, userFirstName, userLastName string,
 	messageID, messageText string,
 	receiverID string,
+	role *NotificationUserRole,
 ) NotificationPayload {
 	return NotificationPayload{
 		Type: eventType,
@@ -88,6 +97,7 @@ func CreateSimpleNotificationPayload(
 				"first": userFirstName,
 				"last":  userLastName,
 			},
+			Role: role,
 		},
 		Message: NotificationMessage{
 			ID:      messageID,
@@ -107,6 +117,7 @@ func CreateUploadNotificationPayload(
 	messageID, messageText string,
 	receiverID string,
 	fileURL, fileType, fileName string,
+	role *NotificationUserRole,
 ) NotificationPayload {
 	payload := CreateSimpleNotificationPayload(
 		eventType,
@@ -114,6 +125,7 @@ func CreateUploadNotificationPayload(
 		userID, username, userFirstName, userLastName,
 		messageID, messageText,
 		receiverID,
+		role,
 	)
 	
 	payload.Message.Type = "upload"
