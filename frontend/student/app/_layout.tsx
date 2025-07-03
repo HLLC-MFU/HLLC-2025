@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CurrentToast } from '@/context/ToastContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import '@/hooks/notifications/backgroundNotificationHandler'
 
 SplashScreen.preventAutoHideAsync();
 
