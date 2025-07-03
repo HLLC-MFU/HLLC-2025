@@ -4,7 +4,7 @@ import { Calendar, Clock, MapPin } from "@tamagui/lucide-icons";
 import { TouchableOpacity, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { UserActivity } from "@/types/activities";
-import { SharedElement } from "react-navigation-shared-element";
+
 
 interface ActivityCardProps {
   activity: UserActivity;
@@ -39,7 +39,7 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
         }}
       >
         <YStack>
-          <SharedElement id={imageId}>
+          <View id={imageId}>
             <View style={{ position: "relative", alignItems: "center", justifyContent: "center" }}>
               <Image
                 source={{
@@ -143,7 +143,7 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
 
               </View>
             </View>
-          </SharedElement>
+          </View>
         </YStack>
       </BlurView>
     </TouchableOpacity>

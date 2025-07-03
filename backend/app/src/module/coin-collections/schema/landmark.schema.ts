@@ -11,6 +11,9 @@ export class Landmark {
     @Prop({ required: true, type: Object, unique: true })
     name: Localization;
 
+    @Prop({ required: true, type: Number, unique: true })
+    order: number
+
     @Prop({ required: true, type: String })
     coinImage: string;
 

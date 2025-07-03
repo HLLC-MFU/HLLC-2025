@@ -17,6 +17,12 @@ export interface Message {
     text: string;
     senderId: string;
     senderName: string;
+    type?: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention';
+    image?: string;
+    fileName?: string;
+    fileType?: string;
+    stickerId?: string;
+    notFound?: boolean;
   };
   fileUrl?: string;
   fileName?: string;
@@ -24,6 +30,7 @@ export interface Message {
   stickerId?: string;
   image?: string;
   mentioned?: string;
+  mentions?: string[];
 }
 
 export interface ConnectedUser {
@@ -80,10 +87,22 @@ export interface RoomsResponse {
   total: number;
 }
 
+interface UserName {
+  first: string;
+  middle: string;
+  last: string;
+}
+
 export interface User {
-  id: string;
+  _id: string;
+  name: UserName;
   username: string;
-  token: string;
+  profile_image_url?: string;
+}
+
+export interface RoomMember {
+  user_id: string;
+  user: User;
 }
 
 export interface AvatarProps {
@@ -126,4 +145,6 @@ export interface RoomInfoModalProps {
   isVisible: boolean;
   onClose: () => void;
   connectedUsers: ConnectedUser[];
-} 
+}
+
+export default {}; 
