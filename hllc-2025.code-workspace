@@ -9,6 +9,10 @@
             "path": "frontend"
         },
         {
+            "name": "backend",
+            "path": "backend"
+        },
+        {
             "name": "student",
             "path": "frontend/student"
         },
@@ -17,9 +21,13 @@
             "path": "frontend/admin"
         },
         {
-            "name": "backend",
-            "path": "backend"
-        }
+            "name": "backend/main-system",
+            "path": "backend/app"
+        },
+        {
+            "name": "backend/chat-system",
+            "path": "backend/chat"
+        },
     ],
     "settings": {
         "jest.runMode": {
