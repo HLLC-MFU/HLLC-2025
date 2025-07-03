@@ -10,12 +10,12 @@ interface CheckinTyping {
 }
 
 export function CheckinTyping ({selectedActivityIds}: CheckinTyping) {
-  const { createcheckin } = useCheckin();
+  const { createCheckin } = useCheckin();
   const [ studentId, setStudentId] = useState('');
 
   const onSubmit = async (e: any) => {
     e.preventDefault();
-    await createcheckin({
+    await createCheckin({
       user: studentId,
       activities: selectedActivityIds,
     });

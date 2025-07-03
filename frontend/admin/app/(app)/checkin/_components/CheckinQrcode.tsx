@@ -6,10 +6,10 @@ interface QrCodeScannerProps {
 }
 
 export function CheckinQrcode({ selectedActivityIds }: QrCodeScannerProps) {
-  const { createcheckin } = useCheckin();
+  const { createCheckin } = useCheckin();
 
   const checkinScanner = async (studentId: string) => {
-      await createcheckin({
+      await createCheckin({
         user: studentId,
         activities: selectedActivityIds,
       });

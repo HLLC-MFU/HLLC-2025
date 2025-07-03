@@ -163,8 +163,8 @@ export default function CheckinBarChart() {
             <XAxis dataKey="acronym" tick={{ fontSize: 14, fontWeight: 600 }} />
             <Tooltip content={customTooltip} />
             <YAxis />
-            <Bar dataKey="internCheckin" fill="#F7B750" barSize={30} radius={[4, 4, 0, 0]}/>
             <Bar dataKey="studentCheckin" fill="#486CFF" barSize={30} radius={[4, 4, 0, 0]}/>
+            <Bar dataKey="internCheckin" fill="#F7B750" barSize={30} radius={[4, 4, 0, 0]}/>
           </BarChart>
         </ResponsiveContainer>
       </CardBody>

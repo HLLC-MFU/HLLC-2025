@@ -9,7 +9,7 @@ export function useCheckin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchcheckin = async () => {
+  const fetchCheckin = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -30,7 +30,7 @@ export function useCheckin() {
     }
   };
 
-  const fetchcheckinstats = async () => {
+  const fetchCheckinStats = async () => {
     setLoading(true)
     setError(null)
     try {
@@ -51,7 +51,7 @@ export function useCheckin() {
     }
   };
 
-  const createcheckin = async (checkinData: Partial<CheckinCreate>) => {
+  const createCheckin = async (checkinData: Partial<CheckinCreate>) => {
     setLoading(true);
     setError(null);
     try {
@@ -86,8 +86,8 @@ export function useCheckin() {
   };
 
   useEffect(() => {
-    fetchcheckin();
-    fetchcheckinstats();
+    fetchCheckin();
+    fetchCheckinStats();
   }, []);
 
   return {
@@ -95,8 +95,8 @@ export function useCheckin() {
     checkinStats,
     loading,
     error,
-    fetchcheckin,
-    fetchcheckinstats,
-    createcheckin,
+    fetchCheckin,
+    fetchCheckinStats,
+    createCheckin,
   };
 }
