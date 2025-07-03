@@ -1,4 +1,3 @@
-
 {
     "global": {
         "loading": "Loading...",
@@ -56,11 +55,12 @@
         "community": "Community"
     },
     "home": {
-        "allActivities": "Activities",
+        "activities": "Activities",
         "seeAll": "See all"
     },
-    "activty": {
-        "activities": "Activities",
+    "activity": {
+        "title": "Activities",
+        "allActivities": "All Activities",
         "subtitle": "Coming soon...",
         "backward": "Go Back"
     },
@@ -78,7 +78,7 @@
         "community": "Community"
     },
     "qrCode": {
-                "qrCode": "QR Code",
+        "qrCode": "QR Code",
         "camera": "Camera",
         "schoolOf": "School of ",
         "studentId": "Student ID"

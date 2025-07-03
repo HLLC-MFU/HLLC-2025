@@ -58,6 +58,7 @@
         "seeAll": "ดูทั้งหมด"
     },
     "activty": {
+        "title": "กิจกรรม",
         "allActivities": "กิจกรรมทั้งหมด",
         "subtitle": "กำลังมา เร็วๆนี้...",
         "backward": "ย้อนกลับ"

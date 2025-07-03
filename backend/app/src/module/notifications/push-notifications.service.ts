@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { KafkaService } from '../kafka/kafka.service';
 import { PushNotificationDto } from './dto/push-notification.dto';
 import type * as admin from 'firebase-admin';
@@ -26,6 +26,8 @@ export class PushNotificationService {
   async sendPushNotification(dto: PushNotificationDto) {
     const tokens = dto.to.filter(Boolean);
     if (!tokens.length) throw new BadRequestException('Tokens are missing');
+
+    if (!this.firebaseApp) throw new InternalServerErrorException('Firebase Admin is not initialized');
 
     const messaging = this.firebaseApp.messaging();
 
