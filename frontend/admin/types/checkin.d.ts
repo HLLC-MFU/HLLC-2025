@@ -11,6 +11,16 @@ export type Checkin = {
   updatedAt: string;
 };
 
+export type CheckinStats = {
+  _id: string;
+  activityType: string;
+  name: Lang;
+  acronym: string;
+  checkin: number;
+  notCheckin: number;
+  studentTotal: number;
+}
+
 export type CheckinCreate = {
   user: string;
   staff?: string;

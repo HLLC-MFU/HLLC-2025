@@ -4,6 +4,7 @@ import {
   CardBody,
   CardHeader,
   Input,
+  Pagination,
   Table,
   TableBody,
   TableCell,
@@ -11,11 +12,15 @@ import {
   TableHeader,
   TableRow,
 } from '@heroui/react';
-import { UserCheck, Check, X } from 'lucide-react';
-import { useMemo } from 'react';
+import { UserCheck, Check, X, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 export function CheckinTable() {
   const { checkin } = useCheckin();
+  const [filter, setFilter] = useState('');
+  const [page, setPage] = useState(1);
+  // const hasSearchFilter = Boolean(filterValue);
+  const rowsPerPage = 5;
 
   const activityColumns = useMemo(() => {
     if (!checkin || checkin.length === 0) return [];
@@ -61,8 +66,6 @@ export function CheckinTable() {
       const id = item._id;
       const activityName = item.activity?.name?.en;
 
-      console.log('activityName', activityName);
-
       if (!grouped[username]) {
         grouped[username] = {
           _id: id,
@@ -81,7 +84,7 @@ export function CheckinTable() {
         activityMap[activityName] = item.activities.includes(activityName) ? (
           <Check className="text-success" />
         ) : (
-          <X className="text-error" />
+          <X className="text-" />
         );
       });
 
@@ -94,6 +97,57 @@ export function CheckinTable() {
     });
   }, [checkin, activityColumns]);
 
+  const pages = Math.ceil(rows.length / rowsPerPage);
+
+  const items = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return rows.slice(start, end);
+  }, [page, rows]);
+
+  function DataTable() {
+    return (
+      <Table
+        bottomContent={
+          <div className=" flex items-center justify-center">
+            <Pagination
+              isCompact
+              showControls
+              showShadow
+              color="primary"
+              page={pages}
+              total={pages}
+              onChange={(page) => setPage(page)}
+            />
+          </div>
+        }
+        classNames={{
+          wrapper: 'min-h-[222px]',
+        }}
+      >
+        <TableHeader columns={columns}>
+          {(column) => (
+            <TableColumn key={column.key}>{column.label}</TableColumn>
+          )}
+        </TableHeader>
+        <TableBody items={items}>
+          {(item) => (
+            <TableRow key={item._id}>
+              {(columnsKey) => <TableCell>{item[columnsKey] as any}</TableCell>}
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    );
+  }
+
+  // const filteredItems  = useMemo(() => {
+  //   let filtered = items;
+
+  //   if (filter)}
+  // },[items, filter]);
+
   return (
     <>
       <Card>
@@ -103,25 +157,15 @@ export function CheckinTable() {
             <span> Student Table </span>
           </div>
         </CardHeader>
-        <CardBody className='space-y-4'>
-          <Input placeholder="Search by Student Name or ID" className=' max-w-96'/>
-
-          <Table aria-label="Example table with dynamic content">
-            <TableHeader columns={columns}>
-              {(column) => (
-                <TableColumn key={column.key}>{column.label}</TableColumn>
-              )}
-            </TableHeader>
-            <TableBody items={rows}>
-              {(item) => (
-                <TableRow key={item._id}>
-                  {(columnsKey) => (
-                    <TableCell>{item[columnsKey] as any}</TableCell>
-                  )}
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+        <CardBody className="space-y-4">
+          <Input
+            placeholder="Search by Student Name or ID"
+            className=" max-w-96 space-x-2"
+            startContent={<Search />}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+          <DataTable />
         </CardBody>
       </Card>
     </>

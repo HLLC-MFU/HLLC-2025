@@ -24,7 +24,6 @@ export function useFilterData() {
     });
 
     useEffect(() => {
-        console.log('Activities:', activities);
         if (!rolesLoading && !schoolsLoading && !activityLoading) {
             // Transform roles into user types, adding "All" as first option
             const userTypes = ["All", ...roles
