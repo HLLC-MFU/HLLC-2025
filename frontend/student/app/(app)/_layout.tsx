@@ -1,5 +1,3 @@
-// (app)/_layout.tsx
-
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { SplashScreen, Tabs, usePathname } from 'expo-router';
 import { Redirect } from 'expo-router';
@@ -11,7 +9,7 @@ import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
 import { useAppearance } from '@/hooks/useAppearance';
 import messaging from '@react-native-firebase/messaging';
 
-function LayoutWrapper() {
+export default function Layout() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
@@ -24,16 +22,16 @@ function LayoutWrapper() {
     });
   }, []);
 
-  useEffect(() => {
-    requestUserPermission();
-    messaging().setBackgroundMessageHandler(async remoteMessage => {
-      console.log('Message handled in the background!', remoteMessage);
-    });
-  }, []);
-
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
   if (!user) return <Redirect href="/(auth)/login" />;
 
+  requestUserPermission();
+
+  messaging().setBackgroundMessageHandler(async remoteMessage => {
+    console.log('Message handled in the background!', remoteMessage);
+  });
+
+  // Check if we're in the chat room section
   const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
 
   return (
@@ -71,10 +69,6 @@ function LayoutWrapper() {
       </Tabs>
     </View>
   );
-}
-
-export default function Layout() {
-  return <LayoutWrapper />;
 }
 
 async function requestUserPermission() {
