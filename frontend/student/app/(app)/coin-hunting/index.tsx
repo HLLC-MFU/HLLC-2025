@@ -4,12 +4,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import InteractiveMap from './_components/interactive-map';
 import MapMarkers from './_components/map-markers';
 import MarkerDetailModal from './_components/marker-detail-modal';
-import SuccessModal from './_components/success-modal';
-import AlertModal from './_components/alert-modal';
 import TopBar from './_components/top-bar';
 import StampModal from './_components/stamp-modal';
 import useCoinHunting from '@/hooks/useCoinHunting';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import CombinedModal from './_components/combined-modal';
 
 export default function CoinHuntingScreen() {
   const {
@@ -28,6 +27,17 @@ export default function CoinHuntingScreen() {
     collectedCoinImages,
   } = useCoinHunting();
   const router = useRouter();
+  const params = useLocalSearchParams();
+
+  React.useEffect(() => {
+    if (params.modal === 'success') {
+      handleScannerSuccess(params.code ? { code: params.code as string } : undefined);
+      router.replace('/coin-hunting');
+    } else if (params.modal === 'alert' && params.type) {
+      handleAlert(params.type as any);
+      router.replace('/coin-hunting');
+    }
+  }, [params.modal, params.type, params.code]);
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -35,7 +45,7 @@ export default function CoinHuntingScreen() {
         onScan={handleCheckIn}
         onStamp={() => handleGoToStamp()}
         centerText="Bloom possible"
-        onLeaderboard={() => router.replace('/(app)/coin-hunting/leaderboard')}
+        onLeaderboard={() => router.replace('/coin-hunting/leaderboard')}
       />
       <InteractiveMap>
         <MapMarkers onMarkerPress={handleMarkerPress} />
@@ -46,16 +56,18 @@ export default function CoinHuntingScreen() {
         onClose={closeModal}
         onCheckIn={handleCheckIn}
       />
-      <SuccessModal
+      <CombinedModal
         visible={modal === 'success'}
+        type="success"
         onClose={closeModal}
         onGoToStamp={handleGoToStamp}
         evoucher={evoucher}
       />
-      <AlertModal
+      <CombinedModal
         visible={modal === 'alert'}
-        alertType={alertType}
+        type="alert"
         onClose={closeModal}
+        alertType={alertType ?? undefined}
       />
       <StampModal
         visible={modal === 'stamp'}
@@ -73,4 +85,4 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
-}); 
+});
