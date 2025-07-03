@@ -62,7 +62,7 @@ export default function ReportsPage() {
     <div className="container mx-auto px-4 py-6">
       <PageHeader
         title="Reports Management"
-        description="This is Report Page"
+        description="This is Reports Page"
         icon={<Megaphone />}
         right={
           <div className="w-full sm:w-auto">
