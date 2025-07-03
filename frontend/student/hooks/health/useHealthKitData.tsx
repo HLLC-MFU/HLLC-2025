@@ -10,8 +10,6 @@ const permissions: HealthKitPermissions = {
   permissions: {
     read: [
       AppleHealthKit.Constants.Permissions.Steps,
-      AppleHealthKit.Constants.Permissions.FlightsClimbed,
-      AppleHealthKit.Constants.Permissions.DistanceWalkingRunning,
     ],
     write: [], // ในที่นี้ไม่มีการเขียนข้อมูล
   },
@@ -20,14 +18,12 @@ const permissions: HealthKitPermissions = {
 /**
  * Custom hook for fetching health data from Apple HealthKit on iOS.
  * @param {Date} date - The date for which to fetch health data.
- * @returns {{steps: number, flights: number, distance: number}} - An object containing steps, flights climbed, and distance walked/run.
+ * @returns {{steps: number}} - An object containing steps, flights climbed, and distance walked/run.
  */
 const useHealthKitData = (date: Date) => {
   // State สำหรับเก็บสถานะการอนุญาตและข้อมูลสุขภาพ
   const [hasPermissions, setHasPermission] = useState<boolean>(false);
   const [steps, setSteps] = useState<number>(0);
-  const [flights, setFlights] = useState<number>(0);
-  const [distance, setDistance] = useState<number>(0);
 
   // ฟังก์ชันสำหรับดึงข้อมูลจาก HealthKit
   const fetchHealthKitData = () => {
@@ -47,20 +43,6 @@ const useHealthKitData = (date: Date) => {
         return;
       }
       setSteps(results.value);
-    });
-
-    AppleHealthKit.getFlightsClimbed(options, (err: string | null, results: { value: number }) => {
-      if (err) {
-        return;
-      }
-      setFlights(results.value);
-    });
-
-    AppleHealthKit.getDistanceWalkingRunning(options, (err: string | null, results: { value: number }) => {
-      if (err) {
-        return;
-      }
-      setDistance(results.value);
     });
   };
 
@@ -83,7 +65,7 @@ const useHealthKitData = (date: Date) => {
           setHasPermission(true);
         });
       });
-    } catch (e: any) {}
+    } catch (e: any) { }
   }, []); // รันครั้งเดียวเมื่อคอมโพเนนต์ mount
 
   useEffect(() => {
@@ -99,8 +81,6 @@ const useHealthKitData = (date: Date) => {
 
   return {
     steps,
-    flights,
-    distance,
   };
 };
 

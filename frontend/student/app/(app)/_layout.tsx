@@ -11,7 +11,7 @@ import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
 import { useAppearance } from '@/hooks/useAppearance';
 import usePushNotification from '@/hooks/notifications/usePushNotification';
 
-function LayoutWrapper() {
+export default function AppLayout() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();

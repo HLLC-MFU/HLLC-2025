@@ -17,7 +17,7 @@ export class DevicesService {
         ...dto,
         userId,
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
   }
 
@@ -36,5 +36,4 @@ export class DevicesService {
   findAll() {
     return this.deviceModel.find();
   }
-
 }
