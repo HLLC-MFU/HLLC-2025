@@ -19,7 +19,7 @@ import { useReportTypes } from '@/hooks/useReportTypes';
 import { useReports } from '@/hooks/useReports';
 import { ProblemModal } from './_components/ProblemModal';
 import { PageHeader } from '@/components/ui/page-header';
-import { Megaphone, Plus } from 'lucide-react';
+import { Plus, ShieldAlert } from 'lucide-react';
 
 export default function ReportsPage() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -31,7 +31,6 @@ export default function ReportsPage() {
 
   const {
     reporttypes,
-    loading,
     addReportTypes,
     updateReportTypes,
     deleteReportTypes,
@@ -63,7 +62,7 @@ export default function ReportsPage() {
       <PageHeader
         title="Reports Management"
         description="This is Reports Page"
-        icon={<Megaphone />}
+        icon={<ShieldAlert />}
         right={
           <div className="w-full sm:w-auto">
             <Button
