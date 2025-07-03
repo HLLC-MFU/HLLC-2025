@@ -209,15 +209,19 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 
 			// Add reactions if exists (this is additional info for history)
 			if len(msg.Reactions) > 0 {
-				// Format reactions with user info
+				// Format reactions with user info (merged, up-to-date)
 				formattedReactions := make([]map[string]interface{}, 0, len(msg.Reactions))
 				for _, reaction := range msg.Reactions {
 					reactionData := map[string]interface{}{
-						"messageId": reaction.MessageID.Hex(),
-						"userId":    reaction.UserID.Hex(),
+						"reactToId": map[string]interface{}{ "_id": reaction.MessageID.Hex() },
 						"reaction":  reaction.Reaction,
 						"timestamp": reaction.Timestamp,
-				}
+						"user": map[string]interface{}{
+							"_id":      reaction.UserID.Hex(),
+							"username": "", // Optionally fill username if needed
+							"name":     map[string]interface{}{}, // Optionally fill name if needed
+						},
+					}
 					// Try to get user info for reaction
 					if reactionUser, err := h.chatService.GetUserById(ctx, reaction.UserID.Hex()); err == nil {
 						reactionData["user"] = map[string]interface{}{

@@ -43,7 +43,7 @@ func NewEvoucherController(
 }
 
 func (c *EvoucherController) setupRoutes() {
-	c.Post("/send", c.handleSendEvoucher, c.rbac.RequireAdministrator())
+	c.Post("/send", c.handleSendEvoucher, c.rbac.RequireWritePermissionForEvoucher())
 	c.SetupRoutes()
 }
 

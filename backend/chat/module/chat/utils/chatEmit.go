@@ -273,21 +273,19 @@ func (e *ChatEventEmitter) EmitReaction(ctx context.Context, reaction *model.Mes
 
 	// --- สร้าง rich payload ---
 	payload := map[string]interface{}{
-		"message": map[string]interface{}{
-			"_id":       msgDoc.ID.Hex(),
-			"message":   msgDoc.Message,
-			"timestamp": msgDoc.Timestamp,
-			"type":      msgDoc.Type,
-		},
+		"action":    action,
+		"reactToId": map[string]interface{}{ "_id": msgDoc.ID.Hex() },
+		"reaction":  reaction.Reaction,
+		"timestamp": reaction.Timestamp,
 		"user": map[string]interface{}{
 			"_id":      userInfo.ID,
 			"username": userInfo.Username,
 			"name":     userInfo.Name,
 			"role":     userInfo.Role,
 		},
-		"reaction":  reaction.Reaction,
-		"action":    action,
-		"timestamp": reaction.Timestamp,
+		"room": map[string]interface{}{
+			"_id": roomID.Hex(),
+		},
 	}
 	event := model.Event{
 		Type:      model.EventTypeReaction,

@@ -8,6 +8,7 @@ type IRBACMiddleware interface {
 	RequireAdministrator() fiber.Handler
 	RequireRoles(roles ...string) fiber.Handler
 	RequireWritePermission() fiber.Handler
+	RequireWritePermissionForEvoucher() fiber.Handler
 	RequireReadOnlyAccess() fiber.Handler
 	GetUserRole(userID string) (string, error)
 	SetUserRoleInContext() fiber.Handler
