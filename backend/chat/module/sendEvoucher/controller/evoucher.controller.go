@@ -7,7 +7,6 @@ import (
 	"chat/pkg/decorators"
 	"chat/pkg/middleware"
 	"context"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -125,52 +124,3 @@ func (c *EvoucherController) handleSendEvoucher(ctx *fiber.Ctx) error {
 		"data":    responseData,
 	})
 }
-
-func (c *EvoucherController) handleClaimEvoucher(ctx *fiber.Ctx) error {
-	evoucherID := ctx.Params("evoucherId")
-	
-	var claimDto dto.ClaimEvoucherDto
-	if err := ctx.BodyParser(&claimDto); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid request body",
-		})
-	}
-
-	// Validate user exists
-	userObjID, err := claimDto.ToObjectID()
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid user ID format",
-		})
-	}
-
-	// Verify user exists
-	user, err := c.evoucherService.GetUserById(ctx.Context(), claimDto.UserID)
-	if err != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"success": false,
-			"message": "User not found",
-		})
-	}
-
-	// Here you would typically:
-	// 1. Make API call to NestJS backend to claim the evoucher
-	// 2. Handle the response
-	// 3. Maybe send a notification back to the room about successful claim
-	
-	// For now, we'll just return a success response
-	// In real implementation, you would call your NestJS API here
-	
-	return ctx.JSON(fiber.Map{
-		"success": true,
-		"message": "Evoucher claim initiated successfully",
-		"data": fiber.Map{
-			"evoucherId": evoucherID,
-			"userId":     userObjID.Hex(),
-			"username":   user.Username,
-			"claimTime":  time.Now(),
-		},
-	})
-} 

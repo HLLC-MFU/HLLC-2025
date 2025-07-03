@@ -13,11 +13,13 @@ import (
 	"chat/pkg/middleware"
 	"chat/pkg/validator"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -37,7 +39,7 @@ type RoomService interface {
 	GetRooms(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.Room], error)
 	GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*model.Room, error)
 	CreateRoom(ctx context.Context, createDto *dto.CreateRoomDto) (*model.Room, error)
-	UpdateRoom(ctx context.Context, id string, room *model.Room) (*model.Room, error)
+	UpdateRoom(ctx context.Context, id string, updateDto *dto.UpdateRoomDto) (*model.Room, error)
 	DeleteRoom(ctx context.Context, id string) (*model.Room, error)
 	IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
 	ValidateAndTrackConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error
@@ -156,17 +158,75 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 }
 
 // อัพเดต room
-func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, room *model.Room) (*model.Room, error) {
-	room.UpdatedAt = time.Now()
-
-	resp, err := s.UpdateById(ctx, id, *room)
+func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *dto.UpdateRoomDto) (*model.Room, error) {
+	roomObjID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	oldRoom, err := s.GetRoomById(ctx, roomObjID)
 	if err != nil {
 		return nil, err
 	}
 
-	updated := &resp.Data[0]
-	s.cache.SaveRoom(ctx, updated)
-	return updated, nil
+	// Merge fields
+	updatedRoom := *oldRoom
+	updatedRoom.Name = updateDto.Name
+	updatedRoom.Type = updateDto.Type
+	updatedRoom.Capacity = updateDto.Capacity
+	if updateDto.Members != nil && len(updateDto.Members) > 0 {
+		updatedRoom.Members = updateDto.Members
+	}
+	if updateDto.Image != "" {
+		updatedRoom.Image = updateDto.Image
+	}
+	updatedRoom.UpdatedAt = time.Now()
+	// createdBy: use from updateDto if present, else preserve
+	if updateDto.CreatedBy != "" {
+		updatedRoom.CreatedBy = updateDto.CreatedBy
+	}
+	// Ensure createdBy is in members
+	found := false
+	for _, m := range updatedRoom.Members {
+		if m == updatedRoom.CreatedBy {
+			found = true
+			break
+		}
+	}
+	if !found && updatedRoom.CreatedBy != "" {
+		updatedRoom.Members = append(updatedRoom.Members, updatedRoom.CreatedBy)
+	}
+
+	// Build $set update
+	setFields := bson.M{
+		"name":      updatedRoom.Name,
+		"type":      updatedRoom.Type,
+		"capacity":  updatedRoom.Capacity,
+		"updatedAt": updatedRoom.UpdatedAt,
+		"createdBy": updatedRoom.CreatedBy,
+		"members":   updatedRoom.Members,
+	}
+	if updateDto.Image != "" {
+		setFields["image"] = updatedRoom.Image
+	}
+
+	filter := bson.M{"_id": roomObjID}
+	update := bson.M{"$set": setFields}
+
+	// Try to get the collection via public getter
+	var updateErr error
+	if getter, ok := interface{}(s.BaseService).(interface{ GetMongoCollection() *mongo.Collection }); ok {
+		_, updateErr = getter.GetMongoCollection().UpdateOne(ctx, filter, update)
+	} else if getter, ok := interface{}(s.BaseService).(interface{ GetDBCollection() *mongo.Collection }); ok {
+		_, updateErr = getter.GetDBCollection().UpdateOne(ctx, filter, update)
+	} else if getter, ok := interface{}(s.BaseService).(interface{ GetMongo() *mongo.Database; GetCollectionName() string }); ok {
+		_, updateErr = getter.GetMongo().Collection(getter.GetCollectionName()).UpdateOne(ctx, filter, update)
+	} else {
+		return nil, errors.New("cannot access mongo collection for update")
+	}
+	if updateErr != nil {
+		return nil, updateErr
+	}
+	return &updatedRoom, nil
 }
 
 // ลบ room

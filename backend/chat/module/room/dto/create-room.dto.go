@@ -2,6 +2,7 @@ package dto
 
 import (
 	"chat/pkg/common"
+	"time"
 
 	"chat/module/room/model"
 
@@ -19,9 +20,13 @@ type(
 	}
 
 	UpdateRoomDto struct {
-		Name     common.LocalizedName `json:"name" validate:"notEmpty"`
-		Type     string              `json:"type" validate:"roomType"`
-		Capacity int                 `json:"capacity" validate:"notEmpty"`
+		Name      common.LocalizedName `form:"name" validate:"notEmpty"`
+		Type      string               `form:"type" validate:"roomType"`      // ประเภทห้อง (normal, readonly)
+		Capacity  int                  `form:"capacity" validate:"notEmpty"`
+		Members   []string             `form:"members" validate:"mongoId,optional"`
+		Image     string               `form:"image" validate:"optional"`
+		UpdatedAt time.Time            `form:"updatedAt" validate:"optional"`
+		CreatedBy string               `form:"createdBy" validate:"mongoId,optional"`
 	}
 
 	AddRoomMembersDto struct {

@@ -59,27 +59,30 @@ func (c *GroupRoomController) setupRoutes() {
 // CreateRoomByGroup สร้างห้องใหม่โดยแบ่งตาม group
 func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 	var groupDto dto.CreateRoomByGroupDto
-	
 	if err := ctx.BodyParser(&groupDto); err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	// Handle image upload if present
 	filename, err := c.handleImageUpload(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	// Create group room
 	room, err := c.groupService.CreateRoomByGroup(ctx.Context(), &groupDto)
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 
-	// Update room image if provided
+	// If image was uploaded, update room with UpdateRoomDto
 	if filename != "" {
-		room.Image = filename
-		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), room)
+		updateDto := &dto.UpdateRoomDto{
+			Name:     room.Name,
+			Type:     room.Type,
+			Capacity: room.Capacity,
+			Members:  room.Members,
+			Image:    filename,
+		}
+		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), updateDto)
 		if err != nil {
 			return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 		}

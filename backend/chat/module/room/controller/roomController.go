@@ -5,11 +5,13 @@ import (
 	"chat/module/room/model"
 	"chat/module/room/service"
 	roomUtils "chat/module/room/utils"
+	"chat/pkg/common"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
 	"chat/pkg/middleware"
 	"chat/pkg/utils"
 	"mime/multipart"
+	"strconv"
 	"strings"
 
 	"encoding/base64"
@@ -117,25 +119,29 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 		if err := c.validationHelper.ValidateImageUpload(file); err != nil {
 			return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 		}
-
 		filename, err := c.uploadHandler.HandleFileUpload(ctx, "image")
 		if err != nil {
 			return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 		}
-		createDto.Image = filename // set string filename
+		createDto.Image = filename
 	}
 
-	// Create room
 	room, err := c.roomService.CreateRoom(ctx.Context(), &createDto)
 	if err != nil {
 		c.cleanupUploadedFile(createDto.Image)
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 
-	// Update room with image if uploaded
+	// If image was uploaded, update room with UpdateRoomDto
 	if createDto.Image != "" {
-		room.Image = createDto.Image
-		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), room)
+		updateDto := &dto.UpdateRoomDto{
+			Name:     room.Name,
+			Type:     room.Type,
+			Capacity: room.Capacity,
+			Members:  room.Members,
+			Image:    createDto.Image,
+		}
+		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), updateDto)
 		if err != nil {
 			c.cleanupUploadedFile(createDto.Image)
 			return c.validationHelper.BuildInternalErrorResponse(ctx, err)
@@ -151,17 +157,65 @@ func (c *RoomController) UpdateRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	var updateDto dto.UpdateRoomDto
-	if err := ctx.BodyParser(&updateDto); err != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
-	}
-
-	room, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateDto.ToRoom())
+	// ดึง room เดิมจาก DB
+	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 
-	return c.validationHelper.BuildSuccessResponse(ctx, room, "Room updated successfully")
+	// Parse multipart form
+	form, _ := ctx.MultipartForm()
+
+	// Update fields
+	nameTh := ctx.FormValue("name.th", room.Name.Th)
+	nameEn := ctx.FormValue("name.en", room.Name.En)
+	roomType := ctx.FormValue("type", room.Type)
+	capacityStr := ctx.FormValue("capacity", "")
+	capacity := room.Capacity
+	if capacityStr != "" {
+		if v, err := strconv.Atoi(capacityStr); err == nil {
+			capacity = v
+		}
+	}
+
+	// Handle members (array)
+	members := room.Members
+	if form != nil && form.Value["members"] != nil && len(form.Value["members"]) > 0 {
+		members = form.Value["members"]
+	}
+
+	// Handle image
+	imagePath := room.Image
+	file, err := ctx.FormFile("image")
+	if err == nil && file != nil {
+		if err := c.validationHelper.ValidateImageUpload(file); err != nil {
+			return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+		}
+		imagePath, err = c.uploadHandler.HandleFileUpload(ctx, "image")
+		if err != nil {
+			return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+		}
+	}
+
+	createdBy := ctx.FormValue("createdBy", room.CreatedBy)
+
+	updateDto := &dto.UpdateRoomDto{
+		Name: common.LocalizedName{
+			Th: nameTh,
+			En: nameEn,
+		},
+		Type:     roomType,
+		Capacity: capacity,
+		Members:  members,
+		Image:    imagePath,
+		CreatedBy: createdBy,
+	}
+
+	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateDto)
+	if err != nil {
+		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+	}
+	return c.validationHelper.BuildSuccessResponse(ctx, updatedRoom, "Room updated successfully")
 }
 
 // DeleteRoom ลบห้อง
@@ -253,29 +307,26 @@ func (c *RoomController) UpdateRoomType(ctx *fiber.Ctx) error {
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
-
 	var updateDto dto.UpdateRoomTypeDto
 	if err := ctx.BodyParser(&updateDto); err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
-
-	if err := c.validationHelper.ValidateRoomType(updateDto.Type); err != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
-	}
-
-	// Get current room
 	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
-	if err != nil {
-		return c.validationHelper.BuildNotFoundErrorResponse(ctx, "Room")
-	}
-
-	// Update room type
-	room.Type = updateDto.Type
-	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), room)
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
-
+	// Build UpdateRoomDto
+	updateRoomDto := &dto.UpdateRoomDto{
+		Name:     room.Name,
+		Type:     updateDto.Type,
+		Capacity: room.Capacity,
+		Members:  room.Members,
+		Image:    room.Image,
+	}
+	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateRoomDto)
+	if err != nil {
+		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+	}
 	return c.validationHelper.BuildSuccessResponse(ctx, updatedRoom, "Room type updated successfully")
 }
 
@@ -285,40 +336,27 @@ func (c *RoomController) UpdateRoomImage(ctx *fiber.Ctx) error {
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
-
-	// Handle image upload
 	imagePath, err := c.handleImageUpload(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
-
-	if imagePath == "" {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, fiber.NewError(fiber.StatusBadRequest, "image is required"))
-	}
-
-	// Get current room
 	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
-	if err != nil {
-		c.cleanupUploadedFile(imagePath)
-		return c.validationHelper.BuildNotFoundErrorResponse(ctx, "Room")
-	}
-
-	// Store old image path for cleanup
-	oldImagePath := room.Image
-
-	// Update room image
-	room.Image = imagePath
-	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), room)
 	if err != nil {
 		c.cleanupUploadedFile(imagePath)
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
-
-	// Clean up old image
-	if oldImagePath != "" {
-		c.cleanupUploadedFile(oldImagePath)
+	updateRoomDto := &dto.UpdateRoomDto{
+		Name:     room.Name,
+		Type:     room.Type,
+		Capacity: room.Capacity,
+		Members:  room.Members,
+		Image:    imagePath,
 	}
-
+	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateRoomDto)
+	if err != nil {
+		c.cleanupUploadedFile(imagePath)
+		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+	}
 	return c.validationHelper.BuildSuccessResponse(ctx, updatedRoom, "Room image updated successfully")
 }
 
@@ -372,7 +410,14 @@ func (c *RoomController) handleSetRoomReadOnly(ctx *fiber.Ctx) error {
 	}
 
 	// Update room
-	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomID, room)
+	updateDto := dto.UpdateRoomDto{
+		Name:     room.Name,
+		Type:     model.RoomTypeReadOnly,
+		Capacity: room.Capacity,
+		Members:  room.Members,
+		Image:    room.Image,
+	}
+	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomID, &updateDto)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,

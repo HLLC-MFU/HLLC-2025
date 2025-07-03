@@ -35,7 +35,7 @@ func NewStickerController(app *fiber.App, service *service.StickerService, rbac 
 	c.Get("/", c.GetAllStickers)
 	c.Get("/:id", c.GetStickerById)
 	c.Post("/", c.CreateSticker, c.rbac.RequireAdministrator())
-	c.Put("/:id", c.UpdateSticker, c.rbac.RequireAdministrator())
+	c.Patch("/:id", c.UpdateSticker, c.rbac.RequireAdministrator())
 	c.Delete("/:id", c.DeleteSticker, c.rbac.RequireAdministrator())
 	c.SetupRoutes()
 

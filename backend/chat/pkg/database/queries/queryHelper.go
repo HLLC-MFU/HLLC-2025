@@ -761,3 +761,8 @@ import (
 
         return pipeline
     }
+
+    // Add this method to BaseService
+    func (s *BaseService[T]) GetMongoCollection() *mongo.Collection {
+        return s.collection
+    }
