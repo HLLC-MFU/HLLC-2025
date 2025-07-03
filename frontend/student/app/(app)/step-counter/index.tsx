@@ -1,12 +1,15 @@
 import { router } from "expo-router";
 import { ChevronLeft, Medal } from "lucide-react-native";
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import useHealthData from '@/hooks/health/useHealthData';
 
 export default function StepCounterScreen() {
-  const step = 3600;
-  const stepPercent = 0.36; 
+  const [date, setDate] = useState(new Date());
+  const { steps } = useHealthData(date);
+  const goal = 10000;
+  const stepPercent = Math.min(steps / goal, 1); 
   const circleRadius = 70;
   const circleCircumference = 2 * Math.PI * circleRadius;
 
@@ -63,7 +66,7 @@ export default function StepCounterScreen() {
             />
           </Svg>
           <View style={styles.stepTextBox}>
-            <Text style={styles.stepNumber}>{step.toLocaleString()}</Text>
+            <Text style={styles.stepNumber}>{steps.toLocaleString()}</Text>
             <Text style={styles.stepLabel}>Step</Text>
           </View>
         </View>
