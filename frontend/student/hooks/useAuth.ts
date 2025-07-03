@@ -73,8 +73,6 @@ const useAuth = create<AuthStore>()(
             password,
           });
 
-          console.log('SignIn Response:', res);
-
           if (res.statusCode === 201 && res.data?.tokens) {
             await saveToken('accessToken', res.data.tokens.accessToken);
             await saveToken('refreshToken', res.data.tokens.refreshToken);
