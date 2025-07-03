@@ -53,4 +53,15 @@ export const STYLES = {
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },
-} as const; 
+} as const;
+
+export default {
+  AVATAR_COLORS,
+  TYPING_TIMEOUT,
+  MAX_MESSAGE_LENGTH,
+  SCROLL_DELAY,
+  MESSAGE_TYPES,
+  PLACEHOLDER_MESSAGES,
+  ERROR_MESSAGES,
+  STYLES
+}; 

@@ -28,8 +28,3 @@ project.xcworkspace
 
 # CocoaPods
 /Pods/
-
-*.xcodeproj
-*.xcworkspace
-
-student*
