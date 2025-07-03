@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  FlatList,
 } from 'react-native';
 import { Search, ArrowLeft } from 'lucide-react-native';
 import { SponsorCard } from '../../../components/evoucher/SponsorCard';
@@ -16,7 +17,6 @@ import { EvoucherCodeCard } from '../../../components/evoucher/EvoucherCodeCard'
 import { EvoucherModal } from '../../../components/evoucher/EvoucherModal';
 import { useSponsors } from '@/hooks/useSponsors';
 import { useEvoucher } from '@/hooks/useEvoucher';
-import { ISponsor } from '@/types/sponsor';
 import { IEvoucher, IEvoucherCode } from '@/types/evoucher';
 import { useTranslation } from 'react-i18next';
 import { YStack } from 'tamagui';
@@ -193,118 +193,88 @@ export default function EvoucherPage() {
           />
         </View>
 
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
-          }
-        >
-          {currentSponsorId ? (
-            <View style={styles.evoucherGrid}>
-              {evouchersLoading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#fff" />
-                  <Text style={styles.loadingText}>Loading evouchers...</Text>
-                </View>
-              ) : filteredMyCodesForCurrentSponsor.length > 0 ? (
-                <>
-                  {filteredMyCodesForCurrentSponsor.map((evoucherCode: IEvoucherCode) => (
-                    <EvoucherCodeCard
-                      key={evoucherCode._id}
-                      imageSource={{
-                        uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${evoucherCode.evoucher.photo.evoucherImage ||
-                          (evoucherCode.evoucher.photo as any)?.home ||
-                          (evoucherCode.evoucher.photo as any)?.front ||
-                          (evoucherCode.evoucher.photo as any)?.back ||
-                          ''
-                          }`,
-                      }}
-                      onPress={() =>
-                        handleEvoucherCodePress(
-                          evoucherCode.evoucher,
-                          evoucherCode,
-                        )
-                      }
-                      isUsed={evoucherCode.isUsed}
-                      code={evoucherCode.code}
-                    />
-                  ))}
-                </>
-              ) : filteredEvouchers.length > 0 ? (
-                <>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Available Evouchers</Text>
-                  </View>
-                  {filteredEvouchers.map((evoucher: IEvoucher) => (
-                    <EvoucherCodeCard
-                      key={evoucher._id}
-                      imageSource={{
-                        uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${evoucher.photo.evoucherImage ||
-                          evoucher.photo.coverPhoto
-                          }`,
-                      }}
-                      onPress={() => handleEvoucherCodePress(evoucher)}
-                    />
-                  ))}
-                </>
-              ) : (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>
-                    {searchQuery
-                      ? 'No evouchers found matching your search.'
-                      : 'No evouchers available for this sponsor.'}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.sponsorGrid}>
-              {filteredSponsors.length > 0 ? (
-                filteredSponsors.map((sponsor: ISponsor) => (
-                  <SponsorCard
-                    key={sponsor._id}
-                    imageSource={{
-                      uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${sponsor.photo?.logoPhoto || sponsor.logo?.logoPhoto}`,
-                    }}
-                    onPress={() => handleSponsorCardPress(sponsor._id)}
-                    hasEvoucherCodes={hasEvoucherCodesForSponsor(sponsor._id)}
-                  />
-                ))
-              ) : (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>
-                    {searchQuery
-                      ? 'No sponsors found matching your search.'
-                      : 'No sponsors available.'}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-        </ScrollView>
+        {/* Show sponsors when no sponsor is selected */}
+        {!currentSponsorId && (
+          <FlatList
+            data={filteredSponsors}
+            keyExtractor={item => item._id}
+            numColumns={2}
+            columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 10 }}
+            contentContainerStyle={{ paddingBottom: 30, paddingTop: 10 }}
+            renderItem={({ item }) => (
+              <SponsorCard
+                key={item._id}
+                imageSource={{
+                  uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${item.photo.logoPhoto || ''}`,
+                }}
+                title={item.name.en}
+                onPress={() => handleSponsorCardPress(item._id)}
+              />
+            )}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  {searchQuery
+                    ? 'No sponsors found matching your search.'
+                    : 'No sponsors available.'}
+                </Text>
+              </View>
+            )}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#fff"
+              />
+            }
+          />
+        )}
+        {/* Show evoucher/myCodes when sponsor is selected */}
+        {currentSponsorId && (
+          <FlatList
+            data={filteredMyCodesForCurrentSponsor}
+            keyExtractor={item => item._id}
+            numColumns={2}
+            columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 10 }}
+            contentContainerStyle={{ paddingBottom: 30 }}
+            renderItem={({ item }) => (
+              <EvoucherCodeCard
+                key={item._id}
+                imageSource={{
+                  uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${item.evoucher.photo.home || ''}`,
+                }}
+                onPress={() => handleEvoucherCodePress(item.evoucher, item)}
+                code={item.code}
+                isUsed={item.isUsed}
+              />
+            )}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  ยังไม่มี evoucher ที่คุณ claim จาก sponsor นี้
+                </Text>
+              </View>
+            )}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#fff"
+              />
+            }
+          />
+        )}
+
       </YStack>
       {modalState.show && modalState.evoucher && (
         <EvoucherModal
           isVisible={modalState.show}
           onClose={handleCloseModal}
           evoucherImageFront={{
-            uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${(modalState.evoucher.photo as any)?.evoucherImageFront ||
-              (modalState.evoucher.photo as any)?.front ||
-              (modalState.evoucher.photo as any)?.coverPhoto ||
-              (modalState.evoucher.photo as any)?.home ||
-              ''
-              }`,
+            uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${modalState.evoucher.photo.front || ''}`,
           }}
           evoucherImageBack={{
-            uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${(modalState.evoucher.photo as any)?.evoucherImageBack ||
-              (modalState.evoucher.photo as any)?.back ||
-              (modalState.evoucher.photo as any)?.bannerPhoto ||
-              (modalState.evoucher.photo as any)?.coverPhoto ||
-              (modalState.evoucher.photo as any)?.home ||
-              ''
-              }`,
+            uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${modalState.evoucher.photo.back || ''}`,
           }}
           evoucherCodeId={modalState.evoucherCode?._id}
           onClaimSuccess={handleClaimSuccess}

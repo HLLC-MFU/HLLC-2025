@@ -4,20 +4,24 @@ import {
   Body,
   Req,
   BadRequestException,
+  Get,
+  Query,
+  Param,
 } from '@nestjs/common';
 import { CheckinService } from './checkin.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { Checkin } from './schema/checkin.schema';
 import { FastifyRequest } from 'fastify';
+import { UserRequest } from 'src/pkg/types/users';
 
 @Controller('checkins')
 export class CheckinController {
-  constructor(private readonly checkinService: CheckinService) {}
+  constructor(private readonly checkinService: CheckinService) { }
 
   @Post()
   async create(
     @Body() createCheckinDto: CreateCheckinDto,
-    @Req() req: FastifyRequest & { user?: { _id?: string } },
+    @Req() req: UserRequest
   ): Promise<Checkin[]> {
     try {
       const user = req.user as { _id?: string } | undefined;
@@ -33,5 +37,10 @@ export class CheckinController {
         error instanceof Error ? error.message : 'Check-in failed';
       throw new BadRequestException(message);
     }
+  }
+
+  @Get(':activityId/checkedIn')
+  async findCheckedIn(@Param('activityId') activityId: string) {
+    return await this.checkinService.findCheckedInUser(activityId);
   }
 }

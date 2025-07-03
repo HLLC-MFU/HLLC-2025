@@ -10,5 +10,5 @@ export class CreateCheckinDto {
 
   @IsNotEmpty()
   @IsString({ each: true })
-  activities: string;
+  activities: string[];
 }

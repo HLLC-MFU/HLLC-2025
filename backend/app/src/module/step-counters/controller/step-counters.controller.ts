@@ -1,8 +1,7 @@
 import { Controller, Get, Post, Body, Param, Delete, Query, BadRequestException, Req } from '@nestjs/common';
 import { StepCountersService } from '../service/step-counters.service';
 import { CreateStepCounterDto } from '../dto/step-counters/create-step-counter.dto';
-import { FastifyRequest } from 'fastify';
-import { Types } from 'mongoose';
+import { UserRequest } from 'src/pkg/types/users';
 
 @Controller('step-counters')
 export class StepCountersController {
@@ -80,7 +79,7 @@ export class StepCountersController {
 
   @Get('my-rank')
   getUserRank(
-    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
+    @Req() req: UserRequest,
     @Query('scope') scope: 'global' | 'school' | 'achieved' = 'global',
     @Query('stepAchievementId') stepAchievementId?: string,
   ) {

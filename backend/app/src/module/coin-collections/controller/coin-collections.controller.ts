@@ -12,6 +12,7 @@ import { CoinCollectionsService } from '../service/coin-collections.service';
 import { CreateCoinCollectionDto } from '../dto/coin-collections/create-coin-collection.dto';
 import { FastifyRequest } from 'fastify';
 import { Types } from 'mongoose';
+import { UserRequest } from 'src/pkg/types/users';
 
 @Controller('coin-collections')
 export class CoinCollectionsController {
@@ -55,7 +56,7 @@ export class CoinCollectionsController {
   }
 
   @Get('my-coin')
-  getMyCoin(@Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
+  getMyCoin(@Req() req: UserRequest) {
     return this.coinCollectionsService.myCoin(req.user._id)
   }
 }

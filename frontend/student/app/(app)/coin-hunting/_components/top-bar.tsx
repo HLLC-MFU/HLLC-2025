@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { View, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 
 interface TopBarProps {
@@ -11,7 +10,6 @@ interface TopBarProps {
 }
 
 export default function TopBar({
-  onScan,
   onStamp,
   onLeaderboard,
 }: TopBarProps) {
@@ -19,10 +17,6 @@ export default function TopBar({
   return (
     <View style={styles.container}>
       <View style={styles.innerRow}>
-        <TouchableOpacity style={styles.iconBtn} onPress={onScan}>
-          <MaterialCommunityIcons name="qrcode-scan" size={24} color="#fff" />
-        </TouchableOpacity>
-
         <TouchableOpacity style={styles.iconBtn} onPress={onStamp}>
           <Image
             source={require('@/assets/images/logo-sdad.png')}

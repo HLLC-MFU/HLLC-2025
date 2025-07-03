@@ -172,8 +172,8 @@ export class UsersService {
     ]);
   }
 
-  async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.userModel.findById(userId).lean();
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.userModel.findById(id).lean();
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -187,8 +187,14 @@ export class UsersService {
       validateMetadataSchema(updateUserDto.metadata, role.metadataSchema);
     }
 
+    const updatePayload: Record<string, any> = { ...updateUserDto };
+
+    if (updatePayload.role) {
+      updatePayload.role = new Types.ObjectId(String(updatePayload.role));
+    }
+
     const updatedUser = await this.userModel
-      .findByIdAndUpdate(userId, { $set: updateUserDto }, { new: true })
+      .findByIdAndUpdate(id, { $set: updatePayload }, { new: true })
       .lean();
 
     return updatedUser as User;

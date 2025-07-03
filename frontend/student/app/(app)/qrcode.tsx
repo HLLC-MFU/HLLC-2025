@@ -11,12 +11,15 @@ import { apiRequest } from '@/utils/api';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTranslation } from 'react-i18next';
+import { useLocalSearchParams } from 'expo-router';
 
 export default function QRCodePage() {
   const { user, getProfile } = useProfile();
   const {t} = useTranslation();
-  const [showScanner, setShowScanner] = useState(false);
-  const [selectedTab, setSelectedTab] = useState<'qr' | 'scan'>('qr');
+  const params = useLocalSearchParams();
+  const initialTab = params.tab === 'scan' ? 'scan' : 'qr';
+  const [selectedTab, setSelectedTab] = useState<'qr' | 'scan'>(initialTab);
+  const [showScanner, setShowScanner] = useState(initialTab === 'scan');
   const { width } = useWindowDimensions();
   const tabBarPadding = 8;
   const tabWidth = (width - 128 - tabBarPadding * 2) / 2; // 2 tabs
@@ -29,6 +32,13 @@ export default function QRCodePage() {
   useEffect(() => {
     getProfile();
   }, []);
+
+  useEffect(() => {
+    if (params.tab === 'scan') {
+      setSelectedTab('scan');
+      setShowScanner(true);
+    }
+  }, [params.tab]);
 
   useEffect(() => {
     const currentIndex = selectedTab === 'qr' ? 0 : 1;
@@ -146,22 +156,28 @@ export default function QRCodePage() {
           tint="light"
           style={{
             borderRadius: 20,
-            padding: 32,
+            padding: 24,
             overflow: "hidden",
             backgroundColor: "rgba(255,255,255,0.1)",
             borderWidth: 1,
             borderColor: "rgba(255,255,255,0.2)",
+            width: '90%',
+            maxWidth: 400,
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fff' }}>
+          <View style={{ alignItems: 'center', width: '100%' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 8 }}>
               {user?.data[0].name.first}  {user?.data[0].name.last}
             </Text>
-            <Text style={{color: '#fff'}}>{t("qrCode.studentId")}: {user?.data[0].username}</Text>
-            <Text style={{color: '#fff', marginBottom: 16}}>{t("qrCode.schoolOf")}{user?.data[0].metadata.major.school.name[language]}</Text>
+            <Text style={{color: '#fff', textAlign: 'center', marginBottom: 4}}>{t("qrCode.studentId")}: {user?.data[0].username}</Text>
+            <Text style={{color: '#fff', marginBottom: 24, textAlign: 'center'}}>{t("qrCode.schoolOf")}{user?.data[0].metadata.major.school.name[language]}</Text>
+            
+            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+              <QRCodeGenerator username={user?.data[0].username ?? 'defaultUsername'} />
+            </View>
           </View>
-
-          <QRCodeGenerator username={user?.data[0].username ?? 'defaultUsername'} />
         </BlurView>
       )}
 

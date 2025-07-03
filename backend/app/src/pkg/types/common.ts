@@ -16,7 +16,9 @@ export type Photo = {
 export type Location = {
   latitude: number;
   longitude: number;
-  mapUrl: string
+  mapUrl: string;
+  th: string;
+  en: string;
 };
 
 export type mapCoordinate = {

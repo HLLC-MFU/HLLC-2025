@@ -8,6 +8,7 @@ import {
   Req,
   Patch,
   Body,
+  Query,
 } from '@nestjs/common';
 import { EvouchersService } from '../services/evouchers.service';
 import { AddEvoucherCodeByRoleDto, AddEvoucherCodeDto, CreateEvoucherDto } from '../dto/create-evoucher.dto';
@@ -32,8 +33,8 @@ export class EvouchersController {
   }
 
   @Get()
-  findAll() {
-    return this.evouchersService.findAll();
+  findAll(@Query('sponsors') sponsorId?: string) {
+    return this.evouchersService.findAll(sponsorId);
   }
 
   @Get(':id')

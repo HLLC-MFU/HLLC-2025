@@ -29,13 +29,10 @@ export type IEvoucher = {
   };
   expiration: string;
   photo: {
-    coverPhoto: string;
-    bannerPhoto?: string;
-    thumpnailPhoto?: string;
-    logoPhoto?: string;
-    evoucherImage?: string;
-    evoucherImageFront?: string;
-    evoucherImageBack?: string;
+    home?: string;
+    front?: string;
+    back?: string;
+    coverPhoto?: string;
   };
   status: 'ACTIVE' | 'INACTIVE';
   maxClaims: number;
