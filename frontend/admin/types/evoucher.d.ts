@@ -4,13 +4,13 @@ import { Photo } from './photo';
 import { Sponsors } from './sponsors';
 
 type EvoucherPhoto = {
-  front: string;
-  back: string;
-  home: string;
+  front: string | File;
+  back: string | File;
+  home: string | File;
 };
 
 export type Evoucher = {
-  _id: string;
+  _id?: string;
   name: Lang;
   acronym: string;
   order: number;
@@ -19,5 +19,6 @@ export type Evoucher = {
   detail: Lang;
   photo: EvoucherPhoto;
   amount: number;
-  sponsor: string;
+  sponsor: Sponsors | string;
+  metadata?: Record<string, string>;
 };

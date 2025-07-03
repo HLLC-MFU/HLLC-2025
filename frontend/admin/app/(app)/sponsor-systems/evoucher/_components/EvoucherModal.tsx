@@ -1,297 +1,260 @@
-// 'use client';
+'use client';
 
-// import React, { useState, useEffect } from 'react';
-// import {
-//   Modal,
-//   ModalContent,
-//   ModalHeader,
-//   ModalBody,
-//   ModalFooter,
-//   Button,
-//   Input,
-//   Select,
-//   SelectItem,
-//   Textarea,
-// } from '@heroui/react';
-// import { Sponsors } from '@/types/sponsors';
-// import { Evoucher, EvoucherStatus, EvoucherType } from '@/types/evoucher';
-// import ImageInput from '@/components/ui/imageInput';
+import React, { FormEvent, useEffect, useState } from 'react';
+import {
+    Modal,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    Button,
+    Input,
+    NumberInput,
+    Accordion,
+    AccordionItem,
+    Divider,
+    Checkbox,
+    DatePicker,
+    Card,
+    AutocompleteItem,
+    Autocomplete,
+    Form,
+} from '@heroui/react';
+import { Sponsors } from '@/types/sponsors';
+import { Evoucher } from '@/types/evoucher';
+import ImageInput from '@/components/ui/imageInput';
+import { fromDate } from '@internationalized/date';
 
-// type AddEvoucherProps = {
-//   isOpen: boolean;
-//   onClose: () => void;
-//   onSuccess: (formData: FormData, mode: 'add' | 'edit') => void;
-//   mode: 'add' | 'edit';
-//   evoucherType: EvoucherType;
-//   sponsors: Sponsors[];
-//   evoucher?: Evoucher;
-// };
+type AddEvoucherProps = {
+    isOpen: boolean;
+    mode: 'add' | 'edit';
+    onClose: () => void;
+    onSuccess: (sponsorsData: FormData) => Promise<void>;
+    sponsors: Sponsors[];
+    evoucher: Evoucher | null;
+};
 
-// export function EvoucherModal({
-//   isOpen,
-//   onClose,
-//   onSuccess,
-//   mode,
-//   evoucherType,
-//   sponsors,
-//   evoucher,
-// }: AddEvoucherProps) {
-//   const [selectedSponsor, setSelectedSponsor] = useState<string>('');
-//   const [imageFile, setImageFile] = useState<{ cover: File | null }>({
-//     cover: null,
-//   });
-//   const [imagePreview, setImagePreview] = useState<string>('');
-//   const [acronym, setAcronym] = useState('');
-//   const [detailTh, setDetailTh] = useState('');
-//   const [detailEn, setDetailEn] = useState('');
-//   const [discount, setDiscount] = useState('');
-//   const [expiration, setExpiration] = useState(new Date().toISOString());
-//   const [maxClaim, setMaxClaim] = useState<number>(0);
-//   const [status, setStatus] = useState<EvoucherStatus>(EvoucherStatus.ACTIVE);
-//   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+export function EvoucherModal({
+    isOpen,
+    mode,
+    onClose,
+    onSuccess,
+    sponsors,
+    evoucher,
+}: AddEvoucherProps) {
+    const currentDate = new Date();
+    const tomorrow = new Date();
+    new Date(tomorrow.setDate(tomorrow.getDate() + 1))
+    const dataField = {
+        name: { en: '', th: '' },
+        acronym: '',
+        order: 0,
+        startAt: currentDate,
+        endAt: tomorrow,
+        detail: { en: '', th: '' },
+        photo: { front: '', back: '', home: '' },
+        amount: 0,
+        sponsor: '',
+        metadata: { type: '' },
+    }
+    const [imageError, setImageError] = useState<Record<string, boolean>>({
+        front: false,
+        back: false,
+        home: false,
+    });
+    const [evoucherField, setEvoucherField] = useState<Evoucher>(dataField);
 
-//   useEffect(() => {
-//     if (!isOpen) {
-//       setSelectedSponsor('');
-//       setAcronym('');
-//       setDetailTh('');
-//       setDetailEn('');
-//       setDiscount('');
-//       setExpiration(new Date().toISOString());
-//       setMaxClaim(0);
-//       setStatus(EvoucherStatus.ACTIVE);
-//       setImageFile({ cover: null });
-//       setImagePreview('');
-//       setErrors({});
-//       return;
-//     }
+    useEffect(() => {
+        if (mode === 'add') {
+            setEvoucherField(dataField);
+            setImageError({ front: false, back: false, home: false })
+        } else if (mode === 'edit' && evoucher) {
+            setEvoucherField({
+                name: { en: evoucher.name.en, th: evoucher.name.th },
+                acronym: evoucher.acronym,
+                order: evoucher.order,
+                startAt: new Date(evoucher.startAt),
+                endAt: new Date(evoucher.endAt),
+                detail: { en: evoucher.detail.en, th: evoucher.detail.en },
+                photo: { front: evoucher.photo.front, back: evoucher.photo.back, home: evoucher.photo.home },
+                amount: evoucher.amount,
+                sponsor: (evoucher.sponsor as Sponsors)._id ?? '',
+                metadata: { type: evoucher.metadata?.type ?? '' },
+            })
+            setImageError({ front: false, back: false, home: false })
+        }
+    }, [isOpen]);
 
-//     if (isOpen && mode === 'edit' && evoucher) {
-//       setSelectedSponsor(evoucher.sponsors?.name?.en || '');
-//       setAcronym(evoucher.acronym || '');
-//       setDetailTh(evoucher.detail?.th || '');
-//       setDetailEn(evoucher.detail?.en || '');
-//       setDiscount(evoucher.discount || '');
-//       setExpiration(evoucher.expiration || new Date().toISOString());
-//       setMaxClaim(evoucher.claims?.maxClaim || 0);
-//       setStatus(evoucher.status || EvoucherStatus.ACTIVE);
-//       if (evoucher.photo?.coverPhoto) {
-//         setImagePreview(evoucher.photo.coverPhoto);
-//       } else {
-//         setImagePreview('');
-//       }
-//       setErrors({});
-//     }
-//   }, [isOpen, mode, evoucher]);
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
 
-//   const validationRules: {
-//     key: string;
-//     value: string;
-//     message: string;
-//     validate?: (val: string) => boolean;
-//   }[] = [
-//     { key: 'sponsor', value: selectedSponsor, message: 'Sponsor is required' },
-//     { key: 'acronym', value: acronym, message: 'Acronym is required' },
-//     {
-//       key: 'discount',
-//       value: discount,
-//       message: 'Discount is required',
-//       validate: (val) => !isNaN(Number(val)) && Number(val) >= 0,
-//     },
-//     {
-//       key: 'maxClaim',
-//       value: String(maxClaim),
-//       message: 'Max claim is required',
-//       validate: (val) => !isNaN(Number(val)),
-//     },
-//     { key: 'detailTh', value: detailTh, message: 'Detail (Thai) is required' },
-//     {
-//       key: 'detailEn',
-//       value: detailEn,
-//       message: 'Detail (English) is required',
-//     },
-//     { key: 'expiration', value: expiration, message: 'Expiration is required' },
-//     { key: 'status', value: status, message: 'Status is required' },
-//   ];
+        if (!evoucherField.photo.front) return setImageError(prev => ({ ...prev, front: true }));
+        if (!evoucherField.photo.back) return setImageError(prev => ({ ...prev, back: true }));
+        if (!evoucherField.photo.home) return setImageError(prev => ({ ...prev, home: true }));
 
-//   const handleSubmit = () => {
-//     const newErrors: Record<string, string> = {};
+        const evoucherData = new FormData();
+        evoucherData.append('name[en]', evoucherField.name.en);
+        evoucherData.append('name[th]', evoucherField.name.th);
+        evoucherData.append('acronym', evoucherField.acronym);
+        evoucherData.append('order', evoucherField.order.toString());
+        evoucherData.append('startAt', evoucherField.startAt.toISOString());
+        evoucherData.append('endAt', evoucherField.endAt.toISOString());
+        evoucherData.append('detail[en]', evoucherField.detail.en);
+        evoucherData.append('detail[th]', evoucherField.detail.th);
+        evoucherData.append('amount', evoucherField.amount.toString());
+        evoucherData.append('sponsor', evoucherField.sponsor.toString());
+        if (!(typeof evoucherField.photo.front === 'string')) evoucherData.append('photo[front]', evoucherField.photo.front);
+        if (!(typeof evoucherField.photo.back === 'string')) evoucherData.append('photo[back]', evoucherField.photo.back);
+        if (!(typeof evoucherField.photo.home === 'string')) evoucherData.append('photo[home]', evoucherField.photo.home);
+        if (!evoucherField.metadata?.type) {
+            evoucherData.append('metadata[type]', '');
+        } else {
+            evoucherData.append('metadata[type]', evoucherField.metadata.type);
+        }
 
-//     validationRules.forEach(({ key, value, message, validate }) => {
-//       if (!value || (validate && !validate(value))) {
-//         newErrors[key] = message;
-//       }
-//     });
+        onSuccess(evoucherData);
+        onClose();
+    };
 
-//     if (mode === 'add' && !(imageFile.cover instanceof File)) {
-//       newErrors.cover = 'Cover image is required';
-//     }
-
-//     if (Object.keys(newErrors).length > 0) {
-//       setErrors(newErrors);
-//       return;
-//     }
-//     setErrors({});
-
-//     const sponsorId = sponsors.find((s) => s.name.en === selectedSponsor)?._id;
-//     const formData = new FormData();
-//     formData.append('acronym', acronym);
-//     formData.append('discount', discount);
-//     formData.append('expiration', expiration);
-//     formData.append('detail[th]', detailTh);
-//     formData.append('detail[en]', detailEn);
-//     formData.append('maxClaims', String(maxClaim));
-//     formData.append('type', evoucherType);
-//     formData.append('status', status);
-//     if (sponsorId) formData.append('sponsors', sponsorId);
-//     if (imageFile.cover instanceof File || mode === 'add') {
-//       if (imageFile.cover instanceof File) {
-//         formData.append('photo[coverPhoto]', imageFile.cover);
-//       }
-//     }
-//     onSuccess(formData, mode);
-//     onClose();
-//   };
-
-//   const handleFileChange = (file: File | null) => {
-//     setImageFile({ cover: file});
-
-//     if (!file) {
-//       setImagePreview(evoucher?.photo?.coverPhoto ?? "");
-//       return;
-//     }
-
-//     const reader = new FileReader();
-//     reader.onload = () => setImagePreview(reader.result as string);
-//     reader.readAsDataURL(file);
-//   };
-
-//   return (
-//     <Modal
-//       isOpen={isOpen}
-//       onClose={() => {
-//         onClose();
-//       }}
-//       size="4xl"
-//       scrollBehavior="inside"
-//     >
-//       <ModalContent>
-//         <ModalHeader className="flex flex-col gap-1">
-//           {mode === 'add' ? `Add ${evoucherType} E-voucher` : 'Edit E-voucher'}
-//         </ModalHeader>
-//         <ModalBody className="flex flex-col gap-6">
-//           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-//             <Select
-//               label="Sponsor"
-//               isRequired
-//               selectedKeys={selectedSponsor ? [selectedSponsor] : []}
-//               onSelectionChange={(keys) => {
-//                 const selectedKey = Array.from(keys)[0] as string;
-//                 setSelectedSponsor(selectedKey);
-//               }}
-//               isInvalid={!!errors.sponsor}
-//               errorMessage={errors.sponsor}
-//             >
-//               {sponsors.map((s) => (
-//                 <SelectItem key={s.name.en}>{s.name.en}</SelectItem>
-//               ))}
-//             </Select>
-//             <Input
-//               label="Acronym"
-//               isRequired
-//               value={acronym}
-//               onChange={(e) => setAcronym(e.target.value)}
-//               isInvalid={!!errors.acronym}
-//               errorMessage={errors.acronym}
-//             />
-//           </div>
-//           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-//             <Input
-//               label="Discount"
-//               type="text"
-//               value={discount}
-//               onChange={(e) => setDiscount(e.target.value)}
-//               isRequired
-//               isInvalid={!!errors.discount}
-//               errorMessage={errors.discount}
-//             />
-//             <Input
-//               label="Max Claims"
-//               type="number"
-//               value={String(maxClaim)}
-//               onChange={(e) => setMaxClaim(Number(e.target.value))}
-//               isRequired
-//               isInvalid={!!errors.maxClaim}
-//               errorMessage={errors.maxClaim}
-//             />
-//           </div>
-//           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-//             <Textarea
-//               label="Detail (Thai)"
-//               value={detailTh}
-//               onChange={(e) => setDetailTh(e.target.value)}
-//               isRequired
-//               minRows={2}
-//               maxRows={3}
-//               isInvalid={!!errors.detailTh}
-//               errorMessage={errors.detailTh}
-//             />
-//             <Textarea
-//               label="Detail (English)"
-//               value={detailEn}
-//               onChange={(e) => setDetailEn(e.target.value)}
-//               isRequired
-//               minRows={2}
-//               maxRows={3}
-//               isInvalid={!!errors.detailEn}
-//               errorMessage={errors.detailEn}
-//             />
-//           </div>
-//           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-//             <div className="sm:col-span-2 flex justify-center gap-5">
-//               <Select
-//                 label="Status"
-//                 selectedKeys={[status]}
-//                 onChange={(e) => setStatus(e.target.value as EvoucherStatus)}
-//                 isRequired
-//                 isInvalid={!!errors.status}
-//                 errorMessage={errors.status}
-//               >
-//                 <SelectItem key={EvoucherStatus.ACTIVE}>Active</SelectItem>
-//                 <SelectItem key={EvoucherStatus.INACTIVE}>Inactive</SelectItem>
-//               </Select>
-//               <Input
-//                 label="Expiration"
-//                 type="datetime-local"
-//                 value={expiration.slice(0, 16)}
-//                 onChange={(e) =>
-//                   setExpiration(new Date(e.target.value).toISOString())
-//                 }
-//                 isRequired
-//                 isInvalid={!!errors.expiration}
-//                 errorMessage={errors.expiration}
-//               />
-//             </div>
-//             <div className="flex-col items-center">
-//               <ImageInput onChange={handleFileChange} onCancel={() => handleFileChange(null)} image={imagePreview} />
-//             </div>
-//           </div>
-//         </ModalBody>
-//         <ModalFooter>
-//           <Button
-//             color="danger"
-//             variant="light"
-//             onPress={() => {
-//               onClose();
-//             }}
-//           >
-//             Cancel
-//           </Button>
-//           <Button color="primary" onPress={handleSubmit}>
-//             {mode === 'add' ? 'Add E-voucher' : 'Save Changes'}
-//           </Button>
-//         </ModalFooter>
-//       </ModalContent>
-//     </Modal>
-//   );
-// }
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={() => {
+                onClose();
+                setEvoucherField(dataField);
+            }}
+            size="3xl"
+            scrollBehavior="inside"
+            isDismissable={false}
+        >
+            <Form onSubmit={(e) => handleSubmit(e)}>
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1">
+                        {mode === 'add' ? `Add Evoucher` : 'Edit Evoucher'}
+                    </ModalHeader>
+                    <Divider />
+                    <ModalBody className="flex gap-6 w-full">
+                        <div className="grid grid-cols-2 gap-4">
+                            {(['en', 'th'] as const).map((key) => {
+                                const lang = key === 'en' ? 'English' : 'Thai'
+                                return (
+                                    <Input
+                                        isRequired
+                                        label={`Name (${lang})`}
+                                        placeholder={`Enter ${lang} Name`}
+                                        value={evoucherField.name[key]}
+                                        onValueChange={(value) => setEvoucherField(prev => ({ ...prev, name: { ...prev.name, [key]: value } }))}
+                                    />
+                                )
+                            })}
+                            <Input
+                                isRequired
+                                label='Acronym'
+                                placeholder='Enter Acronym'
+                                value={evoucherField.acronym}
+                                onValueChange={(value) => setEvoucherField(prev => ({ ...prev, acronym: value }))}
+                            />
+                            <NumberInput
+                                isRequired
+                                label='Order'
+                                placeholder='Enter Order'
+                                value={evoucherField.order}
+                                onValueChange={(value) => setEvoucherField(prev => ({ ...prev, order: value }))}
+                            />
+                            {(['startAt', 'endAt'] as const).map((key) => (
+                                <DatePicker
+                                    isRequired
+                                    label={<span className='capitalize'>{key.slice(0, -2)}</span>}
+                                    value={fromDate(evoucherField[key], 'Asia/Bangkok')}
+                                    onChange={(value) => setEvoucherField(prev => ({ ...prev, [key]: value?.toDate() ?? prev[key] }))}
+                                />
+                            ))}
+                            {(['en', 'th'] as const).map((key) => {
+                                const lang = key === 'en' ? 'English' : 'Thai'
+                                return (
+                                    <Input
+                                        isRequired
+                                        label={`Detail (${lang})`}
+                                        placeholder={`Enter ${lang} Detail`}
+                                        value={evoucherField.detail[key]}
+                                        onValueChange={(value) => setEvoucherField(prev => ({ ...prev, detail: { ...prev.detail, [key]: value } }))}
+                                    />
+                                )
+                            })}
+                            <NumberInput
+                                isRequired
+                                label='Code Amount'
+                                placeholder='Enter Amount'
+                                value={evoucherField.amount}
+                                onValueChange={(value) => setEvoucherField(prev => ({ ...prev, amount: value }))}
+                            />
+                            <Autocomplete
+                                isRequired
+                                label="Sponsor"
+                                placeholder="Select A Sponsor"
+                                defaultItems={sponsors}
+                                defaultSelectedKey={mode === 'edit' ? (evoucher?.sponsor as Sponsors)?._id : ''}
+                                onSelectionChange={(value) => setEvoucherField(prev => ({ ...prev, sponsor: value as string }))}
+                            >
+                                {(sponsor) => (
+                                    <AutocompleteItem key={sponsor._id}>
+                                        {sponsor.name.en}
+                                    </AutocompleteItem>
+                                )}
+                            </Autocomplete>
+                        </div>
+                        <Divider />
+                        <div className="grid grid-cols-2 gap-4">
+                            {(['front', 'back', 'home'] as const).map((key) => (
+                                <ImageInput
+                                    onChange={(file: File) => {
+                                        setEvoucherField(prev =>
+                                            ({ ...prev, photo: { ...prev.photo, [key]: file } }));
+                                        setImageError(prev => ({ ...prev, [key]: false }))
+                                    }}
+                                    onCancel={() => setEvoucherField(prev =>
+                                        ({ ...prev, photo: { ...prev.photo, [key]: '' } }))
+                                    }
+                                    title={`${key[0].toUpperCase() + key.slice(1)} Image`}
+                                    image={mode === 'edit' ? evoucher?.photo[key] as string : ''}
+                                    isRequired={!!imageError[key]}
+                                />
+                            ))}
+                        </div>
+                        <Divider />
+                        <span className='text-primary'>Optional</span>
+                        <Checkbox
+                            size="lg"
+                            isSelected={!!evoucherField.metadata?.type}
+                            onValueChange={(value) => setEvoucherField(prev => ({
+                                ...prev,
+                                metadata: ({
+                                    type: value ? 'global' : ''
+                                })
+                            }))}
+                            className='flex items-start mb-2'
+                        >
+                            Use as global type
+                        </Checkbox>
+                    </ModalBody>
+                    <Divider />
+                    <ModalFooter className="w-full">
+                        <Button
+                            color="danger"
+                            variant="light"
+                            onPress={() => {
+                                onClose();
+                                setEvoucherField(dataField);
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button color="primary" type='submit'>
+                            {mode === 'add' ? 'Add' : 'Save'}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Form>
+        </Modal>
+    );
+}

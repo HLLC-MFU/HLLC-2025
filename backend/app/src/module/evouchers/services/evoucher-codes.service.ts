@@ -25,7 +25,7 @@ export class EvoucherCodesService {
     private codeModel: Model<EvoucherCodeDocument>,
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
-  ) {}
+  ) { }
 
   async findAll() {
     return this.codeModel
@@ -35,7 +35,10 @@ export class EvoucherCodesService {
   }
 
   async findOne(id: string) {
-    return this.evoucherModel.findById(id).lean();
+    return this.evoucherModel
+      .findById(id)
+      .populate([{ path: 'user' }, { path: 'evoucher' }])
+      .lean();
   }
 
   async update(id: string, updateDto: UpdateEvoucherCodeDto) {
@@ -121,12 +124,12 @@ export class EvoucherCodesService {
         isUsed: false,
       })
       .populate('evoucher')) as unknown as {
-      evoucher: EvoucherDocument;
-      isUsed: boolean;
-      usedAt?: Date;
-      code: string;
-      save: () => Promise<any>;
-    };
+        evoucher: EvoucherDocument;
+        isUsed: boolean;
+        usedAt?: Date;
+        code: string;
+        save: () => Promise<any>;
+      };
 
     if (!code) {
       throw new BadRequestException('Evoucher not found or already used');

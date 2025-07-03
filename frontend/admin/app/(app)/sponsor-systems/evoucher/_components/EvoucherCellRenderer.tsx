@@ -1,163 +1,174 @@
-// import React from "react";
-// import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
-// import { EllipsisVertical, Image, Pen, Trash } from "lucide-react";
-// import { Evoucher } from "@/types/evoucher";
+import React, { Key, useState } from "react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Image } from "@heroui/react";
+import { EllipsisVertical, ImageIcon, Pen, Trash } from "lucide-react";
+import { Evoucher } from "@/types/evoucher";
+import { Sponsors } from "@/types/sponsors";
+import { Lang } from "@/types/lang";
 
-// export type EvoucherColumnKey =
-//     | "sponsors"
-//     | "discount"
-//     | "acronym"
-//     | "detail"
-//     | "status"
-//     | "claims"
-//     | "expiration"
-//     | "cover"
-//     | "actions";
+export type EvoucherColumnKey =
+    | "sponsors"
+    | "name"
+    | "acronym"
+    | "order"
+    | "startAt"
+    | "endAt"
+    | "detail"
+    | "photo"
+    | "amount"
+    | "actions";
 
-// type EvoucherCellRendererProps = {
-//     evoucher: Evoucher;
-//     columnKey: EvoucherColumnKey;
-//     onEdit: () => void;
-//     onDelete: () => void;
-// };
+type EvoucherCellRendererProps = {
+    evoucher: Evoucher;
+    columnKey: Key;
+    onEdit: () => void;
+    onDelete: () => void;
+};
 
-// export default function EvoucherCellRenderer({
-//     evoucher,
-//     columnKey,
-//     onEdit,
-//     onDelete
-// }: EvoucherCellRendererProps) {
-//     switch (columnKey) {
-//         case "sponsors":
-//             return (
-//                 <div className="flex items-center min-w-[120px]">
-//                     <p className="text-sm font-medium capitalize truncate">
-//                         {evoucher.sponsors.name.en}
-//                     </p>
-//                 </div>
-//             );
+export default function EvoucherCellRenderer({
+    evoucher,
+    columnKey,
+    onEdit,
+    onDelete
+}: EvoucherCellRendererProps) {
+    const [imgError, setImgError] = useState(false);
+    const dateOptions = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    } as const;
+    const timeOptions = {
+        hour: "2-digit",
+        minute: "2-digit"
+    } as const;
 
-//         case "discount":
-//             return (
-//                 <div className="flex items-center justify-start min-w-[80px]">
-//                     <p className="text-sm font-medium">
-//                         {evoucher.discount}
-//                     </p>
-//                 </div>
-//             );
+    if (!evoucher.photo.home || imgError) {
+        return (
+            <div className="flex justify-center items-center h-20 w-20 border border-default-300 rounded">
+                <ImageIcon className="text-gray-500" />
+            </div>
+        );
+    }
 
-//         case "acronym":
-//             return (
-//                 <div className="flex items-center min-w-[100px]">
-//                     <p className="text-sm font-medium truncate">
-//                         {evoucher.acronym}
-//                     </p>
-//                 </div>
-//             );
+    switch (columnKey) {
+        case "sponsors":
+            return (
+                <div className="flex flex-col gap-4">
+                    {(['en', 'th'] as (keyof Lang)[]).map((lang) => (
+                        <div className="flex text-sm text-default-900 gap-1">
+                            <span className="font-medium text-default-400">
+                                {lang.toUpperCase()} :
+                            </span>
+                            <span>{(evoucher.sponsor as Sponsors)?.name?.[lang] ?? '-'}</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        case "name":
+            return (
+                <div className="flex flex-col gap-4">
+                    {(['en', 'th'] as (keyof Lang)[]).map((lang) => (
+                        <div className="flex text-sm text-default-900 gap-1">
+                            <span className="font-medium text-default-400">
+                                {lang.toUpperCase()} :
+                            </span>
+                            <span>{evoucher.name?.[lang]}</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        case "acronym":
+            return evoucher.acronym;
+        case "order":
+            return evoucher.order;
+        case "startAt":
+            return (
+                <>
+                    <p>{new Date(evoucher.startAt).toLocaleDateString('en-US', dateOptions)}</p>
+                    <p>{new Date(evoucher.startAt).toLocaleTimeString('en-US', timeOptions)}</p>
+                </>
+            )
+        case "endAt":
+            return (
+                <>
+                    <p>{new Date(evoucher.endAt).toLocaleDateString('en-US', dateOptions)}</p>
+                    <p>{new Date(evoucher.endAt).toLocaleTimeString('en-US', timeOptions)}</p>
+                </>
+            );
+        case "detail":
+            return (
+                <div className="flex flex-col gap-4">
+                    {(['en', 'th'] as (keyof Lang)[]).map((lang) => (
+                        <div className="flex text-sm text-default-900 gap-1">
+                            <span className="font-medium text-default-400">
+                                {lang.toUpperCase()} :
+                            </span>
+                            <span>{evoucher.detail?.[lang]}</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        case "photo":
+            return (
+                <div className='flex gap-1'>
+                    <Image
+                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.front}`}
+                        alt={evoucher.name.en}
+                        className="rounded border border-default-300"
+                        height={64}
+                        width={64}
+                        onError={() => setImgError(true)}
+                    />
+                    <Image
+                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.back}`}
+                        alt={evoucher.name.en}
+                        className="rounded border border-default-300"
+                        height={64}
+                        width={64}
+                        onError={() => setImgError(true)}
+                    />
+                    <Image
+                        src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.home}`}
+                        alt={evoucher.name.en}
+                        className="rounded border border-default-300"
+                        height={64}
+                        width={64}
+                        onError={() => setImgError(true)}
+                    />
+                </div>
+            );
+        case "amount":
+            return evoucher.amount;
+        case "actions":
+            return (
+                <Dropdown>
+                    <DropdownTrigger>
+                        <Button isIconOnly size="sm" variant="light">
+                            <EllipsisVertical className="text-default-400" />
+                        </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu>
+                        <DropdownItem
+                            key="edit"
+                            startContent={<Pen size={16} />}
+                            onPress={onEdit}
+                        >
+                            Edit
+                        </DropdownItem>
+                        <DropdownItem
+                            key="delete"
+                            className="text-danger"
+                            color="danger"
+                            startContent={<Trash size={16} />}
+                            onPress={onDelete}
+                        >
+                            Delete
+                        </DropdownItem>
+                    </DropdownMenu>
+                </Dropdown>
+            );
 
-//         case "detail":
-//             return (
-//                 <div className="flex flex-col gap-1 min-w-[180px] max-w-[250px]">
-//                     <div className="flex items-start gap-2">
-//                         <label className="text-xs text-default-400">TH :</label>
-//                         <label>{evoucher.detail.th}</label>
-//                     </div>
-//                     <div className="flex items-start gap-2">
-//                         <label className="text-xs text-default-400">EN :</label>
-//                         <label>{evoucher.detail.en}</label>
-//                     </div>
-//                 </div>
-//             );
-
-//         case "status":
-//             return (
-//                 <div className="flex items-center min-w-[90px]">
-//                     <span className={`text-sm font-medium capitalize px-2 py-1 rounded-full ${evoucher.status === "ACTIVE"
-//                         ? "bg-success/10 text-success"
-//                         : "bg-danger/10 text-danger"
-//                         }`}>
-//                         {evoucher.status.toLowerCase()}
-//                     </span>
-//                 </div>
-//             );
-
-//         case "claims":
-//             return (
-//                 <div className="flex items-center justify-start min-w-[80px]">
-//                     <p className="text-sm font-medium">
-//                         {evoucher.claims?.maxClaim
-//                             ? `${evoucher.claims.currentClaim || 0} / ${evoucher.claims.maxClaim}`
-//                             : "-"}
-//                     </p>
-//                 </div>
-//             );
-
-//         case "expiration":
-//             return (
-//                 <div className="flex items-center min-w-[180px]">
-//                     <p className="text-sm font-medium whitespace-nowrap">
-//                         {new Date(evoucher.expiration).toLocaleString("en-US", {
-//                             dateStyle: "long",
-//                             timeStyle: "short",
-//                             timeZone: "UTC"
-//                         })}
-//                     </p>
-//                 </div>
-//             );
-
-//         case "cover":
-//             return (
-//                 <div className="flex items-center justify-center w-[100px] mx-auto">
-//                     <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-default-200">
-//                         {evoucher.photo?.coverPhoto ? (
-//                             <img
-//                                 src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.coverPhoto}`}
-//                                 alt={evoucher.sponsors.name.en}
-//                                 className="h-full w-full object-cover"
-//                                 onError={(e) => {
-//                                     e.currentTarget.src = "/placeholder.png";
-//                                 }}
-//                             />
-//                         ) : (
-//                             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-default-50">
-//                                 <Image className="text-default-400" size={18} />
-//                                 <span className="text-[10px] text-default-400">No image</span>
-//                             </div>
-//                         )}
-//                     </div>
-//                 </div>
-//             );
-
-//         case "actions":
-//             return (
-//                 <Dropdown>
-//                     <DropdownTrigger>
-//                         <Button isIconOnly size="sm" variant="light">
-//                             <EllipsisVertical className="text-default-400" />
-//                         </Button>
-//                     </DropdownTrigger>
-//                     <DropdownMenu>
-//                         <DropdownItem
-//                             key="edit"
-//                             startContent={<Pen size={16} />}
-//                             onPress={onEdit}
-//                         >
-//                             Edit
-//                         </DropdownItem>
-//                         <DropdownItem
-//                             key="delete"
-//                             className="text-danger"
-//                             color="danger"
-//                             startContent={<Trash size={16} />}
-//                             onPress={onDelete}
-//                         >
-//                             Delete
-//                         </DropdownItem>
-//                     </DropdownMenu>
-//                 </Dropdown>
-//             );
-
-//         default:
-//             return null;
-//     }
-// }
+        default:
+            return <span>-</span>;
+    }
+}

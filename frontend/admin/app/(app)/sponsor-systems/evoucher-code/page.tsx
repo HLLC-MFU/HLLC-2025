@@ -40,6 +40,7 @@ export default function EvoucherCodePage() {
 
     evoucherCodes.forEach((code) => {
       const evoucherId = (code.evoucher as Evoucher)?._id;
+      if (!evoucherId) return;
 
       if (!groups[evoucherId]) groups[evoucherId] = [];
       groups[evoucherId].push(code);
@@ -84,26 +85,25 @@ export default function EvoucherCodePage() {
 
       <div className="fl                                                                                                                                                                                                        ex flex-col gap-6">
         <Accordion className="p-0" variant="splitted">
-          {isLoading
-            ? Array(3)
-                .fill(0)
-                .map((_, index) => (
-                  <AccordionItem
-                    key={`skeleton-${index}`}
-                    aria-label={`Loading ${index}`}
-                    title={
-                      <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
-                    }
-                  >
-                    <Skeleton className="h-[100px] w-full bg-gray-100 rounded-md" />
-                  </AccordionItem>
-                ))
-            : Object.entries(groupedEvoucherCodes).map(([evoucher, codes]) => {
-                const evoucherName = evouchers.find((e) => e._id === evoucher)
-                  ?.name.en!;
-                const evoucherPhoto = evouchers.find(
-                  (evoucher) => evoucher.name.en === evoucherName,
-                )?.photo.home;
+          {isLoading ? (
+            Array(3)
+              .fill(0)
+              .map((_, index) => (
+                <AccordionItem
+                  key={`skeleton-${index}`}
+                  aria-label={`Loading ${index}`}
+                  title={
+                    <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
+                  }
+                >
+                  <Skeleton className="h-[100px] w-full bg-gray-100 rounded-md" />
+                </AccordionItem>
+              ))
+          ) : (
+            Object.entries(groupedEvoucherCodes)
+              .map(([evoucher, codes]) => {
+                const evoucherName = evouchers.find((e) => e._id === evoucher)?.name.en!;
+                const evoucherPhoto = evouchers.find((evoucher) => evoucher.name.en === evoucherName)?.photo.home;
                 return (
                   <AccordionItem
                     key={evoucherName}
@@ -134,7 +134,8 @@ export default function EvoucherCodePage() {
                     />
                   </AccordionItem>
                 );
-              })}
+              })
+          )}
         </Accordion>
       </div>
     </>

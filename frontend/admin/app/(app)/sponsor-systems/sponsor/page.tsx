@@ -16,11 +16,9 @@ export default function SponsorPage() {
   const router = useRouter();
   const [isTypeOpen, setIsTypeOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSponsor, setSelectedSponsor] = useState<
-    Sponsors | Partial<Sponsors>
-  >();
-  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [confirmationModal, setConfirmationModal] = useState<boolean>(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [selectedSponsor, setSelectedSponsor] = useState<Partial<Sponsors> | null>();
 
   const {
     sponsors,
@@ -32,7 +30,7 @@ export default function SponsorPage() {
   } = useSponsors();
 
   const { loading: typeLoading, sponsorsType, createSponsorsType } = useSponsorsType();
-  
+
   const isLoading = sponsorsLoading || typeLoading;
 
   const groupedSponsors = useMemo(() => {
@@ -62,24 +60,24 @@ export default function SponsorPage() {
     return groups;
   }, [sponsors, sponsorsType]);
 
-  const handleAddSponsor = () => {
+  const handleAdd = () => {
     setModalMode('add');
-    setSelectedSponsor(undefined);
+    setSelectedSponsor(null);
     setIsModalOpen(true);
   };
 
-  const handleEditSponsor = (sponsor: Sponsors) => {
+  const handleEdit = (sponsor: Sponsors) => {
     setModalMode('edit');
     setSelectedSponsor(sponsor);
     setIsModalOpen(true);
   };
 
-  const handleDeleteSponsor = (sponsor: Sponsors) => {
+  const handleDelete = (sponsor: Sponsors) => {
     setSelectedSponsor(sponsor);
     setConfirmationModal(true);
   };
 
-  const handleSubmitSponsor = async (sponsorsData: FormData) => {
+  const handleSubmit = async (sponsorsData: FormData) => {
     let response;
 
     if (modalMode === 'add') {
@@ -88,17 +86,20 @@ export default function SponsorPage() {
       response = await updateSponsors(selectedSponsor._id, sponsorsData);
     }
 
-    setIsModalOpen(false);
-    if (response) await fetchSponsors();
+    if (response) {
+      await fetchSponsors()
+      setIsModalOpen(false);
+    };
   };
 
   const handleConfirm = async () => {
-    if (selectedSponsor?._id) {
-      await deleteSponsors(selectedSponsor._id);
-      await fetchSponsors();
-    }
+    if (!selectedSponsor?._id) return;
+
+    await deleteSponsors(selectedSponsor._id);
+    await fetchSponsors();
+    
     setConfirmationModal(false);
-    setSelectedSponsor(undefined);
+    setSelectedSponsor(null);
   };
 
   const handleAddType = async (type: { name: string; priority: number }) => {
@@ -140,8 +141,10 @@ export default function SponsorPage() {
 
         <div className="flex flex-col gap-6">
           <Accordion className="p-0" variant="splitted">
-            {isLoading
-              ? Array(3).fill(0).map((_, index) => (
+            {isLoading ? (
+              Array(3)
+                .fill(0)
+                .map((_, index) => (
                   <AccordionItem
                     key={`skeleton-${index}`}
                     aria-label={`Loading ${index}`}
@@ -152,56 +155,54 @@ export default function SponsorPage() {
                     <Skeleton className="h-[100px] w-full bg-gray-100 rounded-md" />
                   </AccordionItem>
                 ))
-              : Object.entries(groupedSponsors)
-                  .sort(([, prev], [, next]) => prev.priority - next.priority)
-                  .map(([type, sponsors]) => {
-                    return (
-                      <AccordionItem
-                        key={sponsors.priority}
-                        aria-label={type}
-                        title={`${type}`}
-                        subtitle={
-                          <p className="flex gap-1">
-                            <span>Total sponsors :</span>
-                            <span className="text-primary ml-1">
-                              {sponsors.sponsors.length}
-                            </span>
-                          </p>
-                        }
-                        startContent={
-                          <div className="p-3 w-12 h-12 rounded-xl bg-gradient-to-r bg-gray-200 border">
-                            <span className="font-semibold text-gray-500">
-                              {sponsors.priority ?? '-'}
-                            </span>
-                          </div>
-                        }
-                      >
-                        <SponsorTable
-                          handleSubmitSponsor={handleSubmitSponsor}
-                          isModalOpen={isModalOpen}
-                          modalMode={modalMode}
-                          selectedSponsor={selectedSponsor}
-                          sponsorTypes={sponsorsType}
-                          sponsors={sponsors.sponsors}
-                          type={type}
-                          onAdd={handleAddSponsor}
-                          onClose={() => setIsModalOpen(false)}
-                          onDelete={handleDeleteSponsor}
-                          onEdit={handleEditSponsor}
-                          onToggleShow={(s) => {
-                            const formData = new FormData();
-                            updateSponsors(s._id, formData);
-                          }}
-                        />
+            ) : (
+              Object.entries(groupedSponsors)
+                .sort(([, prev], [, next]) => prev.priority - next.priority)
+                .map(([type, sponsors]) => {
+                  return (
+                    <AccordionItem
+                      key={sponsors.priority}
+                      aria-label={type}
+                      title={`${type}`}
+                      subtitle={
+                        <p className="flex gap-1">
+                          <span>Total sponsors :</span>
+                          <span className="text-primary ml-1">
+                            {sponsors.sponsors.length}
+                          </span>
+                        </p>
+                      }
+                      startContent={
+                        <div className="p-3 w-12 h-12 rounded-xl bg-gradient-to-r bg-gray-200 border">
+                          <span className="font-semibold text-gray-500">
+                            {sponsors.priority ?? '-'}
+                          </span>
+                        </div>
+                      }
+                    >
+                      <SponsorTable
+                        isModalOpen={isModalOpen}
+                        modalMode={modalMode}
+                        selectedSponsor={selectedSponsor}
+                        sponsorTypes={sponsorsType}
+                        sponsors={sponsors.sponsors}
+                        type={type}
+                        onAdd={handleAdd}
+                        onDelete={handleDelete}
+                        onEdit={handleEdit}
+                        handleSubmit={handleSubmit}
+                        onClose={() => setIsModalOpen(false)}
+                      />
 
-                        {sponsors.sponsors.length === 0 && !sponsorsLoading && (
-                          <p className="text-center text-sm text-default-500">
-                            No sponsors found. Please add a new sponsor.
-                          </p>
-                        )}
-                      </AccordionItem>
-                    );
-                  })}
+                      {sponsors.sponsors.length === 0 && !sponsorsLoading && (
+                        <p className="text-center text-sm text-default-500">
+                          No sponsors found. Please add a new sponsor.
+                        </p>
+                      )}
+                    </AccordionItem>
+                  );
+                })
+            )}
           </Accordion>
         </div>
       </div>
@@ -217,11 +218,11 @@ export default function SponsorPage() {
         isOpen={confirmationModal}
         onClose={() => {
           setConfirmationModal(false);
-          setSelectedSponsor(undefined);
+          setSelectedSponsor(null);
         }}
         onConfirm={handleConfirm}
         title='Delete Sponsor'
-        body={`Are you sure you want to delete the sponsor "${selectedSponsor?.name?.en}"? This action cannot be undone.`}
+        body={`Are you sure you want to delete the sponsor "${selectedSponsor?.name?.en}"?`}
         confirmText='Delete'
         confirmColor='danger'
       />

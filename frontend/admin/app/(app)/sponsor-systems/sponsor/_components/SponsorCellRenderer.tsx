@@ -7,6 +7,7 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
+  Image,
 } from '@heroui/react';
 import { EllipsisVertical, ImageIcon, Pen, Trash } from 'lucide-react';
 import { useState } from 'react';
@@ -44,16 +45,14 @@ export default function SponsorCellRenderer({
   switch (columnKey) {
     case 'logo':
       return (
-        sponsor.logo && (
-          <img
-            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.logo.logoPhoto}`}
-            alt={sponsor.name.en}
-            className="w-20 h-20 rounded border border-default-300"
-            height={64}
-            width={64}
-            onError={() => setImgError(true)}
-          />
-        )
+        <Image
+          src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.logo.logoPhoto}`}
+          alt={sponsor.name.en}
+          className="rounded border border-default-300"
+          height={64}
+          width={64}
+          onError={() => setImgError(true)}
+        />
       );
     case 'name':
       return (

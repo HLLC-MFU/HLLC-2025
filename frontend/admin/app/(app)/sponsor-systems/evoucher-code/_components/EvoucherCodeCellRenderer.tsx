@@ -24,7 +24,7 @@ export default function EvoucherCodeCellRenderer({
       );
     case 'isUsed':
       const used = evoucherCodes.isUsed.toString();
-      return <span>{used[0].toUpperCase() + used.slice(1)}</span>;
+      return <span className="capitalize">{used}</span>;
     case 'user':
       const user = evoucherCodes.user as User;
       const userName = [user?.name.first, user?.name.middle, user?.name.last].filter(Boolean).join(' ');

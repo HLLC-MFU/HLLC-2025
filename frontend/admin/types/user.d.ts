@@ -11,8 +11,8 @@ export type User = {
         last?: string;
     };
     username: string;
-    role: Role;
-    metadata?: Metadata;
+    role: Role | string;
+    metadata?: Record<string | string>;
 };
 
 export type UserName = {
@@ -20,7 +20,3 @@ export type UserName = {
     middle?: string;
     last: string;
 };
-
-export type Metadata = {
-    major: Major;
-}

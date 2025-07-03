@@ -19,12 +19,9 @@ import { Role } from '@/types/role';
 const COLUMNS = [
   { name: 'CODE', uid: 'code', sortable: true },
   { name: 'USED AT', uid: 'usedAt', sortable: true },
-  { name: 'AVAILABLE', uid: 'isUsed', sortable: true },
+  { name: 'REDEEMED', uid: 'isUsed', sortable: true },
   { name: 'USER', uid: 'user', sortable: true },
 ];
-
-const INITIAL_VISIBLE_COLUMNS = new Set(['code', 'usedAt', 'isUsed', 'user']);
-const ROWS_PER_PAGE = 5;
 
 type EvoucherCodeTableProps = {
   evoucherCodes: EvoucherCode[];
@@ -44,38 +41,12 @@ export default function EvoucherCodeTable({
   users,
 }: EvoucherCodeTableProps) {
   const [filterValue, setFilterValue] = useState('');
-  const [visibleColumns, setVisibleColumns] = useState(INITIAL_VISIBLE_COLUMNS);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'code',
     direction: 'ascending',
   });
   const [page, setPage] = useState(1);
-
-  const filteredItems = useMemo(() => {
-    return evoucherCodes.filter((item) => {
-      if (!filterValue) return true;
-      return item.code?.toLowerCase().includes(filterValue.toLowerCase());
-    });
-  }, [filterValue, evoucherCodes]);
-
-  const sortedItems = useMemo(() => {
-    const sorted = [...filteredItems];
-    const { column, direction } = sortDescriptor;
-    sorted.sort((a: EvoucherCode, b: EvoucherCode) => {
-      const valA = a[column as keyof EvoucherCode];
-      const valB = b[column as keyof EvoucherCode];
-      if (valA === undefined || valB === undefined) return 0;
-      const comparison = String(valA).localeCompare(String(valB));
-      return direction === 'ascending' ? comparison : -comparison;
-    });
-    return sorted;
-  }, [filteredItems, sortDescriptor]);
-
-  const pages = Math.ceil(sortedItems.length / ROWS_PER_PAGE);
-  const pagedItems = useMemo(() => {
-    const start = (page - 1) * ROWS_PER_PAGE;
-    return sortedItems.slice(start, start + ROWS_PER_PAGE);
-  }, [page, sortedItems]);
+  const rowsPerPage = 5;
 
   const handleSearch = (value: string) => {
     setFilterValue(value);
@@ -87,10 +58,26 @@ export default function EvoucherCodeTable({
     setPage(1);
   };
 
-  const headerColumns = useMemo(
-    () => COLUMNS.filter((column) => visibleColumns.has(column.uid)),
-    [visibleColumns],
-  );
+  const filteredItems = useMemo(() => {
+    let filteredEvoucherCode = [...(evoucherCodes ?? [])];
+    const query = filterValue.toLowerCase();
+
+    if (!!filterValue) {
+      filteredEvoucherCode = evoucherCodes.filter((code) => {
+        code.code?.toLowerCase().includes(query);
+      })
+    } 
+    return filteredEvoucherCode;
+  }, [evoucherCodes, filterValue]);
+
+  const codeItems = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return filteredItems.slice(start, end);
+  }, [page, filteredItems, sortDescriptor]);
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
   const renderCell = useCallback(
     (evoucherCodes: EvoucherCode, columnKey: Key) => {
@@ -112,6 +99,9 @@ export default function EvoucherCodeTable({
       <Table
         isHeaderSticky
         aria-label="Evoucher Code Table"
+        sortDescriptor={sortDescriptor}
+        onSortChange={setSortDescriptor}
+        topContentPlacement="outside"
         topContent={
           <TopContent
             filterValue={filterValue}
@@ -120,15 +110,16 @@ export default function EvoucherCodeTable({
             setUsedModal={setAddModal}
           />
         }
-        bottomContent={
-          <BottomContent page={page} pages={pages} setPage={setPage} />
-        }
         bottomContentPlacement="outside"
-        topContentPlacement="outside"
-        sortDescriptor={sortDescriptor}
-        onSortChange={setSortDescriptor}
+        bottomContent={
+          <BottomContent
+            page={page}
+            pages={pages}
+            setPage={setPage}
+          />
+        }
       >
-        <TableHeader columns={headerColumns}>
+        <TableHeader columns={COLUMNS}>
           {(column) => (
             <TableColumn
               key={column.uid}
@@ -146,10 +137,10 @@ export default function EvoucherCodeTable({
               <span className="text-default-400">No evoucher codes found</span>
             </div>
           }
-          items={pagedItems}
+          items={[...codeItems]}
         >
           {(code: EvoucherCode) => {
-            const uniqueKey = getUniqueKey(code, pagedItems.indexOf(code));
+            const uniqueKey = getUniqueKey(code, codeItems.indexOf(code));
             return (
               <TableRow
                 key={uniqueKey}

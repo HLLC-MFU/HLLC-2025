@@ -17,21 +17,6 @@ import SponsorCellRenderer, { SponsorColumnKey } from './SponsorCellRenderer';
 import BottomContent from './BottomContent';
 import { TopContent } from './TopContent';
 
-interface SponsorTableProps {
-  type: string;
-  sponsorTypes: SponsorType[];
-  isModalOpen: boolean;
-  onClose: () => void;
-  modalMode: 'edit' | 'add';
-  selectedSponsor?: Sponsors | Partial<Sponsors>;
-  sponsors: Sponsors[];
-  onAdd: () => void;
-  onEdit: (s: Sponsors) => void;
-  onDelete: (s: Sponsors) => void;
-  onToggleShow: (s: Sponsors) => void;
-  handleSubmitSponsor: (sponsorData: FormData) => void;
-}
-
 const COLUMNS = [
   { name: 'LOGO', uid: 'logo' },
   { name: 'SPONSOR NAME', uid: 'name' },
@@ -40,26 +25,39 @@ const COLUMNS = [
   { name: 'ACTIONS', uid: 'actions' },
 ];
 
+type SponsorTableProps = {
+  isModalOpen: boolean;
+  modalMode: 'edit' | 'add';
+  selectedSponsor?: Partial<Sponsors> | null;
+  sponsorTypes: SponsorType[];
+  sponsors: Sponsors[];
+  type: string;
+  onAdd: () => void;
+  onEdit: (s: Sponsors) => void;
+  onDelete: (s: Sponsors) => void;
+  handleSubmit: (sponsorData: FormData) => void;
+  onClose: () => void;
+}
+
 export default function SponsorTable({
-  sponsors,
-  type,
-  sponsorTypes,
   isModalOpen,
   modalMode,
   selectedSponsor,
+  sponsorTypes,
+  sponsors,
+  type,
   onAdd,
   onEdit,
   onDelete,
+  handleSubmit,
   onClose,
-  handleSubmitSponsor,
 }: SponsorTableProps) {
   const [filterValue, setFilterValue] = useState('');
-  const [page, setPage] = useState(1);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'name',
     direction: 'ascending',
   });
-  const hasSearchFilter = Boolean(filterValue);
+  const [page, setPage] = useState(1);
   const rowsPerPage = 5;
 
   const handleSearch = (value: string) => {
@@ -74,13 +72,14 @@ export default function SponsorTable({
 
   const filteredItems = useMemo(() => {
     let filteredSponsors = [...(sponsors ?? [])];
+    const query = filterValue.toLowerCase();
 
-    if (hasSearchFilter) {
+    if (!!filterValue) {
       filteredSponsors = sponsors.filter(
         (sponsor) =>
-          sponsor.name.en.toLowerCase().includes(filterValue.toLowerCase()) ||
-          sponsor.name.th.toLowerCase().includes(filterValue.toLowerCase()) ||
-          sponsor.type.name.toLowerCase().includes(filterValue.toLowerCase()),
+          sponsor.name.en.toLowerCase().includes(query) ||
+          sponsor.name.th.toLowerCase().includes(query) ||
+          sponsor.priority.toString().toLowerCase().includes(query)
       );
     }
     return filteredSponsors;
@@ -96,17 +95,17 @@ export default function SponsorTable({
   const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
   const renderCell = useCallback(
-    (sponsor: Sponsors, columnKey: SponsorColumnKey) => {
+    (sponsors: Sponsors, columnKey: SponsorColumnKey) => {
       return (
         <SponsorCellRenderer
-          sponsor={sponsor}
+          sponsor={sponsors}
           columnKey={columnKey}
-          onEdit={() => onEdit(sponsor)}
-          onDelete={() => onDelete(sponsor)}
+          onEdit={() => onEdit(sponsors)}
+          onDelete={() => onDelete(sponsors)}
         />
       );
     },
-    [onEdit, onDelete],
+    [sponsors, onEdit, onDelete],
   );
 
   return (
@@ -126,7 +125,11 @@ export default function SponsorTable({
         }
         bottomContentPlacement="outside"
         bottomContent={
-          <BottomContent page={page} pages={pages} setPage={setPage}/>
+          <BottomContent
+            page={page}
+            pages={pages}
+            setPage={setPage}
+          />
         }
       >
         <TableHeader columns={COLUMNS}>
@@ -175,7 +178,7 @@ export default function SponsorTable({
         sponsorTypes={sponsorTypes}
         type={type}
         onClose={onClose}
-        onSuccess={handleSubmitSponsor}
+        onSuccess={handleSubmit}
       />
     </>
   );

@@ -11,6 +11,7 @@ export type ImageInputProps = {
   aspectRatio?: string;
   fileAccept?: string;
   sizeLimit?: number;
+  isRequired?: boolean;
 };
 
 export default function ImageInput({
@@ -22,6 +23,7 @@ export default function ImageInput({
   aspectRatio = 'aspect-square',
   fileAccept = 'image/*',
   sizeLimit = 500 * 1024, // in byte, 1024 byte = 1 KB, 1024 * 1024 byte = 1 MB
+  isRequired = false,
 }: ImageInputProps) {
   const [error, setError] = useState<boolean>(false);
   const imageRef = useRef<HTMLInputElement | null>(null);
@@ -46,7 +48,7 @@ export default function ImageInput({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-between items-center w-full">
-        <p className="flex items-center text-md font-medium h-10">{title}</p>
+        <p className="flex items-center text-md font-medium h-10 gap-1">{title}</p>
         {previewImage && (
           <Button
             size="md"
@@ -67,7 +69,7 @@ export default function ImageInput({
       <div
         className={`
           flex justify-center items-center ${aspectRatio} 
-          rounded-xl border border-default-200 bg-default-50 transition-all duration-300 hover:cursor-pointer 
+          rounded-xl border ${isRequired ? 'border-red-500 bg-red-100' : 'border-default-200 bg-default-50'} transition-all duration-300 hover:cursor-pointer 
           hover:bg-default overflow-hidden
         `}
         onClick={() => imageRef.current?.click()}
@@ -100,6 +102,8 @@ export default function ImageInput({
           </div>
         )}
       </div>
+
+      {isRequired && <span className="text-center text-danger">Please upload image</span>}
 
       <Input
         ref={imageRef}

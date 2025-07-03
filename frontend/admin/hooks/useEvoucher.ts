@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { apiRequest, ApiResponse } from "@/utils/api";
 import { Evoucher } from "@/types/evoucher";
+import { addToast } from "@heroui/react";
 
 export function useEvoucher() {
     const [evouchers, setEvouchers] = useState<Evoucher[]>([]);
@@ -13,7 +14,7 @@ export function useEvoucher() {
         setError(null);
         try {
             const res = await apiRequest<{ data: Evoucher[] }>("/evouchers?limit=0", "GET");
-            
+
             setEvouchers(Array.isArray(res.data) ? res.data : []);
             return res;
         } catch (err) {
@@ -32,10 +33,25 @@ export function useEvoucher() {
         setLoading(true);
         try {
             const res = await apiRequest<{ data: Evoucher }>("/evouchers", "POST", evoucherData);
-            const newEvoucher = res.data?.data;
-            if (newEvoucher) {
-                setEvouchers(prev => [...prev, newEvoucher]);
+
+            console.log(res);
+            if (!(res.statusCode === 201)) {
+                addToast({
+                    title: 'Evoucher created failed.',
+                    description: res.message,
+                    color: 'danger',
+                })
+                return;
             }
+            if (res.data) {
+                setEvouchers(prev => [...prev, res.data?.data!]);
+                addToast({
+                    title: 'Success',
+                    description: 'Evoucher created successfully.',
+                    color: 'success',
+                })
+            }
+
             return res;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to create evoucher.';
@@ -50,14 +66,19 @@ export function useEvoucher() {
     const updateEvoucher = async (evoucherId: string, evoucherData: FormData) => {
         setLoading(true);
         try {
-            const res = await apiRequest<{ data: Evoucher }>(`/evouchers/${evoucherId}`, "PATCH", evoucherData);
-            const updatedEvoucher = res.data?.data;
+            const res = await apiRequest<Evoucher>(`/evouchers/${evoucherId}`, "PATCH", evoucherData);
+            const updatedEvoucher = res.data;
             if (updatedEvoucher) {
                 setEvouchers(prev =>
                     prev.map(evoucher =>
                         evoucher._id === evoucherId ? updatedEvoucher : evoucher
                     )
                 );
+                addToast({
+                    title: 'Success',
+                    description: 'Evoucher updated successfully',
+                    color: 'success',
+                })
             }
             return res;
         } catch (err) {

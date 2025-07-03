@@ -6,7 +6,7 @@ import SystemsList from './_components/SystemsList';
 
 export default function SponsorSystems() {
 
-  const elements = [
+  const site = [
     {
       title: 'Sponsor',
       description: 'Sponsor Management',
@@ -32,7 +32,7 @@ export default function SponsorSystems() {
       <PageHeader description="Manage sponsor, evoucher and relative data" icon={<CircleDollarSign />} />
       <div className="flex flex-col">
         <div className="grid grid-cols-1 gap-3">
-          {elements.map((item, index) => (
+          {site.map((item, index) => (
             <SystemsList 
               key={index}
               item={item}

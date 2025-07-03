@@ -43,7 +43,7 @@ export function EvoucherCodeModal({
 
     if (userId || roleId) {
       onSuccess(
-        (evoucherCodes[0].evoucher as Evoucher)._id,
+        (evoucherCodes[0].evoucher as Evoucher)._id ?? '',
         userId?.toString() || '',
         roleId?.toString() || '',
       );
@@ -63,10 +63,7 @@ export function EvoucherCodeModal({
     <Modal isOpen={isOpen} onClose={handleCancel} isDismissable={false}>
       <ModalContent>
         <Form onSubmit={handleSubmit}>
-          <ModalHeader>
-            Add {(evoucherCodes[0].evoucher as Evoucher)?.name?.en} Evoucher
-            Code
-          </ModalHeader>
+          <ModalHeader>Add Evoucher Code</ModalHeader>
           <ModalBody className="flex gap-4 w-full">
             <span className="font-medium">Add by user</span>
             <Autocomplete

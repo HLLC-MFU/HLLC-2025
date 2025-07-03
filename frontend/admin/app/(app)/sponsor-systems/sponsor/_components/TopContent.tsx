@@ -1,11 +1,11 @@
 import { PlusIcon, SearchIcon } from 'lucide-react';
 import { Button, Input } from '@heroui/react';
 
-interface TopContentProps {
+type TopContentProps = {
   filterValue: string;
   onSearchChange: (value: string) => void;
-  onAdd: () => void;
   onClear: () => void;
+  onAdd: () => void;
 }
 
 export function TopContent({
@@ -23,13 +23,13 @@ export function TopContent({
           placeholder="Search sponsors..."
           startContent={<SearchIcon />}
           value={filterValue}
-          onValueChange={onSearchChange}
           onClear={onClear}
+          onValueChange={onSearchChange}
         />
         <Button
           className="flex-1 sm:flex-none"
           color="primary"
-          endContent={<PlusIcon />}
+          endContent={<PlusIcon size={20} />}
           onPress={onAdd}
         >
           Add Sponsor
