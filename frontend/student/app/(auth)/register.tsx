@@ -60,7 +60,6 @@ export default function RegisterScreen() {
                     province: string;
                 };
             }>(`/auth/student/status/${inputUsername}`, "GET");
-
             if (res.statusCode === 200 && res.data?.user) {
                 const u = res.data.user;
                 const fullName = `${u.name.first}${u.name.middle ? " " + u.name.middle : ""

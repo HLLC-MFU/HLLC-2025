@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.jemiezler.student'
+    namespace 'com.mfuactivity.hllc'
     defaultConfig {
-        applicationId 'com.jemiezler.student'
+        applicationId 'com.mfuactivity.hllc'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

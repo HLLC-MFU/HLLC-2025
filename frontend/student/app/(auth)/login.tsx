@@ -6,9 +6,6 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { useToastController } from '@tamagui/toast';
 import provincesData from '@/data/provinces.json';
-import { Button, XStack } from 'tamagui';
-import { useLanguage } from '@/context/LanguageContext';
-import { Globe } from '@tamagui/lucide-icons';
 export default function LoginScreen() {
   // State
   const [username, setUsername] = useState('');
@@ -53,6 +50,18 @@ export default function LoginScreen() {
     }
   };
 
+  const handleLoginAfterRegister = async (username: string, password: string) => {
+    const loginSuccess = await signIn(username, password);
+    if (loginSuccess) {
+      toast.show('Login Success', { message: 'Welcome back!', type: 'success' });
+    } else {
+      toast.show('Login failed.', {
+        message: 'Please check your username and password.',
+        type: 'error',
+      });
+    }
+  };
+
   const handleRegister = async () => {
     if (!regUsername || !regPassword || !regConfirmPassword || !regSecret) {
       toast.show('Missing fields', { message: 'Please fill all fields.', type: 'error' });
@@ -64,18 +73,20 @@ export default function LoginScreen() {
       return;
     }
 
-    const success = await signUp({
+    const registerData = {
       username: regUsername,
       password: regPassword,
       confirmPassword: regConfirmPassword,
       metadata: {
         secret: regSecret
       }
-    });
+    };
+    const success = await signUp(registerData);
 
     if (success) {
       toast.show('Registration successful!', { message: 'Welcome to the platform!', type: 'success' });
       setIsRegisterSheetOpen(false);
+      await handleLoginAfterRegister(regUsername, regPassword);
     } else {
       toast.show('Registration failed', { message: 'Please try again later.', type: 'error' });
     }
