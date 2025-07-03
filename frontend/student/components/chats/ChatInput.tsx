@@ -13,10 +13,11 @@ import {
 } from 'react-native';
 import { Send, Plus, Smile, Reply } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Message } from '@/types/chatTypes';
 
 interface ChatInputProps {
   messageText: string;
-  setMessageText: (text: string) => void;
+  handleTextInput: (text: string) => void;
   handleSendMessage: () => void;
   handleImageUpload: () => void;
   handleTyping: () => void;
@@ -25,13 +26,13 @@ interface ChatInputProps {
   inputRef: React.RefObject<TextInput | null>;
   setShowStickerPicker: (show: boolean) => void;
   showStickerPicker: boolean;
-  replyTo?: any;
-  setReplyTo?: (msg?: any) => void;
+  replyTo?: Message;
+  setReplyTo?: (msg?: Message) => void;
 }
 
 const ChatInput = ({
   messageText,
-  setMessageText,
+  handleTextInput,
   handleSendMessage,
   handleImageUpload,
   handleTyping,
@@ -145,8 +146,7 @@ const ChatInput = ({
           style={[styles.input, isDisabled && styles.disabled]}
           value={messageText}
           onChangeText={(text) => {
-            setMessageText(text);
-            handleTyping();
+            handleTextInput(text);
           }}
           placeholder={isDisabled ? "กำลังเชื่อมต่อ..." : "พิมพ์ข้อความที่นี่..."}
           placeholderTextColor={isDisabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.6)'}

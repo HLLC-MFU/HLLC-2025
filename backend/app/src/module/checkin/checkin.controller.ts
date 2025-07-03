@@ -11,15 +11,16 @@ import { CheckinService } from './checkin.service';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { Checkin } from './schema/checkin.schema';
 import { FastifyRequest } from 'fastify';
+import { UserRequest } from 'src/pkg/types/users';
 
 @Controller('checkins')
 export class CheckinController {
-  constructor(private readonly checkinService: CheckinService) {}
+  constructor(private readonly checkinService: CheckinService) { }
 
   @Post()
   async create(
     @Body() createCheckinDto: CreateCheckinDto,
-    @Req() req: FastifyRequest & { user?: { _id?: string } },
+    @Req() req: UserRequest
   ): Promise<Checkin[]> {
     try {
       const user = req.user as { _id?: string } | undefined;

@@ -46,26 +46,39 @@
     },
     "nav": {
         "welcome": "ยินดีต้อนรับกลับมา",
-        "progress": "ความคืบหน้า"
+        "progress": "ความคืบหน้า",
+        "home": "หน้าแรก",
+        "activity": "กิจกรรม",
+        "qrCode": "คิวอาร์โคด",
+        "evoucher": "คูปอง",
+        "community": "ชุมชน"
     },
     "home": {
         "activities": "กิจกรรม",
         "seeAll": "ดูทั้งหมด"
     },
     "activty": {
-        "activities": "กิจกรรม",
+        "allActivities": "กิจกรรมทั้งหมด",
         "subtitle": "กำลังมา เร็วๆนี้...",
         "backward": "ย้อนกลับ"
     },
     "evoucher": {
         "title": "คูปอง",
         "subtitle": "กำลังมา เร็วๆนี้...",
-        "backward": "ย้อนกลับ"
+        "backward": "ย้อนกลับ",
+        "confirmTitle": "ยืนยันการใช้ E-Voucher",
+        "confirmMessage": "คุณแน่ใจหรือไม่ว่าต้องการใช้ E-Voucher นี้?"
     },
     "bottomNav": {
         "home": "หน้าแรก",
         "activity": "กิจกรรม",
         "evoucher": "คูปอง",
         "community": "ชุมชน"
+    },
+    "qrCode": {
+        "qrCode": "คิวอาร์โคด",
+        "camera": "กล้อง",
+        "schoolOf": "สำนักวิชา",
+        "studentId": "รหัสนักศึกษา"
     }
 }

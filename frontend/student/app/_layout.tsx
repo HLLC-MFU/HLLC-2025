@@ -7,13 +7,12 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { LanguageProvider } from '@/context/LanguageContext';
-import { createTamagui, TamaguiProvider, View } from 'tamagui';
+import { createTamagui, TamaguiProvider } from 'tamagui';
 import { defaultConfig } from '@tamagui/config/v4';
 import React from 'react';
 import { ToastProvider, ToastViewport } from '@tamagui/toast';

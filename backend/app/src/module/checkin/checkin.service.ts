@@ -3,23 +3,23 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import { CreateCheckinDto } from './dto/create-checkin.dto';
-import { User } from 'src/module/users/schemas/user.schema';
+import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { Checkin, CheckinDocument } from './schema/checkin.schema';
-import { Role } from '../role/schemas/role.schema';
-import { Activities } from 'src/module/activities/schemas/activities.schema';
+import { Role, RoleDocument } from '../role/schemas/role.schema';
+import { Activities, ActivityDocument } from 'src/module/activities/schemas/activities.schema';
 import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
 import { queryAll } from 'src/pkg/helper/query.util';
+import { Major, MajorDocument } from '../majors/schemas/major.schema';
 
 @Injectable()
 export class CheckinService {
   constructor(
-    @InjectModel(Checkin.name)
-    private readonly checkinModel: Model<CheckinDocument>,
-    @InjectModel(User.name) private readonly userModel: Model<User>,
-    @InjectModel(Role.name) private readonly roleModel: Model<Role>,
-    @InjectModel(Activities.name)
-    private readonly activityModel: Model<Activities>,
-  ) {}
+    @InjectModel(Checkin.name) private checkinModel: Model<CheckinDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Role.name) private roleModel: Model<RoleDocument>,
+    @InjectModel(Activities.name) private activityModel: Model<ActivityDocument>,
+    @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
+  ) { }
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
     const { staff: staffId, user: username, activities } = createCheckinDto;
@@ -50,6 +50,7 @@ export class CheckinService {
         userObjectId.toString(),
         this.userModel,
         this.roleModel,
+        this.majorModel,
       );
 
       if (!isAllowed) {
