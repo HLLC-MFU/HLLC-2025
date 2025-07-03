@@ -154,11 +154,12 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 
 			// Add file upload info if exists (matches ChatEventEmitter)
 			if msg.ChatMessage.Image != "" && msg.ChatMessage.StickerID == nil {
-				payload["filename"] = msg.ChatMessage.Image
-				payload["file"] = map[string]interface{}{
-					"path": msg.ChatMessage.Image, // Simplified path for consistency
+				filename := msg.ChatMessage.Image
+				if idx := strings.LastIndex(filename, "/"); idx != -1 {
+					filename = filename[idx+1:]
 				}
-				}
+				payload["file"] = filename
+			}
 				
 			// Add evoucher info if exists (matches ChatEventEmitter)
 			if msg.ChatMessage.EvoucherInfo != nil {

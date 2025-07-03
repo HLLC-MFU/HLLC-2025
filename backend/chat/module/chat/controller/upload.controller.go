@@ -11,7 +11,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"path/filepath"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -110,17 +109,6 @@ func (c *UploadController) handleUpload(ctx *fiber.Ctx) error {
 		})
 	}
 
-	filePath := filepath.Join("uploads", filename)
-
-	// Get user info
-	user, err := c.userService.GetUserById(ctx.Context(), userID)
-	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": "Failed to get user info",
-		})
-	}
-
 	// Create message object
 	now := time.Now()
 	msgID := primitive.NewObjectID()
@@ -129,45 +117,12 @@ func (c *UploadController) handleUpload(ctx *fiber.Ctx) error {
 		RoomID:    roomObjID,
 		UserID:    userObjID,
 		Message:   "",
-		FileURL:   filePath,
-		FileType:  "image",
-		FileName:  filename,
+		Image:     filename,
 		Timestamp: now,
 	}
 
-	// Create broadcast message with proper type and file info
-	broadcastMsg := map[string]interface{}{
-		"type": "upload",
-		"payload": map[string]interface{}{
-			"room": map[string]interface{}{
-				"_id": roomID,
-			},
-			"user": map[string]interface{}{
-				"_id":      userObjID.Hex(),
-				"username": user.Username,
-				"name": map[string]interface{}{
-					"first":  user.Name.First,
-					"middle": user.Name.Middle,
-					"last":   user.Name.Last,
-				},
-			},
-			"message": map[string]interface{}{
-				"_id":       msgID.Hex(),
-				"type":      "upload",
-				"message":   "",
-				"timestamp": now,
-			},
-			"filename": filename,
-			"file": map[string]interface{}{
-				"path": filePath,
-			},
-			"timestamp": now,
-		},
-		"timestamp": now,
-	}
-
-	// Send message
-	if err := c.chatService.SendMessage(ctx.Context(), msg, broadcastMsg); err != nil {
+	// Send message (broadcastMsg = nil, emitter will build correct payload)
+	if err := c.chatService.SendMessage(ctx.Context(), msg, nil); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "Error sending message",
