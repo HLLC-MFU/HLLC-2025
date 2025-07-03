@@ -50,8 +50,6 @@ export default function CheckinBarChart() {
     totalUser: item.totalUser,
   }));
 
-  console.log(studentCheckinChartsData)
-
   const downloadCSV = () => {
     const activityNames = Array.from(
       new Set(checkin.map((c) => c.activity?.name?.en || 'Unknown')),
