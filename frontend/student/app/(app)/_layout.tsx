@@ -9,26 +9,21 @@ import { useEffect, useState } from 'react';
 import TabBar from '@/components/global/TabBar';
 import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
 import { useAppearance } from '@/hooks/useAppearance';
-import messaging from '@react-native-firebase/messaging';
+import usePushNotification from '@/hooks/notifications/usePushNotification';
 
 function LayoutWrapper() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const assets = useAppearance();
+  const { initializePushNotification } = usePushNotification();
 
   useEffect(() => {
     getProfile().finally(() => {
       setLoading(false);
       SplashScreen.hideAsync();
     });
-  }, []);
-
-  useEffect(() => {
-    requestUserPermission();
-    messaging().setBackgroundMessageHandler(async remoteMessage => {
-      console.log('Message handled in the background!', remoteMessage);
-    });
+    initializePushNotification();
   }, []);
 
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
@@ -71,23 +66,4 @@ function LayoutWrapper() {
       </Tabs>
     </View>
   );
-}
-
-export default function Layout() {
-  return <LayoutWrapper />;
-}
-
-async function requestUserPermission() {
-  const authStatus = await messaging().requestPermission();
-  const enabled =
-    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-
-  if (enabled) {
-    console.log('Notification permission granted.');
-  }
-
-  const token = await messaging().getToken();
-  console.log('FCM Token:', token);
-  return token;
 }

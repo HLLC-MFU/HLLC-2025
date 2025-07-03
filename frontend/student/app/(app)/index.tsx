@@ -32,14 +32,7 @@ export default function HomeScreen() {
     signOut: assets?.signOut ?? null,
   };
 
-  useEffect(() => {
-    const unsubscribe = messaging().onMessage(async remoteMessage => {
-      Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
-    });
-
-    return unsubscribe;
-  }, []);
-    const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(new Date());
   const { steps } = useHealthData(date);
 
   const content = (
