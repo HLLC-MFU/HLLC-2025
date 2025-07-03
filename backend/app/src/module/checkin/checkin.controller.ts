@@ -41,4 +41,10 @@ export class CheckinController {
   async findAll (@Query() query: Record<string, string>){
     return this.checkinService.findAll(query)
   }
+
+  @Get('statistics')
+  async getCheckinCountByActivity() {
+    return this.checkinService.getCheckinCountByActivity();
+  }
+
 }

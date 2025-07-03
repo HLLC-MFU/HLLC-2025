@@ -13,7 +13,8 @@ import { queryAll } from 'src/pkg/helper/query.util';
 @Injectable()
 export class CheckinService {
   constructor(
-    @InjectModel(Checkin.name) private readonly checkinModel: Model<CheckinDocument>,
+    @InjectModel(Checkin.name)
+    private readonly checkinModel: Model<CheckinDocument>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(Role.name) private readonly roleModel: Model<Role>,
     @InjectModel(Activities.name)
@@ -91,19 +92,66 @@ export class CheckinService {
     return this.checkinModel.insertMany(docs) as unknown as Checkin[];
   }
 
-  async findAll (query: Record<string,string>) {
+  async findAll(query: Record<string, string>) {
     return await queryAll<Checkin>({
       model: this.checkinModel,
       query: {
-        ...query
+        ...query,
       },
       filterSchema: {},
       populateFields: () =>
         Promise.resolve([
-          {path : 'user'},
-          {path : 'staff'},
-          {path : 'activity'}
-        ])
-    })
+          {
+            path: 'user',
+            populate: {
+              path: 'metadata.major',
+              model: 'Major',
+              populate: { path: 'school' },
+            },
+          },
+          { path: 'staff' },
+          { path: 'activity' },
+        ]),
+    });
+  }
+
+  async getCheckinCountByActivity() {
+    // หาค่าไม่ซ้ำของ actvity จาก checkin
+    const activityIds = await this.checkinModel.distinct("activity");
+    const studentRole = await this.roleModel.findOne({ name: 'student' });
+    const userCount = await this.userModel.countDocuments({ role: studentRole?._id });
+
+    // หากิจกรรมที่มี ID ตรงกับ activityIds แล้วดึงชื่อกิจกรรม
+    const activities = await this.activityModel
+      .find({ _id: { $in: activityIds } })
+      .select('name type')
+      .populate('type', 'name')
+      .lean();
+
+    const result = await Promise.all(
+      activities.map(async (activity) => {
+        const countCheckin = await this.checkinModel.countDocuments({
+          activity: activity._id,
+        });
+
+        const notCheckin = userCount - countCheckin;
+
+        return {
+          _id: activity._id,
+          name: activity.name,
+          activity:
+            typeof activity.type === 'object' &&
+            activity.type !== null &&
+            'name' in activity.type
+              ? (activity.type as { name: string }).name
+              : '',
+          checkin: countCheckin,
+          notCheckin: notCheckin,
+          total: userCount,
+        };
+      }),
+    );
+
+    return result;
   }
 }
