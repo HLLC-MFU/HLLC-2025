@@ -9,7 +9,7 @@ const useHealthDataForPlatform = Platform.select({
   android: () => require('./useHealthConnectData').default, // โหลด useHealthConnectData.tsx สำหรับ Android
   default: () => (date: Date) => {
     // Fallback สำหรับแพลตฟอร์มอื่นๆ หรือในกรณีที่ไม่มี Health API
-    console.log('Health data not available for this platform (neither iOS nor Android).');
+    // console.log('Health data not available for this platform (neither iOS nor Android).');
     return { steps: 0, flights: 0, distance: 0 };
   },
 })(); // ต้องมี () ปิดท้ายเพื่อเรียกใช้ฟังก์ชันที่ Platform.select คืนค่ามา
