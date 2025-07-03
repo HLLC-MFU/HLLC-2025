@@ -64,7 +64,7 @@ func (c *RoomController) setupRoutes() {
 	c.Get("/non-group", c.rbac.RequireReadOnlyAccess(), c.GetNonGroupRooms)
 	c.Get("/:id", c.rbac.RequireReadOnlyAccess(), c.GetRoomById)
 	c.Patch("/:id", c.UpdateRoom)
-	c.Post("/", c.CreateRoom, c.rbac.RequireAdministrator())
+	c.Post("/", c.CreateRoom, c.rbac.RequireAnyRole())
 	c.Delete("/:id", c.DeleteRoom)
 	c.Post("/:id/join", c.JoinRoom)
 	c.Post("/:id/leave", c.LeaveRoom)

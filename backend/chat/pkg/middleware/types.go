@@ -7,6 +7,7 @@ import "github.com/gofiber/fiber/v2"
 type IRBACMiddleware interface {
 	RequireAdministrator() fiber.Handler
 	RequireRoles(roles ...string) fiber.Handler
+	RequireAnyRole() fiber.Handler
 	RequireWritePermission() fiber.Handler
 	RequireWritePermissionForEvoucher() fiber.Handler
 	RequireReadOnlyAccess() fiber.Handler

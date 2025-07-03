@@ -106,6 +106,12 @@ func (r *RBACMiddleware) RequireWritePermissionForEvoucher() fiber.Handler {
 	}
 }
 
+func (r *RBACMiddleware) RequireAnyRole() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		return ctx.Next()
+	}
+}
+
 // RequireReadOnlyAccess allows read access for all authenticated users
 func (r *RBACMiddleware) RequireReadOnlyAccess() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
