@@ -19,6 +19,7 @@ import (
 // Available roles for RBAC
 const (
 	RoleAdministrator = "Administrator"
+	RoleAE = "AE"
 	RoleStaff        = "Staff"
 	RoleStudent      = "Student"
 )
@@ -65,6 +66,36 @@ func (r *RBACMiddleware) RequireWritePermission() fiber.Handler {
 
 		// Only Administrator and Staff can write in read-only rooms
 		if role == RoleAdministrator || role == RoleStaff {
+			return ctx.Next()
+		}
+
+		return ctx.Status(403).JSON(fiber.Map{
+			"error":   "INSUFFICIENT_PERMISSIONS",
+			"message": "You don't have permission to write in this room",
+		})
+	}
+}
+
+func (r *RBACMiddleware) RequireWritePermissionForEvoucher() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		userID, err := r.getUserIDFromToken(ctx)
+		if err != nil {
+			return ctx.Status(401).JSON(fiber.Map{
+				"error":   "UNAUTHORIZED",
+				"message": "Authentication required",
+			})
+		}
+
+		role, err := r.GetUserRole(userID)
+		if err != nil {
+			return ctx.Status(500).JSON(fiber.Map{
+				"error":   "INTERNAL_ERROR",
+				"message": "Failed to verify user role",
+			})
+		}
+
+		// Only Administrator and Staff and AE can write in read-only rooms
+		if role == RoleAdministrator || role == RoleStaff || role == RoleAE {
 			return ctx.Next()
 		}
 

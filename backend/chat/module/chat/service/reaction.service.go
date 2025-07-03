@@ -36,9 +36,9 @@ func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.Messag
 	})
 	
 	if existingReaction.Err() == nil {
-		log.Printf("[ChatService] Reaction already exists for message %s by user %s", 
-			reaction.MessageID.Hex(), reaction.UserID.Hex())
-		return fmt.Errorf("reaction already exists")
+		log.Printf("[ChatService] Reaction already exists for message %s by user %s", reaction.MessageID.Hex(), reaction.UserID.Hex())
+		_ = s.RemoveReaction(ctx, reaction.MessageID.Hex(), reaction.UserID.Hex())
+		return nil
 	}
 
 	// Insert new reaction document

@@ -261,11 +261,17 @@ func (ns *NotificationService) SendOfflineReactionNotification(ctx context.Conte
 		return
 	}
 
+	// Determine action (add/remove)
+	action := "add"
+	if reaction.Reaction == "remove" {
+		action = "remove"
+	}
+
 	// Build rich payload
 	payload := map[string]interface{}{
 		"type": "reaction",
 		"payload": map[string]interface{}{
-			"action": reaction.Reaction,
+			"action": action,
 			"reactToId": map[string]interface{}{
 				"_id": message.ID.Hex(),
 			},
@@ -279,6 +285,9 @@ func (ns *NotificationService) SendOfflineReactionNotification(ctx context.Conte
 					"last":   sender.LastName,
 					"middle": "",
 				},
+			},
+			"room": map[string]interface{}{
+				"_id": message.RoomID.Hex(),
 			},
 		},
 		"timestamp": reaction.Timestamp,
