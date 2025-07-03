@@ -23,9 +23,6 @@ export class Evoucher {
   @Prop({ required: true, type: Number })
   order: number;
 
-  @Prop({ required: true, type: String })
-  code: Types.ObjectId;
-
   @Prop({ required: true, type: Date })
   startAt: Date;
 
@@ -43,6 +40,9 @@ export class Evoucher {
 
   @Prop({ type: Types.ObjectId, ref: 'Sponsor' })
   sponsor: Types.ObjectId;
+
+  @Prop({ type: Object, default: {} })
+  metadata?: Record<string, string>;
 }
 
 export const EvoucherSchema = SchemaFactory.createForClass(Evoucher);
