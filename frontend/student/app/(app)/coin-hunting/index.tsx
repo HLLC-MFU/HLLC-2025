@@ -4,7 +4,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import InteractiveMap from './_components/interactive-map';
 import MapMarkers from './_components/map-markers';
 import MarkerDetailModal from './_components/marker-detail-modal';
-import QRScannerModal from './_components/qr-scanner-modal';
 import SuccessModal from './_components/success-modal';
 import AlertModal from './_components/alert-modal';
 import TopBar from './_components/top-bar';
@@ -46,12 +45,6 @@ export default function CoinHuntingScreen() {
         marker={selectedMarker}
         onClose={closeModal}
         onCheckIn={handleCheckIn}
-      />
-      <QRScannerModal
-        visible={modal === 'scanner'}
-        onClose={closeModal}
-        onSuccess={handleScannerSuccess}
-        onAlert={handleAlert}
       />
       <SuccessModal
         visible={modal === 'success'}

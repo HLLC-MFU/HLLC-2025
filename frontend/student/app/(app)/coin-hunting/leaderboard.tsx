@@ -20,7 +20,7 @@ interface LeaderboardEntry {
   rank: number;
 }
 
-export default function CoinHuntingLeaderboard() {
+export default function CoinHuntingLeaderboardScreen() {
   const [data, setData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +112,7 @@ export default function CoinHuntingLeaderboard() {
       </View>
       <DynamicLeaderboard
         users={users}
-        usersData={usersData}
+        usersData={usersData.slice(3, 20)}
         currentUserData={currentUserData}
         getFullName={getFullName}
         width={width}

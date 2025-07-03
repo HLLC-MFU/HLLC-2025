@@ -1,3 +1,5 @@
+// (app)/_layout.tsx
+
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { SplashScreen, Tabs, usePathname } from 'expo-router';
 import { Redirect } from 'expo-router';
@@ -9,7 +11,7 @@ import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
 import { useAppearance } from '@/hooks/useAppearance';
 import usePushNotification from '@/hooks/notifications/usePushNotification';
 
-export default function Layout() {
+function LayoutWrapper() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
@@ -27,7 +29,6 @@ export default function Layout() {
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
   if (!user) return <Redirect href="/(auth)/login" />;
 
-  // Check if we're in the chat room section
   const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
 
   return (

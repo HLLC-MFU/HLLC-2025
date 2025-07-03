@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, View, Text, TouchableOpacity, Image, Linking, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useRouter } from 'expo-router';
 
 interface Marker {
   x: number;
@@ -24,6 +25,8 @@ export default function MarkerDetailModal({
   onClose, 
   onCheckIn 
 }: MarkerDetailModalProps) {
+  const router = useRouter();
+
   return (
     <Modal
       visible={visible}
@@ -64,7 +67,12 @@ export default function MarkerDetailModal({
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.modalButton]}
-                    onPress={onCheckIn}
+                    onPress={() => {
+                      onClose();
+                      setTimeout(() => {
+                        router.push({ pathname: '/qrcode', params: { tab: 'scan' } });
+                      }, 200);
+                    }}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <MaterialCommunityIcons 
