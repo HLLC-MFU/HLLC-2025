@@ -38,7 +38,7 @@ export class Evoucher {
   @Prop({ required: true, type: Number })
   amount: number;
 
-  @Prop({ type: Types.ObjectId, ref: 'Sponsor' })
+  @Prop({ type: Types.ObjectId, ref: 'Sponsors' })
   sponsor: Types.ObjectId;
 
   @Prop({ type: Object, default: {} })

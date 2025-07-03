@@ -1,4 +1,5 @@
 import { Lang } from "./lang";
+import { Major } from "./major";
 import { Role } from "./role";
 import { School } from "./school";
 
@@ -10,8 +11,8 @@ export type User = {
         last?: string;
     };
     username: string;
-    role: Role;
-    metadata?: Metadata[];
+    role: Role | string;
+    metadata?: Record<string | string>;
 };
 
 export type UserName = {
@@ -19,11 +20,3 @@ export type UserName = {
     middle?: string;
     last: string;
 };
-
-export type Metadata = {
-    major: {
-        _id: string;
-        name: Lang;
-        school: School;
-    };
-}

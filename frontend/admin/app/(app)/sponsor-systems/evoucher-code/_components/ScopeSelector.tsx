@@ -81,7 +81,7 @@ export function ScopeSelector<T>({
         {isLoading ? (
           <div className="text-center text-default-500 py-2">Loading...</div>
         ) : filteredItems.length === 0 ? (
-          <div className="text-center text-default-500 py-2">No users found</div>
+          <div className="text-center text-default-500 py-2">{isDisabled ? 'Please select evoucher' : 'No users found'}</div>
         ) : (
           filteredItems.map((item) => {
             const id = getId(item);

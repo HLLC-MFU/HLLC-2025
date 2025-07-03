@@ -37,7 +37,7 @@ export class EvouchersService {
   }
 
   findAll() {
-    return this.evoucherModel.find().lean();
+    return this.evoucherModel.find().populate('sponsor').lean();
   }
 
   findOne(id: string) {
@@ -45,8 +45,8 @@ export class EvouchersService {
   }
 
   async update(id: string, updateDto: UpdateEvoucherDto) {
-    const oldEvoucher = await this.evoucherModel.findById(id).lean();
-    if (!oldEvoucher) throw new NotFoundException('Evoucher not found');
+    const originEvoucher = await this.evoucherModel.findById(id).lean();
+    if (!originEvoucher) throw new NotFoundException('Evoucher not found');
 
     if (updateDto.sponsor) {
       await this.validateSponsorExists(updateDto.sponsor);
@@ -61,8 +61,8 @@ export class EvouchersService {
     if (!updatedEvoucher)
       throw new NotFoundException('Updated evoucher not found');
 
-    if (updateDto.amount && updateDto.amount > oldEvoucher.amount) {
-      const diff = updateDto.amount - oldEvoucher.amount;
+    if (updateDto.amount && updateDto.amount > originEvoucher.amount) {
+      const diff = updateDto.amount - originEvoucher.amount;
 
       await this.evoucherCodesService.generateCodesForEvoucher(
         updatedEvoucher._id.toString(),

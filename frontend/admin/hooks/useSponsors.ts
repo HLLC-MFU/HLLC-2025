@@ -1,24 +1,25 @@
-import { EvoucherCode } from "@/types/evoucher-code";
-import { Sponsors } from "@/types/sponsors";
-import { apiRequest } from "@/utils/api";
-import { addToast } from "@heroui/react";
-import { useEffect, useState } from "react";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { EvoucherCode } from '@/types/evoucher-code';
+import { Sponsors } from '@/types/sponsors';
+import { apiRequest } from '@/utils/api';
+import { addToast } from '@heroui/react';
+import { useEffect, useState } from 'react';
 
 export function useSponsors() {
   const [sponsors, setSponsors] = useState<Sponsors[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch all sponsors
   const fetchSponsors = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiRequest<{ data: Sponsors[] }>("/sponsors?limit=0", "GET");
+      const res = await apiRequest<{ data: Sponsors[] }>(
+        '/sponsors?limit=0',
+        'GET',
+      );
 
-      setSponsors(Array.isArray(res.data?.data) ? res.data.data : []);
+      setSponsors(Array.isArray(res.data) ? res.data : []);
       return res;
     } catch (err) {
       setError(
@@ -31,31 +32,10 @@ export function useSponsors() {
     }
   };
 
-  // FetchEvoucherCodeBySponsorId
-  const fetchEvoucherCodeBySponsorId = async (id: string): Promise<EvoucherCode[]> => {
-    if (!id) {
-      console.error("Invalid sponsor ID");
-      return [];
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiRequest<{ data: EvoucherCode[] }>(`/sponsors/${id}/evoucher-codes`);
-      return Array.isArray(res.data) ? res.data : [];
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch evoucher codes.');
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Create sponsor
   const createSponsors = async (sponsorData: FormData) => {
+    setLoading(true);
     try {
-      setLoading(true);
-
       const res = await apiRequest<Sponsors>('/sponsors', 'POST', sponsorData);
 
       if (res.data) {
@@ -74,24 +54,17 @@ export function useSponsors() {
     }
   };
 
-  const updateSponsors = async (
-    id: string,
-    sponsorsData: FormData,
-  ): Promise<void> => {
+  const updateSponsors = async (id: string, sponsorsData: FormData) => {
     if (!id) {
-      console.error("Invalid sponsor ID");
+      console.error('Invalid sponsor ID');
       return;
     }
 
     sponsorsData.delete('_id');
 
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await apiRequest<Sponsors>(
-        `/sponsors/${id}`,
-        'PATCH',
-        sponsorsData,
-      );
+      const res = await apiRequest<Sponsors>(`/sponsors/${id}`, 'PATCH', sponsorsData);
 
       if (res.data) {
         setSponsors((prev) => prev.map((s) => (s._id === id ? res.data! : s)));
@@ -100,6 +73,8 @@ export function useSponsors() {
           color: 'success',
         });
       }
+
+      return res;
     } catch (err: any) {
       setError(err.message || 'Failed to update sponsors.');
     } finally {
@@ -107,10 +82,9 @@ export function useSponsors() {
     }
   };
 
-
   const deleteSponsors = async (id: string): Promise<void> => {
+    setLoading(true);
     try {
-      setLoading(true);
       const res = await apiRequest(`/sponsors/${id}`, 'DELETE');
 
       if (res.statusCode === 200) {
@@ -141,6 +115,5 @@ export function useSponsors() {
     createSponsors,
     updateSponsors,
     deleteSponsors,
-    fetchEvoucherCodeBySponsorId,
   };
 }

@@ -1,29 +1,19 @@
-import { Evoucher } from "@/types/evoucher";
 import { Button, Input } from "@heroui/react";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import React from "react";
-import type { Selection } from "@react-types/shared";
-
 
 type TopContentProps = {
-    setActionText: (value: "Add" | "Edit") => void;
     filterValue: string;
-    capitalize: (value: string) => string;
-    filteredItems: Evoucher[];
-    page: number;
-    pages: number;
-    setPage: (page: number) => void;
-    onPreviousPage: () => void;
-    onNextPage: () => void;
     onClear: () => void;
     onSearchChange: (value: string) => void;
+    onAdd: () => void;
 }
 
 export default function TopContent({
-    setActionText,
     filterValue,
     onClear,
     onSearchChange,
+    onAdd,
 }: TopContentProps) {
     return (
         <div className="flex flex-col gap-4">
@@ -34,12 +24,17 @@ export default function TopContent({
                     placeholder="Search evoucher"
                     startContent={<SearchIcon />}
                     value={filterValue}
-                    onClear={() => onClear()}
+                    onClear={onClear}
                     onValueChange={onSearchChange}
                 />
-                <div className="flex gap-3">
-                    <Button onPress={() => { setActionText("Add"); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
-                </div>
+                <Button
+                    className="flex-1 sm:flex-none"
+                    color="primary"
+                    endContent={<PlusIcon size={20} />}
+                    onPress={onAdd}
+                >
+                    Add Evoucher
+                </Button>
             </div>
         </div>
     )

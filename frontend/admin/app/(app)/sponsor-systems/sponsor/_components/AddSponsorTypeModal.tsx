@@ -1,4 +1,4 @@
-import React from "react";
+import React, { FormEvent, useEffect, useRef, useState } from 'react';
 import {
   Button,
   Form,
@@ -8,26 +8,43 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
-} from "@heroui/react";
+  Select,
+  SelectItem,
+} from '@heroui/react';
+import { SponsorType } from '@/types/sponsors';
 
 export type AddSponsorTypeProps = {
   isOpen: boolean;
   onClose: () => void;
-  onAddType: (type: { name: string }) => void;
+  onAddType: (type: { name: string; priority: number }) => void;
+  sponsorsType: SponsorType[];
 };
 
 export default function AddSponsorTypeModal({
   isOpen,
   onClose,
   onAddType,
+  sponsorsType,
 }: AddSponsorTypeProps) {
-  const typeNameRef = React.useRef<HTMLInputElement>(null);
+  const typeNameRef = useRef<HTMLInputElement>(null);
+  const [priority, setPriority] = useState<number>(0);
+  const [disabledKeys, setDisableKeys] = useState<string[]>([]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    const key = sponsorsType
+      .filter((type) => type.priority !== undefined)
+      .map((type) => (type.priority - 1).toString());
+    setDisableKeys(key);
+  }, [sponsorsType]);
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!typeNameRef.current?.value) return;
 
-    onAddType({ name: typeNameRef.current.value });
+    onAddType({
+      name: typeNameRef.current.value,
+      priority: priority,
+    });
   };
 
   return (
@@ -50,6 +67,17 @@ export default function AddSponsorTypeModal({
               placeholder="Enter Type Name"
               ref={typeNameRef}
             />
+            <Select
+              isRequired
+              label="Priority"
+              placeholder="Select priority"
+              onChange={(e) => setPriority(Number(e.target.value) + 1)}
+              disabledKeys={disabledKeys}
+            >
+              {Array.from({ length: 20 }).map((_, index) => (
+                <SelectItem key={index}>{(index + 1).toString()}</SelectItem>
+              ))}
+            </Select>
           </ModalBody>
           <ModalFooter className="w-full">
             <Button color="danger" variant="light" onPress={onClose}>
@@ -63,4 +91,4 @@ export default function AddSponsorTypeModal({
       </ModalContent>
     </Modal>
   );
-} 
+}

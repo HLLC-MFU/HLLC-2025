@@ -15,6 +15,9 @@ export class Sponsors {
   @Prop({ required: true, type: Types.ObjectId, ref: 'SponsorsType' })
   type: Types.ObjectId;
 
+  @Prop({ required: true, type: Number })
+  priority: number;
+
   @Prop({ required: false, type: Object })
   color: {
     primary: string;
@@ -22,3 +25,4 @@ export class Sponsors {
   };
 }
 export const SponsorsSchema = SchemaFactory.createForClass(Sponsors);
+SponsorsSchema.index({ type: 1, priority: 1 }, { unique: true });

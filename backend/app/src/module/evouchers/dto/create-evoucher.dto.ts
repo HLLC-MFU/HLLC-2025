@@ -7,6 +7,7 @@ import {
   ValidateNested,
   IsDateString,
   IsMongoId,
+  IsObject,
 } from 'class-validator';
 
 class LocalizationDto {
@@ -62,9 +63,12 @@ export class CreateEvoucherDto {
   @IsNumber()
   amount: number;
 
-  @IsOptional()
   @IsString()
-  sponsor?: string;
+  sponsor: string;
+
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, string>;
 }
 
 export class AddEvoucherCodeDto {
