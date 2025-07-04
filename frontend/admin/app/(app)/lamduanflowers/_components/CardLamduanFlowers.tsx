@@ -15,7 +15,9 @@ export default function CardLamduanFlowers({ lamduanflowers, onDelete, onView }:
       <Card isBlurred className="py-2 border-none bg-background/60 dark:bg-default-100/50" shadow="sm">
         <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
           <p className="text-medium uppercase font-bold truncate max-w-full">{lamduanflowers.user.username}</p>
-          <small className="text-default-800 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
+          <small className="text-default-800 overflow-hidden text-ellipsis whitespace-nowrap max-w-full" 
+          style={{ minHeight: 20, display: 'block' }}
+          >
             {typeof lamduanflowers.comment === 'object'
               ? (lamduanflowers.comment || 'No comment')
               : lamduanflowers.comment}

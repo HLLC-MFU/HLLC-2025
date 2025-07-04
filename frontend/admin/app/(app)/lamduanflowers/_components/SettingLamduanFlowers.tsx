@@ -117,10 +117,35 @@ export function SettingLamduanFlowers({
     );
   }, [videoLink, startDate, endDate, file]);
 
+  const isYoutubeLink = (urlString: string) => {
+    try {
+      const url = new URL(urlString.trim());
+      const hostname = url.hostname.toLowerCase();
+
+      if (hostname === "www.youtube.com" || hostname === "youtube.com") {
+        return url.searchParams.has("v") && url.searchParams.get("v")!.length === 11;
+      }
+
+      if (hostname === "youtu.be") {
+        const videoId = url.pathname.slice(1);
+        return videoId.length === 11;
+      }
+
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
   const handleValidateAndSave = () => {
     const newErrors = {
       file: !file && !preview ? "Image is required" : "",
-      videoLink: videoLink.trim() === "" ? "Video link is required" : "",
+      videoLink:
+        videoLink.trim() === ""
+          ? "Video link is required"
+          : !isYoutubeLink(videoLink)
+          ? "Video link must be a valid YouTube URL"
+          : "",
       startDate: startDate.trim() === "" ? "Start date is required" : "",
       endDate: endDate.trim() === "" ? "End date is required" : "",
     };
@@ -164,11 +189,15 @@ export function SettingLamduanFlowers({
             <span className="text-xs">No image uploaded</span>
           </div>
         )}
-        <input ref={inputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
       </div>
-      {errors.file && (
-        <p className="text-sm text-danger  mt-1">{errors.file}</p>
-      )}
+      {errors.file && <p className="text-sm text-danger  mt-1">{errors.file}</p>}
 
       <div className="flex w-full flex-wrap md:flex-nowrap mb-2 gap-4 py-2">
         <Input
@@ -182,7 +211,6 @@ export function SettingLamduanFlowers({
             setVideoLink(e.target.value);
             clearError('videoLink');
           }}
-
           isInvalid={!!errors.videoLink}
           errorMessage={errors.videoLink}
         />
@@ -212,7 +240,7 @@ export function SettingLamduanFlowers({
           type="datetime-local"
           value={endDate}
           onChange={(e) => {
-            setEndDate(e.target.value)
+            setEndDate(e.target.value);
             clearError('endDate');
           }}
           isInvalid={!!errors.endDate}
