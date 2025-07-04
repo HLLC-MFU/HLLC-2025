@@ -13,6 +13,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mfuactivity.hllc",
       "infoPlist": {
+        "UIBackgroundModes": [
+          "process"
+        ],
         "ITSAppUsesNonExemptEncryption": false,
         "NSHealthShareUsageDescription": "Allow $(PRODUCT_NAME) to read health data.",
         "NSHealthUpdateUsageDescription": "Allow $(PRODUCT_NAME) to write health data."
@@ -71,7 +74,8 @@
           }
         }
       ],
-      "expo-background-task"
+      "expo-background-task",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true
@@ -79,7 +83,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": ""
+        "projectId": "280d56a7-4983-4741-9561-8bf4552036e0"
       }
     }
   }
