@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	mentionService "chat/module/chat/service"
+	reactionService "chat/module/chat/service"
 	userService "chat/module/user/service"
 
 	"github.com/gofiber/websocket/v2"
@@ -21,11 +23,11 @@ import (
 type (
 	WebSocketHandler struct {
 		chatService        ChatService
-		mentionService     MentionChatService
-		reactionService    ReactionChatService
-		roomService       RoomService
+		mentionService     mentionService.MentionService
+		reactionService    reactionService.ReactionService
+		roomService        RoomService
 		restrictionService RestrictionServiceChatService
-		connManager       *connection.ConnectionManager
+		connManager        *connection.ConnectionManager
 		roleService        *userService.RoleService
 		rbacMiddleware     middleware.IRBACMiddleware
 	}
@@ -40,8 +42,8 @@ type (
 
 func NewWebSocketHandler(
 	chatService ChatService,
-	mentionService MentionChatService,
-	reactionService ReactionChatService,
+	mentionService mentionService.MentionService,
+	reactionService reactionService.ReactionService,
 	roomService RoomService,
 	restrictionService RestrictionServiceChatService,
 	connManager *connection.ConnectionManager,
@@ -304,8 +306,6 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		conn.Close()
 		return
 	}
-
-	// Subscribe to room's Kafka topic (non-blocking)
 
 	// Sub ไปยัง Kafka Topic Room (Async ไม่โดน Blocking แน่ๆ)
 	if err := h.chatService.SubscribeToRoom(ctx, roomID); err != nil {

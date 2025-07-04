@@ -58,7 +58,7 @@ func NewUploadController(
 }
 
 func (c *UploadController) setupRoutes() {
-	c.Post("/", c.handleUpload, c.rbac.RequireReadOnlyAccess())
+	c.Post("/", c.handleUpload, c.rbac.RequireAnyRole())
 	c.SetupRoutes()
 }
 

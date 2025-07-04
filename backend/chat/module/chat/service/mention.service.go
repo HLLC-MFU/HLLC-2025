@@ -13,6 +13,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type (
+	MentionService interface {
+		SendMentionMessage(ctx context.Context, userID, roomID primitive.ObjectID, messageText string) (*chatModel.ChatMessage, error)
+		GetMentionsForUser(ctx context.Context, userID string, limit int64) ([]chatModel.ChatMessageEnriched, error)
+	}
+
+	MentionRoomService interface {
+		IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+		CanUserSendMessage(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+	}
+)
+
 // SendMentionMessage sends a message with mentions
 func (s *ChatService) SendMentionMessage(ctx context.Context, userID, roomID primitive.ObjectID, messageText string) (*chatModel.ChatMessage, error) {
 	// **NEW: ตรวจสอบ moderation status ก่อนส่งข้อความ**
