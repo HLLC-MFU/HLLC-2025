@@ -26,8 +26,6 @@ const CENTER_Y = 160;
 export default function StampModal({
   visible,
   onClose,
-  stamps = 0,
-  onGetReward,
   coinImages = [], // <-- default empty array
 }: StampModalProps) {
   return (

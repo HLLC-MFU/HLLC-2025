@@ -70,7 +70,8 @@
             "minSdkVersion": 29
           }
         }
-      ]
+      ],
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true
@@ -78,7 +79,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "280d56a7-4983-4741-9561-8bf4552036e0"
+        "projectId": ""
       }
     }
   }

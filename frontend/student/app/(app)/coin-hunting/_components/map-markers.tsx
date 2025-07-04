@@ -96,8 +96,10 @@ export default function MapMarkers({ onMarkerPress }: MapMarkersProps) {
                 ? { uri: `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${m.coinImage}` }
                 : require('@/assets/images/14coin.png')
               }
-              style={{ width: 80, height: 80, resizeMode: 'contain' }}
-              blurRadius={!isCollected ? 30 : 0}
+              style={[
+                { width: 80, height: 80, resizeMode: 'contain' },
+                !isCollected && { tintColor: 'gray', opacity: 0.8 }
+              ]}
             />
           </TouchableOpacity>
         );
