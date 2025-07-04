@@ -1,11 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { StepAchievementService } from '../service/step-achievement.service';
 import { CreateStepAchievementDto } from '../dto/step-achievement/create-step-achievement.dto';
 import { UpdateStepAchievementDto } from '../dto/step-achievement/update-step-achievement.dto';
 
 @Controller('step-achievement')
 export class StepAchievementController {
-  constructor(private readonly stepAchievementService: StepAchievementService) { }
+  constructor(
+    private readonly stepAchievementService: StepAchievementService,
+  ) {}
 
   @Post()
   create(@Body() createStepAchievementDto: CreateStepAchievementDto) {
@@ -23,7 +34,10 @@ export class StepAchievementController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateStepAchievementDto: UpdateStepAchievementDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateStepAchievementDto: UpdateStepAchievementDto,
+  ) {
     return this.stepAchievementService.update(id, updateStepAchievementDto);
   }
 

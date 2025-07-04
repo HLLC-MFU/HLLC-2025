@@ -73,7 +73,7 @@ export default function ActivitiesPage() {
     <FadeView>
       <SafeAreaView style={{ flex: 1 }}>
         <YStack padding="$4" gap="$4" flex={1}>
-          <Text fontWeight="bold" fontSize={34} color={"white"}>{t("activty.allActivities")}</Text>
+          <Text fontWeight="bold" fontSize={34} color={"white"}>{t("activity.title")}</Text>
 
           <XStack
             alignItems="center"
@@ -124,7 +124,7 @@ export default function ActivitiesPage() {
               )}
 
               <YStack gap="$3" marginBottom="$10">
-                <Text fontWeight="bold" color={"white"} fontSize={28}>{t("activty.allActivities")}</Text>
+                <Text fontWeight="bold" color={"white"} fontSize={28}>{t("activity.allActivities")}</Text>
                 <XStack flexWrap="wrap" justifyContent="space-between">
                   {filteredActivities.length > 0 ? (
                     filteredActivities.map((activity) => (
