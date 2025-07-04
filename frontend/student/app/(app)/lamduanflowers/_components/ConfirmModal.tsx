@@ -5,16 +5,25 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  TouchableWithoutFeedback,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 interface ConfirmModalProps {
   isVisible: boolean;
   onCancel: () => void;
   onConfirm: () => void;
   username?: string;
+  mode?: 'submit' | 'save';
 }
 
-export function ConfirmModal({ isVisible, onCancel, onConfirm, username }: ConfirmModalProps) {
+export function ConfirmModal({
+  isVisible,
+  onCancel,
+  onConfirm,
+  username,
+  mode = 'submit',
+}: ConfirmModalProps) {
   return (
     <Modal
       transparent
@@ -22,25 +31,33 @@ export function ConfirmModal({ isVisible, onCancel, onConfirm, username }: Confi
       animationType="fade"
       onRequestClose={onCancel}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
-          <Text style={styles.headerText}>Submit Confirmation</Text>
-          <Text style={styles.bodyText}>
-            Are you sure you want to submit
-            {username ? ` as ${username}` : ''}?
-          </Text>
-          <Text style={styles.noteText}>This action cannot be undone.</Text>
+      <TouchableWithoutFeedback onPress={onCancel}>
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback onPress={() => { }}>
+            <BlurView intensity={50} tint="light" style={styles.modalContainer}>
+              <Text style={styles.headerText}>
+                {mode === 'save' ? 'Confirm Save' : 'Confirm Submission'}
+              </Text>
 
-          <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.submitButton} onPress={onConfirm}>
-              <Text style={styles.submitText}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
+              {/* <Text style={styles.bodyText}>
+                Are you sure you want to {mode === 'save' ? 'save changes' : 'submit'}
+                {username ? ` as ${username}` : ''}?
+              </Text> */}
+
+              <Text style={styles.noteText}>This action cannot be undone.</Text>
+
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.confirmButton} onPress={onConfirm}>
+                  <Text style={styles.confirmText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </BlurView>
+          </TouchableWithoutFeedback>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
@@ -53,48 +70,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    width: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    elevation: 10,
+    width: '85%',
+    borderRadius: 20,
+    padding: 24,
+    overflow: 'hidden',
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   headerText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   bodyText: {
-    fontSize: 15,
+    fontSize: 16,
+    color: '#fff',
     marginBottom: 6,
+    textAlign: 'center',
   },
   noteText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 20,
+    fontSize: 13,
+    color: '#ccc',
+    marginBottom: 24,
+    textAlign: 'center',
   },
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    gap: 12,
   },
   cancelButton: {
     marginRight: 12,
     paddingVertical: 6,
     paddingHorizontal: 14,
-    borderRadius: 8,
-    backgroundColor: '#ddd',
-  },
-  submitButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    backgroundColor: '#4CAF50',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#fff',
+    // backgroundColor: '#ddd',
   },
   cancelText: {
-    color: '#000',
-  },
-  submitText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '500',
+  },
+  confirmButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: '#006FEE',
+  },
+  confirmText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

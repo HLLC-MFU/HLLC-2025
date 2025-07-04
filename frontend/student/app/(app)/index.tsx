@@ -42,6 +42,7 @@ export default function HomeScreen() {
   }, []);
     const [date, setDate] = useState(new Date());
   const { steps } = useHealthData(date);
+  const deviceMismatch = false; // or set this based on your logic
 
   const content = (
     <SafeAreaView

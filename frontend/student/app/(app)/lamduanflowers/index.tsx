@@ -11,10 +11,9 @@ import {
   Image,
   Alert,
   Dimensions,
-  Keyboard,
-  TextInput as RNTextInput,
   KeyboardAvoidingView,
   Platform,
+  TextInput as RNTextInput,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
@@ -25,6 +24,8 @@ import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import useProfile from '@/hooks/useProfile';
 import { LamduanFlower } from '@/types/lamduan-flowers';
 import { GlassButton } from '@/components/ui/GlassButton';
+import SelectPhotoModal from './_components/SelectPhotoModal';
+import { useToastController } from '@tamagui/toast';
 
 const screenWidth = Dimensions.get('window').width;
 const horizontalPadding = 40;
@@ -35,8 +36,11 @@ export default function LamduanOrigamiPage() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
   const [comment, setComment] = useState('');
+  const [isPhotoModalVisible, setPhotoModalVisible] = useState(false);
+
   const { user } = useProfile();
   const { flowers, lamduanSetting, createLamduanFlowers, updateLamduanFlowers } = useLamduanFlowers();
+
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const originalRef = useRef<LamduanFlower | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -170,23 +174,8 @@ export default function LamduanOrigamiPage() {
   };
 
   const handleUploadPress = () => {
-    Alert.alert('Upload Picture', 'Choose an option', [
-      { text: 'Take Photo', onPress: takePhoto },
-      { text: 'Choose from Gallery', onPress: pickImage },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    setPhotoModalVisible(true);
   };
-
-  // const behavior = Platform.OS === 'ios' ? 'padding' : 'position';
-  // const keyboardVerticalOffset = Platform.OS === 'ios' ? 0 : 20;
-
-  // return (
-  //   <SafeAreaView style={styles.safe}>
-  //     <KeyboardAvoidingView
-  //       style={{ flex: 1 }}
-  //       behavior={behavior}
-  //       keyboardVerticalOffset={keyboardVerticalOffset}
-  //     ></KeyboardAvoidingView>
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -286,17 +275,7 @@ export default function LamduanOrigamiPage() {
                     return;
                   }
 
-                  const file = {
-                    uri: imageUri,
-                    name: 'photo.jpg',
-                    type: 'image/jpeg',
-                  } as any;
-
-                  if (hasSubmitted) {
-                    await handleSave(file, user?.data[0]._id!, comment, lamduanSetting[0]._id);
-                  } else {
-                    setConfirmModalVisible(true);
-                  }
+                  setConfirmModalVisible(true);
                 }}
               >
                 <Text style={{ color: '#fff', fontWeight: 'bold' }}>
@@ -331,6 +310,13 @@ export default function LamduanOrigamiPage() {
                 Alert.alert('Error', 'Submission failed.');
               }
             }}
+          />
+
+          <SelectPhotoModal
+            visible={isPhotoModalVisible}
+            onClose={() => setPhotoModalVisible(false)}
+            onTakePhoto={takePhoto}
+            onPickImage={pickImage}
           />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -397,20 +383,22 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   imageUploadButton: {
-    marginBottom: 12,
+    marginBottom: 20,
   },
   uploadPlaceholder: {
-    backgroundColor: '#eee',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
     height: 180,
     width: 300,
     alignSelf: 'center',
   },
   uploadText: {
     fontSize: 16,
-    color: '#888',
+    color: '#fff',
   },
   input: {
     borderRadius: 10,
