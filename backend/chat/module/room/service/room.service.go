@@ -451,6 +451,7 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 				canJoin = true
 			}
 		}
+		memberCount := len(room.Members)
 		result = append(result, dto.ResponseAllRoomForUserDto{
 			ID: room.ID,
 			Name: room.Name,
@@ -463,6 +464,7 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 			Metadata: room.Metadata,
 			IsMember: false,
 			CanJoin:  canJoin,
+			MemberCount: memberCount, // เพิ่ม field นี้
 		})
 	}
 	return result, nil
