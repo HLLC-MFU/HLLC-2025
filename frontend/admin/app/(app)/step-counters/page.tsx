@@ -1,18 +1,24 @@
 'use client';
-import { PageHeader } from '@/components/ui/page-header';
-import { Footprints, Plus } from 'lucide-react';
+
 import { useStepCounters } from '@/hooks/useStepCounters';
-import { useSchools } from '@/hooks/useSchool';
-import { useMajors } from '@/hooks/useMajor';
-import { Accordion, AccordionItem, Button } from '@heroui/react';
-import { Globe, Target, School } from 'lucide-react';
 import StepCountersTable from './_components/StepCountersTable';
-import { useState } from 'react';
 import StepCountersModal from './_components/StepCountersModal';
+import StepCountersFilter from './_components/StepCountersFilter';
+import { Accordion, AccordionItem, Button } from '@heroui/react';
+import { Footprints, Globe, Plus, School, Target } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { useState } from 'react';
 
 export default function StepContersPage() {
   const [isStepTarget, setIsStepTarget] = useState(false);
-  const { stepCounters } = useStepCounters();
+  const {
+    topOverall,
+    topBySchool,
+    firstAchievers,
+    loading,
+    error,
+  } = useStepCounters();
+
   const StepcounteTarget = 123;
 
   return (
@@ -21,9 +27,10 @@ export default function StepContersPage() {
         title="StepConters"
         description="View The Steps And LeaderBoard"
         icon={<Footprints />}
-
       />
+
       <Accordion variant="splitted">
+        {/* 🌍 Top Overall */}
         <AccordionItem
           key="1"
           aria-label="Accordion 1"
@@ -31,8 +38,10 @@ export default function StepContersPage() {
           subtitle="For the student with the highest step count"
           startContent={<Globe />}
         >
-          <StepCountersTable stepCounters={stepCounters} />
+          <StepCountersTable stepCounters={topOverall} />
         </AccordionItem>
+
+        {/* 🏫 Top By School */}
         <AccordionItem
           key="3"
           aria-label="Accordion 2"
@@ -40,8 +49,11 @@ export default function StepContersPage() {
           subtitle="For the student with the highest step count in each school"
           startContent={<School />}
         >
-          <StepCountersTable stepCounters={stepCounters} />
+          
+          <StepCountersTable stepCounters={topBySchool} />
         </AccordionItem>
+
+        {/* 🎯 First Achievers */}
         <AccordionItem
           key="2"
           aria-label="Accordion 3"
@@ -60,10 +72,9 @@ export default function StepContersPage() {
             </Button>
           </div>
 
-          <StepCountersTable stepCounters={stepCounters} />
+          <StepCountersTable stepCounters={firstAchievers} />
         </AccordionItem>
       </Accordion>
-
       <StepCountersModal
         isOpen={isStepTarget}
         onSettingStepTarget={() => setIsStepTarget(false)}

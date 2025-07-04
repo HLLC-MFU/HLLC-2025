@@ -18,7 +18,7 @@ const students = [
     major: 'Software Engineer',
     school: 'School of IT',
     time: '13-4-2002',
-    stepsCounts: 1234,
+    stepsCounts: 9000,
   },
   {
     key: '2',
@@ -26,7 +26,7 @@ const students = [
     major: 'Data Science',
     school: 'School of Computing',
     time: '22-6-2001',
-    stepsCounts: 8765,
+    stepsCounts: 8900,
   },
   {
     key: '3',
@@ -34,7 +34,7 @@ const students = [
     major: 'Cyber Security',
     school: 'School of Engineering',
     time: '5-1-2003',
-    stepsCounts: 4503,
+    stepsCounts: 8800,
   },
   {
     key: '4',
@@ -42,7 +42,7 @@ const students = [
     major: 'Game Development',
     school: 'School of IT',
     time: '14-3-2002',
-    stepsCounts: 1093,
+    stepsCounts: 8700,
   },
   {
     key: '5',
@@ -50,7 +50,7 @@ const students = [
     major: 'AI & Robotics',
     school: 'School of Technology',
     time: '9-9-2000',
-    stepsCounts: 6321,
+    stepsCounts: 8600,
   },
   {
     key: '6',
@@ -58,7 +58,7 @@ const students = [
     major: 'Software Engineer',
     school: 'School of Engineering',
     time: '18-11-2002',
-    stepsCounts: 7840,
+    stepsCounts: 8500,
   },
   {
     key: '7',
@@ -66,7 +66,7 @@ const students = [
     major: 'Computer Science',
     school: 'School of IT',
     time: '12-7-2001',
-    stepsCounts: 2999,
+    stepsCounts: 8400,
   },
   {
     key: '8',
@@ -74,7 +74,7 @@ const students = [
     major: 'Cyber Security',
     school: 'School of Technology',
     time: '3-2-2003',
-    stepsCounts: 5567,
+    stepsCounts: 8300,
   },
   {
     key: '9',
@@ -82,7 +82,7 @@ const students = [
     major: 'AI & Robotics',
     school: 'School of Computing',
     time: '25-12-2001',
-    stepsCounts: 3912,
+    stepsCounts: 8200,
   },
   {
     key: '10',
@@ -90,7 +90,7 @@ const students = [
     major: 'Data Science',
     school: 'School of Engineering',
     time: '7-10-2002',
-    stepsCounts: 6982,
+    stepsCounts: 8100,
   },
   {
     key: '11',
@@ -98,7 +98,7 @@ const students = [
     major: 'Game Development',
     school: 'School of IT',
     time: '1-5-2000',
-    stepsCounts: 4120,
+    stepsCounts: 8000,
   },
   {
     key: '12',
@@ -106,7 +106,7 @@ const students = [
     major: 'Software Engineer',
     school: 'School of Computing',
     time: '19-6-2003',
-    stepsCounts: 3211,
+    stepsCounts: 7900,
   },
   {
     key: '13',
@@ -114,7 +114,7 @@ const students = [
     major: 'Computer Science',
     school: 'School of Technology',
     time: '11-3-2001',
-    stepsCounts: 5674,
+    stepsCounts: 7800,
   },
   {
     key: '14',
@@ -122,7 +122,7 @@ const students = [
     major: 'AI & Robotics',
     school: 'School of IT',
     time: '30-8-2002',
-    stepsCounts: 2468,
+    stepsCounts: 7700,
   },
   {
     key: '15',
@@ -130,7 +130,7 @@ const students = [
     major: 'Cyber Security',
     school: 'School of Computing',
     time: '6-4-2003',
-    stepsCounts: 7345,
+    stepsCounts: 7600,
   },
   {
     key: '16',
@@ -138,7 +138,7 @@ const students = [
     major: 'Game Development',
     school: 'School of Engineering',
     time: '17-12-2001',
-    stepsCounts: 1580,
+    stepsCounts: 7500,
   },
   {
     key: '17',
@@ -146,7 +146,7 @@ const students = [
     major: 'Computer Science',
     school: 'School of Technology',
     time: '21-2-2002',
-    stepsCounts: 4801,
+    stepsCounts: 7400,
   },
   {
     key: '18',
@@ -154,7 +154,7 @@ const students = [
     major: 'Data Science',
     school: 'School of IT',
     time: '4-6-2000',
-    stepsCounts: 6872,
+    stepsCounts: 7300,
   },
   {
     key: '19',
@@ -162,7 +162,7 @@ const students = [
     major: 'Software Engineer',
     school: 'School of Engineering',
     time: '28-10-2002',
-    stepsCounts: 3920,
+    stepsCounts: 7200,
   },
   {
     key: '20',
@@ -170,14 +170,14 @@ const students = [
     major: 'AI & Robotics',
     school: 'School of Computing',
     time: '13-9-2001',
-    stepsCounts: 5109,
+    stepsCounts: 7100,
   },
 ];
 
 type student = (typeof students)[0];
 
 const columns = [
-  { name: 'ID', uid: 'key', sortable: true },
+  { name: 'Rank', uid: 'key', sortable: true },
   { name: 'Name', uid: 'name', sortable: true },
   { name: 'School', uid: 'school', sortable: true },
   { name: 'StepsCounts', uid: 'stepsCounts', sortable: true },
