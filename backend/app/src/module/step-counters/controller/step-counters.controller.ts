@@ -21,7 +21,6 @@ class UpdateDeviceDto {
 }
 
 class CollectStepDto {
-  userId: string;
   deviceId: string;
   stepCount: number;
   date: string; // ISO string or date string
@@ -66,9 +65,14 @@ export class StepCountersController {
   }
 
   // อัปเดตหรือเพิ่ม step ของ device และ user ตามวันที่
-  @Post('collect-step')
-  async collectStep(@Body() body: CollectStepDto) {
-    const { userId, deviceId, stepCount, date } = body;
+  @Post('sync')
+  async collectStep(
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
+    @Body() body: CollectStepDto,
+  ) {
+    const user = req.user as { _id?: string; id?: string };
+    const userId: string = user?._id ?? user?.id ?? '';
+    const { deviceId, stepCount, date } = body;
     if (!userId || !deviceId || stepCount == null || !date) {
       throw new BadRequestException(
         'Missing userId, deviceId, stepCount, or date',

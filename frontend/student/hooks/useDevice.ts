@@ -3,15 +3,15 @@ import { apiRequest } from "@/utils/api";
 import { useState } from "react";
 
 export default function useDevice() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-  const registerDevice = async (DeviceData: Device) => {
+	const registerDevice = async (DeviceData: Device) => {
 		try {
 			setLoading(true);
-			const res = await apiRequest<{ data: Device }>(`/devices/register`, 'POST', DeviceData );
-			
-			if(res.statusCode !== 201) {
+			const res = await apiRequest<{ data: Device }>(`/devices/register`, 'POST', DeviceData);
+
+			if (res.statusCode !== 201) {
 				throw new Error(res.message || 'Failed to create notification.');
 			}
 
@@ -26,8 +26,8 @@ export default function useDevice() {
 		try {
 			setLoading(true);
 			const res = await apiRequest(`/devices/revoke${deviceId}`, 'DELETE');
-			
-			if(res.statusCode !== 204) {
+
+			if (res.statusCode !== 204) {
 				throw new Error(res.message || 'Failed to revoke device.');
 			}
 
@@ -38,8 +38,8 @@ export default function useDevice() {
 		}
 	};
 
-  return {
-		loading, 
+	return {
+		loading,
 		error,
 		registerDevice,
 		revokeDevice

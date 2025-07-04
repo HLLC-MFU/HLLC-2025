@@ -9,6 +9,11 @@ const useHealthDataForPlatform = Platform.select({
   default: () => (date: Date) => ({ steps: 0 }),
 })();
 
+export async function getHealthData(date: Date): Promise<{ steps: number }> {
+  const fetchData = await useHealthDataForPlatform(date);
+  return fetchData;
+}
+
 type StepCounter = {
   steps: number;
   deviceId: string;

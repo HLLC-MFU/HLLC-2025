@@ -1,8 +1,9 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Alert } from 'react-native';
-import { router, useRouter } from 'expo-router';
+import { View } from 'react-native';
+import { router } from 'expo-router';
+import * as BackgroundTask from 'expo-background-task';
 import { useTranslation } from 'react-i18next';
-import { Bell} from 'lucide-react-native';
+import { Bell } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
@@ -10,15 +11,14 @@ import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from '@/components/global/AssetImage';
 import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
 import { DoorClosedLocked } from '@tamagui/lucide-icons';
-import { useEffect, useState } from 'react';
-import messaging from '@react-native-firebase/messaging';
 import useHealthData from '@/hooks/health/useHealthData';
 import { ProgressSummaryCard } from '@/components/home/ProgressSummaryCard';
+import { useEffect } from 'react';
+import { registerBackgroundTaskAsync } from '@/hooks/health/useStepCollect';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
-  const { t } = useTranslation();
   const handleSignOut = async () => {
     useAuth.getState().signOut();
     router.replace('/(auth)/login');
@@ -32,6 +32,13 @@ export default function HomeScreen() {
     signOut: assets?.signOut ?? null,
   };
   const { steps, deviceMismatch } = useHealthData(new Date());
+  useEffect(() => {
+    registerBackgroundTaskAsync().catch((error) => {
+      console.error('[BackgroundTask] Registration failed', error);
+    });
+  }, []);
+
+
   const content = (
     <SafeAreaView
       style={{

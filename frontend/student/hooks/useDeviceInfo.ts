@@ -25,3 +25,8 @@ export function useDeviceInfo() {
 
   return { uniqueId };
 }
+
+export function getDeviceUniqueId() {
+  const { uniqueId } = useDeviceInfo();
+  return uniqueId;
+}
