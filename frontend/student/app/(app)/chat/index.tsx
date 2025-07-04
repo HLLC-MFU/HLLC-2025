@@ -30,7 +30,7 @@ import RoomCard from '@/components/chats/RoomCard';
 import { RoomDetailModal } from '@/components/chats/RoomDetailModal';
 import RoomListItem from '@/components/chats/RoomListItem';
 import chatService from '@/services/chats/chatService';
-import { t, getLocalizedField } from '@/utils/i18n';
+import { useTranslation } from 'react-i18next';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -43,6 +43,7 @@ export default function ChatPage() {
   const [confirmJoinVisible, setConfirmJoinVisible] = useState(false);
   const [pendingJoinRoom, setPendingJoinRoom] = useState<ChatRoom | null>(null);
   const userId = user?.data?.[0]?._id || '';
+  const { t } = useTranslation();
 
   const {
     rooms,
