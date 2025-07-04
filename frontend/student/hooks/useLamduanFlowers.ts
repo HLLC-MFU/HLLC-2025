@@ -92,6 +92,7 @@ export function useLamduanFlowers() {
     };
 
     useEffect(() => {
+        fetchLamduanFlowers();
         fetchLamduanSetting();
     }, []);
 

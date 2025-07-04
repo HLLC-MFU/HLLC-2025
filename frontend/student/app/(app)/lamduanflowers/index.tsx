@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -24,6 +24,7 @@ import { MediaCard } from './_components/MediaCard';
 import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import useProfile from '@/hooks/useProfile';
 import { LamduanFlower } from '@/types/lamduan-flowers';
+import { GlassButton } from '@/components/ui/GlassButton';
 
 const screenWidth = Dimensions.get('window').width;
 const horizontalPadding = 40;
@@ -35,11 +36,32 @@ export default function LamduanOrigamiPage() {
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
   const [comment, setComment] = useState('');
   const { user } = useProfile();
-  const { lamduanSetting, createLamduanFlowers, updateLamduanFlowers } = useLamduanFlowers();
+  const { flowers, lamduanSetting, createLamduanFlowers, updateLamduanFlowers } = useLamduanFlowers();
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const originalRef = useRef<LamduanFlower | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const inputRef = useRef<RNTextInput>(null);
+
+  useEffect(() => {
+    if (!user?.data?.[0]?._id || !flowers?.length) return;
+
+    const found = flowers.find(f => f.user._id === user.data[0]._id);
+    if (found) {
+      originalRef.current = found;
+      setComment(found.comment);
+      const photoUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/${found.photo}`;
+      setImageUri(photoUrl);
+
+      getImageSize(photoUrl)
+        .then(size => setImageSize(size))
+        .catch(err => {
+          console.warn('Failed to get image size:', err);
+          setImageSize(null);
+        });
+
+      setHasSubmitted(true);
+    }
+  }, [flowers, user]);
 
   const handleSave = async (
     file: File,
@@ -47,17 +69,31 @@ export default function LamduanOrigamiPage() {
     comment: string,
     setting: string,
   ) => {
+    const original = originalRef.current;
     const formData = new FormData();
 
-    formData.append('photo', file);
+    if (file) {
+      formData.append('photo', file);
+    }
     formData.append('comment', comment.trim() === '' ? ' ' : comment);
     formData.append('user', user);
     formData.append('setting', setting);
 
     try {
-      await createLamduanFlowers(formData);
-      Alert.alert("Success", "Flower submitted successfully!");
+      if (!original) {
+        const res = await createLamduanFlowers(formData);
+        if (res?.data && res.data._id) {
+          originalRef.current = res.data;
+          setHasSubmitted(true);
+        }
+
+        Alert.alert("Success", "Flower created successfully!");
+      } else {
+        await updateLamduanFlowers(original._id, formData);
+        Alert.alert("Success", "Flower updated successfully!");
+      }
     } catch (err) {
+      console.error("submit error:", err);
       Alert.alert("Error", "Error submitting flower");
     }
   };
@@ -141,6 +177,16 @@ export default function LamduanOrigamiPage() {
     ]);
   };
 
+  // const behavior = Platform.OS === 'ios' ? 'padding' : 'position';
+  // const keyboardVerticalOffset = Platform.OS === 'ios' ? 0 : 20;
+
+  // return (
+  //   <SafeAreaView style={styles.safe}>
+  //     <KeyboardAvoidingView
+  //       style={{ flex: 1 }}
+  //       behavior={behavior}
+  //       keyboardVerticalOffset={keyboardVerticalOffset}
+  //     ></KeyboardAvoidingView>
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -150,13 +196,16 @@ export default function LamduanOrigamiPage() {
         keyboardVerticalOffset={0}
       >
         <ScrollView
+          keyboardShouldPersistTaps="handled"
           ref={scrollViewRef}
-          contentContainerStyle={[styles.container, { paddingBottom: 120 }]}
+          contentContainerStyle={[styles.container, { paddingBottom: 80 }]}
           showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
+          <View style={styles.backButton}>
+            <GlassButton onPress={() => router.back()}>
+              <Text style={styles.backButtonText}>Back</Text>
+            </GlassButton>
+          </View>
 
           <BannerImage />
 
@@ -171,6 +220,7 @@ export default function LamduanOrigamiPage() {
           </BlurView>
 
           <BlurView intensity={40} tint="light" style={styles.formBox}>
+            <Text style={styles.uploadTitle}>Upload Lamduan</Text>
             <TouchableOpacity onPress={handleUploadPress} style={styles.imageUploadButton}>
               {imageUri && imageSize ? (
                 <Image
@@ -266,7 +316,6 @@ export default function LamduanOrigamiPage() {
                 Alert.alert('Error', 'Please select an image first.');
                 return;
               }
-
               try {
                 const file = {
                   uri: imageUri,
@@ -293,6 +342,7 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: 'transparent',
+    paddingTop: 30,
   },
   container: {
     paddingTop: 20,
@@ -301,7 +351,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -309,6 +358,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
+    color: '#fff',
   },
   card: {
     width: '100%',
@@ -328,6 +378,13 @@ const styles = StyleSheet.create({
   cardText: {
     fontSize: 13,
     paddingLeft: 10,
+    color: '#fff',
+    marginBottom: 20,
+    marginTop: 4,
+  },
+  uploadTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
     color: '#fff',
     marginBottom: 12,
   },
@@ -356,13 +413,13 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   input: {
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minHeight: 40,
-    maxHeight: 200,
-    marginBottom: 12,
-    color: '#fff',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minHeight: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    fontSize: 14,
+    color: '#e2e8f0',
   },
   submitButton: {
     alignSelf: 'flex-end',

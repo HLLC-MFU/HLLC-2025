@@ -4,6 +4,7 @@ import { WebView } from 'react-native-webview';
 import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import { TutorialModal } from './TutorialModal';
 import { BlurView } from 'expo-blur';
+import { GlassButton } from '@/components/ui/GlassButton';
 
 export function MediaCard() {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -38,11 +39,11 @@ export function MediaCard() {
         <Text>No Video Found</Text>
       )}
 
-      <BlurView intensity={40} tint="light" style={styles.modalButton}>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.modalButtonInner}>
+      <View style={styles.modalButton}>
+        <GlassButton onPress={() => setModalVisible(true)}>
           <Text style={styles.modalButtonText}>Lamduan Tutorial</Text>
-        </TouchableOpacity>
-      </BlurView>
+        </GlassButton>
+      </View>
 
       <TutorialModal
         isVisible={isModalVisible}
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 16,
+    paddingHorizontal: 6,
   },
   title: {
     fontWeight: 'bold',
@@ -66,17 +67,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   modalButton: {
-    borderRadius: 999,
-    overflow: 'hidden',
     alignSelf: 'center',
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: '#ccc',
+    marginTop: 16,
   },
   modalButtonInner: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    alignItems: 'center',
+    fontSize: 16,
+    color: '#fff',
   },
   modalButtonText: {
     fontSize: 16,
