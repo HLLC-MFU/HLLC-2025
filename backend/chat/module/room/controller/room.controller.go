@@ -110,18 +110,45 @@ func (c *RoomController) GetRoomMembers(ctx *fiber.Ctx) error {
 }
 
 // GetRoomById ดึงข้อมูลห้องตาม ID
+// ... existing code ...
+// GetRoomById ดึงข้อมูลห้องตาม ID (เพิ่ม isMember ใน response)
 func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 	roomObjID, err := c.validationHelper.ParseAndValidateRoomID(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
+	// ดึง userID จาก token (JWT)
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "Invalid authentication token"})
+	}
+
 	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
 	if err != nil {
 		return c.validationHelper.BuildNotFoundErrorResponse(ctx, "Room")
 	}
-	return c.validationHelper.BuildSuccessResponse(ctx, room, "Room retrieved successfully")
+
+	userObjID, _ := primitive.ObjectIDFromHex(userID)
+	isMember := false
+	memberStrs := make([]string, len(room.Members))
+	for i, m := range room.Members {
+		memberStrs[i] = m.Hex()
+		if m == userObjID {
+			isMember = true
+		}
+	}
+
+	return ctx.JSON(fiber.Map{
+		"success": true,
+		"data": fiber.Map{
+			"_id": room.ID,
+			"members": memberStrs,
+			"isMember": isMember,
+		},
+	})
 }
+// ... existing code ...
 
 // CreateRoom สร้างห้องใหม่
 func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
