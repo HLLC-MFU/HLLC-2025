@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	chatController "chat/module/chat/controller"
 	uploadController "chat/module/chat/controller"
 	chatService "chat/module/chat/service"
 	"chat/module/chat/utils"
@@ -141,7 +140,7 @@ func main() {
 	chatEmitter := utils.NewChatEventEmitter(chatHub, kafkaBus, redis, db)
 	restrictionSvc := restrictionService.NewRestrictionService(db, chatHub, chatEmitter, chatSvc.GetNotificationService(), kafkaBus)
 	evoucherSvc := evoucherService.NewEvoucherService(db, redis, restrictionSvc, chatSvc.GetNotificationService(), chatHub, kafkaBus)
-
+	
 	// Initialize RBAC middleware
 	rbacMiddleware := middleware.NewRBACMiddleware(db)
 
@@ -154,10 +153,6 @@ func main() {
 	roomController.NewGroupRoomController(app, groupRoomSvc, roomSvc, rbacMiddleware)
 	stickerController.NewStickerController(app, stickerSvc, rbacMiddleware)
 	uploadController.NewUploadController(app, rbacMiddleware, chatSvc, userSvc)
-	chatController.NewChatController(app, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc)
-	chatController.NewMentionController(app, chatSvc, roomSvc)
-	chatController.NewReactionController(app, chatSvc, roomSvc, rbacMiddleware)
-	chatController.NewHealthController(app, chatSvc, rbacMiddleware)
 	evoucherController.NewEvoucherController(app, evoucherSvc, roomSvc, rbacMiddleware)
 	// Restriction controller (was moderation)
 	restrictionController.NewModerationController(app, restrictionSvc, rbacMiddleware)

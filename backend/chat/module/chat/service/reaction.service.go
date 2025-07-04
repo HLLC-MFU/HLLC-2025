@@ -2,6 +2,7 @@ package service
 
 import (
 	"chat/module/chat/model"
+	userModel "chat/module/user/model"
 	"context"
 	"fmt"
 	"log"
@@ -9,6 +10,19 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+type (
+	ReactionService interface {
+		HandleReaction(ctx context.Context, reaction *model.MessageReaction) error
+		RemoveReaction(ctx context.Context, messageID, userID string) error
+		GetUserById(ctx context.Context, userID string) (*userModel.User, error)
+	}
+
+	ReactionRoomService interface {
+		IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+		CanUserSendReaction(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+	}
 )
 
 func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.MessageReaction) error {
