@@ -20,7 +20,7 @@ interface LeaderboardEntry {
   rank: number;
 }
 
-export default function CoinHuntingLeaderboard() {
+export default function CoinHuntingLeaderboardScreen() {
   const [data, setData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

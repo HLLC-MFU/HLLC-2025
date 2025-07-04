@@ -27,15 +27,15 @@ const useHealthConnectData = (date: Date) => {
 
     // ฟังก์ชัน Asynchronous สำหรับอ่านข้อมูลจาก Health Connect
     const readHealthConnectData = async () => {
-        console.log('Running Android Health Connect data fetch for date:', date.toISOString());
+        // console.log('Running Android Health Connect data fetch for date:', date.toISOString());
         try {
             // Initialize the Health Connect client
             const isInitialized: boolean = await initialize();
             if (!isInitialized) {
-                console.log('Health Connect client could not be initialized. Please ensure Health Connect app is available.');
+                // console.log('Health Connect client could not be initialized. Please ensure Health Connect app is available.');
                 return;
             }
-            console.log('Health Connect client initialized.');
+            // console.log('Health Connect client initialized.');
 
             // Request permissions for relevant data types
             const grantedPermissions: Permission[] = await requestPermission([
@@ -45,10 +45,10 @@ const useHealthConnectData = (date: Date) => {
             ]);
 
             if (grantedPermissions.length < 3) { // ตรวจสอบว่าได้สิทธิ์ครบถ้วนหรือไม่
-                console.warn('Not all Health Connect permissions were granted. Data might be incomplete.');
+                // console.warn('Not all Health Connect permissions were granted. Data might be incomplete.');
                 // คุณอาจต้องการแสดงข้อความแจ้งเตือนผู้ใช้ให้ไปอนุมัติสิทธิ์
             }
-            console.log('Health Connect granted permissions:', grantedPermissions);
+            // console.log('Health Connect granted permissions:', grantedPermissions);
 
             // กำหนดช่วงเวลาสำหรับดึงข้อมูล
             const startOfDay = new Date(date);
@@ -71,11 +71,11 @@ const useHealthConnectData = (date: Date) => {
             }));
             const totalSteps = Array.isArray(stepsRecords) ? stepsRecords.reduce((sum: number, cur: StepsRecord) => sum + cur.count, 0) : 0;
             setSteps(totalSteps);
-            console.log('Steps (Android):', totalSteps);
+            // console.log('Steps (Android):', totalSteps);
 
             // อ่านข้อมูล Distance
             const distanceResponse = await readRecords('Distance', { timeRangeFilter });
-            console.log('Raw distanceResponse from Health Connect:', distanceResponse);
+            // console.log('Raw distanceResponse from Health Connect:', distanceResponse);
             const distanceRecords: DistanceRecord[] = (distanceResponse?.records || []).map(record => ({
                 ...record,
                 recordType: 'Distance',
@@ -90,13 +90,13 @@ const useHealthConnectData = (date: Date) => {
                     0
                 )
                 : 0;
-            console.log('Distance (Android):', totalDistance);
+            // console.log('Distance (Android):', totalDistance);
 
             // อ่านข้อมูล Floors Climbed
             const floorsClimbedResponse = await readRecords('FloorsClimbed', {
                 timeRangeFilter,
             });
-            console.log('Raw floorsClimbedResponse from Health Connect:', floorsClimbedResponse);
+            // console.log('Raw floorsClimbedResponse from Health Connect:', floorsClimbedResponse);
             const floorsClimbedRecords: FloorsClimbedRecord[] = (floorsClimbedResponse?.records || []).map(record => ({
                 ...record,
                 recordType: 'FloorsClimbed',
@@ -106,7 +106,7 @@ const useHealthConnectData = (date: Date) => {
             console.log('Floors Climbed (Android):', totalFloors);
 
         } catch (error: any) {
-            console.error('An error occurred while reading Health Connect data on Android:', error);
+            // console.error('An error occurred while reading Health Connect data on Android:', error);
             // ตั้งค่าข้อมูลเป็น 0 ในกรณีเกิดข้อผิดพลาด
             setSteps(0);
             setFlights(0);
@@ -121,13 +121,13 @@ const useHealthConnectData = (date: Date) => {
 
         // ตั้งค่า interval สำหรับรีเฟรชข้อมูลทุก 15 วินาที
         const intervalId = setInterval(() => {
-            console.log('Auto-refreshing Health Connect data every 15 seconds...');
+            // console.log('Auto-refreshing Health Connect data every 15 seconds...');
             readHealthConnectData();
         }, 15 * 1000); // 15 วินาที (15000 มิลลิวินาที)
 
         // Cleanup function: จะถูกเรียกเมื่อ component unmount หรือเมื่อ date เปลี่ยน (เพื่อให้ interval เก่าถูกล้างออกและเริ่มใหม่)
         return () => {
-            console.log('Clearing Health Connect auto-refresh interval.');
+            // console.log('Clearing Health Connect auto-refresh interval.');
             clearInterval(intervalId);
         };
     }, [date]); // date เป็น dependency: เมื่อ date เปลี่ยน, effect จะรันใหม่
