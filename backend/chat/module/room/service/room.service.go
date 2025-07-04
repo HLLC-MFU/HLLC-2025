@@ -113,17 +113,40 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 }
 
 func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitive.ObjectID) (*dto.ResponseRoomMemberDto, error) {
-	if room, err := s.cache.GetRoom(ctx, roomId.Hex()); err == nil && room != nil {
-		members := make([]string, len(room.Members))
-		for i, m := range room.Members {
-			members[i] = m.Hex()
-		}
-		return &dto.ResponseRoomMemberDto{
-			ID: room.ID,
-			Members: members,
-		}, nil
+	room, err := s.cache.GetRoom(ctx, roomId.Hex())
+	if err != nil || room == nil {
+		return nil, errors.New("room not found")
 	}
-	return nil, errors.New("room not found")
+
+	members := make([]struct {
+		User struct {
+			ID       string `json:"_id"`
+			Username string `json:"username"`
+		} `json:"user"`
+	}, 0, len(room.Members))
+
+	for _, m := range room.Members {
+		user, err := s.userService.GetUserById(ctx, m.Hex())
+		memberObj := struct {
+			User struct {
+				ID       string `json:"_id"`
+				Username string `json:"username"`
+			} `json:"user"`
+		}{}
+		if err == nil && user != nil {
+			memberObj.User.ID = user.ID.Hex()
+			memberObj.User.Username = user.Username
+		} else {
+			memberObj.User.ID = m.Hex()
+			memberObj.User.Username = ""
+		}
+		members = append(members, memberObj)
+	}
+
+	return &dto.ResponseRoomMemberDto{
+		ID:      room.ID,
+		Members: members,
+	}, nil
 }
 
 // ดึง room จาก cache

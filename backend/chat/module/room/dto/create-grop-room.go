@@ -55,7 +55,12 @@ type (
 
 	ResponseRoomMemberDto struct {
 		ID primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
-		Members []string `bson:"members" json:"members"`
+		Members []struct {
+			User struct {
+				ID string `json:"_id"`
+				Username string `json:"username"`
+			} `json:"user"`
+		} `json:"members"`
 	}
 
 	ResponseGroupRoomDto struct {
