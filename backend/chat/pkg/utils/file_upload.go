@@ -21,27 +21,27 @@ type FileUploadConfig struct {
 var ModuleConfig = map[string]FileUploadConfig{
 	"room": {
 		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
-		MaxSize:      256 * 1024, // 256KB
+		MaxSize:      5 * 1024 * 1024, // 5MB
 		NamePrefix:   "room",
 	},
 	"user": {
 		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
-		MaxSize:      256 * 1024,
+		MaxSize:      5 * 1024 * 1024,
 		NamePrefix:   "user",
 	},
 	"chat": {
 		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png", "image/gif"},
-		MaxSize:      1024 * 1024, // 1MB
+		MaxSize:      5 * 1024 * 1024,
 		NamePrefix:   "chat",
 	},
 	"sticker": {
-			AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
-			MaxSize:      256 * 1024,
-			NamePrefix:   "sticker",
+		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
+		MaxSize:      5 * 1024 * 1024,
+		NamePrefix:   "sticker",
 	},
 	"upload": {
 		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
-		MaxSize:      256 * 1024,
+		MaxSize:      5 * 1024 * 1024,
 		NamePrefix:   "upload",
 	},
 }
@@ -49,7 +49,7 @@ var ModuleConfig = map[string]FileUploadConfig{
 func DefaultImageConfig() FileUploadConfig {
 	return FileUploadConfig{
 		AllowedTypes: []string{"image/jpeg", "image/jpg", "image/png"},
-		MaxSize:      256 * 1024, // 256KB
+		MaxSize:      5 * 1024 * 1024, // 5MB
 		NamePrefix:   "img",
 	}
 }
