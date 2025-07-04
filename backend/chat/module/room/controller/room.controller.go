@@ -14,9 +14,6 @@ import (
 	"strconv"
 	"strings"
 
-	"encoding/base64"
-	"encoding/json"
-
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -25,11 +22,11 @@ import (
 type (
 	RoomController struct {
 		*decorators.BaseController
-		roomService       service.RoomService
-		rbac              middleware.IRBACMiddleware
-		db                *mongo.Database
-		uploadHandler     *utils.FileUploadHandler
-		validationHelper  *roomUtils.RoomValidationHelper
+		roomService      service.RoomService
+		rbac             middleware.IRBACMiddleware
+		db               *mongo.Database
+		uploadHandler    *utils.FileUploadHandler
+		validationHelper *roomUtils.RoomValidationHelper
 	}
 
 	UpdateRoomImageDto struct {
@@ -59,10 +56,14 @@ func NewRoomController(
 }
 
 func (c *RoomController) setupRoutes() {
+	// Register specific routes BEFORE any :id routes to avoid route matching issues
+	c.Get("/all-for-user", c.rbac.RequireReadOnlyAccess(), c.GetAllRoomForUser)
+	c.Get("/me", c.rbac.RequireReadOnlyAccess(), c.GetRoomsForMe)
+
 	// Basic room operations
 	c.Get("/", c.rbac.RequireReadOnlyAccess(), c.GetRooms)
-	c.Get("/non-group", c.rbac.RequireReadOnlyAccess(), c.GetNonGroupRooms)
 	c.Get("/:id", c.rbac.RequireReadOnlyAccess(), c.GetRoomById)
+	c.Get("/:id/members", c.rbac.RequireReadOnlyAccess(), c.GetRoomMembers)
 	c.Patch("/:id", c.UpdateRoom)
 	c.Post("/", c.CreateRoom, c.rbac.RequireAnyRole())
 	c.Delete("/:id", c.DeleteRoom)
@@ -72,20 +73,40 @@ func (c *RoomController) setupRoutes() {
 	c.Patch("/:id/image", c.UpdateRoomImage)
 	// Add new endpoint for setting read-only status
 	c.Put("/:id/readonly", c.handleSetRoomReadOnly, c.rbac.RequireAdministrator())
-	
+
 	c.SetupRoutes()
 }
 
 // GetRooms ดึงรายการห้องทั้งหมด
 func (c *RoomController) GetRooms(ctx *fiber.Ctx) error {
 	opts := queries.ParseQueryOptions(ctx)
-	
-	response, err := c.roomService.GetRooms(ctx.Context(), opts)
+
+	// ดึง userID จาก token
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+	}
+
+	response, err := c.roomService.GetRooms(ctx.Context(), opts, userID)
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
-	
+
 	return ctx.Status(fiber.StatusOK).JSON(response)
+}
+
+func (c *RoomController) GetRoomMembers(ctx *fiber.Ctx) error {
+	roomObjID, err := c.validationHelper.ParseAndValidateRoomID(ctx)
+	if err != nil {
+		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+	}
+
+	roomMember, err := c.roomService.GetRoomMemberById(ctx.Context(), roomObjID)
+	if err != nil {
+		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+	}
+
+	return c.validationHelper.BuildSuccessResponse(ctx, roomMember, "Room members retrieved successfully")
 }
 
 // GetRoomById ดึงข้อมูลห้องตาม ID
@@ -99,7 +120,6 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 	if err != nil {
 		return c.validationHelper.BuildNotFoundErrorResponse(ctx, "Room")
 	}
-	
 	return c.validationHelper.BuildSuccessResponse(ctx, room, "Room retrieved successfully")
 }
 
@@ -134,11 +154,15 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 
 	// If image was uploaded, update room with UpdateRoomDto
 	if createDto.Image != "" {
+		stringMembers := make([]string, len(room.Members))
+		for i, m := range room.Members {
+			stringMembers[i] = m.Hex()
+		}
 		updateDto := &dto.UpdateRoomDto{
 			Name:     room.Name,
 			Type:     room.Type,
 			Capacity: room.Capacity,
-			Members:  room.Members,
+			Members:  stringMembers,
 			Image:    createDto.Image,
 		}
 		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), updateDto)
@@ -181,7 +205,13 @@ func (c *RoomController) UpdateRoom(ctx *fiber.Ctx) error {
 	// Handle members (array)
 	members := room.Members
 	if form != nil && form.Value["members"] != nil && len(form.Value["members"]) > 0 {
-		members = form.Value["members"]
+		var objIDs []primitive.ObjectID
+		for _, idStr := range form.Value["members"] {
+			if objID, err := primitive.ObjectIDFromHex(idStr); err == nil {
+				objIDs = append(objIDs, objID)
+			}
+		}
+		members = objIDs
 	}
 
 	// Handle image
@@ -197,17 +227,21 @@ func (c *RoomController) UpdateRoom(ctx *fiber.Ctx) error {
 		}
 	}
 
-	createdBy := ctx.FormValue("createdBy", room.CreatedBy)
+	createdBy := ctx.FormValue("createdBy", room.CreatedBy.Hex())
 
+	stringMembers := make([]string, len(members))
+	for i, m := range members {
+		stringMembers[i] = m.Hex()
+	}
 	updateDto := &dto.UpdateRoomDto{
 		Name: common.LocalizedName{
 			Th: nameTh,
 			En: nameEn,
 		},
-		Type:     roomType,
-		Capacity: capacity,
-		Members:  members,
-		Image:    imagePath,
+		Type:      roomType,
+		Capacity:  capacity,
+		Members:   stringMembers,
+		Image:     imagePath,
 		CreatedBy: createdBy,
 	}
 
@@ -245,7 +279,7 @@ func (c *RoomController) JoinRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	userObjID, err := extractUserIDFromJWT(ctx)
+	userObjID, err := roomUtils.ExtractUserIDFromJWT(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
@@ -285,7 +319,7 @@ func (c *RoomController) LeaveRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	userObjID, err := extractUserIDFromJWT(ctx)
+	userObjID, err := roomUtils.ExtractUserIDFromJWT(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
@@ -316,11 +350,15 @@ func (c *RoomController) UpdateRoomType(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 	// Build UpdateRoomDto
+	stringMembers := make([]string, len(room.Members))
+	for i, m := range room.Members {
+		stringMembers[i] = m.Hex()
+	}
 	updateRoomDto := &dto.UpdateRoomDto{
 		Name:     room.Name,
 		Type:     updateDto.Type,
 		Capacity: room.Capacity,
-		Members:  room.Members,
+		Members:  stringMembers,
 		Image:    room.Image,
 	}
 	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateRoomDto)
@@ -345,11 +383,15 @@ func (c *RoomController) UpdateRoomImage(ctx *fiber.Ctx) error {
 		c.cleanupUploadedFile(imagePath)
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
+	stringMembers := make([]string, len(room.Members))
+	for i, m := range room.Members {
+		stringMembers[i] = m.Hex()
+	}
 	updateRoomDto := &dto.UpdateRoomDto{
 		Name:     room.Name,
 		Type:     room.Type,
 		Capacity: room.Capacity,
-		Members:  room.Members,
+		Members:  stringMembers,
 		Image:    imagePath,
 	}
 	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateRoomDto)
@@ -383,7 +425,7 @@ func (c *RoomController) cleanupUploadedFile(filePath string) {
 // SetRoomReadOnly sets a room's read-only status
 func (c *RoomController) handleSetRoomReadOnly(ctx *fiber.Ctx) error {
 	roomID := ctx.Params("roomId")
-	isReadOnly := ctx.QueryBool("readOnly", true)  // Default to true if not specified
+	isReadOnly := ctx.QueryBool("readOnly", true) // Default to true if not specified
 
 	// Convert room ID to ObjectID
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
@@ -410,11 +452,15 @@ func (c *RoomController) handleSetRoomReadOnly(ctx *fiber.Ctx) error {
 	}
 
 	// Update room
+	stringMembers := make([]string, len(room.Members))
+	for i, m := range room.Members {
+		stringMembers[i] = m.Hex()
+	}
 	updateDto := dto.UpdateRoomDto{
 		Name:     room.Name,
 		Type:     model.RoomTypeReadOnly,
 		Capacity: room.Capacity,
-		Members:  room.Members,
+		Members:  stringMembers,
 		Image:    room.Image,
 	}
 	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomID, &updateDto)
@@ -437,58 +483,38 @@ func (c *RoomController) handleSetRoomReadOnly(ctx *fiber.Ctx) error {
 	})
 }
 
-// ฟังก์ชันช่วย extract user id จาก JWT token (Authorization header)
-func extractUserIDFromJWT(ctx *fiber.Ctx) (primitive.ObjectID, error) {
-	authHeader := ctx.Get("Authorization")
-	if authHeader == "" {
-		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Missing Authorization header")
-	}
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid Authorization header format")
-	}
-	token := parts[1]
-	// decode JWT payload (base64)
-	payloadPart := strings.Split(token, ".")
-	if len(payloadPart) < 2 {
-		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT token")
-	}
-	payload, err := decodeBase64URL(payloadPart[1])
+// GetAllRoomForUser - ดึงห้องทั้งหมดที่ user มองเห็น (ไม่เอา group room)
+func (c *RoomController) GetAllRoomForUser(ctx *fiber.Ctx) error {
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
 	if err != nil {
-		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT payload")
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "Invalid authentication token"})
 	}
-	type jwtPayload struct {
-		Sub string `json:"sub"`
+	// Validate user ID format
+	_, err = c.validationHelper.ValidateUserID(userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
 	}
-	var p jwtPayload
-	if err := json.Unmarshal(payload, &p); err != nil {
-		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT payload structure")
+	rooms, err := c.roomService.GetAllRoomForUser(ctx.Context(), userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Failed to get rooms", "error": err.Error()})
 	}
-	return primitive.ObjectIDFromHex(p.Sub)
+	return ctx.JSON(fiber.Map{"success": true, "data": rooms})
 }
 
-func decodeBase64URL(s string) ([]byte, error) {
-	missing := len(s) % 4
-	if missing != 0 {
-		s += strings.Repeat("=", 4-missing)
-	}
-	return base64.URLEncoding.DecodeString(s)
-}
-
-// NEW: GetNonGroupRooms - ดึงเฉพาะห้องที่ไม่ใช่ group room
-func (c *RoomController) GetNonGroupRooms(ctx *fiber.Ctx) error {
-	opts := queries.ParseQueryOptions(ctx)
-	if opts.Filter == nil {
-		opts.Filter = make(map[string]interface{})
-	}
-	// Filter: metadata.isGroupRoom != true
-	opts.Filter["$or"] = []map[string]interface{}{
-		{"metadata.isGroupRoom": map[string]interface{}{"$ne": true}},
-		{"metadata.isGroupRoom": map[string]interface{}{"$exists": false}},
-	}
-	response, err := c.roomService.GetRooms(ctx.Context(), opts)
+// GetRoomsForMe - ดึงเฉพาะห้องที่ user เป็น member
+func (c *RoomController) GetRoomsForMe(ctx *fiber.Ctx) error {
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
 	if err != nil {
-		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "Invalid authentication token"})
 	}
-	return ctx.Status(fiber.StatusOK).JSON(response)
+	// Validate user ID format
+	_, err = c.validationHelper.ValidateUserID(userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+	rooms, err := c.roomService.GetRoomsForMe(ctx.Context(), userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Failed to get rooms", "error": err.Error()})
+	}
+	return ctx.JSON(fiber.Map{"success": true, "data": rooms})
 }

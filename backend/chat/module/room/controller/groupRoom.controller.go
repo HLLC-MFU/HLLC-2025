@@ -18,26 +18,26 @@ type GroupRoomController struct {
 	roomService      service.RoomService
 	uploadHandler    *utils.FileUploadHandler
 	validationHelper *roomUtils.RoomValidationHelper
-	rbac middleware.IRBACMiddleware
+	rbac             middleware.IRBACMiddleware
 }
 
 func NewGroupRoomController(app *fiber.App, groupService *service.GroupRoomService, roomService service.RoomService, rbac middleware.IRBACMiddleware) *GroupRoomController {
 	uploadConfig := utils.GetModuleConfig("room")
-	
+
 	var validationHelper *roomUtils.RoomValidationHelper
 	if uploadConfig.MaxSize > 0 && len(uploadConfig.AllowedTypes) > 0 {
 		validationHelper = roomUtils.NewRoomValidationHelper(uploadConfig.MaxSize, uploadConfig.AllowedTypes)
 	} else {
 		validationHelper = roomUtils.NewRoomValidationHelper(256*1024, []string{"image/jpeg", "image/jpg", "image/png"})
 	}
-	
+
 	controller := &GroupRoomController{
 		BaseController:   decorators.NewBaseController(app, "/api/rooms"),
 		groupService:     groupService,
 		roomService:      roomService,
 		uploadHandler:    utils.NewModuleFileHandler("room"),
 		validationHelper: validationHelper,
-		rbac:            rbac,
+		rbac:             rbac,
 	}
 
 	controller.setupRoutes()
@@ -49,7 +49,6 @@ func (c *GroupRoomController) setupRoutes() {
 	c.Post("/:id/join-group", c.JoinRoomByGroup, c.rbac.RequireAdministrator())
 	c.Post("/:id/bulk-add", c.BulkAddUsers, c.rbac.RequireAdministrator())
 	c.Get("/group/stats", c.GetGroupRoomStats, c.rbac.RequireAdministrator())
-	c.Get("/group/rooms", c.GetRoomsByGroup)
 	c.Post("/auto-add/:userId", c.AutoAddUserToGroupRooms, c.rbac.RequireAdministrator())
 	c.Get("/auto-addable", c.GetAutoAddableGroupRooms, c.rbac.RequireAdministrator())
 	c.Patch("/:id/auto-add", c.ToggleGroupRoomAutoAdd, c.rbac.RequireAdministrator())
@@ -75,11 +74,15 @@ func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 
 	// If image was uploaded, update room with UpdateRoomDto
 	if filename != "" {
+		stringMembers := make([]string, len(room.Members))
+		for i, m := range room.Members {
+			stringMembers[i] = m.Hex()
+		}
 		updateDto := &dto.UpdateRoomDto{
 			Name:     room.Name,
 			Type:     room.Type,
 			Capacity: room.Capacity,
-			Members:  room.Members,
+			Members:  stringMembers,
 			Image:    filename,
 		}
 		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), updateDto)
@@ -95,7 +98,7 @@ func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 func (c *GroupRoomController) JoinRoomByGroup(ctx *fiber.Ctx) error {
 	roomID := ctx.Params("id")
 	var joinDto dto.JoinRoomByGroupDto
-	
+
 	if err := ctx.BodyParser(&joinDto); err != nil {
 		return ctx.Status(400).JSON(fiber.Map{"success": false, "message": "Invalid request body"})
 	}
@@ -128,7 +131,7 @@ func (c *GroupRoomController) JoinRoomByGroup(ctx *fiber.Ctx) error {
 func (c *GroupRoomController) BulkAddUsers(ctx *fiber.Ctx) error {
 	roomID := ctx.Params("id")
 	var bulkDto dto.BulkAddUsersDto
-	
+
 	if err := ctx.BodyParser(&bulkDto); err != nil {
 		return ctx.Status(400).JSON(fiber.Map{"success": false, "message": "Invalid request body"})
 	}
@@ -174,32 +177,6 @@ func (c *GroupRoomController) GetGroupRoomStats(ctx *fiber.Ctx) error {
 	return ctx.JSON(fiber.Map{"success": true, "message": "Group room stats retrieved successfully", "data": stats})
 }
 
-// GetRoomsByGroup ดึงรายการห้องตาม group
-func (c *GroupRoomController) GetRoomsByGroup(ctx *fiber.Ctx) error {
-	groupType := ctx.Query("groupType")
-	groupValue := ctx.Query("groupValue")
-
-	if groupType == "" || groupValue == "" {
-		return ctx.Status(400).JSON(fiber.Map{"success": false, "message": "groupType and groupValue are required"})
-	}
-
-	rooms, err := c.groupService.GetRoomsByGroup(ctx.Context(), groupType, groupValue)
-	if err != nil {
-		return ctx.Status(500).JSON(fiber.Map{"success": false, "message": "Failed to get rooms by group", "error": err.Error()})
-	}
-
-	return ctx.JSON(fiber.Map{
-		"success": true,
-		"message": "Rooms retrieved successfully",
-		"data": fiber.Map{
-			"groupType":  groupType,
-			"groupValue": groupValue,
-			"rooms":      rooms,
-			"count":      len(rooms),
-		},
-	})
-}
-
 // AutoAddUserToGroupRooms เพิ่ม user เข้าห้องกลุ่มที่เหมาะสมอัตโนมัติ
 func (c *GroupRoomController) AutoAddUserToGroupRooms(ctx *fiber.Ctx) error {
 	userID := ctx.Params("userId")
@@ -225,14 +202,14 @@ func (c *GroupRoomController) GetAutoAddableGroupRooms(ctx *fiber.Ctx) error {
 	return ctx.JSON(fiber.Map{
 		"success": true,
 		"message": "Auto-addable group rooms retrieved successfully",
-		"data": fiber.Map{"rooms": rooms, "count": len(rooms)},
+		"data":    fiber.Map{"rooms": rooms, "count": len(rooms)},
 	})
 }
 
 // ToggleGroupRoomAutoAdd เปิด/ปิด auto-add สำหรับห้องกลุ่ม
 func (c *GroupRoomController) ToggleGroupRoomAutoAdd(ctx *fiber.Ctx) error {
 	roomID := ctx.Params("id")
-	
+
 	type ToggleAutoAddDto struct {
 		AutoAdd bool `json:"autoAdd"`
 	}
@@ -255,9 +232,9 @@ func (c *GroupRoomController) ToggleGroupRoomAutoAdd(ctx *fiber.Ctx) error {
 	return ctx.JSON(fiber.Map{
 		"success": true,
 		"message": "Auto-add status updated successfully",
-		"data": fiber.Map{"roomId": roomID, "autoAdd": toggleDto.AutoAdd},
+		"data":    fiber.Map{"roomId": roomID, "autoAdd": toggleDto.AutoAdd},
 	})
-} 
+}
 
 func (c *GroupRoomController) handleImageUpload(ctx *fiber.Ctx) (string, error) {
 	file, err := ctx.FormFile("image")

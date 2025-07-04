@@ -80,6 +80,18 @@ func (h *RoomValidationHelper) ValidateRoomType(roomType string) error {
 	return fmt.Errorf("invalid room type: %s (allowed: %v)", roomType, validTypes)
 }
 
+// ValidateUserID ตรวจสอบ user ID format
+func (h *RoomValidationHelper) ValidateUserID(idStr string) (primitive.ObjectID, error) {
+	if idStr == "" {
+		return primitive.NilObjectID, fmt.Errorf("user ID is required")
+	}
+	objID, err := primitive.ObjectIDFromHex(idStr)
+	if err != nil {
+		return primitive.NilObjectID, fmt.Errorf("invalid user ID format")
+	}
+	return objID, nil
+}
+
 // ParseAndValidateRoomID แยกและตรวจสอบ room ID จาก URL parameter
 func (h *RoomValidationHelper) ParseAndValidateRoomID(ctx *fiber.Ctx) (primitive.ObjectID, error) {
 	idStr := ctx.Params("id")

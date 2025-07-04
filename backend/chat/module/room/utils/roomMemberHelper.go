@@ -37,17 +37,19 @@ func NewRoomMemberHelper(db *mongo.Database, cache *RoomCacheService, eventEmitt
 func (h *RoomMemberHelper) AddUserToRoom(ctx context.Context, roomID, userID string) error {
 	log.Printf("[MemberHelper] Adding user %s to room %s", userID, roomID)
 
-	// แปลง roomID เป็น ObjectID
 	roomObjID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
 		return fmt.Errorf("invalid room ID: %w", err)
 	}
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %w", err)
+	}
 
-	// อัพเดทใน database (ใช้ userID string)
 	collection := h.db.Collection("rooms")
 	filter := bson.M{"_id": roomObjID}
 	update := bson.M{
-		"$addToSet": bson.M{"members": userID},
+		"$addToSet": bson.M{"members": userObjID},
 		"$set":      bson.M{"updatedAt": time.Now()},
 	}
 
@@ -57,19 +59,16 @@ func (h *RoomMemberHelper) AddUserToRoom(ctx context.Context, roomID, userID str
 		return fmt.Errorf("failed to add user to room: %w", err)
 	}
 
-	// Update cache with the new room state
-	room.Members = append(room.Members, userID)
+	room.Members = append(room.Members, userObjID)
 	room.UpdatedAt = time.Now()
 	if err := h.cache.SaveRoom(ctx, &room); err != nil {
 		log.Printf("[MemberHelper] Warning: Failed to update cache: %v", err)
 	}
 
-	// Also update the members cache
-	if err := h.cache.AddMember(ctx, roomID, primitive.NilObjectID); err != nil {
+	if err := h.cache.AddMember(ctx, roomID, userObjID); err != nil {
 		log.Printf("[MemberHelper] Warning: Failed to update members cache: %v", err)
 	}
 
-	// Broadcast event
 	h.broadcastUserJoined(roomID, userID)
 
 	log.Printf("[MemberHelper] User %s added to room %s successfully", userID, roomID)
@@ -80,29 +79,34 @@ func (h *RoomMemberHelper) AddUserToRoom(ctx context.Context, roomID, userID str
 func (h *RoomMemberHelper) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (*model.Room, error) {
 	log.Printf("[MemberHelper] Removing user %s from room %s", userID, roomID.Hex())
 
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
 	// อัพเดทใน database (ใช้ userID string)
 	collection := h.db.Collection("rooms")
 	filter := bson.M{"_id": roomID}
 	update := bson.M{
-		"$pull": bson.M{"members": userID},
+		"$pull": bson.M{"members": userObjID},
 		"$set":  bson.M{"updatedAt": time.Now()},
 	}
 
 	var room model.Room
-	err := collection.FindOneAndUpdate(ctx, filter, update).Decode(&room)
+	err = collection.FindOneAndUpdate(ctx, filter, update).Decode(&room)
 	if err != nil {
 		return nil, fmt.Errorf("failed to remove user from room: %w", err)
 	}
 
 	// Update cache with the new room state
-	room.Members = RemoveMemberString(room.Members, userID)
+	room.Members = RemoveMemberObjectID(room.Members, userObjID)
 	room.UpdatedAt = time.Now()
 	if err := h.cache.SaveRoom(ctx, &room); err != nil {
 		log.Printf("[MemberHelper] Warning: Failed to update cache: %v", err)
 	}
 
 	// Also update the members cache
-	if err := h.cache.RemoveMember(ctx, roomID.Hex(), primitive.NilObjectID); err != nil {
+	if err := h.cache.RemoveMember(ctx, roomID.Hex(), userObjID); err != nil {
 		log.Printf("[MemberHelper] Warning: Failed to update members cache: %v", err)
 	}
 
