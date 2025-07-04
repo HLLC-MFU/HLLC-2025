@@ -50,11 +50,17 @@ type (
 		Metadata  map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"`
 		IsMember  bool                `json:"isMember"`
 		CanJoin   bool                `json:"canJoin"` // remove omitempty to always show
+		MemberCount int               `json:"memberCount"` // เพิ่ม field นี้
 	}
 
 	ResponseRoomMemberDto struct {
 		ID primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
-		Members []string `bson:"members" json:"members"`
+		Members []struct {
+			User struct {
+				ID string `json:"_id"`
+				Username string `json:"username"`
+			} `json:"user"`
+		} `json:"members"`
 	}
 
 	ResponseGroupRoomDto struct {
