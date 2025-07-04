@@ -19,7 +19,6 @@ export function CheckinTable() {
   const { checkin } = useCheckin();
   const [filter, setFilter] = useState('');
   const [page, setPage] = useState(1);
-  // const hasSearchFilter = Boolean(filterValue);
   const rowsPerPage = 5;
 
   const activityColumns = useMemo(() => {
@@ -141,12 +140,6 @@ export function CheckinTable() {
       </Table>
     );
   }
-
-  // const filteredItems  = useMemo(() => {
-  //   let filtered = items;
-
-  //   if (filter)}
-  // },[items, filter]);
 
   return (
     <>

@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Accordion, AccordionItem } from '@heroui/react';
 import AssessmentOverviewDashboard from '../assessments/_components/question-overview-dashboard';
 import ActivityDashboard from '../assessments/_components/activity-dashboard';
-import ReportCharts  from './_components/DashboardReportChart';
+import ReportChart  from './_components/DashboardReportChart';
 import Overview from './_components/DashboardOverview';
 import CheckinBarChart from './_components/DashboardCheckinBarChart';
 import StudentChart from './_components/DashbaordStudentChart';
@@ -62,7 +62,7 @@ export default function DashboardPage() {
         </Accordion>
       </div>
       <h1 className=" text-2xl font-semibold my-6">Reports</h1>
-      <ReportCharts/>
+      <ReportChart/>
     </>
   );
 }

@@ -132,8 +132,6 @@ export class CheckinService {
       role: internRole?._id,
     });
 
-    const totalUser = studentCount + internCount
-
     // หากิจกรรมที่มี ID ตรงกับ activityIds แล้วดึงชื่อกิจกรรม
     const activities = await this.activityModel
       .find({ _id: { $in: activityIds } })
@@ -163,24 +161,15 @@ export class CheckinService {
           (c) => (c.user as PopulatedUser)?.role?.name === 'intern',
         ).length;
 
-        const totalCheckin = internCheckinCount + studentCheckinCount;
-        const notCheckin = studentCount + internCount - totalCheckin;
+        const notCheckin = studentCount - studentCheckinCount;
 
         return {
           _id: activity._id,
-          activityType:
-            typeof activity.type === 'object' &&
-            activity.type !== null &&
-            'name' in activity.type
-              ? (activity.type as any).name
-              : 'Unknown',
           name: activity.name,
           acronym: activity.acronym,
           internCheckin: internCheckinCount,
           studentCheckin: studentCheckinCount,
-          totalCheckin: totalCheckin,
           notCheckin: notCheckin,
-          totalUser: totalUser,
         };
       }),
     );

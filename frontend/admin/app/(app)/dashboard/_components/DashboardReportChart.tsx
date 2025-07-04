@@ -12,7 +12,7 @@ interface ChartData {
   color?: string;
 }
 
-export default function ReportCharts() {
+export default function ReportChart() {
   const { problems } = useReports();
   const { reporttypes } = useReportTypes();
   const [ page, setPage] = useState(1);
@@ -27,7 +27,7 @@ export default function ReportCharts() {
     color: reporttype.color,
   }));
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const customTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const { name, count , pending , inProgress , done} = payload[0].payload;
       return (
@@ -85,7 +85,7 @@ export default function ReportCharts() {
                 tick={{ fontSize: 14, fontWeight: 600 }}
               />
               <YAxis stroke="#6B7280" tick={{ fontSize: 12 }} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={ customTooltip } />
               <Bar
                 dataKey="count"
                 fill='#486CFF'

@@ -13,19 +13,21 @@ interface CardProp {
   colors: string;
 }
 
-const CardWithPie = ({ label, value, icon, colors}: CardProp ) => (
-  <Card className="w-full h-full rounded-2xl flex-row flex items-center gap-4 p-5">
-    <div
-      className={`p-4 rounded-2xl bg-${colors} text-${colors.replace('100', '600')} shadow-inner`}
-    >
-      {icon}
-    </div>
-    <div className="flex flex-col">
-      <span className="text-md font-medium text-default-800">{label}</span>
-      <span className="text-lg font-semibold text-default-500">{value} </span>
-    </div>
-  </Card>
-);
+function CardWithPie({ label, value, icon, colors }: CardProp) {
+  return (
+    <Card className="w-full h-full rounded-2xl flex-row flex items-center gap-4 p-5">
+      <div
+        className={`p-4 rounded-2xl bg-${colors} text-${colors.replace('100', '600')} shadow-inner`}
+      >
+        {icon}
+      </div>
+      <div className="flex flex-col">
+        <span className="text-md font-medium text-default-800">{label}</span>
+        <span className="text-lg font-semibold text-default-500">{value} </span>
+      </div>
+    </Card>
+  );
+}
 
 export default function Overview() {
   const { evouchers } = useEvoucher();

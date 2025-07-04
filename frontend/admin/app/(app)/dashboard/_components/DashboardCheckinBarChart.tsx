@@ -5,6 +5,7 @@ import {
   CardBody,
   CardFooter,
   CardHeader,
+  Divider,
   Pagination,
 } from '@heroui/react';
 import { Download, UserRoundCheck } from 'lucide-react';
@@ -26,13 +27,14 @@ export default function CheckinBarChart() {
 
   const customTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const { activity, internCheckin, studentCheckin, notCheckin, totalUser } =payload[0].payload;
+      const { activity, internCheckin, studentCheckin, notCheckin, totalUser } = payload[0].payload;
       return (
         <div className="bg-white p-2 rounded shadow">
           <p className="font-bold">{activity}</p>
           <p className="text-primary">Student Attendance : {studentCheckin} </p>
           <p className="text-warning">Intern Acttendance: {internCheckin}</p>
           <p className="text-danger"> Absen: {notCheckin} </p>
+          <Divider />
           <p className="text-default-500"> Total Attendance: {totalUser} </p>
         </div>
       );
@@ -147,6 +149,7 @@ export default function CheckinBarChart() {
             color="primary"
             startContent={<Download className="w-4 h-4" />}
             onPress={downloadCSV}
+            isDisabled={studentCheckinChartsData.length === 0}
             variant="flat"
             size="sm"
           >
