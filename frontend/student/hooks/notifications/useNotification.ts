@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { NotificationItem } from "@/types/notification";
 import { useApi } from "@/hooks/useApi";
-import useProfile from "./useProfile";
+import useProfile from "../useProfile";
 
 
 export function useNotification() {

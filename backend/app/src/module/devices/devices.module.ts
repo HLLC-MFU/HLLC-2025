@@ -6,9 +6,7 @@ import { Device, DeviceSchema } from './schemas/device.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: Device.name, schema: DeviceSchema }
-    ]),
+    MongooseModule.forFeature([{ name: Device.name, schema: DeviceSchema }]),
   ],
   controllers: [DevicesController],
   providers: [DevicesService],

@@ -5,7 +5,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { StepCounter, StepCounterSchema } from './schema/step-counter.schema';
 import { School, SchoolSchema } from '../schools/schemas/school.schema';
-import { StepAchievement, StepAchievementSchema } from './schema/step-achievement.schema';
+import {
+  StepAchievement,
+  StepAchievementSchema,
+} from './schema/step-achievement.schema';
+import { StepWatchService } from './service/step-watch.service';
 
 @Module({
   imports: [
@@ -25,11 +29,11 @@ import { StepAchievement, StepAchievementSchema } from './schema/step-achievemen
       {
         name: StepAchievement.name,
         schema: StepAchievementSchema,
-      }
+      },
     ]),
   ],
   controllers: [StepCountersController],
-  providers: [StepCountersService],
-  exports: [StepCountersService],
+  providers: [StepCountersService, StepWatchService],
+  exports: [StepCountersService, StepWatchService],
 })
-export class StepCountersModule { }
+export class StepCountersModule {}
