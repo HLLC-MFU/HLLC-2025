@@ -20,8 +20,8 @@ type (
 		Name      common.LocalizedName `bson:"name" json:"name"`
 		Type      string              `bson:"type" json:"type"`
 		Capacity  int                 `bson:"capacity" json:"capacity"`
-		Members   []string            `bson:"members" json:"members"`
-		CreatedBy string              `bson:"createdBy" json:"createdBy"`
+		Members   []primitive.ObjectID `bson:"members" json:"members"`
+		CreatedBy primitive.ObjectID   `bson:"createdBy" json:"createdBy"`
 		Image     string              `bson:"image,omitempty" json:"image,omitempty"`
 		CreatedAt time.Time           `bson:"createdAt" json:"createdAt"`
 		UpdatedAt time.Time           `bson:"updatedAt" json:"updatedAt"`

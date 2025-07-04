@@ -2,14 +2,17 @@ package utils
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"chat/module/room/model"
 	"chat/pkg/middleware"
 
+	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -48,9 +51,9 @@ func EmitErrorLog(ctx context.Context, label string, err error) {
 	log.Printf("[Kafka] Failed to emit %s: %v", label, err)
 }
 
-// นี่คือฟังก์ชันที่จะใช้ใน service เพื่อลบ members ** อย่าสังเขปมัน **
-func RemoveMemberString(existing []string, target string) []string {
-	filtered := make([]string, 0, len(existing))
+// RemoveMemberObjectID removes a member from []primitive.ObjectID
+func RemoveMemberObjectID(existing []primitive.ObjectID, target primitive.ObjectID) []primitive.ObjectID {
+	filtered := make([]primitive.ObjectID, 0, len(existing))
 	for _, member := range existing {
 		if member != target {
 			filtered = append(filtered, member)
@@ -59,11 +62,8 @@ func RemoveMemberString(existing []string, target string) []string {
 	return filtered
 }
 
-// แปลง string IDs เป็น ObjectIDs
-func ConvertToObjectIDs(stringIDs []string) []primitive.ObjectID {
-	if len(stringIDs) == 0 {
-		return make([]primitive.ObjectID, 0)
-	}
+// ConvertToObjectIDs: if already []primitive.ObjectID, just return
+func ConvertToObjectIDsFromStrings(stringIDs []string) []primitive.ObjectID {
 	objectIDs := make([]primitive.ObjectID, len(stringIDs))
 	for i, id := range stringIDs {
 		objID, _ := primitive.ObjectIDFromHex(id)
@@ -72,7 +72,7 @@ func ConvertToObjectIDs(stringIDs []string) []primitive.ObjectID {
 	return objectIDs
 }
 
-// ตรวจสอบว่ามี member นั้นอยู่ใน list หรือไม่
+// ContainsMember checks if target is in []primitive.ObjectID
 func ContainsMember(members []primitive.ObjectID, target primitive.ObjectID) bool {
 	for _, member := range members {
 		if member == target {
@@ -85,22 +85,17 @@ func ContainsMember(members []primitive.ObjectID, target primitive.ObjectID) boo
 func ValidateAndTrackConnection(ctx context.Context, room *model.Room, userID string, cache *RoomCacheService) error {
 	log.Printf("[ConnectionHelper] Validating connection for user %s in room %s", userID, room.ID.Hex())
 
-	// แปลง userID เป็น ObjectID
 	uid, _ := primitive.ObjectIDFromHex(userID)
-	// ตรวจสอบว่ามี user อยู่ใน room หรือไม่
-	members := ConvertToObjectIDs(room.Members)
-	if !ContainsMember(members, uid) {
+	if !ContainsMember(room.Members, uid) {
 		return fmt.Errorf("user is not a member of this room")
 	}
 
-	// ตรวจสอบ capacity เฉพาะห้องที่มีการจำกัด
 	if !room.IsUnlimitedCapacity() {
 		if count, err := cache.GetActiveConnectionsCount(ctx, room.ID.Hex()); err == nil && count >= int64(room.Capacity) {
 			return fmt.Errorf("room is at capacity: %d/%d", count, room.Capacity)
 		}
 	}
 
-	// บันทึก connection ลง cache
 	return cache.TrackConnection(ctx, room.ID.Hex(), userID)
 }
 
@@ -138,23 +133,18 @@ func GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID, c
 func CanUserSendMessage(ctx context.Context, room *model.Room, userID string) (bool, error) {
 	log.Printf("[ConnectionHelper] Checking message permission for user %s in room %s", userID, room.ID.Hex())
 
-	// แปลง userID เป็น ObjectID
 	uid, _ := primitive.ObjectIDFromHex(userID)
 
-	// ตรวจสอบว่ามี user อยู่ใน room หรือไม่
-	if !ContainsMember(ConvertToObjectIDs(room.Members), uid) {
+	if !ContainsMember(room.Members, uid) {
 		return false, fmt.Errorf("user is not a member of this room")
 	}
 
-	// ตรวจสอบว่าห้องเป็น read-only หรือไม่
 	if room.IsReadOnly() {
-		// ดึง role ของ user จาก context
 		userRole := ctx.Value("userRole").(string)
 		if userRole == "" {
 			return false, fmt.Errorf("user role not found in context")
 		}
 
-		// อนุญาตให้เฉพาะ Administrator และ Staff สามารถส่งข้อความในห้อง read-only ได้
 		if userRole != middleware.RoleAdministrator && userRole != middleware.RoleStaff {
 			return false, fmt.Errorf("room is read-only and user does not have write permission")
 		}
@@ -309,4 +299,42 @@ func GetRoomMemberCount(ctx context.Context, roomID primitive.ObjectID, db *mong
 
 	log.Printf("[RoomHelper] Room has %d members", result.MemberCount)
 	return result.MemberCount, nil
+}
+
+// ฟังก์ชันช่วย extract user id จาก JWT token (Authorization header)
+func ExtractUserIDFromJWT(ctx *fiber.Ctx) (primitive.ObjectID, error) {
+	authHeader := ctx.Get("Authorization")
+	if authHeader == "" {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Missing Authorization header")
+	}
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid Authorization header format")
+	}
+	token := parts[1]
+	// decode JWT payload (base64)
+	payloadPart := strings.Split(token, ".")
+	if len(payloadPart) < 2 {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT token")
+	}
+	payload, err := decodeBase64URL(payloadPart[1])
+	if err != nil {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT payload")
+	}
+	type jwtPayload struct {
+		Sub string `json:"sub"`
+	}
+	var p jwtPayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		return primitive.NilObjectID, fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT payload structure")
+	}
+	return primitive.ObjectIDFromHex(p.Sub)
+}
+
+func decodeBase64URL(s string) ([]byte, error) {
+	missing := len(s) % 4
+	if missing != 0 {
+		s += strings.Repeat("=", 4-missing)
+	}
+	return base64.URLEncoding.DecodeString(s)
 }

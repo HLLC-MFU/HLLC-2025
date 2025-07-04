@@ -36,8 +36,9 @@ type RoomServiceImpl struct {
 }
 
 type RoomService interface {
-	GetRooms(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.Room], error)
+	GetRooms(ctx context.Context, opts queries.QueryOptions, userId string) (*queries.Response[dto.ResponseRoomDto], error)
 	GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*model.Room, error)
+	GetRoomMemberById(ctx context.Context, roomID primitive.ObjectID) (*dto.ResponseRoomMemberDto, error)
 	CreateRoom(ctx context.Context, createDto *dto.CreateRoomDto) (*model.Room, error)
 	UpdateRoom(ctx context.Context, id string, updateDto *dto.UpdateRoomDto) (*model.Room, error)
 	DeleteRoom(ctx context.Context, id string) (*model.Room, error)
@@ -53,6 +54,8 @@ type RoomService interface {
 	AddUserToRoom(ctx context.Context, roomID, userID string) error
 	JoinRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error
 	LeaveRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error
+	GetAllRoomForUser(ctx context.Context, userID string) ([]dto.ResponseAllRoomForUserDto, error)
+	GetRoomsForMe(ctx context.Context, userID string) ([]dto.ResponseRoomDto, error)
 }
 
 func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config, hub *chatUtils.Hub) RoomService {
@@ -79,12 +82,48 @@ func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config,
 	return service
 }
 
-// ดึง list room จาก cache
-func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOptions) (*queries.Response[model.Room], error) {
+// GetRooms retrieves list of rooms from cache
+func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOptions, userId string) (*queries.Response[dto.ResponseRoomDto], error) {
 	if opts.Filter == nil {
 		opts.Filter = make(map[string]interface{})
 	}
-	return s.FindAll(ctx, opts)
+	resp, err := s.FindAll(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &queries.Response[dto.ResponseRoomDto]{
+		Data: make([]dto.ResponseRoomDto, len(resp.Data)),
+	}
+
+	for i, room := range resp.Data {
+		result.Data[i] = dto.ResponseRoomDto{
+			ID: room.ID,
+			Name: room.Name,
+			Type: room.Type,
+			CreatedBy: room.CreatedBy,
+			Image: room.Image,
+			CreatedAt: room.CreatedAt,
+			UpdatedAt: room.UpdatedAt,
+			Metadata: room.Metadata,
+		}
+	}
+
+	return result, nil
+}
+
+func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitive.ObjectID) (*dto.ResponseRoomMemberDto, error) {
+	if room, err := s.cache.GetRoom(ctx, roomId.Hex()); err == nil && room != nil {
+		members := make([]string, len(room.Members))
+		for i, m := range room.Members {
+			members[i] = m.Hex()
+		}
+		return &dto.ResponseRoomMemberDto{
+			ID: room.ID,
+			Members: members,
+		}, nil
+	}
+	return nil, errors.New("room not found")
 }
 
 // ดึง room จาก cache
@@ -115,22 +154,24 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 		return nil, fmt.Errorf("validation error: %w", err)
 	}
 
+	members := createDto.MembersToObjectIDs()
+	createdBy := createDto.CreatedByToObjectID()
+
 	// Ensure createdBy is in members
 	alreadyMember := false
-	for _, m := range createDto.Members {
-		if m == createDto.CreatedBy {
+	for _, m := range members {
+		if m == createdBy {
 			alreadyMember = true
 			break
 		}
 	}
-	if !alreadyMember && createDto.CreatedBy != "" {
-		createDto.Members = append(createDto.Members, createDto.CreatedBy)
+	if !alreadyMember && !createdBy.IsZero() {
+		members = append(members, createdBy)
 	}
 
 	if err := s.validateMembers(ctx, createDto); err != nil {
 		return nil, err
 	}
-
 
 	roomType := createDto.Type
 	if roomType == "" {
@@ -141,10 +182,11 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 		Name:      createDto.Name,
 		Type:      roomType,
 		Capacity:  createDto.Capacity,
-		CreatedBy: createDto.CreatedBy,
+		CreatedBy: createdBy,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Members:   createDto.Members,
+		Members:   members,
+		Image:     createDto.Image,
 	}
 
 	resp, err := s.Create(ctx, *r)
@@ -169,12 +211,23 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 	}
 
 	// Merge fields
-	updatedRoom := *oldRoom
+	updatedRoom := &model.Room{
+		ID: oldRoom.ID,
+		Name: oldRoom.Name,
+		Type: oldRoom.Type,
+		Capacity: oldRoom.Capacity,
+		Members: oldRoom.Members,
+		CreatedBy: oldRoom.CreatedBy, // primitive.ObjectID for DB
+		Image: oldRoom.Image,
+		CreatedAt: oldRoom.CreatedAt,
+		UpdatedAt: oldRoom.UpdatedAt,
+		Metadata: oldRoom.Metadata,
+	}
 	updatedRoom.Name = updateDto.Name
 	updatedRoom.Type = updateDto.Type
 	updatedRoom.Capacity = updateDto.Capacity
 	if updateDto.Members != nil && len(updateDto.Members) > 0 {
-		updatedRoom.Members = updateDto.Members
+		updatedRoom.Members = updateDto.MembersToObjectIDs()
 	}
 	if updateDto.Image != "" {
 		updatedRoom.Image = updateDto.Image
@@ -182,7 +235,7 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 	updatedRoom.UpdatedAt = time.Now()
 	// createdBy: use from updateDto if present, else preserve
 	if updateDto.CreatedBy != "" {
-		updatedRoom.CreatedBy = updateDto.CreatedBy
+		updatedRoom.CreatedBy = updateDto.CreatedByToObjectID()
 	}
 	// Ensure createdBy is in members
 	found := false
@@ -192,7 +245,7 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 			break
 		}
 	}
-	if !found && updatedRoom.CreatedBy != "" {
+	if !found && !updatedRoom.CreatedBy.IsZero() {
 		updatedRoom.Members = append(updatedRoom.Members, updatedRoom.CreatedBy)
 	}
 
@@ -229,10 +282,10 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 
 	// Save updated room to cache (if cache is enabled)
 	if s.cache != nil {
-		_ = s.cache.SaveRoom(ctx, &updatedRoom)
+		_ = s.cache.SaveRoom(ctx, updatedRoom)
 	}
 
-	return &updatedRoom, nil
+	return updatedRoom, nil
 }
 
 // ลบ room
@@ -253,9 +306,8 @@ func (s *RoomServiceImpl) IsUserInRoom(ctx context.Context, roomID primitive.Obj
 	if err != nil {
 		return false, err
 	}
-
 	uid, _ := primitive.ObjectIDFromHex(userID)
-	return roomUtils.ContainsMember(roomUtils.ConvertToObjectIDs(room.Members), uid), nil
+	return roomUtils.ContainsMember(room.Members, uid), nil
 }
 
 // ตรวจสอบว่ามี user นั้นอยู่ใน room และมี connection นั้นอยู่ใน room หรือไม่
@@ -306,7 +358,7 @@ func (s *RoomServiceImpl) CanUserSendMessage(ctx context.Context, roomID primiti
 	}
 
 	// ตรวจสอบว่า user อยู่ในห้องหรือไม่
-	if !roomUtils.ContainsMember(roomUtils.ConvertToObjectIDs(room.Members), uid) {
+	if !roomUtils.ContainsMember(room.Members, uid) {
 		return false, fmt.Errorf("user is not a member of this room")
 	}
 
@@ -356,6 +408,102 @@ func (s *RoomServiceImpl) LeaveRoom(ctx context.Context, roomID primitive.Object
 	return s.memberHelper.LeaveRoom(ctx, roomID, userID)
 }
 
+// GetAllRoomForUser ดึงห้องทั้งหมดที่ user มองเห็น (ไม่เอา group room)
+func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) ([]dto.ResponseAllRoomForUserDto, error) {
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID format")
+	}
+	opts := queries.QueryOptions{
+		Filter: map[string]interface{}{
+			"type": map[string]interface{}{ "$in": []string{"normal", "readonly"} },
+			"$or": []map[string]interface{}{
+				{"metadata.isGroupRoom": map[string]interface{}{"$ne": true}},
+				{"metadata.isGroupRoom": map[string]interface{}{"$exists": false}},
+			},
+		},
+	}
+	resp, err := s.FindAll(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]dto.ResponseAllRoomForUserDto, 0, len(resp.Data))
+	for _, room := range resp.Data {
+		isMember := false
+		for _, memberID := range room.Members {
+			if memberID == userObjID {
+				isMember = true
+				break
+			}
+		}
+		// Exclude if user is a member or if it's a group room
+		if isMember {
+			continue
+		}
+		if room.Metadata != nil {
+			if isGroup, ok := room.Metadata["isGroupRoom"]; ok && isGroup == true {
+				continue
+			}
+		}
+		canJoin := false
+		if room.Type == "normal" || room.Type == "readonly" {
+			if room.Capacity == 0 || len(room.Members) < room.Capacity {
+				canJoin = true
+			}
+		}
+		result = append(result, dto.ResponseAllRoomForUserDto{
+			ID: room.ID,
+			Name: room.Name,
+			Type: room.Type,
+			Capacity: room.Capacity,
+			CreatedBy: room.CreatedBy, // string for response
+			Image: room.Image,
+			CreatedAt: room.CreatedAt,
+			UpdatedAt: room.UpdatedAt,
+			Metadata: room.Metadata,
+			IsMember: false,
+			CanJoin:  canJoin,
+		})
+	}
+	return result, nil
+}
+
+// GetRoomsForMe ดึงเฉพาะห้องที่ user เป็น member
+func (s *RoomServiceImpl) GetRoomsForMe(ctx context.Context, userID string) ([]dto.ResponseRoomDto, error) {
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID format")
+	}
+	opts := queries.QueryOptions{
+		Filter: map[string]interface{}{
+			"members": userObjID,
+			"type": map[string]interface{}{ "$in": []string{"normal", "readonly"} },
+			"$or": []map[string]interface{}{
+				{"metadata.isGroupRoom": map[string]interface{}{"$ne": true}},
+				{"metadata.isGroupRoom": map[string]interface{}{"$exists": false}},
+			},
+		},
+	}
+	resp, err := s.FindAll(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]dto.ResponseRoomDto, 0, len(resp.Data))
+	for _, room := range resp.Data {
+		result = append(result, dto.ResponseRoomDto{
+			ID: room.ID,
+			Name: room.Name,
+			Type: room.Type,
+			Capacity: room.Capacity,
+			CreatedBy: room.CreatedBy, // string for response
+			Image: room.Image,
+			CreatedAt: room.CreatedAt,
+			UpdatedAt: room.UpdatedAt,
+			Metadata: room.Metadata,
+		})
+	}
+	return result, nil
+}
 
 
 // Helper methods

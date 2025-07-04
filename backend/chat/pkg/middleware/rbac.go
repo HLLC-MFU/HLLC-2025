@@ -420,6 +420,16 @@ func (r *RBACMiddleware) ExtractUserIDFromContext(ctx interface{}) (string, erro
 		return "", fmt.Errorf("failed to parse token: %w", err)
 	}
 
+	// Validate userID is a valid MongoDB ObjectID
+	if len(userID) != 24 {
+		log.Printf("[RBAC] Extracted userID from JWT is not a valid ObjectID: %s", userID)
+		return "", fmt.Errorf("userID in JWT 'sub' claim is not a valid ObjectID: %s", userID)
+	}
+	if _, err := primitive.ObjectIDFromHex(userID); err != nil {
+		log.Printf("[RBAC] Extracted userID from JWT is not a valid ObjectID: %s", userID)
+		return "", fmt.Errorf("userID in JWT 'sub' claim is not a valid ObjectID: %s", userID)
+	}
+
 	log.Printf("[DEBUG] Successfully extracted userID %s from JWT token", userID)
 	return userID, nil
 }

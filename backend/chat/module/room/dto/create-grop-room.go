@@ -4,6 +4,7 @@ package dto
 import (
 	"chat/pkg/common"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -23,6 +24,42 @@ type (
 		CreatedBy  string                `form:"createdBy" validate:"required,mongoId"`
 		Image      string                `form:"image" validate:"optional"`
 		// หมายเหตุ: ไม่ต้องระบุ capacity เพราะห้องกลุ่มจะเป็น unlimited (capacity = 0)
+	}
+
+	ResponseRoomDto struct {
+		ID        primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
+		Name      common.LocalizedName `bson:"name" json:"name"`
+		Type      string              `bson:"type" json:"type"`
+		Capacity  int                 `bson:"capacity" json:"capacity"`
+		CreatedBy primitive.ObjectID  `bson:"createdBy" json:"createdBy"` // string for response
+		Image     string              `bson:"image,omitempty" json:"image,omitempty"`
+		CreatedAt time.Time           `bson:"createdAt" json:"createdAt"`
+		UpdatedAt time.Time           `bson:"updatedAt" json:"updatedAt"`
+		Metadata  map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"`
+	}
+
+	ResponseAllRoomForUserDto struct {
+		ID        primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
+		Name      common.LocalizedName `bson:"name" json:"name"`
+		Type      string              `bson:"type" json:"type"`
+		Capacity  int                 `bson:"capacity" json:"capacity"`
+		CreatedBy primitive.ObjectID  `bson:"createdBy" json:"createdBy"` // string for response
+		Image     string              `bson:"image,omitempty" json:"image,omitempty"`
+		CreatedAt time.Time           `bson:"createdAt" json:"createdAt"`
+		UpdatedAt time.Time           `bson:"updatedAt" json:"updatedAt"`
+		Metadata  map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"`
+		IsMember  bool                `json:"isMember"`
+		CanJoin   bool                `json:"canJoin"` // remove omitempty to always show
+	}
+
+	ResponseRoomMemberDto struct {
+		ID primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+		Members []string `bson:"members" json:"members"`
+	}
+
+	ResponseGroupRoomDto struct {
+		ID        primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
+		IsMember  bool                `json:"isMember,omitempty"` // เพิ่ม field ใหม่
 	}
 
 	BulkAddUsersDto struct {

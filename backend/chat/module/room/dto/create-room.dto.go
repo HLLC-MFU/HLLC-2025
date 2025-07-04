@@ -61,3 +61,32 @@ func (dto *UpdateRoomDto) ToRoom() *model.Room {
 	}
 }
 
+// Helper: Convert Members to []primitive.ObjectID
+func (dto *CreateRoomDto) MembersToObjectIDs() []primitive.ObjectID {
+	objectIDs := make([]primitive.ObjectID, len(dto.Members))
+	for i, userID := range dto.Members {
+		objID, _ := primitive.ObjectIDFromHex(userID)
+		objectIDs[i] = objID
+	}
+	return objectIDs
+}
+
+func (dto *CreateRoomDto) CreatedByToObjectID() primitive.ObjectID {
+	objID, _ := primitive.ObjectIDFromHex(dto.CreatedBy)
+	return objID
+}
+
+func (dto *UpdateRoomDto) MembersToObjectIDs() []primitive.ObjectID {
+	objectIDs := make([]primitive.ObjectID, len(dto.Members))
+	for i, userID := range dto.Members {
+		objID, _ := primitive.ObjectIDFromHex(userID)
+		objectIDs[i] = objID
+	}
+	return objectIDs
+}
+
+func (dto *UpdateRoomDto) CreatedByToObjectID() primitive.ObjectID {
+	objID, _ := primitive.ObjectIDFromHex(dto.CreatedBy)
+	return objID
+}
+

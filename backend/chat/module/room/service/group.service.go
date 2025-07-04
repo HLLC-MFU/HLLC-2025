@@ -72,7 +72,6 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		return nil, fmt.Errorf("validation error: %w", err)
 	}
 
-	// Validate group type
 	if err := createDto.ValidateGroupType(); err != nil {
 		return nil, err
 	}
@@ -82,24 +81,27 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		roomType = model.RoomTypeNormal
 	}
 
-	// Ensure createdBy is in members (string id)
-	members := []string{}
+	createdBy := primitive.ObjectID{}
+	if createDto.CreatedBy != "" {
+		createdBy, _ = primitive.ObjectIDFromHex(createDto.CreatedBy)
+	}
+	members := []primitive.ObjectID{}
 	alreadyMember := false
 	for _, m := range members {
-		if m == createDto.CreatedBy {
+		if m == createdBy {
 			alreadyMember = true
 			break
 		}
 	}
-	if !alreadyMember && createDto.CreatedBy != "" {
-		members = append(members, createDto.CreatedBy)
+	if !alreadyMember && !createdBy.IsZero() {
+		members = append(members, createdBy)
 	}
 
 	room := &model.Room{
 		Name:      createDto.Name,
 		Type:      roomType,
 		Capacity:  0, // unlimited capacity
-		CreatedBy: createDto.CreatedBy,
+		CreatedBy: createdBy,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		Members:   members,
@@ -119,7 +121,6 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 
 	created := &resp.Data[0]
 
-	// เพิ่มสมาชิกกลุ่ม (bulk add)
 	addedCount, err := gs.addGroupMembersAndWait(ctx, created.ID, createDto.GroupType, createDto.GroupValue)
 	if err != nil {
 		log.Printf("[GroupService] Warning: failed to add group members: %v", err)
@@ -133,7 +134,6 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		finalRoom = created
 	}
 
-	// Emit event และ handle room created
 	gs.eventEmitter.EmitRoomCreated(ctx, finalRoom.ID, finalRoom)
 
 	return finalRoom, nil
