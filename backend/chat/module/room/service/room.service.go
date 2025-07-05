@@ -101,11 +101,13 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 			ID: room.ID,
 			Name: room.Name,
 			Type: room.Type,
+			Capacity: room.Capacity,
 			CreatedBy: room.CreatedBy,
 			Image: room.Image,
 			CreatedAt: room.CreatedAt,
 			UpdatedAt: room.UpdatedAt,
 			Metadata: room.Metadata,
+			MemberCount: len(room.Members),
 		}
 	}
 
@@ -437,6 +439,8 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID format")
 	}
+	
+	// Get rooms of type "normal" and "readonly", excluding group rooms
 	opts := queries.QueryOptions{
 		Filter: map[string]interface{}{
 			"type": map[string]interface{}{ "$in": []string{"normal", "readonly"} },
@@ -450,8 +454,10 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 	if err != nil {
 		return nil, err
 	}
+	
 	result := make([]dto.ResponseAllRoomForUserDto, 0, len(resp.Data))
 	for _, room := range resp.Data {
+		// Check if user is already a member
 		isMember := false
 		for _, memberID := range room.Members {
 			if memberID == userObjID {
@@ -459,35 +465,39 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 				break
 			}
 		}
-		// Exclude if user is a member or if it's a group room
+		
+		// Only include rooms where user is NOT a member
 		if isMember {
 			continue
 		}
+		
+		// Additional check to exclude group rooms
 		if room.Metadata != nil {
 			if isGroup, ok := room.Metadata["isGroupRoom"]; ok && isGroup == true {
 				continue
 			}
 		}
+		
+		// Check if user can join (has capacity or unlimited)
 		canJoin := false
-		if room.Type == "normal" || room.Type == "readonly" {
-			if room.Capacity == 0 || len(room.Members) < room.Capacity {
-				canJoin = true
-			}
+		if room.Capacity == 0 || len(room.Members) < room.Capacity {
+			canJoin = true
 		}
+		
 		memberCount := len(room.Members)
 		result = append(result, dto.ResponseAllRoomForUserDto{
 			ID: room.ID,
 			Name: room.Name,
 			Type: room.Type,
 			Capacity: room.Capacity,
-			CreatedBy: room.CreatedBy, // string for response
+			CreatedBy: room.CreatedBy,
 			Image: room.Image,
 			CreatedAt: room.CreatedAt,
 			UpdatedAt: room.UpdatedAt,
 			Metadata: room.Metadata,
 			IsMember: false,
 			CanJoin:  canJoin,
-			MemberCount: memberCount, // เพิ่ม field นี้
+			MemberCount: memberCount,
 		})
 	}
 	return result, nil
@@ -499,6 +509,8 @@ func (s *RoomServiceImpl) GetRoomsForMe(ctx context.Context, userID string) ([]d
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID format")
 	}
+	
+	// Get rooms where user is a member, only "normal" and "readonly" types, excluding group rooms
 	opts := queries.QueryOptions{
 		Filter: map[string]interface{}{
 			"members": userObjID,
@@ -513,18 +525,27 @@ func (s *RoomServiceImpl) GetRoomsForMe(ctx context.Context, userID string) ([]d
 	if err != nil {
 		return nil, err
 	}
+	
 	result := make([]dto.ResponseRoomDto, 0, len(resp.Data))
 	for _, room := range resp.Data {
+		// Additional check to exclude group rooms
+		if room.Metadata != nil {
+			if isGroup, ok := room.Metadata["isGroupRoom"]; ok && isGroup == true {
+				continue
+			}
+		}
+		
 		result = append(result, dto.ResponseRoomDto{
 			ID: room.ID,
 			Name: room.Name,
 			Type: room.Type,
 			Capacity: room.Capacity,
-			CreatedBy: room.CreatedBy, // string for response
+			CreatedBy: room.CreatedBy,
 			Image: room.Image,
 			CreatedAt: room.CreatedAt,
 			UpdatedAt: room.UpdatedAt,
 			Metadata: room.Metadata,
+			MemberCount: len(room.Members),
 		})
 	}
 	return result, nil
