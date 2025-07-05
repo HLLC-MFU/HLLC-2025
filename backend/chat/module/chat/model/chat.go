@@ -15,8 +15,6 @@ type (
 		Mentions  []string            `bson:"mentions,omitempty" json:"mentions,omitempty"` // Array of mentioned user IDs (for easy querying)
 		MentionInfo []MentionInfo     `bson:"mention_info,omitempty" json:"mentionInfo,omitempty"` // Detailed mention information
 		ReplyToID *primitive.ObjectID `bson:"reply_to_id,omitempty" json:"reply_to_id,omitempty"`
-		FileURL   string              `bson:"file_url,omitempty" json:"file_url,omitempty"`
-		FileType  string              `bson:"file_type,omitempty" json:"file_type,omitempty"`
 		FileName  string              `bson:"file_name,omitempty" json:"file_name,omitempty"`
 		Timestamp time.Time           `bson:"timestamp" json:"timestamp"`
 		StickerID *primitive.ObjectID `bson:"sticker_id,omitempty" json:"stickerId,omitempty"`
@@ -45,10 +43,8 @@ type (
 		MessageID primitive.ObjectID `bson:"message_id" json:"message_id"`
 		UserID    primitive.ObjectID `bson:"user_id" json:"user_id"`
 		Reaction  string             `bson:"reaction" json:"reaction"`
+		Action    string             `bson:"action,omitempty" json:"action,omitempty"` // "add", "update", "delete"
 		Timestamp time.Time          `bson:"timestamp" json:"timestamp"`
-		
-		// User data - populated when needed, not stored in database
-		User interface{} `bson:"-" json:"user,omitempty"`
 	}
 
 	ChatMessageEnriched struct {

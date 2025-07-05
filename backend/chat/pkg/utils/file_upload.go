@@ -74,6 +74,7 @@ func (h *FileUploadHandler) HandleFileUpload(ctx *fiber.Ctx, fieldName string) (
 		return "", err
 	}
 
+	// Store all files in /uploads directory (not module-specific)
 	dir := "uploads"
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		os.MkdirAll(dir, os.ModePerm)
@@ -86,6 +87,7 @@ func (h *FileUploadHandler) HandleFileUpload(ctx *fiber.Ctx, fieldName string) (
 		return "", err
 	}
 
+	// Return only the filename (not full path)
 	return filename, nil
 }
 
@@ -135,8 +137,9 @@ func (h *FileUploadHandler) generateFilename(originalName string) string {
 	return sb.String()
 }
 
-// GetFileURL converts file path to URL
+// GetFileURL converts file path to URL - returns clean filename only
 func (h *FileUploadHandler) GetFileURL(filename string) string {
+	// Return only the filename, not the full path
 	return filename
 }
 

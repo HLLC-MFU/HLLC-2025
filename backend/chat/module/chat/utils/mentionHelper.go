@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -49,9 +48,6 @@ func (mp *MentionParser) ParseMentions(ctx context.Context, messageText string) 
 			continue // Skip duplicate username mentions
 		}
 
-		// Find position of this mention in the text
-		position := strings.Index(messageText, "@"+username)
-		
 		// Look up user by username
 		user, err := mp.getUserByUsername(ctx, username)
 		if err != nil {
@@ -62,8 +58,6 @@ func (mp *MentionParser) ParseMentions(ctx context.Context, messageText string) 
 		mentions = append(mentions, model.MentionInfo{
 			UserID:   user.ID.Hex(),
 			Username: user.Username,
-			Position: position,
-			Length:   len("@" + username),
 		})
 
 		userIDs = append(userIDs, user.ID.Hex())

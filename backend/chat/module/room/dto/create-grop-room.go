@@ -36,6 +36,7 @@ type (
 		CreatedAt time.Time           `bson:"createdAt" json:"createdAt"`
 		UpdatedAt time.Time           `bson:"updatedAt" json:"updatedAt"`
 		Metadata  map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"`
+		MemberCount int               `bson:"memberCount" json:"memberCount"` // เพิ่ม field นี้
 	}
 
 	ResponseAllRoomForUserDto struct {

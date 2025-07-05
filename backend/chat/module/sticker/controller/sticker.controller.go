@@ -28,7 +28,7 @@ func NewStickerController(app *fiber.App, service *service.StickerService, rbac 
 	c := &StickerController{
 		BaseController: decorators.NewBaseController(app, "/api/stickers"),
 		service: service,
-		uploadHandler: utils.NewModuleFileHandler("sticker"),
+		uploadHandler: utils.NewFileUploadHandler(utils.DefaultImageConfig()), // Use default config for /uploads
 		rbac: rbac,
 	}
 

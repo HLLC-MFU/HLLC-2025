@@ -256,8 +256,28 @@ func (b *Bus) consume(topic string, reader *kafka.Reader) {
 
 			// จับคู่ topic กับ handler
 			for _, h := range b.handlers[topic] {
-				go h(context.Background(), wrapped)
-			}
+				go func(handler HandlerFunc) {
+					defer func() {
+						if r := recover(); r != nil {
+							log.Printf("[Kafka] Handler panic recovered: %v", r)
+						}
+					}()
+			
+					// เรียกใช้งาน handler
+					if err := handler(context.Background(), wrapped); err != nil {
+						log.Printf("[Kafka] Handler error (will not commit): %v", err)
+						// Optional: retry / push to DLQ
+						return
+					}
+			
+					// ✅ Commit เมื่อ handler สำเร็จ
+					if err := reader.CommitMessages(context.Background(), msg); err != nil {
+						log.Printf("[Kafka] Commit failed: %v", err)
+					} else {
+						log.Printf("[Kafka] ✅ Message committed: offset=%d topic=%s", msg.Offset, msg.Topic)
+					}
+				}(h)
+			}			
 		}
 	}
 }

@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"path/filepath"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -129,7 +128,6 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 		return e.emitEventStructured(ctx, msg, event)
 	} else if msg.Image != "" {
 		// File upload message
-		filePath := filepath.Join("uploads", msg.Image)
 		manualPayload := map[string]interface{}{
 			"room": map[string]interface{}{
 				"_id": roomInfo.ID,
@@ -146,9 +144,6 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 				"timestamp": messageInfo.Timestamp,
 			},
 			"filename": msg.Image,
-			"file": map[string]interface{}{
-				"path": filePath,
-			},
 			"timestamp": msg.Timestamp,
 		}
 
@@ -273,18 +268,19 @@ func (e *ChatEventEmitter) EmitReaction(ctx context.Context, reaction *model.Mes
 
 	// --- สร้าง rich payload ---
 	payload := map[string]interface{}{
-		"action":    action,
-		"reactToId": map[string]interface{}{ "_id": msgDoc.ID.Hex() },
-		"reaction":  reaction.Reaction,
+		"react": map[string]interface{}{
+			"action":    action,
+			"emoji":     reaction.Reaction,
+			"reactToId": msgDoc.ID.Hex(),
+		},
+		"room": map[string]interface{}{
+			"_id": roomID.Hex(),
+		},
 		"timestamp": reaction.Timestamp,
 		"user": map[string]interface{}{
 			"_id":      userInfo.ID,
 			"username": userInfo.Username,
 			"name":     userInfo.Name,
-			"role":     userInfo.Role,
-		},
-		"room": map[string]interface{}{
-			"_id": roomID.Hex(),
 		},
 	}
 	event := model.Event{
@@ -301,24 +297,58 @@ func (e *ChatEventEmitter) EmitReaction(ctx context.Context, reaction *model.Mes
 }
 
 func (e *ChatEventEmitter) EmitReactionRemoved(ctx context.Context, messageID, userID, roomID primitive.ObjectID) error {
-	event := ChatEvent{
-		Type: "reaction_removed",
-		Payload: map[string]string{
-			"messageId": messageID.Hex(),
-			"userId":    userID.Hex(),
+	// Get user data for the person who removed the reaction
+	userInfo, err := e.getUserInfo(ctx, userID)
+	if err != nil {
+		log.Printf("[WARN] Failed to get user info for reaction removal: %v", err)
+		userInfo = model.UserInfo{ID: userID.Hex()}
+	}
+
+	// Get message info for the message being reacted to
+	msgCollection := e.mongo.Collection("chat-messages")
+	var msgDoc struct {
+		ID        primitive.ObjectID `bson:"_id"`
+		Message   string             `bson:"message"`
+		Timestamp time.Time          `bson:"timestamp"`
+		Type      string             `bson:"type"`
+	}
+	err = msgCollection.FindOne(ctx, bson.M{"_id": messageID}).Decode(&msgDoc)
+	if err != nil {
+		log.Printf("[WARN] Failed to get message info for reaction removal: %v", err)
+		msgDoc.ID = messageID
+		msgDoc.Message = ""
+		msgDoc.Timestamp = time.Now()
+		msgDoc.Type = "reaction"
+	}
+
+	// Create payload with new format
+	payload := map[string]interface{}{
+		"react": map[string]interface{}{
+			"action":    "delete",
+			"emoji":     "", // No emoji for delete
+			"reactToId": msgDoc.ID.Hex(),
+		},
+		"room": map[string]interface{}{
+			"_id": roomID.Hex(),
+		},
+		"timestamp": time.Now(),
+		"user": map[string]interface{}{
+			"_id":      userInfo.ID,
+			"username": userInfo.Username,
+			"name":     userInfo.Name,
 		},
 	}
 
-	eventBytes, _ := json.Marshal(event)
-	e.hub.BroadcastToRoom(roomID.Hex(), eventBytes)
-
-	roomTopic := getRoomTopic(roomID.Hex())
-	if err := e.bus.Emit(ctx, roomTopic, roomID.Hex(), eventBytes); err != nil {
-		log.Printf("[WARN] Failed to emit reaction removal to Kafka (continuing without Kafka): %v", err)
-		// Don't return error - continue without Kafka
+	event := model.Event{
+		Type:      model.EventTypeReaction,
+		Payload:   payload,
+		Timestamp: time.Now(),
 	}
 
-	log.Printf("[Kafka] Successfully published reaction removal to topic %s", roomTopic)
+	// Send standardized event to WebSocket and Kafka
+	e.emitEventStructured(ctx, &model.ChatMessage{RoomID: roomID}, event)
+
+	log.Printf("[EmitReactionRemoved] delete reaction: user %s removed reaction on message %s", userID.Hex(), messageID.Hex())
 	return nil
 }
 
@@ -593,7 +623,7 @@ func (e *ChatEventEmitter) EmitMentionNotice(ctx context.Context, msg *model.Cha
 
 	// Create structured mention notice event
 	noticeEvent := model.Event{
-		Type: model.EventTypeMentionNotice,
+		Type: model.EventTypeMention,
 		Payload: map[string]interface{}{
 			"room":           roomInfo,
 			"message":        messageInfo,
@@ -609,8 +639,10 @@ func (e *ChatEventEmitter) EmitMentionNotice(ctx context.Context, msg *model.Cha
 	if err != nil {
 		return fmt.Errorf("failed to marshal mention notice: %w", err)
 	}
-	// Also broadcast to room so other clients can see who was mentioned (WebSocket needs bytes)
-	e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventBytes)
+	
+	// Send personal notification to the mentioned user only (not to the entire room)
+	// This prevents duplicate broadcasts since EmitMentionMessage already broadcasts to the room
+	e.hub.BroadcastToUser(mentionedUser.ID.Hex(), eventBytes)
 
 	log.Printf("[Kafka] Successfully published mention notice to user %s", mentionedUser.ID.Hex())
 	return nil

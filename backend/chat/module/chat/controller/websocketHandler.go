@@ -188,11 +188,6 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 						"name":     replyUser.Name,
 					}
 					
-					if replyUser.Role != primitive.NilObjectID {
-						replyUserData["role"] = map[string]interface{}{
-							"_id": replyUser.Role.Hex(),
-						}
-				}
 			} else {
 				replyUserData = map[string]interface{}{
 					"_id": msg.ReplyTo.UserID.Hex(),
