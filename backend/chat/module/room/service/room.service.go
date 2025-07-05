@@ -90,10 +90,17 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 	if opts.Filter == nil {
 		opts.Filter = make(map[string]interface{})
 	}
+	
+	// Debug log to see what filter is being passed
+	log.Printf("[GetRooms] Filter: %+v", opts.Filter)
+	log.Printf("[GetRooms] UserID: %s", userId)
+	
 	resp, err := s.FindAll(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("[GetRooms] Found %d rooms", len(resp.Data))
 
 	result := &queries.Response[dto.ResponseRoomDto]{
 		Data: make([]dto.ResponseRoomDto, len(resp.Data)),
@@ -112,6 +119,13 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 			Metadata: room.Metadata,
 			MemberCount: len(room.Members),
 			Status: room.Status,
+		}
+		
+		// Debug log to see if group rooms are included
+		if room.Metadata != nil {
+			if isGroup, ok := room.Metadata["isGroupRoom"]; ok && isGroup == true {
+				log.Printf("[GetRooms] Found group room: %s (ID: %s)", room.Name.Th, room.ID.Hex())
+			}
 		}
 	}
 
@@ -546,22 +560,18 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 	return result, nil
 }
 
-// GetRoomsForMe ดึงเฉพาะห้องที่ user เป็น member
+// GetRoomsForMe ดึงเฉพาะห้องที่ user เป็น member (รวม group room)
 func (s *RoomServiceImpl) GetRoomsForMe(ctx context.Context, userID string) ([]dto.ResponseRoomDto, error) {
 	userObjID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID format")
 	}
 	
-	// Get rooms where user is a member, only "normal" and "readonly" types, excluding group rooms
+	// Get rooms where user is a member, including group rooms
 	opts := queries.QueryOptions{
 		Filter: map[string]interface{}{
 			"members": userObjID,
 			"type": map[string]interface{}{ "$in": []string{"normal", "readonly"} },
-			"$or": []map[string]interface{}{
-				{"metadata.isGroupRoom": map[string]interface{}{"$ne": true}},
-				{"metadata.isGroupRoom": map[string]interface{}{"$exists": false}},
-			},
 		},
 	}
 	resp, err := s.FindAll(ctx, opts)
@@ -571,13 +581,6 @@ func (s *RoomServiceImpl) GetRoomsForMe(ctx context.Context, userID string) ([]d
 	
 	result := make([]dto.ResponseRoomDto, 0, len(resp.Data))
 	for _, room := range resp.Data {
-		// Additional check to exclude group rooms
-		if room.Metadata != nil {
-			if isGroup, ok := room.Metadata["isGroupRoom"]; ok && isGroup == true {
-				continue
-			}
-		}
-		
 		result = append(result, dto.ResponseRoomDto{
 			ID: room.ID,
 			Name: room.Name,

@@ -368,7 +368,7 @@ func (c *RoomController) handleSetRoomReadOnly(ctx *fiber.Ctx) error {
 	return ctx.JSON(c.controllerHelper.BuildReadOnlyResponse(roomID, isReadOnly, updatedRoom))
 }
 
-// GetAllRoomForUser - ดึงห้องทั้งหมดที่ user มองเห็น (ไม่เอา group room)
+// GetAllRoomForUser - ดึงห้องทั้งหมดที่ user มองเห็น (รวม group room)
 func (c *RoomController) GetAllRoomForUser(ctx *fiber.Ctx) error {
 	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
 	if err != nil {
@@ -387,7 +387,7 @@ func (c *RoomController) GetAllRoomForUser(ctx *fiber.Ctx) error {
 	return ctx.JSON(fiber.Map{"success": true, "data": rooms})
 }
 
-// GetRoomsForMe - ดึงเฉพาะห้องที่ user เป็น member
+// GetRoomsForMe - ดึงเฉพาะห้องที่ user เป็น member (รวม group room)
 func (c *RoomController) GetRoomsForMe(ctx *fiber.Ctx) error {
 	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
 	if err != nil {
