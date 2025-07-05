@@ -110,8 +110,8 @@ func (s *ChatService) SendMentionMessage(ctx context.Context, userID, roomID pri
 		}
 	}
 
-	// **SIMPLE: Send offline notifications to mentioned users**
-	s.notifyOfflineMentionedUsers(msg, mentionedUsers)
+	// **FIXED: Send notifications to ALL offline users in the room for mention messages**
+	s.notifyOfflineUsersForMention(msg)
 
 	log.Printf("[ChatService] Successfully sent mention message with %d mentions", len(mentionInfo))
 	return msg, nil
@@ -185,21 +185,46 @@ func (s *ChatService) GetMentionsForUser(ctx context.Context, userID string, lim
 	return enriched, nil
 }
 
-// **ENHANCED: Send offline notifications to mentioned users**
-func (s *ChatService) notifyOfflineMentionedUsers(msg *chatModel.ChatMessage, mentionedUsers []userModel.User) {
-	// Send notification to each mentioned user who is offline
-	for _, mentionedUser := range mentionedUsers {
-		// Check if user is currently online in this room
-		isOnline := s.hub.IsUserOnlineInRoom(msg.RoomID.Hex(), mentionedUser.ID.Hex())
-		if isOnline {
-			log.Printf("[ChatService] User %s is online, skipping offline mention notification", mentionedUser.ID.Hex())
+// **FIXED: Send notifications to ALL offline users in the room for mention messages**
+func (s *ChatService) notifyOfflineUsersForMention(msg *chatModel.ChatMessage) {
+	ctx := context.Background()
+	
+	// Get all room members
+	roomMembers, err := s.getRoomMembers(ctx, msg.RoomID)
+	if err != nil {
+		log.Printf("[ChatService] Failed to get room members for mention notification: %v", err)
+		return
+	}
+
+	// Get online users in this room
+	onlineUsers := s.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
+	onlineUserMap := make(map[string]bool)
+	for _, userID := range onlineUsers {
+		onlineUserMap[userID] = true
+	}
+
+	log.Printf("[ChatService] Sending mention notifications to offline users in room %s", msg.RoomID.Hex())
+	
+	// Send notification to ALL offline members (except sender)
+	for _, memberID := range roomMembers {
+		memberIDStr := memberID.Hex()
+
+		// Skip the sender
+		if memberIDStr == msg.UserID.Hex() {
 			continue
 		}
 
-		log.Printf("[ChatService] User %s is OFFLINE, sending mention notification", mentionedUser.ID.Hex())
+		// Skip online users (they already received WebSocket message)
+		if onlineUserMap[memberIDStr] {
+			log.Printf("[ChatService] User %s is online, skipping mention notification", memberIDStr)
+			continue
+		}
+
+		log.Printf("[ChatService] User %s is OFFLINE, sending mention notification", memberIDStr)
 		
-		// ✅ Send offline notification using existing method 
-		ctx := context.Background()
-		s.notificationService.SendOfflineNotification(ctx, mentionedUser.ID.Hex(), msg, "mention")
+		// ✅ Send offline notification using the proper notification service method
+		s.notificationService.SendOfflineNotification(ctx, memberIDStr, msg, "mention")
 	}
+	
+	log.Printf("[ChatService] Mention notifications sent to offline users in room %s", msg.RoomID.Hex())
 } 

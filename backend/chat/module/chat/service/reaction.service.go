@@ -10,6 +10,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type (
@@ -42,17 +43,49 @@ func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.Messag
 	// Create separate reaction document in reactions collection
 	reactionCollection := s.mongo.Collection("message-reactions")
 	
-	// Check if reaction already exists to prevent duplicates
+	// Check if user already reacted to this message (any emoji)
 	existingReaction := reactionCollection.FindOne(ctx, bson.M{
 		"message_id": reaction.MessageID,
 		"user_id":    reaction.UserID,
-		"reaction":   reaction.Reaction,
 	})
 	
+	var existing model.MessageReaction
 	if existingReaction.Err() == nil {
-		log.Printf("[ChatService] Reaction already exists for message %s by user %s", reaction.MessageID.Hex(), reaction.UserID.Hex())
-		_ = s.RemoveReaction(ctx, reaction.MessageID.Hex(), reaction.UserID.Hex())
-		return nil
+		// User already reacted, decode the existing reaction
+		if err := existingReaction.Decode(&existing); err != nil {
+			log.Printf("[ChatService] Failed to decode existing reaction: %v", err)
+		} else {
+			if existing.Reaction == reaction.Reaction {
+				// Same emoji: remove the reaction (toggle off)
+				log.Printf("[ChatService] Same emoji reaction, removing: message %s by user %s", reaction.MessageID.Hex(), reaction.UserID.Hex())
+				_ = s.RemoveReaction(ctx, reaction.MessageID.Hex(), reaction.UserID.Hex())
+				return nil
+			} else {
+				// Different emoji: update the reaction
+				log.Printf("[ChatService] Different emoji reaction, updating: message %s by user %s from %s to %s", 
+					reaction.MessageID.Hex(), reaction.UserID.Hex(), existing.Reaction, reaction.Reaction)
+				
+				// Delete old reaction and insert new one
+				_, err := reactionCollection.DeleteOne(ctx, bson.M{
+					"message_id": reaction.MessageID,
+					"user_id":    reaction.UserID,
+				})
+				if err != nil {
+					log.Printf("[ChatService] Failed to delete old reaction: %v", err)
+					return err
+				}
+				
+				// Set action to "update" for the new reaction
+				reaction.Action = "update"
+			}
+		}
+	} else if existingReaction.Err() != mongo.ErrNoDocuments {
+		// Some other error
+		log.Printf("[ChatService] Error checking existing reaction: %v", existingReaction.Err())
+		return existingReaction.Err()
+	} else {
+		// No existing reaction, this is a new "add" action
+		reaction.Action = "add"
 	}
 
 	// Insert new reaction document
@@ -75,8 +108,8 @@ func (s *ChatService) HandleReaction(ctx context.Context, reaction *model.Messag
 	}
 
 	// Emit reaction event to Kafka and WebSocket
-	log.Printf("[ChatService] About to emit reaction messageId=%s userId=%s reaction=%s roomId=%s", 
-		reaction.MessageID.Hex(), reaction.UserID.Hex(), reaction.Reaction, messageData.RoomID.Hex())
+	log.Printf("[ChatService] About to emit reaction messageId=%s userId=%s reaction=%s action=%s roomId=%s", 
+		reaction.MessageID.Hex(), reaction.UserID.Hex(), reaction.Reaction, reaction.Action, messageData.RoomID.Hex())
 	if err := s.emitter.EmitReaction(ctx, reaction, messageData.RoomID); err != nil {
 		log.Printf("[ChatService] Failed to emit reaction: %v", err)
 	} else {
@@ -222,12 +255,7 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID stri
 	// Emit remove reaction event
 	log.Printf("[ChatService] About to emit remove reaction messageId=%s userId=%s roomId=%s", 
 		messageID, userID, messageData.RoomID.Hex())
-	if err := s.emitter.EmitReaction(ctx, &model.MessageReaction{
-		MessageID: messageObjID,
-		UserID:    userObjID,
-		Reaction:  "remove",
-		Timestamp: time.Now(),
-	}, messageData.RoomID); err != nil {
+	if err := s.emitter.EmitReactionRemoved(ctx, messageObjID, userObjID, messageData.RoomID); err != nil {
 		log.Printf("[ChatService] Failed to emit reaction removal: %v", err)
 	} else {
 		log.Printf("[ChatService] Successfully emitted reaction removal to WebSocket and Kafka")
@@ -239,6 +267,7 @@ func (s *ChatService) RemoveReaction(ctx context.Context, messageID, userID stri
 		MessageID: messageObjID,
 		UserID:    userObjID,
 		Reaction:  "remove",
+		Action:    "delete",
 		Timestamp: time.Now(),
 	})
 

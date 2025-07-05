@@ -132,25 +132,9 @@ func (s *EvoucherService) SendEvoucherMessage(ctx context.Context, userID, roomI
 		onlineUsersMap[userID] = true
 	}
 
-	// Send notifications to online users
+	// Send notifications to offline users only (NotifyUsersInRoom handles this)
 	if s.notificationService != nil {
 		s.notificationService.NotifyUsersInRoom(ctx, msg, onlineUsers)
-	}
-
-	// Send notifications to offline users
-	if s.notificationService != nil {
-		for _, memberID := range room.Members {
-			memberIDStr := memberID.Hex()
-			
-			// Skip sender and online users
-			if memberIDStr == userID.Hex() || onlineUsersMap[memberIDStr] {
-				continue
-			}
-
-			// Send offline notification
-			log.Printf("[EvoucherService] Sending offline notification to user %s", memberIDStr)
-			s.notificationService.SendOfflineNotification(ctx, memberIDStr, msg, "evoucher")
-		}
 	}
 
 	return msg, nil

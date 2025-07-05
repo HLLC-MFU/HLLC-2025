@@ -236,7 +236,7 @@ func (s *ChatService) getRoomMembers(ctx context.Context, roomID primitive.Objec
 
 // determineMessageType determines the type of message for notification
 func (s *ChatService) determineMessageType(message *model.ChatMessage) string {
-	if message.FileURL != "" {
+	if message.FileName != "" {
 		return "upload"
 	}
 	if message.StickerID != nil {

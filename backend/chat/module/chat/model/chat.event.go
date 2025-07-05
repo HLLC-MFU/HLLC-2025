@@ -14,7 +14,6 @@ const (
     EventTypeTyping     = "typing"
     EventTypeNotice     = "notice"
     EventTypeMention    = "mention"
-    EventTypeMentionNotice = "mention_notice"
     EventTypeEvoucher   = "evoucher"
     EventTypeUnsendMessage = "unsend_message" // **NEW: Unsend message event**
 	EventTypeRestriction = "restriction"
@@ -24,7 +23,7 @@ const (
 
 // Message Types - Content
 const (
-    MessageTypeText    = "text"
+    MessageTypeText    = "message"
     MessageTypeReply   = "reply"  
     MessageTypeSticker = "sticker"
     MessageTypeMention = "mention"
@@ -90,8 +89,6 @@ type (
 	MentionInfo struct {
 		UserID   string `json:"userId"`
 		Username string `json:"username"`
-		Position int    `json:"position"` // Position in message where mention starts
-		Length   int    `json:"length"`   // Length of the mention text
 	}
 
 	//Restriction-related structures
@@ -102,72 +99,10 @@ type (
 		Restriction string `json:"restriction"`
 	}
 
-	ChatMessagePayload struct {
-		BasePayload
-		Message MessageInfo   `json:"message"`
-		ReplyTo *MessageInfo  `json:"replyTo,omitempty"`
-		Mentions []MentionInfo `json:"mentions,omitempty"`
-	}
-
-	ChatStickerPayload struct {
-		BasePayload
-		Message MessageInfo `json:"message"`
-		Sticker StickerInfo `json:"sticker"`
-	}
-	
-	ChatReactionPayload struct {
-		MessageID    string    `json:"messageId"`
-		UserID       string    `json:"userId"`
-		Username     string    `json:"username,omitempty"`
-		Reaction     string    `json:"reaction"`
-		Action       string    `json:"action"` // "add" or "remove"
-		Timestamp    time.Time `json:"timestamp"`
-	}
-
-	ChatMentionPayload struct {
-		BasePayload
-		Message     MessageInfo   `json:"message"`
-		Mentions    []MentionInfo `json:"mentions"`
-		MentionedBy UserInfo      `json:"mentionedBy"`
-	}
-
-	ChatMentionNoticePayload struct {
-		Room        RoomInfo    `json:"room"`
-		Message     MessageInfo `json:"message"`
-		MentionedBy UserInfo    `json:"mentionedBy"`
-		MentionedUser UserInfo  `json:"mentionedUser"`
-		Timestamp   time.Time   `json:"timestamp"`
-	}
-	
-	ChatPresencePayload struct {
-		BasePayload
-		Message string `json:"message"`
-	}
-
-	ChatTypingPayload struct {
-		Room      RoomInfo  `json:"room"`
-		User      UserInfo  `json:"user"`
-		IsTyping  bool      `json:"isTyping"`
-		Timestamp time.Time `json:"timestamp"`
-	}
-
 	ChatNoticePayload struct {
 		Room      RoomInfo  `json:"room"`
 		Message   string    `json:"message"`
 		Timestamp time.Time `json:"timestamp"`
-	}
-
-	// **NEW: Moderation Payloads**
-	ChatModerationPayload struct {
-		BasePayload
-		Action        string    `json:"action"`        // "ban", "mute", "kick", "unban", "unmute"
-		TargetUser    UserInfo  `json:"targetUser"`    // User ที่ถูกลงโทษ
-		Moderator     UserInfo  `json:"moderator"`     // Admin ที่ทำการลงโทษ
-		Reason        string    `json:"reason"`        // เหตุผล
-		Duration      string    `json:"duration"`      // "temporary" หรือ "permanent"
-		EndTime       *time.Time `json:"endTime,omitempty"` // เวลาสิ้นสุด (ถ้าเป็น temporary)
-		Restriction   string    `json:"restriction,omitempty"` // สำหรับ mute: "can_view" หรือ "cannot_view"
-		Message       MessageInfo `json:"message"`     // Message ที่เก็บใน database
 	}
 
 	// **NEW: Unsend Message Payload**
@@ -177,12 +112,5 @@ type (
 		MessageID   string      `json:"messageId"`   // ID ของข้อความที่ถูก unsend
 		MessageType string      `json:"messageType"` // ประเภทข้อความที่ถูก unsend
 		Timestamp   time.Time   `json:"timestamp"`
-	}
-
-	// **NEW: Evoucher Payload**
-	ChatEvoucherPayload struct {
-		BasePayload
-		Message     MessageInfo   `json:"message"`
-		EvoucherInfo EvoucherInfo `json:"evoucherInfo"`
 	}
 )
