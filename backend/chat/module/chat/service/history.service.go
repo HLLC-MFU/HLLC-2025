@@ -162,14 +162,15 @@ func (h *HistoryService) getMessageReactionsWithUsers(ctx context.Context, roomI
 
 // getReplyToMessageWithUser gets the reply-to message with user data
 func (h *HistoryService) getReplyToMessageWithUser(ctx context.Context, replyToID primitive.ObjectID) (*model.ChatMessage, error) {
-	result, err := h.FindOneWithPopulate(ctx, bson.M{
+	// Use simple FindOne without populate to avoid decoding issues
+	result, err := h.FindOne(ctx, bson.M{
 		"_id": replyToID,
 		// กรองข้อความที่ถูก unsend ออก
 		"$or": []bson.M{
 			{"is_deleted": nil},
 			{"is_deleted": false},
 		},
-	}, "user_id", "users")
+	})
 	if err != nil {
 		return nil, err
 	}
