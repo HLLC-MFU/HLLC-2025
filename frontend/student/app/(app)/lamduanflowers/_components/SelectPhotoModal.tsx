@@ -1,18 +1,22 @@
-import React from 'react';
+import React from 'react'
 import {
   Modal,
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-} from 'react-native';
+  TouchableWithoutFeedback,
+  Platform,
+} from 'react-native'
+import { BlurView } from 'expo-blur'
+import { Camera, Image as Gallery } from 'lucide-react-native'
 
 type SelectPhotoModalProps = {
-  visible: boolean;
-  onClose: () => void;
-  onTakePhoto: () => void;
-  onPickImage: () => void;
-};
+  visible: boolean
+  onClose: () => void
+  onTakePhoto: () => void
+  onPickImage: () => void
+}
 
 export default function SelectPhotoModal({
   visible,
@@ -20,82 +24,119 @@ export default function SelectPhotoModal({
   onTakePhoto,
   onPickImage,
 }: SelectPhotoModalProps) {
+  const ModalContent = (
+    <View style={Platform.OS === 'ios' ? styles.modalBoxIOS : styles.modalBoxAndroid}>
+      <Text style={styles.modalTitle}>Upload Picture</Text>
+
+      <TouchableOpacity
+        style={styles.glassButton}
+        onPress={() => {
+          onTakePhoto()
+          onClose()
+        }}
+      >
+        <Camera size={18} color="#fff" style={{ marginRight: 8 }} />
+        <Text style={styles.buttonText}>Take Photo</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.glassButton}
+        onPress={() => {
+          onPickImage()
+          onClose()
+        }}
+      >
+        <Gallery size={18} color="#fff" style={{ marginRight: 8 }} />
+        <Text style={styles.buttonText}>Choose from Gallery</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+        <Text style={styles.cancelText}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  )
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalBackground}>
-        <View style={styles.modalBox}>
-          <Text style={styles.modalTitle}>Upload Picture</Text>
-
-          <TouchableOpacity
-            style={styles.optionButton}
-            onPress={() => {
-              onTakePhoto();
-              onClose();
-            }}
-          >
-            <Text style={styles.optionText}>Take Photo</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.optionButton}
-            onPress={() => {
-              onPickImage();
-              onClose();
-            }}
-          >
-            <Text style={styles.optionText}>Choose from Gallery</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.optionButton, styles.cancelButton]}
-            onPress={onClose}
-          >
-            <Text style={[styles.optionText, { color: 'red' }]}>Cancel</Text>
-          </TouchableOpacity>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.modalBackground}>
+          <TouchableWithoutFeedback onPress={() => {}}>
+            {Platform.OS === 'ios' ? (
+              <BlurView intensity={60} tint="light" style={styles.blurWrapper}>
+                {ModalContent}
+              </BlurView>
+            ) : (
+              ModalContent
+            )}
+          </TouchableWithoutFeedback>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   modalBackground: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalBox: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    width: 280,
+  blurWrapper: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  modalBoxIOS: {
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    width: 300,
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20,
+  },
+  modalBoxAndroid: {
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    width: 300,
+    alignItems: 'center',
+    backgroundColor: '#555555',
+    borderRadius: 20,
+    elevation: 5,
   },
   modalTitle: {
-    color: '#000',
-    fontSize: 18,
-    marginBottom: 15,
-    fontWeight: 'bold',
+    fontSize: 17,
+    color: '#ffffffdd',
+    marginBottom: 20,
+    fontWeight: '500',
   },
-  optionButton: {
+  glassButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     width: '100%',
     paddingVertical: 12,
-    borderBottomColor: '#444',
-    borderBottomWidth: 1,
+    marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    borderRadius: 999,
   },
-  optionText: {
-    color: '#000',
-    fontSize: 16,
-    textAlign: 'center',
+  buttonText: {
+    color: '#ffffffee',
+    fontSize: 15,
+    fontWeight: '500',
   },
   cancelButton: {
-    borderBottomWidth: 0,
-    marginTop: 10,
+    width: '100%',
+    paddingVertical: 12,
+    marginTop: 4,
+    backgroundColor: '#e63946',
+    borderRadius: 999,
+    alignItems: 'center',
   },
-});
+  cancelText: {
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '500',
+  },
+})

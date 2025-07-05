@@ -37,157 +37,99 @@ export default function LamduanOrigamiPage() {
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
   const [comment, setComment] = useState('');
   const [isPhotoModalVisible, setPhotoModalVisible] = useState(false);
-
   const { user } = useProfile();
   const { flowers, lamduanSetting, createLamduanFlowers, updateLamduanFlowers } = useLamduanFlowers();
-
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const originalRef = useRef<LamduanFlower | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const inputRef = useRef<RNTextInput>(null);
+  const toast = useToastController();
 
   useEffect(() => {
     if (!user?.data?.[0]?._id || !flowers?.length) return;
-
     const found = flowers.find(f => f.user._id === user.data[0]._id);
     if (found) {
       originalRef.current = found;
       setComment(found.comment);
       const photoUrl = `${process.env.EXPO_PUBLIC_API_URL}/uploads/${found.photo}`;
       setImageUri(photoUrl);
-
-      getImageSize(photoUrl)
-        .then(size => setImageSize(size))
-        .catch(err => {
-          console.warn('Failed to get image size:', err);
-          setImageSize(null);
-        });
-
+      getImageSize(photoUrl).then(setImageSize).catch(() => setImageSize(null));
       setHasSubmitted(true);
     }
   }, [flowers, user]);
 
-  const handleSave = async (
-    file: File,
-    user: string,
-    comment: string,
-    setting: string,
-  ) => {
+  const handleSave = async (file: File, user: string, comment: string, setting: string) => {
     const original = originalRef.current;
     const formData = new FormData();
-
-    if (file) {
-      formData.append('photo', file);
-    }
-    formData.append('comment', comment.trim() === '' ? ' ' : comment);
+    if (file) formData.append('photo', file);
+    formData.append('comment', comment.trim() || ' ');
     formData.append('user', user);
     formData.append('setting', setting);
 
     try {
       if (!original) {
         const res = await createLamduanFlowers(formData);
-        if (res?.data && res.data._id) {
+        if (res?.data?._id) {
           originalRef.current = res.data;
           setHasSubmitted(true);
         }
-
-        Alert.alert("Success", "Flower created successfully!");
+        toast.show('Create Success', { message: 'Flower created successfully!', type: 'success' });
       } else {
         await updateLamduanFlowers(original._id, formData);
-        Alert.alert("Success", "Flower updated successfully!");
+        toast.show('Update Success', { message: 'Flower updated successfully!', type: 'success' });
       }
     } catch (err) {
-      console.error("submit error:", err);
-      Alert.alert("Error", "Error submitting flower");
+      console.error('submit error:', err);
+      toast.show('Error', { message: 'Error submitting flower', type: 'danger' });
     }
   };
 
   const getImageSize = (uri: string) =>
     new Promise<{ width: number; height: number }>((resolve, reject) => {
-      Image.getSize(
-        uri,
-        (width, height) => resolve({ width, height }),
-        (error) => reject(error),
-      );
+      Image.getSize(uri, (width, height) => resolve({ width, height }), reject);
     });
 
   const pickImage = async () => {
     try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
-        Alert.alert('Permission Denied', 'Please allow access to your photo library.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: false,
-        quality: 1,
-      });
-
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) return Alert.alert('Permission Denied', 'Allow access to photo library.');
+      const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, quality: 1 });
       if (result.canceled) return;
-
       const uri = result.assets[0].uri;
       setImageUri(uri);
-
-      try {
-        const size = await getImageSize(uri);
-        setImageSize(size);
-      } catch (err) {
-        console.warn('Failed to get image size:', err);
-        setImageSize(null);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to pick an image. Please try again.');
-      console.error('pickImage error:', error);
+      getImageSize(uri).then(setImageSize).catch(() => setImageSize(null));
+    } catch (err) {
+      toast.show('Error', { message: 'Failed to pick image.', type: 'danger' });
+      console.error('pickImage error:', err);
     }
   };
 
   const takePhoto = async () => {
     try {
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permissionResult.granted) {
-        Alert.alert('Permission Denied', 'Please allow camera access to take a photo.');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: false,
-        quality: 1,
-      });
-
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) return Alert.alert('Permission Denied', 'Allow camera access.');
+      const result = await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 1 });
       if (result.canceled) return;
-
       const uri = result.assets[0].uri;
       setImageUri(uri);
-
-      try {
-        const size = await getImageSize(uri);
-        setImageSize(size);
-      } catch (err) {
-        console.warn('Failed to get image size:', err);
-        setImageSize(null);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to take a photo. Please try again.');
-      console.error('takePhoto error:', error);
+      getImageSize(uri).then(setImageSize).catch(() => setImageSize(null));
+    } catch (err) {
+      toast.show('Error', { message: 'Failed to take photo.', type: 'danger' });
+      console.error('takePhoto error:', err);
     }
-  };
-
-  const handleUploadPress = () => {
-    setPhotoModalVisible(true);
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -60} // ลด offset Android
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
           ref={scrollViewRef}
-          contentContainerStyle={[styles.container, { paddingBottom: 80 }]}
+          contentContainerStyle={[styles.container, { paddingBottom: 120 }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.backButton}>
@@ -202,22 +144,21 @@ export default function LamduanOrigamiPage() {
             <Text style={styles.cardTitle}>Lamduan Origami</Text>
             <Text style={styles.cardText}>
               Enhance your knowledge of the university through the origami flower. Additionally,
-              immerse yourself in instructional origami videos that showcase the important information
-              about the university.
+              immerse yourself in instructional origami videos that showcase the important
+              information about the university.
             </Text>
             <MediaCard />
           </BlurView>
 
           <BlurView intensity={40} tint="light" style={styles.formBox}>
             <Text style={styles.uploadTitle}>Upload Lamduan</Text>
-            <TouchableOpacity onPress={handleUploadPress} style={styles.imageUploadButton}>
+            <TouchableOpacity onPress={() => setPhotoModalVisible(true)} style={styles.imageUploadButton}>
               {imageUri && imageSize ? (
                 <Image
                   source={{ uri: imageUri }}
                   style={{
                     width: '100%',
                     maxWidth: maxImageWidth,
-                    height: undefined,
                     aspectRatio: imageSize.width / imageSize.height,
                     resizeMode: 'contain',
                     borderRadius: 12,
@@ -237,17 +178,11 @@ export default function LamduanOrigamiPage() {
               placeholderTextColor="#fff"
               style={styles.input}
               value={comment}
-              onChangeText={(text) => {
-                if (text.length <= 144) {
-                  setComment(text);
-                } else {
-                  setComment(text.slice(0, 144));
-                }
-              }}
+              onChangeText={(text) => setComment(text.slice(0, 144))}
               onFocus={() => {
                 setTimeout(() => {
                   inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
-                    scrollViewRef.current?.scrollTo({ y: pageY - 0, animated: true });
+                    scrollViewRef.current?.scrollTo({ y: pageY, animated: true });
                   });
                 }, 0);
               }}
@@ -255,32 +190,16 @@ export default function LamduanOrigamiPage() {
               textAlignVertical="top"
             />
 
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'flex-end',
-                marginTop: 16,
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: 13 }}>
-                {comment.length} / 144
-              </Text>
-
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16 }}>
+              <Text style={{ color: '#fff', fontSize: 13 }}>{comment.length} / 144</Text>
               <TouchableOpacity
                 style={styles.submitButton}
-                onPress={async () => {
-                  if (!imageUri) {
-                    Alert.alert('Error', 'Please select an image first.');
-                    return;
-                  }
-
+                onPress={() => {
+                  if (!imageUri) return Alert.alert('Error', 'Please select an image first.');
                   setConfirmModalVisible(true);
                 }}
               >
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>
-                  {hasSubmitted ? 'Save' : 'Submit'}
-                </Text>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{hasSubmitted ? 'Save' : 'Submit'}</Text>
               </TouchableOpacity>
             </View>
           </BlurView>
@@ -290,23 +209,13 @@ export default function LamduanOrigamiPage() {
             onCancel={() => setConfirmModalVisible(false)}
             onConfirm={async () => {
               setConfirmModalVisible(false);
-
-              if (!imageUri) {
-                Alert.alert('Error', 'Please select an image first.');
-                return;
-              }
+              if (!imageUri) return Alert.alert('Error', 'Please select an image first.');
               try {
-                const file = {
-                  uri: imageUri,
-                  name: 'photo.jpg',
-                  type: 'image/jpeg',
-                } as any;
-
+                const file = { uri: imageUri, name: 'photo.jpg', type: 'image/jpeg' } as any;
                 await handleSave(file, user?.data[0]._id!, comment, lamduanSetting[0]._id);
-
                 setHasSubmitted(true);
-              } catch (error) {
-                console.error('Submit error:', error);
+              } catch (err) {
+                console.error('Submit error:', err);
                 Alert.alert('Error', 'Submission failed.');
               }
             }}
@@ -328,23 +237,23 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingTop: 30,
+    paddingTop: 30
   },
   container: {
     paddingTop: 20,
     paddingHorizontal: 20,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   backButton: {
     alignSelf: 'flex-start',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 16
   },
   backButtonText: {
     fontSize: 16,
-    color: '#fff',
+    color: '#fff'
   },
   card: {
     width: '100%',
@@ -352,27 +261,27 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   cardTitle: {
     fontWeight: 'bold',
     fontSize: 16,
     marginBottom: 8,
     paddingLeft: 10,
-    color: '#fff',
+    color: '#fff'
   },
   cardText: {
     fontSize: 13,
     paddingLeft: 10,
     color: '#fff',
     marginBottom: 20,
-    marginTop: 4,
+    marginTop: 4
   },
   uploadTitle: {
     fontWeight: 'bold',
     fontSize: 16,
     color: '#fff',
-    marginBottom: 12,
+    marginBottom: 12
   },
   formBox: {
     width: '100%',
@@ -380,10 +289,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginBottom: 20,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   imageUploadButton: {
-    marginBottom: 20,
+    marginBottom: 20
   },
   uploadPlaceholder: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -396,10 +305,7 @@ const styles = StyleSheet.create({
     width: 300,
     alignSelf: 'center',
   },
-  uploadText: {
-    fontSize: 16,
-    color: '#fff',
-  },
+  uploadText: { fontSize: 16, color: '#fff' },
   input: {
     borderRadius: 10,
     paddingHorizontal: 14,

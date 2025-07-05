@@ -10,7 +10,7 @@ interface TutorialModalProps {
 export function TutorialModal({ isVisible, onClose, photoUrl }: TutorialModalProps) {
   return (
     <Modal transparent visible={isVisible} animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
+      <Pressable style={styles.modalBackground} onPress={onClose}>
         <Pressable style={styles.modalContainer} onPress={() => {}}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton} accessibilityRole="button">
             <Text style={styles.closeButtonText}>×</Text>
@@ -35,6 +35,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContainer: {
     width: "80%",
