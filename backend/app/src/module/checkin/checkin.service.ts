@@ -123,14 +123,8 @@ export class CheckinService {
   async getCheckinCountByActivity() {
     // หาค่าไม่ซ้ำของ actvity จาก checkin
     const activityIds = await this.checkinModel.distinct('activity');
-    const studentRole = await this.roleModel.findOne({ name: 'student' });
-    const internRole = await this.roleModel.findOne({ name: 'intern' });
-    const studentCount = await this.userModel.countDocuments({
-      role: studentRole?._id,
-    });
-    const internCount = await this.userModel.countDocuments({
-      role: internRole?._id,
-    });
+    const studentRole = await this.roleModel.findOne({ name: { $in: ['student', 'Student'] } });
+    const studentCount = await this.userModel.countDocuments({ role: studentRole?._id,});
 
     // หากิจกรรมที่มี ID ตรงกับ activityIds แล้วดึงชื่อกิจกรรม
     const activities = await this.activityModel
@@ -154,12 +148,10 @@ export class CheckinService {
           .lean();
 
         const studentCheckinCount = checkins.filter(
-          (c) => (c.user as PopulatedUser)?.role?.name === 'student',
-        ).length;
+          (c) => ['student', 'Student'].includes((c.user as PopulatedUser)?.role?.name || '')).length;
 
         const internCheckinCount = checkins.filter(
-          (c) => (c.user as PopulatedUser)?.role?.name === 'intern',
-        ).length;
+        (c) => ['intern', 'Intern'].includes((c.user as PopulatedUser)?.role?.name || '')).length;
 
         const notCheckin = studentCount - studentCheckinCount;
 

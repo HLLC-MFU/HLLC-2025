@@ -8,7 +8,7 @@ import {
   Divider,
   Pagination,
 } from '@heroui/react';
-import { Download, UserRoundCheck } from 'lucide-react';
+import { Car, Download, UserRoundCheck } from 'lucide-react';
 import { useState } from 'react';
 import {
   ResponsiveContainer,
@@ -18,6 +18,8 @@ import {
   YAxis,
   Bar,
   BarChart,
+  Legend,
+  LabelList,
 } from 'recharts';
 
 export default function CheckinBarChart() {
@@ -27,29 +29,34 @@ export default function CheckinBarChart() {
 
   const customTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const { activity, internCheckin, studentCheckin, notCheckin, totalUser } = payload[0].payload;
+      const { activity, internCheckin, studentCheckin, notCheckin } =
+        payload[0].payload;
       return (
-        <div className="bg-white p-2 rounded shadow">
-          <p className="font-bold">{activity}</p>
-          <p className="text-primary">Student Attendance : {studentCheckin} </p>
-          <p className="text-warning">Intern Acttendance: {internCheckin}</p>
-          <p className="text-danger"> Absen: {notCheckin} </p>
+        <Card>
+          <CardBody className="space-y-1">
+            <p className="font-bold"> {activity} </p>
+            <p className="text-primary">
+              Freshers Checked In : {studentCheckin}{' '}
+            </p>
+            <p className="text-danger">
+              Freshers Not Checked In: {notCheckin}
+            </p>
+          </CardBody>
           <Divider />
-          <p className="text-default-500"> Total Attendance: {totalUser} </p>
-        </div>
+          <CardFooter>
+            <p className="text-warning">Intern Acttendance: {internCheckin}</p>
+          </CardFooter>
+        </Card>
       );
     }
   };
 
   const studentCheckinChartsData = checkinStats.map((item) => ({
     activity: item.name.en,
-    activityType: item.activityType,
     acronym: item.acronym,
     internCheckin: item.internCheckin,
     studentCheckin: item.studentCheckin,
-    totalCheckin: item.totalCheckin,
     notCheckin: item.notCheckin,
-    totalUser: item.totalUser,
   }));
 
   const downloadCSV = () => {
@@ -138,45 +145,87 @@ export default function CheckinBarChart() {
   );
 
   return (
-    <Card className=" w-full">
-      <CardHeader>
-        <div className=" flex w-full justify-between pl-3">
-          <div className=' flex items-center justify-center space-x-2'>
-            <UserRoundCheck className=' w-5 h-5 text-primary' />
-            <h3 className=" text-lg font-semibold"> CheckIn</h3>
+    <div className="col-span-3">
+      <Card>
+        <CardHeader>
+          <div className=" flex w-full justify-between pl-3">
+            <div className=" flex items-center justify-center space-x-2">
+              <UserRoundCheck className=" w-5 h-5 text-primary" />
+              <h3 className=" text-lg font-semibold"> CheckIn</h3>
+            </div>
+            <Button
+              color="primary"
+              startContent={<Download className="w-4 h-4" />}
+              onPress={downloadCSV}
+              isDisabled={studentCheckinChartsData.length === 0}
+              variant="flat"
+              size="sm"
+            >
+              Export CSV
+            </Button>
           </div>
-          <Button
-            color="primary"
-            startContent={<Download className="w-4 h-4" />}
-            onPress={downloadCSV}
-            isDisabled={studentCheckinChartsData.length === 0}
-            variant="flat"
-            size="sm"
-          >
-            Export CSV
-          </Button>
-        </div>
-      </CardHeader>
-      <CardBody>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={paginatedData} margin={{ right: 50 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="acronym" tick={{ fontSize: 14, fontWeight: 600 }} />
-            <Tooltip content={customTooltip} />
-            <YAxis />
-            <Bar dataKey="studentCheckin" fill="#486CFF" barSize={30} radius={[4, 4, 0, 0]}/>
-            <Bar dataKey="internCheckin" fill="#F7B750" barSize={30} radius={[4, 4, 0, 0]}/>
-          </BarChart>
-        </ResponsiveContainer>
-      </CardBody>
-      <CardFooter className=" flex justify-center items-center ">
-        <Pagination
-          initialPage={page}
-          size="md"
-          total={Math.ceil(studentCheckinChartsData.length / rowsPerPage)}
-          onChange={(newPage) => setPage(newPage)}
-        />
-      </CardFooter>
-    </Card>
+        </CardHeader>
+        <CardBody>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={paginatedData} margin={{ right: 50, top: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="acronym"
+                stroke="#6B7280"
+                tick={{ fontSize: 14, fontWeight: 600 }}
+              />
+              <Tooltip content={customTooltip} />
+              <YAxis stroke="#6B7280" tick={{ fontSize: 12 }} />
+              <Bar
+                dataKey="studentCheckin"
+                name="Freshers"
+                fill="#486CFF"
+                barSize={30}
+                radius={[4, 4, 0, 0]}
+              >
+                <LabelList
+                  dataKey="studentCheckin"
+                  position="top"
+                  style={{ fontSize: 14, fontWeight: 600 }}
+                />
+              </Bar>
+              <Bar
+                dataKey="internCheckin"
+                name="Intern"
+                fill="#F5A524"
+                barSize={30}
+                radius={[4, 4, 0, 0]}
+              >
+                <LabelList
+                  dataKey="internCheckin"
+                  position="top"
+                  formatter={(value: number) => (value === 0 ? '' : value)}
+                  style={{ fontSize: 14, fontWeight: 600 }}
+                />
+              </Bar>
+              <Legend
+                wrapperStyle={{
+                  marginTop: 20,
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardBody>
+        <CardFooter className=" flex justify-center items-center ">
+          <Pagination
+            loop
+            showControls
+            showShadow
+            siblings={2}
+            initialPage={page}
+            size="md"
+            total={Math.ceil(studentCheckinChartsData.length / rowsPerPage)}
+            onChange={(newPage) => setPage(newPage)}
+          />
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

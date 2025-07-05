@@ -13,14 +13,11 @@ export type Checkin = {
 
 export type CheckinStats = {
   _id: string;
-  activityType: string;
   name: Lang;
   acronym: string;
   internCheckin: number;
   studentCheckin: number;
-  totalCheckin: number;
   notCheckin: number;
-  totalUser: number;
 }
 
 export type CheckinCreate = {

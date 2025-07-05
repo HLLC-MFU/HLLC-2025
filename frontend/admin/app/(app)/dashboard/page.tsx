@@ -18,7 +18,7 @@ export default function DashboardPage() {
         icon={<LayoutDashboard />}
       />
       <Overview/>
-      <div className=" flex flex-col lg:flex-row  justify-between gap-7">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6"> 
         <StudentChart />
         <CheckinBarChart />
       </div>

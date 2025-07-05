@@ -1,61 +1,82 @@
 import { useUserStatistics } from '@/hooks/useUserSytem';
-import { Card, CardBody, CardFooter, CardHeader, Tooltip } from '@heroui/react';
-import { Users  } from 'lucide-react';
-import { Pie, Cell, PieChart } from 'recharts';
+import {
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Select,
+  Tooltip,
+  SelectItem,
+} from '@heroui/react';
+import { Users, UserX, UsersRound, UserRoundCheck } from 'lucide-react';
+import { useState } from 'react';
 
 export default function StudentChart() {
   const { userstats } = useUserStatistics();
-  const studentStats = userstats?.student;
-  const studentStatsChartsData = [
-    { name: 'Total', value: studentStats?.total, color: '#DCDCDC' },
-    { name: 'Register', value: studentStats?.registered, color: '#486CFF' },
-    { name: 'Not Register',  value: studentStats?.notRegistered, color: '#8DD8FF'}
+  const [selectRole, setSelectRole] = useState('student');
+  const roleStats = userstats?.[selectRole];
+  const roleStatsData = [
+    {
+      name: 'Total',
+      value: roleStats?.total,
+      color: '#71717a',
+      icon: <UserRoundCheck />,
+    },
+    {
+      name: 'Register',
+      value: roleStats?.registered,
+      color: '#486CFF',
+      icon: <UsersRound />,
+    },
+    {
+      name: 'Not Register',
+      value: roleStats?.notRegistered,
+      color: '#8DD8FF',
+      icon: <UserX />,
+    },
   ];
 
   return (
-    <Card className="min-w-[324px] ">
-      <CardHeader>
-        <div className=" flex items-center justify-center space-x-2 px-2">
-          <Users className='text-primary h-5 w-5 ' />
-          <h3 className=" text-lg font-semibold"> Student </h3>
-        </div>
-      </CardHeader>
-      <CardBody className=" flex justify-center items-center">
-        <PieChart width={300} height={200}>
-          <Tooltip />
-          <Pie
-            data={studentStatsChartsData}
-            cx="50%"
-            cy="50%"
-            strokeWidth={3}
-            innerRadius={62}
-            outerRadius={90}
-            dataKey="value"
-            startAngle={25}
-            endAngle={385}
+    <div className="col-span-2 md:col-span-1 ">
+      <Card className="h-full">
+        <CardHeader className="flex justify-between w-full">
+          <div className=" flex items-center justify-center space-x-2">
+            <Users className="text-primary h-5 w-5 " />
+            <h3 className=" text-lg font-semibold"> Register </h3>
+          </div>
+          <Select
+            className="min-w-[100px]"
+            selectionMode="single"
+            selectedKeys={[selectRole]}
+            onSelectionChange={(keys) =>
+              setSelectRole(Array.from(keys)[0] as string)
+            }
           >
-            {studentStatsChartsData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Pie>
-        </PieChart>
-      </CardBody>
-      <CardFooter>
-        <div className=" space-y-3 text-sm w-full px-4 mb-3 ">
-          {studentStatsChartsData.map((item) => (
-            <div key={item.name} className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
+            {userstats &&
+              Object.keys(userstats).map((role) => (
+                <SelectItem key={role}>{role}</SelectItem>
+              ))}
+          </Select>
+        </CardHeader>
+        <CardBody className=" flex  items-center">
+          <div className="space-y-5 w-full px-4 mb-3">
+            {roleStatsData.map((Stats, index) => (
+              <div key={index} className="flex space-x-5">
                 <div
-                  className="w-4 h-4 rounded-md"
-                  style={{ backgroundColor: item.color }}
-                ></div>
-                <span className=" text-sm font-medium">{item.name}</span>
+                  className="text-white p-3 w-fit h-fit rounded-md"
+                  style={{ backgroundColor: Stats.color }}
+                >
+                  {Stats.icon}
+                </div>
+                <div>
+                  <h1>{Stats.name}</h1>
+                  <span>{Stats.value}</span>
+                </div>
               </div>
-              <span className=" text-sm font-medium">{item.value}</span>
-            </div>
-          ))}
-        </div>
-      </CardFooter>
-    </Card>
+            ))}
+          </div>
+        </CardBody>
+      </Card>
+    </div>
   );
 }

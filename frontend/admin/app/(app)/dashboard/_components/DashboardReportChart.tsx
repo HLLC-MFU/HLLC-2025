@@ -1,9 +1,26 @@
 import { useReports } from '@/hooks/useReports';
 import { useReportTypes } from '@/hooks/useReportTypes';
-import { Card, CardBody, CardFooter, CardHeader, Pagination } from '@heroui/react';
+import {
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Pagination,
+} from '@heroui/react';
 import { useState } from 'react';
-import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
-import { ChartPie , ChartColumn } from 'lucide-react';
+import {
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { ChartPie, ChartColumn } from 'lucide-react';
 
 interface ChartData {
   name: string;
@@ -15,29 +32,37 @@ interface ChartData {
 export default function ReportChart() {
   const { problems } = useReports();
   const { reporttypes } = useReportTypes();
-  const [ page, setPage] = useState(1);
+  const [page, setPage] = useState(1);
   const rowsPerPage = 5;
 
   const reporttypeData: ChartData[] = reporttypes.map((reporttype) => ({
     name: reporttype.name.en,
     count: problems.filter((p) => p.categoryId === reporttype.id).length,
-    pending: problems.filter((p) => p.categoryId === reporttype.id && p.status === 'Pending').length,
-    inProgress: problems.filter((p) => p.categoryId === reporttype.id && p.status === 'In-Progress').length,
-    done: problems.filter((p) => p.categoryId === reporttype.id && p.status === 'Done').length,
+    pending: problems.filter(
+      (p) => p.categoryId === reporttype.id && p.status === 'Pending',
+    ).length,
+    inProgress: problems.filter(
+      (p) => p.categoryId === reporttype.id && p.status === 'In-Progress',
+    ).length,
+    done: problems.filter(
+      (p) => p.categoryId === reporttype.id && p.status === 'Done',
+    ).length,
     color: reporttype.color,
   }));
 
   const customTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const { name, count , pending , inProgress , done} = payload[0].payload;
+      const { name, count, pending, inProgress, done } = payload[0].payload;
       return (
-        <div className="bg-white p-2 rounded shadow">
+        <Card>
+          <CardBody>
           <p className="font-bold">{name}</p>
           <p className="text-warning">Pending {pending} </p>
           <p className="text-primary">In-Progress: {inProgress} </p>
-          <p className='text-success'>Done: {done} </p>
+          <p className="text-success">Done: {done} </p>
           <p className="text-default-500">Total Report: {count} </p>
-        </div>
+          </CardBody>
+        </Card>
       );
     }
   };
@@ -46,12 +71,12 @@ export default function ReportChart() {
     {
       name: 'Pending',
       value: problems.filter((p) => p.status === 'Pending').length,
-      color: '#ECE500',
+      color: '#F5A524',
     },
     {
       name: 'In-Progress',
       value: problems.filter((p) => p.status === 'In-Progress').length,
-      color: '#47C0FF',
+      color: '#486CFF',
     },
     {
       name: 'Done',
@@ -68,9 +93,9 @@ export default function ReportChart() {
   return (
     <div className="flex flex-col lg:flex-row justify-between gap-7">
       <Card className=" w-full">
-        <CardHeader className='flex px-5 space-x-2 '>
-          <ChartColumn className='text-primary w-5 h-5'/>
-          <h3 className="text-lg font-semibold ">Problems by Category</h3>
+        <CardHeader className="flex px-5 space-x-2 ">
+          <ChartColumn className="text-primary w-5 h-5" />
+          <h3 className="text-lg font-semibold px-2 ">Problems by Category</h3>
         </CardHeader>
         <CardBody className=" h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -85,10 +110,10 @@ export default function ReportChart() {
                 tick={{ fontSize: 14, fontWeight: 600 }}
               />
               <YAxis stroke="#6B7280" tick={{ fontSize: 12 }} />
-              <Tooltip content={ customTooltip } />
+              <Tooltip content={customTooltip} />
               <Bar
                 dataKey="count"
-                fill='#486CFF'
+                fill="#486CFF"
                 radius={[4, 4, 0, 0]}
                 barSize={40}
               />
@@ -97,6 +122,9 @@ export default function ReportChart() {
         </CardBody>
         <CardFooter className="flex justify-center items-center">
           <Pagination
+            loop
+            showControls
+            showShadow
             initialPage={page}
             total={Math.ceil(reporttypeData.length / rowsPerPage)}
             onChange={(newPage) => setPage(newPage)}
@@ -104,7 +132,7 @@ export default function ReportChart() {
         </CardFooter>
       </Card>
       <Card className=" min-w-[324px]">
-        <CardHeader className='flex px-5 space-x-2 '>
+        <CardHeader className="flex px-5 space-x-2 ">
           <ChartPie className="text-primary w-5 h-5" />
           <h3 className="text-lg font-semibold px-2"> Problems by Status</h3>
         </CardHeader>
