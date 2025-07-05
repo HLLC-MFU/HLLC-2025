@@ -7,23 +7,23 @@ import { BlurView } from 'expo-blur';
 import useProfile from '@/hooks/useProfile';
 import { useEffect, useState } from 'react';
 import TabBar from '@/components/global/TabBar';
-import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
+import BackgroundScreen from '@/components/global/BackgroundScreen';
 import { useAppearance } from '@/hooks/useAppearance';
-import usePushNotification from '@/hooks/notifications/usePushNotification';
+// import usePushNotification from '@/hooks/notifications/usePushNotification';
 
 export default function AppLayout() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const assets = useAppearance();
-  const { initializePushNotification } = usePushNotification();
+  // const { initializePushNotification } = usePushNotification();
 
   useEffect(() => {
     getProfile().finally(() => {
       setLoading(false);
       SplashScreen.hideAsync();
     });
-    initializePushNotification();
+    // initializePushNotification();
   }, []);
 
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;

@@ -8,12 +8,10 @@ import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from '@/components/global/AssetImage';
-import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
 import { DoorClosedLocked } from '@tamagui/lucide-icons';
-import { useEffect, useState } from 'react';
-import messaging from '@react-native-firebase/messaging';
 import useHealthData from '@/hooks/health/useHealthData';
 import { ProgressSummaryCard } from '@/components/home/ProgressSummaryCard';
+import BackgroundScreen from '@/components/global/BackgroundScreen';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 

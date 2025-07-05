@@ -1,55 +1,113 @@
 import React from 'react';
-import { Asset } from 'expo-asset';
-import { ExpoWebGLRenderingContext, GLView } from 'expo-gl';
-import { Renderer, loadAsync } from 'expo-three';
-import * as THREE from 'three';
+
+import { GLView } from 'expo-gl';
+import { Canvas } from '@react-three/fiber/native'
+
+import { Text, StyleSheet, View } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { GlassButton } from "@/components/ui/GlassButton";
+import { useRouter } from "expo-router";
+import { GraduationCap, University } from 'lucide-react-native';
+import useProfile from "@/hooks/useProfile";
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileScreen() {
-  const onContextCreate = async (gl: ExpoWebGLRenderingContext) => {
-    const renderer = new Renderer({ gl }) as THREE.WebGLRenderer;
-    renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
+  const { user } = useProfile();
 
-    const scene = new THREE.Scene();
+  return (
+    // <LinearGradient
+    //   colors={['#4c669f', '#4c669f']}
+    //   start={[0, 0.4]}
+    //   end={[0, 0.6]}
+    //   style={{ flex: 1 }}
+    // >
+    <SafeAreaView style={styles.container}>
+      <View style={{ width: 80 }}>
+        <GlassButton onPress={useRouter().back}>
+          <Text style={{ color: 'white' }}>Back</Text>
+        </GlassButton>
+      </View>
 
-    const camera = new THREE.PerspectiveCamera(
-      90,
-      gl.drawingBufferWidth / gl.drawingBufferHeight,
-      0.1,
-      1000,
-    );
-    camera.position.z = 5;
+      {/* <GLView style={{ flex: 1 }}> */}
+      <Canvas camera={{ position: [-2, 2.5, 5], fov: 30 }}>
+        <mesh>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial color="hotpink" />
+        </mesh>
+      </Canvas>
+      {/* </GLView> */}
 
-    // แสง
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(0, 1, 1).normalize();
-    scene.add(light);
+      <View style={styles.information}>
+        <View style={styles.field}>
+          <Text style={styles.name}>{user?.data[0].name.first} {user?.data[0].name.last ?? ''}</Text>
+          <Text style={styles.userName}>{user?.data[0].username}</Text>
+        </View>
 
-    // โหลดโมเดลจาก assetsr
-    const modelAsset = Asset.fromModule(
-      require('../../../assets/models/Untitled.glb'),
-    );
-    await modelAsset.downloadAsync();
+        <View style={styles.field}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5 }}>
+            <University color="dodgerblue" />
+            <Text style={styles.topic}>SCHOOL</Text>
+          </View>
+          <Text style={styles.school}>{user?.data[0].metadata.major.school.name.en}</Text>
+        </View>
 
-    const glb = await loadAsync(modelAsset);
-    const model = glb.scene;
-    scene.add(model);
-
-    const render = () => {
-      requestAnimationFrame(render);
-
-      model.rotation.y += 0.01;
-
-      renderer.render(scene, camera);
-      gl.endFrameEXP();
-    };
-
-    render();
-
-    // const geometry = new THREE.BoxGeometry(1, 1, 1);
-    // const material = new THREE.MeshBasicMaterial({ color: '#444' });
-    // const cube = new THREE.Mesh(geometry, material);
-    // scene.add(cube);
-  };
-
-  return <GLView style={{ flex: 1 }} onContextCreate={onContextCreate} />;
+        <View style={styles.field}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5 }}>
+            <GraduationCap color="dodgerblue" />
+            <Text style={styles.topic}>MAJOR</Text>
+          </View>
+          <Text style={styles.school}>{user?.data[0].metadata.major.name.en}</Text>
+        </View>
+      </View>
+    </SafeAreaView>
+    // </LinearGradient>
+  )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  topic: {
+    color: 'dodgerblue',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  field: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 5,
+  },
+  name: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: '600',
+
+  },
+  userName: {
+    color: '#D0D0D0',
+    fontSize: 16,
+    fontWeight: '500',
+
+  },
+  school: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  information: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    padding: 30,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+  },
+});
