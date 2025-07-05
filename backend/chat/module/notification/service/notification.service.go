@@ -353,9 +353,7 @@ func (ns *NotificationService) SendOfflineReplyNotification(ctx context.Context,
 	ns.SendOfflineNotification(ctx, receiverID, message, chatModel.MessageTypeReply)
 }
 
-func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Context, receiverID string, message *model.ChatMessage, senderInfo *SimpleUser, roomInfo *SimpleRoom) {
-	ns.SendOfflineNotification(ctx, receiverID, message, chatModel.MessageTypeMention)
-}
+
 
 func (ns *NotificationService) SendOfflineEvoucherNotification(ctx context.Context, receiverID string, message *model.ChatMessage) {
 	ns.SendOfflineNotification(ctx, receiverID, message, chatModel.MessageTypeEvoucher)
@@ -567,4 +565,39 @@ func (ns *NotificationService) getNotificationUserRole(ctx context.Context, user
 		ID:   roleID,
 		Name: roleName,
 	}
+} 
+
+// SendOfflineMentionNotification sends a mention notification to offline user
+func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Context, receiverID string, message *model.ChatMessage) {
+	log.Printf("[NotificationService] Sending OFFLINE mention notification: receiver=%s, message=%s", receiverID, message.ID.Hex())
+
+	// Get sender info
+	sender, err := ns.getUserById(ctx, message.UserID.Hex())
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get sender info: %v", err)
+		return
+	}
+
+	// Get room info
+	room, err := ns.getRoomById(ctx, message.RoomID.Hex())
+	if err != nil {
+		log.Printf("[NotificationService] Failed to get room info: %v", err)
+		return
+	}
+
+	// Create notification components
+	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn)
+	notificationSender := chatModel.CreateNotificationSender(sender.ID, sender.Username, sender.FirstName, sender.LastName, nil)
+	notificationMessage := chatModel.CreateNotificationMessage(message.ID.Hex(), message.Message, chatModel.MessageTypeMention, message.Timestamp)
+	
+	// Add mention info to message
+	if len(message.MentionInfo) > 0 {
+		notificationMessage.MentionInfo = message.MentionInfo
+		log.Printf("[NotificationService] Added %d mentions to notification", len(message.MentionInfo))
+	}
+	
+	payload := chatModel.NewMentionNotification(notificationRoom, notificationSender, notificationMessage, message.MentionInfo, receiverID)
+	ns.sendNotificationToKafka(ctx, receiverID, payload)
+	
+	log.Printf("[NotificationService] ✅ Sent mention notification to user %s", receiverID)
 } 

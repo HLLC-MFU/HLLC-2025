@@ -221,17 +221,56 @@ func (s *ChatService) SendNotifications(ctx context.Context, message *model.Chat
 
 // getRoomMembers gets all members of a room
 func (s *ChatService) getRoomMembers(ctx context.Context, roomID primitive.ObjectID) ([]primitive.ObjectID, error) {
+	log.Printf("[ChatService] Getting room members for room %s", roomID.Hex())
+	
 	roomCollection := s.collection.Database().Collection("rooms")
-	var room struct {
-		Members []primitive.ObjectID `bson:"members"`
-	}
+	
+	// Use bson.M to handle any document structure
+	var room bson.M
 
 	err := roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
 	if err != nil {
+		log.Printf("[ChatService] ❌ Failed to find room %s: %v", roomID.Hex(), err)
 		return nil, err
 	}
 
-	return room.Members, nil
+	// Extract members array safely
+	membersRaw, exists := room["members"]
+	if !exists {
+		log.Printf("[ChatService] ⚠️ Room %s has no members field", roomID.Hex())
+		return []primitive.ObjectID{}, nil
+	}
+
+	// Convert to array of ObjectIDs
+	membersArray, ok := membersRaw.(primitive.A)
+	if !ok {
+		log.Printf("[ChatService] ❌ Members field is not an array in room %s", roomID.Hex())
+		return []primitive.ObjectID{}, nil
+	}
+
+	members := make([]primitive.ObjectID, 0, len(membersArray))
+	for i, memberRaw := range membersArray {
+		if memberID, ok := memberRaw.(primitive.ObjectID); ok {
+			members = append(members, memberID)
+			log.Printf("[ChatService] Member %d: %s", i+1, memberID.Hex())
+		} else {
+			log.Printf("[ChatService] ⚠️ Invalid member at index %d: %v", i, memberRaw)
+		}
+	}
+
+	roomName := "Unknown"
+	if name, exists := room["name"]; exists {
+		if nameMap, ok := name.(map[string]interface{}); ok {
+			if thName, exists := nameMap["th"]; exists {
+				roomName = fmt.Sprintf("%v", thName)
+			}
+		}
+	}
+
+	log.Printf("[ChatService] ✅ Found room %s (%s) with %d members", 
+		roomID.Hex(), roomName, len(members))
+
+	return members, nil
 }
 
 // determineMessageType determines the type of message for notification
