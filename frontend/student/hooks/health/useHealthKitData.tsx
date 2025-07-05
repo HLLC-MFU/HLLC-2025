@@ -1,87 +1,70 @@
-// useHealthKitData.tsx
 import { useEffect, useState } from 'react';
 import AppleHealthKit, {
   HealthInputOptions,
   HealthKitPermissions,
 } from 'react-native-health';
 
-// กำหนด permissions สำหรับ HealthKit
 const permissions: HealthKitPermissions = {
   permissions: {
-    read: [
-      AppleHealthKit.Constants.Permissions.Steps,
-    ],
-    write: [], // ในที่นี้ไม่มีการเขียนข้อมูล
+    read: [AppleHealthKit.Constants.Permissions.Steps],
+    write: [],
   },
 };
 
-/**
- * Custom hook for fetching health data from Apple HealthKit on iOS.
- * @param {Date} date - The date for which to fetch health data.
- * @returns {{steps: number}} - An object containing steps, flights climbed, and distance walked/run.
- */
-const useHealthKitData = (date: Date) => {
-  // State สำหรับเก็บสถานะการอนุญาตและข้อมูลสุขภาพ
-  const [hasPermissions, setHasPermission] = useState<boolean>(false);
-  const [steps, setSteps] = useState<number>(0);
+/** React hook: use inside components */
+export const useHealthKitData = (date: Date) => {
+  const [hasPermission, setHasPermission] = useState(false);
+  const [steps, setSteps] = useState(0);
 
-  // ฟังก์ชันสำหรับดึงข้อมูลจาก HealthKit
   const fetchHealthKitData = () => {
-    if (!hasPermissions) {
-
-      return;
-    }
-
+    if (!hasPermission) return;
 
     const options: HealthInputOptions = {
       date: date.toISOString(),
       includeManuallyAdded: false,
     };
 
-    AppleHealthKit.getStepCount(options, (err: string | null, results: { value: number }) => {
-      if (err) {
-        return;
-      }
-      setSteps(results.value);
+    AppleHealthKit.getStepCount(options, (err, result) => {
+      if (!err && result) setSteps(result.value);
     });
   };
 
-
-  // Effect สำหรับเริ่มต้น HealthKit และขอสิทธิ์เมื่อคอมโพเนนต์ mount
   useEffect(() => {
-    // 
-    try {
-      AppleHealthKit.isAvailable((err: object, isAvailable: boolean) => {
-        if (err) {
-          return;
-        }
-        if (!isAvailable) {
-          return;
-        }
-        AppleHealthKit.initHealthKit(permissions, (err: string | null) => {
-          if (err) {
-            return;
-          }
-          setHasPermission(true);
-        });
+    AppleHealthKit.isAvailable((err, available) => {
+      if (err || !available) return;
+      AppleHealthKit.initHealthKit(permissions, (err) => {
+        if (!err) setHasPermission(true);
       });
-    } catch (e: any) { }
-  }, []); // รันครั้งเดียวเมื่อคอมโพเนนต์ mount
+    });
+  }, []);
 
   useEffect(() => {
     fetchHealthKitData();
-    const intervalId = setInterval(() => {
-      fetchHealthKitData();
-    }, 15 * 1000); // 15 วินาที (15000 มิลลิวินาที)
+    const interval = setInterval(fetchHealthKitData, 15000);
+    return () => clearInterval(interval);
+  }, [hasPermission, date]);
 
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [hasPermissions, date]);
-
-  return {
-    steps,
-  };
+  return { steps };
 };
+
+/** Async static fetch function: use anywhere (no hooks!) */
+export async function fetchStepsFromHealthKit(date: Date): Promise<{ steps: number }> {
+  return new Promise((resolve, reject) => {
+    AppleHealthKit.isAvailable((err, available) => {
+      if (err || !available) return reject(new Error('HealthKit not available'));
+      AppleHealthKit.initHealthKit(permissions, (err) => {
+        if (err) return reject(new Error('HealthKit init failed'));
+        const options: HealthInputOptions = {
+          date: date.toISOString(),
+          includeManuallyAdded: false,
+        };
+        AppleHealthKit.getStepCount(options, (err, result) => {
+          if (err || !result) return reject(new Error('Failed to get steps'));
+          resolve({ steps: result.value });
+        });
+      });
+    });
+  });
+}
 
 export default useHealthKitData;
