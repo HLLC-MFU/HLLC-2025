@@ -2,6 +2,7 @@
 package controller
 
 import (
+	"chat/module/chat/dto"
 	"chat/module/chat/model"
 	chatService "chat/module/chat/service"
 	"chat/module/chat/utils"
@@ -13,6 +14,9 @@ import (
 	"chat/pkg/decorators"
 	"chat/pkg/middleware"
 	"context"
+	"log"
+	"strings"
+	"time"
 
 	userService "chat/module/user/service"
 
@@ -108,11 +112,131 @@ func (c *ChatController) setupRoutes() {
 	
 	// Add RBAC middleware to WebSocket route
 	c.Get("/ws/:roomId", c.rbac.RequireReadOnlyAccess(), websocket.New(c.wsHandler.HandleWebSocket))
-
+	c.Post("/rooms/:roomId/stickers", c.handleSendSticker, c.rbac.RequireReadOnlyAccess())
 	c.Delete("/rooms/:roomId/cache", c.handleClearCache, c.rbac.RequireAdministrator())
 	
 	c.SetupRoutes()
 }
+
+func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
+	roomID := ctx.Params("roomId")
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid authentication token",
+		})
+	}
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid room ID",
+		})
+	}
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid user ID format",
+		})
+	}
+	log.Printf("[Controller] Checking restriction for sticker: userID=%s roomID=%s", userObjID.Hex(), roomObjID.Hex())
+	if !c.chatService.GetRestrictionService().CanUserSendMessages(ctx.Context(), userObjID, roomObjID) {
+		log.Printf("[Controller] User %s is muted or banned in room %s", userObjID.Hex(), roomObjID.Hex())
+		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"success": false,
+			"message": "You are muted or banned in this room",
+		})
+	}
+	log.Printf("[Controller] User %s passed restriction check for sticker in room %s", userObjID.Hex(), roomObjID.Hex())
+	// อ่านจาก body dto
+	var stickerDto dto.SendStickerDto
+	if err := ctx.BodyParser(&stickerDto); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid request body",
+		})
+	}
+
+	// Convert string IDs to ObjectIDs
+	stickerObjID, err := primitive.ObjectIDFromHex(stickerDto.StickerID)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "Invalid sticker ID format",
+		})
+	}
+
+	// ตรวจสอบสิทธิ์การส่ง sticker (รวมถึง room type)
+	canSend, err := c.roomService.CanUserSendSticker(ctx.Context(), roomObjID, userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to check user permissions",
+		})
+	}
+	if !canSend {
+		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"success": false,
+			"message": "User cannot send stickers in this room (read-only or not a member)",
+		})
+	}
+
+	// Get sticker details
+	sticker, err := c.stickerService.GetStickerById(ctx.Context(), stickerDto.StickerID)
+	if err != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "Sticker not found",
+		})
+	}
+
+	// Create message
+	msg := &model.ChatMessage{
+		RoomID:    roomObjID,
+		UserID:    userObjID,
+		StickerID: &stickerObjID,
+		Image:     sticker.Image,
+		Timestamp: time.Now(),
+	}
+	// Send message
+	if err := c.chatService.SendMessage(ctx.Context(), msg, nil); err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to send sticker",
+		})
+	}
+
+	// Clean up the response data - remove empty message and clean image path
+	responseData := map[string]interface{}{
+		"id":         msg.ID.Hex(),
+		"room_id":    msg.RoomID.Hex(),
+		"user_id":    msg.UserID.Hex(),
+		"timestamp":  msg.Timestamp,
+		"stickerId":  msg.StickerID.Hex(),
+		"created_at": msg.CreatedAt,
+		"updated_at": msg.UpdatedAt,
+	}
+	
+	// Clean image path by removing any /api/uploads/ prefix and return only filename
+	imagePath := msg.Image
+	if strings.HasPrefix(imagePath, "/api/uploads/") {
+		imagePath = strings.TrimPrefix(imagePath, "/api/uploads/")
+	}
+	// Also remove any module-specific folders like /stickers/, /users/, etc.
+	if idx := strings.Index(imagePath, "/"); idx != -1 {
+		imagePath = imagePath[idx+1:]
+	}
+	responseData["image"] = imagePath
+
+	return ctx.JSON(fiber.Map{
+		"success": true,
+		"message": "Sticker sent successfully",
+		"data":    responseData,
+	})
+}
+
 
 
 func (c *ChatController) handleClearCache(ctx *fiber.Ctx) error {
