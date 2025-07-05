@@ -583,70 +583,7 @@ func (e *ChatEventEmitter) EmitMentionMessage(ctx context.Context, msg *model.Ch
 	return e.emitEventStructured(ctx, msg, event)
 }
 
-// EmitMentionNotice sends a personal mention notification to a specific user
-func (e *ChatEventEmitter) EmitMentionNotice(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, mentionedUser *userModel.User) error {
-	log.Printf("[TRACE] EmitMentionNotice called for user %s from message %s", 
-		mentionedUser.ID.Hex(), msg.ID.Hex())
 
-	// Create sender info
-	senderInfo := model.UserInfo{
-		ID:       sender.ID.Hex(),
-		Username: sender.Username,
-		Name: map[string]interface{}{
-			"first":  sender.Name.First,
-			"middle": sender.Name.Middle,
-			"last":   sender.Name.Last,
-		},
-	}
-
-	// Create mentioned user info
-	mentionedUserInfo := model.UserInfo{
-		ID:       mentionedUser.ID.Hex(),
-		Username: mentionedUser.Username,
-		Name: map[string]interface{}{
-			"first":  mentionedUser.Name.First,
-			"middle": mentionedUser.Name.Middle,
-			"last":   mentionedUser.Name.Last,
-		},
-	}
-
-	// Create room info
-	roomInfo := model.RoomInfo{ID: msg.RoomID.Hex()}
-
-	// Create message info
-	messageInfo := model.MessageInfo{
-		ID:        msg.ID.Hex(),
-		Type:      model.MessageTypeMention,
-		Message:   msg.Message,
-		Timestamp: msg.Timestamp,
-	}
-
-	// Create structured mention notice event
-	noticeEvent := model.Event{
-		Type: model.EventTypeMention,
-		Payload: map[string]interface{}{
-			"room":           roomInfo,
-			"message":        messageInfo,
-			"mentionedBy":    senderInfo,
-			"mentionedUser":  mentionedUserInfo,
-			"timestamp":      msg.Timestamp,
-		},
-		Timestamp: msg.Timestamp,
-	}
-
-	// For WebSocket, marshal to bytes (needed for WebSocket protocol)
-	eventBytes, err := json.Marshal(noticeEvent)
-	if err != nil {
-		return fmt.Errorf("failed to marshal mention notice: %w", err)
-	}
-	
-	// Send personal notification to the mentioned user only (not to the entire room)
-	// This prevents duplicate broadcasts since EmitMentionMessage already broadcasts to the room
-	e.hub.BroadcastToUser(mentionedUser.ID.Hex(), eventBytes)
-
-	log.Printf("[Kafka] Successfully published mention notice to user %s", mentionedUser.ID.Hex())
-	return nil
-}
 
 // EmitEvoucherMessage emits an evoucher message event
 func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.ChatMessage) error {
