@@ -11,22 +11,42 @@ import { Button } from "@heroui/button";
 import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
 import { Input } from "@heroui/input";
-import { link as linkStyles } from "@heroui/theme";
 import NextLink from "next/link";
 import clsx from "clsx";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
 import {
-  TwitterIcon,
   GithubIcon,
-  DiscordIcon,
   HeartFilledIcon,
   SearchIcon,
   Logo,
 } from "@/components/icons";
+import { usePathname, useRouter } from "next/navigation";
+import { Href } from "@react-types/shared";
+import { useProfile } from "@/hooks/useProfile";
+import { Tooltip } from "@heroui/react";
 
 export const Navbar = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const user = useProfile((state) => state.user);
+
+  const handleClick = (href: Href) => {
+    router.push(href);
+  };
+
+  const hasPermission = (permission?: string): boolean => {
+    if (!permission) return true;
+    const perms = user?.role?.permissions || [];
+    if (perms.includes("*")) return true;
+
+    const [resource] = permission.split(":");
+    return (
+      perms.includes(permission) || perms.includes(`${resource}:*`)
+    );
+  };
+
   const searchInput = (
     <Input
       aria-label="Search"
@@ -57,40 +77,37 @@ export const Navbar = () => {
             <p className="font-bold text-inherit">ACME</p>
           </NextLink>
         </NavbarBrand>
-        <ul className="hidden lg:flex gap-4 justify-start ml-2">
-          {siteConfig.navItems.map((item) => (
-            <NavbarItem key={item.href}>
-              <NextLink
-                className={clsx(
-                  linkStyles({ color: "foreground" }),
-                  "data-[active=true]:text-primary data-[active=true]:font-medium",
-                )}
-                color="foreground"
-                href={item.href}
-              >
-                {item.label}
-              </NextLink>
-            </NavbarItem>
-          ))}
-        </ul>
       </NavbarContent>
 
-      <NavbarContent
-        className="hidden sm:flex basis-1/5 sm:basis-full"
-        justify="end"
-      >
-        <NavbarItem className="hidden sm:flex gap-2">
-          <Link isExternal aria-label="Twitter" href={siteConfig.links.twitter}>
-            <TwitterIcon className="text-default-500" />
-          </Link>
-          <Link isExternal aria-label="Discord" href={siteConfig.links.discord}>
-            <DiscordIcon className="text-default-500" />
-          </Link>
-          <Link isExternal aria-label="Github" href={siteConfig.links.github}>
-            <GithubIcon className="text-default-500" />
-          </Link>
-          <ThemeSwitch />
-        </NavbarItem>
+      {/*Desktop Nav Items */}
+      <NavbarContent className="hidden sm:flex gap-2" justify="end">
+        {siteConfig.navMenuItems.flatMap((section) =>
+          section.items
+            .filter((item) => hasPermission(item.permission))
+            .map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname.startsWith(item.href);
+              return (
+                <NavbarItem key={item.href}>
+                  <Tooltip placement="bottom">
+                    <Button
+                      variant={isActive ? "shadow" : "light"}
+                      onPress={() => handleClick(item.href)}
+                      className="relative"
+                    >
+                      <Icon
+                        className={clsx(
+                          "w-5 h-5 z-10",
+                          isActive ? "text-primary" : "text-default-500"
+                        )}
+                      />
+                    </Button>
+                  </Tooltip>
+                </NavbarItem>
+              );
+            })
+        )}
+
         <NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
         <NavbarItem className="hidden md:flex">
           <Button
@@ -106,6 +123,7 @@ export const Navbar = () => {
         </NavbarItem>
       </NavbarContent>
 
+      {/*Mobile Right Content */}
       <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
         <Link isExternal aria-label="Github" href={siteConfig.links.github}>
           <GithubIcon className="text-default-500" />
@@ -114,26 +132,55 @@ export const Navbar = () => {
         <NavbarMenuToggle />
       </NavbarContent>
 
+      {/*Mobile Menu */}
       <NavbarMenu>
         {searchInput}
         <div className="mx-4 mt-2 flex flex-col gap-2">
-          {siteConfig.navMenuItems.map((item, index) => (
-            <NavbarMenuItem key={`${item}-${index}`}>
-              <Link
-                color={
-                  index === 2
-                    ? "primary"
-                    : index === siteConfig.navMenuItems.length - 1
-                      ? "danger"
-                      : "foreground"
-                }
-                href="#"
-                size="lg"
-              >
-                {item.label}
-              </Link>
-            </NavbarMenuItem>
-          ))}
+          {siteConfig.navMenuItems.map((section) => {
+            const visibleItems = section.items.filter((item) => hasPermission(item.permission));
+            if (visibleItems.length === 0) return null;
+
+            return (
+              <div key={section.section} className="space-y-1">
+                <div className="px-4 py-2">
+                  <p className="text-xs font-semibold text-default-500 uppercase tracking-wider">
+                    {section.section}
+                  </p>
+                </div>
+
+                <div className="space-y-1 px-2">
+                  {visibleItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname.startsWith(item.href);
+                    return (
+                      <NavbarMenuItem key={item.href}>
+                        <Button
+                          fullWidth
+                          variant={isActive ? "shadow" : "light"}
+                          onPress={() => handleClick(item.href)}
+                          className="flex items-center gap-2"
+                        >
+                          <Icon
+                            className={clsx(
+                              "w-5 h-5",
+                              isActive ? "text-primary" : "text-default-500"
+                            )}
+                          />
+                          <span>{item.label}</span>
+                          <span
+                            className={clsx(
+                              "absolute left-0 top-0 h-full w-1 rounded-r-md transition-all duration-200 ease-in-out",
+                              isActive ? "bg-primary" : "bg-transparent"
+                            )}
+                          />
+                        </Button>
+                      </NavbarMenuItem>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </NavbarMenu>
     </HeroUINavbar>
