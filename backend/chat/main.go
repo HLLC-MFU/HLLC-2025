@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	chatController "chat/module/chat/controller"
 	uploadController "chat/module/chat/controller"
 	chatService "chat/module/chat/service"
 	"chat/module/chat/utils"
@@ -152,6 +153,7 @@ func main() {
 	roomController.NewRoomController(app, roomSvc, rbacMiddleware, db)
 	roomController.NewGroupRoomController(app, groupRoomSvc, roomSvc, rbacMiddleware)
 	stickerController.NewStickerController(app, stickerSvc, rbacMiddleware)
+	chatController.NewChatController(app, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc)
 	uploadController.NewUploadController(app, rbacMiddleware, chatSvc, userSvc)
 	evoucherController.NewEvoucherController(app, evoucherSvc, roomSvc, rbacMiddleware)
 	// Restriction controller (was moderation)
