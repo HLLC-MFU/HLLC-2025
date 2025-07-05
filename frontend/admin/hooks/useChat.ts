@@ -15,7 +15,7 @@ async function chatApiRequest<T>(
     options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
     try {
-        // Get token from localStorage (more reliable than cookies in client-side)
+        // Get token from localStorage
         const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
         const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
@@ -24,14 +24,6 @@ async function chatApiRequest<T>(
             ...(!isFormData && body ? { "Content-Type": "application/json" } : {}),
             ...(options.headers || {}),
         };
-
-        console.log("Chat API Request:", {
-            url: `${CHAT_API_BASE_URL}${endpoint}`,
-            method,
-            headers,
-            hasToken: !!token,
-            tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
-        });
 
         const response = await fetch(`${CHAT_API_BASE_URL}${endpoint}`, {
             method,
@@ -45,14 +37,7 @@ async function chatApiRequest<T>(
             ...options,
         });
 
-        console.log("Chat API Response:", {
-            status: response.status,
-            statusText: response.statusText,
-            url: response.url
-        });
-
         const responseData = await response.json();
-        console.log("Chat API Response Data:", responseData);
 
         if (responseData.statusCode && responseData.message && responseData.data) {
             return {
@@ -89,23 +74,15 @@ export function useChat() {
     const [error, setError] = useState<string | null>(null);
 
     /**
-	 * Fetch all room from the API.
-	 * This function retrieves the list of room and updates the state.
-	 * limit=0 is used to fetch all room without pagination.
-	 * @return {Promise<void>} A promise that resolves when the room are fetched.
-	 * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
-	 * */
-    const fetchRoom = async () => {
+     * Fetch all rooms from the API.
+     * @return {Promise<void>} A promise that resolves when the rooms are fetched.
+     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     */
+    const fetchRoom = async (): Promise<void> => {
         setLoading(true);
         setError(null);
         try {
-            console.log("Fetching rooms...");
-            const res = await chatApiRequest<{ data: Room[] }>(
-                "/rooms",
-                "GET",
-            );
-
-            console.log("Fetch rooms response:", res);
+            const res = await chatApiRequest<{ data: Room[] }>("/rooms", "GET");
 
             if (res.statusCode !== 200 && res.statusCode !== 201) {
                 throw new Error(res.message || `HTTP ${res.statusCode}: Failed to fetch rooms`);
@@ -122,8 +99,8 @@ export function useChat() {
             console.error("Fetch rooms error:", err);
             setError(
                 err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to fetch room.'
-                    : 'Failed to fetch room.',
+                    ? (err as { message?: string }).message || 'Failed to fetch rooms.'
+                    : 'Failed to fetch rooms.',
             );
         } finally {
             setLoading(false);
@@ -131,13 +108,12 @@ export function useChat() {
     };
 
     /**
-	 * Create a new room with the provided data.
-	 * This function sends a POST request to the API to create a new room.
-	 * @param {FormData} roomData - The data to create the room with formdata.
-	 * @return {Promise<void>} A promise that resolves when the room is created.
-	 * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
-	 * */
-    const createRoom = async (roomData: FormData) => {
+     * Create a new room with the provided data.
+     * @param {FormData} roomData - The data to create the room with.
+     * @return {Promise<ApiResponse<{ data: Room }>>} A promise that resolves when the room is created.
+     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     */
+    const createRoom = async (roomData: FormData): Promise<ApiResponse<{ data: Room }>> => {
         try {
             setLoading(true);
             const res = await chatApiRequest<{ data: Room }>("/rooms", "POST", roomData);
@@ -156,14 +132,13 @@ export function useChat() {
     };
 
     /**
-	 * Update an existing room with the provided data.
-	 * This function sends a PATCH request to the API to update the room.
-	 * @param {string} id - The ID of the room to update.
-	 * @param {FormData} roomData - The data to update the room with formdata.
-	 * @return {Promise<void>} A promise that resolves when the room is updated.
-	 * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
-	 * */
-    const updateRoom = async (id: string, roomData: FormData) => {
+     * Update an existing room with the provided data.
+     * @param {string} id - The ID of the room to update.
+     * @param {FormData} roomData - The data to update the room with.
+     * @return {Promise<ApiResponse<{ data: Room }>>} A promise that resolves when the room is updated.
+     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     */
+    const updateRoom = async (id: string, roomData: FormData): Promise<ApiResponse<{ data: Room }>> => {
         try {
             setLoading(true);
             const res = await chatApiRequest<{ data: Room }>(`/rooms/${id}`, "PATCH", roomData);
@@ -186,12 +161,11 @@ export function useChat() {
     };
 
     /**
-	 * Delete an existing room with the provided data.
-	 * This function sends a DELETE request to the API to delete the room.
-	 * @param {string} id - The ID of the room to delete.
-	 * @return {Promise<void>} A promise that resolves when the room is deleted.
-	 * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
-	 * */
+     * Delete an existing room.
+     * @param {string} id - The ID of the room to delete.
+     * @return {Promise<ApiResponse<{ data: Room }>>} A promise that resolves when the room is deleted.
+     * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+     */
     const deleteRoom = async (id: string): Promise<ApiResponse<{ data: Room }>> => {
         setLoading(true);
         try {
@@ -208,7 +182,7 @@ export function useChat() {
         } finally {
             setLoading(false);
         }
-    }
+    };
 
     useEffect(() => {
         fetchRoom();
@@ -222,5 +196,5 @@ export function useChat() {
         createRoom,
         updateRoom,
         deleteRoom,
-    }
+    };
 }

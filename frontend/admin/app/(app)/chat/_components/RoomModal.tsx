@@ -1,4 +1,4 @@
-"useclient";
+"use client";
 
 import { Room, RoomType } from "@/types/chat";
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
@@ -7,7 +7,7 @@ import { FormEvent, useEffect, useState } from "react";
 interface RoomModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: (room: Partial<Room>, mode: "add" | "edit") => void;
+    onSuccess: (formData: FormData, mode: "add" | "edit") => void;
     room?: Room;
     mode: "add" | "edit";
 }
@@ -17,56 +17,60 @@ export function RoomModal({
     onClose, 
     onSuccess, 
     room, 
-    mode }: RoomModalProps) {
+    mode 
+}: RoomModalProps) {
     const [nameEn, setNameEn] = useState("");
     const [nameTh, setNameTh] = useState("");
-    const [type, setType] = useState<RoomType>(RoomType.NORMAL || RoomType.READONLY);
+    const [type, setType] = useState<RoomType>(RoomType.NORMAL);
     const [capacity, setCapacity] = useState("");
-    const [createdBy, setCreatedBy] = useState("");
-    const [memberCount, setMemberCount] = useState("");
-
 
     useEffect(() => {
         if (room) {
             setNameEn(room.name.en);
             setNameTh(room.name.th);
+            setType(room.type);
             setCapacity(room.capacity.toString());
-            setCreatedBy(room.createdBy);
-            setMemberCount(room.memberCount.toString());
         } else {
-            resetField();
+            resetFields();
         }
     }, [room]);
 
-    const resetField = () => {
+    const resetFields = () => {
         setNameEn("");
         setNameTh("");
+        setType(RoomType.NORMAL);
         setCapacity("");
-        setCreatedBy("");
-        setMemberCount("");
-    }
+    };
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if (!nameEn.trim() || !nameTh.trim()) return;
+        if (!nameEn.trim() || !nameTh.trim() || !capacity.trim()) {
+            return;
+        }
 
-        const updatedRoom: Partial<Room> = {
-            name: {en: nameEn,th: nameTh},
-            type: type,
-            capacity: parseInt(capacity),
-            ...room,
-        };
+        const formData = new FormData();
+        formData.append("name[en]", nameEn.trim());
+        formData.append("name[th]", nameTh.trim());
+        formData.append("type", type);
+        formData.append("capacity", capacity);
 
-        onSuccess(updatedRoom, mode);
-        resetField();
+        onSuccess(formData, mode);
+        resetFields();
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={() => { onClose(); resetField(); }} size="2xl">
+        <Modal 
+            isOpen={isOpen} 
+            onClose={() => { 
+                onClose(); 
+                resetFields(); 
+            }} 
+            size="2xl"
+        >
             <Form
                 className="w-full"
-                onSubmit={(e) => handleSubmit(e)}
+                onSubmit={handleSubmit}
             >
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1">
@@ -90,17 +94,43 @@ export function RoomModal({
                             />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Select
+                                isRequired
+                                label="Room Type"
+                                placeholder="Select room type"
+                                selectedKeys={[type]}
+                                onSelectionChange={(keys) => {
+                                    const selectedType = Array.from(keys)[0] as RoomType;
+                                    setType(selectedType);
+                                }}
+                            >
+                                <SelectItem key={RoomType.NORMAL}>
+                                    Normal
+                                </SelectItem>
+                                <SelectItem key={RoomType.READONLY}>
+                                    Read Only
+                                </SelectItem>
+                            </Select>
                             <Input
-                            isRequired
-                            label="Capacity"
-                            placeholder="Enter room capacity"
-                            value={capacity}
-                            onValueChange={setCapacity}
-                        />
+                                isRequired
+                                label="Capacity"
+                                placeholder="Enter room capacity"
+                                type="number"
+                                min="1"
+                                value={capacity}
+                                onValueChange={setCapacity}
+                            />
                         </div>
                     </ModalBody>
                     <ModalFooter>
-                        <Button color="danger" variant="light" onPress={() => { onClose(); resetField(); }}>
+                        <Button 
+                            color="danger" 
+                            variant="light" 
+                            onPress={() => { 
+                                onClose(); 
+                                resetFields(); 
+                            }}
+                        >
                             Cancel
                         </Button>
                         <Button color="primary" type="submit">
@@ -109,7 +139,7 @@ export function RoomModal({
                     </ModalFooter>
                 </ModalContent>
             </Form>
-    </Modal>
-  );
+        </Modal>
+    );
 }
 
