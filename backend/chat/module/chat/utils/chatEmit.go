@@ -158,9 +158,16 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 		// Text or reply message
 		// Get reply information if this is a reply
 		var replyToInfo *model.MessageInfo
+		var replyMsg *model.ChatMessage
 		if msg.ReplyToID != nil {
 			if replyToMsg, err := e.getReplyToMessage(ctx, *msg.ReplyToID); err == nil {
 				replyToInfo = replyToMsg
+			}
+			// Get the full reply message for user data
+			replyToService := queries.NewBaseService[model.ChatMessage](e.mongo.Collection("chat-messages"))
+			replyResult, err := replyToService.FindOne(ctx, bson.M{"_id": *msg.ReplyToID})
+			if err == nil && len(replyResult.Data) > 0 {
+				replyMsg = &replyResult.Data[0]
 			}
 		}
 
@@ -184,13 +191,28 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 		}
 
 		// Add reply info if exists
-		if replyToInfo != nil {
+		if replyToInfo != nil && replyMsg != nil {
+			// Get user data for the reply message
+			var replyUserData map[string]interface{}
+			if replyUser, err := e.getUserInfo(ctx, replyMsg.UserID); err == nil {
+				replyUserData = map[string]interface{}{
+					"_id":      replyUser.ID,
+					"username": replyUser.Username,
+					"name":     replyUser.Name,
+				}
+			} else {
+				replyUserData = map[string]interface{}{
+					"_id": replyMsg.UserID.Hex(),
+				}
+			}
+
 			manualPayload["replyTo"] = map[string]interface{}{
 				"message": map[string]interface{}{
 					"_id":       replyToInfo.ID,
 					"message":   replyToInfo.Message,
 					"timestamp": replyToInfo.Timestamp,
 				},
+				"user": replyUserData,
 			}
 		}
 
