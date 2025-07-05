@@ -179,7 +179,8 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 
 			// Add reply info if exists (matches ChatEventEmitter)
 		if msg.ReplyTo != nil {
-				// Get reply user data
+			log.Printf("[DEBUG] History message is a reply: messageID=%s, replyToID=%s", msg.ChatMessage.ID.Hex(), msg.ReplyTo.ID.Hex())
+			// Get reply user data
 			var replyUserData map[string]interface{}
 			if replyUser, err := h.chatService.GetUserById(ctx, msg.ReplyTo.UserID.Hex()); err == nil {
 				replyUserData = map[string]interface{}{
@@ -202,6 +203,8 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 				},
 				"user": replyUserData,
 			}
+		} else if msg.ChatMessage.ReplyToID != nil {
+			log.Printf("[DEBUG] History message has ReplyToID but no ReplyTo populated: messageID=%s, replyToID=%s", msg.ChatMessage.ID.Hex(), msg.ChatMessage.ReplyToID.Hex())
 		}
 
 			// Add reactions if exists (this is additional info for history)
