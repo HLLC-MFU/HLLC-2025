@@ -3,7 +3,6 @@ package service
 import (
 	chatModel "chat/module/chat/model"
 	"chat/module/chat/utils"
-	userModel "chat/module/user/model"
 	"chat/pkg/database/queries"
 	"context"
 	"fmt"
@@ -49,11 +48,62 @@ func (s *ChatService) SendMentionMessage(ctx context.Context, userID, roomID pri
 		return nil, fmt.Errorf("failed to parse mentions: %w", err)
 	}
 
-	// Validate mentioned users exist
-	mentionedUsers, err := mentionParser.ValidateMentionUsers(ctx, mentionUserIDs)
-	if err != nil {
-		log.Printf("[ChatService] Failed to validate mentioned users: %v", err)
-		return nil, fmt.Errorf("failed to validate mentioned users: %w", err)
+	// Check if this is an @All mention
+	isAllMention := false
+	for _, userID := range mentionUserIDs {
+		if userID == "all" {
+			isAllMention = true
+			break
+		}
+	}
+
+	// If it's an @All mention, get all room members and create mention info for them
+	if isAllMention {
+		log.Printf("[ChatService] Processing @All mention for room %s", roomID.Hex())
+		
+		roomMembers, err := s.getRoomMembers(ctx, roomID)
+		if err != nil {
+			log.Printf("[ChatService] Failed to get room members for @All mention: %v", err)
+			return nil, fmt.Errorf("failed to get room members: %w", err)
+		}
+
+		log.Printf("[ChatService] Found %d room members for @All mention", len(roomMembers))
+
+		// Create mention info for ALL room members (including sender for @All)
+		allMentionInfo := []chatModel.MentionInfo{}
+		allUserIDs := []string{}
+		
+		for _, memberID := range roomMembers {
+			// For @All, include everyone including sender
+			log.Printf("[ChatService] Adding user %s to @All mention", memberID.Hex())
+			
+			// Get user info for mention
+			user, err := s.GetUserById(ctx, memberID.Hex())
+			if err != nil {
+				log.Printf("[ChatService] Failed to get user info for @All mention: %v", err)
+				continue
+			}
+			
+			allMentionInfo = append(allMentionInfo, chatModel.MentionInfo{
+				UserID:   user.ID.Hex(),
+				Username: user.Username,
+			})
+			allUserIDs = append(allUserIDs, user.ID.Hex())
+			
+			log.Printf("[ChatService] Added user %s (%s) to @All mention", user.Username, user.ID.Hex())
+		}
+		
+		// Replace the mention info with all room members
+		mentionInfo = allMentionInfo
+		mentionUserIDs = allUserIDs
+		
+		log.Printf("[ChatService] @All mention: mentioning %d users in room", len(mentionInfo))
+	} else {
+		// Validate mentioned users exist (only for individual mentions, not @All)
+		if _, err = mentionParser.ValidateMentionUsers(ctx, mentionUserIDs); err != nil {
+			log.Printf("[ChatService] Failed to validate mentioned users: %v", err)
+			return nil, fmt.Errorf("failed to validate mentioned users: %w", err)
+		}
 	}
 
 	// Filter out users not in room (optional - you might want to allow mentioning users not in room)
@@ -74,6 +124,8 @@ func (s *ChatService) SendMentionMessage(ctx context.Context, userID, roomID pri
 		MentionInfo: mentionInfo,          // Detailed mention info stored in database
 		Timestamp:   time.Now(),
 	}
+
+	log.Printf("[ChatService] Created mention message with %d mentions: %+v", len(mentionInfo), mentionInfo)
 
 	// **IMMEDIATE: Broadcast mention message first**
 	if err := s.emitter.EmitMentionMessage(ctx, msg, mentionInfo); err != nil {
@@ -102,38 +154,15 @@ func (s *ChatService) SendMentionMessage(ctx context.Context, userID, roomID pri
 		}
 	}()
 
-	// Send individual mention notifications to mentioned users
-	for _, mentionedUser := range mentionedUsers {
-		if err := s.sendMentionNotification(ctx, msg, mentionedUser); err != nil {
-			log.Printf("[ChatService] Failed to send mention notification to user %s: %v", 
-				mentionedUser.ID.Hex(), err)
-		}
-	}
-
 	// **FIXED: Send notifications to ALL offline users in the room for mention messages**
-	s.notifyOfflineUsersForMention(msg)
+	go func() {
+		s.notifyOfflineUsersForMention(msg)
+	}()
 
 	log.Printf("[ChatService] Successfully sent mention message with %d mentions", len(mentionInfo))
 	return msg, nil
 }
 
-// sendMentionNotification sends a personal notification to a mentioned user
-func (s *ChatService) sendMentionNotification(ctx context.Context, msg *chatModel.ChatMessage, mentionedUser userModel.User) error {
-	// Get sender info
-	sender, err := s.GetUserById(ctx, msg.UserID.Hex())
-	if err != nil {
-		return fmt.Errorf("failed to get sender info: %w", err)
-	}
-
-	// Create mention notice event specifically for the mentioned user
-	if err := s.emitter.EmitMentionNotice(ctx, msg, sender, &mentionedUser); err != nil {
-		return fmt.Errorf("failed to emit mention notice: %w", err)
-	}
-
-	log.Printf("[ChatService] Sent mention notification to user %s for message %s", 
-		mentionedUser.ID.Hex(), msg.ID.Hex())
-	return nil
-}
 
 // filterUsersInRoom filters user IDs to only include users who are members of the room
 func (s *ChatService) filterUsersInRoom(ctx context.Context, roomID primitive.ObjectID, userIDs []string) ([]string, error) {
@@ -189,12 +218,17 @@ func (s *ChatService) GetMentionsForUser(ctx context.Context, userID string, lim
 func (s *ChatService) notifyOfflineUsersForMention(msg *chatModel.ChatMessage) {
 	ctx := context.Background()
 	
+	log.Printf("[ChatService] Starting mention notification process for message %s in room %s", 
+		msg.ID.Hex(), msg.RoomID.Hex())
+	
 	// Get all room members
 	roomMembers, err := s.getRoomMembers(ctx, msg.RoomID)
 	if err != nil {
 		log.Printf("[ChatService] Failed to get room members for mention notification: %v", err)
 		return
 	}
+
+	log.Printf("[ChatService] Found %d room members for mention notification", len(roomMembers))
 
 	// Get online users in this room
 	onlineUsers := s.hub.GetOnlineUsersInRoom(msg.RoomID.Hex())
@@ -203,7 +237,10 @@ func (s *ChatService) notifyOfflineUsersForMention(msg *chatModel.ChatMessage) {
 		onlineUserMap[userID] = true
 	}
 
+	log.Printf("[ChatService] Found %d online users in room %s", len(onlineUsers), msg.RoomID.Hex())
 	log.Printf("[ChatService] Sending mention notifications to offline users in room %s", msg.RoomID.Hex())
+	
+	notificationCount := 0
 	
 	// Send notification to ALL offline members (except sender)
 	for _, memberID := range roomMembers {
@@ -211,6 +248,7 @@ func (s *ChatService) notifyOfflineUsersForMention(msg *chatModel.ChatMessage) {
 
 		// Skip the sender
 		if memberIDStr == msg.UserID.Hex() {
+			log.Printf("[ChatService] Skipping sender %s from mention notifications", memberIDStr)
 			continue
 		}
 
@@ -222,9 +260,16 @@ func (s *ChatService) notifyOfflineUsersForMention(msg *chatModel.ChatMessage) {
 
 		log.Printf("[ChatService] User %s is OFFLINE, sending mention notification", memberIDStr)
 		
-		// ✅ Send offline notification using the proper notification service method
-		s.notificationService.SendOfflineNotification(ctx, memberIDStr, msg, "mention")
+		// ✅ Send offline notification using the NEW mention notification method
+		if s.notificationService != nil {
+			s.notificationService.SendOfflineMentionNotification(ctx, memberIDStr, msg)
+			notificationCount++
+			log.Printf("[ChatService] ✅ Sent mention notification to user %s", memberIDStr)
+		} else {
+			log.Printf("[ChatService] ❌ Notification service is nil, cannot send notification to user %s", memberIDStr)
+		}
 	}
 	
-	log.Printf("[ChatService] Mention notifications sent to offline users in room %s", msg.RoomID.Hex())
+	log.Printf("[ChatService] ✅ Mention notification process completed. Sent %d notifications to offline users in room %s", 
+		notificationCount, msg.RoomID.Hex())
 } 

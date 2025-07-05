@@ -37,6 +37,25 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 	if err == nil && len(cachedMessages) > 0 {
 		log.Printf("[HistoryService] Found %d cached messages for room %s", len(cachedMessages), roomID)
 		
+		// Check if cached messages have ReplyTo populated
+		for i, msg := range cachedMessages {
+			if msg.ChatMessage.ReplyToID != nil {
+				if msg.ReplyTo != nil {
+					log.Printf("[HistoryService] Cached message %s has ReplyTo populated: %s", msg.ChatMessage.ID.Hex(), msg.ReplyTo.ID.Hex())
+				} else {
+					log.Printf("[HistoryService] Cached message %s has ReplyToID but no ReplyTo populated, re-populating", msg.ChatMessage.ID.Hex())
+					// Re-populate ReplyTo for cached messages
+					replyToMsg, err := h.getReplyToMessageWithUser(ctx, *msg.ChatMessage.ReplyToID)
+					if err != nil {
+						log.Printf("[HistoryService] Failed to get reply-to message %s: %v", msg.ChatMessage.ReplyToID.Hex(), err)
+					} else {
+						cachedMessages[i].ReplyTo = replyToMsg
+						log.Printf("[HistoryService] Successfully re-populated ReplyTo for message %s", msg.ChatMessage.ID.Hex())
+					}
+				}
+			}
+		}
+		
 		// Limit the results
 		if len(cachedMessages) > int(limit) {
 			cachedMessages = cachedMessages[:limit]

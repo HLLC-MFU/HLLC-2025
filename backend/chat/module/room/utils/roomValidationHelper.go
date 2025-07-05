@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"mime/multipart"
 
+	"chat/module/room/model"
+
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -55,6 +57,13 @@ func (h *RoomValidationHelper) ValidateCreateRoomDto(createDto *dto.CreateRoomDt
 		}
 	}
 
+	// ตรวจสอบ room status
+	if createDto.Status != "" {
+		if !model.ValidateRoomStatus(createDto.Status) {
+			return fmt.Errorf("invalid room status: %s", createDto.Status)
+		}
+	}
+
 	return nil
 }
 
@@ -78,6 +87,14 @@ func (h *RoomValidationHelper) ValidateRoomType(roomType string) error {
 	}
 
 	return fmt.Errorf("invalid room type: %s (allowed: %v)", roomType, validTypes)
+}
+
+// ValidateRoomStatus ตรวจสอบ room status
+func (h *RoomValidationHelper) ValidateRoomStatus(roomStatus string) error {
+	if !model.ValidateRoomStatus(roomStatus) {
+		return fmt.Errorf("invalid room status: %s (allowed: active, inactive)", roomStatus)
+	}
+	return nil
 }
 
 // ValidateUserID ตรวจสอบ user ID format
