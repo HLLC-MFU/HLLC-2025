@@ -117,6 +117,9 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 
 	// Calculate canJoin based on room status, capacity, and user membership
 	canJoin := c.controllerHelper.CalculateCanJoin(room, userID)
+	
+	// Check if user is already a member
+	isMember, _ := c.controllerHelper.CheckUserMembership(room, userID)
 
 	return ctx.JSON(fiber.Map{
 		"success": true,
@@ -133,6 +136,7 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 			"metadata": room.Metadata,
 			"memberCount": len(room.Members),
 			"canJoin":  canJoin,
+			"isMember": isMember,
 		},
 	})
 }
