@@ -36,7 +36,7 @@ func (s *server) roomService() {
 	// Init Redis
 
 	// Setup Kafka topic
-	publisher := kafkaUtil.GetPublisher()
+	publisher := kafkaUtil.GetPublisher(s.config)
 
 	// Repositories
 	roomRepo := repository.NewRepository(s.db)
@@ -50,8 +50,8 @@ func (s *server) roomService() {
 	memService := memberServicePkg.NewMemberService(memRepo)
 	stkService := stickerServicePkg.NewStickerService(stkRepo)
 	userService := userServicePkg.NewUserService(userRepo, majorService)
-	chatService := chatServicePkg.NewService(chatRepo, publisher, roomRepo, userService, memService)
-	roomService := service.NewService(roomRepo, publisher, memService, chatService, userService)
+	chatService := chatServicePkg.NewService(chatRepo, publisher, roomRepo, userService, memService, s.config)
+	roomService := service.NewService(roomRepo, publisher, memService, chatService, userService, s.config)
 
 	// Handlers
 	roomHandler := handler.NewHTTPHandler(roomService, memService, publisher, stkService, userService)

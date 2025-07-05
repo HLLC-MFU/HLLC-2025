@@ -20,6 +20,7 @@ import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RoleDocument } from '../role/schemas/role.schema';
 import { decryptItem } from './utils/crypto';
+import { RemovePasswordDto } from './dto/remove-password.dto';
 
 type Permission = string;
 
@@ -155,6 +156,21 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
+    const payload = {
+      sub: user._id.toString(),
+      username: user.username,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('JWT_EXPIRATION'),
+      }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      }),
+    ]);
+
     // Set password (will be hashed by pre-save hook)
     user.password = password;
 
@@ -167,7 +183,11 @@ export class AuthService {
 
     await user.save();
 
-    return { message: 'User registered successfully' };
+    return {
+      message: 'User registered successfully', tokens: {
+        accessToken, refreshToken
+      }
+    };
   }
 
   async refreshToken(oldRefreshToken: string) {
@@ -222,32 +242,27 @@ export class AuthService {
   }
 
   async getRegisteredUser(username: string) {
-    const user = await this.userModel
-      .findOne({ username }, '+password')
-      .populate({
-        path: 'metadata.major',
-        model: 'Major',
-        populate: {
-          path: 'school',
-        },
-      });
+    const user = await this.userModel.findOne({ username }, '+password');
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     if (user.password) {
-      throw new BadRequestException('User already has a password set');
+      throw new BadRequestException(
+        'This User already has a password set, Please signin.',
+      );
     }
 
     return {
       username: user.username,
       name: user.name,
-      major: user.metadata?.major,
     };
   }
 
-  async removePassword(username: string) {
+  async removePassword(removePasswordDto: RemovePasswordDto) {
+    const { username } = removePasswordDto;
+
     const user = await this.userModel.findOne({ username }).select('+password');
     if (!user) {
       throw new NotFoundException('User not found');

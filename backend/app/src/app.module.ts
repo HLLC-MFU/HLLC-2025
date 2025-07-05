@@ -18,8 +18,6 @@ import { AppearancesModule } from './module/appearances/appearances.module';
 import { SystemStatusModule } from './module/system-status/system-status.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
-import { SponsorsModule } from './module/sponsors/sponsors.module';
-import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesModule } from './module/activities/activities.module';
 import { ActivitiesTypeModule } from './module/activities/activities-type.module';
@@ -31,13 +29,14 @@ import { PrepostQuestionsModule } from './module/prepost-questions/prepost-quest
 import { PosttestAnswersModule } from './module/prepost-questions/posttest-answer.module';
 import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
 import { StepCountersModule } from './module/step-counters/step-counters.module';
-import { InterfacesModule } from './module/interfaces/interfaces.module';
 import { FirebaseAdminModule } from './module/firebase/firebase-admin.module';
 import { LandmarksModule } from './module/coin-collections/landmarks.module';
 import { CoinCollectionsModule } from './module/coin-collections/coin-collections.module';
-import { MapsModule } from './module/coin-collections/maps.module';
 import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
 import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
+import { StepAchievementModule } from './module/step-counters/step-achievement.module';
+import { EvouchersModule } from './module/evouchers/evouchers.module';
+import { SponsorsModule } from './module/sponsors/sponsors.module';
 
 @Module({
   imports: [
@@ -50,6 +49,7 @@ import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.m
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         uri: configService.get<string>('MONGO_URI'),
+        autoIndex: true,
       }),
       inject: [ConfigService],
     }),
@@ -69,8 +69,6 @@ import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.m
     RoleModule,
     UsersModule,
     SchoolsModule,
-    SponsorsModule,
-    SponsorsTypeModule,
     MajorsModule,
     ReportTypeModule,
     SystemStatusModule,
@@ -86,14 +84,16 @@ import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.m
     PrepostQuestionsModule,
     PosttestAnswersModule,
     PretestAnswersModule,
+    StepCountersModule,
     FirebaseAdminModule,
     StepCountersModule,
-    InterfacesModule,
+    StepAchievementModule,
     LandmarksModule,
     CoinCollectionsModule,
-    MapsModule,
     LamduanFlowersModule,
-    LamduanSettingModule
+    LamduanSettingModule,
+    EvouchersModule,
+    SponsorsModule,
   ],
   providers: [
     {
@@ -106,4 +106,4 @@ import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.m
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

@@ -1,89 +1,170 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  View,
-  Text,
-  Image,
-} from "react-native";
-import { ImageBackground } from 'expo-image';
+import { View, Text, Alert } from 'react-native';
 import { router, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Bell, User, Users } from 'lucide-react-native';
+import { Award, Bell, Footprints, MapPin, User, Users } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
-import { useInterfaces } from '@/hooks/useInterfaces';
+import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from '@/components/global/AssetImage';
+import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
+import { Progress, Separator, XStack, YStack } from 'tamagui';
 import { DoorClosedLocked } from '@tamagui/lucide-icons';
+import { useEffect } from 'react';
+import messaging from '@react-native-firebase/messaging';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
   const { t } = useTranslation();
   const handleSignOut = async () => {
-    await useAuth.getState().signOut();
-    router.replace('/(auth)/login'); // ✅ redirect กลับหน้า login (หรือหน้าอื่น)
+    useAuth.getState().signOut();
+    router.replace('/(auth)/login');
   };
-  const { assets } = useInterfaces();
-  const icons = {
+  const { assets } = useAppearance();
+  const assetsImage = {
+    background: assets?.background ?? null,
     profile: assets?.profile ?? null,
     notification: assets?.notification ?? null,
     progress: assets?.progress ?? null,
+    signOut: assets?.signOut ?? null,
   };
 
-  return (
-    <FadeView>
-      <ImageBackground
-        source={require('@/assets/images/lobby.png')}
-        contentFit="cover"
-        style={{ flex: 1 }}>
-        <SafeAreaView style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 0, alignItems: 'center', justifyContent: 'space-between' }}>
-          <GlassButton>
-            {icons.progress ? (
-              <AssetImage uri={`${baseImageUrl}/uploads/${icons.progress}`} style={{ width: 20, height: 20 }}/>
-            ) : (
-              <User
-                color="white"
-                size={20}
-                onPress={() => {
-                  useRouter().push('/(auth)/login');
-                }}
-              />
-            )}
+  useEffect(() => {
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const content = (
+    <SafeAreaView
+      style={{
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        paddingTop: 0,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
+    >
+      <GlassButton>
+        {assetsImage.progress ? (
+          <AssetImage
+            uri={`${baseImageUrl}/uploads/${assetsImage.progress}`}
+            style={{ width: 20, height: 20 }}
+          />
+        ) : (
+          <User
+            color="white"
+            style={{ marginRight: 8 }}
+            size={20}
+            onPress={() => {
+              useRouter().push('/(auth)/login');
+            }}
+          />
+        )}
+        <YStack gap={4}>
+          {/* Progress */}
+          <YStack>
             <Text
               style={{
                 color: 'white',
                 fontWeight: '600',
-                fontSize: 20,
+                fontSize: 12,
                 marginLeft: 8,
+                marginBottom: 2,
               }}
             >
               {t('nav.progress')}
             </Text>
-          </GlassButton>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <GlassButton iconOnly>
-              {icons.profile ? (
-                <AssetImage uri={`${baseImageUrl}/uploads/${icons.profile}`} style={{ width: 20, height: 20 }}/>
-              ) : (
-                <Users color="white" size={20} />
-              )}
-            </GlassButton>
-            <GlassButton iconOnly>
-              {icons.notification ? (
-                <AssetImage uri={`${baseImageUrl}/uploads/${icons.notification}`} style={{ width: 20, height: 20 }}/>
-              ) : (
-                <Bell fill={"white"} color="white" size={20} />
-              )}
-            </GlassButton>
-            <GlassButton
-              onPress={handleSignOut}
-              iconOnly
-            >
-              <DoorClosedLocked color="white" size={20} />
-            </GlassButton>
-          </View>
-        </SafeAreaView>
-      </ImageBackground>
+            {/* Progress Bar */}
+            <XStack alignItems="center" gap={4}>
+              <Progress value={60} size="$1" width={120} height={12} marginLeft={8}>
+                <Progress.Indicator />
+              </Progress>
+              <Text style={{
+                color: 'white',
+                fontWeight: '600',
+                fontSize: 12,
+                marginLeft: 4,
+                marginBottom: 2,
+              }}>60%</Text>
+            </XStack>
+          </YStack>
+          {/* Separator */}
+          <Separator marginLeft={8} borderColor={"#ffffff40"} />
+          <XStack justifyContent='space-evenly'>
+            <XStack style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Footprints size={14} color={"white"} />
+              <Text
+                style={{
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: 14,
+                  marginLeft: 8,
+                }}>
+                85
+              </Text>
+            </XStack>
+            <Separator vertical borderColor={"#ffffff40"} />
+            <XStack style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Award size={14} color={"white"} />
+              <Text
+                style={{
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: 14,
+                  marginLeft: 8,
+                }}>
+                85
+              </Text>
+            </XStack>
+          </XStack>
+        </YStack>
+      </GlassButton>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {/* <GlassButton iconOnly>
+          {assetsImage.profile ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.profile}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <Users color="white" size={20} />
+          )}
+        </GlassButton> */}
+        <GlassButton iconOnly>
+          {assetsImage.notification ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.notification}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <Bell fill={'white'} color="white" size={20} />
+          )}
+        </GlassButton>
+        <GlassButton onPress={handleSignOut} iconOnly>
+          {assetsImage.signOut ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.signOut}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <DoorClosedLocked color="white" size={20} />
+          )}
+        </GlassButton>
+      </View>
+    </SafeAreaView>
+  );
+
+  return (
+    <FadeView>
+      <BackgroundScreen
+        background={assetsImage.background ?? null}
+        children={content}
+      />
     </FadeView>
   );
 }

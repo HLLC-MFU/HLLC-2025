@@ -91,8 +91,8 @@ export function ActivityModal({
       setShortDetailsTh(activity.shortDetails?.th || "");
       setLocationEn(activity.location?.en || "");
       setLocationTh(activity.location?.th || "");
-      setBannerPreview(activity.photo?.bannerPhoto ? `http://localhost:8080/uploads/${activity.photo.bannerPhoto}` : "");
-      setLogoPreview(activity.photo?.logoPhoto ? `http://localhost:8080/uploads/${activity.photo.logoPhoto}` : "");
+      setBannerPreview(activity.photo?.bannerPhoto ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}` : "");
+      setLogoPreview(activity.photo?.logoPhoto ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.logoPhoto}` : "");
       setType(activity.type || "");
       setIsOpen(activity.metadata?.isOpen ?? true);
       setIsProgressCount(activity.metadata?.isProgressCount ?? true);
@@ -197,7 +197,9 @@ export function ActivityModal({
         <ModalHeader className="flex flex-col gap-1">
           {mode === "add" ? "Add New Activity" : "Edit Activity"}
         </ModalHeader>
+
         <Divider />
+
         <ModalBody>
           <div className="flex flex-col gap-6">
             <BasicInformation
@@ -327,7 +329,9 @@ export function ActivityModal({
             />
           </div>
         </ModalBody>
+
         <Divider />
+        
         <ModalFooter>
           <Button color="danger" variant="light" onPress={onClose}>
             Cancel

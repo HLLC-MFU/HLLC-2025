@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseInterceptors,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
@@ -10,7 +22,7 @@ import { LamduanFlowersService } from '../service/lamduan-flowers.service';
 @UseGuards(PermissionsGuard)
 @Controller('lamduan-flowers')
 export class LamduanFlowersController {
-  constructor(private readonly lamduanFlowersService: LamduanFlowersService) { }
+  constructor(private readonly lamduanFlowersService: LamduanFlowersService) {}
 
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))
@@ -19,19 +31,19 @@ export class LamduanFlowersController {
   }
 
   @Get()
-  @Permissions('lamduan-flow:read')
+  @Permissions('lamduan-flowers:read')
   findAll(@Query() query: Record<string, string>) {
     return this.lamduanFlowersService.findAll(query);
   }
 
   @Get(':id')
-  @Permissions('lamduan-flow:read:id')
+  @Permissions('lamduan-flowers:read:id')
   findOne(@Param('id') id: string) {
     return this.lamduanFlowersService.findOne(id);
   }
 
   @Patch(':id')
-  @Permissions('lamduan-flow:update')
+  @Permissions('lamduan-flowers:update')
   @UseInterceptors(new MultipartInterceptor(500))
   update(@Param('id') id: string, @Req() req: FastifyRequest) {
     const dto = req.body as UpdateLamduanFlowerDto;
@@ -39,7 +51,7 @@ export class LamduanFlowersController {
   }
 
   @Delete(':id')
-  @Permissions('lamduan-flow:delete')
+  @Permissions('lamduan-flowers:delete')
   remove(@Param('id') id: string) {
     return this.lamduanFlowersService.remove(id);
   }

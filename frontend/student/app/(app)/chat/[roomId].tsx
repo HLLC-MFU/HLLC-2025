@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,27 +15,27 @@ import {
   ChevronLeft, 
   Users, 
   Info, 
-  X,
-  Reply,
+  Loader,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import ErrorView from './components/ErrorView';
-import JoinBanner from './components/JoinBanner';
-import RoomInfoModal from './components/RoomInfoModal';
-import StickerPicker from './components/StickerPicker';
-import ChatInput from './components/ChatInput';
-import MessageList from './components/MessageList';
-import Loader from './components/Loader';
+
 import { BlurView } from 'expo-blur';
 
 // Hooks
-import { useChatRoom } from './hooks/useChatRoom';
+import { useChatRoom } from '../../../hooks/chats/useChatRoom';
 
 // Types
-import { ChatRoom } from './types/chatTypes';
+import { ChatRoom, RoomMember } from '../../../types/chatTypes';
 
 // Styles
-import { chatStyles } from './constants/chatStyles';
+import { chatStyles } from '../../../constants/chats/chatStyles';
+import ChatInput from '@/components/chats/ChatInput';
+import ErrorView from '@/components/chats/ErrorView';
+import JoinBanner from '@/components/chats/JoinBanner';
+import MessageList from '@/components/chats/MessageList';
+import RoomInfoModal from '@/components/chats/RoomInfoModal';
+import StickerPicker from '@/components/chats/StickerPicker';
+import MentionSuggestions from '@/components/chats/MentionSuggestions';
 
 export default function ChatRoomPage() {
   const router = useRouter();
@@ -66,11 +66,15 @@ export default function ChatRoomPage() {
     groupMessages,
     roomMembers,
     loadingMembers,
+    mentionSuggestions,
+    isMentioning,
     handleJoin,
     handleSendMessage,
     handleImageUpload,
     handleSendSticker,
     handleTyping,
+    handleMentionSelect,
+    handleTextInput,
     initializeRoom,
   } = useChatRoom();
 
@@ -188,10 +192,18 @@ export default function ChatRoomPage() {
               )}
             </View>
             
+            {/* Mention Suggestions */}
+            {isMentioning && (
+              <MentionSuggestions
+                suggestions={mentionSuggestions}
+                onSelect={handleMentionSelect}
+              />
+            )}
+
             {/* Input Area */}
             <ChatInput
               messageText={messageText}
-              setMessageText={setMessageText}
+              handleTextInput={handleTextInput}
               handleSendMessage={handleSendMessageWithScroll}
               handleImageUpload={handleImageUpload}
               handleTyping={handleTyping}
@@ -209,9 +221,9 @@ export default function ChatRoomPage() {
               room={room as ChatRoom} 
               isVisible={isRoomInfoVisible} 
               onClose={() => setIsRoomInfoVisible(false)}
-              connectedUsers={roomMembers?.members?.map(member => ({
+              connectedUsers={roomMembers?.members?.map((member: RoomMember) => ({
                 id: member.user_id,
-                name: `${member.user.name.first} ${member.user.name.middle} ${member.user.name.last}`.trim(),
+                name: `${member.user.name.first} ${member.user.name.middle || ''} ${member.user.name.last}`.trim().replace(/ +/g, ' '),
                 online: true // Assume all members are online since they are room members
               })) || []}
             />

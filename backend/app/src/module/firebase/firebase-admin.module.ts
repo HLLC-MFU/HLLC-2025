@@ -23,7 +23,10 @@ import { join } from 'path';
             credential: admin.credential.cert(serviceAccount),
           });
         } catch (error) {
-          console.error('[FirebaseAdminModule] ⚠️ Failed to initialize Firebase Admin:', error);
+          console.error(
+            '[FirebaseAdminModule] ⚠️ Failed to initialize Firebase Admin:',
+            error,
+          );
           return null;
         }
       },

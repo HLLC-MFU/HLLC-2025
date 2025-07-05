@@ -21,7 +21,6 @@ export function useActivities() {
         setLoading(true);
         setError(null);
         try {
-            console.log('Fetching activities and types...');
             const [activitiesRes, typesRes] = await Promise.all([
                 apiRequest<{ data: Activities[] }>(
                     '/activities',
@@ -40,18 +39,14 @@ export function useActivities() {
                     }
                 ),
             ]);
-            console.log('Activities response:', activitiesRes);
             if (activitiesRes.data?.data) {
                 setActivities(activitiesRes.data.data);
-                console.log('Activities set:', activitiesRes.data.data);
             }
 
             if (typesRes.data?.data) {
                 setActivityTypes(typesRes.data.data);
-                console.log('Activity types set:', typesRes.data.data);
             }
         } catch (err) {
-            console.error('Error fetching data:', err);
             const errorMessage = err && typeof err === 'object' && 'message' in err
                 ? (err as { message?: string }).message || 'Failed to fetch data.'
                 : 'Failed to fetch data.';
@@ -83,13 +78,6 @@ export function useActivities() {
     const createActivity = async (formData: FormData): Promise<void> => {
         try {
             setLoading(true);
-            console.log('Creating activity with form data');
-
-            // Log FormData content
-            console.log('FormData entries:');
-            formData.forEach((value, key) => {
-                console.log(`${key}:`, value);
-            });
 
             const res = await apiRequest<Activities>(
                 '/activities',
@@ -100,18 +88,14 @@ export function useActivities() {
                 }
             );
 
-            console.log('Create activity response:', res);
-
             if (res.data) {
                 setActivities((prev) => [...prev, res.data as Activities]);
-                console.log('Activity created:', res.data);
                 addToast({
                     title: 'Activity created successfully!',
                     color: 'success',
                 });
             }
         } catch (err: any) {
-            console.error('Error creating activity:', err);
             const errorMessage = err.message || 'Failed to create activity.';
 
             if (err.statusCode === 401) {
@@ -181,12 +165,6 @@ export function useActivities() {
                 formData.append('photo[logoPhoto]', logoPhoto);
             }
 
-            // Log FormData content
-            console.log('FormData entries for update:');
-            formData.forEach((value, key) => {
-                console.log(`${key}:`, value);
-            });
-
             const res = await apiRequest<Activities>(
                 `/activities/${id}`,
                 'PATCH',
@@ -204,7 +182,6 @@ export function useActivities() {
                 });
             }
         } catch (err: any) {
-            console.error('Error updating activity:', err);
             const errorMessage = err.message || 'Failed to update activity.';
             setError(errorMessage);
             addToast({
@@ -227,7 +204,6 @@ export function useActivities() {
     const deleteActivity = async (id: string): Promise<void> => {
         try {
             setLoading(true);
-            console.log('Deleting activity:', id);
 
             const res = await apiRequest(
                 `/activities/${id}`,
@@ -237,8 +213,6 @@ export function useActivities() {
                     credentials: 'include',
                 }
             );
-
-            console.log('Delete response:', res);
 
             if (res.statusCode === 200 || res.statusCode === 204) {
                 setActivities((prev) => prev.filter((a) => a._id !== id));
@@ -250,7 +224,6 @@ export function useActivities() {
                 throw new Error(res.message || 'Failed to delete activity.');
             }
         } catch (err: any) {
-            console.error('Error deleting activity:', err);
             const errorMessage = err.message || 'Failed to delete activity.';
             setError(errorMessage);
             addToast({

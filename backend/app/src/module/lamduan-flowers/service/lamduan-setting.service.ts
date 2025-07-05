@@ -1,20 +1,30 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { queryAll, queryDeleteOne, queryFindOne, queryUpdateOne } from 'src/pkg/helper/query.util';
+import {
+  queryAll,
+  queryDeleteOne,
+  queryFindOne,
+  queryUpdateOne,
+} from 'src/pkg/helper/query.util';
 import { CreateLamduanSettingDto } from '../dto/lamduan-settings/create-lamduan-setting.dto';
 import { UpdateLamduanSettingDto } from '../dto/lamduan-settings/update-lamduan-setting.dto';
-import { LamduanSetting, LamduanSettingDocument } from '../schema/lamduan.setting';
+import {
+  LamduanSetting,
+  LamduanSettingDocument,
+} from '../schema/lamduan.setting';
 
 @Injectable()
 export class LamduanSettingService {
   constructor(
     @InjectModel(LamduanSetting.name)
     private lamduanSettingModel: Model<LamduanSettingDocument>,
-  ) { }
+  ) {}
 
   async create(createLamduanSettingDto: CreateLamduanSettingDto) {
-    const lamduanSetting = new this.lamduanSettingModel(createLamduanSettingDto);
+    const lamduanSetting = new this.lamduanSettingModel(
+      createLamduanSettingDto,
+    );
     return await lamduanSetting.save();
   }
 
@@ -31,7 +41,7 @@ export class LamduanSettingService {
     return queryFindOne<LamduanSetting>(
       this.lamduanSettingModel,
       { _id: id },
-      []
+      [],
     );
   }
 
@@ -39,14 +49,11 @@ export class LamduanSettingService {
     return queryUpdateOne<LamduanSetting>(
       this.lamduanSettingModel,
       id,
-      updateLamduanSettingDto
+      updateLamduanSettingDto,
     );
   }
 
   async remove(id: string) {
-    return queryDeleteOne<LamduanSetting>(
-      this.lamduanSettingModel,
-      id
-    );
+    return queryDeleteOne<LamduanSetting>(this.lamduanSettingModel, id);
   }
 }

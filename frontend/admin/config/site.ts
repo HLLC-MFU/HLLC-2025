@@ -16,6 +16,7 @@ import {
   HandCoins,
   Flower,
   BadgeCent,
+  Footprints
 } from "lucide-react";
 
 import type { NavSection } from "@/types/nav";
@@ -44,6 +45,7 @@ export const siteConfig: {
         { label: "Activities", href: "/activities", icon: University, permission: "activities:read" },
         { label: "Checkin", href: "/checkin", icon: CircleCheckBig, permission: "checkin:read" },
         { label: "Reports", href: "/reports", icon: ShieldAlert, permission: "reports:read" },
+        { label: "Stepconters", href: "/step-conters", icon: Footprints , permission: "Stepconters:read"}, // ไม่มีขื่อแบบทางการ
       ],
     },
     {
@@ -66,7 +68,6 @@ export const siteConfig: {
       items: [
         { label: "Settings", href: "/settings", icon: SettingsIcon, permission: "system:read" },
         { label: "Appearance", href: "/appearance", icon: Palette, permission: "appearance:read" },
-        { label: "Interfaces", href: "/interfaces", icon: MonitorSmartphone, permission: "interface:read" },
       ],
     },
     {

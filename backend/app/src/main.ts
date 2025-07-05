@@ -30,7 +30,7 @@ async function bootstrap() {
 
   await app.register(multipart, {
     limits: {
-      fileSize: 500 * 1024,
+      fileSize: 5 * 1024 * 1024,
     },
   });
   await app.register(fastifyStatic, {
@@ -44,7 +44,6 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
-  
 
   await app.register(cookie);
   const config = new DocumentBuilder()

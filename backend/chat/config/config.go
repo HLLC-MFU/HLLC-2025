@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -32,6 +33,10 @@ type Config struct {
 		Password string
 		DB       int
 	}
+	Kafka struct {
+		Host string
+		Port string
+	}
 	CORS struct {
 		AllowOrigins     string
 		AllowHeaders     string
@@ -55,23 +60,19 @@ func LoadConfig(path string) *Config {
 	cfg.App.Name = getEnvOrFatal("APP_NAME")
 	cfg.App.Url = getEnvOrFatal("APP_URL")
 
-	// JWT configuration
-	cfg.Jwt.AccessSecretKey = getEnvOrFatal("JWT_ACCESS_SECRET_KEY")
-	cfg.Jwt.RefreshSecretKey = getEnvOrFatal("JWT_REFRESH_SECRET_KEY")
-	cfg.Jwt.ApiSecretKey = getEnvOrFatal("JWT_API_SECRET_KEY")
-	cfg.Jwt.AccessDuration = getEnvAsInt64OrDefault("JWT_ACCESS_DURATION", 86400)
-	cfg.Jwt.RefreshDuration = getEnvAsInt64OrDefault("JWT_REFRESH_DURATION", 604800)
-	cfg.Jwt.ApiDuration = getEnvAsInt64OrDefault("JWT_API_DURATION", 31536000)
-
-	// Database configuration
-	cfg.Db.Url = getEnvOrFatal("DB_URL")
-	cfg.Db.Database = getEnvOrDefault("DB_NAME", "hllc")
+	//Database configuration
+	cfg.Db.Url = getEnvOrFatal("MONGO_URI")
+	cfg.Db.Database = getEnvOrDefault("DB_NAME", "hllc2025-chat")
 
 	// Redis configuration
 	cfg.Redis.Host = getEnvOrFatal("REDIS_HOST")
 	cfg.Redis.Port = getEnvOrFatal("REDIS_PORT")
 	cfg.Redis.Password = getEnvOrDefault("REDIS_PASSWORD", "")
 	cfg.Redis.DB = getEnvAsIntOrDefault("REDIS_DB", 0)
+
+	// Kafka configuration
+	cfg.Kafka.Host = getEnvOrDefault("KAFKA_HOST", "localhost")
+	cfg.Kafka.Port = getEnvOrDefault("KAFKA_PORT", "9092")
 
 	// CORS configuration
 	cfg.CORS.AllowOrigins = getEnvOrDefault("CORS_ALLOW_ORIGINS", "http://localhost:3000")
@@ -135,4 +136,8 @@ func EnsureDirExists(path string) error {
 		return os.MkdirAll(path, 0755)
 	}
 	return nil
+}
+
+func (cfg *Config) KafkaAddress() string {
+	return fmt.Sprintf("%s:%s", cfg.Kafka.Host, cfg.Kafka.Port)
 }

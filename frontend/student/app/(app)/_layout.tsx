@@ -2,15 +2,18 @@ import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { SplashScreen, Tabs, usePathname } from 'expo-router';
 import { Redirect } from 'expo-router';
 import { BlurView } from 'expo-blur';
-import { ImageBackground } from 'expo-image';
 import useProfile from '@/hooks/useProfile';
 import { useEffect, useState } from 'react';
 import TabBar from '@/components/global/TabBar';
+import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
+import { useAppearance } from '@/hooks/useAppearance';
+import messaging from '@react-native-firebase/messaging';
 
 export default function Layout() {
   const { user, getProfile } = useProfile();
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
+  const assets = useAppearance();
 
   useEffect(() => {
     getProfile().finally(() => {
@@ -22,19 +25,22 @@ export default function Layout() {
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
   if (!user) return <Redirect href="/(auth)/login" />;
 
+  requestUserPermission();
+
+  messaging().setBackgroundMessageHandler(async remoteMessage => {
+    console.log('Message handled in the background!', remoteMessage);
+  });
+
   // Check if we're in the chat room section
   const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
 
   return (
     <View style={{ flex: 1 }}>
-      <ImageBackground
-        source={require('@/assets/images/lobby.png')}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-      >
-        <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
-      </ImageBackground>
-
+      <BackgroundScreen 
+        background={assets?.assets?.background ?? null}
+        children={<BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />}
+      />
+      
       <Tabs
         screenOptions={{
           sceneStyle: { backgroundColor: 'transparent' },
@@ -56,11 +62,26 @@ export default function Layout() {
         tabBar={() => !isChatRoute ? <TabBar /> : null}
       >
         <Tabs.Screen name="index" options={{ title: 'Home' }}/>
-        <Tabs.Screen name="activities/index" options={{ title: 'Activities' }} />
+        <Tabs.Screen name="activities" options={{ title: 'Activities' }} />
         <Tabs.Screen name="qrcode" options={{ title: 'QR Code' }} />
-        <Tabs.Screen name="evoucher" options={{ title: 'E-Voucher' }} />
+        <Tabs.Screen name="evoucher/index" options={{ title: 'E-Voucher' }} />
         <Tabs.Screen name="chat/index" options={{ title: 'Community' }} />
       </Tabs>
     </View>
   );
+}
+
+async function requestUserPermission() {
+  const authStatus = await messaging().requestPermission();
+  const enabled =
+    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+  if (enabled) {
+    console.log('Notification permission granted.');
+  }
+
+  const token = await messaging().getToken();
+  console.log('FCM Token:', token);
+  return token;
 }
