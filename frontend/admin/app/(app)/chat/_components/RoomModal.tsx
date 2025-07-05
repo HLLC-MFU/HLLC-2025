@@ -31,7 +31,6 @@ export function RoomModal({
             setNameEn(room.name.en);
             setNameTh(room.name.th);
             setCapacity(room.capacity.toString());
-            setType(room.type);
             setCreatedBy(room.createdBy);
             setMemberCount(room.memberCount.toString());
         } else {
@@ -43,7 +42,6 @@ export function RoomModal({
         setNameEn("");
         setNameTh("");
         setCapacity("");
-        setType(RoomType.NORMAL);
         setCreatedBy("");
         setMemberCount("");
     }
