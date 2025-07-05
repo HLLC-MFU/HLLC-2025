@@ -126,6 +126,10 @@ func main() {
 
 	// Setup middleware
 	setupMiddleware(app)
+	
+	// Setup cookie middleware
+	cookieConfig := middleware.DefaultCookieConfig()
+	app.Use(middleware.SetCookieMiddleware(cookieConfig))
 
 	// Initialize services
 	chatSvc := chatService.NewChatService(db, redis, kafkaBus, cfg)
@@ -202,11 +206,13 @@ func setupMiddleware(app *fiber.App) {
 	// Recovery middleware
 	app.Use(recover.New())
 
-	// CORS middleware
+	// CORS middleware with cookie support
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
-		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
-		AllowHeaders: "Origin, Content-Type, Accept",
+		AllowOrigins:     "http://localhost:3000,http://localhost:8080", // ระบุ domain ที่อนุญาต
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Requested-With, Cookie",
+		AllowCredentials: true, // สำคัญ! ต้องเป็น true เพื่อให้ส่ง cookies ได้
+		ExposeHeaders:    "Set-Cookie",
 	}))
 
 	// Logger middleware

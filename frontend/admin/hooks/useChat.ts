@@ -1,7 +1,87 @@
-import { useEffect, useState } from "react";
-import { Room } from "@/types/chat";
-import { apiRequest, ApiResponse } from "@/utils/api";
-import { addToast } from "@heroui/react";
+"use client";
+
+import { useState, useEffect } from "react";
+import { Room } from "../types/chat";
+import { apiRequest, ApiResponse } from "../utils/api";
+
+// Chat service API base URL
+const CHAT_API_BASE_URL = "http://localhost:1334/api";
+
+// Custom API request function for chat service
+async function chatApiRequest<T>(
+    endpoint: string,
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
+    body?: object | FormData,
+    options: RequestInit = {}
+): Promise<ApiResponse<T>> {
+    try {
+        // Get token from localStorage (more reliable than cookies in client-side)
+        const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+
+        const headers: HeadersInit = {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(!isFormData && body ? { "Content-Type": "application/json" } : {}),
+            ...(options.headers || {}),
+        };
+
+        console.log("Chat API Request:", {
+            url: `${CHAT_API_BASE_URL}${endpoint}`,
+            method,
+            headers,
+            hasToken: !!token,
+            tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
+        });
+
+        const response = await fetch(`${CHAT_API_BASE_URL}${endpoint}`, {
+            method,
+            headers,
+            credentials: "include",
+            body: body
+                ? isFormData
+                    ? (body as FormData)
+                    : JSON.stringify(body)
+                : undefined,
+            ...options,
+        });
+
+        console.log("Chat API Response:", {
+            status: response.status,
+            statusText: response.statusText,
+            url: response.url
+        });
+
+        const responseData = await response.json();
+        console.log("Chat API Response Data:", responseData);
+
+        if (responseData.statusCode && responseData.message && responseData.data) {
+            return {
+                data: responseData.data,
+                statusCode: responseData.statusCode,
+                message: responseData.message,
+            };
+        } else if (response.ok) {
+            return {
+                data: responseData,
+                statusCode: response.status,
+                message: null,
+            };
+        }
+
+        return {
+            data: null,
+            statusCode: response.status,
+            message: responseData.message || "Request failed",
+        };
+    } catch (err) {
+        console.error("Chat API Error:", err);
+        return {
+            data: null,
+            statusCode: 500,
+            message: (err as Error).message,
+        };
+    }
+}
 
 export function useChat() {
     const [room, setRoom] = useState<Room[]>([]);
@@ -19,13 +99,27 @@ export function useChat() {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: Room[] }>(
-                "/rooms?limit=0",
+            console.log("Fetching rooms...");
+            const res = await chatApiRequest<{ data: Room[] }>(
+                "/rooms",
                 "GET",
             );
 
-            setRoom(Array.isArray(res.data?.data) ? res.data.data : []);
+            console.log("Fetch rooms response:", res);
+
+            if (res.statusCode !== 200 && res.statusCode !== 201) {
+                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to fetch rooms`);
+            }
+
+            if (res.data && Array.isArray(res.data)) {
+                setRoom(res.data);
+            } else if (res.data && res.data.data && Array.isArray(res.data.data)) {
+                setRoom(res.data.data);
+            } else {
+                setRoom([]);
+            }
         } catch (err) {
+            console.error("Fetch rooms error:", err);
             setError(
                 err && typeof err === 'object' && 'message' in err
                     ? (err as { message?: string }).message || 'Failed to fetch room.'
@@ -46,7 +140,7 @@ export function useChat() {
     const createRoom = async (roomData: FormData) => {
         try {
             setLoading(true);
-            const res = await apiRequest<{ data: Room }>("/rooms", "POST", roomData);
+            const res = await chatApiRequest<{ data: Room }>("/rooms", "POST", roomData);
             const newRoom = res.data?.data;
             if (newRoom) {
                 setRoom(prev => [...prev, newRoom]);
@@ -72,7 +166,7 @@ export function useChat() {
     const updateRoom = async (id: string, roomData: FormData) => {
         try {
             setLoading(true);
-            const res = await apiRequest<{ data: Room }>(`/rooms/${id}`, "PATCH", roomData);
+            const res = await chatApiRequest<{ data: Room }>(`/rooms/${id}`, "PATCH", roomData);
             const updatedRoom = res.data?.data;
             if (updatedRoom) {
                 setRoom(prev => 
@@ -101,7 +195,7 @@ export function useChat() {
     const deleteRoom = async (id: string): Promise<ApiResponse<{ data: Room }>> => {
         setLoading(true);
         try {
-            const res = await apiRequest<{ data: Room }>(`/rooms/${id}`, "DELETE");
+            const res = await chatApiRequest<{ data: Room }>(`/rooms/${id}`, "DELETE");
             const deletedRoom = res.data?.data;
             if (deletedRoom) {
                 setRoom(prev => prev.filter(room => room._id !== id));

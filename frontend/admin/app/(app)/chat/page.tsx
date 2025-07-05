@@ -1,13 +1,24 @@
+"use client";
+
 import { PageHeader } from "@/components/ui/page-header";
 import { useChat } from "@/hooks/useChat";
 import { Room, RoomType } from "@/types/chat";
-import { addToast } from "@heroui/react";
-import { MessageSquare } from "lucide-react";
+import { addToast, Button } from "@heroui/react";
+import { MessageSquare, Plus } from "lucide-react";
 import { useState } from "react";
+import RoomAccordion from "./_components/RoomAccordion";
 
 export default function ChatPage() {
     const { room, loading: roomLoading, error: roomError, fetchRoom, createRoom, updateRoom, deleteRoom } = useChat();
     const isLoading = roomLoading;
+    
+    // Log to check if hook is working
+    console.log("ChatPage - Hook data:", { 
+        roomCount: room?.length || 0, 
+        loading: roomLoading, 
+        error: roomError,
+        rooms: room 
+    });
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [confirmationModalType, setConfirmationModalType] = useState<
@@ -16,12 +27,6 @@ export default function ChatPage() {
     const [selectedRoom, setSelectedRoom] = useState<
         Room | Partial<Room> | undefined
     >();
-
-    const handleAddRoom = (type?: RoomType) => {
-        setModalMode('add');
-        setSelectedRoom(type ? { type } : undefined);
-        setIsModalOpen(true);
-    }
 
     const handleEditRoom = (room: Room) => {
         setModalMode('edit');
@@ -32,6 +37,12 @@ export default function ChatPage() {
     const handleDeleteRoom = (room: Room) => {
         setSelectedRoom(room);
         setConfirmationModalType('delete');
+    }
+
+    const handleAddRoom = (type: RoomType | "school" | "major") => {
+        setModalMode('add');
+        setSelectedRoom({ type: type as RoomType });
+        setIsModalOpen(true);
     }
 
     const handleSubmitRoom = async (formData: FormData, mode: "add" | "edit") => {
