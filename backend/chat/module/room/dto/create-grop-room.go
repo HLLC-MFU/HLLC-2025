@@ -21,6 +21,7 @@ type (
 		GroupType  string                `form:"groupType" validate:"required"`  // "major" หรือ "school"
 		GroupValue string                `form:"groupValue" validate:"required"` // ID ของ major หรือ school
 		Type       string                `form:"type" validate:"roomType"`       // ประเภทห้อง (normal, readonly)
+		Status     string                `form:"status" validate:"roomStatus"`   // สถานะห้อง (active, inactive)
 		CreatedBy  string                `form:"createdBy" validate:"required,mongoId"`
 		Image      string                `form:"image" validate:"optional"`
 		// หมายเหตุ: ไม่ต้องระบุ capacity เพราะห้องกลุ่มจะเป็น unlimited (capacity = 0)
@@ -30,6 +31,7 @@ type (
 		ID        primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
 		Name      common.LocalizedName `bson:"name" json:"name"`
 		Type      string              `bson:"type" json:"type"`
+		Status    string              `bson:"status" json:"status"`
 		Capacity  int                 `bson:"capacity" json:"capacity"`
 		CreatedBy primitive.ObjectID  `bson:"createdBy" json:"createdBy"` // string for response
 		Image     string              `bson:"image,omitempty" json:"image,omitempty"`
@@ -37,12 +39,14 @@ type (
 		UpdatedAt time.Time           `bson:"updatedAt" json:"updatedAt"`
 		Metadata  map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"`
 		MemberCount int               `bson:"memberCount" json:"memberCount"` // เพิ่ม field นี้
+		CanJoin   bool                `json:"canJoin,omitempty"` // เพิ่ม field นี้
 	}
 
 	ResponseAllRoomForUserDto struct {
 		ID        primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
 		Name      common.LocalizedName `bson:"name" json:"name"`
 		Type      string              `bson:"type" json:"type"`
+		Status    string              `bson:"status" json:"status"`
 		Capacity  int                 `bson:"capacity" json:"capacity"`
 		CreatedBy primitive.ObjectID  `bson:"createdBy" json:"createdBy"` // string for response
 		Image     string              `bson:"image,omitempty" json:"image,omitempty"`

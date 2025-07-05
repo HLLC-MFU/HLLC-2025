@@ -276,3 +276,48 @@ func (e *RoomEventEmitter) DeleteRoomTopic(ctx context.Context, roomID primitive
 	log.Printf("[Kafka] Successfully deleted topic %s", topic)
 	return nil
 }
+
+// EmitRoomStatusChanged emits a room status change event
+func (e *RoomEventEmitter) EmitRoomStatusChanged(ctx context.Context, roomID primitive.ObjectID, newStatus string) {
+	if !ValidateRoomID(roomID, "room_status_changed") {
+		return
+	}
+
+	log.Printf("[RoomEvent] Emitting room_status_changed event for room %s, status: %s", roomID.Hex(), newStatus)
+
+	// Create payload
+	payload := map[string]interface{}{
+		"roomId": roomID.Hex(),
+		"status": newStatus,
+		"timestamp": time.Now(),
+	}
+
+	// Marshal payload
+	payloadBytes, ok := MustMarshal(payload, "room_status_changed payload")
+	if !ok {
+		return
+	}
+
+	// Create event
+	event := model.RoomEvent{
+		Type:    "room_status_changed",
+		RoomID:  roomID.Hex(),
+		Payload: payloadBytes,
+	}
+
+	// Create topic
+	topic := GetRoomTopic(roomID.Hex())
+
+	// Ensure topic exists
+	if err := kafka.EnsureTopic(e.brokers, topic, 1); err != nil {
+		log.Printf("[ERROR] Failed to ensure room topic: %v", err)
+		return
+	}
+
+	// Send event to topic
+	if err := e.emitEvent(ctx, event); err != nil {
+		EmitErrorLog(ctx, fmt.Sprintf("room_status_changed room=%s status=%s", roomID.Hex(), newStatus), err)
+	} else {
+		log.Printf("[RoomEvent] Successfully emitted room_status_changed event for room %s, status: %s", roomID.Hex(), newStatus)
+	}
+}

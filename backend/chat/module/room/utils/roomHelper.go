@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"chat/module/chat/utils"
 	"chat/module/room/model"
 	"chat/pkg/middleware"
 
@@ -88,6 +89,11 @@ func ValidateAndTrackConnection(ctx context.Context, room *model.Room, userID st
 	uid, _ := primitive.ObjectIDFromHex(userID)
 	if !ContainsMember(room.Members, uid) {
 		return fmt.Errorf("user is not a member of this room")
+	}
+
+	// Check if room is active
+	if room.IsInactive() {
+		return fmt.Errorf("room is inactive and not accepting connections")
 	}
 
 	if !room.IsUnlimitedCapacity() {
@@ -299,6 +305,49 @@ func GetRoomMemberCount(ctx context.Context, roomID primitive.ObjectID, db *mong
 
 	log.Printf("[RoomHelper] Room has %d members", result.MemberCount)
 	return result.MemberCount, nil
+}
+
+// DisconnectAllUsersFromRoom disconnects all users from a room when it becomes inactive
+func DisconnectAllUsersFromRoom(ctx context.Context, roomID primitive.ObjectID, hub *utils.Hub, cache *RoomCacheService) error {
+	log.Printf("[RoomHelper] Disconnecting all users from inactive room %s", roomID.Hex())
+	
+	roomIDStr := roomID.Hex()
+	
+	// Get all active users in the room
+	activeUsers, err := cache.GetActiveUsers(ctx, roomIDStr)
+	if err != nil {
+		log.Printf("[RoomHelper] Failed to get active users for room %s: %v", roomIDStr, err)
+		return err
+	}
+	
+	// Create room deactivation message
+	deactivationEvent := map[string]interface{}{
+		"type": "room_deactivated",
+		"data": map[string]interface{}{
+			"roomId": roomIDStr,
+			"message": "This room has been deactivated. You will be disconnected.",
+			"timestamp": time.Now(),
+		},
+	}
+	
+	eventBytes, err := json.Marshal(deactivationEvent)
+	if err != nil {
+		log.Printf("[RoomHelper] Failed to marshal deactivation event: %v", err)
+		return err
+	}
+	
+	// Broadcast deactivation message to all users in the room
+	hub.BroadcastToRoom(roomIDStr, eventBytes)
+	
+	// Remove all connections from cache
+	for _, userID := range activeUsers {
+		if err := cache.RemoveConnection(ctx, roomIDStr, userID); err != nil {
+			log.Printf("[RoomHelper] Failed to remove connection for user %s: %v", userID, err)
+		}
+	}
+	
+	log.Printf("[RoomHelper] Successfully disconnected %d users from room %s", len(activeUsers), roomIDStr)
+	return nil
 }
 
 // ฟังก์ชันช่วย extract user id จาก JWT token (Authorization header)

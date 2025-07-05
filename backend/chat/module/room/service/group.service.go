@@ -81,6 +81,12 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 		roomType = model.RoomTypeNormal
 	}
 
+	// Set default status to active if not provided
+	roomStatus := createDto.Status
+	if roomStatus == "" {
+		roomStatus = model.RoomStatusActive
+	}
+
 	createdBy := primitive.ObjectID{}
 	if createDto.CreatedBy != "" {
 		createdBy, _ = primitive.ObjectIDFromHex(createDto.CreatedBy)
@@ -100,6 +106,7 @@ func (gs *GroupRoomService) CreateRoomByGroup(ctx context.Context, createDto *dt
 	room := &model.Room{
 		Name:      createDto.Name,
 		Type:      roomType,
+		Status:    roomStatus,
 		Capacity:  0, // unlimited capacity
 		CreatedBy: createdBy,
 		CreatedAt: time.Now(),

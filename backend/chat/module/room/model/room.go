@@ -14,11 +14,18 @@ const (
 	RoomTypeReadOnly = "readonly" // ห้องอ่านอย่างเดียว - user อ่านได้เท่านั้น
 )
 
+// Room Status Constants
+const (
+	RoomStatusActive   = "active"   // ห้องเปิดใช้งาน - user สามารถเชื่อมต่อได้
+	RoomStatusInactive = "inactive" // ห้องปิดใช้งาน - user ไม่สามารถเชื่อมต่อได้
+)
+
 type (
 	Room struct {
 		ID        primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
 		Name      common.LocalizedName `bson:"name" json:"name"`
 		Type      string              `bson:"type" json:"type"`
+		Status    string              `bson:"status" json:"status"` // active or inactive
 		Capacity  int                 `bson:"capacity" json:"capacity"`
 		Members   []primitive.ObjectID `bson:"members" json:"members"`
 		CreatedBy primitive.ObjectID   `bson:"createdBy" json:"createdBy"`
@@ -33,11 +40,21 @@ type (
 		RoomID  string          `json:"roomId"`
 		Payload json.RawMessage `json:"payload"`
 	}
-)	
+)
 
 // IsReadOnly ตรวจสอบว่าห้องเป็นแบบ read-only หรือไม่
 func (r *Room) IsReadOnly() bool {
 	return r.Type == RoomTypeReadOnly
+}
+
+// IsActive ตรวจสอบว่าห้องเปิดใช้งานหรือไม่
+func (r *Room) IsActive() bool {
+	return r.Status == RoomStatusActive
+}
+
+// IsInactive ตรวจสอบว่าห้องปิดใช้งานหรือไม่
+func (r *Room) IsInactive() bool {
+	return r.Status == RoomStatusInactive
 }
 
 // CanUserSendMessages ตรวจสอบว่า user สามารถส่งข้อความได้หรือไม่
@@ -48,6 +65,11 @@ func (r *Room) CanUserSendMessages() bool {
 // ValidateRoomType ตรวจสอบความถูกต้องของ room type
 func ValidateRoomType(roomType string) bool {
 	return roomType == RoomTypeNormal || roomType == RoomTypeReadOnly
+}
+
+// ValidateRoomStatus ตรวจสอบความถูกต้องของ room status
+func ValidateRoomStatus(status string) bool {
+	return status == RoomStatusActive || status == RoomStatusInactive
 }
 
 // IsUnlimitedCapacity ตรวจสอบว่าห้องมี capacity ไม่จำกัดหรือไม่

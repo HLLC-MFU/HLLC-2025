@@ -172,6 +172,7 @@ func (h *RoomControllerHelper) ParseAndUpdateRoom(
 	nameTh := ctx.FormValue("name.th", room.Name.Th)
 	nameEn := ctx.FormValue("name.en", room.Name.En)
 	roomType := ctx.FormValue("type", room.Type)
+	status := ctx.FormValue("status", room.Status) 
 	capacityStr := ctx.FormValue("capacity", "")
 	capacity := room.Capacity
 	if capacityStr != "" {
@@ -214,6 +215,7 @@ func (h *RoomControllerHelper) ParseAndUpdateRoom(
 			En: nameEn,
 		},
 		Type:      roomType,
+		Status:    status, 
 		Capacity:  capacity,
 		Members:   stringMembers,
 		Image:     imagePath,
@@ -308,6 +310,26 @@ func (h *RoomControllerHelper) BuildRoomResponse(
 	}
 }
 
+// CalculateCanJoin determines if a user can join a room based on status, capacity, and membership
+func (h *RoomControllerHelper) CalculateCanJoin(room *model.Room, userID string) bool {
+	// If room is inactive, user cannot join
+	if room.IsInactive() {
+		return false
+	}
+	
+	// If room has unlimited capacity, user can join
+	if room.IsUnlimitedCapacity() {
+		return true
+	}
+	
+	// Check if room has available capacity
+	if len(room.Members) < room.Capacity {
+		return true
+	}
+	
+	return false
+}
+
 // BuildRoomUpdateDto creates UpdateRoomDto from room data
 func (h *RoomControllerHelper) BuildRoomUpdateDto(
 	room *model.Room,
@@ -317,6 +339,7 @@ func (h *RoomControllerHelper) BuildRoomUpdateDto(
 	return &dto.UpdateRoomDto{
 		Name:     room.Name,
 		Type:     roomType,
+		Status:   room.Status,
 		Capacity: room.Capacity,
 		Members:  stringMembers,
 		Image:    room.Image,
@@ -376,6 +399,7 @@ func (h *RoomControllerHelper) getUnauthorizedMessage(operation string) string {
 		"update_type":  "You can only update room type for rooms that you created",
 		"update_image": "You can only update room image for rooms that you created",
 		"set_readonly": "You can only set read-only status for rooms that you created",
+		"update_status": "You can only update room status for rooms that you created",
 	}
 
 	if message, exists := messages[operation]; exists {
@@ -391,6 +415,7 @@ func (h *RoomControllerHelper) getUnauthorizedErrorCode(operation string) string
 		"update_type":  "UNAUTHORIZED_UPDATE_TYPE",
 		"update_image": "UNAUTHORIZED_UPDATE_IMAGE",
 		"set_readonly": "UNAUTHORIZED_SET_READONLY",
+		"update_status": "UNAUTHORIZED_UPDATE_STATUS",
 	}
 
 	if code, exists := codes[operation]; exists {
