@@ -311,6 +311,37 @@ func (h *Hub) GetOnlineUsersInRoom(roomID string) []string {
 	return onlineUsers
 }
 
+// GetConnectedRooms returns a map of room IDs that have active connections
+func (h *Hub) GetConnectedRooms() map[string]bool {
+	connectedRooms := make(map[string]bool)
+	
+	// Iterate through all rooms in the hub
+	h.clients.Range(func(roomID, roomMap interface{}) bool {
+		if roomIDStr, ok := roomID.(string); ok {
+			// Check if the room has any active users
+			if roomMapSync, ok := roomMap.(*sync.Map); ok {
+				hasActiveUsers := false
+				roomMapSync.Range(func(userID, userConns interface{}) bool {
+					if userConnsSync, ok := userConns.(*sync.Map); ok {
+						userConnsSync.Range(func(connID, conn interface{}) bool {
+							hasActiveUsers = true
+							return false // Stop after finding one active connection
+						})
+					}
+					return !hasActiveUsers // Stop if we found active users
+				})
+				
+				if hasActiveUsers {
+					connectedRooms[roomIDStr] = true
+				}
+			}
+		}
+		return true
+	})
+	
+	return connectedRooms
+}
+
 // BroadcastToUser ส่งข้อความไปยัง user เฉพาะ (ทุกห้องที่ user นั้นอยู่)
 func (h *Hub) BroadcastToUser(targetUserID string, payload []byte) {
 	successCount := 0
@@ -350,6 +381,54 @@ func (h *Hub) BroadcastToUser(targetUserID string, payload []byte) {
 	})
 	
 	log.Printf("[WS] Broadcast to user %s complete: %d successful, %d failed", targetUserID, successCount, failCount)
+}
+
+// ForceDisconnectAllUsersFromRoom forcefully disconnects all users from a specific room
+func (h *Hub) ForceDisconnectAllUsersFromRoom(roomID string) int {
+	disconnectedCount := 0
+	
+	if roomMap, ok := h.clients.Load(roomID); ok {
+		log.Printf("[WS] Force disconnecting all users from room %s", roomID)
+		
+		roomMap.(*sync.Map).Range(func(userID, userConns interface{}) bool {
+			userIDStr, ok := userID.(string)
+			if !ok {
+				return true
+			}
+			
+			log.Printf("[WS] Force disconnecting user %s from room %s", userIDStr, roomID)
+			
+			// Close all connections for this user in this room
+			userConns.(*sync.Map).Range(func(connID, conn interface{}) bool {
+				ws := conn.(*websocket.Conn)
+				log.Printf("[WS] Closing WebSocket connection %s for user %s in room %s", connID, userIDStr, roomID)
+				
+				// Send a close message before closing
+				closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Room deactivated")
+				_ = ws.WriteMessage(websocket.CloseMessage, closeMsg)
+				
+				// Close the connection
+				_ = ws.Close()
+				
+				// Remove from the map
+				userConns.(*sync.Map).Delete(connID)
+				disconnectedCount++
+				
+				return true
+			})
+			
+			// Remove the user from the room map since all connections are closed
+			roomMap.(*sync.Map).Delete(userID)
+			
+			return true
+		})
+		
+		log.Printf("[WS] Force disconnected %d connections from room %s", disconnectedCount, roomID)
+	} else {
+		log.Printf("[WS] No users found in room %s to disconnect", roomID)
+	}
+	
+	return disconnectedCount
 }
 
 func (h *Hub) HandleKafkaMessage(topic string, payload []byte) error {

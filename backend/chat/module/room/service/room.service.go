@@ -33,6 +33,7 @@ type RoomServiceImpl struct {
 	hub              *chatUtils.Hub
 	db               *mongo.Database
 	memberHelper     *roomUtils.RoomMemberHelper
+	statusChangeCallback func(ctx context.Context, roomID string, newStatus string)
 }
 
 type RoomService interface {
@@ -56,6 +57,8 @@ type RoomService interface {
 	LeaveRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error
 	GetAllRoomForUser(ctx context.Context, userID string) ([]dto.ResponseAllRoomForUserDto, error)
 	GetRoomsForMe(ctx context.Context, userID string) ([]dto.ResponseRoomDto, error)
+	DisconnectAllUsersFromRoom(ctx context.Context, roomID primitive.ObjectID) error
+	SetStatusChangeCallback(callback func(ctx context.Context, roomID string, newStatus string))
 }
 
 func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config, hub *chatUtils.Hub) RoomService {
@@ -108,6 +111,7 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 			UpdatedAt: room.UpdatedAt,
 			Metadata: room.Metadata,
 			MemberCount: len(room.Members),
+			Status: room.Status,
 		}
 	}
 
@@ -203,9 +207,16 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 		roomType = model.RoomTypeNormal
 	}
 
+	// Set default status to active if not provided
+	roomStatus := createDto.Status
+	if roomStatus == "" {
+		roomStatus = model.RoomStatusActive
+	}
+
 	r := &model.Room{
 		Name:      createDto.Name,
 		Type:      roomType,
+		Status:    roomStatus,
 		Capacity:  createDto.Capacity,
 		CreatedBy: createdBy,
 		CreatedAt: time.Now(),
@@ -240,6 +251,7 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 		ID: oldRoom.ID,
 		Name: oldRoom.Name,
 		Type: oldRoom.Type,
+		Status: oldRoom.Status,
 		Capacity: oldRoom.Capacity,
 		Members: oldRoom.Members,
 		CreatedBy: oldRoom.CreatedBy, // primitive.ObjectID for DB
@@ -250,6 +262,7 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 	}
 	updatedRoom.Name = updateDto.Name
 	updatedRoom.Type = updateDto.Type
+	updatedRoom.Status = updateDto.Status
 	updatedRoom.Capacity = updateDto.Capacity
 	if updateDto.Members != nil && len(updateDto.Members) > 0 {
 		updatedRoom.Members = updateDto.MembersToObjectIDs()
@@ -278,6 +291,7 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 	setFields := bson.M{
 		"name":      updatedRoom.Name,
 		"type":      updatedRoom.Type,
+		"status":    updatedRoom.Status,
 		"capacity":  updatedRoom.Capacity,
 		"updatedAt": updatedRoom.UpdatedAt,
 		"createdBy": updatedRoom.CreatedBy,
@@ -308,6 +322,29 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 	// Save updated room to cache (if cache is enabled)
 	if s.cache != nil {
 		_ = s.cache.SaveRoom(ctx, updatedRoom)
+	}
+
+	// Check if room status changed to inactive and disconnect all users
+	if oldRoom.IsActive() && updatedRoom.IsInactive() {
+		log.Printf("[RoomService] Room %s status changed from active to inactive, triggering WebSocket disconnect", roomObjID.Hex())
+		
+		// Call status change callback if set
+		if s.statusChangeCallback != nil {
+			log.Printf("[RoomService] 🔔 Calling status change callback for room %s", roomObjID.Hex())
+			s.statusChangeCallback(ctx, roomObjID.Hex(), updatedRoom.Status)
+		} else {
+			log.Printf("[RoomService] ⚠️ No status change callback set for room %s", roomObjID.Hex())
+		}
+		
+		// Emit room status change event
+		if s.eventEmitter != nil {
+			s.eventEmitter.EmitRoomStatusChanged(ctx, roomObjID, updatedRoom.Status)
+		}
+		
+		// Also disconnect users immediately for immediate response
+		if err := roomUtils.DisconnectAllUsersFromRoom(ctx, roomObjID, s.hub, s.cache); err != nil {
+			log.Printf("[RoomService] Warning: Failed to disconnect users from room %s: %v", roomObjID.Hex(), err)
+		}
 	}
 
 	return updatedRoom, nil
@@ -433,6 +470,15 @@ func (s *RoomServiceImpl) LeaveRoom(ctx context.Context, roomID primitive.Object
 	return s.memberHelper.LeaveRoom(ctx, roomID, userID)
 }
 
+func (s *RoomServiceImpl) DisconnectAllUsersFromRoom(ctx context.Context, roomID primitive.ObjectID) error {
+	return roomUtils.DisconnectAllUsersFromRoom(ctx, roomID, s.hub, s.cache)
+}
+
+// SetStatusChangeCallback sets a callback function to be called when room status changes
+func (s *RoomServiceImpl) SetStatusChangeCallback(callback func(ctx context.Context, roomID string, newStatus string)) {
+	s.statusChangeCallback = callback
+}
+
 // GetAllRoomForUser ดึงห้องทั้งหมดที่ user มองเห็น (ไม่เอา group room)
 func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) ([]dto.ResponseAllRoomForUserDto, error) {
 	userObjID, err := primitive.ObjectIDFromHex(userID)
@@ -478,11 +524,8 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 			}
 		}
 		
-		// Check if user can join (has capacity or unlimited)
-		canJoin := false
-		if room.Capacity == 0 || len(room.Members) < room.Capacity {
-			canJoin = true
-		}
+		// Calculate canJoin based on room status, capacity, and user membership
+		canJoin := s.calculateCanJoin(room, userID)
 		
 		memberCount := len(room.Members)
 		result = append(result, dto.ResponseAllRoomForUserDto{
@@ -546,11 +589,31 @@ func (s *RoomServiceImpl) GetRoomsForMe(ctx context.Context, userID string) ([]d
 			UpdatedAt: room.UpdatedAt,
 			Metadata: room.Metadata,
 			MemberCount: len(room.Members),
+			Status: room.Status,
 		})
 	}
 	return result, nil
 }
 
+// calculateCanJoin determines if a user can join a room based on status, capacity, and membership
+func (s *RoomServiceImpl) calculateCanJoin(room model.Room, userID string) bool {
+	// If room is inactive, user cannot join
+	if room.IsInactive() {
+		return false
+	}
+	
+	// If room has unlimited capacity, user can join
+	if room.IsUnlimitedCapacity() {
+		return true
+	}
+	
+	// Check if room has available capacity
+	if len(room.Members) < room.Capacity {
+		return true
+	}
+	
+	return false
+}
 
 // Helper methods
 func (s *RoomServiceImpl) validateMembers(ctx context.Context, createDto *dto.CreateRoomDto) error {

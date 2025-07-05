@@ -64,8 +64,6 @@ func (c *RoomController) setupRoutes() {
 	c.Delete("/:id", c.DeleteRoom)
 	c.Post("/:id/join", c.JoinRoom)
 	c.Post("/:id/leave", c.LeaveRoom)
-	c.Patch("/:id/type", c.UpdateRoomType)
-	c.Patch("/:id/image", c.UpdateRoomImage)
 	c.Put("/:id/readonly", c.handleSetRoomReadOnly, c.rbac.RequireAdministrator())
 	c.SetupRoutes()
 }
@@ -117,7 +115,26 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildNotFoundErrorResponse(ctx, "Room")
 	}
 
-	return ctx.JSON(c.controllerHelper.BuildRoomResponse(room, userID))
+	// Calculate canJoin based on room status, capacity, and user membership
+	canJoin := c.controllerHelper.CalculateCanJoin(room, userID)
+
+	return ctx.JSON(fiber.Map{
+		"success": true,
+		"data": fiber.Map{
+			"_id":      room.ID,
+			"name":     room.Name,
+			"type":     room.Type,
+			"status":   room.Status,
+			"capacity": room.Capacity,
+			"createdBy": room.CreatedBy,
+			"image":    room.Image,
+			"createdAt": room.CreatedAt,
+			"updatedAt": room.UpdatedAt,
+			"metadata": room.Metadata,
+			"memberCount": len(room.Members),
+			"canJoin":  canJoin,
+		},
+	})
 }
 
 // CreateRoom สร้างห้องใหม่
@@ -166,6 +183,7 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 		updateDto := &dto.UpdateRoomDto{
 			Name:     room.Name,
 			Type:     room.Type,
+			Status:   room.Status,
 			Capacity: room.Capacity,
 			Members:  stringMembers,
 			Image:    createDto.Image,
@@ -296,77 +314,6 @@ func (c *RoomController) LeaveRoom(ctx *fiber.Ctx) error {
 	}, "Successfully left room")
 }
 
-// UpdateRoomType อัพเดทประเภทห้อง
-func (c *RoomController) UpdateRoomType(ctx *fiber.Ctx) error {
-	roomObjID, err := c.validationHelper.ParseAndValidateRoomID(ctx)
-	if err != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
-	}
-	
-	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
-	if err != nil {
-		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
-	}
-
-	// Authorization check
-	authResult := c.controllerHelper.CheckRoomAuthorization(ctx, room, c.rbac)
-	if authResult.Error != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, authResult.Error)
-	}
-
-	if !authResult.IsAuthorized {
-		return c.controllerHelper.BuildUnauthorizedResponse(ctx, "update_type", authResult)
-	}
-
-	var updateDto dto.UpdateRoomTypeDto
-	if err := ctx.BodyParser(&updateDto); err != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
-	}
-	
-	updateRoomDto := c.controllerHelper.BuildRoomUpdateDto(room, updateDto.Type)
-	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateRoomDto)
-	if err != nil {
-		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
-	}
-	return c.validationHelper.BuildSuccessResponse(ctx, updatedRoom, "Room type updated successfully")
-}
-
-// UpdateRoomImage อัพเดทรูปภาพห้อง
-func (c *RoomController) UpdateRoomImage(ctx *fiber.Ctx) error {
-	roomObjID, err := c.validationHelper.ParseAndValidateRoomID(ctx)
-	if err != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
-	}
-
-	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
-	if err != nil {
-		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
-	}
-
-	// Authorization check
-	authResult := c.controllerHelper.CheckRoomAuthorization(ctx, room, c.rbac)
-	if authResult.Error != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, authResult.Error)
-	}
-
-	if !authResult.IsAuthorized {
-		return c.controllerHelper.BuildUnauthorizedResponse(ctx, "update_image", authResult)
-	}
-
-	imagePath, err := c.controllerHelper.UpdateRoomWithImage(ctx, room, c.validationHelper, c.uploadHandler)
-	if err != nil {
-		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
-	}
-	
-	updateRoomDto := c.controllerHelper.BuildRoomUpdateDto(room, room.Type)
-	updateRoomDto.Image = imagePath
-	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateRoomDto)
-	if err != nil {
-		c.controllerHelper.CleanupUploadedFile(imagePath, c.uploadHandler)
-		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
-	}
-	return c.validationHelper.BuildSuccessResponse(ctx, updatedRoom, "Room image updated successfully")
-}
 
 // SetRoomReadOnly sets a room's read-only status
 func (c *RoomController) handleSetRoomReadOnly(ctx *fiber.Ctx) error {

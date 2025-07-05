@@ -16,12 +16,14 @@ type(
 		Capacity  int                  `form:"capacity" validate:"notEmpty"`
 		Members   []string             `form:"members" validate:"mongoId,optional"`
 		CreatedBy string               `form:"createdBy" validate:"mongoId"`
+		Status    string               `form:"status" validate:"roomStatus"`  // สถานะห้อง (active, inactive)
 		Image     string               `form:"image" validate:"optional"`
 	}
 
 	UpdateRoomDto struct {
 		Name      common.LocalizedName `form:"name" validate:"notEmpty"`
 		Type      string               `form:"type" validate:"roomType"`      // ประเภทห้อง (normal, readonly)
+		Status    string               `form:"status" validate:"roomStatus"`  // สถานะห้อง (active, inactive)
 		Capacity  int                  `form:"capacity" validate:"notEmpty"`
 		Members   []string             `form:"members" validate:"mongoId,optional"`
 		Image     string               `form:"image" validate:"optional"`
@@ -36,6 +38,10 @@ type(
 
 	UpdateRoomTypeDto struct {
 		Type string `json:"type" validate:"roomType"`
+	}
+
+	UpdateRoomStatusDto struct {
+		Status string `form:"status" validate:"roomStatus"`
 	}
 ) 
 
@@ -57,6 +63,7 @@ func (dto *UpdateRoomDto) ToRoom() *model.Room {
 	return &model.Room{
 		Name:     dto.Name,
 		Type:     dto.Type,
+		Status:   dto.Status,
 		Capacity: dto.Capacity,
 	}
 }

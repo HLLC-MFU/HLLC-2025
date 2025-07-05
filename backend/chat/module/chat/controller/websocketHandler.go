@@ -394,6 +394,18 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		case strings.HasPrefix(messageText, "/unsend "):
 			h.handleUnsendMessage(messageText, *client, ctx)
 		default:
+			// Check if room is still active (prevent messages in inactive rooms)
+			room, err := h.roomService.GetRoomById(ctx, roomObjID)
+			if err != nil {
+				log.Printf("[WS] Failed to get room %s: %v", roomObjID.Hex(), err)
+				continue
+			}
+			
+			if room.IsInactive() {
+				conn.WriteMessage(websocket.TextMessage, []byte("This room is inactive and not accepting messages"))
+				continue
+			}
+
 			// ตรวจสอบสิทธิ์การส่งข้อความ (restriction + room type)
 			canSend, err := h.roomService.CanUserSendMessage(ctx, roomObjID, userID)
 			if err != nil || !canSend {
@@ -444,6 +456,18 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 
 // Helper methods for WebSocket message handling
 func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.ClientObject, ctx context.Context) {
+	// Check if room is still active
+	room, err := h.roomService.GetRoomById(ctx, client.RoomID)
+	if err != nil {
+		log.Printf("[WS] Failed to get room %s: %v", client.RoomID.Hex(), err)
+		return
+	}
+	
+	if room.IsInactive() {
+		client.Conn.WriteMessage(websocket.TextMessage, []byte("This room is inactive and not accepting messages"))
+		return
+	}
+
 	// ตรวจสอบสิทธิ์การส่งข้อความก่อน
 	canSend, err := h.roomService.CanUserSendMessage(ctx, client.RoomID, client.UserID.Hex())
 	if err != nil || !canSend {
@@ -481,6 +505,18 @@ func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.C
 }
 
 func (h *WebSocketHandler) handleReactionMessage(messageText string, client model.ClientObject, ctx context.Context) {
+	// Check if room is still active
+	room, err := h.roomService.GetRoomById(ctx, client.RoomID)
+	if err != nil {
+		log.Printf("[WS] Failed to get room %s: %v", client.RoomID.Hex(), err)
+		return
+	}
+	
+	if room.IsInactive() {
+		client.Conn.WriteMessage(websocket.TextMessage, []byte("This room is inactive and not accepting messages"))
+		return
+	}
+
 	// Parse reaction command: /react messageID emoji
 	parts := strings.SplitN(messageText, " ", 3)
 	if len(parts) < 3 {
@@ -557,6 +593,18 @@ func (h *WebSocketHandler) handleReactionMessage(messageText string, client mode
 
 // handleUnsendMessage จะต้องมีการตรวจสอบสิทธิ์การส่งข้อความก่อน
 func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.ClientObject, ctx context.Context) {
+	// Check if room is still active
+	room, err := h.roomService.GetRoomById(ctx, client.RoomID)
+	if err != nil {
+		log.Printf("[WS] Failed to get room %s: %v", client.RoomID.Hex(), err)
+		return
+	}
+	
+	if room.IsInactive() {
+		client.Conn.WriteMessage(websocket.TextMessage, []byte("This room is inactive and not accepting messages"))
+		return
+	}
+
 	// เช็คว่ามีการส่ง messageID หรือไม่
 	parts := strings.SplitN(messageText, " ", 2)
 	if len(parts) < 2 {
@@ -612,3 +660,61 @@ func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.
 	// ส่งข้อความ unsend ไปยังห้อง
 	log.Printf("[WS] Successfully unsent message %s by user %s", messageID, client.UserID.Hex())
 }
+
+// HandleRoomStatusChange handles room status change events and disconnects users if room becomes inactive
+func (h *WebSocketHandler) HandleRoomStatusChange(ctx context.Context, roomID string, newStatus string) {
+	log.Printf("[WS] 🚨 Room status change event received: room=%s, status=%s", roomID, newStatus)
+	
+	// Only handle status changes to inactive
+	if newStatus != "inactive" {
+		log.Printf("[WS] Room %s status changed to %s (not inactive), skipping disconnect", roomID, newStatus)
+		return
+	}
+	
+	roomObjID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		log.Printf("[WS] ❌ Invalid room ID for status change: %s", roomID)
+		return
+	}
+	
+	// Check if room has active connections
+	connectedRooms := h.chatService.GetHub().GetConnectedRooms()
+	if !connectedRooms[roomID] {
+		log.Printf("[WS] ℹ️ Room %s has no active connections, skipping disconnect", roomID)
+		return
+	}
+	
+	log.Printf("[WS] 🔥 Room %s is inactive and has active connections, disconnecting all users", roomID)
+	
+	// Create deactivation message
+	deactivationEvent := map[string]interface{}{
+		"type": "room_deactivated",
+		"data": map[string]interface{}{
+			"roomId": roomID,
+			"message": "This room has been deactivated. You will be disconnected.",
+			"timestamp": time.Now(),
+		},
+	}
+	
+	eventBytes, err := json.Marshal(deactivationEvent)
+	if err != nil {
+		log.Printf("[WS] ❌ Failed to marshal deactivation event: %v", err)
+		return
+	}
+	
+	// Broadcast deactivation message to all users in the room
+	h.chatService.GetHub().BroadcastToRoom(roomID, eventBytes)
+	log.Printf("[WS] 📢 Broadcasted deactivation message to room %s", roomID)
+	
+	// Force disconnect all users from the room immediately
+	disconnectedCount := h.chatService.GetHub().ForceDisconnectAllUsersFromRoom(roomID)
+	log.Printf("[WS] 🔌 Force disconnected %d connections from room %s", disconnectedCount, roomID)
+	
+	// Also call the service method to clean up cache
+	if err := h.roomService.DisconnectAllUsersFromRoom(ctx, roomObjID); err != nil {
+		log.Printf("[WS] ❌ Failed to clean up room cache for %s: %v", roomID, err)
+	}
+	
+	log.Printf("[WS] ✅ Successfully disconnected all users from inactive room %s", roomID)
+}
+

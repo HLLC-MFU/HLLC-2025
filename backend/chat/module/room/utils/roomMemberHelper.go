@@ -152,6 +152,11 @@ func (h *RoomMemberHelper) JoinRoom(ctx context.Context, roomID primitive.Object
 		return fmt.Errorf("room not found: %w", err)
 	}
 
+	// Check if room is active
+	if room.IsInactive() {
+		return fmt.Errorf("room is inactive and not accepting new members")
+	}
+
 	// ตรวจสอบ capacity
 	if !room.IsUnlimitedCapacity() && len(room.Members) >= room.Capacity {
 		return fmt.Errorf("room is at full capacity")

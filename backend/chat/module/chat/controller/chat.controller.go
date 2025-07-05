@@ -54,6 +54,8 @@ type (
 		CanUserSendMessage(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
 		CanUserSendSticker(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
 		CanUserSendReaction(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+		DisconnectAllUsersFromRoom(ctx context.Context, roomID primitive.ObjectID) error
+		SetStatusChangeCallback(func(ctx context.Context, roomID string, newStatus string))
 	}
 
 	StickerService interface {
@@ -116,6 +118,16 @@ func (c *ChatController) setupRoutes() {
 	c.Delete("/rooms/:roomId/cache", c.handleClearCache, c.rbac.RequireAdministrator())
 	
 	c.SetupRoutes()
+}
+
+func (c *ChatController) SetupWebSocketHandler() {
+	// Set up WebSocket handler with room status change callback
+	if roomService, ok := c.roomService.(interface{ SetStatusChangeCallback(func(ctx context.Context, roomID string, newStatus string)) }); ok {
+		roomService.SetStatusChangeCallback(c.wsHandler.HandleRoomStatusChange)
+		log.Printf("[ChatController] Connected WebSocket handler to room service for status change events")
+	} else {
+		log.Printf("[ChatController] Warning: Room service does not support status change callbacks")
+	}
 }
 
 func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
@@ -250,3 +262,5 @@ func (c *ChatController) handleClearCache(ctx *fiber.Ctx) error {
 		"message": "cache cleared successfully",
 	})
 }
+
+
