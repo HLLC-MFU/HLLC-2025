@@ -13,6 +13,7 @@ export async function runDevCommand() {
         { name: 'Go Chat Server', value: 'go' },
         { name: 'Next.js Admin Frontend', value: 'admin' },
         { name: 'Expo Student App', value: 'student' },
+        { name: 'Next.js Student Web', value: 'student-web' },
       ],
     },
   ]);
@@ -41,6 +42,11 @@ export async function runDevCommand() {
     case 'student':
       console.log('[student] Starting Student app...');
       spawn.sync('pnpm', ['dev'], { cwd: 'frontend/student', stdio: 'inherit' });
+      break;
+
+    case 'student-web':
+      console.log('[student-web] Starting Student web...');
+      spawn.sync('pnpm', ['dev'], { cwd: 'frontend/student-web', stdio: 'inherit' })
       break;
 
     default:

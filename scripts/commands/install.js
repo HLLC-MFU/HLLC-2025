@@ -52,6 +52,7 @@ export async function runInstallCommand() {
   installGo('backend/chat', 'Go Chat Server');
   installPnpm('frontend/admin', 'Admin Frontend');
   installPnpm('frontend/student', 'Student App');
+  installPnpm('frontend/student-web', 'Student Web');
 
   console.log('installation complete!\n');
   console.log('run `hllc dev` to start the development server');
