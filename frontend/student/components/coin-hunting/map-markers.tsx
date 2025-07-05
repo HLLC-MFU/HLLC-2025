@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { TouchableOpacity, ViewStyle, Image, View } from 'react-native';
+import { TouchableOpacity, ViewStyle, Image } from 'react-native';
 import { apiRequest } from '@/utils/api';
-import { BlurView } from 'expo-blur';
-
 interface Marker {
   x: number;
   y: number;
