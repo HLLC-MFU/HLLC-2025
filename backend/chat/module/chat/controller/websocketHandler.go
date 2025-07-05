@@ -185,12 +185,9 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 				replyUserData = map[string]interface{}{
 					"_id":      replyUser.ID.Hex(),
 					"username": replyUser.Username,
-					"name":     map[string]interface{}{
-						"first":  replyUser.Name.First,
-						"middle": replyUser.Name.Middle,
-						"last":   replyUser.Name.Last,
-					},
-				}
+						"name":     replyUser.Name,
+					}
+					
 			} else {
 				replyUserData = map[string]interface{}{
 					"_id": msg.ReplyTo.UserID.Hex(),
