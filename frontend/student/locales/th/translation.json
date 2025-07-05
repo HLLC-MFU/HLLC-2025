@@ -11,21 +11,24 @@
     },
     "login": {
         "title": "เข้าสู่ระบบ",
-        "subtitle": "กรุณาใส่ข้อมูลรับรองของคุณ",
-        "username": "ชื่อผู้ใช้",
+        "subtitle": "เริ่มต้นการเดินทางของคุณ",
+        "username": "รหัสนักศึกษา",
         "password": "รหัสผ่าน",
         "loginButton": "เข้าสู่ระบบ",
         "forgotPassword": "ลืมรหัสผ่าน?",
-        "register": "ลงทะเบียน"
+        "register": "ลงทะเบียน",
+        "contactUs": "ติดต่อเรา"
     },
     "register": {
         "title": "ลงทะเบียน",
-        "subtitle": "สร้างบัญชีใหม่",
-        "username": "ชื่อผู้ใช้",
+        "username": "รหัสนักศึกษา",
+        "studentName": "ชื่อ-นามสกุล",
         "password": "รหัสผ่าน",
         "confirmPassword": "ยืนยันรหัสผ่าน",
+        "province": "จังหวัด",
         "registerButton": "ลงทะเบียน",
-        "loginPrompt": "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ"
+        "loginPrompt": "มีบัญชีอยู่แล้ว?",
+        "login": "เข้าสู่ระบบ"
     },
     "profile": {
         "title": "โปรไฟล์",
@@ -43,26 +46,40 @@
     },
     "nav": {
         "welcome": "ยินดีต้อนรับกลับมา",
-        "progress": "ความคืบหน้า"
+        "progress": "ความคืบหน้า",
+        "home": "หน้าแรก",
+        "activity": "กิจกรรม",
+        "qrCode": "คิวอาร์โคด",
+        "evoucher": "คูปอง",
+        "community": "ชุมชน"
     },
     "home": {
         "activities": "กิจกรรม",
         "seeAll": "ดูทั้งหมด"
     },
     "activty": {
-        "activities": "กิจกรรม",
+        "title": "กิจกรรม",
+        "allActivities": "กิจกรรมทั้งหมด",
         "subtitle": "กำลังมา เร็วๆนี้...",
         "backward": "ย้อนกลับ"
     },
     "evoucher": {
         "title": "คูปอง",
         "subtitle": "กำลังมา เร็วๆนี้...",
-        "backward": "ย้อนกลับ"
+        "backward": "ย้อนกลับ",
+        "confirmTitle": "ยืนยันการใช้ E-Voucher",
+        "confirmMessage": "คุณแน่ใจหรือไม่ว่าต้องการใช้ E-Voucher นี้?"
     },
     "bottomNav": {
         "home": "หน้าแรก",
         "activity": "กิจกรรม",
         "evoucher": "คูปอง",
         "community": "ชุมชน"
+    },
+    "qrCode": {
+        "qrCode": "คิวอาร์โคด",
+        "camera": "กล้อง",
+        "schoolOf": "สำนักวิชา",
+        "studentId": "รหัสนักศึกษา"
     }
 }

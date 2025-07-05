@@ -1,22 +1,25 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text } from 'react-native';
-import { router, useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Award, Bell, Footprints, User, Users } from 'lucide-react-native';
+import { View } from 'react-native';
+import { router } from 'expo-router';
+
+import { Bell } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
-import { DoorClosedLocked } from '@tamagui/lucide-icons';
 import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from '@/components/global/AssetImage';
-import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
+import BackgroundScreen from '@/components/global/BackgroundScreen';
+import { DoorClosedLocked } from '@tamagui/lucide-icons';
+import useHealthData from '@/hooks/health/useHealthData';
+import { ProgressSummaryCard } from '@/components/home/ProgressSummaryCard';
+import { useEffect } from 'react';
+import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
-  const { t } = useTranslation();
   const handleSignOut = async () => {
-    await useAuth.getState().signOut();
+    useAuth.getState().signOut();
     router.replace('/(auth)/login');
   };
   const { assets } = useAppearance();
@@ -27,6 +30,24 @@ export default function HomeScreen() {
     progress: assets?.progress ?? null,
     signOut: assets?.signOut ?? null,
   };
+  const { steps, deviceMismatch } = useHealthData(new Date());
+  useEffect(() => {
+    async function setupBackgroundTask() {
+      try {
+        // Register the background task with a minimum interval
+        await registerBackgroundTaskAsync();
+
+        // Optionally sync immediately on startup
+        await syncStepsOnStartup();
+      } catch (e) {
+        console.error('Failed to setup background task:', e);
+      }
+    }
+
+    setupBackgroundTask();
+  }, []);
+
+
 
   const content = (
     <SafeAreaView
@@ -38,43 +59,15 @@ export default function HomeScreen() {
         justifyContent: 'space-between',
       }}
     >
-      <GlassButton>
-        {assetsImage.progress ? (
-          <AssetImage
-            uri={`${baseImageUrl}/uploads/${assetsImage.progress}`}
-            style={{ width: 20, height: 20 }}
-          />
-        ) : (
-          <User
-            color="white"
-            size={20}
-            onPress={() => {
-              useRouter().push('/(auth)/login');
-            }}
-          />
-        )}
-        <Text
-          style={{
-            color: 'white',
-            fontWeight: '600',
-            fontSize: 20,
-            marginLeft: 8,
-          }}
-        >
-          {t('nav.progress')}
-        </Text>
-      </GlassButton>
+      <ProgressSummaryCard
+        healthData={{ steps, deviceMismatch }}
+        progressImage={assetsImage.progress}
+        onPress={() => {
+          console.log('Login pressed!');
+        }}
+      />
+
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <GlassButton iconOnly>
-          {assetsImage.profile ? (
-            <AssetImage
-              uri={`${baseImageUrl}/uploads/${assetsImage.profile}`}
-              style={{ width: 20, height: 20 }}
-            />
-          ) : (
-            <Users color="white" size={20} />
-          )}
-        </GlassButton>
         <GlassButton iconOnly>
           {assetsImage.notification ? (
             <AssetImage

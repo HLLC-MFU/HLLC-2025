@@ -8,9 +8,10 @@ import {
   Req,
   Patch,
   Body,
+  Query,
 } from '@nestjs/common';
 import { EvouchersService } from '../services/evouchers.service';
-import { CreateEvoucherDto } from '../dto/create-evoucher.dto';
+import { AddEvoucherCodeByRoleDto, AddEvoucherCodeDto, CreateEvoucherDto } from '../dto/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/update-evoucher.dto';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
@@ -32,8 +33,8 @@ export class EvouchersController {
   }
 
   @Get()
-  findAll() {
-    return this.evouchersService.findAll();
+  findAll(@Query('sponsors') sponsorId?: string) {
+    return this.evouchersService.findAll(sponsorId);
   }
 
   @Get(':id')
@@ -63,5 +64,20 @@ export class EvouchersController {
   ) {
     const userId = req.user._id.toString();
     return this.evoucherCodesService.claimEvoucherCode(id, userId);
+  }
+
+  @Post(':id/add')
+  addEvoucherCode(@Param('id') evoucherId: string, @Body() addEvoucherCodeDto: AddEvoucherCodeDto) {
+    const { userId } = addEvoucherCodeDto;
+    return this.evoucherCodesService.addEvoucherCode(userId, evoucherId);
+  }
+
+  @Post(':id/add-by-role')
+  addEvoucherCodeByRole(
+    @Param('id') evoucherId: string,
+    @Body() addEvoucherCodeByRoleDto: AddEvoucherCodeByRoleDto,
+  ) {
+    const { roleId } = addEvoucherCodeByRoleDto
+    return this.evoucherCodesService.addEvoucherCodeByRole(roleId, evoucherId);
   }
 }

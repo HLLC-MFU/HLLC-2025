@@ -11,6 +11,7 @@ import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
 import { useSchools } from '@/hooks/useSchool';
 import { School } from '@/types/school';
 import { PageHeader } from '@/components/ui/page-header';
+import { Major } from '@/types/major';
 
 export default function SchoolsPage() {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -50,12 +51,12 @@ export default function SchoolsPage() {
 			switch (sortBy) {
 				case 'name':
 					comparison = (a.name?.en ?? '').localeCompare(b.name?.en ?? '');
-					break;
+					break; 
 				case 'acronym':
 					comparison = (a.acronym ?? '').localeCompare(b.acronym ?? '');
 					break;
 				case 'majors':
-					comparison = (a.majors?.length ?? 0) - (b.majors?.length ?? 0);
+					comparison = ((a as School & { majors: Major[] }).majors?.length ?? 0) - ((b as School & { majors: Major[] }).majors?.length ?? 0);
 					break;
 			}
 

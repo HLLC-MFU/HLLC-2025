@@ -10,7 +10,7 @@ import {
 import { Bell, X, Check } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect, useMemo, useState } from "react";
-import { useNotification } from "@/hooks/useNotification";
+import { useNotification } from "@/hooks/notifications/useNotification";
 
 import tinycolor from "tinycolor2";
 import { AnimatePresence, MotiView } from "moti";

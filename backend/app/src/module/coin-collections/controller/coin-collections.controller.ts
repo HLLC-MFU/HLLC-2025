@@ -9,7 +9,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { CoinCollectionsService } from '../service/coin-collections.service';
-import { CollectCoinDto } from '../dto/coin-collections/coin-collectoin.dto';
+import { CreateCoinCollectionDto } from '../dto/coin-collections/create-coin-collection.dto';
 import { FastifyRequest } from 'fastify';
 import { Types } from 'mongoose';
 
@@ -20,8 +20,8 @@ export class CoinCollectionsController {
   ) { }
 
   @Post('collect')
-  async collectCoin(@Body() collectCoinDto: CollectCoinDto) {
-    return this.coinCollectionsService.collectCoin(collectCoinDto);
+  async collectCoin(@Body() createCoinCollectionDto: CreateCoinCollectionDto) {
+    return this.coinCollectionsService.collectCoin(createCoinCollectionDto);
   }
 
   @Get()
@@ -52,5 +52,10 @@ export class CoinCollectionsController {
   @Get('sponsor-reward')
   getSponsorRewardUsers(@Query('landmarkId') landmarkId: string) {
     return this.coinCollectionsService.getSponsorRewardUsers(landmarkId);
+  }
+
+  @Get('my-coin')
+  getMyCoin(@Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
+    return this.coinCollectionsService.myCoin(req.user._id)
   }
 }
