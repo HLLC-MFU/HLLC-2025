@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 
+import * as THREE from 'three'
 import { GLView } from 'expo-gl';
-import { Canvas } from '@react-three/fiber/native'
+import { Canvas, useFrame } from '@react-three/fiber/native'
 
 import { Text, StyleSheet, View } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +14,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileScreen() {
   const { user } = useProfile();
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  useFrame(() => {
+    meshRef.current.rotation.x += 0.01;
+    meshRef.current.rotation.y += 0.01;
+  });
 
   return (
     // <LinearGradient
@@ -28,14 +35,17 @@ export default function ProfileScreen() {
         </GlassButton>
       </View>
 
-      {/* <GLView style={{ flex: 1 }}> */}
-      <Canvas camera={{ position: [-2, 2.5, 5], fov: 30 }}>
-        <mesh>
-          <boxGeometry args={[1, 1, 1]} />
-          <meshBasicMaterial color="hotpink" />
-        </mesh>
-      </Canvas>
-      {/* </GLView> */}
+      <GLView
+        style={{ flex: 1 }}
+        onContextCreate={(gl) => {}}
+      >
+        <Canvas camera={{ position: [-2, 2.5, 5], fov: 30 }}>
+          <mesh ref={meshRef}>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshBasicMaterial color="hotpink" />
+          </mesh>
+        </Canvas>
+      </GLView>
 
       <View style={styles.information}>
         <View style={styles.field}>
