@@ -46,7 +46,7 @@ export function FilterSection({
       <CardBody>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">User Type</label>
+            <label className="block text-sm font-medium mb-2">Role Type</label>
             <Select
               selectedKeys={[userType]}
               onSelectionChange={(keys) => {
@@ -72,8 +72,8 @@ export function FilterSection({
               }}
               className="w-full"
             >
-              {filterData.schools.map((s) => (
-                <SelectItem key={s}>{s}</SelectItem>
+              {filterData.schools.map((School) => (
+                <SelectItem key={School}>{School}</SelectItem>
               ))}
             </Select>
           </div>

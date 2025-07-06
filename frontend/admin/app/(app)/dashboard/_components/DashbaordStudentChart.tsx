@@ -2,13 +2,11 @@ import { useUserStatistics } from '@/hooks/useUserSytem';
 import {
   Card,
   CardBody,
-  CardFooter,
   CardHeader,
   Select,
-  Tooltip,
   SelectItem,
 } from '@heroui/react';
-import { Users, UserX, UsersRound, UserRoundCheck } from 'lucide-react';
+import { Users, UserX, UsersRound , LayoutGrid } from 'lucide-react';
 import { useState } from 'react';
 
 export default function StudentChart() {
@@ -20,7 +18,7 @@ export default function StudentChart() {
       name: 'Total',
       value: roleStats?.total,
       color: '#71717a',
-      icon: <UserRoundCheck />,
+      icon: <LayoutGrid />,
     },
     {
       name: 'Register',
@@ -45,8 +43,9 @@ export default function StudentChart() {
             <h3 className=" text-lg font-semibold"> Register </h3>
           </div>
           <Select
-            className="min-w-[100px]"
+            className="max-w-[125px]"
             selectionMode="single"
+            size='sm'
             selectedKeys={[selectRole]}
             onSelectionChange={(keys) =>
               setSelectRole(Array.from(keys)[0] as string)
