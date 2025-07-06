@@ -63,7 +63,7 @@ export default function HomeScreen() {
         healthData={{ steps, deviceMismatch }}
         progressImage={assetsImage.progress}
         onPress={() => {
-          useRouter().push('/profile');
+          router.replace('/profile');
         }}
       />
 

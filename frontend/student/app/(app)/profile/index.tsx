@@ -22,14 +22,33 @@ global.Buffer = Buffer;
 export default function ProfileScreen() {
   const { user } = useProfile();
 
+
+  // const {nodes, materials} = useGLTF(require('../../../assets/models/argo.glb'));
+  // console.log('nodes', nodes);
+  // console.log('materials', materials);
+
+  // const asset = Asset.fromURI(FileSystem.documentDirectory + 'argo.glb');
+  // asset.downloadAsync();
+  // console.log("asset", asset);
+
+  // const fileUri = asset.localUri || asset.uri;
+  // console.log('fileUri', fileUri);
+
+  // FileSystem.readAsStringAsync(fileUri, {
+  //   encoding: FileSystem.EncodingType.Base64,
+  // }).then(binaryString => {
+  //   console.log('binaryString length', binaryString);
+  // });
+
+
   function Model() {
     const ref = useRef<THREE.Group>(null);
 
     useEffect(() => {
       const loadModel = async () => {
         try {
-          // const asset = Asset.fromURI(FileSystem.documentDirectory + 'model1.glb');
-          const asset = Asset.fromModule(require('@/assets/images/argo.glb'));
+          const asset = Asset.fromURI(FileSystem.documentDirectory + 'argo.glb');
+          // const asset = Asset.fromModule(require('@/assets/models/argo.glb'));
           await asset.downloadAsync();
           console.log("asset", asset);
 
@@ -91,15 +110,15 @@ export default function ProfileScreen() {
         </GlassButton>
       </View>
 
-      <Canvas camera={{ position: [-2, 2.5, 5], fov: 30 }}>
+      {/* <Canvas camera={{ position: [-2, 2.5, 5], fov: 30 }}>
         <Suspense>
           <Model/>
         </Suspense>
-        {/* <mesh>
+        <mesh>
           <boxGeometry args={[1, 1, 1]} />
           <meshBasicMaterial color="white" />
-        </mesh> */}
-      </Canvas>
+        </mesh>
+      </Canvas> */}
 
       <View style={styles.information}>
         <View style={styles.field}>
