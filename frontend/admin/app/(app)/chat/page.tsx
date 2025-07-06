@@ -56,6 +56,37 @@ export default function ChatPage() {
         }
     };
 
+    const handleToggleStatus = async (room: Room) => {
+        try {
+            const newStatus = room.status === "active" ? "inactive" : "active";
+            
+            // Create form data with only status field
+            const formData = new FormData();
+            formData.append("status", newStatus);
+            // Keep other fields unchanged
+            formData.append("name.th", room.name.th);
+            formData.append("name.en", room.name.en);
+            formData.append("type", room.type);
+            formData.append("capacity", room.capacity.toString());
+            if (room.image) {
+                formData.append("image", room.image);
+            }
+            
+            await updateRoom(room._id, formData);
+            await fetchRoom();
+            addToast({ 
+                title: `Room ${newStatus === "active" ? "activated" : "deactivated"} successfully!`, 
+                color: "success" 
+            });
+        } catch (err) {
+            addToast({
+                title: "Error updating room status",
+                description: err instanceof Error ? err.message : "Failed to update room status",
+                color: "danger",
+            });
+        }
+    };
+
     const handleAddRoom = (type: RoomType | "school" | "major") => {
         setModalMode('add');
         setSelectedRoom(undefined);
@@ -105,10 +136,12 @@ export default function ChatPage() {
                     onAdd={handleAddRoom}
                     onEdit={handleEditRoom}
                     onDelete={handleDeleteRoom}
+                    onToggleStatus={handleToggleStatus}
                 />
             </div>
 
             <RoomModal
+                key={selectedRoom?._id || 'new'}
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
                 onSuccess={handleSubmitRoom}

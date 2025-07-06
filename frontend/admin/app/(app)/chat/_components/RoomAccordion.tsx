@@ -11,13 +11,15 @@ interface RoomAccordionProps {
     onAdd: (type: RoomType | "school" | "major") => void;
     onEdit: (room: Room) => void;
     onDelete: (room: Room) => void;
+    onToggleStatus?: (room: Room) => void;
 }
 
 export default function RoomAccordion({ 
     rooms, 
     onAdd,
     onEdit, 
-    onDelete 
+    onDelete,
+    onToggleStatus
 }: RoomAccordionProps) {
     // Group rooms by type & groupType - แยกให้ชัดเจนไม่ให้ซ้ำ
     const normalRooms = rooms.filter((room) => 
@@ -50,6 +52,7 @@ export default function RoomAccordion({
                     onAdd={() => onAdd(RoomType.NORMAL)}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    onToggleStatus={onToggleStatus}
                 />
             </AccordionItem>
 
@@ -66,6 +69,7 @@ export default function RoomAccordion({
                     onAdd={() => onAdd(RoomType.READONLY)}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    onToggleStatus={onToggleStatus}
                 />
             </AccordionItem>
 
@@ -82,6 +86,7 @@ export default function RoomAccordion({
                     onAdd={() => onAdd("school")}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    onToggleStatus={onToggleStatus}
                 />
             </AccordionItem>
 
@@ -98,6 +103,7 @@ export default function RoomAccordion({
                     onAdd={() => onAdd("major")}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    onToggleStatus={onToggleStatus}
                 />
             </AccordionItem>
         </Accordion>
@@ -110,6 +116,7 @@ interface RoomSectionProps {
     onAdd: () => void;
     onEdit: (room: Room) => void;
     onDelete: (room: Room) => void;
+    onToggleStatus?: (room: Room) => void;
 }
 
 function RoomSection({ 
@@ -117,7 +124,8 @@ function RoomSection({
     roomType, 
     onAdd, 
     onEdit, 
-    onDelete 
+    onDelete,
+    onToggleStatus
 }: RoomSectionProps) {
     const [filterValue, setFilterValue] = useState("");
 
@@ -173,6 +181,7 @@ function RoomSection({
                             room={room}
                             onEdit={() => onEdit(room)}
                             onDelete={() => onDelete(room)}
+                            onToggleStatus={onToggleStatus ? () => onToggleStatus(room) : undefined}
                         />
                     ))}
                 </div>

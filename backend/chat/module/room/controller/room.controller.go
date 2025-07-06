@@ -11,6 +11,8 @@ import (
 	"chat/pkg/utils"
 	"mime/multipart"
 
+	userService "chat/module/user/service"
+
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -24,6 +26,7 @@ type (
 		uploadHandler    *utils.FileUploadHandler
 		validationHelper *roomUtils.RoomValidationHelper
 		controllerHelper *roomUtils.RoomControllerHelper
+		userService      *userService.UserService
 	}
 
 	UpdateRoomImageDto struct {
@@ -47,6 +50,7 @@ func NewRoomController(
 		uploadHandler:    utils.NewModuleFileHandler("room"),
 		validationHelper: roomUtils.NewRoomValidationHelper(uploadConfig.MaxSize, uploadConfig.AllowedTypes),
 		controllerHelper: roomUtils.NewRoomControllerHelper(),
+		userService:      userService.NewUserService(db),
 	}
 
 	controller.setupRoutes()
@@ -152,10 +156,15 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	// Role-based validation for room type
+	// Extract user ID from JWT context
 	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+	}
+
+	// Set CreatedBy from JWT if not provided
+	if createDto.CreatedBy == "" {
+		createDto.CreatedBy = userID
 	}
 
 	userRole, err := c.rbac.GetUserRole(userID)
@@ -174,6 +183,19 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 	if err := c.controllerHelper.CreateRoomWithImage(ctx, &createDto, c.validationHelper, c.uploadHandler); err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
+
+    // Handle SelectAllUsers: fetch all user IDs and set as members
+    if createDto.SelectAllUsers {
+        usersResp, err := c.userService.GetUsers(ctx.Context(), queries.QueryOptions{Limit: 1000000, Page: 1})
+        if err != nil {
+            return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+        }
+        allUserIDs := make([]string, 0, len(usersResp.Data))
+        for _, user := range usersResp.Data {
+            allUserIDs = append(allUserIDs, user.ID.Hex())
+        }
+        createDto.Members = allUserIDs
+    }
 
 	room, err := c.roomService.CreateRoom(ctx.Context(), &createDto)
 	if err != nil {

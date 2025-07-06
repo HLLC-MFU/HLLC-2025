@@ -11,6 +11,7 @@ import { useUsers } from "@/hooks/useUsers";
 import { getToken } from "@/utils/storage";
 import { Image as ImageIcon, Infinity, Users, UserPlus } from "lucide-react";
 import { ImagePreview } from "./ImagePreview";
+import { RoomMembersSelector } from "./RoomMembersSelector";
 
 interface RoomModalProps {
     isOpen: boolean;
@@ -47,27 +48,27 @@ export function RoomModal({
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     useEffect(() => {
-        if (room) {
-            setNameEn(room.name.en);
-            setNameTh(room.name.th);
-            setType(room.type);
-            setStatus(room.status || "active");
-            setCapacity(room.capacity.toString());
-            // Set group values if they exist
-            if (room.metadata?.groupType === "school" && room.metadata?.groupValue) {
-                setSelectedSchool(room.metadata.groupValue);
+        if (isOpen) {
+            if (room) {
+                setNameEn(room.name.en);
+                setNameTh(room.name.th);
+                setType(room.type);
+                setStatus(room.status || "active");
+                setCapacity(room.capacity.toString());
+                if (room.metadata?.groupType === "school" && room.metadata?.groupValue) {
+                    setSelectedSchool(room.metadata.groupValue);
+                }
+                if (room.metadata?.groupType === "major" && room.metadata?.groupValue) {
+                    setSelectedMajor(room.metadata.groupValue);
+                }
+                if (room.members && Array.isArray(room.members)) {
+                    setSelectedMembers(room.members);
+                }
+            } else {
+                resetFields();
             }
-            if (room.metadata?.groupType === "major" && room.metadata?.groupValue) {
-                setSelectedMajor(room.metadata.groupValue);
-            }
-            // Set members if they exist
-            if (room.members && Array.isArray(room.members)) {
-                setSelectedMembers(room.members);
-            }
-        } else {
-            resetFields();
         }
-    }, [room, roomType]);
+    }, [isOpen, room, roomType]);
 
 
 
@@ -138,25 +139,15 @@ export function RoomModal({
             return;
         }
 
+        // Debug: log state before creating FormData
+        console.log("[DEBUG] nameEn:", nameEn, "nameTh:", nameTh);
+
         const formData = new FormData();
-        formData.append("name[en]", nameEn.trim());
-        formData.append("name[th]", nameTh.trim());
+        formData.append("name.en", nameEn.trim());
+        formData.append("name.th", nameTh.trim());
         formData.append("type", type);
         formData.append("status", status);
         formData.append("capacity", capacity);
-        
-        // Get user ID from token (you might need to adjust this based on your auth structure)
-        const token = getToken('accessToken');
-        if (token) {
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                if (payload.sub) {
-                    formData.append("createdBy", payload.sub);
-                }
-            } catch (e) {
-                console.warn("Could not extract user ID from token");
-            }
-        }
         
         // Add group-specific fields
         if (roomType === "school") {
@@ -167,13 +158,11 @@ export function RoomModal({
             formData.append("groupValue", selectedMajor);
         }
 
-        // Add members if selected
+        // Add members if selected (optional)
         if (selectedMembers.length > 0) {
-            if (selectedMembers.includes('__SELECT_ALL__')) {
-                // Special flag for select all users
+            if (selectedMembers.includes("__SELECT_ALL__")) {
                 formData.append("selectAllUsers", "true");
             } else {
-                // Add individual selected members
                 selectedMembers.forEach((memberId, index) => {
                     formData.append(`members[${index}]`, memberId);
                 });
@@ -184,6 +173,10 @@ export function RoomModal({
         if (image) {
             formData.append("image", image);
         }
+        // Debug: log all FormData entries
+        Array.from(formData.entries()).forEach(pair => {
+            console.log("[DEBUG] FormData:", pair[0], pair[1]);
+        });
 
         onSuccess(formData, mode);
         resetFields();
@@ -236,54 +229,37 @@ export function RoomModal({
                                 onValueChange={setNameTh}
                             />
                         </div>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                        {/* Status Dropdown - always full width and visible */}
+                        <div className="my-2">
                             <Select
-                                isRequired
-                                label="Status"
-                                placeholder="Select room status"
-                                selectedKeys={[status]}
+                                label="Status*"
+                                placeholder="Select status"
+                                selectedKeys={new Set([status])}
                                 onSelectionChange={(keys) => {
                                     const selectedStatus = Array.from(keys)[0] as "active" | "inactive";
                                     setStatus(selectedStatus);
                                 }}
+                                className="w-full"
+                                required
                             >
-                                <SelectItem key="active">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-success rounded-full"></div>
-                                        <span>Active</span>
-                                    </div>
-                                </SelectItem>
-                                <SelectItem key="inactive">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-danger rounded-full"></div>
-                                        <span>Inactive</span>
-                                    </div>
-                                </SelectItem>
+                                <SelectItem key="active">Active</SelectItem>
+                                <SelectItem key="inactive">Inactive</SelectItem>
                             </Select>
-                            
-                            <div className="flex flex-col gap-2">
-                                <Input
-                                    isRequired
-                                    label="Capacity"
-                                    placeholder="Enter room capacity (0 = unlimited)"
-                                    type="number"
-                                    min="0"
-                                    value={capacity}
-                                    onValueChange={setCapacity}
-                                    endContent={
-                                        capacity === "0" && (
-                                            <div className="flex items-center gap-1 text-success text-xs font-medium">
-                                                <Infinity size={12} />
-                                                <span>Unlimited</span>
-                                            </div>
-                                        )
-                                    }
-                                />
-                                <div className="flex items-center gap-2 text-xs text-default-500">
-                                    <Infinity size={12} />
-                                    <span>Set to 0 for unlimited capacity</span>
-                                </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Input
+                                label="Capacity*"
+                                placeholder="Enter room capacity (0 = unlimited)"
+                                value={capacity}
+                                onValueChange={setCapacity}
+                                type="number"
+                                min={0}
+                            />
+                            <div className="flex items-center gap-2 text-sm font-bold text-primary-600 mt-1">
+                                <Infinity className="w-5 h-5 text-blue-500" />
+                                <span className="text-blue-600">Set to 0 for unlimited capacity</span>
                             </div>
                         </div>
                         
@@ -360,86 +336,11 @@ export function RoomModal({
 
                         {/* Members Selection */}
                         <div className="grid grid-cols-1 gap-4">
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium">Members (Optional)</span>
-                                    <div className="flex items-center gap-2">
-                                        <Badge size="sm" variant="flat" color="primary">
-                                            {selectedMembers.length} selected
-                                        </Badge>
-                                        <Button
-                                            size="sm"
-                                            variant="flat"
-                                            color="secondary"
-                                            startContent={<Users size={14} />}
-                                            onPress={() => {
-                                                // Show confirmation dialog for select all
-                                                if (confirm("This will select all users in the system. Are you sure?")) {
-                                                    // For now, we'll use a special flag to indicate "select all"
-                                                    // In the backend, you can handle this by fetching all users
-                                                    setSelectedMembers(['__SELECT_ALL__']);
-                                                }
-                                            }}
-                                            isDisabled={selectedMembers.includes('__SELECT_ALL__')}
-                                        >
-                                            Select All Users
-                                        </Button>
-                                    </div>
-                                </div>
-                                
-                                <div className="flex flex-col gap-2">
-                                    <Input
-                                        label="Search Users"
-                                        placeholder="Type username to search..."
-                                        value={searchQuery}
-                                        onValueChange={handleSearchChange}
-                                        startContent={<UserPlus size={16} />}
-                                    />
-                                    
-                                    <Select
-                                        label="Add Members"
-                                        placeholder={usersLoading ? "Loading users..." : "Select users from search results"}
-                                        selectedKeys={selectedMembers.filter(id => id !== '__SELECT_ALL__')}
-                                        onSelectionChange={(keys) => {
-                                            const newMembers = Array.from(keys) as string[];
-                                            setSelectedMembers(newMembers);
-                                        }}
-                                        isLoading={usersLoading}
-                                        selectionMode="multiple"
-                                        classNames={{
-                                            base: "max-h-40",
-                                        }}
-                                    >
-                                        {users.map((user) => (
-                                            <SelectItem key={user._id} textValue={user.username}>
-                                                <div className="flex flex-col">
-                                                    <span className="font-semibold">{user.username}</span>
-                                                    <span className="text-small text-default-500">
-                                                        {user.name?.first} {user.name?.last}
-                                                    </span>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </Select>
-                                </div>
-                                
-                                {/* Show selected members summary */}
-                                {selectedMembers.length > 0 && (
-                                    <div className="text-xs text-default-500">
-                                        {selectedMembers.includes('__SELECT_ALL__') 
-                                            ? "All users will be added to this room"
-                                            : `${selectedMembers.length} user(s) selected`
-                                        }
-                                    </div>
-                                )}
-                                
-                                {/* Show no results message */}
-                                {users.length === 0 && searchQuery && !usersLoading && (
-                                    <div className="text-xs text-default-500">
-                                        No users found for "{searchQuery}"
-                                    </div>
-                                )}
-                            </div>
+                            <RoomMembersSelector
+                                selectedMembers={selectedMembers}
+                                setSelectedMembers={setSelectedMembers}
+                            />
+                            <span className="text-xs text-default-400 ml-1">(Optional) If you don't select, the room will have no members initially.</span>
                         </div>
 
                         {/* Image Upload */}

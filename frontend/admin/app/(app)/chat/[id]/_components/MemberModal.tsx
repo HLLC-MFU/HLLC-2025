@@ -12,20 +12,72 @@ import {
     Chip,
     Divider
 } from "@heroui/react";
-import { User, Calendar, Clock, Shield } from "lucide-react";
+import { User, Calendar, Clock, Shield, LogOut } from "lucide-react";
+import { useState } from "react";
+import { addToast } from "@heroui/react";
 
 interface MemberModalProps {
     isOpen: boolean;
     onClose: () => void;
     member: RoomMember | null;
+    roomId?: string;
+    onMemberKicked?: () => void;
 }
 
-export function MemberModal({ isOpen, onClose, member }: MemberModalProps) {
+export function MemberModal({ isOpen, onClose, member, roomId, onMemberKicked }: MemberModalProps) {
+    const [isKicking, setIsKicking] = useState(false);
+
     if (!member) return null;
 
     // Fallback logic for name
     const nameObj = member.name || {};
     const fullName = [nameObj.first, nameObj.middle, nameObj.last].filter(Boolean).join(" ") || member.username || "";
+
+    const handleKickUser = async () => {
+        if (!roomId || !member._id) return;
+
+        if (!confirm(`Are you sure you want to kick ${member.username} from this room?`)) {
+            return;
+        }
+
+        try {
+            setIsKicking(true);
+            
+            const response = await fetch('/api/restriction/kick', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: member._id,
+                    roomId: roomId,
+                    reason: 'Kicked by administrator'
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                addToast({
+                    title: "User kicked successfully",
+                    description: `${member.username} has been kicked from the room`,
+                    color: "success",
+                });
+                onMemberKicked?.();
+                onClose();
+            } else {
+                throw new Error(result.message || 'Failed to kick user');
+            }
+        } catch (error) {
+            addToast({
+                title: "Error kicking user",
+                description: error instanceof Error ? error.message : "Failed to kick user",
+                color: "danger",
+            });
+        } finally {
+            setIsKicking(false);
+        }
+    };
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} size="lg">
@@ -88,6 +140,15 @@ export function MemberModal({ isOpen, onClose, member }: MemberModalProps) {
                 <ModalFooter>
                     <Button variant="light" onPress={onClose}>
                         Close
+                    </Button>
+                    <Button
+                        color="danger"
+                        variant="flat"
+                        startContent={<LogOut size={16} />}
+                        onPress={handleKickUser}
+                        isLoading={isKicking}
+                    >
+                        Kick User
                     </Button>
                 </ModalFooter>
             </ModalContent>

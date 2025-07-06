@@ -11,7 +11,7 @@ export function ImagePreview({ imagePreview, onRemove }: ImagePreviewProps) {
     return (
         <div className="flex flex-col gap-2">
             <span className="text-xs text-default-500">Preview:</span>
-            <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-default-200">
+            <div className="relative w-48 h-48 rounded-lg overflow-hidden border border-default-200">
                 <img
                     src={imagePreview}
                     alt="Room preview"

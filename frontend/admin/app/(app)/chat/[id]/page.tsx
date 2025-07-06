@@ -193,6 +193,8 @@ export default function RoomDetailPage() {
                 isOpen={isMemberModalOpen}
                 onClose={() => setIsMemberModalOpen(false)}
                 member={selectedMember}
+                roomId={roomId}
+                onMemberKicked={loadMembers}
             />
 
             {/* Restriction Action Modal */}

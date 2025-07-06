@@ -49,6 +49,9 @@ func IsNotEmpty(field interface{}, fieldName string) error {
 func IsMongoID(field interface{}, fieldName string) error {
 	switch v := field.(type) {
 	case string:
+		if v == "" {
+			return &ValidationError{Field: fieldName, Message: "must not be empty"}
+		}
 		if !primitive.IsValidObjectID(v) {
 			return &ValidationError{Field: fieldName, Message: "must be a valid MongoDB ObjectID"}
 		}
@@ -58,6 +61,9 @@ func IsMongoID(field interface{}, fieldName string) error {
 		}
 	case []string:
 		for i, id := range v {
+			if id == "" {
+				return &ValidationError{Field: fieldName, Message: fmt.Sprintf("item at index %d must not be empty", i)}
+			}
 			if !primitive.IsValidObjectID(id) {
 				return &ValidationError{Field: fieldName, Message: fmt.Sprintf("item at index %d must be a valid MongoDB ObjectID", i)}
 			}
@@ -128,7 +134,39 @@ func ValidateStruct(s interface{}) error {
 		}
 
 		validators := strings.Split(validate, ",")
+		isOptional := false
+		
+		// Check if field is optional
 		for _, v := range validators {
+			if v == "optional" {
+				isOptional = true
+				break
+			}
+		}
+		
+		// Skip validation for optional empty fields
+		if isOptional {
+			switch field.Interface().(type) {
+			case string:
+				if field.String() == "" {
+					continue
+				}
+			case []string:
+				if field.Len() == 0 {
+					continue
+				}
+			case int:
+				if field.Int() == 0 {
+					continue
+				}
+			}
+		}
+
+		for _, v := range validators {
+			if v == "optional" {
+				continue // Skip optional tag
+			}
+			
 			var err error
 			switch v {
 			case "notEmpty":

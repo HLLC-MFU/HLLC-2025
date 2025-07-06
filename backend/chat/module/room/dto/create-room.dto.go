@@ -13,11 +13,12 @@ type(
 	CreateRoomDto struct {
 		Name      common.LocalizedName `form:"name" validate:"notEmpty"`
 		Type      string               `form:"type" validate:"roomType"`      // ประเภทห้อง (normal, readonly)
-		Capacity  int                  `form:"capacity" validate:"notEmpty"`
+		Capacity  int                  `form:"capacity" validate:"gte=0"`     // 0 = unlimited
 		Members   []string             `form:"members" validate:"mongoId,optional"`
-		CreatedBy string               `form:"createdBy" validate:"mongoId"`
+		CreatedBy string               `form:"createdBy" validate:"mongoId,optional"` // Optional - will extract from JWT if not provided
 		Status    string               `form:"status" validate:"roomStatus"`  // สถานะห้อง (active, inactive)
 		Image     string               `form:"image" validate:"optional"`
+		SelectAllUsers bool                 `form:"selectAllUsers" json:"selectAllUsers"`
 	}
 
 	UpdateRoomDto struct {
@@ -29,6 +30,7 @@ type(
 		Image     string               `form:"image" validate:"optional"`
 		UpdatedAt time.Time            `form:"updatedAt" validate:"optional"`
 		CreatedBy string               `form:"createdBy" validate:"mongoId,optional"`
+		SelectAllUsers bool                 `form:"selectAllUsers" json:"selectAllUsers"`
 	}
 
 	AddRoomMembersDto struct {

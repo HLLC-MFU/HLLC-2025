@@ -1,8 +1,8 @@
 "use client";
 
 import { Room } from "@/types/chat";
-import { Card, CardBody, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Image } from "@heroui/react";
-import { Building2, EllipsisVertical, Eye, Pencil, Trash2, Users, Image as ImageIcon } from "lucide-react";
+import { Card, CardBody, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Image, Badge } from "@heroui/react";
+import { Building2, EllipsisVertical, Eye, Pencil, Trash2, Users, Image as ImageIcon, CheckCircle, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -13,9 +13,10 @@ interface RoomCardProps {
     room: Room;
     onEdit: (room: Room) => void;
     onDelete: (room: Room) => void;
+    onToggleStatus?: (room: Room) => void;
 }
 
-export function RoomCard({ room, onEdit, onDelete }: RoomCardProps) {
+export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardProps) {
     const router = useRouter();
     const [imageError, setImageError] = useState(false);
 
@@ -29,6 +30,12 @@ export function RoomCard({ room, onEdit, onDelete }: RoomCardProps) {
 
     const handleDelete = () => {
         onDelete(room);
+    };
+
+    const handleToggleStatus = () => {
+        if (onToggleStatus) {
+            onToggleStatus(room);
+        }
     };
 
     const handleCardClick = () => {
@@ -70,9 +77,19 @@ export function RoomCard({ room, onEdit, onDelete }: RoomCardProps) {
                         
                         {/* Room Info */}
                         <div className="flex flex-col min-w-0 flex-1">
-                            <p className="text-sm font-semibold truncate text-foreground">
-                                {room.name.en}
-                            </p>
+                            <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold truncate text-foreground">
+                                    {room.name.en}
+                                </p>
+                                <Badge 
+                                    size="sm" 
+                                    variant="flat" 
+                                    color={room.status === "active" ? "success" : "danger"}
+                                    className="flex-shrink-0"
+                                >
+                                    {room.status === "active" ? "Active" : "Inactive"}
+                                </Badge>
+                            </div>
                             <p className="text-xs text-default-500 truncate">
                                 {room.name.th}
                             </p>
@@ -116,6 +133,14 @@ export function RoomCard({ room, onEdit, onDelete }: RoomCardProps) {
                                 Edit Room
                             </DropdownItem>
                             <DropdownItem
+                                key="toggle-status"
+                                startContent={room.status === "active" ? <XCircle size={16} /> : <CheckCircle size={16} />}
+                                onPress={handleToggleStatus}
+                                className={room.status === "active" ? "text-warning" : "text-success"}
+                            >
+                                {room.status === "active" ? "Deactivate" : "Activate"}
+                            </DropdownItem>
+                            <DropdownItem
                                 key="delete"
                                 className="text-danger"
                                 color="danger"
@@ -140,16 +165,28 @@ export function RoomCard({ room, onEdit, onDelete }: RoomCardProps) {
                             <span className="font-medium">{room.memberCount || 0}</span>
                         </div>
                     </div>
-                    <Button
-                        variant="flat"
-                        color="primary"
-                        size="sm"
-                        startContent={<Eye size={12} />}
-                        onPress={handleViewDetails}
-                        className="text-xs px-3 h-6"
-                    >
-                        View
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="flat"
+                            color={room.status === "active" ? "warning" : "success"}
+                            size="sm"
+                            isIconOnly
+                            onPress={handleToggleStatus}
+                            className="text-xs h-6 w-6"
+                        >
+                            {room.status === "active" ? <XCircle size={12} /> : <CheckCircle size={12} />}
+                        </Button>
+                        <Button
+                            variant="flat"
+                            color="primary"
+                            size="sm"
+                            startContent={<Eye size={12} />}
+                            onPress={handleViewDetails}
+                            className="text-xs px-3 h-6"
+                        >
+                            View
+                        </Button>
+                    </div>
                 </div>
             </CardBody>
         </Card>
