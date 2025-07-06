@@ -1,18 +1,15 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, Alert, Dimensions, Animated, SafeAreaView } from 'react-native';
-import TopUser from '../../../components/step-counter/TopUser';
-import LeaderboardList from '../../../components/step-counter/LeaderboardList';
-import SwitchButton from '../../../components/step-counter/SwitchButton';
-import styles from '../../../components/step-counter/styles';
-import useProfile from '../../../hooks/useProfile';
-import useStepLeaderboard from '../../../hooks/useStepLeaderboard';
+import styles from './styles';
+import useProfile from '../../hooks/useProfile';
+import useStepLeaderboard from '../../hooks/useStepLeaderboard';
 import SegmentedToggle from '@/components/step-counter/SegmentedToggle';
-import DynamicLeaderboard, { LeaderboardUser } from '../../../components/step-counter/DynamicLeaderboard';
-import useStepAchievement from '../../../hooks/useStepAchievement';
+import DynamicLeaderboard, { LeaderboardUser } from './DynamicLeaderboard';
+import useStepAchievement from '../../hooks/useStepAchievement';
 
 
-export default function LeaderBoardScreen() {
-  const [selectedTab, setSelectedTab] = useState(0); // 0: Individual, 1: School, 2: Achievement
+export default function LeaderBoard() {
+  const [selectedTab, setSelectedTab] = useState(0);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const { user } = useProfile();
   const schoolId = user?.data?.[0]?.metadata?.major?.school?._id;
@@ -150,8 +147,6 @@ export default function LeaderBoardScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.leaderboardTitle}>{selectedTab === 0 ? 'INDIVIDUAL' : selectedTab === 1 ? 'SCHOOL' : 'ACHIEVEMENT'}</Text>
-          <Text style={styles.leaderboardSubtitle}>LEADER BOARD</Text>
           <SegmentedToggle
           value={selectedTab}
           onChange={handleTabChange}
