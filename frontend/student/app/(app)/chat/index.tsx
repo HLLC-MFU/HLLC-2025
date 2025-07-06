@@ -32,6 +32,11 @@ import RoomListItem from '@/components/chats/RoomListItem';
 import chatService from '@/services/chats/chatService';
 import { useTranslation } from 'react-i18next';
 
+// เพิ่ม type ชั่วคราวเพื่อให้ _id ใช้งานได้
+interface ChatRoomWithId extends ChatRoom {
+  _id?: string;
+}
+
 export default function ChatPage() {
   const router = useRouter();
   const { width } = Dimensions.get('window');
@@ -52,7 +57,6 @@ export default function ChatPage() {
     error,
     activeTab,
     selectedCategory,
-    filteredRooms,
     setActiveTab,
     setSelectedCategory,
     loadRooms,
@@ -75,20 +79,30 @@ export default function ChatPage() {
   }, [loadRooms]);
 
   const joinRoom = async (roomId: string) => {
-    const room = rooms.find(r => r.id === roomId);
+    if (!roomId) {
+      console.error('joinRoom called with undefined roomId');
+      return;
+    }
+    // หา room จาก id หรือ _id
+    const room = (rooms as ChatRoomWithId[]).find(r => r.id === roomId || r._id === roomId);
     setPendingJoinRoom(room || null);
     setConfirmJoinVisible(true);
   };
 
   const handleConfirmJoin = async () => {
-    if (!pendingJoinRoom) return;
+    const pendingRoom = pendingJoinRoom as ChatRoomWithId | null;
+    const roomId = (pendingRoom?.id || pendingRoom?._id) ?? null;
+    if (!pendingRoom || !roomId) {
+      console.error('No valid room to join');
+      return;
+    }
     setConfirmJoinVisible(false);
     try {
-      const result = await chatService.joinRoom(pendingJoinRoom.id);
+      const result = await chatService.joinRoom(roomId);
       if (result.success) {
         router.push({
           pathname: "/chat/[roomId]",
-          params: { roomId: pendingJoinRoom.id, isMember: 'true' }
+          params: { roomId, isMember: 'true' }
         });
       } else {
         Alert.alert(
@@ -105,11 +119,14 @@ export default function ChatPage() {
   };
 
   const navigateToRoom = async (rid: string, isMember: boolean) => {
+    console.log('navigateToRoom', rid, isMember);
     try {
       if (isMember) {
+        const room = rooms.find(r => r.id === rid);
+        console.log('router.push', { roomId: rid, isMember: 'true', room });
         router.push({
           pathname: "/chat/[roomId]",
-          params: { roomId: rid, isMember: 'true' }
+          params: { roomId: rid, isMember: 'true', room: JSON.stringify(room) }
         });
       } else {
         await joinRoom(rid);
@@ -132,13 +149,30 @@ export default function ChatPage() {
     loadRooms();
   };
 
-  const renderRoomItem = ({ item, index }: { item: ChatRoom; index: number }) => {
+  // Filter rooms by tab (ไม่ต้อง filter ด้วย members แล้ว)
+  const myRooms = rooms;
+  const discoverRooms = rooms;
+
+  // ใช้ filteredRooms ตาม activeTab
+  const filteredRooms = activeTab === 'my' ? myRooms : discoverRooms;
+
+  const renderRoomItem = ({ item, index }: { item: ChatRoomWithId; index: number }) => {
+    // log item
+    const roomId = item.id || item._id; // รองรับทั้งสองแบบ
+    console.log('renderRoomItem:', {
+      id: roomId,
+      name: item.name,
+      is_member: item.is_member,
+      status: item.status ?? 'undefined',
+      type: item.type ?? 'undefined',
+      members_count: item.members_count,
+    });
     if (activeTab === 'my') {
       return (
         <RoomListItem 
           room={item}
           language={language}
-          onPress={() => navigateToRoom(item.id, true)}
+          onPress={() => navigateToRoom(roomId as string, true)}
           index={index} width={0}
         />
       );
@@ -162,7 +196,7 @@ export default function ChatPage() {
             room={item}
             width={width}
             language={language}
-            onJoin={() => joinRoom(item.id)}
+            onJoin={() => joinRoom(String(item.id || item._id))}
             onShowDetail={showRoomDetail}
             index={index} 
             onPress={() => {}} // ไม่ต้องใช้งานจริงใน discover
@@ -213,9 +247,9 @@ export default function ChatPage() {
         />
         
         <FlatList
-          data={filteredRooms}
+          data={filteredRooms as ChatRoomWithId[]}
           renderItem={renderRoomItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: ChatRoomWithId, index) => (item.id || item._id) ? String(item.id || item._id) : `room-${index}`}
           numColumns={activeTab === 'discover' ? 2 : 1}
           key={`${activeTab}-${selectedCategory}`}
           contentContainerStyle={[

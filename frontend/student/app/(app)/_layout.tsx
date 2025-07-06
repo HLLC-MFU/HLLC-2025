@@ -1,3 +1,5 @@
+// (app)/_layout.tsx
+
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { SplashScreen, Tabs, usePathname } from 'expo-router';
 import { Redirect } from 'expo-router';
@@ -27,13 +29,6 @@ export default function AppLayout() {
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
   if (!user) return <Redirect href="/(auth)/login" />;
 
-  requestUserPermission();
-
-  messaging().setBackgroundMessageHandler(async remoteMessage => {
-    console.log('Message handled in the background!', remoteMessage);
-  });
-
-  // Check if we're in the chat room section
   const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
 
   return (

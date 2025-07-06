@@ -1,10 +1,11 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Avatar from './Avatar';
 import { Reply } from 'lucide-react-native';
 import { MessageBubbleProps } from '@/types/chatTypes';
-import { CHAT_BASE_URL } from '@/configs/chats/chatConfig';
+import { CHAT_BASE_URL, API_BASE_URL } from '@/configs/chats/chatConfig';
 import { formatTime } from '@/utils/chats/timeUtils';
+import ImagePreviewModal from './ImagePreviewModal';
 
 
 interface MessageBubbleEnrichedProps extends MessageBubbleProps {
@@ -16,8 +17,6 @@ interface MessageBubbleEnrichedProps extends MessageBubbleProps {
 const MessageBubble = memo(({ 
   message, 
   isMyMessage, 
-  senderId, 
-  senderName,
   isRead,
   showAvatar = true,
   isLastInGroup = true,
@@ -26,7 +25,9 @@ const MessageBubble = memo(({
   allMessages = [],
   onReplyPreviewClick,
   currentUsername,
-}: MessageBubbleEnrichedProps) => {
+}: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'>) => {
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState('');
   const statusElement = isMyMessage && (
     <View style={styles.messageStatus}>
       <Text style={styles.messageStatusText}>
@@ -40,8 +41,8 @@ const MessageBubble = memo(({
     if (imagePath.startsWith('http')) {
       return imagePath;
     }
-    // Otherwise, construct the full URL
-    const fullUrl = `${CHAT_BASE_URL}/api/uploads/${imagePath}`;
+    // Otherwise, construct the full URL using CHAT_BASE_URL to avoid Authorization header
+    const fullUrl = `${API_BASE_URL}/uploads/${imagePath}`;
     return fullUrl;
   };
 
@@ -76,23 +77,35 @@ const MessageBubble = memo(({
     if (message.image && (message.type === 'sticker' || message.stickerId)) {
       const imageUrl = getStickerImageUrl(message.image);
       return (
-        <Image 
-          source={{ uri: imageUrl }} 
-          style={styles.stickerImage}
-          resizeMode="contain"
-          onError={(error) => {
-            console.error('Error loading sticker image:', error.nativeEvent.error);
+        <TouchableOpacity 
+          onPress={() => {
+            setPreviewImageUrl(imageUrl);
+            setShowImagePreview(true);
           }}
-        />
+        >
+          <Image 
+            source={{ uri: imageUrl }} 
+            style={styles.stickerImage}
+            resizeMode="contain"
+            onError={(error) => {
+              console.error('Error loading sticker image:', error.nativeEvent.error);
+            }}
+          />
+        </TouchableOpacity>
       );
     }
 
     if (message.fileUrl) {
-      if (message.fileType === 'image') {
+      const isImage = message.fileType === 'image' ||
+        /\.(jpg|jpeg|png|gif|webp)$/i.test(message.fileUrl);
+      if (isImage) {
         return (
           <TouchableOpacity 
             onPress={() => {
-              // TODO: Implement image preview
+              if (message.fileUrl) {
+                setPreviewImageUrl(message.fileUrl);
+                setShowImagePreview(true);
+              }
             }}
           >
             <Image 
@@ -116,7 +129,7 @@ const MessageBubble = memo(({
     return <Text style={getMessageTextStyle()}>{renderWithMentions(message.text || '', currentUsername)}</Text>;
   };
   
-  const enrichedReplyTo = React.useMemo(() => {
+  const enrichedReplyTo = useMemo(() => {
     const replyTo = message.replyTo || undefined;
     if (replyTo && replyTo.id) {
       const found = allMessages.find(m => m.id === replyTo.id);
@@ -129,13 +142,18 @@ const MessageBubble = memo(({
           fileName: found.fileName,
           fileType: found.fileType,
           stickerId: found.stickerId,
-          senderName: found.senderName || found.username || '',
+          user: found.user, // เพิ่ม user data จาก found message
         };
       }
       return { ...replyTo, notFound: true };
     }
     return replyTo;
-  }, [message.replyTo?.id, message.replyTo?.text, message.replyTo?.senderName, allMessages]);
+  }, [message.replyTo?.id, message.replyTo?.text, allMessages]);
+
+  const getDisplayName = (user?: { name?: { first?: string; last?: string } }) => {
+    if (!user || !user.name) return '';
+    return `${user.name.first || ''} ${user.name.last || ''}`.trim();
+  };
 
   const renderReplyPreview = () => {
     if (!enrichedReplyTo) return null;
@@ -151,15 +169,33 @@ const MessageBubble = memo(({
       >
         <Text style={styles.replyLabel}>
           {isMyMessage
-            ? `You replied to ${enrichedReplyTo.senderName || 'Unknown'}`
-            : `${senderName || 'Someone'} replied to ${enrichedReplyTo.senderName || 'Unknown'}`}
+            ? `You replied to ${getDisplayName(enrichedReplyTo.user) || 'Unknown'}`
+            : `${getDisplayName(message.user) || 'Someone'} replied to ${getDisplayName(enrichedReplyTo.user) || 'Unknown'}`}
         </Text>
         <View style={isMyMessage ? styles.replyPreviewBoxMine : styles.replyPreviewBoxOther}>
           {enrichedReplyTo.type === 'file' && enrichedReplyTo.fileType === 'image' && enrichedReplyTo.image && (
-            <Image source={{ uri: enrichedReplyTo.image }} style={styles.replyImage} />
+            <TouchableOpacity 
+              onPress={() => {
+                if (enrichedReplyTo.image) {
+                  setPreviewImageUrl(enrichedReplyTo.image);
+                  setShowImagePreview(true);
+                }
+              }}
+            >
+              <Image source={{ uri: enrichedReplyTo.image }} style={styles.replyImage} />
+            </TouchableOpacity>
           )}
           {enrichedReplyTo.type === 'sticker' && enrichedReplyTo.image && (
-            <Image source={{ uri: enrichedReplyTo.image }} style={styles.replySticker} />
+            <TouchableOpacity 
+              onPress={() => {
+                if (enrichedReplyTo.image) {
+                  setPreviewImageUrl(enrichedReplyTo.image);
+                  setShowImagePreview(true);
+                }
+              }}
+            >
+              <Image source={{ uri: enrichedReplyTo.image }} style={styles.replySticker} />
+            </TouchableOpacity>
           )}
           {enrichedReplyTo.type === 'file' && enrichedReplyTo.fileType !== 'image' && (
             <Text style={styles.replyFile}>{enrichedReplyTo.fileName}</Text>
@@ -189,21 +225,9 @@ const MessageBubble = memo(({
       {renderReplyPreview()}
 
       {/* กล่องข้อความหลัก */}
-      <TouchableOpacity
-        style={styles.messageBubbleRow}
-        onLongPress={() => {
-          // ป้องกัน reply ถึงข้อความที่ยัง pending
-          if (message.isTemp || (message.id && message.id.startsWith('msg-'))) {
-            alert('กรุณารอให้ข้อความนี้ถูกส่งสำเร็จก่อนจึงจะ reply ได้');
-            return;
-          }
-          onReply && onReply(message);
-        }}
-        activeOpacity={0.8}
-        delayLongPress={200}
-      >
+      <View style={styles.messageBubbleRow}>
         {!isMyMessage && showAvatar && isLastInGroup ? (
-          <Avatar name={senderName || senderId} size={32} />
+          <Avatar name={getDisplayName(message.user)} size={32} />
         ) : (
           !isMyMessage && <View style={{ width: 40 }} />
         )}
@@ -218,7 +242,7 @@ const MessageBubble = memo(({
         >
           {renderContent()}
         </View>
-      </TouchableOpacity>
+      </View>
 
       {isLastInGroup && (
         <View style={[styles.messageFooter, isMyMessage ? { alignSelf: 'flex-end' } : { marginLeft: 40 }]}> 
@@ -226,6 +250,13 @@ const MessageBubble = memo(({
           {statusElement}
         </View>
       )}
+
+      {/* Image Preview Modal */}
+      <ImagePreviewModal
+        visible={showImagePreview}
+        imageUrl={previewImageUrl}
+        onClose={() => setShowImagePreview(false)}
+      />
     </View>
   );
 });
@@ -241,24 +272,29 @@ const styles = StyleSheet.create({
     marginLeft: 40,
     flexDirection: 'column',
     alignItems: 'flex-end',
+    maxWidth: '100%', // จำกัดความกว้างสูงสุด
   },
   otherMessage: { 
     alignSelf: 'flex-start',
     marginRight: 40,
     flexDirection: 'column',
     alignItems: 'flex-start',
+    maxWidth: '100%', // จำกัดความกว้างสูงสุด
   },
   messageBubbleRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     flexWrap: 'wrap',
+    width: '100%', // ให้ใช้พื้นที่เต็ม
   },
   messageBubble: { 
     maxWidth: '80%',
+    minWidth: 20, // ขั้นต่ำสุดสำหรับ bubble
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 18,
     marginBottom: 2,
+    alignSelf: 'flex-start', // ให้ bubble ขยายตามเนื้อหา
   },
   myBubble: { 
     backgroundColor: '#0A84FF',
@@ -296,6 +332,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     flexWrap: 'wrap',
     flexShrink: 1,
+    textAlign: 'left', // จัดข้อความชิดซ้าย
   },
   senderNameAbove: { 
     color: '#0A84FF', 
@@ -328,12 +365,16 @@ const styles = StyleSheet.create({
   replyPreviewContainer: {
     marginBottom: 6,
     maxWidth: '80%',
+    minWidth: 20, // ขั้นต่ำสุดสำหรับ reply preview
+    alignSelf: 'flex-start', // ให้ขยายตามเนื้อหา
   },
   replyLabel: {
     color: '#b0b0b0',
     fontSize: 12,
     marginBottom: 2,
     marginLeft: 2,
+    flexWrap: 'wrap', // ให้ข้อความ wrap ได้
+    flexShrink: 1, // ให้หดตัวได้
   },
   replyPreviewBoxMine: {
     backgroundColor: '#ffffff70',
@@ -342,6 +383,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: -12,
     justifyContent: 'center',
+    minWidth: 20, // ขั้นต่ำสุด
+    alignSelf: 'flex-end', // ขยายตามเนื้อหา
   },
   replyPreviewBoxOther: {
     backgroundColor: '#ffffff70',
@@ -351,11 +394,15 @@ const styles = StyleSheet.create({
     marginLeft: 40,
     marginBottom: -12,
     justifyContent: 'center',
+    minWidth: 60, // ขั้นต่ำสุด
+    alignSelf: 'flex-start', // ขยายตามเนื้อหา
   },
   replyText: {
     color: '#555',
     fontSize: 15,
     fontWeight: '400',
+    flexWrap: 'wrap', // ให้ข้อความ wrap ได้
+    flexShrink: 1, // ให้หดตัวได้
   },
   replyImage: {
     width: 36,

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import  { useState, useRef, useEffect } from 'react';
 import { View, Text, Alert, Dimensions, Animated, SafeAreaView } from 'react-native';
 import TopUser from '../../../components/step-counter/TopUser';
 import LeaderboardList from '../../../components/step-counter/LeaderboardList';
@@ -34,7 +34,7 @@ export default function LeaderBoardScreen() {
 
   const { achievements, loading: achievementIdLoading } = useStepAchievement();
   const currentAchievementId = achievements[0]?._id;
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentAchievementId) setLastAchievementId(currentAchievementId);
   }, [currentAchievementId, setLastAchievementId]);
 
