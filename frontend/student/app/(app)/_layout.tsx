@@ -1,6 +1,6 @@
 // (app)/_layout.tsx
 
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, LogBox } from 'react-native';
 import { SplashScreen, Tabs, usePathname } from 'expo-router';
 import { Redirect } from 'expo-router';
 import { BlurView } from 'expo-blur';
@@ -30,6 +30,9 @@ export default function AppLayout() {
   if (!user) return <Redirect href="/(auth)/login" />;
 
   const isChatRoute = /^\/chat\/[^/]+$/.test(pathname);
+  LogBox.ignoreLogs([
+  'gl.pixelStorei() doesn\'t support this parameter yet',
+]);
 
   return (
     <View style={{ flex: 1 }}>
