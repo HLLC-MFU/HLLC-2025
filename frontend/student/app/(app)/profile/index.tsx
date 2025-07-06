@@ -1,25 +1,81 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, Suspense } from 'react';
 
 import * as THREE from 'three'
-import { GLView } from 'expo-gl';
-import { Canvas, useFrame } from '@react-three/fiber/native'
+import { ExpoWebGLRenderingContext, GLView } from 'expo-gl';
+import { Asset } from 'expo-asset';
+import { Canvas } from '@react-three/fiber/native';
+import { GLTFLoader } from 'three-stdlib';
+import * as FileSystem from 'expo-file-system';
+import { Buffer } from 'buffer';
+import { useGLTF } from '@react-three/drei/native';
 
 import { Text, StyleSheet, View } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassButton } from "@/components/ui/GlassButton";
-import { useRouter } from "expo-router";
-import { GraduationCap, University } from 'lucide-react-native';
 import useProfile from "@/hooks/useProfile";
+import { useRouter } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
+import { GraduationCap, University } from 'lucide-react-native';
+
+global.Buffer = Buffer;
 
 export default function ProfileScreen() {
   const { user } = useProfile();
-  const meshRef = useRef<THREE.Mesh>(null);
 
-  useFrame(() => {
-    meshRef.current.rotation.x += 0.01;
-    meshRef.current.rotation.y += 0.01;
-  });
+  function Model() {
+    const ref = useRef<THREE.Group>(null);
+
+    useEffect(() => {
+      const loadModel = async () => {
+        try {
+          // const asset = Asset.fromURI(FileSystem.documentDirectory + 'model1.glb');
+          const asset = Asset.fromModule(require('@/assets/images/argo.glb'));
+          await asset.downloadAsync();
+          console.log("asset", asset);
+
+          const fileUri = asset.localUri || asset.uri;
+          console.log('fileUri', fileUri);
+
+          const binaryString = await FileSystem.readAsStringAsync(fileUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          console.log('binaryString length', binaryString.length);
+
+          const buffer = Buffer.from(binaryString, 'base64');
+          console.log('buffer length', buffer.length);
+
+          const arrayBuffer = buffer.buffer.slice(
+            buffer.byteOffset,
+            buffer.byteOffset + buffer.byteLength
+          );
+          console.log('arrayBuffer byteLength', arrayBuffer.byteLength);
+
+          const loader = new GLTFLoader();
+          console.log('Parsing...');
+
+          loader.parse(
+            arrayBuffer,
+            '',
+            (gltf) => {
+              console.log('gltf loaded:', gltf);
+              if (ref.current) {
+                ref.current.add(gltf.scene);
+              }
+            },
+            (error) => {
+              console.error('Failed to parse GLB:', error);
+            }
+          );
+        } catch (err) {
+          console.error('Error loading model:', err);
+        }
+      };
+
+      loadModel();
+    }, []);
+
+    return <group ref={ref} />;
+  }
 
   return (
     // <LinearGradient
@@ -35,17 +91,15 @@ export default function ProfileScreen() {
         </GlassButton>
       </View>
 
-      <GLView
-        style={{ flex: 1 }}
-        onContextCreate={(gl) => {}}
-      >
-        <Canvas camera={{ position: [-2, 2.5, 5], fov: 30 }}>
-          <mesh ref={meshRef}>
-            <boxGeometry args={[1, 1, 1]} />
-            <meshBasicMaterial color="hotpink" />
-          </mesh>
-        </Canvas>
-      </GLView>
+      <Canvas camera={{ position: [-2, 2.5, 5], fov: 30 }}>
+        <Suspense>
+          <Model/>
+        </Suspense>
+        {/* <mesh>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial color="white" />
+        </mesh> */}
+      </Canvas>
 
       <View style={styles.information}>
         <View style={styles.field}>

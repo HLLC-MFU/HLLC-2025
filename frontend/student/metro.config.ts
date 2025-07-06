@@ -1,13 +1,6 @@
-import { getDefaultConfig } from 'expo/metro-config';
+const { getDefaultConfig } = require('expo/metro-config');
 
-export default (async () => {
-  const config = await getDefaultConfig(__dirname);
+const config = getDefaultConfig(__dirname);
+config.resolver.assetExts.push('glb');
 
-  if (config.resolver) {
-    config.resolver.assetExts = config.resolver.assetExts
-      ? [...config.resolver.assetExts, 'glb']
-      : ['glb'];
-  }
-
-  return config;
-})();
+module.exports = config;
