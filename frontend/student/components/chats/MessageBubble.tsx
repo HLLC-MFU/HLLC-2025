@@ -6,6 +6,9 @@ import { MessageBubbleProps } from '@/types/chatTypes';
 import { CHAT_BASE_URL, API_BASE_URL } from '@/configs/chats/chatConfig';
 import { formatTime } from '@/utils/chats/timeUtils';
 import ImagePreviewModal from './ImagePreviewModal';
+import { apiRequest } from '@/utils/api';
+import useProfile from '@/hooks/useProfile';
+import { useTranslation } from 'react-i18next';
 
 
 interface MessageBubbleEnrichedProps extends MessageBubbleProps {
@@ -28,6 +31,11 @@ const MessageBubble = memo(({
 }: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'>) => {
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState('');
+  const [claiming, setClaiming] = useState<{ [id: string]: boolean }>({});
+  const [claimed, setClaimed] = useState<{ [id: string]: boolean }>({});
+  const { user } = useProfile();
+  const userId = user?.data?.[0]?._id;
+  const { t } = useTranslation();
   const statusElement = isMyMessage && (
     <View style={styles.messageStatus}>
       <Text style={styles.messageStatusText}>
@@ -35,6 +43,9 @@ const MessageBubble = memo(({
       </Text>
     </View>
   );
+
+  // Language detection (simple):
+  const lang = (typeof navigator !== 'undefined' && navigator.language?.startsWith('en')) ? 'en' : 'th';
 
   const getStickerImageUrl = (imagePath: string) => {
     // If imagePath is already a full URL, return it
@@ -73,6 +84,56 @@ const MessageBubble = memo(({
   };
 
   const renderContent = () => {
+    // Check for evoucher type
+    if (message.type === 'evoucher' && message.evoucherInfo) {
+      const isClaimed = claimed[message.id ?? ''] || false;
+      const isClaiming = claiming[message.id ?? ''] || false;
+      return (
+        <View style={[styles.evoucherCard, isClaimed && styles.evoucherCardClaimed]}> 
+          <View style={styles.evoucherHeader}>
+            <Text style={styles.evoucherIcon}>{isClaimed ? '🎉' : '🎟️'}</Text>
+            <Text style={[styles.evoucherTitle, isClaimed && styles.evoucherTitleClaimed]}>
+              {message.evoucherInfo.title}
+            </Text>
+          </View>
+          <Text style={styles.evoucherDescription}>{message.evoucherInfo.description}</Text>
+          {isClaimed ? (
+            <View style={styles.claimedBox}>
+              <Text style={styles.claimedText}>{t('evoucher.claimed', 'คุณได้รับ E-Voucher แล้ว!')}</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.evoucherButton}
+              disabled={isClaimed || isClaiming}
+              onPress={async () => {
+                if (!message.evoucherInfo?.claimUrl || !userId) return;
+                setClaiming(prev => ({ ...prev, [message.id ?? '']: true }));
+                try {
+                  const claimPath = message.evoucherInfo.claimUrl;
+                  const res = await apiRequest(claimPath, 'POST', { user: userId });
+                  if (res.statusCode === 200 || res.statusCode === 201) {
+                    setClaimed(prev => ({ ...prev, [message.id ?? '']: true }));
+                  } else {
+                    alert(res.message || 'Claim failed');
+                  }
+                } catch (e) {
+                  alert('Claim failed');
+                } finally {
+                  setClaiming(prev => ({ ...prev, [message.id ?? '']: false }));
+                }
+              }}
+            >
+              <Text style={styles.evoucherButtonText}>
+                {isClaiming
+                  ? t('evoucher.claiming', 'กำลังเคลม...')
+                  : t('evoucher.claim', 'กดเพื่อรับ E-Voucher')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+
     // Check for sticker by looking at image field and type
     if (message.image && (message.type === 'sticker' || message.stickerId)) {
       const imageUrl = getStickerImageUrl(message.image);
@@ -445,6 +506,76 @@ const styles = StyleSheet.create({
   fileName: {
     color: '#fff',
     fontSize: 14,
+  },
+  evoucherCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#ffe066',
+    padding: 18,
+    marginVertical: 6,
+    shadowColor: '#ffe066',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    minWidth: 220,
+    maxWidth: 300,
+  },
+  evoucherCardClaimed: {
+    borderColor: '#22c55e',
+    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+  },
+  evoucherHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  evoucherIcon: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  evoucherTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#b8860b',
+  },
+  evoucherTitleClaimed: {
+    color: '#22c55e',
+  },
+  evoucherDescription: {
+    fontSize: 15,
+    color: '#7c6f00',
+    marginBottom: 14,
+  },
+  evoucherButton: {
+    backgroundColor: '#ffe066',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    shadowColor: '#ffe066',
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  evoucherButtonText: {
+    color: '#b8860b',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  claimedBox: {
+    marginTop: 8,
+    padding: 10,
+    backgroundColor: 'rgba(34,197,94,0.12)',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  claimedText: {
+    color: '#22c55e',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

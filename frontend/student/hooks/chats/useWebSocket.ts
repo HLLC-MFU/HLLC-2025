@@ -682,6 +682,30 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
             addMessage(stickerMsg);
             return;
           }
+
+          // เพิ่มรองรับ type: 'evoucher'
+          if (data.type === 'evoucher' && data.payload) {
+            const payload = data.payload;
+            const evoucherInfo = payload.evoucherInfo || {};
+            const msg = payload.message || {};
+            const userObj = safeUser(payload.user);
+            const evoucherMessage = {
+              id: msg._id || msg.id || `evoucher-${Date.now()}`,
+              user: userObj,
+              type: 'evoucher',
+              timestamp: payload.timestamp || msg.timestamp || new Date().toISOString(),
+              isRead: false,
+              isTemp: false,
+              text: msg.message || '',
+              evoucherInfo: {
+                claimUrl: evoucherInfo.claimUrl || '',
+                description: evoucherInfo.description || '',
+                title: evoucherInfo.title || '',
+              },
+            };
+            addMessage(evoucherMessage);
+            return;
+          }
         } catch (err) {
           console.error('Error handling message:', err, event.data);
         }
@@ -727,20 +751,6 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
         }
         if (event.code !== 1000 && event.code !== 1001) {
           attemptReconnect();
-        }
-      };
-      socket.onerror = (error) => {
-        console.error('WebSocket Error:', {
-          error,
-          readyState: socket.readyState,
-          url: wsUrl,
-          roomId,
-          userId
-        });
-        updateState({ error: 'Failed to connect to chat server' });
-        updateConnectionState({ isConnecting: false });
-        if (connectionTimeout.current) {
-          clearTimeout(connectionTimeout.current);
         }
       };
 

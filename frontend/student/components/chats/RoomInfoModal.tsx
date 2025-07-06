@@ -10,6 +10,7 @@ import {
   Dimensions
 } from 'react-native';
 import { X, Users, Clock, Shield, Star } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
 
 import Avatar from './Avatar';
 import { RoomInfoModalProps } from '@/types/chatTypes';
@@ -143,6 +144,12 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
           }
         ]}
       >
+        {/* Blur background */}
+        <BlurView
+          intensity={40}
+          tint="dark"
+          style={StyleSheet.absoluteFill}
+        />
         <TouchableWithoutFeedback onPress={() => {}} delayPressIn={0} delayPressOut={0}>
           <Animated.View 
             style={[

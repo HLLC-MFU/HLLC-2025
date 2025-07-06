@@ -1,5 +1,5 @@
 {
-    "global":{
+    "global": {
         "loading": "กำลังโหลด...",
         "error": "เกิดข้อผิดพลาด",
         "success": "สำเร็จ",
@@ -68,7 +68,10 @@
         "subtitle": "กำลังมา เร็วๆนี้...",
         "backward": "ย้อนกลับ",
         "confirmTitle": "ยืนยันการใช้ E-Voucher",
-        "confirmMessage": "คุณแน่ใจหรือไม่ว่าต้องการใช้ E-Voucher นี้?"
+        "confirmMessage": "คุณแน่ใจหรือไม่ว่าต้องการใช้ E-Voucher นี้?",
+        "claim": "กดเพื่อรับ E-Voucher",
+        "claiming": "กำลังเคลม...",
+        "claimed": "คุณได้รับ E-Voucher แล้ว!"
     },
     "bottomNav": {
         "home": "หน้าแรก",

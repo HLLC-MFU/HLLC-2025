@@ -18,6 +18,7 @@ import { BlurView } from 'expo-blur';
 
 // Hooks
 import { useChatRoom } from '../../../hooks/chats/useChatRoom';
+import useProfile from '@/hooks/useProfile';
 
 // Types
 import { ChatRoom, RoomMember } from '../../../types/chatTypes';
@@ -29,6 +30,7 @@ import ErrorView from '@/components/chats/ErrorView';
 import JoinBanner from '@/components/chats/JoinBanner';
 import MessageList from '@/components/chats/MessageList';
 import RoomInfoModal from '@/components/chats/RoomInfoModal';
+import EvoucherModal from '@/components/chats/EvoucherModal';
 import StickerPicker from '@/components/chats/StickerPicker';
 import MentionSuggestions from '@/components/chats/MentionSuggestions';
 
@@ -36,6 +38,9 @@ export default function ChatRoomPage() {
   const router = useRouter();
   const flatListRef = useRef<FlatList | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [showEvoucherModal, setShowEvoucherModal] = useState(false);
+  const { user } = useProfile();
+  
   const {
     room,
     isMember,
@@ -58,6 +63,7 @@ export default function ChatRoomPage() {
     typing,
     inputRef,
     userId,
+    roomId,
     groupMessages,
     mentionSuggestions,
     isMentioning,
@@ -72,6 +78,18 @@ export default function ChatRoomPage() {
     initializeRoom,
     loadMembers,
   } = useChatRoom();
+
+  // Check if user has permission to send evoucher
+  const canSendEvoucher = () => {
+    if (!user?.data?.[0]?.role?.name) return false;
+    const userRole = user.data[0].role.name;
+    return userRole === 'Administrator' || userRole === 'AE';
+  };
+
+  // Check if should show evoucher button
+  const shouldShowEvoucherButton = () => {
+    return room?.type === 'readonly' && canSendEvoucher();
+  };
 
   // โหลดสมาชิกห้องทันทีที่เข้าแชท
   useEffect(() => {
@@ -151,13 +169,23 @@ export default function ChatRoomPage() {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={chatStyles.infoButton}
-                onPress={() => setIsRoomInfoVisible(true)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Info color="#0A84FF" size={20} />
-              </TouchableOpacity>
+              {shouldShowEvoucherButton() ? (
+                <TouchableOpacity
+                  style={chatStyles.infoButton}
+                  onPress={() => setShowEvoucherModal(true)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Info color="#0A84FF" size={20} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={chatStyles.infoButton}
+                  onPress={() => setIsRoomInfoVisible(true)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Info color="#0A84FF" size={20} />
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Connection status indicator */}
@@ -302,6 +330,17 @@ export default function ChatRoomPage() {
                 onClose={() => setShowStickerPicker(false)}
               />
             )}
+
+            {/* Evoucher Modal */}
+            <EvoucherModal
+              roomId={roomId}
+              isVisible={showEvoucherModal}
+              onClose={() => setShowEvoucherModal(false)}
+              onSuccess={() => {
+                // Optionally refresh messages or show success message
+                console.log('Evoucher sent successfully');
+              }}
+            />
           </SafeAreaView>
         </BlurView>
       </TouchableWithoutFeedback>

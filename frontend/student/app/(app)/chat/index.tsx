@@ -32,7 +32,6 @@ import RoomListItem from '@/components/chats/RoomListItem';
 import chatService from '@/services/chats/chatService';
 import { useTranslation } from 'react-i18next';
 
-// เพิ่ม type ชั่วคราวเพื่อให้ _id ใช้งานได้
 interface ChatRoomWithId extends ChatRoom {
   _id?: string;
 }
@@ -80,7 +79,6 @@ export default function ChatPage() {
 
   const joinRoom = async (roomId: string) => {
     if (!roomId) {
-      console.error('joinRoom called with undefined roomId');
       return;
     }
     // หา room จาก id หรือ _id
@@ -123,7 +121,6 @@ export default function ChatPage() {
     try {
       if (isMember) {
         const room = rooms.find(r => r.id === rid);
-        console.log('router.push', { roomId: rid, isMember: 'true', room });
         router.push({
           pathname: "/chat/[roomId]",
           params: { roomId: rid, isMember: 'true', room: JSON.stringify(room) }
@@ -132,7 +129,6 @@ export default function ChatPage() {
         await joinRoom(rid);
       }
     } catch (error) {
-      console.error('Error navigating to room:', error);
       Alert.alert(
         t('error', language),
         t('cannotAccess', language)
@@ -211,7 +207,13 @@ export default function ChatPage() {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
-          <LoadingSpinner text={t('loadingCommunities', language)} />
+        <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={handleRefresh}
+              colors={['#fff']}
+              tintColor="#fff"
+              progressBackgroundColor="#ffffff"
+            />
         </View>
       </View>
     );

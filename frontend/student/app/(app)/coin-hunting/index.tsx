@@ -1,14 +1,15 @@
 import  { useCallback, useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import InteractiveMap from './_components/interactive-map';
-import MapMarkers from './_components/map-markers';
-import MarkerDetailModal from './_components/marker-detail-modal';
-import TopBar from './_components/top-bar';
-import StampModal from './_components/stamp-modal';
 import useCoinHunting from '@/hooks/useCoinHunting';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import CombinedModal from './_components/combined-modal';
+import TopBar from '@/components/coin-hunting/top-bar';
+import InteractiveMap from '@/components/coin-hunting/interactive-map';
+import MapMarkers from '@/components/coin-hunting/map-markers';
+import MarkerDetailModal from '@/components/coin-hunting/marker-detail-modal';
+import CombinedModal from '@/components/coin-hunting/combined-modal';
+import StampModal from '@/components/coin-hunting/stamp-modal';
+
 
 export default function CoinHuntingScreen() {
   const {
@@ -23,6 +24,8 @@ export default function CoinHuntingScreen() {
     closeModal,
     markers,
     collectedCoinImages,
+    handleScannerSuccess,
+    handleAlert,
   } = useCoinHunting();
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -49,7 +52,6 @@ export default function CoinHuntingScreen() {
         onScan={handleCheckIn}
         onStamp={() => handleGoToStamp()}
         centerText="Bloom possible"
-        onLeaderboard={() => router.replace('/coin-hunting/leaderboard')}
       />
       <InteractiveMap>
         <MapMarkers onMarkerPress={handleMarkerPress} refreshKey={refreshKey} />

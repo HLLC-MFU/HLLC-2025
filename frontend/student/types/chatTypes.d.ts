@@ -2,7 +2,7 @@ export interface Message {
   id?: string;
   text?: string;
   user?: User;
-  type: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention';
+  type: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention' | 'evoucher';
   timestamp: string;
   isRead: boolean;
   isTemp?: boolean;
@@ -29,6 +29,11 @@ export interface Message {
   mentioned?: string;
   mentions?: string[];
   username?: string;
+  evoucherInfo?: {
+    claimUrl: string;
+    description: string;
+    title: string;
+  };
 }
 
 export interface ConnectedUser {
