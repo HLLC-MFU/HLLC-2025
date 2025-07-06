@@ -19,7 +19,7 @@
           "fetch",
           "remote-notification"
         ],
-        "BGTaskSchedulerPermittedIdentifiers":[
+        "BGTaskSchedulerPermittedIdentifiers": [
           "background-step-sync"
         ],
         "UIViewControllerBasedStatusBarAppearance": "Allow $(PRODUCT_NAME) to send you notifications.",
@@ -90,7 +90,8 @@
       ],
       "expo-background-task",
       "expo-video",
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true

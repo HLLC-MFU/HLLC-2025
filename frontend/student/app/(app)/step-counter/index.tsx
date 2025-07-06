@@ -1,9 +1,10 @@
 import { router } from "expo-router";
 import { ChevronLeft, Medal } from "lucide-react-native";
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import useHealthData, { useUpdateDevice } from '@/hooks/health/useHealthData';
+import LeaderBoard from "@/components/step-counter/LeaderBoard";
 
 export default function StepCounterScreen() {
   const { steps, deviceMismatch } = useHealthData(new Date());
@@ -25,18 +26,6 @@ export default function StepCounterScreen() {
           >
             <View style={styles.stepCounterFabInner}>
               <ChevronLeft size={24} color="#fff" />
-            </View>
-          </TouchableOpacity>
-          <View style={styles.titleBox}>
-            <Text style={styles.title}>NUBGAO</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.stepCounterFab}
-            onPress={() => router.replace('/step-counter/leaderBoard')}
-            activeOpacity={0.9}
-          >
-            <View style={styles.stepCounterFabInner}>
-              <Medal size={24} color="#fff" />
             </View>
           </TouchableOpacity>
         </View>
@@ -100,15 +89,15 @@ export default function StepCounterScreen() {
             </TouchableOpacity>
           )}
         </View>
-
       </View>
+      <LeaderBoard />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "transparent" },
-  container: { flex: 1, alignItems: "center", paddingTop: 0 },
+  container: { alignItems: "center", paddingTop: 0 },
   header: {
     width: "100%",
     flexDirection: "row",
@@ -154,7 +143,7 @@ const styles = StyleSheet.create({
   stepNumber: { fontSize: 32, fontWeight: "bold", color: "white" },
   stepLabel: { fontSize: 16, color: "#ffffff80" },
 
-  totalStepsBox: { alignItems: "center", marginBottom: 24 },
+  totalStepsBox: { alignItems: "center" },
   totalStepsTitle: { color: "white", fontWeight: "bold", fontSize: 18 },
   totalStepsDesc: { color: "#ddd", fontSize: 13, marginTop: 2, textAlign: "center" },
 
@@ -165,7 +154,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.85)",
     borderRadius: 24,
     padding: 20,
-    marginBottom: -30,
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 8,
