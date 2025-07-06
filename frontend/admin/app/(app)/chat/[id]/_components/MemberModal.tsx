@@ -23,6 +23,10 @@ interface MemberModalProps {
 export function MemberModal({ isOpen, onClose, member }: MemberModalProps) {
     if (!member) return null;
 
+    // Fallback logic for name
+    const nameObj = member.name || {};
+    const fullName = [nameObj.first, nameObj.middle, nameObj.last].filter(Boolean).join(" ") || member.username || "";
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} size="lg">
             <ModalContent>
@@ -32,13 +36,13 @@ export function MemberModal({ isOpen, onClose, member }: MemberModalProps) {
                         {/* User Info */}
                         <div className="flex items-center gap-4">
                             <Avatar
-                                name={`${member.name.first} ${member.name.last}`}
+                                name={fullName}
                                 size="lg"
                             />
                             <div>
                                 <h3 className="text-xl font-semibold">{member.username}</h3>
                                 <p className="text-default-500">
-                                    {member.name.first} {member.name.last}
+                                    {fullName}
                                 </p>
                             </div>
                         </div>
@@ -52,7 +56,7 @@ export function MemberModal({ isOpen, onClose, member }: MemberModalProps) {
                                 <div>
                                     <p className="text-sm text-default-500">Role</p>
                                     <Chip size="sm" variant="flat">
-                                        {member.role.name}
+                                        {member.role?.name || 'User'}
                                     </Chip>
                                 </div>
                             </div>

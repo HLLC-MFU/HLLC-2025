@@ -20,6 +20,7 @@ import {
     DropdownTrigger, 
     DropdownMenu, 
     DropdownItem,
+    Pagination,
 } from "@heroui/react";
 import { 
     ArrowLeft, 
@@ -36,7 +37,7 @@ import {
     MessageSquare
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { addToast } from "@heroui/react";
 import { MemberCellRender } from "./_components/MemberCellRender";
 import { MemberModal } from "./_components/MemberModal";
@@ -55,6 +56,10 @@ export default function RoomDetailPage() {
     const [isRestrictionModalOpen, setIsRestrictionModalOpen] = useState(false);
     const [restrictionAction, setRestrictionAction] = useState<'ban' | 'mute' | 'kick' | 'unban' | 'unmute'>('ban');
     const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+    
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const rowsPerPage = 10;
 
     useEffect(() => {
         if (roomId) {
@@ -84,6 +89,7 @@ export default function RoomDetailPage() {
     };
 
     const handleRestrictionAction = (member: RoomMember, action: 'ban' | 'mute' | 'kick' | 'unban' | 'unmute') => {
+        console.log('handleRestrictionAction called:', action, member);
         setSelectedMember(member);
         setRestrictionAction(action);
         setIsRestrictionModalOpen(true);
@@ -94,6 +100,14 @@ export default function RoomDetailPage() {
         setIsMemberModalOpen(false);
         setIsRestrictionModalOpen(false);
     };
+
+    // Pagination logic
+    const pages = Math.ceil(members.length / rowsPerPage);
+    const paginatedMembers = useMemo(() => {
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        return members.slice(start, end);
+    }, [members, page]);
 
     if (isLoadingMembers) {
         return (
@@ -175,14 +189,14 @@ export default function RoomDetailPage() {
                             <TableColumn>ACTIONS</TableColumn>
                         </TableHeader>
                         <TableBody emptyContent="No members found">
-                            {members.map((member) => (
+                            {paginatedMembers.map((member) => (
                                 <TableRow key={member._id}>
                                     <TableCell>
                                         <MemberCellRender member={member} />
                                     </TableCell>
                                     <TableCell>
                                         <Chip size="sm" variant="flat">
-                                            {member.role.name}
+                                            {member.role?.name || 'User'}
                                         </Chip>
                                     </TableCell>
                                     <TableCell>
@@ -256,6 +270,19 @@ export default function RoomDetailPage() {
                             ))}
                         </TableBody>
                     </Table>
+                    
+                    {/* Pagination */}
+                    {pages > 1 && (
+                        <div className="flex justify-center mt-4">
+                            <Pagination
+                                total={pages}
+                                page={page}
+                                onChange={setPage}
+                                showControls
+                                color="primary"
+                            />
+                        </div>
+                    )}
                 </CardBody>
             </Card>
 
@@ -271,7 +298,7 @@ export default function RoomDetailPage() {
                 isOpen={isRestrictionModalOpen}
                 onClose={() => setIsRestrictionModalOpen(false)}
                 member={selectedMember}
-                action={restrictionAction}
+                action={restrictionAction as 'ban' | 'mute'} 
                 roomId={roomId}
                 onSuccess={handleActionSuccess}
             />

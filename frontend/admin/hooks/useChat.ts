@@ -4,74 +4,76 @@ import { useState, useEffect } from "react";
 import { 
     Room, 
     RoomMember, 
-    EvoucherData, 
-    EvoucherResponse, 
-    RestrictionAction, 
-    RestrictionResponse,
     RoomMembersResponse 
 } from "../types/chat";
-import { apiRequest, ApiResponse } from "../utils/api";
+import { getToken } from "../utils/storage";
 
 // Chat service API base URL
-const CHAT_API_BASE_URL = "http://localhost:1334/api";
+const CHAT_API_BASE_URL = process.env.GO_PUBLIC_API_URL || "http://localhost:1334/api";
 
-// Custom API request function for chat service
-async function chatApiRequest<T>(
+// Custom API request function for chat service using useApi
+export async function chatApiRequest<T>(
     endpoint: string,
     method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
     body?: object | FormData,
     options: RequestInit = {}
-): Promise<ApiResponse<T>> {
+): Promise<{ data: T | null; statusCode: number; message: string | null }> {
     try {
-        // Get token from localStorage
-        const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-        const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+        // Get token from multiple sources
+        const token = getToken('accessToken');
 
         const headers: HeadersInit = {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(!isFormData && body ? { "Content-Type": "application/json" } : {}),
+            ...(body && !(body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
             ...(options.headers || {}),
         };
-
+        
+        // Log warning if no token found
+        if (!token) {
+            console.warn("No access token found! Request may fail with 401 Unauthorized.");
+        }
+        
         const response = await fetch(`${CHAT_API_BASE_URL}${endpoint}`, {
             method,
             headers,
             credentials: "include",
             body: body
-                ? isFormData
+                ? body instanceof FormData
                     ? (body as FormData)
                     : JSON.stringify(body)
                 : undefined,
             ...options,
         });
-
-        const responseData = await response.json();
-
-        if (responseData.statusCode && responseData.message && responseData.data) {
+        
+        // Handle 401 Unauthorized
+        if (response.status === 401) {
+            console.error("401 Unauthorized - Token may be invalid or expired");
             return {
-                data: responseData.data,
-                statusCode: responseData.statusCode,
-                message: responseData.message,
-            };
-        } else if (response.ok) {
-            return {
-                data: responseData,
-                statusCode: response.status,
-                message: null,
+                data: null,
+                statusCode: 401,
+                message: "Unauthorized - Please login again",
             };
         }
 
+        let responseData;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            responseData = await response.json();
+        } else {
+            responseData = await response.text();
+        }
+
         return {
-            data: null,
+            data: responseData,
             statusCode: response.status,
-            message: responseData.message || "Request failed",
+            message: null,
         };
-    } catch (err) {
-        console.error("Chat API Error:", err);
+    } catch (error) {
+        console.error("Chat API request error:", error);
         return {
             data: null,
             statusCode: 500,
-            message: (err as Error).message,
+            message: error instanceof Error ? error.message : "Network error",
         };
     }
 }
@@ -121,7 +123,7 @@ export function useChat() {
      * @return {Promise<ApiResponse<{ data: Room }>>} A promise that resolves when the room is created.
      * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
      */
-    const createRoom = async (roomData: FormData): Promise<ApiResponse<{ data: Room }>> => {
+    const createRoom = async (roomData: FormData): Promise<{ data: { data: Room } | null; statusCode: number; message: string | null }> => {
         try {
             setLoading(true);
             const res = await chatApiRequest<{ data: Room }>("/rooms", "POST", roomData);
@@ -146,7 +148,7 @@ export function useChat() {
      * @return {Promise<ApiResponse<{ data: Room }>>} A promise that resolves when the room is updated.
      * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
      */
-    const updateRoom = async (id: string, roomData: FormData): Promise<ApiResponse<{ data: Room }>> => {
+    const updateRoom = async (id: string, roomData: FormData): Promise<{ data: { data: Room } | null; statusCode: number; message: string | null }> => {
         try {
             setLoading(true);
             const res = await chatApiRequest<{ data: Room }>(`/rooms/${id}`, "PATCH", roomData);
@@ -174,7 +176,7 @@ export function useChat() {
      * @return {Promise<ApiResponse<{ data: Room }>>} A promise that resolves when the room is deleted.
      * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
      */
-    const deleteRoom = async (id: string): Promise<ApiResponse<{ data: Room }>> => {
+    const deleteRoom = async (id: string): Promise<{ data: { data: Room } | null; statusCode: number; message: string | null }> => {
         setLoading(true);
         try {
             const res = await chatApiRequest<{ data: Room }>(`/rooms/${id}`, "DELETE");
@@ -196,22 +198,29 @@ export function useChat() {
     const getRoomMembers = async (roomId: string): Promise<RoomMember[]> => {
         try {
             setLoading(true);
+            
             const res = await chatApiRequest<RoomMembersResponse>(`/rooms/${roomId}/members`, "GET");
             
             if (res.statusCode !== 200) {
                 throw new Error(res.message || `HTTP ${res.statusCode}: Failed to fetch room members`);
             }
 
-            if (res.data?.data?.members) {
-                return res.data.data.members.map(member => ({
+            // Check for members in the correct path based on API response structure
+            const members = res.data?.members || res.data?.data?.members;
+            
+            if (members && Array.isArray(members)) {
+                const processedMembers = members.map(member => ({
                     _id: member.user._id,
                     username: member.user.username,
-                    name: member.user.name,
+                    name: typeof member.user.name === 'string' 
+                        ? { first: member.user.name, last: '' }
+                        : member.user.name || { first: member.user.username, last: '' },
                     role: member.user.role || { _id: '', name: 'User' },
                     joinedAt: new Date().toISOString(), // This would come from the API
                     isOnline: false, // This would come from WebSocket status
                     lastSeen: new Date().toISOString(), // This would come from the API
                 }));
+                return processedMembers;
             }
             
             return [];
@@ -222,121 +231,6 @@ export function useChat() {
             setLoading(false);
         }
     };
-
-    // **NEW: Send evoucher**
-    const sendEvoucher = async (evoucherData: EvoucherData): Promise<EvoucherResponse> => {
-        try {
-            setLoading(true);
-            const res = await chatApiRequest<EvoucherResponse>("/evouchers/send", "POST", evoucherData);
-            
-            if (res.statusCode !== 200 && res.statusCode !== 201) {
-                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to send evoucher`);
-            }
-
-            return res.data as EvoucherResponse;
-        } catch (err) {
-            console.error("Send evoucher error:", err);
-            throw new Error(err instanceof Error ? err.message : 'Failed to send evoucher.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // **NEW: Ban user**
-    const banUser = async (restrictionData: RestrictionAction): Promise<RestrictionResponse> => {
-        try {
-            setLoading(true);
-            const res = await chatApiRequest<RestrictionResponse>("/restrictions/ban", "POST", restrictionData);
-            
-            if (res.statusCode !== 200 && res.statusCode !== 201) {
-                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to ban user`);
-            }
-
-            return res.data as RestrictionResponse;
-        } catch (err) {
-            console.error("Ban user error:", err);
-            throw new Error(err instanceof Error ? err.message : 'Failed to ban user.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // **NEW: Mute user**
-    const muteUser = async (restrictionData: RestrictionAction): Promise<RestrictionResponse> => {
-        try {
-            setLoading(true);
-            const res = await chatApiRequest<RestrictionResponse>("/restrictions/mute", "POST", restrictionData);
-            
-            if (res.statusCode !== 200 && res.statusCode !== 201) {
-                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to mute user`);
-            }
-
-            return res.data as RestrictionResponse;
-        } catch (err) {
-            console.error("Mute user error:", err);
-            throw new Error(err instanceof Error ? err.message : 'Failed to mute user.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // **NEW: Kick user**
-    const kickUser = async (restrictionData: RestrictionAction): Promise<RestrictionResponse> => {
-        try {
-            setLoading(true);
-            const res = await chatApiRequest<RestrictionResponse>("/restrictions/kick", "POST", restrictionData);
-            
-            if (res.statusCode !== 200 && res.statusCode !== 201) {
-                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to kick user`);
-            }
-
-            return res.data as RestrictionResponse;
-        } catch (err) {
-            console.error("Kick user error:", err);
-            throw new Error(err instanceof Error ? err.message : 'Failed to kick user.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // **NEW: Unban user**
-    const unbanUser = async (restrictionData: RestrictionAction): Promise<RestrictionResponse> => {
-        try {
-            setLoading(true);
-            const res = await chatApiRequest<RestrictionResponse>("/restrictions/unban", "POST", restrictionData);
-            
-            if (res.statusCode !== 200 && res.statusCode !== 201) {
-                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to unban user`);
-            }
-
-            return res.data as RestrictionResponse;
-        } catch (err) {
-            console.error("Unban user error:", err);
-            throw new Error(err instanceof Error ? err.message : 'Failed to unban user.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // **NEW: Unmute user**
-    const unmuteUser = async (restrictionData: RestrictionAction): Promise<RestrictionResponse> => {
-        try {
-            setLoading(true);
-            const res = await chatApiRequest<RestrictionResponse>("/restrictions/unmute", "POST", restrictionData);
-            
-            if (res.statusCode !== 200 && res.statusCode !== 201) {
-                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to unmute user`);
-            }
-
-            return res.data as RestrictionResponse;
-        } catch (err) {
-            console.error("Unmute user error:", err);
-            throw new Error(err instanceof Error ? err.message : 'Failed to unmute user.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
         fetchRoom();
     }, []);
@@ -349,13 +243,6 @@ export function useChat() {
         createRoom,
         updateRoom,
         deleteRoom,
-        // **NEW: Room management functions**
         getRoomMembers,
-        sendEvoucher,
-        banUser,
-        muteUser,
-        kickUser,
-        unbanUser,
-        unmuteUser,
     };
 }

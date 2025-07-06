@@ -44,9 +44,9 @@ export type RoomMember = {
 // **NEW: Evoucher types**
 export type EvoucherData = {
     roomId: string;
-    userIds: string[];
-    evoucherId: string;
-    message?: string;
+    title: string;
+    ClaimURL: string;
+    description: string;
 };
 
 export type EvoucherResponse = {
@@ -55,13 +55,10 @@ export type EvoucherResponse = {
     data?: {
         id: string;
         room_id: string;
-        user_id: string;
+        title: string;
+        ClaimURL: string;
+        description: string;
         timestamp: string;
-        evoucherInfo: {
-            title: string;
-            description: string;
-            claimUrl: string;
-        };
     };
 };
 
@@ -74,6 +71,7 @@ export type RestrictionAction = {
     timeValue?: number;
     timeUnit?: 'minutes' | 'hours';
     restriction?: 'can_view' | 'cannot_view';
+    restrictorId?: string;
     reason: string;
 };
 
@@ -102,7 +100,7 @@ export type RoomMembersResponse = {
             user: {
                 _id: string;
                 username: string;
-                name: {
+                name?: {
                     first: string;
                     middle?: string;
                     last: string;
@@ -114,6 +112,22 @@ export type RoomMembersResponse = {
             };
         }>;
     };
+    // Also support direct members array for backward compatibility
+    members?: Array<{
+        user: {
+            _id: string;
+            username: string;
+            name?: {
+                first: string;
+                middle?: string;
+                last: string;
+            };
+            role?: {
+                _id: string;
+                name: string;
+            };
+        };
+    }>;
 };
 
 export enum RoomType {
