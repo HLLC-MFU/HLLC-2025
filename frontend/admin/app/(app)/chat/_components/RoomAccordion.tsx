@@ -19,11 +19,21 @@ export default function RoomAccordion({
     onEdit, 
     onDelete 
 }: RoomAccordionProps) {
-    // Group rooms by type & groupType
-    const normalRooms = rooms.filter((room) => room.type === RoomType.NORMAL);
-    const readonlyRooms = rooms.filter((room) => room.type === RoomType.READONLY);
-    const schoolRooms = rooms.filter((room) => room.metadata?.groupType === "school");
-    const majorRooms = rooms.filter((room) => room.metadata?.groupType === "major");
+    // Group rooms by type & groupType - แยกให้ชัดเจนไม่ให้ซ้ำ
+    const normalRooms = rooms.filter((room) => 
+        room.type === RoomType.NORMAL && 
+        !room.metadata?.groupType // ไม่มี groupType หรือ groupType เป็น undefined
+    );
+    const readonlyRooms = rooms.filter((room) => 
+        room.type === RoomType.READONLY && 
+        !room.metadata?.groupType // ไม่มี groupType หรือ groupType เป็น undefined
+    );
+    const schoolRooms = rooms.filter((room) => 
+        room.metadata?.groupType === "school"
+    );
+    const majorRooms = rooms.filter((room) => 
+        room.metadata?.groupType === "major"
+    );
 
     return (
         <Accordion variant="splitted" selectionMode="multiple">

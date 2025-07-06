@@ -194,6 +194,26 @@ export function useChat() {
         }
     };
 
+    // **NEW: Get room by ID**
+    const getRoomById = async (roomId: string): Promise<Room | null> => {
+        try {
+            setLoading(true);
+            
+            const res = await chatApiRequest<{ data: Room }>(`/rooms/${roomId}`, "GET");
+            
+            if (res.statusCode !== 200) {
+                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to fetch room`);
+            }
+
+            return res.data?.data || null;
+        } catch (err) {
+            console.error("Fetch room error:", err);
+            throw new Error(err instanceof Error ? err.message : 'Failed to fetch room.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // **NEW: Get room members**
     const getRoomMembers = async (roomId: string): Promise<RoomMember[]> => {
         try {
@@ -243,6 +263,7 @@ export function useChat() {
         createRoom,
         updateRoom,
         deleteRoom,
+        getRoomById,
         getRoomMembers,
     };
 }

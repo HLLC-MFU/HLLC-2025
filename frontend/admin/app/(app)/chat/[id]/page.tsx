@@ -2,70 +2,64 @@
 
 import { PageHeader } from "@/components/ui/page-header";
 import { useChat } from "@/hooks/useChat";
-import { RoomMember } from "@/types/chat";
+import { RoomMember, Room } from "@/types/chat";
 import { 
     Card, 
     CardBody, 
     Button, 
     Chip,
-    Avatar,
-    Badge,
-    Table, 
-    TableHeader, 
-    TableColumn, 
-    TableBody, 
-    TableRow, 
-    TableCell,
-    Dropdown, 
-    DropdownTrigger, 
-    DropdownMenu, 
-    DropdownItem,
-    Pagination,
 } from "@heroui/react";
 import { 
     ArrowLeft, 
     Users, 
-    MoreVertical, 
-    Ban, 
-    Mic, 
-    MicOff, 
-    LogOut, 
     Gift,
-    Eye,
-    Clock,
     Sticker,
-    MessageSquare
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { addToast } from "@heroui/react";
-import { MemberCellRender } from "./_components/MemberCellRender";
 import { MemberModal } from "./_components/MemberModal";
 import { RestrictionAction } from "./_components/RestrictionAction";
+import MemberTable from "./_components/MemberTable";
 
 export default function RoomDetailPage() {
     const router = useRouter();
     const params = useParams();
     const roomId = params.id as string;
     
-    const { getRoomMembers, loading } = useChat();
+    const { getRoomMembers, getRoomById, loading } = useChat();
 
     const [members, setMembers] = useState<RoomMember[]>([]);
+    const [room, setRoom] = useState<Room | null>(null);
     const [selectedMember, setSelectedMember] = useState<RoomMember | null>(null);
     const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
     const [isRestrictionModalOpen, setIsRestrictionModalOpen] = useState(false);
     const [restrictionAction, setRestrictionAction] = useState<'ban' | 'mute' | 'kick' | 'unban' | 'unmute'>('ban');
     const [isLoadingMembers, setIsLoadingMembers] = useState(false);
-    
-    // Pagination state
-    const [page, setPage] = useState(1);
-    const rowsPerPage = 10;
+    const [isLoadingRoom, setIsLoadingRoom] = useState(false);
 
     useEffect(() => {
         if (roomId) {
+            loadRoom();
             loadMembers();
         }
     }, [roomId]);
+
+    const loadRoom = async () => {
+        try {
+            setIsLoadingRoom(true);
+            const roomData = await getRoomById(roomId);
+            setRoom(roomData);
+        } catch (error) {
+            addToast({
+                title: "Error loading room",
+                description: error instanceof Error ? error.message : "Failed to load room information",
+                color: "danger",
+            });
+        } finally {
+            setIsLoadingRoom(false);
+        }
+    };
 
     const loadMembers = async () => {
         try {
@@ -100,14 +94,6 @@ export default function RoomDetailPage() {
         setIsMemberModalOpen(false);
         setIsRestrictionModalOpen(false);
     };
-
-    // Pagination logic
-    const pages = Math.ceil(members.length / rowsPerPage);
-    const paginatedMembers = useMemo(() => {
-        const start = (page - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-        return members.slice(start, end);
-    }, [members, page]);
 
     if (isLoadingMembers) {
         return (
@@ -154,7 +140,18 @@ export default function RoomDetailPage() {
                 <CardBody>
                     <div className="flex justify-between items-center">
                         <div>
-                            <h3 className="text-lg font-semibold">Room ID: {roomId}</h3>
+                            <h3 className="text-lg font-semibold">
+                                {room ? (
+                                    <>
+                                        <span className="text-default-600">EN: </span>
+                                        {room.name.en}
+                                        <span className="text-default-600 ml-4">TH: </span>
+                                        {room.name.th}
+                                    </>
+                                ) : (
+                                    `Room ID: ${roomId}`
+                                )}
+                            </h3>
                             <p className="text-default-500">Total Members: {members.length}</p>
                         </div>
                         <div className="flex gap-2">
@@ -180,109 +177,14 @@ export default function RoomDetailPage() {
             {/* Members Table */}
             <Card>
                 <CardBody>
-                    <Table aria-label="Room members table">
-                        <TableHeader>
-                            <TableColumn>USER</TableColumn>
-                            <TableColumn>ROLE</TableColumn>
-                            <TableColumn>STATUS</TableColumn>
-                            <TableColumn>JOINED</TableColumn>
-                            <TableColumn>ACTIONS</TableColumn>
-                        </TableHeader>
-                        <TableBody emptyContent="No members found">
-                            {paginatedMembers.map((member) => (
-                                <TableRow key={member._id}>
-                                    <TableCell>
-                                        <MemberCellRender member={member} />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip size="sm" variant="flat">
-                                            {member.role?.name || 'User'}
-                                        </Chip>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Badge
-                                                color={member.isOnline ? "success" : "default"}
-                                                size="sm"
-                                            >
-                                                {member.isOnline ? "Online" : "Offline"}
-                                            </Badge>
-                                            {member.lastSeen && (
-                                                <Chip size="sm" variant="flat" startContent={<Clock size={12} />}>
-                                                    {new Date(member.lastSeen).toLocaleDateString()}
-                                                </Chip>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : 'N/A'}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Dropdown>
-                                            <DropdownTrigger>
-                                                <Button
-                                                    variant="light"
-                                                    isIconOnly
-                                                    size="sm"
-                                                >
-                                                    <MoreVertical size={16} />
-                                                </Button>
-                                            </DropdownTrigger>
-                                            <DropdownMenu aria-label="User actions">
-                                                <DropdownItem
-                                                    key="view"
-                                                    startContent={<Eye size={16} />}
-                                                    onPress={() => handleViewMember(member)}
-                                                >
-                                                    View Profile
-                                                </DropdownItem>
-                                                <DropdownItem
-                                                    key="ban"
-                                                    className="text-danger"
-                                                    color="danger"
-                                                    startContent={<Ban size={16} />}
-                                                    onPress={() => handleRestrictionAction(member, 'ban')}
-                                                >
-                                                    Ban User
-                                                </DropdownItem>
-                                                <DropdownItem
-                                                    key="mute"
-                                                    className="text-warning"
-                                                    color="warning"
-                                                    startContent={<MicOff size={16} />}
-                                                    onPress={() => handleRestrictionAction(member, 'mute')}
-                                                >
-                                                    Mute User
-                                                </DropdownItem>
-                                                <DropdownItem
-                                                    key="kick"
-                                                    className="text-danger"
-                                                    color="danger"
-                                                    startContent={<LogOut size={16} />}
-                                                    onPress={() => handleRestrictionAction(member, 'kick')}
-                                                >
-                                                    Kick User
-                                                </DropdownItem>
-                                            </DropdownMenu>
-                                        </Dropdown>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                    
-                    {/* Pagination */}
-                    {pages > 1 && (
-                        <div className="flex justify-center mt-4">
-                            <Pagination
-                                total={pages}
-                                page={page}
-                                onChange={setPage}
-                                showControls
-                                color="primary"
-                            />
-                        </div>
-                    )}
+                    <MemberTable
+                        members={members}
+                        currentUserId="current-user-id" // You'll need to get this from auth context
+                        onViewMember={handleViewMember}
+                        onBanMember={(member) => handleRestrictionAction(member, 'ban')}
+                        onMuteMember={(member) => handleRestrictionAction(member, 'mute')}
+                        onKickMember={(member) => handleRestrictionAction(member, 'kick')}
+                    />
                 </CardBody>
             </Card>
 
