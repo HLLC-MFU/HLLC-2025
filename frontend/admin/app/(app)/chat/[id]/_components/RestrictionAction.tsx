@@ -4,7 +4,7 @@ import { RoomMember } from "@/types/chat";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Avatar, Chip, Divider, Input, Textarea, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 import { Ban, Mic, MicOff, LogOut, Shield, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
-import { addToast } from "@heroui/react";
+import { addToast } from "@heroui/toast";
 import { useRestriction } from "../_hooks/useRestriction";
 
 interface RestrictionAction {

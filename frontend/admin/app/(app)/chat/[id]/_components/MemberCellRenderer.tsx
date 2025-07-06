@@ -1,34 +1,60 @@
 import React from "react";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Avatar, Chip, Badge } from "@heroui/react";
-import { MoreVertical, Eye, Ban, MicOff, LogOut, Clock } from "lucide-react";
+import { MoreVertical, Eye, MicOff, LogOut } from "lucide-react";
 import { RoomMember } from "@/types/chat";
+import { useRestriction } from "../_hooks/useRestriction";
+import { addToast } from "@heroui/toast";
 
 export type MemberColumnKey =
     | "user"
     | "role"
-    | "status"
-    | "joined"
     | "actions";
 
 type MemberCellRendererProps = {
     member: RoomMember;
     columnKey: MemberColumnKey;
-    onView: () => void;
     onBan: () => void;
     onMute: () => void;
     onKick: () => void;
     isCurrentUser: boolean;
+    roomId: string;
 }
 
 export default function MemberCellRenderer({
     member,
     columnKey,
-    onView,
     onBan,
     onMute,
     onKick,
     isCurrentUser,
+    roomId,
 }: MemberCellRendererProps) {
+    const { kickUser, loading } = useRestriction();
+
+    const handleKick = async () => {
+        try {
+            await kickUser({
+                userId: member._id,
+                roomId: roomId,
+                action: 'kick',
+                reason: 'Kicked by administrator',
+            });
+            addToast({
+                title: 'User kicked successfully',
+                description: member.username + ' has been kicked from the room',
+                color: 'success',
+            });
+            onKick();
+        } catch (error) {
+            addToast({
+                title: 'Error kicking user',
+                description: error instanceof Error ? error.message : 'Failed to kick user',
+                color: 'danger',
+            });
+            console.error('[Kick] error:', error);
+        }
+    };
+
     const formatName = (member: RoomMember) => {
         const nameObj = member.name || {};
         return [nameObj.first, nameObj.middle, nameObj.last].filter(Boolean).join(" ") || member.username || "Unknown";
@@ -82,27 +108,6 @@ export default function MemberCellRenderer({
                 </div>
             );
 
-        case "status":
-            return (
-                <div className="flex items-center gap-2 min-w-[150px]">
-                    <Badge
-                        color={member.isOnline ? "success" : "default"}
-                        size="sm"
-                    >
-                        {member.isOnline ? "Online" : "Offline"}
-                    </Badge>
-                </div>
-            );
-
-        case "joined":
-            return (
-                <div className="flex items-center min-w-[120px]">
-                    <span className="text-small text-default-500">
-                        {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : 'N/A'}
-                    </span>
-                </div>
-            );
-
         case "actions":
             return (
                 <div className="flex items-center justify-center w-[80px]">
@@ -121,15 +126,6 @@ export default function MemberCellRenderer({
                                 <DropdownItem
                                     key="view"
                                     startContent={<Eye size={16} />}
-                                    onPress={onView}
-                                >
-                                    View Profile
-                                </DropdownItem>
-                                <DropdownItem
-                                    key="ban"
-                                    className="text-danger"
-                                    color="danger"
-                                    startContent={<Ban size={16} />}
                                     onPress={onBan}
                                 >
                                     Ban User
@@ -148,9 +144,10 @@ export default function MemberCellRenderer({
                                     className="text-danger"
                                     color="danger"
                                     startContent={<LogOut size={16} />}
-                                    onPress={onKick}
+                                    onPress={handleKick}
+                                    isDisabled={loading}
                                 >
-                                    Kick User
+                                    {loading ? 'Kicking...' : 'Kick User'}
                                 </DropdownItem>
                             </DropdownMenu>
                         </Dropdown>

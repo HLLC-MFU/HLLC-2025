@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { addToast } from "@heroui/react";
+import { addToast } from "@heroui/toast";
 import { MemberModal } from "./_components/MemberModal";
 import { RestrictionAction } from "./_components/RestrictionAction";
 import MemberTable from "./_components/MemberTable";
@@ -75,11 +75,6 @@ export default function RoomDetailPage() {
         } finally {
             setIsLoadingMembers(false);
         }
-    };
-
-    const handleViewMember = (member: RoomMember) => {
-        setSelectedMember(member);
-        setIsMemberModalOpen(true);
     };
 
     const handleRestrictionAction = (member: RoomMember, action: 'ban' | 'mute' | 'kick' | 'unban' | 'unmute') => {
@@ -173,10 +168,10 @@ export default function RoomDetailPage() {
                     <MemberTable
                         members={members}
                         currentUserId="current-user-id" // You'll need to get this from auth context
-                        onViewMember={handleViewMember}
                         onBanMember={(member) => handleRestrictionAction(member, 'ban')}
                         onMuteMember={(member) => handleRestrictionAction(member, 'mute')}
                         onKickMember={(member) => handleRestrictionAction(member, 'kick')}
+                        roomId={roomId}
                     />
                 </CardBody>
             </Card>

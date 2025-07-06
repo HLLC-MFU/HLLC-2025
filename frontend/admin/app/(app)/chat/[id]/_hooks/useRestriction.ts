@@ -60,12 +60,31 @@ export function useRestriction() {
         }
     };
 
-    // Add more actions (kick, unban, unmute) as needed
+    const kickUser = async (data: RestrictionAction): Promise<RestrictionResponse> => {
+        setLoading(true);
+        try {
+            const { restrictorId, ...payload } = data;
+            const res = await restrictionApiRequest<RestrictionResponse>(
+                "/restriction/kick",
+                "POST",
+                payload
+            );
+            if (res.statusCode !== 200 && res.statusCode !== 201) {
+                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to kick user`);
+            }
+            return res.data;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Add more actions (unban, unmute) as needed
 
     return {
         loading,
         banUser,
         muteUser,
-        // kickUser, unbanUser, unmuteUser (implement if needed)
+        kickUser,
+        // unbanUser, unmuteUser (implement if needed)
     };
 }

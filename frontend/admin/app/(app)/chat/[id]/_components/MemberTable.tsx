@@ -7,8 +7,6 @@ import type { Selection } from "@react-types/shared";
 export const COLUMNS = [
     { name: "USER", uid: "user", sortable: true },
     { name: "ROLE", uid: "role", sortable: true },
-    { name: "STATUS", uid: "status", sortable: true },
-    { name: "JOINED", uid: "joined", sortable: true },
     { name: "ACTIONS", uid: "actions" },
 ];
 
@@ -21,19 +19,19 @@ export type TableColumnType = {
 type MemberTableProps = {
     members: RoomMember[];
     currentUserId?: string;
-    onViewMember: (member: RoomMember) => void;
     onBanMember: (member: RoomMember) => void;
     onMuteMember: (member: RoomMember) => void;
     onKickMember: (member: RoomMember) => void;
+    roomId: string;
 };
 
 export default function MemberTable({
     members,
     currentUserId,
-    onViewMember,
     onBanMember,
     onMuteMember,
     onKickMember,
+    roomId,
 }: MemberTableProps) {
     const [filterValue, setFilterValue] = useState("");
     const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
@@ -44,12 +42,6 @@ export default function MemberTable({
         setFilterValue(value);
         setPage(1);
     };
-
-    const handleClear = () => {
-        setFilterValue("");
-        setPage(1);
-    };
-
     const handlePreviousPage = () => setPage((prev) => Math.max(1, prev - 1));
     const handleNextPage = () => setPage((prev) => prev + 1);
 
@@ -87,15 +79,15 @@ export default function MemberTable({
                 <MemberCellRenderer
                     member={member}
                     columnKey={columnKey}
-                    onView={() => onViewMember(member)}
                     onBan={() => onBanMember(member)}
                     onMute={() => onMuteMember(member)}
                     onKick={() => onKickMember(member)}
                     isCurrentUser={isCurrentUser}
+                    roomId={roomId}
                 />
             );
         },
-        [currentUserId, onViewMember, onBanMember, onMuteMember, onKickMember]
+        [currentUserId, onBanMember, onMuteMember, onKickMember, roomId]
     );
 
     return (
