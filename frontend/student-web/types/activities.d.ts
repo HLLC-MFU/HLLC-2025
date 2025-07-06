@@ -12,6 +12,8 @@ export type Activities = {
     metadata: Metadata;
     createdAt?: string;
     updatedAt?: string;
+    checkinStatus: number;
+    hasAnsweredAssessment: boolean;
 };
 
 export type Photo = {

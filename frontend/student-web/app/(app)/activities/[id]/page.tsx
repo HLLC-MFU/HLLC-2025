@@ -1,14 +1,13 @@
 'use client'
 import { useActivities } from "@/hooks/useActivities";
 import { formatDateTime } from "@/utils/dateFormat";
-import { Button, Card, ScrollShadow } from "@heroui/react";
+import { Button, Card, Chip, ScrollShadow } from "@heroui/react";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { useParams, useRouter } from "next/navigation"
 import { useMemo, useState } from "react";
-import EmbedMap from "./_components/mapEmbed";
-
-const lat = 20.0455790;
-const lng = 99.8938734;
+import EmbedMap from "./_components/EmbedMap";
+import Stepper, { Step } from "./_components/Stepper";
+import { CircleCheck } from "lucide-react";
 
 export default function ActivitiesDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -27,6 +26,31 @@ export default function ActivitiesDetailPage() {
             alert("No map URL available.");
         }
     };
+    const checkinStatusNumber = Number(activity?.checkinStatus);
+
+    const completedSteps: number[] = [];
+    if (activity) {
+        completedSteps.push(1);
+        if (activity.checkinStatus === 2) completedSteps.push(2);
+        completedSteps.push(3);
+        if (activity.hasAnsweredAssessment) completedSteps.push(4);
+    }
+
+    const steps: Step[] = activity
+        ? [
+            { title: "Start", value: formatDateTime(activity.metadata.startAt) },
+            {
+                title: "Check-in Status", value:
+                    checkinStatusNumber === 1
+                        ? "Check-in available now"
+                        : checkinStatusNumber === 2
+                            ? "You have already checked in"
+                            : "Unknown status",
+            },
+            { title: "End", value: formatDateTime(activity.metadata.endAt) },
+            { title: "Assessment", value: activity.hasAnsweredAssessment ? "Completed" : "Not Completed" },
+        ]
+        : [];
 
     return (
         <div className="min-h-screen flex flex-col gap-4">
@@ -84,7 +108,22 @@ export default function ActivitiesDetailPage() {
                         ACTIVITY STATUS
                     </Button>
                     {/* change to checkin status */}
-                    <p>{activity?.name.en}</p>
+                    <Chip
+                        color={
+                            activity?.checkinStatus === 2 && activity?.hasAnsweredAssessment
+                                ? "success"
+                                : "danger"
+                        }
+                        className="text-xs font-bold flex items-center gap-1"
+                    >
+                        {activity?.checkinStatus === 2 && activity?.hasAnsweredAssessment ? (
+                            <p className="flex items-center gap-1 text-white">
+                                <CircleCheck size={16} color="white" /> Done
+                            </p>
+                        ) : (
+                            "Not Done"
+                        )}
+                    </Chip>
                 </div>
             </div>
             <div>
@@ -115,9 +154,13 @@ export default function ActivitiesDetailPage() {
                     </div>
 
                 ) : (
-                    <ScrollShadow className="w-full h-[400px] flex flex-col break-words whitespace-pre-line">
-                        {activity?.metadata?.isOpen ? "Activity is OPEN" : "Activity is CLOSED"}
-                    </ScrollShadow>
+                    <div>
+                        <Stepper
+                            steps={steps}
+                            direction="vertical"
+                            completedSteps={completedSteps}
+                        />
+                    </div>
                 )}
             </div>
 
