@@ -162,13 +162,6 @@ export default function RoomDetailPage() {
                             >
                                 Send Evoucher
                             </Button>
-                            <Button
-                                color="secondary"
-                                startContent={<Sticker size={20} />}
-                                onPress={() => router.push(`/chat/sticker?roomId=${roomId}`)}
-                            >
-                                Send Sticker
-                            </Button>
                         </div>
                     </div>
                 </CardBody>

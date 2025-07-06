@@ -126,57 +126,57 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                     <div className="mb-4 p-3 bg-default-50 rounded-lg">
                         <div className="flex items-center gap-3">
                             <Avatar name={fullName} size="sm" />
-                            <div>
-                                <p className="font-semibold">User: {member.username}</p>
+                                        <div>
+                                            <p className="font-semibold">User: {member.username}</p>
                                 <p className="text-small text-default-500">{fullName}</p>
-                            </div>
+                                        </div>
                         </div>
                     </div>
                     <div className="flex flex-col gap-4">
-                        <div className="flex gap-2">
-                            <Button
-                                variant={restrictionData.duration === 'temporary' ? 'solid' : 'bordered'}
-                                size="sm"
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant={restrictionData.duration === 'temporary' ? 'solid' : 'bordered'}
+                                        size="sm"
                                 onPress={() => setRestrictionData({ ...restrictionData, duration: 'temporary' as 'temporary' })}
-                            >
-                                Temporary
-                            </Button>
-                            <Button
-                                variant={restrictionData.duration === 'permanent' ? 'solid' : 'bordered'}
-                                size="sm"
-                                onPress={() => setRestrictionData({ ...restrictionData, duration: 'permanent' as 'permanent' })}
-                            >
-                                Permanent
-                            </Button>
-                        </div>
-                        {restrictionData.duration === 'temporary' && (
-                            <div className="flex gap-2">
-                                <Input
-                                    type="number"
-                                    label="Duration"
-                                    placeholder="15"
-                                    value={restrictionData.timeValue?.toString() || ''}
-                                    onValueChange={(value) => setRestrictionData({ ...restrictionData, timeValue: parseInt(value) || 15 })}
-                                />
-                                <Dropdown>
-                                    <DropdownTrigger>
-                                        <Button variant="bordered">
-                                            {restrictionData.timeUnit}
-                                        </Button>
-                                    </DropdownTrigger>
-                                    <DropdownMenu
-                                        selectedKeys={[restrictionData.timeUnit || 'minutes']}
-                                        onSelectionChange={(keys) => {
-                                            const selected = Array.from(keys)[0] as string;
-                                            setRestrictionData({ ...restrictionData, timeUnit: selected as 'minutes' | 'hours' });
-                                        }}
                                     >
-                                        <DropdownItem key="minutes">Minutes</DropdownItem>
-                                        <DropdownItem key="hours">Hours</DropdownItem>
-                                    </DropdownMenu>
-                                </Dropdown>
-                            </div>
-                        )}
+                                        Temporary
+                                    </Button>
+                                    <Button
+                                        variant={restrictionData.duration === 'permanent' ? 'solid' : 'bordered'}
+                                        size="sm"
+                                onPress={() => setRestrictionData({ ...restrictionData, duration: 'permanent' as 'permanent' })}
+                                    >
+                                        Permanent
+                                    </Button>
+                                </div>
+                                {restrictionData.duration === 'temporary' && (
+                                    <div className="flex gap-2">
+                                        <Input
+                                            type="number"
+                                            label="Duration"
+                                            placeholder="15"
+                                            value={restrictionData.timeValue?.toString() || ''}
+                                    onValueChange={(value) => setRestrictionData({ ...restrictionData, timeValue: parseInt(value) || 15 })}
+                                        />
+                                        <Dropdown>
+                                            <DropdownTrigger>
+                                                <Button variant="bordered">
+                                                    {restrictionData.timeUnit}
+                                                </Button>
+                                            </DropdownTrigger>
+                                            <DropdownMenu
+                                                selectedKeys={[restrictionData.timeUnit || 'minutes']}
+                                                onSelectionChange={(keys) => {
+                                                    const selected = Array.from(keys)[0] as string;
+                                            setRestrictionData({ ...restrictionData, timeUnit: selected as 'minutes' | 'hours' });
+                                                }}
+                                            >
+                                                <DropdownItem key="minutes">Minutes</DropdownItem>
+                                                <DropdownItem key="hours">Hours</DropdownItem>
+                                            </DropdownMenu>
+                                        </Dropdown>
+                                    </div>
+                                )}
                         {action === 'mute' && (
                             <Dropdown>
                                 <DropdownTrigger>
@@ -209,7 +209,7 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                     <Button variant="light" onPress={onClose}>
                         Cancel
                     </Button>
-                    <Button
+                    <Button 
                         color={getActionColor(action) as any}
                         startContent={getActionIcon(action)}
                         onPress={handleSubmit}

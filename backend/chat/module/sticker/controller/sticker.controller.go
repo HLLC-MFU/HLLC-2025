@@ -6,7 +6,6 @@ import (
 	"chat/pkg/common"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
-	controllerHelper "chat/pkg/helpers/controller"
 	"chat/pkg/middleware"
 	"chat/pkg/utils"
 	"fmt"
@@ -112,10 +111,62 @@ func (c *StickerController) CreateSticker(ctx *fiber.Ctx) error {
 }
 
 func (c *StickerController) UpdateSticker(ctx *fiber.Ctx) error {
-	return controllerHelper.ControllerAction(ctx, func(updateDto *dto.CreateStickerDto) (any, error) {
-		sticker := updateDto.ToSticker()
-		return c.service.UpdateSticker(ctx.Context(), ctx.Params("id"), sticker)
-	})
+    id := ctx.Params("id")
+
+    // ดึงของเดิมจาก DB
+    oldSticker, err := c.service.GetStickerById(ctx.Context(), id)
+    if err != nil {
+        return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+            "success": false,
+            "message": "Sticker not found",
+        })
+    }
+
+    // Parse multipart form
+    if form, err := ctx.MultipartForm(); err == nil {
+        defer form.RemoveAll()
+    }
+
+    // Handle file upload (optional)
+    filename, err := c.uploadHandler.HandleFileUpload(ctx, "image")
+    if err != nil && err.Error() != "no file uploaded" {
+        return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "success": false,
+            "message": err.Error(),
+        })
+    }
+
+    // Merge field ใหม่กับของเดิม
+    nameEn := ctx.FormValue("name.en")
+    nameTh := ctx.FormValue("name.th")
+    newName := oldSticker.Name
+    if nameEn != "" {
+        newName.En = nameEn
+    }
+    if nameTh != "" {
+        newName.Th = nameTh
+    }
+
+    newImage := oldSticker.Image
+    if filename != "" {
+        newImage = filename
+    }
+
+    updateDto := &dto.CreateStickerDto{
+        Name:  newName,
+        Image: newImage,
+    }
+
+    sticker := updateDto.ToSticker()
+    result, err := c.service.UpdateSticker(ctx.Context(), id, sticker)
+    if err != nil {
+        return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "success": false,
+            "message": err.Error(),
+        })
+    }
+
+    return ctx.Status(fiber.StatusOK).JSON(result)
 }
 
 func (c *StickerController) DeleteSticker(ctx *fiber.Ctx) error {

@@ -59,15 +59,15 @@ export async function chatApiRequest<T>(
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
             responseData = await response.json();
-        } else {
+            } else {
             responseData = await response.text();
         }
 
-        return {
-            data: responseData,
-            statusCode: response.status,
-            message: null,
-        };
+            return {
+                data: responseData,
+                statusCode: response.status,
+                message: null,
+            };
     } catch (error) {
         console.error("Chat API request error:", error);
         return {
