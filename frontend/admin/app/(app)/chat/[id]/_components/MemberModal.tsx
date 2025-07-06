@@ -15,6 +15,7 @@ import {
 import { User, Calendar, Clock, Shield, LogOut } from "lucide-react";
 import { useState } from "react";
 import { addToast } from "@heroui/react";
+import { getToken } from "@/utils/storage";
 
 interface MemberModalProps {
     isOpen: boolean;
@@ -42,11 +43,12 @@ export function MemberModal({ isOpen, onClose, member, roomId, onMemberKicked }:
 
         try {
             setIsKicking(true);
-            
+            const token = getToken('accessToken');
             const response = await fetch('/api/restriction/kick', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 body: JSON.stringify({
                     userId: member._id,

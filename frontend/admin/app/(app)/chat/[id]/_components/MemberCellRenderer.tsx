@@ -91,11 +91,6 @@ export default function MemberCellRenderer({
                     >
                         {member.isOnline ? "Online" : "Offline"}
                     </Badge>
-                    {member.lastSeen && (
-                        <Chip size="sm" variant="flat" startContent={<Clock size={12} />}>
-                            {new Date(member.lastSeen).toLocaleDateString()}
-                        </Chip>
-                    )}
                 </div>
             );
 
