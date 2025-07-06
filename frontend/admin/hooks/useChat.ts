@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Room } from "../types/chat";
+import { 
+    Room, 
+    RoomMember, 
+    EvoucherData, 
+    EvoucherResponse, 
+    RestrictionAction, 
+    RestrictionResponse,
+    RoomMembersResponse 
+} from "../types/chat";
 import { apiRequest, ApiResponse } from "../utils/api";
 
 // Chat service API base URL
@@ -184,6 +192,151 @@ export function useChat() {
         }
     };
 
+    // **NEW: Get room members**
+    const getRoomMembers = async (roomId: string): Promise<RoomMember[]> => {
+        try {
+            setLoading(true);
+            const res = await chatApiRequest<RoomMembersResponse>(`/rooms/${roomId}/members`, "GET");
+            
+            if (res.statusCode !== 200) {
+                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to fetch room members`);
+            }
+
+            if (res.data?.data?.members) {
+                return res.data.data.members.map(member => ({
+                    _id: member.user._id,
+                    username: member.user.username,
+                    name: member.user.name,
+                    role: member.user.role || { _id: '', name: 'User' },
+                    joinedAt: new Date().toISOString(), // This would come from the API
+                    isOnline: false, // This would come from WebSocket status
+                    lastSeen: new Date().toISOString(), // This would come from the API
+                }));
+            }
+            
+            return [];
+        } catch (err) {
+            console.error("Fetch room members error:", err);
+            throw new Error(err instanceof Error ? err.message : 'Failed to fetch room members.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // **NEW: Send evoucher**
+    const sendEvoucher = async (evoucherData: EvoucherData): Promise<EvoucherResponse> => {
+        try {
+            setLoading(true);
+            const res = await chatApiRequest<EvoucherResponse>("/evouchers/send", "POST", evoucherData);
+            
+            if (res.statusCode !== 200 && res.statusCode !== 201) {
+                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to send evoucher`);
+            }
+
+            return res.data as EvoucherResponse;
+        } catch (err) {
+            console.error("Send evoucher error:", err);
+            throw new Error(err instanceof Error ? err.message : 'Failed to send evoucher.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // **NEW: Ban user**
+    const banUser = async (restrictionData: RestrictionAction): Promise<RestrictionResponse> => {
+        try {
+            setLoading(true);
+            const res = await chatApiRequest<RestrictionResponse>("/restrictions/ban", "POST", restrictionData);
+            
+            if (res.statusCode !== 200 && res.statusCode !== 201) {
+                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to ban user`);
+            }
+
+            return res.data as RestrictionResponse;
+        } catch (err) {
+            console.error("Ban user error:", err);
+            throw new Error(err instanceof Error ? err.message : 'Failed to ban user.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // **NEW: Mute user**
+    const muteUser = async (restrictionData: RestrictionAction): Promise<RestrictionResponse> => {
+        try {
+            setLoading(true);
+            const res = await chatApiRequest<RestrictionResponse>("/restrictions/mute", "POST", restrictionData);
+            
+            if (res.statusCode !== 200 && res.statusCode !== 201) {
+                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to mute user`);
+            }
+
+            return res.data as RestrictionResponse;
+        } catch (err) {
+            console.error("Mute user error:", err);
+            throw new Error(err instanceof Error ? err.message : 'Failed to mute user.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // **NEW: Kick user**
+    const kickUser = async (restrictionData: RestrictionAction): Promise<RestrictionResponse> => {
+        try {
+            setLoading(true);
+            const res = await chatApiRequest<RestrictionResponse>("/restrictions/kick", "POST", restrictionData);
+            
+            if (res.statusCode !== 200 && res.statusCode !== 201) {
+                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to kick user`);
+            }
+
+            return res.data as RestrictionResponse;
+        } catch (err) {
+            console.error("Kick user error:", err);
+            throw new Error(err instanceof Error ? err.message : 'Failed to kick user.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // **NEW: Unban user**
+    const unbanUser = async (restrictionData: RestrictionAction): Promise<RestrictionResponse> => {
+        try {
+            setLoading(true);
+            const res = await chatApiRequest<RestrictionResponse>("/restrictions/unban", "POST", restrictionData);
+            
+            if (res.statusCode !== 200 && res.statusCode !== 201) {
+                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to unban user`);
+            }
+
+            return res.data as RestrictionResponse;
+        } catch (err) {
+            console.error("Unban user error:", err);
+            throw new Error(err instanceof Error ? err.message : 'Failed to unban user.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // **NEW: Unmute user**
+    const unmuteUser = async (restrictionData: RestrictionAction): Promise<RestrictionResponse> => {
+        try {
+            setLoading(true);
+            const res = await chatApiRequest<RestrictionResponse>("/restrictions/unmute", "POST", restrictionData);
+            
+            if (res.statusCode !== 200 && res.statusCode !== 201) {
+                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to unmute user`);
+            }
+
+            return res.data as RestrictionResponse;
+        } catch (err) {
+            console.error("Unmute user error:", err);
+            throw new Error(err instanceof Error ? err.message : 'Failed to unmute user.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchRoom();
     }, []);
@@ -196,5 +349,13 @@ export function useChat() {
         createRoom,
         updateRoom,
         deleteRoom,
+        // **NEW: Room management functions**
+        getRoomMembers,
+        sendEvoucher,
+        banUser,
+        muteUser,
+        kickUser,
+        unbanUser,
+        unmuteUser,
     };
 }

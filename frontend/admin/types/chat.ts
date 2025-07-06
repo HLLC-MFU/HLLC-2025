@@ -23,6 +23,99 @@ export type Members = {
     joinedAt: string;
 };
 
+// **NEW: Room Member with additional fields**
+export type RoomMember = {
+    _id: string;
+    username: string;
+    name: {
+        first: string;
+        middle?: string;
+        last: string;
+    };
+    role: {
+        _id: string;
+        name: string;
+    };
+    joinedAt: string;
+    isOnline?: boolean;
+    lastSeen?: string;
+};
+
+// **NEW: Evoucher types**
+export type EvoucherData = {
+    roomId: string;
+    userIds: string[];
+    evoucherId: string;
+    message?: string;
+};
+
+export type EvoucherResponse = {
+    success: boolean;
+    message: string;
+    data?: {
+        id: string;
+        room_id: string;
+        user_id: string;
+        timestamp: string;
+        evoucherInfo: {
+            title: string;
+            description: string;
+            claimUrl: string;
+        };
+    };
+};
+
+// **NEW: User restriction types**
+export type RestrictionAction = {
+    userId: string;
+    roomId: string;
+    action: 'ban' | 'mute' | 'kick' | 'unban' | 'unmute';
+    duration?: 'temporary' | 'permanent';
+    timeValue?: number;
+    timeUnit?: 'minutes' | 'hours';
+    restriction?: 'can_view' | 'cannot_view';
+    reason: string;
+};
+
+export type RestrictionResponse = {
+    success: boolean;
+    message: string;
+    data?: {
+        id: string;
+        type: string;
+        duration: string;
+        reason: string;
+        startTime: string;
+        endTime?: string;
+        status: string;
+        restrictor: string;
+    };
+};
+
+// **NEW: Room members response**
+export type RoomMembersResponse = {
+    success: boolean;
+    message: string;
+    data: {
+        _id: string;
+        members: Array<{
+            user: {
+                _id: string;
+                username: string;
+                name: {
+                    first: string;
+                    middle?: string;
+                    last: string;
+                };
+                role?: {
+                    _id: string;
+                    name: string;
+                };
+            };
+        }>;
+    };
+};
+
 export enum RoomType {
     NORMAL = "normal",
     READONLY = "readonly",
