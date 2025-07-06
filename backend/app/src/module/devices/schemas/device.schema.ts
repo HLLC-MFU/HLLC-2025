@@ -5,7 +5,7 @@ export type DeviceDocument = HydratedDocument<Device>;
 
 @Schema({ timestamps: true })
 export class Device extends Document {
-  @Prop({ type: SchemaTypes.ObjectId, ref: 'User', required: true })
+   @Prop({ type: SchemaTypes.ObjectId, ref: 'User', required: true })
   userId: Types.ObjectId;
 
   @Prop({ required: true })
@@ -24,10 +24,19 @@ export class Device extends Document {
   deviceName?: string;
 
   @Prop()
+  osName?: string;
+
+  @Prop()
   osVersion?: string;
 
   @Prop()
+  brand?: string;
+
+  @Prop()
   appVersion?: string;
+
+  @Prop()
+  buildNumber?: string;
 }
 
 export const DeviceSchema = SchemaFactory.createForClass(Device);
