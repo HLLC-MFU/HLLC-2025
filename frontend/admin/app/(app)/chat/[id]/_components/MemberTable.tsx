@@ -30,7 +30,6 @@ export default function MemberTable({
     currentUserId,
     onBanMember,
     onMuteMember,
-    onKickMember,
     roomId,
 }: MemberTableProps) {
     const [filterValue, setFilterValue] = useState("");
@@ -81,13 +80,12 @@ export default function MemberTable({
                     columnKey={columnKey}
                     onBan={() => onBanMember(member)}
                     onMute={() => onMuteMember(member)}
-                    onKick={() => onKickMember(member)}
                     isCurrentUser={isCurrentUser}
                     roomId={roomId}
                 />
             );
         },
-        [currentUserId, onBanMember, onMuteMember, onKickMember, roomId]
+        [currentUserId, onBanMember, onMuteMember, roomId]
     );
 
     return (

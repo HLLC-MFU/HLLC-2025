@@ -246,6 +246,12 @@ func (s *RestrictionService) UnmuteUser(ctx context.Context, userID, roomID, res
 func (s *RestrictionService) KickUser(ctx context.Context, userID, roomID, restrictorID primitive.ObjectID, reason string) (*restrictionModel.UserRestriction, error) {
 	log.Printf("[ModerationService] Kicking user %s from room %s by restrictor %s", userID.Hex(), roomID.Hex(), restrictorID.Hex())
 
+	// **NEW: ลบ user ออกจากห้องก่อน**
+	if err := s.removeUserFromRoom(ctx, userID, roomID); err != nil {
+		log.Printf("[ModerationService] Warning: Failed to remove user from room: %v", err)
+		// ไม่ return error เพราะยังต้องการสร้าง kick record
+	}
+
 	// สร้าง kick record
 	kickRecord := &restrictionModel.UserRestriction{
 		RoomID:       roomID,
@@ -282,6 +288,60 @@ func (s *RestrictionService) KickUser(ctx context.Context, userID, roomID, restr
 	}
 
 	return kickRecord, nil
+}
+
+// **NEW: removeUserFromRoom ลบ user ออกจากห้อง**
+func (s *RestrictionService) removeUserFromRoom(ctx context.Context, userID, roomID primitive.ObjectID) error {
+	log.Printf("[ModerationService] Removing user %s from room %s", userID.Hex(), roomID.Hex())
+
+	// อัพเดทห้องใน database โดยลบ user ออกจาก members array
+	collection := s.mongo.Collection("rooms")
+	filter := bson.M{"_id": roomID}
+	update := bson.M{
+		"$pull": bson.M{"members": userID},
+		"$set":  bson.M{"updatedAt": time.Now()},
+	}
+
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to remove user from room: %w", err)
+	}
+
+	if result.ModifiedCount == 0 {
+		return fmt.Errorf("user not found in room or room not found")
+	}
+
+	// **NEW: Disconnect user จาก WebSocket hub**
+	if s.hub != nil {
+		roomIDStr := roomID.Hex()
+		userIDStr := userID.Hex()
+		
+		// ส่ง kick notification ไปยัง user
+		kickEvent := map[string]interface{}{
+			"type": "user_kicked",
+			"data": map[string]interface{}{
+				"roomId":  roomIDStr,
+				"userId":  userIDStr,
+				"message": "You have been kicked from this room",
+				"timestamp": time.Now(),
+			},
+		}
+		
+		if eventBytes, err := json.Marshal(kickEvent); err == nil {
+			// ส่ง event ไปยัง user ที่ถูก kick
+			s.hub.BroadcastToUser(userIDStr, eventBytes)
+			
+			// ส่ง event ไปยังคนอื่นในห้อง
+			s.hub.BroadcastToRoom(roomIDStr, eventBytes)
+			
+			log.Printf("[ModerationService] Sent kick notification to user %s and room %s", userIDStr, roomIDStr)
+		} else {
+			log.Printf("[ModerationService] Failed to marshal kick event: %v", err)
+		}
+	}
+
+	log.Printf("[ModerationService] Successfully removed user %s from room %s", userID.Hex(), roomID.Hex())
+	return nil
 }
 
 // GetUserModerationStatus ตรวจสอบสถานะการลงโทษของ user ในห้อง

@@ -44,9 +44,6 @@ func (c *RestrictionController) setupRoutes() {
 	c.Post("/mute", c.handleMuteUser, c.rbac.RequireAdministrator())
 	c.Post("/unmute", c.handleUnmuteUser, c.rbac.RequireAdministrator())
 	
-	// Kick operation
-	c.Post("/kick", c.handleKickUser, c.rbac.RequireAdministrator())
-	
 	// Status and history
 	c.Get("/status/:roomId/:userId", c.handleGetModerationStatus, c.rbac.RequireAdministrator())
 	c.Get("/history", c.handleGetModerationHistory, c.rbac.RequireAdministrator())
@@ -324,64 +321,6 @@ func (c *RestrictionController) handleUnmuteUser(ctx *fiber.Ctx) error {
 			"userId": unmuteDto.UserID,
 			"roomId": unmuteDto.RoomID,
 			"restrictorId": restrictorObjID.Hex(),
-		},
-	})
-}
-
-// handleKickUser kick user ออกจากห้อง
-func (c *RestrictionController) handleKickUser(ctx *fiber.Ctx) error {
-	var kickDto restrictionDto.KickUserDto
-	if err := ctx.BodyParser(&kickDto); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid request body",
-			"error":   err.Error(),
-		})
-	}
-	userObjID, roomObjID, err := kickDto.ToObjectIDs()
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid ID format",
-			"error":   err.Error(),
-		})
-	}
-	restrictorId, err := c.rbac.ExtractUserIDFromContext(ctx)
-	if err != nil {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"success": false,
-			"message": "Unauthorized",
-			"error":   err.Error(),
-		})
-	}
-	restrictorObjID, err := primitive.ObjectIDFromHex(restrictorId)
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid user ID format",
-			"error":   err.Error(),
-		})
-	}
-	kickRecord, err := c.moderationService.KickUser(ctx.Context(), userObjID, roomObjID, restrictorObjID, kickDto.Reason)
-	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": "Failed to kick user",
-			"error":   err.Error(),
-		})
-	}
-	return ctx.JSON(fiber.Map{
-		"success": true,
-		"message": "User kicked successfully",
-		"data": fiber.Map{
-			"id":          kickRecord.ID.Hex(),
-			"userId":      kickRecord.UserID.Hex(),
-			"roomId":      kickRecord.RoomID.Hex(),
-			"restrictorId": restrictorObjID.Hex(),
-			"type":        kickRecord.Type,
-			"reason":      kickRecord.Reason,
-			"kickTime":    kickRecord.StartTime,
-			"status":      kickRecord.Status,
 		},
 	})
 }

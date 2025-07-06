@@ -15,7 +15,6 @@ type MemberCellRendererProps = {
     columnKey: MemberColumnKey;
     onBan: () => void;
     onMute: () => void;
-    onKick: () => void;
     isCurrentUser: boolean;
     roomId: string;
 }
@@ -25,35 +24,10 @@ export default function MemberCellRenderer({
     columnKey,
     onBan,
     onMute,
-    onKick,
     isCurrentUser,
     roomId,
 }: MemberCellRendererProps) {
-    const { kickUser, loading } = useRestriction();
-
-    const handleKick = async () => {
-        try {
-            await kickUser({
-                userId: member._id,
-                roomId: roomId,
-                action: 'kick',
-                reason: 'Kicked by administrator',
-            });
-            addToast({
-                title: 'User kicked successfully',
-                description: member.username + ' has been kicked from the room',
-                color: 'success',
-            });
-            onKick();
-        } catch (error) {
-            addToast({
-                title: 'Error kicking user',
-                description: error instanceof Error ? error.message : 'Failed to kick user',
-                color: 'danger',
-            });
-            console.error('[Kick] error:', error);
-        }
-    };
+    // ลบ useRestriction, handleKick, และ prop onKick ที่เกี่ยวข้องกับ kick user
 
     const formatName = (member: RoomMember) => {
         const nameObj = member.name || {};
@@ -139,16 +113,7 @@ export default function MemberCellRenderer({
                                 >
                                     Mute User
                                 </DropdownItem>
-                                <DropdownItem
-                                    key="kick"
-                                    className="text-danger"
-                                    color="danger"
-                                    startContent={<LogOut size={16} />}
-                                    onPress={handleKick}
-                                    isDisabled={loading}
-                                >
-                                    {loading ? 'Kicking...' : 'Kick User'}
-                                </DropdownItem>
+                                {/* ใน actions column: ลบปุ่ม kick ออก เหลือเฉพาะ ban/mute/view */}
                             </DropdownMenu>
                         </Dropdown>
                     ) : (
