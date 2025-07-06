@@ -16,7 +16,6 @@ class RegisterDeviceDto {
 }
 
 class UpdateDeviceDto {
-  userId: string;
   deviceId: string;
 }
 
@@ -56,8 +55,13 @@ export class StepCountersController {
 
   // อัปเดต device id ของ user
   @Patch('device')
-  async updateDevice(@Body() body: UpdateDeviceDto) {
-    const { userId, deviceId } = body;
+  async updateDevice(
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
+    @Body() body: UpdateDeviceDto,
+  ) {
+    const user = req.user as { _id?: string; id?: string };
+    const userId: string = user?._id ?? user?.id ?? '';
+    const { deviceId } = body;
     if (!userId || !deviceId) {
       throw new BadRequestException('Missing userId or deviceId');
     }
@@ -71,8 +75,16 @@ export class StepCountersController {
     @Body() body: CollectStepDto,
   ) {
     const user = req.user as { _id?: string; id?: string };
+    // console.log(user);
+
     const userId: string = user?._id ?? user?.id ?? '';
     const { deviceId, stepCount, date } = body;
+    console.log('Collecting step:', {
+      userId,
+      deviceId,
+      stepCount,
+      date,
+    });
     if (!userId || !deviceId || stepCount == null || !date) {
       throw new BadRequestException(
         'Missing userId, deviceId, stepCount, or date',

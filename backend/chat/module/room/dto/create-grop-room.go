@@ -22,7 +22,7 @@ type (
 		GroupValue string                `form:"groupValue" validate:"required"` // ID ของ major หรือ school
 		Type       string                `form:"type" validate:"roomType"`       // ประเภทห้อง (normal, readonly)
 		Status     string                `form:"status" validate:"roomStatus"`   // สถานะห้อง (active, inactive)
-		CreatedBy  string                `form:"createdBy" validate:"required,mongoId"`
+		CreatedBy  string                `form:"createdBy" validate:"mongoId,optional"` // Optional - will extract from JWT if not provided
 		Image      string                `form:"image" validate:"optional"`
 		// หมายเหตุ: ไม่ต้องระบุ capacity เพราะห้องกลุ่มจะเป็น unlimited (capacity = 0)
 	}

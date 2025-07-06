@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,7 +9,7 @@ import {
   StepCounter,
   StepCounterDocument,
 } from '../schema/step-counter.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { findOrThrow } from 'src/pkg/validator/model.validator';
 import { User, UserDocument } from '../../users/schemas/user.schema';
 
@@ -49,25 +50,38 @@ export class StepCountersService {
 
   async registerDevice(userId: string, deviceId: string) {
     const user = await findOrThrow(this.userModel, userId, 'User not found');
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
 
-    const existingCounter = await this.stepCounterModel.findOne({
+    // ❌ If user already has *any* step counter — block new registration
+    const existingCounters = await this.stepCounterModel.find({
       user: user._id,
-      deviceId,
     });
 
-    if (existingCounter) {
-      return existingCounter;
+    const isSameDeviceRegistered = existingCounters.some(
+      (counter) => counter.deviceId === deviceId,
+    );
+
+    if (isSameDeviceRegistered) {
+      return await this.stepCounterModel.findOne({
+        user: user._id,
+        deviceId,
+      });
     }
+
+    if (existingCounters.length > 0) {
+      throw new ForbiddenException(
+        'User already registered a different device',
+      );
+    }
+
+    // ✅ Allow first-time registration
+    const achievementId = await this.stepAchievementModel
+      .findOne({})
+      .then((a) => a?._id || null);
 
     const newStepCounter = new this.stepCounterModel({
       user: user._id,
       deviceId,
-      achievement: this.stepAchievementModel
-        .findOne({})
-        .then((achievement) => achievement?._id || null),
+      achievement: achievementId,
       completeStatus: false,
       steps: [],
     });
@@ -126,28 +140,27 @@ export class StepCountersService {
     stepCount: number,
     date: string | Date,
   ) {
+    // Validate user existence
     const user = await findOrThrow(this.userModel, userId, 'User not found');
     if (!user) throw new NotFoundException('User not found');
 
-    // หา StepCounter ทั้งหมดของ user
+    // Find all step counters for user
     const stepCounters = await this.stepCounterModel.find({ user: user._id });
-
     if (stepCounters.length === 0) {
       throw new NotFoundException('Step counter not found for this user');
     }
 
-    // หา stepCounter ที่ deviceId ตรงกัน
+    // Find step counter matching deviceId
     const stepCounter = stepCounters.find((sc) => sc.deviceId === deviceId);
-
     if (!stepCounter) {
-      // ถ้า deviceId ไม่ตรงกับที่มี ให้โยน error
       throw new BadRequestException('Invalid deviceId for this user');
     }
 
-    // ส่วนการอัปเดต step เหมือนเดิม
+    // Normalize date to midnight
     const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0); // normalize date only
+    targetDate.setHours(0, 0, 0, 0);
 
+    // Check if a step entry for this date exists
     const existingIndex = stepCounter.steps.findIndex((entry) => {
       const entryDate = new Date(entry.date);
       entryDate.setHours(0, 0, 0, 0);
@@ -155,9 +168,11 @@ export class StepCountersService {
     });
 
     if (existingIndex !== -1) {
+      // Update existing step entry
       stepCounter.steps[existingIndex].step = stepCount;
       stepCounter.steps[existingIndex].updatedAt = new Date();
     } else {
+      // Push new step entry
       stepCounter.steps.push({
         step: stepCount,
         totalStep: 0,
@@ -167,8 +182,10 @@ export class StepCountersService {
       });
     }
 
-    // Recalculate total steps
+    // Sort steps by date ascending
     stepCounter.steps.sort((a, b) => +new Date(a.date) - +new Date(b.date));
+
+    // Recalculate running total steps
     let runningTotal = 0;
     for (const s of stepCounter.steps) {
       runningTotal += s.step;
@@ -177,23 +194,32 @@ export class StepCountersService {
 
     const totalStep = runningTotal;
 
+    // Check achievement if stepCounter is not complete or rank not set
     if (!stepCounter.completeStatus || typeof stepCounter.rank !== 'number') {
-      const achievement = await this.stepAchievementModel
-        .findById(stepCounter.achievement)
-        .lean();
+      // Validate achievement ID before querying
+      if (
+        stepCounter.achievement &&
+        Types.ObjectId.isValid(stepCounter.achievement)
+      ) {
+        const achievement = await this.stepAchievementModel
+          .findById(stepCounter.achievement)
+          .lean();
 
-      if (achievement && totalStep >= achievement.achievement) {
-        const alreadyCompleted = await this.stepCounterModel.countDocuments({
-          achievement: stepCounter.achievement,
-          completeStatus: true,
-          rank: { $ne: null },
-        });
+        if (achievement && totalStep >= achievement.achievement) {
+          // Count how many completed with rank for this achievement
+          const alreadyCompleted = await this.stepCounterModel.countDocuments({
+            achievement: stepCounter.achievement,
+            completeStatus: true,
+            rank: { $ne: null },
+          });
 
-        stepCounter.completeStatus = true;
-        stepCounter.rank = alreadyCompleted + 1;
+          stepCounter.completeStatus = true;
+          stepCounter.rank = alreadyCompleted + 1;
+        }
       }
     }
 
+    // Save updated stepCounter and return
     return await stepCounter.save();
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiRequest, ApiResponse } from "@/utils/api";
 import { Evoucher } from "@/types/evoucher";
 
@@ -6,14 +6,36 @@ export function useEvoucher() {
     const [evouchers, setEvouchers] = useState<Evoucher[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const hasFetched = useRef(false);
 
     // Fetch all evouchers
-    const fetchEvouchers = async () => {
+    const fetchEvouchers = async (force = false) => {
+        // Prevent multiple fetches unless forced
+        if (hasFetched.current && !force) {
+            return;
+        }
+
         setLoading(true);
         setError(null);
         try {
-            const res = await apiRequest<{ data: Evoucher[] }>("/evoucher?limit=0", "GET");
-            setEvouchers(Array.isArray(res.data?.data) ? res.data.data : []);
+            const res = await apiRequest<{ data: Evoucher[] }>("/evouchers?limit=0", "GET");
+            
+            console.log("API Response:", res);
+            console.log("Response data:", res.data);
+            
+            // Handle the actual API response structure
+            if (res.data && Array.isArray(res.data)) {
+                console.log("Setting evouchers from res.data (array)");
+                setEvouchers(res.data);
+            } else if (res.data && Array.isArray(res.data.data)) {
+                console.log("Setting evouchers from res.data.data (array)");
+                setEvouchers(res.data.data);
+            } else {
+                console.log("Setting empty evouchers array");
+                setEvouchers([]);
+            }
+            
+            hasFetched.current = true;
             return res;
         } catch (err) {
             setError(
@@ -31,9 +53,9 @@ export function useEvoucher() {
         try {
             setLoading(true);
             const res = await apiRequest<{ data: Evoucher }>("/evoucher", "POST", evoucherData);
-            const newEvoucher = res.data?.data;
-            if (newEvoucher) {
-                setEvouchers(prev => [...prev, newEvoucher]);
+            const newEvoucher = res.data?.data || res.data;
+            if (newEvoucher && typeof newEvoucher === 'object' && '_id' in newEvoucher) {
+                setEvouchers(prev => [...prev, newEvoucher as Evoucher]);
             }
             return res;
         } catch (err) {
@@ -50,11 +72,11 @@ export function useEvoucher() {
         try {
             setLoading(true);
             const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "PATCH", evoucherData);
-            const updatedEvoucher = res.data?.data;
-            if (updatedEvoucher) {
+            const updatedEvoucher = res.data?.data || res.data;
+            if (updatedEvoucher && typeof updatedEvoucher === 'object' && '_id' in updatedEvoucher) {
                 setEvouchers(prev =>
                     prev.map(evoucher =>
-                        evoucher._id === evoucherId ? updatedEvoucher : evoucher
+                        evoucher._id === evoucherId ? updatedEvoucher as Evoucher : evoucher
                     )
                 );
             }
@@ -73,8 +95,8 @@ export function useEvoucher() {
         setLoading(true);
         try {
             const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "DELETE");
-            const deletedEvoucher = res.data?.data;
-            if (deletedEvoucher) {
+            const deletedEvoucher = res.data?.data || res.data;
+            if (deletedEvoucher && typeof deletedEvoucher === 'object' && '_id' in deletedEvoucher) {
                 setEvouchers(prev => prev.filter(evoucher => evoucher._id !== evoucherId));
             }
             return res;
@@ -87,6 +109,11 @@ export function useEvoucher() {
         }
     };
 
+    // Refresh evouchers (force fetch)
+    const refreshEvouchers = async () => {
+        return await fetchEvouchers(true);
+    };
+
     useEffect(() => {
         fetchEvouchers();
     }, []);
@@ -95,7 +122,7 @@ export function useEvoucher() {
         evouchers,
         loading,
         error,
-        fetchEvouchers,
+        refreshEvouchers,
         createEvoucher,
         updateEvoucher,
         deleteEvoucher,

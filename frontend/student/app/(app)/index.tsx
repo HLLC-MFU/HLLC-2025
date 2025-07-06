@@ -1,20 +1,19 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import * as BackgroundTask from 'expo-background-task';
-import { useTranslation } from 'react-i18next';
+
 import { Bell } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from '@/components/global/AssetImage';
-import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
+import BackgroundScreen from '@/components/global/BackgroundScreen';
 import { DoorClosedLocked } from '@tamagui/lucide-icons';
 import useHealthData from '@/hooks/health/useHealthData';
 import { ProgressSummaryCard } from '@/components/home/ProgressSummaryCard';
 import { useEffect } from 'react';
-import { registerBackgroundTaskAsync } from '@/hooks/health/useStepCollect';
+import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -33,10 +32,21 @@ export default function HomeScreen() {
   };
   const { steps, deviceMismatch } = useHealthData(new Date());
   useEffect(() => {
-    registerBackgroundTaskAsync().catch((error) => {
-      console.error('[BackgroundTask] Registration failed', error);
-    });
+    async function setupBackgroundTask() {
+      try {
+        // Register the background task with a minimum interval
+        await registerBackgroundTaskAsync();
+
+        // Optionally sync immediately on startup
+        await syncStepsOnStartup();
+      } catch (e) {
+        console.error('Failed to setup background task:', e);
+      }
+    }
+
+    setupBackgroundTask();
   }, []);
+
 
 
   const content = (

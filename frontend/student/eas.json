@@ -9,6 +9,9 @@
       "distribution": "internal",
       "env": {
         "GOOGLE_SERVICE_INFO_PLIST": "env:GOOGLE_SERVICE_INFO_PLIST"
+      },
+      "android": {
+        "buildType": "apk"
       }
     },
     "preview": {

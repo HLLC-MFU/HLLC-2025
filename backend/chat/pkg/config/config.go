@@ -127,7 +127,7 @@ var defaults = map[string]string{
 	"REDIS_PORT":             "6379",
 	"REDIS_DB":               "0",
 	"MONGO_URI":              "mongodb://localhost:27017",
-	"MONGO_DATABASE":         "hllc_chat",
+	"MONGO_DATABASE":         "hllc-2025",
 	"KAFKA_BROKERS":          "localhost:9092",
 	"UPLOAD_PATH":            "uploads",
 }

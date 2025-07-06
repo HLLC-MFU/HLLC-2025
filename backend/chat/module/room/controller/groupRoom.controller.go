@@ -62,6 +62,15 @@ func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
+	// Extract user ID from JWT context if CreatedBy is not provided
+	if groupDto.CreatedBy == "" {
+		userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+		if err != nil {
+			return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+		}
+		groupDto.CreatedBy = userID
+	}
+
 	filename, err := c.handleImageUpload(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
