@@ -126,7 +126,12 @@ export function useChat() {
     const createRoom = async (roomData: FormData): Promise<{ data: { data: Room } | null; statusCode: number; message: string | null }> => {
         try {
             setLoading(true);
-            const res = await chatApiRequest<{ data: Room }>("/rooms", "POST", roomData);
+            
+            // Check if this is a group room (school/major)
+            const groupType = roomData.get('groupType');
+            const endpoint = groupType ? "/rooms/group" : "/rooms";
+            
+            const res = await chatApiRequest<{ data: Room }>(endpoint, "POST", roomData);
             const newRoom = res.data?.data;
             if (newRoom) {
                 setRoom(prev => [...prev, newRoom]);

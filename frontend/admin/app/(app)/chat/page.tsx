@@ -23,10 +23,19 @@ export default function ChatPage() {
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<Room | undefined>();
+    const [selectedRoomType, setSelectedRoomType] = useState<RoomType | "school" | "major">(RoomType.NORMAL);
 
     const handleEditRoom = (room: Room) => {
         setModalMode('edit');
         setSelectedRoom(room);
+        // Determine room type from room metadata
+        if (room.metadata?.groupType === "school") {
+            setSelectedRoomType("school");
+        } else if (room.metadata?.groupType === "major") {
+            setSelectedRoomType("major");
+        } else {
+            setSelectedRoomType(room.type);
+        }
         setIsModalOpen(true);
     };
 
@@ -50,6 +59,7 @@ export default function ChatPage() {
     const handleAddRoom = (type: RoomType | "school" | "major") => {
         setModalMode('add');
         setSelectedRoom(undefined);
+        setSelectedRoomType(type);
         setIsModalOpen(true);
     };
 
@@ -104,6 +114,7 @@ export default function ChatPage() {
                 onSuccess={handleSubmitRoom}
                 room={selectedRoom}
                 mode={modalMode}
+                roomType={selectedRoomType}
             />
         </>
     );

@@ -2,10 +2,12 @@ export type Room = {
     _id: string;
     name: Name;
     type: RoomType;
+    status?: "active" | "inactive";
     capacity: number;
     memberCount: number;
     createdBy: string;
     image: string;
+    members?: string[]; // Array of user IDs
     createdAt: string;
     updatedAt: string;
     metadata: RoomMetadata;
