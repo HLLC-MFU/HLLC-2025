@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "student",
+    "name": "HLLC",
     "slug": "student",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,23 +8,34 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "jsEngine": "jsc",
+    "jsEngine": "hermes",
+    "owner": "hllc",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mfuactivity.hllc",
       "infoPlist": {
         "UIBackgroundModes": [
-          "process"
+          "processing",
+          "fetch",
+          "remote-notification"
         ],
+        "BGTaskSchedulerPermittedIdentifiers":[
+          "background-step-sync"
+        ],
+        "UIViewControllerBasedStatusBarAppearance": "Allow $(PRODUCT_NAME) to send you notifications.",
         "ITSAppUsesNonExemptEncryption": false,
         "NSHealthShareUsageDescription": "Allow $(PRODUCT_NAME) to read health data.",
-        "NSHealthUpdateUsageDescription": "Allow $(PRODUCT_NAME) to write health data."
+        "NSHealthUpdateUsageDescription": "Allow $(PRODUCT_NAME) to write health data.",
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true
       },
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
       "softwareKeyboardLayoutMode": "pan",
@@ -71,11 +82,15 @@
             "targetSdkVersion": 36,
             "buildToolsVersion": "36.0.0",
             "minSdkVersion": 29
+          },
+          "ios": {
+            "useFrameworks": "static"
           }
         }
       ],
       "expo-background-task",
-      "expo-video"
+      "expo-video",
+      "@react-native-firebase/app"
     ],
     "experiments": {
       "typedRoutes": true
