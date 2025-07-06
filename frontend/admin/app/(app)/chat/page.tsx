@@ -8,6 +8,8 @@ import { MessageSquare } from "lucide-react";
 import { useState } from "react";
 import RoomAccordion from "./_components/RoomAccordion";
 import { RoomModal } from "./_components/RoomModal";
+import Link from "next/link";
+import { Smile } from "lucide-react";
 
 export default function ChatPage() {
     const { 
@@ -125,10 +127,18 @@ export default function ChatPage() {
     return (
         <>
             <PageHeader 
-                description="Manage chat rooms"
-                icon={<MessageSquare />}
-                title="Chat Room Management"
+                description="Chat room management"
+                icon={<Smile />}
+                title="Chat Management"
             />
+            <div className="flex justify-end mb-4">
+                <Link href="/chat/sticker">
+                    <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-semibold shadow hover:bg-primary/90 transition">
+                        <Smile className="w-5 h-5" />
+                        Sticker Management
+                    </button>
+                </Link>
+            </div>
 
             <div className="flex flex-col gap-6">
                 <RoomAccordion 

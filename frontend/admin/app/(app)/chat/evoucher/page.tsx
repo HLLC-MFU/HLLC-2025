@@ -56,17 +56,17 @@ export default function EvoucherPage() {
 
             {/* Send Button */}
             <div className="flex justify-end">
-                <Button
-                    color="primary"
+                            <Button
+                                color="primary"
                     size="lg"
-                    startContent={<Send size={20} />}
-                    onPress={handleSendEvoucher}
+                                startContent={<Send size={20} />}
+                                onPress={handleSendEvoucher}
                     isLoading={sending}
                     isDisabled={!canSendEvoucher}
                 >
                     Send Evoucher to Room
-                </Button>
-            </div>
+                            </Button>
+                        </div>
         </div>
     );
 } 

@@ -2,7 +2,7 @@
 
 import { Room } from "@/types/chat";
 import { Card, CardBody, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Image, Badge } from "@heroui/react";
-import { Building2, EllipsisVertical, Eye, Pencil, Trash2, Users, Image as ImageIcon, CheckCircle, XCircle } from "lucide-react";
+import { Building2, EllipsisVertical, Eye, Pencil, Trash2, Users, Image as ImageIcon, CheckCircle, XCircle, Circle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -81,14 +81,8 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                                 <p className="text-sm font-semibold truncate text-foreground">
                                     {room.name.en}
                                 </p>
-                                <Badge 
-                                    size="sm" 
-                                    variant="flat" 
-                                    color={room.status === "active" ? "success" : "danger"}
-                                    className="flex-shrink-0"
-                                >
-                                    {room.status === "active" ? "Active" : "Inactive"}
-                                </Badge>
+                                {/* Dot status */}
+                                <span className={`w-2 h-2 rounded-full ${room.status === "active" ? "bg-green-500" : "bg-red-500"} inline-block`} title={room.status === "active" ? "Active" : "Inactive"}></span>
                             </div>
                             <p className="text-xs text-default-500 truncate">
                                 {room.name.th}
@@ -158,7 +152,7 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                     <div className="flex items-center gap-3 text-xs text-default-500">
                         <div className="flex items-center gap-1">
                             <Building2 size={12} />
-                            <span className="font-medium">{room.capacity === 0 ? "∞" : room.capacity}</span>
+                            <span className="font-medium">{room.capacity === 0 ? "\u221e" : room.capacity}</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <Users size={12} />
@@ -168,7 +162,7 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                     <div className="flex items-center gap-2">
                         <Button
                             variant="flat"
-                            color={room.status === "active" ? "warning" : "success"}
+                            color={room.status === "active" ? "success" : "danger"}
                             size="sm"
                             isIconOnly
                             onPress={handleToggleStatus}

@@ -243,8 +243,8 @@ export function RoomModal({
                                 className="w-full"
                                 required
                             >
-                                <SelectItem key="active">Active</SelectItem>
-                                <SelectItem key="inactive">Inactive</SelectItem>
+                                <SelectItem key="active" className="text-green-600">Active</SelectItem>
+                                <SelectItem key="inactive" className="text-red-600">Inactive</SelectItem>
                             </Select>
                         </div>
 

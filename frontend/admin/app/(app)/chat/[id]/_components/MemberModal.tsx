@@ -14,7 +14,8 @@ import {
 } from "@heroui/react";
 import { User, Calendar, Clock, Shield, LogOut } from "lucide-react";
 import { useState } from "react";
-import { addToast } from "@heroui/react";
+import { addToast } from "@heroui/toast";
+import { getToken } from "@/utils/storage";
 
 interface MemberModalProps {
     isOpen: boolean;
@@ -42,11 +43,12 @@ export function MemberModal({ isOpen, onClose, member, roomId, onMemberKicked }:
 
         try {
             setIsKicking(true);
-            
+            const token = getToken('accessToken');
             const response = await fetch('/api/restriction/kick', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 body: JSON.stringify({
                     userId: member._id,
@@ -112,28 +114,6 @@ export function MemberModal({ isOpen, onClose, member, roomId, onMemberKicked }:
                                     </Chip>
                                 </div>
                             </div>
-
-                            <div className="flex items-center gap-3">
-                                <Calendar size={20} className="text-default-400" />
-                                <div>
-                                    <p className="text-sm text-default-500">Joined</p>
-                                    <p className="font-medium">
-                                        {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : 'N/A'}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {member.lastSeen && (
-                                <div className="flex items-center gap-3">
-                                    <Clock size={20} className="text-default-400" />
-                                    <div>
-                                        <p className="text-sm text-default-500">Last Seen</p>
-                                        <p className="font-medium">
-                                            {new Date(member.lastSeen).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </ModalBody>

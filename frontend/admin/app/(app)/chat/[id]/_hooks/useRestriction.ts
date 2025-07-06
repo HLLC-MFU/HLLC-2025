@@ -60,12 +60,12 @@ export function useRestriction() {
         }
     };
 
-    // Add more actions (kick, unban, unmute) as needed
+    // Add more actions (unban, unmute) as needed
 
     return {
         loading,
         banUser,
         muteUser,
-        // kickUser, unbanUser, unmuteUser (implement if needed)
+        // unbanUser, unmuteUser (implement if needed)
     };
 }
