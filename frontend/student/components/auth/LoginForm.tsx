@@ -1,12 +1,12 @@
-import React from 'react';
-import { Button, Input, Text, View, YStack } from 'tamagui';
-import { PasswordInput } from '@/components/PasswordInput';
+import React, { useState } from 'react';
+import { Button, Input, Text, View, XStack, YStack } from 'tamagui';
 import { Linking, Image, Pressable, StyleSheet } from 'react-native';
 import { t } from 'i18next';
 import { Globe } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trans } from 'react-i18next';
+import { User, Lock, EyeClosed, Eye } from '@tamagui/lucide-icons';
 
 interface LoginFormProps {
   username: string;
@@ -31,6 +31,7 @@ export const LoginForm = ({
   const toggleLanguage = () => {
     changeLanguage(language === 'en' ? 'th' : 'en');
   };
+  const [isPasswordVisible, setIsPasswordVisible] = useState(true);
 
   return (
     <>
@@ -50,26 +51,41 @@ export const LoginForm = ({
         <Text fontSize={18} fontWeight="bold" textAlign="center">{t("login.subtitle")}</Text>
 
         <YStack gap="$4" width={'100%'}>
-          <Input
-            height={50}
-            width={'100%'}
-            borderWidth={2}
-            focusStyle={{ borderColor: '$colorFocus' }}
-            placeholder={t("login.username")}
-            value={username}
-            onChangeText={setUsername}
-            style={{ backgroundColor: 'white' }}
-          />
-          <PasswordInput
-            value={password}
-            onChangeText={setPassword}
-            placeholder={t("login.password")}
-          />
+          <XStack {...inputContainerStyle}>
+            <User />
+            <Input
+              height={50}
+              flex={1}
+              borderWidth={0}
+              backgroundColor={'transparent'}
+              placeholder={t("login.username")}
+              value={username}
+              onChangeText={setUsername}
+              keyboardType="numeric"
+              maxLength={10}
+            />
+          </XStack>
+          <XStack {...inputContainerStyle}>
+            <Lock />
+            <Input
+              flex={1}
+              borderWidth={0}
+              backgroundColor={'transparent'}
+              value={password}
+              onChangeText={setPassword}
+              placeholder={t("login.password")}
+              secureTextEntry={isPasswordVisible}
+            />
+            <Pressable onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+              {isPasswordVisible ? <EyeClosed /> : <Eye />}
+            </Pressable>
+          </XStack>
+
         </YStack>
 
-        {/* <Text width={'100%'} textAlign="right" onPress={onForgotPassword}>
+        <Text width={'100%'} textAlign="right" onPress={onForgotPassword}>
           {t("login.forgotPassword")}
-        </Text> */}
+        </Text>
 
         <View style={{ width: '100%', flexDirection: 'row', gap: 10 }}>
           <Button flex={1} onPress={onRegister}>{t("login.register")}</Button>
@@ -93,11 +109,16 @@ export const LoginForm = ({
       </Text>
     </>
   );
-}; 
+};
 
-const styles = StyleSheet.create({
-  link: {
-    color: '#007BFF',
-    textDecorationLine: 'underline',
+const inputContainerStyle = {
+  alignItems: 'center' as const,
+  borderWidth: 2,
+  paddingHorizontal: 12,
+  height: 48,
+  borderColor: '$borderColor',
+  borderRadius: 16,
+  focusStyle: {
+    borderColor: '$colorFocus',
   },
-});
+};
