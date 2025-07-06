@@ -14,8 +14,12 @@ type (
 	}
 
 	ClaimEvoucherDto struct {
-		UserID     string `json:"userId" validate:"required,mongoId"`
-		EvoucherID string `json:"evoucherId" validate:"required"`
+		UserID    string `json:"userId" validate:"required,mongoId"`
+		MessageID string `json:"messageId" validate:"required,mongoId"`
+	}
+
+	ClaimEvoucherInChatDto struct {
+		ClaimURL string `json:"claimUrl" validate:"required,url"`
 	}
 )
 
@@ -34,6 +38,16 @@ func (dto *SendEvoucherDto) ToObjectIDs() (userObjID, roomObjID primitive.Object
 	return userObjID, roomObjID, nil
 }
 
-func (dto *ClaimEvoucherDto) ToObjectID() (userObjID primitive.ObjectID, err error) {
-	return primitive.ObjectIDFromHex(dto.UserID)
+func (dto *ClaimEvoucherDto) ToObjectIDs() (userObjID, messageObjID primitive.ObjectID, err error) {
+	userObjID, err = primitive.ObjectIDFromHex(dto.UserID)
+	if err != nil {
+		return primitive.NilObjectID, primitive.NilObjectID, err
+	}
+
+	messageObjID, err = primitive.ObjectIDFromHex(dto.MessageID)
+	if err != nil {
+		return primitive.NilObjectID, primitive.NilObjectID, err
+	}
+
+	return userObjID, messageObjID, nil
 } 

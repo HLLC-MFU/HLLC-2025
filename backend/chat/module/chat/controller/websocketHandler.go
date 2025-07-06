@@ -169,6 +169,7 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 					"title":       msg.ChatMessage.EvoucherInfo.Title,
 					"description": msg.ChatMessage.EvoucherInfo.Description,
 					"claimUrl":    msg.ChatMessage.EvoucherInfo.ClaimURL,
+					"claimedBy":   msg.ChatMessage.EvoucherInfo.ClaimedBy,
 				}
 		}
 

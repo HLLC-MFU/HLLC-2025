@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"chat/module/chat/model"
 	chatUtils "chat/module/chat/utils"
 	"chat/module/notification/service"
@@ -10,8 +11,11 @@ import (
 	"chat/pkg/database/queries"
 	serviceHelper "chat/pkg/helpers/service"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -156,4 +160,191 @@ func (s *EvoucherService) GetUserById(ctx context.Context, userID string) (*user
 	}
 
 	return &user, nil
+}
+
+// ClaimEvoucher claims an evoucher message for a user
+func (s *EvoucherService) ClaimEvoucher(ctx context.Context, userID, messageID primitive.ObjectID) (*model.ChatMessage, error) {
+	log.Printf("[EvoucherService] ClaimEvoucher called for message %s by user %s", 
+		messageID.Hex(), userID.Hex())
+
+	// Get the message from database
+	result, err := s.FindOneById(ctx, messageID.Hex())
+	if err != nil {
+		return nil, fmt.Errorf("message not found: %w", err)
+	}
+
+	if len(result.Data) == 0 {
+		return nil, fmt.Errorf("message not found")
+	}
+
+	msg := result.Data[0]
+
+	// Check if message has evoucher info
+	if msg.EvoucherInfo == nil {
+		return nil, fmt.Errorf("message does not contain evoucher information")
+	}
+
+	// Check if user already claimed this evoucher
+	for _, claimedUserID := range msg.EvoucherInfo.ClaimedBy {
+		if claimedUserID == userID {
+			return nil, fmt.Errorf("you have already claimed this evoucher")
+		}
+	}
+
+	// Add user to claimed list
+	msg.EvoucherInfo.ClaimedBy = append(msg.EvoucherInfo.ClaimedBy, userID)
+
+	// Update message in database
+	updateResult, err := s.db.Collection("chat-messages").UpdateOne(ctx, 
+		bson.M{"_id": messageID}, 
+		bson.M{
+			"$set": bson.M{
+				"evoucher_info.claimed_by": msg.EvoucherInfo.ClaimedBy,
+			},
+		})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update evoucher claim status: %w", err)
+	}
+
+	if updateResult.MatchedCount == 0 {
+		return nil, fmt.Errorf("message not found")
+	}
+
+	log.Printf("[EvoucherService] Successfully claimed evoucher for user %s in message %s", 
+		userID.Hex(), messageID.Hex())
+
+	// Update cache
+	if s.cache != nil {
+		enriched := model.ChatMessageEnriched{
+			ChatMessage: msg,
+		}
+		if err := s.cache.SaveMessage(ctx, msg.RoomID.Hex(), &enriched); err != nil {
+			log.Printf("[EvoucherService] Failed to update cache after claim: %v", err)
+		}
+	}
+
+	// Emit claim event to WebSocket and Kafka
+	if s.emitter != nil {
+		if err := s.emitter.EmitEvoucherClaimed(ctx, &msg, userID); err != nil {
+			log.Printf("[EvoucherService] Failed to emit evoucher claimed event: %v", err)
+		} else {
+			log.Printf("[EvoucherService] Successfully emitted evoucher claimed event for message %s", messageID.Hex())
+		}
+	}
+
+	return &msg, nil
+}
+
+// CheckIfUserClaimedEvoucher checks if a user has already claimed a specific evoucher
+func (s *EvoucherService) CheckIfUserClaimedEvoucher(ctx context.Context, userID, evoucherId string) (bool, error) {
+	log.Printf("[EvoucherService] Checking if user %s has claimed evoucher %s", userID, evoucherId)
+
+	// Convert userID to ObjectID
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return false, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// Check in evoucher-claims collection
+	var claimRecord struct {
+		ID         primitive.ObjectID `bson:"_id"`
+		UserID     primitive.ObjectID `bson:"user_id"`
+		EvoucherID string             `bson:"evoucher_id"`
+		ClaimedAt  time.Time          `bson:"claimed_at"`
+	}
+
+	err = s.db.Collection("evoucher-claims").FindOne(ctx, bson.M{
+		"user_id":     userObjID,
+		"evoucher_id": evoucherId,
+	}).Decode(&claimRecord)
+
+	if err == mongo.ErrNoDocuments {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to check evoucher claim: %w", err)
+	}
+
+	return true, nil
+}
+
+// ClaimEvoucherThroughNestJS claims an evoucher through the NestJS API
+func (s *EvoucherService) ClaimEvoucherThroughNestJS(ctx context.Context, userID, evoucherId, claimURL, jwtToken string) (map[string]interface{}, error) {
+	log.Printf("[EvoucherService] Claiming evoucher %s for user %s through NestJS API", evoucherId, userID)
+
+	// Create request body with userID
+	requestBody := map[string]interface{}{
+		"user": userID,
+	}
+	
+	// Marshal request body to JSON
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	// Make HTTP request to NestJS API
+	client := &http.Client{Timeout: 10 * time.Second}
+	
+	req, err := http.NewRequestWithContext(ctx, "POST", claimURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+jwtToken)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request to NestJS: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Parse response
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// Check if request was successful
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("NestJS API error: %s - %s", resp.Status, string(body))
+	}
+
+	log.Printf("[EvoucherService] Successfully claimed evoucher %s through NestJS API", evoucherId)
+	return result, nil
+}
+
+// StoreEvoucherClaim stores a claim record in the Go database
+func (s *EvoucherService) StoreEvoucherClaim(ctx context.Context, userID, evoucherId string) error {
+	log.Printf("[EvoucherService] Storing evoucher claim for user %s, evoucher %s", userID, evoucherId)
+
+	// Convert userID to ObjectID
+	userObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// Create claim record
+	claimRecord := bson.M{
+		"user_id":     userObjID,
+		"evoucher_id": evoucherId,
+		"claimed_at":  time.Now(),
+	}
+
+	// Insert into evoucher-claims collection
+	_, err = s.db.Collection("evoucher-claims").InsertOne(ctx, claimRecord)
+	if err != nil {
+		return fmt.Errorf("failed to store evoucher claim: %w", err)
+	}
+
+	log.Printf("[EvoucherService] Successfully stored evoucher claim for user %s, evoucher %s", userID, evoucherId)
+	return nil
 }
