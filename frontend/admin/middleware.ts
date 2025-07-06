@@ -1,6 +1,4 @@
-import type { NextRequest } from "next/server";
-
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -8,7 +6,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // ✅ Exclude /login route
-  if (pathname === "/login") {
+  if (pathname === `${req.nextUrl.basePath}/login`) {
     return NextResponse.next();
   }
 
@@ -16,7 +14,7 @@ export async function middleware(req: NextRequest) {
   const refreshToken = req.cookies.get("refreshToken")?.value;
 
   if (!accessToken) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(new URL(`${req.nextUrl.basePath}/login`, req.url));
   }
 
   if (isTokenExpired(accessToken)) {
@@ -44,10 +42,10 @@ export async function middleware(req: NextRequest) {
 
         return response;
       } else {
-        return NextResponse.redirect(new URL("/login", req.url));
+        return NextResponse.redirect(new URL(`${req.nextUrl.basePath}/login`, req.url));
       }
     } else {
-      return NextResponse.redirect(new URL("/login", req.url));
+      return NextResponse.redirect(new URL(`${req.nextUrl.basePath}/login`, req.url));
     }
   }
 
