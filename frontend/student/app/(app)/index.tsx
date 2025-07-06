@@ -1,8 +1,8 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Alert } from 'react-native';
-import { router, useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Bell} from 'lucide-react-native';
+import { View } from 'react-native';
+import { router } from 'expo-router';
+
+import { Bell } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
@@ -12,11 +12,12 @@ import { DoorClosedLocked } from '@tamagui/lucide-icons';
 import useHealthData from '@/hooks/health/useHealthData';
 import { ProgressSummaryCard } from '@/components/home/ProgressSummaryCard';
 import BackgroundScreen from '@/components/global/BackgroundScreen';
+import { useEffect } from 'react';
+import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
-  const { t } = useTranslation();
   const handleSignOut = async () => {
     useAuth.getState().signOut();
     router.replace('/(auth)/login');
@@ -30,6 +31,24 @@ export default function HomeScreen() {
     signOut: assets?.signOut ?? null,
   };
   const { steps, deviceMismatch } = useHealthData(new Date());
+  useEffect(() => {
+    async function setupBackgroundTask() {
+      try {
+        // Register the background task with a minimum interval
+        await registerBackgroundTaskAsync();
+
+        // Optionally sync immediately on startup
+        await syncStepsOnStartup();
+      } catch (e) {
+        console.error('Failed to setup background task:', e);
+      }
+    }
+
+    setupBackgroundTask();
+  }, []);
+
+
+
   const content = (
     <SafeAreaView
       style={{

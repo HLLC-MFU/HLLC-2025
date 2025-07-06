@@ -17,7 +17,8 @@
         "loginButton": "Login",
         "forgotPassword": "Forgot Password?",
         "register": "Register",
-        "contactUs": "Contact Us"
+        "contactUs": "Contact Us",
+        "policy": "By continuing, you acknowledge that you have read and agree to our <tos>Terms of Service</tos> and <privacy>Privacy Policy</privacy>."
     },
     "register": {
         "title": "Register",
