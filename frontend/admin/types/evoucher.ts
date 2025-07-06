@@ -13,22 +13,33 @@ export enum EvoucherStatus {
 
 export type Evoucher = {
     _id: string;
-    discount: string;
+    name: Lang;
     acronym: string;
-    type: EvoucherType;
-    sponsors: Sponsors;
+    order: number;
+    startAt: string;
+    endAt: string;
     detail: Lang;
-    expiration: string;
     photo: {
-        coverPhoto: string;
+        front: string;
+        back: string;
+        home: string;
     };
-    maxClaims?: number;
-    status: EvoucherStatus;
+    amount: number;
+    sponsor: string;
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
+    
+    // Optional fields for backward compatibility
+    discount?: string;
+    type?: EvoucherType;
+    sponsors?: Sponsors;
+    expiration?: string;
+    status?: EvoucherStatus;
     metadata?: Record<string, string>;
-    claims: {
+    claims?: {
         maxClaim: number;
         currentClaim: number;
     };
-    createdAt: string;
-    updatedAt: string;
+    maxClaims?: number;
 } 

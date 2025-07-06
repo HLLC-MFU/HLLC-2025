@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import  { useState, useRef, useEffect } from 'react';
 import { View, Text, Alert, Dimensions, Animated, SafeAreaView } from 'react-native';
 import styles from './styles';
 import useProfile from '../../hooks/useProfile';
@@ -31,7 +31,7 @@ export default function LeaderBoard() {
 
   const { achievements, loading: achievementIdLoading } = useStepAchievement();
   const currentAchievementId = achievements[0]?._id;
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentAchievementId) setLastAchievementId(currentAchievementId);
   }, [currentAchievementId, setLastAchievementId]);
 

@@ -4,7 +4,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import useHealthData, { useUpdateDevice } from '@/hooks/health/useHealthData';
-import LeaderBoard from "@/components/step-counter/LeaderBoard";
+import LeaderBoard from "./leaderboard";
 
 export default function StepCounterScreen() {
   const { steps, deviceMismatch } = useHealthData(new Date());
@@ -26,6 +26,18 @@ export default function StepCounterScreen() {
           >
             <View style={styles.stepCounterFabInner}>
               <ChevronLeft size={24} color="#fff" />
+            </View>
+          </TouchableOpacity>
+          <View style={styles.titleBox}>
+            <Text style={styles.title}>NUBGAO</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.stepCounterFab}
+            onPress={() => router.replace('./leaderboard')}
+            activeOpacity={0.9}
+          >
+            <View style={styles.stepCounterFabInner}>
+              <Medal size={24} color="#fff" />
             </View>
           </TouchableOpacity>
         </View>

@@ -84,7 +84,10 @@
         "subtitle": "Coming soon...",
         "backward": "Go Back",
         "confirmTitle": "Confirm E-Voucher Usage",
-        "confirmMessage": "Are you sure you want to use this E-Voucher?"
+        "confirmMessage": "Are you sure you want to use this E-Voucher?",
+        "claim": "Claim E-Voucher",
+        "claiming": "Claiming...",
+        "claimed": "You have received the E-Voucher!"
     },
     "bottomNav": {
         "home": "Home",

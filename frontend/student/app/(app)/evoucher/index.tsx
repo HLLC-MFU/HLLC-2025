@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   RefreshControl,
   FlatList,
