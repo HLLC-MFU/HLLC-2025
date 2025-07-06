@@ -55,6 +55,7 @@
     "expo-status-bar": "~2.2.3",
     "expo-symbols": "~0.4.5",
     "expo-system-ui": "~5.0.8",
+    "expo-task-manager": "^13.1.6",
     "expo-video": "~2.2.2",
     "expo-web-browser": "~14.2.0",
     "i18next": "^25.2.0",

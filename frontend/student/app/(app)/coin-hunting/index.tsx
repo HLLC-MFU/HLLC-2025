@@ -1,15 +1,16 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import InteractiveMap from './_components/interactive-map';
-import MapMarkers from './_components/map-markers';
-import MarkerDetailModal from './_components/marker-detail-modal';
-import SuccessModal from './_components/success-modal';
-import AlertModal from './_components/alert-modal';
-import TopBar from './_components/top-bar';
-import StampModal from './_components/stamp-modal';
+
 import useCoinHunting from '@/hooks/useCoinHunting';
 import { useRouter } from 'expo-router';
+import TopBar from '@/components/coin-hunting/top-bar';
+import InteractiveMap from '@/components/coin-hunting/interactive-map';
+import MapMarkers from '@/components/coin-hunting/map-markers';
+import MarkerDetailModal from '@/components/coin-hunting/marker-detail-modal';
+import SuccessModal from '@/components/coin-hunting/success-modal';
+import AlertModal from '@/components/coin-hunting/alert-modal';
+import StampModal from '@/components/coin-hunting/stamp-modal';
 
 export default function CoinHuntingScreen() {
   const {
@@ -20,9 +21,7 @@ export default function CoinHuntingScreen() {
     stampCount,
     handleMarkerPress,
     handleCheckIn,
-    handleScannerSuccess,
     handleGoToStamp,
-    handleAlert,
     closeModal,
     markers,
     collectedCoinImages,

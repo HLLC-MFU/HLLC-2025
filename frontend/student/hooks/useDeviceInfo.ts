@@ -25,3 +25,7 @@ export function useDeviceInfo() {
 
   return { uniqueId };
 }
+
+export async function getDeviceUniqueId(): Promise<string> {
+  return await DeviceInfo.getUniqueId(); // ✅ Direct, no hooks
+}
