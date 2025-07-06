@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { ImageBackground, View, StyleSheet } from 'react-native';
-import { ResizeMode, Video } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
 
 export default function BackgroundScreen({
   background,

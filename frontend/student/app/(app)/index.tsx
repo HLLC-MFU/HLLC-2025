@@ -1,24 +1,23 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Alert } from 'react-native';
+import { View } from 'react-native';
 import { router, useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Award, Bell, Flower, Footprints, MapPin, User, Users } from 'lucide-react-native';
+
+import { Bell, Flower } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from '@/components/global/AssetImage';
-import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
+import BackgroundScreen from '@/components/global/BackgroundScreen';
 import { DoorClosedLocked } from '@tamagui/lucide-icons';
-import { useEffect, useState } from 'react';
-import messaging from '@react-native-firebase/messaging';
 import useHealthData from '@/hooks/health/useHealthData';
 import { ProgressSummaryCard } from '@/components/home/ProgressSummaryCard';
+import { useEffect } from 'react';
+import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
-  const { t } = useTranslation();
   const handleSignOut = async () => {
     useAuth.getState().signOut();
     router.replace('/(auth)/login');
@@ -32,17 +31,24 @@ export default function HomeScreen() {
     signOut: assets?.signOut ?? null,
     lamduan: assets?.lamduan ?? null,
   };
-
+  const { steps, deviceMismatch } = useHealthData(new Date());
   useEffect(() => {
-    const unsubscribe = messaging().onMessage(async remoteMessage => {
-      Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
-    });
+    async function setupBackgroundTask() {
+      try {
+        // Register the background task with a minimum interval
+        await registerBackgroundTaskAsync();
 
-    return unsubscribe;
+        // Optionally sync immediately on startup
+        await syncStepsOnStartup();
+      } catch (e) {
+        console.error('Failed to setup background task:', e);
+      }
+    }
+
+    setupBackgroundTask();
   }, []);
-    const [date, setDate] = useState(new Date());
-  const { steps } = useHealthData(date);
-  const deviceMismatch = false; // or set this based on your logic
+
+
 
   const content = (
     <SafeAreaView

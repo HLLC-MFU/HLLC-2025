@@ -7,7 +7,7 @@ import { BlurView } from 'expo-blur';
 import useProfile from '@/hooks/useProfile';
 import { useEffect, useState } from 'react';
 import TabBar from '@/components/global/TabBar';
-import BackgroundScreen from '@/components/global/ฺBackgroundScreen';
+import BackgroundScreen from '@/components/global/BackgroundScreen';
 import { useAppearance } from '@/hooks/useAppearance';
 import usePushNotification from '@/hooks/notifications/usePushNotification';
 
@@ -62,7 +62,7 @@ export default function AppLayout() {
         <Tabs.Screen name="activities" options={{ title: 'Activities' }} />
         <Tabs.Screen name="qrcode" options={{ title: 'QR Code' }} />
         <Tabs.Screen name="evoucher/index" options={{ title: 'E-Voucher' }} />
-        <Tabs.Screen name="chat/index" options={{ title: 'Community' }} />
+        <Tabs.Screen name="step-counter/index" options={{ title: 'Campaign' }} />
       </Tabs>
     </View>
   );
