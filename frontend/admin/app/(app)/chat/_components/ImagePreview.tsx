@@ -1,9 +1,9 @@
 import { Button } from "@heroui/react";
 
-interface ImagePreviewProps {
+type ImagePreviewProps = {
     imagePreview: string | null;
     onRemove: () => void;
-}
+};
 
 export function ImagePreview({ imagePreview, onRemove }: ImagePreviewProps) {
     if (!imagePreview) return null;

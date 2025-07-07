@@ -12,18 +12,18 @@ import {
     Chip,
     Divider
 } from "@heroui/react";
-import { User, Calendar, Clock, Shield, LogOut } from "lucide-react";
+import { Shield, LogOut } from "lucide-react";
 import { useState } from "react";
 import { addToast } from "@heroui/toast";
 import { getToken } from "@/utils/storage";
 
-interface MemberModalProps {
+type MemberModalProps ={
     isOpen: boolean;
     onClose: () => void;
     member: RoomMember | null;
     roomId?: string;
     onMemberKicked?: () => void;
-}
+};
 
 export function MemberModal({ isOpen, onClose, member, roomId, onMemberKicked }: MemberModalProps) {
     const [isKicking, setIsKicking] = useState(false);

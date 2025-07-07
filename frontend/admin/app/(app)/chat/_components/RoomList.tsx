@@ -2,12 +2,12 @@ import { Room } from "@/types/chat";
 import { RoomSkeleton } from "./RoomSkeleton";
 import { RoomCard } from "./RoomCard";
 
-interface RoomListProps {
+type RoomListProps = {
     rooms?: Room[];
     isLoading: boolean;
     onEditRoom: (room: Room) => void;
     onDeleteRoom: (room: Room) => void;
-}
+};
 
 export function RoomList({ 
     rooms, 

@@ -6,9 +6,13 @@ import { ArrowLeft, Gift, Send } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EvoucherSelection } from "./_components/EvoucherSelection";
 import { useEvoucherSend } from "./_hooks/useEvoucherSend";
+import { useGolangApi } from "@/hooks/useApi";
+import { useState } from "react";
 
 export default function EvoucherPage() {
     const router = useRouter();
+    const { loading, setLoading } = useGolangApi();
+    const [error, setError] = useState<string | null>(null);
     const searchParams = useSearchParams();
     const roomId = searchParams.get('roomId');
     
@@ -16,8 +20,6 @@ export default function EvoucherPage() {
         evouchers,
         selectedEvoucher,
         evoucherData,
-        loading,
-        error,
         sending,
         canSendEvoucher,
         handleEvoucherSelect,
@@ -47,7 +49,7 @@ export default function EvoucherPage() {
                 evouchers={evouchers}
                 selectedEvoucher={selectedEvoucher}
                 evoucherData={evoucherData}
-                loading={loading}
+                loading={setLoading}
                 error={error}
                 onEvoucherSelect={handleEvoucherSelect}
                 onEvoucherDataChange={handleEvoucherDataChange}

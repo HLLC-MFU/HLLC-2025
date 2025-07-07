@@ -37,6 +37,13 @@ export default function RoomDetailPage() {
     const [restrictionAction, setRestrictionAction] = useState<'ban' | 'mute' | 'kick' | 'unban' | 'unmute'>('ban');
     const [isLoadingMembers, setIsLoadingMembers] = useState(false);
     const [isLoadingRoom, setIsLoadingRoom] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState<{
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    } | null>(null);
 
     useEffect(() => {
         if (roomId) {
@@ -49,7 +56,9 @@ export default function RoomDetailPage() {
         try {
             setIsLoadingRoom(true);
             const roomData = await getRoomById(roomId);
-            setRoom(roomData);
+            if (roomData) {
+                setRoom(roomData);
+            }
         } catch (error) {
             addToast({
                 title: "Error loading room",
@@ -61,20 +70,37 @@ export default function RoomDetailPage() {
         }
     };
 
-    const loadMembers = async () => {
+    const loadMembers = async (page: number = 1) => {
         try {
             setIsLoadingMembers(true);
-            const roomMembers = await getRoomMembers(roomId);
-            setMembers(roomMembers);
+            const result = await getRoomMembers(roomId);
+            console.log('loadMembers result:', result);
+            
+            if (result && result.data) {
+                // Handle different possible response structures
+                const members = result.data.members || result.data || [];
+                console.log('Extracted members:', members);
+                setMembers(Array.isArray(members) ? members : []);
+            } else {
+                console.warn('No result or data from getRoomMembers');
+                setMembers([]);
+            }
         } catch (error) {
+            console.error('Error loading members:', error);
             addToast({
                 title: "Error loading members",
                 description: error instanceof Error ? error.message : "Failed to load room members",
                 color: "danger",
             });
+            setMembers([]);
         } finally {
             setIsLoadingMembers(false);
         }
+    };
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        loadMembers(page);
     };
 
     const handleRestrictionAction = (member: RoomMember, action: 'ban' | 'mute' | 'kick' | 'unban' | 'unmute') => {
@@ -85,7 +111,7 @@ export default function RoomDetailPage() {
     };
 
     const handleActionSuccess = () => {
-        loadMembers();
+        loadMembers(currentPage);
         setIsMemberModalOpen(false);
         setIsRestrictionModalOpen(false);
     };
@@ -120,51 +146,40 @@ export default function RoomDetailPage() {
                 icon={<Users />}
                 title="Room Members"
                 right={
-                    <Button
-                        variant="light"
-                        startContent={<ArrowLeft size={20} />}
-                        onPress={() => router.back()}
-                    >
-                        Back to Rooms
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            color="primary"
+                            startContent={<Gift size={20} />}
+                            onPress={() => router.push(`/chat/evoucher?roomId=${roomId}`)}
+                        >
+                            Send Evoucher
+                        </Button>
+                    </div>
                 }
             />
 
-            {/* Room Info Card */}
-            <Card>
-                <CardBody>
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h3 className="text-lg font-semibold">
-                                {room ? (
-                                    <>
-                                        <span className="text-default-600">EN: </span>
-                                        {room.name.en}
-                                        <span className="text-default-600 ml-4">TH: </span>
-                                        {room.name.th}
-                                    </>
-                                ) : (
-                                    `Room ID: ${roomId}`
-                                )}
-                            </h3>
-                            <p className="text-default-500">Total Members: {members.length}</p>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button
-                                color="primary"
-                                startContent={<Gift size={20} />}
-                                onPress={() => router.push(`/chat/evoucher?roomId=${roomId}`)}
-                            >
-                                Send Evoucher
-                            </Button>
-                        </div>
+            {/* Room Info + Members Table Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-default-200">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-6 py-4 border-b border-default-100">
+                    <div>
+                        <h3 className="text-lg font-semibold">
+                            {room && room.name ? (
+                                <>
+                                    <span className="text-default-600">EN: </span>
+                                    {room.name.en}
+                                    <span className="text-default-600 ml-4">TH: </span>
+                                    {room.name.th}
+                                </>
+                            ) : (
+                                `Room ID: ${roomId}`
+                            )}
+                        </h3>
+                        <p className="text-default-500">
+                            Total Members: {pagination?.total || members.length}
+                        </p>
                     </div>
-                </CardBody>
-            </Card>
-
-            {/* Members Table */}
-            <Card>
-                <CardBody>
+                </div>
+                <div className="px-0 md:px-4 py-4">
                     <MemberTable
                         members={members}
                         currentUserId="current-user-id" // You'll need to get this from auth context
@@ -172,9 +187,12 @@ export default function RoomDetailPage() {
                         onMuteMember={(member) => handleRestrictionAction(member, 'mute')}
                         onKickMember={(member) => handleRestrictionAction(member, 'kick')}
                         roomId={roomId}
+                        pagination={pagination}
+                        onPageChange={handlePageChange}
+                        loading={isLoadingMembers}
                     />
-                </CardBody>
-            </Card>
+                </div>
+            </div>
 
             {/* Member Modal */}
             <MemberModal

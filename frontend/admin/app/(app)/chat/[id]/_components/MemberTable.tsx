@@ -23,7 +23,15 @@ type MemberTableProps = {
     onMuteMember: (member: RoomMember) => void;
     onKickMember: (member: RoomMember) => void;
     roomId: string;
-};
+    pagination?: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    } | null;
+    onPageChange?: (page: number) => void;
+    loading?: boolean;
+};3
 
 export default function MemberTable({
     members,
@@ -31,28 +39,29 @@ export default function MemberTable({
     onBanMember,
     onMuteMember,
     roomId,
+    pagination,
+    onPageChange,
+    loading = false,
 }: MemberTableProps) {
-    const [filterValue, setFilterValue] = useState("");
     const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
-    const [page, setPage] = useState(1);
     const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({ column: "user", direction: "ascending" });
 
-    const handleSearch = (value: string) => {
-        setFilterValue(value);
-        setPage(1);
-    };
-    const handlePreviousPage = () => setPage((prev) => Math.max(1, prev - 1));
-    const handleNextPage = () => setPage((prev) => prev + 1);
+    // Ensure members is always an array and filter out invalid items
+    const validMembers = useMemo(() => {
+        if (!Array.isArray(members)) {
+            console.warn('MemberTable: members is not an array:', members);
+            return [];
+        }
+        const filtered = members.filter(member => member && (member._id || member.username));
+        if (filtered.length !== members.length) {
+            console.warn('MemberTable: filtered out invalid members:', members.length - filtered.length);
+        }
+        return filtered;
+    }, [members]);
 
     const filteredItems = useMemo(() => {
-        const query = filterValue.toLowerCase();
-        return members.filter((member) =>
-            member.username.toLowerCase().includes(query) ||
-            (member.name?.first || "").toLowerCase().includes(query) ||
-            (member.name?.last || "").toLowerCase().includes(query) ||
-            (member.role?.name || "").toLowerCase().includes(query)
-        );
-    }, [members, filterValue]);
+        return validMembers;
+    }, [validMembers]);
 
     const sortedItems = useMemo(() => {
         return [...filteredItems].sort((a, b) => {
@@ -62,14 +71,6 @@ export default function MemberTable({
             return sortDescriptor.direction === "descending" ? -cmp : cmp;
         });
     }, [filteredItems, sortDescriptor]);
-
-    const rowsPerPage = 10;
-    const pagedItems = useMemo(() => {
-        const start = (page - 1) * rowsPerPage;
-        return sortedItems.slice(start, start + rowsPerPage);
-    }, [sortedItems, page]);
-
-    const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
     const renderCell = useCallback(
         (member: RoomMember, columnKey: MemberColumnKey) => {
@@ -81,7 +82,6 @@ export default function MemberTable({
                     onBan={() => onBanMember(member)}
                     onMute={() => onMuteMember(member)}
                     isCurrentUser={isCurrentUser}
-                    roomId={roomId}
                 />
             );
         },
@@ -117,10 +117,10 @@ export default function MemberTable({
                             <span className="text-default-400">No members found</span>
                         </div>
                     }
-                    items={pagedItems}
+                    items={sortedItems}
                 >
                     {(item) => (
-                        <TableRow key={item._id} className="hover:bg-default-50 transition-colors">
+                        <TableRow key={item._id || `member-${item.username || Math.random()}`} className="hover:bg-default-50 transition-colors">
                             {(columnKey) => (
                                 <TableCell className={`${columnKey.toString()} py-4`}>
                                     {renderCell(item, columnKey as MemberColumnKey)}
@@ -131,14 +131,15 @@ export default function MemberTable({
                 </TableBody>
             </Table>
             
-            {/* Pagination */}
-            {pages > 1 && (
+            {/* Server-side Pagination */}
+            {pagination && pagination.totalPages > 1 && onPageChange && (
                 <div className="flex justify-center mt-4">
                     <Pagination
-                        total={pages}
-                        page={page}
-                        onChange={setPage}
+                        total={pagination.totalPages}
+                        page={pagination.page}
+                        onChange={onPageChange}
                         showControls
+                        showShadow
                         color="primary"
                     />
                 </div>

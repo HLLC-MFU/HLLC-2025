@@ -4,8 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { useChat } from "@/hooks/useChat";
 import { Room, RoomType } from "@/types/chat";
 import { addToast } from "@heroui/react";
-import { MessageSquare } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import RoomAccordion from "./_components/RoomAccordion";
 import { RoomModal } from "./_components/RoomModal";
 import Link from "next/link";
@@ -14,8 +13,6 @@ import { Smile } from "lucide-react";
 export default function ChatPage() {
     const { 
         room: rooms, 
-        loading, 
-        error, 
         fetchRoom, 
         createRoom, 
         updateRoom, 
@@ -26,6 +23,13 @@ export default function ChatPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<Room | undefined>();
     const [selectedRoomType, setSelectedRoomType] = useState<RoomType | "school" | "major">(RoomType.NORMAL);
+    const [currentPage, setCurrentPage] = useState(1);
+    const roomsPerPage = 8; // ปรับจำนวนต่อหน้าได้
+
+    useEffect(() => {
+        fetchRoom(currentPage, roomsPerPage);
+    }, [currentPage]);
+
 
     const handleEditRoom = (room: Room) => {
         setModalMode('edit');
@@ -44,7 +48,7 @@ export default function ChatPage() {
     const handleDeleteRoom = async (room: Room) => {
         try {
             await deleteRoom(room._id);
-            await fetchRoom();
+            await fetchRoom(currentPage, 10);
             addToast({ 
                 title: "Room deleted successfully!", 
                 color: "success" 
@@ -75,7 +79,7 @@ export default function ChatPage() {
             }
             
             await updateRoom(room._id, formData);
-            await fetchRoom();
+            await fetchRoom(currentPage, 10);
             addToast({ 
                 title: `Room ${newStatus === "active" ? "activated" : "deactivated"} successfully!`, 
                 color: "success" 
@@ -104,7 +108,7 @@ export default function ChatPage() {
                 await createRoom(formData);
             }
             
-            await fetchRoom();
+            await fetchRoom(currentPage, 10);
             addToast({ 
                 title: `Room ${mode === "add" ? "added" : "updated"} successfully!`, 
                 color: "success" 

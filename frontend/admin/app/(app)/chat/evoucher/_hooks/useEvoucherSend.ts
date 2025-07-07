@@ -6,11 +6,10 @@ import { useEvoucher } from "@/hooks/useEvoucher";
 import { useSponsors } from "@/hooks/useSponsors";
 import { addToast } from "@heroui/react";
 import { useState, useEffect } from "react";
-import { chatApiRequest } from "@/hooks/useChat";
-
-const CHAT_API_BASE_URL = process.env.GO_PUBLIC_API_URL || "http://localhost:1334/api";
+import { useGolangApi } from "@/hooks/useApi";
 
 export function useEvoucherSend(roomId: string | null) {
+    const { request } = useGolangApi();
     const { evouchers, refreshEvouchers } = useEvoucher();
     const { fetchEvoucherCodeBySponsorId } = useSponsors();
     const [selectedEvoucher, setSelectedEvoucher] = useState<Evoucher | null>(null);
@@ -39,12 +38,8 @@ export function useEvoucherSend(roomId: string | null) {
     const sendEvoucher = async (evoucherData: EvoucherData): Promise<any> => { // Changed EvoucherResponse to any as EvoucherResponse is not defined
         try {
             setSending(true);
-            const res = await chatApiRequest<any>("/evouchers/send", "POST", evoucherData); // Changed EvoucherResponse to any
-            
-            if (res.statusCode !== 200 && res.statusCode !== 201) {
-                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to send evoucher`);
-            }
-
+            const res = await request<any>("/evouchers/send", "POST", evoucherData); // Changed EvoucherResponse to any
+        
             return res.data;
         } catch (err) {
             console.error("Send evoucher error:", err);

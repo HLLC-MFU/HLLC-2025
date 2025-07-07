@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { addToast } from "@heroui/toast";
 import { useRestriction } from "../_hooks/useRestriction";
 
-interface RestrictionAction {
+type RestrictionAction = {
     userId: string;
     roomId: string;
     action: 'ban' | 'mute';
@@ -16,16 +16,16 @@ interface RestrictionAction {
     timeUnit: 'minutes' | 'hours';
     restriction: 'can_view' | 'cannot_view';
     reason: string;
-}
+};
 
-interface RestrictionActionProps {
+type RestrictionActionProps = {
     isOpen: boolean;
     onClose: () => void;
     member: RoomMember | null;
     action: 'ban' | 'mute';
     roomId: string;
     onSuccess: () => void;
-}
+};
 
 export function RestrictionAction({ isOpen, onClose, member, action, roomId, onSuccess }: RestrictionActionProps) {
     const { banUser, muteUser, loading } = useRestriction();
