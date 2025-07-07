@@ -534,7 +534,7 @@ class ChatService {
   async getMyRooms(): Promise<ChatRoom[]> {
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/rooms`, {
+      const response = await fetch(`${CHAT_BASE_URL}/rooms`, {
         headers,
       });
 

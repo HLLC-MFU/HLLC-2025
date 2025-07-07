@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Users, Clock } from 'lucide-react-native';
 import { ChatRoom } from '@/types/chatTypes';
-import { API_BASE_URL } from '@/configs/chats/chatConfig';
+import { CHAT_BASE_URL } from '@/configs/chats/chatConfig';
 
 
 interface RoomListItemProps {
@@ -17,7 +17,7 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
   const avatarChar = (language === 'th' ? room.name?.th : room.name?.en)?.charAt(0)?.toUpperCase() || '?';
   let imageUrl = room.image_url || room.image ;
   if (imageUrl && typeof imageUrl === 'string' && !imageUrl.startsWith('http')) {
-    imageUrl = `${API_BASE_URL}/uploads/${imageUrl}`;
+    imageUrl = `${CHAT_BASE_URL}/uploads/${imageUrl}`;
   }
   return (
     <TouchableOpacity style={[styles.item, { width: (width - 52) / 2 }]} onPress={() => { console.log('RoomListItem pressed', room.id); onPress(); }} activeOpacity={0.85}>

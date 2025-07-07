@@ -56,6 +56,7 @@ export default function ChatPage() {
     error,
     activeTab,
     selectedCategory,
+    filteredRooms,
     setActiveTab,
     setSelectedCategory,
     loadRooms,
@@ -144,13 +145,6 @@ export default function ChatPage() {
   const handleRefresh = () => {
     loadRooms();
   };
-
-  // Filter rooms by tab (ไม่ต้อง filter ด้วย members แล้ว)
-  const myRooms = rooms;
-  const discoverRooms = rooms;
-
-  // ใช้ filteredRooms ตาม activeTab
-  const filteredRooms = activeTab === 'my' ? myRooms : discoverRooms;
 
   const renderRoomItem = ({ item, index }: { item: ChatRoomWithId; index: number }) => {
     // log item

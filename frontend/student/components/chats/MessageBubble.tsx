@@ -88,15 +88,41 @@ const MessageBubble = memo(({
     if (message.type === 'evoucher' && message.evoucherInfo) {
       const isClaimed = claimed[message.id ?? ''] || false;
       const isClaiming = claiming[message.id ?? ''] || false;
+      // Language selection: fallback to 'th' if not detected
+      const displayLang = lang === 'en' ? 'en' : 'th';
       return (
         <View style={[styles.evoucherCard, isClaimed && styles.evoucherCardClaimed]}> 
+          {/* Show sponsor image if present */}
+          {message.evoucherInfo && message.evoucherInfo.sponsorImage && (
+            <TouchableOpacity
+              onPress={() => {
+                const sponsorImg = message.evoucherInfo?.sponsorImage;
+                if (!sponsorImg) return;
+                const imgUrl = sponsorImg.startsWith('http')
+                  ? sponsorImg
+                  : `${CHAT_BASE_URL}/uploads/${sponsorImg}`;
+                setPreviewImageUrl(imgUrl);
+                setShowImagePreview(true);
+              }}
+              style={{ alignItems: 'center', marginBottom: 8 }}
+            >
+              <Image
+                source={{
+                  uri: message.evoucherInfo.sponsorImage.startsWith('http')
+                    ? message.evoucherInfo.sponsorImage
+                    : `${CHAT_BASE_URL}/uploads/${message.evoucherInfo.sponsorImage}`,
+                }}
+                style={{ width: 80, height: 80, borderRadius: 12, marginBottom: 4 }}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          )}
           <View style={styles.evoucherHeader}>
             <Text style={styles.evoucherIcon}>{isClaimed ? '🎉' : '🎟️'}</Text>
             <Text style={[styles.evoucherTitle, isClaimed && styles.evoucherTitleClaimed]}>
-              {message.evoucherInfo.title}
+              {message.evoucherInfo.message[displayLang]}
             </Text>
           </View>
-          <Text style={styles.evoucherDescription}>{message.evoucherInfo.description}</Text>
           {isClaimed ? (
             <View style={styles.claimedBox}>
               <Text style={styles.claimedText}>{t('evoucher.claimed', 'คุณได้รับ E-Voucher แล้ว!')}</Text>
