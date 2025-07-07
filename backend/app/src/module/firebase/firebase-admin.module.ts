@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, Logger, Module } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -13,7 +13,7 @@ import { join } from 'path';
 
         try {
           if (!existsSync(path)) {
-            console.error(`[FirebaseAdminModule] ❌ File not found: ${path}`);
+            Logger.error(`[FirebaseAdminModule] ❌ File not found: ${path}`);
             return null;
           }
 
@@ -22,11 +22,14 @@ import { join } from 'path';
           return admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
           });
+
         } catch (error) {
-          console.error(
+
+          Logger.error(
             '[FirebaseAdminModule] ⚠️ Failed to initialize Firebase Admin:',
             error,
           );
+          
           return null;
         }
       },

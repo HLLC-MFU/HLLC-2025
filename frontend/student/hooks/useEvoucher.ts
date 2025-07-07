@@ -39,9 +39,10 @@ export function useEvoucher() {
     setError(null);
     try {
       const response = await apiRequest<IEvoucherResponse>(`/evouchers?sponsors=${sponsorId}&limit=0`, 'GET');
-      
-      if (response.data) {
-        setEvouchers(response.data.data || []);
+      if (Array.isArray(response.data)) {
+        setEvouchers(response.data);
+      } else {
+        setEvouchers([]);
       }
       return response;
     } catch (err) {
@@ -64,8 +65,8 @@ export function useEvoucher() {
       let codes: IEvoucherCode[] = [];
       if (Array.isArray(response.data)) {
         codes = response.data;
-      } else if (response.data && Array.isArray((response.data as any).data)) {
-        codes = (response.data as any).data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        codes = response.data.data;
       }
       setEvoucherCodes(codes);
       return response;
@@ -91,10 +92,9 @@ export function useEvoucher() {
       if (
         response.data &&
         typeof response.data === 'object' &&
-        'data' in response.data &&
-        Array.isArray((response.data as any).data.data)
+        Array.isArray(response.data.data)
       ) {
-        codes = (response.data as any).data.data;
+        codes = response.data.data;
       }
       setMyEvoucherCodes(codes);
       return response;
@@ -116,7 +116,10 @@ export function useEvoucher() {
     return codes.filter(code => {
       const sponsorIdFromObject = code?.evoucher?.sponsors?._id;
       const sponsorIdFromString = code?.evoucher?.sponsor;
-      return sponsorIdFromObject === sponsorId || sponsorIdFromString === sponsorId;
+      return (
+        (sponsorIdFromObject && sponsorIdFromObject.toString() === sponsorId.toString()) ||
+        (sponsorIdFromString && sponsorIdFromString.toString() === sponsorId.toString())
+      );
     });
   };
 
@@ -126,7 +129,10 @@ export function useEvoucher() {
     return codes.some(code => {
       const sponsorIdFromObject = code?.evoucher?.sponsors?._id;
       const sponsorIdFromString = code?.evoucher?.sponsor;
-      return sponsorIdFromObject === sponsorId || sponsorIdFromString === sponsorId;
+      return (
+        (sponsorIdFromObject && sponsorIdFromObject.toString() === sponsorId.toString()) ||
+        (sponsorIdFromString && sponsorIdFromString.toString() === sponsorId.toString())
+      );
     });
   };
 
@@ -167,9 +173,13 @@ export function useEvoucher() {
       } else {
         onError?.(response.message || 'Failed to use evoucher code');
       }
-    } catch (error: any) {
-      const msg = error?.response?.data?.message || error?.message || 'Failed to use evoucher code. Please try again.';
-      onError?.(msg);
+    } catch (err) {
+      const errorMessage =
+        err && typeof err === 'object' && 'message' in err
+          ? (err as { message?: string }).message || 'Failed to use evoucher code. Please try again.'
+          : 'Failed to use evoucher code. Please try again.';
+      setError(errorMessage);
+      onError?.(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -1,13 +1,11 @@
 export interface Message {
-  username: string;
-  isTemp: any;
   id?: string;
   text?: string;
-  senderId: string;
-  senderName: string;
-  type: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention';
+  user?: User;
+  type: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention' | 'evoucher';
   timestamp: string;
   isRead: boolean;
+  isTemp?: boolean;
   reactions?: Array<{
     userId: string;
     reaction: string;
@@ -15,8 +13,7 @@ export interface Message {
   replyTo?: {
     id: string;
     text: string;
-    senderId: string;
-    senderName: string;
+    user?: User;
     type?: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention';
     image?: string;
     fileName?: string;
@@ -31,6 +28,12 @@ export interface Message {
   image?: string;
   mentioned?: string;
   mentions?: string[];
+  username?: string;
+  evoucherInfo?: {
+    claimUrl: string;
+    description: string;
+    title: string;
+  };
 }
 
 export interface ConnectedUser {
@@ -72,12 +75,16 @@ export interface ChatRoom {
   image?: string;
   created_at: string;
   updated_at: string;
-  is_member?: boolean;
+  is_member: boolean;
+  members_count: number;
   category?: string;
-  members_count?: number;
   last_message?: string;
   last_message_time?: string;
   image_url?: string;
+  type?: string; // normal, readonly, etc.
+  status?: string; 
+  canJoin?: boolean;
+  metadata?: any;
 }
 
 export interface RoomsResponse {
@@ -145,6 +152,13 @@ export interface RoomInfoModalProps {
   isVisible: boolean;
   onClose: () => void;
   connectedUsers: ConnectedUser[];
+}
+
+export interface MembersResponse {
+  members: RoomMember[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export default {}; 

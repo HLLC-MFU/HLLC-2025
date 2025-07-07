@@ -36,7 +36,10 @@ export class EvouchersService {
     return evoucher;
   }
 
-  findAll() {
+  findAll(sponsorId?: string) {
+    if (sponsorId) {
+      return this.evoucherModel.find({ sponsor: sponsorId }).lean();
+    }
     return this.evoucherModel.find().lean();
   }
 
