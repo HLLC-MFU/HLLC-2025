@@ -3,7 +3,6 @@ import { useReportTypes } from '@/hooks/useReportTypes';
 import {
   Autocomplete,
   AutocompleteItem,
-  Button,
   Card,
   CardBody,
   CardFooter,
@@ -27,8 +26,6 @@ import {
   ShieldEllipsis,
   ShieldCheck,
   Bug,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 
 const statusList = ['ALL', 'Pending', 'In-Progress', 'Done'];
@@ -46,7 +43,7 @@ export default function ReportChart() {
       : problems.filter((p) => p.status === selectedStatus);
   }, [problems, selectedStatus]);
 
-  const reporttypeData = reporttypes.map((reporttype) => {
+  const reportTypeData = reporttypes.map((reporttype) => {
     const filtered = filteredProblems.filter(
       (p) => p.categoryId === reporttype.id,
     );
@@ -60,7 +57,7 @@ export default function ReportChart() {
     };
   });
 
-  const paginatedData = reporttypeData.slice(
+  const paginatedData = reportTypeData.slice(
     (page - 1) * rowsPerPage,
     page * rowsPerPage,
   );
@@ -169,7 +166,7 @@ export default function ReportChart() {
             showControls
             showShadow
             initialPage={page}
-            total={Math.ceil(reporttypeData.length / rowsPerPage)}
+            total={Math.ceil(reportTypeData.length / rowsPerPage)}
             onChange={(newPage) => setPage(newPage)}
           />
         </CardFooter>

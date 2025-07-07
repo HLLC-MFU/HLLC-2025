@@ -9,7 +9,7 @@ import {
   Divider,
   Pagination,
 } from '@heroui/react';
-import { Car, Download, UserRoundCheck } from 'lucide-react';
+import { Download, UserRoundCheck } from 'lucide-react';
 import { useState } from 'react';
 import {
   ResponsiveContainer,
