@@ -37,22 +37,28 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 	if err == nil && len(cachedMessages) > 0 {
 		log.Printf("[HistoryService] Found %d cached messages for room %s", len(cachedMessages), roomID)
 		
-		// Check if cached messages have ReplyTo populated
+		// **ENHANCED: Re-populate all missing data for cached messages**
 		for i, msg := range cachedMessages {
-			if msg.ChatMessage.ReplyToID != nil {
-				if msg.ReplyTo != nil {
-					log.Printf("[HistoryService] Cached message %s has ReplyTo populated: %s", msg.ChatMessage.ID.Hex(), msg.ReplyTo.ID.Hex())
+			// Re-populate ReplyTo if missing
+			if msg.ChatMessage.ReplyToID != nil && msg.ReplyTo == nil {
+				log.Printf("[HistoryService] Re-populating ReplyTo for cached message %s", msg.ChatMessage.ID.Hex())
+				replyToMsg, err := h.getReplyToMessageWithUser(ctx, *msg.ChatMessage.ReplyToID)
+				if err != nil {
+					log.Printf("[HistoryService] Failed to get reply-to message %s: %v", msg.ChatMessage.ReplyToID.Hex(), err)
 				} else {
-					log.Printf("[HistoryService] Cached message %s has ReplyToID but no ReplyTo populated, re-populating", msg.ChatMessage.ID.Hex())
-					// Re-populate ReplyTo for cached messages
-					replyToMsg, err := h.getReplyToMessageWithUser(ctx, *msg.ChatMessage.ReplyToID)
-					if err != nil {
-						log.Printf("[HistoryService] Failed to get reply-to message %s: %v", msg.ChatMessage.ReplyToID.Hex(), err)
-					} else {
-						cachedMessages[i].ReplyTo = replyToMsg
-						log.Printf("[HistoryService] Successfully re-populated ReplyTo for message %s", msg.ChatMessage.ID.Hex())
-					}
+					cachedMessages[i].ReplyTo = replyToMsg
+					log.Printf("[HistoryService] Successfully re-populated ReplyTo for message %s", msg.ChatMessage.ID.Hex())
 				}
+			}
+
+			// **FIXED: Always re-populate Reactions to ensure latest data**
+			log.Printf("[HistoryService] Re-populating Reactions for cached message %s", msg.ChatMessage.ID.Hex())
+			reactions, err := h.getMessageReactionsWithUsers(ctx, roomID, msg.ChatMessage.ID.Hex())
+			if err != nil {
+				log.Printf("[HistoryService] Failed to get reactions for message %s: %v", msg.ChatMessage.ID.Hex(), err)
+			} else {
+				cachedMessages[i].Reactions = reactions
+				log.Printf("[HistoryService] Successfully re-populated %d reactions for message %s", len(reactions), msg.ChatMessage.ID.Hex())
 			}
 		}
 		
@@ -72,7 +78,7 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 		return nil, fmt.Errorf("invalid room ID: %w", err)
 	}
 
-	// Query database with populated user data - เรียงจากใหม่สุดไปเก่าสุด
+	// **ENHANCED: Query database with better population**
 	opts := queries.QueryOptions{
 		Filter: map[string]interface{}{
 			"room_id": roomObjID,
@@ -86,34 +92,52 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 		Limit: int(limit),
 	}
 
-	result, err := h.FindAllWithPopulate(ctx, opts, "user_id", "users")
+	// **FIXED: Use simple FindAll to avoid population issues**
+	result, err := h.FindAll(ctx, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query chat history: %w", err)
 	}
 
-	// Convert to enriched messages
+	// **ENHANCED: Convert to enriched messages with complete data**
 	enrichedMessages := make([]model.ChatMessageEnriched, len(result.Data))
 	for i, msg := range result.Data {
 		enriched := model.ChatMessageEnriched{
 			ChatMessage: msg,
 		}
 
-		// Get reactions for each message
+		// **ENHANCED: Get reactions for each message**
 		reactions, err := h.getMessageReactionsWithUsers(ctx, roomID, msg.ID.Hex())
 		if err != nil {
 			log.Printf("[HistoryService] Failed to get reactions for message %s: %v", msg.ID.Hex(), err)
 			reactions = []model.MessageReaction{}
+		} else {
+			log.Printf("[HistoryService] Found %d reactions for message %s", len(reactions), msg.ID.Hex())
 		}
 		enriched.Reactions = reactions
 
-		// Get reply-to message if exists
+		// **ENHANCED: Get reply-to message if exists**
 		if msg.ReplyToID != nil {
 			replyToMsg, err := h.getReplyToMessageWithUser(ctx, *msg.ReplyToID)
 			if err != nil {
 				log.Printf("[HistoryService] Failed to get reply-to message %s: %v", msg.ReplyToID.Hex(), err)
 			} else {
 				enriched.ReplyTo = replyToMsg
+				log.Printf("[HistoryService] ReplyTo populated for message %s -> %s", msg.ID.Hex(), replyToMsg.ID.Hex())
 			}
+		}
+
+		// **NEW: Log special message types for debugging**
+		if msg.EvoucherInfo != nil {
+			log.Printf("[HistoryService] Found evoucher message %s", msg.ID.Hex())
+		}
+		if msg.MentionInfo != nil {
+			log.Printf("[HistoryService] Found mention message %s with %d mentions", msg.ID.Hex(), len(msg.Mentions))
+		}
+		if msg.ModerationInfo != nil {
+			log.Printf("[HistoryService] Found restriction message %s", msg.ID.Hex())
+		}
+		if msg.StickerID != nil {
+			log.Printf("[HistoryService] Found sticker message %s", msg.ID.Hex())
 		}
 
 		enrichedMessages[i] = enriched
@@ -126,10 +150,12 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 			enrichedMessages[len(enrichedMessages)-1].ChatMessage.Timestamp)
 	}
 
-	// Cache the enriched messages
+	// **ENHANCED: Cache the complete enriched messages**
 	for _, enriched := range enrichedMessages {
 		if err := h.cache.SaveMessage(ctx, roomID, &enriched); err != nil {
 			log.Printf("[HistoryService] Failed to cache message %s: %v", enriched.ChatMessage.ID.Hex(), err)
+		} else {
+			log.Printf("[HistoryService] Successfully cached enriched message %s", enriched.ChatMessage.ID.Hex())
 		}
 	}
 
@@ -203,3 +229,5 @@ func (h *HistoryService) DeleteRoomMessages(ctx context.Context, roomID string) 
 
 	return nil
 } 
+
+ 

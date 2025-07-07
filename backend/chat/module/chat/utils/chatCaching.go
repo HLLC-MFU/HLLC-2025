@@ -61,6 +61,27 @@ func (s *ChatCacheService) GetRoomMessages(ctx context.Context, roomID string, l
 			continue // ข้าม soft deleted messages
 		}
 
+		// **ENHANCED: Log what we retrieved from cache**
+		log.Printf("[Cache] Retrieved message %s from cache", msg.ChatMessage.ID.Hex())
+		if msg.ChatMessage.EvoucherInfo != nil {
+			log.Printf("[Cache] Message %s contains evoucher info", msg.ChatMessage.ID.Hex())
+		}
+		if msg.ChatMessage.MentionInfo != nil {
+			log.Printf("[Cache] Message %s contains mention info with %d mentions", msg.ChatMessage.ID.Hex(), len(msg.ChatMessage.Mentions))
+		}
+		if msg.ChatMessage.ModerationInfo != nil {
+			log.Printf("[Cache] Message %s contains restriction info", msg.ChatMessage.ID.Hex())
+		}
+		if msg.ChatMessage.StickerID != nil {
+			log.Printf("[Cache] Message %s contains sticker info", msg.ChatMessage.ID.Hex())
+		}
+		if msg.ReplyTo != nil {
+			log.Printf("[Cache] Message %s contains reply-to info", msg.ChatMessage.ID.Hex())
+		}
+		if len(msg.Reactions) > 0 {
+			log.Printf("[Cache] Message %s contains %d reactions", msg.ChatMessage.ID.Hex(), len(msg.Reactions))
+		}
+
 		messages = append(messages, msg)
 		
 		// หยุดเมื่อได้จำนวนที่ต้องการแล้ว
@@ -85,7 +106,34 @@ func (s *ChatCacheService) GetRoomMessages(ctx context.Context, roomID string, l
 
 // SaveMessage saves a message to cache
 func (s *ChatCacheService) SaveMessage(ctx context.Context, roomID string, msg *model.ChatMessageEnriched) error {
+	// **FIXED: Don't cache unsent messages**
+	if msg.ChatMessage.IsDeleted != nil && *msg.ChatMessage.IsDeleted {
+		log.Printf("[Cache] Skipping unsent message %s from cache", msg.ChatMessage.ID.Hex())
+		return nil
+	}
+
 	key := s.roomMessagesKey(roomID)
+	
+	// **ENHANCED: Log what we're caching for debugging**
+	log.Printf("[Cache] Saving enriched message %s to cache for room %s", msg.ChatMessage.ID.Hex(), roomID)
+	if msg.ChatMessage.EvoucherInfo != nil {
+		log.Printf("[Cache] Message contains evoucher info")
+	}
+	if msg.ChatMessage.MentionInfo != nil {
+		log.Printf("[Cache] Message contains mention info with %d mentions", len(msg.ChatMessage.Mentions))
+	}
+	if msg.ChatMessage.ModerationInfo != nil {
+		log.Printf("[Cache] Message contains restriction info")
+	}
+	if msg.ChatMessage.StickerID != nil {
+		log.Printf("[Cache] Message contains sticker info")
+	}
+	if msg.ReplyTo != nil {
+		log.Printf("[Cache] Message contains reply-to info")
+	}
+	if len(msg.Reactions) > 0 {
+		log.Printf("[Cache] Message contains %d reactions", len(msg.Reactions))
+	}
 	
 	data, err := json.Marshal(msg)
 	if err != nil {
@@ -112,6 +160,7 @@ func (s *ChatCacheService) SaveMessage(ctx context.Context, roomID string, msg *
 		return fmt.Errorf("redis save error: %w", err)
 	}
 
+	log.Printf("[Cache] Successfully saved enriched message %s to cache", msg.ChatMessage.ID.Hex())
 	return nil
 }
 

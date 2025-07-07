@@ -92,33 +92,13 @@ func (s *ChatService) UnsendMessage(ctx context.Context, messageID, userID primi
 
 // removeMessageFromCache ลบข้อความจาก Redis cache
 func (s *ChatService) removeMessageFromCache(ctx context.Context, roomID, messageID string) error {
-	// ดึงข้อความทั้งหมดจาก cache
-	messages, err := s.cache.GetRoomMessages(ctx, roomID, 1000) // ดึงจำนวนมากเพื่อหาข้อความที่ต้องลบ
-	if err != nil {
-		return fmt.Errorf("failed to get cached messages: %w", err)
-	}
-
-	// กรองข้อความที่ไม่ใช่ข้อความที่ต้องลบ
-	var filteredMessages []model.ChatMessageEnriched
-	for _, msg := range messages {
-		if msg.ChatMessage.ID.Hex() != messageID {
-			filteredMessages = append(filteredMessages, msg)
-		}
-	}
-
-	// ลบ cache ทั้งหมดแล้วเซฟใหม่
+	// **FIXED: Simply clear the cache completely to force rebuild from database**
+	// This ensures the cache only contains non-unsent messages from the database
 	if err := s.cache.DeleteRoomMessages(ctx, roomID); err != nil {
 		return fmt.Errorf("failed to clear cache: %w", err)
 	}
 
-	// เซฟข้อความที่เหลือกลับเข้า cache
-	for _, msg := range filteredMessages {
-		if err := s.cache.SaveMessage(ctx, roomID, &msg); err != nil {
-			log.Printf("[ChatService] Failed to re-cache message %s: %v", msg.ChatMessage.ID.Hex(), err)
-		}
-	}
-
-	log.Printf("[ChatService] Successfully removed message %s from cache", messageID)
+	log.Printf("[ChatService] Successfully cleared cache for room %s after unsending message %s", roomID, messageID)
 	return nil
 }
 

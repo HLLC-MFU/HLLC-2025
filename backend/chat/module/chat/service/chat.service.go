@@ -125,9 +125,45 @@ func (s *ChatService) SaveMessageToDB(ctx context.Context, msg *model.ChatMessag
 }
 
 func (s *ChatService) SaveMessageToCache(ctx context.Context, msg *model.ChatMessage) error {
+	// **ENHANCED: Create properly enriched message with all data**
 	enriched := model.ChatMessageEnriched{
 		ChatMessage: *msg,
 	}
+
+	// **ENHANCED: Get reactions for this message**
+	reactions, err := s.GetMessageReactions(ctx, msg.RoomID.Hex(), msg.ID.Hex())
+	if err != nil {
+		log.Printf("[ChatService] Failed to get reactions for caching message %s: %v", msg.ID.Hex(), err)
+	} else {
+		enriched.Reactions = reactions
+		log.Printf("[ChatService] Added %d reactions to cached message %s", len(reactions), msg.ID.Hex())
+	}
+
+	// **ENHANCED: Get reply-to message if exists**
+	if msg.ReplyToID != nil {
+		replyToMsg, err := s.historyService.getReplyToMessageWithUser(ctx, *msg.ReplyToID)
+		if err != nil {
+			log.Printf("[ChatService] Failed to get reply-to message for caching: %v", err)
+		} else {
+			enriched.ReplyTo = replyToMsg
+			log.Printf("[ChatService] Added reply-to message to cached message %s", msg.ID.Hex())
+		}
+	}
+
+	// **ENHANCED: Log special message types being cached**
+	if msg.EvoucherInfo != nil {
+		log.Printf("[ChatService] Caching evoucher message %s", msg.ID.Hex())
+	}
+	if msg.MentionInfo != nil {
+		log.Printf("[ChatService] Caching mention message %s with %d mentions", msg.ID.Hex(), len(msg.Mentions))
+	}
+	if msg.ModerationInfo != nil {
+		log.Printf("[ChatService] Caching restriction message %s", msg.ID.Hex())
+	}
+	if msg.StickerID != nil {
+		log.Printf("[ChatService] Caching sticker message %s", msg.ID.Hex())
+	}
+
 	return s.cache.SaveMessage(ctx, msg.RoomID.Hex(), &enriched)
 }
 
