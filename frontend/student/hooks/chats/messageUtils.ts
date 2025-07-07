@@ -83,6 +83,24 @@ export function createMessage(data: any, isHistory = false): Message {
       user: undefined,
     };
   }
+  if (data.evoucherInfo) {
+    return {
+      ...baseMessage,
+      type: 'evoucher' as const,
+      evoucherInfo: data.evoucherInfo,
+      text: data.message || (data.evoucherInfo.message && (data.evoucherInfo.message.en || data.evoucherInfo.message.th)) || '',
+      username: data.username || data.senderName || data.user_id || data.userId || ''
+    };
+  }
+  if (data.type === 'evoucher') {
+    return {
+      ...baseMessage,
+      type: 'evoucher' as const,
+      evoucherInfo: data.evoucherInfo,
+      text: data.message || (data.evoucherInfo && data.evoucherInfo.message && (data.evoucherInfo.message.en || data.evoucherInfo.message.th)) || '',
+      username: data.username || data.senderName || data.user_id || data.userId || ''
+    };
+  }
   return {
     ...baseMessage,
     text: messageContent,

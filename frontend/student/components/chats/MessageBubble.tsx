@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Avatar from './Avatar';
 import { Reply } from 'lucide-react-native';
 import { MessageBubbleProps } from '@/types/chatTypes';
-import { CHAT_BASE_URL, API_BASE_URL } from '@/configs/chats/chatConfig';
+import { CHAT_BASE_URL, API_BASE_URL,IMAGE_BASE_URL } from '@/configs/chats/chatConfig';
 import { formatTime } from '@/utils/chats/timeUtils';
 import ImagePreviewModal from './ImagePreviewModal';
 import { apiRequest } from '@/utils/api';
 import useProfile from '@/hooks/useProfile';
 import { useTranslation } from 'react-i18next';
+import * as SecureStore from 'expo-secure-store';
 
 
 interface MessageBubbleEnrichedProps extends MessageBubbleProps {
@@ -29,6 +30,11 @@ const MessageBubble = memo(({
   onReplyPreviewClick,
   currentUsername,
 }: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'>) => {
+  // DEBUG LOG
+  console.log('[MessageBubble] message:', message);
+  if (message && message.evoucherInfo) {
+    console.log('[MessageBubble] evoucherInfo:', message.evoucherInfo);
+  }
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState('');
   const [claiming, setClaiming] = useState<{ [id: string]: boolean }>({});
@@ -100,7 +106,7 @@ const MessageBubble = memo(({
                 if (!sponsorImg) return;
                 const imgUrl = sponsorImg.startsWith('http')
                   ? sponsorImg
-                  : `${CHAT_BASE_URL}/uploads/${sponsorImg}`;
+                  : `${IMAGE_BASE_URL}/uploads/${sponsorImg}`;
                 setPreviewImageUrl(imgUrl);
                 setShowImagePreview(true);
               }}
@@ -110,7 +116,7 @@ const MessageBubble = memo(({
                 source={{
                   uri: message.evoucherInfo.sponsorImage.startsWith('http')
                     ? message.evoucherInfo.sponsorImage
-                    : `${CHAT_BASE_URL}/uploads/${message.evoucherInfo.sponsorImage}`,
+                    : `${IMAGE_BASE_URL}/uploads/${message.evoucherInfo.sponsorImage}`,
                 }}
                 style={{ width: 80, height: 80, borderRadius: 12, marginBottom: 4 }}
                 resizeMode="contain"
@@ -135,12 +141,26 @@ const MessageBubble = memo(({
                 if (!message.evoucherInfo?.claimUrl || !userId) return;
                 setClaiming(prev => ({ ...prev, [message.id ?? '']: true }));
                 try {
-                  const claimPath = message.evoucherInfo.claimUrl;
-                  const res = await apiRequest(claimPath, 'POST', { user: userId });
-                  if (res.statusCode === 200 || res.statusCode === 201) {
+                  const claimUrl = message.evoucherInfo.claimUrl;
+                  
+                  // Get token for authorization
+                  const token = await SecureStore.getItemAsync("accessToken");
+                  
+                  const response = await fetch(claimUrl, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(token ? { 'Authorization': `Bearer ${token.trim()}` } : {}),
+                    },
+                    body: JSON.stringify({ user: userId }),
+                  });
+                  
+                  const responseData = await response.json();
+                  
+                  if (response.ok) {
                     setClaimed(prev => ({ ...prev, [message.id ?? '']: true }));
                   } else {
-                    alert(res.message || 'Claim failed');
+                    alert(responseData.message || 'Claim failed');
                   }
                 } catch (e) {
                   alert('Claim failed');

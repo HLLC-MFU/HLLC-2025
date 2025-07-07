@@ -174,6 +174,18 @@ export function onMessage(event: MessageEvent, args: any) {
       try {
         const messageData = data.payload;
         if (!messageData) return;
+        // PATCH: handle evoucherInfo in payload
+        if (messageData.evoucherInfo && messageData.message) {
+          const merged = {
+            ...messageData.message,
+            evoucherInfo: messageData.evoucherInfo,
+            user: messageData.user,
+            timestamp: messageData.timestamp,
+          };
+          const newMessage = createMessage(merged);
+          if (newMessage) addMessage(newMessage);
+          return;
+        }
         const isOwnMessage = messageData.user?._id === userId;
         if (!isOwnMessage) {
           const newMessage = createMessage(messageData);
@@ -263,27 +275,16 @@ export function onMessage(event: MessageEvent, args: any) {
       return;
     }
     // type: 'evoucher'
-    if (data.type === 'evoucher' && data.payload) {
-      const payload = data.payload;
-      const userObj = safeUser(payload.user);
-      const evoucherMessage = {
-        id: payload.id || payload._id || `evoucher-${Date.now()}`,
-        user: userObj,
-        type: 'evoucher',
-        timestamp: payload.timestamp || new Date().toISOString(),
-        isRead: false,
-        isTemp: false,
-        text: (payload.message && (payload.message.th || payload.message.en)) || '',
-        evoucherInfo: {
-          message: {
-            th: payload.message?.th || '',
-            en: payload.message?.en || '',
-          },
-          claimUrl: payload.claimUrl || '',
-          sponsorImage: payload.sponsorImage || undefined,
-        },
+    if (data.type === 'evoucher' && data.payload && data.payload.evoucherInfo) {
+      // Merge payload.message, evoucherInfo, user, timestamp
+      const merged = {
+        ...data.payload.message,
+        evoucherInfo: data.payload.evoucherInfo,
+        user: data.payload.user,
+        timestamp: data.payload.timestamp,
       };
-      addMessage(evoucherMessage as Message);
+      const newMessage = createMessage(merged);
+      if (newMessage) addMessage(newMessage);
       return;
     }
   } catch (err) {
