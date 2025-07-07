@@ -25,7 +25,6 @@ export const useCampaigns = () => {
         setError(null);
         try {
             const response = await api.request("/campaigns", "GET");
-            console.log("Fetch response:", response);
             if (response && Array.isArray(response)) {
                 setCampaigns(response);
             } else if (response?.data && Array.isArray(response.data)) {
@@ -45,11 +44,15 @@ export const useCampaigns = () => {
 
     const createCampaign = async (formData: FormData) => {
         try {
-            console.log("Creating campaign with data:", Object.fromEntries(formData));
             const response = await api.request("/campaigns", "POST", formData);
-            console.log("Create campaign response:", response);
-            if (response?.data && Array.isArray(response.data)) {
-                setCampaigns(prev => [...prev, response.data[0] as Campaign]);
+            if (
+                response &&
+                typeof response === "object" &&
+                "data" in response &&
+                Array.isArray((response as { data: unknown }).data)
+            ) {
+                const data = (response as { data: unknown }).data;
+                setCampaigns(prev => [...prev, (data as Campaign[])[0]]);
             }
             return response;
         } catch (error) {
@@ -60,11 +63,15 @@ export const useCampaigns = () => {
 
     const updateCampaign = async (id: string, formData: FormData) => {
         try {
-            console.log("Updating campaign with data:", Object.fromEntries(formData));
             const response = await api.request(`/campaigns/${id}`, "PATCH", formData);
-            console.log("Update campaign response:", response);
-            if (response?.data && Array.isArray(response.data)) {
-                setCampaigns(prev => prev.map(c => c._id === id ? response.data[0] as Campaign : c));
+            if (
+                response &&
+                typeof response === "object" &&
+                "data" in response &&
+                Array.isArray((response as { data: unknown }).data)
+            ) {
+                const data = (response as { data: unknown[] }).data as Campaign[];
+                setCampaigns(prev => prev.map(c => c._id === id ? data[0] : c));
             }
             return response;
         } catch (error) {
@@ -75,9 +82,7 @@ export const useCampaigns = () => {
 
     const deleteCampaign = async (id: string) => {
         try {
-            console.log("Deleting campaign:", id);
             const response = await api.request(`/campaigns/${id}`, "DELETE");
-            console.log("Delete campaign response:", response);
             setCampaigns(prev => prev.filter(c => c._id !== id));
             return response;
         } catch (error) {
