@@ -121,6 +121,21 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 	})
 
+
+	apiGroup := app.Group("/api") 
+	
+
+	usersGroup := apiGroup.Group("/users")
+	rolesGroup := apiGroup.Group("/roles")
+	schoolsGroup := apiGroup.Group("/schools")
+	majorsGroup := apiGroup.Group("/majors")
+	roomsGroup := apiGroup.Group("/rooms")
+	stickersGroup := apiGroup.Group("/stickers")
+	chatGroup := apiGroup.Group("/chat")
+	uploadsGroup := apiGroup.Group("/uploads")
+	evouchersGroup := apiGroup.Group("/evouchers")
+	restrictionGroup := apiGroup.Group("/restriction")
+
 	// Initialize connection manager with default config
 	connManager = mananger.NewConnectionManager(mananger.DefaultConfig())
 
@@ -130,6 +145,18 @@ func main() {
 	// Setup cookie middleware
 	cookieConfig := middleware.DefaultCookieConfig()
 	app.Use(middleware.SetCookieMiddleware(cookieConfig))
+
+	// Setup static file serving for uploads
+	app.Static("/uploads", "./uploads", fiber.Static{
+		Browse:        false,  // Disable directory browsing for security
+		MaxAge:       86400,  // Cache for 24 hours
+		Compress:     true,   // Enable compression
+		ByteRange:    true,   // Enable byte range requests
+		CacheDuration: 24 * 60 * 60 * time.Second, // 24 hours cache
+		Next: func(c *fiber.Ctx) bool { // Skip processing for non-existent files
+			return c.Method() != fiber.MethodGet
+		},
+	})
 
 	// Initialize services
 	chatSvc := chatService.NewChatService(db, redis, kafkaBus, cfg)
@@ -149,19 +176,21 @@ func main() {
 	// Initialize RBAC middleware
 	rbacMiddleware := middleware.NewRBACMiddleware(db)
 
-	// Initialize controllers
-	userController.NewUserController(app, userSvc, rbacMiddleware)
-	userController.NewRoleController(app, roleSvc, rbacMiddleware)
-	userController.NewSchoolController(app, schoolSvc)
-	userController.NewMajorController(app, majorSvc)
-	roomController.NewRoomController(app, roomSvc, rbacMiddleware, db)
-	roomController.NewGroupRoomController(app, groupRoomSvc, roomSvc, rbacMiddleware)
-	stickerController.NewStickerController(app, stickerSvc, rbacMiddleware)
-	chatController.NewChatController(app, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc)
-	uploadController.NewUploadController(app, rbacMiddleware, chatSvc, userSvc)
-	evoucherController.NewEvoucherController(app, evoucherSvc, roomSvc, rbacMiddleware)
+
+	userController.NewUserController(usersGroup, userSvc, rbacMiddleware)
+	userController.NewRoleController(rolesGroup, roleSvc, rbacMiddleware)
+	userController.NewSchoolController(schoolsGroup, schoolSvc)
+	userController.NewMajorController(majorsGroup, majorSvc)
+	roomController.NewRoomController(roomsGroup, roomSvc, rbacMiddleware, db)
+	roomController.NewGroupRoomController(roomsGroup, groupRoomSvc, roomSvc, rbacMiddleware)
+	stickerController.NewStickerController(stickersGroup, stickerSvc, rbacMiddleware)
+	chatController.NewChatController(chatGroup, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc)
+	uploadController.NewUploadController(uploadsGroup, rbacMiddleware, chatSvc, userSvc)
+	evoucherController.NewEvoucherController(evouchersGroup, evoucherSvc, roomSvc, rbacMiddleware)
 	// Restriction controller (was moderation)
-	restrictionController.NewModerationController(app, restrictionSvc, rbacMiddleware)
+	restrictionController.NewModerationController(restrictionGroup, restrictionSvc, rbacMiddleware)
+	// Health controller
+	chatController.NewHealthController(chatGroup, chatSvc, rbacMiddleware)
 
 	// Log all registered routes
 	logRegisteredRoutes(app)
@@ -240,31 +269,37 @@ func setupMiddleware(app *fiber.App) {
 func logRegisteredRoutes(app *fiber.App) {
 	// Group routes by module
 	modules := map[string][]Route{
-		"User":    {},
-		"Room":    {},
-		"Chat":    {},
-		"Sticker": {},
-		"Upload":  {},
-		"Other":   {},
+		"User":        {},
+		"Room":        {},
+		"Chat":        {},
+		"Sticker":     {},
+		"Upload":      {},
+		"Evoucher":    {},
+		"Restriction": {},
+		"Other":       {},
 	}
 
 	for _, route := range app.GetRoutes() {
 		// Determine module based on path
 		module := "Other"
 		switch {
-		case strings.Contains(route.Path, "/api/users") || 
-			 strings.Contains(route.Path, "/api/roles") || 
-			 strings.Contains(route.Path, "/api/schools") ||
-			 strings.Contains(route.Path, "/api/majors"):
+		case strings.Contains(route.Path, "/users") || 
+			 strings.Contains(route.Path, "/roles") || 
+			 strings.Contains(route.Path, "/schools") ||
+			 strings.Contains(route.Path, "/majors"):
 			module = "User"
-		case strings.Contains(route.Path, "/api/rooms"):
+		case strings.Contains(route.Path, "/rooms"):
 			module = "Room"
 		case strings.Contains(route.Path, "/chat"):
 			module = "Chat"
-		case strings.Contains(route.Path, "/api/stickers"):
+		case strings.Contains(route.Path, "/stickers"):
 			module = "Sticker"
-		case strings.Contains(route.Path, "/api/uploads"):
+		case strings.Contains(route.Path, "/uploads"):
 			module = "Upload"
+		case strings.Contains(route.Path, "/evouchers"):
+			module = "Evoucher"
+		case strings.Contains(route.Path, "/restriction"):
+			module = "Restriction"
 		}
 
 		// Get middleware names

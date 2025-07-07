@@ -1,24 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useEvoucher } from "@/hooks/useEvoucher";
-import { EvoucherData, EvoucherResponse } from "@/types/chat";
 import { Evoucher } from "@/types/evoucher";
+import { EvoucherData } from "@/types/chat";
+import { useEvoucher } from "@/hooks/useEvoucher";
+import { useSponsors } from "@/hooks/useSponsors";
 import { addToast } from "@heroui/react";
+import { useState, useEffect } from "react";
 import { chatApiRequest } from "@/hooks/useChat";
 
 const CHAT_API_BASE_URL = process.env.GO_PUBLIC_API_URL || "http://localhost:1334/api";
 
 export function useEvoucherSend(roomId: string | null) {
-    const [loading, setLoading] = useState(false);
-    const { evouchers, refreshEvouchers, loading: evoucherLoading, error: evoucherError } = useEvoucher();
-
+    const { evouchers, refreshEvouchers } = useEvoucher();
+    const { fetchEvoucherCodeBySponsorId } = useSponsors();
     const [selectedEvoucher, setSelectedEvoucher] = useState<Evoucher | null>(null);
     const [evoucherData, setEvoucherData] = useState({
-        title: '',
-        description: '',
-        claimURL: ''
+        message: {
+            th: '',
+            en: ''
+        },
+        claimUrl: '',
+        sponsorImage: ''
     });
+    const [sending, setSending] = useState(false);
+
+    const canSendEvoucher = roomId && selectedEvoucher && evoucherData.message.th && evoucherData.message.en;
 
     useEffect(() => {
         refreshEvouchers();
@@ -30,41 +36,82 @@ export function useEvoucherSend(roomId: string | null) {
         console.log("Evouchers length:", evouchers.length);
     }, [evouchers]);
 
-    const sendEvoucher = async (evoucherData: EvoucherData): Promise<EvoucherResponse> => {
+    const sendEvoucher = async (evoucherData: EvoucherData): Promise<any> => { // Changed EvoucherResponse to any as EvoucherResponse is not defined
         try {
-            setLoading(true);
-            const res = await chatApiRequest<EvoucherResponse>("/evouchers/send", "POST", evoucherData);
+            setSending(true);
+            const res = await chatApiRequest<any>("/evouchers/send", "POST", evoucherData); // Changed EvoucherResponse to any
             
             if (res.statusCode !== 200 && res.statusCode !== 201) {
                 throw new Error(res.message || `HTTP ${res.statusCode}: Failed to send evoucher`);
             }
 
-            return res.data as EvoucherResponse;
+            return res.data;
         } catch (err) {
             console.error("Send evoucher error:", err);
             throw new Error(err instanceof Error ? err.message : 'Failed to send evoucher.');
         } finally {
-            setLoading(false);
+            setSending(false);
         }
     };
 
-    const handleEvoucherSelect = (evoucherId: string) => {
+    const handleEvoucherSelect = async (evoucherId: string) => {
         const evoucher = evouchers.find(e => e._id === evoucherId);
         if (evoucher) {
             setSelectedEvoucher(evoucher);
             
-            // Auto-generate ClaimURL with the selected evoucher ID
-            const claimURL = `${CHAT_API_BASE_URL}/api/${evoucher._id}/claim`;
+            // Auto-generate claim URL with the correct format for NestJS API
+            const claimURL = `http://localhost:8080/api/evouchers/${evoucher._id}/claim`;
+            
+            // Fetch sponsor image using sponsorId from evoucher
+            let sponsorImage = '';
+            if (evoucher.sponsor) {
+                try {
+                    console.log('Fetching sponsor image for sponsorId:', evoucher.sponsor);
+                    const sponsorInfo = await fetchEvoucherCodeBySponsorId(evoucher.sponsor);
+                    console.log('Sponsor info response:', sponsorInfo);
+                    
+                    if (sponsorInfo.length > 0) {
+                        const sponsor = sponsorInfo[0];
+                        console.log('Sponsor object:', sponsor);
+                        
+                        // Try to get logo from different possible locations
+                        if (sponsor.logo) {
+                            // Direct logo field (new format)
+                            sponsorImage = sponsor.logo;
+                            console.log('Found direct logo:', sponsorImage);
+                        } else if (sponsor.photo?.logo) {
+                            // Nested photo.logo field
+                            sponsorImage = sponsor.photo.logo;
+                            console.log('Found photo.logo:', sponsorImage);
+                        } else if (sponsor.photo?.logoPhoto) {
+                            // Extract filename from URL
+                            const logoUrl = sponsor.photo.logoPhoto;
+                            const filename = logoUrl.split('/').pop() || '';
+                            sponsorImage = filename;
+                            console.log('Found logoPhoto, extracted filename:', sponsorImage);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch sponsor image:', error);
+                }
+            }
             
             setEvoucherData({
-                title: evoucher.acronym,
-                description: evoucher.detail?.th || evoucher.detail?.en || `Get ${evoucher.amount} THB off`,
-                claimURL: claimURL
+                message: {
+                    th: evoucher.detail?.th || `รับส่วนลด ${evoucher.amount} บาท`,
+                    en: evoucher.detail?.en || `Get ${evoucher.amount} THB discount`
+                },
+                claimUrl: claimURL,
+                sponsorImage: sponsorImage
             });
         }
     };
 
-    const handleEvoucherDataChange = (data: { title: string; description: string; claimURL: string }) => {
+    const handleEvoucherDataChange = (data: { 
+        message: { th: string; en: string }; 
+        claimUrl: string; 
+        sponsorImage: string; 
+    }) => {
         setEvoucherData(data);
     };
 
@@ -113,25 +160,30 @@ export function useEvoucherSend(roomId: string | null) {
         try {
             const data: EvoucherData = {
                 roomId: roomId,
-                title: evoucherData.title,
-                ClaimURL: evoucherData.claimURL,
-                description: evoucherData.description
+                message: evoucherData.message,
+                claimUrl: evoucherData.claimUrl,
+                sponsorImage: evoucherData.sponsorImage
             };
+            
+            console.log('Sending evoucher data:', data);
             
             await sendEvoucher(data);
             
             addToast({
                 title: "Evoucher sent successfully!",
-                description: `Evoucher "${evoucherData.title}" has been sent to the room`,
+                description: `Evoucher "${evoucherData.message.th}" has been sent to the room`,
                 color: "success",
             });
             
             // Reset form
             setSelectedEvoucher(null);
             setEvoucherData({
-                title: '',
-                description: '',
-                claimURL: ''
+                message: {
+                    th: '',
+                    en: ''
+                },
+                claimUrl: '',
+                sponsorImage: ''
             });
         } catch (error) {
             addToast({
@@ -162,16 +214,12 @@ export function useEvoucherSend(roomId: string | null) {
         return true;
     };
 
-    const canSendEvoucher = selectedEvoucher && roomId && isEvoucherValid(selectedEvoucher);
-
     return {
         // State
         evouchers,
         selectedEvoucher,
         evoucherData,
-        loading: evoucherLoading,
-        error: evoucherError,
-        sending: loading,
+        sending,
         canSendEvoucher,
 
         // Actions

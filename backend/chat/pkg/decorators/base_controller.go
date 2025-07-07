@@ -1,8 +1,6 @@
 package decorators
 
 import (
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -27,13 +25,13 @@ type (
 	}
 
 	Controller struct {
-		App    *fiber.App
+		App    fiber.Router
 		Prefix string
 	}
 	
 )
 
-func NewController(app *fiber.App, prefix string, guards ...fiber.Handler) *Controller {
+func NewController(app fiber.Router, prefix string, guards ...fiber.Handler) *Controller {
     return &Controller{
         App:    app,
         Prefix: prefix,
@@ -45,23 +43,14 @@ func (b *BaseController) AddRoute(route Route) {
 }
 
 // NewBaseController creates a new base controller
-func NewBaseController(app *fiber.App, prefix string, guards ...fiber.Handler) *BaseController {
+func NewBaseController(app fiber.Router, prefix string, guards ...fiber.Handler) *BaseController {
 	controller := &BaseController{
 		Controller: NewController(app, prefix, guards...),
 		routes:    make([]RouteDefinition, 0),
 	}
 
 	// Setup static file serving for uploads with optimized configuration
-	app.Static("/api/uploads", "./uploads", fiber.Static{
-		Browse:        false,  // Disable directory browsing for security
-		MaxAge:       86400,  // Cache for 24 hours
-		Compress:     true,   // Enable compression
-		ByteRange:    true,   // Enable byte range requests
-		CacheDuration: 24 * 60 * 60 * time.Second, // 24 hours cache
-		Next: func(c *fiber.Ctx) bool { // Skip processing for non-existent files
-			return c.Method() != fiber.MethodGet
-		},
-	})
+	// Note: Static file serving should be set up on the main app, not on router groups
 
 	return controller
 }
@@ -123,7 +112,7 @@ type ResourceController struct {
 }
 
 // NewResourceController creates a new resource controller
-func NewResourceController(app *fiber.App, prefix, resourcePath string, guards ...fiber.Handler) *ResourceController {
+func NewResourceController(app fiber.Router, prefix, resourcePath string, guards ...fiber.Handler) *ResourceController {
 	return &ResourceController{
 		BaseController: NewBaseController(app, prefix, guards...),
 		resourcePath:   resourcePath,

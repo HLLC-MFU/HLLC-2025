@@ -30,12 +30,12 @@ type (
 )
 
 func NewHealthController(
-	app *fiber.App,
+	app fiber.Router,
 	chatService *service.ChatService,
 	rbac middleware.IRBACMiddleware,
 ) *HealthController {
 	controller := &HealthController{
-		BaseController: decorators.NewBaseController(app, "/chat"),
+		BaseController: decorators.NewBaseController(app, ""),
 		healthService:  chatService,
 		rbac:           rbac,
 	}

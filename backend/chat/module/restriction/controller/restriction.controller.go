@@ -21,12 +21,12 @@ type (
 )
 
 func NewModerationController(
-	app *fiber.App,
+	app fiber.Router,
 	moderationService *restrictionService.RestrictionService,
 	rbac middleware.IRBACMiddleware,
 ) *RestrictionController {
 	controller := &RestrictionController{
-		BaseController:    decorators.NewBaseController(app, "/api/restriction"),
+		BaseController:    decorators.NewBaseController(app, ""),
 		moderationService: moderationService,
 		rbac: rbac,
 	}

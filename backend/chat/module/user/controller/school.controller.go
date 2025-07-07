@@ -15,9 +15,9 @@ type (
 	}
 )
 
-func NewSchoolController(app *fiber.App, service *service.SchoolService) *SchoolController {
+func NewSchoolController(app fiber.Router, service *service.SchoolService) *SchoolController {
 	controller := &SchoolController{
-		BaseController: decorators.NewBaseController(app, "/api/schools"),
+		BaseController: decorators.NewBaseController(app, ""),
 		service:       service,
 	}
 

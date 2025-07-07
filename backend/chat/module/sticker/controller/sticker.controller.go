@@ -23,9 +23,9 @@ type (
 	}
 )
 
-func NewStickerController(app *fiber.App, service *service.StickerService, rbac middleware.IRBACMiddleware) *StickerController {
+func NewStickerController(app fiber.Router, service *service.StickerService, rbac middleware.IRBACMiddleware) *StickerController {
 	c := &StickerController{
-		BaseController: decorators.NewBaseController(app, "/api/stickers"),
+		BaseController: decorators.NewBaseController(app, ""),
 		service: service,
 		uploadHandler: utils.NewFileUploadHandler(utils.DefaultImageConfig()), // Use default config for /uploads
 		rbac: rbac,
