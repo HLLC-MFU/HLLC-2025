@@ -1,5 +1,7 @@
 'use client';
 
+import type { ReportTypes, Problem } from '@/types/report';
+
 import { useState } from 'react';
 import {
   Button,
@@ -8,16 +10,17 @@ import {
   CardHeader,
   Divider,
 } from '@heroui/react';
-import { CategoryModal } from './_components/CategoryModal';
-import { ProblemCharts } from './_components/ProblemCharts';
-import type { ReportTypes, Problem } from '@/types/report';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+import { CategoryModal } from './_components/CategoryModal';
+import { ProblemCharts } from './_components/ProblemCharts';
 import StatusDropdown from './_components/Statusdropdown';
 import SendNotiButton from './_components/SendNotiButton';
+import { ProblemModal } from './_components/ProblemModal';
+
 import { useReportTypes } from '@/hooks/useReportTypes';
 import { useReports } from '@/hooks/useReports';
-import { ProblemModal } from './_components/ProblemModal';
 
 export default function ReportsPage() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -74,16 +77,17 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {reporttypes.map(category => {
           const filteredProblems = problems.filter(p => p.categoryId === category.id);
+
           return (
             <Card
               key={category.id}
+              isHoverable
               className="border-2"
               style={{ borderColor: category.color }}
-              isHoverable
             >
               <CardHeader className="flex items-center justify-between">
                 <div className="text-start">
-                  <Link href={`/reports/${category.id}`} className="hover:underline">
+                  <Link className="hover:underline" href={`/reports/${category.id}`}>
                     <h3 className="text-lg font-semibold">{category.name.en}</h3>
                     <p className="text-sm text-gray-500">{category.name.th}</p>
                   </Link>
@@ -101,8 +105,8 @@ export default function ReportsPage() {
                     Edit
                   </Button>
                   <Button
-                    size="sm"
                     color="danger"
+                    size="sm"
                     variant="light"
                     onClick={async e => {
                       e.stopPropagation();
@@ -155,11 +159,11 @@ export default function ReportsPage() {
                   <div className="flex justify-between items-center mt-4 px-1 text-sm text-gray-500">
                     <span>{filteredProblems.length} reports</span>
                     <button
+                      className="text-blue-600 hover:underline font-medium"
                       onClick={(e) => {
                         e.stopPropagation();
                         router.push(`/reports/${category.id}`);
                       }}
-                      className="text-blue-600 hover:underline font-medium"
                     >
                       View all
                     </button>
@@ -173,21 +177,21 @@ export default function ReportsPage() {
 
       <CategoryModal
         isOpen={isCategoryModalOpen}
+        mode={selectedCategory ? 'edit' : 'add'}
+        reporttypes={selectedCategory}
+        onAdd={addReportTypes}
         onClose={() => setIsCategoryModalOpen(false)}
         onSubmit={() => setSelectedCategory(undefined)}
-        onAdd={addReportTypes}
         onUpdate={updateReportTypes}
-        reporttypes={selectedCategory}
-        mode={selectedCategory ? 'edit' : 'add'}
       />
 
       <ProblemModal
+        categories={reporttypes}
         isOpen={isProblemModalOpen}
-        onClose={() => setIsProblemModalOpen(false)}
-        onSubmit={handleProblemSubmit}
-        problem={selectedProblem}
-        categories={reporttypes} 
         mode={selectedProblem ? 'edit' : 'add'}
+        problem={selectedProblem}
+        onClose={() => setIsProblemModalOpen(false)} 
+        onSubmit={handleProblemSubmit}
       />
     </div>
   );

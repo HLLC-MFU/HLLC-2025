@@ -6,6 +6,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+
 import { StepsConters } from '@/types/step-conters';
 
 type LeaderboardProps = {
@@ -31,24 +32,24 @@ export default function LeaderBoard({ StepConterData }: LeaderboardProps) {
     <>
       <div className="flex justify-center items-center w-full h-[50%] my-5">
         <div className="w-[80%]">
-          <ResponsiveContainer width="100%" height={350}>
+          <ResponsiveContainer height={350} width="100%">
             <BarChart
+              barCategoryGap={0}
+              barGap={0}
               data={top3}
               layout="horizontal"
               margin={{ top: 20, right: 0, left: 0 }}
-              barGap={0}
-              barCategoryGap={0}
             >
               <XAxis dataKey="fullName" tick={{ fontSize: 14 }} />
               <YAxis hide={true} />
               <Tooltip />
               <Bar
+                animationDuration={1200}
+                barSize={120}
                 dataKey="stepCount"
                 fill="#8884d8"
+                label={{ position: 'top' }} 
                 radius={[10, 10, 0, 0]}
-                label={{ position: 'top' }}
-                barSize={120} 
-                animationDuration={1200}
               />
             </BarChart>
           </ResponsiveContainer>

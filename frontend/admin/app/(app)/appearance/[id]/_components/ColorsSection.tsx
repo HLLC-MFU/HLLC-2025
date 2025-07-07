@@ -1,7 +1,7 @@
 import { Button } from '@heroui/button';
 import { Card, CardBody, CardHeader } from '@heroui/react';
 import { Ban, Palette } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface ColorsSectionProps {
   colors: Record<string, string>;
@@ -55,10 +55,10 @@ export function ColorsSection({ colors, onSave }: ColorsSectionProps) {
                 </div>
                 <div className="relative">
                   <input
+                    className="w-16 h-10 rounded-lg cursor-pointer border-2 border-gray-200 hover:border-gray-300 transition-colors"
                     type="color"
                     value={previewColor[key] ?? "#ffffff"}
                     onChange={(e) => handleColorChange(key, e.target.value)}
-                    className="w-16 h-10 rounded-lg cursor-pointer border-2 border-gray-200 hover:border-gray-300 transition-colors"
                   />
                 </div>
               </div>
@@ -69,21 +69,21 @@ export function ColorsSection({ colors, onSave }: ColorsSectionProps) {
         <div className="flex justify-end mt-6">
           <div className="flex justify-between gap-4">
             <Button
-              isDisabled={JSON.stringify(colors) === JSON.stringify(previewColor)}
-              color="danger"
-              size="lg"
-              variant="light"
               className="px-8 font-semibold"
+              color="danger"
+              isDisabled={JSON.stringify(colors) === JSON.stringify(previewColor)}
+              size="lg"
               startContent={<Ban className="w-5 h-5" />}
+              variant="light"
               onPress={() => setPreviewColor(colors)}
             >
               Discard All
             </Button>
             <Button
-              isDisabled={JSON.stringify(colors) === JSON.stringify(previewColor)}
-              color="primary"
-              size="lg"
               className="px-8 font-semibold"
+              color="primary"
+              isDisabled={JSON.stringify(colors) === JSON.stringify(previewColor)}
+              size="lg"
               startContent={<Palette className="w-5 h-5" />}
               onPress={onSave}
             >

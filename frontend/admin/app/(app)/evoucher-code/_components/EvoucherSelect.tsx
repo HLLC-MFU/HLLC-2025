@@ -1,5 +1,6 @@
 import { Select, SelectItem } from "@heroui/react";
 import { AlertCircle } from "lucide-react";
+
 import { Evoucher } from "@/types/evoucher";
 
 type EvoucherSelectProps = {
@@ -12,6 +13,7 @@ type EvoucherSelectProps = {
 export const EvoucherSelect = ({ value, onChange, evouchers, isDisabled }: EvoucherSelectProps) => {
   const handleChange = (keys: any) => {
     const selectedKey = Array.from(keys)[0] as string;
+
     onChange(selectedKey);
   };
 
@@ -20,17 +22,18 @@ export const EvoucherSelect = ({ value, onChange, evouchers, isDisabled }: Evouc
 
   return (
     <Select
-      label="Evoucher"
       isRequired
+      classNames={{ trigger: "z-0" }}
+      isDisabled={isDisabled}
+      label="Evoucher"
       selectedKeys={value ? [value] : []}
       onSelectionChange={handleChange}
-      isDisabled={isDisabled}
-      classNames={{ trigger: "z-0" }}
     >
       {evouchers.map(e => {
         const expired = isEvoucherExpired(e);
+
         return (
-          <SelectItem key={e._id} textValue={e.acronym} isDisabled={expired}>
+          <SelectItem key={e._id} isDisabled={expired} textValue={e.acronym}>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className={expired ? "text-danger" : ""}>{e.acronym}</span>

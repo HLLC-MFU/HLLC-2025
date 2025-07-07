@@ -1,12 +1,9 @@
 "use client";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from "@heroui/react";
-import { useState, useEffect, createRef } from "react";
 import type { Activities } from "@/types/activities";
-import { useActivities } from "@/hooks/useActivities";
-import { useSchools } from "@/hooks/useSchool";
-import { useMajors } from "@/hooks/useMajor";
-import { useUsers } from "@/hooks/useUsers";
+
+import { useState, useEffect, createRef } from "react";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from "@heroui/react";
 import { School, GraduationCap, Users } from "lucide-react";
 
 import { ScopeSelector } from "./activity-modal/ScopeSelector";
@@ -14,6 +11,11 @@ import { ImagePreview } from "./activity-modal/ImagePreview";
 import { BasicInformation } from "./activity-modal/BasicInformation";
 import { ActivityDetails } from "./activity-modal/ActivityDetails";
 import { ActivitySettings } from "./activity-modal/ActivitySettings";
+
+import { useUsers } from "@/hooks/useUsers";
+import { useMajors } from "@/hooks/useMajor";
+import { useActivities } from "@/hooks/useActivities";
+import { useSchools } from "@/hooks/useSchool";
 
 interface ActivityModalProps {
   isOpen: boolean;
@@ -130,6 +132,7 @@ export function ActivityModal({
     if (!file) return;
 
     const reader = new FileReader();
+
     reader.onloadend = () => {
       if (type === 'banner') {
         setBannerPhoto(file);
@@ -192,7 +195,7 @@ export function ActivityModal({
   };
 
   return (
-    <Modal isOpen={isModalOpen} onClose={onClose} size="4xl" scrollBehavior="inside">
+    <Modal isOpen={isModalOpen} scrollBehavior="inside" size="4xl" onClose={onClose}>
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           {mode === "add" ? "Add New Activity" : "Edit Activity"}
@@ -203,17 +206,17 @@ export function ActivityModal({
         <ModalBody>
           <div className="flex flex-col gap-6">
             <BasicInformation
-              nameEn={nameEn}
-              setNameEn={setNameEn}
-              nameTh={nameTh}
-              setNameTh={setNameTh}
               acronym={acronym}
-              setAcronym={setAcronym}
-              type={type}
-              setType={setType}
               activityTypes={activityTypes}
-              typesLoading={typesLoading}
               disableTypeSelection={mode === 'add' && !!type}
+              nameEn={nameEn}
+              nameTh={nameTh}
+              setAcronym={setAcronym}
+              setNameEn={setNameEn}
+              setNameTh={setNameTh}
+              setType={setType}
+              type={type}
+              typesLoading={typesLoading}
             />
 
             <Divider />
@@ -223,31 +226,31 @@ export function ActivityModal({
               <h3 className="text-sm font-medium mb-3">Photos</h3>
               <div className="grid grid-cols-1 gap-6">
                 <ImagePreview
-                  label="Banner Photo"
-                  preview={bannerPreview}
+                  aspectRatio="aspect-[21/9]"
                   file={bannerPhoto}
+                  inputRef={bannerInputRef as React.RefObject<HTMLInputElement>}
+                  label="Banner Photo"
+                  maxSize="max-h-[300px]"
+                  preview={bannerPreview}
                   onFileChange={(file) => handleFileChange(file, 'banner')}
                   onRemove={() => {
                     setBannerPhoto(null);
                     setBannerPreview("");
                   }}
-                  inputRef={bannerInputRef as React.RefObject<HTMLInputElement>}
-                  aspectRatio="aspect-[21/9]"
-                  maxSize="max-h-[300px]"
                   />
                 <ImagePreview
-                  label="Logo Photo"
-                  preview={logoPreview}
+                  aspectRatio="aspect-square"
+                  containerClassName="max-w-[400px]"
                   file={logoPhoto}
+                  inputRef={logoInputRef as React.RefObject<HTMLInputElement>}
+                  label="Logo Photo"
+                  maxSize="max-h-[200px]"
+                  preview={logoPreview}
                   onFileChange={(file) => handleFileChange(file, 'logo')}
                   onRemove={() => {
                     setLogoPhoto(null);
                     setLogoPreview("");
                   }}
-                  inputRef={logoInputRef as React.RefObject<HTMLInputElement>}
-                  aspectRatio="aspect-square"
-                  maxSize="max-h-[200px]"
-                  containerClassName="max-w-[400px]"
                 />
               </div>
             </div>
@@ -256,17 +259,17 @@ export function ActivityModal({
 
             <ActivityDetails
               fullDetailsEn={fullDetailsEn}
-              setFullDetailsEn={setFullDetailsEn}
               fullDetailsTh={fullDetailsTh}
-              setFullDetailsTh={setFullDetailsTh}
-              shortDetailsEn={shortDetailsEn}
-              setShortDetailsEn={setShortDetailsEn}
-              shortDetailsTh={shortDetailsTh}
-              setShortDetailsTh={setShortDetailsTh}
               locationEn={locationEn}
-              setLocationEn={setLocationEn}
               locationTh={locationTh}
+              setFullDetailsEn={setFullDetailsEn}
+              setFullDetailsTh={setFullDetailsTh}
+              setLocationEn={setLocationEn}
               setLocationTh={setLocationTh}
+              setShortDetailsEn={setShortDetailsEn}
+              setShortDetailsTh={setShortDetailsTh}
+              shortDetailsEn={shortDetailsEn}
+              shortDetailsTh={shortDetailsTh}
                   />
 
             <Divider />
@@ -276,43 +279,43 @@ export function ActivityModal({
               <h3 className="text-sm font-medium mb-3">Activity Scope</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <ScopeSelector
-                  label="Schools"
-                  icon={School}
-                  items={schools}
-                  selectedItems={scopeSchool}
-                  onSelect={(id) => setScopeSchool(prev => [...prev, id])}
-                  onRemove={(id) => setScopeSchool(prev => prev.filter(s => s !== id))}
-                  isLoading={schoolsLoading}
-                  placeholder="Select schools..."
-                  getName={(school) => school.name.en}
                   getId={(school) => school._id}
+                  getName={(school) => school.name.en}
+                  icon={School}
+                  isLoading={schoolsLoading}
+                  items={schools}
+                  label="Schools"
+                  placeholder="Select schools..."
                   searchFields={getSchoolSearchFields}
+                  selectedItems={scopeSchool}
+                  onRemove={(id) => setScopeSchool(prev => prev.filter(s => s !== id))}
+                  onSelect={(id) => setScopeSchool(prev => [...prev, id])}
                 />
                 <ScopeSelector
-                  label="Majors"
-                  icon={GraduationCap}
-                  items={majors}
-                  selectedItems={scopeMajor}
-                  onSelect={(id) => setScopeMajor(prev => [...prev, id])}
-                  onRemove={(id) => setScopeMajor(prev => prev.filter(m => m !== id))}
-                  isLoading={majorsLoading}
-                  placeholder="Select majors..."
-                  getName={(major) => major.name.en}
                   getId={(major) => major._id || ""}
+                  getName={(major) => major.name.en}
+                  icon={GraduationCap}
+                  isLoading={majorsLoading}
+                  items={majors}
+                  label="Majors"
+                  placeholder="Select majors..."
                   searchFields={getMajorSearchFields}
+                  selectedItems={scopeMajor}
+                  onRemove={(id) => setScopeMajor(prev => prev.filter(m => m !== id))}
+                  onSelect={(id) => setScopeMajor(prev => [...prev, id])}
                 />
                 <ScopeSelector
-                  label="Users"
-                  icon={Users}
-                  items={users}
-                  selectedItems={scopeUser}
-                  onSelect={(id) => setScopeUser(prev => [...prev, id])}
-                  onRemove={(id) => setScopeUser(prev => prev.filter(u => u !== id))}
-                  isLoading={usersLoading}
-                  placeholder="Select users..."
-                  getName={(user) => `${user.name.first} ${user.name.last}`}
                   getId={(user) => user._id || ""}
+                  getName={(user) => `${user.name.first} ${user.name.last}`}
+                  icon={Users}
+                  isLoading={usersLoading}
+                  items={users}
+                  label="Users"
+                  placeholder="Select users..."
                   searchFields={getUserSearchFields}
+                  selectedItems={scopeUser}
+                  onRemove={(id) => setScopeUser(prev => prev.filter(u => u !== id))}
+                  onSelect={(id) => setScopeUser(prev => [...prev, id])}
                 />
               </div>
             </div>
@@ -321,10 +324,10 @@ export function ActivityModal({
 
             <ActivitySettings
               isOpen={isOpen}
-              setIsOpen={setIsOpen}
               isProgressCount={isProgressCount}
-              setIsProgressCount={setIsProgressCount}
               isVisible={isVisible}
+              setIsOpen={setIsOpen}
+              setIsProgressCount={setIsProgressCount}
               setIsVisible={setIsVisible}
             />
           </div>

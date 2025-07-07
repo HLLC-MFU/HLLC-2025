@@ -1,8 +1,11 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { RoomMember } from "@/types/chat";
-import MemberCellRenderer, { MemberColumnKey } from "./MemberCellRenderer";
-import { SortDescriptor, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Pagination } from "@heroui/react";
 import type { Selection } from "@react-types/shared";
+
+import React, { useCallback, useMemo, useState } from "react";
+import { SortDescriptor, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Pagination } from "@heroui/react";
+
+import MemberCellRenderer, { MemberColumnKey } from "./MemberCellRenderer";
+
+import { RoomMember } from "@/types/chat";
 
 export const COLUMNS = [
     { name: "USER", uid: "user", sortable: true },
@@ -50,12 +53,15 @@ export default function MemberTable({
     const validMembers = useMemo(() => {
         if (!Array.isArray(members)) {
             console.warn('MemberTable: members is not an array:', members);
+
             return [];
         }
         const filtered = members.filter(member => member && (member._id || member.username));
+
         if (filtered.length !== members.length) {
             console.warn('MemberTable: filtered out invalid members:', members.length - filtered.length);
         }
+
         return filtered;
     }, [members]);
 
@@ -68,6 +74,7 @@ export default function MemberTable({
             const first = a[sortDescriptor.column as keyof RoomMember] as any;
             const second = b[sortDescriptor.column as keyof RoomMember] as any;
             const cmp = first < second ? -1 : first > second ? 1 : 0;
+
             return sortDescriptor.direction === "descending" ? -cmp : cmp;
         });
     }, [filteredItems, sortDescriptor]);
@@ -75,13 +82,14 @@ export default function MemberTable({
     const renderCell = useCallback(
         (member: RoomMember, columnKey: MemberColumnKey) => {
             const isCurrentUser = member._id === currentUserId;
+
             return (
                 <MemberCellRenderer
-                    member={member}
                     columnKey={columnKey}
+                    isCurrentUser={isCurrentUser}
+                    member={member}
                     onBan={() => onBanMember(member)}
                     onMute={() => onMuteMember(member)}
-                    isCurrentUser={isCurrentUser}
                 />
             );
         },
@@ -95,8 +103,8 @@ export default function MemberTable({
                 aria-label="Room members table"
                 selectedKeys={selectedKeys}
                 selectionMode="multiple"
-                onSelectionChange={setSelectedKeys}
                 sortDescriptor={sortDescriptor}
+                onSelectionChange={setSelectedKeys}
                 onSortChange={setSortDescriptor}
             >
                 <TableHeader columns={COLUMNS}>
@@ -104,8 +112,8 @@ export default function MemberTable({
                         <TableColumn
                             key={column.uid}
                             align={column.uid === "actions" ? "center" : "start"}
-                            className={`${column.uid} py-4 bg-default-50`}
                             allowsSorting={column.sortable}
+                            className={`${column.uid} py-4 bg-default-50`}
                         >
                             <span className="text-bold text-small uppercase tracking-wider">{column.name}</span>
                         </TableColumn>
@@ -135,12 +143,12 @@ export default function MemberTable({
             {pagination && pagination.totalPages > 1 && onPageChange && (
                 <div className="flex justify-center mt-4">
                     <Pagination
-                        total={pagination.totalPages}
-                        page={pagination.page}
-                        onChange={onPageChange}
                         showControls
                         showShadow
                         color="primary"
+                        page={pagination.page}
+                        total={pagination.totalPages}
+                        onChange={onPageChange}
                     />
                 </div>
             )}

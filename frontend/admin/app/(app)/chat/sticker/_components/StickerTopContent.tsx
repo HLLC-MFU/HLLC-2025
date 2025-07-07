@@ -1,7 +1,8 @@
-import { Sticker } from "@/types/sticker";
 import { Button, Input } from "@heroui/react";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import React from "react";
+
+import { Sticker } from "@/types/sticker";
 
 type StickerTopContentProps = {
     setActionText: () => void;
@@ -36,7 +37,7 @@ export default function StickerTopContent({
                     onValueChange={onSearchChange}
                 />
                 <div className="flex gap-3">
-                    <Button onPress={() => { setActionText(); }} color="primary" endContent={<PlusIcon size={20} />}>
+                    <Button color="primary" endContent={<PlusIcon size={20} />} onPress={() => { setActionText(); }}>
                         Add Sticker
                     </Button>
                 </div>

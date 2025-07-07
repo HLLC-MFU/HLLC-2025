@@ -7,9 +7,11 @@ import {
   Button,
 } from '@heroui/react';
 import { useEffect, useState } from 'react';
-import { NotificationFormData } from "../page";
-import { Lang } from '@/types/lang';
 import * as LucideIcons from 'lucide-react';
+
+import { NotificationFormData } from "../page";
+
+import { Lang } from '@/types/lang';
 
 type InAppNotificationProps = {
   notification: NotificationFormData
@@ -26,6 +28,7 @@ export function InAppNotificationPreview({ notification, language }: InAppNotifi
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -77,9 +80,9 @@ export function InAppNotificationPreview({ notification, language }: InAppNotifi
           {notification?.imageURL && (
             <div className="absolute top-3 right-5">
               <Image
-                src={notification?.imageURL}
                 alt="Logo"
                 className="w-20 h-20 rounded-xl object-cover"
+                src={notification?.imageURL}
               />
             </div>
           )}
@@ -87,8 +90,8 @@ export function InAppNotificationPreview({ notification, language }: InAppNotifi
           {(notification.redirectButton?.label.en || notification.redirectButton?.label.th) && (
             <div className="self-end items-end">
               <Button
-                color="primary"
                 className="rounded-2xl"
+                color="primary"
                 onPress={() => notification.redirectButton?.url ? window.location.href = notification.redirectButton?.url || '#' : null}
               >
                 {notification.redirectButton?.label[language]}

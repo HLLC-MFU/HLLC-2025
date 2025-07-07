@@ -1,16 +1,18 @@
 "use client";
 
-import { Room, RoomType } from "@/types/chat";
-import { School } from "@/types/school";
-import { Major } from "@/types/major";
-import { Button, Badge, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
+import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
 import { useState, useEffect, useCallback, FormEvent } from "react";
+import { InfinityIcon } from "lucide-react";
+
+import { ImagePreview } from "./ImagePreview";
+import { RoomMembersSelector } from "./RoomMembersSelector";
+
+import { Room, RoomType } from "@/types/chat";
 import { useSchools } from "@/hooks/useSchool";
 import { useMajors } from "@/hooks/useMajor";
 import { useUsers } from "@/hooks/useUsers";
-import { ImagePreview } from "./ImagePreview";
-import { RoomMembersSelector } from "./RoomMembersSelector";
-import { InfinityIcon } from "lucide-react";
+
+
 
 interface RoomModalProps {
     isOpen: boolean;
@@ -24,7 +26,7 @@ interface RoomModalProps {
 export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: RoomModalProps) {
     const { schools, loading: schoolsLoading } = useSchools();
     const { majors, loading: majorsLoading } = useMajors();
-    const { users, loading: usersLoading, fetchByUsername } = useUsers();
+    const { fetchByUsername } = useUsers();
 
     const [nameEn, setNameEn] = useState("");
     const [nameTh, setNameTh] = useState("");
@@ -42,6 +44,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
     useEffect(() => {
         if (isOpen && room) {
             const { name, type, status, capacity, metadata, members } = room;
+
             setNameEn(name.en);
             setNameTh(name.th);
             setType(type);
@@ -87,6 +90,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
         if (roomType === "major" && !selectedMajor) return alert("Please select a major");
 
         const formData = new FormData();
+
         formData.append("name.en", nameEn.trim());
         formData.append("name.th", nameTh.trim());
         formData.append("type", type);
@@ -113,16 +117,18 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+
         if (file) {
             setImage(file);
             const reader = new FileReader();
+
             reader.onload = (e) => setImagePreview(e.target?.result as string);
             reader.readAsDataURL(file);
         }
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={() => { onClose(); resetFields(); }} size="2xl">
+        <Modal isOpen={isOpen} size="2xl" onClose={() => { onClose(); resetFields(); }}>
             <Form onSubmit={handleSubmit}>
                 <ModalContent>
                     <ModalHeader>{`${mode === "add" ? "Add" : "Edit"} ${roomType === "school" ? "School" : roomType === "major" ? "Major" : "Room"}`}</ModalHeader>
@@ -138,7 +144,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                         </Select>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Input label="Capacity*" value={capacity} onValueChange={setCapacity} type="number" min={0} />
+                            <Input label="Capacity*" min={0} type="number" value={capacity} onValueChange={setCapacity} />
                             <div className="flex items-center gap-2 text-sm font-bold text-primary-600 mt-1">
                                 <InfinityIcon className="w-5 h-5 text-blue-500" />
                                 <span className="text-blue-600">Set to 0 for unlimited capacity</span>
@@ -153,19 +159,19 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                         )}
 
                         {roomType === "school" && (
-                            <Select label="Select School" selectedKeys={selectedSchool ? [selectedSchool] : []} onSelectionChange={(keys) => setSelectedSchool(Array.from(keys)[0] as string)} isLoading={schoolsLoading}>
+                            <Select isLoading={schoolsLoading} label="Select School" selectedKeys={selectedSchool ? [selectedSchool] : []} onSelectionChange={(keys) => setSelectedSchool(Array.from(keys)[0] as string)}>
                                 {schools.map(school => <SelectItem key={school._id}>{school.name.en}</SelectItem>)}
                             </Select>
                         )}
 
                         {roomType === "major" && (
-                            <Select label="Select Major" selectedKeys={selectedMajor ? [selectedMajor] : []} onSelectionChange={(keys) => setSelectedMajor(Array.from(keys)[0] as string)} isLoading={majorsLoading}>
+                            <Select isLoading={majorsLoading} label="Select Major" selectedKeys={selectedMajor ? [selectedMajor] : []} onSelectionChange={(keys) => setSelectedMajor(Array.from(keys)[0] as string)}>
                                 {majors.map(major => <SelectItem key={major._id}>{major.name.en}</SelectItem>)}
                             </Select>
                         )}
 
                         <RoomMembersSelector selectedMembers={selectedMembers} setSelectedMembers={setSelectedMembers} />
-                        <Input type="file" label="Room Image (Optional)" accept="image/*" onChange={handleImageChange} />
+                        <Input accept="image/*" label="Room Image (Optional)" type="file" onChange={handleImageChange} />
                         <ImagePreview imagePreview={imagePreview} onRemove={() => { setImage(null); setImagePreview(null); }} />
                     </ModalBody>
 

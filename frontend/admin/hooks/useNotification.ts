@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
+import { addToast } from "@heroui/react";
+
 import { Notification } from "@/types/notification"
 import { apiRequest } from "@/utils/api"
-import { addToast } from "@heroui/react";
 
 export function useNotification() {
 	const [notifications, setNotifications] = useState<Notification[]>([])
@@ -14,6 +15,7 @@ export function useNotification() {
 
 		try {
 			const res = await apiRequest<{ data: Notification[] }>("/notifications", "GET");
+
 			setNotifications(Array.isArray(res.data?.data) ? res.data.data : []);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to fetch notifications.');

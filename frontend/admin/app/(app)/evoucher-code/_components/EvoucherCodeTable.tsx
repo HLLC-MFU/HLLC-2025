@@ -1,13 +1,15 @@
 import React, { Key, useCallback, useEffect, useMemo, useState } from "react";
-import { Sponsors } from "@/types/sponsors";
-import { EvoucherCode } from "@/types/evoucher-code";
-import { Evoucher } from "@/types/evoucher";
 import {
     Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, SortDescriptor,
 } from "@heroui/react";
+
 import EvoucherCodeCellRenderer from "./EvoucherCodeCellRenderer";
 import TopContent from "./TopContent";
 import BottomContent from "./BottomContent";
+
+import { Evoucher } from "@/types/evoucher";
+import { EvoucherCode } from "@/types/evoucher-code";
+import { Sponsors } from "@/types/sponsors";
 
 const COLUMNS = [
     { name: "CODE", uid: "code", sortable: true },
@@ -56,6 +58,7 @@ export default function EvoucherCodeTable({
             setLoading(true);
             try {
                 const result = await evoucherCodesFetcher(sponsorId);
+
                 setEvoucherCodes(result || []);
             } catch (err) {
                 console.error("Failed to fetch evoucher codes", err);
@@ -71,6 +74,7 @@ export default function EvoucherCodeTable({
     const filteredItems = useMemo(() => {
         return evoucherCodes.filter((item) => {
             if (!filterValue) return true;
+
             return item.code?.toLowerCase().includes(filterValue.toLowerCase());
         });
     }, [filterValue, evoucherCodes]);
@@ -78,19 +82,24 @@ export default function EvoucherCodeTable({
     const sortedItems = useMemo(() => {
         const sorted = [...filteredItems];
         const { column, direction } = sortDescriptor;
+
         sorted.sort((a: any, b: any) => {
             const valA = a[column as keyof EvoucherCode];
             const valB = b[column as keyof EvoucherCode];
+
             if (valA === undefined || valB === undefined) return 0;
             const comparison = String(valA).localeCompare(String(valB));
+
             return direction === "ascending" ? comparison : -comparison;
         });
+
         return sorted;
     }, [filteredItems, sortDescriptor]);
 
     const pages = Math.ceil(sortedItems.length / ROWS_PER_PAGE);
     const pagedItems = useMemo(() => {
         const start = (page - 1) * ROWS_PER_PAGE;
+
         return sortedItems.slice(start, start + ROWS_PER_PAGE);
     }, [page, sortedItems]);
 
@@ -113,10 +122,10 @@ export default function EvoucherCodeTable({
         (evoucherCode: EvoucherCode, columnKey: Key) => {
             return (
                 <EvoucherCodeCellRenderer
-                    evoucherCode={evoucherCode}
                     columnKey={columnKey}
-                    onEdit={() => onEdit(evoucherCode)}
+                    evoucherCode={evoucherCode}
                     onDelete={() => onDelete(evoucherCode)}
+                    onEdit={() => onEdit(evoucherCode)}
                 />
             );
         },
@@ -130,34 +139,34 @@ export default function EvoucherCodeTable({
             <Table
                 isHeaderSticky
                 aria-label="Evoucher Code Table"
-                topContent={
-                    <TopContent
-                        setActionText={onAdd}
-                        filterValue={filterValue}
-                        onClear={handleClear}
-                        onSearchChange={handleSearch}
-                        filteredItems={filteredItems}
-                        page={page}
-                        pages={pages}
-                        setPage={setPage}
-                        onPreviousPage={() => setPage((p) => Math.max(1, p - 1))}
-                        onNextPage={() => setPage((p) => Math.min(p + 1, pages))}
-                    />
-                }
                 bottomContent={
                     <BottomContent
                         filteredItems={filteredItems}
                         page={page}
                         pages={pages}
                         setPage={setPage}
-                        onPreviousPage={() => setPage((p) => Math.max(1, p - 1))}
                         onNextPage={() => setPage((p) => Math.min(p + 1, pages))}
+                        onPreviousPage={() => setPage((p) => Math.max(1, p - 1))}
                     />
                 }
                 bottomContentPlacement="outside"
-                topContentPlacement="outside"
                 selectionMode="multiple"
                 sortDescriptor={sortDescriptor}
+                topContent={
+                    <TopContent
+                        filterValue={filterValue}
+                        filteredItems={filteredItems}
+                        page={page}
+                        pages={pages}
+                        setActionText={onAdd}
+                        setPage={setPage}
+                        onClear={handleClear}
+                        onNextPage={() => setPage((p) => Math.min(p + 1, pages))}
+                        onPreviousPage={() => setPage((p) => Math.max(1, p - 1))}
+                        onSearchChange={handleSearch}
+                    />
+                }
+                topContentPlacement="outside"
                 onSortChange={setSortDescriptor}
             >
                 <TableHeader columns={headerColumns}>
@@ -165,8 +174,8 @@ export default function EvoucherCodeTable({
                         <TableColumn
                             key={column.uid}
                             align={column.uid === "actions" ? "center" : "start"}
-                            className="py-4 bg-default-50"
                             allowsSorting={column.sortable}
+                            className="py-4 bg-default-50"
                         >
                             <span className="text-bold text-small uppercase tracking-wider">{column.name}</span>
                         </TableColumn>
@@ -188,6 +197,7 @@ export default function EvoucherCodeTable({
                 >
                     {(item: EvoucherCode) => {
                         const uniqueKey = getUniqueKey(item, pagedItems.indexOf(item));
+
                         return (
                             <TableRow key={uniqueKey} className="hover:bg-default-50 transition-colors">
                                 {(columnKey) => (

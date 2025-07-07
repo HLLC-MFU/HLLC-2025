@@ -1,5 +1,7 @@
 'use client';
 
+import type { ReportTypes } from '@/types/report';
+
 import {
   Modal,
   ModalContent,
@@ -10,7 +12,6 @@ import {
   Input,
 } from '@heroui/react';
 import { useState, useEffect } from 'react';
-import type { ReportTypes } from '@/types/report';
 
 interface ReportTypesModalProps {
   isOpen: boolean;
@@ -65,6 +66,7 @@ export function CategoryModal({
 
       if (!saved) {
         console.warn('No reporttypes data returned from save');
+
         return;
       }
 
@@ -88,7 +90,7 @@ export function CategoryModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+    <Modal isOpen={isOpen} size="2xl" onClose={onClose}>
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           {mode === 'add' ? 'Add New ReportTypes' : 'Edit ReportTypes'}

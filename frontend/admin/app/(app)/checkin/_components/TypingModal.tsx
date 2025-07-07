@@ -10,8 +10,10 @@ import {
 } from '@heroui/react';
 import { IdCard } from 'lucide-react';
 import { useState } from 'react';
-import { useCheckin } from '@/hooks/useCheckin';
+
 import Selectdropdown from './Select';
+
+import { useCheckin } from '@/hooks/useCheckin';
 
 interface TypingProps {
   isOpen: boolean;
@@ -25,6 +27,7 @@ export function Typing({ isOpen, onClose }: TypingProps) {
 
   const handleSubmit = () => {
     const trimmed = studentId.trim();
+
     if (!trimmed) return;
 
     try {
@@ -49,7 +52,7 @@ export function Typing({ isOpen, onClose }: TypingProps) {
 
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} placement="center">
+    <Modal isOpen={isOpen} placement="center" onClose={onClose}>
       <ModalContent className="mx-7">
         <>
           <ModalHeader className="flex flex-col gap-1">
@@ -62,14 +65,14 @@ export function Typing({ isOpen, onClose }: TypingProps) {
               }
               label="Student ID"
               placeholder="Enter your Student ID"
-              variant="bordered"
               value={studentId}
+              variant="bordered"
               onValueChange={setStudentId}
             />
             <Selectdropdown
+              forceVisible={true}
               selectedActivityIds={selectedActivityIds}
               setSelectActivityIds={setSelectedActivityIds}
-              forceVisible={true}
             />
           </ModalBody>
           <ModalFooter>

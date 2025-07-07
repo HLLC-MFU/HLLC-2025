@@ -1,10 +1,12 @@
 "use client";
 
-import { Room, RoomType } from "@/types/chat";
 import { Accordion, AccordionItem, Button, Input } from "@heroui/react";
 import { PlusIcon, SearchIcon, MessageSquare, Lock, Building2, GraduationCap } from "lucide-react";
 import { useState, useMemo } from "react";
+
 import { RoomCard } from "./RoomCard";
+
+import { Room, RoomType } from "@/types/chat";
 
 type RoomAccordionProps = {
     rooms: Room[];
@@ -29,15 +31,15 @@ export default function RoomAccordion({ rooms, onAdd, onEdit, onDelete, onToggle
     );
 
     return (
-        <Accordion variant="splitted" selectionMode="multiple">
+        <Accordion selectionMode="multiple" variant="splitted">
             {roomCategories.map(({ label, type, icon }) => (
-                <AccordionItem key={label} aria-label={`${label} Rooms`} title={`${label} Rooms`} startContent={icon}>
+                <AccordionItem key={label} aria-label={`${label} Rooms`} startContent={icon} title={`${label} Rooms`}>
                     <RoomSection
-                        rooms={filterRooms(type)}
                         roomType={label}
+                        rooms={filterRooms(type)}
                         onAdd={() => onAdd(type as RoomType | "school" | "major")}
-                        onEdit={onEdit}
                         onDelete={onDelete}
+                        onEdit={onEdit}
                         onToggleStatus={onToggleStatus}
                     />
                 </AccordionItem>
@@ -79,7 +81,7 @@ const RoomSection = ({ rooms, roomType, onAdd, onEdit, onDelete, onToggleStatus 
                     onClear={() => setFilterValue('')}
                     onValueChange={setFilterValue}
                 />
-                <Button onPress={onAdd} color="primary" endContent={<PlusIcon size={20} />}>
+                <Button color="primary" endContent={<PlusIcon size={20} />} onPress={onAdd}>
                     Add {roomType} Room
                 </Button>
             </div>
@@ -96,8 +98,8 @@ const RoomSection = ({ rooms, roomType, onAdd, onEdit, onDelete, onToggleStatus 
                         <RoomCard
                             key={room._id}
                             room={room}
-                            onEdit={() => onEdit(room)}
                             onDelete={() => onDelete(room)}
+                            onEdit={() => onEdit(room)}
                             onToggleStatus={onToggleStatus ? () => onToggleStatus(room) : undefined}
                         />
                     ))}

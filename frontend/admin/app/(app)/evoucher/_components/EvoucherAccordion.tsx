@@ -1,7 +1,9 @@
 import { Accordion, AccordionItem } from "@heroui/react";
-import { Evoucher, EvoucherType } from "@/types/evoucher";
 import { Globe, User } from "lucide-react";
+
 import EvoucherTable from "./EvoucherTable";
+
+import { Evoucher, EvoucherType } from "@/types/evoucher";
 
 type EvoucherAccordionProps = {
     evouchers: Evoucher[];
@@ -20,36 +22,36 @@ export default function EvoucherAccordion({
     const individualEvouchers = evouchers.filter(e => e.type === EvoucherType.INDIVIDUAL);
 
     return (
-        <Accordion variant="splitted" className="px-0" selectionMode="multiple">
+        <Accordion className="px-0" selectionMode="multiple" variant="splitted">
             <AccordionItem
                 key="global"
                 aria-label="Accordion Global"
-                title="Global"
                 startContent={<Globe />}
+                title="Global"
             >
                 <EvoucherTable
+                    evoucherType={EvoucherType.GLOBAL}
                     evouchers={globalEvouchers}
                     sponsorName="Global"
-                    evoucherType={EvoucherType.GLOBAL}
                     onAdd={() => onAdd(EvoucherType.GLOBAL)}
-                    onEdit={onEdit}
                     onDelete={onDelete}
+                    onEdit={onEdit}
                 />
             </AccordionItem>
 
             <AccordionItem
                 key="individual"
                 aria-label="Accordion Individual"
-                title="Individual"
                 startContent={<User />}
+                title="Individual"
             >
                 <EvoucherTable
+                    evoucherType={EvoucherType.INDIVIDUAL}
                     evouchers={individualEvouchers}
                     sponsorName="Individual"
-                    evoucherType={EvoucherType.INDIVIDUAL}
                     onAdd={() => onAdd(EvoucherType.INDIVIDUAL)}
-                    onEdit={onEdit}
                     onDelete={onDelete}
+                    onEdit={onEdit}
                 />
             </AccordionItem>
         </Accordion>

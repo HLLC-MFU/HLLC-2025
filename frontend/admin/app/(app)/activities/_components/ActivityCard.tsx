@@ -1,7 +1,8 @@
-import { Activities } from "@/types/activities";
 import { Card, CardBody, CardHeader, CardFooter, Button, Divider, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Chip } from "@heroui/react";
-import { Building2, Calendar, EllipsisVertical, Eye, Pencil, Trash2, MapPin, Users, Clock } from "lucide-react";
+import { Building2, EllipsisVertical, Eye, Pencil, Trash2, MapPin, Users, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
+
+import { Activities } from "@/types/activities";
 
 interface ActivityCardProps {
     activity: Activities;
@@ -18,6 +19,7 @@ export function ActivityCard({ activity, onEdit, onDelete }: ActivityCardProps) 
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'N/A';
+
         return new Date(dateString).toLocaleDateString('th-TH', {
             year: 'numeric',
             month: 'long',
@@ -29,18 +31,18 @@ export function ActivityCard({ activity, onEdit, onDelete }: ActivityCardProps) 
         <Card className="w-full">
             <div className="relative w-full pt-[56.25%]">
                 <img
+                    alt={activity.name.en}
+                    className="absolute top-0 left-0 w-full h-full object-cover"
                     src={activity.photo?.bannerPhoto 
                         ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`
                         : `${process.env.NEXT_PUBLIC_API_URL}/uploads/default-banner.jpg`}
-                    alt={activity.name.en}
-                    className="absolute top-0 left-0 w-full h-full object-cover"
                 />
                 <div className="absolute top-4 right-4">
                     <Chip 
-                        size="sm" 
+                        className="text-white" 
                         color={activity.metadata?.isOpen ? "success" : "danger"}
+                        size="sm"
                         variant="solid"
-                        className="text-white"
                     >
                         {activity.metadata?.isOpen ? "Open" : "Closed"}
                     </Chip>
@@ -90,10 +92,10 @@ export function ActivityCard({ activity, onEdit, onDelete }: ActivityCardProps) 
 
             <CardFooter className="justify-between">
                 <Button
-                    variant="flat"
                     color="primary"
                     size="sm"
                     startContent={<Eye size={16} />}
+                    variant="flat"
                     onPress={handleViewDetails}
                 >
                     View Details
@@ -101,9 +103,9 @@ export function ActivityCard({ activity, onEdit, onDelete }: ActivityCardProps) 
                 <Dropdown>
                     <DropdownTrigger>
                         <Button
-                            variant="light"
                             isIconOnly
                             size="sm"
+                            variant="light"
                         >
                             <EllipsisVertical size={16} />
                         </Button>

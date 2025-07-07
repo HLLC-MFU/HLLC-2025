@@ -1,6 +1,7 @@
-import { Room } from "@/types/chat";
 import { RoomSkeleton } from "./RoomSkeleton";
 import { RoomCard } from "./RoomCard";
+
+import { Room } from "@/types/chat";
 
 type RoomListProps = {
     rooms?: Room[];
@@ -39,8 +40,8 @@ export function RoomList({
                 <RoomCard 
                     key={room._id} 
                     room={room} 
-                    onEdit={onEditRoom} 
                     onDelete={onDeleteRoom} 
+                    onEdit={onEditRoom} 
                 />
             ))}
         </div>

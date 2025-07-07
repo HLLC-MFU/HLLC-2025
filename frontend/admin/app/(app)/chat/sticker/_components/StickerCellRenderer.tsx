@@ -1,6 +1,7 @@
-import React, { Key } from "react";
+import React from "react";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
 import { EllipsisVertical, Image, Pen, Trash } from "lucide-react";
+
 import { Sticker } from "@/types/sticker";
 
 export type StickerColumnKey =
@@ -25,16 +26,17 @@ export default function StickerCellRenderer({
     switch (columnKey) {
         case "image":
             const imageUrl = sticker.image
-                ? `${process.env.GO_PUBLIC_API_URL || 'http://localhost:1334/api'}/uploads/${sticker.image}`
+                ? `${process.env.NEXT_PUBLIC_DEPLOY_GO_API_URL}/uploads/${sticker.image}`
                 : '';
+
             return (
                 <div className="flex items-center justify-center w-full">
                     <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-default-200 bg-default-100 flex items-center justify-center">
                         {sticker.image ? (
                             <img
-                                src={imageUrl}
                                 alt={sticker.name.en}
                                 className="h-full w-full object-contain transition-transform duration-200 hover:scale-105"
+                                src={imageUrl}
                                 onError={(e) => { e.currentTarget.src = "/placeholder.png"; }}
                             />
                         ) : (

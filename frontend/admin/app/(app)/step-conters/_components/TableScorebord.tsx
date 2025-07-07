@@ -1,4 +1,5 @@
 import type { Selection, SortDescriptor } from '@heroui/react';
+
 import React, {
   ChangeEvent,
   ReactNode,
@@ -22,9 +23,10 @@ import {
   Pagination,
   User as UserCard,
 } from '@heroui/react';
+import { ChevronDown, Search } from 'lucide-react';
+
 import { StepsConters } from '@/types/step-conters';
 import { School } from '@/types/school';
-import { ChevronDown, Search } from 'lucide-react';
 import { Major } from '@/types/major';
 
 const columns = [

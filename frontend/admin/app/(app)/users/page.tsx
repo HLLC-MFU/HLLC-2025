@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { Accordion, AccordionItem, addToast, Button, SortDescriptor } from "@heroui/react";
+import React, { useState } from "react";
+import { Accordion, AccordionItem, addToast, Button } from "@heroui/react";
 import { Plus, UserRound, UserRoundCog, UserRoundSearch } from "lucide-react";
 
 import UsersTable from "./_components/UserTable";
@@ -15,7 +15,6 @@ import { useSchools } from "@/hooks/useSchool";
 import { PageHeader } from "@/components/ui/page-header";
 import { useMajors } from "@/hooks/useMajor";
 import useAuth from "@/hooks/useAuth";
-import { School } from "@/types/school";
 
 export const columns = [
   { name: "USERNAME", uid: "username", sortable: true },
@@ -98,6 +97,7 @@ export default function ManagementPage() {
 
   const handleImport = async (users: Partial<User>[]) => {
     const response = await uploadUser(users)
+
     setModal(prev => ({ ...prev, import: false }));
 
     if (response) {
@@ -179,30 +179,30 @@ export default function ManagementPage() {
                       <span className="text-gray-500">{roleIcons[roleName] || <UserRound />}</span>
                     </div>
                   }
-                  title={roleName}
                   subtitle={
                     <p className="flex">
                       <span className="text-primary ml-1">{`${roleUsers.length} users`}</span>
                     </p>
                   }
+                  title={roleName}
                 >
                   <UsersTable
-                    majors={majors}
-                    roleId={role._id}
-                    schools={schools}
-                    users={roleUsers}
-                    modal={modal}
-                    setModal={setModal}
                     actionMode={actionMode}
-                    setActionMode={setActionMode}
-                    confirmMode={confirmMode}
-                    setConfirmMode={setConfirmMode}
                     capitalize={capitalize}
                     columns={columns}
+                    confirmMode={confirmMode}
                     initialVisibleColumns={INITIAL_VISIBLE_COLUMNS}
+                    majors={majors}
+                    modal={modal}
+                    roleId={role._id}
+                    schools={schools}
+                    setActionMode={setActionMode}
+                    setConfirmMode={setConfirmMode}
+                    setModal={setModal}
+                    users={roleUsers}
                     onAdd={handleAdd}
-                    onImport={handleImport}
                     onConfirm={handleConfirm}
+                    onImport={handleImport}
                   />
                 </AccordionItem>
               );

@@ -1,10 +1,12 @@
 'use client';
-import { PageHeader } from '@/components/ui/page-header';
-import { useNotification } from '@/hooks/useNotification';
 import { BellDot } from 'lucide-react';
 import { useMemo, useState } from 'react';
+
 import InformationCard from './_components/NotificationInfoCard';
 import TopContent from './_components/NotificationTopContent';
+
+import { useNotification } from '@/hooks/useNotification';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function NotificationManagement() {
   const { notifications } = useNotification();
@@ -14,9 +16,11 @@ export default function NotificationManagement() {
   const uniqueScopes = useMemo(() => {
     const scopes = notifications.flatMap((notifications) => {
       const scope = notifications.scope;
+
       if (Array.isArray(scope)) {
         return scope.map((t) => t.type);
       }
+
       return [scope];
     });
 
@@ -42,15 +46,15 @@ export default function NotificationManagement() {
   return (
     <>
       <PageHeader
-        title="Notifications Management"
         description="Manage notification information"
         icon={<BellDot />}
+        title="Notifications Management"
       />
       <TopContent
         search={search}
         setSearch={setSearch}
-        types={types}
         setTypes={setTypes}
+        types={types}
         uniqueScopes={uniqueScopes}
       />
       <InformationCard notifications={filteredNotifications} />

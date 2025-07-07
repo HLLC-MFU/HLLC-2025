@@ -1,7 +1,8 @@
-import { LamduanFlowers } from "@/types/lamduan-flowers";
 import { Card, CardHeader, CardBody, Image, Button } from "@heroui/react";
 import { Trash2 } from "lucide-react";
 import React from "react";
+
+import { LamduanFlowers } from "@/types/lamduan-flowers";
 
 interface LamduanFlowersProps {
   lamduanflowers: LamduanFlowers;
@@ -30,10 +31,10 @@ export default function CardLamduanFlowers({ lamduanflowers, onDelete, onView }:
           />
           <div className="mt-2 w-full">
             <Button
-              variant="flat"
+              className="w-full flex justify-center rounded-lg hover:bg-danger-400"
               color="danger"
               size="sm"
-              className="w-full flex justify-center rounded-lg hover:bg-danger-400"
+              variant="flat"
               onPress={() => onDelete(lamduanflowers._id)}
             >
               <Trash2 size={18} />

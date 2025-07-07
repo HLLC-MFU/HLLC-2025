@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Checkin, CheckinCreate } from "@/types/checkin";
 import { addToast } from "@heroui/react";
+
+import { Checkin, CheckinCreate } from "@/types/checkin";
 
 export function useCheckin() {
     const [checkin, setCheckin] = useState<Checkin[]>([]);
@@ -19,6 +20,7 @@ export function useCheckin() {
                 }
             });
             const res = await response.json();
+
             setCheckin(Array.isArray(res.data) ? res.data : []);
         } catch (err: any) {
             console.error("Error fetching checkins:", err);
@@ -56,6 +58,7 @@ export function useCheckin() {
                     description: "User has been checked in successfully",
                     color: "success"
                 });
+
                 return res.data;
             } else {
                 throw new Error(res.message || "Failed to create check-in");

@@ -1,6 +1,8 @@
-import { Sticker } from "@/types/sticker";
-import { Button, Pagination } from "@heroui/react";
 import type { Selection } from "@react-types/shared";
+
+import { Button, Pagination } from "@heroui/react";
+
+import { Sticker } from "@/types/sticker";
 
 export type StickerBottomContentProps = {
     selectedKeys: Selection;

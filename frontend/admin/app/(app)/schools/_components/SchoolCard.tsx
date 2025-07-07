@@ -1,6 +1,7 @@
+import type { School } from "@/types/school";
+
 import { Card, CardBody, CardHeader, CardFooter, Button, Divider, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 import { Building2, GraduationCap, EllipsisVertical, Eye, Pencil, Trash2 } from "lucide-react";
-import type { School } from "@/types/school";
 import { useRouter } from "next/navigation";
 
 interface SchoolCardProps {
@@ -17,12 +18,12 @@ export function SchoolCard({ school, onEdit, onDelete }: SchoolCardProps) {
     };
 
     return (
-        <div onClick={handleViewDetails} className="hover:cursor-pointer">        
+        <div className="hover:cursor-pointer" onClick={handleViewDetails}>        
         <Card isHoverable  className="h-full">
             <CardHeader className="flex gap-3 p-4">
                 <Card
-                    radius="md"
                     className="w-12 h-12 text-large items-center justify-center flex-shrink-0"
+                    radius="md"
                 >
                     {school.acronym}
                 </Card>
@@ -48,23 +49,23 @@ export function SchoolCard({ school, onEdit, onDelete }: SchoolCardProps) {
             <Divider />
             <CardFooter className="flex justify-between p-4">
                 <Button
-                    variant="light"
+                    className="flex-1 sm:flex-none"
                     color="primary"
                     size="sm"
                     startContent={<Eye size={16} />}
+                    variant="light"
                     onPress={handleViewDetails}
-                    className="flex-1 sm:flex-none"
                 >
                     View Details
                 </Button>
                 <Dropdown>
                     <DropdownTrigger>
                         <Button
-                            variant="light"
-                            color="primary"
                             isIconOnly
-                            size="sm"
                             className="flex-shrink-0"
+                            color="primary"
+                            size="sm"
+                            variant="light"
                         >
                             <EllipsisVertical size={16} />
                         </Button>

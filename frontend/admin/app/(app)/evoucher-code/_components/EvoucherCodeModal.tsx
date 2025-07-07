@@ -4,11 +4,13 @@ import React, { useEffect, useState } from "react";
 import {
   Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, addToast,
 } from "@heroui/react";
+import { Users } from "lucide-react";
+
+import { EvoucherSelect } from "./EvoucherSelect";
+
 import { EvoucherCode } from "@/types/evoucher-code";
 import { Evoucher } from "@/types/evoucher";
 import { ScopeSelector } from "@/app/(app)/evoucher-code/_components/ScopeSelector";
-import { Users } from "lucide-react";
-import { EvoucherSelect } from "./EvoucherSelect";
 import { useUsers } from "@/hooks/useUsers";
 
 function useDebounce<T>(value: T, delay: number = 10000): T {
@@ -16,6 +18,7 @@ function useDebounce<T>(value: T, delay: number = 10000): T {
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedValue(value), delay);
+
     return () => clearTimeout(timer);
   }, [value, delay]);
 
@@ -73,12 +76,14 @@ export function EvoucherCodeModal({
     const fetchAvailableUsers = async () => {
       if (!selectedEvoucher || !debouncedSearch.trim()) {
         setAvailableUsers([]);
+
         return;
       }
 
       setUsersLoading(true);
       try {
         const users = await fetchByUsername(debouncedSearch.trim());
+
         setAvailableUsers(users ?? []);
       } catch (err) {
         console.error("Failed to fetch users", err);
@@ -87,6 +92,7 @@ export function EvoucherCodeModal({
         setUsersLoading(false);
       }
     };
+
     fetchAvailableUsers();
   }, [selectedEvoucher, debouncedSearch]);
 
@@ -123,42 +129,29 @@ export function EvoucherCodeModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl" scrollBehavior="inside">
+    <Modal isOpen={isOpen} scrollBehavior="inside" size="2xl" onClose={onClose}>
       <ModalContent>
         <ModalHeader>{mode === "add" ? "Add Evoucher Code" : "Edit Evoucher Code"}</ModalHeader>
         <ModalBody className="flex flex-col gap-6">
           <EvoucherSelect
+            evouchers={evouchers.filter((e) => e.sponsors._id === sponsorId)}
+            isDisabled={mode === "edit" || isSubmitting}
             value={selectedEvoucher}
             onChange={(evoucherId) => {
               setSelectedEvoucher(evoucherId);
               setSelectedUsers([]);
             }}
-            evouchers={evouchers.filter((e) => e.sponsors._id === sponsorId)}
-            isDisabled={mode === "edit" || isSubmitting}
           />
 
           <div className="flex flex-col gap-4">
             <ScopeSelector
-              label="Select Users"
-              icon={Users}
-              items={availableUsers}
-              selectedItems={selectedUsers}
-              onSelect={(id) => {
-                const stringId = id.toString();
-                if (selectedUsers.includes(stringId)) return;
-
-                const updated = mode === "edit" ? [stringId] : [...selectedUsers, stringId];
-                setSelectedUsers(updated);
-              }}
-              onRemove={(id) => {
-                const stringId = id.toString();
-                if (mode === "edit" && selectedUsers.length <= 1) return;
-                setSelectedUsers(selectedUsers.filter((u) => u !== stringId));
-              }}
-              isLoading={usersLoading}
-              placeholder="Select users..."
-              getName={(user) => user.username}
               getId={(user) => user._id.toString()}
+              getName={(user) => user.username}
+              icon={Users}
+              isLoading={usersLoading}
+              items={availableUsers}
+              label="Select Users"
+              placeholder="Select users..."
               searchFields={(user) => [
                 user.username,
                 user.metadata?.[0]?.major?.name?.th,
@@ -167,7 +160,23 @@ export function EvoucherCodeModal({
                 user.metadata?.[0]?.major?.school?.name?.en,
               ]}
               searchQuery={searchQuery}
+              selectedItems={selectedUsers}
               setSearchQuery={setSearchQuery}
+              onRemove={(id) => {
+                const stringId = id.toString();
+
+                if (mode === "edit" && selectedUsers.length <= 1) return;
+                setSelectedUsers(selectedUsers.filter((u) => u !== stringId));
+              }}
+              onSelect={(id) => {
+                const stringId = id.toString();
+
+                if (selectedUsers.includes(stringId)) return;
+
+                const updated = mode === "edit" ? [stringId] : [...selectedUsers, stringId];
+
+                setSelectedUsers(updated);
+              }}
             />
           </div>
         </ModalBody>
@@ -178,9 +187,9 @@ export function EvoucherCodeModal({
           </Button>
           <Button
             color="primary"
-            onPress={handleSubmit}
             isDisabled={!selectedEvoucher || selectedUsers.length === 0}
             isLoading={isSubmitting}
+            onPress={handleSubmit}
           >
             {mode === "add"
               ? `Add Evoucher Code${selectedUsers.length > 1 ? "s" : ""} (${selectedUsers.length})`

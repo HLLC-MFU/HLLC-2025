@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Room, RoomMember } from "../types/chat";
-import { apiGolangRequest, apiRequest } from "@/utils/api";
-import { useGolangApi } from "./useApi";
 import { addToast } from "@heroui/react";
+
+import { Room, RoomMember } from "../types/chat";
+
+import { apiGolangRequest } from "@/utils/api";
 
 export function useChat() {
     const [room, setRoom] = useState<Room[]>([]);
@@ -56,6 +57,7 @@ export function useChat() {
             const endpoint = groupType ? "/rooms/group" : "/rooms";
             
             const res = await apiGolangRequest<Room>(endpoint, "POST", roomData);
+
             if (res.data) {
                 setRoom(prev => [...prev, res.data as unknown as Room]);
             }
@@ -85,6 +87,7 @@ export function useChat() {
         try {
             setLoading(true);
             const res = await apiGolangRequest<Room>(`/rooms/${id}`, "PATCH", roomData);
+
             if (res.data) {
                 setRoom(prev => prev.map(room => room._id === id ? res.data as unknown as Room: room));
             }
@@ -113,6 +116,7 @@ export function useChat() {
         setLoading(true);
         try {
             const res = await apiGolangRequest<Room>(`/rooms/${id}`, "DELETE");
+
             if (res.data) {
                 setRoom(prev => prev.filter(room => room._id !== id));
             }
@@ -181,6 +185,7 @@ export function useChat() {
                     ? (err as { message?: string }).message || 'Failed to fetch room members.'
                     : 'Failed to fetch room members.',
             );
+
             return { data: { members: [] } };
         } finally {
             setLoading(false);
@@ -195,9 +200,10 @@ export function useChat() {
         setError(null);
         try {
             const res = await apiGolangRequest<{ data: Room[] }>(
-                `/rooms?limit=0`,
+                `/rooms`,
                 "GET",
             );
+
             setRoom(Array.isArray(res.data?.data) ? res.data?.data : [])
         } catch (err) {
             addToast({

@@ -1,15 +1,17 @@
 "use client"
 
 import React, { useCallback, useState } from "react";
-import { PageHeader } from "@/components/ui/page-header";
 import { Ticket } from "lucide-react";
+import { addToast } from "@heroui/react";
+
+import EvoucherCodeAccordion from "./_components/EvoucherCodeAccordion";
+import { EvoucherCodeModal } from "./_components/EvoucherCodeModal";
+
+import { PageHeader } from "@/components/ui/page-header";
 import { useEvoucherCode } from "@/hooks/useEvoucherCode";
 import { useSponsors } from "@/hooks/useSponsors";
 import { useEvoucher } from "@/hooks/useEvoucher";
-import EvoucherCodeAccordion from "./_components/EvoucherCodeAccordion";
 import { EvoucherCode } from "@/types/evoucher-code";
-import { addToast } from "@heroui/react";
-import { EvoucherCodeModal } from "./_components/EvoucherCodeModal";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 
 export default function EvoucherCodePage() {
@@ -25,6 +27,7 @@ export default function EvoucherCodePage() {
     const fetchEvoucherCodeBySponsorId = useCallback(
         async (sponsorId: string) => {
             const res = await rawFetcher(sponsorId);
+
             return res;
         },
         [rawFetcher]
@@ -83,37 +86,37 @@ export default function EvoucherCodePage() {
 
             <div className="flex flex-col gap-6">
                 <EvoucherCodeAccordion
-                    sponsors={sponsors}
                     evoucherCodes={fetchEvoucherCodeBySponsorId}
                     evouchers={evouchers}
+                    sponsors={sponsors}
                     onAdd={handleAddEvoucherCode}
-                    onEdit={handleEditEvoucherCode}
                     onDelete={handleDelete}
+                    onEdit={handleEditEvoucherCode}
                 />
             </div>
             {/* Modals */}
             {isModalOpen && (
                 <EvoucherCodeModal
+                    evoucherCode={selectedEvoucherCode}
+                    evouchers={evouchers}
                     isOpen={isModalOpen}
+                    mode={modalMode}
+                    sponsorId={sponsors[0]?._id}
                     onClose={() => { setIsModalOpen(false); }}
                     onSuccess={handleSubmitEvoucherCode}
-                    mode={modalMode}
-                    evouchers={evouchers}
-                    evoucherCode={selectedEvoucherCode}
-                    sponsorId={sponsors[0]?._id}
                 />
             )}
 
             <ConfirmationModal
+                body={"Are you sure you want to delete this Evoucher code?"}
+                confirmColor="danger"
                 isOpen={confirmationModalType === "delete"}
+                title={"Delete evoucher code"}
                 onClose={() => {
                     setConfirmationModalType(null);
                     setSelectedEvoucherCode(undefined);
                 }}
                 onConfirm={handleConfirm}
-                title={"Delete evoucher code"}
-                body={"Are you sure you want to delete this Evoucher code?"}
-                confirmColor="danger"
             />
         </>
     )

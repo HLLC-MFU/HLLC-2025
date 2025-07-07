@@ -1,4 +1,3 @@
-import { User } from '@/types/user';
 import {
 	Modal,
 	ModalContent,
@@ -7,6 +6,8 @@ import {
 	ModalFooter,
 	Button,
 } from '@heroui/react';
+
+import { User } from '@/types/user';
 
 interface ConfirmationModalProps {
 	isOpen: boolean;

@@ -1,3 +1,5 @@
+import type { NavSection } from "@/types/nav";
+
 import {
   HomeIcon,
   SchoolIcon,
@@ -6,22 +8,18 @@ import {
   SettingsIcon,
   Palette,
   BellRing,
-  DollarSignIcon,
   University,
   Megaphone,
   Ticket,
   ShieldAlert,
   LogOutIcon,
-  MonitorSmartphone,
   HandCoins,
   Flower,
   BadgeCent,
   Footprints,
-  MessageCircle,
-  Smile
+  MessageCircle
 } from "lucide-react";
 
-import type { NavSection } from "@/types/nav";
 
 export const siteConfig: {
   name: string;

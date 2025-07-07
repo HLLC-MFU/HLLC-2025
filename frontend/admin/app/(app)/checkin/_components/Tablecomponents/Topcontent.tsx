@@ -71,6 +71,7 @@ export default function TopContent({
               selectionMode="multiple"
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys) as string[];
+
                 setActivityFilter(new Set(selected));
               }}
             >

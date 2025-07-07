@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Badge, Button, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Users, UserPlus, X } from "lucide-react";
+
 import { useUsers } from "@/hooks/useUsers";
 
 type RoomMembersSelectorProps = {
@@ -22,6 +23,7 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers }: Roo
         if (searchTimeout) clearTimeout(searchTimeout);
         if (query.trim()) {
             const timeout = setTimeout(() => fetchByUsername(query), 300);
+
             setSearchTimeout(timeout);
         }
     }, [fetchByUsername, searchTimeout]);
@@ -52,18 +54,18 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers }: Roo
                 <span className="text-sm font-medium">Members (Optional)</span>
                 <div className="flex items-center gap-2">
                     {selectedMembers.length > 0 && (
-                        <Button size="sm" variant="light" color="danger" onPress={handleClearAll}>Clear All</Button>
+                        <Button color="danger" size="sm" variant="light" onPress={handleClearAll}>Clear All</Button>
                     )}
-                    <Button size="md" variant={isSelectAllActive ? "solid" : "flat"} color="danger" startContent={<Users size={18} />} 
-                        onPress={handleSelectAll} isDisabled={isSelectAllActive} className="font-bold shadow-md">
+                    <Button className="font-bold shadow-md" color="danger" isDisabled={isSelectAllActive} size="md" 
+                        startContent={<Users size={18} />} variant={isSelectAllActive ? "solid" : "flat"} onPress={handleSelectAll}>
                         Select All Users
                     </Button>
                 </div>
             </div>
 
             {/* Search Input */}
-            <Input label="Search Users" placeholder="Type to search users..." value={searchQuery} 
-                onValueChange={handleSearch} startContent={<Users size={20} />} isDisabled={isSelectAllActive} />
+            <Input isDisabled={isSelectAllActive} label="Search Users" placeholder="Type to search users..." 
+                startContent={<Users size={20} />} value={searchQuery} onValueChange={handleSearch} />
 
             {/* Selected Members */}
             {selectedMembers.length > 0 && (
@@ -73,7 +75,7 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers }: Roo
                         {getSelectedUserNames().map((username, index) => (
                             <div key={selectedMembers[index] || index} className="flex items-center gap-1">
                                 <Badge color="secondary" variant="flat">{username}</Badge>
-                                <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => handleUserSelect(selectedMembers[index])}>
+                                <Button isIconOnly color="danger" size="sm" variant="light" onPress={() => handleUserSelect(selectedMembers[index])}>
                                     <X size={12} />
                                 </Button>
                             </div>
@@ -81,7 +83,7 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers }: Roo
                     </div>
                     {isSelectAllActive && (
                         <div className="flex items-center gap-2 mt-2">
-                            <Badge color="danger" variant="solid" className="text-base font-bold">ALL USERS SELECTED</Badge>
+                            <Badge className="text-base font-bold" color="danger" variant="solid">ALL USERS SELECTED</Badge>
                             <span className="text-danger-600 font-semibold">All users in the system will be added to this room</span>
                         </div>
                     )}
@@ -96,10 +98,10 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers }: Roo
                         {users.map(user => (
                             <div key={user._id} className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${selectedMembers.includes(user._id) ? "bg-secondary-100 border border-secondary-200" : "bg-default-50 hover:bg-default-100"}`} onClick={() => handleUserSelect(user._id)}>
                                 <div className="flex items-center gap-2">
-                                    <UserPlus size={16} className="text-default-400" />
+                                    <UserPlus className="text-default-400" size={16} />
                                     <span className="text-sm">{user.username}</span>
                                 </div>
-                                {selectedMembers.includes(user._id) && <Badge size="sm" color="secondary" variant="flat">Selected</Badge>}
+                                {selectedMembers.includes(user._id) && <Badge color="secondary" size="sm" variant="flat">Selected</Badge>}
                             </div>
                         ))}
                     </div>
@@ -113,7 +115,7 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers }: Roo
             )}
 
             {/* Select All Confirmation Modal */}
-            <Modal isOpen={showSelectAllModal} onClose={() => setShowSelectAllModal(false)} size="sm">
+            <Modal isOpen={showSelectAllModal} size="sm" onClose={() => setShowSelectAllModal(false)}>
                 <ModalContent>
                     <ModalHeader>Select All Users</ModalHeader>
                     <ModalBody>

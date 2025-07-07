@@ -34,6 +34,7 @@ export default function ImageInput({
     sizeLimit >= 1024 * 1024
       ? `${sizeLimit / (1024 * 1024)} MB`
       : `${sizeLimit / 1024} KB`;
+
   if (onDiscard && previewImage) {
     setPreviewImage('');
   }
@@ -44,11 +45,11 @@ export default function ImageInput({
         <p className="flex items-center text-lg font-semibold h-10">{title}</p>
         {previewImage && (
           <Button
-            size="md"
-            variant="flat"
-            color="danger"
             isIconOnly
             className="ml-auto"
+            color="danger"
+            size="md"
+            variant="flat"
             onPress={() => {
               onCancel();
               setPreviewImage('');
@@ -70,12 +71,12 @@ export default function ImageInput({
         {imageSrc ? (
           isVideo ? (
             <video
-              src={imageSrc}
-              className="w-full h-full object-contain"
               controls
+              className="w-full h-full object-contain"
+              src={imageSrc}
             />
           ) : (
-            <img src={imageSrc} className="w-full h-full object-contain" />
+            <img className="w-full h-full object-contain" src={imageSrc} />
           )
         ) : (
           <div className="flex flex-col justify-center items-center  w-full h-full">
@@ -92,10 +93,12 @@ export default function ImageInput({
 
       <Input
         ref={imageRef}
-        type="file"
         accept={fileAccept}
+        className="hidden"
+        type="file"
         onChange={(e) => {
           const file = e.target.files?.[0];
+
           if (!file) return;
 
           if (file.size > sizeLimit) {
@@ -106,18 +109,19 @@ export default function ImageInput({
               variant: 'solid',
             });
             e.target.value = '';
+
             return;
           }
 
           onChange(file);
 
           const reader = new FileReader();
+
           reader.onload = () => {
             setPreviewImage(reader.result as string);
           };
           reader.readAsDataURL(file);
         }}
-        className="hidden"
       />
     </div>
   );

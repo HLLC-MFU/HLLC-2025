@@ -1,6 +1,7 @@
 import React from "react";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Avatar, Chip } from "@heroui/react";
 import { MoreVertical, Eye, MicOff } from "lucide-react";
+
 import { RoomMember } from "@/types/chat";
 
 export type MemberColumnKey = "user" | "role" | "actions";
@@ -15,13 +16,16 @@ type MemberCellRendererProps = {
 
 const formatName = (member: RoomMember) => {
     const { first, middle, last } = member.name || {};
+
     return [first, middle, last].filter(Boolean).join(" ") || member.username || "Unknown";
 };
 
 const getRoleColor = (role: string): "warning" | "primary" | "default" => {
     const roleLower = role?.toLowerCase();
+
     if (roleLower === "administrator") return "warning";
     if (roleLower === "mentee") return "primary";
+
     return "default";
 };
 
@@ -42,7 +46,7 @@ export default function MemberCellRenderer({
                 <div className="flex flex-col">
                     <span className="font-semibold text-small">
                         {member.username}
-                        {isCurrentUser && <Chip size="sm" color="primary" className="ml-2">You</Chip>}
+                        {isCurrentUser && <Chip className="ml-2" color="primary" size="sm">You</Chip>}
                     </span>
                     <span className="text-tiny text-default-500">{name}</span>
                 </div>
@@ -53,7 +57,7 @@ export default function MemberCellRenderer({
     if (columnKey === "role") {
         return (
             <div className="flex items-center min-w-[120px]">
-                <Chip size="sm" color={roleColor} variant="flat">{member.role?.name || "Member"}</Chip>
+                <Chip color={roleColor} size="sm" variant="flat">{member.role?.name || "Member"}</Chip>
             </div>
         );
     }

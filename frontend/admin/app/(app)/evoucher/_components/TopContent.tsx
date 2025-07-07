@@ -1,8 +1,9 @@
-import { Evoucher } from "@/types/evoucher";
 import { Button, Input } from "@heroui/react";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import React from "react";
-import type { Selection } from "@react-types/shared";
+
+import { Evoucher } from "@/types/evoucher";
+
 
 
 type TopContentProps = {
@@ -38,7 +39,7 @@ export default function TopContent({
                     onValueChange={onSearchChange}
                 />
                 <div className="flex gap-3">
-                    <Button onPress={() => { setActionText("Add"); }} color="primary" endContent={<PlusIcon size={20} />}>Add Evoucher</Button>
+                    <Button color="primary" endContent={<PlusIcon size={20} />} onPress={() => { setActionText("Add"); }}>Add Evoucher</Button>
                 </div>
             </div>
         </div>

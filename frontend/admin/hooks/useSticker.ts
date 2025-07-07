@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sticker } from "../types/sticker";
-import { apiGolangRequest } from "@/utils/api";
 import { addToast } from "@heroui/react";
 
-const STICKER_API_BASE_URL = process.env.NEXT_PUBLIC_GO_API_URL;
+import { Sticker } from "../types/sticker";
+
+import { apiGolangRequest } from "@/utils/api";
 
 export function useSticker() {
     const [stickers, setStickers] = useState<Sticker[]>([]);
@@ -89,7 +89,9 @@ export function useSticker() {
                 "POST",
                 stickerData,
             );
+
             await fetchStickers();
+
             return res;
         } catch (err) {
             addToast({
@@ -121,7 +123,9 @@ export function useSticker() {
                 "PATCH",
                 stickerData,
             );
+
             await fetchStickers();
+
             return res;
         } catch (err) {
             addToast({
@@ -151,7 +155,9 @@ export function useSticker() {
                 `/stickers/${id}`,
                 "DELETE",
             );
+
             await fetchStickers();
+
             return res;
         } catch (err) {
             addToast({

@@ -1,26 +1,25 @@
 "use client";
 
-import { PageHeader } from "@/components/ui/page-header";
-import { useChat } from "@/hooks/useChat";
-import { RoomMember, Room } from "@/types/chat";
 import { 
     Card, 
     CardBody, 
-    Button, 
-    Chip,
+    Button,
 } from "@heroui/react";
 import { 
-    ArrowLeft, 
     Users, 
     Gift,
-    Sticker,
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { addToast } from "@heroui/toast";
+
 import { MemberModal } from "./_components/MemberModal";
 import { RestrictionAction } from "./_components/RestrictionAction";
 import MemberTable from "./_components/MemberTable";
+
+import { RoomMember, Room } from "@/types/chat";
+import { useChat } from "@/hooks/useChat";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function RoomDetailPage() {
     const router = useRouter();
@@ -56,6 +55,7 @@ export default function RoomDetailPage() {
         try {
             setIsLoadingRoom(true);
             const roomData = await getRoomById(roomId);
+
             if (roomData) {
                 setRoom(roomData);
             }
@@ -74,11 +74,13 @@ export default function RoomDetailPage() {
         try {
             setIsLoadingMembers(true);
             const result = await getRoomMembers(roomId);
+
             console.log('loadMembers result:', result);
             
             if (result && result.data) {
                 // Handle different possible response structures
                 const members = result.data.members || result.data || [];
+
                 console.log('Extracted members:', members);
                 setMembers(Array.isArray(members) ? members : []);
             } else {
@@ -144,7 +146,6 @@ export default function RoomDetailPage() {
             <PageHeader 
                 description="Manage room members and actions"
                 icon={<Users />}
-                title="Room Members"
                 right={
                     <div className="flex gap-2">
                         <Button
@@ -156,6 +157,7 @@ export default function RoomDetailPage() {
                         </Button>
                     </div>
                 }
+                title="Room Members"
             />
 
             {/* Room Info + Members Table Section */}
@@ -181,15 +183,15 @@ export default function RoomDetailPage() {
                 </div>
                 <div className="px-0 md:px-4 py-4">
                     <MemberTable
-                        members={members}
                         currentUserId="current-user-id" // You'll need to get this from auth context
-                        onBanMember={(member) => handleRestrictionAction(member, 'ban')}
-                        onMuteMember={(member) => handleRestrictionAction(member, 'mute')}
-                        onKickMember={(member) => handleRestrictionAction(member, 'kick')}
-                        roomId={roomId}
-                        pagination={pagination}
-                        onPageChange={handlePageChange}
                         loading={isLoadingMembers}
+                        members={members}
+                        pagination={pagination}
+                        roomId={roomId}
+                        onBanMember={(member) => handleRestrictionAction(member, 'ban')}
+                        onKickMember={(member) => handleRestrictionAction(member, 'kick')}
+                        onMuteMember={(member) => handleRestrictionAction(member, 'mute')}
+                        onPageChange={handlePageChange}
                     />
                 </div>
             </div>
@@ -197,19 +199,19 @@ export default function RoomDetailPage() {
             {/* Member Modal */}
             <MemberModal
                 isOpen={isMemberModalOpen}
-                onClose={() => setIsMemberModalOpen(false)}
                 member={selectedMember}
                 roomId={roomId}
+                onClose={() => setIsMemberModalOpen(false)}
                 onMemberKicked={loadMembers}
             />
 
             {/* Restriction Action Modal */}
             <RestrictionAction
+                action={restrictionAction as 'ban' | 'mute'}
                 isOpen={isRestrictionModalOpen}
-                onClose={() => setIsRestrictionModalOpen(false)}
                 member={selectedMember}
-                action={restrictionAction as 'ban' | 'mute'} 
-                roomId={roomId}
+                roomId={roomId} 
+                onClose={() => setIsRestrictionModalOpen(false)}
                 onSuccess={handleActionSuccess}
             />
         </div>

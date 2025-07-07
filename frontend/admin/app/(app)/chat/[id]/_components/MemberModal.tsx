@@ -44,7 +44,7 @@ export function MemberModal({ isOpen, onClose, member, roomId, onMemberKicked }:
         try {
             setIsKicking(true);
             const token = getToken('accessToken');
-            const response = await fetch('/api/restriction/kick', {
+            const response = await fetch('/restriction/kick', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -55,15 +55,15 @@ export function StatusToggle({
                     </div>
                 )}
 
-                <Tooltip content={isActive ? "Deactivate Room" : "Activate Room"} placement="top" delay={500}>
+                <Tooltip content={isActive ? "Deactivate Room" : "Activate Room"} delay={500} placement="top">
                     <Switch
-                        isSelected={isActive}
-                        onValueChange={handleToggle}
-                        isDisabled={disabled || isLoading}
-                        size={size}
                         color={isActive ? "success" : "danger"}
-                        startContent={!isActive && <XCircle className="w-3 h-3 text-red-500" />}
                         endContent={isActive && <CheckCircle className="w-3 h-3 text-green-500" />}
+                        isDisabled={disabled || isLoading}
+                        isSelected={isActive}
+                        size={size}
+                        startContent={!isActive && <XCircle className="w-3 h-3 text-red-500" />}
+                        onValueChange={handleToggle}
                     />
                 </Tooltip>
 

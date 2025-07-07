@@ -1,9 +1,11 @@
 'use client';
 import { Card, CardFooter, CardHeader, CardBody, Button } from '@heroui/react';
-import { Notification } from '@/types/notification';
 import { useState } from 'react';
-import NotificationModal from './NotificationDetailModal';
 import { Link, Eye, Trash2 } from 'lucide-react';
+
+import NotificationModal from './NotificationDetailModal';
+
+import { Notification } from '@/types/notification';
 import { useNotification } from '@/hooks/useNotification';
 
 interface NotificationCardprop {
@@ -85,21 +87,21 @@ export default function InformationCard({ notifications }: NotificationCardprop)
             <CardFooter>
               <div className="w-full flex justify-end">
                 <Button
-                  onPress={() => deleteNotification(item._id)}
                   isIconOnly
-                  size="sm"
                   color="danger"
+                  size="sm"
                   variant="light"
+                  onPress={() => deleteNotification(item._id)}
                 >
                   <Trash2 className="w-5 h-auto" />
                 </Button>
                 <Button
                   isIconOnly
-                  onPress={() => handleOpenModal(item)}
-                  size="sm"
-                  color="primary"
                   className="mx-2"
+                  color="primary"
+                  size="sm"
                   variant="light"
+                  onPress={() => handleOpenModal(item)}
                 >
                   <Eye className="w-5 h-auto" />
                 </Button>
@@ -110,8 +112,8 @@ export default function InformationCard({ notifications }: NotificationCardprop)
 
         <NotificationModal
           isOpen={isModalOpen}
-          onClose={handleCloseModal}
           notification={notification}
+          onClose={handleCloseModal}
         />
       </div>
     </div>

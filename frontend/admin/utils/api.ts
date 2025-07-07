@@ -3,10 +3,10 @@
 import { cookies } from "next/headers";
 
 // Define the API base URL for general API
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_DEPLOY_NEST_API_URL;
 
 // Define the Golang API base URL
-const GO_API_BASE_URL = process.env.NEXT_PUBLIC_GO_API_URL;
+const GO_API_BASE_URL = process.env.NEXT_PUBLIC_DEPLOY_GO_API_URL;
 
 export interface ApiResponse<T> {
   statusCode: number;

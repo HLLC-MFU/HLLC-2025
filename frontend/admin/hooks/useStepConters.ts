@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { addToast } from '@heroui/react';
+
 import { apiRequest } from '@/utils/api';
 import { StepsConters } from '@/types/step-conters';
 
@@ -16,6 +17,7 @@ export function useStepConters() {
         '/step-counters',
         'GET',
       );
+
       setStepCounters(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (err) {
       addToast({

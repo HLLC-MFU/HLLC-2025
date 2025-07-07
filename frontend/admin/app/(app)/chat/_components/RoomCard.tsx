@@ -1,6 +1,5 @@
 "use client";
 
-import { Room } from "@/types/chat";
 import { 
     Card, 
     CardBody, 
@@ -24,7 +23,9 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const CHAT_API_BASE_URL = process.env.NEXT_PUBLIC_GO_API_URL;
+import { Room } from "@/types/chat";
+
+const CHAT_API_BASE_URL = process.env.NEXT_PUBLIC_DEPLOY_GO_API_URL;
 
 type RoomCardProps = {
     room: Room;
@@ -59,9 +60,9 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="relative w-12 h-12 flex-shrink-0">
                             <Image
-                                src={roomImage}
                                 alt={room.name.en}
                                 className="w-full h-full object-cover rounded-lg"
+                                src={roomImage}
                                 onError={() => setImageError(true)}
                             />
                         </div>
@@ -71,7 +72,7 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                                 <span 
                                     className={`w-2 h-2 rounded-full ${room.status === "active" ? "bg-green-500" : "bg-red-500"} inline-block`} 
                                     title={room.status === "active" ? "Active" : "Inactive"}
-                                ></span>
+                                 />
                             </div>
                             <p className="text-xs text-default-500 truncate">{room.name.th}</p>
                         </div>
@@ -80,11 +81,11 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                     <Dropdown placement="bottom-end">
                         <DropdownTrigger>
                             <Button 
-                                variant="light" 
-                                color="default" 
                                 isIconOnly 
+                                className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200" 
+                                color="default" 
                                 size="sm" 
-                                className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                variant="light"
                             >
                                 <EllipsisVertical size={16} />
                             </Button>
@@ -93,6 +94,12 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                             {["view", "edit", "toggle", "delete"].map(action => (
                                 <DropdownItem 
                                     key={action} 
+                                    className={action === "toggle" 
+                                        ? (room.status === "active" ? "text-warning" : "text-success") 
+                                        : action === "delete" 
+                                        ? "text-danger" 
+                                        : "text-default-500"
+                                    }
                                     startContent={
                                         action === "view" 
                                             ? <Eye size={16} /> 
@@ -103,12 +110,6 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                                             : <Trash2 size={16} />
                                     }
                                     onPress={() => handleAction(action)}
-                                    className={action === "toggle" 
-                                        ? (room.status === "active" ? "text-warning" : "text-success") 
-                                        : action === "delete" 
-                                        ? "text-danger" 
-                                        : "text-default-500"
-                                    }
                                 >
                                     {action === "view" 
                                         ? "View Members" 
@@ -138,22 +139,22 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
 
                     <div className="flex items-center gap-2">
                         <Button 
-                            variant="flat" 
+                            isIconOnly 
+                            className="text-xs h-6 w-6" 
                             color={room.status === "active" ? "success" : "danger"} 
                             size="sm" 
-                            isIconOnly 
-                            onPress={() => handleAction("toggle")} 
-                            className="text-xs h-6 w-6"
+                            variant="flat" 
+                            onPress={() => handleAction("toggle")}
                         >
                             {room.status === "active" ? <XCircle size={12} /> : <CheckCircle size={12} />}
                         </Button>
                         <Button 
-                            variant="flat" 
+                            className="text-xs px-3 h-6" 
                             color="primary" 
                             size="sm" 
                             startContent={<Eye size={12} />} 
-                            onPress={() => handleAction("view")} 
-                            className="text-xs px-3 h-6"
+                            variant="flat" 
+                            onPress={() => handleAction("view")}
                         >
                             View
                         </Button>

@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import type { Checkin } from '@/types/checkin';
+
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Table,
   TableHeader,
@@ -7,28 +9,17 @@ import {
   TableRow,
   TableCell,
   User as UserComponent,
-  Button,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Select,
-  SelectItem,
-  Chip,
-  Tooltip,
   addToast,
 } from '@heroui/react';
-import { Plus, User, Calendar } from 'lucide-react';
 
 import { Typing } from './TypingModal';
+import TopContent from './Tablecomponents/Topcontent';
+import BottomContent from './Tablecomponents/BottomContent';
+
 import { useCheckin } from '@/hooks/useCheckin';
 import { useActivities } from '@/hooks/useActivities';
 import { useUsers } from '@/hooks/useUsers';
 
-import TopContent from './Tablecomponents/Topcontent';
-import BottomContent from './Tablecomponents/BottomContent';
-import type { Checkin, Activity } from '@/types/checkin';
 
 interface TableItem {
   id: string;
@@ -62,6 +53,7 @@ export function TableLog() {
     new Set(INITIAL_VISIBLE_COLUMNS),
   );
   const [rowsPerPage] = useState(5);
+
   useState<{ column: string; direction: 'ascending' | 'descending' }>({
     column: 'activity',
     direction: 'ascending',
@@ -82,6 +74,7 @@ export function TableLog() {
 
   const filteredUsers = useMemo(() => {
     if (!searchQuery) return users;
+
     return users.filter(user => 
       user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       `${user.name.first} ${user.name.last}`.toLowerCase().includes(searchQuery.toLowerCase())
@@ -94,6 +87,7 @@ export function TableLog() {
     return (Array.isArray(checkin) ? checkin : [])
       .map((item: Checkin) => {
         const activity = item.activities?.[0];
+
         return {
           id: item._id,
           name: `${item.user.name.first} ${item.user.name.middle ?? ''} ${item.user.name.last}`.trim(),
@@ -106,8 +100,10 @@ export function TableLog() {
       })
       .filter((user) => {
         const key = `${user.userId}_${user.activityId}`;
+
         if (seen.has(key)) return false;
         seen.add(key);
+
         return true;
       });
   }, [checkin]);
@@ -135,12 +131,14 @@ export function TableLog() {
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
+
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
   useEffect(() => {
     if (activities.length > 0) {
       const allActivityIds = new Set(activities.map((a) => a._id));
+
       setActivityFilter(allActivityIds);
     }
   }, [activities]);
@@ -150,12 +148,14 @@ export function TableLog() {
       const first = a[sortDescriptor.column as keyof typeof a];
       const second = b[sortDescriptor.column as keyof typeof b];
       const cmp = first! < second! ? -1 : first! > second! ? 1 : 0;
+
       return sortDescriptor.direction === 'descending' ? -cmp : cmp;
     });
   }, [sortDescriptor, items]);
 
   const renderCell = useCallback((item: TableItem, columnKey: string) => {
     const cellValue = item[columnKey as keyof TableItem] ?? '';
+
     switch (columnKey) {
       case 'name':
         return (
@@ -211,6 +211,7 @@ export function TableLog() {
         description: "Please select a user",
         color: "danger"
       });
+
       return;
     }
 
@@ -220,6 +221,7 @@ export function TableLog() {
         description: "Please select at least one activity",
         color: "danger"
       });
+
       return;
     }
 
@@ -242,13 +244,13 @@ export function TableLog() {
         aria-label="Example table with custom cells, pagination and sorting"
         bottomContent={
           <BottomContent
-            selectedCount={selectedKeys.size}
-            totalCount={filteredItems.length}
             page={page}
             pages={pages}
-            onPreviousPage={onPreviousPage}
+            selectedCount={selectedKeys.size}
+            totalCount={filteredItems.length}
             onNextPage={onNextPage}
             onPageChange={setPage}
+            onPreviousPage={onPreviousPage}
           />
         }
         bottomContentPlacement="outside"
@@ -258,16 +260,16 @@ export function TableLog() {
         sortDescriptor={sortDescriptor}
         topContent={
           <TopContent
+            activities={activities}
+            activityFilter={activityFilter}
+            columns={columns}
             filterValue={filterValue}
+            setActivityFilter={setActivityFilter}
+            setVisibleColumns={setVisibleColumns}
+            usersLength={users.length}
+            visibleColumns={visibleColumns}
             onClear={onClear}
             onSearchChange={onSearchChange}
-            activityFilter={activityFilter}
-            setActivityFilter={setActivityFilter}
-            visibleColumns={visibleColumns}
-            setVisibleColumns={setVisibleColumns}
-            activities={activities}
-            columns={columns}
-            usersLength={users.length}
             onTypingPress={() => setIsTypingModelOpen(true)}
           />
         }
