@@ -1,4 +1,5 @@
-import { StepsCounters } from '@/types/step-counters';
+'use client';
+
 import React from 'react';
 import {
   Table,
@@ -11,40 +12,90 @@ import {
   SortDescriptor,
 } from '@heroui/react';
 
-type StepContersTableProps = {
-  stepCounters: StepsCounters[];
+import { useMajors } from '@/hooks/useMajor';
+import { School } from '@/types/school';
+
+type RawStepCounter = {
+  user?: {
+    name?: {
+      first?: string;
+      last?: string;
+    };
+    username?: string;
+    metadata?: {
+      major?: string;
+    };
+  };
+  totalStep?: number;
+  rank?: number;
+  updatedAt?: string;
 };
 
-type StepCountersItem = StepsCounters & { key: string };
+type StepContersTableProps = {
+  stepCounters: RawStepCounter[];
+};
 
-const columns = [
-  { name: 'Rank', uid: 'rank', sortable: true },
-  { name: 'Name', uid: 'name', sortable: true },
-  { name: 'School', uid: 'school', sortable: true },
-  { name: 'StepsCounts', uid: 'stepsCounts', sortable: true },
-  { name: 'Time', uid: 'time', sortable: true },
-];
+type StepCountersItem = {
+  key: string;
+  rank: number | null;
+  id: string;
+  name: string;
+  school: string;
+  major: string;
+  steps: number;
+  time: string;
+};
 
-export default function UserTable({ stepCounters }: StepContersTableProps) {
+export default function StepCountersTable({ stepCounters }: StepContersTableProps) {
   const [page, setPage] = React.useState(1);
   const rowsPerPage = 5;
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: 'stepsCounts',
+    column: 'steps',
     direction: 'descending',
   });
 
+  const { majors } = useMajors();
+  const normalizedData: StepCountersItem[] = React.useMemo(() => {
+    return stepCounters.map((item, index) => {
+      const majorId = item.user?.metadata?.major ?? '';
+      const majorObj = majors.find((m) => m._id === majorId);
 
-  const dataWithKeys = React.useMemo<StepCountersItem[]>(() => {
-    return stepCounters.map((item, index) => ({
-      ...item,
-      key: String(index + 1),
-    }));
-  }, [stepCounters]);
+      const majorName =
+        typeof majorObj?.name === 'object'
+          ? majorObj.name.en ?? majorObj.name.th ?? 'Unknown Major'
+          : 'Unknown Major';
 
-  const pages = Math.ceil(dataWithKeys.length / rowsPerPage);
+      let schoolName = 'Unknown School';
+      if (
+        majorObj?.school &&
+        typeof majorObj.school === 'object' &&
+        'name' in majorObj.school
+      ) {
+        const school = majorObj.school as School;
+        schoolName =
+          typeof school.name === 'object'
+            ? school.name.en ?? school.name.th ?? 'Unknown School'
+            : 'Unknown School';
+      }
+
+
+      return {
+        key: String(index + 1),
+        rank: item.rank ?? null,
+        id: item.user?.username ?? '-',
+        name: `${item.user?.name?.first ?? ''} ${item.user?.name?.last ?? ''}`.trim(),
+        major: majorName,
+        school: schoolName,
+        steps: item.totalStep ?? 0,
+        time: item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : '',
+      };
+    });
+  }, [stepCounters, majors]);
+
+  const pages = Math.ceil(normalizedData.length / rowsPerPage);
 
   const sortedData = React.useMemo(() => {
-    return [...dataWithKeys].sort((a, b) => {
+    return [...normalizedData].sort((a, b) => {
       const first = a[sortDescriptor.column as keyof StepCountersItem];
       const second = b[sortDescriptor.column as keyof StepCountersItem];
       const isNumber = typeof first === 'number' && typeof second === 'number';
@@ -55,7 +106,7 @@ export default function UserTable({ stepCounters }: StepContersTableProps) {
 
       return sortDescriptor.direction === 'descending' ? -cmp : cmp;
     });
-  }, [sortDescriptor, dataWithKeys]);
+  }, [sortDescriptor, normalizedData]);
 
   const items = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -64,34 +115,37 @@ export default function UserTable({ stepCounters }: StepContersTableProps) {
 
   const renderCell = React.useCallback(
     (user: StepCountersItem, columnKey: React.Key) => {
-      const cellValue = user[columnKey as keyof StepCountersItem];
-
       switch (columnKey) {
-        case 'name':
-          return (
-            <div className="flex flex-col">
-              <p className="font-bold text-sm capitalize">{cellValue}</p>
-              <p className="text-xs text-gray-500">student id</p>
-            </div>
-          );
-        case 'school':
-          return (
-            <div className="flex flex-col">
-              <p className="font-bold text-sm capitalize">{cellValue}</p>
-              <p className="text-xs text-gray-500">{user.major}</p>
-            </div>
-          );
-        case 'stepsCounts':
-        case 'time':
-          return <p className="text-sm">{cellValue}</p>;
         case 'rank':
           return <p className="text-sm">{user.rank ?? user.key}</p>;
+        case 'id':
+          return <p className="text-sm">{user.id}</p>;
+        case 'name':
+          return <p className="text-sm font-semibold">{user.name}</p>;
+        case 'school':
+          return <p className="text-sm">{user.school}</p>;
+        case 'major':
+          return <p className="text-sm">{user.major}</p>;
+        case 'steps':
+          return <p className="text-sm">{user.steps}</p>;
+        case 'time':
+          return <p className="text-sm">{user.time}</p>;
         default:
-          return <p className="text-sm">{String(cellValue)}</p>;
+          return <p className="text-sm">-</p>;
       }
     },
     [],
   );
+
+  const columns = [
+    { name: 'Rank', uid: 'rank', sortable: true },
+    { name: 'ID', uid: 'id', sortable: true },
+    { name: 'Name', uid: 'name', sortable: true },
+    { name: 'School', uid: 'school', sortable: true },
+    { name: 'Major', uid: 'major', sortable: true },
+    { name: 'Steps', uid: 'steps', sortable: true },
+    { name: 'Time', uid: 'time', sortable: true },
+  ];
 
   return (
     <Table
@@ -117,10 +171,7 @@ export default function UserTable({ stepCounters }: StepContersTableProps) {
     >
       <TableHeader columns={columns}>
         {(column) => (
-          <TableColumn
-            key={column.uid}
-            allowsSorting={column.sortable}
-          >
+          <TableColumn key={column.uid} allowsSorting={column.sortable}>
             {column.name}
           </TableColumn>
         )}
@@ -128,9 +179,7 @@ export default function UserTable({ stepCounters }: StepContersTableProps) {
       <TableBody items={items}>
         {(item) => (
           <TableRow key={item.key}>
-            {(columnKey) => (
-              <TableCell>{renderCell(item, columnKey)}</TableCell>
-            )}
+            {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
           </TableRow>
         )}
       </TableBody>

@@ -1,4 +1,4 @@
-import { SponsorType } from "@/types/sponsors-type";
+import { SponsorType } from "@/types/sponsors";
 import { useEffect, useState } from "react";
 import { apiRequest } from '@/utils/api';
 import { addToast } from "@heroui/react";

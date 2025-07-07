@@ -7,33 +7,29 @@ import StepCountersFilter from './_components/StepCountersFilter';
 import { Accordion, AccordionItem, Button } from '@heroui/react';
 import { Footprints, Globe, Plus, School, Target } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 export default function StepContersPage() {
   const [isStepTarget, setIsStepTarget] = useState(false);
-  const {
-    topOverall,
-    topBySchool,
-    firstAchievers,
-    loading,
-    error,
-  } = useStepCounters();
+  const { topOverall, firstAchievers, loading, error } = useStepCounters();
 
   const StepcounteTarget = 123;
   const [searchTopBySchool, setSearchTopBySchool] = useState('');
   const [searchFirstAchiever, setSearchFirstAchiever] = useState('');
 
-  if (loading) {
-    return <div className="p-10 text-center text-gray-600">Loading...</div>;
-  }
+  // คำนวณอันดับ 1 ของแต่ละโรงเรียนจาก topOverall
+  const topBySchool = useMemo(() => {
+    const topStudentsBySchool = new Map<string, typeof topOverall[number]>();
 
-  if (error) {
-    return (
-      <div className="p-10 text-center text-red-500">
-        Error: {error}
-      </div>
-    );
-  }
+    topOverall.forEach((item) => {
+      const current = topStudentsBySchool.get(item.school);
+      if (!current || item.stepsCounts > current.stepsCounts) {
+        topStudentsBySchool.set(item.school, item);
+      }
+    });
+
+    return Array.from(topStudentsBySchool.values());
+  }, [topOverall]);
 
   const filteredTopBySchool = topBySchool.filter((item) =>
     (item.name ?? '').toLowerCase().includes(searchTopBySchool.toLowerCase()) ||
@@ -46,6 +42,18 @@ export default function StepContersPage() {
     (item.major ?? '').toLowerCase().includes(searchFirstAchiever.toLowerCase()) ||
     (item.school ?? '').toLowerCase().includes(searchFirstAchiever.toLowerCase())
   );
+
+  if (loading) {
+    return <div className="p-10 text-center text-gray-600">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-10 text-center text-red-500">
+        Error: {error}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -71,7 +79,7 @@ export default function StepContersPage() {
           )}
         </AccordionItem>
 
-        {/* Top By School */}
+        {/*  Top By School */}
         <AccordionItem
           key="3"
           aria-label="Accordion 2"
@@ -92,7 +100,7 @@ export default function StepContersPage() {
           )}
         </AccordionItem>
 
-        {/* First Achievers */}
+        {/*  First Achiever */}
         <AccordionItem
           key="2"
           aria-label="Accordion 3"

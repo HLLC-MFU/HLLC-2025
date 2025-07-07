@@ -3,18 +3,15 @@ import { addToast } from '@heroui/react';
 import { apiRequest } from '@/utils/api';
 import { StepsCounters } from '@/types/step-counters';
 
-
 export function useStepCounters() {
   const [topOverall, setTopOverall] = useState<StepsCounters[]>([]);
-  const [topBySchool, setTopBySchool] = useState<StepsCounters[]>([]);
   const [firstAchievers, setFirstAchievers] = useState<StepsCounters[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchLeaderboard = async (
-    scope: 'all' | 'school' | 'date',
+    scope: 'all' | 'date', // ⬅️ ลบ 'school'
     options: {
-      schoolId?: string;
       date?: string;
       page?: number;
       pageSize?: number;
@@ -25,7 +22,6 @@ export function useStepCounters() {
     try {
       const query = new URLSearchParams({
         scope,
-        ...(options.schoolId ? { schoolId: options.schoolId } : {}),
         ...(options.date ? { date: options.date } : {}),
         ...(options.page ? { page: options.page.toString() } : {}),
         ...(options.pageSize ? { pageSize: options.pageSize.toString() } : {}),
@@ -39,7 +35,6 @@ export function useStepCounters() {
       const data = Array.isArray(res.data?.data) ? res.data.data : [];
 
       if (scope === 'all') setTopOverall(data);
-      if (scope === 'school') setTopBySchool(data);
       if (scope === 'date') setFirstAchievers(data);
     } catch (err) {
       addToast({
@@ -56,16 +51,14 @@ export function useStepCounters() {
     }
   };
 
-  // preload ทั้ง 3 แบบตอน mount
+  // preload แค่ top overall + first achievers
   useEffect(() => {
     fetchLeaderboard('all', { pageSize: 3 });
-    fetchLeaderboard('school');
     fetchLeaderboard('date', { date: new Date().toISOString().split('T')[0] });
   }, []);
 
   return {
     topOverall,
-    topBySchool,
     firstAchievers,
     loading,
     error,
