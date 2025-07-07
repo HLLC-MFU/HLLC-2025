@@ -120,10 +120,8 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	})
-
-
-	apiGroup := app.Group("/api") 
-	
+	apiGroup := app.Group("/api")
+	wsChatGroup := app.Group("/chat")
 
 	usersGroup := apiGroup.Group("/users")
 	rolesGroup := apiGroup.Group("/roles")
@@ -172,10 +170,9 @@ func main() {
 	chatEmitter := utils.NewChatEventEmitter(chatHub, kafkaBus, redis, db)
 	restrictionSvc := restrictionService.NewRestrictionService(db, chatHub, chatEmitter, chatSvc.GetNotificationService(), kafkaBus)
 	evoucherSvc := evoucherService.NewEvoucherService(db, redis, restrictionSvc, chatSvc.GetNotificationService(), chatHub, kafkaBus)
-	
+
 	// Initialize RBAC middleware
 	rbacMiddleware := middleware.NewRBACMiddleware(db)
-
 
 	userController.NewUserController(usersGroup, userSvc, rbacMiddleware)
 	userController.NewRoleController(rolesGroup, roleSvc, rbacMiddleware)
@@ -192,6 +189,9 @@ func main() {
 	// Health controller
 	chatController.NewHealthController(chatGroup, chatSvc, rbacMiddleware)
 
+	// Create WebSocket controller using wsChatGroup
+	chatController.NewChatController(wsChatGroup, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc)
+
 	// Log all registered routes
 	logRegisteredRoutes(app)
 
@@ -202,7 +202,7 @@ func main() {
 	// Start server in goroutine
 	port := fmt.Sprintf(":%s", cfg.App.Port)
 	log.Printf("🚀 Server starting on port %s", port)
-	
+
 	go func() {
 		if err := app.Listen(port); err != nil {
 			log.Fatalf("Failed to start server: %v", err)
@@ -220,7 +220,7 @@ func main() {
 		log.Printf("❌ Error shutting down HTTP server: %v", err)
 	}
 
-	// 2. Shutdown chat service worker pools  
+	// 2. Shutdown chat service worker pools
 	log.Printf("👷 Shutting down worker pools...")
 	chatSvc.Shutdown()
 
@@ -283,10 +283,10 @@ func logRegisteredRoutes(app *fiber.App) {
 		// Determine module based on path
 		module := "Other"
 		switch {
-		case strings.Contains(route.Path, "/users") || 
-			 strings.Contains(route.Path, "/roles") || 
-			 strings.Contains(route.Path, "/schools") ||
-			 strings.Contains(route.Path, "/majors"):
+		case strings.Contains(route.Path, "/users") ||
+			strings.Contains(route.Path, "/roles") ||
+			strings.Contains(route.Path, "/schools") ||
+			strings.Contains(route.Path, "/majors"):
 			module = "User"
 		case strings.Contains(route.Path, "/rooms"):
 			module = "Room"
@@ -347,9 +347,9 @@ func logRegisteredRoutes(app *fiber.App) {
 			if len(route.Middleware) > 0 {
 				middleware = strings.Join(route.Middleware, ", ")
 			}
-			log.Printf("%-7s %-50s %-30s %s\n", 
-				route.Method, 
-				route.Path, 
+			log.Printf("%-7s %-50s %-30s %s\n",
+				route.Method,
+				route.Path,
 				middleware,
 				route.Handler,
 			)
