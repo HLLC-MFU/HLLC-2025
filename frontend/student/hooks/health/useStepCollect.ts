@@ -2,8 +2,6 @@ import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
 import { apiRequest } from '@/utils/api';
 import { getDeviceUniqueId } from '../useDeviceInfo';
-import { fetchStepsFromHealthKit } from './useHealthKitData';
-import { fetchStepsFromHealthConnect } from './useHealthConnectData';
 import { Platform } from 'react-native';
 
 const BACKGROUND_TASK_IDENTIFIER = 'background-step-sync';
@@ -11,8 +9,10 @@ const BACKGROUND_TASK_IDENTIFIER = 'background-step-sync';
 // Platform-safe static step fetcher
 async function fetchStepsStatically(date: Date): Promise<{ steps: number }> {
   if (Platform.OS === 'ios') {
+     const { fetchStepsFromHealthKit } = await import('./useHealthKitData');
     return await fetchStepsFromHealthKit(date);
   } else if (Platform.OS === 'android') {
+    const { fetchStepsFromHealthConnect } = await import('./useHealthConnectData');
     return await fetchStepsFromHealthConnect(date);
   } else {
     return { steps: 0 };
