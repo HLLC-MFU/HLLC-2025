@@ -1,4 +1,5 @@
 import { useUserStatistics } from '@/hooks/useUserSytem';
+import type { Selection } from '@heroui/react';
 import {
   Card,
   CardBody,
@@ -11,8 +12,9 @@ import { useState } from 'react';
 
 export default function StudentChart() {
   const { userstats } = useUserStatistics();
-  const [selectRole, setSelectRole] = useState('student');
-  const roleStats = userstats?.[selectRole];
+  const [selectRole, setSelectRole] = useState<Selection>(new Set(['student']));
+  const selectedRole = Array.from(selectRole)[0] as string;
+  const roleStats = userstats?.[selectedRole];
   const roleStatsData = [
     {
       name: 'Total',
@@ -43,13 +45,12 @@ export default function StudentChart() {
             <h3 className=" text-lg font-semibold"> Register </h3>
           </div>
           <Select
-            className="max-w-[125px]"
-            selectionMode="single"
+            disallowEmptySelection
             size='sm'
-            selectedKeys={[selectRole]}
-            onSelectionChange={(keys) =>
-              setSelectRole(Array.from(keys)[0] as string)
-            }
+            className="max-w-[150px]"
+            maxListboxHeight={150}
+            selectedKeys={selectRole}
+            onSelectionChange={setSelectRole}
           >
             {userstats &&
               Object.keys(userstats).map((role) => (

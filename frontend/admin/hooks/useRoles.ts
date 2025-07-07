@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { Role } from "@/types/user";
+import { Role } from "@/types/role";
 import { apiRequest } from "@/utils/api";
 
 export function useRoles() {

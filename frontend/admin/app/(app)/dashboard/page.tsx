@@ -1,13 +1,14 @@
 'use client';
 import { LayoutDashboard, FileQuestion, Activity } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
-import { Accordion, AccordionItem } from '@heroui/react';
+import { Accordion, AccordionItem, Card, CardBody, CardHeader, Divider, Select, SelectItem } from '@heroui/react';
 import AssessmentOverviewDashboard from '../assessments/_components/question-overview-dashboard';
 import ActivityDashboard from '../assessments/_components/activity-dashboard';
 import ReportChart  from './_components/DashboardReportChart';
 import Overview from './_components/DashboardOverview';
 import CheckinBarChart from './_components/DashboardCheckinBarChart';
 import StudentChart from './_components/DashbaordStudentChart';
+import { AccordionPretest } from './_components/AccordionPretest';
 
 export default function DashboardPage() {
 
@@ -37,7 +38,7 @@ export default function DashboardPage() {
             title="Pretest Results"
             className="font-medium mb-2"
           >
-            <AssessmentOverviewDashboard type="pretest" loading={false} />
+            <AccordionPretest />
           </AccordionItem>
 
           <AccordionItem
