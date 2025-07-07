@@ -121,6 +121,13 @@ export class StepCountersController {
     });
   }
 
+  @Get('my-rank')
+  getUserRank(
+    @Req() req: UserRequest,
+    @Query('scope') scope: 'global' | 'school' | 'achieved' = 'global',
+    @Query('stepAchievementId') stepAchievementId?: string,
+  ) {
+    return this.stepCountersService.getUserRank(req.user._id, scope, stepAchievementId);
   @Get('leaderboard/me')
   async myLeaderboard(
     @Req() req: FastifyRequest & { user?: { _id?: Types.ObjectId } },

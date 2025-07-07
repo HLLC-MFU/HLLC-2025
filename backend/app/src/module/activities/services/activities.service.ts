@@ -18,6 +18,9 @@ import {
   parseStringArray,
 } from '../utils/scope.util';
 import { Checkin } from 'src/module/checkin/schema/checkin.schema';
+import { AssessmentsService } from 'src/module/assessments/service/assessments.service';
+import { AssessmentAnswer } from 'src/module/assessments/schema/assessment-answer.schema';
+import { AssessmentDocument } from 'src/module/assessments/schema/assessment.schema';
 
 @Injectable()
 export class ActivitiesService {
@@ -27,6 +30,9 @@ export class ActivitiesService {
     private usersService: UsersService,
     @InjectModel(Checkin.name)
     private readonly checkinsModel: Model<Checkin>,
+    @InjectModel(AssessmentAnswer.name)
+    private readonly assessmentAnswersModel: Model<AssessmentAnswer>,
+    private readonly assessmentsService: AssessmentsService,
   ) {}
 
   async create(createActivitiesDto: CreateActivitiesDto) {
@@ -157,9 +163,9 @@ export class ActivitiesService {
       populateFields: () => Promise.resolve([{ path: 'type' }]),
     });
 
-    const mapped = result.data
+    const mapped = await Promise.all(result.data
       .filter((activity) => isUserInScope(user, activity as ActivityDocument))
-      .map((activity) => {
+      .map(async (activity) => {
         const meta = activity.metadata;
         const activityDoc = activity as ActivityDocument;
         const activityId =
@@ -191,6 +197,24 @@ export class ActivitiesService {
           message = 'Check-in available now';
         }
 
+          const assessmentsResult = await this.assessmentsService.findAllByActivity(activityId);
+          const assessments = (assessmentsResult.data || []) as AssessmentDocument[];
+
+          let hasAnswered = false;
+
+          if (assessments.length > 0) {
+            for (const assessment of assessments) {
+              const answered = await this.assessmentAnswersModel.findOne({
+                user: user._id,
+                'answers.assessment': assessment._id,
+              });
+              if (answered) {
+                hasAnswered = true;
+                break;
+              }
+            }
+          }
+
         const activityObj =
           typeof (activity as ActivityDocument).toObject === 'function'
             ? (activity as ActivityDocument).toObject()
@@ -199,8 +223,10 @@ export class ActivitiesService {
           ...activityObj,
           checkinStatus: status,
           checkinMessage: message,
+            hasAnsweredAssessment: hasAnswered,
         };
-      });
+        }),
+    );
 
     return {
       ...result,
@@ -257,5 +283,11 @@ export class ActivitiesService {
       message: 'Activity deleted successfully',
       id,
     };
+  }
+
+  // หากิจกรรมที่มี Assessment
+  async findActivitiesWithAssessment(activityId: string) {
+    const activities = await this.assessmentsService.findAllByActivity(activityId);
+    return activities
   }
 }
