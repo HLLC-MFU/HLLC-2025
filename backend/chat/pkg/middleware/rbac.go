@@ -20,8 +20,8 @@ import (
 const (
 	RoleAdministrator = "Administrator"
 	RoleAE = "AE"
-	RoleStaff        = "Staff"
-	RoleStudent      = "Student"
+	RoleStaff        = "Mentee"
+	RoleStudent      = "Fresher"
 )
 
 // Room access permissions
@@ -130,6 +130,7 @@ func (r *RBACMiddleware) RequireReadOnlyAccess() fiber.Handler {
 func (r *RBACMiddleware) GetUserRole(userID string) (string, error) {
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
+		log.Printf("[RBAC] Invalid user ID format: %s, error: %v", userID, err)
 		return "", err
 	}
 
@@ -147,25 +148,37 @@ func (r *RBACMiddleware) GetUserRole(userID string) (string, error) {
 		}}},
 	}
 
+	log.Printf("[RBAC] Querying user role for userID: %s", userID)
 	cursor, err := r.db.Collection("users").Aggregate(context.TODO(), pipeline)
 	if err != nil {
+		log.Printf("[RBAC] Database query error: %v", err)
 		return "", err
 	}
 	defer cursor.Close(context.TODO())
 
-	var result struct {
-		RoleName string `bson:"roleName"`
-	}
-
 	if !cursor.Next(context.TODO()) {
+		log.Printf("[RBAC] User not found in database: %s", userID)
 		return "", errors.New("user not found")
 	}
 
+	// Use bson.M to decode the result
+	var result bson.M
 	if err := cursor.Decode(&result); err != nil {
+		log.Printf("[RBAC] Failed to decode user role: %v", err)
 		return "", err
 	}
 
-	return result.RoleName, nil
+	log.Printf("[RBAC] Raw result from pipeline: %+v", result)
+	
+	// Extract roleName from the result
+	roleName, ok := result["roleName"].(string)
+	if !ok {
+		log.Printf("[RBAC] roleName is not a string or is missing: %v", result["roleName"])
+		return "", errors.New("role name not found or invalid")
+	}
+
+	log.Printf("[RBAC] Found role for user %s: %s", userID, roleName)
+	return roleName, nil
 }
 
 // getUserIDFromToken is a helper method to extract user ID from JWT token
@@ -181,40 +194,52 @@ func (r *RBACMiddleware) getUserIDFromToken(ctx *fiber.Ctx) (string, error) {
 // RequireRoles creates a middleware that requires any of the specified role names
 func (r *RBACMiddleware) RequireRoles(allowedRoles ...string) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		log.Printf("[RBAC] Middleware called for path: %s, method: %s, required roles: %v", 
+		log.Printf("[RBAC] ===== RequireRoles middleware START =====")
+		log.Printf("[RBAC] RequireRoles middleware called for path: %s, method: %s, required roles: %v",
 			ctx.Path(), ctx.Method(), allowedRoles)
-		
+
 		// Extract JWT token
+		log.Printf("[RBAC] Extracting JWT token...")
 		tokenString, err := r.extractToken(ctx)
 		if err != nil {
 			log.Printf("[RBAC] Token extraction failed: %v", err)
+			log.Printf("[RBAC] ===== RequireRoles middleware END (TOKEN_EXTRACTION_FAILED) =====")
 			return ctx.Status(401).JSON(fiber.Map{
 				"error":   "UNAUTHORIZED",
 				"message": "Authentication token required",
 			})
 		}
-		
+
 		// Parse JWT token to get user ID
+		log.Printf("[RBAC] Parsing JWT token...")
 		userID, err := r.parseToken(tokenString)
 		if err != nil {
 			log.Printf("[RBAC] Token parsing failed: %v", err)
+			log.Printf("[RBAC] ===== RequireRoles middleware END (TOKEN_PARSING_FAILED) =====")
 			return ctx.Status(401).JSON(fiber.Map{
-				"error":   "UNAUTHORIZED", 
+				"error":   "UNAUTHORIZED",
 				"message": "Invalid authentication token",
 			})
 		}
-		
+
+		log.Printf("[RBAC] Successfully extracted userID: %s", userID)
+
 		// Convert user ID to ObjectID
+		log.Printf("[RBAC] Converting userID to ObjectID: %s", userID)
 		objectID, err := primitive.ObjectIDFromHex(userID)
 		if err != nil {
 			log.Printf("[RBAC] Invalid user ID format: %v", err)
+			log.Printf("[RBAC] ===== RequireRoles middleware END (OBJECTID_CONVERSION_FAILED) =====")
 			return ctx.Status(401).JSON(fiber.Map{
 				"error":   "UNAUTHORIZED",
 				"message": "Invalid user ID in token",
 			})
 		}
-		
+
+		log.Printf("[RBAC] Successfully converted to ObjectID: %s", objectID.Hex())
+
 		// Query user with role information
+		log.Printf("[RBAC] Querying user with role for userID: %s", userID)
 		pipeline := mongo.Pipeline{
 			{{Key: "$match", Value: bson.D{{Key: "_id", Value: objectID}}}},
 			{{Key: "$lookup", Value: bson.D{
@@ -227,56 +252,107 @@ func (r *RBACMiddleware) RequireRoles(allowedRoles ...string) fiber.Handler {
 			{{Key: "$project", Value: bson.D{
 				{Key: "_id", Value: 1},
 				{Key: "username", Value: 1},
-				{Key: "roleName", Value: "$roleInfo.name"},
+				{Key: "name", Value: "$roleInfo.name"},
 			}}},
 		}
-		
+
+		log.Printf("[RBAC] Executing MongoDB aggregation pipeline...")
 		cursor, err := r.db.Collection("users").Aggregate(context.TODO(), pipeline)
 		if err != nil {
 			log.Printf("[RBAC] Database query error: %v", err)
+			log.Printf("[RBAC] ===== RequireRoles middleware END (DATABASE_QUERY_FAILED) =====")
 			return ctx.Status(500).JSON(fiber.Map{
 				"error":   "INTERNAL_ERROR",
 				"message": "Failed to verify user permissions",
 			})
 		}
 		defer cursor.Close(context.TODO())
-		
-		var user struct {
-			ID       primitive.ObjectID `bson:"_id"`
-			Username string            `bson:"username"`
-			RoleName string            `bson:"roleName"`
-		}
-		
+
+		log.Printf("[RBAC] Database query completed successfully")
+
+		log.Printf("[RBAC] Checking if cursor has next document...")
 		if !cursor.Next(context.TODO()) {
-			log.Printf("[RBAC] User not found: %s", userID)
+			log.Printf("[RBAC] User not found in database: %s", userID)
+			log.Printf("[RBAC] ===== RequireRoles middleware END (USER_NOT_FOUND) =====")
 			return ctx.Status(401).JSON(fiber.Map{
 				"error":   "UNAUTHORIZED",
 				"message": "User not found",
 			})
 		}
+
+		log.Printf("[RBAC] Cursor has next document, decoding...")
 		
-		if err := cursor.Decode(&user); err != nil {
-			log.Printf("[RBAC] Failed to decode user: %v", err)
+		// Debug: decode to bson.M to see the actual document structure
+		var rawDoc bson.M
+		if err := cursor.Decode(&rawDoc); err != nil {
+			log.Printf("[RBAC] Failed to decode to bson.M: %v", err)
+			log.Printf("[RBAC] ===== RequireRoles middleware END (CURSOR_DECODE_FAILED) =====")
 			return ctx.Status(500).JSON(fiber.Map{
 				"error":   "INTERNAL_ERROR",
 				"message": "Failed to process user data",
 			})
 		}
+		log.Printf("[RBAC] Raw document from MongoDB: %+v", rawDoc)
 		
-		// Check if user's role is in the required roles
-		for _, role := range allowedRoles {
+		// Extract values from raw document
+		userIDObj, ok := rawDoc["_id"].(primitive.ObjectID)
+		if !ok {
+			log.Printf("[RBAC] _id is not an ObjectID: %v", rawDoc["_id"])
+			log.Printf("[RBAC] ===== RequireRoles middleware END (INVALID_ID) =====")
+			return ctx.Status(500).JSON(fiber.Map{
+				"error":   "INTERNAL_ERROR",
+				"message": "Invalid user ID format",
+			})
+		}
+		
+		username, ok := rawDoc["username"].(string)
+		if !ok {
+			log.Printf("[RBAC] username is not a string: %v", rawDoc["username"])
+			username = "unknown"
+		}
+		
+		roleName, ok := rawDoc["name"].(string)
+		if !ok {
+			log.Printf("[RBAC] name is not a string: %v", rawDoc["name"])
+			log.Printf("[RBAC] ===== RequireRoles middleware END (INVALID_ROLE) =====")
+			return ctx.Status(500).JSON(fiber.Map{
+				"error":   "INTERNAL_ERROR",
+				"message": "Invalid role format",
+			})
+		}
+		
+		log.Printf("[RBAC] Extracted values: ID=%s, Username=%s, RoleName='%s'", userIDObj.Hex(), username, roleName)
+		
+		// Create user struct manually
+		user := struct {
+			ID       primitive.ObjectID
+			Username string
+			RoleName string
+		}{
+			ID:       userIDObj,
+			Username: username,
+			RoleName: roleName,
+		}
+
+		log.Printf("[RBAC] User found: ID=%s, Username=%s, RoleName='%s'", user.ID.Hex(), user.Username, user.RoleName)
+		log.Printf("[RBAC] Checking role access: user role='%s', required roles=%v", user.RoleName, allowedRoles)
+		for i, role := range allowedRoles {
+			log.Printf("[RBAC] Comparing [%d]: '%s' == '%s' (length: %d vs %d)", i, user.RoleName, role, len(user.RoleName), len(role))
 			if user.RoleName == role {
-				log.Printf("[RBAC] Access granted: User %s (%s) has role %s", user.Username, userID, user.RoleName)
+				log.Printf("[RBAC] Access granted: User %s (%s) has role '%s'", user.Username, userID, user.RoleName)
+				log.Printf("[RBAC] ===== RequireRoles middleware END (GRANTED) =====")
 				return ctx.Next()
 			}
 		}
-		
-		log.Printf("[RBAC] Access denied: User %s (%s) has role %s, but requires one of: %v", 
+
+		log.Printf("[RBAC] Access denied: User %s (%s) has role '%s', but requires one of: %v",
 			user.Username, userID, user.RoleName, allowedRoles)
-		
+
+		log.Printf("[RBAC] Sending 403 Forbidden response")
+		log.Printf("[RBAC] ===== RequireRoles middleware END (DENIED) =====")
 		return ctx.Status(403).JSON(fiber.Map{
-			"error":        "INSUFFICIENT_PERMISSIONS",
-			"message":      "You don't have the required role to access this resource",
+			"error":         "INSUFFICIENT_PERMISSIONS",
+			"message":       "You don't have the required role to access this resource",
 			"requiredRoles": allowedRoles,
 			"currentRole":   user.RoleName,
 		})
@@ -285,6 +361,7 @@ func (r *RBACMiddleware) RequireRoles(allowedRoles ...string) fiber.Handler {
 
 // RequireAdministrator is a convenient method for Administrator-only endpoints
 func (r *RBACMiddleware) RequireAdministrator() fiber.Handler {
+	log.Printf("[RBAC] RequireAdministrator middleware created, requiring role: %s", RoleAdministrator)
 	return r.RequireRoles(RoleAdministrator)
 }
 
@@ -304,12 +381,12 @@ func (r *RBACMiddleware) SetUserRoleInContext() fiber.Handler {
 				"message": "Authentication token required",
 			})
 		}
-		
+
 		// Parse JWT token to get user ID
 		userID, err := r.parseToken(tokenString)
 		if err != nil {
 			return ctx.Status(401).JSON(fiber.Map{
-				"error":   "UNAUTHORIZED", 
+				"error":   "UNAUTHORIZED",
 				"message": "Invalid authentication token",
 			})
 		}
@@ -325,7 +402,7 @@ func (r *RBACMiddleware) SetUserRoleInContext() fiber.Handler {
 
 		// Set role in context
 		ctx.Locals("userRole", role)
-		
+
 		return ctx.Next()
 	}
 }
@@ -339,34 +416,30 @@ func (r *RBACMiddleware) extractToken(c *fiber.Ctx) (string, error) {
 	if authHeader != "" {
 		parts := strings.Split(authHeader, " ")
 		if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
-			log.Printf("[DEBUG] JWT token extracted from Authorization header: %s", parts[1])
+			log.Printf("[RBAC] JWT token extracted from Authorization header: %s", parts[1])
 			return parts[1], nil
 		}
 	}
 	// Try cookie as fallback
 	token := c.Cookies("accessToken")
 	if token != "" {
-		log.Printf("[DEBUG] JWT token extracted from cookie: %s", token)
+		log.Printf("[RBAC] JWT token extracted from cookie: %s", token)
 		return token, nil
 	}
 	// Try query parameter (for WebSocket connections)
 	token = c.Query("token")
 	if token != "" {
-		log.Printf("[DEBUG] JWT token extracted from query param: %s", token)
+		log.Printf("[RBAC] JWT token extracted from query param: %s", token)
 		return token, nil
 	}
-	log.Printf("[DEBUG] No JWT token found in header, cookie, or query param")
+	log.Printf("[RBAC] No JWT token found in header, cookie, or query param")
 	return "", errors.New("no token found")
 }
 
 // Parse JWT token and extract user ID
 func (r *RBACMiddleware) parseToken(tokenString string) (string, error) {
-	// Get JWT secret from environment or use default from NestJS config
 	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		jwtSecret = "pngwpeonhgperpongp" // Default from NestJS configuration
-	}
-	log.Printf("[DEBUG] Using JWT_SECRET: %s", jwtSecret)
+	log.Printf("[RBAC] Using JWT_SECRET: %s", jwtSecret)
 
 	token, err := jwt.ParseWithClaims(tokenString, &JwtClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// Verify signing method
@@ -377,16 +450,16 @@ func (r *RBACMiddleware) parseToken(tokenString string) (string, error) {
 	})
 
 	if err != nil {
-		log.Printf("[DEBUG] JWT parse error: %v", err)
+		log.Printf("[RBAC] JWT parse error: %v", err)
 		return "", err
 	}
 
 	if claims, ok := token.Claims.(*JwtClaims); ok && token.Valid {
-		log.Printf("[DEBUG] JWT claims parsed successfully: sub=%s username=%s", claims.Sub, claims.Username)
+		log.Printf("[RBAC] JWT claims parsed successfully: sub=%s username=%s", claims.Sub, claims.Username)
 		return claims.Sub, nil
 	}
 
-	log.Printf("[DEBUG] Invalid token claims")
+	log.Printf("[RBAC] Invalid token claims")
 	return "", errors.New("invalid token claims")
 }
 
@@ -448,5 +521,3 @@ func (r *RBACMiddleware) ExtractUserIDFromToken(tokenString string) (string, err
 	log.Printf("[DEBUG] Successfully extracted userID %s from JWT token", userID)
 	return userID, nil
 }
-
- 
