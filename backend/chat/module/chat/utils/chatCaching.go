@@ -31,10 +31,6 @@ func (s *ChatCacheService) roomMessagesKey(roomID string) string {
 	return fmt.Sprintf("chat:room:%s:messages", roomID)
 }
 
-func (s *ChatCacheService) roomReactionsKey(roomID, messageID string) string {
-	return fmt.Sprintf("chat:room:%s:reactions:%s", roomID, messageID)
-}
-
 // GetRoomMessages gets messages from cache (จากใหม่สุดไปเก่าสุด)
 func (s *ChatCacheService) GetRoomMessages(ctx context.Context, roomID string, limit int) ([]model.ChatMessageEnriched, error) {
 	key := s.roomMessagesKey(roomID)
@@ -78,9 +74,7 @@ func (s *ChatCacheService) GetRoomMessages(ctx context.Context, roomID string, l
 		if msg.ReplyTo != nil {
 			log.Printf("[Cache] Message %s contains reply-to info", msg.ChatMessage.ID.Hex())
 		}
-		if len(msg.Reactions) > 0 {
-			log.Printf("[Cache] Message %s contains %d reactions", msg.ChatMessage.ID.Hex(), len(msg.Reactions))
-		}
+
 
 		messages = append(messages, msg)
 		
@@ -131,9 +125,7 @@ func (s *ChatCacheService) SaveMessage(ctx context.Context, roomID string, msg *
 	if msg.ReplyTo != nil {
 		log.Printf("[Cache] Message contains reply-to info")
 	}
-	if len(msg.Reactions) > 0 {
-		log.Printf("[Cache] Message contains %d reactions", len(msg.Reactions))
-	}
+
 	
 	data, err := json.Marshal(msg)
 	if err != nil {
@@ -164,79 +156,7 @@ func (s *ChatCacheService) SaveMessage(ctx context.Context, roomID string, msg *
 	return nil
 }
 
-// SaveReaction saves a reaction to cache
-func (s *ChatCacheService) SaveReaction(ctx context.Context, roomID string, messageID string, reaction *model.MessageReaction) error {
-	key := s.roomReactionsKey(roomID, messageID)
-	
-	// Get existing reactions
-	reactions, err := s.GetReactions(ctx, roomID, messageID)
-	if err != nil && err != redis.Nil {
-		return err
-	}
 
-	// Add new reaction
-	reactions = append(reactions, *reaction)
-
-	// Save back to Redis
-	data, err := json.Marshal(reactions)
-	if err != nil {
-		return fmt.Errorf("marshal error: %w", err)
-	}
-
-	return s.redis.SetEx(ctx, key, data, MessageTTL).Err()
-}
-
-// RemoveReaction removes a reaction from cache
-func (s *ChatCacheService) RemoveReaction(ctx context.Context, roomID string, messageID string, userID string) error {
-	key := s.roomReactionsKey(roomID, messageID)
-	
-	// Get existing reactions
-	reactions, err := s.GetReactions(ctx, roomID, messageID)
-	if err != nil {
-		return err
-	}
-
-	// Filter out the reaction from the specified user
-	filteredReactions := make([]model.MessageReaction, 0)
-	for _, reaction := range reactions {
-		if reaction.UserID.Hex() != userID {
-			filteredReactions = append(filteredReactions, reaction)
-		}
-	}
-
-	// Save filtered reactions back to Redis
-	if len(filteredReactions) == 0 {
-		// If no reactions left, delete the key
-		return s.redis.Del(ctx, key).Err()
-	}
-
-	data, err := json.Marshal(filteredReactions)
-	if err != nil {
-		return fmt.Errorf("marshal error: %w", err)
-	}
-
-	return s.redis.SetEx(ctx, key, data, MessageTTL).Err()
-}
-
-// GetReactions gets reactions for a message
-func (s *ChatCacheService) GetReactions(ctx context.Context, roomID string, messageID string) ([]model.MessageReaction, error) {
-	key := s.roomReactionsKey(roomID, messageID)
-	
-	data, err := s.redis.Get(ctx, key).Result()
-	if err == redis.Nil {
-		return []model.MessageReaction{}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	var reactions []model.MessageReaction
-	if err := json.Unmarshal([]byte(data), &reactions); err != nil {
-		return nil, fmt.Errorf("unmarshal error: %w", err)
-	}
-
-	return reactions, nil
-}
 
 // DeleteRoomMessages deletes all messages for a room
 func (s *ChatCacheService) DeleteRoomMessages(ctx context.Context, roomID string) error {

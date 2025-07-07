@@ -130,15 +130,6 @@ func (s *ChatService) SaveMessageToCache(ctx context.Context, msg *model.ChatMes
 		ChatMessage: *msg,
 	}
 
-	// **ENHANCED: Get reactions for this message**
-	reactions, err := s.GetMessageReactions(ctx, msg.RoomID.Hex(), msg.ID.Hex())
-	if err != nil {
-		log.Printf("[ChatService] Failed to get reactions for caching message %s: %v", msg.ID.Hex(), err)
-	} else {
-		enriched.Reactions = reactions
-		log.Printf("[ChatService] Added %d reactions to cached message %s", len(reactions), msg.ID.Hex())
-	}
-
 	// **ENHANCED: Get reply-to message if exists**
 	if msg.ReplyToID != nil {
 		replyToMsg, err := s.historyService.getReplyToMessageWithUser(ctx, *msg.ReplyToID)
@@ -323,9 +314,6 @@ func (s *ChatService) determineMessageType(message *model.ChatMessage) string {
 	if message.MentionInfo != nil {
 		return "mention"
 	}
-	if message.Reactions != nil {
-		return "reactions"
-	}
 	if message.ReplyToID != nil {
 		return "reply"
 	}
@@ -471,10 +459,6 @@ func (s *ChatService) GetUserById(ctx context.Context, userID string) (*userMode
 	user := result.Data[0]
 	log.Printf("[DEBUG] Successfully retrieved user: %s (%s %s)", user.Username, user.Name.First, user.Name.Last)
 	return &user, nil
-}
-
-func (s *ChatService) GetMessageReactions(ctx context.Context, roomID, messageID string) ([]model.MessageReaction, error) {
-	return s.historyService.getMessageReactionsWithUsers(ctx, roomID, messageID)
 }
 
 func (s *ChatService) GetNotificationService() *notificationService.NotificationService {

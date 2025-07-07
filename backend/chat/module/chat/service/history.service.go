@@ -51,15 +51,6 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 				}
 			}
 
-			// **FIXED: Always re-populate Reactions to ensure latest data**
-			log.Printf("[HistoryService] Re-populating Reactions for cached message %s", msg.ChatMessage.ID.Hex())
-			reactions, err := h.getMessageReactionsWithUsers(ctx, roomID, msg.ChatMessage.ID.Hex())
-			if err != nil {
-				log.Printf("[HistoryService] Failed to get reactions for message %s: %v", msg.ChatMessage.ID.Hex(), err)
-			} else {
-				cachedMessages[i].Reactions = reactions
-				log.Printf("[HistoryService] Successfully re-populated %d reactions for message %s", len(reactions), msg.ChatMessage.ID.Hex())
-			}
 		}
 		
 		// Limit the results
@@ -104,16 +95,6 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 		enriched := model.ChatMessageEnriched{
 			ChatMessage: msg,
 		}
-
-		// **ENHANCED: Get reactions for each message**
-		reactions, err := h.getMessageReactionsWithUsers(ctx, roomID, msg.ID.Hex())
-		if err != nil {
-			log.Printf("[HistoryService] Failed to get reactions for message %s: %v", msg.ID.Hex(), err)
-			reactions = []model.MessageReaction{}
-		} else {
-			log.Printf("[HistoryService] Found %d reactions for message %s", len(reactions), msg.ID.Hex())
-		}
-		enriched.Reactions = reactions
 
 		// **ENHANCED: Get reply-to message if exists**
 		if msg.ReplyToID != nil {
@@ -163,28 +144,6 @@ func (h *HistoryService) GetChatHistoryByRoom(ctx context.Context, roomID string
 	return enrichedMessages, nil
 }
 
-// getMessageReactionsWithUsers gets reactions for a message with user data
-func (h *HistoryService) getMessageReactionsWithUsers(ctx context.Context, roomID, messageID string) ([]model.MessageReaction, error) {
-	// Query database directly
-	messageObjID, err := primitive.ObjectIDFromHex(messageID)
-	if err != nil {
-		return nil, err
-	}
-
-	reactionCollection := h.mongo.Collection("message-reactions")
-	cursor, err := reactionCollection.Find(ctx, bson.M{"message_id": messageObjID})
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var reactions []model.MessageReaction
-	if err = cursor.All(ctx, &reactions); err != nil {
-		return nil, err
-	}
-
-	return reactions, nil
-}
 
 // getReplyToMessageWithUser gets the reply-to message with user data
 func (h *HistoryService) getReplyToMessageWithUser(ctx context.Context, replyToID primitive.ObjectID) (*model.ChatMessage, error) {

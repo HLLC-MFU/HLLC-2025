@@ -13,7 +13,6 @@ import (
 	"time"
 
 	mentionService "chat/module/chat/service"
-	reactionService "chat/module/chat/service"
 	userService "chat/module/user/service"
 
 	"github.com/gofiber/websocket/v2"
@@ -24,7 +23,6 @@ type (
 	WebSocketHandler struct {
 		chatService        ChatService
 		mentionService     mentionService.MentionService
-		reactionService    reactionService.ReactionService
 		roomService        RoomService
 		restrictionService RestrictionServiceChatService
 		connManager        *connection.ConnectionManager
@@ -43,7 +41,6 @@ type (
 func NewWebSocketHandler(
 	chatService ChatService,
 	mentionService mentionService.MentionService,
-	reactionService reactionService.ReactionService,
 	roomService RoomService,
 	restrictionService RestrictionServiceChatService,
 	connManager *connection.ConnectionManager,
@@ -53,7 +50,6 @@ func NewWebSocketHandler(
 	return &WebSocketHandler{
 		chatService:        chatService,
 		mentionService:     mentionService,
-		reactionService:    reactionService,
 		roomService:       roomService,
 		restrictionService: restrictionService,
 		connManager:       connManager,
@@ -103,10 +99,7 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			log.Printf("[WebSocket] ↩️ Found reply message in history: %s -> %s", msg.ChatMessage.ID.Hex(), msg.ReplyTo.ID.Hex())
 			specialMessageCount++
 		}
-		if len(msg.Reactions) > 0 {
-			log.Printf("[WebSocket] ❤️ Found message with reactions in history: %s (%d reactions)", msg.ChatMessage.ID.Hex(), len(msg.Reactions))
-			specialMessageCount++
-		}
+
 	}
 	
 	log.Printf("[WebSocket] 🎯 Found %d special message types in history for room %s", specialMessageCount, roomID)
@@ -217,44 +210,7 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			payload["mentions"] = msg.ChatMessage.MentionInfo
 		}
 
-		// **FIXED: Add reactions info if exists (matches ChatEventEmitter)**
-		if len(msg.Reactions) > 0 {
-			log.Printf("[DEBUG] History message has reactions: messageID=%s, reactions=%d", msg.ChatMessage.ID.Hex(), len(msg.Reactions))
-			reactionsData := make([]map[string]interface{}, len(msg.Reactions))
-			for i, reaction := range msg.Reactions {
-				// Get user data for reaction
-				var reactionUserData map[string]interface{}
-				if reactionUser, err := h.chatService.GetUserById(ctx, reaction.UserID.Hex()); err == nil {
-					reactionUserData = map[string]interface{}{
-						"_id":      reactionUser.ID.Hex(),
-						"username": reactionUser.Username,
-						"name": map[string]interface{}{
-							"first":  reactionUser.Name.First,
-							"middle": reactionUser.Name.Middle,
-							"last":   reactionUser.Name.Last,
-						},
-					}
-					
-					// Add role information if exists
-					if reactionUser.Role != primitive.NilObjectID {
-						reactionUserData["role"] = map[string]interface{}{
-							"_id": reactionUser.Role.Hex(),
-						}
-					}
-				} else {
-					reactionUserData = map[string]interface{}{
-						"_id": reaction.UserID.Hex(),
-					}
-				}
-				
-				reactionsData[i] = map[string]interface{}{
-					"reaction": reaction.Reaction,
-					"timestamp": reaction.Timestamp,
-					"user": reactionUserData,
-				}
-			}
-			payload["reactions"] = reactionsData
-		}
+
 
 		// Add reply info if exists (matches ChatEventEmitter)
 		if msg.ReplyTo != nil {
@@ -315,9 +271,7 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			if msg.ReplyTo != nil {
 				log.Printf("[WebSocket] 📤 Sent reply message in history: %s", msg.ChatMessage.ID.Hex())
 			}
-			if len(msg.Reactions) > 0 {
-				log.Printf("[WebSocket] 📤 Sent message with reactions in history: %s (%d reactions)", msg.ChatMessage.ID.Hex(), len(msg.Reactions))
-			}
+			
 		} else {
 			log.Printf("[WebSocket] ❌ Failed to marshal history message %s: %v", msg.ChatMessage.ID.Hex(), err)
 		}
@@ -474,8 +428,7 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		switch {
 		case strings.HasPrefix(messageText, "/reply "):
 			h.handleReplyMessage(messageText, *client, ctx)
-		case strings.HasPrefix(messageText, "/react "):
-			h.handleReactionMessage(messageText, *client, ctx)
+
 		case strings.HasPrefix(messageText, "/unsend "):
 			h.handleUnsendMessage(messageText, *client, ctx)
 		default:
@@ -589,92 +542,7 @@ func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.C
 	}
 }
 
-func (h *WebSocketHandler) handleReactionMessage(messageText string, client model.ClientObject, ctx context.Context) {
-	// Check if room is still active
-	room, err := h.roomService.GetRoomById(ctx, client.RoomID)
-	if err != nil {
-		log.Printf("[WS] Failed to get room %s: %v", client.RoomID.Hex(), err)
-		return
-	}
-	
-	if room.IsInactive() {
-		client.Conn.WriteMessage(websocket.TextMessage, []byte("This room is inactive and not accepting messages"))
-		return
-	}
 
-	// Parse reaction command: /react messageID emoji
-	parts := strings.SplitN(messageText, " ", 3)
-	if len(parts) < 3 {
-		log.Printf("[WS] Invalid reaction format from user %s", client.UserID.Hex())
-		return
-	}
-
-	messageID := parts[1]
-	reaction := parts[2]
-
-	log.Printf("[WS] User %s wants to react to message %s with %s", 
-		client.UserID.Hex(), messageID, reaction)
-
-	// ตรวจสอบสิทธิ์การส่งข้อความก่อน
-	canSendReaction, err := h.roomService.CanUserSendReaction(ctx, client.RoomID, client.UserID.Hex())
-	if err != nil {
-		log.Printf("[WS] Error checking reaction permissions for user %s in room %s: %v", 
-			client.UserID.Hex(), client.RoomID.Hex(), err)
-		return
-	}
-
-	// ถ้าไม่มี canSendReaction ก่็สามารถส่งได้
-	if !canSendReaction {
-		log.Printf("[WS] User %s cannot send reactions in read-only room %s", 
-			client.UserID.Hex(), client.RoomID.Hex())
-		
-		// Send error message to user
-		errorEvent := model.Event{
-			Type: "error",
-			Payload: model.ChatNoticePayload{
-				Room: model.RoomInfo{ID: client.RoomID.Hex()},
-				Message: "Reactions are not allowed in read-only rooms",
-				Timestamp: time.Now(),
-			},
-			Timestamp: time.Now(),
-		}
-		
-		if eventData, err := json.Marshal(errorEvent); err == nil {
-			client.Conn.WriteMessage(websocket.TextMessage, eventData)
-		}
-		return
-	}
-
-	// ตรวจสอบสิทธิ์การส่งข้อความก่อน
-	if h.restrictionService.IsUserBanned(ctx, client.UserID, client.RoomID) {
-		log.Printf("[WS] Banned user %s tried to react in room %s", client.UserID.Hex(), client.RoomID.Hex())
-		return
-	}
-
-	if h.restrictionService.IsUserMuted(ctx, client.UserID, client.RoomID) {
-		log.Printf("[WS] Muted user %s tried to react in room %s", client.UserID.Hex(), client.RoomID.Hex())
-		return
-	}
-
-	// Create reaction
-	reactionObj := &model.MessageReaction{
-		UserID:    client.UserID,
-		Reaction:  reaction,
-		Timestamp: time.Now(),
-	}
-
-	// Convert messageID to ObjectID
-	if messageObjID, err := primitive.ObjectIDFromHex(messageID); err == nil {
-		reactionObj.MessageID = messageObjID
-		
-		// Handle reaction
-		if err := h.reactionService.HandleReaction(ctx, reactionObj); err != nil {
-			log.Printf("[WS] Failed to handle reaction: %v", err)
-		}
-	} else {
-		log.Printf("[WS] Invalid message ID for reaction: %s", messageID)
-	}
-}
 
 // handleUnsendMessage จะต้องมีการตรวจสอบสิทธิ์การส่งข้อความก่อน
 func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.ClientObject, ctx context.Context) {

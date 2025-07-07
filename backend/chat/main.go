@@ -181,7 +181,7 @@ func main() {
 	roomController.NewRoomController(roomsGroup, roomSvc, rbacMiddleware, db)
 	roomController.NewGroupRoomController(roomsGroup, groupRoomSvc, roomSvc, rbacMiddleware)
 	stickerController.NewStickerController(stickersGroup, stickerSvc, rbacMiddleware)
-	chatController.NewChatController(chatGroup, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc)
+	chatController.NewChatController(chatGroup, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc, db)
 	uploadController.NewUploadController(uploadsGroup, rbacMiddleware, chatSvc, userSvc)
 	evoucherController.NewEvoucherController(evouchersGroup, evoucherSvc, roomSvc, rbacMiddleware)
 	// Restriction controller (was moderation)
@@ -190,7 +190,7 @@ func main() {
 	chatController.NewHealthController(chatGroup, chatSvc, rbacMiddleware)
 
 	// Create WebSocket controller using wsChatGroup
-	chatController.NewChatController(wsChatGroup, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc)
+	chatController.NewChatController(wsChatGroup, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc, db)
 
 	// Log all registered routes
 	logRegisteredRoutes(app)

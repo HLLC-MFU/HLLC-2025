@@ -84,6 +84,7 @@ func NewChatController(
 	rbac middleware.IRBACMiddleware,
 	connManager *connection.ConnectionManager,
 	roleService *userService.RoleService,
+	mongo *mongo.Database,
 ) *ChatController {
 	controller := &ChatController{
 		BaseController: decorators.NewBaseController(app, ""),
@@ -95,7 +96,6 @@ func NewChatController(
 		roleService:    roleService,
 	}
 	controller.wsHandler = NewWebSocketHandler(
-		chatService,
 		chatService,
 		chatService,
 		roomService,

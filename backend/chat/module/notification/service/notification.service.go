@@ -264,51 +264,6 @@ func (ns *NotificationService) createUnsendNotification(room chatModel.Notificat
 	return chatModel.NewUnsendNotification(room, sender, unsendMessage, receiverID)
 }
 
-// ==================== REACTION NOTIFICATION ====================
-
-// SendOfflineReactionNotification sends a reaction notification to offline user
-func (ns *NotificationService) SendOfflineReactionNotification(ctx context.Context, receiverID string, message *model.ChatMessage, reaction *model.MessageReaction) {
-	log.Printf("[NotificationService] Sending OFFLINE reaction notification: receiver=%s, message=%s", receiverID, message.ID.Hex())
-
-	// Get sender info
-	sender, err := ns.getUserById(ctx, reaction.UserID.Hex())
-	if err != nil {
-		log.Printf("[NotificationService] Failed to get sender info: %v", err)
-		return
-	}
-
-	// Get room info
-	room, err := ns.getRoomById(ctx, message.RoomID.Hex())
-	if err != nil {
-		log.Printf("[NotificationService] Failed to get room info: %v", err)
-		return
-	}
-
-	// Create notification components
-	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn)
-	notificationSender := chatModel.CreateNotificationSender(sender.ID, sender.Username, sender.FirstName, sender.LastName, nil)
-	notificationMessage := chatModel.CreateNotificationMessage(message.ID.Hex(), "", "", reaction.Timestamp)
-	
-	// Determine action (add/update/delete)
-	action := "add"
-	if reaction.Action != "" {
-		action = reaction.Action
-	} else if reaction.Reaction == "remove" {
-		action = "delete"
-	}
-
-	reactionInfo := chatModel.NotificationReactionInfo{
-		Action:    action,
-		ReactToID: message.ID.Hex(),
-		Emoji:     reaction.Reaction,
-	}
-	
-	// Add reaction info to message
-	notificationMessage.ReactionInfo = &reactionInfo
-	
-	payload := chatModel.NewReactionNotification(notificationRoom, notificationSender, notificationMessage, reactionInfo, receiverID)
-	ns.sendNotificationToKafka(ctx, receiverID, payload)
-}
 
 // ==================== LEGACY COMPATIBILITY METHODS ====================
 
@@ -375,8 +330,7 @@ func (ns *NotificationService) SendMessageNotification(ctx context.Context, rece
 
 // sendNotificationToKafka sends a structured notification to Kafka
 func (ns *NotificationService) sendNotificationToKafka(ctx context.Context, receiverID string, payload chatModel.NotificationPayload) {
-	log.Printf("[NotificationService] Sending notification to Kafka: receiver=%s, payloadType=%s", receiverID, payload.Type)
-
+	log.Printf("[NotificationService] Sending notification to Kafka: receiver=%s, payloadType=%s, topic=chat-notifications, payload=%+v", receiverID, payload.Type, payload)
 	topic := "chat-notifications"
 	err := ns.kafkaBus.Emit(ctx, topic, receiverID, payload)
 	if err != nil {
@@ -597,6 +551,8 @@ func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Contex
 	}
 	
 	payload := chatModel.NewMentionNotification(notificationRoom, notificationSender, notificationMessage, message.MentionInfo, receiverID)
+	log.Printf("[NotificationService] Payload to Kafka: %+v", payload)
+
 	ns.sendNotificationToKafka(ctx, receiverID, payload)
 	
 	log.Printf("[NotificationService] ✅ Sent mention notification to user %s", receiverID)
