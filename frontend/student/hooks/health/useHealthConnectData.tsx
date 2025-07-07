@@ -82,7 +82,7 @@ export async function fetchStepsFromHealthConnect(date: Date): Promise<{ steps: 
 
     return { steps };
   } catch (error) {
-    console.warn('[HealthConnect] Static fetch failed:', error);
+    console.error(`[HealthConnect] Static fetch failed ${error}`);
     return { steps: 0 };
   }
 }
