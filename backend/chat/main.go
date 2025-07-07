@@ -192,6 +192,19 @@ func main() {
 	// Health controller
 	chatController.NewHealthController(chatGroup, chatSvc, rbacMiddleware)
 
+	// Add WebSocket route directly to app (not in API group)
+	wsHandler := chatController.NewWebSocketHandler(
+		chatSvc,
+		chatSvc,
+		chatSvc,
+		roomSvc,
+		restrictionSvc,
+		connManager,
+		roleSvc,
+		rbacMiddleware,
+	)
+	app.Get("/chat/ws/:roomId", websocket.New(wsHandler.HandleWebSocket))
+
 	// Log all registered routes
 	logRegisteredRoutes(app)
 

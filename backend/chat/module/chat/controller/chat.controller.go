@@ -21,7 +21,6 @@ import (
 	userService "chat/module/user/service"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/websocket/v2"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -112,8 +111,7 @@ func (c *ChatController) setupRoutes() {
 	// Add the SetUserRoleInContext middleware to all routes
 	c.App.Use(c.rbac.SetUserRoleInContext())
 	
-	// Add RBAC middleware to WebSocket route
-	c.Get("/ws/:roomId", c.rbac.RequireReadOnlyAccess(), websocket.New(c.wsHandler.HandleWebSocket))
+	// WebSocket route is now handled in main.go directly
 	c.Post("/rooms/:roomId/stickers", c.handleSendSticker, c.rbac.RequireReadOnlyAccess())
 	c.Delete("/rooms/:roomId/cache", c.handleClearCache, c.rbac.RequireAdministrator())
 	
