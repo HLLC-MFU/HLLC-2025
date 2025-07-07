@@ -51,25 +51,31 @@ func (r *RBACMiddleware) getUserIDFromToken(ctx *fiber.Ctx) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return r.parseToken(tokenString)
+	userID, _, err := r.parseToken(tokenString)
+	return userID, err
+}
+
+// getUserRoleFromToken is a helper method to extract user role from JWT token using username
+func (r *RBACMiddleware) getUserRoleFromToken(ctx *fiber.Ctx) (string, error) {
+	tokenString, err := r.extractToken(ctx)
+	if err != nil {
+		return "", err
+	}
+	_, username, err := r.parseToken(tokenString)
+	if err != nil {
+		return "", err
+	}
+	return r.GetUserRoleByUsername(username)
 }
 
 // RequireWritePermission checks if user has write permission in read-only rooms
 func (r *RBACMiddleware) RequireWritePermission() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		userID, err := r.getUserIDFromToken(ctx)
+		role, err := r.getUserRoleFromToken(ctx)
 		if err != nil {
 			return ctx.Status(401).JSON(fiber.Map{
 				"error":   "UNAUTHORIZED",
 				"message": "Authentication required",
-			})
-		}
-
-		role, err := r.GetUserRole(userID)
-		if err != nil {
-			return ctx.Status(500).JSON(fiber.Map{
-				"error":   "INTERNAL_ERROR",
-				"message": "Failed to verify user role",
 			})
 		}
 
@@ -87,19 +93,11 @@ func (r *RBACMiddleware) RequireWritePermission() fiber.Handler {
 
 func (r *RBACMiddleware) RequireWritePermissionForEvoucher() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		userID, err := r.getUserIDFromToken(ctx)
+		role, err := r.getUserRoleFromToken(ctx)
 		if err != nil {
 			return ctx.Status(401).JSON(fiber.Map{
 				"error":   "UNAUTHORIZED",
 				"message": "Authentication required",
-			})
-		}
-
-		role, err := r.GetUserRole(userID)
-		if err != nil {
-			return ctx.Status(500).JSON(fiber.Map{
-				"error":   "INTERNAL_ERROR",
-				"message": "Failed to verify user role",
 			})
 		}
 
@@ -182,33 +180,61 @@ func (r *RBACMiddleware) GetUserRole(userID string) (string, error) {
 	return roleName, err
 }
 
+// GetUserRoleByUsername retrieves the role of a user by their username.
+func (r *RBACMiddleware) GetUserRoleByUsername(username string) (string, error) {
+	// First, find user by username
+	var user bson.M
+	err := r.db.Collection("users").FindOne(context.TODO(), bson.D{{Key: "username", Value: username}}).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return "", errors.New("user not found")
+		}
+		return "", err
+	}
+
+	// Get role ID from user document
+	roleID, ok := user["role"].(primitive.ObjectID)
+	if !ok {
+		return "", errors.New("user has no role assigned")
+	}
+
+	// Find role by role ID
+	var role bson.M
+	err = r.db.Collection("roles").FindOne(context.TODO(), bson.D{{Key: "_id", Value: roleID}}).Decode(&role)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return "", errors.New("role not found")
+		}
+		return "", err
+	}
+
+	// Get role name
+	roleName, ok := role["name"].(string)
+	if !ok {
+		return "", errors.New("role name not found")
+	}
+
+	log.Printf("[RBAC] Found role '%s' for user '%s'", roleName, username)
+	return roleName, nil
+}
+
 // RequireRoles (refactored)
 func (r *RBACMiddleware) RequireRoles(allowedRoles ...string) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		userID, err := r.getUserIDFromToken(ctx)
+		role, err := r.getUserRoleFromToken(ctx)
 		if err != nil {
 			return ctx.Status(401).JSON(fiber.Map{"error": "UNAUTHORIZED", "message": "Authentication required"})
 		}
-		objectID, _ := primitive.ObjectIDFromHex(userID)
-		cursor, err := r.db.Collection("users").Aggregate(context.TODO(), userWithRolePipeline(objectID))
-		if err != nil {
-			return ctx.Status(500).JSON(fiber.Map{"error": "INTERNAL_ERROR", "message": "DB error"})
-		}
-		defer cursor.Close(context.TODO())
-		roleName, username, err := extractRoleFromCursor(cursor)
-		if err != nil {
-			return ctx.Status(401).JSON(fiber.Map{"error": "UNAUTHORIZED", "message": "User not found"})
-		}
-		for _, role := range allowedRoles {
-			if roleName == role {
+		
+		for _, allowedRole := range allowedRoles {
+			if role == allowedRole {
 				return ctx.Next()
 			}
 		}
 		return ctx.Status(403).JSON(fiber.Map{
 			"error":         "INSUFFICIENT_PERMISSIONS",
 			"message":       "You don't have the required role",
-			"currentRole":   roleName,
-			"username":      username,
+			"currentRole":   role,
 		})
 	}
 }
@@ -227,30 +253,12 @@ func (r *RBACMiddleware) RequireAdminAndStaff() fiber.Handler {
 // SetUserRoleInContext creates a middleware that sets the user's role in the context
 func (r *RBACMiddleware) SetUserRoleInContext() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		// Extract JWT token
-		tokenString, err := r.extractToken(ctx)
+		// Get user role directly from token
+		role, err := r.getUserRoleFromToken(ctx)
 		if err != nil {
 			return ctx.Status(401).JSON(fiber.Map{
 				"error":   "UNAUTHORIZED",
 				"message": "Authentication token required",
-			})
-		}
-
-		// Parse JWT token to get user ID
-		userID, err := r.parseToken(tokenString)
-		if err != nil {
-			return ctx.Status(401).JSON(fiber.Map{
-				"error":   "UNAUTHORIZED",
-				"message": "Invalid authentication token",
-			})
-		}
-
-		// Get user role
-		role, err := r.GetUserRole(userID)
-		if err != nil {
-			return ctx.Status(500).JSON(fiber.Map{
-				"error":   "INTERNAL_ERROR",
-				"message": "Failed to get user role",
 			})
 		}
 
@@ -291,7 +299,7 @@ func (r *RBACMiddleware) extractToken(c *fiber.Ctx) (string, error) {
 }
 
 // Parse JWT token and extract user ID
-func (r *RBACMiddleware) parseToken(tokenString string) (string, error) {
+func (r *RBACMiddleware) parseToken(tokenString string) (string, string, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	log.Printf("[RBAC] Using JWT_SECRET: %s", jwtSecret)
 
@@ -305,16 +313,16 @@ func (r *RBACMiddleware) parseToken(tokenString string) (string, error) {
 
 	if err != nil {
 		log.Printf("[RBAC] JWT parse error: %v", err)
-		return "", err
+		return "", "", err
 	}
 
 	if claims, ok := token.Claims.(*JwtClaims); ok && token.Valid {
 		log.Printf("[RBAC] JWT claims parsed successfully: sub=%s username=%s", claims.Sub, claims.Username)
-		return claims.Sub, nil
+		return claims.Sub, claims.Username, nil
 	}
 
 	log.Printf("[RBAC] Invalid token claims")
-	return "", errors.New("invalid token claims")
+	return "", "", errors.New("invalid token claims")
 }
 
 // ExtractUserIDFromContext extracts userID from JWT token in any context (HTTP or WebSocket)
@@ -342,7 +350,7 @@ func (r *RBACMiddleware) ExtractUserIDFromContext(ctx interface{}) (string, erro
 	}
 
 	// Parse token to get userID
-	userID, err := r.parseToken(tokenString)
+	userID, _, err := r.parseToken(tokenString)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse token: %w", err)
 	}
@@ -367,7 +375,7 @@ func (r *RBACMiddleware) ExtractUserIDFromToken(tokenString string) (string, err
 		return "", errors.New("token string is empty")
 	}
 
-	userID, err := r.parseToken(tokenString)
+	userID, _, err := r.parseToken(tokenString)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse token: %w", err)
 	}
