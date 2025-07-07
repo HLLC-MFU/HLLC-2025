@@ -18,7 +18,7 @@ import {
   Eye,
   Map,
   ChevronDown,
-} from 'lucide-react-native';
+} from '@tamagui/lucide-icons';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { t } from 'i18next';
 

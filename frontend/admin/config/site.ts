@@ -17,7 +17,9 @@ import {
   HandCoins,
   Flower,
   BadgeCent,
-  Footprints
+  Footprints,
+  MessageCircle,
+  Smile
 } from "lucide-react";
 
 import type { NavSection } from "@/types/nav";
@@ -69,6 +71,12 @@ export const siteConfig: {
       section: "Lamduan",
       items: [
         { label: "Lamduan flowers" , href: "/lamduanflowers" , icon: Flower , permission:"lamduanflowers:read"},
+      ],
+    },
+    {
+      section: "Chat System",
+      items: [
+        { label: "Chat", href: "/chat", icon: MessageCircle, permission: "chat:read" },
       ],
     },
     {

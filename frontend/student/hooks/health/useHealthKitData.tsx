@@ -34,6 +34,7 @@ export const useHealthKitData = (date: Date) => {
       if (err || !available) return;
       AppleHealthKit.initHealthKit(permissions, (err) => {
         if (!err) setHasPermission(true);
+        else console.error('HealthKit init failed:', err);
       });
     });
   }, []);

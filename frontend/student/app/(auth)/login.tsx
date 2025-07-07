@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { useToastController } from '@tamagui/toast';
 import provincesData from '@/data/provinces.json';
+import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
 export default function LoginScreen() {
   // State
   const [username, setUsername] = useState('');
@@ -145,7 +146,6 @@ export default function LoginScreen() {
     }
   };
 
-
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -177,32 +177,23 @@ export default function LoginScreen() {
         setIsProvinceSheetOpen={setIsProvinceSheetOpen}
         onRegister={handleRegister}
       />
-      {/* <Sheet
-        open={isForgotPasswordSheetOpen}
-        onOpenChange={setIsForgotPasswordSheetOpen}
-        snapPoints={[100]}
-        position={0}
-        dismissOnSnapToBottom
-        modal
-      >
-        <Sheet.Overlay />
-        <ResetPasswordForm
-          username={resetUsername}
-          setUsername={setResetUsername}
-          password={resetPasswordValue}
-          setPassword={setResetPasswordValue}
-          confirmPassword={resetConfirmPassword}
-          setConfirmPassword={setResetConfirmPassword}
-          secret={resetSecret}
-          setSecret={setResetSecret}
-          provinces={provinces}
-          isProvinceSheetOpen={isResetProvinceSheetOpen}
-          setIsProvinceSheetOpen={setIsResetProvinceSheetOpen}
-          isLoading={isLoading}
-          onReset={handleResetPassword}
-          onClose={() => setIsForgotPasswordSheetOpen(false)}
-        />
-      </Sheet> */}
+
+      <ResetPasswordForm 
+      open={isForgotPasswordSheetOpen}
+      onOpenChange={setIsForgotPasswordSheetOpen}
+      username={resetUsername}
+      setUsername={setResetUsername}
+      password={resetPasswordValue}
+      setPassword={setResetPasswordValue}
+      confirmPassword={resetConfirmPassword}
+      setConfirmPassword={setResetConfirmPassword}
+      secret={resetSecret}
+      setSecret={setResetSecret}
+      provinces={provinces}
+      isProvinceSheetOpen={isProvinceSheetOpen}
+      setIsProvinceSheetOpen={setIsProvinceSheetOpen}
+      onResetPassword={handleResetPassword}
+      />
     </KeyboardAvoidingView>
   );
 }
