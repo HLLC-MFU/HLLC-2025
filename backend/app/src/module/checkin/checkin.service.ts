@@ -13,6 +13,7 @@ import {
 import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
 import { queryAll } from 'src/pkg/helper/query.util';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
+import path from 'path';
 
 @Injectable()
 export class CheckinService {
@@ -108,11 +109,17 @@ export class CheckinService {
         Promise.resolve([
           {
             path: 'user',
-            populate: {
-              path: 'metadata.major',
-              model: 'Major',
-              populate: { path: 'school' },
-            },
+            populate: [
+              {
+                path: 'metadata.major',
+                model: 'Major',
+                populate: { path: 'school' },
+              },
+              {
+                path: 'role',
+                model: 'Role',
+              },
+            ],
           },
           { path: 'staff' },
           { path: 'activity' },
@@ -123,8 +130,12 @@ export class CheckinService {
   async getCheckinCountByActivity() {
     // หาค่าไม่ซ้ำของ actvity จาก checkin
     const activityIds = await this.checkinModel.distinct('activity');
-    const studentRole = await this.roleModel.findOne({ name: { $in: ['student', 'Student'] } });
-    const studentCount = await this.userModel.countDocuments({ role: studentRole?._id,});
+    const studentRole = await this.roleModel.findOne({
+      name: { $in: ['student', 'Student'] },
+    });
+    const studentCount = await this.userModel.countDocuments({
+      role: studentRole?._id,
+    });
 
     // หากิจกรรมที่มี ID ตรงกับ activityIds แล้วดึงชื่อกิจกรรม
     const activities = await this.activityModel
@@ -147,11 +158,17 @@ export class CheckinService {
           })
           .lean();
 
-        const studentCheckinCount = checkins.filter(
-          (c) => ['student', 'Student'].includes((c.user as PopulatedUser)?.role?.name || '')).length;
+        const studentCheckinCount = checkins.filter((c) =>
+          ['student', 'Student'].includes(
+            (c.user as PopulatedUser)?.role?.name || '',
+          ),
+        ).length;
 
-        const internCheckinCount = checkins.filter(
-        (c) => ['intern', 'Intern'].includes((c.user as PopulatedUser)?.role?.name || '')).length;
+        const internCheckinCount = checkins.filter((c) =>
+          ['intern', 'Intern'].includes(
+            (c.user as PopulatedUser)?.role?.name || '',
+          ),
+        ).length;
 
         const notCheckin = studentCount - studentCheckinCount;
 

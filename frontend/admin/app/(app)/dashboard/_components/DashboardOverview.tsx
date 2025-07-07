@@ -17,7 +17,7 @@ function CardWithPie({ label, value, icon, colors }: CardProp) {
   return (
     <Card className="w-full h-full rounded-2xl flex-row flex items-center gap-4 p-5">
       <div
-        className={`p-4 rounded-2xl bg-${colors} text-${colors.replace('100', '600')} shadow-inner`}
+        className={`p-4 rounded-xl bg-${colors} text-${colors.replace('100', '600')} shadow-inner`}
       >
         {icon}
       </div>

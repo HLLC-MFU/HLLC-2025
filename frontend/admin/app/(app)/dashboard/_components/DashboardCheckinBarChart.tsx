@@ -1,3 +1,4 @@
+import { useActivities } from '@/hooks/useActivities';
 import { useCheckin } from '@/hooks/useCheckin';
 import {
   Button,
@@ -21,9 +22,11 @@ import {
   Legend,
   LabelList,
 } from 'recharts';
+import * as XLSX from 'xlsx';
 
 export default function CheckinBarChart() {
   const { checkin, checkinStats } = useCheckin();
+  const { activities } = useActivities()
   const [page, setPage] = useState(1);
   const rowsPerPage = 5;
 
@@ -38,9 +41,7 @@ export default function CheckinBarChart() {
             <p className="text-primary">
               Freshers Checked In : {studentCheckin}{' '}
             </p>
-            <p className="text-danger">
-              Freshers Not Checked In: {notCheckin}
-            </p>
+            <p className="text-danger">Freshers Not Checked In: {notCheckin}</p>
           </CardBody>
           <Divider />
           <CardFooter>
@@ -60,42 +61,56 @@ export default function CheckinBarChart() {
   }));
 
   const downloadCSV = () => {
+    // 1. ดึงชื่อกิจกรรมทั้งหมดจากข้อมูล activity
     const activityNames = Array.from(
-      new Set(checkin.map((c) => c.activity?.name?.en || 'Unknown')),
+      new Set(activities.map((c) => c.name.en || 'Unknown Activity')),
     );
 
-    // สมมติ user ใช้ username เป็น key
+    // สร้าง Map เพื่อเก็บว่า User คนไหน Check-in กิจกรรมอะไรบ้าง
     const userActivityMap: Record<string, Set<string>> = {};
-
     checkin.forEach((c) => {
       const username = c.user?.username || '';
-      const activityName = c.activity?.name?.en || 'Unknown';
-      if (!userActivityMap[username]) {
-        userActivityMap[username] = new Set();
+      const activityName = c.activity.name.en || 'Unknown Activity';
+      if (username) {
+        // ตรวจสอบให้แน่ใจว่า username ไม่ว่าง
+        if (!userActivityMap[username]) {
+          userActivityMap[username] = new Set();
+        }
+        userActivityMap[username].add(activityName);
       }
-      userActivityMap[username].add(activityName);
     });
 
-    // แปลง checkin เป็น unique user list
-    const uniqueUsers = Array.from(
-      new Set(checkin.map((c) => c.user?.username || '')),
-    );
+    // เตรียมข้อมูลสำหรับ Student และ Intern แยกกัน
+    const studentsData: any[] = [];
+    const internsData: any[] = [];
 
-    const dataToExport = uniqueUsers.map((username) => {
-      // หา metadata จาก user แรกที่เจอ username นี้
+    // สร้าง Set ของ username ที่ไม่ซ้ำกัน เพื่อประมวลผลแต่ละ user เพียงครั้งเดียว
+    const uniqueUsernames = Array.from(
+      new Set(checkin.map((c) => c.user?.username || '')),
+    ).filter(Boolean); 
+
+    uniqueUsernames.forEach((username) => {
+      // หาข้อมูล user จาก checkin แรกที่เจอ username นี้
       const userCheckins = checkin.filter((c) => c.user?.username === username);
       const firstUser = userCheckins[0]?.user;
-      const metadata = Array.isArray(firstUser?.metadata)
-        ? firstUser.metadata[0]
-        : firstUser?.metadata;
 
-      // สร้าง object
+      // ข้ามไปถ้าไม่มีข้อมูล user หรือ username ว่าง
+      if (!firstUser || !username) {
+        return;
+      }
+
+      // ดึง metadata (major, school)
+      const metadata = Array.isArray(firstUser.metadata)
+        ? firstUser.metadata[0]
+        : firstUser.metadata;
+
+      // สร้างข้อมูลพื้นฐานของ user
       const baseData: Record<string, string> = {
         'Student ID': username,
         Name: [
-          firstUser?.name?.first || '',
-          firstUser?.name?.middle || '',
-          firstUser?.name?.last || '',
+          firstUser.name?.first || '',
+          firstUser.name?.middle || '',
+          firstUser.name?.last || '',
         ]
           .filter(Boolean)
           .join(' '),
@@ -103,40 +118,45 @@ export default function CheckinBarChart() {
         School: metadata?.major?.school?.name?.en || '',
       };
 
-      // เพิ่ม column กิจกรรมเป็น ✓ หรือ ว่าง
+      // เพิ่มคอลัมน์กิจกรรมเป็น '1' (มี check-in) หรือ '0' (ไม่มี check-in)
       activityNames.forEach((actName) => {
         baseData[actName] = userActivityMap[username]?.has(actName) ? '1' : '0';
       });
 
-      return baseData;
+      // ตรวจสอบ role และเพิ่มข้อมูลลงใน array ที่ถูกต้อง
+      const userRole = firstUser.role?.name?.toLowerCase();
+
+      if (userRole === 'student') {
+        studentsData.push(baseData);
+      } else if (userRole === 'intern') {
+        internsData.push(baseData);
+      }
     });
 
-    const headers = Object.keys(dataToExport[0]);
+    // สร้าง Workbook ใหม่
+    const wb = XLSX.utils.book_new();
 
-    const escapeValue = (val: string | number) =>
-      `"${String(val).replace(/"/g, '""')}"`; // escape double quotes
+    // ฟังก์ชันช่วยเพิ่ม Sheet
+    const addSheet = (data: any[], sheetName: string) => {
+      if (data.length > 0) {
+        // ตรวจสอบว่ามีข้อมูลจริง ๆ ก่อนสร้าง sheet
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      }
+    };
 
-    const csvContent = [
-      headers.map(escapeValue).join(','),
-      ...dataToExport.map((row) =>
-        headers
-          .map((header) =>
-            escapeValue((row as Record<string, any>)[header] || ''),
-          )
-          .join(','),
-      ),
-    ].join('\n');
+    // เพิ่ม Sheet สำหรับ Student และ Intern เท่านั้น
+    addSheet(studentsData, 'Students');
+    addSheet(internsData, 'Interns');
 
-    const blob = new Blob(['\uFEFF' + csvContent], {
-      type: 'text/csv;charset=utf-8;',
-    });
-    const url = URL.createObjectURL(blob);
+    // ตรวจสอบว่ามี sheet อย่างน้อย 1 sheet ก่อนจะบันทึก
+    if (wb.SheetNames.length === 0) {
+      alert('No data available for Students or Interns to export.');
+      return;
+    }
 
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `checkin_student_details.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    // เขียนไฟล์ Excel และดาวน์โหลด
+    XLSX.writeFile(wb, `checkin_student_intern_details.xlsx`);
   };
 
   const paginatedData = studentCheckinChartsData.slice(
@@ -213,9 +233,8 @@ export default function CheckinBarChart() {
             </BarChart>
           </ResponsiveContainer>
         </CardBody>
-        <CardFooter className=" flex justify-center items-center ">
+        <CardFooter className=" flex justify-center items-center pb-5 px-6 ">
           <Pagination
-            loop
             showControls
             showShadow
             siblings={2}

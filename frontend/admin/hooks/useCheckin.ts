@@ -13,7 +13,7 @@ export function useCheckin() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiRequest<{ data: Checkin[] }>( '/checkins', 'GET');
+      const response = await apiRequest<{ data: Checkin[] }>( '/checkins?limit=0', 'GET');
       setCheckin(Array.isArray(response.data?.data) ? response.data.data : []);
     } catch (err) {
       addToast({

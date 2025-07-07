@@ -278,7 +278,7 @@ export interface QuestionTypeOption {
 export interface MockFilterData {
     userTypes: string[];
     schools: string[];
-    majors: string[];
+    majors: { name: string; school: string }[];
 }
 
 export interface UserInAnswer {

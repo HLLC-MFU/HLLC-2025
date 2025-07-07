@@ -8,7 +8,6 @@ import ReportChart  from './_components/DashboardReportChart';
 import Overview from './_components/DashboardOverview';
 import CheckinBarChart from './_components/DashboardCheckinBarChart';
 import StudentChart from './_components/DashbaordStudentChart';
-import { AccordionPretest } from './_components/AccordionPretest';
 
 export default function DashboardPage() {
 
@@ -19,11 +18,10 @@ export default function DashboardPage() {
         icon={<LayoutDashboard />}
       />
       <Overview/>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6"> 
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-6 md:gap-6">
         <StudentChart />
         <CheckinBarChart />
       </div>
-
       <h1 className=" text-2xl font-semibold my-6">Assessments</h1>
       <div className="mt-6">
         <Accordion
@@ -38,7 +36,7 @@ export default function DashboardPage() {
             title="Pretest Results"
             className="font-medium mb-2"
           >
-            <AccordionPretest />
+            <AssessmentOverviewDashboard type="pretest" loading={false} />
           </AccordionItem>
 
           <AccordionItem
