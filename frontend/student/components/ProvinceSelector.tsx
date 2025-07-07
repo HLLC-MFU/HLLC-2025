@@ -1,7 +1,8 @@
 import React, { useRef, useCallback, useEffect } from "react";
 import { Button, YStack, XStack, SizableText, Text } from "tamagui";
-import BottomSheet, { BottomSheetModal, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetModal, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import { Province } from "@/types/auth";
+import { useTranslation } from "react-i18next";
 
 interface ProvinceSelectorProps {
   isOpen: boolean;
@@ -20,7 +21,6 @@ export const ProvinceSelector = ({
 }: ProvinceSelectorProps) => {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
 
-  // เปิด/ปิด modal ให้ถูกต้อง
   useEffect(() => {
     if (isOpen) {
       bottomSheetRef.current?.present();  // เรียก present() เพื่อเปิด modal
@@ -38,6 +38,7 @@ export const ProvinceSelector = ({
     },
     [onOpenChange]
   );
+  const {t} = useTranslation();
 
   return (
     <BottomSheetModal
@@ -59,7 +60,7 @@ export const ProvinceSelector = ({
           }}
           chromeless
         >
-          ปิด
+          {t("global.close")}
         </Button>
       </XStack>
 

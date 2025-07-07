@@ -62,6 +62,11 @@ export class SponsorsController {
     return this.sponsorsService.findAllSponsors();
   }
 
+  @Get(':id')
+  async getSponsorById(@Param('id') id: string) {
+    return this.sponsorsService.findSponsorById(id);
+  }
+
   @Get('type/:typeId')
   async getSponsorsByType(@Param('typeId') typeId: string) {
     const sponsors = await this.sponsorsService.findSponsorsByType(typeId);

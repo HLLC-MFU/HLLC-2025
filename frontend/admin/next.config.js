@@ -11,14 +11,8 @@ const nextConfig = {
       bodySizeLimit: '5mb',
     },
   },
-  // basePath: '/ihX0S043',
-  // assetPrefix: '/ihX0S043',
-  // images: {
-  //     unoptimized: true,
-  // },
-  // publicRuntimeConfig: {
-  //     basePath: '/ihX0S043',
-  // },
+  basePath: process.env.NEXT_BASE_PATH || '',
+  assetPrefix: process.env.NEXT_BASE_PATH || '',
 };
 
 module.exports = nextConfig;

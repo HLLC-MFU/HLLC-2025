@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   RefreshControl,
   FlatList,
@@ -21,7 +20,7 @@ import { IEvoucher, IEvoucherCode } from '@/types/evoucher';
 import { useTranslation } from 'react-i18next';
 import { YStack } from 'tamagui';
 
-export default function EvoucherPage() {
+export default function EvoucherScreen() {
   // รวม modalState
   const [modalState, setModalState] = useState<{
     show: boolean;
