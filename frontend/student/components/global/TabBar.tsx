@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
-type AllowedRoutes = "/" | "/qrcode" | "/evoucher" | "/chat" | "/activities";
+type AllowedRoutes = "/" | "/qrcode" | "/evoucher" | "/chat" | "/step-counter" | "/activities";
 
 
 export default function GlassTabBar() {

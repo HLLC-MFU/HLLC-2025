@@ -1,5 +1,6 @@
 import { SafeAreaView, View, Text, StyleSheet, Alert, useWindowDimensions } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 
 import QRCodeGenerator from '@/components/qrcode/generator';
 import { TouchableOpacity } from 'react-native';
@@ -11,9 +12,9 @@ import { apiRequest } from '@/utils/api';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTranslation } from 'react-i18next';
-import { useLocalSearchParams } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 
-export default function QRCodePage() {
+export default function QRCodeScreen() {
   const { user, getProfile } = useProfile();
   const {t} = useTranslation();
   const params = useLocalSearchParams();
@@ -28,6 +29,10 @@ export default function QRCodePage() {
   const [scanning, setScanning] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const { language } = useLanguage();
+  const [facing, setFacing] = useState<'back' | 'front'>('back');
+  const router = useRouter();
+  const scanningRef = useRef(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     getProfile();
@@ -40,6 +45,13 @@ export default function QRCodePage() {
     }
   }, [params.tab]);
 
+  // ปิดกล้องเมื่อออกจากหน้า qrcode (เช็ค pathname)
+  useEffect(() => {
+    if (!pathname.includes('/qrcode')) {
+      resetScanner()
+    }
+  }, [pathname]);
+
   useEffect(() => {
     const currentIndex = selectedTab === 'qr' ? 0 : 1;
     offsetX.value = withSpring(currentIndex * tabWidth, { damping: 15 });
@@ -49,6 +61,13 @@ export default function QRCodePage() {
     }, 180);
   }, [selectedTab]);
 
+  // Auto-request camera permission when switching to scan tab
+  useEffect(() => {
+    if (selectedTab === 'scan' && permission && !permission.granted) {
+      requestPermission();
+    }
+  }, [selectedTab, permission, requestPermission]);
+
   const animatedPillStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: offsetX.value + tabBarPadding },
@@ -56,54 +75,112 @@ export default function QRCodePage() {
     ],
   }));
 
-  // สำหรับกล้อง
+  // --- Utility Functions ---
+  function showErrorAlert(message: string, resetScanner: () => void) {
+    Alert.alert('Warning', message);
+    resetScanner();
+  }
+
+  function validateAndParseHLLCQR(data: string): { qrPath: string, qrPayload: string } | null {
+    if (!data.startsWith('hllc:')) return null;
+    const jsonStr = data.slice(5);
+    let qrObj: Record<string, string>;
+    try {
+      qrObj = JSON.parse(jsonStr);
+    } catch {
+      return null;
+    }
+    const [qrPath, qrPayload] = Object.entries(qrObj)[0] || [];
+    if (!qrPath || !qrPayload) return null;
+    return { qrPath, qrPayload };
+  }
+
+  // --- Helper to reset scanner state ---
+  const resetScanner = () => {
+    setShowScanner(false);
+    setSelectedTab('qr');
+    scanningRef.current = false;
+    setScanning(false);
+  };
+
+  // --- Helper to go to coin-hunting modal ---
+  const goToCoinHuntingModal = (params: Record<string, any>) => {
+    resetScanner();
+    setTimeout(() => {
+      router.replace({ pathname: '/coin-hunting', params });
+    }, 100);
+  };
+
+  // --- Main scan handler ---
   const handleBarcodeScanned = async ({ data }: { data: string }) => {
-    if (scanning) return;
+    if (scanningRef.current) return;
+    scanningRef.current = true;
     setScanning(true);
+
+    // validate QR
+    const parsed = validateAndParseHLLCQR(data);
+    if (!parsed) {
+      showErrorAlert('This qr code not join hllc', resetScanner);
+      return;
+    }
+    const { qrPath, qrPayload } = parsed;
+
     try {
       if (!user?.data?.[0]?._id) {
-        Alert.alert('ผิดพลาด', 'ไม่พบข้อมูลผู้ใช้');
-        setSelectedTab('qr');
+        showErrorAlert('User not found', resetScanner);
         return;
       }
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('ต้องอนุญาต', 'ต้องอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็คอิน');
-        setSelectedTab('qr');
+        showErrorAlert('ต้องอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็คอิน', resetScanner);
         return;
       }
       const location = await Location.getCurrentPositionAsync({});
       const userLat = location.coords.latitude;
       const userLong = location.coords.longitude;
       const userId = user.data[0]._id;
-      const landmark = data;
-      const res = await apiRequest<{ evoucher?: { code: string } | null }>(
-        '/coin-collections/collect',
-        'POST',
-        { user: userId, landmark, userLat, userLong }
-      );
-      if (res.statusCode === 200 || res.statusCode === 201) {
-        Alert.alert('สำเร็จ', 'สแกนสำเร็จ!');
-        setSelectedTab('qr');
-      } else if (res.statusCode === 409 || (res.message && res.message.toLowerCase().includes('already'))) {
-        Alert.alert('แจ้งเตือน', 'คุณได้เช็คอินจุดนี้แล้ว');
-        setSelectedTab('qr');
-      } else if (res.statusCode === 204 || (res.message && res.message.toLowerCase().includes('no new evoucher'))) {
-        Alert.alert('แจ้งเตือน', 'ไม่มี evoucher สำหรับจุดนี้');
-        setSelectedTab('qr');
-      } else if (res.statusCode === 403 || (res.message && res.message.toLowerCase().includes('too far'))) {
-        Alert.alert('แจ้งเตือน', 'คุณอยู่ไกลเกินไป');
-        setSelectedTab('qr');
+      const path = `/${qrPath}`;
+      let body: any = { user: userId, userLat, userLong };
+      const payloadTrimmed = qrPayload.trim();
+      if (payloadTrimmed.startsWith('{') || payloadTrimmed.startsWith('[')) {
+        try {
+          const parsedPayload = JSON.parse(payloadTrimmed);
+          body = { ...body, ...parsedPayload };
+        } catch (e) {
+          showErrorAlert('QR code payload ไม่ถูกต้อง', resetScanner);
+          return;
+        }
       } else {
-        Alert.alert('ผิดพลาด', res.message || 'Check in failed');
-        setSelectedTab('qr');
+        body = qrPath === 'coin-collections/collect'
+          ? { ...body, landmark: qrPayload.trim() }
+          : { ...body, id: qrPayload.trim() };
+      }
+      const res = await apiRequest<{ evoucher?: { code: string } | null }>(
+        path,
+        'POST',
+        body
+      );
+      if (qrPath === 'coin-collections/collect') {
+        if (res.statusCode === 200 || res.statusCode === 201) {
+          goToCoinHuntingModal({ modal: 'success', code: res?.data?.evoucher?.code });
+        } else if (res.statusCode === 409 || (res.message && res.message.toLowerCase().includes('already'))) {
+          goToCoinHuntingModal({ modal: 'alert', type: 'already-collected' });
+        } else if (res.statusCode === 204 || (res.message && res.message.toLowerCase().includes('no new evoucher'))) {
+          goToCoinHuntingModal({ modal: 'alert', type: 'no-evoucher' });
+        } else if (res.statusCode === 403 || (res.message && res.message.toLowerCase().includes('too far'))) {
+          goToCoinHuntingModal({ modal: 'alert', type: 'too-far' });
+        } else if (res.statusCode === 429 || (res.message && res.message.toLowerCase().includes('cooldown'))) {
+          goToCoinHuntingModal({ modal: 'alert', type: 'cooldown' });
+        } else {
+          showErrorAlert(res.message || 'Check in failed', resetScanner);
+        }
+        return;
       }
     } catch (e) {
-      Alert.alert('ผิดพลาด', 'Check in failed');
-      setSelectedTab('qr');
-    } finally {
-      setScanning(false);
+      showErrorAlert('Scan failed', resetScanner);
+      return;
     }
+    resetScanner();
   };
 
   return (
@@ -199,6 +276,27 @@ export default function QRCodePage() {
             maxWidth: '90%',
           }}
         >
+          {/* Camera Switch Button */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              zIndex: 10,
+              backgroundColor: 'rgba(255,255,255,0.18)',
+              borderRadius: 24,
+              padding: 8,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.3)',
+              shadowColor: '#000',
+              shadowOpacity: 0.12,
+              shadowRadius: 4,
+            }}
+            onPress={() => setFacing(facing === 'back' ? 'front' : 'back')}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="flip-camera-ios" size={28} color="#fff" />
+          </TouchableOpacity>
           <View style={{ width: 260, height: 260, borderRadius: 16, overflow: 'hidden', marginBottom: 18, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center' }}>
             {!permission ? (
               <Text style={{ color: '#fff', textAlign: 'center' }}>Requesting camera permission...</Text>
@@ -216,7 +314,7 @@ export default function QRCodePage() {
               <View style={{ width: '100%', height: '100%', borderRadius: 16, overflow: 'hidden' }}>
                 <CameraView
                   style={{ width: '100%', height: '100%' }}
-                  facing="back"
+                  facing={facing}
                   onBarcodeScanned={scanning ? undefined : handleBarcodeScanned}
                 />
               </View>

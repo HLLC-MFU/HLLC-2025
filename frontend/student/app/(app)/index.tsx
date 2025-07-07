@@ -41,7 +41,6 @@ export default function HomeScreen() {
         // Optionally sync immediately on startup
         await syncStepsOnStartup();
       } catch (e) {
-        console.error('Failed to setup background task:', e);
       }
     }
 
@@ -64,7 +63,7 @@ export default function HomeScreen() {
         healthData={{ steps, deviceMismatch }}
         progressImage={assetsImage.progress}
         onPress={() => {
-          console.log('Login pressed!');
+          router.push('/profile')
         }}
       />
 

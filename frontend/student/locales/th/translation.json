@@ -1,9 +1,10 @@
 {
-    "global":{
+    "global": {
         "loading": "กำลังโหลด...",
         "error": "เกิดข้อผิดพลาด",
         "success": "สำเร็จ",
         "cancel": "ยกเลิก",
+        "close": "ปิด",
         "confirm": "ยืนยัน",
         "ok": "ตกลง",
         "yes": "ใช่",
@@ -17,7 +18,21 @@
         "loginButton": "เข้าสู่ระบบ",
         "forgotPassword": "ลืมรหัสผ่าน?",
         "register": "ลงทะเบียน",
-        "contactUs": "ติดต่อเรา"
+        "contactUs": "ติดต่อเรา",
+        "policy": "โดยการดำเนินการต่อ คุณยอมรับว่าคุณได้อ่านและตกลงกับ <tos>ข้อกำหนดในการให้บริการ</tos> และ <privacy>นโยบายความเป็นส่วนตัว</privacy> ของเรา"
+    },
+    "resetPassword": {
+        "title": "รีเซ็ตรหัสผ่าน",
+        "subtitle": "กรุณากรอกรหัสนักศึกษาเพื่อรีเซ็ตรหัสผ่าน",
+        "username": "รหัสนักศึกษา",
+        "studentName": "ชื่อ-นามสกุล",
+        "verificationCode": "รหัสยืนยัน",
+        "newPassword": "รหัสผ่านใหม่",
+        "confirmPassword": "ยืนยันรหัสผ่านใหม่",
+        "province": "จังหวัด",
+        "resetButton": "ตั้งรหัสผ่านใหม่",
+        "loginPrompt": "มีบัญชีอยู่แล้ว?",
+        "backToLogin": "กลับไปยังหน้าล็อกอิน"
     },
     "register": {
         "title": "ลงทะเบียน",
@@ -68,7 +83,10 @@
         "subtitle": "กำลังมา เร็วๆนี้...",
         "backward": "ย้อนกลับ",
         "confirmTitle": "ยืนยันการใช้ E-Voucher",
-        "confirmMessage": "คุณแน่ใจหรือไม่ว่าต้องการใช้ E-Voucher นี้?"
+        "confirmMessage": "คุณแน่ใจหรือไม่ว่าต้องการใช้ E-Voucher นี้?",
+        "claim": "กดเพื่อรับ E-Voucher",
+        "claiming": "กำลังเคลม...",
+        "claimed": "คุณได้รับ E-Voucher แล้ว!"
     },
     "bottomNav": {
         "home": "หน้าแรก",

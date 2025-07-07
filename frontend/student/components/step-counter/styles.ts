@@ -3,12 +3,11 @@ import { StyleSheet, Dimensions, Platform } from 'react-native';
 const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
-  container: { flex: 1 ,backgroundColor: 'transparent' },
+  container: { flex: 1 ,backgroundColor: 'transparent', marginTop: 36 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: height * 0.01,
     paddingHorizontal: width * 0.045,
     marginTop: 0,
   },

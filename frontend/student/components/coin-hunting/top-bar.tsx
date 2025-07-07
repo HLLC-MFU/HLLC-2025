@@ -23,10 +23,6 @@ export default function TopBar({
             style={styles.stampIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconBtn} onPress={onLeaderboard ?? (() => router.push('./leaderboard'))}>
-          <Image source={require('@/assets/images/glyph.png')}
-          style={styles.stampIcon}/>
-        </TouchableOpacity>
       </View>
     </View>
   );
