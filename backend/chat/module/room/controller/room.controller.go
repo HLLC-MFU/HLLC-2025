@@ -35,7 +35,7 @@ type (
 )
 
 func NewRoomController(
-	app *fiber.App,
+	app fiber.Router,
 	roomService service.RoomService,
 	rbac middleware.IRBACMiddleware,
 	db *mongo.Database,
@@ -43,7 +43,7 @@ func NewRoomController(
 	uploadConfig := utils.GetModuleConfig("room")
 
 	controller := &RoomController{
-		BaseController:   decorators.NewBaseController(app, "/api/rooms"),
+		BaseController:   decorators.NewBaseController(app, ""),
 		roomService:      roomService,
 		rbac:             rbac,
 		db:               db,

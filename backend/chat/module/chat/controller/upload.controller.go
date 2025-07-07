@@ -40,13 +40,13 @@ type (
 )
 
 func NewUploadController(
-	app *fiber.App, 
+	app fiber.Router, 
 	rbac middleware.IRBACMiddleware, 
 	chatService UploadChatService,
 	userService UserService,
 ) *UploadController {
 	c := &UploadController{
-		BaseController: decorators.NewBaseController(app, "/api/uploads"),
+		BaseController: decorators.NewBaseController(app, ""),
 		uploadHandler:  utils.NewFileUploadHandler(utils.DefaultImageConfig()),
 		rbac:           rbac,
 		chatService:    chatService,

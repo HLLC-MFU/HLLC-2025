@@ -166,9 +166,10 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			// Add evoucher info if exists (matches ChatEventEmitter)
 			if msg.ChatMessage.EvoucherInfo != nil {
 				payload["evoucherInfo"] = map[string]interface{}{
-					"title":       msg.ChatMessage.EvoucherInfo.Title,
-					"description": msg.ChatMessage.EvoucherInfo.Description,
+					"message":     msg.ChatMessage.EvoucherInfo.Message,
 					"claimUrl":    msg.ChatMessage.EvoucherInfo.ClaimURL,
+					"sponsorImage": msg.ChatMessage.EvoucherInfo.SponsorImage,
+					"claimedBy":   msg.ChatMessage.EvoucherInfo.ClaimedBy,
 				}
 		}
 

@@ -24,14 +24,21 @@ interface EvoucherSelectionProps {
     evouchers: Evoucher[];
     selectedEvoucher: Evoucher | null;
     evoucherData: {
-        title: string;
-        description: string;
-        claimURL: string;
+        message: {
+            th: string;
+            en: string;
+        };
+        claimUrl: string;
+        sponsorImage: string;
     };
     loading: boolean;
     error: string | null;
     onEvoucherSelect: (evoucherId: string) => void;
-    onEvoucherDataChange: (data: { title: string; description: string; claimURL: string }) => void;
+    onEvoucherDataChange: (data: { 
+        message: { th: string; en: string }; 
+        claimUrl: string; 
+        sponsorImage: string; 
+    }) => void;
     onRefresh: () => void;
 }
 
@@ -188,38 +195,53 @@ export function EvoucherSelection({
                                 )}
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium text-default-600">Title</label>
-                                        <Input
-                                            value={evoucherData.title}
-                                            onChange={(e) => onEvoucherDataChange({...evoucherData, title: e.target.value})}
-                                            placeholder="Enter evoucher title"
-                                            className="mt-1"
-                                        />
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-sm font-medium text-default-600">Message (Thai)</label>
+                                            <Input
+                                                value={evoucherData.message.th}
+                                                onChange={(e) => onEvoucherDataChange({...evoucherData, message: { ...evoucherData.message, th: e.target.value }})}
+                                                placeholder="Enter message in Thai"
+                                                className="mt-1"
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="text-sm font-medium text-default-600">Message (English)</label>
+                                            <Input
+                                                value={evoucherData.message.en}
+                                                onChange={(e) => onEvoucherDataChange({...evoucherData, message: { ...evoucherData.message, en: e.target.value }})}
+                                                placeholder="Enter message in English"
+                                                className="mt-1"
+                                            />
+                                        </div>
+
+                                        {evoucherData.sponsorImage && (
+                                            <div>
+                                                <label className="text-sm font-medium text-default-600">Sponsor Image</label>
+                                                <div className="mt-1 flex items-center gap-2">
+                                                    <div className="w-8 h-8 bg-default-100 rounded flex items-center justify-center">
+                                                        <span className="text-xs text-default-500">IMG</span>
+                                                    </div>
+                                                    <span className="text-sm text-default-500">{evoucherData.sponsorImage}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
-                                        <label className="text-sm font-medium text-default-600">Description</label>
-                                        <Input
-                                            value={evoucherData.description}
-                                            onChange={(e) => onEvoucherDataChange({...evoucherData, description: e.target.value})}
-                                            placeholder="Enter evoucher description"
-                                            className="mt-1"
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2">
                                         <label className="text-sm font-medium text-default-600">Claim URL</label>
                                         <div className="flex gap-2 mt-1">
                                             <Input
-                                                value={evoucherData.claimURL}
-                                                onChange={(e) => onEvoucherDataChange({...evoucherData, claimURL: e.target.value})}
+                                                value={evoucherData.claimUrl}
+                                                onChange={(e) => onEvoucherDataChange({...evoucherData, claimUrl: e.target.value})}
                                                 placeholder="Claim URL will be auto-generated"
                                                 className="flex-1"
                                             />
                                             <Button
                                                 isIconOnly
                                                 variant="light"
-                                                onPress={() => window.open(evoucherData.claimURL, '_blank')}
-                                                isDisabled={!evoucherData.claimURL}
+                                                onPress={() => window.open(evoucherData.claimUrl, '_blank')}
+                                                isDisabled={!evoucherData.claimUrl}
                                             >
                                                 <ExternalLink size={16} />
                                             </Button>

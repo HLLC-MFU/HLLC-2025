@@ -17,9 +17,9 @@ type (
 	}
 )
 
-func NewUserController(app *fiber.App, service *service.UserService, rbac middleware.IRBACMiddleware) *UserController {
+func NewUserController(app fiber.Router, service *service.UserService, rbac middleware.IRBACMiddleware) *UserController {
 	controller := &UserController{
-		BaseController: decorators.NewBaseController(app, "/api/users"),
+		BaseController: decorators.NewBaseController(app, ""),
 		service: service,
 		rbac: rbac,
 	}
