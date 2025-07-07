@@ -75,7 +75,7 @@ type (
 )
 
 func NewChatController(
-	app *fiber.App,
+	app fiber.Router,
 	chatService *chatService.ChatService,
 	roomService RoomService,
 	stickerService StickerService,
@@ -85,7 +85,7 @@ func NewChatController(
 	roleService *userService.RoleService,
 ) *ChatController {
 	controller := &ChatController{
-		BaseController: decorators.NewBaseController(app, "/chat"),
+		BaseController: decorators.NewBaseController(app, ""),
 		chatService:    chatService,
 		roomService:    roomService,
 		stickerService: stickerService,

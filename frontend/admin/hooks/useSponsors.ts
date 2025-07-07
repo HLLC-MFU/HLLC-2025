@@ -31,9 +31,9 @@ export function useSponsors() {
     }
   };
 
-  // FetchEvoucherCodeBySponsorId
-  const fetchEvoucherCodeBySponsorId = async (id: string): Promise<EvoucherCode[]> => {
-    if (!id) {
+  // FetchEvoucherCodeBySponsorId - เปลี่ยนเป็นดึง sponsor info โดยตรง
+  const fetchEvoucherCodeBySponsorId = async (sponsorId: string): Promise<any[]> => {
+    if (!sponsorId) {
       console.error("Invalid sponsor ID");
       return [];
     }
@@ -41,10 +41,14 @@ export function useSponsors() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiRequest<{ data: EvoucherCode[] }>(`/sponsors/${id}/evoucher-codes`);
-      return Array.isArray(res.data) ? res.data : [];
+      // ดึง sponsor info โดยตรงจาก sponsors API
+      const res = await apiRequest<{ data: Sponsors }>(`/sponsors/${sponsorId}`, "GET");
+      if (res.data) {
+        return [res.data];
+      }
+      return [];
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch evoucher codes.');
+      setError(err.message || 'Failed to fetch sponsor info.');
       return [];
     } finally {
       setLoading(false);

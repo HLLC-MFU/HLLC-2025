@@ -46,9 +46,12 @@ export type RoomMember = {
 // **NEW: Evoucher types**
 export type EvoucherData = {
     roomId: string;
-    title: string;
-    ClaimURL: string;
-    description: string;
+    message: {
+        th: string;
+        en: string;
+    };
+    claimUrl: string;
+    sponsorImage: string;
 };
 
 export type EvoucherResponse = {
@@ -57,9 +60,12 @@ export type EvoucherResponse = {
     data?: {
         id: string;
         room_id: string;
-        title: string;
-        ClaimURL: string;
-        description: string;
+        message: {
+            th: string;
+            en: string;
+        };
+        claimUrl: string;
+        sponsorImage: string;
         timestamp: string;
     };
 };

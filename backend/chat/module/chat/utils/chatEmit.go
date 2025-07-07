@@ -647,9 +647,9 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 			"timestamp": messageInfo.Timestamp,
 		},
 		"evoucherInfo": map[string]interface{}{
-			"title":       msg.EvoucherInfo.Title,
-			"description": msg.EvoucherInfo.Description,
+			"message":     msg.EvoucherInfo.Message,
 			"claimUrl":    msg.EvoucherInfo.ClaimURL,
+			"sponsorImage": msg.EvoucherInfo.SponsorImage,
 		},
 		"timestamp": msg.Timestamp,
 	}
@@ -663,6 +663,75 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 
 	// Emit event using common emitter
 	return e.emitEventStructured(ctx, msg, event)
+}
+
+// EmitEvoucherClaimed emits an evoucher claimed event
+func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.ChatMessage, claimedByUserID primitive.ObjectID) error {
+	log.Printf("[ChatEventEmitter] Emitting evoucher claimed event for message %s by user %s", 
+		msg.ID.Hex(), claimedByUserID.Hex())
+
+	// Get user info for the person who claimed
+	claimerInfo, err := e.getUserInfo(ctx, claimedByUserID)
+	if err != nil {
+		log.Printf("[ChatEventEmitter] Failed to get claimer info: %v", err)
+		return err
+	}
+
+	// Get sender info
+	senderInfo, err := e.getUserInfo(ctx, msg.UserID)
+	if err != nil {
+		log.Printf("[ChatEventEmitter] Failed to get sender info: %v", err)
+		return err
+	}
+
+	// Create payload for evoucher claimed event
+	payload := map[string]interface{}{
+		"room": map[string]interface{}{
+			"_id": msg.RoomID.Hex(),
+		},
+		"user": senderInfo, // Original sender
+		"claimer": claimerInfo, // User who claimed
+		"message": map[string]interface{}{
+			"_id":       msg.ID.Hex(),
+			"type":      model.MessageTypeEvoucher,
+			"message":   msg.Message,
+			"timestamp": msg.Timestamp,
+		},
+		"evoucherInfo": map[string]interface{}{
+			"message":     msg.EvoucherInfo.Message,
+			"claimUrl":    msg.EvoucherInfo.ClaimURL,
+			"sponsorImage": msg.EvoucherInfo.SponsorImage,
+			"claimedBy":   msg.EvoucherInfo.ClaimedBy,
+		},
+		"timestamp": time.Now(),
+	}
+
+	// Create event
+	event := model.Event{
+		Type:      "evoucher_claimed",
+		Payload:   payload,
+		Timestamp: time.Now(),
+	}
+
+	// Emit to WebSocket
+	eventData, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("[ChatEventEmitter] Failed to marshal evoucher claimed event: %v", err)
+		return err
+	}
+	
+	e.hub.BroadcastToRoom(msg.RoomID.Hex(), eventData)
+	log.Printf("[ChatEventEmitter] Broadcasted evoucher claimed event to room %s", msg.RoomID.Hex())
+
+	// Emit to Kafka
+	roomTopic := "chat-room-" + msg.RoomID.Hex()
+	if err := e.bus.Emit(ctx, roomTopic, msg.RoomID.Hex(), event); err != nil {
+		log.Printf("[ChatEventEmitter] Failed to emit evoucher claimed to Kafka: %v", err)
+		return err
+	}
+
+	log.Printf("[ChatEventEmitter] Successfully emitted evoucher claimed event for message %s", msg.ID.Hex())
+	return nil
 }
 
 func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, restriction *restrictionModel.UserRestriction) error {
