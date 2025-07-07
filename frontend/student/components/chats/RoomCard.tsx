@@ -18,11 +18,12 @@ interface RoomCardProps {
 
 const RoomCard = ({ room, width, language, onPress, onJoin, onShowDetail }: RoomCardProps) => {
   const getImageUrl = () => {
-    const url = room.image_url || room.image;
-      return `${API_BASE_URL}/uploads/rooms/${url}`;
+    if (room.image) return `${API_BASE_URL}/uploads/${room.image}`;
+    return undefined;
   };
 
   const imageUrl = getImageUrl();
+  const memberCount = room?.members_count  ;
 
   return (
     <TouchableOpacity style={[, { width: (width - 66) / 2 }]} onPress={onShowDetail ? onShowDetail : onPress} activeOpacity={0.88}>
@@ -46,7 +47,7 @@ const RoomCard = ({ room, width, language, onPress, onJoin, onShowDetail }: Room
           )}
           <View style={styles.memberRow}>
             <Users size={14} color="#fff" />
-            <Text style={styles.memberText}>{room.members_count ?? 0} Members</Text>
+            <Text style={styles.memberText}>{memberCount} Members</Text>
           </View>
           {onJoin && (
             <TouchableOpacity onPress={onJoin} activeOpacity={0.85} style={styles.joinBtn}>

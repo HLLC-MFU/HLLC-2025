@@ -1,10 +1,30 @@
-import React, { useState } from 'react';
-import { Button, Input, SizableText, YStack, XStack, Sheet, Label } from 'tamagui';
-import { PasswordInput } from '@/components/PasswordInput';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import {
+  Button,
+  Input,
+  SizableText,
+  YStack,
+  XStack,
+  Separator,
+} from 'tamagui';
 import { ProvinceSelector } from '@/components/ProvinceSelector';
 import { Province } from '@/types/auth';
+import { apiRequest } from '@/utils/api';
+import { Pressable, ActivityIndicator } from 'react-native';
+import {
+  User,
+  Lock,
+  EyeClosed,
+  Eye,
+  Map,
+  ChevronDown,
+} from '@tamagui/lucide-icons';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import { t } from 'i18next';
 
 interface ResetPasswordFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   username: string;
   setUsername: (text: string) => void;
   password: string;
@@ -16,12 +36,12 @@ interface ResetPasswordFormProps {
   provinces: Province[];
   isProvinceSheetOpen: boolean;
   setIsProvinceSheetOpen: (open: boolean) => void;
-  isLoading: boolean;
-  onReset: () => void;
-  onClose: () => void;
+  onResetPassword: () => void;
 }
 
 export const ResetPasswordForm = ({
+  open,
+  onOpenChange,
   username,
   setUsername,
   password,
@@ -33,165 +53,221 @@ export const ResetPasswordForm = ({
   provinces,
   isProvinceSheetOpen,
   setIsProvinceSheetOpen,
-  isLoading,
-  onReset,
-  onClose,
-}:ResetPasswordFormProps) => {
-  const [errors, setErrors] = useState({
-    username: '',
-    password: '',
-    confirmPassword: '',
-    secret: '',
-  });
+  onResetPassword,
+}: ResetPasswordFormProps) => {
+  const [name, setName] = useState('');
+  const [isDisabled, setIsDisabled] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(true);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(true);
+  const [isLoadingUsername, setIsLoadingUsername] = useState(false);
 
-  const validateForm = () => {
-    const newErrors = {
-      username: '',
-      password: '',
-      confirmPassword: '',
-      secret: '',
-    };
-    let isValid = true;
+  const bottomSheetRef = useRef<BottomSheet>(null);
 
-    if (!username) {
-      newErrors.username = 'กรุณากรอกรหัสนักศึกษา';
-      isValid = false;
+  const fetchUserInfo = async (inputUsername: string) => {
+    if (inputUsername.length !== 10 || !/^[0-9]+$/.test(inputUsername)) {
+      alert('Student ID must be 10 digits numeric.');
+      setUsername('');
+      return;
     }
 
-    if (!password) {
-      newErrors.password = 'กรุณากรอกรหัสผ่านใหม่';
-      isValid = false;
-    }
+    setIsDisabled(true);
+    setIsLoadingUsername(true);
 
-    if (!confirmPassword) {
-      newErrors.confirmPassword = 'กรุณายืนยันรหัสผ่านใหม่';
-      isValid = false;
-    }
+    try {
+      const res = await apiRequest<{
+        user?: { name: { first: string; middle?: string; last: string }; province: string };
+      }>(`/auth/student/status/${inputUsername}`, 'GET');
 
-    if (!secret) {
-      newErrors.secret = 'กรุณาเลือกจังหวัด';
-      isValid = false;
+      if (res.statusCode === 200 && res.data?.user) {
+        const u = res.data.user;
+        const fullName = `${u.name.first}${u.name.middle ? ' ' + u.name.middle : ''} ${u.name.last}`;
+        setName(fullName.trim());
+        setSecret(u.province);
+      } else {
+        alert(res.message || 'Invalid user.');
+        setUsername('');
+        setName('');
+        setSecret('');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingUsername(false);
+      setIsDisabled(false);
     }
-
-    if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'รหัสผ่านไม่ตรงกัน';
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
   };
 
-  const handleReset = () => {
-    if (validateForm()) {
-      onReset();
+  useEffect(() => {
+    setName(''); // Clear name when username changes
+    if (username.length === 10 && /^[0-9]+$/.test(username)) {
+      fetchUserInfo(username);
     }
+  }, [username]);
+
+  useEffect(() => {
+    if (open) {
+      bottomSheetRef.current?.expand();
+    } else {
+      bottomSheetRef.current?.close();
+    }
+  }, [open]);
+
+  const handleSheetChanges = useCallback(
+    (index: number) => {
+      if (index === -1) {
+        onOpenChange(false);
+        setUsername('');
+        setPassword('');
+        setConfirmPassword('');
+        setSecret('');
+        setName('');
+        setIsPasswordVisible(true);
+        setIsConfirmPasswordVisible(true);
+        setIsDisabled(false);
+        setIsLoadingUsername(false);
+      }
+    },
+    [onOpenChange, setUsername, setPassword, setConfirmPassword, setSecret]
+  );
+
+  const inputContainerStyle = {
+    alignItems: 'center' as const,
+    borderWidth: 2,
+    paddingHorizontal: 12,
+    height: 48,
+    borderColor: '$borderColor',
+    borderRadius: 16,
+    focusStyle: {
+      borderColor: '$colorFocus',
+    },
   };
 
   return (
-    <Sheet.Frame padding="$4" flex={1}>
-      <Sheet.Handle />
-      <YStack space="$4" flex={1}>
-        <XStack justifyContent="space-between" alignItems="center">
-          <SizableText fontSize={24} fontWeight="bold">รีเซ็ตรหัสผ่าน</SizableText>
-          <Button onPress={onClose} chromeless>
-            <XStack space="$2" alignItems="center">
-              <SizableText>ปิด</SizableText>
+    <>
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        snapPoints={['90%']}
+        enablePanDownToClose
+        onChange={handleSheetChanges}
+      >
+        <BottomSheetView style={{ flex: 1, padding: 16 }}>
+          <SizableText fontSize={20} fontWeight="bold" marginBottom="$4">
+            {t("resetPassword.title")}
+          </SizableText>
+          <YStack gap="$3" width="100%">
+            <XStack {...inputContainerStyle}>
+              <User />
+              <Input
+                flex={1}
+                borderWidth={0}
+                backgroundColor={'transparent'}
+                placeholder={t("resetPassword.username")}
+                value={username}
+                onChangeText={setUsername}
+                onBlur={() => {
+                  if (username.length !== 10 || !/^\d+$/.test(username)) {
+                    alert('Student ID must be 10 digits numeric.');
+                    setUsername('');
+                  }
+                }}
+                editable={!isDisabled}
+                keyboardType="numeric"
+                maxLength={10}
+              />
+              {isLoadingUsername && <ActivityIndicator size="small" color="#888" />}
             </XStack>
-          </Button>
-        </XStack>
 
-        <YStack space="$3">
-          <YStack space="$1">
-            <Label>รหัสนักศึกษา</Label>
-            <Input
-              height={50}
-              width={'100%'}
-              borderWidth={2}
-              focusStyle={{ borderColor: '$colorFocus' }}
-              placeholder="6xxxxxxx"
-              value={username}
-              onChangeText={(text) => {
-                setUsername(text);
-                setErrors(prev => ({ ...prev, username: '' }));
-              }}
-              style={{ backgroundColor: 'white' }}
-              keyboardType="numeric"
-              maxLength={10}
-            />
-            {errors.username ? (
-              <SizableText color="$red10" fontSize={12}>{errors.username}</SizableText>
-            ) : null}
+            <XStack {...inputContainerStyle}>
+              <User />
+              <Input flex={1} borderWidth={0} backgroundColor={'transparent'} placeholder={t("resetPassword.studentName")} value={name} editable={false} />
+            </XStack>
+
+            <XStack {...inputContainerStyle}>
+              <Lock />
+              <Input
+                flex={1}
+                borderWidth={0}
+                backgroundColor={'transparent'}
+                placeholder={t("resetPassword.newPassword")}
+                value={password}
+                onChangeText={setPassword}
+                editable={!isDisabled}
+                secureTextEntry={isPasswordVisible}
+                onBlur={() => {
+                  if (password.length < 8 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
+                    alert('Password must be at least 8 characters long and include uppercase, lowercase, and number.');
+                    setPassword('');
+                  }
+                }}
+              />
+              <Pressable onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+                {isPasswordVisible ? <EyeClosed /> : <Eye />}
+              </Pressable>
+            </XStack>
+
+            <XStack {...inputContainerStyle}>
+              <Lock />
+              <Input
+                flex={1}
+                borderWidth={0}
+                backgroundColor={'transparent'}
+                placeholder={t("resetPassword.confirmPassword")}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                editable={!isDisabled}
+                secureTextEntry={isConfirmPasswordVisible}
+                onBlur={() => {
+                  if (password !== confirmPassword) {
+                    alert('Passwords do not match.');
+                    setConfirmPassword('');
+                  }
+                }}
+              />
+              <Pressable onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}>
+                {isConfirmPasswordVisible ? <EyeClosed /> : <Eye />}
+              </Pressable>
+            </XStack>
+
+            <XStack {...inputContainerStyle} onPress={() => setIsProvinceSheetOpen(true)} disabled={isDisabled}>
+              <Map />
+              <Input
+                flex={1}
+                editable={false}
+                pointerEvents="none"
+                borderWidth={0}
+                backgroundColor="transparent"
+                placeholder={t("resetPassword.province")}
+                value={secret ? provinces.find((p) => p.name_en === secret)?.name_th ?? '' : ''}
+              />
+              <ChevronDown />
+            </XStack>
+
+            <XStack width="100%">
+              <Button flex={1} onPress={onResetPassword} disabled={isDisabled}>
+                {t("resetPassword.resetButton")}
+              </Button>
+            </XStack>
+
+            <Separator />
+
+            <Pressable onPress={() => onOpenChange(false)} style={{ width: '100%' }}>
+              <SizableText fontSize={16} textAlign="center" color="$color">
+                {t("resetPassword.loginPrompt")} <SizableText fontWeight="bold"> {t("resetPassword.backToLogin")}</SizableText>
+              </SizableText>
+            </Pressable>
           </YStack>
 
-          <YStack space="$1">
-            <Label>รหัสผ่านใหม่</Label>
-            <PasswordInput
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                setErrors(prev => ({ ...prev, password: '' }));
-              }}
-              placeholder="รหัสผ่านใหม่"
-            />
-            {errors.password ? (
-              <SizableText color="$red10" fontSize={12}>{errors.password}</SizableText>
-            ) : null}
-          </YStack>
-
-          <YStack space="$1">
-            <Label>ยืนยันรหัสผ่านใหม่</Label>
-            <PasswordInput
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                setErrors(prev => ({ ...prev, confirmPassword: '' }));
-              }}
-              placeholder="ยืนยันรหัสผ่านใหม่"
-            />
-            {errors.confirmPassword ? (
-              <SizableText color="$red10" fontSize={12}>{errors.confirmPassword}</SizableText>
-            ) : null}
-          </YStack>
-
-          <YStack space="$1">
-            <Label>จังหวัด</Label>
-            <Button
-              width={'100%'}
-              height={50}
-              borderWidth={2}
-              focusStyle={{ borderColor: '$colorFocus' }}
-              style={{ backgroundColor: 'white' }}
-              onPress={() => setIsProvinceSheetOpen(true)}
-            >
-              {secret ? provinces.find(p => p.name_en === secret)?.name_th : 'เลือกจังหวัด'}
-            </Button>
-            {errors.secret ? (
-              <SizableText color="$red10" fontSize={12}>{errors.secret}</SizableText>
-            ) : null}
-          </YStack>
-
-          <Button 
-            width="100%" 
-            onPress={handleReset}
-            disabled={isLoading}
-            opacity={isLoading ? 0.7 : 1}
-          >
-            {isLoading ? 'กำลังรีเซ็ตรหัสผ่าน...' : 'รีเซ็ตรหัสผ่าน'}
-          </Button>
-        </YStack>
-      </YStack>
-
-      <ProvinceSelector
-        isOpen={isProvinceSheetOpen}
-        onOpenChange={setIsProvinceSheetOpen}
-        provinces={provinces}
-        selectedProvince={secret}
-        onSelect={(value) => {
-          setSecret(value);
-          setErrors(prev => ({ ...prev, secret: '' }));
-        }}
-      />
-    </Sheet.Frame>
+          {/* Province Selector bottom sheet */}
+          <ProvinceSelector
+            isOpen={isProvinceSheetOpen}
+            onOpenChange={setIsProvinceSheetOpen}
+            provinces={provinces}
+            selectedProvince={secret}
+            onSelect={setSecret}
+          />
+        </BottomSheetView>
+      </BottomSheet>
+    </>
   );
-}; 
+};

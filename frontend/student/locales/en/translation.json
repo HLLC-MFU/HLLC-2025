@@ -4,6 +4,7 @@
         "error": "An error occurred",
         "success": "Success",
         "cancel": "Cancel",
+        "close": "Close",
         "confirm": "Confirm",
         "ok": "OK",
         "yes": "Yes",
@@ -31,6 +32,19 @@
         "registerButton": "Register",
         "loginPrompt": "Already have an account?",
         "login": "Login"
+    },
+    "resetPassword": {
+        "title": "Reset Password",
+        "subtitle": "Enter your Student ID to reset your password",
+        "username": "Student ID",
+        "studentName": "Full Name",
+        "sendCode": "Send Verification Code",
+        "newPassword": "New Password",
+        "confirmPassword": "Confirm New Password",
+        "province": "Province",
+        "resetButton": "Reset Password",
+        "loginPrompt": "Already have an account?",
+        "backToLogin": "Back to Login"
     },
     "profile": {
         "title": "Profile",
@@ -70,7 +84,10 @@
         "subtitle": "Coming soon...",
         "backward": "Go Back",
         "confirmTitle": "Confirm E-Voucher Usage",
-        "confirmMessage": "Are you sure you want to use this E-Voucher?"
+        "confirmMessage": "Are you sure you want to use this E-Voucher?",
+        "claim": "Claim E-Voucher",
+        "claiming": "Claiming...",
+        "claimed": "You have received the E-Voucher!"
     },
     "bottomNav": {
         "home": "Home",
