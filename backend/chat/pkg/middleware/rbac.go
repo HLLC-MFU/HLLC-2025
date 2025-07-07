@@ -45,6 +45,15 @@ type JwtClaims struct {
 	jwt.RegisteredClaims
 }
 
+// getUserIDFromToken is a helper method to extract user ID from JWT token
+func (r *RBACMiddleware) getUserIDFromToken(ctx *fiber.Ctx) (string, error) {
+	tokenString, err := r.extractToken(ctx)
+	if err != nil {
+		return "", err
+	}
+	return r.parseToken(tokenString)
+}
+
 // RequireWritePermission checks if user has write permission in read-only rooms
 func (r *RBACMiddleware) RequireWritePermission() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
@@ -126,16 +135,10 @@ func (r *RBACMiddleware) RequireReadOnlyAccess() fiber.Handler {
 	}
 }
 
-// GetUserRole retrieves the role name for a given user ID
-func (r *RBACMiddleware) GetUserRole(userID string) (string, error) {
-	objectID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		log.Printf("[RBAC] Invalid user ID format: %s, error: %v", userID, err)
-		return "", err
-	}
-
-	pipeline := mongo.Pipeline{
-		{{Key: "$match", Value: bson.D{{Key: "_id", Value: objectID}}}},
+// Helper: Pipeline สำหรับ lookup role
+func userWithRolePipeline(userID primitive.ObjectID) mongo.Pipeline {
+	return mongo.Pipeline{
+		{{Key: "$match", Value: bson.D{{Key: "_id", Value: userID}}}},
 		{{Key: "$lookup", Value: bson.D{
 			{Key: "from", Value: "roles"},
 			{Key: "localField", Value: "role"},
@@ -145,216 +148,67 @@ func (r *RBACMiddleware) GetUserRole(userID string) (string, error) {
 		{{Key: "$unwind", Value: "$roleInfo"}},
 		{{Key: "$project", Value: bson.D{
 			{Key: "roleName", Value: "$roleInfo.name"},
+			{Key: "username", Value: 1},
 		}}},
 	}
+}
 
-	log.Printf("[RBAC] Querying user role for userID: %s", userID)
-	cursor, err := r.db.Collection("users").Aggregate(context.TODO(), pipeline)
+// Helper: Extract roleName, username จาก cursor
+func extractRoleFromCursor(cursor *mongo.Cursor) (roleName, username string, err error) {
+	if !cursor.Next(context.TODO()) {
+		return "", "", errors.New("user not found")
+	}
+	var result bson.M
+	if err := cursor.Decode(&result); err != nil {
+		return "", "", err
+	}
+	roleName, _ = result["roleName"].(string)
+	username, _ = result["username"].(string)
+	return roleName, username, nil
+}
+
+// GetUserRole (refactored)
+func (r *RBACMiddleware) GetUserRole(userID string) (string, error) {
+	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		log.Printf("[RBAC] Database query error: %v", err)
+		return "", err
+	}
+	cursor, err := r.db.Collection("users").Aggregate(context.TODO(), userWithRolePipeline(objectID))
+	if err != nil {
 		return "", err
 	}
 	defer cursor.Close(context.TODO())
-
-	if !cursor.Next(context.TODO()) {
-		log.Printf("[RBAC] User not found in database: %s", userID)
-		return "", errors.New("user not found")
-	}
-
-	// Use bson.M to decode the result
-	var result bson.M
-	if err := cursor.Decode(&result); err != nil {
-		log.Printf("[RBAC] Failed to decode user role: %v", err)
-		return "", err
-	}
-
-	log.Printf("[RBAC] Raw result from pipeline: %+v", result)
-	
-	// Extract roleName from the result
-	roleName, ok := result["roleName"].(string)
-	if !ok {
-		log.Printf("[RBAC] roleName is not a string or is missing: %v", result["roleName"])
-		return "", errors.New("role name not found or invalid")
-	}
-
-	log.Printf("[RBAC] Found role for user %s: %s", userID, roleName)
-	return roleName, nil
+	roleName, _, err := extractRoleFromCursor(cursor)
+	return roleName, err
 }
 
-// getUserIDFromToken is a helper method to extract user ID from JWT token
-func (r *RBACMiddleware) getUserIDFromToken(ctx *fiber.Ctx) (string, error) {
-	tokenString, err := r.extractToken(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	return r.parseToken(tokenString)
-}
-
-// RequireRoles creates a middleware that requires any of the specified role names
+// RequireRoles (refactored)
 func (r *RBACMiddleware) RequireRoles(allowedRoles ...string) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		log.Printf("[RBAC] ===== RequireRoles middleware START =====")
-		log.Printf("[RBAC] RequireRoles middleware called for path: %s, method: %s, required roles: %v",
-			ctx.Path(), ctx.Method(), allowedRoles)
-
-		// Extract JWT token
-		log.Printf("[RBAC] Extracting JWT token...")
-		tokenString, err := r.extractToken(ctx)
+		userID, err := r.getUserIDFromToken(ctx)
 		if err != nil {
-			log.Printf("[RBAC] Token extraction failed: %v", err)
-			log.Printf("[RBAC] ===== RequireRoles middleware END (TOKEN_EXTRACTION_FAILED) =====")
-			return ctx.Status(401).JSON(fiber.Map{
-				"error":   "UNAUTHORIZED",
-				"message": "Authentication token required",
-			})
+			return ctx.Status(401).JSON(fiber.Map{"error": "UNAUTHORIZED", "message": "Authentication required"})
 		}
-
-		// Parse JWT token to get user ID
-		log.Printf("[RBAC] Parsing JWT token...")
-		userID, err := r.parseToken(tokenString)
+		objectID, _ := primitive.ObjectIDFromHex(userID)
+		cursor, err := r.db.Collection("users").Aggregate(context.TODO(), userWithRolePipeline(objectID))
 		if err != nil {
-			log.Printf("[RBAC] Token parsing failed: %v", err)
-			log.Printf("[RBAC] ===== RequireRoles middleware END (TOKEN_PARSING_FAILED) =====")
-			return ctx.Status(401).JSON(fiber.Map{
-				"error":   "UNAUTHORIZED",
-				"message": "Invalid authentication token",
-			})
-		}
-
-		log.Printf("[RBAC] Successfully extracted userID: %s", userID)
-
-		// Convert user ID to ObjectID
-		log.Printf("[RBAC] Converting userID to ObjectID: %s", userID)
-		objectID, err := primitive.ObjectIDFromHex(userID)
-		if err != nil {
-			log.Printf("[RBAC] Invalid user ID format: %v", err)
-			log.Printf("[RBAC] ===== RequireRoles middleware END (OBJECTID_CONVERSION_FAILED) =====")
-			return ctx.Status(401).JSON(fiber.Map{
-				"error":   "UNAUTHORIZED",
-				"message": "Invalid user ID in token",
-			})
-		}
-
-		log.Printf("[RBAC] Successfully converted to ObjectID: %s", objectID.Hex())
-
-		// Query user with role information
-		log.Printf("[RBAC] Querying user with role for userID: %s", userID)
-		pipeline := mongo.Pipeline{
-			{{Key: "$match", Value: bson.D{{Key: "_id", Value: objectID}}}},
-			{{Key: "$lookup", Value: bson.D{
-				{Key: "from", Value: "roles"},
-				{Key: "localField", Value: "role"},
-				{Key: "foreignField", Value: "_id"},
-				{Key: "as", Value: "roleInfo"},
-			}}},
-			{{Key: "$unwind", Value: "$roleInfo"}},
-			{{Key: "$project", Value: bson.D{
-				{Key: "_id", Value: 1},
-				{Key: "username", Value: 1},
-				{Key: "name", Value: "$roleInfo.name"},
-			}}},
-		}
-
-		log.Printf("[RBAC] Executing MongoDB aggregation pipeline...")
-		cursor, err := r.db.Collection("users").Aggregate(context.TODO(), pipeline)
-		if err != nil {
-			log.Printf("[RBAC] Database query error: %v", err)
-			log.Printf("[RBAC] ===== RequireRoles middleware END (DATABASE_QUERY_FAILED) =====")
-			return ctx.Status(500).JSON(fiber.Map{
-				"error":   "INTERNAL_ERROR",
-				"message": "Failed to verify user permissions",
-			})
+			return ctx.Status(500).JSON(fiber.Map{"error": "INTERNAL_ERROR", "message": "DB error"})
 		}
 		defer cursor.Close(context.TODO())
-
-		log.Printf("[RBAC] Database query completed successfully")
-
-		log.Printf("[RBAC] Checking if cursor has next document...")
-		if !cursor.Next(context.TODO()) {
-			log.Printf("[RBAC] User not found in database: %s", userID)
-			log.Printf("[RBAC] ===== RequireRoles middleware END (USER_NOT_FOUND) =====")
-			return ctx.Status(401).JSON(fiber.Map{
-				"error":   "UNAUTHORIZED",
-				"message": "User not found",
-			})
+		roleName, username, err := extractRoleFromCursor(cursor)
+		if err != nil {
+			return ctx.Status(401).JSON(fiber.Map{"error": "UNAUTHORIZED", "message": "User not found"})
 		}
-
-		log.Printf("[RBAC] Cursor has next document, decoding...")
-		
-		// Debug: decode to bson.M to see the actual document structure
-		var rawDoc bson.M
-		if err := cursor.Decode(&rawDoc); err != nil {
-			log.Printf("[RBAC] Failed to decode to bson.M: %v", err)
-			log.Printf("[RBAC] ===== RequireRoles middleware END (CURSOR_DECODE_FAILED) =====")
-			return ctx.Status(500).JSON(fiber.Map{
-				"error":   "INTERNAL_ERROR",
-				"message": "Failed to process user data",
-			})
-		}
-		log.Printf("[RBAC] Raw document from MongoDB: %+v", rawDoc)
-		
-		// Extract values from raw document
-		userIDObj, ok := rawDoc["_id"].(primitive.ObjectID)
-		if !ok {
-			log.Printf("[RBAC] _id is not an ObjectID: %v", rawDoc["_id"])
-			log.Printf("[RBAC] ===== RequireRoles middleware END (INVALID_ID) =====")
-			return ctx.Status(500).JSON(fiber.Map{
-				"error":   "INTERNAL_ERROR",
-				"message": "Invalid user ID format",
-			})
-		}
-		
-		username, ok := rawDoc["username"].(string)
-		if !ok {
-			log.Printf("[RBAC] username is not a string: %v", rawDoc["username"])
-			username = "unknown"
-		}
-		
-		roleName, ok := rawDoc["name"].(string)
-		if !ok {
-			log.Printf("[RBAC] name is not a string: %v", rawDoc["name"])
-			log.Printf("[RBAC] ===== RequireRoles middleware END (INVALID_ROLE) =====")
-			return ctx.Status(500).JSON(fiber.Map{
-				"error":   "INTERNAL_ERROR",
-				"message": "Invalid role format",
-			})
-		}
-		
-		log.Printf("[RBAC] Extracted values: ID=%s, Username=%s, RoleName='%s'", userIDObj.Hex(), username, roleName)
-		
-		// Create user struct manually
-		user := struct {
-			ID       primitive.ObjectID
-			Username string
-			RoleName string
-		}{
-			ID:       userIDObj,
-			Username: username,
-			RoleName: roleName,
-		}
-
-		log.Printf("[RBAC] User found: ID=%s, Username=%s, RoleName='%s'", user.ID.Hex(), user.Username, user.RoleName)
-		log.Printf("[RBAC] Checking role access: user role='%s', required roles=%v", user.RoleName, allowedRoles)
-		for i, role := range allowedRoles {
-			log.Printf("[RBAC] Comparing [%d]: '%s' == '%s' (length: %d vs %d)", i, user.RoleName, role, len(user.RoleName), len(role))
-			if user.RoleName == role {
-				log.Printf("[RBAC] Access granted: User %s (%s) has role '%s'", user.Username, userID, user.RoleName)
-				log.Printf("[RBAC] ===== RequireRoles middleware END (GRANTED) =====")
+		for _, role := range allowedRoles {
+			if roleName == role {
 				return ctx.Next()
 			}
 		}
-
-		log.Printf("[RBAC] Access denied: User %s (%s) has role '%s', but requires one of: %v",
-			user.Username, userID, user.RoleName, allowedRoles)
-
-		log.Printf("[RBAC] Sending 403 Forbidden response")
-		log.Printf("[RBAC] ===== RequireRoles middleware END (DENIED) =====")
 		return ctx.Status(403).JSON(fiber.Map{
 			"error":         "INSUFFICIENT_PERMISSIONS",
-			"message":       "You don't have the required role to access this resource",
-			"requiredRoles": allowedRoles,
-			"currentRole":   user.RoleName,
+			"message":       "You don't have the required role",
+			"currentRole":   roleName,
+			"username":      username,
 		})
 	}
 }
