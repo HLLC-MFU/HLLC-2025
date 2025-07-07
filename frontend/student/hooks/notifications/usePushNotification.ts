@@ -30,7 +30,6 @@ export default function usePushNotification() {
       const alreadyRequested = await getToken(PERMISSION_KEY);
 
       if (!alreadyRequested) {
-        // const authStatus = await Notification.requestPermission();
         const authStatus = await messaging.requestPermission();
         
         const granted =
