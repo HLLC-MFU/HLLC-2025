@@ -29,13 +29,13 @@ type (
 )
 
 func NewEvoucherController(
-	app *fiber.App,
+	app fiber.Router,
 	evoucherService *service.EvoucherService,
 	roomService EvoucherRoomService,
 	rbac middleware.IRBACMiddleware,
 ) *EvoucherController {
 	controller := &EvoucherController{
-		BaseController:  decorators.NewBaseController(app, "/api/evouchers"),
+		BaseController:  decorators.NewBaseController(app, ""),
 		evoucherService: evoucherService,
 		roomService:     roomService,
 		rbac: rbac,

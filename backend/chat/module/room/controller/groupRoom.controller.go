@@ -21,7 +21,7 @@ type GroupRoomController struct {
 	rbac             middleware.IRBACMiddleware
 }
 
-func NewGroupRoomController(app *fiber.App, groupService *service.GroupRoomService, roomService service.RoomService, rbac middleware.IRBACMiddleware) *GroupRoomController {
+func NewGroupRoomController(app fiber.Router, groupService *service.GroupRoomService, roomService service.RoomService, rbac middleware.IRBACMiddleware) *GroupRoomController {
 	uploadConfig := utils.GetModuleConfig("room")
 
 	var validationHelper *roomUtils.RoomValidationHelper
@@ -32,7 +32,7 @@ func NewGroupRoomController(app *fiber.App, groupService *service.GroupRoomServi
 	}
 
 	controller := &GroupRoomController{
-		BaseController:   decorators.NewBaseController(app, "/api/rooms"),
+		BaseController:   decorators.NewBaseController(app, ""),
 		groupService:     groupService,
 		roomService:      roomService,
 		uploadHandler:    utils.NewModuleFileHandler("room"),

@@ -17,9 +17,9 @@ type (
 	}
 )
 
-func NewRoleController(app *fiber.App, service *service.RoleService, rbac middleware.IRBACMiddleware) *RoleController {
+func NewRoleController(app fiber.Router, service *service.RoleService, rbac middleware.IRBACMiddleware) *RoleController {
 	c := &RoleController{
-		BaseController: decorators.NewBaseController(app, "/api/roles"),
+		BaseController: decorators.NewBaseController(app, ""),
 		service: service,
 		rbac: rbac,
 	}

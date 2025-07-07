@@ -15,9 +15,9 @@ type (
 	}
 )
 
-func NewMajorController(app *fiber.App, service *service.MajorService) *MajorController {
+func NewMajorController(app fiber.Router, service *service.MajorService) *MajorController {
 	controller := &MajorController{
-		BaseController: decorators.NewBaseController(app, "/api/majors"),
+		BaseController: decorators.NewBaseController(app, ""),
 		service:       service,
 	}
 
