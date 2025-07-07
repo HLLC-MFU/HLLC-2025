@@ -29,7 +29,7 @@ export default function StepContersModal({
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1">
-                Setting Target
+                Add Steps Goal
               </ModalHeader>
               <ModalBody>
                 <Input

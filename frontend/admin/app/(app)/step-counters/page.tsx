@@ -20,6 +20,32 @@ export default function StepContersPage() {
   } = useStepCounters();
 
   const StepcounteTarget = 123;
+  const [searchTopBySchool, setSearchTopBySchool] = useState('');
+  const [searchFirstAchiever, setSearchFirstAchiever] = useState('');
+
+  if (loading) {
+    return <div className="p-10 text-center text-gray-600">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-10 text-center text-red-500">
+        Error: {error}
+      </div>
+    );
+  }
+
+  const filteredTopBySchool = topBySchool.filter((item) =>
+    (item.name ?? '').toLowerCase().includes(searchTopBySchool.toLowerCase()) ||
+    (item.major ?? '').toLowerCase().includes(searchTopBySchool.toLowerCase()) ||
+    (item.school ?? '').toLowerCase().includes(searchTopBySchool.toLowerCase())
+  );
+
+  const filteredFirstAchievers = firstAchievers.filter((item) =>
+    (item.name ?? '').toLowerCase().includes(searchFirstAchiever.toLowerCase()) ||
+    (item.major ?? '').toLowerCase().includes(searchFirstAchiever.toLowerCase()) ||
+    (item.school ?? '').toLowerCase().includes(searchFirstAchiever.toLowerCase())
+  );
 
   return (
     <>
@@ -30,7 +56,7 @@ export default function StepContersPage() {
       />
 
       <Accordion variant="splitted">
-        {/* 🌍 Top Overall */}
+        {/* Top Overall */}
         <AccordionItem
           key="1"
           aria-label="Accordion 1"
@@ -38,10 +64,14 @@ export default function StepContersPage() {
           subtitle="For the student with the highest step count"
           startContent={<Globe />}
         >
-          <StepCountersTable stepCounters={topOverall} />
+          {topOverall.length === 0 ? (
+            <div className="text-center text-gray-400 py-6">No data available</div>
+          ) : (
+            <StepCountersTable stepCounters={topOverall} />
+          )}
         </AccordionItem>
 
-        {/* 🏫 Top By School */}
+        {/* Top By School */}
         <AccordionItem
           key="3"
           aria-label="Accordion 2"
@@ -49,11 +79,20 @@ export default function StepContersPage() {
           subtitle="For the student with the highest step count in each school"
           startContent={<School />}
         >
-          
-          <StepCountersTable stepCounters={topBySchool} />
+          <div className="px-10">
+            <StepCountersFilter
+              value={searchTopBySchool}
+              onChange={setSearchTopBySchool}
+            />
+          </div>
+          {filteredTopBySchool.length === 0 ? (
+            <div className="text-center text-gray-400 py-6">No school data available</div>
+          ) : (
+            <StepCountersTable stepCounters={filteredTopBySchool} />
+          )}
         </AccordionItem>
 
-        {/* 🎯 First Achievers */}
+        {/* First Achievers */}
         <AccordionItem
           key="2"
           aria-label="Accordion 3"
@@ -61,20 +100,32 @@ export default function StepContersPage() {
           subtitle={`For the first student to reach ${StepcounteTarget} steps`}
           startContent={<Target />}
         >
-          <div className="flex justify-end items-center mb-2 pr-10">
-            <Button
-              color="primary"
-              endContent={<Plus size={20} />}
-              size="lg"
-              onPress={() => setIsStepTarget(true)}
-            >
-              Step Goal
-            </Button>
+          <div className="w-full px-10">
+            <div className="flex justify-between gap-4 flex-wrap sm:flex-nowrap">
+              <div className="flex-1 min-w-[200px]">
+                <StepCountersFilter
+                  value={searchFirstAchiever}
+                  onChange={setSearchFirstAchiever}
+                />
+              </div>
+              <Button
+                color="primary"
+                endContent={<Plus size={20} />}
+                size="md"
+                onPress={() => setIsStepTarget(true)}
+              >
+                Step Goal
+              </Button>
+            </div>
           </div>
-
-          <StepCountersTable stepCounters={firstAchievers} />
+          {filteredFirstAchievers.length === 0 ? (
+            <div className="text-center text-gray-400 py-6">No achievers found yet</div>
+          ) : (
+            <StepCountersTable stepCounters={filteredFirstAchievers} />
+          )}
         </AccordionItem>
       </Accordion>
+
       <StepCountersModal
         isOpen={isStepTarget}
         onSettingStepTarget={() => setIsStepTarget(false)}

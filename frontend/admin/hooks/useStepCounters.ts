@@ -3,6 +3,7 @@ import { addToast } from '@heroui/react';
 import { apiRequest } from '@/utils/api';
 import { StepsCounters } from '@/types/step-counters';
 
+
 export function useStepCounters() {
   const [topOverall, setTopOverall] = useState<StepsCounters[]>([]);
   const [topBySchool, setTopBySchool] = useState<StepsCounters[]>([]);
