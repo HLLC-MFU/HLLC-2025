@@ -13,7 +13,6 @@ import (
 	"time"
 
 	mentionService "chat/module/chat/service"
-	reactionService "chat/module/chat/service"
 	userService "chat/module/user/service"
 
 	"github.com/gofiber/websocket/v2"
@@ -24,7 +23,6 @@ type (
 	WebSocketHandler struct {
 		chatService        ChatService
 		mentionService     mentionService.MentionService
-		reactionService    reactionService.ReactionService
 		roomService        RoomService
 		restrictionService RestrictionServiceChatService
 		connManager        *connection.ConnectionManager
@@ -43,7 +41,6 @@ type (
 func NewWebSocketHandler(
 	chatService ChatService,
 	mentionService mentionService.MentionService,
-	reactionService reactionService.ReactionService,
 	roomService RoomService,
 	restrictionService RestrictionServiceChatService,
 	connManager *connection.ConnectionManager,
@@ -53,7 +50,6 @@ func NewWebSocketHandler(
 	return &WebSocketHandler{
 		chatService:        chatService,
 		mentionService:     mentionService,
-		reactionService:    reactionService,
 		roomService:       roomService,
 		restrictionService: restrictionService,
 		connManager:       connManager,
@@ -64,27 +60,63 @@ func NewWebSocketHandler(
 
 // Send chat history
 func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.Conn, roomID string) {
+	log.Printf("[WebSocket] 🔍 Fetching chat history for room %s", roomID)
+	
 	messages, err := h.chatService.GetChatHistoryByRoom(ctx, roomID, 50)
-	if err == nil {
-		
-		// ตรวจสอบวันที่ของข้อความ
-		if len(messages) > 0 {
-			log.Printf("[WebSocket] First message timestamp: %v", messages[0].ChatMessage.Timestamp)
-			log.Printf("[WebSocket] Last message timestamp: %v", messages[len(messages)-1].ChatMessage.Timestamp)
+	if err != nil {
+		log.Printf("[WebSocket] ❌ Failed to get chat history for room %s: %v", roomID, err)
+		return
+	}
+	
+	log.Printf("[WebSocket] 📊 Retrieved %d messages from history for room %s", len(messages), roomID)
+	
+	// ตรวจสอบวันที่ของข้อความ
+	if len(messages) > 0 {
+		log.Printf("[WebSocket] 📅 First message timestamp: %v", messages[0].ChatMessage.Timestamp)
+		log.Printf("[WebSocket] 📅 Last message timestamp: %v", messages[len(messages)-1].ChatMessage.Timestamp)
+	}
+	
+	// **ENHANCED: Log special message types found in history**
+	specialMessageCount := 0
+	for _, msg := range messages {
+		if msg.ChatMessage.EvoucherInfo != nil {
+			log.Printf("[WebSocket] 🎫 Found evoucher message in history: %s", msg.ChatMessage.ID.Hex())
+			specialMessageCount++
 		}
-		
-		// Reverse array เพื่อให้ client ได้รับ oldest first สำหรับการแสดงผล
-		reversedMessages := make([]model.ChatMessageEnriched, len(messages))
+		if msg.ChatMessage.MentionInfo != nil {
+			log.Printf("[WebSocket] 📢 Found mention message in history: %s with %d mentions", msg.ChatMessage.ID.Hex(), len(msg.ChatMessage.Mentions))
+			specialMessageCount++
+		}
+		if msg.ChatMessage.ModerationInfo != nil {
+			log.Printf("[WebSocket] 🚫 Found restriction message in history: %s", msg.ChatMessage.ID.Hex())
+			specialMessageCount++
+		}
+		if msg.ChatMessage.StickerID != nil {
+			log.Printf("[WebSocket] 😀 Found sticker message in history: %s", msg.ChatMessage.ID.Hex())
+			specialMessageCount++
+		}
+		if msg.ReplyTo != nil {
+			log.Printf("[WebSocket] ↩️ Found reply message in history: %s -> %s", msg.ChatMessage.ID.Hex(), msg.ReplyTo.ID.Hex())
+			specialMessageCount++
+		}
 
-		// loop เรียง array ใหม่
-		for i, j := 0, len(messages)-1; i < len(messages); i, j = i+1, j-1 {
-			reversedMessages[i] = messages[j]
-		}
-		
-		log.Printf("[WebSocket] Sending %d chat messages for room %s (oldest first for proper display)", len(reversedMessages), roomID)
-		
+	}
+	
+	log.Printf("[WebSocket] 🎯 Found %d special message types in history for room %s", specialMessageCount, roomID)
+	
+	// Reverse array เพื่อให้ client ได้รับ oldest first สำหรับการแสดงผล
+	reversedMessages := make([]model.ChatMessageEnriched, len(messages))
+
+	// loop เรียง array ใหม่
+	for i, j := 0, len(messages)-1; i < len(messages); i, j = i+1, j-1 {
+		reversedMessages[i] = messages[j]
+	}
+	
+	log.Printf("[WebSocket] 📤 Sending %d chat messages for room %s (oldest first for proper display)", len(reversedMessages), roomID)
+	
+	messagesSent := 0
 	for _, msg := range reversedMessages {
-					// Get user details with role populated
+		// Get user details with role populated
 		var userData map[string]interface{}
 		if user, err := h.chatService.GetUserById(ctx, msg.ChatMessage.UserID.Hex()); err == nil {
 			userData = map[string]interface{}{
@@ -109,34 +141,34 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 			}
 		}
 
-			// Determine event type and message type (same logic as ChatEventEmitter)
-			var eventType, messageType string
+		// Determine event type and message type (same logic as ChatEventEmitter)
+		var eventType, messageType string
 		if msg.ChatMessage.StickerID != nil {
-				eventType = model.EventTypeSticker
+			eventType = model.EventTypeSticker
 			messageType = model.MessageTypeSticker
 		} else if msg.ChatMessage.ReplyToID != nil {
-				eventType = model.EventTypeReply
+			eventType = model.EventTypeReply
 			messageType = model.MessageTypeReply
-			} else if len(msg.ChatMessage.MentionInfo) > 0 {
-				eventType = model.EventTypeMention
-				messageType = model.MessageTypeMention
-			} else if msg.ChatMessage.EvoucherInfo != nil {
-				eventType = model.EventTypeEvoucher
-				messageType = model.MessageTypeEvoucher
-			} else if msg.ChatMessage.Image != "" {
-				eventType = "upload"
-				messageType = "upload"
+		} else if len(msg.ChatMessage.MentionInfo) > 0 {
+			eventType = model.EventTypeMention
+			messageType = model.MessageTypeMention
+		} else if msg.ChatMessage.EvoucherInfo != nil {
+			eventType = model.EventTypeEvoucher
+			messageType = model.MessageTypeEvoucher
+		} else if msg.ChatMessage.Image != "" {
+			eventType = "upload"
+			messageType = "upload"
 		} else {
-				eventType = model.EventTypeMessage
+			eventType = model.EventTypeMessage
 			messageType = model.MessageTypeText
 		}
 
-			// Create payload structure that matches ChatEventEmitter exactly
+		// Create payload structure that matches ChatEventEmitter exactly
 		payload := map[string]interface{}{
 			"room": map[string]interface{}{
 				"_id": roomID,
 			},
-				"user": userData,
+			"user": userData,
 			"message": map[string]interface{}{
 				"_id":       msg.ChatMessage.ID.Hex(),
 				"type":      messageType,
@@ -144,41 +176,43 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 				"timestamp": msg.ChatMessage.Timestamp,
 			},
 			"timestamp": msg.ChatMessage.Timestamp,
-			}
-
-			// Add sticker info if exists (matches ChatEventEmitter)
-			if msg.ChatMessage.StickerID != nil {
-				payload["sticker"] = map[string]interface{}{
-					"_id":   msg.ChatMessage.StickerID.Hex(),
-					"image": msg.ChatMessage.Image,
-				}
-			}
-
-			// Add file upload info if exists (matches ChatEventEmitter)
-			if msg.ChatMessage.Image != "" && msg.ChatMessage.StickerID == nil {
-				filename := msg.ChatMessage.Image
-				if idx := strings.LastIndex(filename, "/"); idx != -1 {
-					filename = filename[idx+1:]
-				}
-				payload["file"] = filename
-			}
-				
-			// Add evoucher info if exists (matches ChatEventEmitter)
-			if msg.ChatMessage.EvoucherInfo != nil {
-				payload["evoucherInfo"] = map[string]interface{}{
-					"message":     msg.ChatMessage.EvoucherInfo.Message,
-					"claimUrl":    msg.ChatMessage.EvoucherInfo.ClaimURL,
-					"sponsorImage": msg.ChatMessage.EvoucherInfo.SponsorImage,
-					"claimedBy":   msg.ChatMessage.EvoucherInfo.ClaimedBy,
-				}
 		}
 
-			// Add mention info if exists (matches ChatEventEmitter)
+		// Add sticker info if exists (matches ChatEventEmitter)
+		if msg.ChatMessage.StickerID != nil {
+			payload["sticker"] = map[string]interface{}{
+				"_id":   msg.ChatMessage.StickerID.Hex(),
+				"image": msg.ChatMessage.Image,
+			}
+		}
+
+		// Add file upload info if exists (matches ChatEventEmitter)
+		if msg.ChatMessage.Image != "" && msg.ChatMessage.StickerID == nil {
+			filename := msg.ChatMessage.Image
+			if idx := strings.LastIndex(filename, "/"); idx != -1 {
+				filename = filename[idx+1:]
+			}
+			payload["file"] = filename
+		}
+			
+		// Add evoucher info if exists (matches ChatEventEmitter)
+		if msg.ChatMessage.EvoucherInfo != nil {
+			payload["evoucherInfo"] = map[string]interface{}{
+				"message":     msg.ChatMessage.EvoucherInfo.Message,
+				"claimUrl":    msg.ChatMessage.EvoucherInfo.ClaimURL,
+				"sponsorImage": msg.ChatMessage.EvoucherInfo.SponsorImage,
+				"claimedBy":   msg.ChatMessage.EvoucherInfo.ClaimedBy,
+			}
+		}
+
+		// Add mention info if exists (matches ChatEventEmitter)
 		if len(msg.ChatMessage.MentionInfo) > 0 {
 			payload["mentions"] = msg.ChatMessage.MentionInfo
 		}
 
-			// Add reply info if exists (matches ChatEventEmitter)
+
+
+		// Add reply info if exists (matches ChatEventEmitter)
 		if msg.ReplyTo != nil {
 			log.Printf("[DEBUG] History message is a reply: messageID=%s, replyToID=%s", msg.ChatMessage.ID.Hex(), msg.ReplyTo.ID.Hex())
 			// Get reply user data
@@ -187,8 +221,8 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 				replyUserData = map[string]interface{}{
 					"_id":      replyUser.ID.Hex(),
 					"username": replyUser.Username,
-						"name":     replyUser.Name,
-					}
+					"name":     replyUser.Name,
+				}
 					
 			} else {
 				replyUserData = map[string]interface{}{
@@ -196,7 +230,7 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 				}
 			}
 
-				payload["replyTo"] = map[string]interface{}{
+			payload["replyTo"] = map[string]interface{}{
 				"message": map[string]interface{}{
 					"_id":       msg.ReplyTo.ID.Hex(),
 					"message":   msg.ReplyTo.Message,
@@ -204,50 +238,46 @@ func (h *WebSocketHandler) sendChatHistory(ctx context.Context, conn *websocket.
 				},
 				"user": replyUserData,
 			}
-		} else if msg.ChatMessage.ReplyToID != nil {
-			log.Printf("[DEBUG] History message has ReplyToID but no ReplyTo populated: messageID=%s, replyToID=%s", msg.ChatMessage.ID.Hex(), msg.ChatMessage.ReplyToID.Hex())
 		}
 
-			// Add reactions if exists (this is additional info for history)
-			if len(msg.Reactions) > 0 {
-				// Format reactions with user info (merged, up-to-date)
-				formattedReactions := make([]map[string]interface{}, 0, len(msg.Reactions))
-				for _, reaction := range msg.Reactions {
-					reactionData := map[string]interface{}{
-						"reactToId": map[string]interface{}{ "_id": reaction.MessageID.Hex() },
-						"reaction":  reaction.Reaction,
-						"timestamp": reaction.Timestamp,
-						"user": map[string]interface{}{
-							"_id":      reaction.UserID.Hex(),
-							"username": "", // Optionally fill username if needed
-							"name":     map[string]interface{}{}, // Optionally fill name if needed
-						},
-					}
-					// Try to get user info for reaction
-					if reactionUser, err := h.chatService.GetUserById(ctx, reaction.UserID.Hex()); err == nil {
-						reactionData["user"] = map[string]interface{}{
-							"_id":      reactionUser.ID.Hex(),
-							"username": reactionUser.Username,
-							"name":     reactionUser.Name,
-						}
-					}
-					formattedReactions = append(formattedReactions, reactionData)
-				}
-				payload["reactions"] = formattedReactions
-			}
+		// Create event
+		event := model.Event{
+			Type:      eventType,
+			Payload:   payload,
+			Timestamp: msg.ChatMessage.Timestamp,
+		}
 
-			// Create event with consistent structure
-	event := model.Event{
-				Type:      eventType,
-				Payload:   payload,
-				Timestamp: msg.ChatMessage.Timestamp,
-	}
-
-	if data, err := json.Marshal(event); err == nil {
-		conn.WriteMessage(websocket.TextMessage, data)
+		// Send event to client
+		if eventBytes, err := json.Marshal(event); err == nil {
+			if err := conn.WriteMessage(websocket.TextMessage, eventBytes); err != nil {
+				log.Printf("[WebSocket] ❌ Failed to send history message %s to client: %v", msg.ChatMessage.ID.Hex(), err)
+				break
 			}
+			messagesSent++
+			
+			// Log special message types being sent
+			if msg.ChatMessage.EvoucherInfo != nil {
+				log.Printf("[WebSocket] 📤 Sent evoucher message in history: %s", msg.ChatMessage.ID.Hex())
+			}
+			if msg.ChatMessage.MentionInfo != nil {
+				log.Printf("[WebSocket] 📤 Sent mention message in history: %s", msg.ChatMessage.ID.Hex())
+			}
+			if msg.ChatMessage.ModerationInfo != nil {
+				log.Printf("[WebSocket] 📤 Sent restriction message in history: %s", msg.ChatMessage.ID.Hex())
+			}
+			if msg.ChatMessage.StickerID != nil {
+				log.Printf("[WebSocket] 📤 Sent sticker message in history: %s", msg.ChatMessage.ID.Hex())
+			}
+			if msg.ReplyTo != nil {
+				log.Printf("[WebSocket] 📤 Sent reply message in history: %s", msg.ChatMessage.ID.Hex())
+			}
+			
+		} else {
+			log.Printf("[WebSocket] ❌ Failed to marshal history message %s: %v", msg.ChatMessage.ID.Hex(), err)
 		}
 	}
+	
+	log.Printf("[WebSocket] ✅ Successfully sent %d/%d history messages to client for room %s", messagesSent, len(reversedMessages), roomID)
 }
 
 func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
@@ -276,6 +306,8 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		conn.Close()
 		return
 	}
+
+	log.Printf("[WebSocket] 🔌 User %s connecting to room %s", userID, roomID)
 
 	// --- Set userRole in context for permission checks ---
 	user, err := h.chatService.GetUserById(ctx, userID)
@@ -339,8 +371,10 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		}
 	}
 
-	// Send chat history
+	// **ENHANCED: Send chat history with better logging**
+	log.Printf("[WebSocket] 📚 Sending chat history to user %s for room %s", userID, roomID)
 	h.sendChatHistory(ctx, conn, roomID)
+	log.Printf("[WebSocket] ✅ Chat history sent to user %s for room %s", userID, roomID)
 
 	// Create client object
 	client := &model.ClientObject{
@@ -357,11 +391,11 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 	})
 
 	// WebSocket connection established - no notification needed
-	log.Printf("[DEBUG] User %s connected to WebSocket for room %s", userObjID.Hex(), roomID)
+	log.Printf("[WebSocket] ✅ User %s successfully connected to WebSocket for room %s", userObjID.Hex(), roomID)
 	
 	defer func() {
 		// WebSocket disconnection - no notification needed
-		log.Printf("[DEBUG] User %s disconnected from WebSocket for room %s", userObjID.Hex(), roomID)
+		log.Printf("[WebSocket] 🔌 User %s disconnected from WebSocket for room %s", userObjID.Hex(), roomID)
 
 		// Unregister and cleanup
 		h.chatService.GetHub().Unregister(utils.Client{
@@ -382,6 +416,7 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
+			log.Printf("[WebSocket] ❌ User %s connection error: %v", userObjID.Hex(), err)
 			break
 		}
 
@@ -393,8 +428,7 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		switch {
 		case strings.HasPrefix(messageText, "/reply "):
 			h.handleReplyMessage(messageText, *client, ctx)
-		case strings.HasPrefix(messageText, "/react "):
-			h.handleReactionMessage(messageText, *client, ctx)
+
 		case strings.HasPrefix(messageText, "/unsend "):
 			h.handleUnsendMessage(messageText, *client, ctx)
 		default:
@@ -508,92 +542,7 @@ func (h *WebSocketHandler) handleReplyMessage(messageText string, client model.C
 	}
 }
 
-func (h *WebSocketHandler) handleReactionMessage(messageText string, client model.ClientObject, ctx context.Context) {
-	// Check if room is still active
-	room, err := h.roomService.GetRoomById(ctx, client.RoomID)
-	if err != nil {
-		log.Printf("[WS] Failed to get room %s: %v", client.RoomID.Hex(), err)
-		return
-	}
-	
-	if room.IsInactive() {
-		client.Conn.WriteMessage(websocket.TextMessage, []byte("This room is inactive and not accepting messages"))
-		return
-	}
 
-	// Parse reaction command: /react messageID emoji
-	parts := strings.SplitN(messageText, " ", 3)
-	if len(parts) < 3 {
-		log.Printf("[WS] Invalid reaction format from user %s", client.UserID.Hex())
-		return
-	}
-
-	messageID := parts[1]
-	reaction := parts[2]
-
-	log.Printf("[WS] User %s wants to react to message %s with %s", 
-		client.UserID.Hex(), messageID, reaction)
-
-	// ตรวจสอบสิทธิ์การส่งข้อความก่อน
-	canSendReaction, err := h.roomService.CanUserSendReaction(ctx, client.RoomID, client.UserID.Hex())
-	if err != nil {
-		log.Printf("[WS] Error checking reaction permissions for user %s in room %s: %v", 
-			client.UserID.Hex(), client.RoomID.Hex(), err)
-		return
-	}
-
-	// ถ้าไม่มี canSendReaction ก่็สามารถส่งได้
-	if !canSendReaction {
-		log.Printf("[WS] User %s cannot send reactions in read-only room %s", 
-			client.UserID.Hex(), client.RoomID.Hex())
-		
-		// Send error message to user
-		errorEvent := model.Event{
-			Type: "error",
-			Payload: model.ChatNoticePayload{
-				Room: model.RoomInfo{ID: client.RoomID.Hex()},
-				Message: "Reactions are not allowed in read-only rooms",
-				Timestamp: time.Now(),
-			},
-			Timestamp: time.Now(),
-		}
-		
-		if eventData, err := json.Marshal(errorEvent); err == nil {
-			client.Conn.WriteMessage(websocket.TextMessage, eventData)
-		}
-		return
-	}
-
-	// ตรวจสอบสิทธิ์การส่งข้อความก่อน
-	if h.restrictionService.IsUserBanned(ctx, client.UserID, client.RoomID) {
-		log.Printf("[WS] Banned user %s tried to react in room %s", client.UserID.Hex(), client.RoomID.Hex())
-		return
-	}
-
-	if h.restrictionService.IsUserMuted(ctx, client.UserID, client.RoomID) {
-		log.Printf("[WS] Muted user %s tried to react in room %s", client.UserID.Hex(), client.RoomID.Hex())
-		return
-	}
-
-	// Create reaction
-	reactionObj := &model.MessageReaction{
-		UserID:    client.UserID,
-		Reaction:  reaction,
-		Timestamp: time.Now(),
-	}
-
-	// Convert messageID to ObjectID
-	if messageObjID, err := primitive.ObjectIDFromHex(messageID); err == nil {
-		reactionObj.MessageID = messageObjID
-		
-		// Handle reaction
-		if err := h.reactionService.HandleReaction(ctx, reactionObj); err != nil {
-			log.Printf("[WS] Failed to handle reaction: %v", err)
-		}
-	} else {
-		log.Printf("[WS] Invalid message ID for reaction: %s", messageID)
-	}
-}
 
 // handleUnsendMessage จะต้องมีการตรวจสอบสิทธิ์การส่งข้อความก่อน
 func (h *WebSocketHandler) handleUnsendMessage(messageText string, client model.ClientObject, ctx context.Context) {

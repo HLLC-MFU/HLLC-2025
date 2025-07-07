@@ -7,8 +7,6 @@ const (
     EventTypeMessage    = "message" 
     EventTypeReply      = "reply"
     EventTypeSticker    = "sticker"
-    EventTypeReaction   = "reaction"
-    EventTypeMessageReactionUpdate = "message_reaction_update"
     EventTypeUserJoined = "user_joined"
     EventTypeUserLeft   = "user_left"
     EventTypeTyping     = "typing"
@@ -33,10 +31,7 @@ const (
     MessageTypeUpload   = "upload"
 )
 
-// Reaction Types - Action
-const (
-    // Note: Reaction types now handled inline as "add"/"remove" strings
-)
+
 
 type (
 
@@ -73,9 +68,8 @@ type (
 
 	MessageInfo struct {
 		ID        string    `json:"_id"`
-		Type      string    `json:"type"` // text, reply, sticker, reaction, mention
+		Type      string    `json:"type"` // text, reply, sticker, mention
 		Message   string    `json:"message,omitempty"`
-		Reaction  string    `json:"reaction,omitempty"` // for reaction events
 		Timestamp time.Time `json:"timestamp"`
 	}
 

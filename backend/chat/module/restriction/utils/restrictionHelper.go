@@ -23,13 +23,11 @@ func BuildRestrictionMessage(action string, userID, roomID, restrictorID primiti
 		Message:   generateRestrictionMessage(action, reason),
 		Timestamp: time.Now(),
 		ModerationInfo: &model.ModerationMessageInfo{
-			Action:       action,
-			TargetUserID: userID,
-			RestrictorID: restrictorID,
-			Reason:       reason,
-			Duration:     duration,
-			EndTime:      endTime,
-			Restriction:  restriction,
+			ID:          primitive.NewObjectID(),
+			Restriction: restriction,
+			RoomID:      roomID,
+			UserID:      userID,
+			Timestamp:   time.Now(),
 		},
 	}
 }
