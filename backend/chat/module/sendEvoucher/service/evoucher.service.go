@@ -77,11 +77,8 @@ func (s *EvoucherService) SendEvoucherMessage(ctx context.Context, userID, roomI
 		return nil, fmt.Errorf("foreign key validation failed: %w", err)
 	}
 
-	// Create evoucher message with display text
-	displayMessage := fmt.Sprintf("🎟️ %s\n💰 %s\n📝 %s", 
-		evoucherInfo.Title, 
-		evoucherInfo.Description,
-		evoucherInfo.ClaimURL)
+	// Create evoucher message with display text (use Thai message directly)
+	displayMessage := evoucherInfo.Message.Th
 
 	msg := &model.ChatMessage{
 		RoomID:       roomID,

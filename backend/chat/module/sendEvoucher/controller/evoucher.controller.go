@@ -108,10 +108,19 @@ func (c *EvoucherController) handleSendEvoucher(ctx *fiber.Ctx) error {
 
 	// Create evoucher info
 	evoucherInfo := &model.EvoucherInfo{
-		Title:       evoucherDto.Title,
-		Description: evoucherDto.Description,
-		ClaimURL:    evoucherDto.ClaimURL,
+		Message: struct {
+			Th string `bson:"th" json:"th"`
+			En string `bson:"en" json:"en"`
+		}{
+			Th: evoucherDto.Message.Th,
+			En: evoucherDto.Message.En,
+		},
+		ClaimURL:     evoucherDto.ClaimURL,
+		SponsorImage: evoucherDto.SponsorImage,
 	}
+
+	log.Printf("[EvoucherController] Creating evoucher info: message.th=%s, message.en=%s, claimUrl=%s, sponsorImage=%s", 
+		evoucherInfo.Message.Th, evoucherInfo.Message.En, evoucherInfo.ClaimURL, evoucherInfo.SponsorImage)
 
 	// Send evoucher message (this will broadcast to WebSocket)
 	message, err := c.evoucherService.SendEvoucherMessage(ctx.Context(), userObjID, roomObjID, evoucherInfo)
@@ -131,6 +140,8 @@ func (c *EvoucherController) handleSendEvoucher(ctx *fiber.Ctx) error {
 		"evoucherInfo":  message.EvoucherInfo,
 		"timestamp":     message.Timestamp,
 	}
+
+	log.Printf("[EvoucherController] Response data: %+v", responseData)
 
 	return ctx.JSON(fiber.Map{
 		"success": true,

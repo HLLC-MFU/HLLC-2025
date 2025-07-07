@@ -647,9 +647,9 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 			"timestamp": messageInfo.Timestamp,
 		},
 		"evoucherInfo": map[string]interface{}{
-			"title":       msg.EvoucherInfo.Title,
-			"description": msg.EvoucherInfo.Description,
+			"message":     msg.EvoucherInfo.Message,
 			"claimUrl":    msg.EvoucherInfo.ClaimURL,
+			"sponsorImage": msg.EvoucherInfo.SponsorImage,
 		},
 		"timestamp": msg.Timestamp,
 	}
@@ -698,9 +698,9 @@ func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.C
 			"timestamp": msg.Timestamp,
 		},
 		"evoucherInfo": map[string]interface{}{
-			"title":       msg.EvoucherInfo.Title,
-			"description": msg.EvoucherInfo.Description,
+			"message":     msg.EvoucherInfo.Message,
 			"claimUrl":    msg.EvoucherInfo.ClaimURL,
+			"sponsorImage": msg.EvoucherInfo.SponsorImage,
 			"claimedBy":   msg.EvoucherInfo.ClaimedBy,
 		},
 		"timestamp": time.Now(),
