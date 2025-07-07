@@ -7,7 +7,7 @@ interface MentionSuggestionsProps {
   onSelect: (user: RoomMember) => void;
 }
 
-const MentionSuggestions: React.FC<MentionSuggestionsProps> = ({ suggestions, onSelect }) => {
+const MentionSuggestions = ({ suggestions, onSelect }:MentionSuggestionsProps) => {
   if (suggestions.length === 0) {
     return null;
   }
@@ -23,7 +23,14 @@ const MentionSuggestions: React.FC<MentionSuggestionsProps> = ({ suggestions, on
               source={{ uri: item.user.profile_image_url || 'https://www.gravatar.com/avatar/?d=mp' }} 
               style={styles.avatar} 
             />
-            <Text style={styles.username}>{`${item.user.name.first} ${item.user.name.last}`.trim()}</Text>
+            <Text style={styles.username}>
+              {item.user_id === 'all' 
+                ? 'แจ้งทุกคน' 
+                : item.user.name && item.user.name.first && item.user.name.last 
+                  ? `${item.user.name.first} ${item.user.name.last}`.trim()
+                  : item.user.username || 'Unknown User'
+              }
+            </Text>
           </TouchableOpacity>
         )}
         keyboardShouldPersistTaps="handled"

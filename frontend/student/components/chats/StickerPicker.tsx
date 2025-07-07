@@ -1,4 +1,4 @@
-import { CHAT_BASE_URL } from '@/configs/chats/chatConfig';
+import { CHAT_BASE_URL, API_BASE_URL } from '@/configs/chats/chatConfig';
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -41,7 +41,7 @@ export default function StickerPicker({ onSelectSticker, onClose }: StickerPicke
         throw new Error('Failed to fetch stickers');
       }
       const data = await response.json();
-      setStickers(data.stickers);
+      setStickers(data.data);
     } catch (err) {
       console.error('Error fetching stickers:', err);
       setError('Failed to load stickers');
@@ -56,7 +56,7 @@ export default function StickerPicker({ onSelectSticker, onClose }: StickerPicke
       return imagePath;
     }
     // Otherwise, construct the full URL
-    const fullUrl = `${CHAT_BASE_URL}/api/uploads/${imagePath}`;
+    const fullUrl = `${API_BASE_URL}/uploads/${imagePath}`;
     return fullUrl;
   };
 

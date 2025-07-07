@@ -28,7 +28,7 @@ export const useMessageGrouping = (messages: Message[]) => {
           !prevMessage || 
           prevMessage.type === 'join' || 
           prevMessage.type === 'leave' ||
-          prevMessage.senderId !== message.senderId ||
+          prevMessage.user?._id !== message.user?._id ||
           (message.timestamp && prevMessage.timestamp && 
             new Date(message.timestamp).getTime() - new Date(prevMessage.timestamp).getTime() > 5 * 60 * 1000) ||
           message.isTemp !== prevMessage.isTemp // Separate temp and confirmed messages

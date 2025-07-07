@@ -61,6 +61,19 @@ export class SponsorsService {
       .lean();
   }
 
+  async findSponsorById(id: string): Promise<Sponsors> {
+    const sponsor = await this.sponsorsModel
+      .findById(id)
+      .populate('type')
+      .lean();
+    
+    if (!sponsor) {
+      throw new NotFoundException('Sponsor not found');
+    }
+    
+    return sponsor;
+  }
+
   async findSponsorsByType(typeId: string): Promise<Sponsors[]> {
     return this.sponsorsModel
       .find({ type: new Types.ObjectId(typeId) })
