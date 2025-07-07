@@ -25,7 +25,7 @@ import { Types } from 'mongoose';
 @UseGuards(PermissionsGuard)
 @Controller('activities')
 export class ActivitiesController {
-  constructor(private readonly activitiesService: ActivitiesService) {}
+  constructor(private readonly activitiesService: ActivitiesService) { }
 
   @Post()
   @Permissions('activities:create')
@@ -77,9 +77,11 @@ export class ActivitiesController {
     return this.activitiesService.remove(id);
   }
 
-  @Get(':id/assessment')
+  @Get(':activityId/assessment')
   @Permissions('activities:read')
-  async findActivitiesWithAssessment(activitiesId: string) {
-    return this.activitiesService.findActivitiesWithAssessment(activitiesId);
+  async findActivitiesWithAssessment(
+    @Param('activityId') activityId: string,
+  ) {
+    return this.activitiesService.findActivitiesWithAssessment(activityId);
   }
 }

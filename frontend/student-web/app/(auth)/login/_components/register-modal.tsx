@@ -15,6 +15,7 @@ import { Eye, EyeClosed, User2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { usePopupDialog } from '@/components/ui/dialog';
+import { CheckedUser, Province } from '@/types/user';
 
 interface RegisterModalProps {
   isOpen: boolean;
