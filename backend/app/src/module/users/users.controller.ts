@@ -22,6 +22,7 @@ import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';
 import { FastifyRequest } from 'fastify';
 import { UserUploadDirectDto } from './dto/upload.user.dto';
 import { ActivitiesService } from '../activities/services/activities.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 @UseGuards(PermissionsGuard)
 @UseInterceptors(AutoCacheInterceptor)
