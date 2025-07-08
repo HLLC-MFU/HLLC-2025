@@ -48,7 +48,8 @@
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "package": "com.mfuactivity.hllc",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "edgeToEdge": true
     },
     "web": {
       "bundler": "metro",
