@@ -25,8 +25,6 @@ import { useState } from "react";
 
 import { Room } from "@/types/chat";
 
-const CHAT_API_BASE_URL = process.env.NEXT_PUBLIC_DEPLOY_GO_API_URL;
-
 type RoomCardProps = {
     room: Room;
     onEdit: (room: Room) => void;
@@ -46,7 +44,7 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
     };
 
     const roomImage = room.image && !imageError 
-        ? `${CHAT_API_BASE_URL}/uploads/${room.image}` 
+        ? `${process.env.NEXT_PUBLIC_GO_API_URL}/uploads/${room.image}` 
         : `https://ui-avatars.com/api/?name=${room.name.en.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=48&font-size=0.4`;
 
     return (

@@ -179,6 +179,30 @@ func (s *RestrictionService) UnbanUser(ctx context.Context, userID, roomID, rest
 
 	activeBan.Status = "revoked"
 
+	// **NEW: Re-add user to room if not already a member**
+	roomCollection := s.mongo.Collection("rooms")
+	// Check if user is already a member
+	var room struct { Members []primitive.ObjectID `bson:"members"` }
+	err = roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+	if err == nil {
+		found := false
+		for _, m := range room.Members {
+			if m == userID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			// Add user back to members array
+			_, err := roomCollection.UpdateOne(ctx, bson.M{"_id": roomID}, bson.M{"$addToSet": bson.M{"members": userID}, "$set": bson.M{"updatedAt": now}})
+			if err != nil {
+				log.Printf("[ModerationService] Failed to re-add user %s to room %s after unban: %v", userID.Hex(), roomID.Hex(), err)
+			} else {
+				log.Printf("[ModerationService] Re-added user %s to room %s after unban", userID.Hex(), roomID.Hex())
+			}
+		}
+	}
+
 	// Emit and notify using helper
 	err = restrictionUtils.EmitAndNotifyRestriction(ctx, s.emitter, s.notificationService, s.mongo, userID, roomID, restrictorID, activeBan, "unban", "Ban revoked", "", "", nil)
 	if err != nil {
@@ -226,6 +250,30 @@ func (s *RestrictionService) UnmuteUser(ctx context.Context, userID, roomID, res
 	}
 
 	activeMute.Status = "revoked"
+
+	// **NEW: Re-add user to room if not already a member**
+	roomCollection := s.mongo.Collection("rooms")
+	// Check if user is already a member
+	var room struct { Members []primitive.ObjectID `bson:"members"` }
+	err = roomCollection.FindOne(ctx, bson.M{"_id": roomID}).Decode(&room)
+	if err == nil {
+		found := false
+		for _, m := range room.Members {
+			if m == userID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			// Add user back to members array
+			_, err := roomCollection.UpdateOne(ctx, bson.M{"_id": roomID}, bson.M{"$addToSet": bson.M{"members": userID}, "$set": bson.M{"updatedAt": now}})
+			if err != nil {
+				log.Printf("[ModerationService] Failed to re-add user %s to room %s after unmute: %v", userID.Hex(), roomID.Hex(), err)
+			} else {
+				log.Printf("[ModerationService] Re-added user %s to room %s after unmute", userID.Hex(), roomID.Hex())
+			}
+		}
+	}
 
 	// Emit and notify using helper
 	err = restrictionUtils.EmitAndNotifyRestriction(ctx, s.emitter, s.notificationService, s.mongo, userID, roomID, restrictorID, activeMute, "unmute", "Mute revoked", "", "", nil)

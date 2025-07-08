@@ -1,27 +1,19 @@
 "use client";
 
-import { 
-    Card, 
-    CardBody, 
-    Button, 
-    Input,
-    Select,
-    SelectItem,
-    Divider,
-    Badge,
+import { Card, CardBody, Button, Input,Select,SelectItem,Divider,Badge,
 } from "@heroui/react";
 import { 
     Calendar,
     Percent,
     Tag,
     ExternalLink,
-    AlertCircle,
+  AlertCircle,
     RefreshCw,
 } from "lucide-react";
 
 import { Evoucher } from "@/types/evoucher";
 
-interface EvoucherSelectionProps {
+type EvoucherSelectionProps = {
     evouchers: Evoucher[];
     selectedEvoucher: Evoucher | null;
     evoucherData: {
@@ -41,7 +33,7 @@ interface EvoucherSelectionProps {
         sponsorImage: string; 
     }) => void;
     onRefresh: () => void;
-}
+};
 
 export function EvoucherSelection({
     evouchers,

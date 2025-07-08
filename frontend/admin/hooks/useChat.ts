@@ -160,20 +160,24 @@ export function useChat() {
         }
     };
 
-    // **NEW: Get room members with pagination**
+    /**
+     * Get room members with optional pagination query string.
+     * @param roomId - The room ID, optionally with query string (e.g., "abc123?page=1&limit=10")
+     * @returns The API response with members and meta if available.
+     */
     const getRoomMembers = async (roomId: string) => {
         try {
             setLoading(true);
-            
-            const res = await apiGolangRequest<{ data: { members: RoomMember[] } }>(
-                `/rooms/${roomId}/members`,
+            // Accept query string in roomId (e.g., "abc123?page=1&limit=10")
+            const [id, query] = roomId.split("?");
+            const endpoint = query ? `/rooms/${id}/members?${query}` : `/rooms/${id}/members`;
+            const res = await apiGolangRequest<{ data: { members: RoomMember[]; meta?: any } }>(
+                endpoint,
                 "GET",
             );
-            
             if (res.data) {
                 return res.data;
             }
-            
             return { data: { members: [] } };
         } catch (err) {
             addToast({
@@ -185,7 +189,6 @@ export function useChat() {
                     ? (err as { message?: string }).message || 'Failed to fetch room members.'
                     : 'Failed to fetch room members.',
             );
-
             return { data: { members: [] } };
         } finally {
             setLoading(false);

@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { addToast } from "@heroui/react";
-
 import { Sticker } from "../types/sticker";
-
 import { apiGolangRequest } from "@/utils/api";
 
 export function useSticker() {

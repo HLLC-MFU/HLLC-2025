@@ -25,7 +25,7 @@ export const useApi = () => {
       setLoading(true);
       setError(null);
 
-      const url = `${process.env.NEXT_PUBLIC_DEPLOY_NEST_API_URL}${endpoint}`;  // Using NEXT_PUBLIC_API_URL
+      const url = `${process.env.NEXT_PUBLIC_NEST_API_URL}${endpoint}`;  // Using NEXT_PUBLIC_API_URL
 
       console.log(`Making ${method} request to ${url}`, { body, options });
 
@@ -108,7 +108,7 @@ export const useGolangApi = () => {
       setLoading(true);
       setError(null);
 
-      const url = `${process.env.NEXT_PUBLIC_DEPLOY_GO_API_URL}${endpoint}`;
+      const url = `${process.env.NEXT_PUBLIC_NEST_API_URL}${endpoint}`;
  
       console.log(`Making ${method} request to ${url}`, { body, options });
 

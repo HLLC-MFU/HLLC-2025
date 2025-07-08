@@ -43,6 +43,7 @@ export default function RoomDetailPage() {
         limit: number;
         totalPages: number;
     } | null>(null);
+    const MEMBERS_PER_PAGE = 10;
 
     useEffect(() => {
         if (roomId) {
@@ -70,31 +71,45 @@ export default function RoomDetailPage() {
         }
     };
 
+    // Helper to build query string
+    const buildQueryString = (params: Record<string, any>) => {
+        const esc = encodeURIComponent;
+        return Object.keys(params)
+            .map(k => esc(k) + '=' + esc(params[k]))
+            .join('&');
+    };
+
     const loadMembers = async (page: number = 1) => {
         try {
             setIsLoadingMembers(true);
-            const result = await getRoomMembers(roomId);
-
-            console.log('loadMembers result:', result);
-            
-            if (result && result.data) {
-                // Handle different possible response structures
-                const members = result.data.members || result.data || [];
-
-                console.log('Extracted members:', members);
-                setMembers(Array.isArray(members) ? members : []);
-            } else {
-                console.warn('No result or data from getRoomMembers');
-                setMembers([]);
-            }
+            const query = buildQueryString({ page, limit: MEMBERS_PER_PAGE });
+            const result = await getRoomMembers(`${roomId}?${query}`);
+            // Normalize to RoomMember[] regardless of API shape
+            const members = Array.isArray(result?.data?.members)
+                ? result.data.members.map((m: any) => m.user || m)
+                : [];
+            setMembers(members);
+            // Use pagination info from backend meta if available
+            const meta = result && result.data && (result.data as any).meta;
+            setPagination(meta ? {
+                total: meta.total,
+                page: meta.page,
+                limit: meta.limit,
+                totalPages: meta.totalPages
+            } : {
+                total: members.length,
+                page,
+                limit: MEMBERS_PER_PAGE,
+                totalPages: Math.ceil(members.length / MEMBERS_PER_PAGE)
+            });
         } catch (error) {
-            console.error('Error loading members:', error);
+            setMembers([]);
+            setPagination(null);
             addToast({
                 title: "Error loading members",
                 description: error instanceof Error ? error.message : "Failed to load room members",
                 color: "danger",
             });
-            setMembers([]);
         } finally {
             setIsLoadingMembers(false);
         }
@@ -118,28 +133,8 @@ export default function RoomDetailPage() {
         setIsRestrictionModalOpen(false);
     };
 
-    if (isLoadingMembers) {
-        return (
-            <div className="flex flex-col gap-6">
-                <div className="flex justify-between items-center">
-                    <div className="flex flex-col gap-2">
-                        <div className="h-8 w-48 bg-default-200 rounded-lg animate-pulse" />
-                        <div className="h-4 w-32 bg-default-200 rounded-lg animate-pulse" />
-                    </div>
-                    <div className="h-10 w-32 bg-default-200 rounded-lg animate-pulse" />
-                </div>
-                <Card>
-                    <CardBody>
-                        <div className="space-y-4">
-                            {Array.from({ length: 5 }).map((_, index) => (
-                                <div key={index} className="h-16 bg-default-200 rounded-lg animate-pulse" />
-                            ))}
-                        </div>
-                    </CardBody>
-                </Card>
-            </div>
-        );
-    }
+    // Remove client-side slicing, use members as is
+    const paginatedMembers = members;
 
     return (
         <div className="flex flex-col gap-6">
@@ -181,11 +176,11 @@ export default function RoomDetailPage() {
                         </p>
                     </div>
                 </div>
-                <div className="px-0 md:px-4 py-4">
+                <div className="px-0 md:px-4 py-4 relative">
                     <MemberTable
                         currentUserId="current-user-id" // You'll need to get this from auth context
                         loading={isLoadingMembers}
-                        members={members}
+                        members={paginatedMembers}
                         pagination={pagination}
                         roomId={roomId}
                         onBanMember={(member) => handleRestrictionAction(member, 'ban')}
@@ -193,6 +188,11 @@ export default function RoomDetailPage() {
                         onMuteMember={(member) => handleRestrictionAction(member, 'mute')}
                         onPageChange={handlePageChange}
                     />
+                    {isLoadingMembers && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-10">
+                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                        </div>
+                    )}
                 </div>
             </div>
 

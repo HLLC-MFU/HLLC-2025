@@ -1,12 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-
-// Define the API base URL for general API
-const API_BASE_URL = process.env.NEXT_PUBLIC_DEPLOY_NEST_API_URL;
-
-// Define the Golang API base URL
-const GO_API_BASE_URL = process.env.NEXT_PUBLIC_DEPLOY_GO_API_URL;
+import { env } from "process";
 
 export interface ApiResponse<T> {
   statusCode: number;
@@ -32,7 +27,7 @@ export async function apiRequest<T>(
       ...(options.headers || {}),
     };
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_NEST_API_URL}${endpoint}`, {
       method,
       headers,
       credentials: "include",
@@ -92,7 +87,7 @@ export async function apiGolangRequest<T>(
       ...(options.headers || {}),
     };
 
-    const response = await fetch(`${GO_API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_GO_API_URL}${endpoint}`, {
       method,
       headers,
       credentials: "include",

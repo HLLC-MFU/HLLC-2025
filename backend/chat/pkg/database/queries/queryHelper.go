@@ -110,7 +110,7 @@ import (
                 Total:         total,
                 Page:          opts.Page,
                 Limit:         opts.Limit,
-                TotalPages:    int(total) / opts.Limit,
+                TotalPages:    (int(total) + opts.Limit - 1) / opts.Limit,
                 LastUpdatedAt: time.Now(),
             },
         }, nil
@@ -190,7 +190,7 @@ import (
                 Total:         total,
                 Page:          opts.Page,
                 Limit:         opts.Limit,
-                TotalPages:    int(total) / opts.Limit,
+                TotalPages:    (int(total) + opts.Limit - 1) / opts.Limit,
                 LastUpdatedAt: time.Now(),
             },
         }, nil

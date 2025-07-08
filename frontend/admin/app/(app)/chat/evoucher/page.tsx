@@ -13,7 +13,7 @@ import { PageHeader } from "@/components/ui/page-header";
 
 export default function EvoucherPage() {
     const router = useRouter();
-    const { loading, setLoading } = useGolangApi();
+    const { loading } = useGolangApi();
     const [error, setError] = useState<string | null>(null);
     const searchParams = useSearchParams();
     const roomId = searchParams.get('roomId');
@@ -51,7 +51,7 @@ export default function EvoucherPage() {
                 error={error}
                 evoucherData={evoucherData}
                 evouchers={evouchers}
-                loading={setLoading}
+                loading={loading}
                 selectedEvoucher={selectedEvoucher}
                 onEvoucherDataChange={handleEvoucherDataChange}
                 onEvoucherSelect={handleEvoucherSelect}

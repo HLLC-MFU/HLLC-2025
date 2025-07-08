@@ -72,10 +72,36 @@ export function useRestriction() {
         }
     };
 
+    const kickUser = async (data: RestrictionAction) => {
+        setLoading(true);
+        try {
+            const res = await apiGolangRequest<{data: RestrictionAction}>(
+                "/restriction/kick",
+                "POST",
+                data
+            );
+
+            if (res.data?.data) {
+                setRestriction(res.data.data);
+            }
+        } catch (err) {
+            addToast({
+                title: 'Failed to kick user. Plesae try again.',
+                color: 'danger',
+            });
+            setError(err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to kick user.'
+                : 'Failed to kick user.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return {
         loading,
         banUser,
         muteUser,
+        kickUser,
         error,
         restriction,
     };

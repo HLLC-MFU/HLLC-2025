@@ -10,22 +10,23 @@ import {
     Button,
     Avatar,
     Chip,
-    Divider
+    Divider,
+    addToast
 } from "@heroui/react";
 import { Shield, LogOut } from "lucide-react";
 import { useState } from "react";
-import { addToast } from "@heroui/toast";
-import { getToken } from "@/utils/storage";
+import { useRestriction } from "../_hooks/useRestriction";
 
 type MemberModalProps ={
     isOpen: boolean;
     onClose: () => void;
     member: RoomMember | null;
-    roomId?: string;
+    roomId: string;
     onMemberKicked?: () => void;
 };
 
 export function MemberModal({ isOpen, onClose, member, roomId, onMemberKicked }: MemberModalProps) {
+    const { kickUser } = useRestriction();
     const [isKicking, setIsKicking] = useState(false);
 
     if (!member) return null;
@@ -34,48 +35,23 @@ export function MemberModal({ isOpen, onClose, member, roomId, onMemberKicked }:
     const nameObj = member.name || {};
     const fullName = [nameObj.first, nameObj.middle, nameObj.last].filter(Boolean).join(" ") || member.username || "";
 
-    const handleKickUser = async () => {
-        if (!roomId || !member._id) return;
-
-        if (!confirm(`Are you sure you want to kick ${member.username} from this room?`)) {
-            return;
-        }
-
+    // Kick handler
+    const handleKick = async () => {
+        setIsKicking(true);
         try {
-            setIsKicking(true);
-            const token = getToken('accessToken');
-            const response = await fetch('/restriction/kick', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
-                body: JSON.stringify({
-                    userId: member._id,
-                    roomId: roomId,
-                    reason: 'Kicked by administrator'
-                }),
+            await kickUser({
+                roomId,
+                userId: member._id,
+                action: "kick",
+                reason: "Kicked by admin"
             });
-
-            const result = await response.json();
-
-            if (result.success) {
-                addToast({
-                    title: "User kicked successfully",
-                    description: `${member.username} has been kicked from the room`,
-                    color: "success",
-                });
-                onMemberKicked?.();
-                onClose();
-            } else {
-                throw new Error(result.message || 'Failed to kick user');
+            if (onMemberKicked) {
+                onMemberKicked();
             }
+            addToast({ title: "User kicked successfully!", color: "success" });
+            onClose();
         } catch (error) {
-            addToast({
-                title: "Error kicking user",
-                description: error instanceof Error ? error.message : "Failed to kick user",
-                color: "danger",
-            });
+            addToast({ title: "Failed to kick user", color: "danger" });
         } finally {
             setIsKicking(false);
         }
@@ -125,7 +101,7 @@ export function MemberModal({ isOpen, onClose, member, roomId, onMemberKicked }:
                         color="danger"
                         variant="flat"
                         startContent={<LogOut size={16} />}
-                        onPress={handleKickUser}
+                        onPress={handleKick}
                         isLoading={isKicking}
                     >
                         Kick User

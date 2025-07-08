@@ -46,7 +46,7 @@ export function StickerModal({
       setNameEn(sticker.name?.en || "");
       setNameTh(sticker.name?.th || "");
       if (sticker.image) {
-        setPreviewImage(`${process.env.NEXT_PUBLIC_DEPLOY_GO_API_URL}/uploads/${sticker.image}`);
+        setPreviewImage(`${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${sticker.image}`);
       } else {
         setPreviewImage(null);
       }
@@ -74,18 +74,17 @@ export function StickerModal({
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-
       return;
     }
     setErrors({});
 
     const formData = new FormData();
-
     formData.append("name.en", nameEn.trim());
     formData.append("name.th", nameTh.trim());
 
-    // แนบ image เฉพาะกรณีเลือกไฟล์ใหม่เท่านั้น
+    // Always append image as 'image' field
     if (image instanceof File) {
+      console.log('[StickerModal] Uploading image:', image);
       formData.append("image", image);
     }
 

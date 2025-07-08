@@ -17,9 +17,7 @@ export default function StickerPage() {
     const { stickers, loading, createSticker, deleteSticker, updateSticker, fetchStickers } = useSticker();
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [confirmationModalType, setConfirmationModalType] = useState<
-        'delete' | 'edit' | null
-    >(null);
+    const [confirmationModalType, setConfirmationModalType] = useState<'delete' | 'edit' | null>(null);
     const [selectedSticker, setSelectedSticker] = useState<Sticker | undefined>();
 
     const handleAddSticker = () => {
@@ -45,20 +43,18 @@ export default function StickerPage() {
 
             if (mode === "edit" && stickerId && typeof stickerId === 'string') {
                 const res = await updateSticker(stickerId, formData);
-
-                if (res.statusCode === 200 || res.statusCode === 201) {
+                if (res && (res.statusCode === 200 || res.statusCode === 201)) {
                     addToast({ title: "Sticker updated successfully!", color: "success" });
                 } else {
-                    addToast({ title: res.message || "Failed to update sticker", color: "danger" });
+                    addToast({ title: res?.message || "Failed to update sticker", color: "danger" });
                     console.error("[Sticker] Update error:", res);
                 }
             } else if (mode === "add") {
                 const res = await createSticker(formData);
-
-                if (res.statusCode === 200 || res.statusCode === 201) {
+                if (res && (res.statusCode === 200 || res.statusCode === 201)) {
                     addToast({ title: "Sticker added successfully!", color: "success" });
                 } else {
-                    addToast({ title: res.message || "Failed to add sticker", color: "danger" });
+                    addToast({ title: res?.message || "Failed to add sticker", color: "danger" });
                     console.error("[Sticker] Add error:", res);
                 }
             }
@@ -74,14 +70,12 @@ export default function StickerPage() {
     const handleConfirm = async () => {
         try {
             const stickerId = selectedSticker?.id || selectedSticker?._id;
-
             if (confirmationModalType === 'delete' && stickerId && typeof stickerId === 'string') {
                 const res = await deleteSticker(stickerId);
-
-                if (res.statusCode === 200 || res.statusCode === 201) {
+                if (res && (res.statusCode === 200 || res.statusCode === 201)) {
                     addToast({ title: 'Sticker deleted successfully!', color: 'success' });
                 } else {
-                    addToast({ title: res.message || 'Failed to delete sticker', color: 'danger' });
+                    addToast({ title: res?.message || 'Failed to delete sticker', color: 'danger' });
                     console.error("[Sticker] Delete error:", res);
                 }
                 await fetchStickers();

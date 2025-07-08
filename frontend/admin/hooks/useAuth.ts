@@ -31,12 +31,14 @@ const useAuth = create<AuthStore>()(
         try {
           set({ loading: true, error: null });
 
-          const res = await fetch(`${process.env.NEXT_PUBLIC_DEPLOY_NEST_API_URL}/auth/login?useCookies=true`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_NEST_API_URL}/auth/login?useCookies=true`, {
             method: 'POST',
             body: JSON.stringify({ username, password }),
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
           });
+
+          console.log("gg", res)
 
           if (res.status === 201) {
             const data = await res.json();
@@ -54,7 +56,6 @@ const useAuth = create<AuthStore>()(
 
             redirect("/");
 
-            return true;
           } else {
             set({ error: res.statusText });
             addToast({
@@ -76,7 +77,7 @@ const useAuth = create<AuthStore>()(
       },
 
       signOut: async () => {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_DEPLOY_NEST_API_URL}/auth/logout`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_NEST_API_URL}/auth/logout`, {
           method: 'POST',
           credentials: 'include',
         });
@@ -109,7 +110,7 @@ const useAuth = create<AuthStore>()(
         try {
           set({ loading: true, error: null });
 
-          const res = await fetch(`${process.env.NEXT_PUBLIC_DEPLOY_NEST_API_URL}/auth/remove-password`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_NEST_API_URL}/auth/remove-password`, {
             method: 'POST',
             body: JSON.stringify({ username }),
             headers: { 'Content-Type': 'application/json' },

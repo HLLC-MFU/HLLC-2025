@@ -42,7 +42,7 @@ type RoomServiceImpl struct {
 type RoomService interface {
 	GetRooms(ctx context.Context, opts queries.QueryOptions, userId string) (*queries.Response[dto.ResponseRoomDto], error)
 	GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*model.Room, error)
-	GetRoomMemberById(ctx context.Context, roomID primitive.ObjectID) (*dto.ResponseRoomMemberDto, error)
+	GetRoomMemberById(ctx context.Context, roomID primitive.ObjectID, page int64, limit int64) (*dto.ResponseRoomMemberDto, error)
 	CreateRoom(ctx context.Context, createDto *dto.CreateRoomDto) (*model.Room, error)
 	UpdateRoom(ctx context.Context, id string, updateDto *dto.UpdateRoomDto) (*model.Room, error)
 	DeleteRoom(ctx context.Context, id string) (*model.Room, error)
@@ -135,10 +135,20 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 	return result, nil
 }
 
-func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitive.ObjectID) (*dto.ResponseRoomMemberDto, error) {
+func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitive.ObjectID, page int64, limit int64) (*dto.ResponseRoomMemberDto, error) {
 	room, err := s.cache.GetRoom(ctx, roomId.Hex())
 	if err != nil || room == nil {
 		return nil, errors.New("room not found")
+	}
+
+	total := int64(len(room.Members))
+	start := (page - 1) * limit
+	end := start + limit
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
 	}
 
 	members := make([]struct {
@@ -146,9 +156,9 @@ func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitiv
 			ID       string `json:"_id"`
 			Username string `json:"username"`
 		} `json:"user"`
-	}, 0, len(room.Members))
+	}, 0, end-start)
 
-	for _, m := range room.Members {
+	for _, m := range room.Members[start:end] {
 		user, err := s.userService.GetUserById(ctx, m.Hex())
 		memberObj := struct {
 			User struct {

@@ -26,7 +26,7 @@ export default function StickerCellRenderer({
     switch (columnKey) {
         case "image":
             const imageUrl = sticker.image
-                ? `${process.env.NEXT_PUBLIC_DEPLOY_GO_API_URL}/uploads/${sticker.image}`
+                ? `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${sticker.image}`
                 : '';
 
             return (

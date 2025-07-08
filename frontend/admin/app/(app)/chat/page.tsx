@@ -25,12 +25,10 @@ export default function ChatPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<Room | undefined>();
     const [selectedRoomType, setSelectedRoomType] = useState<RoomType | "school" | "major">(RoomType.NORMAL);
-    const [currentPage, setCurrentPage] = useState(1);
-    const roomsPerPage = 8; // ปรับจำนวนต่อหน้าได้
 
     useEffect(() => {
-        fetchRoom(currentPage, roomsPerPage);
-    }, [currentPage]);
+        fetchRoom();
+    }, []);
 
 
     const handleEditRoom = (room: Room) => {
@@ -50,7 +48,7 @@ export default function ChatPage() {
     const handleDeleteRoom = async (room: Room) => {
         try {
             await deleteRoom(room._id);
-            await fetchRoom(currentPage, 10);
+            await fetchRoom();
             addToast({ 
                 title: "Room deleted successfully!", 
                 color: "success" 
@@ -82,7 +80,7 @@ export default function ChatPage() {
             }
             
             await updateRoom(room._id, formData);
-            await fetchRoom(currentPage, 10);
+            await fetchRoom();
             addToast({ 
                 title: `Room ${newStatus === "active" ? "activated" : "deactivated"} successfully!`, 
                 color: "success" 
@@ -111,7 +109,7 @@ export default function ChatPage() {
                 await createRoom(formData);
             }
             
-            await fetchRoom(currentPage, 10);
+            await fetchRoom();
             addToast({ 
                 title: `Room ${mode === "add" ? "added" : "updated"} successfully!`, 
                 color: "success" 

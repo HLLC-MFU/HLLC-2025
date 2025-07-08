@@ -12,16 +12,14 @@ import { useSchools } from "@/hooks/useSchool";
 import { useMajors } from "@/hooks/useMajor";
 import { useUsers } from "@/hooks/useUsers";
 
-
-
-interface RoomModalProps {
+type RoomModalProps = {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: (formData: FormData, mode: "add" | "edit") => void;
     room?: Room;
     mode: "add" | "edit";
     roomType: RoomType | "school" | "major";
-}
+};
 
 export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: RoomModalProps) {
     const { schools, loading: schoolsLoading } = useSchools();
