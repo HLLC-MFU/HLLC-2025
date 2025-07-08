@@ -30,10 +30,7 @@ const MessageBubble = memo(({
   onReplyPreviewClick,
   currentUsername,
 }: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'>) => {
-  // DEBUG LOG
-  console.log('[MessageBubble] message:', message);
   if (message && message.evoucherInfo) {
-    console.log('[MessageBubble] evoucherInfo:', message.evoucherInfo);
   }
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState('');
