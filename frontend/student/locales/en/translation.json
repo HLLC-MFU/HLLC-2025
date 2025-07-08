@@ -100,5 +100,26 @@
         "camera": "Camera",
         "schoolOf": "School of ",
         "studentId": "Student ID"
+    },
+    "chat": {
+        "chatRoom": "Chat Room",
+        "members": "members",
+        "connectionError": "Connection error, retrying...",
+        "readonlyRoom": "📢 Read-only Room",
+        "readonlyMessage": "This room is for reading messages only. You cannot send messages.",
+        "scrollToBottom": "↓",
+        "you": "You",
+        "unknownUser": "Unknown User"
+    },
+    "roomInfo": {
+        "roomDetails": "Room Details",
+        "unnamedRoom": "Unnamed Room",
+        "users": "Users",
+        "createdAt": "Created",
+        "secureRoom": "Secure Room",
+        "onlineUsers": "Online Users",
+        "noUsersOnline": "No users online",
+        "waitingForFriends": "Waiting for friends to join the chat room",
+        "online": "Online"
     }
 }

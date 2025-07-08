@@ -149,14 +149,6 @@ export default function ChatPage() {
   const renderRoomItem = ({ item, index }: { item: ChatRoomWithId; index: number }) => {
     // log item
     const roomId = item.id || item._id; // รองรับทั้งสองแบบ
-    console.log('renderRoomItem:', {
-      id: roomId,
-      name: item.name,
-      is_member: item.is_member,
-      status: item.status ?? 'undefined',
-      type: item.type ?? 'undefined',
-      members_count: item.members_count,
-    });
     if (activeTab === 'my') {
       return (
         <RoomListItem 
