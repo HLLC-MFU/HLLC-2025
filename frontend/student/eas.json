@@ -1,0 +1,28 @@
+{
+  "cli": {
+    "version": ">= 16.13.3",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "GOOGLE_SERVICE_INFO_PLIST": "env:GOOGLE_SERVICE_INFO_PLIST"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "developmentClient": false,
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

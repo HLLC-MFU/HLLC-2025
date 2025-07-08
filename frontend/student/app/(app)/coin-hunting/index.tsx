@@ -1,0 +1,94 @@
+import  { useCallback, useEffect, useState } from 'react';
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import useCoinHunting from '@/hooks/useCoinHunting';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import TopBar from '@/components/coin-hunting/top-bar';
+import InteractiveMap from '@/components/coin-hunting/interactive-map';
+import MapMarkers from '@/components/coin-hunting/map-markers';
+import MarkerDetailModal from '@/components/coin-hunting/marker-detail-modal';
+import CombinedModal from '@/components/coin-hunting/combined-modal';
+import StampModal from '@/components/coin-hunting/stamp-modal';
+
+
+export default function CoinHuntingScreen() {
+  const {
+    modal,
+    selectedMarker,
+    evoucher,
+    alertType,
+    stampCount,
+    handleMarkerPress,
+    handleCheckIn,
+    handleGoToStamp,
+    closeModal,
+    markers,
+    collectedCoinImages,
+    handleScannerSuccess,
+    handleAlert,
+  } = useCoinHunting();
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleScannerSuccessWithRefresh = useCallback((data?: any) => {
+    handleScannerSuccess(data);
+    setRefreshKey((k) => k + 1);
+  }, [handleScannerSuccess]);
+
+  useEffect(() => {
+    if (params.modal === 'success') {
+      handleScannerSuccessWithRefresh(params.code ? { code: params.code as string } : undefined);
+      router.replace('/coin-hunting');
+    } else if (params.modal === 'alert' && params.type) {
+      handleAlert(params.type as any);
+      router.replace('/coin-hunting');
+    }
+  }, [params.modal, params.type, params.code, handleScannerSuccessWithRefresh]);
+
+  return (
+    <GestureHandlerRootView style={styles.container}>
+      <TopBar
+        onScan={handleCheckIn}
+        onStamp={() => handleGoToStamp()}
+        centerText="Bloom possible"
+      />
+      <InteractiveMap>
+        <MapMarkers onMarkerPress={handleMarkerPress} refreshKey={refreshKey} />
+      </InteractiveMap>
+      <MarkerDetailModal
+        visible={modal === 'marker-detail'}
+        marker={selectedMarker}
+        onClose={closeModal}
+        onCheckIn={handleCheckIn}
+      />
+      <CombinedModal
+        visible={modal === 'success'}
+        type="success"
+        onClose={closeModal}
+        onGoToStamp={handleGoToStamp}
+        evoucher={evoucher}
+      />
+      <CombinedModal
+        visible={modal === 'alert'}
+        type="alert"
+        onClose={closeModal}
+        alertType={alertType ?? undefined}
+      />
+      <StampModal
+        visible={modal === 'stamp'}
+        onClose={closeModal}
+        stamps={stampCount}
+        onGetReward={() => {}}
+        coinImages={collectedCoinImages}
+      />
+    </GestureHandlerRootView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+});

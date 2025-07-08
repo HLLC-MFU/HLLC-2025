@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
-import { chatService } from '../../services/chats/chatService';
 import { ChatRoom } from '../../types/chatTypes';
+import chatService from '@/services/chats/chatService';
 
 export const useChatRooms = () => {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -14,7 +14,12 @@ export const useChatRooms = () => {
     try {
       setLoading(true);
       setError(null);
-      const allRooms = await chatService.getRooms();
+      let allRooms: ChatRoom[] = [];
+      if (activeTab === 'my') {
+        allRooms = await chatService.getMyRoomsByApi();
+      } else {
+        allRooms = await chatService.getAllRoomsForUser();
+      }
       setRooms(allRooms);
     } catch (err) {
       console.error('Error loading rooms:', err);
@@ -24,10 +29,10 @@ export const useChatRooms = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [activeTab]);
 
-  const myRooms = useMemo(() => rooms.filter(r => r.is_member), [rooms]);
-  const discoverRooms = useMemo(() => rooms.filter(r => !r.is_member), [rooms]);
+  const myRooms = rooms;
+  const discoverRooms = rooms;
 
   const filteredRooms = useMemo(() => {
     const baseRooms = activeTab === 'my' ? myRooms : discoverRooms;

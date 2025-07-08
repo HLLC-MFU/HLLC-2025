@@ -1,14 +1,14 @@
-import React from "react"
+import React, { useRef } from "react"
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@heroui/react";
 
-export interface ExportModalProps {
+type ExportModalProps = {
     isOpen: boolean;
     onClose: () => void;
     onExport: (fileName: string) => void;
 }
 
 export default function ExportModal({ isOpen, onClose, onExport }: ExportModalProps) {
-    const fileNameRef = React.useRef<HTMLInputElement>(null);
+    const fileNameRef = useRef<HTMLInputElement>(null);
 
     return (
         <Modal

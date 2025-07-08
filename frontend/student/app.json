@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "student",
+    "name": "HLLC",
     "slug": "student",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,15 +8,47 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "jsEngine": "hermes",
+    "owner": "hllc",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mfuactivity.hllc",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "processing",
+          "fetch",
+          "remote-notification"
+        ],
+        "BGTaskSchedulerPermittedIdentifiers": [
+          "background-step-sync"
+        ],
+        "UIViewControllerBasedStatusBarAppearance": "Allow $(PRODUCT_NAME) to send you notifications.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSHealthShareUsageDescription": "Allow $(PRODUCT_NAME) to read health data.",
+        "NSHealthUpdateUsageDescription": "Allow $(PRODUCT_NAME) to write health data.",
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera.",
+        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to access your location for check-in.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to access your location for check-in."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true
+      },
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "permissions": [
+        "android.permission.BODY_SENSORS",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ],
+      "package": "com.mfuactivity.hllc",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -24,6 +56,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "expo-localization",
       "expo-router",
       [
         "expo-splash-screen",
@@ -34,10 +67,50 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-font"
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow this app to access your camera.",
+          "microphonePermission": "Allow this app to access your microphone.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0",
+            "minSdkVersion": 29
+          },
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      "expo-background-task",
+      "expo-video",
+      "@react-native-firebase/app",
+      "expo-asset",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "280d56a7-4983-4741-9561-8bf4552036e0"
+      }
     }
   }
 }

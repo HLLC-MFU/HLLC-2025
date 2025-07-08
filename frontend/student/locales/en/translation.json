@@ -4,6 +4,7 @@
         "error": "An error occurred",
         "success": "Success",
         "cancel": "Cancel",
+        "close": "Close",
         "confirm": "Confirm",
         "ok": "OK",
         "yes": "Yes",
@@ -11,21 +12,39 @@
     },
     "login": {
         "title": "Login",
-        "subtitle": "Please enter your credentials",
-        "username": "Username",
+        "subtitle": "Let's start your journey",
+        "username": "Student ID",
         "password": "Password",
         "loginButton": "Login",
         "forgotPassword": "Forgot Password?",
-        "register": "Register"
+        "register": "Register",
+        "contactUs": "Contact Us",
+        "policy": "By continuing, you acknowledge that you have read and agree to our <tos>Terms of Service</tos> and <privacy>Privacy Policy</privacy>."
     },
     "register": {
         "title": "Register",
         "subtitle": "Create a new account",
-        "username": "Username",
+        "username": "Student ID",
+        "studentName": "Full Name",
         "password": "Password",
         "confirmPassword": "Confirm Password",
+        "province": "Province",
         "registerButton": "Register",
-        "loginPrompt": "Already have an account? Login"
+        "loginPrompt": "Already have an account?",
+        "login": "Login"
+    },
+    "resetPassword": {
+        "title": "Reset Password",
+        "subtitle": "Enter your Student ID to reset your password",
+        "username": "Student ID",
+        "studentName": "Full Name",
+        "sendCode": "Send Verification Code",
+        "newPassword": "New Password",
+        "confirmPassword": "Confirm New Password",
+        "province": "Province",
+        "resetButton": "Reset Password",
+        "loginPrompt": "Already have an account?",
+        "backToLogin": "Back to Login"
     },
     "profile": {
         "title": "Profile",
@@ -43,26 +62,43 @@
     },
     "nav": {
         "welcome": "Welcome Back",
-        "progress": "Progress"
+        "progress": "Progress",
+        "home": "Home",
+        "activity": "Activity",
+        "qrCode": "QR Code",
+        "evoucher": "E-Voucher",
+        "community": "Community"
     },
     "home": {
         "activities": "Activities",
         "seeAll": "See all"
     },
-    "activty": {
-        "activities": "Activities",
+    "activity": {
+        "title": "Activities",
+        "allActivities": "All Activities",
         "subtitle": "Coming soon...",
         "backward": "Go Back"
     },
     "evoucher": {
         "title": "E-Voucher",
         "subtitle": "Coming soon...",
-        "backward": "Go Back"
+        "backward": "Go Back",
+        "confirmTitle": "Confirm E-Voucher Usage",
+        "confirmMessage": "Are you sure you want to use this E-Voucher?",
+        "claim": "Claim E-Voucher",
+        "claiming": "Claiming...",
+        "claimed": "You have received the E-Voucher!"
     },
     "bottomNav": {
         "home": "Home",
         "activity": "Activity",
         "evoucher": "E-Voucher",
         "community": "Community"
+    },
+    "qrCode": {
+        "qrCode": "QR Code",
+        "camera": "Camera",
+        "schoolOf": "School of ",
+        "studentId": "Student ID"
     }
 }

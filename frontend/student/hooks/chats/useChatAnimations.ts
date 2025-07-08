@@ -74,4 +74,6 @@ export const useChatAnimations = () => {
     animateFab,
     animateTabBar,
   };
-}; 
+};
+
+export default useChatAnimations; 

@@ -1,23 +1,41 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Avatar from './Avatar';
 import { Reply } from 'lucide-react-native';
 import { MessageBubbleProps } from '@/types/chatTypes';
-import { CHAT_BASE_URL } from '@/configs/chats/chatConfig';
+import { CHAT_BASE_URL, API_BASE_URL } from '@/configs/chats/chatConfig';
 import { formatTime } from '@/utils/chats/timeUtils';
+import ImagePreviewModal from './ImagePreviewModal';
+import { apiRequest } from '@/utils/api';
+import useProfile from '@/hooks/useProfile';
+import { useTranslation } from 'react-i18next';
 
+
+interface MessageBubbleEnrichedProps extends MessageBubbleProps {
+  allMessages?: import('@/types/chatTypes').Message[];
+  onReplyPreviewClick?: (replyToId: string) => void;
+  currentUsername: string;
+}
 
 const MessageBubble = memo(({ 
   message, 
   isMyMessage, 
-  senderId, 
-  senderName,
   isRead,
   showAvatar = true,
   isLastInGroup = true,
   isFirstInGroup = true,
   onReply,
-}: MessageBubbleProps) => {
+  allMessages = [],
+  onReplyPreviewClick,
+  currentUsername,
+}: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'>) => {
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState('');
+  const [claiming, setClaiming] = useState<{ [id: string]: boolean }>({});
+  const [claimed, setClaimed] = useState<{ [id: string]: boolean }>({});
+  const { user } = useProfile();
+  const userId = user?.data?.[0]?._id;
+  const { t } = useTranslation();
   const statusElement = isMyMessage && (
     <View style={styles.messageStatus}>
       <Text style={styles.messageStatusText}>
@@ -26,38 +44,129 @@ const MessageBubble = memo(({
     </View>
   );
 
+  // Language detection (simple):
+  const lang = (typeof navigator !== 'undefined' && navigator.language?.startsWith('en')) ? 'en' : 'th';
+
   const getStickerImageUrl = (imagePath: string) => {
     // If imagePath is already a full URL, return it
     if (imagePath.startsWith('http')) {
       return imagePath;
     }
-    // Otherwise, construct the full URL
-    const fullUrl = `${CHAT_BASE_URL}/api/uploads/${imagePath}`;
+    // Otherwise, construct the full URL using CHAT_BASE_URL to avoid Authorization header
+    const fullUrl = `${API_BASE_URL}/uploads/${imagePath}`;
     return fullUrl;
   };
 
+  const getMessageTextStyle = () => {
+    return [
+      styles.messageText,
+      !isMyMessage && { color: '#222' }, // ข้อความคนอื่นเป็นสีดำ
+    ];
+  };
+
+  const renderWithMentions = (text: string, currentUsername: string) => {
+    if (!text) return null;
+    const regex = /(@\w+)/g;
+    const parts = text.split(regex);
+    return parts.map((part, i) => {
+      if (regex.test(part)) {
+        const mention = part.slice(1);
+        const isMatch = mention === currentUsername;
+        if (isMatch) {
+          return (
+            <Text key={i} style={{ color: '#0A84FF', fontWeight: 'bold' }}>{part}</Text>
+          );
+        }
+        return <Text key={i}>{part}</Text>;
+      }
+      return <Text key={i}>{part}</Text>;
+    });
+  };
+
   const renderContent = () => {
+    // Check for evoucher type
+    if (message.type === 'evoucher' && message.evoucherInfo) {
+      const isClaimed = claimed[message.id ?? ''] || false;
+      const isClaiming = claiming[message.id ?? ''] || false;
+      return (
+        <View style={[styles.evoucherCard, isClaimed && styles.evoucherCardClaimed]}> 
+          <View style={styles.evoucherHeader}>
+            <Text style={styles.evoucherIcon}>{isClaimed ? '🎉' : '🎟️'}</Text>
+            <Text style={[styles.evoucherTitle, isClaimed && styles.evoucherTitleClaimed]}>
+              {message.evoucherInfo.title}
+            </Text>
+          </View>
+          <Text style={styles.evoucherDescription}>{message.evoucherInfo.description}</Text>
+          {isClaimed ? (
+            <View style={styles.claimedBox}>
+              <Text style={styles.claimedText}>{t('evoucher.claimed', 'คุณได้รับ E-Voucher แล้ว!')}</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.evoucherButton}
+              disabled={isClaimed || isClaiming}
+              onPress={async () => {
+                if (!message.evoucherInfo?.claimUrl || !userId) return;
+                setClaiming(prev => ({ ...prev, [message.id ?? '']: true }));
+                try {
+                  const claimPath = message.evoucherInfo.claimUrl;
+                  const res = await apiRequest(claimPath, 'POST', { user: userId });
+                  if (res.statusCode === 200 || res.statusCode === 201) {
+                    setClaimed(prev => ({ ...prev, [message.id ?? '']: true }));
+                  } else {
+                    alert(res.message || 'Claim failed');
+                  }
+                } catch (e) {
+                  alert('Claim failed');
+                } finally {
+                  setClaiming(prev => ({ ...prev, [message.id ?? '']: false }));
+                }
+              }}
+            >
+              <Text style={styles.evoucherButtonText}>
+                {isClaiming
+                  ? t('evoucher.claiming', 'กำลังเคลม...')
+                  : t('evoucher.claim', 'กดเพื่อรับ E-Voucher')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+
     // Check for sticker by looking at image field and type
     if (message.image && (message.type === 'sticker' || message.stickerId)) {
       const imageUrl = getStickerImageUrl(message.image);
       return (
-        <Image 
-          source={{ uri: imageUrl }} 
-          style={styles.stickerImage}
-          resizeMode="contain"
-          onError={(error) => {
-            console.error('Error loading sticker image:', error.nativeEvent.error);
+        <TouchableOpacity 
+          onPress={() => {
+            setPreviewImageUrl(imageUrl);
+            setShowImagePreview(true);
           }}
-        />
+        >
+          <Image 
+            source={{ uri: imageUrl }} 
+            style={styles.stickerImage}
+            resizeMode="contain"
+            onError={(error) => {
+              console.error('Error loading sticker image:', error.nativeEvent.error);
+            }}
+          />
+        </TouchableOpacity>
       );
     }
 
     if (message.fileUrl) {
-      if (message.fileType === 'image') {
+      const isImage = message.fileType === 'image' ||
+        /\.(jpg|jpeg|png|gif|webp)$/i.test(message.fileUrl);
+      if (isImage) {
         return (
           <TouchableOpacity 
             onPress={() => {
-              // TODO: Implement image preview
+              if (message.fileUrl) {
+                setPreviewImageUrl(message.fileUrl);
+                setShowImagePreview(true);
+              }
             }}
           >
             <Image 
@@ -78,55 +187,137 @@ const MessageBubble = memo(({
       );
     }
 
-    return <Text style={styles.messageText}>{message.text}</Text>;
+    return <Text style={getMessageTextStyle()}>{renderWithMentions(message.text || '', currentUsername)}</Text>;
   };
   
-  return (
-    <View style={[
-      styles.messageWrapper, 
-      isMyMessage ? styles.myMessage : styles.otherMessage,
-      !isLastInGroup && (isMyMessage ? { marginBottom: 2 } : { marginBottom: 2 })
-    ]}>
-      {!isMyMessage && isFirstInGroup && (
-        <Text style={styles.senderNameAbove}>{senderName || senderId}</Text>
-      )}
-      
+  const enrichedReplyTo = useMemo(() => {
+    const replyTo = message.replyTo || undefined;
+    if (replyTo && replyTo.id) {
+      const found = allMessages.find(m => m.id === replyTo.id);
+      if (found) {
+        return {
+          ...replyTo,
+          type: found.type,
+          text: found.text || '',
+          image: found.image,
+          fileName: found.fileName,
+          fileType: found.fileType,
+          stickerId: found.stickerId,
+          user: found.user, // เพิ่ม user data จาก found message
+        };
+      }
+      return { ...replyTo, notFound: true };
+    }
+    return replyTo;
+  }, [message.replyTo?.id, message.replyTo?.text, allMessages]);
+
+  const getDisplayName = (user?: { name?: { first?: string; last?: string } }) => {
+    if (!user || !user.name) return '';
+    return `${user.name.first || ''} ${user.name.last || ''}`.trim();
+  };
+
+  const renderReplyPreview = () => {
+    if (!enrichedReplyTo) return null;
+    return (
       <TouchableOpacity
-        style={styles.messageBubbleRow}
-        onLongPress={() => onReply && onReply(message)}
+        onPress={() => {
+          if (!enrichedReplyTo.notFound && onReplyPreviewClick) {
+            onReplyPreviewClick(enrichedReplyTo.id);
+          }
+        }}
         activeOpacity={0.8}
-        delayLongPress={200}
+        style={styles.replyPreviewContainer}
       >
+        <Text style={styles.replyLabel}>
+          {isMyMessage
+            ? `You replied to ${getDisplayName(enrichedReplyTo.user) || 'Unknown'}`
+            : `${getDisplayName(message.user) || 'Someone'} replied to ${getDisplayName(enrichedReplyTo.user) || 'Unknown'}`}
+        </Text>
+        <View style={isMyMessage ? styles.replyPreviewBoxMine : styles.replyPreviewBoxOther}>
+          {enrichedReplyTo.type === 'file' && enrichedReplyTo.fileType === 'image' && enrichedReplyTo.image && (
+            <TouchableOpacity 
+              onPress={() => {
+                if (enrichedReplyTo.image) {
+                  setPreviewImageUrl(enrichedReplyTo.image);
+                  setShowImagePreview(true);
+                }
+              }}
+            >
+              <Image source={{ uri: enrichedReplyTo.image }} style={styles.replyImage} />
+            </TouchableOpacity>
+          )}
+          {enrichedReplyTo.type === 'sticker' && enrichedReplyTo.image && (
+            <TouchableOpacity 
+              onPress={() => {
+                if (enrichedReplyTo.image) {
+                  setPreviewImageUrl(enrichedReplyTo.image);
+                  setShowImagePreview(true);
+                }
+              }}
+            >
+              <Image source={{ uri: enrichedReplyTo.image }} style={styles.replySticker} />
+            </TouchableOpacity>
+          )}
+          {enrichedReplyTo.type === 'file' && enrichedReplyTo.fileType !== 'image' && (
+            <Text style={styles.replyFile}>{enrichedReplyTo.fileName}</Text>
+          )}
+          {enrichedReplyTo.type === 'message' && (
+            <Text style={styles.replyText}>
+              {renderWithMentions(enrichedReplyTo.text || '', currentUsername)}
+            </Text>
+          )}
+          {enrichedReplyTo.notFound && (
+            <Text style={styles.replyText}>[ไม่พบข้อความต้นฉบับ]</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View
+      style={[
+        styles.messageWrapper,
+        isMyMessage ? styles.myMessage : styles.otherMessage,
+        !isLastInGroup && (isMyMessage ? { marginBottom: 2 } : { marginBottom: 2 }),
+      ]}
+    >
+      {/* กล่อง preview แยกออกมา */}
+      {renderReplyPreview()}
+
+      {/* กล่องข้อความหลัก */}
+      <View style={styles.messageBubbleRow}>
         {!isMyMessage && showAvatar && isLastInGroup ? (
-          <Avatar name={senderName || senderId} size={32} />
+          <Avatar name={getDisplayName(message.user)} size={32} />
         ) : (
           !isMyMessage && <View style={{ width: 40 }} />
         )}
-        <View style={[
-          styles.messageBubble, 
-          isMyMessage ? styles.myBubble : styles.otherBubble,
-          isFirstInGroup && (isMyMessage ? styles.myFirstBubble : styles.otherFirstBubble),
-          isLastInGroup && (isMyMessage ? styles.myLastBubble : styles.otherLastBubble),
-          (message.stickerId || message.image || message.fileType === 'image') && styles.mediaBubble
-        ]}>
-          {message.replyTo && (
-            <View style={styles.replyContainer}>
-              <Reply size={14} color="#8E8E93" />
-              <Text style={styles.replyText} numberOfLines={1}>
-                {message.replyTo.text}
-              </Text>
-            </View>
-          )}
+        <View
+          style={[
+            styles.messageBubble,
+            isMyMessage ? styles.myBubble : styles.otherBubble,
+            isFirstInGroup && (isMyMessage ? styles.myFirstBubble : styles.otherFirstBubble),
+            isLastInGroup && (isMyMessage ? styles.myLastBubble : styles.otherLastBubble),
+            (message.stickerId || message.image || message.fileType === 'image') && styles.mediaBubble,
+          ]}
+        >
           {renderContent()}
         </View>
-      </TouchableOpacity>
-      
+      </View>
+
       {isLastInGroup && (
-        <View style={[styles.messageFooter, isMyMessage ? { alignSelf: 'flex-end' } : { marginLeft: 40 }]}>
+        <View style={[styles.messageFooter, isMyMessage ? { alignSelf: 'flex-end' } : { marginLeft: 40 }]}> 
           <Text style={styles.timestamp}>{formatTime(message.timestamp)}</Text>
           {statusElement}
         </View>
       )}
+
+      {/* Image Preview Modal */}
+      <ImagePreviewModal
+        visible={showImagePreview}
+        imageUrl={previewImageUrl}
+        onClose={() => setShowImagePreview(false)}
+      />
     </View>
   );
 });
@@ -142,24 +333,29 @@ const styles = StyleSheet.create({
     marginLeft: 40,
     flexDirection: 'column',
     alignItems: 'flex-end',
+    maxWidth: '100%', // จำกัดความกว้างสูงสุด
   },
   otherMessage: { 
     alignSelf: 'flex-start',
     marginRight: 40,
     flexDirection: 'column',
     alignItems: 'flex-start',
+    maxWidth: '100%', // จำกัดความกว้างสูงสุด
   },
   messageBubbleRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     flexWrap: 'wrap',
+    width: '100%', // ให้ใช้พื้นที่เต็ม
   },
   messageBubble: { 
     maxWidth: '80%',
+    minWidth: 20, // ขั้นต่ำสุดสำหรับ bubble
     paddingVertical: 8,
-    paddingHorizontal: 12, 
+    paddingHorizontal: 12,
     borderRadius: 18,
     marginBottom: 2,
+    alignSelf: 'flex-start', // ให้ bubble ขยายตามเนื้อหา
   },
   myBubble: { 
     backgroundColor: '#0A84FF',
@@ -169,7 +365,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 18,
   },
   otherBubble: { 
-    backgroundColor: '#333',
+    backgroundColor: '#E0E0E0',
     borderTopRightRadius: 18,
     borderBottomRightRadius: 18,
     borderTopLeftRadius: 4,
@@ -197,6 +393,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     flexWrap: 'wrap',
     flexShrink: 1,
+    textAlign: 'left', // จัดข้อความชิดซ้าย
   },
   senderNameAbove: { 
     color: '#0A84FF', 
@@ -226,19 +423,68 @@ const styles = StyleSheet.create({
     padding: 8,
     opacity: 0.7,
   },
-  replyContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    padding: 4,
-    borderRadius: 8,
-    marginBottom: 4,
+  replyPreviewContainer: {
+    marginBottom: 6,
+    maxWidth: '80%',
+    minWidth: 20, // ขั้นต่ำสุดสำหรับ reply preview
+    alignSelf: 'flex-start', // ให้ขยายตามเนื้อหา
+  },
+  replyLabel: {
+    color: '#b0b0b0',
+    fontSize: 12,
+    marginBottom: 2,
+    marginLeft: 2,
+    flexWrap: 'wrap', // ให้ข้อความ wrap ได้
+    flexShrink: 1, // ให้หดตัวได้
+  },
+  replyPreviewBoxMine: {
+    backgroundColor: '#ffffff70',
+    borderRadius: 18,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginBottom: -12,
+    justifyContent: 'center',
+    minWidth: 20, // ขั้นต่ำสุด
+    alignSelf: 'flex-end', // ขยายตามเนื้อหา
+  },
+  replyPreviewBoxOther: {
+    backgroundColor: '#ffffff70',
+    borderRadius: 18,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginLeft: 40,
+    marginBottom: -12,
+    justifyContent: 'center',
+    minWidth: 60, // ขั้นต่ำสุด
+    alignSelf: 'flex-start', // ขยายตามเนื้อหา
   },
   replyText: {
-    color: '#8E8E93',
-    fontSize: 12,
-    marginLeft: 4,
-    flex: 1,
+    color: '#555',
+    fontSize: 15,
+    fontWeight: '400',
+    flexWrap: 'wrap', // ให้ข้อความ wrap ได้
+    flexShrink: 1, // ให้หดตัวได้
+  },
+  replyImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  replySticker: {
+    width: 36,
+    height: 36,
+    alignSelf: 'center',
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  replyFile: {
+    color: '#fff',
+    fontSize: 13,
+    fontStyle: 'italic',
+    marginTop: 2,
   },
   stickerImage: {
     width: 120,
@@ -260,6 +506,76 @@ const styles = StyleSheet.create({
   fileName: {
     color: '#fff',
     fontSize: 14,
+  },
+  evoucherCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#ffe066',
+    padding: 18,
+    marginVertical: 6,
+    shadowColor: '#ffe066',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    minWidth: 220,
+    maxWidth: 300,
+  },
+  evoucherCardClaimed: {
+    borderColor: '#22c55e',
+    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+  },
+  evoucherHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  evoucherIcon: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  evoucherTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#b8860b',
+  },
+  evoucherTitleClaimed: {
+    color: '#22c55e',
+  },
+  evoucherDescription: {
+    fontSize: 15,
+    color: '#7c6f00',
+    marginBottom: 14,
+  },
+  evoucherButton: {
+    backgroundColor: '#ffe066',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    shadowColor: '#ffe066',
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  evoucherButtonText: {
+    color: '#b8860b',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  claimedBox: {
+    marginTop: 8,
+    padding: 10,
+    backgroundColor: 'rgba(34,197,94,0.12)',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  claimedText: {
+    color: '#22c55e',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

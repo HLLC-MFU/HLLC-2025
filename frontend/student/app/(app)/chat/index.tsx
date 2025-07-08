@@ -20,7 +20,6 @@ import { useChatRooms } from '../../../hooks/chats/useChatRooms';
 import { useChatAnimations } from '../../../hooks/chats/useChatAnimations';
 import { ChatRoom } from '../../../types/chatTypes';
 import { BlurView } from 'expo-blur';
-import { chatService } from '../../../services/chats/chatService';
 import CategoryFilter from '@/components/chats/CategoryFilter';
 import ChatHeader from '@/components/chats/ChatHeader';
 import { ChatTabBar } from '@/components/chats/ChatTabBar';
@@ -30,6 +29,12 @@ import LoadingSpinner from '@/components/chats/LoadingSpinner';
 import RoomCard from '@/components/chats/RoomCard';
 import { RoomDetailModal } from '@/components/chats/RoomDetailModal';
 import RoomListItem from '@/components/chats/RoomListItem';
+import chatService from '@/services/chats/chatService';
+import { useTranslation } from 'react-i18next';
+
+interface ChatRoomWithId extends ChatRoom {
+  _id?: string;
+}
 
 export default function ChatPage() {
   const router = useRouter();
@@ -42,6 +47,7 @@ export default function ChatPage() {
   const [confirmJoinVisible, setConfirmJoinVisible] = useState(false);
   const [pendingJoinRoom, setPendingJoinRoom] = useState<ChatRoom | null>(null);
   const userId = user?.data?.[0]?._id || '';
+  const { t } = useTranslation();
 
   const {
     rooms,
@@ -50,7 +56,6 @@ export default function ChatPage() {
     error,
     activeTab,
     selectedCategory,
-    filteredRooms,
     setActiveTab,
     setSelectedCategory,
     loadRooms,
@@ -73,50 +78,60 @@ export default function ChatPage() {
   }, [loadRooms]);
 
   const joinRoom = async (roomId: string) => {
-    const room = rooms.find(r => r.id === roomId);
+    if (!roomId) {
+      return;
+    }
+    // หา room จาก id หรือ _id
+    const room = (rooms as ChatRoomWithId[]).find(r => r.id === roomId || r._id === roomId);
     setPendingJoinRoom(room || null);
     setConfirmJoinVisible(true);
   };
 
   const handleConfirmJoin = async () => {
-    if (!pendingJoinRoom) return;
+    const pendingRoom = pendingJoinRoom as ChatRoomWithId | null;
+    const roomId = (pendingRoom?.id || pendingRoom?._id) ?? null;
+    if (!pendingRoom || !roomId) {
+      console.error('No valid room to join');
+      return;
+    }
     setConfirmJoinVisible(false);
     try {
-      const result = await chatService.joinRoom(pendingJoinRoom.id);
+      const result = await chatService.joinRoom(roomId);
       if (result.success) {
         router.push({
           pathname: "/chat/[roomId]",
-          params: { roomId: pendingJoinRoom.id, isMember: 'true' }
+          params: { roomId, isMember: 'true' }
         });
       } else {
         Alert.alert(
-          language === 'th' ? 'เข้าร่วมไม่สำเร็จ' : 'Join Failed',
-          result.message || (language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room')
+          t('joinFailed', language),
+          result.message || t('joinFailedMessage', language)
         );
       }
     } catch (error) {
       Alert.alert(
-        language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
-        language === 'th' ? 'ไม่สามารถเข้าร่วมห้องได้' : 'Failed to join room'
+        t('error', language),
+        t('cannotJoin', language)
       );
     }
   };
 
   const navigateToRoom = async (rid: string, isMember: boolean) => {
+    console.log('navigateToRoom', rid, isMember);
     try {
       if (isMember) {
+        const room = rooms.find(r => r.id === rid);
         router.push({
           pathname: "/chat/[roomId]",
-          params: { roomId: rid, isMember: 'true' }
+          params: { roomId: rid, isMember: 'true', room: JSON.stringify(room) }
         });
       } else {
         await joinRoom(rid);
       }
     } catch (error) {
-      console.error('Error navigating to room:', error);
       Alert.alert(
-        language === 'th' ? 'เกิดข้อผิดพลาด' : 'Error',
-        language === 'th' ? 'ไม่สามารถเข้าห้องแชทได้' : 'Cannot access chat room'
+        t('error', language),
+        t('cannotAccess', language)
       );
     }
   };
@@ -130,13 +145,30 @@ export default function ChatPage() {
     loadRooms();
   };
 
-  const renderRoomItem = ({ item, index }: { item: ChatRoom; index: number }) => {
+  // Filter rooms by tab (ไม่ต้อง filter ด้วย members แล้ว)
+  const myRooms = rooms;
+  const discoverRooms = rooms;
+
+  // ใช้ filteredRooms ตาม activeTab
+  const filteredRooms = activeTab === 'my' ? myRooms : discoverRooms;
+
+  const renderRoomItem = ({ item, index }: { item: ChatRoomWithId; index: number }) => {
+    // log item
+    const roomId = item.id || item._id; // รองรับทั้งสองแบบ
+    console.log('renderRoomItem:', {
+      id: roomId,
+      name: item.name,
+      is_member: item.is_member,
+      status: item.status ?? 'undefined',
+      type: item.type ?? 'undefined',
+      members_count: item.members_count,
+    });
     if (activeTab === 'my') {
       return (
         <RoomListItem 
           room={item}
           language={language}
-          onPress={() => navigateToRoom(item.id, true)}
+          onPress={() => navigateToRoom(roomId as string, true)}
           index={index} width={0}
         />
       );
@@ -160,7 +192,7 @@ export default function ChatPage() {
             room={item}
             width={width}
             language={language}
-            onJoin={() => joinRoom(item.id)}
+            onJoin={() => joinRoom(String(item.id || item._id))}
             onShowDetail={showRoomDetail}
             index={index} 
             onPress={() => {}} // ไม่ต้องใช้งานจริงใน discover
@@ -175,7 +207,13 @@ export default function ChatPage() {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
-          <LoadingSpinner text={language === 'th' ? 'กำลังโหลดชุมชน...' : 'Loading communities...'} />
+        <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={handleRefresh}
+              colors={['#fff']}
+              tintColor="#fff"
+              progressBackgroundColor="#ffffff"
+            />
         </View>
       </View>
     );
@@ -211,9 +249,9 @@ export default function ChatPage() {
         />
         
         <FlatList
-          data={filteredRooms}
+          data={filteredRooms as ChatRoomWithId[]}
           renderItem={renderRoomItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: ChatRoomWithId, index) => (item.id || item._id) ? String(item.id || item._id) : `room-${index}`}
           numColumns={activeTab === 'discover' ? 2 : 1}
           key={`${activeTab}-${selectedCategory}`}
           contentContainerStyle={[
@@ -226,8 +264,8 @@ export default function ChatPage() {
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={handleRefresh}
-              colors={['#6366f1']}
-              tintColor="#6366f1"
+              colors={['#fff']}
+              tintColor="#fff"
               progressBackgroundColor="#ffffff"
             />
           }
@@ -240,7 +278,7 @@ export default function ChatPage() {
             <View style={styles.emptyState}>
               <Sparkles size={48} color="#a5b4fc" />
               <Text style={styles.emptyStateText}>
-                {language === 'th' ? 'ไม่พบชุมชนในหมวดหมู่นี้' : 'No communities found in this category'}
+                {t('noCommunities', language)}
               </Text>
             </View>
           )}
@@ -258,6 +296,28 @@ export default function ChatPage() {
           <BlurView intensity={0} tint="light" style={styles.fabGradient}>
             <Plus size={24} color="#fff" />
           </BlurView>
+        </TouchableOpacity>
+
+
+        <TouchableOpacity
+          style={styles.coinHuntingFab}
+          onPress={() => router.push('/coin-hunting')}
+          activeOpacity={0.9}
+        >
+          <View style={styles.stepCounterFabInner}>
+            <Text style={styles.stepCounterFabText}>Coin</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* ปุ่มไปหน้า step-counter */}
+        <TouchableOpacity
+          style={styles.stepCounterFab}
+          onPress={() => router.push('/step-counter')}
+          activeOpacity={0.9}
+        >
+          <View style={styles.stepCounterFabInner}>
+            <Text style={styles.stepCounterFabText}>Step</Text>
+          </View>
         </TouchableOpacity>
 
       <CreateRoomModal
@@ -369,5 +429,48 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(200,200,200,0.18)',
     flex: 1,
+  },
+  coinHuntingFab:{
+    position: 'absolute',
+    bottom: 260,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  stepCounterFab: {
+    position: 'absolute',
+    bottom: 190,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  stepCounterFabInner: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepCounterFabText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 1,
   },
 });

@@ -1,4 +1,4 @@
-import { IsString, IsBoolean, IsOptional } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsMongoId } from 'class-validator';
 import { Types } from 'mongoose';
 
 export class CreateEvoucherCodeDto {
@@ -12,7 +12,11 @@ export class CreateEvoucherCodeDto {
   @IsOptional()
   usedAt?: Date | null;
 
-  @IsString()
+  @IsMongoId()
   @IsOptional()
-  user?: Types.ObjectId | null;
+  user?: Types.ObjectId | string;
+
+  @IsMongoId()
+  @IsOptional()
+  evoucher?: Types.ObjectId | string;
 }

@@ -15,7 +15,6 @@ import {
 import { UsersService } from './users.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Public } from '../auth/decorators/public.decorator';
 import { CacheKey } from '@nestjs/cache-manager';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -31,7 +30,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly activitiesService: ActivitiesService,
-  ) { }
+  ) {}
 
   @Post()
   @Public()
@@ -75,7 +74,6 @@ export class UsersController {
   getProfile(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
-
     const user = req.user as { _id?: string; id?: string };
     const userId: string = user?._id ?? user?.id ?? '';
     if (!userId) {
@@ -104,24 +102,5 @@ export class UsersController {
   @CacheKey('users:invalidate')
   removeMultiple(@Body() ids: string[]) {
     return this.usersService.removeMultiple(ids);
-  }
-
-  @Post(':id/device-token')
-  // @CacheKey('users:read:id')
-  @Public()
-  registerDeviceToken(
-    @Param('id') id: string,
-    @Body() registerTokenDto: Record<string, string>,
-  ) {
-    return this.usersService.registerDeviceToken(id, registerTokenDto);
-  }
-
-  @Delete(':id/device-token/:deviceToken')
-  @Public()
-  removeDeviceToken(
-    @Param('id') id: string,
-    @Param('deviceToken') deviceToken: string,
-  ) {
-    return this.usersService.removeDeviceToken(id, deviceToken);
   }
 }
