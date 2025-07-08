@@ -280,7 +280,7 @@ export class AuthService {
   async checkResetPasswordEligibility(username: string, secret: string) {
     const user = await this.userModel
       .findOne({ username })
-      .select(' +metadata.secret');
+      .select('name metadata.secret username');
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -293,9 +293,10 @@ export class AuthService {
     if (!isSecretValid) {
       throw new UnauthorizedException('Invalid secret');
     }
+    delete user.metadata.secret; // Remove secret from response for security
     return {
       message: 'User is eligible for password reset',
-      username: user.username,
+      user: user,
     };
   }
 
