@@ -54,10 +54,7 @@ export class PushNotificationService {
         .populate({
           path: 'metadata.major',
           model: 'Major',
-          populate: {
-            path: 'school',
-            model: 'School',
-          },
+          select: 'school'
         })
         .lean<Array<{
           _id: Types.ObjectId;
@@ -70,9 +67,8 @@ export class PushNotificationService {
         }>>();
 
       users.forEach(user => {
-        const schoolId = user?.metadata?.major?.school;
-
-        if (schoolId && dto.receivers.schools?.includes(schoolId)) {
+        const schoolId = user.metadata?.major?.school;
+        if (schoolId && dto.receivers.schools?.includes(schoolId.toString())) {
           userIds.add(user._id.toString());
         }
       });
@@ -110,8 +106,7 @@ export class PushNotificationService {
 
     const messaging = this.firebaseApp.messaging();
 
-    const response = await messaging.sendEachForMulticast({
-      tokens: tokenList,
+    const notification = {
       notification: {
         title: dto.title,
         body: dto.body,
@@ -132,12 +127,30 @@ export class PushNotificationService {
         },
       },
       // data: dto.data ? flattenData(dto.data) : undefined,
-    }, isDryRun);
+    };
+    
+    let successCount = 0;
+    let failureCount = 0;
+    const responses: admin.messaging.SendResponse[] = [];
+    const MAX_TOKENS = 500;
+
+    for (let i = 0; i < tokenList.length; i += MAX_TOKENS) {
+      const tokenBatch = tokenList.slice(i, i + MAX_TOKENS);
+      const response = await messaging.sendEachForMulticast(
+        {
+          tokens: tokenBatch,
+          ...notification,
+        }, isDryRun 
+      );
+      successCount += response.successCount;
+      failureCount += response.failureCount;
+      responses.push(...response.responses);
+    }
 
     return {
-      successCount: response.successCount,
-      failureCount: response.failureCount,
-      responses: response.responses,
+      successCount,
+      failureCount,
+      responses,
     };
   }
 }
