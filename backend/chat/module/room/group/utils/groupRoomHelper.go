@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"chat/module/room/model"
+	"chat/module/room/room/model"
 	userModel "chat/module/user/model"
 	userService "chat/module/user/service"
 	"context"
@@ -25,7 +25,6 @@ func NewGroupRoomHelper(userService *userService.UserService, db *mongo.Database
 		db:          db,
 	}
 }
-
 
 // GetUsersByGroup ดึง users ตาม group type
 func (gh *GroupRoomHelper) GetUsersByGroup(ctx context.Context, groupType, groupValue string) ([]*userModel.User, error) {
@@ -146,7 +145,7 @@ func (gh *GroupRoomHelper) BulkAddMembers(ctx context.Context, roomID primitive.
 	log.Printf("[GroupHelper] Bulk adding %d members to room %s", len(userIDs), roomID.Hex())
 
 	collection := gh.db.Collection("rooms")
-	
+
 	// ใช้ $addToSet เพื่อหลีกเลี่ยงการเพิ่มซ้ำ
 	filter := bson.M{"_id": roomID}
 	update := bson.M{
@@ -192,4 +191,4 @@ func (gh *GroupRoomHelper) GetGroupInfo(room *model.Room) (groupType, groupValue
 	}
 
 	return groupType, groupValue, true
-} 
+}

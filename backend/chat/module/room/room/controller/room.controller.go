@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"chat/module/room/dto"
-	"chat/module/room/model"
-	"chat/module/room/service"
-	roomUtils "chat/module/room/utils"
+	"chat/module/room/room/dto"
+	"chat/module/room/room/model"
+	"chat/module/room/room/service"
+	sharedUtils "chat/module/room/shared/utils"
 	"chat/pkg/database/queries"
 	"chat/pkg/decorators"
 	"chat/pkg/middleware"
@@ -24,8 +24,8 @@ type (
 		rbac             middleware.IRBACMiddleware
 		db               *mongo.Database
 		uploadHandler    *utils.FileUploadHandler
-		validationHelper *roomUtils.RoomValidationHelper
-		controllerHelper *roomUtils.RoomControllerHelper
+		validationHelper *sharedUtils.RoomValidationHelper
+		controllerHelper *sharedUtils.RoomControllerHelper
 		userService      *userService.UserService
 	}
 
@@ -48,8 +48,8 @@ func NewRoomController(
 		rbac:             rbac,
 		db:               db,
 		uploadHandler:    utils.NewModuleFileHandler("room"),
-		validationHelper: roomUtils.NewRoomValidationHelper(uploadConfig.MaxSize, uploadConfig.AllowedTypes),
-		controllerHelper: roomUtils.NewRoomControllerHelper(),
+		validationHelper: sharedUtils.NewRoomValidationHelper(uploadConfig.MaxSize, uploadConfig.AllowedTypes),
+		controllerHelper: sharedUtils.NewRoomControllerHelper(),
 		userService:      userService.NewUserService(db),
 	}
 
@@ -121,27 +121,36 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 
 	// Calculate canJoin based on room status, capacity, and user membership
 	canJoin := c.controllerHelper.CalculateCanJoin(room, userID)
-	
+
 	// Check if user is already a member
 	isMember, _ := c.controllerHelper.CheckUserMembership(room, userID)
 
+	// Build response data excluding null fields
+	data := fiber.Map{
+		"_id":         room.ID,
+		"name":        room.Name,
+		"type":        room.Type,
+		"status":      room.Status,
+		"capacity":    room.Capacity,
+		"createdBy":   room.CreatedBy,
+		"createdAt":   room.CreatedAt,
+		"updatedAt":   room.UpdatedAt,
+		"memberCount": len(room.Members),
+		"canJoin":     canJoin,
+		"isMember":    isMember,
+	}
+
+	// Only add non-empty fields
+	if room.Image != "" {
+		data["image"] = room.Image
+	}
+	if room.Metadata != nil {
+		data["metadata"] = room.Metadata
+	}
+
 	return ctx.JSON(fiber.Map{
 		"success": true,
-		"data": fiber.Map{
-			"_id":      room.ID,
-			"name":     room.Name,
-			"type":     room.Type,
-			"status":   room.Status,
-			"capacity": room.Capacity,
-			"createdBy": room.CreatedBy,
-			"image":    room.Image,
-			"createdAt": room.CreatedAt,
-			"updatedAt": room.UpdatedAt,
-			"metadata": room.Metadata,
-			"memberCount": len(room.Members),
-			"canJoin":  canJoin,
-			"isMember": isMember,
-		},
+		"data":    data,
 	})
 }
 
@@ -184,18 +193,18 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-    // Handle SelectAllUsers: fetch all user IDs and set as members
-    if createDto.SelectAllUsers {
-        usersResp, err := c.userService.GetUsers(ctx.Context(), queries.QueryOptions{Limit: 1000000, Page: 1})
-        if err != nil {
-            return c.validationHelper.BuildInternalErrorResponse(ctx, err)
-        }
-        allUserIDs := make([]string, 0, len(usersResp.Data))
-        for _, user := range usersResp.Data {
-            allUserIDs = append(allUserIDs, user.ID.Hex())
-        }
-        createDto.Members = allUserIDs
-    }
+	// Handle SelectAllUsers: fetch all user IDs and set as members
+	if createDto.SelectAllUsers {
+		usersResp, err := c.userService.GetUsers(ctx.Context(), queries.QueryOptions{Limit: 1000000, Page: 1})
+		if err != nil {
+			return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+		}
+		allUserIDs := make([]string, 0, len(usersResp.Data))
+		for _, user := range usersResp.Data {
+			allUserIDs = append(allUserIDs, user.ID.Hex())
+		}
+		createDto.Members = allUserIDs
+	}
 
 	room, err := c.roomService.CreateRoom(ctx.Context(), &createDto)
 	if err != nil {
@@ -301,7 +310,7 @@ func (c *RoomController) JoinRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	userObjID, err := roomUtils.ExtractUserIDFromJWT(ctx)
+	userObjID, err := sharedUtils.ExtractUserIDFromJWT(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
@@ -324,7 +333,7 @@ func (c *RoomController) LeaveRoom(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	userObjID, err := roomUtils.ExtractUserIDFromJWT(ctx)
+	userObjID, err := sharedUtils.ExtractUserIDFromJWT(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
@@ -339,7 +348,6 @@ func (c *RoomController) LeaveRoom(ctx *fiber.Ctx) error {
 		"userId": userObjID.Hex(),
 	}, "Successfully left room")
 }
-
 
 // SetRoomReadOnly sets a room's read-only status
 func (c *RoomController) handleSetRoomReadOnly(ctx *fiber.Ctx) error {
@@ -400,12 +408,12 @@ func (c *RoomController) GetAllRoomForUser(ctx *fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "Invalid authentication token"})
 	}
-	
+
 	_, err = c.validationHelper.ValidateUserID(userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
 	}
-	
+
 	rooms, err := c.roomService.GetAllRoomForUser(ctx.Context(), userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Failed to get rooms", "error": err.Error()})
@@ -419,12 +427,12 @@ func (c *RoomController) GetRoomsForMe(ctx *fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "Invalid authentication token"})
 	}
-	
+
 	_, err = c.validationHelper.ValidateUserID(userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
 	}
-	
+
 	rooms, err := c.roomService.GetRoomsForMe(ctx.Context(), userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "Failed to get rooms", "error": err.Error()})

@@ -1,12 +1,12 @@
 package utils
 
 import (
-	"chat/module/room/dto"
+	"chat/module/room/room/dto"
 	"chat/pkg/validator"
 	"fmt"
 	"mime/multipart"
 
-	"chat/module/room/model"
+	"chat/module/room/room/model"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -79,7 +79,7 @@ func (h *RoomValidationHelper) ValidateImageUpload(file *multipart.FileHeader) e
 // ValidateRoomType ตรวจสอบ room type
 func (h *RoomValidationHelper) ValidateRoomType(roomType string) error {
 	validTypes := []string{"normal", "readonly", "announcement", "private"}
-	
+
 	for _, validType := range validTypes {
 		if roomType == validType {
 			return nil
@@ -153,4 +153,4 @@ func (h *RoomValidationHelper) BuildSuccessResponse(ctx *fiber.Ctx, data interfa
 		"message": message,
 		"data":    data,
 	})
-} 
+}

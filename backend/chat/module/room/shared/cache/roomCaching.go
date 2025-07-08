@@ -1,7 +1,7 @@
-package utils
+package cache
 
 import (
-	"chat/module/room/model"
+	"chat/module/room/room/model"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	defaultRoomTTL = 24 * time.Hour
-	defaultMembersTTL = 1 * time.Hour
+	defaultRoomTTL       = 24 * time.Hour
+	defaultMembersTTL    = 1 * time.Hour
 	defaultConnectionTTL = 5 * time.Minute
 )
 
@@ -94,7 +94,7 @@ func (s *RoomCacheService) DeleteRoom(ctx context.Context, roomID string) error 
 	// ลบ room จาก cache
 	pipe.Del(ctx, s.roomKey(roomID))
 	pipe.Del(ctx, s.membersKey(roomID))
-	
+
 	// ดำเนินการ
 	_, err := pipe.Exec(ctx)
 	return err
@@ -254,6 +254,6 @@ func (s *RoomCacheService) GetActiveConnectionsCount(ctx context.Context, roomID
 }
 
 // ดึง list userID จาก list active connections
-	func (s *RoomCacheService) GetActiveUsers(ctx context.Context, roomID string) ([]string, error) {
+func (s *RoomCacheService) GetActiveUsers(ctx context.Context, roomID string) ([]string, error) {
 	return s.redis.SMembers(ctx, s.activeConnectionsKey(roomID)).Result()
 }

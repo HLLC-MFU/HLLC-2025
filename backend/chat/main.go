@@ -17,8 +17,10 @@ import (
 	"chat/module/chat/utils"
 	restrictionController "chat/module/restriction/controller"
 	restrictionService "chat/module/restriction/service"
-	roomController "chat/module/room/controller"
-	roomService "chat/module/room/service"
+	groupController "chat/module/room/group/controller"
+	groupService "chat/module/room/group/service"
+	roomController "chat/module/room/room/controller"
+	roomService "chat/module/room/room/service"
 	evoucherController "chat/module/sendEvoucher/controller"
 	evoucherService "chat/module/sendEvoucher/service"
 	stickerController "chat/module/sticker/controller"
@@ -165,7 +167,7 @@ func main() {
 	roleSvc := userService.NewRoleService(db)
 	userSvc := userService.NewUserService(db)
 	roomSvc := roomService.NewRoomService(db, redis, cfg, chatHub)
-	groupRoomSvc := roomService.NewGroupRoomService(db, redis, cfg, chatHub, roomSvc, kafkaBus)
+	groupRoomSvc := groupService.NewGroupRoomService(db, redis, cfg, chatHub, roomSvc, kafkaBus)
 	stickerSvc := stickerService.NewStickerService(db)
 	chatEmitter := utils.NewChatEventEmitter(chatHub, kafkaBus, redis, db)
 	restrictionSvc := restrictionService.NewRestrictionService(db, chatHub, chatEmitter, chatSvc.GetNotificationService(), kafkaBus)
@@ -179,7 +181,7 @@ func main() {
 	userController.NewSchoolController(schoolsGroup, schoolSvc)
 	userController.NewMajorController(majorsGroup, majorSvc)
 	roomController.NewRoomController(roomsGroup, roomSvc, rbacMiddleware, db)
-	roomController.NewGroupRoomController(roomsGroup, groupRoomSvc, roomSvc, rbacMiddleware)
+	groupController.NewGroupRoomController(roomsGroup, groupRoomSvc, roomSvc, rbacMiddleware)
 	stickerController.NewStickerController(stickersGroup, stickerSvc, rbacMiddleware)
 	chatController.NewChatController(chatGroup, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc, db)
 	uploadController.NewUploadController(uploadsGroup, rbacMiddleware, chatSvc, userSvc)

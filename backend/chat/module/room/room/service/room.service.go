@@ -2,9 +2,12 @@ package service
 
 import (
 	chatUtils "chat/module/chat/utils"
-	"chat/module/room/dto"
-	"chat/module/room/model"
-	roomUtils "chat/module/room/utils"
+	memberUtils "chat/module/room/member/utils"
+	"chat/module/room/room/dto"
+	"chat/module/room/room/model"
+	sharedCache "chat/module/room/shared/cache"
+	sharedEvents "chat/module/room/shared/events"
+	sharedUtils "chat/module/room/shared/utils"
 	userService "chat/module/user/service"
 	"chat/pkg/config"
 	"chat/pkg/core/kafka"
@@ -26,13 +29,13 @@ import (
 
 type RoomServiceImpl struct {
 	*queries.BaseService[model.Room]
-	userService      *userService.UserService
-	fkValidator      *serviceHelper.ForeignKeyValidator
-	eventEmitter     *roomUtils.RoomEventEmitter
-	cache            *roomUtils.RoomCacheService
-	hub              *chatUtils.Hub
-	db               *mongo.Database
-	memberHelper     *roomUtils.RoomMemberHelper
+	userService          *userService.UserService
+	fkValidator          *serviceHelper.ForeignKeyValidator
+	eventEmitter         *sharedEvents.RoomEventEmitter
+	cache                *sharedCache.RoomCacheService
+	hub                  *chatUtils.Hub
+	db                   *mongo.Database
+	memberHelper         *memberUtils.RoomMemberHelper
 	statusChangeCallback func(ctx context.Context, roomID string, newStatus string)
 }
 
@@ -68,20 +71,20 @@ func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config,
 	}
 
 	userSvc := userService.NewUserService(db)
-	cache := roomUtils.NewRoomCacheService(redis)
-	eventEmitter := roomUtils.NewRoomEventEmitter(bus, cfg)
-	
+	cache := sharedCache.NewRoomCacheService(redis)
+	eventEmitter := sharedEvents.NewRoomEventEmitter(bus, cfg)
+
 	service := &RoomServiceImpl{
-		BaseService:      queries.NewBaseService[model.Room](db.Collection("rooms")),
-		userService:      userSvc,
-		fkValidator:      serviceHelper.NewForeignKeyValidator(db),
-		eventEmitter:     eventEmitter,
-		cache:            cache,
-		hub:              hub,
-		db:               db,
-		memberHelper:     roomUtils.NewRoomMemberHelper(db, cache, eventEmitter, hub),
+		BaseService:  queries.NewBaseService[model.Room](db.Collection("rooms")),
+		userService:  userSvc,
+		fkValidator:  serviceHelper.NewForeignKeyValidator(db),
+		eventEmitter: eventEmitter,
+		cache:        cache,
+		hub:          hub,
+		db:           db,
+		memberHelper: memberUtils.NewRoomMemberHelper(db, cache, eventEmitter, hub),
 	}
-	
+
 	return service
 }
 
@@ -90,11 +93,11 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 	if opts.Filter == nil {
 		opts.Filter = make(map[string]interface{})
 	}
-	
+
 	// Debug log to see what filter is being passed
 	log.Printf("[GetRooms] Filter: %+v", opts.Filter)
 	log.Printf("[GetRooms] UserID: %s", userId)
-	
+
 	resp, err := s.FindAll(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -108,19 +111,19 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 
 	for i, room := range resp.Data {
 		result.Data[i] = dto.ResponseRoomDto{
-			ID: room.ID,
-			Name: room.Name,
-			Type: room.Type,
-			Capacity: room.Capacity,
-			CreatedBy: room.CreatedBy,
-			Image: room.Image,
-			CreatedAt: room.CreatedAt,
-			UpdatedAt: room.UpdatedAt,
-			Metadata: room.Metadata,
+			ID:          room.ID,
+			Name:        room.Name,
+			Type:        room.Type,
+			Capacity:    room.Capacity,
+			CreatedBy:   room.CreatedBy,
+			Image:       room.Image,
+			CreatedAt:   room.CreatedAt,
+			UpdatedAt:   room.UpdatedAt,
+			Metadata:    room.Metadata,
 			MemberCount: len(room.Members),
-			Status: room.Status,
+			Status:      room.Status,
 		}
-		
+
 		// Debug log to see if group rooms are included
 		if room.Metadata != nil {
 			if isGroup, ok := room.Metadata["isGroupRoom"]; ok && isGroup == true {
@@ -262,17 +265,17 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 
 	// Merge fields
 	updatedRoom := &model.Room{
-		ID: oldRoom.ID,
-		Name: oldRoom.Name,
-		Type: oldRoom.Type,
-		Status: oldRoom.Status,
-		Capacity: oldRoom.Capacity,
-		Members: oldRoom.Members,
+		ID:        oldRoom.ID,
+		Name:      oldRoom.Name,
+		Type:      oldRoom.Type,
+		Status:    oldRoom.Status,
+		Capacity:  oldRoom.Capacity,
+		Members:   oldRoom.Members,
 		CreatedBy: oldRoom.CreatedBy, // primitive.ObjectID for DB
-		Image: oldRoom.Image,
+		Image:     oldRoom.Image,
 		CreatedAt: oldRoom.CreatedAt,
 		UpdatedAt: oldRoom.UpdatedAt,
-		Metadata: oldRoom.Metadata,
+		Metadata:  oldRoom.Metadata,
 	}
 	updatedRoom.Name = updateDto.Name
 	updatedRoom.Type = updateDto.Type
@@ -324,7 +327,10 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 		_, updateErr = getter.GetMongoCollection().UpdateOne(ctx, filter, update)
 	} else if getter, ok := interface{}(s.BaseService).(interface{ GetDBCollection() *mongo.Collection }); ok {
 		_, updateErr = getter.GetDBCollection().UpdateOne(ctx, filter, update)
-	} else if getter, ok := interface{}(s.BaseService).(interface{ GetMongo() *mongo.Database; GetCollectionName() string }); ok {
+	} else if getter, ok := interface{}(s.BaseService).(interface {
+		GetMongo() *mongo.Database
+		GetCollectionName() string
+	}); ok {
 		_, updateErr = getter.GetMongo().Collection(getter.GetCollectionName()).UpdateOne(ctx, filter, update)
 	} else {
 		return nil, errors.New("cannot access mongo collection for update")
@@ -341,7 +347,7 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 	// Check if room status changed to inactive and disconnect all users
 	if oldRoom.IsActive() && updatedRoom.IsInactive() {
 		log.Printf("[RoomService] Room %s status changed from active to inactive, triggering WebSocket disconnect", roomObjID.Hex())
-		
+
 		// Call status change callback if set
 		if s.statusChangeCallback != nil {
 			log.Printf("[RoomService] 🔔 Calling status change callback for room %s", roomObjID.Hex())
@@ -349,14 +355,14 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 		} else {
 			log.Printf("[RoomService] ⚠️ No status change callback set for room %s", roomObjID.Hex())
 		}
-		
+
 		// Emit room status change event
 		if s.eventEmitter != nil {
 			s.eventEmitter.EmitRoomStatusChanged(ctx, roomObjID, updatedRoom.Status)
 		}
-		
+
 		// Also disconnect users immediately for immediate response
-		if err := roomUtils.DisconnectAllUsersFromRoom(ctx, roomObjID, s.hub, s.cache); err != nil {
+		if err := sharedUtils.DisconnectAllUsersFromRoom(ctx, roomObjID, s.hub, s.cache); err != nil {
 			log.Printf("[RoomService] Warning: Failed to disconnect users from room %s: %v", roomObjID.Hex(), err)
 		}
 	}
@@ -383,7 +389,7 @@ func (s *RoomServiceImpl) IsUserInRoom(ctx context.Context, roomID primitive.Obj
 		return false, err
 	}
 	uid, _ := primitive.ObjectIDFromHex(userID)
-	return roomUtils.ContainsMember(room.Members, uid), nil
+	return sharedUtils.ContainsMember(room.Members, uid), nil
 }
 
 // ตรวจสอบว่ามี user นั้นอยู่ใน room และมี connection นั้นอยู่ใน room หรือไม่
@@ -393,7 +399,7 @@ func (s *RoomServiceImpl) ValidateAndTrackConnection(ctx context.Context, roomID
 		return fmt.Errorf("room not found: %w", err)
 	}
 
-	return roomUtils.ValidateAndTrackConnection(ctx, room, userID, s.cache)
+	return sharedUtils.ValidateAndTrackConnection(ctx, room, userID, s.cache)
 }
 
 // ดึงข้อมูลของ room
@@ -403,7 +409,7 @@ func (s *RoomServiceImpl) GetRoomStatus(ctx context.Context, roomID primitive.Ob
 		return nil, err
 	}
 
-	return roomUtils.GetRoomStatus(ctx, room, s.cache)
+	return sharedUtils.GetRoomStatus(ctx, room, s.cache)
 }
 
 // Delegate methods to helpers
@@ -412,11 +418,11 @@ func (s *RoomServiceImpl) RemoveUserFromRoom(ctx context.Context, roomID primiti
 }
 
 func (s *RoomServiceImpl) RemoveConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
-	return roomUtils.RemoveConnection(ctx, roomID, userID, s.cache)
+	return sharedUtils.RemoveConnection(ctx, roomID, userID, s.cache)
 }
 
 func (s *RoomServiceImpl) GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID) (int64, error) {
-	return roomUtils.GetActiveConnectionsCount(ctx, roomID, s.cache)
+	return sharedUtils.GetActiveConnectionsCount(ctx, roomID, s.cache)
 }
 
 // CanUserSendMessage ตรวจสอบว่า user สามารถส่งข้อความได้หรือไม่
@@ -434,7 +440,7 @@ func (s *RoomServiceImpl) CanUserSendMessage(ctx context.Context, roomID primiti
 	}
 
 	// ตรวจสอบว่า user อยู่ในห้องหรือไม่
-	if !roomUtils.ContainsMember(room.Members, uid) {
+	if !sharedUtils.ContainsMember(room.Members, uid) {
 		return false, fmt.Errorf("user is not a member of this room")
 	}
 
@@ -461,7 +467,7 @@ func (s *RoomServiceImpl) CanUserSendSticker(ctx context.Context, roomID primiti
 	if err != nil {
 		return false, err
 	}
-	return roomUtils.CanUserSendSticker(ctx, room, userID)
+	return sharedUtils.CanUserSendSticker(ctx, room, userID)
 }
 
 func (s *RoomServiceImpl) CanUserSendReaction(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
@@ -469,7 +475,7 @@ func (s *RoomServiceImpl) CanUserSendReaction(ctx context.Context, roomID primit
 	if err != nil {
 		return false, err
 	}
-	return roomUtils.CanUserSendReaction(ctx, room, userID)
+	return sharedUtils.CanUserSendReaction(ctx, room, userID)
 }
 
 func (s *RoomServiceImpl) AddUserToRoom(ctx context.Context, roomID, userID string) error {
@@ -485,7 +491,7 @@ func (s *RoomServiceImpl) LeaveRoom(ctx context.Context, roomID primitive.Object
 }
 
 func (s *RoomServiceImpl) DisconnectAllUsersFromRoom(ctx context.Context, roomID primitive.ObjectID) error {
-	return roomUtils.DisconnectAllUsersFromRoom(ctx, roomID, s.hub, s.cache)
+	return sharedUtils.DisconnectAllUsersFromRoom(ctx, roomID, s.hub, s.cache)
 }
 
 // SetStatusChangeCallback sets a callback function to be called when room status changes
@@ -499,11 +505,11 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID format")
 	}
-	
+
 	// Get rooms of type "normal" and "readonly", excluding group rooms
 	opts := queries.QueryOptions{
 		Filter: map[string]interface{}{
-			"type": map[string]interface{}{ "$in": []string{"normal", "readonly"} },
+			"type": map[string]interface{}{"$in": []string{"normal", "readonly"}},
 			"$or": []map[string]interface{}{
 				{"metadata.isGroupRoom": map[string]interface{}{"$ne": true}},
 				{"metadata.isGroupRoom": map[string]interface{}{"$exists": false}},
@@ -514,7 +520,7 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	result := make([]dto.ResponseAllRoomForUserDto, 0, len(resp.Data))
 	for _, room := range resp.Data {
 		// Check if user is already a member
@@ -525,35 +531,35 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 				break
 			}
 		}
-		
+
 		// Only include rooms where user is NOT a member
 		if isMember {
 			continue
 		}
-		
+
 		// Additional check to exclude group rooms
 		if room.Metadata != nil {
 			if isGroup, ok := room.Metadata["isGroupRoom"]; ok && isGroup == true {
 				continue
 			}
 		}
-		
+
 		// Calculate canJoin based on room status, capacity, and user membership
 		canJoin := s.calculateCanJoin(room, userID)
-		
+
 		memberCount := len(room.Members)
 		result = append(result, dto.ResponseAllRoomForUserDto{
-			ID: room.ID,
-			Name: room.Name,
-			Type: room.Type,
-			Capacity: room.Capacity,
-			CreatedBy: room.CreatedBy,
-			Image: room.Image,
-			CreatedAt: room.CreatedAt,
-			UpdatedAt: room.UpdatedAt,
-			Metadata: room.Metadata,
-			IsMember: false,
-			CanJoin:  canJoin,
+			ID:          room.ID,
+			Name:        room.Name,
+			Type:        room.Type,
+			Capacity:    room.Capacity,
+			CreatedBy:   room.CreatedBy,
+			Image:       room.Image,
+			CreatedAt:   room.CreatedAt,
+			UpdatedAt:   room.UpdatedAt,
+			Metadata:    room.Metadata,
+			IsMember:    false,
+			CanJoin:     canJoin,
 			MemberCount: memberCount,
 		})
 	}
@@ -566,33 +572,33 @@ func (s *RoomServiceImpl) GetRoomsForMe(ctx context.Context, userID string) ([]d
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID format")
 	}
-	
+
 	// Get rooms where user is a member, including group rooms
 	opts := queries.QueryOptions{
 		Filter: map[string]interface{}{
 			"members": userObjID,
-			"type": map[string]interface{}{ "$in": []string{"normal", "readonly"} },
+			"type":    map[string]interface{}{"$in": []string{"normal", "readonly"}},
 		},
 	}
 	resp, err := s.FindAll(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	result := make([]dto.ResponseRoomDto, 0, len(resp.Data))
 	for _, room := range resp.Data {
 		result = append(result, dto.ResponseRoomDto{
-			ID: room.ID,
-			Name: room.Name,
-			Type: room.Type,
-			Capacity: room.Capacity,
-			CreatedBy: room.CreatedBy,
-			Image: room.Image,
-			CreatedAt: room.CreatedAt,
-			UpdatedAt: room.UpdatedAt,
-			Metadata: room.Metadata,
+			ID:          room.ID,
+			Name:        room.Name,
+			Type:        room.Type,
+			Capacity:    room.Capacity,
+			CreatedBy:   room.CreatedBy,
+			Image:       room.Image,
+			CreatedAt:   room.CreatedAt,
+			UpdatedAt:   room.UpdatedAt,
+			Metadata:    room.Metadata,
 			MemberCount: len(room.Members),
-			Status: room.Status,
+			Status:      room.Status,
 		})
 	}
 	return result, nil
@@ -604,17 +610,17 @@ func (s *RoomServiceImpl) calculateCanJoin(room model.Room, userID string) bool 
 	if room.IsInactive() {
 		return false
 	}
-	
+
 	// If room has unlimited capacity, user can join
 	if room.IsUnlimitedCapacity() {
 		return true
 	}
-	
+
 	// Check if room has available capacity
 	if len(room.Members) < room.Capacity {
 		return true
 	}
-	
+
 	return false
 }
 

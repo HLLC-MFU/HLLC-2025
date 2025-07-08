@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"chat/module/chat/utils"
-	"chat/module/room/model"
+	"chat/module/room/room/model"
+	sharedCache "chat/module/room/shared/cache"
 	"chat/pkg/middleware"
 
 	"github.com/gofiber/fiber/v2"
@@ -83,7 +84,7 @@ func ContainsMember(members []primitive.ObjectID, target primitive.ObjectID) boo
 	return false
 }
 
-func ValidateAndTrackConnection(ctx context.Context, room *model.Room, userID string, cache *RoomCacheService) error {
+func ValidateAndTrackConnection(ctx context.Context, room *model.Room, userID string, cache *sharedCache.RoomCacheService) error {
 	log.Printf("[ConnectionHelper] Validating connection for user %s in room %s", userID, room.ID.Hex())
 
 	uid, _ := primitive.ObjectIDFromHex(userID)
@@ -106,7 +107,7 @@ func ValidateAndTrackConnection(ctx context.Context, room *model.Room, userID st
 }
 
 // GetRoomStatus ดึงสถานะของห้อง
-func GetRoomStatus(ctx context.Context, room *model.Room, cache *RoomCacheService) (map[string]interface{}, error) {
+func GetRoomStatus(ctx context.Context, room *model.Room, cache *sharedCache.RoomCacheService) (map[string]interface{}, error) {
 	log.Printf("[ConnectionHelper] Getting status for room %s", room.ID.Hex())
 
 	// ดึงจำนวน connection จาก cache
@@ -125,13 +126,13 @@ func GetRoomStatus(ctx context.Context, room *model.Room, cache *RoomCacheServic
 }
 
 // RemoveConnection ลบ connection
-func RemoveConnection(ctx context.Context, roomID primitive.ObjectID, userID string, cache *RoomCacheService) error {
+func RemoveConnection(ctx context.Context, roomID primitive.ObjectID, userID string, cache *sharedCache.RoomCacheService) error {
 	log.Printf("[ConnectionHelper] Removing connection for user %s from room %s", userID, roomID.Hex())
 	return cache.RemoveConnection(ctx, roomID.Hex(), userID)
 }
 
 // GetActiveConnectionsCount ดึงจำนวน connections ที่ active
-func GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID, cache *RoomCacheService) (int64, error) {
+func GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID, cache *sharedCache.RoomCacheService) (int64, error) {
 	return cache.GetActiveConnectionsCount(ctx, roomID.Hex())
 }
 
@@ -169,7 +170,7 @@ func CanUserSendSticker(ctx context.Context, room *model.Room, userID string) (b
 func CanUserSendReaction(ctx context.Context, room *model.Room, userID string) (bool, error) {
 	// ใช้ logic เดียวกับ message permission
 	return CanUserSendMessage(ctx, room, userID)
-} 
+}
 
 func UpdateRoomType(ctx context.Context, roomID primitive.ObjectID, roomType string, db *mongo.Database) error {
 	log.Printf("[RoomHelper] Updating room type for %s to %s", roomID.Hex(), roomType)
@@ -279,7 +280,7 @@ func GetRoomMemberCount(ctx context.Context, roomID primitive.ObjectID, db *mong
 	log.Printf("[RoomHelper] Getting member count for room %s", roomID.Hex())
 
 	collection := db.Collection("rooms")
-	
+
 	// ใช้ aggregation pipeline เพื่อนับสมาชิก
 	pipeline := []bson.M{
 		{"$match": bson.M{"_id": roomID}},
@@ -308,44 +309,44 @@ func GetRoomMemberCount(ctx context.Context, roomID primitive.ObjectID, db *mong
 }
 
 // DisconnectAllUsersFromRoom disconnects all users from a room when it becomes inactive
-func DisconnectAllUsersFromRoom(ctx context.Context, roomID primitive.ObjectID, hub *utils.Hub, cache *RoomCacheService) error {
+func DisconnectAllUsersFromRoom(ctx context.Context, roomID primitive.ObjectID, hub *utils.Hub, cache *sharedCache.RoomCacheService) error {
 	log.Printf("[RoomHelper] Disconnecting all users from inactive room %s", roomID.Hex())
-	
+
 	roomIDStr := roomID.Hex()
-	
+
 	// Get all active users in the room
 	activeUsers, err := cache.GetActiveUsers(ctx, roomIDStr)
 	if err != nil {
 		log.Printf("[RoomHelper] Failed to get active users for room %s: %v", roomIDStr, err)
 		return err
 	}
-	
+
 	// Create room deactivation message
 	deactivationEvent := map[string]interface{}{
 		"type": "room_deactivated",
 		"data": map[string]interface{}{
-			"roomId": roomIDStr,
-			"message": "This room has been deactivated. You will be disconnected.",
+			"roomId":    roomIDStr,
+			"message":   "This room has been deactivated. You will be disconnected.",
 			"timestamp": time.Now(),
 		},
 	}
-	
+
 	eventBytes, err := json.Marshal(deactivationEvent)
 	if err != nil {
 		log.Printf("[RoomHelper] Failed to marshal deactivation event: %v", err)
 		return err
 	}
-	
+
 	// Broadcast deactivation message to all users in the room
 	hub.BroadcastToRoom(roomIDStr, eventBytes)
-	
+
 	// Remove all connections from cache
 	for _, userID := range activeUsers {
 		if err := cache.RemoveConnection(ctx, roomIDStr, userID); err != nil {
 			log.Printf("[RoomHelper] Failed to remove connection for user %s: %v", userID, err)
 		}
 	}
-	
+
 	log.Printf("[RoomHelper] Successfully disconnected %d users from room %s", len(activeUsers), roomIDStr)
 	return nil
 }
