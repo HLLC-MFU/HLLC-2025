@@ -1,5 +1,6 @@
 import { Type } from "class-transformer";
 import { IsArray, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from "class-validator";
+import { Localization } from "src/pkg/types/common";
 
 class ReceiversDto {
   @IsOptional()
@@ -38,13 +39,13 @@ export class PushNotificationDto {
   @Type(() => ReceiversDto)
   receivers: ReceiversDto;
 
-  @IsString()
+  @IsObject()
   @IsNotEmpty()
-  title: string;
+  title: Localization;
 
-  @IsString()
+  @IsObject()
   @IsNotEmpty()
-  body: string;
+  body: Localization;
 
   @IsOptional()
   @IsObject()

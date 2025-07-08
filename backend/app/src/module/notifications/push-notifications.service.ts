@@ -32,21 +32,23 @@ export class PushNotificationService {
   }
 
   async sendPushNotification(dto: PushNotificationDto, isDryRun: boolean) {
-    if (!this.firebaseApp) throw new InternalServerErrorException('Firebase Admin is not initialized');
+    if (!this.firebaseApp) {
+      throw new InternalServerErrorException('Firebase Admin is not initialized');
+    }
 
     const tokens = new Set<string>();
     const userIds = new Set<string>();
 
-    dto.receivers?.tokens?.forEach(token => token && tokens.add(token));
+    dto.receivers?.tokens?.forEach((token) => token && tokens.add(token));
 
     if (dto.receivers?.devices?.length) {
       const devices = await this.deviceModel.find({
         deviceId: { $in: dto.receivers.devices },
       });
-      devices.forEach(device => device.fcmToken && tokens.add(device.fcmToken));
+      devices.forEach((device) => device.fcmToken && tokens.add(device.fcmToken));
     }
 
-    dto.receivers?.users?.forEach(id => userIds.add(id));
+    dto.receivers?.users?.forEach((id) => userIds.add(id));
 
     if (dto.receivers?.schools?.length) {
       const users = await this.userModel
@@ -54,7 +56,7 @@ export class PushNotificationService {
         .populate({
           path: 'metadata.major',
           model: 'Major',
-          select: 'school'
+          select: 'school',
         })
         .lean<Array<{
           _id: Types.ObjectId;
@@ -66,85 +68,117 @@ export class PushNotificationService {
           };
         }>>();
 
-      users.forEach(user => {
+      users.forEach((user) => {
         const schoolId = user.metadata?.major?.school;
         if (schoolId && dto.receivers.schools?.includes(schoolId.toString())) {
           userIds.add(user._id.toString());
         }
       });
-    }    
+    }
 
     if (dto.receivers?.majors?.length) {
       const users = await this.userModel.find({
         'metadata.major': { $in: dto.receivers.majors },
       });
-
-      users.forEach(user => {
-        user._id && userIds.add(user._id.toString());
-      });
+      users.forEach((user) => user._id && userIds.add(user._id.toString()));
     }
 
     if (dto.receivers?.roles?.length) {
       const users = await this.userModel.find({
         role: { $in: dto.receivers.roles.map((id) => new Types.ObjectId(id)) },
       });
-
-      users.forEach(user => {
-        user._id && userIds.add(user._id.toString());
-      });
+      users.forEach((user) => user._id && userIds.add(user._id.toString()));
     }
 
+    // TODO: Need to refactor ↓
     if (userIds.size > 0) {
-      const devices = await this.deviceModel.find({
+      const userDevices = await this.deviceModel.find({
         userId: { $in: Array.from(userIds) },
       });
-      devices.forEach(device => device.fcmToken && tokens.add(device.fcmToken));
+      userDevices.forEach((device) => device.fcmToken && tokens.add(device.fcmToken));
     }
 
-    const tokenList = Array.from(tokens).filter(Boolean);
-    if (tokenList.length === 0) throw new BadRequestException('Not found any receivers');
+     // TODO: Need to refactor ↓
+    const allDevices = await this.deviceModel.find({
+      fcmToken: { $in: Array.from(tokens) },
+    }).lean();
+
+    if (!allDevices.length) {
+      throw new BadRequestException('Not found any receivers');
+    }
+
+    const titleMap = dto.title;
+    const bodyMap = dto.body;
+    const badge = dto.badge ?? 1;
+
+    const grouped = allDevices.reduce((acc, device) => {
+      const lang = device.language || 'en';
+      if (!acc[lang]) acc[lang] = [];
+      acc[lang].push(device);
+      return acc;
+    }, {} as Record<string, typeof allDevices>);
 
     const messaging = this.firebaseApp.messaging();
-
-    const notification = {
-      notification: {
-        title: dto.title,
-        body: dto.body,
-      },
-      android: {
-        priority: dto.priority ?? 'high',
-      },
-      apns: {
-        payload: {
-          aps: {
-            alert: {
-              title: dto.title,
-              body: dto.body,
-            },
-            badge: 1,
-            sound: 'default',
-          },
-        },
-      },
-      // data: dto.data ? flattenData(dto.data) : undefined,
-    };
-    
     let successCount = 0;
     let failureCount = 0;
     const responses: admin.messaging.SendResponse[] = [];
     const MAX_TOKENS = 500;
 
-    for (let i = 0; i < tokenList.length; i += MAX_TOKENS) {
-      const tokenBatch = tokenList.slice(i, i + MAX_TOKENS);
-      const response = await messaging.sendEachForMulticast(
-        {
-          tokens: tokenBatch,
-          ...notification,
-        }, isDryRun 
-      );
-      successCount += response.successCount;
-      failureCount += response.failureCount;
-      responses.push(...response.responses);
+    for (const [lang, deviceList] of Object.entries(grouped)) {
+      const title = titleMap[lang] || titleMap['en'];
+      const body = bodyMap[lang] || bodyMap['en'];
+
+      for (let i = 0; i < deviceList.length; i += MAX_TOKENS) {
+        const batch = deviceList.slice(i, i + MAX_TOKENS);
+        const tokenBatch = batch.map((device) => device.fcmToken);
+        
+        const response = await messaging.sendEachForMulticast(
+          {
+            tokens: tokenBatch,
+            notification: {
+              title,
+              body,
+            },
+            android: {
+              priority: dto.priority ?? 'normal',
+              notification: {
+                sound: 'default',
+                // clickAction: 'OPEN_APP',
+                // color: '#1976D2',
+              },
+            },
+            apns: {
+              payload: {
+                aps: {
+                  alert: { title, body },
+                  badge,
+                  sound: 'default',
+                },
+              },
+            },
+            // data: dto.data ? flattenData(dto.data) : undefined,
+          },
+          isDryRun,
+        );
+
+        const failedTokens = tokenBatch.filter((token, idx) => {
+          const resp = response.responses[idx];
+          return (
+            !resp.success &&
+            ['messaging/invalid-registration-token', 'messaging/registration-token-not-registered'].includes(
+              resp.error?.code || '',
+            )
+          );
+        });
+
+        if (failedTokens.length) {
+          await this.deviceModel.deleteMany({ fcmToken: { $in: failedTokens } });
+        }
+
+        successCount += response.successCount;
+        failureCount += response.failureCount;
+        responses.push(...response.responses);
+      }
     }
 
     return {
