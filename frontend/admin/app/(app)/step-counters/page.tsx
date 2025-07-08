@@ -23,7 +23,7 @@ export default function StepContersPage() {
 
     topOverall.forEach((item) => {
       const current = topStudentsBySchool.get(item.school);
-      if (!current || item.stepsCounts > current.stepsCounts) {
+      if (!current || item.steps > current.steps) {
         topStudentsBySchool.set(item.school, item);
       }
     });

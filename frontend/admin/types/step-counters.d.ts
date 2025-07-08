@@ -1,22 +1,32 @@
-import { User as UserType } from "./user";
+import { School } from './school';
 
-export type StepsCounters = {
-  id: string;
-  name: string;
-  major: string;
-  school: string;
-  schoolId: string;
-  stepsCounts: number;
-  time: string;
+export type RawStepCounter = {
+  user?: {
+    name?: {
+      first?: string;
+      last?: string;
+    };
+    username?: string;
+    metadata?: {
+      major?: string;
+    };
+  };
+  totalStep?: number;
   rank?: number;
+  updatedAt?: string;
 };
 
+export type StepContersTableProps = {
+  stepCounters: RawStepCounter[];
+};
 
-// types/step-achievement.ts
-export type StepAchievement = {
-  _id: string;
-  achievement: number;
-  title?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+export type StepsCountersList = {
+  key: string;
+  rank: number | null;
+  id: string;
+  name: string;
+  school: string;
+  major: string;
+  steps: number;
+  time: string;
+};

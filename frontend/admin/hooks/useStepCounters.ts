@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { addToast } from '@heroui/react';
 import { apiRequest } from '@/utils/api';
-import { StepsCounters } from '@/types/step-counters';
+import { StepsCountersList } from '@/types/step-counters';
 
 export function useStepCounters() {
-  const [topOverall, setTopOverall] = useState<StepsCounters[]>([]);
-  const [firstAchievers, setFirstAchievers] = useState<StepsCounters[]>([]);
+  const [topOverall, setTopOverall] = useState<StepsCountersList[]>([]);
+  const [firstAchievers, setFirstAchievers] = useState<StepsCountersList[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +27,7 @@ export function useStepCounters() {
         ...(options.pageSize ? { pageSize: options.pageSize.toString() } : {}),
       }).toString();
 
-      const res = await apiRequest<{ data: StepsCounters[] }>(
+      const res = await apiRequest<{ data: StepsCountersList[] }>(
         `/step-counters/leaderboard?${query}`,
         'GET',
       );
