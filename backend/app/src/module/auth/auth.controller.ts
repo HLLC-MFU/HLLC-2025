@@ -19,6 +19,7 @@ import { Permissions } from './decorators/permissions.decorator';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RemovePasswordDto } from './dto/remove-password.dto';
+import { CheckResetPasswordEligibilityDto } from './dto/check-reset-password-eligibility.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -78,10 +79,8 @@ export class AuthController {
 
   @Public()
   @Post('check-reset-password-eligibility')
-  checkResetPasswordEligibility(@Body() username: string, secret: string) {
-    if (!username || !secret) {
-      throw new Error('Username and secret are required');
-    }
+  checkResetPasswordEligibility(@Body() body: CheckResetPasswordEligibilityDto) {
+    const { username, secret } = body;
     return this.authService.checkResetPasswordEligibility(username, secret);
   }
 

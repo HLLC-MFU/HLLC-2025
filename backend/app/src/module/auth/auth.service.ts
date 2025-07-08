@@ -296,7 +296,6 @@ export class AuthService {
     return {
       message: 'User is eligible for password reset',
       username: user.username,
-      metadata: user.metadata,
     };
   }
 
