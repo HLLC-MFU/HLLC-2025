@@ -13,7 +13,7 @@ export function useStepAchievement() {
     setError(null);
     try {
       const res = await apiRequest<{ data: StepAchievement[] }>(
-        '/step-achievements',
+        '/step-achievement',
         'GET'
       );
 
@@ -28,7 +28,7 @@ export function useStepAchievement() {
       } else {
         // ✅ ถ้าไม่มี สร้างใหม่
         const newRes = await apiRequest<StepAchievement>(
-          '/step-achievements',
+          '/step-achievement',
           'POST',
           { achievement: 0 }
         );
@@ -48,7 +48,7 @@ export function useStepAchievement() {
 
     try {
       const res = await apiRequest<StepAchievement>(
-        `/step-achievements/${achievement._id}`, // ✅ ใช้ ID ของตัวที่โหลดไว้
+        `/step-achievement/${achievement._id}`, // ✅ ใช้ ID ของตัวที่โหลดไว้
         'PATCH',
         { achievement: newValue }
       );

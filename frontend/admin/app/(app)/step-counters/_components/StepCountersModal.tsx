@@ -37,8 +37,6 @@ export default function StepContersModal({
     const parsedValue = parseInt(inputValue);
     if (isNaN(parsedValue)) return;
 
-    console.log('🚀 กำลังส่งค่าไปอัปเดต step goal:', parsedValue); // ✅ log ค่าที่จะส่ง
-
     await updateAchievement(parsedValue);
     onSettingStepTarget(); // ปิด modal
   };
