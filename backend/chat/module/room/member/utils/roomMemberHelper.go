@@ -2,7 +2,10 @@ package utils
 
 import (
 	chatUtils "chat/module/chat/utils"
-	"chat/module/room/model"
+	"chat/module/room/room/model"
+	sharedCache "chat/module/room/shared/cache"
+	sharedEvents "chat/module/room/shared/events"
+	roomHelper "chat/module/room/shared/utils"
 	"chat/pkg/middleware"
 	"context"
 	"encoding/json"
@@ -17,13 +20,13 @@ import (
 
 type RoomMemberHelper struct {
 	db           *mongo.Database
-	cache        *RoomCacheService
-	eventEmitter *RoomEventEmitter
+	cache        *sharedCache.RoomCacheService
+	eventEmitter *sharedEvents.RoomEventEmitter
 	hub          *chatUtils.Hub
 	rbac         *middleware.RBACMiddleware
 }
 
-func NewRoomMemberHelper(db *mongo.Database, cache *RoomCacheService, eventEmitter *RoomEventEmitter, hub *chatUtils.Hub) *RoomMemberHelper {
+func NewRoomMemberHelper(db *mongo.Database, cache *sharedCache.RoomCacheService, eventEmitter *sharedEvents.RoomEventEmitter, hub *chatUtils.Hub) *RoomMemberHelper {
 	return &RoomMemberHelper{
 		db:           db,
 		cache:        cache,
@@ -99,7 +102,7 @@ func (h *RoomMemberHelper) RemoveUserFromRoom(ctx context.Context, roomID primit
 	}
 
 	// Update cache with the new room state
-	room.Members = RemoveMemberObjectID(room.Members, userObjID)
+	room.Members = roomHelper.RemoveMemberObjectID(room.Members, userObjID)
 	room.UpdatedAt = time.Now()
 	if err := h.cache.SaveRoom(ctx, &room); err != nil {
 		log.Printf("[MemberHelper] Warning: Failed to update cache: %v", err)
@@ -129,17 +132,17 @@ func (h *RoomMemberHelper) JoinRoom(ctx context.Context, roomID primitive.Object
 	// ตรวจสอบว่า user อยู่ในห้องแล้วหรือไม่
 	collection := h.db.Collection("rooms")
 	userObjID, _ := primitive.ObjectIDFromHex(userID)
-	
+
 	filter := bson.M{
 		"_id":     roomID,
 		"members": userObjID,
 	}
-	
+
 	count, err := collection.CountDocuments(ctx, filter)
 	if err != nil {
 		return fmt.Errorf("failed to check user membership: %w", err)
 	}
-	
+
 	if count > 0 {
 		log.Printf("[MemberHelper] User %s already in room %s", userID, roomID.Hex())
 		return nil
@@ -210,9 +213,9 @@ func (h *RoomMemberHelper) broadcastUserJoined(roomID, userID string) {
 
 	// ส่ง event ไปยัง WebSocket hub
 	event := map[string]interface{}{
-		"type":   "user_joined",
-		"roomId": roomID,
-		"userId": userID,
+		"type":      "user_joined",
+		"roomId":    roomID,
+		"userId":    userID,
 		"timestamp": time.Now(),
 	}
 
@@ -235,9 +238,9 @@ func (h *RoomMemberHelper) broadcastUserLeft(roomID, userID string) {
 
 	// ส่ง event ไปยัง WebSocket hub
 	event := map[string]interface{}{
-		"type":   "user_left",
-		"roomId": roomID,
-		"userId": userID,
+		"type":      "user_left",
+		"roomId":    roomID,
+		"userId":    userID,
 		"timestamp": time.Now(),
 	}
 
@@ -249,4 +252,4 @@ func (h *RoomMemberHelper) broadcastUserLeft(roomID, userID string) {
 	}
 
 	// TODO: ส่ง event ไปยัง Kafka (จะใช้ eventEmitter ตามที่มีอยู่)
-} 
+}

@@ -1,7 +1,8 @@
-package utils
+package events
 
 import (
-	"chat/module/room/model"
+	"chat/module/room/room/model"
+	roomHelper "chat/module/room/shared/utils"
 	"chat/pkg/config"
 	"chat/pkg/core/kafka"
 	"context"
@@ -36,14 +37,14 @@ func NewRoomEventEmitter(bus *kafka.Bus, cfg *config.Config) *RoomEventEmitter {
 
 // ส่ง event ไปยัง topic สำหรับ room_created
 func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive.ObjectID, room *model.Room) {
-	if !ValidateRoomID(roomID, "room_created") {
+	if !roomHelper.ValidateRoomID(roomID, "room_created") {
 		return
 	}
 
 	log.Printf("[RoomEvent] Emitting room_created event for room %s", roomID.Hex())
 
 	// ตรวจสอบว่า room มีค่าไหม
-	payload, ok := MustMarshal(room, "room_created payload")
+	payload, ok := roomHelper.MustMarshal(room, "room_created payload")
 	if !ok {
 		return
 	}
@@ -56,7 +57,7 @@ func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive
 	}
 
 	// ตรวจสอบว่า event มีค่าไหม
-	eventBytes, ok := MustMarshal(event, "room_created event")
+	eventBytes, ok := roomHelper.MustMarshal(event, "room_created event")
 	if !ok {
 		return
 	}
@@ -76,7 +77,7 @@ func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive
 
 	// ส่ง event ไปยัง topic
 	if err := e.bus.Emit(ctx, topic, roomID.Hex(), eventBytes); err != nil {
-		EmitErrorLog(ctx, "room_created", err)
+		roomHelper.EmitErrorLog(ctx, "room_created", err)
 	}
 }
 
@@ -84,7 +85,7 @@ func (e *RoomEventEmitter) EmitRoomCreated(ctx context.Context, roomID primitive
 func (e *RoomEventEmitter) EmitRoomDeleted(ctx context.Context, roomID primitive.ObjectID) {
 
 	// ตรวจสอบว่า roomID มีค่าไหม
-	if !ValidateRoomID(roomID, "room_deleted") {
+	if !roomHelper.ValidateRoomID(roomID, "room_deleted") {
 		return
 	}
 
@@ -95,7 +96,7 @@ func (e *RoomEventEmitter) EmitRoomDeleted(ctx context.Context, roomID primitive
 	}
 
 	// ตรวจสอบว่า event มีค่าไหม
-	eventBytes, ok := MustMarshal(event, "room_deleted event")
+	eventBytes, ok := roomHelper.MustMarshal(event, "room_deleted event")
 	if !ok {
 		return
 	}
@@ -105,7 +106,7 @@ func (e *RoomEventEmitter) EmitRoomDeleted(ctx context.Context, roomID primitive
 
 	// ส่ง event ไปยัง topic
 	if err := e.bus.Emit(ctx, topic, roomID.Hex(), eventBytes); err != nil {
-		EmitErrorLog(ctx, "room_deleted", err)
+		roomHelper.EmitErrorLog(ctx, "room_deleted", err)
 		return
 	}
 
@@ -115,11 +116,11 @@ func (e *RoomEventEmitter) EmitRoomDeleted(ctx context.Context, roomID primitive
 		return
 	} else {
 		log.Printf("[Kafka] Deleted topic %s", topic)
-	}	
+	}
 }
 
 func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, userID primitive.ObjectID) {
-	if !ValidateRoomID(roomID, "room_member_joined") || !ValidateUserID(userID, "room_member_joined") {
+	if !roomHelper.ValidateRoomID(roomID, "room_member_joined") || !roomHelper.ValidateUserID(userID, "room_member_joined") {
 		return
 	}
 
@@ -131,7 +132,7 @@ func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, use
 	}
 
 	// ตรวจสอบว่า payload มีค่าไหม
-	payloadBytes, ok := MustMarshal(payload, "room_member_joined payload")
+	payloadBytes, ok := roomHelper.MustMarshal(payload, "room_member_joined payload")
 	if !ok {
 		return
 	}
@@ -154,7 +155,7 @@ func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, use
 
 	// ส่ง event ไปยัง topic
 	if err := e.emitEvent(ctx, event); err != nil {
-		EmitErrorLog(ctx, fmt.Sprintf("room_member_joined room=%s user=%s", roomID.Hex(), userID.Hex()), err)
+		roomHelper.EmitErrorLog(ctx, fmt.Sprintf("room_member_joined room=%s user=%s", roomID.Hex(), userID.Hex()), err)
 	} else {
 		log.Printf("[RoomEvent] Successfully emitted room_member_joined event for room %s, user %s", roomID.Hex(), userID.Hex())
 	}
@@ -162,7 +163,7 @@ func (e *RoomEventEmitter) EmitRoomMemberJoined(ctx context.Context, roomID, use
 
 func (e *RoomEventEmitter) EmitRoomMemberLeft(ctx context.Context, roomID, userID primitive.ObjectID) {
 	// ตรวจสอบว่า roomID และ userID มีค่าไหม
-	if !ValidateRoomID(roomID, "room_member_left") || !ValidateUserID(userID, "room_member_left") {
+	if !roomHelper.ValidateRoomID(roomID, "room_member_left") || !roomHelper.ValidateUserID(userID, "room_member_left") {
 		return
 	}
 
@@ -170,8 +171,8 @@ func (e *RoomEventEmitter) EmitRoomMemberLeft(ctx context.Context, roomID, userI
 
 	// สร้าง event
 	event := model.RoomEvent{
-		Type:    "room_member_left",
-		RoomID:  roomID.Hex(),
+		Type:   "room_member_left",
+		RoomID: roomID.Hex(),
 	}
 
 	// สร้าง topic
@@ -185,7 +186,7 @@ func (e *RoomEventEmitter) EmitRoomMemberLeft(ctx context.Context, roomID, userI
 
 	// ส่ง event ไปยัง topic
 	if err := e.emitEvent(ctx, event); err != nil {
-		EmitErrorLog(ctx, fmt.Sprintf("room_member_left room=%s user=%s", roomID.Hex(), userID.Hex()), err)
+		roomHelper.EmitErrorLog(ctx, fmt.Sprintf("room_member_left room=%s user=%s", roomID.Hex(), userID.Hex()), err)
 	} else {
 		log.Printf("[RoomEvent] Successfully emitted room_member_left event for room %s, user %s", roomID.Hex(), userID.Hex())
 	}
@@ -194,7 +195,7 @@ func (e *RoomEventEmitter) EmitRoomMemberLeft(ctx context.Context, roomID, userI
 func (e *RoomEventEmitter) EmitRoomMemberRemoved(ctx context.Context, roomID, userID primitive.ObjectID) {
 
 	// ตรวจสอบว่า roomID และ userID มีค่าไหม
-	if !ValidateRoomID(roomID, "room_member_removed") || !ValidateUserID(userID, "room_member_removed") {
+	if !roomHelper.ValidateRoomID(roomID, "room_member_removed") || !roomHelper.ValidateUserID(userID, "room_member_removed") {
 		return
 	}
 
@@ -230,7 +231,7 @@ func (e *RoomEventEmitter) emitEvent(ctx context.Context, event model.RoomEvent)
 	}
 
 	// สร้าง event
-	eventBytes, ok := MustMarshal(event, "generic event")
+	eventBytes, ok := roomHelper.MustMarshal(event, "generic event")
 	if !ok {
 		return fmt.Errorf("failed to marshal event for topic %s", topic)
 	}
@@ -242,7 +243,7 @@ func (e *RoomEventEmitter) emitEvent(ctx context.Context, event model.RoomEvent)
 func (e *RoomEventEmitter) EnsureRoomTopic(ctx context.Context, roomID primitive.ObjectID) error {
 
 	// ตรวจสอบว่า roomID มีค่าไหม
-	if !ValidateRoomID(roomID, "ensure_room_topic") {
+	if !roomHelper.ValidateRoomID(roomID, "ensure_room_topic") {
 		return fmt.Errorf("invalid room ID")
 	}
 
@@ -261,7 +262,7 @@ func (e *RoomEventEmitter) EnsureRoomTopic(ctx context.Context, roomID primitive
 func (e *RoomEventEmitter) DeleteRoomTopic(ctx context.Context, roomID primitive.ObjectID) error {
 
 	// ตรวจสอบว่า roomID มีค่าไหม
-	if !ValidateRoomID(roomID, "delete_room_topic") {
+	if !roomHelper.ValidateRoomID(roomID, "delete_room_topic") {
 		return fmt.Errorf("invalid room ID")
 	}
 
@@ -279,7 +280,7 @@ func (e *RoomEventEmitter) DeleteRoomTopic(ctx context.Context, roomID primitive
 
 // EmitRoomStatusChanged emits a room status change event
 func (e *RoomEventEmitter) EmitRoomStatusChanged(ctx context.Context, roomID primitive.ObjectID, newStatus string) {
-	if !ValidateRoomID(roomID, "room_status_changed") {
+	if !roomHelper.ValidateRoomID(roomID, "room_status_changed") {
 		return
 	}
 
@@ -287,13 +288,13 @@ func (e *RoomEventEmitter) EmitRoomStatusChanged(ctx context.Context, roomID pri
 
 	// Create payload
 	payload := map[string]interface{}{
-		"roomId": roomID.Hex(),
-		"status": newStatus,
+		"roomId":    roomID.Hex(),
+		"status":    newStatus,
 		"timestamp": time.Now(),
 	}
 
 	// Marshal payload
-	payloadBytes, ok := MustMarshal(payload, "room_status_changed payload")
+	payloadBytes, ok := roomHelper.MustMarshal(payload, "room_status_changed payload")
 	if !ok {
 		return
 	}
@@ -316,7 +317,7 @@ func (e *RoomEventEmitter) EmitRoomStatusChanged(ctx context.Context, roomID pri
 
 	// Send event to topic
 	if err := e.emitEvent(ctx, event); err != nil {
-		EmitErrorLog(ctx, fmt.Sprintf("room_status_changed room=%s status=%s", roomID.Hex(), newStatus), err)
+		roomHelper.EmitErrorLog(ctx, fmt.Sprintf("room_status_changed room=%s status=%s", roomID.Hex(), newStatus), err)
 	} else {
 		log.Printf("[RoomEvent] Successfully emitted room_status_changed event for room %s, status: %s", roomID.Hex(), newStatus)
 	}

@@ -1,9 +1,11 @@
 package controller
 
 import (
-	"chat/module/room/dto"
-	"chat/module/room/service"
-	roomUtils "chat/module/room/utils"
+	"chat/module/room/group/dto"
+	groupService "chat/module/room/group/service"
+	roomDto "chat/module/room/room/dto"
+	roomService "chat/module/room/room/service"
+	sharedUtils "chat/module/room/shared/utils"
 	"chat/pkg/decorators"
 	"chat/pkg/middleware"
 	"chat/pkg/utils"
@@ -14,21 +16,21 @@ import (
 
 type GroupRoomController struct {
 	*decorators.BaseController
-	groupService     *service.GroupRoomService
-	roomService      service.RoomService
+	groupService     *groupService.GroupRoomService
+	roomService      roomService.RoomService
 	uploadHandler    *utils.FileUploadHandler
-	validationHelper *roomUtils.RoomValidationHelper
+	validationHelper *sharedUtils.RoomValidationHelper
 	rbac             middleware.IRBACMiddleware
 }
 
-func NewGroupRoomController(app fiber.Router, groupService *service.GroupRoomService, roomService service.RoomService, rbac middleware.IRBACMiddleware) *GroupRoomController {
+func NewGroupRoomController(app fiber.Router, groupService *groupService.GroupRoomService, roomService roomService.RoomService, rbac middleware.IRBACMiddleware) *GroupRoomController {
 	uploadConfig := utils.GetModuleConfig("room")
 
-	var validationHelper *roomUtils.RoomValidationHelper
+	var validationHelper *sharedUtils.RoomValidationHelper
 	if uploadConfig.MaxSize > 0 && len(uploadConfig.AllowedTypes) > 0 {
-		validationHelper = roomUtils.NewRoomValidationHelper(uploadConfig.MaxSize, uploadConfig.AllowedTypes)
+		validationHelper = sharedUtils.NewRoomValidationHelper(uploadConfig.MaxSize, uploadConfig.AllowedTypes)
 	} else {
-		validationHelper = roomUtils.NewRoomValidationHelper(256*1024, []string{"image/jpeg", "image/jpg", "image/png"})
+		validationHelper = sharedUtils.NewRoomValidationHelper(256*1024, []string{"image/jpeg", "image/jpg", "image/png"})
 	}
 
 	controller := &GroupRoomController{
@@ -87,14 +89,14 @@ func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 		for i, m := range room.Members {
 			stringMembers[i] = m.Hex()
 		}
-		updateDto := &dto.UpdateRoomDto{
+		updateRoomDto := &roomDto.UpdateRoomDto{
 			Name:     room.Name,
 			Type:     room.Type,
 			Capacity: room.Capacity,
 			Members:  stringMembers,
 			Image:    filename,
 		}
-		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), updateDto)
+		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), updateRoomDto)
 		if err != nil {
 			return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 		}

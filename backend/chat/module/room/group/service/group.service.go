@@ -2,13 +2,14 @@ package service
 
 import (
 	chatUtils "chat/module/chat/utils"
-	"chat/module/room/dto"
-	"chat/module/room/model"
-	roomUtils "chat/module/room/utils"
+	"chat/module/room/group/dto"
+	groupUtils "chat/module/room/group/utils"
+	"chat/module/room/room/model"
+	sharedCache "chat/module/room/shared/cache"
+	sharedEvents "chat/module/room/shared/events"
 	userService "chat/module/user/service"
 	"chat/pkg/config"
 	"chat/pkg/core/kafka"
-
 	"chat/pkg/database/queries"
 	serviceHelper "chat/pkg/helpers/service"
 	"chat/pkg/utils"
@@ -18,22 +19,31 @@ import (
 	"log"
 	"time"
 
+	roomDto "chat/module/room/room/dto"
+
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// RoomService interface for group service dependency
+type RoomService interface {
+	GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*model.Room, error)
+	UpdateRoom(ctx context.Context, id string, updateDto *roomDto.UpdateRoomDto) (*model.Room, error)
+	IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error)
+}
+
 type GroupRoomService struct {
 	*queries.BaseService[model.Room]
 	userService   *userService.UserService
 	roomService   RoomService
 	fkValidator   *serviceHelper.ForeignKeyValidator
-	eventEmitter  *roomUtils.RoomEventEmitter
-	cache         *roomUtils.RoomCacheService
+	eventEmitter  *sharedEvents.RoomEventEmitter
+	cache         *sharedCache.RoomCacheService
 	hub           *chatUtils.Hub
 	db            *mongo.Database
-	helper        *roomUtils.GroupRoomHelper
+	helper        *groupUtils.GroupRoomHelper
 	uploadHandler *utils.FileUploadHandler
 }
 
@@ -47,9 +57,9 @@ func NewGroupRoomService(
 ) *GroupRoomService {
 	collection := db.Collection("rooms")
 	userService := userService.NewUserService(db)
-	eventEmitter := roomUtils.NewRoomEventEmitter(bus, cfg)
-	cache := roomUtils.NewRoomCacheService(redis)
-	helper := roomUtils.NewGroupRoomHelper(userService, db)
+	eventEmitter := sharedEvents.NewRoomEventEmitter(bus, cfg)
+	cache := sharedCache.NewRoomCacheService(redis)
+	helper := groupUtils.NewGroupRoomHelper(userService, db)
 	uploadHandler := utils.NewModuleFileHandler("room")
 
 	return &GroupRoomService{
@@ -153,7 +163,7 @@ func (gs *GroupRoomService) getFreshRoomFromDB(ctx context.Context, roomID primi
 	if err != nil {
 		return nil, fmt.Errorf("failed to get fresh room: %w", err)
 	}
-	
+
 	log.Printf("[GroupService] Fresh room from DB: ID=%s, Members=%d", room.ID.Hex(), len(room.Members))
 	return &room, nil
 }
@@ -182,7 +192,7 @@ func (gs *GroupRoomService) addGroupMembersAndWait(ctx context.Context, roomID p
 	filter := bson.M{"_id": roomID}
 	update := bson.M{
 		"$addToSet": bson.M{"members": bson.M{"$each": newMemberIDs}},
-		"$set": bson.M{"updatedAt": primitive.NewDateTimeFromTime(time.Now())},
+		"$set":      bson.M{"updatedAt": primitive.NewDateTimeFromTime(time.Now())},
 	}
 
 	// อัพเดทห้องใน database
@@ -199,7 +209,7 @@ func (gs *GroupRoomService) addGroupMembersAndWait(ctx context.Context, roomID p
 	// ลบ cache ทันที และ members cache
 	gs.cache.DeleteRoom(ctx, roomID.Hex())
 	gs.cache.SaveMembers(ctx, roomID.Hex(), nil) // Clear members cache
-	
+
 	log.Printf("[GroupService] Added %d members to room %s", len(newMemberIDs), roomID.Hex())
 	return len(newMemberIDs), nil
 }
@@ -255,7 +265,7 @@ func (gs *GroupRoomService) AutoAddUserToGroupRooms(ctx context.Context, userID 
 	}
 
 	totalAdded := 0
-	
+
 	// Auto-add by major
 	if majorID, exists := user.Metadata["major"].(string); exists {
 		if added, _ := gs.autoAddUserToGroupRoomsByType(ctx, userID, "major", majorID); added > 0 {
@@ -263,7 +273,7 @@ func (gs *GroupRoomService) AutoAddUserToGroupRooms(ctx context.Context, userID 
 		}
 	}
 
-	// Auto-add by school  
+	// Auto-add by school
 	if schoolID, exists := user.Metadata["school"].(string); exists {
 		if added, _ := gs.autoAddUserToGroupRoomsByType(ctx, userID, "school", schoolID); added > 0 {
 			totalAdded += added
@@ -325,4 +335,4 @@ func (gs *GroupRoomService) GetGroupRoomStats(ctx context.Context, groupType, gr
 		"totalMembers": totalMembers,
 		"rooms":        rooms,
 	}, nil
-} 
+}
