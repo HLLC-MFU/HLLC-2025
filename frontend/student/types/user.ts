@@ -5,7 +5,8 @@ export interface UserData {
   username: string;
   name: {
     first: string;
-    last: string;
+    middle?: string;
+    last?: string;
   };
   role: {
     name: string;
@@ -21,3 +22,9 @@ export interface User {
   data: UserData[];
   message: string;
 } 
+
+export interface Name {
+  first: string;
+  middle?: string;
+  last?: string;
+}

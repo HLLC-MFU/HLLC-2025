@@ -330,6 +330,7 @@ export class StepCountersService {
       .find({})
       .populate({
         path: 'user',
+        select: 'name metadata.major username',
         populate: {
           path: 'metadata.major.school',
           model: 'School',
