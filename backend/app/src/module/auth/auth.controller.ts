@@ -21,7 +21,7 @@ import { RegisterDto } from './dto/register.dto';
 import { RemovePasswordDto } from './dto/remove-password.dto';
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Public()
   @Post('login')
@@ -74,6 +74,15 @@ export class AuthController {
   @Post('remove-password')
   async removePassword(@Body() removePasswordDto: RemovePasswordDto) {
     return this.authService.removePassword(removePasswordDto);
+  }
+
+  @Public()
+  @Post('check-reset-password-eligibility')
+  checkResetPasswordEligibility(@Body() username: string, secret: string) {
+    if (!username || !secret) {
+      throw new Error('Username and secret are required');
+    }
+    return this.authService.checkResetPasswordEligibility(username, secret);
   }
 
   @Public()
