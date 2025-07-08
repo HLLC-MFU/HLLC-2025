@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Card, CardBody } from "@heroui/react";
 import { ProfileSkeleton } from "./ProfileSkeleton";
 import { useProfile } from "@/hooks/useProfile";
+import { BadgeCheck, GraduationCap, IdCard, LucideIcon, School, UserCircle } from "lucide-react";
 
 export default function ProfileCard() {
   const user = useProfile((state) => state.user);
@@ -11,6 +12,7 @@ export default function ProfileCard() {
   const setUser = useProfile((state) => state.setUser);
 
   const [loading, setLoading] = useState(false);
+  console.log(user)
 
   useEffect(() => {
     if (!user) {
@@ -42,6 +44,13 @@ export default function ProfileCard() {
 
   const fullName = [user.name.first, user.name.middle, user.name.last].filter(Boolean).join(" ");
 
+  const iconMap: Record<string, LucideIcon> = {
+    NAME: UserCircle,
+    "STUDENT ID": IdCard,
+    SCHOOL: School,
+    MAJOR: GraduationCap,
+  };
+
   const profileItems = [
     { label: "NAME", value: fullName },
     { label: "STUDENT ID", value: user.username },
@@ -50,15 +59,35 @@ export default function ProfileCard() {
   ];
 
   return (
-    <Card className="py-4">
-      <CardBody className="pb-0 pt-2 px-4 flex-col items-start space-y-2">
-        {profileItems.map(({ label, value }, index) => (
-          <div key={index}>
-            <h4 className="font-bold text-large">{label}</h4>
-            <p className="text-default-500">{value}</p>
-          </div>
-        ))}
+    <Card
+      className="py-4 bg-black/20 backdrop-blur-md border border-white rounded-2xl shadow-lg"
+    >
+      <CardBody className="pb-0 pt-2 px-4 flex-col items-start space-y-4">
+        {profileItems.map(({ label, value }, index) => {
+          const Icon = iconMap[label];
+
+          return (
+            <div
+              key={index}
+              className="flex items-center space-x-4 min-h-[60px]"
+            >
+              {Icon && (
+                <Icon className="w-10 h-10 rounded-full shrink-0 text-white" />
+              )}
+
+              <div className="flex flex-col justify-center">
+                <h4 className="font-bold text-large uppercase leading-tight text-white">
+                  {label}
+                </h4>
+                <p className="uppercase leading-tight text-white/80">
+                  {value}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </CardBody>
     </Card>
+
   );
 }
