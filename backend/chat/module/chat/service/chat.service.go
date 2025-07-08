@@ -125,9 +125,36 @@ func (s *ChatService) SaveMessageToDB(ctx context.Context, msg *model.ChatMessag
 }
 
 func (s *ChatService) SaveMessageToCache(ctx context.Context, msg *model.ChatMessage) error {
+	// **ENHANCED: Create properly enriched message with all data**
 	enriched := model.ChatMessageEnriched{
 		ChatMessage: *msg,
 	}
+
+	// **ENHANCED: Get reply-to message if exists**
+	if msg.ReplyToID != nil {
+		replyToMsg, err := s.historyService.getReplyToMessageWithUser(ctx, *msg.ReplyToID)
+		if err != nil {
+			log.Printf("[ChatService] Failed to get reply-to message for caching: %v", err)
+		} else {
+			enriched.ReplyTo = replyToMsg
+			log.Printf("[ChatService] Added reply-to message to cached message %s", msg.ID.Hex())
+		}
+	}
+
+	// **ENHANCED: Log special message types being cached**
+	if msg.EvoucherInfo != nil {
+		log.Printf("[ChatService] Caching evoucher message %s", msg.ID.Hex())
+	}
+	if msg.MentionInfo != nil {
+		log.Printf("[ChatService] Caching mention message %s with %d mentions", msg.ID.Hex(), len(msg.Mentions))
+	}
+	if msg.ModerationInfo != nil {
+		log.Printf("[ChatService] Caching restriction message %s", msg.ID.Hex())
+	}
+	if msg.StickerID != nil {
+		log.Printf("[ChatService] Caching sticker message %s", msg.ID.Hex())
+	}
+
 	return s.cache.SaveMessage(ctx, msg.RoomID.Hex(), &enriched)
 }
 
@@ -287,9 +314,6 @@ func (s *ChatService) determineMessageType(message *model.ChatMessage) string {
 	if message.MentionInfo != nil {
 		return "mention"
 	}
-	if message.Reactions != nil {
-		return "reactions"
-	}
 	if message.ReplyToID != nil {
 		return "reply"
 	}
@@ -435,10 +459,6 @@ func (s *ChatService) GetUserById(ctx context.Context, userID string) (*userMode
 	user := result.Data[0]
 	log.Printf("[DEBUG] Successfully retrieved user: %s (%s %s)", user.Username, user.Name.First, user.Name.Last)
 	return &user, nil
-}
-
-func (s *ChatService) GetMessageReactions(ctx context.Context, roomID, messageID string) ([]model.MessageReaction, error) {
-	return s.historyService.getMessageReactionsWithUsers(ctx, roomID, messageID)
 }
 
 func (s *ChatService) GetNotificationService() *notificationService.NotificationService {

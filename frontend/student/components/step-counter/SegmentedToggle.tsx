@@ -29,21 +29,20 @@ const SegmentedToggle = ({ value, onChange }:SegmentedToggleProps) => {
 
 const styles = StyleSheet.create({
   container: {
+    display: 'flex',
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.14)',
-    borderRadius: 20,
+    borderRadius: 32,
     padding: 3,
-    marginLeft: 150,
-    marginTop: 15 ,
     alignSelf: 'center',
     alignItems: 'center',
   },
   button: {
     flex: 1,
     minWidth: 90,
-    paddingVertical: 6,
+    paddingVertical: 16,
     paddingHorizontal: 8,
-    borderRadius: 16,
+    borderRadius: 32,
     alignItems: 'center',
     backgroundColor: 'transparent',
     marginHorizontal: 2,

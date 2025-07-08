@@ -43,14 +43,15 @@
       "softwareKeyboardLayoutMode": "pan",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
+        "android.permission.BODY_SENSORS",
         "android.permission.ACTIVITY_RECOGNITION",
         "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "package": "com.mfuactivity.hllc",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "edgeToEdge": true
     },
     "web": {
       "bundler": "metro",
