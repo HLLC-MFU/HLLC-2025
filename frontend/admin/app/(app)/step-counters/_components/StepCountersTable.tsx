@@ -1,9 +1,5 @@
-import { StepsCounters } from '@/types/step-counters';
+import { StepContersTableProps } from '@/types/step-counters';
 import UserTable from './StepcountersUserTable';
-
-type StepContersTableProps = {
-  stepCounters: StepsCounters[];
-};
 
 export default function StepContersTable({
   stepCounters,

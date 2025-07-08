@@ -14,37 +14,7 @@ import {
 
 import { useMajors } from '@/hooks/useMajor';
 import { School } from '@/types/school';
-
-type RawStepCounter = {
-  user?: {
-    name?: {
-      first?: string;
-      last?: string;
-    };
-    username?: string;
-    metadata?: {
-      major?: string;
-    };
-  };
-  totalStep?: number;
-  rank?: number;
-  updatedAt?: string;
-};
-
-type StepContersTableProps = {
-  stepCounters: RawStepCounter[];
-};
-
-type StepCountersItem = {
-  key: string;
-  rank: number | null;
-  id: string;
-  name: string;
-  school: string;
-  major: string;
-  steps: number;
-  time: string;
-};
+import { StepContersTableProps, StepsCountersList } from '@/types/step-counters'
 
 export default function StepCountersTable({ stepCounters }: StepContersTableProps) {
   const [page, setPage] = React.useState(1);
@@ -55,7 +25,7 @@ export default function StepCountersTable({ stepCounters }: StepContersTableProp
   });
 
   const { majors } = useMajors();
-  const normalizedData: StepCountersItem[] = React.useMemo(() => {
+  const normalizedData: StepsCountersList[] = React.useMemo(() => {
     return stepCounters.map((item, index) => {
       const majorId = item.user?.metadata?.major ?? '';
       const majorObj = majors.find((m) => m._id === majorId);
@@ -83,7 +53,7 @@ export default function StepCountersTable({ stepCounters }: StepContersTableProp
         key: String(index + 1),
         rank: item.rank ?? null,
         id: item.user?.username ?? '-',
-        name: `${item.user?.name?.first ?? ''} ${item.user?.name?.last ?? ''}`.trim(),
+        name: `${item.user?.name?.first ?? ''} ${item.user?.name?.middle ?? ''} ${item.user?.name?.last ?? ''}`.trim(),
         major: majorName,
         school: schoolName,
         steps: item.totalStep ?? 0,
@@ -96,8 +66,8 @@ export default function StepCountersTable({ stepCounters }: StepContersTableProp
 
   const sortedData = React.useMemo(() => {
     return [...normalizedData].sort((a, b) => {
-      const first = a[sortDescriptor.column as keyof StepCountersItem];
-      const second = b[sortDescriptor.column as keyof StepCountersItem];
+      const first = a[sortDescriptor.column as keyof StepsCountersList];
+      const second = b[sortDescriptor.column as keyof StepsCountersList];
       const isNumber = typeof first === 'number' && typeof second === 'number';
 
       const cmp = isNumber
@@ -114,7 +84,7 @@ export default function StepCountersTable({ stepCounters }: StepContersTableProp
   }, [page, sortedData]);
 
   const renderCell = React.useCallback(
-    (user: StepCountersItem, columnKey: React.Key) => {
+    (user: StepsCountersList, columnKey: React.Key) => {
       switch (columnKey) {
         case 'rank':
           return <p className="text-sm">{user.rank ?? user.key}</p>;

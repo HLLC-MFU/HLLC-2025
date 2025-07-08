@@ -82,7 +82,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
         const formData: Partial<User> = {
             name: field.name,
             username: field.username,
-            role: field.role,
+            role: field.role as string,
             metadata: {
                 major: majorData?._id ?? ""
             }

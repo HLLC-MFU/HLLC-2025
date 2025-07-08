@@ -4,6 +4,7 @@ export type RawStepCounter = {
   user?: {
     name?: {
       first?: string;
+      middle?: string;
       last?: string;
     };
     username?: string;
