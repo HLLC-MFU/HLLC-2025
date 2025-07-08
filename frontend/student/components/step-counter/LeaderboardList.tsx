@@ -17,17 +17,14 @@ interface UserData {
 
 interface LeaderboardListProps {
   usersData: UserData[];
-  getFullName: (name: Name) => string;
   valueLabel?: string;
 }
 
-const { width } = Dimensions.get('window');
-
-const LeaderboardList = ({ usersData, getFullName, valueLabel = 'steps' }:LeaderboardListProps) => (
+const LeaderboardList = ({ usersData, valueLabel = 'steps' }:LeaderboardListProps) => (
   <FlatList
     data={usersData}
     keyExtractor={(_, idx) => idx.toString()}
-    contentContainerStyle={[styles.listContainer, { paddingBottom: width * 0.08 }]}
+    contentContainerStyle={[styles.listContainer, { paddingBottom: 0 }]}
     renderItem={({ item }) => (
       <View
         style={[
@@ -48,7 +45,7 @@ const LeaderboardList = ({ usersData, getFullName, valueLabel = 'steps' }:Leader
         <Text style={[styles.cardName, item.isTeam && { fontWeight: 'bold' }]}> 
           {item.isTeam
             ? item.name.first + ' ' + item.name.last
-            : getFullName(item.name)}
+            : item.name.first + (item.name.middle ? ' ' + item.name.middle : '')}
         </Text>
         <Text style={styles.cardSteps}>{item.stepCount} {valueLabel}</Text>
       </View>
