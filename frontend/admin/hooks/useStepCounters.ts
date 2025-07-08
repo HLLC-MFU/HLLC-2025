@@ -1,67 +1,65 @@
 import { useEffect, useState } from 'react';
 import { addToast } from '@heroui/react';
 import { apiRequest } from '@/utils/api';
-import { StepsCountersList } from '@/types/step-counters';
+import { StepCounter } from '@/types/step-counters';
 
 export function useStepCounters() {
-  const [topOverall, setTopOverall] = useState<StepsCountersList[]>([]);
-  const [firstAchievers, setFirstAchievers] = useState<StepsCountersList[]>([]);
+  const [all, setAll] = useState<StepCounter[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLeaderboard = async (
-    scope: 'all' | 'date', // ⬅️ ลบ 'school'
-    options: {
-      date?: string;
-      page?: number;
-      pageSize?: number;
-    } = {},
-  ) => {
+  const fetchAllLeaderboard = async () => {
     setLoading(true);
     setError(null);
     try {
-      const query = new URLSearchParams({
-        scope,
-        ...(options.date ? { date: options.date } : {}),
-        ...(options.page ? { page: options.page.toString() } : {}),
-        ...(options.pageSize ? { pageSize: options.pageSize.toString() } : {}),
-      }).toString();
+      let page = 1;
+      const pageSize = 20;
+      let combined: StepCounter[] = [];
+      let hasMore = true;
 
-      const res = await apiRequest<{ data: StepsCountersList[] }>(
-        `/step-counters/leaderboard?${query}`,
-        'GET',
-      );
+      while (hasMore) {
+        const query = new URLSearchParams({
+          scope: 'all',
+          page: page.toString(),
+          pageSize: pageSize.toString(),
+        }).toString();
 
-      const data = Array.isArray(res.data?.data) ? res.data.data : [];
+        const res = await apiRequest<{ data: StepCounter[] }>(
+          `/step-counters/leaderboard?${query}`,
+          'GET'
+        );
 
-      if (scope === 'all') setTopOverall(data);
-      if (scope === 'date') setFirstAchievers(data);
+        const data = Array.isArray(res.data?.data) ? res.data.data : [];
+
+        combined = [...combined, ...data];
+        hasMore = data.length === pageSize; 
+        page++;
+      }
+
+      setAll(combined);
     } catch (err) {
       addToast({
-        title: 'Failed to fetch leaderboard.',
+        title: 'Failed to fetch full leaderboard.',
         color: 'danger',
       });
       setError(
         err && typeof err === 'object' && 'message' in err
           ? (err as { message?: string }).message || 'Failed to fetch leaderboard.'
-          : 'Failed to fetch leaderboard.',
+          : 'Failed to fetch leaderboard.'
       );
     } finally {
       setLoading(false);
     }
   };
 
-  // preload แค่ top overall + first achievers
   useEffect(() => {
-    fetchLeaderboard('all', { pageSize: 3 });
-    fetchLeaderboard('date', { date: new Date().toISOString().split('T')[0] });
+    fetchAllLeaderboard();
   }, []);
 
   return {
-    topOverall,
-    firstAchievers,
+    all,
     loading,
     error,
-    fetchLeaderboard,
+    refetch: fetchAllLeaderboard,
   };
 }

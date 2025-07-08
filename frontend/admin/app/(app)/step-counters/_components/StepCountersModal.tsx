@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Button } from '@heroui/button';
 import {
   Modal,
@@ -8,6 +11,7 @@ import {
   Input,
 } from '@heroui/react';
 import { Footprints } from 'lucide-react';
+import { useStepAchievement } from '@/hooks/useStepAchiever';
 
 type SettingModalProps = {
   isOpen: boolean;
@@ -18,6 +22,27 @@ export default function StepContersModal({
   isOpen,
   onSettingStepTarget,
 }: SettingModalProps) {
+  const { achievement, updateAchievement, loading } = useStepAchievement();
+
+  const [inputValue, setInputValue] = useState<string>('');
+
+  // เมื่อ modal เปิด ให้โหลดค่าเริ่มต้นเข้า input
+  useEffect(() => {
+    if (achievement) {
+      setInputValue(achievement.achievement.toString());
+    }
+  }, [achievement]);
+
+  const handleUpdate = async () => {
+    const parsedValue = parseInt(inputValue);
+    if (isNaN(parsedValue)) return;
+
+    console.log('🚀 กำลังส่งค่าไปอัปเดต step goal:', parsedValue); // ✅ log ค่าที่จะส่ง
+
+    await updateAchievement(parsedValue);
+    onSettingStepTarget(); // ปิด modal
+  };
+
   return (
     <>
       <Modal
@@ -34,19 +59,26 @@ export default function StepContersModal({
               <ModalBody>
                 <Input
                   type="number"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
                   endContent={
                     <Footprints className="text-2xl text-default-400 pointer-events-none flex-shrink-0" />
                   }
-                  label="StepsTargets"
+                  label="Steps Target"
                   placeholder="Enter Target Steps"
                   variant="bordered"
+                  isDisabled={loading}
                 />
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="light" onPress={onClose}>
                   Close
                 </Button>
-                <Button color="primary" onPress={onClose}>
+                <Button
+                  color="primary"
+                  onPress={handleUpdate}
+                  isDisabled={loading}
+                >
                   Update
                 </Button>
               </ModalFooter>

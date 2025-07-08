@@ -12,42 +12,51 @@ import {
   SortDescriptor,
 } from '@heroui/react';
 
+import { StepCounter } from '@/types/step-counters';
 import { useMajors } from '@/hooks/useMajor';
-import { School } from '@/types/school';
-import { StepContersTableProps, StepsCountersList } from '@/types/step-counters'
+
+export type StepContersTableProps = {
+  stepCounters: StepCounter[];
+};
+
+type StepsCountersList = {
+  key: string;
+  rank: number | null;
+  id: string;
+  name: string;
+  major: string;
+  school: string;
+  steps: number;
+  time: string;
+};
 
 export default function StepCountersTable({ stepCounters }: StepContersTableProps) {
+  const { majors } = useMajors();
+
   const [page, setPage] = React.useState(1);
   const rowsPerPage = 5;
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: 'steps',
-    direction: 'descending',
+    column: 'rank',
+    direction: 'ascending',
   });
 
-  const { majors } = useMajors();
   const normalizedData: StepsCountersList[] = React.useMemo(() => {
     return stepCounters.map((item, index) => {
-      const majorId = item.user?.metadata?.major ?? '';
-      const majorObj = majors.find((m) => m._id === majorId);
+      const majorId =
+        typeof item.user?.metadata?.major === 'string'
+          ? item.user.metadata.major
+          : item.user?.metadata?.major?._id;
+
+      const matchedMajor = majors.find((m) => m._id === majorId);
 
       const majorName =
-        typeof majorObj?.name === 'object'
-          ? majorObj.name.en ?? majorObj.name.th ?? 'Unknown Major'
-          : 'Unknown Major';
-
-      let schoolName = 'Unknown School';
-      if (
-        majorObj?.school &&
-        typeof majorObj.school === 'object' &&
-        'name' in majorObj.school
-      ) {
-        const school = majorObj.school as School;
-        schoolName =
-          typeof school.name === 'object'
-            ? school.name.en ?? school.name.th ?? 'Unknown School'
-            : 'Unknown School';
-      }
-
+        matchedMajor?.name?.en ?? matchedMajor?.name?.th ?? 'Unknown Major';
+      const schoolName =
+        typeof matchedMajor?.school === 'object'
+          ? matchedMajor.school.name?.en ??
+            matchedMajor.school.name?.th ??
+            'Unknown School'
+          : 'Unknown School';
 
       return {
         key: String(index + 1),
@@ -61,6 +70,8 @@ export default function StepCountersTable({ stepCounters }: StepContersTableProp
       };
     });
   }, [stepCounters, majors]);
+
+  
 
   const pages = Math.ceil(normalizedData.length / rowsPerPage);
 
@@ -146,7 +157,7 @@ export default function StepCountersTable({ stepCounters }: StepContersTableProp
           </TableColumn>
         )}
       </TableHeader>
-      <TableBody items={items}>
+      <TableBody items={items} emptyContent="No step data to display.">
         {(item) => (
           <TableRow key={item.key}>
             {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
