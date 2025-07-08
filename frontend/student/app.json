@@ -44,6 +44,7 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.BODY_SENSORS",
+        "android.permission.health.READ_STEPS",
         "android.permission.ACTIVITY_RECOGNITION",
         "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
         "android.permission.ACCESS_FINE_LOCATION",
@@ -60,6 +61,7 @@
     },
     "plugins": [
       "expo-localization",
+      "expo-health-connect",
       "expo-router",
       [
         "expo-splash-screen",
