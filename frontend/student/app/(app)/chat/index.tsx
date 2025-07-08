@@ -31,6 +31,8 @@ import { RoomDetailModal } from '@/components/chats/RoomDetailModal';
 import RoomListItem from '@/components/chats/RoomListItem';
 import chatService from '@/services/chats/chatService';
 import { useTranslation } from 'react-i18next';
+import { Easing } from 'react-native';
+import { AlignJustify } from '@tamagui/lucide-icons';
 
 interface ChatRoomWithId extends ChatRoom {
   _id?: string;
@@ -48,6 +50,60 @@ export default function ChatPage() {
   const [pendingJoinRoom, setPendingJoinRoom] = useState<ChatRoom | null>(null);
   const userId = user?.data?.[0]?._id || '';
   const { t } = useTranslation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const coinAnim = useState(new Animated.Value(0))[0];
+  const stepAnim = useState(new Animated.Value(0))[0];
+  const createAnim = useState(new Animated.Value(0))[0];
+
+  const openMenu = () => {
+    setIsMenuOpen(true);
+    Animated.stagger(50, [
+      Animated.timing(coinAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.exp),
+      }),
+      Animated.timing(stepAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.exp),
+      }),
+      Animated.timing(createAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.exp),
+      }),
+    ]).start();
+  };
+  const closeMenu = () => {
+    Animated.stagger(50, [
+      Animated.timing(createAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+        easing: Easing.in(Easing.exp),
+      }),
+      Animated.timing(stepAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+        easing: Easing.in(Easing.exp),
+      }),
+      Animated.timing(coinAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+        easing: Easing.in(Easing.exp),
+      }),
+    ]).start(() => setIsMenuOpen(false));
+  };
+  const toggleMenu = () => {
+    if (isMenuOpen) closeMenu();
+    else openMenu();
+  };
 
   const {
     rooms,
@@ -211,6 +267,31 @@ export default function ChatPage() {
     extrapolate: 'clamp'
   });
 
+  // ก่อน View Gooey FAB Menu
+  const subFabs = [
+    {
+      key: 'create',
+      icon: <Plus size={24} color="#fff" />,
+      label: null,
+      anim: createAnim,
+      onPress: () => { closeMenu(); setCreateModalVisible(true); },
+    },
+    {
+      key: 'step',
+      icon: null,
+      label: 'Step',
+      anim: stepAnim,
+      onPress: () => { closeMenu(); router.replace('/step-counter'); },
+    },
+    {
+      key: 'coin',
+      icon: null,
+      label: 'Coin',
+      anim: coinAnim,
+      onPress: () => { closeMenu(); router.replace('/coin-hunting'); },
+    },
+  ];
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -271,40 +352,72 @@ export default function ChatPage() {
         />
       </SafeAreaView>
 
-        <TouchableOpacity
-          style={styles.enhancedFab}
-          onPress={() => {
-            animateFab();
-            setCreateModalVisible(true);
-          }}
-          activeOpacity={0.9}
-        >
-          <BlurView intensity={0} tint="light" style={styles.fabGradient}>
-            <Plus size={24} color="#fff" />
-          </BlurView>
-        </TouchableOpacity>
-
-
-        <TouchableOpacity
-          style={styles.coinHuntingFab}
-          onPress={() => router.push('/coin-hunting')}
-          activeOpacity={0.9}
-        >
-          <View style={styles.stepCounterFabInner}>
-            <Text style={styles.stepCounterFabText}>Coin</Text>
+        {/* Gooey FAB Menu */}
+        <View style={{ position: 'absolute', bottom: 50, right: 0, alignItems: 'flex-end', justifyContent: 'flex-end', width: 80, height: 300 }} pointerEvents="box-none">
+          {/* BlurView background overlay */}
+          {isMenuOpen && (
+            <BlurView
+              intensity={30}
+              tint="dark"
+              style={{
+                position: 'absolute',
+                top: -1000,
+                left: -1000,
+                width: 3000,
+                height: 3000,
+                zIndex: 1,
+              }}
+              pointerEvents="auto"
+            >
+              <TouchableOpacity
+                style={{ flex: 1, width: '100%', height: '100%' }}
+                activeOpacity={1}
+                onPress={closeMenu}
+              />
+            </BlurView>
+          )}
+          {/* Sub-FABs (dynamic, vertical up from main FAB) */}
+          {subFabs.map((fab, idx) => (
+            <Animated.View
+              key={fab.key}
+              pointerEvents={isMenuOpen ? 'auto' : 'none'}
+              style={[
+                styles.fabSubButton,
+                {
+                  position: 'absolute',
+                  right: 100 ,
+                  bottom: 70 * (subFabs.length - idx), // 70, 140, 210 ...
+                  zIndex: 2,
+                  opacity: fab.anim,
+                  transform: [
+                    { translateY: fab.anim.interpolate({ inputRange: [0, 1], outputRange: [70, 0] }) },
+                    { scale: fab.anim },
+                  ],
+                },
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.fabSubButtonInner}
+                onPress={fab.onPress}
+                activeOpacity={0.9}
+              >
+                {fab.icon ? fab.icon : <Text style={styles.stepCounterFabText}>{fab.label}</Text>}
+              </TouchableOpacity>
+            </Animated.View>
+          ))}
+          {/* Main FAB */}
+          <View style={{ zIndex: 3 }}>
+            <TouchableOpacity
+              style={styles.enhancedFab}
+              onPress={toggleMenu}
+              activeOpacity={0.9}
+            >
+              <BlurView intensity={0} tint="light" style={styles.fabGradient}>
+                <AlignJustify size={24} color="#fff" style={{ transform: [{ rotate: isMenuOpen ? '45deg' : '0deg' }] }} />
+              </BlurView>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-
-        {/* ปุ่มไปหน้า step-counter */}
-        <TouchableOpacity
-          style={styles.stepCounterFab}
-          onPress={() => router.push('/step-counter')}
-          activeOpacity={0.9}
-        >
-          <View style={styles.stepCounterFabInner}>
-            <Text style={styles.stepCounterFabText}>Step</Text>
-          </View>
-        </TouchableOpacity>
+        </View>
 
       <CreateRoomModal
         visible={createModalVisible}
@@ -458,5 +571,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     letterSpacing: 1,
+  },
+  fabSubButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  fabSubButtonInner: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

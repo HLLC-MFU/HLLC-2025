@@ -9,6 +9,7 @@ import {
   TouchableWithoutFeedback,
   StatusBar,
   FlatList,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Users, Info, Loader } from 'lucide-react-native';
@@ -22,7 +23,7 @@ import { useChatRoom } from '../../../hooks/chats/useChatRoom';
 import useProfile from '@/hooks/useProfile';
 
 // Types
-import { ChatRoom, RoomMember } from '../../../types/chatTypes';
+import { ChatRoom, RoomMember, Message } from '../../../types/chatTypes';
 
 // Styles
 import { chatStyles } from '../../../constants/chats/chatStyles';
@@ -94,6 +95,7 @@ export default function ChatRoomPage() {
     handleTextInput,
     initializeRoom,
     loadMembers,
+    handleUnsendMessage,
   } = useChatRoom();
 
   // Check if user has permission to send evoucher
@@ -241,6 +243,7 @@ export default function ChatRoomPage() {
                 }}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
+                onUnsend={handleUnsendMessage}
               />
               {showScrollToBottom && (
                 <TouchableOpacity

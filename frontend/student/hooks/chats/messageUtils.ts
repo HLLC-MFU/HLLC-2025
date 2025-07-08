@@ -1,6 +1,7 @@
 import { CHAT_BASE_URL } from '../../configs/chats/chatConfig';
 import { createFileMessage } from '@/utils/chats/messageHandlers';
 import { Message } from '../../types/chatTypes';
+import { getToken } from '@/utils/storage';
 
 export function safeUser(userObj: any) {
   if (!userObj) return { _id: '', name: { first: '', middle: '', last: '' }, username: '' };
@@ -109,3 +110,4 @@ export function createMessage(data: any, isHistory = false): Message {
     username: data.username || data.senderName || data.user_id || data.userId || ''
   };
 } 
+

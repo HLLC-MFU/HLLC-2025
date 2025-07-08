@@ -1,5 +1,5 @@
 import React, { memo, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActionSheetIOS, Platform, Alert, TouchableWithoutFeedback, Pressable } from 'react-native';
 import Avatar from './Avatar';
 import { Reply } from 'lucide-react-native';
 import { MessageBubbleProps } from '@/types/chatTypes';
@@ -29,7 +29,8 @@ const MessageBubble = memo(({
   allMessages = [],
   onReplyPreviewClick,
   currentUsername,
-}: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'>) => {
+  onUnsend, // <-- add this prop
+}: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'> & { onUnsend?: (message: any) => void }) => {
   if (message && message.evoucherInfo) {
   }
   const [showImagePreview, setShowImagePreview] = useState(false);
@@ -181,21 +182,23 @@ const MessageBubble = memo(({
     if (message.image && (message.type === 'sticker' || message.stickerId)) {
       const imageUrl = getStickerImageUrl(message.image);
       return (
-        <TouchableOpacity 
+        <Pressable
           onPress={() => {
             setPreviewImageUrl(imageUrl);
             setShowImagePreview(true);
           }}
+          onLongPress={handleLongPress}
+          delayLongPress={350}
         >
-          <Image 
-            source={{ uri: imageUrl }} 
+          <Image
+            source={{ uri: imageUrl }}
             style={styles.stickerImage}
             resizeMode="contain"
             onError={(error) => {
               console.error('Error loading sticker image:', error.nativeEvent.error);
             }}
           />
-        </TouchableOpacity>
+        </Pressable>
       );
     }
 
@@ -204,29 +207,33 @@ const MessageBubble = memo(({
         /\.(jpg|jpeg|png|gif|webp)$/i.test(message.fileUrl);
       if (isImage) {
         return (
-          <TouchableOpacity 
+          <Pressable
             onPress={() => {
               if (message.fileUrl) {
                 setPreviewImageUrl(message.fileUrl);
                 setShowImagePreview(true);
               }
             }}
+            onLongPress={handleLongPress}
+            delayLongPress={350}
           >
-            <Image 
-              source={{ uri: message.fileUrl }} 
+            <Image
+              source={{ uri: message.fileUrl }}
               style={styles.messageImage}
               resizeMode="cover"
               onError={(error) => {
                 console.error('Error loading image:', error.nativeEvent.error);
               }}
             />
-          </TouchableOpacity>
+          </Pressable>
         );
       }
       return (
-        <View style={styles.fileContainer}>
-          <Text style={styles.fileName}>{message.fileName}</Text>
-        </View>
+        <Pressable onLongPress={handleLongPress} delayLongPress={350}>
+          <View style={styles.fileContainer}>
+            <Text style={styles.fileName}>{message.fileName}</Text>
+          </View>
+        </Pressable>
       );
     }
 
@@ -317,51 +324,82 @@ const MessageBubble = memo(({
     );
   };
 
+  // Handler for long press (unsend)
+  const handleLongPress = () => {
+    // Use Boolean(message.isDeleted) for deleted state
+    const isDeleted = Boolean((message as any).isDeleted);
+    // Allow unsend for all message types (text, image, sticker, file, etc.)
+    if (isMyMessage && !isDeleted && onUnsend) {
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: ['Cancel', 'Unsend'],
+            destructiveButtonIndex: 1,
+            cancelButtonIndex: 0,
+          },
+          (buttonIndex) => {
+            if (buttonIndex === 1) {
+              onUnsend(message);
+            }
+          }
+        );
+      } else {
+        Alert.alert(
+          'Unsend Message',
+          'Do you want to unsend this message?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Unsend', style: 'destructive', onPress: () => onUnsend(message) },
+          ]
+        );
+      }
+    }
+  };
+
   return (
-    <View
-      style={[
-        styles.messageWrapper,
-        isMyMessage ? styles.myMessage : styles.otherMessage,
-        !isLastInGroup && (isMyMessage ? { marginBottom: 2 } : { marginBottom: 2 }),
-      ]}
-    >
-      {/* กล่อง preview แยกออกมา */}
-      {renderReplyPreview()}
-
-      {/* กล่องข้อความหลัก */}
-      <View style={styles.messageBubbleRow}>
-        {!isMyMessage && showAvatar && isLastInGroup ? (
-          <Avatar name={getDisplayName(message.user)} size={32} />
-        ) : (
-          !isMyMessage && <View style={{ width: 40 }} />
+    <TouchableWithoutFeedback onLongPress={handleLongPress} delayLongPress={350}>
+      <View
+        style={[
+          styles.messageWrapper,
+          isMyMessage ? styles.myMessage : styles.otherMessage,
+          !isLastInGroup && (isMyMessage ? { marginBottom: 2 } : { marginBottom: 2 }),
+        ]}
+      >
+        {/* กล่อง preview แยกออกมา */}
+        {renderReplyPreview()}
+        {/* กล่องข้อความหลัก */}
+        <View style={styles.messageBubbleRow}>
+          {!isMyMessage && showAvatar && isLastInGroup ? (
+            <Avatar name={getDisplayName(message.user)} size={32} />
+          ) : (
+            !isMyMessage && <View style={{ width: 40 }} />
+          )}
+          <View
+            style={[
+              styles.messageBubble,
+              isMyMessage ? styles.myBubble : styles.otherBubble,
+              isFirstInGroup && (isMyMessage ? styles.myFirstBubble : styles.otherFirstBubble),
+              isLastInGroup && (isMyMessage ? styles.myLastBubble : styles.otherLastBubble),
+              (message.stickerId || message.image || message.fileType === 'image') && styles.mediaBubble,
+            ]}
+          >
+            {renderContent()}
+          </View>
+        </View>
+        {isLastInGroup && (
+          <View style={[styles.messageFooter, isMyMessage ? { alignSelf: 'flex-end' } : { marginLeft: 40 }]}> 
+            <Text style={styles.timestamp}>{formatTime(message.timestamp)}</Text>
+            {statusElement}
+          </View>
         )}
-        <View
-          style={[
-            styles.messageBubble,
-            isMyMessage ? styles.myBubble : styles.otherBubble,
-            isFirstInGroup && (isMyMessage ? styles.myFirstBubble : styles.otherFirstBubble),
-            isLastInGroup && (isMyMessage ? styles.myLastBubble : styles.otherLastBubble),
-            (message.stickerId || message.image || message.fileType === 'image') && styles.mediaBubble,
-          ]}
-        >
-          {renderContent()}
-        </View>
+        {/* Image Preview Modal */}
+        <ImagePreviewModal
+          visible={showImagePreview}
+          imageUrl={previewImageUrl}
+          onClose={() => setShowImagePreview(false)}
+        />
       </View>
-
-      {isLastInGroup && (
-        <View style={[styles.messageFooter, isMyMessage ? { alignSelf: 'flex-end' } : { marginLeft: 40 }]}> 
-          <Text style={styles.timestamp}>{formatTime(message.timestamp)}</Text>
-          {statusElement}
-        </View>
-      )}
-
-      {/* Image Preview Modal */}
-      <ImagePreviewModal
-        visible={showImagePreview}
-        imageUrl={previewImageUrl}
-        onClose={() => setShowImagePreview(false)}
-      />
-    </View>
+    </TouchableWithoutFeedback>
   );
 });
 

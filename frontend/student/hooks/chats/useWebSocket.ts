@@ -6,7 +6,7 @@ import { WS_BASE_URL } from '../../configs/chats/chatConfig';
 import { Buffer } from 'buffer';
 import { createMessage, safeUser } from './messageUtils';
 import { useStateUtils, ConnectionState, WebSocketState } from './stateUtils';
-import { onMessage, onOpen, onClose, attemptReconnect } from './websocketHandlers';
+import { onMessage as baseOnMessage, onOpen, onClose, attemptReconnect } from './websocketHandlers';
 
 const MAX_MESSAGES = 100;
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -28,6 +28,34 @@ export interface WebSocketHook {
   disconnect: () => void;
   ws: WebSocket | null;
   addMessage: (message: Message) => void;
+}
+
+// Patch onMessage to handle unsend event and remove message from state
+function onMessage(event: MessageEvent, args: any) {
+  const { state, addMessage, userId, setState } = args;
+  try {
+    const data = JSON.parse(event.data);
+    // Handle unsend event (eventType: 'unsend' or type: 'unsend' or 'unsend_message')
+    if (
+      data.eventType === 'unsend' ||
+      data.type === 'unsend' ||
+      data.eventType === 'unsend_message' ||
+      data.type === 'unsend_message'
+    ) {
+      const messageId = data.payload?.messageId || data.payload?.id || data.messageId || data.id;
+      if (messageId) {
+        setState((prev: any) => {
+          const filtered = prev.messages.filter((m: any) => m.id !== messageId);
+          return { ...prev, messages: filtered };
+        });
+      }
+      return;
+    }
+    // Fallback to base handler
+    baseOnMessage(event, args);
+  } catch (err) {
+    console.error('Error handling message:', err, event.data);
+  }
 }
 
 export const useWebSocket = (roomId: string): WebSocketHook => {
@@ -73,17 +101,14 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
           )
         );
         if (prev.messages.length !== filteredMessages.length) {
-          console.log('[addMessage] Removed temp message for:', message.text, message.user?._id);
         }
       }
 
       if (filteredMessages.some(msg => msg.id === messageId) || sentMessageIds.current.has(messageId)) {
-        console.log('[addMessage] Duplicate message id, skip:', messageId);
         return { ...prev, messages: filteredMessages };
       }
       sentMessageIds.current.add(messageId);
       const newMessages = [...filteredMessages, message];
-      console.log('[addMessage] Add message:', messageId, message.text, message.user?._id, 'isTemp:', message.isTemp);
       return { ...prev, messages: newMessages.slice(-MAX_MESSAGES) };
     });
   }, []);
@@ -114,7 +139,7 @@ export const useWebSocket = (roomId: string): WebSocketHook => {
           updateState({ error: 'Connection timeout' });
         }
       }, CONNECTION_TIMEOUT);
-      socket.onmessage = (event: MessageEvent) => onMessage(event, { state, addMessage, userId });
+      socket.onmessage = (event: MessageEvent) => onMessage(event, { state, addMessage, userId, setState });
       socket.onopen = (event: Event) => onOpen(event, { ws: socket, updateState, updateConnectionState, connectionTimeout, PING_INTERVAL });
       socket.onclose = (event: CloseEvent) => onClose(event, { updateState, updateConnectionState, connectionTimeout, ws: socket, attemptReconnect: () => attemptReconnect({ connectionState, reconnectTimeoutRef, state, connect, roomId: rid, MAX_RECONNECT_ATTEMPTS }) });
       updateState({ ws: socket });
