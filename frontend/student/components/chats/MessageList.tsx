@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -7,7 +7,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import MessageBubble from './MessageBubble';
+import SwipeableMessageBubble from './SwipeableMessageBubble';
 import SystemMessage from './SystemMessage';
 import TypingIndicator from './TypingIndicator';
 import { Message } from '@/types/chatTypes';
@@ -40,7 +40,7 @@ const MessageList = ({
   const currentUsername = user?.data?.[0]?.username || '';
 
   // flatten all messages for replyTo enrichment (sort จากเก่าไปใหม่)
-  const allMessages = React.useMemo(() => {
+  const allMessages = useMemo(() => {
     return messages
       .flat()
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -80,7 +80,6 @@ const MessageList = ({
           if (
             !message ||
             !message.id ||
-            !message.senderId ||
             !message.type ||
             !message.timestamp
           ) {
@@ -91,17 +90,15 @@ const MessageList = ({
               </View>
             );
           }
-          const isMyMessage = message.senderId === userId;
+          const isMyMessage = message.user?._id === userId;
           const isLastInGroup = index === item.length - 1;
           const isFirstInGroup = index === 0;
-          const senderName = message.username || message.senderName || message.senderId;
+          const senderName = message.user ? `${message.user.name?.first || ''} ${message.user.name?.last || ''}`.trim() : '';
           return (
-            <MessageBubble 
+            <SwipeableMessageBubble
               key={message.id || `msg-${index}`}
-              message={message} 
-              isMyMessage={isMyMessage} 
-              senderId={message.senderId}
-              senderName={senderName}
+              message={message}
+              isMyMessage={isMyMessage}
               isRead={message.isRead}
               showAvatar={!isMyMessage && isLastInGroup}
               isLastInGroup={isLastInGroup}

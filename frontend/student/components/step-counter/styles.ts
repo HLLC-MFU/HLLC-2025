@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     borderRadius: 1.5,
   },
-  listContainer: { marginTop: 10, paddingHorizontal: width * 0.025 },
+  listContainer: { paddingHorizontal: width * 0.025 },
   cardItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -308,4 +308,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default styles; 
+export default styles;

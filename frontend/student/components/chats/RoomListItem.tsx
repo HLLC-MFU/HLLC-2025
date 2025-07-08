@@ -17,10 +17,10 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
   const avatarChar = (language === 'th' ? room.name?.th : room.name?.en)?.charAt(0)?.toUpperCase() || '?';
   let imageUrl = room.image_url || room.image ;
   if (imageUrl && typeof imageUrl === 'string' && !imageUrl.startsWith('http')) {
-    imageUrl = `${API_BASE_URL}/uploads/rooms/${imageUrl}`;
+    imageUrl = `${API_BASE_URL}/uploads/${imageUrl}`;
   }
   return (
-    <TouchableOpacity style={[styles.item, { width: (width - 52) / 2 }]} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={[styles.item, { width: (width - 52) / 2 }]} onPress={() => { console.log('RoomListItem pressed', room.id); onPress(); }} activeOpacity={0.85}>
       <View style={styles.avatarContainer}>
         <View style={styles.avatarCircle}>
           {imageUrl ? (

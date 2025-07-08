@@ -14,6 +14,9 @@ import { User, UserSchema } from '../users/schemas/user.schema';
 import { SseModule } from '../sse/sse.module';
 import { KafkaModule } from '../kafka/kafka.module';
 import { PushNotificationService } from './push-notifications.service';
+import { UsersModule } from '../users/users.module';
+import { DevicesModule } from '../devices/devices.module';
+import { Device, DeviceSchema } from '../devices/schemas/device.schema';
 
 @Module({
   imports: [
@@ -21,9 +24,12 @@ import { PushNotificationService } from './push-notifications.service';
       { name: Notification.name, schema: NotificationSchema },
       { name: NotificationRead.name, schema: NotificationReadSchema },
       { name: User.name, schema: UserSchema },
+      { name: Device.name, schema: DeviceSchema },
     ]),
     SseModule,
     KafkaModule,
+    UsersModule,
+    DevicesModule,
   ],
   controllers: [NotificationsController],
   providers: [NotificationsService, PushNotificationService],
