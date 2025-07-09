@@ -1,12 +1,9 @@
 'use client';
 import { useState } from 'react';
 import { UserRound } from 'lucide-react';
-
 import { QrCodeScanner } from './_components/QrCodeScanner';
 import Selectdropdown from './_components/Select';
-
 import { PageHeader } from '@/components/ui/page-header';
-import { UserRound } from 'lucide-react';
 import { useActivities } from '@/hooks/useActivities';
 import Input from './_components/Input';
 import { addToast, Button } from '@heroui/react';
