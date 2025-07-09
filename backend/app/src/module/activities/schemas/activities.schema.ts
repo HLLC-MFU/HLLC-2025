@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types, Schema as MongooseSchema } from 'mongoose';
+import type { Location } from 'src/pkg/types/activity';
 import { Localization, Photo } from 'src/pkg/types/common';
 
 export type ActivityDocument = HydratedDocument<Activities>;
@@ -7,13 +8,13 @@ export type ActivityDocument = HydratedDocument<Activities>;
 @Schema({ _id: false })
 export class ActivityScope {
   @Prop({ type: [MongooseSchema.Types.ObjectId], default: [] })
-  major: MongooseSchema.Types.ObjectId[];
+  major: Types.ObjectId[];
 
   @Prop({ type: [MongooseSchema.Types.ObjectId], default: [] })
-  school: MongooseSchema.Types.ObjectId[];
+  school: Types.ObjectId[];
 
   @Prop({ type: [MongooseSchema.Types.ObjectId], default: [] })
-  user: MongooseSchema.Types.ObjectId[];
+  user: Types.ObjectId[];
 }
 
 @Schema({ _id: false })
@@ -61,7 +62,7 @@ export class Activities {
   photo: Photo;
 
   @Prop({ type: Object, required: true })
-  location: Localization;
+  location: Location;
 
   @Prop({
     type: ActivityMetadata,

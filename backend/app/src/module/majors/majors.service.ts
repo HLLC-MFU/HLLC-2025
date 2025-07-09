@@ -59,6 +59,16 @@ export class MajorsService {
   }
 
   async update(id: string, updateMajorDto: UpdateMajorDto) {
+    if (updateMajorDto.school) {
+      await findOrThrow(
+        this.schoolModel,
+        updateMajorDto.school,
+        'School not found',
+      );
+
+      updateMajorDto.school = new Types.ObjectId(updateMajorDto.school);
+    }
+
     return queryUpdateOne<Major>(this.majorModel, id, updateMajorDto);
   }
 

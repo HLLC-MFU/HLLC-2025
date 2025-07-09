@@ -23,22 +23,22 @@ export function ActivitySettings({
       <div className="flex flex-col gap-2">
         <Switch
           isSelected={isOpen}
-          onValueChange={setIsOpen}
           size="sm"
+          onValueChange={setIsOpen}
         >
           Open for Registration
         </Switch>
         <Switch
           isSelected={isProgressCount}
-          onValueChange={setIsProgressCount}
           size="sm"
+          onValueChange={setIsProgressCount}
         >
           Count Progress
         </Switch>
         <Switch
           isSelected={isVisible}
-          onValueChange={setIsVisible}
           size="sm"
+          onValueChange={setIsVisible}
         >
           Visible to Users
         </Switch>

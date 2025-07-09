@@ -20,7 +20,7 @@ export default function CategoryFilter({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoryFilterContent}
       >
-        {Categories.map(({ name, icon: Icon, color }) => (
+        {Categories.map(({ name, color }) => (
           <TouchableOpacity
             key={name}
             style={[
@@ -40,7 +40,7 @@ export default function CategoryFilter({
                 colors={selectedCategory === name ? [color, `${color}dd`] : ['transparent', 'transparent']}
                 style={styles.categoryFilterGradient}
               >
-                <Icon size={16} color= '#fff' />
+               
                 <Text style={[
                   styles.categoryFilterText,
                   selectedCategory === name && styles.categoryFilterTextActive
@@ -92,5 +92,3 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
 });
-
-export default CategoryFilter; 

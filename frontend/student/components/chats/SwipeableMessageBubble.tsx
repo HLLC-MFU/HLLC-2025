@@ -2,16 +2,19 @@ import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, Animated as RNAnimated } from 'react-native';
 import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedGestureHandler, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
-import MessageBubble, { MessageBubbleProps } from './MessageBubble';
+import MessageBubble from './MessageBubble';
 import { Message } from '@/types/chatTypes';
 import { Reply } from 'lucide-react-native';
 import { triggerHapticFeedback } from '@/utils/chats/messageHandlers';
 
-interface SwipeableMessageBubbleProps extends MessageBubbleProps {
+type MessageBubbleProps = React.ComponentProps<typeof MessageBubble>;
+
+interface SwipeableMessageBubbleProps extends Omit<MessageBubbleProps, 'senderId' | 'senderName'> {
   allMessages?: Message[];
   onReplyPreviewClick?: (replyToId: string) => void;
   currentUsername: string;
   onReply: (message: Message) => void;
+  onUnsend?: (message: Message) => void;
 }
 
 const SWIPE_THRESHOLD = 80;
@@ -29,6 +32,7 @@ const SwipeableMessageBubble: React.FC<SwipeableMessageBubbleProps> = ({
   allMessages = [],
   onReplyPreviewClick,
   currentUsername,
+  onUnsend, // <-- add this
 }) => {
   const translateX = useSharedValue(0);
   const iconScale = useSharedValue(1);
@@ -130,6 +134,7 @@ const SwipeableMessageBubble: React.FC<SwipeableMessageBubbleProps> = ({
             allMessages={allMessages}
             onReplyPreviewClick={onReplyPreviewClick}
             currentUsername={currentUsername}
+            onUnsend={onUnsend} // <-- pass down
           />
         </Animated.View>
       </PanGestureHandler>

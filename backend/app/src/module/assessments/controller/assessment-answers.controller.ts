@@ -7,12 +7,14 @@ import {
   Delete,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { AssessmentAnswersService } from '../service/assessment-answers.service';
 import { CreateAssessmentAnswerDto } from '../dto/assessment-answers/create-assessment-answer.dto';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
+import { UserRequest } from 'src/pkg/types/users';
 
 @UseGuards(PermissionsGuard)
 @ApiTags('assessment-answers')
@@ -20,12 +22,14 @@ import { Permissions } from '../../auth/decorators/permissions.decorator';
 export class AssessmentAnswersController {
   constructor(
     private readonly assessmentAnswersService: AssessmentAnswersService,
-  ) {}
+  ) { }
 
   @Post()
   @Permissions('assessment-answers:create')
-  create(@Body() createAssessmentAnswerDto: CreateAssessmentAnswerDto) {
-    return this.assessmentAnswersService.create(createAssessmentAnswerDto);
+  create(@Req() req: UserRequest,) {
+    const dto = req.body as CreateAssessmentAnswerDto;
+    dto.user = req.user._id.toString();
+    return this.assessmentAnswersService.create(dto);
   }
 
   @Get()

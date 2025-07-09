@@ -1,62 +1,34 @@
-export type SiteConfig = typeof siteConfig;
+import { NavSection } from "@/types/nav";
+import {
+  LogOutIcon,
+  BookIcon,
+  QrCode,
+  CircleUserRound,
+} from "lucide-react";
 
-export const siteConfig = {
-  name: "Next.js + HeroUI",
-  description: "Make beautiful websites regardless of your design experience.",
-  navItems: [
-    {
-      label: "Home",
-      href: "/",
-    },
-    {
-      label: "Docs",
-      href: "/docs",
-    },
-    {
-      label: "Pricing",
-      href: "/pricing",
-    },
-    {
-      label: "Blog",
-      href: "/blog",
-    },
-    {
-      label: "About",
-      href: "/about",
-    },
-  ],
+
+export const siteConfig: {
+  name: string;
+  description: string;
+  navMenuItems: NavSection[];
+  links: Record<string, string>;
+} = {
+  name: "HLLC Admin",
+  description: "",
   navMenuItems: [
     {
-      label: "Profile",
-      href: "/profile",
+      section: "Activity",
+      items: [
+        { label: "Activities", href: "/activities", icon: BookIcon },
+        { label: "CheckIn", href: "/checkin", icon: QrCode }
+      ],
     },
     {
-      label: "Dashboard",
-      href: "/dashboard",
-    },
-    {
-      label: "Projects",
-      href: "/projects",
-    },
-    {
-      label: "Team",
-      href: "/team",
-    },
-    {
-      label: "Calendar",
-      href: "/calendar",
-    },
-    {
-      label: "Settings",
-      href: "/settings",
-    },
-    {
-      label: "Help & Feedback",
-      href: "/help-feedback",
-    },
-    {
-      label: "Logout",
-      href: "/logout",
+      section: "Account",
+      items: [
+        { label: "Profile", href: "/profile", icon: CircleUserRound },
+        { label: "Logout", href: "/logout", icon: LogOutIcon },
+      ],
     },
   ],
   links: {
