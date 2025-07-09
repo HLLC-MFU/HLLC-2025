@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types, Schema as MongooseSchema } from 'mongoose';
+import type { Location } from 'src/pkg/types/activity';
 import { Localization, Photo } from 'src/pkg/types/common';
 
 export type ActivityDocument = HydratedDocument<Activities>;
@@ -61,7 +62,7 @@ export class Activities {
   photo: Photo;
 
   @Prop({ type: Object, required: true })
-  location: Localization;
+  location: Location;
 
   @Prop({
     type: ActivityMetadata,

@@ -5,7 +5,6 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
   Req,
   UseGuards,
   UseInterceptors,
@@ -37,16 +36,17 @@ export class ActivitiesController {
 
   @Get('')
   @Permissions('activities:read')
-  async findAll(@Query() query: Record<string, string>) {
-    return this.activitiesService.findAll(query);
+  async findAll() {
+    const activities = await this.activitiesService.findAll();
+    return { data: activities };
   }
 
   @Get('canCheckin')
-  @Permissions('activities:read')
-  async canCheckin(): Promise<
-    PaginatedResponse<Activities> & { message: string }
-  > {
-    return this.activitiesService.findCanCheckinActivities();
+  async canCheckin(
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
+  ): Promise<PaginatedResponse<Activities> & { message: string }> {
+    const user = req.user as { _id: Types.ObjectId };
+    return this.activitiesService.findCanCheckinActivities(user._id.toString());
   }
 
   @Get('users')
