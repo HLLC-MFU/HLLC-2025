@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Users } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { ChatRoom } from '@/types/chatTypes';
-import { API_BASE_URL } from '@/configs/chats/chatConfig';
+import { CHAT_BASE_URL } from '@/configs/chats/chatConfig';
 import { GlassButton } from '../ui/GlassButton';
 
 interface RoomCardProps {
@@ -18,7 +18,7 @@ interface RoomCardProps {
 
 const RoomCard = ({ room, width, language, onPress, onJoin, onShowDetail }: RoomCardProps) => {
   const getImageUrl = () => {
-    if (room.image) return `${API_BASE_URL}/uploads/${room.image}`;
+    if (room.image) return `${CHAT_BASE_URL}/uploads/${room.image}`;
     return undefined;
   };
 

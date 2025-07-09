@@ -9,10 +9,12 @@ import {
   TouchableWithoutFeedback,
   StatusBar,
   FlatList,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Users, Info, Loader } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { BlurView } from 'expo-blur';
 
@@ -21,7 +23,7 @@ import { useChatRoom } from '../../../hooks/chats/useChatRoom';
 import useProfile from '@/hooks/useProfile';
 
 // Types
-import { ChatRoom, RoomMember } from '../../../types/chatTypes';
+import { ChatRoom, RoomMember, Message } from '../../../types/chatTypes';
 
 // Styles
 import { chatStyles } from '../../../constants/chats/chatStyles';
@@ -36,10 +38,26 @@ import MentionSuggestions from '@/components/chats/MentionSuggestions';
 
 export default function ChatRoomPage() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const flatListRef = useRef<FlatList | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [showEvoucherModal, setShowEvoucherModal] = useState(false);
   const { user } = useProfile();
+
+  // Function to get room name based on current language
+  const getRoomName = (room: any) => {
+    if (!room?.name) return t('chat.chatRoom');
+    
+    const currentLang = i18n.language;
+    if (currentLang === 'th' && room.name.th) {
+      return room.name.th;
+    } else if (currentLang === 'en' && room.name.en) {
+      return room.name.en;
+    }
+    
+    // Fallback: try th first, then en, then default
+    return room.name.th || room.name.en || t('chat.chatRoom');
+  };
   
   const {
     room,
@@ -77,6 +95,7 @@ export default function ChatRoomPage() {
     handleTextInput,
     initializeRoom,
     loadMembers,
+    handleUnsendMessage,
   } = useChatRoom();
 
   // Check if user has permission to send evoucher
@@ -85,6 +104,8 @@ export default function ChatRoomPage() {
     const userRole = user.data[0].role.name;
     return userRole === 'Administrator' || userRole === 'AE';
   };
+
+  const isAdminOrAE = canSendEvoucher();
 
   // Check if should show evoucher button
   const shouldShowEvoucherButton = () => {
@@ -158,13 +179,13 @@ export default function ChatRoomPage() {
                 activeOpacity={0.7}
               >
                 <Text style={chatStyles.headerTitle} numberOfLines={1}>
-                  {room?.name?.th || room?.name?.en || 'ห้องแชท'}
+                  {getRoomName(room)}
                 </Text>
                 <View style={chatStyles.memberInfo}>
                   <Users size={14} color="#0A84FF" />
                   <Text style={chatStyles.memberCount}>
                     {room?.members_count}{' '}
-                    members
+                    {t('chat.members')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -192,7 +213,7 @@ export default function ChatRoomPage() {
             {wsError && (
               <View style={chatStyles.connectionError}>
                 <Text style={chatStyles.connectionErrorText}>
-                  การเชื่อมต่อขัดข้อง กำลังลองใหม่...
+                  {t('chat.connectionError')}
                 </Text>
               </View>
             )}
@@ -224,6 +245,7 @@ export default function ChatRoomPage() {
                 }}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
+                onUnsend={handleUnsendMessage}
               />
               {showScrollToBottom && (
                 <TouchableOpacity
@@ -244,7 +266,7 @@ export default function ChatRoomPage() {
                     flatListRef.current?.scrollToEnd({ animated: true })
                   }
                 >
-                  <Text style={{ color: '#fff', fontSize: 16 }}>↓</Text>
+                  <Text style={{ color: '#fff', fontSize: 16 }}>{t('chat.scrollToBottom')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -258,7 +280,7 @@ export default function ChatRoomPage() {
             )}
 
             {/* Input Area */}
-            {room?.type === 'readonly' ? (
+            {room?.type === 'readonly' && !isAdminOrAE ? (
               <View style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 padding: 16,
@@ -274,7 +296,7 @@ export default function ChatRoomPage() {
                   fontWeight: '600',
                   textAlign: 'center',
                 }}>
-                  📢 ห้องอ่านอย่างเดียว
+                  {t('chat.readonlyRoom')}
                 </Text>
                 <Text style={{
                   color: 'rgba(255, 255, 255, 0.7)',
@@ -282,7 +304,7 @@ export default function ChatRoomPage() {
                   textAlign: 'center',
                   marginTop: 4,
                 }}>
-                  ห้องนี้เป็นห้องสำหรับอ่านข้อความเท่านั้น ไม่สามารถส่งข้อความได้
+                  {t('chat.readonlyMessage')}
                 </Text>
               </View>
             ) : (
@@ -307,20 +329,20 @@ export default function ChatRoomPage() {
               room={room as ChatRoom}
               isVisible={isRoomInfoVisible}
               onClose={() => setIsRoomInfoVisible(false)}
-              connectedUsers={
-                Array.isArray(members) && members.length > 0
-                  ? members.map((member) => ({
-                      id: member.user_id || member.user._id,
-                      name:
-                        member.user_id === userId
-                          ? 'You'
-                          : member.user.name
-                          ? `${member.user.name.first || ''} ${member.user.name.last || ''}`.trim() || member.user.username || 'Unknown User'
-                          : member.user.username || 'Unknown User',
-                      online: true,
-                    }))
-                  : []
-              }
+                                connectedUsers={
+                    Array.isArray(members) && members.length > 0
+                      ? members.map((member) => ({
+                          id: member.user_id || member.user._id,
+                          name:
+                            member.user_id === userId
+                              ? t('chat.you')
+                              : member.user.name
+                              ? `${member.user.name.first || ''} ${member.user.name.last || ''}`.trim() || member.user.username || t('chat.unknownUser')
+                              : member.user.username || t('chat.unknownUser'),
+                          online: true,
+                        }))
+                      : []
+                  }
             />
 
             {/* Sticker Picker Modal */}

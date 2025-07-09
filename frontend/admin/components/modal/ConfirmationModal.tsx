@@ -11,7 +11,7 @@ import {
 interface ConfirmationModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onConfirm: (selectedKeys: "all" | Set<string | number>, userAction: User) => void | Promise<void>;
+	onConfirm: () => void;
 	title: string;
 	body?: string;
 	userAction: User;
@@ -28,8 +28,6 @@ export function ConfirmationModal({
 	onConfirm,
 	title,
 	body,
-	userAction,
-	selectedKeys,
 	confirmText = 'Confirm',
 	confirmColor = 'primary',
 	cancelText = 'Cancel',
@@ -46,7 +44,7 @@ export function ConfirmationModal({
 					<Button color={cancelColor} variant="light" onPress={onClose}>
 						{cancelText}
 					</Button>
-					<Button color={confirmColor} onPress={() => onConfirm(selectedKeys, userAction)}>
+					<Button color={confirmColor} onPress={() => onConfirm()}>
 						{confirmText}
 					</Button>
 				</ModalFooter>

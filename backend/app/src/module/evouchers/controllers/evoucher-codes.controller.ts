@@ -10,8 +10,7 @@ import {
 } from '@nestjs/common';
 import { EvoucherCodesService } from '../services/evoucher-codes.service';
 import { UpdateEvoucherCodeDto } from '../dto/update-evouchercodes.dto';
-import { FastifyRequest } from 'fastify';
-import { Types } from 'mongoose';
+import { UserRequest } from 'src/pkg/types/users';
 
 @Controller('evoucher-codes')
 export class EvoucherCodesController {
@@ -42,13 +41,13 @@ export class EvoucherCodesController {
   }
 
   @Post(':id/used')
-  used(@Param('id') id: string, @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
+  used(@Param('id') id: string, @Req() req: UserRequest) {
     return this.evoucherCodesService.useEvoucher(id);
   }
 
   @Get('my-code')
   getMyEvoucherCodes(
-    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
+    @Req() req: UserRequest) {
     return this.evoucherCodesService.getUserEvoucherCodes(req.user._id);
   }
 }

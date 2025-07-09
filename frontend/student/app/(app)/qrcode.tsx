@@ -249,7 +249,7 @@ export default function QRCodeScreen() {
               {user?.data[0].name.first}  {user?.data[0].name.last}
             </Text>
             <Text style={{color: '#fff', textAlign: 'center', marginBottom: 4}}>{t("qrCode.studentId")}: {user?.data[0].username}</Text>
-            <Text style={{color: '#fff', marginBottom: 24, textAlign: 'center'}}>{t("qrCode.schoolOf")}{user?.data[0].metadata.major.school.name[language]}</Text>
+            <Text style={{color: '#fff', marginBottom: 24, textAlign: 'center'}}>{t("qrCode.schoolOf")}{user?.data[0].metadata?.major?.school?.name[language] ?? "-"}</Text>
             
             <View style={{ alignItems: 'center', justifyContent: 'center' }}>
               <QRCodeGenerator username={user?.data[0].username ?? 'defaultUsername'} />

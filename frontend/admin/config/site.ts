@@ -6,19 +6,14 @@ import {
   SettingsIcon,
   Palette,
   BellRing,
-  DollarSignIcon,
   University,
   Megaphone,
-  Ticket,
   ShieldAlert,
   LogOutIcon,
-  MonitorSmartphone,
-  HandCoins,
   Flower,
-  BadgeCent,
+  CircleDollarSign,
   Footprints,
   MessageCircle,
-  Smile
 } from "lucide-react";
 
 import type { NavSection } from "@/types/nav";
@@ -53,16 +48,14 @@ export const siteConfig: {
     {
       section: "Sponsor & Evoucher",
       items: [
-        { label: "Sponsor", href: "/sponsor", icon: HandCoins, permission: "sponsor:read" },
-        { label: "Evoucher", href: "/evoucher", icon: Ticket, permission: "evoucher:read" },
-        { label: "Evoucher Code", href: "/evoucher-code", icon: BadgeCent, permission: "evoucher-code:read" },
+        { label: "Sponsor Systems", href: "/sponsor-systems", icon: CircleDollarSign, permission: "sponsor:read, evoucher:read, evoucher-code:read" },
         { label: "Campaign", href: "/campaigns", icon: Megaphone, permission: "campaigns:read" },
       ],
     },
     {
       section: "Lamduan",
       items: [
-        { label: "Lamduan flowers" , href: "/lamduanflowers" , icon: Flower , permission:"lamduanflowers:read"},
+        { label: "Lamduan Flowers" , href: "/lamduanflowers" , icon: Flower , permission:"lamduanflowers:read"},
       ],
     },
     {

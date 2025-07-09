@@ -18,6 +18,7 @@ import chatService from '@/services/chats/chatService';
 import { getToken } from '@/utils/storage';
 
 
+
 // WebSocket constants
 const WS_OPEN = 1;
 
@@ -340,8 +341,9 @@ export const useChatRoom = () => {
       const myUser = user?.data[0] ? {
         _id: user.data[0]._id,
         name: {
-          ...user.data[0].name,
-          middle: String(user.data[0].name && 'middle' in user.data[0].name ? user.data[0].name.middle : ''),
+          first: user.data[0].name?.first || '',
+          middle: user.data[0].name?.middle || '',
+          last: user.data[0].name?.last || '',
         },
         username: user.data[0].username || '',
       } : undefined;
@@ -411,8 +413,9 @@ export const useChatRoom = () => {
         const myUser = user?.data[0] ? {
           _id: user.data[0]._id,
           name: {
-            ...user.data[0].name,
-            middle: String(user.data[0].name && 'middle' in user.data[0].name ? user.data[0].name.middle : ''),
+            first: user.data[0].name?.first || '',
+            middle: user.data[0].name?.middle || '',
+            last: user.data[0].name?.last || '',
           },
           username: user.data[0].username || '',
         } : undefined;
@@ -455,8 +458,9 @@ export const useChatRoom = () => {
       const myUser = user?.data[0] ? {
         _id: user.data[0]._id,
         name: {
-          ...user.data[0].name,
-          middle: String(user.data[0].name && 'middle' in user.data[0].name ? user.data[0].name.middle : ''),
+          first: user.data[0].name?.first || '',
+          middle: user.data[0].name?.middle || '',
+          last: user.data[0].name?.last || '',
         },
         username: user.data[0].username || '',
       } : undefined;
@@ -528,6 +532,23 @@ export const useChatRoom = () => {
     }
   }, [membersState.hasMore, membersState.loading, membersState.page, loadMembers]);
 
+  // Handler for unsend message
+  const handleUnsendMessage = useCallback(async (message: Message) => {
+    try {
+      const command = `/unsend ${message.id}`;
+      console.log('[Unsend] Sending command:', command);
+      wsSendMessage(command);
+      console.log('[Unsend] Command sent, performing optimistic update for messageId:', message.id);
+      // Remove the message from state (optimistic update)
+      addMessage({ ...(message as any), isDeleted: true });
+      if (Platform.OS === 'ios') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (error) {
+      Alert.alert('Unsend ไม่สำเร็จ', (error as Error)?.message || 'เกิดข้อผิดพลาด');
+    }
+  }, [wsSendMessage, addMessage]);
+
   // Expose state and handlers
   return {
     ...chatState,
@@ -564,5 +585,6 @@ export const useChatRoom = () => {
     })(),
     loadMembers,
     loadMoreMembers,
+    handleUnsendMessage,
   };
 }; 
