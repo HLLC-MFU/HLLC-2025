@@ -1,9 +1,9 @@
 import {
   IsMongoId,
   IsNotEmpty,
+  IsNumber,
   IsObject,
   IsOptional,
-  IsString,
 } from 'class-validator';
 import { Types } from 'mongoose';
 import { Localization, Photo } from 'src/pkg/types/common';
@@ -20,6 +20,10 @@ export class CreateSponsorDto {
   @IsMongoId()
   @IsNotEmpty()
   type: Types.ObjectId;
+
+  @IsNumber()
+  @IsNotEmpty()
+  priority: number;
 
   @IsOptional()
   @IsObject()
