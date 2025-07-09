@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, isValidObjectId, Model, Types } from 'mongoose';
+import { FilterQuery, isValidObjectId, Model, now, Types } from 'mongoose';
 
 import { queryAll } from 'src/pkg/helper/query.util';
 import { UsersService } from '../../users/users.service';
@@ -79,26 +79,7 @@ export class ActivitiesService {
   }
 
   async findAll() {
-    const activity = this.activitiesModel.find().populate([
-      {
-        path: 'type',
-      },
-      {
-        path: 'metadata.scope.school',
-        model: 'School',
-        select: 'name',
-      },
-      {
-        path: 'metadata.scope.major',
-        model: 'Major',
-        select: 'name',
-      },
-      {
-        path: 'metadata.scope.user',
-        model: 'User',
-        select: 'name',
-      },
-    ]);
+    const activity = this.activitiesModel.find().populate('type');
     return activity;
   }
 
@@ -114,9 +95,9 @@ export class ActivitiesService {
       role: Omit<RoleDocument, 'metadata'> & {
         metadata: {
           canCheckin: {
-            users: string[];
-            majors: string[];
-            schools: string[];
+            user: string[];
+            major: string[];
+            school: string[];
           };
         };
       };
@@ -125,50 +106,57 @@ export class ActivitiesService {
       throw new NotFoundException('User not found');
     }
 
-    if (userDoc.role.metadata.canCheckin.users.includes('*')) {
-      return this.activitiesModel
+    const currentDate = new Date();
+    const major = userDoc.role?.metadata?.canCheckin?.major ?? [];
+    const school = userDoc.role?.metadata?.canCheckin?.school ?? [];
+    const user = userDoc.role?.metadata?.canCheckin?.user ?? [];
+
+    if (user.includes('*')) {
+      const activities = await this.activitiesModel
         .find({ 'metadata.isOpen': true, 'metadata.isVisible': true })
         .populate('type')
         .lean();
+
+      return {
+        data: activities,
+        meta: {
+          total: activities.length,
+          totalPages: 1,
+          page: 1,
+          limit: activities.length,
+          lastUpdatedAt: new Date().toISOString(),
+        },
+        message: 'All activities available for check-in',
+      };
     }
 
-    const currentDate = new Date();
     const query = {
       'metadata.isOpen': true,
       'metadata.isVisible': true,
       'metadata.checkinStartAt': { $lte: currentDate },
       'metadata.endAt': { $gte: currentDate },
       $or: [
-        {
-          'metadata.scope.user': {
-            $in: userDoc.role.metadata.canCheckin.users.map(
-              (id) => new Types.ObjectId(id),
-            ),
-          },
-        },
-        {
-          'metadata.scope.major': {
-            $in: userDoc.role.metadata.canCheckin.majors.map(
-              (id) => new Types.ObjectId(id),
-            ),
-          },
-        },
-        {
-          'metadata.scope.school': {
-            $in: userDoc.role.metadata.canCheckin.schools.map(
-              (id) => new Types.ObjectId(id),
-            ),
-          },
-        },
+        { 'metadata.scope.user': { $in: user.length ? user : [] } },
+        { 'metadata.scope.major': { $in: major.length ? major : [] } },
+        { 'metadata.scope.school': { $in: school.length ? school : [] } },
       ],
     };
 
-    return queryAll<Activities>({
+    const result = await queryAll<Activities>({
       model: this.activitiesModel,
       query: query as FilterQuery<Activities>,
       filterSchema: {},
       populateFields: () => Promise.resolve([{ path: 'type' }]),
     });
+
+    return {
+      ...result,
+      meta: {
+        ...result.meta,
+        lastUpdatedAt: new Date().toISOString(), // <-- add this line
+      },
+      message: 'Fetched activities successfully',
+    };
   }
 
   async findOne(id: string) {
@@ -218,42 +206,45 @@ export class ActivitiesService {
       populateFields: () => Promise.resolve([{ path: 'type' }]),
     });
 
-    const mapped = await Promise.all(result.data
-      .filter((activity) => isUserInScope(user, activity as ActivityDocument))
-      .map(async (activity) => {
-        const meta = activity.metadata;
-        const activityDoc = activity as ActivityDocument;
-        const activityId =
-          activityDoc._id instanceof Types.ObjectId
-            ? activityDoc._id.toString()
-            : String(activityDoc._id);
-        const hasCheckedIn = checkinMap.has(activityId);
+    const mapped = await Promise.all(
+      result.data
+        .filter((activity) => isUserInScope(user, activity as ActivityDocument))
+        .map(async (activity) => {
+          const meta = activity.metadata;
+          const activityDoc = activity as ActivityDocument;
+          const activityId =
+            activityDoc._id instanceof Types.ObjectId
+              ? activityDoc._id.toString()
+              : String(activityDoc._id);
+          const hasCheckedIn = checkinMap.has(activityId);
 
-        let status = 0;
-        let message = 'Not yet open for check-in';
+          let status = 0;
+          let message = 'Not yet open for check-in';
 
-        const checkinStart = new Date(meta.checkinStartAt);
-        const end = new Date(meta.endAt);
+          const checkinStart = new Date(meta.checkinStartAt);
+          const end = new Date(meta.endAt);
 
-        if (!meta.isOpen || now < checkinStart) {
-          status = 0;
-          message = 'Not yet open for check-in';
-        } else if (now > end && !hasCheckedIn) {
-          status = -1;
-          message = 'You missed the check-in time';
-        } else if (now > end && hasCheckedIn) {
-          status = 3;
-          message = 'Activity has ended';
-        } else if (hasCheckedIn) {
-          status = 2;
-          message = 'You have already checked in';
-        } else if (now >= checkinStart && now <= end) {
-          status = 1;
-          message = 'Check-in available now';
-        }
+          if (!meta.isOpen || now < checkinStart) {
+            status = 0;
+            message = 'Not yet open for check-in';
+          } else if (now > end && !hasCheckedIn) {
+            status = -1;
+            message = 'You missed the check-in time';
+          } else if (now > end && hasCheckedIn) {
+            status = 3;
+            message = 'Activity has ended';
+          } else if (hasCheckedIn) {
+            status = 2;
+            message = 'You have already checked in';
+          } else if (now >= checkinStart && now <= end) {
+            status = 1;
+            message = 'Check-in available now';
+          }
 
-          const assessmentsResult = await this.assessmentsService.findAllByActivity(activityId);
-          const assessments = (assessmentsResult.data || []) as AssessmentDocument[];
+          const assessmentsResult =
+            await this.assessmentsService.findAllByActivity(activityId);
+          const assessments = (assessmentsResult.data ||
+            []) as AssessmentDocument[];
 
           let hasAnswered = false;
 
@@ -270,16 +261,16 @@ export class ActivitiesService {
             }
           }
 
-        const activityObj =
-          typeof (activity as ActivityDocument).toObject === 'function'
-            ? (activity as ActivityDocument).toObject()
-            : activity;
-        return {
-          ...activityObj,
-          checkinStatus: status,
-          checkinMessage: message,
+          const activityObj =
+            typeof (activity as ActivityDocument).toObject === 'function'
+              ? (activity as ActivityDocument).toObject()
+              : activity;
+          return {
+            ...activityObj,
+            checkinStatus: status,
+            checkinMessage: message,
             hasAnsweredAssessment: hasAnswered,
-        };
+          };
         }),
     );
 
@@ -347,6 +338,6 @@ export class ActivitiesService {
   // หากิจกรรมที่มี Assessment
   async findActivitiesWithAssessment(activityId: string) {
     const activities = await this.assessmentsService.findAllByActivity(activityId);
-    return activities
+    return activities;
   }
 }
