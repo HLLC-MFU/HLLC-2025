@@ -42,13 +42,17 @@
       },
       "softwareKeyboardLayoutMode": "pan",
       "permissions": [
+        "android.permission.CAMERA",
         "android.permission.BODY_SENSORS",
+        "android.permission.health.READ_STEPS",
         "android.permission.ACTIVITY_RECOGNITION",
+        "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "package": "com.mfuactivity.hllc",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "edgeToEdge": true
     },
     "web": {
       "bundler": "metro",
@@ -57,6 +61,7 @@
     },
     "plugins": [
       "expo-localization",
+      "expo-health-connect",
       "expo-router",
       [
         "expo-splash-screen",
@@ -100,8 +105,7 @@
       "expo-background-task",
       "expo-video",
       "@react-native-firebase/app",
-      "expo-asset",
-      "expo-localization"
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
