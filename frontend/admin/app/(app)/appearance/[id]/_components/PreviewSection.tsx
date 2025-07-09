@@ -30,16 +30,16 @@ export function PreviewSection({ appearance, colors }: PreviewSectionProps) {
       <CardBody className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {(['primary', 'secondary'] as const).map((key) => (
-            <div key={key} className="space-y-4">
-              <h3 className="font-semibold">
-                {key[0].toUpperCase() + key.slice(1)} Color Usage
+            <div className="space-y-4" key={key}>
+              <h3 className="font-semibold capitalize">
+                {key} Color Usage
               </h3>
               <div className="space-y-3">
                 <Card
-                  className={`p-4 rounded-lg font-medium ${textColor}`}
+                  className={`p-4 rounded-lg font-medium ${textColor} capitalize`}
                   style={{ backgroundColor: colors[key] }}
                 >
-                  {key[0].toUpperCase() + key.slice(1)} Button Style
+                  {key} Button Style
                 </Card>
               </div>
             </div>

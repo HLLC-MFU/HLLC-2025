@@ -1,5 +1,6 @@
+import ColorInput from '@/components/ui/colorInput';
 import { Button } from '@heroui/button';
-import { Card, CardBody, CardHeader } from '@heroui/react';
+import { Card, CardBody, CardHeader, Input } from '@heroui/react';
 import { Ban, Palette } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -37,33 +38,10 @@ export function ColorsSection({ colors, onSave }: ColorsSectionProps) {
       </CardHeader>
       <CardBody>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {(['primary', 'secondary'] as const).map((key) => (
-            <div key={key} className="space-y-4">
-              <h3 className="font-semibold capitalize text-lg">{key} Color</h3>
-              <div className="flex flex-col items-center space-y-4">
-                <div className="relative group">
-                  <Card
-                    className={"w-24 h-24 rounded-2xl hover:shadow-xl hover:bg-white/10 transition-all duration-300 border-4 border-white"}
-                    style={{ backgroundColor: previewColor[key] }}
-                  />
-                  <div className="absolute inset-0 rounded-2xl bg-white/0 hover:bg-white/10 transition-colors duration-300" />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                    {previewColor[key]?.toUpperCase()}
-                  </p>
-                </div>
-                <div className="relative">
-                  <input
-                    className="w-16 h-10 rounded-lg cursor-pointer border-2 border-gray-200 hover:border-gray-300 transition-colors"
-                    type="color"
-                    value={previewColor[key] ?? "#ffffff"}
-                    onChange={(e) => handleColorChange(key, e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
+          <ColorInput 
+            colors={previewColor}
+            handleColorChange={handleColorChange}
+          />
         </div>
 
         <div className="flex justify-end mt-6">

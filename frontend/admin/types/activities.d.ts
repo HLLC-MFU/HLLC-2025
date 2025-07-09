@@ -1,4 +1,16 @@
 import { Lang } from './lang';
+export class Location {
+  latitude: number;
+  longitude: number;
+  mapUrl: string;
+  th: string;
+  en: string;
+}
+
+export type mapCoordinate = {
+  x: number;
+  y: number;
+};
 
 export type Activities = {
     _id: string;
@@ -8,7 +20,7 @@ export type Activities = {
     shortDetails: Lang;
     type: string;
     photo: Photo;
-    location: Lang;
+    location: Location;
     metadata: Metadata;
     createdAt?: string;
     updatedAt?: string;
@@ -24,12 +36,20 @@ export type Metadata = {
     isProgressCount: boolean;
     isVisible: boolean;
     scope: Scope;
+    checkinStartAt?: Date;
+    startAt?: Date;
+    endAt?: Date;
 };
 
+export type ScopeDetails = {
+    name: Lang;
+    _id: string;
+}
+
 export type Scope = {
-    major: string[];
-    school: string[];
-    user: string[];
+    major: ScopeDetails[];
+    school: ScopeDetails[];
+    user: ScopeDetails[];
 };
 
 export type ActivityType = {

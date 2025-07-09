@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Evoucher, EvoucherDocument } from '../schemas/evoucher.schema';
 import {
@@ -23,11 +28,17 @@ export class EvoucherCodesService {
   ) { }
 
   async findAll() {
-    return this.codeModel.find().lean();
+    return this.codeModel
+      .find()
+      .populate([{ path: 'user' }, { path: 'evoucher' }])
+      .lean();
   }
 
   async findOne(id: string) {
-    return this.evoucherModel.findById(id).lean();
+    return this.evoucherModel
+      .findById(id)
+      .populate([{ path: 'user' }, { path: 'evoucher' }])
+      .lean();
   }
 
   async update(id: string, updateDto: UpdateEvoucherCodeDto) {
@@ -82,7 +93,6 @@ export class EvoucherCodesService {
   }
 
   async claimEvoucherCode(evoucherId: string, userId: string) {
-
     const existing = await this.codeModel.findOne({
       evoucher: new Types.ObjectId(evoucherId),
       user: new Types.ObjectId(userId),
@@ -93,8 +103,8 @@ export class EvoucherCodesService {
     }
     const code = await this.codeModel.findOneAndUpdate(
       { isUsed: false, user: null, evoucher: new Types.ObjectId(evoucherId) },
-      { $set: { user: new Types.ObjectId(userId), }, },
-      { sort: { createdAt: 1 }, new: true, },
+      { $set: { user: new Types.ObjectId(userId) } },
+      { sort: { createdAt: 1 }, new: true },
     );
 
     if (!code) {
@@ -108,16 +118,18 @@ export class EvoucherCodesService {
 
   async useEvoucher(id: string) {
     const now = new Date();
-    const code = await this.codeModel.findOne({
-      _id: new Types.ObjectId(id),
-      isUsed: false,
-    }).populate('evoucher') as unknown as {
-      evoucher: EvoucherDocument;
-      isUsed: boolean;
-      usedAt?: Date;
-      code: string;
-      save: () => Promise<any>;
-    };
+    const code = (await this.codeModel
+      .findOne({
+        _id: new Types.ObjectId(id),
+        isUsed: false,
+      })
+      .populate('evoucher')) as unknown as {
+        evoucher: EvoucherDocument;
+        isUsed: boolean;
+        usedAt?: Date;
+        code: string;
+        save: () => Promise<any>;
+      };
 
     if (!code) {
       throw new BadRequestException('Evoucher not found or already used');
@@ -127,7 +139,9 @@ export class EvoucherCodesService {
     const endAt = new Date(code.evoucher.endAt);
 
     if (now < startAt || now > endAt) {
-      throw new BadRequestException(`This Evoucher is can't use for this time or expired`);
+      throw new BadRequestException(
+        `This Evoucher is can't use for this time or expired`,
+      );
     }
 
     code.isUsed = true;
@@ -145,26 +159,26 @@ export class EvoucherCodesService {
       model: this.codeModel,
       query: { user: userId },
       filterSchema: {},
-      populateFields: () => Promise.resolve([
-        { path: 'evoucher' }
-      ])
+      populateFields: () => Promise.resolve([{ path: 'evoucher' }]),
     });
 
     return codes;
   }
 
   async addEvoucherCode(userId: string, evoucherId: string) {
-    const code = await this.claimEvoucherCode(evoucherId, userId.toString());
+    const code = await this.claimEvoucherCode(evoucherId, userId);
     return {
-      message: 'Evoucher added successfully'
-      , code
-    }
+      message: 'Evoucher added successfully',
+      code,
+    };
   }
 
   async addEvoucherCodeByRole(roleId: string, evoucherId: string) {
-    const users = await this.userModel.find({
-      role: new Types.ObjectId(roleId),
-    }).lean();
+    const users = await this.userModel
+      .find({
+        role: new Types.ObjectId(roleId),
+      })
+      .lean();
 
     if (users.length === 0) {
       throw new NotFoundException('No users found with this role');
@@ -174,10 +188,21 @@ export class EvoucherCodesService {
 
     for (const user of users) {
       try {
-        const claimed = await this.claimEvoucherCode(evoucherId, user._id.toString());
-        results.push({ userId: user._id.toString(), status: 'success', code: claimed.code });
+        const claimed = await this.claimEvoucherCode(
+          evoucherId,
+          user._id.toString(),
+        );
+        results.push({
+          userId: user._id.toString(),
+          status: 'success',
+          code: claimed.code,
+        });
       } catch (err) {
-        results.push({ userId: user._id.toString(), status: 'failed', code: err.message });
+        results.push({
+          userId: user._id.toString(),
+          status: 'failed',
+          code: err.message,
+        });
       }
     }
 
@@ -187,5 +212,4 @@ export class EvoucherCodesService {
       results,
     };
   }
-
 }

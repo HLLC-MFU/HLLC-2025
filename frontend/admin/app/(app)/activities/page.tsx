@@ -89,6 +89,8 @@ export default function ActivitiesPage() {
     return groups;
   }, [filteredActivities]);
 
+
+
   const handleAddActivity = (typeId: string) => {
     setModalMode('add');
     setSelectedActivity({ type: typeId } as Activities);
@@ -121,6 +123,7 @@ export default function ActivitiesPage() {
 
   const handleSubmitActivity = (formData: FormData, mode: 'add' | 'edit') => {
     if (mode === 'edit' && selectedActivity) {
+      formData.append('type', selectedActivity.type._id || '');
       updateActivity(selectedActivity._id, formData);
     } else {
       createActivity(formData);

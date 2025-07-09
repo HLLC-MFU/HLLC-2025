@@ -26,17 +26,11 @@ export function useActivities() {
                     '/activities',
                     'GET',
                     undefined,
-                    {
-                        credentials: 'include',
-                    }
                 ),
                 apiRequest<{ data: ActivityType[] }>(
                     '/activities-type',
                     'GET',
                     undefined,
-                    {
-                        credentials: 'include',
-                    }
                 ),
             ]);
 
@@ -46,6 +40,43 @@ export function useActivities() {
 
             if (typesRes.data?.data) {
                 setActivityTypes(typesRes.data.data);
+            }
+        } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to fetch data.'
+                : 'Failed to fetch data.';
+            
+            if (err && typeof err === 'object' && 'statusCode' in err && (err as any).statusCode === 401) {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+
+                return;
+            }
+
+            setError(errorMessage);
+            addToast({
+                title: 'Failed to fetch activities and types',
+                description: errorMessage,
+                color: 'danger',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchCanCheckin = async (): Promise<void> => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [activitiesRes] = await Promise.all([
+                apiRequest<{ data: Activities[] }>(
+                    '/activities/canCheckin',
+                    'GET',
+                ),
+            ]);
+
+            if (activitiesRes.data?.data) {
+                setActivities(activitiesRes.data.data);
             }
         } catch (err) {
             const errorMessage = err && typeof err === 'object' && 'message' in err
@@ -372,6 +403,7 @@ export function useActivities() {
         loading,
         error,
         fetchActivities,
+        fetchCanCheckin,
         createActivity,
         updateActivity,
         deleteActivity,
