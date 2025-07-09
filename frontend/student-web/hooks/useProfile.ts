@@ -51,4 +51,3 @@ export const useProfile = create<ProfileStore>()(
     }
   )
 );
-

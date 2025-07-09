@@ -12,19 +12,23 @@ function Scene() {
   const scale = 0.01;
 
   useEffect(() => {
-    fbx.traverse((child) => {
+    fbx.traverse((child: THREE.Object3D) => {
       if ((child as THREE.Mesh).isMesh || (child as any).isSkinnedMesh) {
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
-          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          materials.forEach((mat) => {
-            if (mat.map) mat.map.encoding = THREE.SRGBColorSpace;
-            mat.transparent = false;
-            mat.roughness = 1;
-            mat.metalness = 0;
-            mat.specular = new THREE.Color(0x000000);
-            mat.depthWrite = true;
-            mat.needsUpdate = true;
+          const materials = Array.isArray(mesh.material)
+            ? mesh.material
+            : [mesh.material];
+
+          materials.forEach((mat: THREE.Material) => {
+            if (mat instanceof THREE.MeshStandardMaterial) {
+              if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
+              mat.transparent = false;
+              mat.roughness = 1;
+              mat.metalness = 0;
+              mat.depthWrite = true;
+              mat.needsUpdate = true;
+            }
           });
         }
       }
@@ -37,11 +41,14 @@ function Scene() {
     const box = new THREE.Box3();
     const tempBox = new THREE.Box3();
 
-    group.current.traverse((child) => {
-      if (child.isMesh) {
-        child.geometry?.computeBoundingBox?.();
-        tempBox.copy(child.geometry.boundingBox!).applyMatrix4(child.matrixWorld);
-        box.union(tempBox);
+    group.current.traverse((child: THREE.Object3D) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        mesh.geometry?.computeBoundingBox?.();
+        if (mesh.geometry?.boundingBox) {
+          tempBox.copy(mesh.geometry.boundingBox).applyMatrix4(mesh.matrixWorld);
+          box.union(tempBox);
+        }
       }
     });
 
@@ -68,7 +75,6 @@ function SceneLights() {
   return (
     <>
       <ambientLight intensity={2.0} />
-
       <directionalLight
         castShadow
         intensity={2.5}
@@ -76,21 +82,12 @@ function SceneLights() {
         color={0xffffff}
       />
     </>
-  )
+  );
 }
 
 export default function ProfilePage() {
   return (
-    <div className="fixed inset-0 z-0">
-      <div
-        className="absolute inset-0 z-0 blur-sm"
-        style={{
-          backgroundImage: `url('/lobby.png')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          filter: 'blur(6px)',
-        }}
-      />
+    <div className="fixed inset-0">
       <Canvas
         camera={{ position: [0, 0, 10], fov: 30 }}
         style={{
@@ -102,16 +99,16 @@ export default function ProfilePage() {
           zIndex: 1,
           pointerEvents: 'none',
         }}
-        onCreated={({ gl }) => {
-          gl.outputEncoding = THREE.SRGBColorSpace;
+        onCreated={() => {
+          THREE.ColorManagement.enabled = true;
         }}
       >
         <SceneLights />
         <Scene />
       </Canvas>
 
-      <div className="relative z-10 pt-[380px] px-4">
-        <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto">
+      <div className="absolute inset-0 z-10 overflow-y-auto">
+        <div className="pt-[380px] px-4 pb-10 w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto">
           <ProfileCard />
         </div>
       </div>
