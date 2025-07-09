@@ -1,6 +1,8 @@
 import type { Activities } from "@/types/activities";
-import { ActivityCard } from "./ActivityCard";
+
 import { Card, Skeleton } from "@heroui/react";
+
+import { ActivityCard } from "./ActivityCard";
 
 function ActivitySkeleton() {
     return (
@@ -40,8 +42,8 @@ export function ActivityList({ activities, isLoading, onEditActivity, onDeleteAc
                 <ActivityCard
                     key={activity._id}
                     activity={activity}
-                    onEdit={onEditActivity}
                     onDelete={onDeleteActivity}
+                    onEdit={onEditActivity}
                 />
             ))}
         </div>

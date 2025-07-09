@@ -1,21 +1,20 @@
 "use client";
 
-import { PageHeader } from "@/components/ui/page-header";
-import { useChat } from "@/hooks/useChat";
-import { Room, RoomType } from "@/types/chat";
 import { addToast } from "@heroui/react";
-import { MessageSquare } from "lucide-react";
-import { useState } from "react";
-import RoomAccordion from "./_components/RoomAccordion";
-import { RoomModal } from "./_components/RoomModal";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Smile } from "lucide-react";
+
+import RoomAccordion from "./_components/RoomAccordion";
+import { RoomModal } from "./_components/RoomModal";
+
+import { Room, RoomType } from "@/types/chat";
+import { useChat } from "@/hooks/useChat";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function ChatPage() {
     const { 
         room: rooms, 
-        loading, 
-        error, 
         fetchRoom, 
         createRoom, 
         updateRoom, 
@@ -26,6 +25,11 @@ export default function ChatPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<Room | undefined>();
     const [selectedRoomType, setSelectedRoomType] = useState<RoomType | "school" | "major">(RoomType.NORMAL);
+
+    useEffect(() => {
+        fetchRoom();
+    }, []);
+
 
     const handleEditRoom = (room: Room) => {
         setModalMode('edit');
@@ -64,6 +68,7 @@ export default function ChatPage() {
             
             // Create form data with only status field
             const formData = new FormData();
+
             formData.append("status", newStatus);
             // Keep other fields unchanged
             formData.append("name.th", room.name.th);
@@ -144,8 +149,8 @@ export default function ChatPage() {
                 <RoomAccordion 
                     rooms={rooms}
                     onAdd={handleAddRoom}
-                    onEdit={handleEditRoom}
                     onDelete={handleDeleteRoom}
+                    onEdit={handleEditRoom}
                     onToggleStatus={handleToggleStatus}
                 />
             </div>
@@ -153,11 +158,11 @@ export default function ChatPage() {
             <RoomModal
                 key={selectedRoom?._id || 'new'}
                 isOpen={isModalOpen}
+                mode={modalMode}
+                room={selectedRoom}
+                roomType={selectedRoomType}
                 onClose={handleCloseModal}
                 onSuccess={handleSubmitRoom}
-                room={selectedRoom}
-                mode={modalMode}
-                roomType={selectedRoomType}
             />
         </>
     );

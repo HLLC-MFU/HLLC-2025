@@ -1,8 +1,9 @@
-import { EvoucherCode } from "@/types/evoucher-code";
-import { Sponsors } from "@/types/sponsors";
-import { apiRequest } from "@/utils/api";
 import { addToast } from "@heroui/react";
 import { useEffect, useState } from "react";
+
+import { Sponsors } from "@/types/sponsors";
+import { apiRequest } from "@/utils/api";
+
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -19,6 +20,7 @@ export function useSponsors() {
       const res = await apiRequest<{ data: Sponsors[] }>("/sponsors?limit=0", "GET");
 
       setSponsors(Array.isArray(res.data?.data) ? res.data.data : []);
+
       return res;
     } catch (err) {
       setError(
@@ -35,6 +37,7 @@ export function useSponsors() {
   const fetchEvoucherCodeBySponsorId = async (sponsorId: string): Promise<any[]> => {
     if (!sponsorId) {
       console.error("Invalid sponsor ID");
+
       return [];
     }
 
@@ -43,12 +46,15 @@ export function useSponsors() {
     try {
       // ดึง sponsor info โดยตรงจาก sponsors API
       const res = await apiRequest<{ data: Sponsors }>(`/sponsors/${sponsorId}`, "GET");
+
       if (res.data) {
         return [res.data];
       }
+
       return [];
     } catch (err: any) {
       setError(err.message || 'Failed to fetch sponsor info.');
+
       return [];
     } finally {
       setLoading(false);
@@ -84,6 +90,7 @@ export function useSponsors() {
   ): Promise<void> => {
     if (!id) {
       console.error("Invalid sponsor ID");
+
       return;
     }
 

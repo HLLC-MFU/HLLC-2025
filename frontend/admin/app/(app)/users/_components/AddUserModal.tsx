@@ -1,5 +1,6 @@
 import React, { FormEvent, useEffect, useState } from "react";
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
+
 import { User } from "@/types/user";
 import { School } from "@/types/school";
 import { Major } from "@/types/major";

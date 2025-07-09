@@ -3,7 +3,9 @@ import {
   CardHeader,
 } from '@heroui/react';
 import { useEffect, useState } from 'react';
+
 import { NotificationFormData } from "../page";
+
 import { Lang } from '@/types/lang';
 
 type PushNotificationProps = {
@@ -16,6 +18,7 @@ export function PushNotificationPreview ({ notification, language }: PushNotific
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -30,6 +33,7 @@ export function PushNotificationPreview ({ notification, language }: PushNotific
     minute: '2-digit',
     hour12: false,
   });
+
   return (
     <div className="w-full h-full flex bg-cover bg-center bg-[url('/Bg_phone.png')] justify-center items-start rounded-2xl py-5 pb-8">
       <Card className="w-[90%]">

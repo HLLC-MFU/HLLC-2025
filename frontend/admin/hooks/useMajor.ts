@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+
 import { Major } from '@/types/major';
 import { apiRequest } from "@/utils/api"
 
@@ -13,6 +14,7 @@ export function useMajors() {
         setError(null);
         try {
             const res = await apiRequest<{ data: Major[] }>('/majors?limit=0', 'GET');
+
             setMajors(Array.isArray(res.data?.data) ? res.data.data : []);
         } catch (err) {
             setError(err && typeof err === 'object' && 'message' in err

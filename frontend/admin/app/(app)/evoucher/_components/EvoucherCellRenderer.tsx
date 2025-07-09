@@ -1,6 +1,7 @@
-import React, { Key } from "react";
+import React from "react";
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
 import { EllipsisVertical, Image, Pen, Trash } from "lucide-react";
+
 import { Evoucher } from "@/types/evoucher";
 
 export type EvoucherColumnKey =
@@ -111,9 +112,9 @@ export default function EvoucherCellRenderer({
                     <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-default-200">
                         {evoucher.photo?.coverPhoto ? (
                             <img
-                                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.coverPhoto}`}
                                 alt={evoucher.sponsors.name.en}
                                 className="h-full w-full object-cover"
+                                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucher.photo.coverPhoto}`}
                                 onError={(e) => {
                                     e.currentTarget.src = "/placeholder.png";
                                 }}

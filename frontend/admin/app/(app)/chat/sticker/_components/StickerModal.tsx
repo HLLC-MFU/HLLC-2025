@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem,
+  Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input,
   Tooltip
 } from "@heroui/react";
-import { Sticker } from "@/types/sticker";
 import { Upload, Image as ImageIcon } from "lucide-react";
+
+import { Sticker } from "@/types/sticker";
 
 type StickerModalProps = {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export function StickerModal({
       setImage(null);
       setPreviewImage(null);
       setErrors({});
+
       return;
     }
 
@@ -44,7 +46,7 @@ export function StickerModal({
       setNameEn(sticker.name?.en || "");
       setNameTh(sticker.name?.th || "");
       if (sticker.image) {
-        setPreviewImage(`${process.env.GO_PUBLIC_API_URL || 'http://localhost:1334/api'}/uploads/${sticker.image}`);
+        setPreviewImage(`${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${sticker.image}`);
       } else {
         setPreviewImage(null);
       }
@@ -80,8 +82,9 @@ export function StickerModal({
     formData.append("name.en", nameEn.trim());
     formData.append("name.th", nameTh.trim());
 
-    // แนบ image เฉพาะกรณีเลือกไฟล์ใหม่เท่านั้น
+    // Always append image as 'image' field
     if (image instanceof File) {
+      console.log('[StickerModal] Uploading image:', image);
       formData.append("image", image);
     }
 
@@ -91,6 +94,7 @@ export function StickerModal({
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+
     if (file) {
       setImage(file);
       setPreviewImage(URL.createObjectURL(file));
@@ -98,7 +102,7 @@ export function StickerModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={() => { onClose(); }} size="2xl" scrollBehavior="inside">
+    <Modal isOpen={isOpen} scrollBehavior="inside" size="2xl" onClose={() => { onClose(); }}>
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           {mode === "add" ? "Add New Sticker" : "Edit Sticker"}
@@ -106,25 +110,25 @@ export function StickerModal({
         <ModalBody className="flex flex-col gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Input 
-              label="Name (English)" 
               isRequired 
-              value={nameEn} 
+              errorMessage={errors.nameEn} 
+              isInvalid={!!errors.nameEn} 
+              label="Name (English)"
+              value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
-              isInvalid={!!errors.nameEn}
-              errorMessage={errors.nameEn}
             />
             <Input 
-              label="Name (Thai)" 
               isRequired 
-              value={nameTh} 
+              errorMessage={errors.nameTh} 
+              isInvalid={!!errors.nameTh} 
+              label="Name (Thai)"
+              value={nameTh}
               onChange={(e) => setNameTh(e.target.value)}
-              isInvalid={!!errors.nameTh}
-              errorMessage={errors.nameTh}
             />
           </div>
 
           <div className="flex flex-col items-center">
-            <Tooltip placement="top" content="Click to upload sticker image">
+            <Tooltip content="Click to upload sticker image" placement="top">
               <div
                 className={`relative w-full max-w-md h-48 rounded-xl transition-all duration-200 hover:border-primary/50 cursor-pointer group ${
                   errors.image ? "border border-red-500" : "bg-default-50"
@@ -132,7 +136,7 @@ export function StickerModal({
                 onClick={() => fileInputRef.current?.click()}
               >
                 {previewImage ? (
-                  <img src={previewImage} alt="Preview" className="w-full h-full object-cover rounded-xl" />
+                  <img alt="Preview" className="w-full h-full object-cover rounded-xl" src={previewImage} />
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-default-400">
                     <ImageIcon size={32} />
@@ -149,10 +153,10 @@ export function StickerModal({
               <p className="text-sm text-red-500 text-center mt-2">{errors.image}</p>
             )}
             <input
-              type="file"
-              accept="image/*"
               ref={fileInputRef}
+              accept="image/*"
               className="hidden"
+              type="file"
               onChange={handleImageChange}
             />
           </div>

@@ -1,5 +1,5 @@
 import { Button } from "@heroui/react";
-import { Image, Upload, X } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { RefObject, ChangeEvent } from "react";
 
 interface LogoPreviewProps {
@@ -50,7 +50,7 @@ export function LogoPreview({
                 onClick={() => inputRef.current?.click()}
             >
                 {preview ? (
-                    <img src={preview} className="w-screen h-screen object-contain" />
+                    <img className="w-screen h-screen object-contain" src={preview} />
                 ) : (
                     <div className="flex flex-col justify-center items-center w-full h-full">
                         <Upload className="w-6 h-6 mb-2 text-default-500" />
@@ -59,9 +59,9 @@ export function LogoPreview({
                 )}
                 <input
                     ref={inputRef}
-                    type="file"
                     accept="image/*"
                     className="hidden"
+                    type="file"
                     onChange={handleFileChange}
                 />
             </div>

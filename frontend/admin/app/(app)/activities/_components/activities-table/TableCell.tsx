@@ -1,5 +1,6 @@
 import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react';
 import { ChevronDown, ChevronUp, Pencil, Trash2, MoreVertical, CheckCircle, EyeOff, Eye } from 'lucide-react';
+
 import { Activities } from '@/types/activities';
 
 interface TableCellProps {
@@ -41,10 +42,9 @@ export function TableCell({
       return (
         <div className="flex justify-center">
           <Button
-            size="sm"
-            color={activity.metadata?.isVisible ? 'default' : 'default'}
-            variant="flat"
             className="justify-center min-w-20"
+            color={activity.metadata?.isVisible ? 'default' : 'default'}
+            size="sm"
             startContent={
               activity.metadata?.isVisible ? (
                 <Eye size={14} />
@@ -52,6 +52,7 @@ export function TableCell({
                 <EyeOff size={14} />
               )
             }
+            variant="flat"
           >
             {activity.metadata?.isVisible ? 'SHOW' : 'HIDE'}
           </Button>
@@ -61,15 +62,15 @@ export function TableCell({
       return (
         <div className="flex justify-center">
           <Button
-            size="sm"
-            color={activity.metadata?.isProgressCount ? 'success' : 'default'}
-            variant="flat"
             className="justify-center min-w-28"
+            color={activity.metadata?.isProgressCount ? 'success' : 'default'}
+            size="sm"
             startContent={
               activity.metadata?.isProgressCount ? (
                 <CheckCircle size={14} />
               ) : null
             }
+            variant="flat"
           >
             {activity.metadata?.isProgressCount ? 'PROGRESS' : 'NO PROGRESS'}
           </Button>
@@ -79,10 +80,10 @@ export function TableCell({
       return (
         <div className="flex justify-center">
           <Button
-            size="sm"
-            color={activity.metadata?.isOpen ? 'success' : 'danger'}
-            variant="flat"
             className="justify-center min-w-20"
+            color={activity.metadata?.isOpen ? 'success' : 'danger'}
+            size="sm"
+            variant="flat"
           >
             {activity.metadata?.isOpen ? 'OPEN' : 'CLOSED'}
           </Button>
@@ -93,14 +94,14 @@ export function TableCell({
         <div className="relative flex justify-end items-center gap-2">
           <Button
             isIconOnly
-            size="sm"
-            variant="light"
-            onPress={() => onToggleExpand(activity._id)}
             className={
               expandedKeys.has(activity._id)
                 ? 'text-primary'
                 : 'text-default-400'
             }
+            size="sm"
+            variant="light"
+            onPress={() => onToggleExpand(activity._id)}
           >
             {expandedKeys.has(activity._id) ? (
               <ChevronUp size={16} />

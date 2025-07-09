@@ -1,10 +1,13 @@
+import type { Selection } from "@react-types/shared";
+
 import React, { useCallback, useMemo, useState } from "react";
-import { Evoucher, EvoucherType } from "@/types/evoucher";
-import EvoucherCellRenderer, { EvoucherColumnKey } from "./EvoucherCellRenderer";
 import { SortDescriptor, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+
+import EvoucherCellRenderer, { EvoucherColumnKey } from "./EvoucherCellRenderer";
 import TopContent from "./TopContent";
 import BottomContent from "./BottomContent";
-import type { Selection } from "@react-types/shared";
+
+import { Evoucher, EvoucherType } from "@/types/evoucher";
 
 export const COLUMNS = [
     { name: "SPONSOR", uid: "sponsors", sortable: true },
@@ -60,6 +63,7 @@ export default function EvoucherTable({
 
     const filteredItems = useMemo(() => {
         const query = filterValue.toLowerCase();
+
         return evouchers.filter((evoucher) =>
             evoucher.sponsors.name.en.toLowerCase().includes(query) ||
             evoucher.discount.toString().includes(query) ||
@@ -74,6 +78,7 @@ export default function EvoucherTable({
             const first = a[sortDescriptor.column as keyof Evoucher] as any;
             const second = b[sortDescriptor.column as keyof Evoucher] as any;
             const cmp = first < second ? -1 : first > second ? 1 : 0;
+
             return sortDescriptor.direction === "descending" ? -cmp : cmp;
         });
     }, [filteredItems, sortDescriptor]);
@@ -81,6 +86,7 @@ export default function EvoucherTable({
     const rowsPerPage = 5;
     const pagedItems = useMemo(() => {
         const start = (page - 1) * rowsPerPage;
+
         return sortedItems.slice(start, start + rowsPerPage);
     }, [sortedItems, page]);
 
@@ -90,10 +96,10 @@ export default function EvoucherTable({
         (evoucher: Evoucher, columnKey: EvoucherColumnKey) => {
             return (
                 <EvoucherCellRenderer
-                    evoucher={evoucher}
                     columnKey={columnKey}
-                    onEdit={() => onEdit(evoucher)}
+                    evoucher={evoucher}
                     onDelete={() => onDelete(evoucher)}
+                    onEdit={() => onEdit(evoucher)}
                 />
             );
         },
@@ -106,47 +112,47 @@ export default function EvoucherTable({
                 isHeaderSticky
                 aria-label="Table header"
 
-                topContent={
-                    <TopContent
-                        setActionText={onAdd}
-                        filterValue={filterValue}
-                        capitalize={capitalize}
-                        onClear={handleClear}
-                        onSearchChange={handleSearch}
-                        filteredItems={filteredItems}
-                        page={page}
-                        pages={pages}
-                        setPage={setPage}
-                        onPreviousPage={handlePreviousPage}
-                        onNextPage={handleNextPage}
-                    />
-                }
-                topContentPlacement="outside"
-                selectedKeys={selectedKeys}
-                selectionMode="multiple"
-                onSelectionChange={setSelectedKeys}
-                sortDescriptor={sortDescriptor}
-                onSortChange={setSortDescriptor}
                 bottomContent={
                     <BottomContent
-                        selectedKeys={selectedKeys}
                         filteredItems={filteredItems}
                         page={page}
                         pages={pages}
+                        selectedKeys={selectedKeys}
                         setPage={setPage}
-                        onPreviousPage={handlePreviousPage}
                         onNextPage={handleNextPage}
+                        onPreviousPage={handlePreviousPage}
                     />
                 }
                 bottomContentPlacement="outside"
+                selectedKeys={selectedKeys}
+                selectionMode="multiple"
+                sortDescriptor={sortDescriptor}
+                topContent={
+                    <TopContent
+                        capitalize={capitalize}
+                        filterValue={filterValue}
+                        filteredItems={filteredItems}
+                        page={page}
+                        pages={pages}
+                        setActionText={onAdd}
+                        setPage={setPage}
+                        onClear={handleClear}
+                        onNextPage={handleNextPage}
+                        onPreviousPage={handlePreviousPage}
+                        onSearchChange={handleSearch}
+                    />
+                }
+                topContentPlacement="outside"
+                onSelectionChange={setSelectedKeys}
+                onSortChange={setSortDescriptor}
             >
                 <TableHeader columns={COLUMNS}>
                     {(column) => (
                         <TableColumn
                             key={column.uid}
                             align={column.uid === "actions" ? "center" : "start"}
-                            className={`${column.uid} py-4 bg-default-50`}
                             allowsSorting={column.sortable}
+                            className={`${column.uid} py-4 bg-default-50`}
                         >
                             <span className="text-bold text-small uppercase tracking-wider">{column.name}</span>
                         </TableColumn>

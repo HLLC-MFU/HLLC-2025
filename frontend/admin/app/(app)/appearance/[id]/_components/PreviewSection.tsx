@@ -1,5 +1,6 @@
 import { Card, CardBody, CardHeader } from '@heroui/react';
 import { Eye } from 'lucide-react';
+
 import { Appearance } from '@/types/appearance';
 
 interface PreviewSectionProps {
@@ -29,7 +30,7 @@ export function PreviewSection({ appearance, colors }: PreviewSectionProps) {
       <CardBody className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {(['primary', 'secondary'] as const).map((key) => (
-            <div className="space-y-4" key={key}>
+            <div key={key} className="space-y-4">
               <h3 className="font-semibold">
                 {key[0].toUpperCase() + key.slice(1)} Color Usage
               </h3>

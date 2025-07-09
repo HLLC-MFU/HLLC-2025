@@ -22,8 +22,8 @@ export const CampaignHeader = ({ onAddCampaign }: CampaignHeaderProps) => {
           </div>
           
           <button
-            onClick={onAddCampaign}
             className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            onClick={onAddCampaign}
           >
             <Plus className="w-5 h-5" />
             <span>Create Campaign</span>

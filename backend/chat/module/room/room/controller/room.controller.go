@@ -94,12 +94,41 @@ func (c *RoomController) GetRoomMembers(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
 	}
 
-	roomMember, err := c.roomService.GetRoomMemberById(ctx.Context(), roomObjID)
+	// Parse pagination params
+	limit := ctx.QueryInt("limit", 10)
+	if limit < 1 {
+		limit = 10
+	}
+	page := ctx.QueryInt("page", 1)
+	if page < 1 {
+		page = 1
+	}
+
+	// Get total members for meta
+	room, err := c.roomService.GetRoomById(ctx.Context(), roomObjID)
+	if err != nil || room == nil {
+		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+	}
+	total := len(room.Members)
+	totalPages := (total + limit - 1) / limit
+
+	roomMember, err := c.roomService.GetRoomMemberById(ctx.Context(), roomObjID, int64(page), int64(limit))
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 
-	return c.validationHelper.BuildSuccessResponse(ctx, roomMember, "Room members retrieved successfully")
+	response := fiber.Map{
+		"_id":     roomMember.ID,
+		"members": roomMember.Members,
+		"meta": fiber.Map{
+			"total":      total,
+			"page":       page,
+			"limit":      limit,
+			"totalPages": totalPages,
+		},
+	}
+
+	return c.validationHelper.BuildSuccessResponse(ctx, response, "Room members retrieved successfully")
 }
 
 // GetRoomById ดึงข้อมูลห้องตาม ID

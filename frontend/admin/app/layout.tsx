@@ -2,12 +2,12 @@ import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
 import { Noto_Sans_Thai } from "next/font/google";
+import Head from "next/head";
 
 import { Providers } from "./providers";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
-import Head from "next/head";
 
 export const metadata: Metadata = {
   title: {
@@ -42,9 +42,9 @@ export default function RootLayout({
       <Head>
         <title>HLLC 2025</title>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" type="image/png" href="/logo-sdad.png" />
-        <link rel="apple-touch-icon" type="image/png" href="/logo-sdad.png" />
+        <meta content="width=device-width, initial-scale=1" name="viewport" />
+        <link href="/logo-sdad.png" rel="icon" type="image/png" />
+        <link href="/logo-sdad.png" rel="apple-touch-icon" type="image/png" />
       </Head>
       <body
         className={clsx(

@@ -1,13 +1,15 @@
 "use client";
 
-import { RoomMember } from "@/types/chat";
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Avatar, Chip, Divider, Input, Textarea, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
-import { Ban, Mic, MicOff, LogOut, Shield, AlertTriangle } from "lucide-react";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Avatar, Input, Textarea, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
+import { Ban, MicOff, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { addToast } from "@heroui/toast";
+
 import { useRestriction } from "../_hooks/useRestriction";
 
-interface RestrictionAction {
+import { RoomMember } from "@/types/chat";
+
+type RestrictionAction = {
     userId: string;
     roomId: string;
     action: 'ban' | 'mute';
@@ -16,16 +18,16 @@ interface RestrictionAction {
     timeUnit: 'minutes' | 'hours';
     restriction: 'can_view' | 'cannot_view';
     reason: string;
-}
+};
 
-interface RestrictionActionProps {
+type RestrictionActionProps = {
     isOpen: boolean;
     onClose: () => void;
     member: RoomMember | null;
     action: 'ban' | 'mute';
     roomId: string;
     onSuccess: () => void;
-}
+};
 
 export function RestrictionAction({ isOpen, onClose, member, action, roomId, onSuccess }: RestrictionActionProps) {
     const { banUser, muteUser, loading } = useRestriction();
@@ -86,6 +88,7 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                     description: "Please fill in all required fields",
                     color: "warning",
                 });
+
                 return;
             }
             if (action === 'ban') {
@@ -114,7 +117,7 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
     const fullName = [nameObj.first, nameObj.middle, nameObj.last].filter(Boolean).join(" ") || member.username || "";
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+        <Modal isOpen={isOpen} size="2xl" onClose={onClose}>
             <ModalContent>
                 <ModalHeader>
                     <div className="flex items-center gap-2">
@@ -135,15 +138,15 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                     <div className="flex flex-col gap-4">
                                 <div className="flex gap-2">
                                     <Button
-                                        variant={restrictionData.duration === 'temporary' ? 'solid' : 'bordered'}
                                         size="sm"
+                                        variant={restrictionData.duration === 'temporary' ? 'solid' : 'bordered'}
                                 onPress={() => setRestrictionData({ ...restrictionData, duration: 'temporary' as 'temporary' })}
                                     >
                                         Temporary
                                     </Button>
                                     <Button
-                                        variant={restrictionData.duration === 'permanent' ? 'solid' : 'bordered'}
                                         size="sm"
+                                        variant={restrictionData.duration === 'permanent' ? 'solid' : 'bordered'}
                                 onPress={() => setRestrictionData({ ...restrictionData, duration: 'permanent' as 'permanent' })}
                                     >
                                         Permanent
@@ -152,9 +155,9 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                                 {restrictionData.duration === 'temporary' && (
                                     <div className="flex gap-2">
                                         <Input
-                                            type="number"
                                             label="Duration"
                                             placeholder="15"
+                                            type="number"
                                             value={restrictionData.timeValue?.toString() || ''}
                                     onValueChange={(value) => setRestrictionData({ ...restrictionData, timeValue: parseInt(value) || 15 })}
                                         />
@@ -168,6 +171,7 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                                                 selectedKeys={[restrictionData.timeUnit || 'minutes']}
                                                 onSelectionChange={(keys) => {
                                                     const selected = Array.from(keys)[0] as string;
+
                                             setRestrictionData({ ...restrictionData, timeUnit: selected as 'minutes' | 'hours' });
                                                 }}
                                             >
@@ -180,7 +184,7 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                         {action === 'mute' && (
                             <Dropdown>
                                 <DropdownTrigger>
-                                    <Button variant="bordered" className="w-full justify-start">
+                                    <Button className="w-full justify-start" variant="bordered">
                                         Restriction: {restrictionData.restriction}
                                     </Button>
                                 </DropdownTrigger>
@@ -188,6 +192,7 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                                     selectedKeys={[restrictionData.restriction || 'can_view']}
                                     onSelectionChange={(keys) => {
                                         const selected = Array.from(keys)[0] as string;
+
                                         setRestrictionData({ ...restrictionData, restriction: selected as 'can_view' | 'cannot_view' });
                                     }}
                                 >
@@ -197,11 +202,11 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                             </Dropdown>
                         )}
                         <Textarea
+                            isRequired
                             label="Reason"
                             placeholder="Enter reason for this action"
                             value={restrictionData.reason}
                             onValueChange={(value) => setRestrictionData({ ...restrictionData, reason: value })}
-                            isRequired
                         />
                     </div>
                 </ModalBody>
@@ -211,10 +216,10 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                     </Button>
                     <Button 
                         color={getActionColor(action) as any}
+                        isDisabled={!restrictionData.userId || !restrictionData.reason}
+                        isLoading={loading}
                         startContent={getActionIcon(action)}
                         onPress={handleSubmit}
-                        isLoading={loading}
-                        isDisabled={!restrictionData.userId || !restrictionData.reason}
                     >
                         {action.charAt(0).toUpperCase() + action.slice(1)} User
                     </Button>

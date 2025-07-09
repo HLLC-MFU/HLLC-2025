@@ -1,15 +1,22 @@
 import { Button, Pagination } from "@heroui/react";
 
-import { User } from "@/types/user";
+import { RoomMember } from "@/types/chat";
 
 type BottomContentProps = {
     selectedKeys: "all" | Set<unknown>;
-    filteredItems: User[];
+    filteredItems: RoomMember[];
     pages: number;
     page: number;
     setPage: (page: number) => void;
     onPreviousPage: () => void;
     onNextPage: () => void;
+    pagination?: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    } | null;
+    onPageChange?: (page: number) => void;
 };
 
 export default function BottomContent({
@@ -20,6 +27,8 @@ export default function BottomContent({
     setPage,
     onPreviousPage,
     onNextPage,
+    pagination,
+    onPageChange,
 }: BottomContentProps) {
     return (
         <div className="py-2 px-2 flex justify-between items-center">
@@ -28,15 +37,27 @@ export default function BottomContent({
                     ? "All items selected"
                     : `${selectedKeys.size} of ${filteredItems.length} selected`}
             </span>
-            <Pagination
-                isCompact
-                showControls
-                showShadow
-                color="primary"
-                page={page}
-                total={pages}
-                onChange={setPage}
-            />
+            {pagination && onPageChange ? (
+                <Pagination
+                    isCompact
+                    showControls
+                    showShadow
+                    color="primary"
+                    page={pagination.page}
+                    total={pagination.totalPages}
+                    onChange={onPageChange}
+                />
+            ) : (
+                <Pagination
+                    isCompact
+                    showControls
+                    showShadow
+                    color="primary"
+                    page={page}
+                    total={pages}
+                    onChange={setPage}
+                />
+            )}
             <div className="hidden sm:flex w-[30%] justify-end gap-2">
                 <Button isDisabled={pages === 1} size="sm" variant="flat" onPress={onPreviousPage}>
                     Previous
@@ -47,4 +68,4 @@ export default function BottomContent({
             </div>
         </div>
     );
-};
+}; 

@@ -31,7 +31,7 @@ export const CampaignStats = ({ stats }: CampaignStatsProps) => {
             <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">{stats.active}</p>
           </div>
           <div className="w-12 h-12 bg-green-100 dark:bg-green-900/50 rounded-xl flex items-center justify-center">
-            <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full animate-pulse"></div>
+            <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full animate-pulse" />
           </div>
         </div>
       </div>
@@ -44,7 +44,7 @@ export const CampaignStats = ({ stats }: CampaignStatsProps) => {
           </div>
           <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/50 rounded-xl flex items-center justify-center">
             <div className="w-6 h-6 rounded-full border-2 border-purple-600 dark:border-purple-400 flex items-center justify-center">
-              <div className="w-2 h-2 bg-purple-600 dark:bg-purple-400 rounded-full"></div>
+              <div className="w-2 h-2 bg-purple-600 dark:bg-purple-400 rounded-full" />
             </div>
           </div>
         </div>

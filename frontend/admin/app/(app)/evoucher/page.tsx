@@ -1,14 +1,16 @@
 "use client"
 
 import React, { useState } from "react";
-import { PageHeader } from "@/components/ui/page-header";
 import { Ticket } from "lucide-react";
+import { addToast } from "@heroui/react";
+
 import EvoucherAccordion from "./_components/EvoucherAccordion";
+import { EvoucherModal } from "./_components/EvoucherModal";
+
+import { PageHeader } from "@/components/ui/page-header";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import { Evoucher, EvoucherType } from "@/types/evoucher";
-import { addToast } from "@heroui/react";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
-import { EvoucherModal } from "./_components/EvoucherModal";
 import { useSponsors } from "@/hooks/useSponsors";
 
 
@@ -88,34 +90,34 @@ export default function EvoucherPage() {
                     <EvoucherAccordion
                         evouchers={evouchers}
                         onAdd={handleAddEvoucher}
-                        onEdit={handleEditEvoucher}
                         onDelete={handleDelete}
+                        onEdit={handleEditEvoucher}
                     />
                 )}
             </div>
 
             {/* Modals */}
             <EvoucherModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSuccess={handleSubmitEvoucher}
-                mode={modalMode}
-                evoucherType={selectedEvoucher?.type ?? EvoucherType.GLOBAL}
-                sponsors={sponsors}
                 evoucher={
                     modalMode === "edit" && selectedEvoucher && "_id" in selectedEvoucher
                         ? (selectedEvoucher as Evoucher)
                         : undefined
                 }
+                evoucherType={selectedEvoucher?.type ?? EvoucherType.GLOBAL}
+                isOpen={isModalOpen}
+                mode={modalMode}
+                sponsors={sponsors}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={handleSubmitEvoucher}
             />
 
             <ConfirmationModal
-                isOpen={confirmationModalType === "delete"}
-                onClose={() => setConfirmationModalType(null)}
-                onConfirm={handleConfirm}
-                title="Delete evoucher"
                 body="Are you sure you want to delete this item?"
                 confirmColor="danger"
+                isOpen={confirmationModalType === "delete"}
+                title="Delete evoucher"
+                onClose={() => setConfirmationModalType(null)}
+                onConfirm={handleConfirm}
             />
         </>
     )

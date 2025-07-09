@@ -1,5 +1,7 @@
 import { Accordion, AccordionItem } from "@heroui/react";
+
 import EvoucherCodeTable from "./EvoucherCodeTable";
+
 import { Sponsors } from "@/types/sponsors";
 import { EvoucherCode } from "@/types/evoucher-code";
 import { Evoucher } from "@/types/evoucher";
@@ -22,7 +24,7 @@ export default function EvoucherCodeAccordion({
     onDelete,
 }: EvoucherCodeAccordionProps) {
     return (
-        <Accordion variant="splitted" selectionMode="multiple">
+        <Accordion selectionMode="multiple" variant="splitted">
             {sponsors.map((sponsor) => (
                 <AccordionItem
                     key={sponsor._id}
@@ -30,13 +32,13 @@ export default function EvoucherCodeAccordion({
                     title={sponsor.name.en}
                 >
                     <EvoucherCodeTable
-                        sponsorId={sponsor._id}
                         evoucherCodesFetcher={evoucherCodes}
                         evouchers={evouchers}
+                        sponsorId={sponsor._id}
                         sponsors={sponsors}
                         onAdd={onAdd}
-                        onEdit={onEdit}
                         onDelete={onDelete}
+                        onEdit={onEdit}
                     />
                 </AccordionItem>
             ))}

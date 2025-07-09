@@ -1,16 +1,16 @@
 "use client";
 
+import { addToast } from "@heroui/react";
+import { useState, useEffect } from "react";
+
 import { Evoucher } from "@/types/evoucher";
 import { EvoucherData } from "@/types/chat";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import { useSponsors } from "@/hooks/useSponsors";
-import { addToast } from "@heroui/react";
-import { useState, useEffect } from "react";
-import { chatApiRequest } from "@/hooks/useChat";
-
-const CHAT_API_BASE_URL = process.env.GO_PUBLIC_API_URL || "http://localhost:1334/api";
+import { useGolangApi } from "@/hooks/useApi";
 
 export function useEvoucherSend(roomId: string | null) {
+    const { request } = useGolangApi();
     const { evouchers, refreshEvouchers } = useEvoucher();
     const { fetchEvoucherCodeBySponsorId } = useSponsors();
     const [selectedEvoucher, setSelectedEvoucher] = useState<Evoucher | null>(null);
@@ -39,12 +39,8 @@ export function useEvoucherSend(roomId: string | null) {
     const sendEvoucher = async (evoucherData: EvoucherData): Promise<any> => { // Changed EvoucherResponse to any as EvoucherResponse is not defined
         try {
             setSending(true);
-            const res = await chatApiRequest<any>("/evouchers/send", "POST", evoucherData); // Changed EvoucherResponse to any
-            
-            if (res.statusCode !== 200 && res.statusCode !== 201) {
-                throw new Error(res.message || `HTTP ${res.statusCode}: Failed to send evoucher`);
-            }
-
+            const res = await request<any>("/evouchers/send", "POST", evoucherData); // Changed EvoucherResponse to any
+        
             return res.data;
         } catch (err) {
             console.error("Send evoucher error:", err);
@@ -56,22 +52,26 @@ export function useEvoucherSend(roomId: string | null) {
 
     const handleEvoucherSelect = async (evoucherId: string) => {
         const evoucher = evouchers.find(e => e._id === evoucherId);
+
         if (evoucher) {
             setSelectedEvoucher(evoucher);
             
             // Auto-generate claim URL with the correct format for NestJS API
-            const claimURL = `http://localhost:8080/api/evouchers/${evoucher._id}/claim`;
+            const claimURL = `${process.env.NEXT_PUBLIC_DEPLOY_NEST_API_URL}/evouchers/${evoucher._id}/claim`;
             
             // Fetch sponsor image using sponsorId from evoucher
             let sponsorImage = '';
+
             if (evoucher.sponsor) {
                 try {
                     console.log('Fetching sponsor image for sponsorId:', evoucher.sponsor);
                     const sponsorInfo = await fetchEvoucherCodeBySponsorId(evoucher.sponsor);
+
                     console.log('Sponsor info response:', sponsorInfo);
                     
                     if (sponsorInfo.length > 0) {
                         const sponsor = sponsorInfo[0];
+
                         console.log('Sponsor object:', sponsor);
                         
                         // Try to get logo from different possible locations
@@ -87,6 +87,7 @@ export function useEvoucherSend(roomId: string | null) {
                             // Extract filename from URL
                             const logoUrl = sponsor.photo.logoPhoto;
                             const filename = logoUrl.split('/').pop() || '';
+
                             sponsorImage = filename;
                             console.log('Found logoPhoto, extracted filename:', sponsorImage);
                         }
@@ -122,6 +123,7 @@ export function useEvoucherSend(roomId: string | null) {
                 description: "Please select an evoucher",
                 color: "warning",
             });
+
             return;
         }
 
@@ -132,18 +134,21 @@ export function useEvoucherSend(roomId: string | null) {
                 description: "Cannot send expired evouchers. Please select a valid evoucher.",
                 color: "danger",
             });
+
             return;
         }
 
         // Check if evoucher is not yet started
         const now = new Date();
         const startAt = selectedEvoucher.startAt ? new Date(selectedEvoucher.startAt) : null;
+
         if (startAt && now < startAt) {
             addToast({
                 title: "Evoucher not started",
                 description: "Cannot send evoucher before its start date.",
                 color: "danger",
             });
+
             return;
         }
 
@@ -154,6 +159,7 @@ export function useEvoucherSend(roomId: string | null) {
                 description: "This evoucher has reached its maximum claim limit.",
                 color: "danger",
             });
+
             return;
         }
 
@@ -196,7 +202,9 @@ export function useEvoucherSend(roomId: string | null) {
 
     const isEvoucherExpired = (evoucher: Evoucher): boolean => {
         const endDate = evoucher.endAt || evoucher.expiration;
+
         if (!endDate) return false;
+
         return new Date(endDate) < new Date();
     };
 
@@ -207,10 +215,12 @@ export function useEvoucherSend(roomId: string | null) {
         const now = new Date();
         const startAt = evoucher.startAt ? new Date(evoucher.startAt) : null;
         const endAt = evoucher.endAt ? new Date(evoucher.endAt) : (evoucher.expiration ? new Date(evoucher.expiration) : null);
+
         if (startAt && now < startAt) return false;
         if (endAt && now > endAt) return false;
         // Check claims if available
         if (evoucher.claims && evoucher.claims.currentClaim >= evoucher.claims.maxClaim) return false;
+
         return true;
     };
 

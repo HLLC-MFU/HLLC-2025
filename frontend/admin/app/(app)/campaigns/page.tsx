@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Grid, List } from "lucide-react";
+import { addToast } from "@heroui/react";
+
 import { CampaignFilter } from "./_components/CampaignFilter";
 import { CampaignCreateDialog } from "./_components/CampaignCreateDialog";
 import { CampaignUpdateDialog } from "./_components/CampaignUpdateDialog";
@@ -8,10 +11,9 @@ import { DeleteConfirmationModal } from "./_components/DeleteConfirmationModal";
 import { CampaignHeader } from "./_components/CampaignHeader";
 import { CampaignStats } from "./_components/CampaignStats";
 import { CampaignList } from "./_components/CampaignList";
+
 import { Campaign } from "@/types/campaign";
 import { useCampaigns } from "@/hooks/useCampaign";
-import { Grid, List } from "lucide-react";
-import { addToast } from "@heroui/react";
 
 export default function CampaignsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,6 +36,7 @@ export default function CampaignsPage() {
     // Apply search filter
     if (searchQuery.trim() !== "") {
       const lower = searchQuery.toLowerCase();
+
       filtered = filtered.filter(
         (campaign: Campaign) =>
           campaign.name.th.toLowerCase().includes(lower) ||
@@ -49,6 +52,7 @@ export default function CampaignsPage() {
     // Apply sorting
     const sorted = filtered.sort((a: Campaign, b: Campaign) => {
       let comparison = 0;
+
       switch (sortBy) {
         case "name":
           comparison = a.name.th.localeCompare(b.name.th);
@@ -65,6 +69,7 @@ export default function CampaignsPage() {
         default:
           comparison = 0;
       }
+
       return sortDirection === "asc" ? comparison : -comparison;
     });
 
@@ -180,38 +185,38 @@ export default function CampaignsPage() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <CampaignFilter
               searchQuery={searchQuery}
-              onSearchQueryChange={setSearchQuery}
               sortBy={sortBy}
               sortDirection={sortDirection}
+              statusFilter={statusFilter}
+              onAddCampaign={handleAddCampaign}
+              onSearchQueryChange={setSearchQuery}
               onSortByChange={setSortBy}
               onSortDirectionToggle={() =>
                 setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"))
               }
-              onAddCampaign={handleAddCampaign}
-              statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
             />
             
             {/* View Mode Toggle */}
             <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
               <button
-                onClick={() => setViewMode("grid")}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
                   viewMode === "grid"
                     ? "bg-white dark:bg-gray-800 shadow-sm text-blue-600 dark:text-blue-400"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                 }`}
+                onClick={() => setViewMode("grid")}
               >
                 <Grid className="w-4 h-4" />
                 <span className="text-sm font-medium">Grid</span>
               </button>
               <button
-                onClick={() => setViewMode("list")}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
                   viewMode === "list"
                     ? "bg-white dark:bg-gray-800 shadow-sm text-blue-600 dark:text-blue-400"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                 }`}
+                onClick={() => setViewMode("list")}
               >
                 <List className="w-4 h-4" />
                 <span className="text-sm font-medium">List</span>
@@ -223,12 +228,12 @@ export default function CampaignsPage() {
         <CampaignList
           campaigns={filteredAndSortedCampaigns}
           loading={loading}
-          viewMode={viewMode}
           searchQuery={searchQuery}
           statusFilter={statusFilter}
-          onEditCampaign={handleEditCampaign}
-          onDeleteCampaign={handleDeleteCampaign}
+          viewMode={viewMode}
           onAddCampaign={handleAddCampaign}
+          onDeleteCampaign={handleDeleteCampaign}
+          onEditCampaign={handleEditCampaign}
         />
       </div>
 
@@ -240,17 +245,17 @@ export default function CampaignsPage() {
       />
 
       <CampaignUpdateDialog
+        campaign={selectedCampaign}
         isOpen={isUpdateModalOpen}
         onClose={() => setIsUpdateModalOpen(false)}
         onSuccess={handleUpdateSuccess}
-        campaign={selectedCampaign}
       />
 
       <DeleteConfirmationModal
+        campaign={selectedCampaign}
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteConfirm}
-        campaign={selectedCampaign}
       />
     </div>
   );

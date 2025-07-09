@@ -5,9 +5,10 @@ import {
   Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem, Textarea,
   Tooltip
 } from "@heroui/react";
+import { Upload } from "lucide-react";
+
 import { Sponsors } from "@/types/sponsors";
 import { Evoucher, EvoucherStatus, EvoucherType } from "@/types/evoucher";
-import { Upload } from "lucide-react";
 
 type AddEvoucherProps = {
   isOpen: boolean;
@@ -54,6 +55,7 @@ export function EvoucherModal({
       setField({ cover: null });
       setPreviewImage(null);
       setErrors({});
+
       return;
     }
 
@@ -103,12 +105,14 @@ export function EvoucherModal({
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+
       return;
     }
     setErrors({});
 
     const sponsorId = sponsors.find((s) => s.name.en === selectedSponsor)?._id;
     const formData = new FormData();
+
     formData.append("acronym", acronym);
     formData.append("discount", discount);
     formData.append("expiration", expiration);
@@ -128,7 +132,7 @@ export function EvoucherModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={() => { onClose(); }} size="4xl" scrollBehavior="inside">
+    <Modal isOpen={isOpen} scrollBehavior="inside" size="4xl" onClose={() => { onClose(); }}>
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           {mode === "add" ? `Add ${evoucherType} E-voucher` : "Edit E-voucher"}
@@ -136,68 +140,69 @@ export function EvoucherModal({
         <ModalBody className="flex flex-col gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Select
-              label="Sponsor"
               isRequired
+              errorMessage={errors.sponsor}
+              isInvalid={!!errors.sponsor}
+              label="Sponsor"
               selectedKeys={selectedSponsor ? [selectedSponsor] : []}
               onSelectionChange={(keys) => {
                 const selectedKey = Array.from(keys)[0] as string;
+
                 setSelectedSponsor(selectedKey);
               }}
-              isInvalid={!!errors.sponsor}
-              errorMessage={errors.sponsor}
             >
               {sponsors.map((s) => (
                 <SelectItem key={s.name.en}>{s.name.en}</SelectItem>
               ))}
             </Select>
-            <Input label="Acronym" isRequired value={acronym} onChange={(e) => setAcronym(e.target.value)}
-              isInvalid={!!errors.acronym}
-              errorMessage={errors.acronym} />
+            <Input isRequired errorMessage={errors.acronym} isInvalid={!!errors.acronym} label="Acronym"
+              value={acronym}
+              onChange={(e) => setAcronym(e.target.value)} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <Input label="Discount" type="text" value={discount} onChange={(e) => setDiscount(e.target.value)} isRequired
-              isInvalid={!!errors.discount}
-              errorMessage={errors.discount} />
-            <Input label="Max Claims" type="number" value={String(maxClaim)} onChange={(e) => setMaxClaim(Number(e.target.value))}
-              isRequired
-              isInvalid={!!errors.maxClaim}
-              errorMessage={errors.maxClaim} />
+            <Input isRequired errorMessage={errors.discount} isInvalid={!!errors.discount} label="Discount" type="text"
+              value={discount}
+              onChange={(e) => setDiscount(e.target.value)} />
+            <Input isRequired errorMessage={errors.maxClaim} isInvalid={!!errors.maxClaim} label="Max Claims"
+              type="number"
+              value={String(maxClaim)}
+              onChange={(e) => setMaxClaim(Number(e.target.value))} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <Textarea label="Detail (Thai)" value={detailTh} onChange={(e) => setDetailTh(e.target.value)} isRequired minRows={2} maxRows={3}
-              isInvalid={!!errors.detailTh}
-              errorMessage={errors.detailTh} />
-            <Textarea label="Detail (English)" value={detailEn} onChange={(e) => setDetailEn(e.target.value)} isRequired minRows={2} maxRows={3}
-              isInvalid={!!errors.detailEn}
-              errorMessage={errors.detailEn} />
+            <Textarea isRequired errorMessage={errors.detailTh} isInvalid={!!errors.detailTh} label="Detail (Thai)" maxRows={3} minRows={2}
+              value={detailTh}
+              onChange={(e) => setDetailTh(e.target.value)} />
+            <Textarea isRequired errorMessage={errors.detailEn} isInvalid={!!errors.detailEn} label="Detail (English)" maxRows={3} minRows={2}
+              value={detailEn}
+              onChange={(e) => setDetailEn(e.target.value)} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="sm:col-span-2 flex justify-center gap-5">
               <Select
+                isRequired
+                errorMessage={errors.status}
+                isInvalid={!!errors.status}
                 label="Status"
                 selectedKeys={[status]}
                 onChange={(e) => setStatus(e.target.value as EvoucherStatus)}
-                isRequired
-                isInvalid={!!errors.status}
-                errorMessage={errors.status}
               >
                 <SelectItem key={EvoucherStatus.ACTIVE}>Active</SelectItem>
                 <SelectItem key={EvoucherStatus.INACTIVE}>Inactive</SelectItem>
               </Select>
-              <Input label="Expiration" type="datetime-local" value={expiration.slice(0, 16)} onChange={(e) => setExpiration(new Date(e.target.value).toISOString())}
-                isRequired
-                isInvalid={!!errors.expiration}
-                errorMessage={errors.expiration} />
+              <Input isRequired errorMessage={errors.expiration} isInvalid={!!errors.expiration} label="Expiration"
+                type="datetime-local"
+                value={expiration.slice(0, 16)}
+                onChange={(e) => setExpiration(new Date(e.target.value).toISOString())} />
             </div>
             <div className="flex-col items-center">
-              <Tooltip placement="top" content="Click to upload image">
+              <Tooltip content="Click to upload image" placement="top">
                 <div
                   className={`relative w-full max-w-md h-48 rounded-xl transition-all duration-200 hover:border-primary/50 cursor-pointer group ${errors.cover ? "border border-red-500" : "bg-default-50"
                     }`}
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {previewImage ? (
-                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover rounded-xl" />
+                    <img alt="Preview" className="w-full h-full object-cover rounded-xl" src={previewImage} />
                   ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-default-400">
                       <span className="text-xs">No image uploaded</span>
@@ -213,12 +218,13 @@ export function EvoucherModal({
               )}
             </div>
             <input
-              type="file"
-              accept="image/*"
               ref={fileInputRef}
+              accept="image/*"
               className="hidden"
+              type="file"
               onChange={(e) => {
                 const file = e.target.files?.[0];
+
                 if (file) {
                   setField({ cover: file });
                   setPreviewImage(URL.createObjectURL(file));

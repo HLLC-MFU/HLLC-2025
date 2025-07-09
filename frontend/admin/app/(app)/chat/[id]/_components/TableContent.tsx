@@ -4,20 +4,14 @@ import { Key, ReactNode, SetStateAction } from "react"
 import BottomContent from "./BottomContent"
 import TopContent from "./TopContent"
 
-import { User } from "@/types/user"
-
-
+import { RoomMember } from "@/types/chat"
 
 type ModalState = {
-    add: boolean;
-    import: boolean;
-    export: boolean;
-    confirm: boolean;
+    restriction: boolean;
 }
 
 type TableContentProps = {
     setModal: (value: SetStateAction<ModalState>) => void;
-    setActionMode: (value: "Add" | "Edit") => void;
     filterValue: string;
     visibleColumns: Set<string>;
     columns: Array<{ uid: string; name: string; sortable?: boolean }>;
@@ -26,7 +20,7 @@ type TableContentProps = {
     setVisibleColumns: (columns: Set<string>) => void;
     capitalize: (value: string) => string;
     selectedKeys: "all" | Set<string | number>;
-    filteredItems: User[];
+    filteredItems: RoomMember[];
     pages: number;
     page: number;
     setPage: (page: number) => void;
@@ -36,13 +30,20 @@ type TableContentProps = {
     sortDescriptor: SortDescriptor;
     setSortDescriptor: (sortDescriptor: SortDescriptor) => void;
     headerColumns: Array<{ uid: string; name: string; sortable?: boolean }>;
-    sortedItems: User[];
-    renderCell: (item: User, columnKey: Key, index: number) => ReactNode;
+    sortedItems: RoomMember[];
+    renderCell: (item: RoomMember, columnKey: Key, index: number) => ReactNode;
+    pagination?: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    } | null;
+    onPageChange?: (page: number) => void;
+    loading?: boolean;
 }
 
 export default function TableContent({
     setModal,
-    setActionMode,
     filterValue,
     visibleColumns,
     columns,
@@ -63,6 +64,9 @@ export default function TableContent({
     headerColumns,
     sortedItems,
     renderCell,
+    pagination,
+    onPageChange,
+    loading = false,
 }: TableContentProps) {
     return (
         <Table
@@ -76,6 +80,8 @@ export default function TableContent({
                 setPage={setPage}
                 onNextPage={onNextPage}
                 onPreviousPage={onPreviousPage}
+                pagination={pagination}
+                onPageChange={onPageChange}
             />}
             bottomContentPlacement="outside"
             classNames={{
@@ -88,7 +94,6 @@ export default function TableContent({
                 capitalize={capitalize}
                 columns={columns}
                 filterValue={filterValue}
-                setActionMode={setActionMode}
                 setModal={setModal}
                 setVisibleColumns={setVisibleColumns}
                 visibleColumns={visibleColumns}
@@ -110,8 +115,8 @@ export default function TableContent({
                     </TableColumn>
                 )}
             </TableHeader>
-            <TableBody emptyContent={"No users found"} items={sortedItems}>
-                {(item: User) => {
+            <TableBody emptyContent={"No members found"} items={sortedItems}>
+                {(item: RoomMember) => {
                     const index = sortedItems.findIndex((i) => i._id === item._id)
 
                     return (
@@ -123,4 +128,4 @@ export default function TableContent({
             </TableBody>
         </Table>
     )
-};
+}; 

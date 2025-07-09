@@ -1,5 +1,6 @@
-import { Sticker } from "@/types/sticker";
 import StickerTable from "./StickerTable";
+
+import { Sticker } from "@/types/sticker";
 
 type StickerAccordionProps = {
     stickers: Sticker[];
@@ -18,8 +19,8 @@ export default function StickerAccordion({
         <StickerTable
             stickers={stickers}
             onAdd={onAdd}
-            onEdit={onEdit}
             onDelete={onDelete}
+            onEdit={onEdit}
         />
     );
 } 

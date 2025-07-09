@@ -6,13 +6,13 @@ import { HandCoins, Plus } from "lucide-react";
 
 import { SponsorFilters } from "./_components/SponsorFilters";
 import SponsorTable from "./_components/SponsorTable";
+import AddSponsorTypeModal from "./_components/AddSponsorTypeModal";
 
 import { useSponsors } from "@/hooks/useSponsors";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { Sponsors } from "@/types/sponsors";
 import { useSponsorsType } from "@/hooks/useSponsorsType";
 import { PageHeader } from "@/components/ui/page-header";
-import AddSponsorTypeModal from "./_components/AddSponsorTypeModal";
 
 export default function SponsorPage() {
   const [isTypeOpen, setIsTypeOpen] = useState(false);
@@ -198,8 +198,8 @@ export default function SponsorPage() {
 
       <AddSponsorTypeModal
         isOpen={isTypeOpen}
-        onClose={() => setIsTypeOpen(false)}
         onAddType={handleAddType}
+        onClose={() => setIsTypeOpen(false)}
       />
 
       <ConfirmationModal

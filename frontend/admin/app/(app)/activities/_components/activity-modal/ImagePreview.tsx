@@ -27,6 +27,7 @@ export function ImagePreview({
 }: ImagePreviewProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+
     if (file) {
       onFileChange(file);
     }
@@ -38,20 +39,20 @@ export function ImagePreview({
         <h4 className="text-sm font-medium text-default-700">{label}</h4>
         <div className="flex gap-2">
           <Button
-            size="sm"
-            variant="flat"
             color="primary"
+            size="sm"
             startContent={<Upload size={14} />}
+            variant="flat"
             onPress={() => inputRef.current?.click()}
           >
             Upload
           </Button>
           {preview && (
             <Button
+              isIconOnly
+              color="danger"
               size="sm"
               variant="flat"
-              color="danger"
-              isIconOnly
               onPress={onRemove}
             >
               <X size={14} />
@@ -65,9 +66,9 @@ export function ImagePreview({
       >
         {preview ? (
           <img
-            src={preview}
             alt="Preview"
             className={`w-full h-full object-contain ${maxSize} bg-white`}
+            src={preview}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-default-400">
@@ -77,10 +78,10 @@ export function ImagePreview({
         )}
         <input
           ref={inputRef}
-          type="file"
           accept="image/*"
-          onChange={handleFileChange}
           className="hidden"
+          type="file"
+          onChange={handleFileChange}
         />
       </div>
     </div>

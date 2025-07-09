@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, Key, ReactNode, Dispatch, SetStateAction, useState, useMemo, } from "react";
+import React, { useCallback, Key, ReactNode, SetStateAction, useState, useMemo, } from "react";
 import {
   Button,
   DropdownTrigger,
@@ -279,9 +279,9 @@ export default function UsersTable({
       <AddModal
         action={actionMode}
         isOpen={modal.add}
+        majors={majors}
         roleId={roleId}
         schools={schools}
-        majors={majors}
         user={userAction}
         userAction={userAction}
         onAdd={onAdd}
@@ -307,14 +307,14 @@ export default function UsersTable({
 
       {/* Delete & Reset */}
       <ConfirmationModal
-        isOpen={modal.confirm}
-        onClose={() => setModal(prev => ({ ...prev, confirm: false }))}
-        onConfirm={onConfirm}
-        selectedKeys={selectedKeys}
-        userAction={userAction}
-        title={`${confirmMode} user ${userAction ? userAction.username : ""}`}
         body={`Are you sure you want to ${confirmMode.toLowerCase()} this user?`}
         confirmColor={'danger'}
+        isOpen={modal.confirm}
+        selectedKeys={selectedKeys}
+        title={`${confirmMode} user ${userAction ? userAction.username : ""}`}
+        userAction={userAction}
+        onClose={() => setModal(prev => ({ ...prev, confirm: false }))}
+        onConfirm={onConfirm}
       />
     </div>
   );

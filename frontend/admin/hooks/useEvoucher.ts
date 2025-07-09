@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+
 import { apiRequest, ApiResponse } from "@/utils/api";
 import { Evoucher } from "@/types/evoucher";
 
@@ -36,6 +37,7 @@ export function useEvoucher() {
             }
             
             hasFetched.current = true;
+
             return res;
         } catch (err) {
             setError(
@@ -54,12 +56,15 @@ export function useEvoucher() {
             setLoading(true);
             const res = await apiRequest<{ data: Evoucher }>("/evoucher", "POST", evoucherData);
             const newEvoucher = res.data?.data || res.data;
+
             if (newEvoucher && typeof newEvoucher === 'object' && '_id' in newEvoucher) {
                 setEvouchers(prev => [...prev, newEvoucher as Evoucher]);
             }
+
             return res;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to create evoucher.';
+
             setError(errorMessage);
             throw new Error(errorMessage);
         } finally {
@@ -73,6 +78,7 @@ export function useEvoucher() {
             setLoading(true);
             const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "PATCH", evoucherData);
             const updatedEvoucher = res.data?.data || res.data;
+
             if (updatedEvoucher && typeof updatedEvoucher === 'object' && '_id' in updatedEvoucher) {
                 setEvouchers(prev =>
                     prev.map(evoucher =>
@@ -80,9 +86,11 @@ export function useEvoucher() {
                     )
                 );
             }
+
             return res;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to update evoucher.';
+
             setError(errorMessage);
             throw new Error(errorMessage);
         } finally {
@@ -96,12 +104,15 @@ export function useEvoucher() {
         try {
             const res = await apiRequest<{ data: Evoucher }>(`/evoucher/${evoucherId}`, "DELETE");
             const deletedEvoucher = res.data?.data || res.data;
+
             if (deletedEvoucher && typeof deletedEvoucher === 'object' && '_id' in deletedEvoucher) {
                 setEvouchers(prev => prev.filter(evoucher => evoucher._id !== evoucherId));
             }
+
             return res;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to delete evoucher.';
+
             setError(errorMessage);
             throw new Error(errorMessage);
         } finally {

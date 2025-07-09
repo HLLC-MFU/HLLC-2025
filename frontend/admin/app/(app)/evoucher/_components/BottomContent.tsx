@@ -1,6 +1,8 @@
-import { Evoucher } from "@/types/evoucher";
-import { Button, Pagination } from "@heroui/react";
 import type { Selection } from "@react-types/shared";
+
+import { Button, Pagination } from "@heroui/react";
+
+import { Evoucher } from "@/types/evoucher";
 
 export type BottomContentProps = {
     selectedKeys: Selection;

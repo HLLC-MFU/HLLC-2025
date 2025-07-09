@@ -1,5 +1,8 @@
 "use client";
 
+import type { Sponsors } from "@/types/sponsors";
+import type { SponsorType } from "@/types/sponsors";
+
 import {
   Table,
   TableHeader,
@@ -16,10 +19,9 @@ import {
   SortDescriptor,
 } from "@heroui/react";
 import { EllipsisVertical, Pen, Trash } from "lucide-react";
-import type { Sponsors } from "@/types/sponsors";
-import type { SponsorType } from "@/types/sponsors";
-import { SponsorModal } from "./SponsorModal";
 import { useState, useMemo } from "react";
+
+import { SponsorModal } from "./SponsorModal";
 
 interface SponsorTableProps {
   type: string;
@@ -107,8 +109,8 @@ export default function SponsorTable({
           {(column) => (
             <TableColumn
               key={column.uid}
-              className="text-center"
               allowsSorting={column.sortable}
+              className="text-center"
             >
               {column.name}
             </TableColumn>
@@ -121,10 +123,10 @@ export default function SponsorTable({
               <TableCell className="text-center">
                 {sponsor.photo && typeof sponsor.photo === "string" ? (
                   <img
-                    src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.photo}`}
                     alt={sponsor.name.en}
                     className="h-16 w-16 object-contain rounded border border-default-300 bg-white mx-auto"
                     height={64}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.photo}`}
                     width={64}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = "/placeholder.png";
