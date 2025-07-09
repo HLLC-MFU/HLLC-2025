@@ -89,6 +89,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+	uploadPath := cfg.Upload.Path
+
+	// Print upload path (or use it in your routes, etc.)
+	fmt.Println("Upload Path:", uploadPath)
 
 	// Setup logging
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
@@ -122,8 +126,8 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	})
-	apiGroup := app.Group("/api")
-	wsChatGroup := app.Group("/chat")
+	apiGroup := app.Group(cfg.App.APIBasePath)
+	wsChatGroup := app.Group(cfg.App.WS_BASE_PATH)
 
 	usersGroup := apiGroup.Group("/users")
 	rolesGroup := apiGroup.Group("/roles")
@@ -145,19 +149,19 @@ func main() {
 	// Setup cookie middleware
 	cookieConfig := middleware.DefaultCookieConfig()
 	app.Use(middleware.SetCookieMiddleware(cookieConfig))
+	
 
 	// Setup static file serving for uploads
-	app.Static("/uploads", "./uploads", fiber.Static{
-		Browse:        false,  // Disable directory browsing for security
-		MaxAge:       86400,  // Cache for 24 hours
-		Compress:     true,   // Enable compression
-		ByteRange:    true,   // Enable byte range requests
-		CacheDuration: 24 * 60 * 60 * time.Second, // 24 hours cache
-		Next: func(c *fiber.Ctx) bool { // Skip processing for non-existent files
+	app.Static(uploadPath, "./uploads", fiber.Static{
+		Browse:        false,  
+		MaxAge:       86400,  
+		Compress:     true,   
+		ByteRange:    true,   
+		CacheDuration: 24 * 60 * 60 * time.Second, 
+		Next: func(c *fiber.Ctx) bool { 
 			return c.Method() != fiber.MethodGet
 		},
 	})
-
 	// Initialize services
 	chatSvc := chatService.NewChatService(db, redis, kafkaBus, cfg)
 	chatHub := chatSvc.GetHub()
