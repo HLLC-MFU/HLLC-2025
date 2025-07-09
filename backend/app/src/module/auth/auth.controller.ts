@@ -77,9 +77,18 @@ export class AuthController {
     return this.authService.removePassword(removePasswordDto);
   }
 
+
+  @Post('delete-account')
+  async removeAccount(@Body() removePasswordDto: RemovePasswordDto) {
+    return this.authService.removePassword(removePasswordDto);
+  }
+
+
   @Public()
   @Post('check-reset-password-eligibility')
-  checkResetPasswordEligibility(@Body() body: CheckResetPasswordEligibilityDto) {
+  checkResetPasswordEligibility(
+    @Body() body: CheckResetPasswordEligibilityDto,
+  ) {
     const { username, secret } = body;
     return this.authService.checkResetPasswordEligibility(username, secret);
   }

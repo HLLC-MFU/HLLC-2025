@@ -8,7 +8,6 @@ import {
   Popover,
   PopoverTrigger,
   PopoverContent,
-  Divider,
 } from '@heroui/react';
 import { Search, X, ChevronDown } from 'lucide-react';
 
@@ -67,14 +66,14 @@ export function ScopeSelector<T>({
 
       <Popover 
         isOpen={isOpen} 
-        onOpenChange={setIsOpen}
         placement="bottom"
+        onOpenChange={setIsOpen}
       >
         <PopoverTrigger>
           <Button
-            variant="flat"
             className="w-full justify-between h-unit-12 px-3"
             endContent={<ChevronDown className="text-default-500" size={16} />}
+            variant="flat"
           >
             <div className="flex items-center gap-2">
               <span className="text-default-500">
@@ -89,23 +88,23 @@ export function ScopeSelector<T>({
           <Card className="w-full shadow-none border-none">
             <div className="p-2 border-b">
               <Input
-                value={searchQuery}
-                onValueChange={setSearchQuery}
-                placeholder="Search..."
-                size="sm"
-                startContent={<Search size={16} className="text-default-400" />}
                 endContent={
                   searchQuery ? (
                     <Button
                       isIconOnly
-                      variant="light"
                       size="sm"
+                      variant="light"
                       onPress={() => setSearchQuery('')}
                     >
                       <X size={14} />
                     </Button>
                   ) : null
                 }
+                placeholder="Search..."
+                size="sm"
+                startContent={<Search className="text-default-400" size={16} />}
+                value={searchQuery}
+                onValueChange={setSearchQuery}
               />
             </div>
             <ScrollShadow className="max-h-[300px]">
@@ -118,6 +117,7 @@ export function ScopeSelector<T>({
                   filteredItems.map((item) => {
                     const id = getId(item);
                     const isSelected = selectedItems.includes(id);
+
                     return (
                       <Button
                         key={id}
@@ -148,9 +148,9 @@ export function ScopeSelector<T>({
         {selectedItemsData.map((item) => (
           <Chip
             key={getId(item)}
-            onClose={() => onRemove(getId(item))}
-            variant="flat"
             size="sm"
+            variant="flat"
+            onClose={() => onRemove(getId(item))}
           >
             {getName(item)}
           </Chip>

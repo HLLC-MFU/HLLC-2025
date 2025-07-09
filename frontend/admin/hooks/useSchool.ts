@@ -193,12 +193,12 @@ export function useSchools(id?: string) {
 				school: schoolId,
 			});
 
-			if (res.statusCode === 200) {
+			if (res.statusCode === 200 || res.statusCode === 201) {
 				addToast({
 					title: 'Major added successfully!',
 					color: 'success',
 				});
-				window.location.reload();
+				await fetchSchools();
 			}
 
 		} catch (err) {

@@ -14,7 +14,7 @@ export default function FbxViewer() {
       }}
     >
       <ambientLight intensity={1.2} />
-      <directionalLight position={[5, 10, 5]} intensity={1.5} castShadow />
+      <directionalLight castShadow intensity={1.5} position={[5, 10, 5]} />
       <Scene />
       <OrbitControls />
     </Canvas>

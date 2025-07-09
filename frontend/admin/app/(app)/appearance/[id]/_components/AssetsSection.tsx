@@ -42,9 +42,7 @@ export default function AssetsSection({
           <div className="grid gap-10 w-full">
             {Object.entries(uiSection).map(([group, groupAssets]) => (
               <div key={group}>
-                <p className="text-xl font-semibold">
-                  {group[0].toUpperCase() + group.slice(1)}
-                </p>
+                <p className="text-xl font-semibold capitalize">{group}</p>
                 <Divider className="my-4" />
                 <div className="grid grid-cols-3 gap-4" key={group}>
                   {groupAssets.map((asset) => {

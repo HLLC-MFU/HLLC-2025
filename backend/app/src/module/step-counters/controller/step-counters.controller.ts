@@ -28,7 +28,7 @@ class CollectStepDto {
 
 @Controller('step-counters')
 export class StepCountersController {
-  constructor(private readonly stepCountersService: StepCountersService) {}
+  constructor(private readonly stepCountersService: StepCountersService) { }
 
   @Get()
   getUserStep(
@@ -143,3 +143,4 @@ export class StepCountersController {
     });
   }
 }
+

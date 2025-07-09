@@ -265,7 +265,9 @@ export class AuthService {
   async removePassword(removePasswordDto: RemovePasswordDto) {
     const { username } = removePasswordDto;
 
-    const user = await this.userModel.findOne({ username }).select('+password');
+    const user = await this.userModel
+      .findOne({ username })
+      .select('+password +refreshToken +metadata.secret');
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -275,6 +277,8 @@ export class AuthService {
     user.password = '';
     user.refreshToken = null;
     user.metadata.secret = '';
+    user.markModified('metadata');
+    await user.save();
   }
 
   async checkResetPasswordEligibility(username: string, secret: string) {
