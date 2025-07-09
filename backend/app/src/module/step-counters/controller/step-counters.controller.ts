@@ -11,6 +11,7 @@ import {
 import { StepCountersService } from '../service/step-counters.service';
 import { FastifyRequest } from 'fastify';
 import { Types } from 'mongoose';
+import { UserRequest } from 'src/pkg/types/users';
 
 class RegisterDeviceDto {
   deviceId: string;
@@ -28,7 +29,7 @@ class CollectStepDto {
 
 @Controller('step-counters')
 export class StepCountersController {
-  constructor(private readonly stepCountersService: StepCountersService) {}
+  constructor(private readonly stepCountersService: StepCountersService) { }
 
   @Get()
   getUserStep(
@@ -121,6 +122,14 @@ export class StepCountersController {
     });
   }
 
+  @Get('my-rank')
+  getUserRank(
+    @Req() req: UserRequest,
+    @Query('scope') scope: 'global' | 'school' | 'achieved' = 'global',
+    @Query('stepAchievementId') stepAchievementId?: string,
+  ) {
+    return this.stepCountersService.getUserRank(req.user._id, scope, stepAchievementId);
+  }
   @Get('leaderboard/me')
   async myLeaderboard(
     @Req() req: FastifyRequest & { user?: { _id?: Types.ObjectId } },
@@ -143,3 +152,4 @@ export class StepCountersController {
     });
   }
 }
+

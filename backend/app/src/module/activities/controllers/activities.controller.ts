@@ -76,4 +76,10 @@ export class ActivitiesController {
   remove(@Param('id') id: string) {
     return this.activitiesService.remove(id);
   }
+
+  @Get(':id/assessment')
+  @Permissions('activities:read')
+  async findActivitiesWithAssessment(activitiesId: string) {
+    return this.activitiesService.findActivitiesWithAssessment(activitiesId);
+  }
 }

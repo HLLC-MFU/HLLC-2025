@@ -5,13 +5,17 @@ import { Eye, EyeClosed, LockIcon, UserIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import RegisterModal from './_components/register-modal';
+import { useRouter } from "next/navigation";
+import useAuth from '@/hooks/useAuth';
 
-export default function SigninPage() {
+export default function LoginPage() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-
+  const router = useRouter();
   const [isPasswordVisible, setPasswordIsVisible] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn } = useAuth();
 
   const togglePasswordVisibility = () => setPasswordIsVisible(prev => !prev);
 
@@ -19,26 +23,12 @@ export default function SigninPage() {
     e.preventDefault();
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/login?useCookies=true`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-          credentials: 'include',
-        },
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-
-      // TODO: handle successful login (e.g., redirect or set cookie/token)
-      console.log('Login successful', data);
-    } catch (err: any) {
-      alert(err.message);
+      await signIn(username, password);
+      router.push("/");
+    } catch (error) {
+      console.log('Login error', error);
+    } finally {
+      setIsLoading(false)
     }
   };
 
@@ -98,6 +88,7 @@ export default function SigninPage() {
             color="primary"
             size="lg"
             type="submit"
+            isLoading={isLoading}
           >
             Sign In
           </Button>
