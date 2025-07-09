@@ -5,7 +5,6 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
   Req,
   UseGuards,
   UseInterceptors,
@@ -25,7 +24,7 @@ import { Types } from 'mongoose';
 @UseGuards(PermissionsGuard)
 @Controller('activities')
 export class ActivitiesController {
-  constructor(private readonly activitiesService: ActivitiesService) {}
+  constructor(private readonly activitiesService: ActivitiesService) { }
 
   @Post()
   @Permissions('activities:create')
@@ -37,16 +36,18 @@ export class ActivitiesController {
 
   @Get('')
   @Permissions('activities:read')
-  async findAll(@Query() query: Record<string, string>) {
-    return this.activitiesService.findAll(query);
+  async findAll() {
+    const activities = await this.activitiesService.findAll();
+    return { data: activities };
   }
 
   @Get('canCheckin')
   @Permissions('activities:read')
-  async canCheckin(): Promise<
-    PaginatedResponse<Activities> & { message: string }
-  > {
-    return this.activitiesService.findCanCheckinActivities();
+  async canCheckin(
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
+  ): Promise<PaginatedResponse<Activities> & { message: string }> {
+    const user = req.user as { _id: Types.ObjectId };
+    return this.activitiesService.findCanCheckinActivities(user._id.toString());
   }
 
   @Get('users')
@@ -77,9 +78,11 @@ export class ActivitiesController {
     return this.activitiesService.remove(id);
   }
 
-  @Get(':id/assessment')
+  @Get(':activityId/assessment')
   @Permissions('activities:read')
-  async findActivitiesWithAssessment(activitiesId: string) {
-    return this.activitiesService.findActivitiesWithAssessment(activitiesId);
+  async findActivitiesWithAssessment(
+    @Param('activityId') activityId: string,
+  ) {
+    return this.activitiesService.findActivitiesWithAssessment(activityId);
   }
 }

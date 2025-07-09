@@ -1,5 +1,7 @@
+import { Lang } from "./lang";
+
 export type Assessment = {
-    id: string;
+    _id: string;
     question: Lang;
     type: AssessmentTypes;
     activity: string;

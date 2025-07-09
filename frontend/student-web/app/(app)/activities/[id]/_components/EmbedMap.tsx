@@ -9,12 +9,11 @@ export default function EmbedMap({ lat, lng }: EmbedMapProps) {
     const mapUrl = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
 
     return (
-        <div className="w-full h-[400px]">
+        <div className="w-full max-h-screen">
             <iframe
                 src={mapUrl}
                 width="100%"
-                height="400"
-                frameBorder="0"
+                height="250"
                 allowFullScreen
             ></iframe>
         </div>

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Divider, Chip } from '@heroui/react';
 import { School, GraduationCap, Users, MapPin, FileText, AlignLeft } from 'lucide-react';
+
 import { Activities } from '@/types/activities';
 
 interface ExpandedDetailsProps {
@@ -10,11 +11,11 @@ interface ExpandedDetailsProps {
 export function ExpandedDetails({ activity }: ExpandedDetailsProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: 'auto' }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
       className="overflow-hidden"
+      exit={{ opacity: 0, height: 0 }}
+      initial={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.3, ease: 'easeInOut' }}
     >
       <div className="bg-white rounded-xl border border-default-200 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -96,9 +97,9 @@ export function ExpandedDetails({ activity }: ExpandedDetailsProps) {
               <p className="text-xs text-default-500 mb-2">Banner Photo</p>
               {activity.photo?.bannerPhoto ? (
                 <img 
-                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`}
                   alt="Banner"
                   className="w-full h-[200px] object-cover rounded-lg"
+                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`}
                 />
               ) : (
                 <div className="w-full h-[200px] bg-default-100 rounded-lg flex items-center justify-center">
@@ -112,9 +113,9 @@ export function ExpandedDetails({ activity }: ExpandedDetailsProps) {
               <p className="text-xs text-default-500 mb-2">Logo Photo</p>
               {activity.photo?.logoPhoto ? (
                 <img 
-                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.logoPhoto}`}
                   alt="Logo"
                   className="w-full h-[200px] object-contain rounded-lg"
+                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.logoPhoto}`}
                 />
               ) : (
                 <div className="w-full h-[200px] bg-default-100 rounded-lg flex items-center justify-center">
@@ -141,7 +142,7 @@ export function ExpandedDetails({ activity }: ExpandedDetailsProps) {
                 {activity.metadata?.scope?.school?.length ? (
                   activity.metadata.scope.school.map((school, index) => (
                     <Chip key={index} size="sm" variant="flat">
-                      {school}
+                      {school.name.en || school.name.th}
                     </Chip>
                   ))
                 ) : (
@@ -160,7 +161,7 @@ export function ExpandedDetails({ activity }: ExpandedDetailsProps) {
                 {activity.metadata?.scope?.major?.length ? (
                   activity.metadata.scope.major.map((major, index) => (
                     <Chip key={index} size="sm" variant="flat">
-                      {major}
+                      {major.name.en || major.name.th}
                     </Chip>
                   ))
                 ) : (
@@ -177,7 +178,7 @@ export function ExpandedDetails({ activity }: ExpandedDetailsProps) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {activity.metadata?.scope?.user?.length ? (
-                  <Chip size="sm" variant="flat" color="primary">
+                  <Chip color="primary" size="sm" variant="flat">
                     {activity.metadata.scope.user.length} users
                   </Chip>
                 ) : (
@@ -187,6 +188,70 @@ export function ExpandedDetails({ activity }: ExpandedDetailsProps) {
             </div>
           </div>
         </div>
+
+                <Divider className="my-6" />
+
+        {/* Scope Section */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium text-default-700">Time</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Schools */}
+            <div className="bg-white p-4 rounded-xl border border-default-200">
+              <div className="flex items-center gap-2 mb-3">
+                <School className="w-4 h-4 text-primary" />
+                <h5 className="text-sm font-medium">Schools</h5>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {activity.metadata?.scope?.school?.length ? (
+                  activity.metadata.scope.school.map((school, index) => (
+                    <Chip key={index} size="sm" variant="flat">
+                      {school.name.en || school.name.th}
+                    </Chip>
+                  ))
+                ) : (
+                  <p className="text-xs text-default-500">No schools specified</p>
+                )}
+              </div>
+            </div>
+
+            {/* Majors */}
+            <div className="bg-white p-4 rounded-xl border border-default-200">
+              <div className="flex items-center gap-2 mb-3">
+                <GraduationCap className="w-4 h-4 text-primary" />
+                <h5 className="text-sm font-medium">Majors</h5>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {activity.metadata?.scope?.major?.length ? (
+                  activity.metadata.scope.major.map((major, index) => (
+                    <Chip key={index} size="sm" variant="flat">
+                      {major.name.en || major.name.th}
+                    </Chip>
+                  ))
+                ) : (
+                  <p className="text-xs text-default-500">No majors specified</p>
+                )}
+              </div>
+            </div>
+
+            {/* Users */}
+            <div className="bg-white p-4 rounded-xl border border-default-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4 text-primary" />
+                <h5 className="text-sm font-medium">Users</h5>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {activity.metadata?.scope?.user?.length ? (
+                  <Chip color="primary" size="sm" variant="flat">
+                    {activity.metadata.scope.user.length} users
+                  </Chip>
+                ) : (
+                  <p className="text-xs text-default-500">No users specified</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
       </div>
     </motion.div>
   );

@@ -4,11 +4,14 @@ import ActivitiesList from "./_components/ActivitiesList";
 import { ActivitiesFilters } from "./_components/ActivitiesFilters";
 import { useMemo, useState } from "react";
 
+import UpcomingCard from "./_components/UpcomingCard";
+
 export default function ActivitiesPage() {
-    const { activities, loading } = useActivities();
+    const { activities, loading } = useActivities(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState<string>('name');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
     const filteredAndSortedActivities = useMemo(() => {
         if (!activities) return [];
 
@@ -41,14 +44,25 @@ export default function ActivitiesPage() {
         });
     }, [activities, searchQuery, sortBy, sortDirection]);
 
+    const upcomingActivity = useMemo(() => {
+        if (!activities || activities.length === 0) return null;
+
+        const now = new Date();
+        const futureActivities = activities
+            .filter((a) => new Date(a.metadata?.startAt) > now)
+            .sort((a, b) => new Date(a.metadata.startAt).getTime() - new Date(b.metadata.startAt).getTime());
+
+        return futureActivities[0] ?? null;
+    }, [activities]);
+
     const toggleSortDirection = () => {
         setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     };
 
     return (
         <div className="flex-col min-h-screen">
-            <div className="sticky top-0 z-20 mb-5 bg-white/5 backdrop-blur dark:bg-black/30 rounded-lg">
-                <h1 className="text-xl font-bold mb-2">Activities</h1>
+            <div className="sticky top-0 z-20 mb-5 bg-white/5 backdrop-blur dark:bg-black/30 rounded-lg flex flex-col gap-5">
+                <h1 className="text-2xl font-bold">Activities</h1>
                 <ActivitiesFilters
                     searchQuery={searchQuery}
                     sortBy={sortBy}
@@ -57,8 +71,19 @@ export default function ActivitiesPage() {
                     onSortByChange={setSortBy}
                     onSortDirectionToggle={toggleSortDirection}
                 />
+                {/* Upcoming Activities */}
+                <div>
+                    {upcomingActivity && <UpcomingCard activity={upcomingActivity} />}
+                </div>
+                <h1 className="p-1 ml-2">
+                    <span className="text-xl font-semibold">All Activities</span>
+                    {filteredAndSortedActivities.length > 0 && (
+                        <span className="text-sm text-default-500 ml-2">
+                            ({filteredAndSortedActivities.length} found)
+                        </span>
+                    )}
+                </h1>
             </div>
-
             <ActivitiesList
                 isLoading={loading}
                 activities={filteredAndSortedActivities}
