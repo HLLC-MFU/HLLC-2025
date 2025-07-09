@@ -184,9 +184,11 @@ export class AuthService {
     await user.save();
 
     return {
-      message: 'User registered successfully', tokens: {
-        accessToken, refreshToken
-      }
+      message: 'User registered successfully',
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
     };
   }
 
@@ -273,6 +275,29 @@ export class AuthService {
     user.password = '';
     user.refreshToken = null;
     user.metadata.secret = '';
+  }
+
+  async checkResetPasswordEligibility(username: string, secret: string) {
+    const user = await this.userModel
+      .findOne({ username })
+      .select('name metadata.secret username');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (!user.metadata?.secret) {
+      throw new BadRequestException(
+        'User has no secret set. Please register first.',
+      );
+    }
+    const isSecretValid = await bcrypt.compare(secret, user.metadata.secret);
+    if (!isSecretValid) {
+      throw new UnauthorizedException('Invalid secret');
+    }
+    delete user.metadata.secret; // Remove secret from response for security
+    return {
+      message: 'User is eligible for password reset',
+      user: user,
+    };
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
