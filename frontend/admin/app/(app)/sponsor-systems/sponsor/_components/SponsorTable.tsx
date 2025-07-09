@@ -1,5 +1,8 @@
 'use client';
 
+import type { Sponsors } from '@/types/sponsors';
+import type { SponsorType } from '@/types/sponsors';
+
 import {
   Table,
   TableHeader,
@@ -9,10 +12,9 @@ import {
   TableCell,
   SortDescriptor,
 } from '@heroui/react';
-import type { Sponsors } from '@/types/sponsors';
-import type { SponsorType } from '@/types/sponsors';
-import { SponsorModal } from './SponsorModal';
 import { useState, useMemo, useCallback } from 'react';
+
+import { SponsorModal } from './SponsorModal';
 import SponsorCellRenderer, { SponsorColumnKey } from './SponsorCellRenderer';
 import BottomContent from './BottomContent';
 import { TopContent } from './TopContent';
@@ -82,6 +84,7 @@ export default function SponsorTable({
           sponsor.priority.toString().toLowerCase().includes(query)
       );
     }
+
     return filteredSponsors;
   }, [sponsors, filterValue]);
 
@@ -98,10 +101,10 @@ export default function SponsorTable({
     (sponsors: Sponsors, columnKey: SponsorColumnKey) => {
       return (
         <SponsorCellRenderer
-          sponsor={sponsors}
           columnKey={columnKey}
-          onEdit={() => onEdit(sponsors)}
+          sponsor={sponsors}
           onDelete={() => onDelete(sponsors)}
+          onEdit={() => onEdit(sponsors)}
         />
       );
     },
@@ -111,19 +114,8 @@ export default function SponsorTable({
   return (
     <>
       <Table
+
         aria-label="Sponsor Table"
-        sortDescriptor={sortDescriptor}
-        onSortChange={setSortDescriptor}
-        topContentPlacement="outside"
-        topContent={
-          <TopContent
-            filterValue={filterValue}
-            onSearchChange={handleSearch}
-            onAdd={onAdd}
-            onClear={handleClear}
-          />
-        }
-        bottomContentPlacement="outside"
         bottomContent={
           <BottomContent
             page={page}
@@ -131,6 +123,18 @@ export default function SponsorTable({
             setPage={setPage}
           />
         }
+        bottomContentPlacement="outside"
+        sortDescriptor={sortDescriptor}
+        topContent={
+          <TopContent
+            filterValue={filterValue}
+            onAdd={onAdd}
+            onClear={handleClear}
+            onSearchChange={handleSearch}
+          />
+        }
+        topContentPlacement="outside"
+        onSortChange={setSortDescriptor}
       >
         <TableHeader columns={COLUMNS}>
           {(column) => (
@@ -153,7 +157,7 @@ export default function SponsorTable({
         >
           {(sponsor) => (
             <TableRow
-              key={sponsor.priority}
+              key={sponsor._id}
               className="hover:bg-default-50 transition-colors"
             >
               {(columnKey) => (
@@ -167,6 +171,7 @@ export default function SponsorTable({
       </Table>
 
       <SponsorModal
+        allSponsors={sponsors}
         isOpen={isModalOpen}
         mode={modalMode}
         sponsor={
@@ -174,7 +179,6 @@ export default function SponsorTable({
             ? (selectedSponsor as Sponsors)
             : undefined
         }
-        allSponsors={sponsors}
         sponsorTypes={sponsorTypes}
         type={type}
         onClose={onClose}

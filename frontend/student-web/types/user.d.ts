@@ -11,12 +11,12 @@ type CheckedUser = {
       school?: { name?: { en: string; th: string } };
     };
   };
-}
+};
 
 type Province = {
   name_th: string;
   name_en: string;
-}
+};
 
 export type User = {
   _id: string;
@@ -42,4 +42,4 @@ export type Metadata = {
     name: Lang;
     school: School;
   };
-}
+};

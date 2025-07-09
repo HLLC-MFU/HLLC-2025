@@ -6,30 +6,26 @@ import {
   NavbarBrand,
   NavbarItem,
   NavbarMenuItem,
-} from "@heroui/navbar";
-import { Button } from "@heroui/button";
-import { Kbd } from "@heroui/kbd";
-import { Link } from "@heroui/link";
-import { Input } from "@heroui/input";
-import NextLink from "next/link";
-import clsx from "clsx";
+} from '@heroui/navbar';
+import { Button } from '@heroui/button';
+import { Kbd } from '@heroui/kbd';
+import { Link } from '@heroui/link';
+import { Input } from '@heroui/input';
+import NextLink from 'next/link';
+import clsx from 'clsx';
+import { usePathname, useRouter } from 'next/navigation';
+import { Href } from '@react-types/shared';
+import { Tooltip } from '@heroui/react';
 
-import { siteConfig } from "@/config/site";
-import { ThemeSwitch } from "@/components/theme-switch";
-import {
-  GithubIcon,
-  SearchIcon,
-  Logo,
-} from "@/components/icons";
-import { usePathname, useRouter } from "next/navigation";
-import { Href } from "@react-types/shared";
-import { useProfile } from "@/hooks/useProfile";
-import { Tooltip } from "@heroui/react";
+import { siteConfig } from '@/config/site';
+import { ThemeSwitch } from '@/components/theme-switch';
+import { GithubIcon, SearchIcon, Logo } from '@/components/icons';
+import { useProfile } from '@/hooks/useProfile';
 
 export const Navbar = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const user = useProfile((state) => state.user);
+  const user = useProfile(state => state.user);
 
   const handleClick = (href: Href) => {
     router.push(href);
@@ -38,23 +34,23 @@ export const Navbar = () => {
   const hasPermission = (permission?: string): boolean => {
     if (!permission) return true;
     const perms = user?.role?.permissions || [];
-    if (perms.includes("*")) return true;
 
-    const [resource] = permission.split(":");
-    return (
-      perms.includes(permission) || perms.includes(`${resource}:*`)
-    );
+    if (perms.includes('*')) return true;
+
+    const [resource] = permission.split(':');
+
+    return perms.includes(permission) || perms.includes(`${resource}:*`);
   };
 
   const searchInput = (
     <Input
       aria-label="Search"
       classNames={{
-        inputWrapper: "bg-default-100",
-        input: "text-sm",
+        inputWrapper: 'bg-default-100',
+        input: 'text-sm',
       }}
       endContent={
-        <Kbd className="hidden lg:inline-block" keys={["command"]}>
+        <Kbd className="hidden lg:inline-block" keys={['command']}>
           K
         </Kbd>
       }
@@ -80,31 +76,32 @@ export const Navbar = () => {
 
       {/*Desktop Nav Items */}
       <NavbarContent className="hidden sm:flex gap-2" justify="end">
-        {siteConfig.navMenuItems.flatMap((section) =>
+        {siteConfig.navMenuItems.flatMap(section =>
           section.items
-            .filter((item) => hasPermission(item.permission))
-            .map((item) => {
+            .filter(item => hasPermission(item.permission))
+            .map(item => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href);
+
               return (
                 <NavbarItem key={item.href}>
                   <Tooltip placement="bottom">
                     <Button
-                      variant={isActive ? "shadow" : "light"}
-                      onPress={() => handleClick(item.href)}
                       className="relative"
+                      variant={isActive ? 'shadow' : 'light'}
+                      onPress={() => handleClick(item.href)}
                     >
                       <Icon
                         className={clsx(
-                          "w-5 h-5 z-10",
-                          isActive ? "text-primary" : "text-default-500"
+                          'w-5 h-5 z-10',
+                          isActive ? 'text-primary' : 'text-default-500',
                         )}
                       />
                     </Button>
                   </Tooltip>
                 </NavbarItem>
               );
-            })
+            }),
         )}
 
         <NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
@@ -123,8 +120,11 @@ export const Navbar = () => {
       <NavbarMenu>
         {searchInput}
         <div className="mx-4 mt-2 flex flex-col gap-2">
-          {siteConfig.navMenuItems.map((section) => {
-            const visibleItems = section.items.filter((item) => hasPermission(item.permission));
+          {siteConfig.navMenuItems.map(section => {
+            const visibleItems = section.items.filter(item =>
+              hasPermission(item.permission),
+            );
+
             if (visibleItems.length === 0) return null;
 
             return (
@@ -136,28 +136,29 @@ export const Navbar = () => {
                 </div>
 
                 <div className="space-y-1 px-2">
-                  {visibleItems.map((item) => {
+                  {visibleItems.map(item => {
                     const Icon = item.icon;
                     const isActive = pathname.startsWith(item.href);
+
                     return (
                       <NavbarMenuItem key={item.href}>
                         <Button
                           fullWidth
-                          variant={isActive ? "shadow" : "light"}
-                          onPress={() => handleClick(item.href)}
                           className="flex items-center gap-2"
+                          variant={isActive ? 'shadow' : 'light'}
+                          onPress={() => handleClick(item.href)}
                         >
                           <Icon
                             className={clsx(
-                              "w-5 h-5",
-                              isActive ? "text-primary" : "text-default-500"
+                              'w-5 h-5',
+                              isActive ? 'text-primary' : 'text-default-500',
                             )}
                           />
                           <span>{item.label}</span>
                           <span
                             className={clsx(
-                              "absolute left-0 top-0 h-full w-1 rounded-r-md transition-all duration-200 ease-in-out",
-                              isActive ? "bg-primary" : "bg-transparent"
+                              'absolute left-0 top-0 h-full w-1 rounded-r-md transition-all duration-200 ease-in-out',
+                              isActive ? 'bg-primary' : 'bg-transparent',
                             )}
                           />
                         </Button>
