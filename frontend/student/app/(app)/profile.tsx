@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GLView, ExpoWebGLRenderingContext } from "expo-gl";
+// import { GLView, ExpoWebGLRenderingContext } from "expo-gl";
 import ExpoTHREE, { Renderer } from "expo-three";
 import {
   Scene,
@@ -22,8 +22,8 @@ import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system';
 import { GlassButton } from "@/components/ui/GlassButton";
 import useProfile from "@/hooks/useProfile";
-import { GraduationCap, University, Eye, EyeOff } from "lucide-react-native";
-import { Paragraph, Spinner, YStack } from "tamagui";
+import { GraduationCap, University, Eye, EyeOff, Settings } from "lucide-react-native";
+import { Button, Paragraph, Spinner, YStack } from "tamagui";
 
 if (__DEV__) {
   const originalLog = console.log;
@@ -163,29 +163,33 @@ export default function ProfileScreen() {
         <GlassButton onPress={router.back}>
           <Text style={{ color: 'white' }}>Back</Text>
         </GlassButton>
-
-        <GlassButton iconOnly>
-          {isViewing ? (
-            <Eye onPress={() => setIsViewing(false)} color='white' />
-          ) : (
-            <EyeOff onPress={() => setIsViewing(true)} color='white' />
-          )}
-        </GlassButton>
+        <View style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
+          <GlassButton iconOnly>
+            {isViewing ? (
+              <Eye onPress={() => setIsViewing(false)} color='white' />
+            ) : (
+              <EyeOff onPress={() => setIsViewing(true)} color='white' />
+            )}
+          </GlassButton>
+          <GlassButton iconOnly onPress={() => router.replace('/(app)/settings')}>
+            <Settings color='white'/>
+          </GlassButton>
+        </View>
       </View>
 
-      {loading &&
+      {/* {loading &&
         <YStack position="absolute" height={"90%"} width={"100%"} justifyContent="center" alignItems="center">
           <Spinner size="large" />
           <Paragraph marginTop="$2" color="white">Loading character...</Paragraph>
         </YStack>
-      }
-
+      } */}
+{/* 
       <GLView
         style={styles.model}
         onContextCreate={onContextCreate}
-      />
+      /> */}
 
-      <Animated.View style={{ opacity: fadeAnim }}>
+      {/* <Animated.View style={{ opacity: fadeAnim }}> */}
         <BlurView style={styles.information}>
           <View style={styles.field}>
             <Text style={styles.name}>{user?.data[0].name.first} {user?.data[0].name.last ?? ''}</Text>
@@ -208,7 +212,9 @@ export default function ProfileScreen() {
             <Text style={styles.school}>{user?.data[0].metadata.major.name.en}</Text>
           </View>
         </BlurView>
-      </Animated.View>
+      {/* </Animated.View> */}
+
+
     </SafeAreaView>
   );
 }
@@ -220,6 +226,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
     zIndex: 10,
     paddingHorizontal: 16,
   },

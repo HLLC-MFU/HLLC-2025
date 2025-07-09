@@ -246,6 +246,9 @@ export const RegisterForm = ({
               />
               <ChevronDown />
             </XStack>
+            <SizableText fontSize={12} color="gray" marginLeft={30} marginTop={-8} >
+              {t("register.provinceNote")}
+            </SizableText>
 
             <XStack width="100%">
               <Button flex={1} onPress={onRegister} disabled={isDisabled}>
