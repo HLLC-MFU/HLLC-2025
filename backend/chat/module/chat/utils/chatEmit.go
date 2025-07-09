@@ -42,7 +42,16 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 	userInfo, err := e.getUserInfo(ctx, msg.UserID)
 	if err != nil {
 		log.Printf("[WARN] Failed to get user info: %v", err)
-		userInfo = model.UserInfo{ID: msg.UserID.Hex()}
+		// Ensure fallback userInfo is always complete
+		userInfo = model.UserInfo{
+			ID:       msg.UserID.Hex(),
+			Username: "user_" + msg.UserID.Hex()[:8],
+			Name: map[string]interface{}{
+				"first":  "User",
+				"middle": "",
+				"last":   msg.UserID.Hex()[:8],
+			},
+		}
 	}
 
 	// Get room data (basic for now)
@@ -96,16 +105,24 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 			Image: msg.Image,
 		}
 
-		// Create payload without reactions (new messages don't have reactions yet)
+		// Build user map (with role if present)
+		userMap := map[string]interface{}{
+			"_id":      userInfo.ID,
+			"username": userInfo.Username,
+			"name":     userInfo.Name,
+		}
+		if userInfo.Role != nil {
+			userMap["role"] = map[string]interface{}{
+				"_id": userInfo.Role.ID,
+			}
+		}
+
+		// Create payload
 		manualPayload := map[string]interface{}{
 			"room": map[string]interface{}{
 				"_id": roomInfo.ID,
 			},
-			"user": map[string]interface{}{
-				"_id":      userInfo.ID,
-				"username": userInfo.Username,
-				"name":     userInfo.Name,
-			},
+			"user": userMap,
 			"message": map[string]interface{}{
 				"_id":       messageInfo.ID,
 				"type":      messageInfo.Type,
@@ -226,153 +243,9 @@ func (e *ChatEventEmitter) EmitMessage(ctx context.Context, msg *model.ChatMessa
 	}
 }
 
-func (e *ChatEventEmitter) EmitReaction(ctx context.Context, reaction *model.MessageReaction, roomID primitive.ObjectID) error {
-	// Get user data for the person who reacted
-	userInfo, err := e.getUserInfo(ctx, reaction.UserID)
-	if err != nil {
-		log.Printf("[WARN] Failed to get user info for reaction: %v", err)
-		userInfo = model.UserInfo{ID: reaction.UserID.Hex()}
-	}
 
-	// Get message info for the message being reacted to
-	msgCollection := e.mongo.Collection("chat-messages")
-	var msgDoc struct {
-		ID        primitive.ObjectID `bson:"_id"`
-		Message   string             `bson:"message"`
-		Timestamp time.Time          `bson:"timestamp"`
-		Type      string             `bson:"type"`
-	}
-	err = msgCollection.FindOne(ctx, bson.M{"_id": reaction.MessageID}).Decode(&msgDoc)
-	if err != nil {
-		log.Printf("[WARN] Failed to get message info for reaction: %v", err)
-		msgDoc.ID = reaction.MessageID
-		msgDoc.Message = ""
-		msgDoc.Timestamp = reaction.Timestamp
-		msgDoc.Type = "reaction"
-	} else if msgDoc.Type == "" {
-		msgDoc.Type = "reaction"
-	}
 
-	reactionCollection := e.mongo.Collection("message-reactions")
-	// Find if user already reacted to this message (any emoji)
-	filterAny := bson.M{"message_id": reaction.MessageID, "user_id": reaction.UserID}
-	var existing model.MessageReaction
-	action := "add"
-	err = reactionCollection.FindOne(ctx, filterAny).Decode(&existing)
-	if err == nil {
-		if existing.Reaction == reaction.Reaction {
-			// Same emoji: emit event, do not insert again
-			action = "add"
-			// ไม่ต้อง insert ซ้ำ
-		} else {
-			// Different emoji: update (remove old, insert new)
-			_, _ = reactionCollection.DeleteOne(ctx, filterAny)
-			_, err := reactionCollection.InsertOne(ctx, reaction)
-			if err != nil {
-				log.Printf("[EmitReaction] Failed to update reaction: %v", err)
-				return err
-			}
-			action = "update"
-		}
-	} else if err != mongo.ErrNoDocuments {
-		// Some other error
-		log.Printf("[EmitReaction] DB error: %v", err)
-		return err
-	} else {
-		// No previous reaction: insert new
-		_, err = reactionCollection.InsertOne(ctx, reaction)
-		if err != nil {
-			log.Printf("[EmitReaction] Failed to insert reaction: %v", err)
-			return err
-		}
-		action = "add"
-	}
 
-	// --- สร้าง rich payload ---
-	payload := map[string]interface{}{
-		"react": map[string]interface{}{
-			"action":    action,
-			"emoji":     reaction.Reaction,
-			"reactToId": msgDoc.ID.Hex(),
-		},
-		"room": map[string]interface{}{
-			"_id": roomID.Hex(),
-		},
-		"timestamp": reaction.Timestamp,
-		"user": map[string]interface{}{
-			"_id":      userInfo.ID,
-			"username": userInfo.Username,
-			"name":     userInfo.Name,
-		},
-	}
-	event := model.Event{
-		Type:      model.EventTypeReaction,
-		Payload:   payload,
-		Timestamp: reaction.Timestamp,
-	}
-
-	// ส่ง standardized event ไปยัง WebSocket และ Kafka
-	e.emitEventStructured(ctx, &model.ChatMessage{RoomID: roomID}, event)
-
-	log.Printf("[EmitReaction] %s reaction: user %s reacted with %s on message %s", action, reaction.UserID.Hex(), reaction.Reaction, reaction.MessageID.Hex())
-	return nil
-}
-
-func (e *ChatEventEmitter) EmitReactionRemoved(ctx context.Context, messageID, userID, roomID primitive.ObjectID) error {
-	// Get user data for the person who removed the reaction
-	userInfo, err := e.getUserInfo(ctx, userID)
-	if err != nil {
-		log.Printf("[WARN] Failed to get user info for reaction removal: %v", err)
-		userInfo = model.UserInfo{ID: userID.Hex()}
-	}
-
-	// Get message info for the message being reacted to
-	msgCollection := e.mongo.Collection("chat-messages")
-	var msgDoc struct {
-		ID        primitive.ObjectID `bson:"_id"`
-		Message   string             `bson:"message"`
-		Timestamp time.Time          `bson:"timestamp"`
-		Type      string             `bson:"type"`
-	}
-	err = msgCollection.FindOne(ctx, bson.M{"_id": messageID}).Decode(&msgDoc)
-	if err != nil {
-		log.Printf("[WARN] Failed to get message info for reaction removal: %v", err)
-		msgDoc.ID = messageID
-		msgDoc.Message = ""
-		msgDoc.Timestamp = time.Now()
-		msgDoc.Type = "reaction"
-	}
-
-	// Create payload with new format
-	payload := map[string]interface{}{
-		"react": map[string]interface{}{
-			"action":    "delete",
-			"emoji":     "", // No emoji for delete
-			"reactToId": msgDoc.ID.Hex(),
-		},
-		"room": map[string]interface{}{
-			"_id": roomID.Hex(),
-		},
-		"timestamp": time.Now(),
-		"user": map[string]interface{}{
-			"_id":      userInfo.ID,
-			"username": userInfo.Username,
-			"name":     userInfo.Name,
-		},
-	}
-
-	event := model.Event{
-		Type:      model.EventTypeReaction,
-		Payload:   payload,
-		Timestamp: time.Now(),
-	}
-
-	// Send standardized event to WebSocket and Kafka
-	e.emitEventStructured(ctx, &model.ChatMessage{RoomID: roomID}, event)
-
-	log.Printf("[EmitReactionRemoved] delete reaction: user %s removed reaction on message %s", userID.Hex(), messageID.Hex())
-	return nil
-}
 
 func (e *ChatEventEmitter) EmitTyping(ctx context.Context, roomID, userID string) error {
 	event := ChatEvent{
@@ -442,13 +315,31 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 	result, err := userService.FindOne(ctx, bson.M{"_id": userID})
 	
 	if err != nil {
-		log.Printf("[ERROR] Failed to query user %s: %v", userID.Hex(), err)
-		return model.UserInfo{}, fmt.Errorf("failed to query user %s: %w", userID.Hex(), err)
+		log.Printf("[WARN] Failed to query user %s: %v, using fallback", userID.Hex(), err)
+		// **FIXED: Never return error, always return valid user info**
+		return model.UserInfo{
+			ID:       userID.Hex(),
+			Username: "user_" + userID.Hex()[:8],
+			Name: map[string]interface{}{
+				"first":  "User",
+				"middle": "",
+				"last":   userID.Hex()[:8],
+			},
+		}, nil
 	}
 	
 	if len(result.Data) == 0 {
-		log.Printf("[ERROR] User %s not found in database", userID.Hex())
-		return model.UserInfo{}, fmt.Errorf("user %s not found in database", userID.Hex())
+		log.Printf("[WARN] User %s not found in database, using fallback", userID.Hex())
+		// **FIXED: Never return error, always return valid user info**
+		return model.UserInfo{
+			ID:       userID.Hex(),
+			Username: "user_" + userID.Hex()[:8],
+			Name: map[string]interface{}{
+				"first":  "User",
+				"middle": "",
+				"last":   userID.Hex()[:8],
+			},
+		}, nil
 	}
 
 	user := result.Data[0]
@@ -458,14 +349,16 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 		user.ID.Hex(), user.Username, user.Name.First, user.Name.Middle, user.Name.Last)
 
 	// **BUILD USER INFO WITH VALIDATION**
+	// **FIXED: Make validation less strict to handle missing fields gracefully**
 	if user.Username == "" {
-		log.Printf("[ERROR] User %s has empty username", userID.Hex())
-		return model.UserInfo{}, fmt.Errorf("user %s has empty username", userID.Hex())
+		log.Printf("[WARN] User %s has empty username, using fallback", userID.Hex())
+		user.Username = "user_" + userID.Hex()[:8] // Use first 8 chars of ID as fallback
 	}
 	
 	if user.Name.First == "" && user.Name.Last == "" {
-		log.Printf("[ERROR] User %s has empty name", userID.Hex())
-		return model.UserInfo{}, fmt.Errorf("user %s has empty name", userID.Hex())
+		log.Printf("[WARN] User %s has empty name, using fallback", userID.Hex())
+		user.Name.First = "User"
+		user.Name.Last = userID.Hex()[:8] // Use first 8 chars of ID as fallback
 	}
 
 	userInfo := model.UserInfo{
@@ -473,7 +366,12 @@ func (e *ChatEventEmitter) getUserInfo(ctx context.Context, userID primitive.Obj
 		Username: user.Username,
 		Name:     map[string]interface{}{
 			"first":  user.Name.First,
-			"middle": user.Name.Middle,
+			"middle": func() string {
+				if user.Name.Middle == "" {
+					return ""
+				}
+				return user.Name.Middle
+			}(),
 			"last":   user.Name.Last,
 		},
 	}
@@ -562,7 +460,12 @@ func (e *ChatEventEmitter) EmitMentionMessage(ctx context.Context, msg *model.Ch
 	userInfo, err := e.getUserInfo(ctx, msg.UserID)
 	if err != nil {
 		log.Printf("[WARN] Failed to get user info for mention message: %v", err)
-		userInfo = model.UserInfo{ID: msg.UserID.Hex()}
+		// **FIXED: Ensure user field exists even if retrieval fails**
+		userInfo = model.UserInfo{
+			ID:       msg.UserID.Hex(),
+			Username: "",
+			Name:     map[string]interface{}{},
+		}
 	}
 
 	// Get room data (basic for now)
@@ -616,7 +519,12 @@ func (e *ChatEventEmitter) EmitEvoucherMessage(ctx context.Context, msg *model.C
 	userInfo, err := e.getUserInfo(ctx, msg.UserID)
 	if err != nil {
 		log.Printf("[WARN] Failed to get user info for evoucher message: %v", err)
-		userInfo = model.UserInfo{ID: msg.UserID.Hex()}
+		// **FIXED: Ensure user field exists even if retrieval fails**
+		userInfo = model.UserInfo{
+			ID:       msg.UserID.Hex(),
+			Username: "",
+			Name:     map[string]interface{}{},
+		}
 	}
 
 	// Get room data (basic for now)

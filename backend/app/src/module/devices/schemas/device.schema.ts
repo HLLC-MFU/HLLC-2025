@@ -24,10 +24,19 @@ export class Device extends Document {
   deviceName?: string;
 
   @Prop()
+  osName?: string;
+
+  @Prop()
   osVersion?: string;
 
   @Prop()
+  brand?: string;
+
+  @Prop()
   appVersion?: string;
+
+  @Prop()
+  buildNumber?: string;
 }
 
 export const DeviceSchema = SchemaFactory.createForClass(Device);

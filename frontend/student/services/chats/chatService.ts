@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { getToken } from '@/utils/storage';
 import { ChatRoom, MembersResponse } from '../../types/chatTypes';
 import {
