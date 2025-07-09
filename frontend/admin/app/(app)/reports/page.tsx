@@ -17,8 +17,6 @@ import { CategoryModal } from './_components/CategoryModal';
 import { ProblemCharts } from './_components/ProblemCharts';
 import StatusDropdown from './_components/Statusdropdown';
 import SendNotiButton from './_components/SendNotiButton';
-import { ProblemModal } from './_components/ProblemModal';
-
 import { useReportTypes } from '@/hooks/useReportTypes';
 import { useReports } from '@/hooks/useReports';
 import { ProblemModal } from './_components/ProblemModal';
