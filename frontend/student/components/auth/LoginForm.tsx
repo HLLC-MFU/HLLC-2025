@@ -98,7 +98,7 @@ export const LoginForm = ({
         </Button>
 
       </View>
-      <Text textAlign="center" fontSize={10} color="#666" paddingBottom={24} marginHorizontal={24}>
+      <Text textAlign="center" fontSize={10} color="#666" paddingBottom={24} marginHorizontal={24} style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
         <Trans
           i18nKey="login.policy"
           components={{

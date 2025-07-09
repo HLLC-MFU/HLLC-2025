@@ -3,6 +3,7 @@ import { Button, YStack, XStack, SizableText, Text } from "tamagui";
 import { BottomSheetModal, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import { Province } from "@/types/auth";
 import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ProvinceSelectorProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ export const ProvinceSelector = ({
   onSelect,
 }: ProvinceSelectorProps) => {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
-
+  const {language} = useLanguage(); // Assuming you have a language store
   useEffect(() => {
     if (isOpen) {
       bottomSheetRef.current?.present();  // เรียก present() เพื่อเปิด modal
@@ -51,7 +52,7 @@ export const ProvinceSelector = ({
     >
       <XStack justifyContent="space-between" alignItems="center" marginBottom="$4" paddingHorizontal="$4">
         <Text fontSize={24} fontWeight="bold">
-          Select Province
+          {t("provinceSelector.title")}
         </Text>
         <Button
           onPress={() => {
@@ -82,7 +83,7 @@ export const ProvinceSelector = ({
                 borderColor="$borderColor"
               >
                 <SizableText color={isSelected ? "white" : "$color"}>
-                  {province.name_en}
+                  {province[`name_${language}`] || province.name_en}
                 </SizableText>
               </Button>
             );
