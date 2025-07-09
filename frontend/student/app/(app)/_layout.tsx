@@ -10,6 +10,7 @@ import TabBar from '@/components/global/TabBar';
 import BackgroundScreen from '@/components/global/BackgroundScreen';
 import { useAppearance } from '@/hooks/useAppearance';
 import usePushNotification from '@/hooks/notifications/usePushNotification';
+import useDevice from '@/hooks/useDevice';
 
 export default function AppLayout() {
   const { user, getProfile } = useProfile();
@@ -17,13 +18,16 @@ export default function AppLayout() {
   const pathname = usePathname();
   const assets = useAppearance();
   const { initializePushNotification } = usePushNotification();
+  const { registerDevice } = useDevice()
 
   useEffect(() => {
     getProfile().finally(() => {
       setLoading(false);
       SplashScreen.hideAsync();
     });
-    initializePushNotification();
+    initializePushNotification().then((granted) => {
+      if (granted) registerDevice();
+    });
   }, []);
 
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
