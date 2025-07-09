@@ -48,7 +48,7 @@ export default function RootLayout({
       >
         <Providers themeProps={{ attribute: 'class', defaultTheme: 'dark' }}>
           <PopupDialog />
-          <main className=" h-dvh container mx-auto">{children}</main>
+          <main className="grow">{children}</main>
         </Providers>
       </body>
     </html>
