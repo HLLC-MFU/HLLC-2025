@@ -1,7 +1,7 @@
 import '@/styles/globals.css';
 import { Metadata, Viewport } from 'next';
 import clsx from 'clsx';
-import { Noto_Sans_Thai } from "next/font/google";
+import { Noto_Sans_Thai } from 'next/font/google';
 
 import { Providers } from './providers';
 
@@ -28,9 +28,9 @@ export const viewport: Viewport = {
 };
 
 const notosans_thai = Noto_Sans_Thai({
-  subsets: ["thai", "latin"],
-  variable: "--font-noto-sans-thai",
-})
+  subsets: ['thai', 'latin'],
+  variable: '--font-noto-sans-thai',
+});
 
 export default function RootLayout({
   children,
@@ -38,7 +38,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html suppressHydrationWarning className={`${notosans_thai.className}`} lang="en">
+    <html
+      suppressHydrationWarning
+      className={`${notosans_thai.className}`}
+      lang="en"
+    >
       <head />
       <body
         className={clsx(
