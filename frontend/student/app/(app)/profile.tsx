@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GLView } from "expo-gl";
+import { GLView, ExpoWebGLRenderingContext } from "expo-gl";
 import ExpoTHREE, { Renderer } from "expo-three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { ExpoWebGLRenderingContext } from "expo-gl";
 import {
   Scene,
   PerspectiveCamera,
@@ -18,12 +16,13 @@ import {
   MeshPhysicalMaterial,
   Material
 } from "three";
-import { GlassButton } from "@/components/ui/GlassButton";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { router } from "expo-router";
-import { GraduationCap, University, Eye, EyeOff } from "lucide-react-native";
-import useProfile from "@/hooks/useProfile";
 import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system';
+import { GlassButton } from "@/components/ui/GlassButton";
+import useProfile from "@/hooks/useProfile";
+import { GraduationCap, University, Eye, EyeOff } from "lucide-react-native";
 import { Paragraph, Spinner, YStack } from "tamagui";
 
 if (__DEV__) {
