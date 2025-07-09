@@ -31,7 +31,7 @@ const useAuth = create<AuthStore>()(
         try {
           set({ loading: true, error: null });
 
-          const res = await fetch(`${process.env.NEXT_PUBLIC_NEST_API_URL}/auth/login?useCookies=true`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login?useCookies=true`, {
             method: 'POST',
             body: JSON.stringify({ username, password }),
             headers: { 'Content-Type': 'application/json' },
@@ -77,7 +77,7 @@ const useAuth = create<AuthStore>()(
       },
 
       signOut: async () => {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_NEST_API_URL}/auth/logout`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
           method: 'POST',
           credentials: 'include',
         });
@@ -110,7 +110,7 @@ const useAuth = create<AuthStore>()(
         try {
           set({ loading: true, error: null });
 
-          const res = await fetch(`${process.env.NEXT_PUBLIC_NEST_API_URL}/auth/remove-password`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/remove-password`, {
             method: 'POST',
             body: JSON.stringify({ username }),
             headers: { 'Content-Type': 'application/json' },

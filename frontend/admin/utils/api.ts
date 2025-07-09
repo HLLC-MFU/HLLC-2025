@@ -27,7 +27,7 @@ export async function apiRequest<T>(
       ...(options.headers || {}),
     };
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_NEST_API_URL}${endpoint}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
       method,
       headers,
       credentials: "include",
