@@ -15,6 +15,8 @@ import { useUsers } from '@/hooks/useUsers';
 import { useSchools } from '@/hooks/useSchool';
 import { useMajors } from '@/hooks/useMajor';
 import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
+import THIcon from '@/public/icons/th.svg'
+import ENIcon from '@/public/icons/gb.svg'
 
 export type NotificationFormData = Notification & {
   imageURL?: string;
@@ -36,8 +38,8 @@ export default function NotificationPush() {
   });
 
   const previewLanguageOptions: { key: keyof Lang; label: string; icon: string }[] = [
-    { key: 'en', label: 'EN' , icon: '/icons/gb.svg' },
-    { key: 'th', label: 'TH' , icon: '/icons/th.svg' },
+    { key: 'en', label: 'EN' , icon: THIcon },
+    { key: 'th', label: 'TH' , icon: ENIcon },
   ];
 
   const [previewLanguage, setPreviewLanguage] = useState<keyof Lang>('en');

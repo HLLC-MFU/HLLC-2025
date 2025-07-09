@@ -258,15 +258,14 @@ func (s *ChatService) notifyOfflineUsersForMention(msg *chatModel.ChatMessage) {
 			continue
 		}
 
-		log.Printf("[ChatService] User %s is OFFLINE, sending mention notification", memberIDStr)
-		
-		// ✅ Send offline notification using the NEW mention notification method
+		log.Printf("[ChatService] User %s is OFFLINE, preparing to send mention notification", memberIDStr)
 		if s.notificationService != nil {
+			log.Printf("[ChatService] Sending mention notification to user %s", memberIDStr)
 			s.notificationService.SendOfflineMentionNotification(ctx, memberIDStr, msg)
 			notificationCount++
 			log.Printf("[ChatService] ✅ Sent mention notification to user %s", memberIDStr)
 		} else {
-			log.Printf("[ChatService] ❌ Notification service is nil, cannot send notification to user %s", memberIDStr)
+			log.Printf("[ChatService] ❌ notificationService is nil, cannot send notification to user %s", memberIDStr)
 		}
 	}
 	

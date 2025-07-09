@@ -35,10 +35,7 @@ export default function HomeScreen() {
   useEffect(() => {
     async function setupBackgroundTask() {
       try {
-        // Register the background task with a minimum interval
         await registerBackgroundTaskAsync();
-
-        // Optionally sync immediately on startup
         await syncStepsOnStartup();
       } catch (e) {
       }

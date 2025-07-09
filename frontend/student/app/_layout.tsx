@@ -21,7 +21,6 @@ import { CurrentToast } from '@/context/ToastContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import '@/hooks/notifications/backgroundNotificationHandler'
-import { LogBox } from 'react-native';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -29,9 +28,6 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { left, top, right } = useSafeAreaInsets();
   const config = createTamagui(defaultConfig);
-  LogBox.ignoreLogs([
-    'This method is deprecated (as well as all React Native Firebase namespaced API)',
-  ]);
 
   return (
     // Bugfix: Uncomment the GestureHandlerRootView to fix gesture handling issues (not fix yet)

@@ -41,15 +41,30 @@ export interface LeaderboardApiResponse {
 
 // Response for /rank/:userId
 export interface UserRankApiResponse {
-  rank: number;
-  total: number;
-  stepCount: number;
-  username: string | null;
-  name: {
-    first: string;
-    middle?: string;
-    last?: string;
-  };
+  data:{
+    _id: string;
+    user: {
+      _id: string;
+      name: {
+        first: string;
+        middle?: string;
+        last?: string;
+      };
+      username?: string;
+    },
+    achievement: string;
+    deviceId: string;
+    completeStatus: boolean;
+    stepCount: [
+      {
+        totalStep: number;
+        step: number;
+        date: string;
+        _id: string;
+      }
+    ];
+  }
+
   message: string;
 }
 
