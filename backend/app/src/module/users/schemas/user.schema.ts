@@ -42,11 +42,12 @@ export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index({ updatedAt: -1 });
 
 UserSchema.pre('save', async function (next) {
-  // Only hash password if it's being modified and isn't already hashed
-  if (this.isModified('password')) {
-    this.password = await bcrypt.hash(this.password, 10);
-  }
+  
+  if (!this.isModified('password')) return next();
 
+  if (this.password === '') return next();
+
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 UserSchema.set('toJSON', {

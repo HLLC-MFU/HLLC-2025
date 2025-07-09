@@ -3,7 +3,8 @@ import { ChatRoom } from '../../types/chatTypes';
 import chatService from '@/services/chats/chatService';
 
 export const useChatRooms = () => {
-  const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [myRooms, setMyRooms] = useState<ChatRoom[]>([]);
+  const [discoverRooms, setDiscoverRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -14,25 +15,22 @@ export const useChatRooms = () => {
     try {
       setLoading(true);
       setError(null);
-      let allRooms: ChatRoom[] = [];
-      if (activeTab === 'my') {
-        allRooms = await chatService.getMyRoomsByApi();
-      } else {
-        allRooms = await chatService.getAllRoomsForUser();
-      }
-      setRooms(allRooms);
+      const [myRoomsData, discoverRoomsData] = await Promise.all([
+        chatService.getMyRoomsByApi(),
+        chatService.getAllRoomsForUser(),
+      ]);
+      setMyRooms(myRoomsData);
+      setDiscoverRooms(discoverRoomsData);
     } catch (err) {
       console.error('Error loading rooms:', err);
       setError('Failed to load chat rooms');
-      setRooms([]);
+      setMyRooms([]);
+      setDiscoverRooms([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [activeTab]);
-
-  const myRooms = rooms;
-  const discoverRooms = rooms;
+  }, []);
 
   const filteredRooms = useMemo(() => {
     const baseRooms = activeTab === 'my' ? myRooms : discoverRooms;
@@ -43,7 +41,7 @@ export const useChatRooms = () => {
   }, [activeTab, myRooms, discoverRooms, selectedCategory]);
 
   return {
-    rooms,
+    rooms: activeTab === 'my' ? myRooms : discoverRooms,
     loading,
     refreshing,
     error,

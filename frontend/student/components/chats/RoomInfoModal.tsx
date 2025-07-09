@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { X, Users, Clock, Shield, Star } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
+import { useTranslation } from 'react-i18next';
 
 import Avatar from './Avatar';
 import { RoomInfoModalProps } from '@/types/chatTypes';
@@ -20,8 +21,24 @@ import { formatTime } from '@/utils/chats/timeUtils';
 const { width, height } = Dimensions.get('window');
 
 const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoModalProps) => {
+  const { t, i18n } = useTranslation();
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const contentScale = useRef(new Animated.Value(0.9)).current;
+
+  // Function to get room name based on current language
+  const getRoomName = (room: any) => {
+    if (!room?.name) return t('roomInfo.unnamedRoom');
+    
+    const currentLang = i18n.language;
+    if (currentLang === 'th' && room.name.th) {
+      return room.name.th;
+    } else if (currentLang === 'en' && room.name.en) {
+      return room.name.en;
+    }
+    
+    // Fallback: try th first, then en, then default
+    return room.name.th || room.name.en || t('roomInfo.unnamedRoom');
+  };
 
   useEffect(() => {
     if (isVisible) {
@@ -66,7 +83,7 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
       {/* Room Title */}
       <View style={styles.roomTitleContainer}>
         <Text style={styles.roomInfoTitle}>
-          {room.name?.th || room.name?.en || 'Unnamed Room'}
+          {getRoomName(room)}
         </Text>
 
       </View>
@@ -84,7 +101,7 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
             <Text style={styles.statValue}>
               {connectedUsers.length}/{room.capacity || 0}
             </Text>
-            <Text style={styles.statLabel}>ผู้ใช้งาน</Text>
+            <Text style={styles.statLabel}>{t('roomInfo.users')}</Text>
             <View style={styles.occupancyBar}>
               <View 
                 style={[
@@ -101,9 +118,9 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
           <Clock size={20} color="#fff" />
           <View style={styles.statContent}>
             <Text style={styles.statValue}>
-              {room.created_at ? formatTime(room.created_at) : 'Unknown'}
+              {room.created_at ? formatTime(room.created_at) : t('roomInfo.createdAt')}
             </Text>
-            <Text style={styles.statLabel}>สร้างเมื่อ</Text>
+            <Text style={styles.statLabel}>{t('roomInfo.createdAt')}</Text>
           </View>
         </View>
       </View>
@@ -111,13 +128,13 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
       {/* Security Badge */}
       <View style={styles.securityBadge}>
         <Shield size={16} color="#fff" />
-        <Text style={styles.securityText}>ห้องแชทปลอดภัย</Text>
+        <Text style={styles.securityText}>{t('roomInfo.secureRoom')}</Text>
       </View>
       
       {/* Users Section Title */}
       <View style={styles.usersSectionHeader}>
         <Text style={styles.connectedUsersTitle}>
-          ผู้ใช้ที่กำลังออนไลน์ ({connectedUsers.length})
+          {t('roomInfo.onlineUsers')} ({connectedUsers.length})
         </Text>
       </View>
     </View>
@@ -127,9 +144,9 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
   const renderEmptyState = () => (
     <View style={styles.noUsersContainer}>
       <Users size={48} color="#fff" />
-      <Text style={styles.noUsersText}>ไม่มีผู้ใช้ออนไลน์</Text>
+      <Text style={styles.noUsersText}>{t('roomInfo.noUsersOnline')}</Text>
       <Text style={styles.noUsersSubtext}>
-        รอให้เพื่อนเข้าร่วมห้องแชท
+        {t('roomInfo.waitingForFriends')}
       </Text>
     </View>
   );
@@ -166,7 +183,7 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
             
             {/* Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>รายละเอียดห้องแชท</Text>
+              <Text style={styles.modalTitle}>{t('roomInfo.roomDetails')}</Text>
               <TouchableOpacity 
                 onPress={onClose}
                 style={styles.closeButton}
@@ -194,11 +211,11 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
                   />
                   <View style={styles.userInfo}>
                     <Text style={styles.connectedUserName}>
-                      {user.name || user.id || 'Unknown User'}
+                      {user.name || user.id || t('chat.unknownUser')}
                     </Text>
                     <View style={styles.onlineIndicator}>
                       <View style={styles.onlineDot} />
-                      <Text style={styles.onlineText}>ออนไลน์</Text>
+                      <Text style={styles.onlineText}>{t('roomInfo.online')}</Text>
                     </View>
                   </View>
                   <View style={styles.userActions}>

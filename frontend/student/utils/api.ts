@@ -42,7 +42,8 @@ export async function apiRequest<T>(
         : undefined,
       ...options,
     });
-    const responseData = await response.json(); // ✅ Read full response
+    const text = await response.text();
+    const responseData = text ? JSON.parse(text) : {};
 
     // ✅ Ensure `statusCode` from API is handled correctly
     if (responseData.statusCode && responseData.message && responseData.data) {
