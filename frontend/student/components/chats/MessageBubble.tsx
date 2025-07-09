@@ -1,14 +1,15 @@
 import React, { memo, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActionSheetIOS, Platform, Alert, TouchableWithoutFeedback, Pressable } from 'react-native';
 import Avatar from './Avatar';
 import { Reply } from 'lucide-react-native';
 import { MessageBubbleProps } from '@/types/chatTypes';
-import { CHAT_BASE_URL, API_BASE_URL } from '@/configs/chats/chatConfig';
+import { CHAT_BASE_URL, API_BASE_URL,IMAGE_BASE_URL } from '@/configs/chats/chatConfig';
 import { formatTime } from '@/utils/chats/timeUtils';
 import ImagePreviewModal from './ImagePreviewModal';
 import { apiRequest } from '@/utils/api';
 import useProfile from '@/hooks/useProfile';
 import { useTranslation } from 'react-i18next';
+import * as SecureStore from 'expo-secure-store';
 
 
 interface MessageBubbleEnrichedProps extends MessageBubbleProps {
@@ -28,7 +29,10 @@ const MessageBubble = memo(({
   allMessages = [],
   onReplyPreviewClick,
   currentUsername,
-}: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'>) => {
+  onUnsend, // <-- add this prop
+}: Omit<MessageBubbleEnrichedProps, 'senderId' | 'senderName'> & { onUnsend?: (message: any) => void }) => {
+  if (message && message.evoucherInfo) {
+  }
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState('');
   const [claiming, setClaiming] = useState<{ [id: string]: boolean }>({});
@@ -88,15 +92,41 @@ const MessageBubble = memo(({
     if (message.type === 'evoucher' && message.evoucherInfo) {
       const isClaimed = claimed[message.id ?? ''] || false;
       const isClaiming = claiming[message.id ?? ''] || false;
+      // Language selection: fallback to 'th' if not detected
+      const displayLang = lang === 'en' ? 'en' : 'th';
       return (
         <View style={[styles.evoucherCard, isClaimed && styles.evoucherCardClaimed]}> 
+          {/* Show sponsor image if present */}
+          {message.evoucherInfo && message.evoucherInfo.sponsorImage && (
+            <TouchableOpacity
+              onPress={() => {
+                const sponsorImg = message.evoucherInfo?.sponsorImage;
+                if (!sponsorImg) return;
+                const imgUrl = sponsorImg.startsWith('http')
+                  ? sponsorImg
+                  : `${IMAGE_BASE_URL}/uploads/${sponsorImg}`;
+                setPreviewImageUrl(imgUrl);
+                setShowImagePreview(true);
+              }}
+              style={{ alignItems: 'center', marginBottom: 8 }}
+            >
+              <Image
+                source={{
+                  uri: message.evoucherInfo.sponsorImage.startsWith('http')
+                    ? message.evoucherInfo.sponsorImage
+                    : `${IMAGE_BASE_URL}/uploads/${message.evoucherInfo.sponsorImage}`,
+                }}
+                style={{ width: 80, height: 80, borderRadius: 12, marginBottom: 4 }}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          )}
           <View style={styles.evoucherHeader}>
             <Text style={styles.evoucherIcon}>{isClaimed ? '🎉' : '🎟️'}</Text>
             <Text style={[styles.evoucherTitle, isClaimed && styles.evoucherTitleClaimed]}>
-              {message.evoucherInfo.title}
+              {message.evoucherInfo.message[displayLang]}
             </Text>
           </View>
-          <Text style={styles.evoucherDescription}>{message.evoucherInfo.description}</Text>
           {isClaimed ? (
             <View style={styles.claimedBox}>
               <Text style={styles.claimedText}>{t('evoucher.claimed', 'คุณได้รับ E-Voucher แล้ว!')}</Text>
@@ -109,12 +139,26 @@ const MessageBubble = memo(({
                 if (!message.evoucherInfo?.claimUrl || !userId) return;
                 setClaiming(prev => ({ ...prev, [message.id ?? '']: true }));
                 try {
-                  const claimPath = message.evoucherInfo.claimUrl;
-                  const res = await apiRequest(claimPath, 'POST', { user: userId });
-                  if (res.statusCode === 200 || res.statusCode === 201) {
+                  const claimUrl = message.evoucherInfo.claimUrl;
+                  
+                  // Get token for authorization
+                  const token = await SecureStore.getItemAsync("accessToken");
+                  
+                  const response = await fetch(claimUrl, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(token ? { 'Authorization': `Bearer ${token.trim()}` } : {}),
+                    },
+                    body: JSON.stringify({ user: userId }),
+                  });
+                  
+                  const responseData = await response.json();
+                  
+                  if (response.ok) {
                     setClaimed(prev => ({ ...prev, [message.id ?? '']: true }));
                   } else {
-                    alert(res.message || 'Claim failed');
+                    alert(responseData.message || 'Claim failed');
                   }
                 } catch (e) {
                   alert('Claim failed');
@@ -138,21 +182,23 @@ const MessageBubble = memo(({
     if (message.image && (message.type === 'sticker' || message.stickerId)) {
       const imageUrl = getStickerImageUrl(message.image);
       return (
-        <TouchableOpacity 
+        <Pressable
           onPress={() => {
             setPreviewImageUrl(imageUrl);
             setShowImagePreview(true);
           }}
+          onLongPress={handleLongPress}
+          delayLongPress={350}
         >
-          <Image 
-            source={{ uri: imageUrl }} 
+          <Image
+            source={{ uri: imageUrl }}
             style={styles.stickerImage}
             resizeMode="contain"
             onError={(error) => {
               console.error('Error loading sticker image:', error.nativeEvent.error);
             }}
           />
-        </TouchableOpacity>
+        </Pressable>
       );
     }
 
@@ -161,29 +207,33 @@ const MessageBubble = memo(({
         /\.(jpg|jpeg|png|gif|webp)$/i.test(message.fileUrl);
       if (isImage) {
         return (
-          <TouchableOpacity 
+          <Pressable
             onPress={() => {
               if (message.fileUrl) {
                 setPreviewImageUrl(message.fileUrl);
                 setShowImagePreview(true);
               }
             }}
+            onLongPress={handleLongPress}
+            delayLongPress={350}
           >
-            <Image 
-              source={{ uri: message.fileUrl }} 
+            <Image
+              source={{ uri: message.fileUrl }}
               style={styles.messageImage}
               resizeMode="cover"
               onError={(error) => {
                 console.error('Error loading image:', error.nativeEvent.error);
               }}
             />
-          </TouchableOpacity>
+          </Pressable>
         );
       }
       return (
-        <View style={styles.fileContainer}>
-          <Text style={styles.fileName}>{message.fileName}</Text>
-        </View>
+        <Pressable onLongPress={handleLongPress} delayLongPress={350}>
+          <View style={styles.fileContainer}>
+            <Text style={styles.fileName}>{message.fileName}</Text>
+          </View>
+        </Pressable>
       );
     }
 
@@ -274,51 +324,82 @@ const MessageBubble = memo(({
     );
   };
 
+  // Handler for long press (unsend)
+  const handleLongPress = () => {
+    // Use Boolean(message.isDeleted) for deleted state
+    const isDeleted = Boolean((message as any).isDeleted);
+    // Allow unsend for all message types (text, image, sticker, file, etc.)
+    if (isMyMessage && !isDeleted && onUnsend) {
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: ['Cancel', 'Unsend'],
+            destructiveButtonIndex: 1,
+            cancelButtonIndex: 0,
+          },
+          (buttonIndex) => {
+            if (buttonIndex === 1) {
+              onUnsend(message);
+            }
+          }
+        );
+      } else {
+        Alert.alert(
+          'Unsend Message',
+          'Do you want to unsend this message?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Unsend', style: 'destructive', onPress: () => onUnsend(message) },
+          ]
+        );
+      }
+    }
+  };
+
   return (
-    <View
-      style={[
-        styles.messageWrapper,
-        isMyMessage ? styles.myMessage : styles.otherMessage,
-        !isLastInGroup && (isMyMessage ? { marginBottom: 2 } : { marginBottom: 2 }),
-      ]}
-    >
-      {/* กล่อง preview แยกออกมา */}
-      {renderReplyPreview()}
-
-      {/* กล่องข้อความหลัก */}
-      <View style={styles.messageBubbleRow}>
-        {!isMyMessage && showAvatar && isLastInGroup ? (
-          <Avatar name={getDisplayName(message.user)} size={32} />
-        ) : (
-          !isMyMessage && <View style={{ width: 40 }} />
+    <TouchableWithoutFeedback onLongPress={handleLongPress} delayLongPress={350}>
+      <View
+        style={[
+          styles.messageWrapper,
+          isMyMessage ? styles.myMessage : styles.otherMessage,
+          !isLastInGroup && (isMyMessage ? { marginBottom: 2 } : { marginBottom: 2 }),
+        ]}
+      >
+        {/* กล่อง preview แยกออกมา */}
+        {renderReplyPreview()}
+        {/* กล่องข้อความหลัก */}
+        <View style={styles.messageBubbleRow}>
+          {!isMyMessage && showAvatar && isLastInGroup ? (
+            <Avatar name={getDisplayName(message.user)} size={32} />
+          ) : (
+            !isMyMessage && <View style={{ width: 40 }} />
+          )}
+          <View
+            style={[
+              styles.messageBubble,
+              isMyMessage ? styles.myBubble : styles.otherBubble,
+              isFirstInGroup && (isMyMessage ? styles.myFirstBubble : styles.otherFirstBubble),
+              isLastInGroup && (isMyMessage ? styles.myLastBubble : styles.otherLastBubble),
+              (message.stickerId || message.image || message.fileType === 'image') && styles.mediaBubble,
+            ]}
+          >
+            {renderContent()}
+          </View>
+        </View>
+        {isLastInGroup && (
+          <View style={[styles.messageFooter, isMyMessage ? { alignSelf: 'flex-end' } : { marginLeft: 40 }]}> 
+            <Text style={styles.timestamp}>{formatTime(message.timestamp)}</Text>
+            {statusElement}
+          </View>
         )}
-        <View
-          style={[
-            styles.messageBubble,
-            isMyMessage ? styles.myBubble : styles.otherBubble,
-            isFirstInGroup && (isMyMessage ? styles.myFirstBubble : styles.otherFirstBubble),
-            isLastInGroup && (isMyMessage ? styles.myLastBubble : styles.otherLastBubble),
-            (message.stickerId || message.image || message.fileType === 'image') && styles.mediaBubble,
-          ]}
-        >
-          {renderContent()}
-        </View>
+        {/* Image Preview Modal */}
+        <ImagePreviewModal
+          visible={showImagePreview}
+          imageUrl={previewImageUrl}
+          onClose={() => setShowImagePreview(false)}
+        />
       </View>
-
-      {isLastInGroup && (
-        <View style={[styles.messageFooter, isMyMessage ? { alignSelf: 'flex-end' } : { marginLeft: 40 }]}> 
-          <Text style={styles.timestamp}>{formatTime(message.timestamp)}</Text>
-          {statusElement}
-        </View>
-      )}
-
-      {/* Image Preview Modal */}
-      <ImagePreviewModal
-        visible={showImagePreview}
-        imageUrl={previewImageUrl}
-        onClose={() => setShowImagePreview(false)}
-      />
-    </View>
+    </TouchableWithoutFeedback>
   );
 });
 

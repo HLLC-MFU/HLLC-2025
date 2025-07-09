@@ -23,6 +23,7 @@ interface MessageListProps {
   scrollToBottom: () => void;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   scrollEventThrottle?: number;
+  onUnsend?: (message: Message) => void; // <-- add this
 }
 
 const MessageList = ({
@@ -35,6 +36,7 @@ const MessageList = ({
   scrollToBottom,
   onScroll,
   scrollEventThrottle,
+  onUnsend, // <-- add this
 }: MessageListProps) => {
   const { user } = useProfile();
   const currentUsername = user?.data?.[0]?.username || '';
@@ -107,6 +109,7 @@ const MessageList = ({
               allMessages={allMessages}
               onReplyPreviewClick={handleReplyPreviewClick}
               currentUsername={currentUsername}
+              onUnsend={onUnsend}
             />
           );
         })}

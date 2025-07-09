@@ -25,6 +25,7 @@ export class LamduanSettingController {
   constructor(private readonly lamduanSettingService: LamduanSettingService) {}
 
   @Post()
+  @Permissions('lamduan-setting:create')
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Body() createLamduanSettingDto: CreateLamduanSettingDto) {
     return this.lamduanSettingService.create(createLamduanSettingDto);

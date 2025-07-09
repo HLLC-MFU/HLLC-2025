@@ -30,9 +30,12 @@ export interface Message {
   mentions?: string[];
   username?: string;
   evoucherInfo?: {
+    message: {
+      th: string;
+      en: string;
+    };
     claimUrl: string;
-    description: string;
-    title: string;
+    sponsorImage?: string;
   };
 }
 

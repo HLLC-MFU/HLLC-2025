@@ -1,17 +1,17 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useRouter } from 'expo-router';
 
-import { Bell } from 'lucide-react-native';
+import { Bell, Flower } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from '@/components/global/AssetImage';
-import BackgroundScreen from '@/components/global/BackgroundScreen';
 import { DoorClosedLocked } from '@tamagui/lucide-icons';
 import useHealthData from '@/hooks/health/useHealthData';
 import { ProgressSummaryCard } from '@/components/home/ProgressSummaryCard';
+import BackgroundScreen from '@/components/global/BackgroundScreen';
 import { useEffect } from 'react';
 import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 
@@ -29,6 +29,7 @@ export default function HomeScreen() {
     notification: assets?.notification ?? null,
     progress: assets?.progress ?? null,
     signOut: assets?.signOut ?? null,
+    lamduan: assets?.lamduan ?? null,
   };
   const { steps, deviceMismatch } = useHealthData(new Date());
   useEffect(() => {
@@ -64,6 +65,29 @@ export default function HomeScreen() {
       />
 
       <View style={{ flexDirection: 'row', gap: 8 }}>
+        <GlassButton iconOnly>
+          {assetsImage.lamduan ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.lamduan}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <Flower color="white" size={20}
+              onPress={() => {
+                useRouter().push('/(app)/lamduanflowers');
+              }} />
+          )}
+        </GlassButton>
+        {/* <GlassButton iconOnly>
+          {assetsImage.profile ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.profile}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <Users color="white" size={20} />
+          )}
+        </GlassButton> */}
         <GlassButton iconOnly>
           {assetsImage.notification ? (
             <AssetImage

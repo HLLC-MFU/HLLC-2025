@@ -98,13 +98,6 @@ export default function EvoucherScreen() {
       sponsor.name.th.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Filter evouchers based on search query
-  const filteredEvouchers = evouchers.filter(
-    evoucher =>
-      evoucher.acronym.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      evoucher.detail.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      evoucher.detail.th.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
 
   // Filter myCodesForCurrentSponsor ตาม searchQuery
   const filteredMyCodesForCurrentSponsor = currentSponsorId
@@ -294,13 +287,14 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: 'bold',
     color: '#fff',
+    marginStart:30 ,
     textAlign: 'left',
   },
   headerTitlePadded: {
     textAlign: 'left',
   },
   backButton: {
-    padding: 8,
+    padding: 2,
     position: 'absolute',
     left: 0,
     zIndex: 1,
