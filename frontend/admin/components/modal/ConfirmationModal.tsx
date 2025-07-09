@@ -13,7 +13,7 @@ interface ConfirmationModalProps {
 	onClose: () => void;
 	onConfirm: (selectedKeys: "all" | Set<string | number>, userAction: User) => void | Promise<void>;
 	title: string;
-	body: string;
+	body?: string;
 	userAction: User;
 	selectedKeys: Set<string | number> | "all";
 	confirmText?: string;

@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types, Schema as MongooseSchema } from 'mongoose';
-import { Localization, Location, Photo } from 'src/pkg/types/common';
+import type { Location } from 'src/pkg/types/activity';
+import { Localization, Photo } from 'src/pkg/types/common';
 
 export type ActivityDocument = HydratedDocument<Activities>;
 

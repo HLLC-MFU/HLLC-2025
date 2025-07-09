@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { addToast } from '@heroui/react';
+
 import { useCheckin } from '@/hooks/useCheckin';
 
 interface QrCodeScannerProps {
@@ -21,6 +22,7 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
 
     handleResize(); // set initial
     window.addEventListener('resize', handleResize);
+
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -38,6 +40,7 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
 
         try {
           const region = document.getElementById(qrRegionId);
+
           if (region) {
             await scannerRef.current.clear();
           }
@@ -58,16 +61,19 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
 
       try {
         const devices = await Html5Qrcode.getCameras();
+
         if (!isMounted || devices.length === 0) {
           addToast({
             title: 'Camera Error',
             description: 'ไม่พบกล้อง กรุณาอนุญาตการใช้งานกล้อง',
             color: 'danger',
           });
+
           return;
         }
 
         const cameraId = devices[0].id;
+
         await scannerRef.current.start(
           cameraId,
           { fps: 10, qrbox: 250 },
@@ -76,8 +82,10 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
 
             try {
               let studentId = decodedText;
+
               try {
                 const parsed = JSON.parse(decodedText);
+
                 studentId = parsed.username || parsed.studentId || parsed.id || decodedText;
               } catch { }
 
@@ -144,8 +152,8 @@ export function QrCodeScanner({ selectedActivityIds }: QrCodeScannerProps) {
         </div>
       ) : (
         <div
-          id="qr-reader"
           className="w-full rounded-xl overflow-hidden"
+          id="qr-reader"
         />
       )}
     </div>

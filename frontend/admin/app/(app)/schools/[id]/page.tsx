@@ -68,6 +68,7 @@ export default function SchoolDetailPage() {
 		} else {
 			// Seamless add major
 			await addMajor(school._id, majorData);
+			window.location.reload();
 		}
 	};
 
