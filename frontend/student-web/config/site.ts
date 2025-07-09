@@ -4,6 +4,7 @@ import {
   BookIcon,
   QrCode,
   CircleUserRound,
+  MessageCircleWarning 
 } from "lucide-react";
 
 
@@ -26,6 +27,7 @@ export const siteConfig: {
     {
       section: "Account",
       items: [
+        { label: "Report", href: "/reports",icon: MessageCircleWarning},
         { label: "Profile", href: "/profile", icon: CircleUserRound },
         { label: "Logout", href: "/logout", icon: LogOutIcon },
       ],
