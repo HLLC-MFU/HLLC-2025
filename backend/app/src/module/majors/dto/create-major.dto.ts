@@ -1,3 +1,4 @@
+import { IsMongoId } from 'class-validator';
 import { Types } from 'mongoose';
 
 export class CreateMajorDto {
@@ -13,7 +14,8 @@ export class CreateMajorDto {
     en: string;
   };
 
-  school: Types.ObjectId | string;
+  @IsMongoId()
+  school: Types.ObjectId;
 
   createdAt: Date;
 }

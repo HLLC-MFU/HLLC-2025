@@ -239,6 +239,7 @@ export class StepCountersService {
       .find({})
       .populate({
         path: 'user',
+        select: 'name metadata.major username',
         populate: {
           path: 'metadata.major.school',
           model: 'School',
@@ -246,7 +247,6 @@ export class StepCountersService {
       })
       .lean();
 
-    // 🔍 Filter by School
     if (scope === 'school') {
       if (!schoolId) throw new BadRequestException('Missing schoolId');
       stepCounters = stepCounters.filter((sc) => {
@@ -258,7 +258,6 @@ export class StepCountersService {
       });
     }
 
-    // 🔍 Filter by Date (same day)
     if (scope === 'date') {
       if (!date) throw new BadRequestException('Missing date');
       const target = new Date(date);
@@ -278,14 +277,12 @@ export class StepCountersService {
         return { ...sc, totalStep };
       });
     } else {
-      // ⬅️ Default: all step
       stepCounters = stepCounters.map((sc) => ({
         ...sc,
         totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
       }));
     }
 
-    // 🏁 Separate complete & in-progress
     const completed = stepCounters
       .filter((sc) => sc.completeStatus && typeof sc.rank === 'number')
       .sort((a, b) => a.rank - b.rank);
@@ -300,10 +297,16 @@ export class StepCountersService {
 
     const combined = [...completed, ...inProgress];
 
+    // Assign computed rank
+    const combinedWithRank = combined.map((sc, idx) => ({
+      ...sc,
+      computedRank: idx + 1,
+    }));
+
     return {
-      data: combined.slice(skip, skip + pageSize),
+      data: combinedWithRank.slice(skip, skip + pageSize),
       metadata: {
-        total: combined.length,
+        total: combinedWithRank.length,
         page,
         pageSize,
         scope,

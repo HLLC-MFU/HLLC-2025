@@ -1,5 +1,6 @@
-import { useActivities } from '@/hooks/useActivities';
 import { Select, SelectItem } from '@heroui/react';
+
+import { useActivities } from '@/hooks/useActivities';
 
 interface SelectProps {
   selectedActivityIds: string[];
@@ -18,10 +19,11 @@ export default function Selectdropdown({
     <Select
       className={`w-full max-w-xl text-sm sm:overflow-hidden text-center ${forceVisible ? '' : 'sm:hidden'}`}
       label="Select Activities"
-      selectionMode="multiple"
       selectedKeys={new Set(selectedActivityIds)}
+      selectionMode="multiple"
       onSelectionChange={(keys) => {
         const selected = Array.from(keys) as string[];
+
         setSelectActivityIds(selected);
       }}
     >

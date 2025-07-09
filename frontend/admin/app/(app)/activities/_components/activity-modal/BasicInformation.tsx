@@ -64,7 +64,7 @@ export function BasicInformation({
             onChange={(e) => setType(e.target.value)}
             isLoading={typesLoading}
             isRequired
-            isDisabled={disableTypeSelection}
+            isDisabled
           >
             {activityTypes.map((type) => (
               <SelectItem key={type._id}>

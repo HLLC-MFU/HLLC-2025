@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model, Types } from 'mongoose';
+import { FilterQuery, isValidObjectId, Model, Types } from 'mongoose';
 
 import { queryAll } from 'src/pkg/helper/query.util';
 import { UsersService } from '../../users/users.service';
@@ -18,6 +18,7 @@ import {
   parseStringArray,
 } from '../utils/scope.util';
 import { Checkin } from 'src/module/checkin/schema/checkin.schema';
+import { RoleDocument } from 'src/module/role/schemas/role.schema';
 
 @Injectable()
 export class ActivitiesService {
@@ -27,6 +28,7 @@ export class ActivitiesService {
     private usersService: UsersService,
     @InjectModel(Checkin.name)
     private readonly checkinsModel: Model<Checkin>,
+    @InjectModel('User') private readonly userModel: Model<UserDocument>,
   ) {}
 
   async create(createActivitiesDto: CreateActivitiesDto) {
@@ -76,30 +78,89 @@ export class ActivitiesService {
     return await activity.save();
   }
 
-  async findAll(query: Record<string, string>) {
-    return queryAll<Activities>({
-      model: this.activitiesModel,
-      query: {
-        ...query,
-        excluded: 'user.password,user.refreshToken,metadata.secret,__v',
+  async findAll() {
+    const activity = this.activitiesModel.find().populate([
+      {
+        path: 'type',
       },
-      filterSchema: {},
-      populateFields: () =>
-        Promise.resolve([
-          {
-            path: 'type',
-          },
-        ]),
-    });
+      {
+        path: 'metadata.scope.school',
+        model: 'School',
+        select: 'name',
+      },
+      {
+        path: 'metadata.scope.major',
+        model: 'Major',
+        select: 'name',
+      },
+      {
+        path: 'metadata.scope.user',
+        model: 'User',
+        select: 'name',
+      },
+    ]);
+    return activity;
   }
 
-  async findCanCheckinActivities() {
+  async findCanCheckinActivities(userId: Types.ObjectId | string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new NotFoundException('Invalid user ID');
+    }
+
+    const userDoc = (await this.userModel
+      .findById(userId)
+      .populate('role')
+      .exec()) as unknown as Omit<UserDocument, 'role'> & {
+      role: Omit<RoleDocument, 'metadata'> & {
+        metadata: {
+          canCheckin: {
+            users: string[];
+            majors: string[];
+            schools: string[];
+          };
+        };
+      };
+    };
+    if (!userDoc) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (userDoc.role.metadata.canCheckin.users.includes('*')) {
+      return this.activitiesModel
+        .find({ 'metadata.isOpen': true, 'metadata.isVisible': true })
+        .populate('type')
+        .lean();
+    }
+
     const currentDate = new Date();
     const query = {
       'metadata.isOpen': true,
       'metadata.isVisible': true,
       'metadata.checkinStartAt': { $lte: currentDate },
       'metadata.endAt': { $gte: currentDate },
+      $or: [
+        {
+          'metadata.scope.user': {
+            $in: userDoc.role.metadata.canCheckin.users.map(
+              (id) => new Types.ObjectId(id),
+            ),
+          },
+        },
+        {
+          'metadata.scope.major': {
+            $in: userDoc.role.metadata.canCheckin.majors.map(
+              (id) => new Types.ObjectId(id),
+            ),
+          },
+        },
+        {
+          'metadata.scope.school': {
+            $in: userDoc.role.metadata.canCheckin.schools.map(
+              (id) => new Types.ObjectId(id),
+            ),
+          },
+        },
+      ],
     };
 
     return queryAll<Activities>({
@@ -238,8 +299,12 @@ export class ActivitiesService {
         school: convertedScope.school.map((id) => id.toString()),
         user: convertedScope.user.map((id) => id.toString()),
       };
+      if (isValidObjectId(updateActivityDto.type)) {
+        updateActivityDto.type = new Types.ObjectId(updateActivityDto.type);
+      } else {
+        throw new BadRequestException('Invalid activity type ID');
+      }
     }
-
     const activity = await this.activitiesModel
       .findByIdAndUpdate(id, updateActivityDto, { new: true })
       .lean();

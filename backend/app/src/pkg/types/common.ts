@@ -12,14 +12,3 @@ export type Photo = {
   evoucherImageFront?: string;
   evoucherImageBack?: string;
 };
-
-export type Location = {
-  latitude: number;
-  longitude: number;
-  mapUrl: string
-};
-
-export type mapCoordinate = {
-  x: number;
-  y: number;
-}
