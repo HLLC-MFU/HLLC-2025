@@ -15,8 +15,8 @@ export default function usePushNotification() {
   const [permission, setPermission] = useState<PermissionStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const messaging = getMessaging();
+  const { registerDevice } = useDevice()
 
   const getPermission = useCallback(async () => {
     const status = await messaging.hasPermission();
@@ -57,7 +57,6 @@ export default function usePushNotification() {
   const registerToken = useCallback(async () => {
     const newToken = await messaging.getToken();
     const oldToken = await getToken(TOKEN_KEY);
-    const { registerDevice } = useDevice()
     
     if (newToken && newToken !== oldToken) {
       await saveToken(TOKEN_KEY, newToken);
@@ -72,10 +71,12 @@ export default function usePushNotification() {
   }, []);
 
   const initializePushNotification = useCallback(async () => {
-    const granted = await requestPermission();
+    const granted = await requestPermission();    
     if (granted) {
+      console.log('granted');
       await registerToken();
     }
+    
     return granted;
   }, [requestPermission, registerToken]);
 
