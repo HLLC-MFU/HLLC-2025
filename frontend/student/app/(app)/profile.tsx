@@ -70,7 +70,7 @@ export default function ProfileScreen() {
     dirLight.position.set(5, 10, 5);
     scene.add(dirLight);
 
-    const textureFile = user?.data[0].metadata.major.school.model;
+    const textureFile = user?.data[0].metadata.major?.school?.model ?? "-";
     const glb = textureFile.model;
 
     const loader = new GLTFLoader();
@@ -172,7 +172,7 @@ export default function ProfileScreen() {
             )}
           </GlassButton>
           <GlassButton iconOnly onPress={() => router.replace('/(app)/settings')}>
-            <Settings color='white'/>
+            <Settings color='white' />
           </GlassButton>
         </View>
       </View>
@@ -183,35 +183,40 @@ export default function ProfileScreen() {
           <Paragraph marginTop="$2" color="white">Loading character...</Paragraph>
         </YStack>
       } */}
-{/* 
+      {/* 
       <GLView
         style={styles.model}
         onContextCreate={onContextCreate}
       /> */}
 
       {/* <Animated.View style={{ opacity: fadeAnim }}> */}
-        <BlurView style={styles.information}>
-          <View style={styles.field}>
-            <Text style={styles.name}>{user?.data[0].name.first} {user?.data[0].name.last ?? ''}</Text>
-            <Text style={styles.userName}>{user?.data[0].username}</Text>
-          </View>
+      <BlurView style={styles.information}>
+        <View style={styles.field}>
+          <Text style={styles.name}>{user?.data[0].name.first} {user?.data[0].name.last ?? '-'}</Text>
+          <Text style={styles.userName}>{user?.data[0].username}</Text>
+        </View>
 
-          <View style={styles.field}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5 }}>
-              <University color="dodgerblue" />
-              <Text style={styles.topic}>SCHOOL</Text>
-            </View>
-            <Text style={styles.school}>{user?.data[0].metadata.major.school.name.en}</Text>
+        <View style={styles.field}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5 }}>
+            <University color="dodgerblue" />
+            <Text style={styles.topic}>SCHOOL</Text>
           </View>
+          <Text style={styles.school}>
+            {user?.data?.[0]?.metadata?.major?.school?.name?.en ?? '-'}
+          </Text>
+        </View>
 
-          <View style={styles.field}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5 }}>
-              <GraduationCap color="dodgerblue" />
-              <Text style={styles.topic}>MAJOR</Text>
-            </View>
-            <Text style={styles.school}>{user?.data[0].metadata.major.name.en}</Text>
+        <View style={styles.field}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5 }}>
+            <GraduationCap color="dodgerblue" />
+            <Text style={styles.topic}>MAJOR</Text>
           </View>
-        </BlurView>
+          <Text style={styles.school}>
+            {user?.data?.[0]?.metadata?.major?.name?.en ?? '-'}
+          </Text>
+        </View>
+
+      </BlurView>
       {/* </Animated.View> */}
 
 
