@@ -308,8 +308,6 @@ func (ns *NotificationService) SendOfflineReplyNotification(ctx context.Context,
 	ns.SendOfflineNotification(ctx, receiverID, message, chatModel.MessageTypeReply)
 }
 
-
-
 func (ns *NotificationService) SendOfflineEvoucherNotification(ctx context.Context, receiverID string, message *model.ChatMessage) {
 	ns.SendOfflineNotification(ctx, receiverID, message, chatModel.MessageTypeEvoucher)
 }
@@ -435,6 +433,10 @@ func (ns *NotificationService) determineMessageType(message *model.ChatMessage) 
 	// Check for reply
 	if message.ReplyToID != nil {
 		return chatModel.MessageTypeReply
+	}
+	// **FIXED: Check for ModerationInfo instead of RestrictionInfo**
+	if message.ModerationInfo != nil {
+		return chatModel.MessageTypeRestriction
 	}
 	// Default to message (not text)
 	return chatModel.MessageTypeMessage
