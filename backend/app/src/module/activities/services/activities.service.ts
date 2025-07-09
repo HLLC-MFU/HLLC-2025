@@ -19,6 +19,8 @@ import {
 } from '../utils/scope.util';
 import { Checkin } from 'src/module/checkin/schema/checkin.schema';
 import { RoleDocument } from 'src/module/role/schemas/role.schema';
+import { AssessmentsService } from 'src/module/assessments/service/assessments.service';
+import { Assessment, AssessmentDocument } from 'src/module/assessments/schema/assessment.schema';
 
 @Injectable()
 export class ActivitiesService {
@@ -29,7 +31,9 @@ export class ActivitiesService {
     @InjectModel(Checkin.name)
     private readonly checkinsModel: Model<Checkin>,
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
-  ) {}
+    @InjectModel(Assessment.name) private assessmentAnswersModel: Model<AssessmentDocument>,
+    private readonly assessmentsService: AssessmentsService,
+  ) { }
 
   async create(createActivitiesDto: CreateActivitiesDto) {
     const metadata = createActivitiesDto.metadata || {};
@@ -92,16 +96,16 @@ export class ActivitiesService {
       .findById(userId)
       .populate('role')
       .exec()) as unknown as Omit<UserDocument, 'role'> & {
-      role: Omit<RoleDocument, 'metadata'> & {
-        metadata: {
-          canCheckin: {
-            user: string[];
-            major: string[];
-            school: string[];
+        role: Omit<RoleDocument, 'metadata'> & {
+          metadata: {
+            canCheckin: {
+              user: string[];
+              major: string[];
+              school: string[];
+            };
           };
         };
       };
-    };
     if (!userDoc) {
       throw new NotFoundException('User not found');
     }

@@ -42,12 +42,13 @@ export class ActivitiesController {
   }
 
   @Get('canCheckin')
-async canCheckin(
-  @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
-): Promise<PaginatedResponse<Activities> & { message: string }> {
-  const user = req.user as { _id: Types.ObjectId };
-  return this.activitiesService.findCanCheckinActivities(user._id.toString());
-}
+  @Permissions('activities:read')
+  async canCheckin(
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
+  ): Promise<PaginatedResponse<Activities> & { message: string }> {
+    const user = req.user as { _id: Types.ObjectId };
+    return this.activitiesService.findCanCheckinActivities(user._id.toString());
+  }
 
   @Get('users')
   getActivitiesByUser(
