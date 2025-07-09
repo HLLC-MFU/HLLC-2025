@@ -45,7 +45,16 @@
         "province": "Province",
         "resetButton": "Reset Password",
         "loginPrompt": "Already have an account?",
-        "backToLogin": "Back to Login"
+        "backToLogin": "Back to Login",
+        "invalidSecret": "Invalid province. Please try again."
+    },
+    "provinceSelector": {
+        "title": "Select Province",
+        "selectProvince": "Select Province",
+        "searchPlaceholder": "Search for a province...",
+        "noResults": "No matching provinces found",
+        "confirmButton": "Confirm",
+        "cancelButton": "Cancel"
     },
     "profile": {
         "title": "Profile",

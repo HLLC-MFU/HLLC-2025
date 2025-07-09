@@ -32,7 +32,8 @@
         "province": "จังหวัด",
         "resetButton": "ตั้งรหัสผ่านใหม่",
         "loginPrompt": "มีบัญชีอยู่แล้ว?",
-        "backToLogin": "กลับไปยังหน้าล็อกอิน"
+        "backToLogin": "กลับไปยังหน้าล็อกอิน",
+        "invalidSecret": "จังหวัดไม่ถูกต้อง กรุณาลองอีกครั้ง"
     },
     "register": {
         "title": "ลงทะเบียน",
@@ -45,6 +46,14 @@
         "loginPrompt": "มีบัญชีอยู่แล้ว?",
         "login": "เข้าสู่ระบบ",
         "provinceNote": "* จังหวัดนี้ใช้เพื่อยืนยันตัวตนในกรณีลืมรหัสผ่านเท่านั้น"
+    },
+    "provinceSelector": {
+        "title": "เลือกจังหวัด",
+        "selectProvince": "เลือกจังหวัด",
+        "searchPlaceholder": "ค้นหาจังหวัด...",
+        "noResults": "ไม่พบจังหวัดที่ตรงกัน",
+        "confirmButton": "ยืนยัน",
+        "cancelButton": "ยกเลิก"
     },
     "profile": {
         "title": "โปรไฟล์",
