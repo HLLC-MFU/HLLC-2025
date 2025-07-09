@@ -14,11 +14,16 @@ import useHealthData from '@/hooks/health/useHealthData';
 import { ProgressSummaryCard } from '@/components/home/ProgressSummaryCard';
 import { useEffect } from 'react';
 import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
+import useDevice from '@/hooks/useDevice';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
+  const { revokeDevice, getStoredDeviceId } = useDevice();
+
   const handleSignOut = async () => {
+    const deviceId = await getStoredDeviceId()
+    await revokeDevice(deviceId)
     useAuth.getState().signOut();
     router.replace('/(auth)/login');
   };
