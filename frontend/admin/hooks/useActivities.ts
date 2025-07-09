@@ -26,19 +26,14 @@ export function useActivities() {
                     '/activities',
                     'GET',
                     undefined,
-                    {
-                        credentials: 'include',
-                    }
                 ),
                 apiRequest<{ data: ActivityType[] }>(
                     '/activities-type',
                     'GET',
                     undefined,
-                    {
-                        credentials: 'include',
-                    }
                 ),
             ]);
+
             if (activitiesRes.data?.data) {
                 setActivities(activitiesRes.data.data);
             }
@@ -54,6 +49,44 @@ export function useActivities() {
             if (err && typeof err === 'object' && 'statusCode' in err && (err as any).statusCode === 401) {
                 localStorage.removeItem('token');
                 window.location.href = '/login';
+
+                return;
+            }
+
+            setError(errorMessage);
+            addToast({
+                title: 'Failed to fetch activities and types',
+                description: errorMessage,
+                color: 'danger',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchCanCheckin = async (): Promise<void> => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [activitiesRes] = await Promise.all([
+                apiRequest<{ data: Activities[] }>(
+                    '/activities/canCheckin',
+                    'GET',
+                ),
+            ]);
+
+            if (activitiesRes.data?.data) {
+                setActivities(activitiesRes.data.data);
+            }
+        } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to fetch data.'
+                : 'Failed to fetch data.';
+            
+            if (err && typeof err === 'object' && 'statusCode' in err && (err as any).statusCode === 401) {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+
                 return;
             }
 
@@ -100,6 +133,7 @@ export function useActivities() {
 
             if (err.statusCode === 401) {
                 window.location.href = '/login';
+
                 return;
             }
 
@@ -183,6 +217,7 @@ export function useActivities() {
             }
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to update activity.';
+
             setError(errorMessage);
             addToast({
                 title: 'Failed to update activity',
@@ -225,6 +260,7 @@ export function useActivities() {
             }
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to delete activity.';
+
             setError(errorMessage);
             addToast({
                 title: 'Failed to delete activity',
@@ -264,6 +300,7 @@ export function useActivities() {
             }
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to create activity type.';
+
             setError(errorMessage);
             addToast({
                 title: 'Failed to create activity type',
@@ -307,6 +344,7 @@ export function useActivities() {
             }
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to update activity type.';
+
             setError(errorMessage);
             addToast({
                 title: 'Failed to update activity type',
@@ -343,6 +381,7 @@ export function useActivities() {
             }
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to delete activity type.';
+
             setError(errorMessage);
             addToast({
                 title: 'Failed to delete activity type',
@@ -364,6 +403,7 @@ export function useActivities() {
         loading,
         error,
         fetchActivities,
+        fetchCanCheckin,
         createActivity,
         updateActivity,
         deleteActivity,

@@ -24,6 +24,7 @@ export const Sidebar = () => {
 
   useEffect(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
+
     if (saved !== null) {
       setCollapsed(saved === "true");
     }
@@ -36,9 +37,11 @@ export const Sidebar = () => {
   const hasPermission = (permission?: string): boolean => {
     if (!permission) return true;
     const perms = user?.role?.permissions || [];
+
     if (perms.includes("*")) return true;
 
     const [resource, action] = permission.split(":");
+
     return (
       perms.includes(permission) || perms.includes(`${resource}:*`)
     );
@@ -78,6 +81,7 @@ export const Sidebar = () => {
         <div className="flex-1 overflow-y-auto py-4">
           {siteConfig.navMenuItems.map((section) => {
             const visibleItems = section.items.filter((item) => hasPermission(item.permission));
+
             if (visibleItems.length === 0) return null;
 
             return (
