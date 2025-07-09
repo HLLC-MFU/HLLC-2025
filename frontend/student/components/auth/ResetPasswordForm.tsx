@@ -21,6 +21,7 @@ import {
 } from '@tamagui/lucide-icons';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { t } from 'i18next';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ResetPasswordFormProps {
   open: boolean;
@@ -60,10 +61,10 @@ export const ResetPasswordForm = ({
   const [isPasswordVisible, setIsPasswordVisible] = useState(true);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(true);
   const [isLoadingUsername, setIsLoadingUsername] = useState(false);
-
+  const {language} = useLanguage();
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  const fetchUserInfo = async (inputUsername: string) => {
+  const fetchUserInfo = async (inputUsername: string, inputProvince: string) => {
     if (inputUsername.length !== 10 || !/^[0-9]+$/.test(inputUsername)) {
       alert('Student ID must be 10 digits numeric.');
       setUsername('');
@@ -76,13 +77,20 @@ export const ResetPasswordForm = ({
     try {
       const res = await apiRequest<{
         user?: { name: { first: string; middle?: string; last: string }; province: string };
-      }>(`/auth/student/status/${inputUsername}`, 'GET');
+      }>(`/auth/check-reset-password-eligibility`, 'POST', {
+        username: inputUsername,
+        secret: inputProvince,
+      });
 
-      if (res.statusCode === 200 && res.data?.user) {
+      if (res.statusCode === 201 && res.data?.user) {
         const u = res.data.user;
         const fullName = `${u.name.first}${u.name.middle ? ' ' + u.name.middle : ''} ${u.name.last}`;
         setName(fullName.trim());
-        setSecret(u.province);
+      } else if (res.message === "Invalid secret") {
+        alert('Invalid province or secret. Please try again.');
+        setUsername('');
+        setName('');
+        setSecret('');
       } else {
         alert(res.message || 'Invalid user.');
         setUsername('');
@@ -96,13 +104,12 @@ export const ResetPasswordForm = ({
       setIsDisabled(false);
     }
   };
-
   useEffect(() => {
-    setName(''); // Clear name when username changes
-    if (username.length === 10 && /^[0-9]+$/.test(username)) {
-      fetchUserInfo(username);
+    setName('');
+    if (username.length === 10 && /^[0-9]+$/.test(username) && secret) {
+      fetchUserInfo(username, secret);
     }
-  }, [username]);
+  }, [username, secret]);
 
   useEffect(() => {
     if (open) {
@@ -177,6 +184,21 @@ export const ResetPasswordForm = ({
               />
               {isLoadingUsername && <ActivityIndicator size="small" color="#888" />}
             </XStack>
+            <XStack {...inputContainerStyle} onPress={() => setIsProvinceSheetOpen(true)} disabled={isDisabled}>
+              <Map />
+              <Input
+                flex={1}
+                editable={false}
+                pointerEvents="none"
+                borderWidth={0}
+                backgroundColor="transparent"
+                placeholder={t("resetPassword.province")}
+                value={secret ? provinces.find((p) => p.name_en === secret)?.[`name_${language}`] ?? '' : ''}
+              />
+              <ChevronDown />
+            </XStack>
+
+
 
             <XStack {...inputContainerStyle}>
               <User />
@@ -229,19 +251,6 @@ export const ResetPasswordForm = ({
               </Pressable>
             </XStack>
 
-            <XStack {...inputContainerStyle} onPress={() => setIsProvinceSheetOpen(true)} disabled={isDisabled}>
-              <Map />
-              <Input
-                flex={1}
-                editable={false}
-                pointerEvents="none"
-                borderWidth={0}
-                backgroundColor="transparent"
-                placeholder={t("resetPassword.province")}
-                value={secret ? provinces.find((p) => p.name_en === secret)?.name_th ?? '' : ''}
-              />
-              <ChevronDown />
-            </XStack>
 
             <XStack width="100%">
               <Button flex={1} onPress={onResetPassword} disabled={isDisabled}>

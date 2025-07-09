@@ -14,6 +14,7 @@ import (
 	"chat/pkg/decorators"
 	"chat/pkg/middleware"
 	"context"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -83,6 +84,7 @@ func NewChatController(
 	rbac middleware.IRBACMiddleware,
 	connManager *connection.ConnectionManager,
 	roleService *userService.RoleService,
+	mongo *mongo.Database,
 ) *ChatController {
 	controller := &ChatController{
 		BaseController: decorators.NewBaseController(app, ""),
@@ -94,7 +96,6 @@ func NewChatController(
 		roleService:    roleService,
 	}
 	controller.wsHandler = NewWebSocketHandler(
-		chatService,
 		chatService,
 		chatService,
 		roomService,
@@ -115,6 +116,7 @@ func (c *ChatController) setupRoutes() {
 	// Add RBAC middleware to WebSocket route
 	c.Get("/ws/:roomId", c.rbac.RequireReadOnlyAccess(), websocket.New(c.wsHandler.HandleWebSocket))
 	c.Post("/rooms/:roomId/stickers", c.handleSendSticker, c.rbac.RequireReadOnlyAccess())
+	// **NEW: Cache management endpoints**
 	c.Delete("/rooms/:roomId/cache", c.handleClearCache, c.rbac.RequireAdministrator())
 	
 	c.SetupRoutes()
@@ -253,13 +255,25 @@ func (c *ChatController) handleSendSticker(ctx *fiber.Ctx) error {
 
 func (c *ChatController) handleClearCache(ctx *fiber.Ctx) error {
 	roomID := ctx.Params("roomId")
-	if err := c.chatService.DeleteRoomMessages(ctx.Context(), roomID); err != nil {
+	
+	// **ENHANCED: Clear cache only, not delete messages**
+	if err := c.chatService.GetRedis().Del(ctx.Context(), fmt.Sprintf("chat:room:%s:messages", roomID)).Err(); err != nil {
+		log.Printf("[ChatController] Failed to clear cache for room %s: %v", roomID, err)
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to clear cache",
+			"success": false,
+			"message": "Failed to clear cache",
+			"error":   err.Error(),
 		})
 	}
+	
+	log.Printf("[ChatController] Successfully cleared cache for room %s", roomID)
 	return ctx.JSON(fiber.Map{
-		"message": "cache cleared successfully",
+		"success": true,
+		"message": "Cache cleared successfully",
+		"data": map[string]interface{}{
+			"roomId": roomID,
+			"clearedAt": time.Now(),
+		},
 	})
 }
 

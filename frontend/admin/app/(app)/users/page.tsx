@@ -98,6 +98,7 @@ export default function ManagementPage() {
 
   const handleImport = async (users: Partial<User>[]) => {
     const response = await uploadUser(users)
+
     setModal(prev => ({ ...prev, import: false }));
 
     if (response) {

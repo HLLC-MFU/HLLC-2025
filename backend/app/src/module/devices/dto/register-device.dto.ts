@@ -23,10 +23,21 @@ export class RegisterDeviceDto {
 
   @IsOptional()
   @IsString()
+  osName?: string;
+
+  @IsOptional()
+  @IsString()
   osVersion?: string;
+
+  @IsOptional()
+  @IsString()
+  brand?: string;
 
   @IsOptional()
   @IsString()
   appVersion?: string;
 
+  @IsOptional()
+  @IsString()
+  buildNumber?: string;
 }
