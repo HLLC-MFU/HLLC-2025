@@ -7,10 +7,9 @@ import {
   Dropdown,
   DropdownMenu,
   DropdownItem,
-  addToast,
   SortDescriptor,
 } from "@heroui/react";
-import { EllipsisVertical, Ban, MicOff, LogOut } from "lucide-react";
+import { EllipsisVertical, Ban, MicOff } from "lucide-react";
 
 import TableContent from "./TableContent";
 import { RestrictionAction } from "./RestrictionAction";
@@ -39,9 +38,6 @@ export default function MemberTable({
   capitalize,
   columns,
   initialVisibleColumns,
-  onBanMember,
-  onMuteMember,
-  onKickMember,
   pagination,
   onPageChange,
   loading = false,
@@ -53,9 +49,6 @@ export default function MemberTable({
   capitalize: (s: string) => string;
   columns: ColumnProps[];
   initialVisibleColumns: string[];
-  onBanMember: (member: RoomMember) => void;
-  onMuteMember: (member: RoomMember) => void;
-  onKickMember: (member: RoomMember) => void;
   pagination?: {
     total: number;
     page: number;
@@ -66,7 +59,7 @@ export default function MemberTable({
   loading?: boolean;
 }) {
   const [selectedMember, setSelectedMember] = useState<RoomMember | null>(null);
-  const [restrictionAction, setRestrictionAction] = useState<'ban' | 'mute' | 'kick'>('ban');
+  const [restrictionAction, setRestrictionAction] = useState<'ban' | 'mute'>('ban');
   const [filterValue, setFilterValue] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<"all" | Set<string | number>>(
     new Set([])
@@ -129,7 +122,7 @@ export default function MemberTable({
     });
   }, [sortDescriptor, items]);
 
-  const handleRestrictionAction = (member: RoomMember, action: 'ban' | 'mute' | 'kick') => {
+  const handleRestrictionAction = (member: RoomMember, action: 'ban' | 'mute') => {
     setSelectedMember(member);
     setRestrictionAction(action);
     setModal(prev => ({ ...prev, restriction: true }));
@@ -195,15 +188,6 @@ export default function MemberTable({
                     onPress={() => handleRestrictionAction(item, 'mute')}
                   >
                     Mute User
-                  </DropdownItem>
-                  <DropdownItem
-                    key="kick"
-                    startContent={<LogOut size="16px" />}
-                    className="text-danger"
-                    color="danger"
-                    onPress={() => handleRestrictionAction(item, 'kick')}
-                  >
-                    Kick User
                   </DropdownItem>
                 </DropdownMenu>
               </Dropdown>

@@ -44,7 +44,7 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
     };
 
     const roomImage = room.image && !imageError 
-        ? `${process.env.NEXT_PUBLIC_GO_API_URL}/uploads/${room.image}` 
+        ? `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${room.image}` 
         : `https://ui-avatars.com/api/?name=${room.name.en.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=48&font-size=0.4`;
 
     return (

@@ -3,9 +3,7 @@
 import { Accordion, AccordionItem, Button, Input } from "@heroui/react";
 import { PlusIcon, SearchIcon, MessageSquare, Lock, Building2, GraduationCap } from "lucide-react";
 import { useState, useMemo } from "react";
-
 import { RoomCard } from "./RoomCard";
-
 import { Room, RoomType } from "@/types/chat";
 
 type RoomAccordionProps = {

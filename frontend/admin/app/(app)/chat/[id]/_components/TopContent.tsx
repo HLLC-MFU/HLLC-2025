@@ -18,7 +18,6 @@ type TopContentProps = {
 }
 
 export default function TopContent({
-    setModal,
     filterValue,
     visibleColumns,
     columns,

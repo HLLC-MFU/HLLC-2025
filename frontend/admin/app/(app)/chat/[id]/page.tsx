@@ -31,7 +31,7 @@ export default function RoomDetailPage() {
     const params = useParams();
     const roomId = params.id as string;
     
-    const { getRoomMembers, getRoomById, loading } = useChat();
+    const { getRoomMembers, getRoomById } = useChat();
 
     const [members, setMembers] = useState<RoomMember[]>([]);
     const [room, setRoom] = useState<Room | null>(null);
@@ -124,21 +124,6 @@ export default function RoomDetailPage() {
         loadMembers(page);
     };
 
-    const handleBanMember = (member: RoomMember) => {
-        // This will be handled by the MemberTable component
-        console.log('Ban member:', member);
-    };
-
-    const handleMuteMember = (member: RoomMember) => {
-        // This will be handled by the MemberTable component
-        console.log('Mute member:', member);
-    };
-
-    const handleKickMember = (member: RoomMember) => {
-        // This will be handled by the MemberTable component
-        console.log('Kick member:', member);
-    };
-
     return (
         <div className="flex flex-col gap-6">
             <PageHeader 
@@ -188,9 +173,6 @@ export default function RoomDetailPage() {
                         capitalize={capitalize}
                         columns={columns}
                         initialVisibleColumns={INITIAL_VISIBLE_COLUMNS}
-                        onBanMember={handleBanMember}
-                        onMuteMember={handleMuteMember}
-                        onKickMember={handleKickMember}
                         pagination={pagination}
                         onPageChange={handlePageChange}
                         loading={isLoadingMembers}
