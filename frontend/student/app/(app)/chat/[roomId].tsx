@@ -105,6 +105,8 @@ export default function ChatRoomPage() {
     return userRole === 'Administrator' || userRole === 'AE';
   };
 
+  const isAdminOrAE = canSendEvoucher();
+
   // Check if should show evoucher button
   const shouldShowEvoucherButton = () => {
     return room?.type === 'readonly' && canSendEvoucher();
@@ -278,7 +280,7 @@ export default function ChatRoomPage() {
             )}
 
             {/* Input Area */}
-            {room?.type === 'readonly' ? (
+            {room?.type === 'readonly' && !isAdminOrAE ? (
               <View style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 padding: 16,

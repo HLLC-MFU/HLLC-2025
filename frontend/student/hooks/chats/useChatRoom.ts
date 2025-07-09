@@ -16,7 +16,7 @@ import { ERROR_MESSAGES } from '@/constants/chats/chatConstants';
 import { CHAT_BASE_URL, API_BASE_URL } from '@/configs/chats/chatConfig';
 import chatService from '@/services/chats/chatService';
 import { getToken } from '@/utils/storage';
-import { unsendMessage as unsendMessageApi } from './messageUtils';
+
 
 
 // WebSocket constants
