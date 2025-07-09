@@ -1,25 +1,30 @@
 "use client";
 
-import { 
-    Card, 
-    CardBody, 
-    Button,
-} from "@heroui/react";
-import { 
-    Users, 
-    Gift,
-} from "lucide-react";
+import { Button } from "@heroui/react";
+import { Users, Gift } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { addToast } from "@heroui/toast";
-
-import { MemberModal } from "./_components/MemberModal";
-import { RestrictionAction } from "./_components/RestrictionAction";
 import MemberTable from "./_components/MemberTable";
-
 import { RoomMember, Room } from "@/types/chat";
 import { useChat } from "@/hooks/useChat";
 import { PageHeader } from "@/components/ui/page-header";
+
+export const columns = [
+    { name: "USER", uid: "user", sortable: true },
+    { name: "ROLE", uid: "role", sortable: true },
+    { name: "ACTIONS", uid: "actions" },
+];
+
+export function capitalize(s: string) {
+    return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+}
+
+const INITIAL_VISIBLE_COLUMNS = [
+    "user",
+    "role",
+    "actions",
+];
 
 export default function RoomDetailPage() {
     const router = useRouter();
@@ -30,10 +35,6 @@ export default function RoomDetailPage() {
 
     const [members, setMembers] = useState<RoomMember[]>([]);
     const [room, setRoom] = useState<Room | null>(null);
-    const [selectedMember, setSelectedMember] = useState<RoomMember | null>(null);
-    const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
-    const [isRestrictionModalOpen, setIsRestrictionModalOpen] = useState(false);
-    const [restrictionAction, setRestrictionAction] = useState<'ban' | 'mute' | 'kick' | 'unban' | 'unmute'>('ban');
     const [isLoadingMembers, setIsLoadingMembers] = useState(false);
     const [isLoadingRoom, setIsLoadingRoom] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -43,6 +44,9 @@ export default function RoomDetailPage() {
         limit: number;
         totalPages: number;
     } | null>(null);
+    const [modal, setModal] = useState({
+        restriction: false,
+    });
     const MEMBERS_PER_PAGE = 10;
 
     useEffect(() => {
@@ -120,21 +124,20 @@ export default function RoomDetailPage() {
         loadMembers(page);
     };
 
-    const handleRestrictionAction = (member: RoomMember, action: 'ban' | 'mute' | 'kick' | 'unban' | 'unmute') => {
-        console.log('handleRestrictionAction called:', action, member);
-        setSelectedMember(member);
-        setRestrictionAction(action);
-        setIsRestrictionModalOpen(true);
+    const handleBanMember = (member: RoomMember) => {
+        // This will be handled by the MemberTable component
+        console.log('Ban member:', member);
     };
 
-    const handleActionSuccess = () => {
-        loadMembers(currentPage);
-        setIsMemberModalOpen(false);
-        setIsRestrictionModalOpen(false);
+    const handleMuteMember = (member: RoomMember) => {
+        // This will be handled by the MemberTable component
+        console.log('Mute member:', member);
     };
 
-    // Remove client-side slicing, use members as is
-    const paginatedMembers = members;
+    const handleKickMember = (member: RoomMember) => {
+        // This will be handled by the MemberTable component
+        console.log('Kick member:', member);
+    };
 
     return (
         <div className="flex flex-col gap-6">
@@ -178,15 +181,19 @@ export default function RoomDetailPage() {
                 </div>
                 <div className="px-0 md:px-4 py-4 relative">
                     <MemberTable
-                        currentUserId="current-user-id" // You'll need to get this from auth context
-                        loading={isLoadingMembers}
-                        members={paginatedMembers}
-                        pagination={pagination}
                         roomId={roomId}
-                        onBanMember={(member) => handleRestrictionAction(member, 'ban')}
-                        onKickMember={(member) => handleRestrictionAction(member, 'kick')}
-                        onMuteMember={(member) => handleRestrictionAction(member, 'mute')}
+                        members={members}
+                        modal={modal}
+                        setModal={setModal}
+                        capitalize={capitalize}
+                        columns={columns}
+                        initialVisibleColumns={INITIAL_VISIBLE_COLUMNS}
+                        onBanMember={handleBanMember}
+                        onMuteMember={handleMuteMember}
+                        onKickMember={handleKickMember}
+                        pagination={pagination}
                         onPageChange={handlePageChange}
+                        loading={isLoadingMembers}
                     />
                     {isLoadingMembers && (
                         <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-10">
@@ -195,25 +202,6 @@ export default function RoomDetailPage() {
                     )}
                 </div>
             </div>
-
-            {/* Member Modal */}
-            <MemberModal
-                isOpen={isMemberModalOpen}
-                member={selectedMember}
-                roomId={roomId}
-                onClose={() => setIsMemberModalOpen(false)}
-                onMemberKicked={loadMembers}
-            />
-
-            {/* Restriction Action Modal */}
-            <RestrictionAction
-                action={restrictionAction as 'ban' | 'mute'}
-                isOpen={isRestrictionModalOpen}
-                member={selectedMember}
-                roomId={roomId} 
-                onClose={() => setIsRestrictionModalOpen(false)}
-                onSuccess={handleActionSuccess}
-            />
         </div>
     );
 } 
