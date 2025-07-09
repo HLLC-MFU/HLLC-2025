@@ -24,7 +24,9 @@ export default function LoginScreen() {
   // Sheet states
   const [isRegisterSheetOpen, setIsRegisterSheetOpen] = useState(false);
   const [isForgotPasswordSheetOpen, setIsForgotPasswordSheetOpen] = useState(false);
-  const [isProvinceSheetOpen, setIsProvinceSheetOpen] = useState(false);
+  const [isRegisterProvinceSheetOpen, setIsRegisterProvinceSheetOpen] = useState(false);
+const [isResetProvinceSheetOpen, setIsResetProvinceSheetOpen] = useState(false);
+
 
   // Hooks
   const { signIn, signUp, resetPassword } = useAuth();
@@ -173,8 +175,8 @@ export default function LoginScreen() {
         secret={regSecret}
         setSecret={setRegSecret}
         provinces={provinces}
-        isProvinceSheetOpen={isProvinceSheetOpen}
-        setIsProvinceSheetOpen={setIsProvinceSheetOpen}
+        isProvinceSheetOpen={isRegisterProvinceSheetOpen}
+        setIsProvinceSheetOpen={setIsRegisterProvinceSheetOpen}
         onRegister={handleRegister}
       />
 
@@ -190,8 +192,8 @@ export default function LoginScreen() {
       secret={resetSecret}
       setSecret={setResetSecret}
       provinces={provinces}
-      isProvinceSheetOpen={isProvinceSheetOpen}
-      setIsProvinceSheetOpen={setIsProvinceSheetOpen}
+      isProvinceSheetOpen={isResetProvinceSheetOpen}
+      setIsProvinceSheetOpen={setIsResetProvinceSheetOpen}
       onResetPassword={handleResetPassword}
       />
     </KeyboardAvoidingView>
