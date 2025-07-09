@@ -73,7 +73,6 @@ export default function usePushNotification() {
   const initializePushNotification = useCallback(async () => {
     const granted = await requestPermission();    
     if (granted) {
-      console.log('granted');
       await registerToken();
     }
     
