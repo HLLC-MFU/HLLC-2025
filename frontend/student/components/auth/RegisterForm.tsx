@@ -246,7 +246,7 @@ export const RegisterForm = ({
               />
               <ChevronDown />
             </XStack>
-            <SizableText fontSize={12} color="gray" marginLeft={30} marginTop={-8} >
+            <SizableText fontSize={10} color="gray" marginLeft={12} marginTop={-8} lineHeight={14} >
               {t("register.provinceNote")}
             </SizableText>
 
