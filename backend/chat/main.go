@@ -89,10 +89,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	uploadPath := cfg.Upload.Path
 
-	// Print upload path (or use it in your routes, etc.)
-	fmt.Println("Upload Path:", uploadPath)
+	uploadBasedPath :=cfg.Upload.BaseURL
+
+	fmt.Println("Upload Based Path:", uploadBasedPath)
 
 	// Setup logging
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
@@ -152,7 +152,7 @@ func main() {
 	
 
 	// Setup static file serving for uploads
-	app.Static(uploadPath, "./uploads", fiber.Static{
+	app.Static(uploadBasedPath, "./uploads", fiber.Static{
 		Browse:        false,  
 		MaxAge:       86400,  
 		Compress:     true,   

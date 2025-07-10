@@ -12,9 +12,10 @@ import { useGolangApi } from "@/hooks/useApi";
 export function useEvoucherSend(roomId: string | null) {
     const { request } = useGolangApi();
     const { evouchers, refreshEvouchers } = useEvoucher();
-    const { fetchEvoucherCodeBySponsorId } = useSponsors();
+    const { fetchSponsorById } = useSponsors();
     const [selectedEvoucher, setSelectedEvoucher] = useState<Evoucher | null>(null);
     const [evoucherData, setEvoucherData] = useState({
+        //  ใส่เป็น formData
         message: {
             th: '',
             en: ''
@@ -23,24 +24,24 @@ export function useEvoucherSend(roomId: string | null) {
         sponsorImage: ''
     });
     const [sending, setSending] = useState(false);
-
     const canSendEvoucher = roomId && selectedEvoucher && evoucherData.message.th && evoucherData.message.en;
 
     useEffect(() => {
         refreshEvouchers();
     }, []);
-
-    // Debug: Log evouchers data
     useEffect(() => {
         console.log("Evouchers data:", evouchers);
         console.log("Evouchers length:", evouchers.length);
     }, [evouchers]);
 
-    const sendEvoucher = async (evoucherData: EvoucherData): Promise<any> => { // Changed EvoucherResponse to any as EvoucherResponse is not defined
+    const sendEvoucher = async (evoucherData: EvoucherData) => {
+        setSending(true);
         try {
-            setSending(true);
-            const res = await request<any>("/evouchers/send", "POST", evoucherData); // Changed EvoucherResponse to any
-        
+            const res = await request<{data: EvoucherData}>(
+                "/evouchers/send",
+                 "POST",
+                  evoucherData
+                );
             return res.data;
         } catch (err) {
             console.error("Send evoucher error:", err);
@@ -56,40 +57,24 @@ export function useEvoucherSend(roomId: string | null) {
         if (evoucher) {
             setSelectedEvoucher(evoucher);
             
-            // Auto-generate claim URL with the correct format for NestJS API
-            const claimURL = `${process.env.NEXT_PUBLIC_DEPLOY_NEST_API_URL}/evouchers/${evoucher._id}/claim`;
-            
-            // Fetch sponsor image using sponsorId from evoucher
+            // default claims for nestjs api
+            const claimURL = `${process.env.NEXT_PUBLIC_API_URL}/evouchers/${evoucher._id}/claim`;
             let sponsorImage = '';
 
             if (evoucher.sponsor) {
                 try {
                     console.log('Fetching sponsor image for sponsorId:', evoucher.sponsor);
-                    const sponsorInfo = await fetchEvoucherCodeBySponsorId(evoucher.sponsor);
+                    const sponsorInfo = await fetchSponsorById(evoucher.sponsor as string);
 
                     console.log('Sponsor info response:', sponsorInfo);
                     
-                    if (sponsorInfo.length > 0) {
+                    if (sponsorInfo && sponsorInfo.length > 0) {
                         const sponsor = sponsorInfo[0];
-
                         console.log('Sponsor object:', sponsor);
                         
-                        // Try to get logo from different possible locations
-                        if (sponsor.logo) {
-                            // Direct logo field (new format)
-                            sponsorImage = sponsor.logo;
-                            console.log('Found direct logo:', sponsorImage);
-                        } else if (sponsor.photo?.logo) {
-                            // Nested photo.logo field
-                            sponsorImage = sponsor.photo.logo;
-                            console.log('Found photo.logo:', sponsorImage);
-                        } else if (sponsor.photo?.logoPhoto) {
-                            // Extract filename from URL
-                            const logoUrl = sponsor.photo.logoPhoto;
-                            const filename = logoUrl.split('/').pop() || '';
-
-                            sponsorImage = filename;
-                            console.log('Found logoPhoto, extracted filename:', sponsorImage);
+                        if (sponsor.data?.logo?.logoPhoto) {
+                            sponsorImage = sponsor.data.logo.logoPhoto;
+                            console.log('Found logo.logoPhoto:', sponsorImage);
                         }
                     }
                 } catch (error) {
@@ -152,17 +137,6 @@ export function useEvoucherSend(roomId: string | null) {
             return;
         }
 
-        // Check if evoucher has reached max claims
-        if (selectedEvoucher.claims && selectedEvoucher.claims.currentClaim >= selectedEvoucher.claims.maxClaim) {
-            addToast({
-                title: "Evoucher fully claimed",
-                description: "This evoucher has reached its maximum claim limit.",
-                color: "danger",
-            });
-
-            return;
-        }
-
         try {
             const data: EvoucherData = {
                 roomId: roomId,
@@ -201,7 +175,7 @@ export function useEvoucherSend(roomId: string | null) {
     };
 
     const isEvoucherExpired = (evoucher: Evoucher): boolean => {
-        const endDate = evoucher.endAt || evoucher.expiration;
+        const endDate = evoucher.endAt
 
         if (!endDate) return false;
 
@@ -214,13 +188,10 @@ export function useEvoucherSend(roomId: string | null) {
         // Check if evoucher is within valid date range
         const now = new Date();
         const startAt = evoucher.startAt ? new Date(evoucher.startAt) : null;
-        const endAt = evoucher.endAt ? new Date(evoucher.endAt) : (evoucher.expiration ? new Date(evoucher.expiration) : null);
+        const endAt = evoucher.endAt ? new Date(evoucher.endAt) : null  ;
 
         if (startAt && now < startAt) return false;
         if (endAt && now > endAt) return false;
-        // Check claims if available
-        if (evoucher.claims && evoucher.claims.currentClaim >= evoucher.claims.maxClaim) return false;
-
         return true;
     };
 

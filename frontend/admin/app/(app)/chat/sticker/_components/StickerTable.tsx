@@ -1,12 +1,9 @@
 import type { Selection } from "@react-types/shared";
-
 import React, { useCallback, useMemo, useState } from "react";
 import { SortDescriptor, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
-
 import StickerCellRenderer, { StickerColumnKey } from "./StickerCellRenderer";
 import StickerTopContent from "./StickerTopContent";
 import StickerBottomContent from "./StickerBottomContent";
-
 import { Sticker } from "@/types/sticker";
 
 export const STICKER_COLUMNS = [

@@ -47,7 +47,7 @@ export function EvoucherSelection({
 }: EvoucherSelectionProps) {
     const isEvoucherExpired = (evoucher: Evoucher): boolean => {
         // Use endAt instead of expiration
-        const endDate = evoucher.endAt || evoucher.expiration;
+        const endDate = evoucher.endAt;
 
         if (!endDate) return false;
 
@@ -59,7 +59,7 @@ export function EvoucherSelection({
         // Check if evoucher is active based on startAt and endAt
         const now = new Date();
         const startAt = evoucher.startAt ? new Date(evoucher.startAt) : null;
-        const endAt = evoucher.endAt ? new Date(evoucher.endAt) : (evoucher.expiration ? new Date(evoucher.expiration) : null);
+        const endAt = evoucher.endAt ? new Date(evoucher.endAt) : null;
         
         if (startAt && endAt && now >= startAt && now <= endAt) return "success";
 
@@ -71,7 +71,7 @@ export function EvoucherSelection({
         
         const now = new Date();
         const startAt = evoucher.startAt ? new Date(evoucher.startAt) : null;
-        const endAt = evoucher.endAt ? new Date(evoucher.endAt) : (evoucher.expiration ? new Date(evoucher.expiration) : null);
+        const endAt = evoucher.endAt ? new Date(evoucher.endAt) : null;
         
         if (startAt && endAt && now >= startAt && now <= endAt) return "Active";
         if (startAt && now < startAt) return "Not Started";
@@ -86,13 +86,9 @@ export function EvoucherSelection({
         // Check if evoucher is within valid date range
         const now = new Date();
         const startAt = evoucher.startAt ? new Date(evoucher.startAt) : null;
-        const endAt = evoucher.endAt ? new Date(evoucher.endAt) : (evoucher.expiration ? new Date(evoucher.expiration) : null);
+        const endAt = evoucher.endAt ? new Date(evoucher.endAt) : null;
         
         if (startAt && endAt && (now < startAt || now > endAt)) return false;
-        
-        // Check claims if available
-        if (evoucher.claims && evoucher.claims.currentClaim >= evoucher.claims.maxClaim) return false;
-        
         return true;
     };
 
@@ -119,7 +115,7 @@ export function EvoucherSelection({
                             isLoading={loading}
                             label="Choose an evoucher"
                             placeholder={loading ? "Loading evouchers..." : "Select an evoucher to send"}
-                            selectedKeys={selectedEvoucher ? [selectedEvoucher._id] : []}
+                            selectedKeys={selectedEvoucher ? [selectedEvoucher._id || ""] : []}
                             onSelectionChange={(keys) => {
                                 const selectedKey = Array.from(keys)[0] as string;
 
@@ -185,8 +181,7 @@ export function EvoucherSelection({
                                             <AlertCircle size={16} />
                                             <span className="text-sm font-medium">
                                                 {isEvoucherExpired(selectedEvoucher) && "This evoucher has expired"}
-                                                {!isEvoucherExpired(selectedEvoucher) && selectedEvoucher.status !== 'ACTIVE' && "This evoucher is inactive"}
-                                                {!isEvoucherExpired(selectedEvoucher) && selectedEvoucher.status === 'ACTIVE' && selectedEvoucher.claims && selectedEvoucher.claims.currentClaim >= selectedEvoucher.claims.maxClaim && "This evoucher has reached its maximum claim limit"}
+                                                {!isEvoucherExpired(selectedEvoucher) && "This evoucher is inactive"}
                                             </span>
                                         </div>
                                     </div>

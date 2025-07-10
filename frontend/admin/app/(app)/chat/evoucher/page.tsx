@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { EvoucherSelection } from "./_components/EvoucherSelection";
-import { useEvoucherSend } from "./_hooks/useEvoucherSend";
+import { useEvoucherSend } from "@/hooks/useEvoucherSend";
 
 import { useGolangApi } from "@/hooks/useApi";
 import { PageHeader } from "@/components/ui/page-header";

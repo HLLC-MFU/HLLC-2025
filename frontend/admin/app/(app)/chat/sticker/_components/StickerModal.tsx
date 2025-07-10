@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input,
-  Tooltip
+  Tooltip, Image
 } from "@heroui/react";
 import { Upload, Image as ImageIcon } from "lucide-react";
 
@@ -28,6 +28,7 @@ export function StickerModal({
   const [nameTh, setNameTh] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -37,6 +38,7 @@ export function StickerModal({
       setNameTh("");
       setImage(null);
       setPreviewImage(null);
+      setImageError(false);
       setErrors({});
 
       return;
@@ -45,11 +47,11 @@ export function StickerModal({
     if (isOpen && mode === "edit" && sticker) {
       setNameEn(sticker.name?.en || "");
       setNameTh(sticker.name?.th || "");
-      if (sticker.image) {
-        setPreviewImage(`${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${sticker.image}`);
-      } else {
-        setPreviewImage(null);
-      }
+      setImageError(false);
+      
+      setPreviewImage(sticker.image && !imageError
+        ? `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${sticker.image}`
+        : `https://ui-avatars.com/api/?name=${sticker.name.en.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=48&font-size=0.4`);
       setErrors({});
     }
   }, [isOpen, mode, sticker]);
@@ -136,7 +138,12 @@ export function StickerModal({
                 onClick={() => fileInputRef.current?.click()}
               >
                 {previewImage ? (
-                  <img alt="Preview" className="w-full h-full object-cover rounded-xl" src={previewImage} />
+                  <Image 
+                    alt="Preview" 
+                    className="w-full h-full object-cover rounded-xl" 
+                    src={previewImage}
+                    onError={() => setImageError(true)}
+                  />
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-default-400">
                     <ImageIcon size={32} />

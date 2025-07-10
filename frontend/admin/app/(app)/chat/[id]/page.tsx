@@ -156,7 +156,7 @@ export default function RoomDetailPage() {
                                     {room.name.th}
                                 </>
                             ) : (
-                                `Room ID: ${roomId}`
+                                `Room ID: ${roomId.toLowerCase()}`
                             )}
                         </h3>
                         <p className="text-default-500">

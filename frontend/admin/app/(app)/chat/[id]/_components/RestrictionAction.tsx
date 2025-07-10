@@ -5,7 +5,7 @@ import { Ban, MicOff, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { addToast } from "@heroui/toast";
 
-import { useRestriction } from "../_hooks/useRestriction";
+import { useRestriction } from "@/hooks/useRestriction";
 
 import { RoomMember } from "@/types/chat";
 

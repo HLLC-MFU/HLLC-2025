@@ -1,6 +1,6 @@
-import React from "react";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
-import { EllipsisVertical, Image, Pen, Trash } from "lucide-react";
+import React, { useState } from "react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Image } from "@heroui/react";
+import { EllipsisVertical, Image as ImageIcon, Pen, Trash } from "lucide-react";
 
 import { Sticker } from "@/types/sticker";
 
@@ -23,25 +23,27 @@ export default function StickerCellRenderer({
     onEdit,
     onDelete
 }: StickerCellRendererProps) {
+    const [imageError, setImageError] = useState(false);
+
     switch (columnKey) {
         case "image":
-            const imageUrl = sticker.image
+            const imageUrl = sticker.image && !imageError
                 ? `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${sticker.image}`
-                : '';
+                : `https://ui-avatars.com/api/?name=${sticker.name.en.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=48&font-size=0.4`;
 
             return (
                 <div className="flex items-center justify-center w-full">
                     <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-default-200 bg-default-100 flex items-center justify-center">
-                        {sticker.image ? (
-                            <img
+                        {sticker.image && !imageError ? (
+                            <Image
                                 alt={sticker.name.en}
                                 className="h-full w-full object-contain transition-transform duration-200 hover:scale-105"
                                 src={imageUrl}
-                                onError={(e) => { e.currentTarget.src = "/placeholder.png"; }}
+                                onError={() => setImageError(true)}
                             />
                         ) : (
                             <div className="flex flex-col items-center justify-center w-full h-full">
-                                <Image className="text-default-300" size={28} />
+                                <ImageIcon className="text-default-300" size={28} />
                                 <span className="text-xs text-default-400">No image</span>
                             </div>
                         )}
