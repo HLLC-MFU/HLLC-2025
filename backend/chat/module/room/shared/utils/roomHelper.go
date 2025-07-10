@@ -152,7 +152,7 @@ func CanUserSendMessage(ctx context.Context, room *model.Room, userID string) (b
 			return false, fmt.Errorf("user role not found in context")
 		}
 
-		if userRole != middleware.RoleAdministrator && userRole != middleware.RoleStaff {
+		if userRole != middleware.RoleAdministrator && userRole != middleware.RoleStaff && userRole != middleware.RoleAE {
 			return false, fmt.Errorf("room is read-only and user does not have write permission")
 		}
 	}

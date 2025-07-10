@@ -395,12 +395,16 @@ func (s *RestrictionService) removeUserFromRoom(ctx context.Context, userID, roo
 			s.hub.BroadcastToUser(userIDStr, eventBytes)
 			
 			// ส่ง event ไปยังคนอื่นในห้อง
-			s.hub.BroadcastToRoom(roomIDStr, eventBytes)
+			s.hub.BroadcastToRoomExcept(roomIDStr, userIDStr, eventBytes)
 			
 			log.Printf("[ModerationService] Sent kick notification to user %s and room %s", userIDStr, roomIDStr)
 		} else {
 			log.Printf("[ERROR] Failed to marshal kick event: %v", err)
 		}
+		
+		// **NEW: Force disconnect user from WebSocket**
+		disconnectedCount := s.hub.ForceDisconnectUserFromRoom(roomIDStr, userIDStr)
+		log.Printf("[ModerationService] Force disconnected %d connections for user %s from room %s", disconnectedCount, userIDStr, roomIDStr)
 	}
 
 	log.Printf("[ModerationService] Successfully removed user %s from room %s", userID.Hex(), roomID.Hex())

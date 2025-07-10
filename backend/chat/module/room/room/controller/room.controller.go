@@ -73,8 +73,10 @@ func (c *RoomController) setupRoutes() {
 }
 
 // GetRooms ดึงรายการห้องทั้งหมด
+// If ?limit=0 is provided, returns all rooms without pagination.
 func (c *RoomController) GetRooms(ctx *fiber.Ctx) error {
 	opts := queries.ParseQueryOptions(ctx)
+	// If limit=0, allow unlimited
 	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
@@ -96,7 +98,7 @@ func (c *RoomController) GetRoomMembers(ctx *fiber.Ctx) error {
 
 	// Parse pagination params
 	limit := ctx.QueryInt("limit", 10)
-	if limit < 1 {
+	if limit < 0 {
 		limit = 10
 	}
 	page := ctx.QueryInt("page", 1)
@@ -110,7 +112,10 @@ func (c *RoomController) GetRoomMembers(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 	total := len(room.Members)
-	totalPages := (total + limit - 1) / limit
+	totalPages := 1
+	if limit > 0 {
+		totalPages = (total + limit - 1) / limit
+	}
 
 	roomMember, err := c.roomService.GetRoomMemberById(ctx.Context(), roomObjID, int64(page), int64(limit))
 	if err != nil {

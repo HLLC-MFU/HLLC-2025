@@ -472,8 +472,8 @@ func (s *RoomServiceImpl) CanUserSendMessage(ctx context.Context, roomID primiti
 			return false, fmt.Errorf("user role not found in context")
 		}
 		log.Printf("[DEBUG] userRole in context: %s", userRole)
-		// อนุญาตให้เฉพาะ Administrator และ Staff สามารถส่งข้อความในห้อง read-only ได้
-		if userRole != middleware.RoleAdministrator && userRole != middleware.RoleStaff {
+		// อนุญาตให้เฉพาะ Administrator, Staff (Mentee), และ AE สามารถส่งข้อความในห้อง read-only ได้
+		if userRole != middleware.RoleAdministrator && userRole != middleware.RoleStaff && userRole != middleware.RoleAE {
 			return false, fmt.Errorf("room is read-only and user does not have write permission")
 		}
 	}

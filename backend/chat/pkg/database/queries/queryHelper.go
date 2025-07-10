@@ -70,20 +70,16 @@ import (
         if opts.Page < 1 {
             opts.Page = 1
         }
-        if opts.Limit < 1 {
-            opts.Limit = 10
-        }
-
-        // Set pagination
+        // If limit is 0, treat as unlimited (no limit)
         skip := int64((opts.Page - 1) * opts.Limit)
         if skip < 0 {
             skip = 0
         }
-        
-        findOptions := options.Find().
-            SetSort(sortBson).
-            SetSkip(skip).
-            SetLimit(int64(opts.Limit))
+        findOptions := options.Find().SetSort(sortBson)
+        if opts.Limit > 0 {
+            findOptions.SetSkip(skip)
+            findOptions.SetLimit(int64(opts.Limit))
+        }
 
         // Get total count
         total, err := s.collection.CountDocuments(ctx, opts.Filter)
@@ -102,6 +98,12 @@ import (
             return nil, err
         }
 
+        // Calculate totalPages
+        totalPages := 1
+        if opts.Limit > 0 {
+            totalPages = (int(total) + opts.Limit - 1) / opts.Limit
+        }
+
         return &Response[T]{
             Success: true,
             Message: "Documents fetched successfully",
@@ -110,7 +112,7 @@ import (
                 Total:         total,
                 Page:          opts.Page,
                 Limit:         opts.Limit,
-                TotalPages:    (int(total) + opts.Limit - 1) / opts.Limit,
+                TotalPages:    totalPages,
                 LastUpdatedAt: time.Now(),
             },
         }, nil
@@ -130,7 +132,6 @@ import (
                 "path": "$" + populateField,
                 "preserveNullAndEmptyArrays": true,
             }},
-            // Merge the populated field back into the document
             {"$replaceRoot": bson.M{
                 "newRoot": bson.M{
                     "$mergeObjects": []interface{}{
@@ -150,19 +151,17 @@ import (
         if opts.Page < 1 {
             opts.Page = 1
         }
-        if opts.Limit < 1 {
-            opts.Limit = 10
+        // If limit > 0, add skip/limit, else unlimited
+        if opts.Limit > 0 {
+            skip := int64((opts.Page - 1) * opts.Limit)
+            if skip < 0 {
+                skip = 0
+            }
+            pipeline = append(pipeline,
+                bson.M{"$skip": skip},
+                bson.M{"$limit": int64(opts.Limit)},
+            )
         }
-
-        // Add pagination stages
-        skip := int64((opts.Page - 1) * opts.Limit)
-        if skip < 0 {
-            skip = 0
-        }
-        pipeline = append(pipeline,
-            bson.M{"$skip": skip},
-            bson.M{"$limit": int64(opts.Limit)},
-        )
 
         // Execute aggregation
         cursor, err := s.collection.Aggregate(ctx, pipeline)
@@ -182,6 +181,12 @@ import (
             return nil, err
         }
 
+        // Calculate totalPages
+        totalPages := 1
+        if opts.Limit > 0 {
+            totalPages = (int(total) + opts.Limit - 1) / opts.Limit
+        }
+
         return &Response[T]{
             Success: true,
             Message: "Documents fetched successfully",
@@ -190,7 +195,7 @@ import (
                 Total:         total,
                 Page:          opts.Page,
                 Limit:         opts.Limit,
-                TotalPages:    (int(total) + opts.Limit - 1) / opts.Limit,
+                TotalPages:    totalPages,
                 LastUpdatedAt: time.Now(),
             },
         }, nil

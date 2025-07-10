@@ -23,7 +23,7 @@ export function useChat() {
             setError(null);
             try {
                 const res = await apiGolangRequest<{ data: Room[]}>(
-                    `/rooms`,
+                    `/rooms?limit=0`,
                     "GET",
                 );
 

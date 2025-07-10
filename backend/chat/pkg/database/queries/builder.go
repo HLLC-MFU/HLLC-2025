@@ -39,11 +39,13 @@ func ParseQueryOptions(c *fiber.Ctx) QueryOptions {
         page = 1
     }
 
-    // Get limit
+    // Get limit - allow 0 for unlimited
     limit, _ := strconv.Atoi(c.Query("limit", "10"))
-    if limit < 1 {
+    if limit < 0 {
         limit = 10
     }
+    // If limit is 0, keep it as 0 (unlimited)
+    // If limit > 0, use the provided value
 
     // Get sort
     sort := c.Query("sort", "")
@@ -92,12 +94,14 @@ func (q *QueryBuilder[T]) FindAllWithPopulate(ctx context.Context, opts QueryOpt
         pipeline = append(pipeline, bson.M{"$sort": q.parseSort(opts.Sort)})
     }
 
-    // Add pagination stages
-    skip := int64((opts.Page - 1) * opts.Limit)
-    pipeline = append(pipeline,
-        bson.M{"$skip": skip},
-        bson.M{"$limit": int64(opts.Limit)},
-    )
+    // Add pagination stages only if limit > 0
+    if opts.Limit > 0 {
+        skip := int64((opts.Page - 1) * opts.Limit)
+        pipeline = append(pipeline,
+            bson.M{"$skip": skip},
+            bson.M{"$limit": int64(opts.Limit)},
+        )
+    }
 
     // Execute aggregation
     cursor, err := q.collection.Aggregate(ctx, pipeline)
@@ -117,6 +121,12 @@ func (q *QueryBuilder[T]) FindAllWithPopulate(ctx context.Context, opts QueryOpt
         return nil, err
     }
 
+    // Calculate totalPages
+    totalPages := 1
+    if opts.Limit > 0 {
+        totalPages = int((total + int64(opts.Limit) - 1) / int64(opts.Limit))
+    }
+
     return &Response[T]{
         Success: true,
         Message: "Documents fetched successfully",
@@ -125,7 +135,7 @@ func (q *QueryBuilder[T]) FindAllWithPopulate(ctx context.Context, opts QueryOpt
             Total:      total,
             Page:       opts.Page,
             Limit:      opts.Limit,
-            TotalPages: int(total) / opts.Limit,
+            TotalPages: totalPages,
         },
     }, nil
 }
@@ -152,16 +162,13 @@ func (q *QueryBuilder[T]) FindAll(ctx context.Context, opts QueryOptions, filter
     if opts.Page < 1 {
         opts.Page = 1
     }
-    if opts.Limit < 1 {
-        opts.Limit = 10
-    }
-
-    // Set pagination
+    // Set pagination only if limit > 0
     skip := int64((opts.Page - 1) * opts.Limit)
-    findOptions := options.Find().
-        SetSort(sortBson).
-        SetSkip(skip).
-        SetLimit(int64(opts.Limit))
+    findOptions := options.Find().SetSort(sortBson)
+    if opts.Limit > 0 {
+        findOptions.SetSkip(skip)
+        findOptions.SetLimit(int64(opts.Limit))
+    }
 
     // Get total count
     total, err := q.collection.CountDocuments(ctx, filter)

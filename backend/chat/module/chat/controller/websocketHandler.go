@@ -352,14 +352,39 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		return
 	}
 
-	// ตรวจสอบ BAN status หลังจาก validate user ID แล้ว ถ้าเป็น BAN ก็ต้องออกจากห้อง	
-	if h.restrictionService.IsUserBanned(ctx, userObjID, roomObjID) {
-		log.Printf("[BANNED] User %s is banned from room %s", userID, roomID)
-		h.roomService.RemoveConnection(ctx, roomObjID, userID)
-		conn.WriteMessage(websocket.TextMessage, []byte("You are banned from this room"))
-		conn.Close()
-		return
-	}
+			// ตรวจสอบ BAN status หลังจาก validate user ID แล้ว ถ้าเป็น BAN ก็ต้องออกจากห้อง	
+		if h.restrictionService.IsUserBanned(ctx, userObjID, roomObjID) {
+			log.Printf("[BANNED] User %s is banned from room %s", userID, roomID)
+			h.roomService.RemoveConnection(ctx, roomObjID, userID)
+			conn.WriteMessage(websocket.TextMessage, []byte("You are banned from this room"))
+			conn.Close()
+			return
+		}
+		
+		// **NEW: Check if user is still a member of the room**
+		room, err := h.roomService.GetRoomById(ctx, roomObjID)
+		if err != nil {
+			log.Printf("[ERROR] Failed to get room %s: %v", roomObjID.Hex(), err)
+			conn.WriteMessage(websocket.TextMessage, []byte("Failed to get room information"))
+			conn.Close()
+			return
+		}
+		
+		// Check if user is still a member
+		isMember := false
+		for _, memberID := range room.Members {
+			if memberID == userObjID {
+				isMember = true
+				break
+			}
+		}
+		
+		if !isMember {
+			log.Printf("[KICKED] User %s is not a member of room %s (likely kicked)", userID, roomID)
+			conn.WriteMessage(websocket.TextMessage, []byte("You are not a member of this room"))
+			conn.Close()
+			return
+		}
 
 	// Send room status
 	if status, err := h.roomService.GetRoomStatus(ctx, roomObjID); err == nil {
@@ -432,6 +457,13 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 		case strings.HasPrefix(messageText, "/unsend "):
 			h.handleUnsendMessage(messageText, *client, ctx)
 		default:
+			// **NEW: Check for kick events and handle disconnection**
+			if strings.Contains(messageText, "\"type\":\"user_kicked\"") {
+				log.Printf("[WS] User %s received kick event, disconnecting", userID)
+				conn.WriteMessage(websocket.TextMessage, []byte("You have been kicked from this room"))
+				conn.Close()
+				return
+			}
 			// Check if room is still active (prevent messages in inactive rooms)
 			room, err := h.roomService.GetRoomById(ctx, roomObjID)
 			if err != nil {

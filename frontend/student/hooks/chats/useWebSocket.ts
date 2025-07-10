@@ -51,6 +51,24 @@ function onMessage(event: MessageEvent, args: any) {
       }
       return;
     }
+    
+    // **NEW: Handle kick event**
+    if (data.type === 'user_kicked') {
+      console.log('[WS] User kicked event received:', data);
+      // Show kick notification
+      if (data.data?.userId === userId) {
+        // This user was kicked
+        setState((prev: any) => ({
+          ...prev,
+          error: 'You have been kicked from this room'
+        }));
+        // Close WebSocket connection
+        if (args.state.ws) {
+          args.state.ws.close();
+        }
+      }
+      return;
+    }
     // Fallback to base handler
     baseOnMessage(event, args);
   } catch (err) {
