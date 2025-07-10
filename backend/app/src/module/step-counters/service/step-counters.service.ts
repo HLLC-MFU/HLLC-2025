@@ -26,7 +26,7 @@ export class StepCountersService {
     private userModel: Model<UserDocument>,
     @InjectModel(StepAchievement.name)
     private stepAchievementModel: Model<StepAchievementDocument>,
-  ) {}
+  ) { }
 
   async getRegisteredDevices(userId: string) {
     const user = await findOrThrow(this.userModel, userId, 'User not found');
@@ -241,8 +241,12 @@ export class StepCountersService {
         path: 'user',
         select: 'name metadata.major username',
         populate: {
-          path: 'metadata.major.school',
-          model: 'School',
+          path: 'metadata.major',
+          model: 'Major',
+          populate: {
+            path: 'school',
+            model: 'School',
+          }
         },
       })
       .lean();
@@ -284,21 +288,14 @@ export class StepCountersService {
     }
 
     const completed = stepCounters
-      .filter((sc) => sc.completeStatus && typeof sc.rank === 'number')
-      .sort((a, b) => a.rank - b.rank);
-
-    const inProgress = stepCounters
-      .filter((sc) => !sc.completeStatus)
       .map((sc) => ({
         ...sc,
         totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
       }))
       .sort((a, b) => b.totalStep - a.totalStep);
 
-    const combined = [...completed, ...inProgress];
-
     // Assign computed rank
-    const combinedWithRank = combined.map((sc, idx) => ({
+    const combinedWithRank = completed.map((sc, idx) => ({
       ...sc,
       computedRank: idx + 1,
     }));
@@ -378,21 +375,14 @@ export class StepCountersService {
     }
 
     const completed = stepCounters
-      .filter((sc) => sc.completeStatus && typeof sc.rank === 'number')
-      .sort((a, b) => a.rank - b.rank);
-
-    const inProgress = stepCounters
-      .filter((sc) => !sc.completeStatus)
       .map((sc) => ({
         ...sc,
         totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
       }))
       .sort((a, b) => b.totalStep - a.totalStep);
 
-    const combined = [...completed, ...inProgress];
-
     // Assign computed rank
-    const combinedWithRank = combined.map((sc, idx) => ({
+    const combinedWithRank = completed.map((sc, idx) => ({
       ...sc,
       computedRank: idx + 1,
     }));
@@ -414,9 +404,9 @@ export class StepCountersService {
       },
       myRank: myRank
         ? {
-            rank: myRank.computedRank,
-            data: myRank,
-          }
+          rank: myRank.computedRank,
+          data: myRank,
+        }
         : null,
     };
   }

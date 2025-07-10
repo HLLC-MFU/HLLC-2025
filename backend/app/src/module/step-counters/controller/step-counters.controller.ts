@@ -76,7 +76,6 @@ export class StepCountersController {
     @Body() body: CollectStepDto,
   ) {
     const user = req.user as { _id?: string; id?: string };
-    // console.log(user);
 
     const userId: string = user?._id ?? user?.id ?? '';
     const { deviceId, stepCount, date } = body;
