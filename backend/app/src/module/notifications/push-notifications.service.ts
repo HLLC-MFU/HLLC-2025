@@ -104,8 +104,11 @@ export class PushNotificationService {
     }).lean();
 
     if (!allDevices.length) {
-      // return;
-      throw new BadRequestException('Not found any receivers (registered user). Try to send using in-app notification mode.');
+      return {
+        successCount: 0,
+        failureCount: 0,
+        responses: [],
+      };
     }
 
     const titleMap = dto.title;
