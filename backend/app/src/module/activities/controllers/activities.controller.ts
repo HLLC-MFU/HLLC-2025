@@ -8,6 +8,7 @@ import {
   Req,
   UseGuards,
   UseInterceptors,
+  HttpStatus,
 } from '@nestjs/common';
 import { ActivitiesService } from '../services/activities.service';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
@@ -20,6 +21,7 @@ import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { Activities } from '../schemas/activities.schema';
 import { PaginatedResponse } from 'src/pkg/interceptors/response.interceptor';
 import { Types } from 'mongoose';
+import { apiResponse } from 'src/pkg/helper/api-response.helper';
 
 @UseGuards(PermissionsGuard)
 @Controller('activities')
@@ -36,7 +38,11 @@ export class ActivitiesController {
   @Get('')
   async findAll() {
     const activities = await this.activitiesService.findAll();
-    return { data: activities };
+    return apiResponse(
+      activities,
+      'Activities retrieved successfully',
+      HttpStatus.OK,
+    );
   }
 
   @Get('canCheckin')
@@ -47,12 +53,19 @@ export class ActivitiesController {
     return this.activitiesService.findCanCheckinActivities(user._id.toString());
   }
 
-  @Get('users')
-  getActivitiesByUser(
+  @Get('user')
+  async getActivitiesByUser(
     @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
   ) {
     const user = req.user as { _id: Types.ObjectId };
-    return this.activitiesService.findActivitiesByUserId(user._id.toString());
+    const activities = await this.activitiesService.findActivitiesByUserId(
+      user._id.toString(),
+    );
+    return apiResponse(
+      activities,
+      'Activities retrieved successfully',
+      HttpStatus.OK,
+    );
   }
 
   @Get(':id')
