@@ -8,7 +8,9 @@ import {
     DropdownTrigger, 
     DropdownMenu, 
     DropdownItem, 
-    Image 
+    Image,
+    Switch,
+    Tooltip
 } from "@heroui/react";
 import { 
     Building2, 
@@ -35,12 +37,24 @@ type RoomCardProps = {
 export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardProps) {
     const router = useRouter();
     const [imageError, setImageError] = useState(false);
+    const [isToggling, setIsToggling] = useState(false);
 
     const handleAction = (action: string) => {
         if (action === "view") router.push(`/chat/${room._id}`);
         if (action === "edit") onEdit(room);
         if (action === "delete") onDelete(room);
-        if (action === "toggle") onToggleStatus?.(room);
+        if (action === "toggle") handleToggleStatus();
+    };
+
+    const handleToggleStatus = async () => {
+        if (!onToggleStatus || isToggling) return;
+        
+        setIsToggling(true);
+        try {
+            await onToggleStatus(room);
+        } finally {
+            setIsToggling(false);
+        }
     };
 
     const roomImage = room.image && !imageError 
@@ -136,16 +150,19 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Button 
-                            isIconOnly 
-                            className="text-xs h-6 w-6" 
-                            color={room.status === "active" ? "success" : "danger"} 
-                            size="sm" 
-                            variant="flat" 
-                            onPress={() => handleAction("toggle")}
-                        >
-                            {room.status === "active" ? <XCircle size={12} /> : <CheckCircle size={12} />}
-                        </Button>
+                        {onToggleStatus && (
+                            <Tooltip content={room.status === "active" ? "Deactivate Room" : "Activate Room"}>
+                                <Switch
+                                    color={room.status === "active" ? "success" : "danger"}
+                                    endContent={room.status === "active" && <CheckCircle className="w-3 h-3 text-green-500" />}
+                                    isDisabled={isToggling}
+                                    isSelected={room.status === "active"}
+                                    size="sm"
+                                    startContent={room.status !== "active" && <XCircle className="w-3 h-3 text-red-500" />}
+                                    onValueChange={handleToggleStatus}
+                                />
+                            </Tooltip>
+                        )}
                         <Button 
                             className="text-xs px-3 h-6" 
                             color="primary" 

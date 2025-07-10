@@ -25,20 +25,29 @@ export default function StickerCellRenderer({
 }: StickerCellRendererProps) {
     const [imageError, setImageError] = useState(false);
 
+    const getImageUrl = () => {
+        if (sticker.image && !imageError) {
+            return `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${sticker.image}`;
+        }
+        
+        const fallbackName = sticker.name?.en || sticker.name?.th || 'S';
+        return `https://ui-avatars.com/api/?name=${fallbackName.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=48&font-size=0.4`;
+    };
+
+    const getDisplayName = (lang: 'en' | 'th') => {
+        return sticker.name?.[lang] || 'N/A';
+    };
+
     switch (columnKey) {
         case "image":
-            const imageUrl = sticker.image && !imageError
-                ? `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${sticker.image}`
-                : `https://ui-avatars.com/api/?name=${sticker.name.en.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=48&font-size=0.4`;
-
             return (
                 <div className="flex items-center justify-center w-full">
                     <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-default-200 bg-default-100 flex items-center justify-center">
                         {sticker.image && !imageError ? (
                             <Image
-                                alt={sticker.name.en}
+                                alt={getDisplayName('en')}
                                 className="h-full w-full object-contain transition-transform duration-200 hover:scale-105"
-                                src={imageUrl}
+                                src={getImageUrl()}
                                 onError={() => setImageError(true)}
                             />
                         ) : (
@@ -55,7 +64,7 @@ export default function StickerCellRenderer({
             return (
                 <div className="flex items-center min-w-[120px]">
                     <p className="text-sm font-medium capitalize truncate">
-                        {sticker.name.en}
+                        {getDisplayName('en')}
                     </p>
                 </div>
             );
@@ -64,7 +73,7 @@ export default function StickerCellRenderer({
             return (
                 <div className="flex items-center min-w-[120px]">
                     <p className="text-sm font-medium capitalize truncate">
-                        {sticker.name.th}
+                        {getDisplayName('th')}
                     </p>
                 </div>
             );

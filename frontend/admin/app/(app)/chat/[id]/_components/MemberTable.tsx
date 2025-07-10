@@ -19,11 +19,7 @@ type ModalProps = {
 type ColumnProps = {
   name: string;
   uid: string;
-  sortable: boolean;
-} | {
-  name: string;
-  uid: string;
-  sortable?: undefined;
+  sortable?: boolean;
 };
 
 export default function MemberTable({
@@ -63,7 +59,6 @@ export default function MemberTable({
   const [visibleColumns, setVisibleColumns] = useState(
     new Set(initialVisibleColumns)
   );
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "username",
     direction: "ascending" as "ascending" | "descending",
@@ -76,7 +71,7 @@ export default function MemberTable({
     return columns.filter((column) =>
       Array.from(visibleColumns).includes(column.uid)
     );
-  }, [visibleColumns]);
+  }, [visibleColumns, columns]);
 
   const filteredItems = useMemo(() => {
     let filteredMembers = [...members ?? []];
@@ -90,18 +85,18 @@ export default function MemberTable({
     }
 
     return filteredMembers;
-  }, [members, filterValue]);
+  }, [members, filterValue, hasSearchFilter]);
 
-  const pages = pagination ? pagination.totalPages : Math.ceil(filteredItems.length / rowsPerPage);
+  const pages = pagination ? pagination.totalPages : Math.ceil(filteredItems.length / 10);
 
   const items = useMemo(() => {
     if (pagination) {
       return filteredItems;
     }
-    const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
+    const start = (page - 1) * 10;
+    const end = start + 10;
     return filteredItems.slice(start, end);
-  }, [page, filteredItems, rowsPerPage, pagination]);
+  }, [page, filteredItems, pagination]);
 
   const sortedItems = useMemo(() => {
     return [...items].sort((a, b) => {
@@ -146,7 +141,6 @@ export default function MemberTable({
               <div className="flex flex-col">
                 <span className="font-semibold text-small">{item.username}</span>
                 <span className="text-tiny text-default-500">{name}</span>
-                {/* Show restriction status badges */}
                 <RestrictionStatusBadge restrictionStatus={item.restrictionStatus} />
               </div>
             </div>
@@ -175,7 +169,7 @@ export default function MemberTable({
           return cellValue as ReactNode;
       }
     },
-    [page, selectedKeys]
+    [handleRestrictionAction]
   );
 
   return (
@@ -225,7 +219,6 @@ export default function MemberTable({
         loading={loading}
       />
 
-      {/* Restriction Action Modal */}
       <RestrictionAction
         action={restrictionAction}
         isOpen={modal.restriction}

@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { addToast } from "@heroui/toast";
 import MemberTable from "./_components/MemberTable";
 import { RestrictionHistory } from "./_components/RestrictionHistory";
+import { GenericSkeleton } from "../_components/RoomSkeleton";
 import { RoomMember, Room } from "@/types/chat";
 import { useChat } from "@/hooks/useChat";
 import { PageHeader } from "@/components/ui/page-header";
@@ -125,6 +126,23 @@ export default function RoomDetailPage() {
         setCurrentPage(page);
         loadMembers(page);
     };
+
+    // Show skeleton while room is loading
+    if (isLoadingRoom) {
+        return (
+            <div className="flex flex-col gap-6">
+                <PageHeader 
+                    description="Manage room members and actions"
+                    icon={<Users />}
+                    title="Room Members"
+                />
+                <div className="space-y-4">
+                    <GenericSkeleton type="list" rows={1} />
+                    <GenericSkeleton type="table" rows={5} />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-6">

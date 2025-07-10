@@ -36,6 +36,7 @@ export default function StickerTable({
     const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
     const [page, setPage] = useState(1);
     const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({ column: "nameEn", direction: "ascending" });
+    
     const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 
     const handleSearch = (value: string) => {
@@ -55,8 +56,8 @@ export default function StickerTable({
         const query = filterValue.toLowerCase();
 
         return stickers.filter((sticker) =>
-            sticker.name.en.toLowerCase().includes(query) ||
-            sticker.name.th.toLowerCase().includes(query)
+            sticker.name?.en?.toLowerCase().includes(query) ||
+            sticker.name?.th?.toLowerCase().includes(query)
         );
     }, [stickers, filterValue]);
 
@@ -73,7 +74,6 @@ export default function StickerTable({
     const rowsPerPage = 8;
     const pagedItems = useMemo(() => {
         const start = (page - 1) * rowsPerPage;
-
         return sortedItems.slice(start, start + rowsPerPage);
     }, [sortedItems, page]);
 

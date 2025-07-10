@@ -15,6 +15,8 @@ type TopContentProps = {
     onClear: () => void;
     setVisibleColumns: (columns: Set<string>) => void;
     capitalize: (value: string) => string;
+    placeholder?: string;
+    showColumnSelector?: boolean;
 }
 
 export default function TopContent({
@@ -25,6 +27,8 @@ export default function TopContent({
     onClear,
     setVisibleColumns,
     capitalize,
+    placeholder = "Search member",
+    showColumnSelector = true,
 }: TopContentProps) {
     return (
         <div className="flex flex-col gap-4">
@@ -32,36 +36,38 @@ export default function TopContent({
                 <Input
                     isClearable
                     className="w-full sm:max-w-[44%]"
-                    placeholder="Search member"
+                    placeholder={placeholder}
                     startContent={<SearchIcon />}
                     value={filterValue}
-                    onClear={() => onClear()}
+                    onClear={onClear}
                     onValueChange={onSearchChange}
                 />
-                <div className="flex gap-3">
-                    <Dropdown>
-                        <DropdownTrigger className="hidden sm:flex">
-                            <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
-                                Columns
-                            </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu
-                            disallowEmptySelection
-                            aria-label="Table Columns"
-                            closeOnSelect={false}
-                            selectedKeys={visibleColumns}
-                            selectionMode="multiple"
-                            onSelectionChange={(keys) => setVisibleColumns(new Set(Array.from(keys, String)))}
-                        >
-                            {columns.map((column) => (
-                                <DropdownItem key={column.uid} className="capitalize">
-                                    {capitalize(column.name)}
-                                </DropdownItem>
-                            ))}
-                        </DropdownMenu>
-                    </Dropdown>
-                </div>
+                {showColumnSelector && (
+                    <div className="flex gap-3">
+                        <Dropdown>
+                            <DropdownTrigger className="hidden sm:flex">
+                                <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
+                                    Columns
+                                </Button>
+                            </DropdownTrigger>
+                            <DropdownMenu
+                                disallowEmptySelection
+                                aria-label="Table Columns"
+                                closeOnSelect={false}
+                                selectedKeys={visibleColumns}
+                                selectionMode="multiple"
+                                onSelectionChange={(keys) => setVisibleColumns(new Set(Array.from(keys, String)))}
+                            >
+                                {columns.map((column) => (
+                                    <DropdownItem key={column.uid} className="capitalize">
+                                        {capitalize(column.name)}
+                                    </DropdownItem>
+                                ))}
+                            </DropdownMenu>
+                        </Dropdown>
+                    </div>
+                )}
             </div>
-        </div >
+        </div>
     );
-}; 
+} 

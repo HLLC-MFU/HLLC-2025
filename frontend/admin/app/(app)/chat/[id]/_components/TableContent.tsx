@@ -40,6 +40,7 @@ type TableContentProps = {
     } | null;
     onPageChange?: (page: number) => void;
     loading?: boolean;
+    emptyMessage?: string;
 }
 
 export default function TableContent({
@@ -67,22 +68,25 @@ export default function TableContent({
     pagination,
     onPageChange,
     loading = false,
+    emptyMessage = "No members found",
 }: TableContentProps) {
     return (
         <Table
             isHeaderSticky
             aria-label="Table"
-            bottomContent={<BottomContent
-                filteredItems={filteredItems}
-                page={page}
-                pages={pages}
-                selectedKeys={selectedKeys}
-                setPage={setPage}
-                onNextPage={onNextPage}
-                onPreviousPage={onPreviousPage}
-                pagination={pagination}
-                onPageChange={onPageChange}
-            />}
+            bottomContent={
+                <BottomContent
+                    filteredItems={filteredItems}
+                    page={page}
+                    pages={pages}
+                    selectedKeys={selectedKeys}
+                    setPage={setPage}
+                    onNextPage={onNextPage}
+                    onPreviousPage={onPreviousPage}
+                    pagination={pagination}
+                    onPageChange={onPageChange}
+                />
+            }
             bottomContentPlacement="outside"
             classNames={{
                 wrapper: "max-h-[382px]",
@@ -90,16 +94,18 @@ export default function TableContent({
             selectedKeys={selectedKeys}
             selectionMode="multiple"
             sortDescriptor={sortDescriptor}
-            topContent={<TopContent
-                capitalize={capitalize}
-                columns={columns}
-                filterValue={filterValue}
-                setModal={setModal}
-                setVisibleColumns={setVisibleColumns}
-                visibleColumns={visibleColumns}
-                onClear={onClear}
-                onSearchChange={onSearchChange}
-            />}
+            topContent={
+                <TopContent
+                    capitalize={capitalize}
+                    columns={columns}
+                    filterValue={filterValue}
+                    setModal={setModal}
+                    setVisibleColumns={setVisibleColumns}
+                    visibleColumns={visibleColumns}
+                    onClear={onClear}
+                    onSearchChange={onSearchChange}
+                />
+            }
             topContentPlacement="outside"
             onSelectionChange={setSelectedKeys}
             onSortChange={setSortDescriptor}
@@ -115,7 +121,7 @@ export default function TableContent({
                     </TableColumn>
                 )}
             </TableHeader>
-            <TableBody emptyContent={"No members found"} items={sortedItems}>
+            <TableBody emptyContent={emptyMessage} items={sortedItems}>
                 {(item: RoomMember) => {
                     const index = sortedItems.findIndex((i) => i._id === item._id)
 
@@ -128,4 +134,4 @@ export default function TableContent({
             </TableBody>
         </Table>
     )
-}; 
+} 

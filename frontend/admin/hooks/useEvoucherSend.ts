@@ -1,21 +1,19 @@
 "use client";
 
 import { addToast } from "@heroui/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import { Evoucher } from "@/types/evoucher";
 import { EvoucherData } from "@/types/chat";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import { useSponsors } from "@/hooks/useSponsors";
-import { useGolangApi } from "@/hooks/useApi";
+import { apiGolangRequest } from "@/utils/api";
 
 export function useEvoucherSend(roomId: string | null) {
-    const { request } = useGolangApi();
-    const { evouchers, refreshEvouchers } = useEvoucher();
+    const { evouchers } = useEvoucher();
     const { fetchSponsorById } = useSponsors();
     const [selectedEvoucher, setSelectedEvoucher] = useState<Evoucher | null>(null);
     const [evoucherData, setEvoucherData] = useState({
-        //  ใส่เป็น formData
         message: {
             th: '',
             en: ''
@@ -26,22 +24,20 @@ export function useEvoucherSend(roomId: string | null) {
     const [sending, setSending] = useState(false);
     const canSendEvoucher = roomId && selectedEvoucher && evoucherData.message.th && evoucherData.message.en;
 
-    useEffect(() => {
-        refreshEvouchers();
-    }, []);
-    useEffect(() => {
-        console.log("Evouchers data:", evouchers);
-        console.log("Evouchers length:", evouchers.length);
-    }, [evouchers]);
+    const isEvoucherExpired = (evoucher: Evoucher): boolean => {
+        const endDate = evoucher.endAt;
+        if (!endDate) return false;
+        return new Date(endDate) < new Date();
+    };
 
     const sendEvoucher = async (evoucherData: EvoucherData) => {
         setSending(true);
         try {
-            const res = await request<{data: EvoucherData}>(
+            const res = await apiGolangRequest <{data: EvoucherData}>(
                 "/evouchers/send",
-                 "POST",
-                  evoucherData
-                );
+                "POST",
+                evoucherData
+            );
             return res.data;
         } catch (err) {
             console.error("Send evoucher error:", err);
@@ -57,24 +53,19 @@ export function useEvoucherSend(roomId: string | null) {
         if (evoucher) {
             setSelectedEvoucher(evoucher);
             
-            // default claims for nestjs api
+            // Generate claim URL for nestjs api
             const claimURL = `${process.env.NEXT_PUBLIC_API_URL}/evouchers/${evoucher._id}/claim`;
             let sponsorImage = '';
 
             if (evoucher.sponsor) {
                 try {
-                    console.log('Fetching sponsor image for sponsorId:', evoucher.sponsor);
                     const sponsorInfo = await fetchSponsorById(evoucher.sponsor as string);
-
-                    console.log('Sponsor info response:', sponsorInfo);
                     
                     if (sponsorInfo && sponsorInfo.length > 0) {
                         const sponsor = sponsorInfo[0];
-                        console.log('Sponsor object:', sponsor);
                         
                         if (sponsor.data?.logo?.logoPhoto) {
                             sponsorImage = sponsor.data.logo.logoPhoto;
-                            console.log('Found logo.logoPhoto:', sponsorImage);
                         }
                     }
                 } catch (error) {
@@ -108,7 +99,6 @@ export function useEvoucherSend(roomId: string | null) {
                 description: "Please select an evoucher",
                 color: "warning",
             });
-
             return;
         }
 
@@ -119,7 +109,6 @@ export function useEvoucherSend(roomId: string | null) {
                 description: "Cannot send expired evouchers. Please select a valid evoucher.",
                 color: "danger",
             });
-
             return;
         }
 
@@ -133,7 +122,6 @@ export function useEvoucherSend(roomId: string | null) {
                 description: "Cannot send evoucher before its start date.",
                 color: "danger",
             });
-
             return;
         }
 
@@ -144,8 +132,6 @@ export function useEvoucherSend(roomId: string | null) {
                 claimUrl: evoucherData.claimUrl,
                 sponsorImage: evoucherData.sponsorImage
             };
-            
-            console.log('Sending evoucher data:', data);
             
             await sendEvoucher(data);
             
@@ -174,27 +160,6 @@ export function useEvoucherSend(roomId: string | null) {
         }
     };
 
-    const isEvoucherExpired = (evoucher: Evoucher): boolean => {
-        const endDate = evoucher.endAt
-
-        if (!endDate) return false;
-
-        return new Date(endDate) < new Date();
-    };
-
-    const isEvoucherValid = (evoucher: Evoucher | null): boolean => {
-        if (!evoucher) return false;
-        if (isEvoucherExpired(evoucher)) return false;
-        // Check if evoucher is within valid date range
-        const now = new Date();
-        const startAt = evoucher.startAt ? new Date(evoucher.startAt) : null;
-        const endAt = evoucher.endAt ? new Date(evoucher.endAt) : null  ;
-
-        if (startAt && now < startAt) return false;
-        if (endAt && now > endAt) return false;
-        return true;
-    };
-
     return {
         // State
         evouchers,
@@ -207,6 +172,5 @@ export function useEvoucherSend(roomId: string | null) {
         handleEvoucherSelect,
         handleEvoucherDataChange,
         handleSendEvoucher,
-        refreshEvouchers,
     };
-} 
+}

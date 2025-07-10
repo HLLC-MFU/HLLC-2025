@@ -1,15 +1,7 @@
 "use client";
 
-import { Card, CardBody, Button, Input,Select,SelectItem,Divider,Badge,
-} from "@heroui/react";
-import { 
-    Calendar,
-    Percent,
-    Tag,
-    ExternalLink,
-  AlertCircle,
-    RefreshCw,
-} from "lucide-react";
+import { Card, CardBody, Button, Input, Select, SelectItem, Divider, Badge } from "@heroui/react";
+import { Calendar, Percent, Tag, ExternalLink, AlertCircle, RefreshCw } from "lucide-react";
 
 import { Evoucher } from "@/types/evoucher";
 
@@ -46,50 +38,45 @@ export function EvoucherSelection({
     onRefresh,
 }: EvoucherSelectionProps) {
     const isEvoucherExpired = (evoucher: Evoucher): boolean => {
-        // Use endAt instead of expiration
         const endDate = evoucher.endAt;
-
         if (!endDate) return false;
-
         return new Date(endDate) < new Date();
     };
 
-    const getEvoucherStatusColor = (evoucher: Evoucher) => {
-        if (isEvoucherExpired(evoucher)) return "danger";
-        // Check if evoucher is active based on startAt and endAt
-        const now = new Date();
-        const startAt = evoucher.startAt ? new Date(evoucher.startAt) : null;
-        const endAt = evoucher.endAt ? new Date(evoucher.endAt) : null;
-        
-        if (startAt && endAt && now >= startAt && now <= endAt) return "success";
-
-        return "warning";
-    };
-
-    const getEvoucherStatusText = (evoucher: Evoucher) => {
-        if (isEvoucherExpired(evoucher)) return "Expired";
+    const getEvoucherStatus = (evoucher: Evoucher) => {
+        if (isEvoucherExpired(evoucher)) {
+            return { color: "danger" as const, text: "Expired" };
+        }
         
         const now = new Date();
         const startAt = evoucher.startAt ? new Date(evoucher.startAt) : null;
         const endAt = evoucher.endAt ? new Date(evoucher.endAt) : null;
         
-        if (startAt && endAt && now >= startAt && now <= endAt) return "Active";
-        if (startAt && now < startAt) return "Not Started";
-
-        return "Inactive";
+        if (startAt && endAt && now >= startAt && now <= endAt) {
+            return { color: "success" as const, text: "Active" };
+        }
+        
+        if (startAt && now < startAt) {
+            return { color: "warning" as const, text: "Not Started" };
+        }
+        
+        return { color: "warning" as const, text: "Inactive" };
     };
 
     const isEvoucherValid = (evoucher: Evoucher | null): boolean => {
         if (!evoucher) return false;
         if (isEvoucherExpired(evoucher)) return false;
         
-        // Check if evoucher is within valid date range
         const now = new Date();
         const startAt = evoucher.startAt ? new Date(evoucher.startAt) : null;
         const endAt = evoucher.endAt ? new Date(evoucher.endAt) : null;
         
         if (startAt && endAt && (now < startAt || now > endAt)) return false;
         return true;
+    };
+
+    const formatDate = (dateString: string | Date) => {
+        return new Date(dateString).toLocaleDateString();
     };
 
     return (
@@ -109,6 +96,7 @@ export function EvoucherSelection({
                                 Refresh
                             </Button>
                         </div>
+                        
                         <Select
                             className="w-full"
                             isDisabled={loading}
@@ -118,45 +106,48 @@ export function EvoucherSelection({
                             selectedKeys={selectedEvoucher ? [selectedEvoucher._id || ""] : []}
                             onSelectionChange={(keys) => {
                                 const selectedKey = Array.from(keys)[0] as string;
-
                                 onEvoucherSelect(selectedKey);
                             }}
                         >
-                            {evouchers.map((evoucher) => (
-                                <SelectItem 
-                                    key={evoucher._id} 
-                                    isDisabled={isEvoucherExpired(evoucher)}
-                                    textValue={evoucher.acronym}
-                                >
-                                    <div className="flex flex-col gap-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-semibold">{evoucher.acronym}</span>
-                                            <Badge 
-                                                color={getEvoucherStatusColor(evoucher)}
-                                                size="sm"
-                                                variant="flat"
-                                            >
-                                                {getEvoucherStatusText(evoucher)}
-                                            </Badge>
+                            {evouchers.map((evoucher) => {
+                                const status = getEvoucherStatus(evoucher);
+                                return (
+                                    <SelectItem 
+                                        key={evoucher._id} 
+                                        isDisabled={isEvoucherExpired(evoucher)}
+                                        textValue={evoucher.acronym}
+                                    >
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-semibold">{evoucher.acronym}</span>
+                                                <Badge 
+                                                    color={status.color}
+                                                    size="sm"
+                                                    variant="flat"
+                                                >
+                                                    {status.text}
+                                                </Badge>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-sm text-default-500">
+                                                <span className="flex items-center gap-1">
+                                                    <Percent size={12} />
+                                                    {evoucher.amount} THB
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar size={12} />
+                                                    Expires: {formatDate(evoucher.endAt)}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <Tag size={12} />
+                                                    Order: {evoucher.order}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-4 text-sm text-default-500">
-                                            <span className="flex items-center gap-1">
-                                                <Percent size={12} />
-                                                {evoucher.amount} THB
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <Calendar size={12} />
-                                                Expires: {new Date(evoucher.endAt).toLocaleDateString()}
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <Tag size={12} />
-                                                Order: {evoucher.order}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </SelectItem>
-                            ))}
+                                    </SelectItem>
+                                );
+                            })}
                         </Select>
+                        
                         {error && (
                             <div className="mt-2 p-3 bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 rounded-lg">
                                 <div className="flex items-center gap-2 text-danger-700 dark:text-danger-300">
@@ -180,8 +171,10 @@ export function EvoucherSelection({
                                         <div className="flex items-center gap-2 text-warning-700 dark:text-warning-300">
                                             <AlertCircle size={16} />
                                             <span className="text-sm font-medium">
-                                                {isEvoucherExpired(selectedEvoucher) && "This evoucher has expired"}
-                                                {!isEvoucherExpired(selectedEvoucher) && "This evoucher is inactive"}
+                                                {isEvoucherExpired(selectedEvoucher) 
+                                                    ? "This evoucher has expired"
+                                                    : "This evoucher is inactive"
+                                                }
                                             </span>
                                         </div>
                                     </div>

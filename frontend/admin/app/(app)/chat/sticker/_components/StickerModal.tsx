@@ -32,15 +32,27 @@ export function StickerModal({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
+  const resetForm = () => {
+    setNameEn("");
+    setNameTh("");
+    setImage(null);
+    setPreviewImage(null);
+    setImageError(false);
+    setErrors({});
+  };
+
+  const getImageUrl = () => {
+    if (sticker?.image && !imageError) {
+      return `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${sticker.image}`;
+    }
+    
+    const fallbackName = sticker?.name?.en || sticker?.name?.th || 'S';
+    return `https://ui-avatars.com/api/?name=${fallbackName.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=48&font-size=0.4`;
+  };
+
   useEffect(() => {
     if (!isOpen) {
-      setNameEn("");
-      setNameTh("");
-      setImage(null);
-      setPreviewImage(null);
-      setImageError(false);
-      setErrors({});
-
+      resetForm();
       return;
     }
 
@@ -48,10 +60,7 @@ export function StickerModal({
       setNameEn(sticker.name?.en || "");
       setNameTh(sticker.name?.th || "");
       setImageError(false);
-      
-      setPreviewImage(sticker.image && !imageError
-        ? `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${sticker.image}`
-        : `https://ui-avatars.com/api/?name=${sticker.name.en.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=48&font-size=0.4`);
+      setPreviewImage(getImageUrl());
       setErrors({});
     }
   }, [isOpen, mode, sticker]);
@@ -84,9 +93,7 @@ export function StickerModal({
     formData.append("name.en", nameEn.trim());
     formData.append("name.th", nameTh.trim());
 
-    // Always append image as 'image' field
     if (image instanceof File) {
-      console.log('[StickerModal] Uploading image:', image);
       formData.append("image", image);
     }
 
@@ -104,7 +111,7 @@ export function StickerModal({
   };
 
   return (
-    <Modal isOpen={isOpen} scrollBehavior="inside" size="2xl" onClose={() => { onClose(); }}>
+    <Modal isOpen={isOpen} scrollBehavior="inside" size="2xl" onClose={onClose}>
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           {mode === "add" ? "Add New Sticker" : "Edit Sticker"}
@@ -169,7 +176,7 @@ export function StickerModal({
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button color="danger" variant="light" onPress={() => { onClose(); }}>
+          <Button color="danger" variant="light" onPress={onClose}>
             Cancel
           </Button>
           <Button color="primary" onPress={handleSubmit}>

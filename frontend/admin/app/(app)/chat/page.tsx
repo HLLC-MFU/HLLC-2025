@@ -7,6 +7,7 @@ import { Smile } from "lucide-react";
 
 import RoomAccordion from "./_components/RoomAccordion";
 import { RoomModal } from "./_components/RoomModal";
+import { GenericSkeleton } from "./_components/RoomSkeleton";
 
 import { Room, RoomType } from "@/types/chat";
 import { useChat } from "@/hooks/useChat";
@@ -15,6 +16,7 @@ import { PageHeader } from "@/components/ui/page-header";
 export default function ChatPage() {
     const { 
         room: rooms, 
+        loading,
         fetchRoom, 
         createRoom, 
         updateRoom, 
@@ -29,7 +31,6 @@ export default function ChatPage() {
     useEffect(() => {
         fetchRoom();
     }, []);
-
 
     const handleEditRoom = (room: Room) => {
         setModalMode('edit');
@@ -146,13 +147,21 @@ export default function ChatPage() {
             </div>
 
             <div className="flex flex-col gap-6">
-                <RoomAccordion 
-                    rooms={rooms}
-                    onAdd={handleAddRoom}
-                    onDelete={handleDeleteRoom}
-                    onEdit={handleEditRoom}
-                    onToggleStatus={handleToggleStatus}
-                />
+                {loading ? (
+                    <div className="space-y-6">
+                        <GenericSkeleton type="list" rows={3} />
+                        <GenericSkeleton type="list" rows={2} />
+                        <GenericSkeleton type="list" rows={1} />
+                    </div>
+                ) : (
+                    <RoomAccordion 
+                        rooms={rooms}
+                        onAdd={handleAddRoom}
+                        onDelete={handleDeleteRoom}
+                        onEdit={handleEditRoom}
+                        onToggleStatus={handleToggleStatus}
+                    />
+                )}
             </div>
 
             <RoomModal
