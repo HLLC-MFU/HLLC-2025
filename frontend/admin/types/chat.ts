@@ -41,6 +41,20 @@ export type RoomMember = {
     joinedAt: string;
     isOnline?: boolean;
     lastSeen?: string;
+    // **NEW: Restriction status fields**
+    restrictionStatus?: RestrictionStatus;
+};
+
+// **NEW: Restriction status type**
+export type RestrictionStatus = {
+    isBanned: boolean;
+    isMuted: boolean;
+    isKicked: boolean;
+    banExpiry?: string;
+    muteExpiry?: string;
+    restriction?: 'can_view' | 'cannot_view';
+    banReason?: string;
+    muteReason?: string;
 };
 
 // **NEW: Evoucher types**

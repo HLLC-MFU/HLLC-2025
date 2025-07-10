@@ -1,11 +1,12 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { Users, Gift } from "lucide-react";
+import { Users, Gift, History } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { addToast } from "@heroui/toast";
 import MemberTable from "./_components/MemberTable";
+import { RestrictionHistory } from "./_components/RestrictionHistory";
 import { RoomMember, Room } from "@/types/chat";
 import { useChat } from "@/hooks/useChat";
 import { PageHeader } from "@/components/ui/page-header";
@@ -47,6 +48,7 @@ export default function RoomDetailPage() {
     const [modal, setModal] = useState({
         restriction: false,
     });
+    const [showHistory, setShowHistory] = useState(false);
     const MEMBERS_PER_PAGE = 10;
 
     useEffect(() => {
@@ -132,6 +134,13 @@ export default function RoomDetailPage() {
                 right={
                     <div className="flex gap-2">
                         <Button
+                            color="secondary"
+                            startContent={<History size={20} />}
+                            onPress={() => setShowHistory(true)}
+                        >
+                            Restriction History
+                        </Button>
+                        <Button
                             color="primary"
                             startContent={<Gift size={20} />}
                             onPress={() => router.push(`/chat/evoucher?roomId=${roomId}`)}
@@ -184,6 +193,15 @@ export default function RoomDetailPage() {
                     )}
                 </div>
             </div>
+
+            {/* Restriction History Modal */}
+            {showHistory && (
+                <RestrictionHistory
+                    roomId={roomId}
+                    isOpen={showHistory}
+                    onClose={() => setShowHistory(false)}
+                />
+            )}
         </div>
     );
 } 

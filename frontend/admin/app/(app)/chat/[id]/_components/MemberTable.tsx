@@ -2,17 +2,13 @@
 
 import React, { useCallback, Key, ReactNode, SetStateAction, useState, useMemo } from "react";
 import {
-  Button,
-  DropdownTrigger,
-  Dropdown,
-  DropdownMenu,
-  DropdownItem,
   SortDescriptor,
 } from "@heroui/react";
-import { EllipsisVertical, Ban, MicOff } from "lucide-react";
 
 import TableContent from "./TableContent";
 import { RestrictionAction } from "./RestrictionAction";
+import { RestrictionStatusBadge } from "./RestrictionStatusBadge";
+import { MemberActions } from "./MemberActions";
 
 import { RoomMember } from "@/types/chat";
 
@@ -59,7 +55,7 @@ export default function MemberTable({
   loading?: boolean;
 }) {
   const [selectedMember, setSelectedMember] = useState<RoomMember | null>(null);
-  const [restrictionAction, setRestrictionAction] = useState<'ban' | 'mute'>('ban');
+  const [restrictionAction, setRestrictionAction] = useState<'ban' | 'mute' | 'unban' | 'unmute' | 'kick'>('ban');
   const [filterValue, setFilterValue] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<"all" | Set<string | number>>(
     new Set([])
@@ -122,7 +118,7 @@ export default function MemberTable({
     });
   }, [sortDescriptor, items]);
 
-  const handleRestrictionAction = (member: RoomMember, action: 'ban' | 'mute') => {
+  const handleRestrictionAction = (member: RoomMember, action: 'ban' | 'mute' | 'unban' | 'unmute' | 'kick') => {
     setSelectedMember(member);
     setRestrictionAction(action);
     setModal(prev => ({ ...prev, restriction: true }));
@@ -150,6 +146,8 @@ export default function MemberTable({
               <div className="flex flex-col">
                 <span className="font-semibold text-small">{item.username}</span>
                 <span className="text-tiny text-default-500">{name}</span>
+                {/* Show restriction status badges */}
+                <RestrictionStatusBadge restrictionStatus={item.restrictionStatus} />
               </div>
             </div>
           );
@@ -163,34 +161,11 @@ export default function MemberTable({
           );
         case "actions":
           return (
-            <div className="relative flex justify-end items-center gap-2">
-              <Dropdown>
-                <DropdownTrigger>
-                  <Button isIconOnly size="sm" variant="light">
-                    <EllipsisVertical className="text-default-300" />
-                  </Button>
-                </DropdownTrigger>
-                <DropdownMenu>
-                  <DropdownItem
-                    key="ban"
-                    startContent={<Ban size="16px" />}
-                    className="text-danger"
-                    color="danger"
-                    onPress={() => handleRestrictionAction(item, 'ban')}
-                  >
-                    Ban User
-                  </DropdownItem>
-                  <DropdownItem
-                    key="mute"
-                    startContent={<MicOff size="16px" />}
-                    className="text-warning"
-                    color="warning"
-                    onPress={() => handleRestrictionAction(item, 'mute')}
-                  >
-                    Mute User
-                  </DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
+            <div className="flex justify-end">
+              <MemberActions 
+                member={item} 
+                onAction={handleRestrictionAction} 
+              />
             </div>
           );
         default:

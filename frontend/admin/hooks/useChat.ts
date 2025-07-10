@@ -161,7 +161,26 @@ export function useChat() {
     };
 
     /**
-     * Get room members with optional pagination query string.
+     * Get restriction status for a user in a room
+     * @param roomId - The room ID
+     * @param userId - The user ID
+     * @returns The restriction status
+     */
+    const getRestrictionStatus = async (roomId: string, userId: string) => {
+        try {
+            const res = await apiGolangRequest<{data: any}>(
+                `/restriction/status/${roomId}/${userId}`,
+                "GET"
+            );
+            return res.data?.data;
+        } catch (err) {
+            console.error('Failed to get restriction status:', err);
+            return null;
+        }
+    };
+
+    /**
+     * Get room members with optional pagination query string and restriction status.
      * @param roomId - The room ID, optionally with query string (e.g., "abc123?page=1&limit=10")
      * @returns The API response with members and meta if available.
      */
@@ -175,8 +194,45 @@ export function useChat() {
                 endpoint,
                 "GET",
             );
+            
             if (res.data) {
-                return res.data;
+                // Normalize to RoomMember[] regardless of API shape
+                const members = Array.isArray(res.data?.data?.members)
+                    ? res.data.data.members.map((m: any) => m.user || m)
+                    : [];
+
+                // Fetch all restriction statuses for the room in one request
+                let roomRestrictions: Record<string, any> = {};
+                try {
+                    const restrictionRes = await apiGolangRequest<{data: Record<string, any>}>(
+                        `/restriction/room/${id}/restrictions`,
+                        "GET"
+                    );
+                    roomRestrictions = restrictionRes.data?.data || {};
+                } catch (err) {
+                    console.error('Failed to get room restrictions:', err);
+                }
+
+                // Map restriction status to each member
+                const membersWithRestrictionStatus = members.map((member: RoomMember) => {
+                    const memberRestrictions = roomRestrictions[member._id] || {
+                        isBanned: false,
+                        isMuted: false,
+                        isKicked: false
+                    };
+                    
+                    return {
+                        ...member,
+                        restrictionStatus: memberRestrictions
+                    };
+                });
+
+                return {
+                    data: {
+                        members: membersWithRestrictionStatus,
+                        meta: res.data.data.meta
+                    }
+                };
             }
             return { data: { members: [] } };
         } catch (err) {
@@ -237,6 +293,7 @@ export function useChat() {
         deleteRoom,
         getRoomById,
         getRoomMembers,
+        getRestrictionStatus,
         fetchRoomByType,
     };
 }

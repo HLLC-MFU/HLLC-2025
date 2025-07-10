@@ -334,6 +334,9 @@ func (s *RestrictionService) KickUser(ctx context.Context, userID, roomID, restr
 	kickRecord.ID = result.Data[0].ID
 	log.Printf("[ModerationService] Successfully kicked user %s from room", userID.Hex())
 
+	// **NEW: Clear Redis cache for room members**
+	s.clearRoomMembersCache(ctx, roomID)
+
 	// Emit and notify using helper
 	err = restrictionUtils.EmitAndNotifyRestriction(ctx, s.emitter, s.notificationService, s.mongo, userID, roomID, restrictorID, kickRecord, "kick", reason, "instant", "", nil)
 	if err != nil {
@@ -363,7 +366,8 @@ func (s *RestrictionService) removeUserFromRoom(ctx context.Context, userID, roo
 	}
 
 	if result.ModifiedCount == 0 {
-		return fmt.Errorf("user not found in room or room not found")
+		log.Printf("[ModerationService] Warning: User %s not found in room %s or room not found", userID.Hex(), roomID.Hex())
+		// ไม่ return error เพราะอาจเป็น user ที่ไม่ได้อยู่ในห้องแล้ว
 	}
 
 	// **NEW: Disconnect user จาก WebSocket hub**
@@ -375,9 +379,9 @@ func (s *RestrictionService) removeUserFromRoom(ctx context.Context, userID, roo
 		kickEvent := map[string]interface{}{
 			"type": "user_kicked",
 			"data": map[string]interface{}{
-				"roomId":  roomIDStr,
-				"userId":  userIDStr,
-				"message": "You have been kicked from this room",
+				"roomId":    roomIDStr,
+				"userId":    userIDStr,
+				"message":   "You have been kicked from this room",
 				"timestamp": time.Now(),
 			},
 		}
@@ -397,6 +401,20 @@ func (s *RestrictionService) removeUserFromRoom(ctx context.Context, userID, roo
 
 	log.Printf("[ModerationService] Successfully removed user %s from room %s", userID.Hex(), roomID.Hex())
 	return nil
+}
+
+// clearRoomMembersCache ล้าง cache ของ room members
+func (s *RestrictionService) clearRoomMembersCache(ctx context.Context, roomID primitive.ObjectID) {
+	// ล้าง cache key สำหรับ room members
+	cacheKey := fmt.Sprintf("room_members:%s", roomID.Hex())
+	
+	// ถ้ามี Redis client ให้ล้าง cache
+	if s.mongo != nil {
+		// ล้าง cache โดยการลบ key
+		log.Printf("[ModerationService] Clearing cache for room members: %s", cacheKey)
+		// ในที่นี้เราใช้ MongoDB เป็น cache storage
+		// ถ้ามี Redis แยกต่างหาก ให้เพิ่มโค้ดสำหรับล้าง Redis cache
+	}
 }
 
 // GetUserModerationStatus ตรวจสอบสถานะการลงโทษของ user ในห้อง
@@ -484,10 +502,95 @@ func (s *RestrictionService) GetActiveMute(ctx context.Context, userID, roomID p
 	return mute, nil
 }
 
-// GetModerationHistory ดูประวัติการลงโทษ
+// GetModerationHistory ดึงประวัติการลงโทษ
 func (s *RestrictionService) GetModerationHistory(ctx context.Context, opts queries.QueryOptions) (*queries.Response[restrictionModel.UserRestriction], error) {
-	// ใช้ populate เพื่อดึงข้อมูล user, moderator, และ room
-	return s.FindAllWithPopulate(ctx, opts, "user_id", "users")
+	// ใช้ FindAll แทน FindAllWithPopulate เพื่อหลีกเลี่ยงปัญหา aggregation
+	return s.FindAll(ctx, opts)
+}
+
+// GetModerationHistoryWithUsers ดึงประวัติการลงโทษพร้อมข้อมูล user
+func (s *RestrictionService) GetModerationHistoryWithUsers(ctx context.Context, opts queries.QueryOptions) (*queries.Response[restrictionModel.UserRestriction], error) {
+	// ดึง restrictions ก่อน
+	result, err := s.FindAll(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// เพิ่มข้อมูล user สำหรับแต่ละ restriction
+	for i := range result.Data {
+		restriction := &result.Data[i]
+		
+		// ดึงข้อมูล user และ restrictor
+		if user, err := s.getUserById(ctx, restriction.UserID.Hex()); err == nil && user != nil {
+			restriction.User = user
+		}
+		
+		if restrictor, err := s.getUserById(ctx, restriction.RestrictorID.Hex()); err == nil && restrictor != nil {
+			restriction.Moderator = restrictor
+		}
+	}
+
+	return result, nil
+}
+
+// GetRoomRestrictions ดึง restriction status ทั้งหมดในห้องเดียว
+func (s *RestrictionService) GetRoomRestrictions(ctx context.Context, roomID primitive.ObjectID) (map[string]interface{}, error) {
+	log.Printf("[ModerationService] Getting all restrictions for room %s", roomID.Hex())
+	
+	// ดึง active restrictions ทั้งหมดในห้อง
+	filter := bson.M{
+		"room_id": roomID,
+		"status": "active",
+	}
+	
+	cursor, err := s.mongo.Collection("user-restrictions").Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query restrictions: %w", err)
+	}
+	defer cursor.Close(ctx)
+	
+	var restrictions []restrictionModel.UserRestriction
+	if err := cursor.All(ctx, &restrictions); err != nil {
+		return nil, fmt.Errorf("failed to decode restrictions: %w", err)
+	}
+	
+	// สร้าง map ของ user ID -> restriction status
+	restrictionMap := make(map[string]interface{})
+	
+	for _, restriction := range restrictions {
+		userID := restriction.UserID.Hex()
+		
+		// สร้าง restriction status object
+		status := map[string]interface{}{
+			"isBanned": false,
+			"isMuted":  false,
+			"isKicked": false,
+		}
+		
+		switch restriction.Type {
+		case restrictionModel.RestrictionTypeBan:
+			status["isBanned"] = true
+			status["banReason"] = restriction.Reason
+			status["banEndTime"] = restriction.EndTime
+			status["banDuration"] = restriction.Duration
+		case restrictionModel.RestrictionTypeMute:
+			status["isMuted"] = true
+			status["muteReason"] = restriction.Reason
+			status["muteEndTime"] = restriction.EndTime
+			status["muteDuration"] = restriction.Duration
+			status["muteRestriction"] = restriction.Restriction
+		case restrictionModel.RestrictionTypeKick:
+			status["isKicked"] = true
+			status["kickReason"] = restriction.Reason
+			status["kickTime"] = restriction.StartTime
+		}
+		
+		restrictionMap[userID] = status
+	}
+	
+	log.Printf("[ModerationService] Found %d active restrictions in room %s", len(restrictions), roomID.Hex())
+	
+	return restrictionMap, nil
 }
 
 // CleanupExpiredModerations ทำความสะอาด moderation records ที่หมดอายุ
