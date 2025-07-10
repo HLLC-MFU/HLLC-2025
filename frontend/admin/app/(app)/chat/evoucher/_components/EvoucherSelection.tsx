@@ -193,9 +193,11 @@ export function EvoucherSelection({
                                             <label className="text-sm font-medium text-default-600">Message (Thai)</label>
                                             <Input
                                                 className="mt-1"
-                                                placeholder="Enter message in Thai"
+                                                placeholder="Message in Thai"
                                                 value={evoucherData.message.th}
-                                                onChange={(e) => onEvoucherDataChange({...evoucherData, message: { ...evoucherData.message, th: e.target.value }})}
+                                                isReadOnly
+                                                isDisabled
+                                                variant="bordered"
                                             />
                                         </div>
                                         
@@ -203,9 +205,11 @@ export function EvoucherSelection({
                                             <label className="text-sm font-medium text-default-600">Message (English)</label>
                                             <Input
                                                 className="mt-1"
-                                                placeholder="Enter message in English"
+                                                placeholder="Message in English"
                                                 value={evoucherData.message.en}
-                                                onChange={(e) => onEvoucherDataChange({...evoucherData, message: { ...evoucherData.message, en: e.target.value }})}
+                                                isReadOnly
+                                                isDisabled
+                                                variant="bordered"
                                             />
                                         </div>
 
@@ -228,7 +232,9 @@ export function EvoucherSelection({
                                                 className="flex-1"
                                                 placeholder="Claim URL will be auto-generated"
                                                 value={evoucherData.claimUrl}
-                                                onChange={(e) => onEvoucherDataChange({...evoucherData, claimUrl: e.target.value})}
+                                                isReadOnly
+                                                isDisabled
+                                                variant="bordered"
                                             />
                                             <Button
                                                 isIconOnly

@@ -136,12 +136,21 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 }
 
 func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitive.ObjectID, page int64, limit int64) (*dto.ResponseRoomMemberDto, error) {
-	room, err := s.cache.GetRoom(ctx, roomId.Hex())
-	if err != nil || room == nil {
+	// ดึงข้อมูลจาก database โดยตรงเพื่อให้ได้ข้อมูลล่าสุด
+	room, err := s.FindOneById(ctx, roomId.Hex())
+	if err != nil || len(room.Data) == 0 {
 		return nil, errors.New("room not found")
 	}
 
-	total := int64(len(room.Members))
+	// ใช้ข้อมูลจาก database แทน cache
+	currentRoom := &room.Data[0]
+	
+	// อัพเดท cache ด้วยข้อมูลล่าสุด
+	if err := s.cache.SaveRoom(ctx, currentRoom); err != nil {
+		log.Printf("[RoomService] Warning: Failed to update cache: %v", err)
+	}
+
+	total := int64(len(currentRoom.Members))
 	start := (page - 1) * limit
 	end := start + limit
 	if start > total {
@@ -158,7 +167,7 @@ func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitiv
 		} `json:"user"`
 	}, 0, end-start)
 
-	for _, m := range room.Members[start:end] {
+	for _, m := range currentRoom.Members[start:end] {
 		user, err := s.userService.GetUserById(ctx, m.Hex())
 		memberObj := struct {
 			User struct {
@@ -177,7 +186,7 @@ func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitiv
 	}
 
 	return &dto.ResponseRoomMemberDto{
-		ID:      room.ID,
+		ID:      currentRoom.ID,
 		Members: members,
 	}, nil
 }

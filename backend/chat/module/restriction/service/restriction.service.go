@@ -334,8 +334,7 @@ func (s *RestrictionService) KickUser(ctx context.Context, userID, roomID, restr
 	kickRecord.ID = result.Data[0].ID
 	log.Printf("[ModerationService] Successfully kicked user %s from room", userID.Hex())
 
-	// **NEW: Clear Redis cache for room members**
-	s.clearRoomMembersCache(ctx, roomID)
+	// Cache already cleared in removeUserFromRoom function
 
 	// Emit and notify using helper
 	err = restrictionUtils.EmitAndNotifyRestriction(ctx, s.emitter, s.notificationService, s.mongo, userID, roomID, restrictorID, kickRecord, "kick", reason, "instant", "", nil)
@@ -368,7 +367,12 @@ func (s *RestrictionService) removeUserFromRoom(ctx context.Context, userID, roo
 	if result.ModifiedCount == 0 {
 		log.Printf("[ModerationService] Warning: User %s not found in room %s or room not found", userID.Hex(), roomID.Hex())
 		// ไม่ return error เพราะอาจเป็น user ที่ไม่ได้อยู่ในห้องแล้ว
+	} else {
+		log.Printf("[ModerationService] Successfully removed user %s from room %s in database", userID.Hex(), roomID.Hex())
 	}
+
+	// **NEW: ล้าง cache ทันทีหลังจากลบ user ออกจาก database**
+	s.clearRoomMembersCache(ctx, roomID)
 
 	// **NEW: Disconnect user จาก WebSocket hub**
 	if s.hub != nil {
@@ -408,12 +412,35 @@ func (s *RestrictionService) clearRoomMembersCache(ctx context.Context, roomID p
 	// ล้าง cache key สำหรับ room members
 	cacheKey := fmt.Sprintf("room_members:%s", roomID.Hex())
 	
-	// ถ้ามี Redis client ให้ล้าง cache
-	if s.mongo != nil {
-		// ล้าง cache โดยการลบ key
-		log.Printf("[ModerationService] Clearing cache for room members: %s", cacheKey)
-		// ในที่นี้เราใช้ MongoDB เป็น cache storage
-		// ถ้ามี Redis แยกต่างหาก ให้เพิ่มโค้ดสำหรับล้าง Redis cache
+	// ล้าง cache โดยการลบ key
+	log.Printf("[ModerationService] Clearing cache for room members: %s", cacheKey)
+	
+	// ล้าง room cache และ members cache
+	roomCollection := s.mongo.Collection("rooms")
+	
+	// ล้าง cache โดยการดึงข้อมูลใหม่จาก database
+	var room struct { 
+		ID      primitive.ObjectID   `bson:"_id"`
+		Members []primitive.ObjectID `bson:"members"`
+		Name    map[string]string    `bson:"name"`
+		Type    string               `bson:"type"`
+		Status  string               `bson:"status"`
+		Capacity int                 `bson:"capacity"`
+		CreatedBy primitive.ObjectID `bson:"createdBy"`
+		CreatedAt time.Time          `bson:"createdAt"`
+		UpdatedAt time.Time          `bson:"updatedAt"`
+		Image    string              `bson:"image"`
+		Metadata map[string]interface{} `bson:"metadata"`
+	}
+	
+	filter := bson.M{"_id": roomID}
+	
+	// ดึงข้อมูลห้องใหม่เพื่อล้าง cache
+	err := roomCollection.FindOne(ctx, filter).Decode(&room)
+	if err != nil {
+		log.Printf("[ModerationService] Warning: Failed to refresh room cache: %v", err)
+	} else {
+		log.Printf("[ModerationService] Successfully refreshed room cache for room %s with %d members", roomID.Hex(), len(room.Members))
 	}
 }
 
