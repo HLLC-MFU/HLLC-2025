@@ -8,13 +8,13 @@ export type ActivityDocument = HydratedDocument<Activities>;
 @Schema({ _id: false })
 export class ActivityScope {
   @Prop({ type: [MongooseSchema.Types.ObjectId], default: [] })
-  major: MongooseSchema.Types.ObjectId[];
+  major: Types.ObjectId[];
 
   @Prop({ type: [MongooseSchema.Types.ObjectId], default: [] })
-  school: MongooseSchema.Types.ObjectId[];
+  school: Types.ObjectId[];
 
   @Prop({ type: [MongooseSchema.Types.ObjectId], default: [] })
-  user: MongooseSchema.Types.ObjectId[];
+  user: Types.ObjectId[];
 }
 
 @Schema({ _id: false })

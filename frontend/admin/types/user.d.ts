@@ -12,9 +12,7 @@ export type User = {
     };
     username: string;
     role: Role | string;
-    metadata?: {
-        major: Major | string;
-    };
+    metadata?: Record<string | string>;
 };
 
 export type UserName = {

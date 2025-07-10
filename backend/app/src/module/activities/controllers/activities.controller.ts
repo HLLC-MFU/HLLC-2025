@@ -24,7 +24,7 @@ import { Types } from 'mongoose';
 @UseGuards(PermissionsGuard)
 @Controller('activities')
 export class ActivitiesController {
-  constructor(private readonly activitiesService: ActivitiesService) {}
+  constructor(private readonly activitiesService: ActivitiesService) { }
 
   @Post()
   @Permissions('activities:create')
@@ -42,6 +42,7 @@ export class ActivitiesController {
   }
 
   @Get('canCheckin')
+  @Permissions('activities:read')
   async canCheckin(
     @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
   ): Promise<PaginatedResponse<Activities> & { message: string }> {
@@ -75,5 +76,13 @@ export class ActivitiesController {
   @Permissions('activities:delete')
   remove(@Param('id') id: string) {
     return this.activitiesService.remove(id);
+  }
+
+  @Get(':activityId/assessment')
+  @Permissions('activities:read')
+  async findActivitiesWithAssessment(
+    @Param('activityId') activityId: string,
+  ) {
+    return this.activitiesService.findActivitiesWithAssessment(activityId);
   }
 }
