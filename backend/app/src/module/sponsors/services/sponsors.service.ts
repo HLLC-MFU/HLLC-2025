@@ -57,7 +57,7 @@ export class SponsorsService {
   async findAllSponsors(): Promise<Sponsors[]> {
     return this.sponsorsModel
       .find()
-      .populate('type') // ดึงข้อมูลประเภทมาด้วย
+      .populate('type')
       .lean();
   }
 

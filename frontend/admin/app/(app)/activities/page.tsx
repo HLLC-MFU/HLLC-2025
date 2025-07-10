@@ -25,11 +25,12 @@ import {
 
 import { ActivityModal } from './_components/ActivityModal';
 import { ActivityTypeModal } from './_components/ActivityTypeModal';
+import ActivitiesTable from "./_components/activities-table";
+
 import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
 import { PageHeader } from '@/components/ui/page-header';
 import { useActivities } from '@/hooks/useActivities';
 import { Activities, ActivityType } from '@/types/activities';
-import ActivitiesTable from "./_components/activities-table";
 
 export default function ActivitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +60,7 @@ export default function ActivitiesPage() {
 
     return activities.filter((activity) => {
       const searchLower = searchQuery.toLowerCase();
+
       return (
         activity.name?.en?.toLowerCase().includes(searchLower) ||
         activity.name?.th?.toLowerCase().includes(searchLower) ||
@@ -77,6 +79,7 @@ export default function ActivitiesPage() {
         typeof activity.type === 'object' && activity.type !== null && '_id' in activity.type
           ? (activity.type as { _id: string })._id
           : activity.type || 'other';
+
       if (!groups[typeId]) {
         groups[typeId] = [];
       }
@@ -85,6 +88,8 @@ export default function ActivitiesPage() {
 
     return groups;
   }, [filteredActivities]);
+
+
 
   const handleAddActivity = (typeId: string) => {
     setModalMode('add');
@@ -118,6 +123,7 @@ export default function ActivitiesPage() {
 
   const handleSubmitActivity = (formData: FormData, mode: 'add' | 'edit') => {
     if (mode === 'edit' && selectedActivity) {
+      formData.append('type', selectedActivity.type._id || '');
       updateActivity(selectedActivity._id, formData);
     } else {
       createActivity(formData);
@@ -171,9 +177,9 @@ export default function ActivitiesPage() {
   return (
     <>
       <PageHeader
-        title="Activities Management"
         description="Manage your activities and activity types"
         icon={<School className="w-7 h-7" />}
+        title="Activities Management"
       />
 
       <div>
@@ -181,21 +187,21 @@ export default function ActivitiesPage() {
           <div className="flex flex-col justify-between sm:flex-row gap-4">
             <Input
               isClearable
-              value={searchQuery}
-              onValueChange={setSearchQuery}
               className='flex-1'
               placeholder="Search activities..."
               startContent={<Search className="text-default-400 w-4 h-4" />}
+              value={searchQuery}
+              onValueChange={setSearchQuery}
             />
             <Button
               color="primary"
               endContent={<Plus />}
+              size="md"
               onPress={() => {
                 setModalMode('add');
                 setSelectedType(undefined);
                 setIsTypeModalOpen(true);
               }}
-              size="md"
             >
               New Activity Type
             </Button>
@@ -209,17 +215,24 @@ export default function ActivitiesPage() {
             </div>
           ) : (
             <Accordion
-              variant="splitted"
+              className="gap-2 px-0"
               defaultExpandedKeys={activityTypes.length > 0 ? [activityTypes[0]._id] : []}
               selectionMode="multiple"
-              className="gap-2 px-0"
+              variant="splitted"
             >
               {activityTypes.map((type) => {
                 const typeActivities = groupedActivities[type._id] || [];
+
                 return (
                   <AccordionItem
                     key={type._id}
                     aria-label={type.name}
+                    classNames={{
+                      base: "bg-white rounded-xl shadow-md mb-4",
+                      title: "font-medium text-large",
+                      content: "px-4 pb-4",
+                      trigger: "px-2 py-4",
+                    }}
                     startContent={
                       <div className="bg-primary/10 p-2 rounded-lg">
                         <Building2 className="w-5 h-5 text-primary" />
@@ -233,26 +246,20 @@ export default function ActivitiesPage() {
                         </div>
                       </div>
                     }
-                    classNames={{
-                      base: "bg-white rounded-xl shadow-md mb-4",
-                      title: "font-medium text-large",
-                      content: "px-4 pb-4",
-                      trigger: "px-2 py-4",
-                    }}
                   >
                     <div className="flex justify-end mb-4 gap-2">
                       <Button
                         color="primary"
+                        endContent={<Plus className="w-4 h-4" />}
                         size="sm"
                         variant="flat"
-                        endContent={<Plus className="w-4 h-4" />}
                         onPress={() => handleAddActivity(type._id)}
                       >
                         Add Activity
                       </Button>
                       <Dropdown>
                         <DropdownTrigger>
-                          <Button isIconOnly variant="light" size="sm">
+                          <Button isIconOnly size="sm" variant="light">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownTrigger>
@@ -287,8 +294,8 @@ export default function ActivitiesPage() {
                       <div className="w-full overflow-x-auto">
                         <ActivitiesTable
                           activities={typeActivities}
-                          onEdit={handleEditActivity}
                           onDelete={handleDeleteActivity}
+                          onEdit={handleEditActivity}
                         />
                       </div>
                     )}
@@ -301,20 +308,20 @@ export default function ActivitiesPage() {
       </div>
 
       <ActivityModal
+        activity={selectedActivity}
         isOpen={isActivityModalOpen}
         mode={modalMode}
-        activity={selectedActivity}
         onClose={() => setIsActivityModalOpen(false)}
         onSuccess={handleSubmitActivity}
       />
 
       <ActivityTypeModal
-        isOpen={isTypeModalOpen}
-        mode={modalMode}
         activityType={selectedType}
+        isOpen={isTypeModalOpen}
+        loading={loading}
+        mode={modalMode}
         onClose={() => setIsTypeModalOpen(false)}
         onSubmit={handleSubmitType}
-        loading={loading}
       />
 
       <ConfirmationModal

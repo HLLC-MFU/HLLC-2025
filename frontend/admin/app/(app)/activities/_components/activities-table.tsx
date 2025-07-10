@@ -6,13 +6,14 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  Button,
 } from '@heroui/react';
 import { AnimatePresence } from 'framer-motion';
-import { Activities } from '@/types/activities';
+
 import { columns } from './activities-table/TableColumns';
 import { TableCell as TableCellComponent } from './activities-table/TableCell';
 import { ExpandedDetails } from './activities-table/ExpandedDetails';
+
+import { Activities } from '@/types/activities';
 
 interface ActivitiesTableProps {
   activities: Activities[];
@@ -29,6 +30,7 @@ export default function ActivitiesTable({
 
   const handleToggleExpand = (id: string) => {
     const newExpandedKeys = new Set(expandedKeys);
+
     if (newExpandedKeys.has(id)) {
       newExpandedKeys.delete(id);
     } else {
@@ -43,8 +45,8 @@ export default function ActivitiesTable({
         <h2 className="text-lg font-semibold">Activities</h2>
       </div>
       <Table
-        aria-label="Activities table"
         removeWrapper
+        aria-label="Activities table"
         classNames={{
           th: 'bg-default-100 text-default-800 font-semibold text-xs py-3',
           td: 'py-3',
@@ -78,9 +80,9 @@ export default function ActivitiesTable({
                     activity={activity}
                     columnKey={columnKey}
                     expandedKeys={expandedKeys}
-                    onToggleExpand={handleToggleExpand}
-                    onEdit={onEdit}
                     onDelete={onDelete}
+                    onEdit={onEdit}
+                    onToggleExpand={handleToggleExpand}
                   />
                 </TableCell>
               )}
