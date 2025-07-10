@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Checkin, CheckinCreate } from '@/types/checkin';
-import { addToast } from '@heroui/react';
 import { apiRequest } from '@/utils/api';
+import { addToast } from '@heroui/react';
 
 export function useCheckin() {
   const [checkin, setCheckin] = useState<Checkin[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createcheckin = async (checkinData: Partial<CheckinCreate>) => {
+  const createCheckin = async (checkinData: Partial<CheckinCreate>) => {
     setLoading(true);
     setError(null);
     try {
@@ -26,16 +26,14 @@ export function useCheckin() {
             setCheckin((prev) => (res.data ? [...prev, res.data] : prev));
           }
         }
-        addToast({
-          title: 'School created successfully!',
-          color: 'success',
-        });
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
+        throw err;
       } else {
-        setError('Failed to create school.');
+        setError('Failed to checkin.');
+        throw new Error('Failed to checkin.');
       }
     } finally {
       setLoading(false);
@@ -46,6 +44,6 @@ export function useCheckin() {
     checkin,
     loading,
     error,
-    createcheckin,
+    createCheckin,
   };
 }
