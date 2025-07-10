@@ -25,7 +25,6 @@ export class AssessmentAnswersController {
   ) { }
 
   @Post()
-  @Permissions('assessment-answers:create')
   create(@Req() req: UserRequest,) {
     const dto = req.body as CreateAssessmentAnswerDto;
     dto.user = req.user._id.toString();
@@ -33,31 +32,26 @@ export class AssessmentAnswersController {
   }
 
   @Get()
-  @Permissions('assessment-answers:read')
   findAll(@Query() query: Record<string, string>) {
     return this.assessmentAnswersService.findAll(query);
   }
 
   @Get(':id')
-  @Permissions('assessment-answers:read')
   findOne(@Param('id') id: string) {
     return this.assessmentAnswersService.findOne(id);
   }
 
   @Delete(':id')
-  @Permissions('assessment-answers:delete')
   remove(@Param('id') id: string) {
     return this.assessmentAnswersService.remove(id);
   }
 
   @Get('/all/average')
-  @Permissions('assessment-answers:read')
   getAverageAll() {
     return this.assessmentAnswersService.averageAllAssessments();
   }
 
   @Get('/:activityId/average')
-  @Permissions('assessment-answers:read')
   getAverageByActivity(@Param('activityId') activityId: string) {
     return this.assessmentAnswersService.averageAssessmentsByActivity(
       activityId,
