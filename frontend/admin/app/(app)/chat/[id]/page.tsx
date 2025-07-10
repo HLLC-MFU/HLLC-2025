@@ -168,25 +168,23 @@ export default function RoomDetailPage() {
             />
 
             <div className="bg-white rounded-xl shadow-sm border border-default-200">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-6 py-4 border-b border-default-100">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-6 py-4 border-b border-default-100 bg-default-50 rounded-t-xl">
                     <div>
-                        <h3 className="text-lg font-semibold">
-                            {room && room.name ? (
-                                <>
-                                    <span className="text-default-600">EN: </span>
-                                    {room.name.en}
-                                    <span className="text-default-600 ml-4">TH: </span>
-                                    {room.name.th}
-                                    <span className="text-default-600 ml-4">Type: </span>
-                                    <span className="capitalize">{room.type}</span>
-                                </>
-                            ) : (
-                                "Loading room information..."
+                        <div className="flex items-center gap-4">
+                            <div>
+                                <div className="text-2xl font-bold text-primary">
+                                    {room?.name?.en || "-"}
+                                </div>
+                            </div>
+                            {room?.type && (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold text-sm ml-2">
+                                    {room.type.charAt(0).toUpperCase() + room.type.slice(1)}
+                                </span>
                             )}
-                        </h3>
-                        <p className="text-default-500">
+                        </div>
+                        <div className="text-sm text-default-500 mt-1">
                             Total Members: {pagination?.total || members.length}
-                        </p>
+                        </div>
                     </div>
                 </div>
                 <div className="px-0 md:px-4 py-4 relative">

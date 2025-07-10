@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Pagination, Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+import { Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Pagination, Modal, ModalContent, ModalHeader, ModalBody, Input, Select, SelectItem } from "@heroui/react";
 import { X, Search, Filter, Calendar, User, Shield } from "lucide-react";
 import { addToast } from "@heroui/toast";
 import { useRestriction } from "@/hooks/useRestriction";
 import { RestrictionHistoryItem } from "@/types/room";
 import { GenericSkeleton } from "../../_components/RoomSkeleton";
+import { RestrictionHistorySkeleton } from "./RestrictionHistorySkeleton";
 
 type RestrictionHistoryProps = {
     roomId: string;
@@ -126,52 +127,53 @@ export function RestrictionHistory({ roomId, isOpen, onClose }: RestrictionHisto
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} size="5xl" scrollBehavior="inside">
-            <ModalContent>
-                <ModalHeader className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Shield className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-semibold text-default-900">Restriction History</h2>
-                        <p className="text-sm text-default-500">Room ID: {roomId}</p>
-                    </div>
-                </ModalHeader>
-                <ModalBody className="p-0">
-                    {/* Filters */}
-                    <div className="p-6 border-b border-default-200 bg-default-50">
-                        <div className="flex flex-wrap gap-4">
-                            <div className="flex-1 min-w-[200px]">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-default-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search by username..."
-                                        value={filters.search}
-                                        onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                                        className="w-full pl-10 pr-4 py-2 border border-default-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                    />
-                                </div>
-                            </div>
-                            <select
-                                value={filters.type}
-                                onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-                                className="px-4 py-2 border border-default-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            <div className="rounded-xl overflow-hidden bg-white">
+                <ModalContent>
+                    <ModalHeader className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Shield className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-semibold text-default-900">Restriction History</h2>
+                            <p className="text-sm text-default-500">Room ID: {roomId}</p>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="p-0">
+                        {/* Filters */}
+                        <div className="p-6 border-b border-default-200 bg-default-50 flex flex-wrap gap-4 rounded-t-xl">
+                            <Input
+                                isClearable
+                                className="w-full sm:max-w-[300px]"
+                                placeholder="Search by username..."
+                                startContent={<Search />}
+                                value={filters.search}
+                                onClear={() => setFilters(prev => ({ ...prev, search: "" }))}
+                                onValueChange={val => setFilters(prev => ({ ...prev, search: val }))}
+                            />
+                            <Select
+                                className="flex-1"
+                                selectedKeys={[filters.type || ""]}
+                                onSelectionChange={keys => setFilters(prev => ({ ...prev, type: Array.from(keys)[0] as string }))}
+                                aria-label="Type"
+                                placeholder="All Types"
                             >
-                                <option value="">All Types</option>
-                                <option value="ban">Ban</option>
-                                <option value="mute">Mute</option>
-                                <option value="kick">Kick</option>
-                            </select>
-                            <select
-                                value={filters.status}
-                                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                                className="px-4 py-2 border border-default-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                <SelectItem key="">All Types</SelectItem>
+                                <SelectItem key="ban">Ban</SelectItem>
+                                <SelectItem key="mute">Mute</SelectItem>
+                                <SelectItem key="kick">Kick</SelectItem>
+                            </Select>
+                            <Select
+                                className="flex-1"
+                                selectedKeys={[filters.status || ""]}
+                                onSelectionChange={keys => setFilters(prev => ({ ...prev, status: Array.from(keys)[0] as string }))}
+                                aria-label="Status"
+                                placeholder="All Status"
                             >
-                                <option value="">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="expired">Expired</option>
-                                <option value="revoked">Revoked</option>
-                            </select>
+                                <SelectItem key="">All Status</SelectItem>
+                                <SelectItem key="active">Active</SelectItem>
+                                <SelectItem key="expired">Expired</SelectItem>
+                                <SelectItem key="revoked">Revoked</SelectItem>
+                            </Select>
                             <Button
                                 color="primary"
                                 variant="flat"
@@ -181,125 +183,121 @@ export function RestrictionHistory({ roomId, isOpen, onClose }: RestrictionHisto
                                 Apply Filters
                             </Button>
                         </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 overflow-hidden">
-                        {loading ? (
-                            <div className="flex items-center justify-center h-64">
-                                <GenericSkeleton />
-                            </div>
-                        ) : (
-                            <div className="overflow-auto">
-                                <Table aria-label="Restriction history table">
-                                    <TableHeader>
-                                        <TableColumn>USER</TableColumn>
-                                        <TableColumn>TYPE</TableColumn>
-                                        <TableColumn>DURATION</TableColumn>
-                                        <TableColumn>REASON</TableColumn>
-                                        <TableColumn>STATUS</TableColumn>
-                                        <TableColumn>MODERATOR</TableColumn>
-                                        <TableColumn>DATE</TableColumn>
-                                    </TableHeader>
-                                    <TableBody
-                                        emptyContent={
-                                            <div className="text-center py-8">
-                                                <Shield className="w-12 h-12 text-default-300 mx-auto mb-4" />
-                                                <p className="text-default-500">No restriction history found</p>
-                                            </div>
-                                        }
-                                    >
-                                        {history.map((item) => (
-                                            <TableRow key={item.id}>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                            <User className="w-4 h-4 text-primary" />
+                        {/* Content */}
+                        <div className="flex-1 overflow-hidden rounded-b-xl bg-white">
+                            {loading ? (
+                                <RestrictionHistorySkeleton />
+                            ) : (
+                                <div className="overflow-auto">
+                                    <Table aria-label="Restriction history table">
+                                        <TableHeader>
+                                            <TableColumn>USER</TableColumn>
+                                            <TableColumn>TYPE</TableColumn>
+                                            <TableColumn>DURATION</TableColumn>
+                                            <TableColumn>REASON</TableColumn>
+                                            <TableColumn>STATUS</TableColumn>
+                                            <TableColumn>MODERATOR</TableColumn>
+                                            <TableColumn>DATE</TableColumn>
+                                        </TableHeader>
+                                        <TableBody
+                                            emptyContent={
+                                                <div className="text-center py-8 rounded-b-xl bg-white">
+                                                    <Shield className="w-12 h-12 text-default-300 mx-auto mb-4" />
+                                                    <p className="text-default-500">No restriction history found</p>
+                                                </div>
+                                            }
+                                        >
+                                            {history.map((item) => (
+                                                <TableRow key={item.id}>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                                <User className="w-4 h-4 text-primary" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium text-sm">
+                                                                    {getUserDisplayName(item.user)}
+                                                                </p>
+                                                                <p className="text-xs text-default-500">
+                                                                    @{item.user?.username || 'unknown'}
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="font-medium text-sm">
-                                                                {getUserDisplayName(item.user)}
-                                                            </p>
-                                                            <p className="text-xs text-default-500">
-                                                                @{item.user?.username || 'unknown'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Chip
-                                                        color={getTypeColor(item.type)}
-                                                        variant="flat"
-                                                        size="sm"
-                                                    >
-                                                        {getTypeDisplayName(item.type)}
-                                                    </Chip>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="text-sm text-default-600">
-                                                        {getDurationDisplayName(item.duration)}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="max-w-xs">
-                                                        <p className="text-sm text-default-900 line-clamp-2">
-                                                            {item.reason || "No reason provided"}
-                                                        </p>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Chip
-                                                        color={getStatusColor(item.status)}
-                                                        variant="flat"
-                                                        size="sm"
-                                                    >
-                                                        {item.status.toUpperCase()}
-                                                    </Chip>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-6 h-6 rounded-full bg-warning/10 flex items-center justify-center">
-                                                            <Shield className="w-3 h-3 text-warning" />
-                                                        </div>
-                                                        <span className="text-sm font-medium">
-                                                            {getUserDisplayName(item.moderator)}
-                                                        </span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <Calendar className="w-4 h-4 text-default-400" />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Chip
+                                                            color={getTypeColor(item.type)}
+                                                            variant="flat"
+                                                            size="sm"
+                                                        >
+                                                            {getTypeDisplayName(item.type)}
+                                                        </Chip>
+                                                    </TableCell>
+                                                    <TableCell>
                                                         <span className="text-sm text-default-600">
-                                                            {formatDate(item.created_at)}
+                                                            {getDurationDisplayName(item.duration)}
                                                         </span>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Footer with Pagination */}
-                    <div className="p-6 border-t border-default-200 bg-default-50">
-                        <div className="flex items-center justify-between">
-                            <p className="text-sm text-default-500">
-                                Showing {history.length} of {totalPages * 20} records
-                            </p>
-                            <Pagination
-                                total={totalPages}
-                                page={currentPage}
-                                onChange={setCurrentPage}
-                                showControls
-                                color="primary"
-                                size="sm"
-                            />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="max-w-xs">
+                                                            <p className="text-sm text-default-900 line-clamp-2">
+                                                                {item.reason || "No reason provided"}
+                                                            </p>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Chip
+                                                            color={getStatusColor(item.status)}
+                                                            variant="flat"
+                                                            size="sm"
+                                                        >
+                                                            {item.status.toUpperCase()}
+                                                        </Chip>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-6 h-6 rounded-full bg-warning/10 flex items-center justify-center">
+                                                                <Shield className="w-3 h-3 text-warning" />
+                                                            </div>
+                                                            <span className="text-sm font-medium">
+                                                                {getUserDisplayName(item.moderator)}
+                                                            </span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <Calendar className="w-4 h-4 text-default-400" />
+                                                            <span className="text-sm text-default-600">
+                                                                {formatDate(item.created_at)}
+                                                            </span>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
                         </div>
-                    </div>
-                </ModalBody>
-            </ModalContent>
+                        {/* Footer with Pagination */}
+                        <div className="p-6 border-t border-default-200 bg-default-50 rounded-b-xl">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm text-default-500">
+                                    Showing {history.length} of {totalPages * 20} records
+                                </p>
+                                <Pagination
+                                    total={totalPages}
+                                    page={currentPage}
+                                    onChange={setCurrentPage}
+                                    showControls
+                                    color="primary"
+                                    size="sm"
+                                />
+                            </div>
+                        </div>
+                    </ModalBody>
+                </ModalContent>
+            </div>
         </Modal>
     );
 } 
