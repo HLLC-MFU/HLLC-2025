@@ -6,12 +6,14 @@ import {
   Pressable,
   FlatList,
   StyleSheet,
+  Image,
 } from "react-native";
-import { Bell, X, Check } from "lucide-react-native";
+import { Bell, X, Check, ArrowDown, Clock } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect, useMemo, useState } from "react";
 import { useNotification } from "@/hooks/notifications/useNotification";
 import { useApi } from "@/hooks/useApi";
+import { NotificationItem } from "@/types/notification";
 
 import tinycolor from "tinycolor2";
 import { AnimatePresence, MotiView } from "moti";
@@ -40,6 +42,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
   const [showing, setShowing] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
   const [markingAsRead, setMarkingAsRead] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
 
   // เปิด Modal ทันทีเมื่อ visible = true
   useEffect(() => {
@@ -53,7 +56,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
   }, [visible]);
 
   const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.read).length,
+    () => notifications.filter((n: NotificationItem) => !n.isRead && !n.read).length,
     [notifications]
   );
 
@@ -68,8 +71,8 @@ export default function NotificationModal({ visible, onClose }: Props) {
     try {
       // Get all unread notification IDs
       const unreadIds = notifications
-        .filter((n) => !n.read)
-        .map((n) => n.id);
+        .filter((n: NotificationItem) => !n.isRead && !n.read)
+        .map((n: NotificationItem) => n._id);
       
       if (unreadIds.length > 0) {
         // Mark each notification as read
@@ -93,6 +96,34 @@ export default function NotificationModal({ visible, onClose }: Props) {
     }
   };
 
+  // Function to get icon component based on icon name
+  const getIconComponent = (iconName: string) => {
+    switch (iconName) {
+      case "AArrowDownIcon":
+        return <ArrowDown size={16} />;
+      case "AlarmClockPlusIcon":
+        return <Clock size={16} />;
+      default:
+        return <Check size={16} />;
+    }
+  };
+
+  // Function to format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+      return `${diffInMinutes}m ago`;
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
   // Type assertion for user with theme
   const userWithTheme = user as UserWithTheme;
 
@@ -107,7 +138,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
         <AnimatePresence
           onExitComplete={() => {
             setShowing(false);
-            onClose(); // callback จริง
+            onClose();
           }}
         >
           {!animatingOut && visible && (
@@ -119,9 +150,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
               transition={{ type: "timing", duration: 250 }}
               style={[styles.notificationContainer, { top: 80 + insets.top }]}
             >
-              {/* ✅ Triangle and notification content */}
               <View style={styles.trianglePointer} />
-
               <View style={styles.header}>
                 <View style={styles.headerContent}>
                   <Text style={styles.headerTitle}>Notifications</Text>
@@ -138,12 +167,10 @@ export default function NotificationModal({ visible, onClose }: Props) {
                   <X size={16} color="#6b7280" />
                 </TouchableOpacity>
               </View>
-
               <View style={styles.divider} />
-
               <FlatList
                 data={notifications}
-                keyExtractor={(item) => item.id?.toString() || item._id}
+                keyExtractor={(item: NotificationItem) => item._id}
                 contentContainerStyle={styles.scrollContent}
                 style={styles.scrollView}
                 ListEmptyComponent={() => (
@@ -155,54 +182,42 @@ export default function NotificationModal({ visible, onClose }: Props) {
                     </Text>
                   </View>
                 )}
-                renderItem={({ item: n }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.notificationItem,
-                      !n.read && {
-                        backgroundColor: "rgba(59, 130, 246, 0.05)",
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.statusIndicator,
-                        {
-                          backgroundColor: tinycolor(
-                            userWithTheme?.theme?.colors?.primary ?? "#3b82f6"
-                          )
-                            .setAlpha(0.1)
-                            .toRgbString(),
-                        },
-                      ]}
+                renderItem={({ item: n }: { item: NotificationItem }) => {
+                  const isUnread = !n.isRead && !n.read;
+                  return (
+                    <TouchableOpacity
+                      style={styles.card}
+                      activeOpacity={0.85}
+                      onPress={() => setSelectedNotification(n)}
                     >
-                      <Check size={16} color={userWithTheme?.theme?.colors?.primary} />
-                    </View>
-                    <View style={styles.notificationContent}>
-                      <View style={styles.notificationHeader}>
-                        <Text style={styles.notificationTitle}>
-                          {n.title["en"] ?? "Untitled"}
-                        </Text>
-                        <Text style={styles.timeText}>
-                          {new Date(n.timestamp || n.createdAt || Date.now()).toLocaleDateString()}
+                      <View style={styles.cardHeader}>
+                        <View style={styles.iconWrap}>{getIconComponent(n.icon)}</View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.cardTitle}>{n.title["en"] ?? "Untitled"}</Text>
+                          <Text style={styles.cardSubtitle}>{n.subtitle["en"] ?? "No detail"}</Text>
+                        </View>
+                        <Text style={styles.cardDate}>
+                          {formatDate(n.createdAt || n.timestamp || new Date().toISOString())}
                         </Text>
                       </View>
-                      <Text style={styles.notificationMessage}>
-                        {n.subtitle["en"] ?? "No detail"}
-                      </Text>
-                    </View>
-                    {!n.read && (
-                      <View
-                        style={[
-                          styles.unreadDot,
-                          { backgroundColor: userWithTheme?.theme?.colors?.primary },
-                        ]}
-                      />
-                    )}
-                  </TouchableOpacity>
-                )}
+                      <View style={styles.cardDivider} />
+                      <View style={styles.cardBodyRow}>
+                        <Text style={styles.cardBody}>{n.body && n.body["en"]}</Text>
+                        {n.image && n.image.trim() !== "" && (
+                          <Image
+                            source={{ uri: `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${n.image}` }}
+                            style={styles.cardImage}
+                            resizeMode="contain"
+                          />
+                        )}
+                      </View>
+                      {isUnread && (
+                        <View style={styles.unreadDotCard} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                }}
               />
-
               {notifications.length > 0 && unreadCount > 0 && (
                 <>
                   <View style={styles.divider} />
@@ -228,6 +243,40 @@ export default function NotificationModal({ visible, onClose }: Props) {
             </MotiView>
           )}
         </AnimatePresence>
+        {/* Detail Modal */}
+        <Modal
+          visible={!!selectedNotification}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setSelectedNotification(null)}
+        >
+          <View style={styles.detailModalOverlay}>
+            <View style={styles.detailModalCard}>
+              <TouchableOpacity style={styles.detailCloseBtn} onPress={() => setSelectedNotification(null)}>
+                <X size={20} color="#6b7280" />
+              </TouchableOpacity>
+              {selectedNotification && (
+                <>
+                  <View style={styles.detailHeaderRow}>
+                    <View style={styles.iconWrap}>{getIconComponent(selectedNotification.icon)}</View>
+                    <Text style={styles.detailTitle}>{selectedNotification.title["en"]}</Text>
+                  </View>
+                  <Text style={styles.detailSubtitle}>{selectedNotification.subtitle["en"]}</Text>
+                  <Text style={styles.detailDate}>{formatDate(selectedNotification.createdAt || selectedNotification.timestamp || new Date().toISOString())}</Text>
+                  <View style={styles.detailDivider} />
+                  <Text style={styles.detailBody}>{selectedNotification.body && selectedNotification.body["en"]}</Text>
+                  {selectedNotification.image && selectedNotification.image.trim() !== "" && (
+                    <Image
+                      source={{ uri: `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${selectedNotification.image}` }}
+                      style={styles.detailImage}
+                      resizeMode="contain"
+                    />
+                  )}
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
       </Pressable>
     </Modal>
   );
@@ -346,6 +395,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#4b5563",
     lineHeight: 18,
+    marginBottom: 4,
+  },
+  notificationBody: {
+    fontSize: 12,
+    color: "#6b7280",
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  notificationImage: {
+    width: "100%",
+    height: 120,
+    borderRadius: 8,
+    marginTop: 8,
   },
   unreadDot: {
     position: "absolute",
@@ -380,5 +442,176 @@ const styles = StyleSheet.create({
   markAllReadText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  // Card style for notification list
+  card: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 18,
+    marginVertical: 10,
+    marginHorizontal: 12,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+    overflow: 'hidden',
+    minHeight: 90,
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 2,
+  },
+  iconWrap: {
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 24,
+    height: 24,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  cardSubtitle: {
+    fontSize: 15,
+    color: '#888',
+    marginBottom: 2,
+  },
+  cardDate: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginLeft: 8,
+    fontWeight: '500',
+    alignSelf: 'flex-start',
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginTop: 8,
+    marginBottom: 0,
+  },
+  cardBodyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 60,
+  },
+  cardBody: {
+    fontSize: 16,
+    color: '#111827',
+    flex: 1,
+    marginRight: 8,
+    lineHeight: 22,
+  },
+  cardImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    marginLeft: 12,
+    backgroundColor: '#f3f4f6',
+  },
+  unreadDotCard: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#3b82f6',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  // Detail modal styles
+  detailModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailModalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 8,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  detailCloseBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 2,
+    padding: 4,
+  },
+  detailHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    width: '100%',
+  },
+  detailTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+    marginLeft: 8,
+    flex: 1,
+    marginBottom: 2,
+  },
+  detailSubtitle: {
+    fontSize: 16,
+    color: '#888',
+    marginBottom: 8,
+    width: '100%',
+    fontWeight: '500',
+  },
+  detailDate: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 8,
+    width: '100%',
+    textAlign: 'right',
+    fontWeight: '400',
+  },
+  detailDivider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    width: '100%',
+    marginVertical: 10,
+  },
+  detailBody: {
+    fontSize: 17,
+    color: '#111827',
+    marginBottom: 12,
+    width: '100%',
+    lineHeight: 24,
+    fontWeight: '400',
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    padding: 10,
+  },
+  detailImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 16,
+    marginTop: 8,
+    backgroundColor: '#f3f4f6',
+    alignSelf: 'center',
   },
 });
