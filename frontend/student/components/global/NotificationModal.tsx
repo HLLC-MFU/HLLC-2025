@@ -11,6 +11,7 @@ import { Bell, X, Check } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect, useMemo, useState } from "react";
 import { useNotification } from "@/hooks/notifications/useNotification";
+import { useApi } from "@/hooks/useApi";
 
 import tinycolor from "tinycolor2";
 import { AnimatePresence, MotiView } from "moti";
@@ -21,13 +22,24 @@ interface Props {
   onClose: () => void;
 }
 
+// Define interface for user with theme
+interface UserWithTheme {
+  theme?: {
+    colors?: {
+      primary?: string;
+    };
+  };
+}
+
 export default function NotificationModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const { notifications = [] } = useNotification();
+  const { notifications = [], loading } = useNotification();
   const { user } = useProfile();
+  const { request } = useApi();
 
   const [showing, setShowing] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
+  const [markingAsRead, setMarkingAsRead] = useState(false);
 
   // เปิด Modal ทันทีเมื่อ visible = true
   useEffect(() => {
@@ -48,6 +60,41 @@ export default function NotificationModal({ visible, onClose }: Props) {
   const handleClose = () => {
     setAnimatingOut(true);
   };
+
+  const handleMarkAllAsRead = async () => {
+    if (markingAsRead || unreadCount === 0) return;
+    
+    setMarkingAsRead(true);
+    try {
+      // Get all unread notification IDs
+      const unreadIds = notifications
+        .filter((n) => !n.read)
+        .map((n) => n.id);
+      
+      if (unreadIds.length > 0) {
+        // Mark each notification as read
+        for (const id of unreadIds) {
+          await request(`/notifications/read`, "POST", {
+            notificationId: id,
+          });
+        }
+        
+        // Refetch notifications to update the UI
+        const res = await request(`/notifications/me`, "GET");
+        if (res) {
+          // The useNotification hook will handle the state update
+          console.log('Successfully marked all notifications as read');
+        }
+      }
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+    } finally {
+      setMarkingAsRead(false);
+    }
+  };
+
+  // Type assertion for user with theme
+  const userWithTheme = user as UserWithTheme;
 
   return (
     <Modal
@@ -96,7 +143,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
 
               <FlatList
                 data={notifications}
-                keyExtractor={(item) => item.id.toString()}
+                keyExtractor={(item) => item.id?.toString() || item._id}
                 contentContainerStyle={styles.scrollContent}
                 style={styles.scrollView}
                 ListEmptyComponent={() => (
@@ -122,14 +169,14 @@ export default function NotificationModal({ visible, onClose }: Props) {
                         styles.statusIndicator,
                         {
                           backgroundColor: tinycolor(
-                            user?.theme?.colors?.primary ?? "#3b82f6"
+                            userWithTheme?.theme?.colors?.primary ?? "#3b82f6"
                           )
                             .setAlpha(0.1)
                             .toRgbString(),
                         },
                       ]}
                     >
-                      <Check size={16} color={user?.theme?.colors?.primary} />
+                      <Check size={16} color={userWithTheme?.theme?.colors?.primary} />
                     </View>
                     <View style={styles.notificationContent}>
                       <View style={styles.notificationHeader}>
@@ -137,7 +184,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
                           {n.title["en"] ?? "Untitled"}
                         </Text>
                         <Text style={styles.timeText}>
-                          {new Date(n.timestamp).toLocaleDateString()}
+                          {new Date(n.timestamp || n.createdAt || Date.now()).toLocaleDateString()}
                         </Text>
                       </View>
                       <Text style={styles.notificationMessage}>
@@ -148,7 +195,7 @@ export default function NotificationModal({ visible, onClose }: Props) {
                       <View
                         style={[
                           styles.unreadDot,
-                          { backgroundColor: user?.theme.colors.primary },
+                          { backgroundColor: userWithTheme?.theme?.colors?.primary },
                         ]}
                       />
                     )}
@@ -156,19 +203,24 @@ export default function NotificationModal({ visible, onClose }: Props) {
                 )}
               />
 
-              {notifications.length > 0 && (
+              {notifications.length > 0 && unreadCount > 0 && (
                 <>
                   <View style={styles.divider} />
-                  <TouchableOpacity style={styles.markAllRead}>
+                  <TouchableOpacity 
+                    style={styles.markAllRead}
+                    onPress={handleMarkAllAsRead}
+                    disabled={markingAsRead}
+                  >
                     <Text
                       style={[
                         styles.markAllReadText,
                         {
-                          color: user?.theme?.colors?.primary ?? "#3b82f6",
+                          color: userWithTheme?.theme?.colors?.primary ?? "#3b82f6",
+                          opacity: markingAsRead ? 0.6 : 1,
                         },
                       ]}
                     >
-                      Mark all as read
+                      {markingAsRead ? "Marking as read..." : "Mark all as read"}
                     </Text>
                   </TouchableOpacity>
                 </>
