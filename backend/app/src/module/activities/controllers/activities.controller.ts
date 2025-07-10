@@ -24,10 +24,9 @@ import { Types } from 'mongoose';
 @UseGuards(PermissionsGuard)
 @Controller('activities')
 export class ActivitiesController {
-  constructor(private readonly activitiesService: ActivitiesService) { }
+  constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
-  @Permissions('activities:create')
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Req() req: FastifyRequest) {
     const dto = req.body as CreateActivitiesDto;
@@ -35,14 +34,12 @@ export class ActivitiesController {
   }
 
   @Get('')
-  @Permissions('activities:read')
   async findAll() {
     const activities = await this.activitiesService.findAll();
     return { data: activities };
   }
 
   @Get('canCheckin')
-  @Permissions('activities:read')
   async canCheckin(
     @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
   ): Promise<PaginatedResponse<Activities> & { message: string }> {
@@ -59,13 +56,11 @@ export class ActivitiesController {
   }
 
   @Get(':id')
-  @Permissions('activities:read')
   findOne(@Param('id') id: string) {
     return this.activitiesService.findOne(id);
   }
 
   @Patch(':id')
-  @Permissions('activities:update')
   @UseInterceptors(new MultipartInterceptor(500))
   update(@Param('id') id: string, @Req() req: UserRequest) {
     const dto = req.body as UpdateActivityDto;
@@ -73,16 +68,12 @@ export class ActivitiesController {
   }
 
   @Delete(':id')
-  @Permissions('activities:delete')
   remove(@Param('id') id: string) {
     return this.activitiesService.remove(id);
   }
 
   @Get(':activityId/assessment')
-  @Permissions('activities:read')
-  async findActivitiesWithAssessment(
-    @Param('activityId') activityId: string,
-  ) {
+  async findActivitiesWithAssessment(@Param('activityId') activityId: string) {
     return this.activitiesService.findActivitiesWithAssessment(activityId);
   }
 }
