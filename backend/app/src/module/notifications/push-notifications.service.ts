@@ -31,7 +31,7 @@ export class PushNotificationService {
     // TODO: implement push-notification
   }
 
-  async sendPushNotification(dto: PushNotificationDto, isDryRun: boolean) {
+  async sendPushNotification(dto: PushNotificationDto, isDryRun?: boolean) {
     if (!this.firebaseApp) {
       throw new InternalServerErrorException('Firebase Admin is not initialized');
     }
@@ -104,7 +104,8 @@ export class PushNotificationService {
     }).lean();
 
     if (!allDevices.length) {
-      throw new BadRequestException('Not found any receivers');
+      // return;
+      throw new BadRequestException('Not found any receivers (registered user). Try to send using in-app notification mode.');
     }
 
     const titleMap = dto.title;
@@ -138,6 +139,7 @@ export class PushNotificationService {
             notification: {
               title,
               body,
+              imageUrl: dto.image ? `${process.env.BASE_URL}/api/uploads/${dto.image}` : undefined,
             },
             android: {
               priority: dto.priority ?? 'normal',

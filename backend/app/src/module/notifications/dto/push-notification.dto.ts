@@ -2,7 +2,7 @@ import { Type } from "class-transformer";
 import { IsArray, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from "class-validator";
 import { Localization } from "src/pkg/types/common";
 
-class ReceiversDto {
+export class ReceiversDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -46,6 +46,10 @@ export class PushNotificationDto {
   @IsObject()
   @IsNotEmpty()
   body: Localization;
+
+  @IsString()
+  @IsOptional()
+  image?: string;
 
   @IsOptional()
   @IsObject()

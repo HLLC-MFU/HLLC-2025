@@ -21,8 +21,8 @@ export class RedirectButtonDto {
 }
 
 export class TargetDto {
-  @IsEnum(['school', 'major', 'individual'])
-  type: 'school' | 'major' | 'individual';
+  @IsEnum(['school', 'major', 'user'])
+  type: 'school' | 'major' | 'user';
 
   @IsArray()
   @IsNotEmpty({ each: true })

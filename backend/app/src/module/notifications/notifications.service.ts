@@ -21,6 +21,8 @@ import { SseService } from '../sse/sse.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { ReadNotificationDto } from './dto/read-notification.dto';
 import { UserRequest } from 'src/pkg/types/users';
+import { PushNotificationService } from './push-notifications.service';
+import { mapScopeToReceivers } from './utils/notification.util';
 
 @Injectable()
 export class NotificationsService {
@@ -32,6 +34,7 @@ export class NotificationsService {
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
     private readonly sseService: SseService,
+    private readonly pushNotificationService: PushNotificationService,
   ) {}
 
   async create(createNotificationDto: CreateNotificationDto) {
@@ -43,6 +46,19 @@ export class NotificationsService {
         id: item.id.map((id) => new Types.ObjectId(id)),
       }));
     }
+
+    const receivers = mapScopeToReceivers(createNotificationDto.scope);
+
+    await this.pushNotificationService.sendPushNotification({
+      receivers,
+      title: createNotificationDto.title,
+      body: createNotificationDto.body,
+      image: createNotificationDto.image ?? undefined,
+      data: {
+        redirectUrl: createNotificationDto.redirectButton?.url ?? null,
+      },
+      priority: 'high',
+    });
 
     this.sseService.notify({
       type: 'REFETCH_NOTIFICATIONS',
@@ -118,21 +134,58 @@ export class NotificationsService {
     );
   }
 
-  async getUserNotifications(user: UserRequest['user']) {
+  async getUserNotifications(userReq: UserRequest['user']) {
+    const user = await this.userModel.findById(userReq._id)
+    .populate({
+      path: 'metadata.major',
+      model: 'Major',
+      select: 'school',
+    })
+    .lean<{
+      _id: Types.ObjectId;
+      metadata: {
+        major?: {
+          _id: Types.ObjectId;
+          school?: string;
+        };
+      };
+    }>();
+    
     const userNotifications = await this.notificationModel
       .find({
         $or: [
           { scope: 'global' },
-          { scope: 'major', targetId: user.metadata.major },
-          { scope: 'school', targetId: user.metadata.school },
-          { scope: 'individual', targetId: user._id },
+          {
+            scope: {
+              $elemMatch: {
+                type: 'school',
+                id: { $in: [user?.metadata?.major?.school] },
+              },
+            },
+          },
+          {
+            scope: {
+              $elemMatch: {
+                type: 'major',
+                id: { $in: [user?.metadata?.major?._id] },
+              },
+            },
+          },
+          {
+            scope: {
+              $elemMatch: {
+                type: 'user',
+                id: { $in: [user?._id] },
+              },
+            },
+          },
         ],
       })
       .sort({ createdAt: -1 })
       .lean();
 
     const readDocument = await this.notificationReadModel
-      .findOne({ userId: user._id })
+      .findOne({ userId: user?._id })
       .lean();
     const readNotificationIds = (readDocument?.readNotifications ?? []).map(
       (id) => id.toString(),
