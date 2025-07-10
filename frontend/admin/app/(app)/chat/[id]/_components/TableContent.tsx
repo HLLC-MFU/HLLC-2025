@@ -4,7 +4,7 @@ import { Key, ReactNode, SetStateAction } from "react"
 import BottomContent from "./BottomContent"
 import TopContent from "./TopContent"
 
-import { RoomMember } from "@/types/chat"
+import { RoomMember } from "@/types/room"
 
 type ModalState = {
     restriction: boolean;
@@ -39,7 +39,6 @@ type TableContentProps = {
         totalPages: number;
     } | null;
     onPageChange?: (page: number) => void;
-    loading?: boolean;
     emptyMessage?: string;
 }
 
@@ -67,7 +66,6 @@ export default function TableContent({
     renderCell,
     pagination,
     onPageChange,
-    loading = false,
     emptyMessage = "No members found",
 }: TableContentProps) {
     return (
@@ -123,10 +121,10 @@ export default function TableContent({
             </TableHeader>
             <TableBody emptyContent={emptyMessage} items={sortedItems}>
                 {(item: RoomMember) => {
-                    const index = sortedItems.findIndex((i) => i._id === item._id)
+                    const index = sortedItems.findIndex((i) => i.user._id === item.user._id)
 
                     return (
-                        <TableRow key={item._id}>
+                        <TableRow key={item.user._id}>
                             {(columnKey) => <TableCell>{renderCell(item, columnKey, index)}</TableCell>}
                         </TableRow>
                     )

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Spinner, Pagination, Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+import { Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Pagination, Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 import { X, Search, Filter, Calendar, User, Shield } from "lucide-react";
 import { addToast } from "@heroui/toast";
 import { useRestriction } from "@/hooks/useRestriction";
+import { RestrictionHistoryItem } from "@/types/room";
+import { GenericSkeleton } from "../../_components/RoomSkeleton";
 
 type RestrictionHistoryProps = {
     roomId: string;
@@ -12,34 +14,9 @@ type RestrictionHistoryProps = {
     onClose: () => void;
 }
 
-type RestrictionItem = {
-    id: string;
-    type: string;
-    duration: string;
-    reason: string;
-    status: string;
-    start_time: string;
-    end_time?: string;
-    created_at: string;
-    user?: {
-        username: string;
-        name?: {
-            en?: string;
-            th?: string;
-        };
-    };
-    moderator?: {
-        username: string;
-        name?: {
-            en?: string;
-            th?: string;
-        };
-    };
-}
-
 export function RestrictionHistory({ roomId, isOpen, onClose }: RestrictionHistoryProps) {
     const { getRestrictionHistory } = useRestriction();
-    const [history, setHistory] = useState<RestrictionItem[]>([]);
+    const [history, setHistory] = useState<RestrictionHistoryItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -210,10 +187,7 @@ export function RestrictionHistory({ roomId, isOpen, onClose }: RestrictionHisto
                     <div className="flex-1 overflow-hidden">
                         {loading ? (
                             <div className="flex items-center justify-center h-64">
-                                <div className="text-center">
-                                    <Spinner size="lg" color="primary" />
-                                    <p className="mt-4 text-default-500">Loading restriction history...</p>
-                                </div>
+                                <GenericSkeleton />
                             </div>
                         ) : (
                             <div className="overflow-auto">

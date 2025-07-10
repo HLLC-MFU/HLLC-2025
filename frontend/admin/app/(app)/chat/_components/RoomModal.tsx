@@ -1,16 +1,13 @@
 "use client";
 
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
-import { useState, useEffect, useCallback, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { InfinityIcon } from "lucide-react";
-
 import { ImagePreview } from "./ImagePreview";
 import { RoomMembersSelector } from "./RoomMembersSelector";
-
 import { Room, RoomType } from "@/types/chat";
 import { useSchools } from "@/hooks/useSchool";
 import { useMajors } from "@/hooks/useMajor";
-import { useUsers } from "@/hooks/useUsers";
 
 type RoomModalProps = {
     isOpen: boolean;
@@ -24,8 +21,6 @@ type RoomModalProps = {
 export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: RoomModalProps) {
     const { schools, loading: schoolsLoading } = useSchools();
     const { majors, loading: majorsLoading } = useMajors();
-    const { fetchByUsername } = useUsers();
-
     const [nameEn, setNameEn] = useState("");
     const [nameTh, setNameTh] = useState("");
     const [type, setType] = useState<RoomType>(RoomType.NORMAL);
@@ -37,12 +32,10 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
     const [searchQuery, setSearchQuery] = useState("");
     const [image, setImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (isOpen && room) {
             const { name, type, status, capacity, metadata, members } = room;
-
             setNameEn(name.en);
             setNameTh(name.th);
             setType(type);
@@ -55,17 +48,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
             resetFields();
         }
     }, [isOpen, room, roomType]);
-
-    const debouncedSearch = useCallback((query: string) => {
-        if (searchTimeout) clearTimeout(searchTimeout);
-        setSearchTimeout(setTimeout(() => query.trim() && fetchByUsername(query.trim()), 500));
-    }, [fetchByUsername, searchTimeout]);
-
-    const handleSearchChange = (query: string) => {
-        setSearchQuery(query);
-        debouncedSearch(query);
-    };
-
     const resetFields = () => {
         setNameEn("");
         setNameTh("");
@@ -88,7 +70,6 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
         if (roomType === "major" && !selectedMajor) return alert("Please select a major");
 
         const formData = new FormData();
-
         formData.append("name.en", nameEn.trim());
         formData.append("name.th", nameTh.trim());
         formData.append("type", type);
@@ -104,7 +85,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
         }
 
         if (selectedMembers.length > 0) {
-            if (selectedMembers.includes("__SELECT_ALL__")) formData.append("selectAllUsers", "true");
+            if (selectedMembers.includes("SELECT_ALL")) formData.append("selectAllUsers", "true");
             else selectedMembers.forEach((id, idx) => formData.append(`members[${idx}]`, id));
         }
 
@@ -127,7 +108,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
 
     return (
         <Modal isOpen={isOpen} size="2xl" onClose={() => { onClose(); resetFields(); }}>
-            <Form onSubmit={handleSubmit}>
+            <Form className="w-full" onSubmit={handleSubmit}>
                 <ModalContent>
                     <ModalHeader>{`${mode === "add" ? "Add" : "Edit"} ${roomType === "school" ? "School" : roomType === "major" ? "Major" : "Room"}`}</ModalHeader>
                     <ModalBody>

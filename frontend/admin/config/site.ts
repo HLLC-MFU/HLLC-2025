@@ -15,7 +15,7 @@ import {
   Flower,
   CircleDollarSign,
   Footprints,
-  MessageCircle,
+  MessagesSquare,
 } from "lucide-react";
 
 
@@ -62,7 +62,7 @@ export const siteConfig: {
     {
       section: "Chat System",
       items: [
-        { label: "Chat", href: "/chat", icon: MessageCircle, permission: "chat:read" },
+        { label: "Chat", href: "/chat", icon: MessagesSquare, permission: "chat:read" },
       ],
     },
     {

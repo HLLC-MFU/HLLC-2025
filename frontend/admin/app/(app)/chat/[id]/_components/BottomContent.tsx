@@ -1,6 +1,5 @@
 import { Button, Pagination } from "@heroui/react";
-
-import { RoomMember } from "@/types/chat";
+import { RoomMember } from "@/types/room";
 
 type BottomContentProps = {
     selectedKeys: "all" | Set<unknown>;

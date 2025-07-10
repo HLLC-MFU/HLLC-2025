@@ -7,7 +7,7 @@ import { addToast } from "@heroui/toast";
 
 import { useRestriction } from "@/hooks/useRestriction";
 
-import { RoomMember } from "@/types/chat";
+import { RoomMember } from "@/types/room";
 
 type RestrictionAction = {
     userId: string;
@@ -46,7 +46,7 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
         if (member && isOpen) {
             setRestrictionData(prev => ({
                 ...prev,
-                userId: member._id,
+                userId: member.user._id,
                 action: action,
                 roomId: roomId
             }));
@@ -147,8 +147,8 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
     if (!member) return null;
 
     // Fallback logic for name
-    const nameObj = member.name || {};
-    const fullName = [nameObj.first, nameObj.middle, nameObj.last].filter(Boolean).join(" ") || member.username || "";
+    const nameObj = member.user.name || { first: "", middle: "", last: "" };
+    const fullName = [nameObj.first, nameObj.middle, nameObj.last].filter(Boolean).join(" ") || member.user.username || "";
 
     const isUnbanOrUnmute = action === 'unban' || action === 'unmute';
     const isKick = action === 'kick';
@@ -177,7 +177,7 @@ export function RestrictionAction({ isOpen, onClose, member, action, roomId, onS
                                 className="bg-primary text-white font-semibold"
                             />
                             <div className="flex-1">
-                                <h4 className="font-semibold text-base">{member.username}</h4>
+                                <h4 className="font-semibold text-base">{member.user.username}</h4>
                                 <p className="text-sm text-default-500">{fullName}</p>
                                 {member.restrictionStatus && (
                                     <div className="flex gap-2 mt-2">

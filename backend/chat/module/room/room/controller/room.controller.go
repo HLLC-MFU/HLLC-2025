@@ -14,6 +14,7 @@ import (
 	userService "chat/module/user/service"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -61,6 +62,7 @@ func (c *RoomController) setupRoutes() {
 	c.Get("/all-for-user", c.rbac.RequireReadOnlyAccess(), c.GetAllRoomForUser)
 	c.Get("/me", c.rbac.RequireReadOnlyAccess(), c.GetRoomsForMe)
 	c.Get("/", c.rbac.RequireAdministrator(), c.GetRooms)
+	c.Get("/by-type", c.rbac.RequireReadOnlyAccess(), c.GetRoomsByType)
 	c.Get("/:id", c.rbac.RequireReadOnlyAccess(), c.GetRoomById)
 	c.Get("/:id/members", c.rbac.RequireReadOnlyAccess(), c.GetRoomMembers)
 	c.Patch("/:id", c.UpdateRoom)
@@ -88,6 +90,43 @@ func (c *RoomController) GetRooms(ctx *fiber.Ctx) error {
 	}
 
 	return c.validationHelper.BuildSuccessResponse(ctx, response.Data, "Rooms retrieved successfully")
+}
+
+// GetRoomsByType ดึงรายการห้องตาม roomType พร้อม pagination
+// Query parameters: roomType, page, limit
+// roomType: normal, readonly, major, school
+func (c *RoomController) GetRoomsByType(ctx *fiber.Ctx) error {
+	// Parse query parameters
+	roomType := ctx.Query("roomType")
+	page := ctx.QueryInt("page", 1)
+	limit := ctx.QueryInt("limit", 10)
+	
+	// Validate roomType
+	if roomType == "" {
+		return c.validationHelper.BuildValidationErrorResponse(ctx, fiber.NewError(fiber.StatusBadRequest, "roomType parameter is required"))
+	}
+	
+	// Validate and set default values
+	if page < 1 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	
+	// Get user ID for context
+	userID, err := c.rbac.ExtractUserIDFromContext(ctx)
+	if err != nil {
+		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+	}
+
+	// Call service method
+	response, err := c.roomService.GetRoomsByType(ctx.Context(), roomType, int64(page), int64(limit), userID)
+	if err != nil {
+		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+	}
+
+	return c.validationHelper.BuildSuccessResponse(ctx, response, "Rooms by type retrieved successfully")
 }
 
 func (c *RoomController) GetRoomMembers(ctx *fiber.Ctx) error {
@@ -122,10 +161,21 @@ func (c *RoomController) GetRoomMembers(ctx *fiber.Ctx) error {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
 	}
 
-	response := fiber.Map{
-		"_id":     roomMember.ID,
-		"members": roomMember.Members,
-		"meta": fiber.Map{
+	// Create response with proper field order
+	type RoomMemberResponse struct {
+		ID      primitive.ObjectID `json:"_id"`
+		Name    interface{}        `json:"name"`
+		Type    string             `json:"type"`
+		Members interface{}        `json:"members"`
+		Meta    interface{}        `json:"meta"`
+	}
+
+	response := RoomMemberResponse{
+		ID:      roomMember.ID,
+		Name:    roomMember.Name,
+		Type:    roomMember.Type,
+		Members: roomMember.Members,
+		Meta: fiber.Map{
 			"total":      total,
 			"page":       page,
 			"limit":      limit,

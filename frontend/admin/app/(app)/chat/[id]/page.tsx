@@ -8,7 +8,7 @@ import { addToast } from "@heroui/toast";
 import MemberTable from "./_components/MemberTable";
 import { RestrictionHistory } from "./_components/RestrictionHistory";
 import { GenericSkeleton } from "../_components/RoomSkeleton";
-import { RoomMember, Room } from "@/types/chat";
+import { RoomMember, RoomByIdResponse } from "@/types/room";
 import { useChat } from "@/hooks/useChat";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -36,7 +36,7 @@ export default function RoomDetailPage() {
     const { getRoomMembers, getRoomById } = useChat();
 
     const [members, setMembers] = useState<RoomMember[]>([]);
-    const [room, setRoom] = useState<Room | null>(null);
+    const [room, setRoom] = useState<RoomByIdResponse | null>(null);
     const [isLoadingMembers, setIsLoadingMembers] = useState(false);
     const [isLoadingRoom, setIsLoadingRoom] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -78,7 +78,6 @@ export default function RoomDetailPage() {
         }
     };
 
-    // Helper to build query string
     const buildQueryString = (params: Record<string, any>) => {
         const esc = encodeURIComponent;
         return Object.keys(params)
@@ -91,12 +90,11 @@ export default function RoomDetailPage() {
             setIsLoadingMembers(true);
             const query = buildQueryString({ page, limit: MEMBERS_PER_PAGE });
             const result = await getRoomMembers(`${roomId}?${query}`);
-            // Normalize to RoomMember[] regardless of API shape
+            // Backend returns members with nested user structure, no need to map
             const members = Array.isArray(result?.data?.members)
-                ? result.data.members.map((m: any) => m.user || m)
+                ? result.data.members
                 : [];
             setMembers(members);
-            // Use pagination info from backend meta if available
             const meta = result && result.data && (result.data as any).meta;
             setPagination(meta ? {
                 total: meta.total,
@@ -127,7 +125,6 @@ export default function RoomDetailPage() {
         loadMembers(page);
     };
 
-    // Show skeleton while room is loading
     if (isLoadingRoom) {
         return (
             <div className="flex flex-col gap-6">
@@ -170,7 +167,6 @@ export default function RoomDetailPage() {
                 title="Room Members"
             />
 
-            {/* Room Info + Members Table Section */}
             <div className="bg-white rounded-xl shadow-sm border border-default-200">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-6 py-4 border-b border-default-100">
                     <div>
@@ -181,9 +177,11 @@ export default function RoomDetailPage() {
                                     {room.name.en}
                                     <span className="text-default-600 ml-4">TH: </span>
                                     {room.name.th}
+                                    <span className="text-default-600 ml-4">Type: </span>
+                                    <span className="capitalize">{room.type}</span>
                                 </>
                             ) : (
-                                `Room ID: ${roomId.toLowerCase()}`
+                                "Loading room information..."
                             )}
                         </h3>
                         <p className="text-default-500">
@@ -192,27 +190,26 @@ export default function RoomDetailPage() {
                     </div>
                 </div>
                 <div className="px-0 md:px-4 py-4 relative">
-                    <MemberTable
-                        roomId={roomId}
-                        members={members}
-                        modal={modal}
-                        setModal={setModal}
-                        capitalize={capitalize}
-                        columns={columns}
-                        initialVisibleColumns={INITIAL_VISIBLE_COLUMNS}
-                        pagination={pagination}
-                        onPageChange={handlePageChange}
-                        loading={isLoadingMembers}
-                    />
-                    {isLoadingMembers && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-10">
-                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                    {isLoadingMembers ? (
+                        <div className="space-y-4">
+                            <GenericSkeleton type="table" rows={5} />
                         </div>
+                    ) : (
+                        <MemberTable
+                            roomId={roomId}
+                            members={members}
+                            modal={modal}
+                            setModal={setModal}
+                            capitalize={capitalize}
+                            columns={columns}
+                            initialVisibleColumns={INITIAL_VISIBLE_COLUMNS}
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                        />
                     )}
                 </div>
             </div>
 
-            {/* Restriction History Modal */}
             {showHistory && (
                 <RestrictionHistory
                     roomId={roomId}

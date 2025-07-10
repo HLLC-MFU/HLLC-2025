@@ -1,12 +1,19 @@
 import { useState, useEffect } from "react";
 import { addToast } from "@heroui/react";
 
-import { Room, RoomMember } from "../types/chat";
+import { 
+    RoomByIdResponse, 
+    RoomMembersResponse, 
+    RoomMember, 
+    RestrictionStatus, 
+    RoomRestrictionsResponse,
+    UseChatReturn 
+} from "../types/room";
 
 import { apiGolangRequest } from "@/utils/api";
 
-export function useChat() {
-    const [room, setRoom] = useState<Room[]>([]);
+export function useChat(): UseChatReturn {
+    const [room, setRoom] = useState<RoomByIdResponse[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +29,7 @@ export function useChat() {
             setLoading(true);
             setError(null);
             try {
-                const res = await apiGolangRequest<{ data: Room[]}>(
+                const res = await apiGolangRequest<{ data: RoomByIdResponse[]}>(
                     `/rooms?limit=0`,
                     "GET",
                 );
@@ -56,10 +63,10 @@ export function useChat() {
             const groupType = roomData.get('groupType');
             const endpoint = groupType ? "/rooms/group" : "/rooms";
             
-            const res = await apiGolangRequest<Room>(endpoint, "POST", roomData);
+            const res = await apiGolangRequest<RoomByIdResponse>(endpoint, "POST", roomData);
 
             if (res.data) {
-                setRoom(prev => [...prev, res.data as unknown as Room]);
+                setRoom(prev => [...prev, res.data as unknown as RoomByIdResponse]);
             }
         } catch (err) {
             addToast({
@@ -86,10 +93,10 @@ export function useChat() {
     const updateRoom = async (id: string, roomData: FormData) => {
         try {
             setLoading(true);
-            const res = await apiGolangRequest<Room>(`/rooms/${id}`, "PATCH", roomData);
+            const res = await apiGolangRequest<RoomByIdResponse>(`/rooms/${id}`, "PATCH", roomData);
 
             if (res.data) {
-                setRoom(prev => prev.map(room => room._id === id ? res.data as unknown as Room: room));
+                setRoom(prev => prev.map(room => room._id === id ? res.data as unknown as RoomByIdResponse: room));
             }
         } catch (err) {
             addToast({
@@ -115,7 +122,7 @@ export function useChat() {
     const deleteRoom = async (id: string) => {
         setLoading(true);
         try {
-            const res = await apiGolangRequest<Room>(`/rooms/${id}`, "DELETE");
+            const res = await apiGolangRequest<RoomByIdResponse>(`/rooms/${id}`, "DELETE");
 
             if (res.data) {
                 setRoom(prev => prev.filter(room => room._id !== id));
@@ -136,14 +143,14 @@ export function useChat() {
     };
 
     // **NEW: Get room by ID**
-    const getRoomById = async (roomId: string) => {
+    const getRoomById = async (roomId: string): Promise<RoomByIdResponse | undefined> => {
         try {
             setLoading(true);
             
-            const res = await apiGolangRequest<Room>(`/rooms/${roomId}`, "GET");
+            const res = await apiGolangRequest<{ data: RoomByIdResponse }>(`/rooms/${roomId}`, "GET");
             
             if (res.data) {
-                return res.data;
+                return res.data.data || res.data;
             }
         } catch (err) {
             addToast({
@@ -166,13 +173,13 @@ export function useChat() {
      * @param userId - The user ID
      * @returns The restriction status
      */
-    const getRestrictionStatus = async (roomId: string, userId: string) => {
+    const getRestrictionStatus = async (roomId: string, userId: string): Promise<RestrictionStatus | null> => {
         try {
-            const res = await apiGolangRequest<{data: any}>(
+            const res = await apiGolangRequest<{data: RestrictionStatus}>(
                 `/restriction/status/${roomId}/${userId}`,
                 "GET"
             );
-            return res.data?.data;
+            return res.data?.data || null;
         } catch (err) {
             console.error('Failed to get restriction status:', err);
             return null;
@@ -190,21 +197,20 @@ export function useChat() {
             // Accept query string in roomId (e.g., "abc123?page=1&limit=10")
             const [id, query] = roomId.split("?");
             const endpoint = query ? `/rooms/${id}/members?${query}` : `/rooms/${id}/members`;
-            const res = await apiGolangRequest<{ data: { members: RoomMember[]; meta?: any } }>(
+            const res = await apiGolangRequest<{ data: RoomMembersResponse }>(
                 endpoint,
                 "GET",
             );
             
             if (res.data) {
-                // Normalize to RoomMember[] regardless of API shape
-                const members = Array.isArray(res.data?.data?.members)
-                    ? res.data.data.members.map((m: any) => m.user || m)
+                // Handle nested data structure - the actual data is in res.data.data
+                const responseData = res.data.data || res.data;
+                const members = Array.isArray(responseData?.members)
+                    ? responseData.members
                     : [];
-
-                // Fetch all restriction statuses for the room in one request
-                let roomRestrictions: Record<string, any> = {};
+                let roomRestrictions: RoomRestrictionsResponse = {};
                 try {
-                    const restrictionRes = await apiGolangRequest<{data: Record<string, any>}>(
+                    const restrictionRes = await apiGolangRequest<{data: RoomRestrictionsResponse}>(
                         `/restriction/room/${id}/restrictions`,
                         "GET"
                     );
@@ -215,7 +221,7 @@ export function useChat() {
 
                 // Map restriction status to each member
                 const membersWithRestrictionStatus = members.map((member: RoomMember) => {
-                    const memberRestrictions = roomRestrictions[member._id] || {
+                    const memberRestrictions = roomRestrictions[member.user._id] || {
                         isBanned: false,
                         isMuted: false,
                         isKicked: false
@@ -230,7 +236,7 @@ export function useChat() {
                 return {
                     data: {
                         members: membersWithRestrictionStatus,
-                        meta: res.data.data.meta
+                        meta: responseData.meta
                     }
                 };
             }
@@ -258,7 +264,7 @@ export function useChat() {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiGolangRequest<{ data: Room[] }>(
+            const res = await apiGolangRequest<{ data: RoomByIdResponse[] }>(
                 `/rooms`,
                 "GET",
             );

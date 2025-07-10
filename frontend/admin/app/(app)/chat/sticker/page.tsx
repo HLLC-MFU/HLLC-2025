@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { useSticker } from "@/hooks/useSticker";
 import { Sticker } from "@/types/sticker";
 import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
+import { GenericSkeleton } from "../_components/RoomSkeleton";
 
 export default function StickerPage() {
     const { stickers, loading, error, createSticker, deleteSticker, updateSticker, fetchStickers } = useSticker();
@@ -91,9 +92,7 @@ export default function StickerPage() {
                     icon={<Smile />}
                     title="Sticker Management"
                 />
-                <div className="flex items-center justify-center p-8">
-                    <div className="text-default-400">Loading stickers...</div>
-                </div>
+                <GenericSkeleton />
             </div>
         );
     }

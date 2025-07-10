@@ -1,6 +1,6 @@
 import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Tooltip } from "@heroui/react";
 import { EllipsisVertical, Ban, MicOff, CheckCircle, XCircle, UserX } from "lucide-react";
-import { RoomMember } from "@/types/chat";
+import { RoomMember } from "@/types/room";
 
 type MemberActionsProps = {
     member: RoomMember;

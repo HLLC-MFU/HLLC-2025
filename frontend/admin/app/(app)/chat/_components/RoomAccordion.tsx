@@ -29,19 +29,37 @@ export default function RoomAccordion({ rooms, onAdd, onEdit, onDelete, onToggle
     );
 
     return (
-        <Accordion selectionMode="multiple" variant="splitted">
-            {roomCategories.map(({ label, type, icon }) => (
-                <AccordionItem key={label} aria-label={`${label} Rooms`} startContent={icon} title={`${label} Rooms`}>
-                    <RoomSection
-                        roomType={label}
-                        rooms={filterRooms(type)}
-                        onAdd={() => onAdd(type as RoomType | "school" | "major")}
-                        onDelete={onDelete}
-                        onEdit={onEdit}
-                        onToggleStatus={onToggleStatus}
-                    />
-                </AccordionItem>
-            ))}
+        <Accordion className="px-0" variant="splitted">
+            {roomCategories.map(({ label, type, icon }) => {
+                const filteredRooms = filterRooms(type);
+                return (
+                    <AccordionItem
+                        key={label}
+                        aria-label={`${label} Rooms`}
+                        className="font-medium mb-2"
+                        startContent={
+                            <div className="p-3 rounded-xl bg-gradient-to-r bg-gray-200 border">
+                                <span className="text-gray-500">{icon}</span>
+                            </div>
+                        }
+                        subtitle={
+                            <p className="flex">
+                                <span className="text-primary ml-1">{`${filteredRooms.length} rooms`}</span>
+                            </p>
+                        }
+                        title={`${label} Rooms`}
+                    >
+                        <RoomSection
+                            roomType={label}
+                            rooms={filteredRooms}
+                            onAdd={() => onAdd(type as RoomType | "school" | "major")}
+                            onDelete={onDelete}
+                            onEdit={onEdit}
+                            onToggleStatus={onToggleStatus}
+                        />
+                    </AccordionItem>
+                );
+            })}
         </Accordion>
     );
 }

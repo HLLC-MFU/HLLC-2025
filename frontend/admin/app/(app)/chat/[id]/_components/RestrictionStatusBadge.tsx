@@ -1,6 +1,6 @@
 import { Badge } from "@heroui/react";
 import { Ban, MicOff } from "lucide-react";
-import { RestrictionStatus } from "@/types/chat";
+import { RestrictionStatus } from "@/types/room";
 
 type RestrictionStatusBadgeProps = {
     restrictionStatus?: RestrictionStatus;

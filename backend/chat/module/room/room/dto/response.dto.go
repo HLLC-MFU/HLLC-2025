@@ -41,11 +41,30 @@ type (
 
 	ResponseRoomMemberDto struct {
 		ID      primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
-		Members []struct {
-			User struct {
-				ID       string `json:"_id"`
-				Username string `json:"username"`
-			} `json:"user"`
-		} `json:"members"`
+		Name    common.LocalizedName `bson:"name" json:"name"`
+		Type    string               `bson:"type" json:"type"`
+		Members []MemberResponse `json:"members"`
+	}
+
+	MemberResponse struct {
+		User struct {
+			ID       string `json:"_id"`
+			Username string `json:"username"`
+			Name common.Name `json:"name"`
+			Role struct {
+				ID   primitive.ObjectID `json:"_id"`
+				Name string `json:"name"`
+			}
+		} `json:"user"`
+	}
+
+	ResponseRoomsByTypeDto struct {
+		Data []ResponseRoomDto `json:"data"`
+		Meta struct {
+			Total      int64 `json:"total"`
+			Page       int64 `json:"page"`
+			Limit      int64 `json:"limit"`
+			TotalPages int64 `json:"totalPages"`
+		} `json:"meta"`
 	}
 )

@@ -41,6 +41,7 @@ type RoomServiceImpl struct {
 
 type RoomService interface {
 	GetRooms(ctx context.Context, opts queries.QueryOptions, userId string) (*queries.Response[dto.ResponseRoomDto], error)
+	GetRoomsByType(ctx context.Context, roomType string, page int64, limit int64, userID string) (*dto.ResponseRoomsByTypeDto, error)
 	GetRoomById(ctx context.Context, roomID primitive.ObjectID) (*model.Room, error)
 	GetRoomMemberById(ctx context.Context, roomID primitive.ObjectID, page int64, limit int64) (*dto.ResponseRoomMemberDto, error)
 	CreateRoom(ctx context.Context, createDto *dto.CreateRoomDto) (*model.Room, error)
@@ -135,60 +136,203 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 	return result, nil
 }
 
+// GetRoomsByType ดึงรายการห้องตาม roomType พร้อม pagination
+func (s *RoomServiceImpl) GetRoomsByType(ctx context.Context, roomType string, page int64, limit int64, userID string) (*dto.ResponseRoomsByTypeDto, error) {
+	// Validate roomType
+	if roomType == "" {
+		return nil, errors.New("roomType is required")
+	}
+
+	// Build filter based on roomType
+	var filter map[string]interface{}
+	
+	switch roomType {
+	case "normal", "readonly":
+		// Regular room types
+		filter = map[string]interface{}{
+			"type": roomType,
+		}
+	case "major":
+		// Major group rooms - check metadata
+		filter = map[string]interface{}{
+			"metadata.isGroupRoom": true,
+			"metadata.groupType":   "major",
+		}
+	case "school":
+		// School group rooms - check metadata
+		filter = map[string]interface{}{
+			"metadata.isGroupRoom": true,
+			"metadata.groupType":   "school",
+		}
+	default:
+		return nil, fmt.Errorf("invalid roomType: %s. Valid types: normal, readonly, major, school", roomType)
+	}
+
+	// Build query options
+	opts := queries.QueryOptions{
+		Filter: filter,
+		Page:   int(page),
+		Limit:  int(limit),
+		Sort:   "createdAt",
+	}
+
+	// Get rooms with pagination
+	resp, err := s.FindAll(ctx, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rooms by type: %w", err)
+	}
+
+	// Convert to response DTOs
+	rooms := make([]dto.ResponseRoomDto, len(resp.Data))
+	for i, room := range resp.Data {
+		rooms[i] = dto.ResponseRoomDto{
+			ID:          room.ID,
+			Name:        room.Name,
+			Type:        room.Type,
+			Capacity:    room.Capacity,
+			CreatedBy:   room.CreatedBy,
+			Image:       room.Image,
+			CreatedAt:   room.CreatedAt,
+			UpdatedAt:   room.UpdatedAt,
+			Metadata:    room.Metadata,
+			MemberCount: len(room.Members),
+			Status:      room.Status,
+		}
+	}
+
+	// Calculate total count for pagination
+	// Use a separate query to get total count
+	collection := s.db.Collection("rooms")
+	totalCount, err := collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count rooms: %w", err)
+	}
+
+	// Calculate total pages
+	totalPages := int64(0)
+	if limit > 0 {
+		totalPages = (totalCount + limit - 1) / limit
+	}
+
+	// Build response
+	response := &dto.ResponseRoomsByTypeDto{
+		Data: rooms,
+	}
+	response.Meta.Total = totalCount
+	response.Meta.Page = page
+	response.Meta.Limit = limit
+	response.Meta.TotalPages = totalPages
+
+	return response, nil
+}
+
 func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitive.ObjectID, page int64, limit int64) (*dto.ResponseRoomMemberDto, error) {
 	// ดึงข้อมูลจาก database โดยตรงเพื่อให้ได้ข้อมูลล่าสุด
 	room, err := s.FindOneById(ctx, roomId.Hex())
+	log.Printf("log roomData: %+v", room.Data)
 	if err != nil || len(room.Data) == 0 {
 		return nil, errors.New("room not found")
 	}
 
 	// ใช้ข้อมูลจาก database แทน cache
-	currentRoom := &room.Data[0]
+	currentRoom := &room.Data[0] 
 	
 	// อัพเดท cache ด้วยข้อมูลล่าสุด
 	if err := s.cache.SaveRoom(ctx, currentRoom); err != nil {
 		log.Printf("[RoomService] Warning: Failed to update cache: %v", err)
 	}
-
+	// Handle pagination with validation
 	total := int64(len(currentRoom.Members))
+	
+	// Validate and set default values
+	if page < 1 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10 // Default limit
+		log.Printf("[GetRoomMemberById] Limit was 0, using default limit: %d", limit)
+	}
+	
 	start := (page - 1) * limit
 	end := start + limit
-	if start > total {
-		start = total
+	
+	// Validate pagination bounds
+	if start >= total {
+		// No members to return for this page
+		log.Printf("[GetRoomMemberById] Start index %d >= total %d, returning empty result", start, total)
+		return &dto.ResponseRoomMemberDto{
+			ID:      currentRoom.ID,
+			Name:    currentRoom.Name,
+			Type:    currentRoom.Type,
+			Members: []dto.MemberResponse{},
+		}, nil
 	}
+	
 	if end > total {
 		end = total
 	}
 
-	members := make([]struct {
-		User struct {
-			ID       string `json:"_id"`
-			Username string `json:"username"`
-		} `json:"user"`
-	}, 0, end-start)
+	members := make([]dto.MemberResponse, 0, end-start)
 
-	for _, m := range currentRoom.Members[start:end] {
-		user, err := s.userService.GetUserById(ctx, m.Hex())
-		memberObj := struct {
-			User struct {
-				ID       string `json:"_id"`
-				Username string `json:"username"`
-			} `json:"user"`
-		}{}
+	// Process members in the pagination range
+	for i := start; i < end; i++ {
+		if i >= int64(len(currentRoom.Members)) {
+			break
+		}
+		
+		m := currentRoom.Members[i]
+
+		// Fetch user by ID (with role populated)
+		user, err := s.userService.GetUserByIdWithPopulate(ctx, m.Hex())
+		if err != nil {
+			log.Printf("[GetRoomMemberById] Error fetching user %s: %v", m.Hex(), err)
+		}
+		
+		memberObj := dto.MemberResponse{}
+		
 		if err == nil && user != nil {
 			memberObj.User.ID = user.ID.Hex()
 			memberObj.User.Username = user.Username
+			memberObj.User.Name = user.Name
+			roleName := ""
+			roleID := user.Role // primitive.ObjectID
+			if !roleID.IsZero() {
+				roleColl := s.db.Collection("roles")
+				var roleDoc struct{ Name string `bson:"name"` }
+				err := roleColl.FindOne(ctx, bson.M{"_id": roleID}).Decode(&roleDoc)
+				if err == nil {
+					roleName = roleDoc.Name
+				}
+			}
+			memberObj.User.Role = struct{
+				ID   primitive.ObjectID `json:"_id"`
+				Name string `json:"name"`
+			}{
+				ID:   roleID,
+				Name: roleName,
+			}
 		} else {
 			memberObj.User.ID = m.Hex()
 			memberObj.User.Username = ""
+			memberObj.User.Role = struct{
+				ID   primitive.ObjectID `json:"_id"`
+				Name string `json:"name"`
+			}{}
+			log.Printf("[GetRoomMemberById] User not found or error fetching user: %v", err)
 		}
+
+		// Append member to the list
 		members = append(members, memberObj)
 	}
 
-	return &dto.ResponseRoomMemberDto{
+	response := &dto.ResponseRoomMemberDto{
 		ID:      currentRoom.ID,
-		Members: members,
-	}, nil
+		Name:    currentRoom.Name,
+		Type:    currentRoom.Type,
+		Members: members,	
+	}
+	
+	return response, nil
 }
 
 // ดึง room จาก cache
@@ -401,49 +545,6 @@ func (s *RoomServiceImpl) DeleteRoom(ctx context.Context, id string) (*model.Roo
 	return deleted, nil
 }
 
-// ตรวจสอบว่ามี user นั้นอยู่ใน room หรือไม่
-func (s *RoomServiceImpl) IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
-	room, err := s.GetRoomById(ctx, roomID)
-	if err != nil {
-		return false, err
-	}
-	uid, _ := primitive.ObjectIDFromHex(userID)
-	return sharedUtils.ContainsMember(room.Members, uid), nil
-}
-
-// ตรวจสอบว่ามี user นั้นอยู่ใน room และมี connection นั้นอยู่ใน room หรือไม่
-func (s *RoomServiceImpl) ValidateAndTrackConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
-	room, err := s.GetRoomById(ctx, roomID)
-	if err != nil {
-		return fmt.Errorf("room not found: %w", err)
-	}
-
-	return sharedUtils.ValidateAndTrackConnection(ctx, room, userID, s.cache)
-}
-
-// ดึงข้อมูลของ room
-func (s *RoomServiceImpl) GetRoomStatus(ctx context.Context, roomID primitive.ObjectID) (map[string]interface{}, error) {
-	room, err := s.GetRoomById(ctx, roomID)
-	if err != nil {
-		return nil, err
-	}
-
-	return sharedUtils.GetRoomStatus(ctx, room, s.cache)
-}
-
-// Delegate methods to helpers
-func (s *RoomServiceImpl) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (*model.Room, error) {
-	return s.memberHelper.RemoveUserFromRoom(ctx, roomID, userID)
-}
-
-func (s *RoomServiceImpl) RemoveConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
-	return sharedUtils.RemoveConnection(ctx, roomID, userID, s.cache)
-}
-
-func (s *RoomServiceImpl) GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID) (int64, error) {
-	return sharedUtils.GetActiveConnectionsCount(ctx, roomID, s.cache)
-}
-
 // CanUserSendMessage ตรวจสอบว่า user สามารถส่งข้อความได้หรือไม่
 func (s *RoomServiceImpl) CanUserSendMessage(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
 	// ดึงข้อมูลห้อง
@@ -479,43 +580,6 @@ func (s *RoomServiceImpl) CanUserSendMessage(ctx context.Context, roomID primiti
 	}
 
 	return true, nil
-}
-
-func (s *RoomServiceImpl) CanUserSendSticker(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
-	room, err := s.GetRoomById(ctx, roomID)
-	if err != nil {
-		return false, err
-	}
-	return sharedUtils.CanUserSendSticker(ctx, room, userID)
-}
-
-func (s *RoomServiceImpl) CanUserSendReaction(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
-	room, err := s.GetRoomById(ctx, roomID)
-	if err != nil {
-		return false, err
-	}
-	return sharedUtils.CanUserSendReaction(ctx, room, userID)
-}
-
-func (s *RoomServiceImpl) AddUserToRoom(ctx context.Context, roomID, userID string) error {
-	return s.memberHelper.AddUserToRoom(ctx, roomID, userID)
-}
-
-func (s *RoomServiceImpl) JoinRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
-	return s.memberHelper.JoinRoom(ctx, roomID, userID)
-}
-
-func (s *RoomServiceImpl) LeaveRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
-	return s.memberHelper.LeaveRoom(ctx, roomID, userID)
-}
-
-func (s *RoomServiceImpl) DisconnectAllUsersFromRoom(ctx context.Context, roomID primitive.ObjectID) error {
-	return sharedUtils.DisconnectAllUsersFromRoom(ctx, roomID, s.hub, s.cache)
-}
-
-// SetStatusChangeCallback sets a callback function to be called when room status changes
-func (s *RoomServiceImpl) SetStatusChangeCallback(callback func(ctx context.Context, roomID string, newStatus string)) {
-	s.statusChangeCallback = callback
 }
 
 // GetAllRoomForUser ดึงห้องทั้งหมดที่ user มองเห็น (ไม่เอา group room)
@@ -671,4 +735,86 @@ func (s *RoomServiceImpl) handleRoomDeleted(ctx context.Context, room *model.Roo
 	}
 
 	log.Printf("[INFO] Room deleted: %s", room.ID.Hex())
+}
+
+//Helpers =>
+
+func (s *RoomServiceImpl) CanUserSendSticker(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+	room, err := s.GetRoomById(ctx, roomID)
+	if err != nil {
+		return false, err
+	}
+	return sharedUtils.CanUserSendSticker(ctx, room, userID)
+}
+
+func (s *RoomServiceImpl) CanUserSendReaction(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+	room, err := s.GetRoomById(ctx, roomID)
+	if err != nil {
+		return false, err
+	}
+	return sharedUtils.CanUserSendReaction(ctx, room, userID)
+}
+
+func (s *RoomServiceImpl) AddUserToRoom(ctx context.Context, roomID, userID string) error {
+	return s.memberHelper.AddUserToRoom(ctx, roomID, userID)
+}
+
+func (s *RoomServiceImpl) JoinRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+	return s.memberHelper.JoinRoom(ctx, roomID, userID)
+}
+
+func (s *RoomServiceImpl) LeaveRoom(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+	return s.memberHelper.LeaveRoom(ctx, roomID, userID)
+}
+
+func (s *RoomServiceImpl) DisconnectAllUsersFromRoom(ctx context.Context, roomID primitive.ObjectID) error {
+	return sharedUtils.DisconnectAllUsersFromRoom(ctx, roomID, s.hub, s.cache)
+}
+
+// SetStatusChangeCallback sets a callback function to be called when room status changes
+func (s *RoomServiceImpl) SetStatusChangeCallback(callback func(ctx context.Context, roomID string, newStatus string)) {
+	s.statusChangeCallback = callback
+}
+
+// Delegate methods to helpers
+func (s *RoomServiceImpl) RemoveUserFromRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (*model.Room, error) {
+	return s.memberHelper.RemoveUserFromRoom(ctx, roomID, userID)
+}
+
+func (s *RoomServiceImpl) RemoveConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+	return sharedUtils.RemoveConnection(ctx, roomID, userID, s.cache)
+}
+
+func (s *RoomServiceImpl) GetActiveConnectionsCount(ctx context.Context, roomID primitive.ObjectID) (int64, error) {
+	return sharedUtils.GetActiveConnectionsCount(ctx, roomID, s.cache)
+}
+
+// ตรวจสอบว่ามี user นั้นอยู่ใน room หรือไม่
+func (s *RoomServiceImpl) IsUserInRoom(ctx context.Context, roomID primitive.ObjectID, userID string) (bool, error) {
+	room, err := s.GetRoomById(ctx, roomID)
+	if err != nil {
+		return false, err
+	}
+	uid, _ := primitive.ObjectIDFromHex(userID)
+	return sharedUtils.ContainsMember(room.Members, uid), nil
+}
+
+// ตรวจสอบว่ามี user นั้นอยู่ใน room และมี connection นั้นอยู่ใน room หรือไม่
+func (s *RoomServiceImpl) ValidateAndTrackConnection(ctx context.Context, roomID primitive.ObjectID, userID string) error {
+	room, err := s.GetRoomById(ctx, roomID)
+	if err != nil {
+		return fmt.Errorf("room not found: %w", err)
+	}
+
+	return sharedUtils.ValidateAndTrackConnection(ctx, room, userID, s.cache)
+}
+
+// ดึงข้อมูลของ room
+func (s *RoomServiceImpl) GetRoomStatus(ctx context.Context, roomID primitive.ObjectID) (map[string]interface{}, error) {
+	room, err := s.GetRoomById(ctx, roomID)
+	if err != nil {
+		return nil, err
+	}
+
+	return sharedUtils.GetRoomStatus(ctx, room, s.cache)
 }
