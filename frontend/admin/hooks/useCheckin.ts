@@ -20,21 +20,47 @@ export function useCheckin() {
 
       const res = await apiRequest<Checkin>(`/checkins`, 'POST', payload);
 
+      if (res && typeof res === 'object' && 'statusCode' in res && res.statusCode >= 400) {
+        throw new Error(res.message || 'Failed to checkin.');
+      }
+
       if (res.data) {
-        if (res.data) {
-          if (res.data) {
-            setCheckin((prev) => (res.data ? [...prev, res.data] : prev));
-          }
-        }
+        setCheckin((prev) => [...prev, res.data!]);
       }
+
+      addToast({
+        title: 'Successfully checkin.',
+        description: 'Checkin successfully.',
+        color: 'success',
+      });
+
+      return true;
     } catch (err: unknown) {
+      let message = 'Failed to checkin.';
       if (err instanceof Error) {
-        setError(err.message);
-        throw err;
-      } else {
-        setError('Failed to checkin.');
-        throw new Error('Failed to checkin.');
+        message = err.message;
       }
+
+      if (message === 'User scope is not allowed by staff role') {
+        addToast({
+          title: 'Warning',
+          description: message,
+          color: 'warning',
+        });
+      } else if (message === 'User already checked in to all activities') {
+        addToast({
+          title: 'Warning',
+          description: message,
+          color: 'warning',
+        });
+      } else {
+        addToast({
+          title: 'Failed to checkin',
+          description: message,
+          color: 'danger',
+        });
+      }
+      return false;
     } finally {
       setLoading(false);
     }

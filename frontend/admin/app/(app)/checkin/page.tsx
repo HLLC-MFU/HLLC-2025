@@ -17,47 +17,35 @@ export default function CheckinPage() {
   const [studentId, setStudentId] = useState('');
   const { createCheckin } = useCheckin();
 
-  const handleSubmit = async (id?: string) => {
-    const sid = id ?? studentId;
+const handleSubmit = async (id?: string) => {
+  const sid = id ?? studentId;
 
-    if (!/^\d{10}$/.test(sid)) {
-      return addToast({
-        title: 'Invalid studentId',
-        description: 'Please enter your 10-digit student ID number.',
-        color: 'danger',
-      });
-    }
+  if (!/^\d{10}$/.test(sid)) {
+    return addToast({
+      title: 'Invalid studentId',
+      description: 'Please enter your 10-digit student ID number.',
+      color: 'danger',
+    });
+  }
 
-    if (selectedActivityId.length === 0) {
-      return addToast({
-        title: 'No select Activities',
-        description: 'Please select activities before checkin.',
-        color: 'warning',
-      });
-    }
+  if (selectedActivityId.length === 0) {
+    return addToast({
+      title: 'No select Activities',
+      description: 'Please select activities before checkin.',
+      color: 'warning',
+    });
+  }
 
-    try {
-      await createCheckin({
-        user: sid,
-        activities: selectedActivityId,
-      });
+  const result = await createCheckin({
+    user: sid,
+    activities: selectedActivityId,
+  });
 
-      addToast({
-        title: 'Successfully checkin.',
-        description: 'Checkin successfully.',
-        color: 'success',
-      });
+  if (result) {
+    setStudentId('');
+  }
+};
 
-      setStudentId('');
-    } catch (err: any) {
-      console.error('Checkin error:', err);
-      addToast({
-        title: 'Failed to checkin',
-        description: err instanceof Error ? err.message : 'Can not checkin.',
-        color: 'danger',
-      });
-    }
-  };
 
   return (
     <>
