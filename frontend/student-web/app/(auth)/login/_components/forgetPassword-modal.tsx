@@ -127,6 +127,10 @@ export default function ForgetPasswordModal({
     }, [isOpen]);
 
     useEffect(() => {
+        setFetchedUser(null);
+    }, [studentId, selectedProvince])
+
+    useEffect(() => {
         const loadProvinces = async () => {
             try {
                 const res = await fetch("/data/province.json");
