@@ -84,7 +84,7 @@ export default function NotificationPush() {
     }
 
     createNotification(formData);
-    if(pushNotificationResult) setIsResultModal(true);
+    if(notificationMode !== 'in_app') setIsResultModal(true);
   };
 
   return (
@@ -164,7 +164,10 @@ export default function NotificationPush() {
                 isRequired 
                 label="Notification Mode" 
                 placeholder="Select mode"
-                onSelectionChange={(keys) => setNotificationMode(Array.from(keys)[0] as 'push' | 'in_app' | 'both')}
+                onSelectionChange={(keys) => {
+                  setNotificationMode(Array.from(keys)[0] as 'push' | 'in_app' | 'both');
+                  setDryRunMode(false)
+                }}
                 defaultSelectedKeys={["both"]}
                 className="max-w-56" 
                 size='sm' 
