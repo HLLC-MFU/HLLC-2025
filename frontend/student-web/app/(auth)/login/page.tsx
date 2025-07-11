@@ -6,18 +6,20 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import RegisterModal from './_components/register-modal';
+import ForgetPasswordModal from './_components/forgetPassword-modal';
 
 import useAuth from '@/hooks/useAuth';
 
 export default function LoginPage() {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen : isRegisterOpen, onOpen : onRegisterOpen, onOpenChange : onRegisterOpenChange} = useDisclosure();
+  const { isOpen : isForgetOpen, onOpen : onForgetOpen, onOpenChange : onForgetOpenChange} = useDisclosure();
   const router = useRouter();
   const [isPasswordVisible, setPasswordIsVisible] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
-
+ 
   const togglePasswordVisibility = () => setPasswordIsVisible(prev => !prev);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,14 +75,20 @@ export default function LoginPage() {
           onValueChange={setPassword}
         />
         <div className="w-full flex flex-col items-end">
-          <Button variant="light">Forgot Password?</Button>
+          <Button 
+          variant="light"
+          onPress={onForgetOpen}
+          type="button"
+          >
+            Forgot Password?
+            </Button>
         </div>
         <div className="w-full flex gap-4">
           <Button
             className="w-full flex-1"
             size="lg"
             type="button"
-            onPress={onOpen}
+            onPress={onRegisterOpen}
           >
             Register
           </Button>
@@ -96,7 +104,8 @@ export default function LoginPage() {
         </div>
       </Form>
 
-      <RegisterModal isOpen={isOpen} onOpenChange={onOpenChange} />
+      <RegisterModal isOpen={isRegisterOpen} onOpenChange={onRegisterOpenChange} />
+      <ForgetPasswordModal isOpen={isForgetOpen} onOpenChange={onForgetOpenChange}/>
     </section>
   );
 }

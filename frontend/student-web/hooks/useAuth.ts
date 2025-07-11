@@ -18,6 +18,12 @@ interface AuthStore {
   refreshSession: () => Promise<boolean>;
   isLoggedIn: () => boolean;
   ensureValidSession: () => Promise<boolean>;
+  resetPassword: (resetData: {
+    username: string;
+    password: string;
+    confirmPassword: string;
+    metadata: { secret: string };
+  }) => Promise<boolean>;
 }
 
 const useAuth = create<AuthStore>()(
@@ -139,6 +145,36 @@ const useAuth = create<AuthStore>()(
           return false;
         }
       },
+
+      resetPassword: async (resetData: {
+        username: string;
+        password: string;
+        confirmPassword: string;
+        metadata: { secret: string };
+      }) => {
+        try {
+          set({ loading: true, error: null });
+
+          const res = await apiRequest<{ message: string }>(
+            '/auth/reset-password',
+            'POST',
+            resetData
+          );
+
+          if ((res.statusCode === 200 || res.statusCode === 201) && res.data?.message === 'Password reset successfully') {
+            return true;
+          }
+
+          set({ error: res.message || 'Reset password failed' });
+          return false;
+        } catch (err) {
+          set({ error: (err as Error).message });
+          return false;
+        } finally {
+          set({ loading: false });
+        }
+      },
+
 
       isLoggedIn: () => {
         const accessToken = getToken('accessToken');
