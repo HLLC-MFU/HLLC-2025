@@ -37,33 +37,33 @@ export function ActivityDetails({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Textarea
               label="Full Details (English)"
+              minRows={4}
               placeholder="Enter full details in English"
               value={fullDetailsEn}
               onValueChange={setFullDetailsEn}
-              minRows={4}
             />
             <Textarea
               label="Full Details (Thai)"
+              minRows={4}
               placeholder="Enter full details in Thai"
               value={fullDetailsTh}
               onValueChange={setFullDetailsTh}
-              minRows={4}
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Textarea
               label="Short Details (English)"
+              minRows={2}
               placeholder="Enter short details in English"
               value={shortDetailsEn}
               onValueChange={setShortDetailsEn}
-              minRows={2}
             />
             <Textarea
               label="Short Details (Thai)"
+              minRows={2}
               placeholder="Enter short details in Thai"
               value={shortDetailsTh}
               onValueChange={setShortDetailsTh}
-              minRows={2}
             />
           </div>
         </div>

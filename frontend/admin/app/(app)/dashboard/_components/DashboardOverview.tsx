@@ -1,10 +1,11 @@
 import React from 'react';
 import { ScanBarcode, User as UserIcon, Activity as ActivityIcon, Ticket, Gem, } from 'lucide-react';
+import { Card } from '@heroui/react';
+
 import { Checkin } from '@/types/checkin';
 import { Activities } from '@/types/activities';
 import { Evoucher } from '@/types/evoucher';
 import { Sponsors } from '@/types/sponsors';
-import { Card } from '@heroui/react';
 import { UseruseSystem } from '@/types/user-stats'
 
 interface Overviewprop {
@@ -44,41 +45,42 @@ export default function Overview({ checkin, Activities, Userstats, Evouchers, Sp
     const sponsorTotal = Sponsors.length;
     
     if (isLoading) return <p>Loading...</p>;
+
     return (
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 my-6">
             <CardWithPie
+                colors='gray-100'
+                icon={<ScanBarcode />}
                 label="Check In"
                 value={checkInTotal.toString()}
-                icon={<ScanBarcode />}
-                colors='gray-100'
             />
             <CardWithPie
+                colors='blue-100'
+                icon={<UserIcon />}
                 label={`User (${totalUsers})`}
                 value={<div className="flex gap-1 text-base">
                     <span > {registered}</span>
                     <span className="text-gray-400">|</span>
                     <span className="text-gray-400">{unregistered}</span>
                 </div>}
-                icon={<UserIcon />}
-                colors='blue-100'
             />
             <CardWithPie
+                colors='green-100'
+                icon={<ActivityIcon />}
                 label="Activity"
                 value={activityTotal.toString()}
-                icon={<ActivityIcon />}
-                colors='green-100'
             />
             <CardWithPie
+                colors='red-100'
+                icon={<Ticket />}
                 label="Evoucher"
                 value={Evoucherstotle.toString()}
-                icon={<Ticket />}
-                colors='red-100'
             />
             <CardWithPie
+                colors='purple-100'
+                icon={<Gem />}
                 label="Sponsors"
                 value={sponsorTotal.toString()}
-                icon={<Gem />}
-                colors='purple-100'
             />
         </div>
     );

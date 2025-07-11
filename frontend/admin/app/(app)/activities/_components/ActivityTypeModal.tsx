@@ -1,6 +1,7 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Divider } from "@heroui/react";
-import { ActivityType } from "@/types/activities";
 import { useState } from "react";
+
+import { ActivityType } from "@/types/activities";
 
 interface ActivityTypeModalProps {
     isOpen: boolean;
@@ -19,6 +20,7 @@ export function ActivityTypeModal({ isOpen, onClose, onSubmit, mode, activityTyp
         if (loading) return;
 
         const trimmedName = name.trim();
+
         if (!trimmedName) return;
 
         onSubmit({ name: trimmedName });
@@ -27,8 +29,8 @@ export function ActivityTypeModal({ isOpen, onClose, onSubmit, mode, activityTyp
     return (
         <Modal 
             isOpen={isOpen} 
-            onClose={onClose}
             size="md"
+            onClose={onClose}
         >
             <ModalContent>
                 <form onSubmit={handleSubmit}>
@@ -39,28 +41,28 @@ export function ActivityTypeModal({ isOpen, onClose, onSubmit, mode, activityTyp
                     <ModalBody className="gap-4">
                         <Input
                             autoFocus
+                            isRequired
+                            isDisabled={loading}
                             label="Type Name"
                             placeholder="Enter activity type name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            isRequired
-                            isDisabled={loading}
                         />
                     </ModalBody>
                     <Divider />
                     <ModalFooter>
                         <Button 
-                            variant="light" 
+                            isDisabled={loading} 
+                            variant="light"
                             onPress={onClose}
-                            isDisabled={loading}
                         >
                             Cancel
                         </Button>
                         <Button 
                             color="primary"
-                            type="submit"
                             isDisabled={loading || !name.trim()}
                             isLoading={loading}
+                            type="submit"
                         >
                             {mode === 'add' ? 'Create Type' : 'Save Changes'}
                         </Button>

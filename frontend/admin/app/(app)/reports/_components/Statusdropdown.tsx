@@ -1,7 +1,8 @@
 "use client";
 
-import { Select, SelectItem } from "@heroui/react";
 import type { Problem } from "@/types/report";
+
+import { Select, SelectItem } from "@heroui/react";
 
 interface StatusDropdownProps {
     status: Problem["status"];
@@ -25,6 +26,7 @@ const getStatusColor = (status: Problem["status"]) => {
 
 const getTextColorClass = (status: Problem["status"]) => {
     const found = STATUS_OPTIONS.find((opt) => opt.key === status);
+
     return found ? found.colorClass : "text-gray-500";
 };
 
@@ -34,12 +36,12 @@ export default function StatusDropdown({ status, onChange }: StatusDropdownProps
 
     return (
         <Select
-            selectedKeys={[status]}
-            onChange={(e) => onChange(e.target.value as Problem["status"])}
-            size="sm"
+            className={`w-[140px] font-medium ${textColorClass}`}
             color={selectedColor}
             label="Status"
-            className={`w-[140px] font-medium ${textColorClass}`}
+            selectedKeys={[status]}
+            size="sm"
+            onChange={(e) => onChange(e.target.value as Problem["status"])}
         >
             {STATUS_OPTIONS.map((option) => (
                 <SelectItem key={option.key} textValue={option.label}>

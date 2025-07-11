@@ -1,8 +1,9 @@
 "use client";
 
+import type { School } from "@/types/school";
+
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Textarea, Form } from "@heroui/react";
 import { useState, useEffect, FormEvent } from "react";
-import type { School } from "@/types/school";
 
 interface SchoolModalProps {
   isOpen: boolean;
@@ -62,7 +63,7 @@ export function SchoolModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={() => { onClose(); resetField(); }} size="2xl">
+    <Modal isOpen={isOpen} size="2xl" onClose={() => { onClose(); resetField(); }}>
       <Form
         className="w-full"
         onSubmit={(e) => handleSubmit(e)}
@@ -93,18 +94,18 @@ export function SchoolModal({
                 <Textarea
                   isRequired
                   label="Description (English)"
+                  minRows={4}
                   placeholder="Enter description in English"
                   value={detailEn}
                   onValueChange={setDetailEn}
-                  minRows={4}
                 />
                 <Textarea
                   isRequired
                   label="Description (Thai)"
+                  minRows={4}
                   placeholder="Enter description in Thai"
                   value={detailTh}
                   onValueChange={setDetailTh}
-                  minRows={4}
                 />
               </div>
               <Input

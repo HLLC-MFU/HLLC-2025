@@ -61,11 +61,11 @@ export default function AddSponsorTypeModal({
           </ModalHeader>
           <ModalBody className="w-full">
             <Input
+              ref={typeNameRef}
               isRequired
-              type="text"
               label="Type Name"
               placeholder="Enter Type Name"
-              ref={typeNameRef}
+              type="text"
             />
             <Select
               isRequired

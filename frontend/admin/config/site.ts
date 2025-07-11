@@ -1,3 +1,5 @@
+import type { NavSection } from "@/types/nav";
+
 import {
   HomeIcon,
   SchoolIcon,
@@ -13,10 +15,9 @@ import {
   Flower,
   CircleDollarSign,
   Footprints,
-  MessageCircle,
+  MessagesSquare,
 } from "lucide-react";
 
-import type { NavSection } from "@/types/nav";
 
 export const siteConfig: {
   name: string;
@@ -61,7 +62,7 @@ export const siteConfig: {
     {
       section: "Chat System",
       items: [
-        { label: "Chat", href: "/chat", icon: MessageCircle, permission: "chat:read" },
+        { label: "Chat", href: "/chat", icon: MessagesSquare, permission: "chat:read" },
       ],
     },
     {

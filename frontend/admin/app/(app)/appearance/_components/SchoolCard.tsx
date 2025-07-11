@@ -1,9 +1,11 @@
 'use client';
 
-import { Button, Card, CardFooter, CardHeader, Divider } from '@heroui/react';
 import type { School } from '@/types/school';
+
+import { Button, Card, CardFooter, CardHeader, Divider } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { Eye } from 'lucide-react';
+
 import { Appearance } from '@/types/appearance';
 
 interface SchoolCardProps {
@@ -22,8 +24,10 @@ export function SchoolCard({
   const handleClick = async () => {
     if (school?._id) {
       const data = await fetchAppearancesById(school._id);
+
       if (!data) {
         const formData = new FormData();
+
         formData.append('school', school._id);
         await createAppearance(formData);
       }
@@ -32,12 +36,12 @@ export function SchoolCard({
   };
 
   return (
-    <div onClick={handleClick} className="hover:cursor-pointer">
+    <div className="hover:cursor-pointer" onClick={handleClick}>
       <Card isHoverable className="h-full">
         <CardHeader className="flex gap-3 p-4">
           <Card
-            radius="md"
             className="w-12 h-12 text-large items-center justify-center flex-shrink-0"
+            radius="md"
           >
             {school.acronym}
           </Card>
@@ -53,12 +57,12 @@ export function SchoolCard({
         <Divider />
         <CardFooter className="flex justify-between p-4">
           <Button
-            variant="light"
+            className="flex-1 sm:flex-none"
             color="primary"
             size="sm"
             startContent={<Eye size={16} />}
+            variant="light"
             onPress={handleClick}
-            className="flex-1 sm:flex-none"
           >
             View Details
           </Button>
