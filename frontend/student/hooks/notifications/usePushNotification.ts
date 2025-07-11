@@ -1,7 +1,7 @@
 import { getToken, saveToken } from '@/utils/storage';
 import { getMessaging, AuthorizationStatus } from '@react-native-firebase/messaging';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import useDevice from '@/hooks/useDevice';
 
 const PERMISSION_KEY = 'hasRequestedNotificationPermission';
 const TOKEN_KEY = 'fcmToken';
@@ -15,8 +15,8 @@ export default function usePushNotification() {
   const [permission, setPermission] = useState<PermissionStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const messaging = getMessaging();
+  const { registerDevice } = useDevice()
 
   const getPermission = useCallback(async () => {
     const status = await messaging.hasPermission();
@@ -57,36 +57,25 @@ export default function usePushNotification() {
   const registerToken = useCallback(async () => {
     const newToken = await messaging.getToken();
     const oldToken = await getToken(TOKEN_KEY);
-
+    
     if (newToken && newToken !== oldToken) {
-      console.log('[FCM] Registering token:', newToken);
       await saveToken(TOKEN_KEY, newToken);
-
-			//TODO: use Device hook for update fcm
-      // if (userId) {
-      //   await fetch('https://your.api/device/register', {
-      //     method: 'POST',
-      //     headers: { 'Content-Type': 'application/json' },
-      //     body: JSON.stringify({ token: newToken, userId }),
-      //   });
-      // }
-  //   }
-  // }, [userId]);
+      await registerDevice()
 		}
   }, []);
 
   const listenForegroundNotifications = useCallback(() => {
     return messaging.onMessage(async remoteMessage => {
-      console.log('[FCM] Foreground:', remoteMessage);
-      Alert.alert('Notification', JSON.stringify(remoteMessage?.notification) ?? 'New message');
+      // Alert.alert('Notification', JSON.stringify(remoteMessage?.notification) ?? 'New message');
     });
   }, []);
 
   const initializePushNotification = useCallback(async () => {
-    const granted = await requestPermission();
+    const granted = await requestPermission();    
     if (granted) {
       await registerToken();
     }
+    
     return granted;
   }, [requestPermission, registerToken]);
 

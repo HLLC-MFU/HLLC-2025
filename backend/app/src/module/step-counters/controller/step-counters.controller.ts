@@ -137,7 +137,7 @@ export class StepCountersController {
       date,
       page: pageNum,
       pageSize: pageSizeNum,
-      userId, // ⬅️ Pass to service
+      userId,
     });
   }
 }

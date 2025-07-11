@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsObject,
@@ -21,8 +22,8 @@ export class RedirectButtonDto {
 }
 
 export class TargetDto {
-  @IsEnum(['school', 'major', 'individual'])
-  type: 'school' | 'major' | 'individual';
+  @IsEnum(['school', 'major', 'user'])
+  type: 'school' | 'major' | 'user';
 
   @IsArray()
   @IsNotEmpty({ each: true })
@@ -57,4 +58,12 @@ export class CreateNotificationDto {
 
   @IsNotEmpty()
   scope: 'global' | TargetDto[];
+
+  @IsEnum(['in_app', 'push', 'both'])
+  @IsOptional()
+  mode?: 'in_app' | 'push' | 'both';
+
+  @IsBoolean()
+  @IsOptional()
+  isDryRun?: boolean;
 }

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -28,11 +28,11 @@ import { Device, DeviceSchema } from '../devices/schemas/device.schema';
     ]),
     SseModule,
     KafkaModule,
-    UsersModule,
+    forwardRef(() => UsersModule),
     DevicesModule,
   ],
   controllers: [NotificationsController],
   providers: [NotificationsService, PushNotificationService],
   exports: [NotificationsService, PushNotificationService],
 })
-export class NotificationsModule {}
+export class NotificationsModule { }
