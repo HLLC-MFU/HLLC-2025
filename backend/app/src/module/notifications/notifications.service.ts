@@ -49,27 +49,40 @@ export class NotificationsService {
 
     const receivers = mapScopeToReceivers(createNotificationDto.scope);
 
-    await this.pushNotificationService.sendPushNotification({
-      receivers,
-      title: createNotificationDto.title,
-      body: createNotificationDto.body,
-      image: createNotificationDto.image ?? undefined,
-      data: {
-        redirectUrl: createNotificationDto.redirectButton?.url ?? null,
-      },
-      priority: 'high',
-    });
+    const mode = createNotificationDto.mode ?? 'both';
+    const isDryRun = Boolean(createNotificationDto.isDryRun) ?? false;
+    let pushNotificationResult: PushNotificationResult | null = null;
 
-    this.sseService.notify({
-      type: 'REFETCH_NOTIFICATIONS',
-    });
+    if (mode === 'both' || mode === 'push') {
+      
+      pushNotificationResult = await this.pushNotificationService.sendPushNotification({
+        receivers,
+        title: createNotificationDto.title,
+        body: createNotificationDto.body,
+        image: createNotificationDto.image ?? undefined,
+        data: {
+          redirectUrl: createNotificationDto.redirectButton?.url ?? null,
+        },
+        priority: 'high',
+      }, isDryRun);
+    }
 
-    return (
+    if (!isDryRun && (mode === 'both' || mode === 'in_app')) {
       await this.notificationModel.create({
         ...createNotificationDto,
         scope,
-      })
-    ).toObject();
+      });
+
+      this.sseService.notify({
+        type: 'REFETCH_NOTIFICATIONS',
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Notification processed.',
+      pushNotificationResult,
+    };
   }
 
   async findAll(query: Record<string, string>) {

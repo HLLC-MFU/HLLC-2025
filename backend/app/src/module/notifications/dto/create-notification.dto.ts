@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsObject,
@@ -57,4 +58,12 @@ export class CreateNotificationDto {
 
   @IsNotEmpty()
   scope: 'global' | TargetDto[];
+
+  @IsEnum(['in_app', 'push', 'both'])
+  @IsOptional()
+  mode?: 'in_app' | 'push' | 'both';
+
+  @IsBoolean()
+  @IsOptional()
+  isDryRun?: boolean;
 }

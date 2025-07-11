@@ -18,3 +18,9 @@ export type Notification = {
   };
   scope: 'global' | Target[];
 };
+
+export type PushNotificationResult = {
+  successCount: number;
+  failureCount: number;
+  responses: admin.messaging.SendResponse[];
+};
