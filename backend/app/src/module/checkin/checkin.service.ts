@@ -1,17 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-
 import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { Checkin, CheckinDocument } from './schema/checkin.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { Activities, ActivityDocument } from 'src/module/activities/schemas/activities.schema';
 import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
-import { queryAll } from 'src/pkg/helper/query.util';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { NotificationsService } from '../notifications/notifications.service';
-import { PushNotificationService } from '../notifications/push-notifications.service';
 
 @Injectable()
 export class CheckinService {
@@ -22,7 +19,6 @@ export class CheckinService {
     @InjectModel(Activities.name) private activityModel: Model<ActivityDocument>,
     @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
     private readonly notificationsService: NotificationsService,
-    private readonly pushNotificationService: PushNotificationService,
   ) { }
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
@@ -99,7 +95,6 @@ export class CheckinService {
       throw new BadRequestException('Not found User to Notification');
     }
 
-    // 1️⃣ สร้าง Notification DB + SSE
     await this.notificationsService.create({
       title: {
         en: 'Checked in',
@@ -116,20 +111,11 @@ export class CheckinService {
       icon: 'check-circle',
       scope: [
         {
-          type: 'individual',
+          type: 'user',
           id: [userObjectId.toString()],
         },
       ],
     });
-
-    // 2️⃣ ยิง FCM
-    await this.pushNotificationService.sendPushNotification({
-      title: 'Checked in',
-      body: 'You are now checked in!',
-      receivers: {
-        users: [userObjectId.toString()],
-      },
-    }, false);
 
     return checkIn;
   }
