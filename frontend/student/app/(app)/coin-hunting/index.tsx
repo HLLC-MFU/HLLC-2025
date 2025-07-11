@@ -23,6 +23,9 @@ export default function CoinHuntingScreen() {
     handleGoToStamp,
     closeModal,
     markers,
+    collectedIds,
+    loadingMarkers,
+    errorMarkers,
     collectedCoinImages,
     handleScannerSuccess,
     handleAlert,
@@ -54,7 +57,13 @@ export default function CoinHuntingScreen() {
         centerText="Bloom possible"
       />
       <InteractiveMap>
-        <MapMarkers onMarkerPress={handleMarkerPress} refreshKey={refreshKey} />
+        <MapMarkers
+          markers={markers}
+          collectedIds={collectedIds}
+          loading={loadingMarkers}
+          error={errorMarkers}
+          onMarkerPress={handleMarkerPress}
+        />
       </InteractiveMap>
       <MarkerDetailModal
         visible={modal === 'marker-detail'}
