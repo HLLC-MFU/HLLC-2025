@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "jsEngine": "hermes",
     "owner": "hllc",
@@ -24,11 +24,11 @@
         ],
         "UIViewControllerBasedStatusBarAppearance": "Allow $(PRODUCT_NAME) to send you notifications.",
         "ITSAppUsesNonExemptEncryption": false,
-        "NSHealthShareUsageDescription": "Allow $(PRODUCT_NAME) to read health data.",
-        "NSHealthUpdateUsageDescription": "Allow $(PRODUCT_NAME) to write health data.",
-        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera.",
-        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to access your location for check-in.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to access your location for check-in."
+        "NSHealthShareUsageDescription": "Allow $(PRODUCT_NAME) to read health data to display the user's step count for the MilesDream campaign only. (อนุญาตให้ $(PRODUCT_NAME) อ่านข้อมูลสุขภาพเพื่อแสดงจำนวนก้าวของผู้ใช้สำหรับแคมเปญ MilesDream เท่านั้น)",
+        "NSCameraUsageDescription": "This app uses the camera to scan QR codes for campaign and activity check-ins. (แอปนี้ใช้กล้องเพื่อสแกน QR Code สำหรับเช็คอินกิจกรรมและแคมเปญ)",
+        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to access your location for campaign and activity check-ins. (อนุญาตให้ $(PRODUCT_NAME) เข้าถึงตำแหน่งของคุณเพื่อใช้ในการเช็คอินกิจกรรมและแคมเปญ)",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to access your location for campaign and activity check-ins. (อนุญาตให้ $(PRODUCT_NAME) เข้าถึงตำแหน่งของคุณตลอดเวลาเพื่อใช้ในการเช็คอินกิจกรรมและแคมเปญ)",
+        "NSHealthUpdateUsageDescription": "This app may request to write health data to improve tracking and personalization. (แอปนี้อาจขออนุญาตเขียนข้อมูลสุขภาพเพื่อปรับปรุงการติดตามและการใช้งานที่เหมาะสมกับผู้ใช้)"
       },
       "entitlements": {
         "com.apple.developer.healthkit": true

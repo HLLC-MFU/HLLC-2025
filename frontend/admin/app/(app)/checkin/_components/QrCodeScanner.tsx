@@ -48,15 +48,31 @@ export function QrCodeScanner({
         scannerRef.current = new Html5Qrcode(qrRegionId);
       }
 
+      let devices = [];
       try {
-        const devices = await Html5Qrcode.getCameras();
+        devices = await Html5Qrcode.getCameras();
+      } catch (err: any) {
+        console.error('Get cameras error:', err);
+        addToast({
+          title: 'No camera found',
+          description: err instanceof Error ? err.message : 'Could not access camera. Please check permission.',
+          color: 'warning',
+        });
+        return;
+      }
 
-        if (!isMounted || devices.length === 0) {
-          return;
-        }
+      if (!isMounted || devices.length === 0) {
+        addToast({
+          title: 'No camera found',
+          description: 'No available camera devices were detected.',
+          color: 'warning',
+        });
+        return;
+      }
 
-        const cameraId = devices[0].id;
+      const cameraId = devices[0].id;
 
+      try {
         await scannerRef.current.start(
           cameraId,
           { fps: 10, qrbox: 250 },
@@ -65,7 +81,6 @@ export function QrCodeScanner({
 
             try {
               let studentId = decodedText;
-
               try {
                 const parsed = JSON.parse(decodedText);
                 studentId =
@@ -73,32 +88,35 @@ export function QrCodeScanner({
                   parsed.studentId ||
                   parsed.id ||
                   decodedText;
-              } catch {}
+              } catch { }
 
               if (!/^\d{10}$/.test(studentId)) {
-                throw new Error('รหัสนักศึกษาไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+                throw new Error('Invalid studentId');
               }
 
               scannedSetRef.current.add(studentId);
               await onCheckin(studentId);
             } catch (err: any) {
               console.error('Checkin error:', err);
-              addToast({
-                title: 'เกิดข้อผิดพลาด',
-                description:
-                  err instanceof Error ? err.message : 'ไม่สามารถส่งข้อมูลได้',
-                color: 'danger',
-              });
             }
           },
-          () => {},
+          () => { }
         );
 
         isRunningRef.current = true;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Camera start error:', err);
+        addToast({
+          title: 'Camera start error',
+          description:
+            err instanceof Error
+              ? err.message
+              : 'Could not start camera. Please check your permissions.',
+          color: 'danger',
+        });
       }
     };
+
 
     (async () => {
       await stopScanner();
@@ -116,7 +134,7 @@ export function QrCodeScanner({
   return (
     <div className="w-full max-w-sm mx-auto mb-4">
       {selectedActivityId.length === 0 ? (
-        <p className="text-center p-2">Please select activities</p>
+        <p className="text-center p-2">Please select activities before checkin.</p>
       ) : (
         <div id="qr-reader" className="w-full rounded-xl overflow-hidden" />
       )}

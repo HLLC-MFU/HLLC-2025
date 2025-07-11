@@ -12,15 +12,15 @@ import { DoorClosedLocked } from '@tamagui/lucide-icons';
 import useHealthData from '@/hooks/health/useHealthData';
 import { ProgressSummaryCard } from '@/components/home/ProgressSummaryCard';
 import BackgroundScreen from '@/components/global/BackgroundScreen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
-import useDevice from '@/hooks/useDevice';
+import NotificationModal from '@/components/global/NotificationModal';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
-  const { revokeDevice, getStoredDeviceId } = useDevice();
-
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  
   const handleSignOut = async () => {
     const deviceId = await getStoredDeviceId()
     await revokeDevice(deviceId)
@@ -93,7 +93,7 @@ export default function HomeScreen() {
             <Users color="white" size={20} />
           )}
         </GlassButton> */}
-        <GlassButton iconOnly>
+        <GlassButton iconOnly onPress={() => setNotificationModalVisible(true)}>
           {assetsImage.notification ? (
             <AssetImage
               uri={`${baseImageUrl}/uploads/${assetsImage.notification}`}
@@ -122,6 +122,10 @@ export default function HomeScreen() {
       <BackgroundScreen
         background={assetsImage.background ?? null}
         children={content}
+      />
+      <NotificationModal 
+        visible={notificationModalVisible}
+        onClose={() => setNotificationModalVisible(false)}
       />
     </FadeView>
   );

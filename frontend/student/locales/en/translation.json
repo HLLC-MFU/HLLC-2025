@@ -32,7 +32,7 @@
         "registerButton": "Register",
         "loginPrompt": "Already have an account?",
         "login": "Login",
-        "provinceNote": "* This province is used only for identity verification in case you forget your password."
+        "provinceNote": "Note: You can select any province. This is used only for identity verification if you request password recovery. It does not need to reflect your current location."
     },
     "resetPassword": {
         "title": "Reset Password",
@@ -69,10 +69,10 @@
         "notifications": "Notifications",
         "privacy": "Privacy",
         "about": "About",
-        "delete": "Deactivate account",
+        "delete": "Delete account",
         "back": "Back to profile",
-        "delete_confirm_title": "Confirm account deletion",
-        "delete_confirm_message": "Are you sure you want to deactivate your account? This action cannot be undone."
+        "delete_confirm_title": "Confirm Account Delete",
+        "delete_confirm_message": "Are you sure you want to delete your account? This action cannot be undone."
     },
     "nav": {
         "welcome": "Welcome Back",

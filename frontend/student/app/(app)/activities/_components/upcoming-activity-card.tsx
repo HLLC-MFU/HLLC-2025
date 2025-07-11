@@ -81,7 +81,7 @@ export default function UpcomingActivityCard({ activity, onPress }: UpcomingActi
 
         <Card.Background>
           <Image
-            source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.banner}` }}
+            source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}` }}
             contentFit="cover"
             style={{
               position: "absolute",

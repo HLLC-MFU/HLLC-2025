@@ -55,8 +55,8 @@ export type UserActivity = {
     name: string
   }
   photo: {
-    banner: string
-    thumbnail: string
+    logoPhoto: string
+    bannerPhoto: string
   }
   location: {
     th: string
@@ -72,4 +72,5 @@ export type UserActivity = {
   updatedAt: string
   checkinStatus: number
   checkinMessage: string
+  hasAnsweredAssessment: boolean
 }

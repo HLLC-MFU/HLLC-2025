@@ -41,7 +41,13 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
           </View>
           <View style={styles.metaItem}>
             <Clock size={12} color="#ffffff70" />
-            <Text style={styles.metaText}>1h ago</Text>
+            <Text style={styles.metaText}>
+              {room.type === 'readonly'
+                ? (language === 'th' ? 'อ่านอย่างเดียว' : 'Read-only')
+                : room.type === 'normal'
+                  ? (language === 'th' ? 'ปกติ' : 'Normal')
+                  : '-' }
+            </Text>
           </View>
         </View>
       </View>

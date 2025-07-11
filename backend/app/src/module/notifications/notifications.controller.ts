@@ -82,7 +82,8 @@ export class NotificationsController {
   ) {
     const isDryRun = dryRun === 'true';
     return this.pushNotificationService.sendPushNotification(
-      pushNotificationDto, isDryRun
+      pushNotificationDto,
+      isDryRun,
     );
   }
 }
