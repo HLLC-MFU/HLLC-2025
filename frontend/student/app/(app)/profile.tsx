@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import { View, Text, StyleSheet, Animated, Modal, TextInput, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 // import { GLView, ExpoWebGLRenderingContext } from "expo-gl";
 import ExpoTHREE, { Renderer } from "expo-three";
@@ -22,8 +22,9 @@ import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system';
 import { GlassButton } from "@/components/ui/GlassButton";
 import useProfile from "@/hooks/useProfile";
-import { GraduationCap, University, Eye, EyeOff, Settings } from "lucide-react-native";
+import { GraduationCap, University, Eye, EyeOff, Settings, TriangleAlert } from "lucide-react-native";
 import { Button, Paragraph, Spinner, YStack } from "tamagui";
+import { ReportModal } from "@/components/report/ReportModal";
 
 if (__DEV__) {
   const originalLog = console.log;
@@ -48,6 +49,8 @@ export default function ProfileScreen() {
   const [isViewing, setIsViewing] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const [loading, setLoading] = useState(true)
+  const [isReportModalVisible, setReportModalVisible] = useState(false);
+  const [reportText, setReportText] = useState("");
 
   async function onContextCreate(gl: ExpoWebGLRenderingContext) {
     const scene = new Scene();
@@ -174,6 +177,9 @@ export default function ProfileScreen() {
           <GlassButton iconOnly onPress={() => router.replace('/(app)/settings')}>
             <Settings color='white' />
           </GlassButton>
+          <GlassButton iconOnly onPress={() => setReportModalVisible(true)}>
+            <TriangleAlert color='white' />
+          </GlassButton>
         </View>
       </View>
 
@@ -219,7 +225,11 @@ export default function ProfileScreen() {
       </BlurView>
       {/* </Animated.View> */}
 
-
+      {/* Modal สำหรับรายงานปัญหา (ใช้ ReportModal component) */}
+      <ReportModal
+        visible={isReportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -282,5 +292,51 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.2,
     shadowRadius: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '85%',
+    backgroundColor: '#222',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  modalTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  textArea: {
+    backgroundColor: '#333',
+    color: 'white',
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    fontSize: 16,
+  },
+  cancelButton: {
+    color: '#aaa',
+    fontSize: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  sendButton: {
+    color: 'dodgerblue',
+    fontSize: 16,
+    fontWeight: 'bold',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
 });
