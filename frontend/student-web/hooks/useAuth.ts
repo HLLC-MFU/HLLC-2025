@@ -23,7 +23,16 @@ interface AuthStore {
     password: string;
     confirmPassword: string;
     metadata: { secret: string };
-  }) => Promise<boolean>;
+  }) => Promise<true | string>;
+
+  register: (data: {
+    username: string;
+    password: string;
+    confirmPassword: string;
+    metadata: {
+      secret: string;
+    };
+  }) => Promise<true | string>;
 }
 
 const useAuth = create<AuthStore>()(
@@ -146,12 +155,44 @@ const useAuth = create<AuthStore>()(
         }
       },
 
+      register: async (data) => {
+        try {
+          set({ loading: true, error: null });
+
+          const res = await apiRequest<{ message: string; user?: any }>(
+            '/auth/register',
+            'POST',
+            data
+          );
+
+          if (
+            (res.statusCode === 200 || res.statusCode === 201) &&
+            res.data?.message === 'Registration successful'
+          ) {
+            addToast({
+              title: 'Registration complete',
+              color: 'success',
+              description: 'You have successfully registered.',
+              variant: 'solid',
+            });
+
+            return true;
+          }
+
+          return res.message || 'Register failed';
+        } catch (err) {
+          return (err as Error).message || 'Network error';
+        } finally {
+          set({ loading: false });
+        }
+      },
+
       resetPassword: async (resetData: {
         username: string;
         password: string;
         confirmPassword: string;
         metadata: { secret: string };
-      }) => {
+      }): Promise<true | string> => {
         try {
           set({ loading: true, error: null });
 
@@ -161,20 +202,20 @@ const useAuth = create<AuthStore>()(
             resetData
           );
 
-          if ((res.statusCode === 200 || res.statusCode === 201) && res.data?.message === 'Password reset successfully') {
+          if (
+            (res.statusCode === 200 || res.statusCode === 201) &&
+            res.data?.message === 'Password reset successfully'
+          ) {
             return true;
           }
 
-          set({ error: res.message || 'Reset password failed' });
-          return false;
+          return res.message || 'Reset password failed';
         } catch (err) {
-          set({ error: (err as Error).message });
-          return false;
+          return (err as Error).message || 'Network error';
         } finally {
           set({ loading: false });
         }
       },
-
 
       isLoggedIn: () => {
         const accessToken = getToken('accessToken');

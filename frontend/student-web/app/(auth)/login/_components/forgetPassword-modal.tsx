@@ -110,14 +110,17 @@ export default function ForgetPasswordModal({
             metadata: { secret: selectedProvince },
         });
 
-        if (success) {
+        if (success === true) {
             openDialog("Success", "Your password has been reset successfully", () => {
                 clearForm();
                 onOpenChange();
             });
+        } else if (typeof success === "string" && success.includes("same as previous")) {
+            openDialog("Password Reuse", "You entered the same password. Please choose a new password.");
         } else {
             openDialog("Error", "Failed to reset password. Please try again.");
         }
+
     };
 
     useEffect(() => {
@@ -170,7 +173,7 @@ export default function ForgetPasswordModal({
                     <Input
                         label="Student ID"
                         labelPlacement="inside"
-                        placeholder="e.g. 6731503119"
+                        placeholder="e.g. 68xxxxxxxx"
                         size="lg"
                         startContent={<User2 className="text-default-400" />}
                         value={studentId}
