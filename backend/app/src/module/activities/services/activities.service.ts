@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, isValidObjectId, Model, now, Types } from 'mongoose';
+import { FilterQuery, isValidObjectId, Model, Types } from 'mongoose';
 
 import { queryAll } from 'src/pkg/helper/query.util';
 import { UsersService } from '../../users/users.service';
@@ -12,28 +12,37 @@ import { UserDocument } from '../../users/schemas/user.schema';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
 import { UpdateActivityDto } from '../dto/activities/update-activities.dto';
 import { Activities, ActivityDocument } from '../schemas/activities.schema';
-import {
-  isUserInScope,
-  parseScope,
-  parseStringArray,
-} from '../utils/scope.util';
+import { parseScope, parseStringArray } from '../utils/scope.util';
 import { Checkin } from 'src/module/checkin/schema/checkin.schema';
 import { RoleDocument } from 'src/module/role/schemas/role.schema';
 import { AssessmentsService } from 'src/module/assessments/service/assessments.service';
-import { Assessment, AssessmentDocument } from 'src/module/assessments/schema/assessment.schema';
+import {
+  Assessment,
+  AssessmentDocument,
+} from 'src/module/assessments/schema/assessment.schema';
+import { ActivitiesType } from '../schemas/activitiesType.schema';
+import {
+  AssessmentAnswer,
+  AssessmentAnswerDocument,
+} from 'src/module/assessments/schema/assessment-answer.schema';
 
 @Injectable()
 export class ActivitiesService {
   constructor(
     @InjectModel(Activities.name)
     private activitiesModel: Model<ActivityDocument>,
+    @InjectModel('ActivitiesType')
+    private activitiesTypeModel: Model<ActivitiesType>,
     private usersService: UsersService,
     @InjectModel(Checkin.name)
     private readonly checkinsModel: Model<Checkin>,
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
-    @InjectModel(Assessment.name) private assessmentAnswersModel: Model<AssessmentDocument>,
+    @InjectModel(Assessment.name)
+    private readonly assessmentModel: Model<AssessmentDocument>,
+    @InjectModel(AssessmentAnswer.name)
+    private assessmentAnswersModel: Model<AssessmentAnswerDocument>,
     private readonly assessmentsService: AssessmentsService,
-  ) { }
+  ) {}
 
   async create(createActivitiesDto: CreateActivitiesDto) {
     const metadata = createActivitiesDto.metadata || {};
@@ -83,8 +92,25 @@ export class ActivitiesService {
   }
 
   async findAll() {
-    const activity = this.activitiesModel.find().populate('type');
-    return activity;
+    try {
+      const [activities, types] = await Promise.all([
+        this.activitiesModel.find().lean(),
+        this.activitiesTypeModel.find().lean(),
+      ]);
+
+      const typeMap = new Map(
+        types.map((type) => [type._id.toString(), type.name]),
+      );
+
+      const mappedActivities = activities.map((activity) => ({
+        ...activity,
+        type: typeMap.get(activity.type?.toString()) || null,
+      }));
+
+      return mappedActivities;
+    } catch (error) {
+      throw new Error(`Failed to fetch activities , ${error}`);
+    }
   }
 
   async findCanCheckinActivities(userId: Types.ObjectId | string) {
@@ -96,16 +122,16 @@ export class ActivitiesService {
       .findById(userId)
       .populate('role')
       .exec()) as unknown as Omit<UserDocument, 'role'> & {
-        role: Omit<RoleDocument, 'metadata'> & {
-          metadata: {
-            canCheckin: {
-              user: string[];
-              major: string[];
-              school: string[];
-            };
+      role: Omit<RoleDocument, 'metadata'> & {
+        metadata: {
+          canCheckin: {
+            user: string[];
+            major: string[];
+            school: string[];
           };
         };
       };
+    };
     if (!userDoc) {
       throw new NotFoundException('User not found');
     }
@@ -167,126 +193,91 @@ export class ActivitiesService {
     return this.activitiesModel.findById(id).lean();
   }
 
-  async findActivitiesByUserId(
-    userId: string,
-    query: Record<string, string> = {},
-  ) {
+  async findActivitiesByUserId(userId: string) {
     if (!Types.ObjectId.isValid(userId)) {
       throw new NotFoundException('Invalid user ID');
     }
 
-    const userResult = await this.usersService.findOneByQuery({ _id: userId });
-    const user = userResult?.data?.[0] as UserDocument;
-
+    // 1. Get user
+    const user = await this.userModel.findById(userId).lean();
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     const now = new Date();
 
-    const userCheckins = (await this.checkinsModel
+    // 2. Get check-ins for this user
+    const userCheckins = await this.checkinsModel
       .find({ user: user._id })
-      .lean()
-      .exec()) as Array<{ activity?: Types.ObjectId | string }>;
-
+      .lean();
     const checkinMap = new Set(
-      userCheckins
-        .map((c) => c.activity)
-        .filter((activity): activity is Types.ObjectId | string => !!activity)
-        .map((activity) => activity.toString()),
+      userCheckins.map((c) => c.activity?.toString()).filter(Boolean),
     );
 
-    const result = await queryAll<Activities>({
-      model: this.activitiesModel,
-      query: {
-        ...query,
-        excluded:
-          'user.password,user.refreshToken,user.metadata.secret,activities.metadata.scope',
-      },
-      filterSchema: {
-        'metadata.isVisible': 'boolean',
-        'metadata.isOpen': 'boolean',
-      },
-      populateFields: () => Promise.resolve([{ path: 'type' }]),
-    });
+    // 3. Get all visible & open activities
+    const activities = await this.activitiesModel
+      .find({
+        'metadata.isVisible': true,
+        'metadata.isOpen': true,
+      })
+      .populate('type')
+      .lean();
 
+    // 4. Map with check-in status and assessment
     const mapped = await Promise.all(
-      result.data
-        .filter((activity) => isUserInScope(user, activity as ActivityDocument))
-        .map(async (activity) => {
-          const meta = activity.metadata;
-          const activityDoc = activity as ActivityDocument;
-          const activityId =
-            activityDoc._id instanceof Types.ObjectId
-              ? activityDoc._id.toString()
-              : String(activityDoc._id);
-          const hasCheckedIn = checkinMap.has(activityId);
+      activities.map(async (activity) => {
+        const meta = activity.metadata;
+        const activityId = activity._id.toString();
+        const checkinStart = new Date(meta.checkinStartAt);
+        const end = new Date(meta.endAt);
+        const hasCheckedIn = checkinMap.has(activityId);
 
-          let status = 0;
-          let message = 'Not yet open for check-in';
+        let checkinStatus = 0;
+        let checkinMessage = 'Not yet open for check-in';
 
-          const checkinStart = new Date(meta.checkinStartAt);
-          const end = new Date(meta.endAt);
+        if (!meta.isOpen || now < checkinStart) {
+          checkinStatus = 0;
+          checkinMessage = 'Not yet open for check-in';
+        } else if (now > end && !hasCheckedIn) {
+          checkinStatus = -1;
+          checkinMessage = 'You missed the check-in time';
+        } else if (now > end && hasCheckedIn) {
+          checkinStatus = 3;
+          checkinMessage = 'Activity has ended';
+        } else if (hasCheckedIn) {
+          checkinStatus = 2;
+          checkinMessage = 'You have already checked in';
+        } else if (now >= checkinStart && now <= end) {
+          checkinStatus = 1;
+          checkinMessage = 'Check-in available now';
+        }
 
-          if (!meta.isOpen || now < checkinStart) {
-            status = 0;
-            message = 'Not yet open for check-in';
-          } else if (now > end && !hasCheckedIn) {
-            status = -1;
-            message = 'You missed the check-in time';
-          } else if (now > end && hasCheckedIn) {
-            status = 3;
-            message = 'Activity has ended';
-          } else if (hasCheckedIn) {
-            status = 2;
-            message = 'You have already checked in';
-          } else if (now >= checkinStart && now <= end) {
-            status = 1;
-            message = 'Check-in available now';
-          }
+        // 5. Check assessment
+        const assessments = await this.assessmentModel
+          .find({ activity: activity._id })
+          .lean();
 
-          const assessmentsResult =
-            await this.assessmentsService.findAllByActivity(activityId);
-          const assessments = (assessmentsResult.data ||
-            []) as AssessmentDocument[];
+        let hasAnsweredAssessment = false;
 
-          let hasAnswered = false;
+        if (assessments.length > 0) {
+          const answer = await this.assessmentAnswersModel.findOne({
+            user: user._id,
+            'answers.assessment': { $in: assessments.map((a) => a._id) },
+          });
 
-          if (assessments.length > 0) {
-            for (const assessment of assessments) {
-              const answered = await this.assessmentAnswersModel.findOne({
-                user: user._id,
-                'answers.assessment': assessment._id,
-              });
-              if (answered) {
-                hasAnswered = true;
-                break;
-              }
-            }
-          }
+          hasAnsweredAssessment = !!answer;
+        }
 
-          const activityObj =
-            typeof (activity as ActivityDocument).toObject === 'function'
-              ? (activity as ActivityDocument).toObject()
-              : activity;
-          return {
-            ...activityObj,
-            checkinStatus: status,
-            checkinMessage: message,
-            hasAnsweredAssessment: hasAnswered,
-          };
-        }),
+        return {
+          ...activity,
+          checkinStatus,
+          checkinMessage,
+          hasAnsweredAssessment,
+        };
+      }),
     );
 
-    return {
-      ...result,
-      data: mapped,
-      meta: {
-        ...result.meta,
-        total: mapped.length,
-        totalPages: Math.ceil(mapped.length / Number(query.limit || 20)),
-      },
-    };
+    return mapped;
   }
 
   async update(id: string, updateActivityDto: UpdateActivityDto) {
@@ -341,7 +332,8 @@ export class ActivitiesService {
 
   // หากิจกรรมที่มี Assessment
   async findActivitiesWithAssessment(activityId: string) {
-    const activities = await this.assessmentsService.findAllByActivity(activityId);
+    const activities =
+      await this.assessmentsService.findAllByActivity(activityId);
     return activities;
   }
 }

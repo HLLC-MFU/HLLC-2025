@@ -14,7 +14,7 @@ import { UserRequest } from 'src/pkg/types/users';
 
 @Controller('evoucher-codes')
 export class EvoucherCodesController {
-  constructor(private readonly evoucherCodesService: EvoucherCodesService) { }
+  constructor(private readonly evoucherCodesService: EvoucherCodesService) {}
   @Get()
   findAll() {
     return this.evoucherCodesService.findAll();
@@ -46,8 +46,7 @@ export class EvoucherCodesController {
   }
 
   @Get('my-code')
-  getMyEvoucherCodes(
-    @Req() req: UserRequest) {
+  getMyEvoucherCodes(@Req() req: UserRequest) {
     return this.evoucherCodesService.getUserEvoucherCodes(req.user._id);
   }
 }
