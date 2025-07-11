@@ -10,6 +10,8 @@ import { Activities, ActivityDocument } from 'src/module/activities/schemas/acti
 import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
 import { queryAll } from 'src/pkg/helper/query.util';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PushNotificationService } from '../notifications/push-notifications.service';
 
 @Injectable()
 export class CheckinService {
@@ -19,6 +21,8 @@ export class CheckinService {
     @InjectModel(Role.name) private roleModel: Model<RoleDocument>,
     @InjectModel(Activities.name) private activityModel: Model<ActivityDocument>,
     @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
+    private readonly notificationsService: NotificationsService,
+    private readonly pushNotificationService: PushNotificationService,
   ) { }
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
@@ -90,7 +94,44 @@ export class CheckinService {
       ...(staffObjectId && { staff: staffObjectId }),
     }));
 
-    return this.checkinModel.insertMany(docs) as unknown as Checkin[];
+    const checkIn = await this.checkinModel.insertMany(docs) as unknown as Checkin[];
+    if (!checkIn) {
+      throw new BadRequestException('Not found User to Notification');
+    }
+
+    // 1️⃣ สร้าง Notification DB + SSE
+    await this.notificationsService.create({
+      title: {
+        en: 'Checked in',
+        th: 'เช็คอิน',
+      },
+      subtitle: {
+        en: '',
+        th: '',
+      },
+      body: {
+        en: `You have been checked in successfully.`,
+        th: `เช็คอินสำเร็จแล้ว`,
+      },
+      icon: 'check-circle',
+      scope: [
+        {
+          type: 'individual',
+          id: [userObjectId.toString()],
+        },
+      ],
+    });
+
+    // 2️⃣ ยิง FCM
+    await this.pushNotificationService.sendPushNotification({
+      title: 'Checked in',
+      body: 'You are now checked in!',
+      receivers: {
+        users: [userObjectId.toString()],
+      },
+    }, false);
+
+    return checkIn;
   }
 
   async findCheckedInUser(activityId: string) {

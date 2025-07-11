@@ -147,27 +147,35 @@ export default function ActivitiesDetailPage() {
     }
   }
 
-  const steps: Step[] = activity
-    ? [
-        { title: 'Start', value: formatDateTime(activity.metadata.startAt) },
-        {
-          title: 'Check-in Status',
-          value:
-            checkinStatusNumber === 1
-              ? 'Check-in available now'
-              : checkinStatusNumber === 2
-                ? 'You have already checked in'
-                : checkinStatusNumber === 3
-                  ? 'Check-in ended'
-                  : 'Unknown status',
-        },
-        { title: 'End', value: formatDateTime(activity.metadata.endAt) },
-        {
-          title: 'Assessment',
-          value: activity.hasAnsweredAssessment ? 'Completed' : 'Not Completed',
-        },
-      ]
-    : [];
+    const steps: Step[] = activity
+        ? [
+            { title: "Start", value: formatDateTime(activity.metadata.startAt) },
+            {
+                title: "Check-in Status",
+                value: (() => {
+                    switch (checkinStatusNumber) {
+                        case 0:
+                            return "Not yet open for check-in";
+                        case -1:
+                            return "You missed the check-in time";
+                        case 1:
+                            return "Check-in available now";
+                        case 2:
+                            return "You have already checked in";
+                        case 3:
+                            return "Activity ended (checked in)";
+                        default:
+                            return "Unknown status";
+                    }
+                })(),
+            },
+            { title: "End", value: formatDateTime(activity.metadata.endAt) },
+            {
+                title: "Assessment",
+                value: activity.hasAnsweredAssessment ? "Completed" : "Not Completed",
+            },
+        ]
+        : [];
 
   useEffect(() => {
     if (!activity) return;

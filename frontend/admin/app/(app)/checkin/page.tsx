@@ -1,65 +1,64 @@
 'use client';
 import { useState } from 'react';
-import { UserRound } from 'lucide-react';
 import { QrCodeScanner } from './_components/QrCodeScanner';
-import Selectdropdown from './_components/Select';
+import Selectdropdown from './_components/SelectDropdown';
 import { PageHeader } from '@/components/ui/page-header';
 import { useActivities } from '@/hooks/useActivities';
 import Input from './_components/Input';
-import { addToast, Button } from '@heroui/react';
 import { useCheckin } from '@/hooks/useCheckin';
+import { Button } from '@heroui/button';
+import { addToast } from '@heroui/react';
+import { UserRound } from 'lucide-react';
 
 export default function CheckinPage() {
   const [selectedActivityId, setSelectedActivityId] = useState<string[]>([]);
-  const { activities } = useActivities();
+  const { activities } = useActivities({ autoFetch: true, useCanCheckin: true });
   const [activeTab, setActiveTab] = useState<'scan' | 'typing'>('scan');
   const [studentId, setStudentId] = useState('');
-  const { createcheckin } = useCheckin();
+  const { createCheckin } = useCheckin();
 
-  const handleSubmit = async () => {
-    if (!/^\d{10}$/.test(studentId)) {
-      return addToast({
-        title: 'รหัสไม่ถูกต้อง',
-        description: 'กรุณากรอกรหัสนักศึกษาให้ถูกต้อง (10 หลัก)',
-        color: 'danger',
-      });
-    }
+const handleSubmit = async (id?: string) => {
+  const sid = id ?? studentId;
 
-    if (selectedActivityId.length === 0) {
-      return addToast({
-        title: 'ยังไม่เลือกกิจกรรม',
-        description: 'กรุณาเลือกกิจกรรมก่อนเช็คอิน',
-        color: 'warning',
-      });
-    }
+  if (!/^\d{10}$/.test(sid)) {
+    return addToast({
+      title: 'Invalid studentId',
+      description: 'Please enter your 10-digit student ID number.',
+      color: 'danger',
+    });
+  }
 
-    try {
-      await createcheckin({
-        user: studentId,
-        activities: selectedActivityId,
-      });
-      
-      setStudentId('');
-    } catch (err: any) {
-      console.error('Checkin error:', err);
-      addToast({
-        title: 'เกิดข้อผิดพลาด',
-        description: err instanceof Error ? err.message : 'ไม่สามารถเช็คอินได้',
-        color: 'danger',
-      });
-    }
-  };
+  if (selectedActivityId.length === 0) {
+    return addToast({
+      title: 'No select Activities',
+      description: 'Please select activities before checkin.',
+      color: 'warning',
+    });
+  }
+
+  const result = await createCheckin({
+    user: sid,
+    activities: selectedActivityId,
+  });
+
+  if (result) {
+    setStudentId('');
+  }
+};
+
+
   return (
     <>
       <PageHeader description="This is Management Page" icon={<UserRound />} />
       <div className="flex flex-col gap-4">
         <div className="flex flex-col justify-center items-center gap-5">
+          {/* fetch จาก canCheckin */}
           <Selectdropdown
             selectedActivityId={selectedActivityId}
             setSelectActivityId={setSelectedActivityId}
             activities={activities}
           />
-          <div className="flex justify-between gap-5">
+          <div className="flex justify-between gap-5 w-full">
             <Button
               variant={activeTab === 'scan' ? 'solid' : 'flat'}
               radius="md"
@@ -81,32 +80,11 @@ export default function CheckinPage() {
         {activeTab === 'scan' ? (
           <QrCodeScanner
             selectedActivityId={selectedActivityId}
-            onCheckin={async (studentId: string) => {
-              try {
-                await createcheckin({
-                  user: studentId,
-                  activities: selectedActivityId,
-                });
-
-                addToast({
-                  title: 'สแกนสำเร็จ',
-                  description: `รหัสนักศึกษา ${studentId} ได้ทำการ check-in`,
-                  color: 'success',
-                });
-              } catch (err: any) {
-                console.error('Checkin error:', err);
-                addToast({
-                  title: 'เกิดข้อผิดพลาด',
-                  description:
-                    err instanceof Error ? err.message : 'ไม่สามารถเช็คอินได้',
-                  color: 'danger',
-                });
-              }
-            }}
+            onCheckin={handleSubmit}
           />
         ) : (
           <Input
-            onSubmit={handleSubmit}
+            onSubmit={() => handleSubmit()}
             studentId={studentId}
             setStudentId={setStudentId}
           />

@@ -65,7 +65,9 @@ export default function useDevice() {
 	const revokeDevice = async (deviceId: String) => {
 		try {
 			setLoading(true);
-			const res = await apiRequest(`/devices/revoke/${deviceId}`, 'DELETE');
+			const res = await apiRequest(`/devices/revoke`, 'DELETE', {
+				deviceId,
+			});
 
 			if (res.statusCode !== 204) {
 				throw new Error(res.message || 'Failed to revoke device.');
@@ -83,6 +85,7 @@ export default function useDevice() {
 		error,
 		registerDevice,
 		revokeDevice,
-		getDeviceInfo
+		getDeviceInfo,
+		getStoredDeviceId
 	};
 };

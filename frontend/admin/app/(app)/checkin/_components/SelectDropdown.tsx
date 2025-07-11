@@ -1,7 +1,7 @@
 import { Activities } from '@/types/activities';
 import { Select, SelectItem } from '@heroui/react';
 
-type SelectProps = {
+type SelectdropdownProps = {
   selectedActivityId: string[];
   setSelectActivityId: (id: string[]) => void;
   activities: Activities[];
@@ -11,7 +11,7 @@ export default function Selectdropdown({
   selectedActivityId,
   setSelectActivityId,
   activities,
-}: SelectProps) {
+}: SelectdropdownProps) {
   return (
     <Select
       className={`w-full text-sm sm:overflow-hidden text-center`}

@@ -17,7 +17,6 @@ import { FastifyRequest } from 'fastify';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { UserRequest } from 'src/pkg/types/users';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { Activities } from '../schemas/activities.schema';
 import { PaginatedResponse } from 'src/pkg/interceptors/response.interceptor';
 import { Types } from 'mongoose';
