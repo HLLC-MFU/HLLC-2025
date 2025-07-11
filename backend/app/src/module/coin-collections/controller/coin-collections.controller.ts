@@ -18,7 +18,7 @@ import { UserRequest } from 'src/pkg/types/users';
 export class CoinCollectionsController {
   constructor(
     private readonly coinCollectionsService: CoinCollectionsService,
-  ) { }
+  ) {}
 
   @Post('collect')
   async collectCoin(@Body() createCoinCollectionDto: CreateCoinCollectionDto) {
@@ -46,10 +46,11 @@ export class CoinCollectionsController {
   }
 
   @Get('my-rank')
-  async getUserRank(@Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
+  async getUserRank(
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
+  ) {
     return this.coinCollectionsService.getUserRank(req.user._id.toString());
   }
-
   @Get('sponsor-reward')
   getSponsorRewardUsers(@Query('landmarkId') landmarkId: string) {
     return this.coinCollectionsService.getSponsorRewardUsers(landmarkId);
@@ -57,6 +58,6 @@ export class CoinCollectionsController {
 
   @Get('my-coin')
   getMyCoin(@Req() req: UserRequest) {
-    return this.coinCollectionsService.myCoin(req.user._id)
+    return this.coinCollectionsService.myCoin(req.user._id);
   }
 }

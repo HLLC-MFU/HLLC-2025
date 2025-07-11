@@ -3,9 +3,10 @@
 import { useDisclosure, Button, Form, Input } from '@heroui/react';
 import { Eye, EyeClosed, LockIcon, UserIcon } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import RegisterModal from './_components/register-modal';
-import { useRouter } from "next/navigation";
+
 import useAuth from '@/hooks/useAuth';
 
 export default function LoginPage() {
@@ -24,11 +25,11 @@ export default function LoginPage() {
 
     try {
       await signIn(username, password);
-      router.push("/");
+      router.push('/');
     } catch (error) {
       console.log('Login error', error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   };
 
@@ -86,9 +87,9 @@ export default function LoginPage() {
           <Button
             className="w-full flex-1"
             color="primary"
+            isLoading={isLoading}
             size="lg"
             type="submit"
-            isLoading={isLoading}
           >
             Sign In
           </Button>

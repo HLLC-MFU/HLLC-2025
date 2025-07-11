@@ -1,4 +1,4 @@
 export type Lang = {
-    th: string;
-    en: string;
+  th: string;
+  en: string;
 };
