@@ -4,6 +4,9 @@
   "private": true,
   "description": "A CLI tool for HLLC 2025",
   "type": "module",
+  "scripts": {
+    "build": "./build.sh"
+  },
   "bin": {
     "hllc": "./scripts/hllc.js"
   },

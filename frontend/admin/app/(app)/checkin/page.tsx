@@ -3,12 +3,12 @@ import { useState } from 'react';
 import { QrCodeScanner } from './_components/QrCodeScanner';
 import Selectdropdown from './_components/SelectDropdown';
 import { PageHeader } from '@/components/ui/page-header';
-import { UserRound } from 'lucide-react';
 import { useActivities } from '@/hooks/useActivities';
 import Input from './_components/Input';
 import { useCheckin } from '@/hooks/useCheckin';
 import { Button } from '@heroui/button';
 import { addToast } from '@heroui/react';
+import { UserRound } from 'lucide-react';
 
 export default function CheckinPage() {
   const [selectedActivityId, setSelectedActivityId] = useState<string[]>([]);

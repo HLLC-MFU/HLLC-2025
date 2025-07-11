@@ -1,20 +1,19 @@
-import { Button, Input, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, ButtonGroup } from "@heroui/react";
-import { SearchIcon, AArrowUpIcon, AArrowDownIcon } from "lucide-react";
-import { Key } from "react";
+import { Input } from '@heroui/react';
+import { SearchIcon } from 'lucide-react';
 
 const sortOptions = [
-  { name: "name", label: "Name" },
-  { name: "acronym", label: "Acronym" },
+  { name: 'name', label: 'Name' },
+  { name: 'acronym', label: 'Acronym' },
 ];
 
 type ActivitiesFiltersProps = {
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   sortBy: string;
-  sortDirection: "asc" | "desc";
+  sortDirection: 'asc' | 'desc';
   onSortByChange: (key: string) => void;
   onSortDirectionToggle: () => void;
-}
+};
 
 export function ActivitiesFilters({
   searchQuery,
@@ -29,11 +28,11 @@ export function ActivitiesFilters({
       <div className="flex flex-col sm:flex-row gap-4">
         <Input
           isClearable
-          value={searchQuery}
-          onValueChange={onSearchQueryChange}
           className="w-full"
           placeholder="Search activities..."
           startContent={<SearchIcon className="text-default-400" />}
+          value={searchQuery}
+          onValueChange={onSearchQueryChange}
         />
         {/* <div className="flex gap-2 sm:gap-3">
           <ButtonGroup className="flex-1 sm:flex-none">

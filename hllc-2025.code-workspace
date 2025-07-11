@@ -17,6 +17,10 @@
             "path": "frontend/student"
         },
         {
+            "name": "student-web",
+            "path": "frontend/student-web"
+        },
+        {
             "name": "admin",
             "path": "frontend/admin"
         },

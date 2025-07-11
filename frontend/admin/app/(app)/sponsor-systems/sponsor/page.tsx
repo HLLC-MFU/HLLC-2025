@@ -3,14 +3,16 @@
 import { useMemo, useState } from 'react';
 import { Accordion, AccordionItem, Button, Skeleton } from '@heroui/react';
 import { ArrowLeft, BadgeDollarSign, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
 import SponsorTable from './_components/SponsorTable';
+import AddSponsorTypeModal from './_components/AddSponsorTypeModal';
+
 import { useSponsors } from '@/hooks/useSponsors';
 import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
 import { Sponsors } from '@/types/sponsors';
 import { useSponsorsType } from '@/hooks/useSponsorsType';
 import { PageHeader } from '@/components/ui/page-header';
-import AddSponsorTypeModal from './_components/AddSponsorTypeModal';
-import { useRouter } from 'next/navigation';
 
 export default function SponsorPage() {
   const router = useRouter();
@@ -129,11 +131,11 @@ export default function SponsorPage() {
         />
         <div className="flex items-center gap-4 w-full mx-auto mb-4">
           <Button
-            variant="flat"
+            className="hover:bg-gray-100 transition-colors mb-2"
             size="lg"
             startContent={<ArrowLeft className="w-4 h-4" />}
+            variant="flat"
             onPress={() => router.back()}
-            className="hover:bg-gray-100 transition-colors mb-2"
           >
             Back
           </Button>
@@ -163,7 +165,13 @@ export default function SponsorPage() {
                     <AccordionItem
                       key={sponsors.priority}
                       aria-label={type}
-                      title={`${type}`}
+                      startContent={
+                        <div className="p-3 w-12 h-12 rounded-xl bg-gradient-to-r bg-gray-200 border">
+                          <span className="font-semibold text-gray-500">
+                            {sponsors.priority ?? '-'}
+                          </span>
+                        </div>
+                      }
                       subtitle={
                         <p className="flex gap-1">
                           <span>Total sponsors :</span>
@@ -172,15 +180,10 @@ export default function SponsorPage() {
                           </span>
                         </p>
                       }
-                      startContent={
-                        <div className="p-3 w-12 h-12 rounded-xl bg-gradient-to-r bg-gray-200 border">
-                          <span className="font-semibold text-gray-500">
-                            {sponsors.priority ?? '-'}
-                          </span>
-                        </div>
-                      }
+                      title={`${type}`}
                     >
                       <SponsorTable
+                        handleSubmit={handleSubmit}
                         isModalOpen={isModalOpen}
                         modalMode={modalMode}
                         selectedSponsor={selectedSponsor}
@@ -188,10 +191,9 @@ export default function SponsorPage() {
                         sponsors={sponsors.sponsors}
                         type={type}
                         onAdd={handleAdd}
+                        onClose={() => setIsModalOpen(false)}
                         onDelete={handleDelete}
                         onEdit={handleEdit}
-                        handleSubmit={handleSubmit}
-                        onClose={() => setIsModalOpen(false)}
                       />
 
                       {sponsors.sponsors.length === 0 && !sponsorsLoading && (
@@ -209,22 +211,22 @@ export default function SponsorPage() {
 
       <AddSponsorTypeModal
         isOpen={isTypeOpen}
-        onClose={() => setIsTypeOpen(false)}
-        onAddType={handleAddType}
         sponsorsType={sponsorsType}
+        onAddType={handleAddType}
+        onClose={() => setIsTypeOpen(false)}
       />
 
       <ConfirmationModal
+        body={`Are you sure you want to delete the sponsor "${selectedSponsor?.name?.en}"?`}
+        confirmColor='danger'
+        confirmText='Delete'
         isOpen={confirmationModal}
+        title='Delete Sponsor'
         onClose={() => {
           setConfirmationModal(false);
           setSelectedSponsor(null);
         }}
         onConfirm={handleConfirm}
-        title='Delete Sponsor'
-        body={`Are you sure you want to delete the sponsor "${selectedSponsor?.name?.en}"?`}
-        confirmText='Delete'
-        confirmColor='danger'
       />
     </div>
   );

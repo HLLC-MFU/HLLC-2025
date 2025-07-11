@@ -1,6 +1,7 @@
-import { Major } from "@/types/major";
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+import { Major } from '@/types/major';
 
 export type Role = {
   _id: string;
@@ -31,23 +32,23 @@ interface ProfileStore {
   clearUser: () => void;
 }
 
-
 export const useProfile = create<ProfileStore>()(
   persist(
-    (set) => ({
+    set => ({
       user: null,
       majorName: null,
       schoolName: null,
-      setUser: (user) => {
+      setUser: user => {
         const majorName = user.metadata?.major?.name?.en ?? null;
         const schoolName = user.metadata?.major?.school?.name?.en ?? null;
+
         set({ user, majorName, schoolName });
       },
       clearUser: () => set({ user: null, majorName: null, schoolName: null }),
     }),
     {
-      name: "profile-store",
+      name: 'profile-store',
       storage: createJSONStorage(() => localStorage),
-    }
-  )
+    },
+  ),
 );
