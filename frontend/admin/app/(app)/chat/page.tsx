@@ -116,19 +116,22 @@ export default function ChatPage() {
 
     return (
         <>
+        <div className="relative mb-4">
             <PageHeader 
                 description="Chat room management"
                 icon={<MessagesSquare/>}
                 title="Chat Management"
             />
-            <div className="flex justify-end mb-4">
+            
+            <div className="absolute top-0 right-0 mt-2 mr-4">
                 <Link href="/chat/sticker">
-                    <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-semibold shadow hover:bg-primary/90 transition">
+                    <button className="inline-flex gap-2 px-4 py-2 rounded-lg bg-primary text-white font-semibold shadow hover:bg-primary/90 transition">
                         {<SmilePlus />}
                         Sticker Management
                     </button>
                 </Link> 
             </div>
+        </div>
 
             <div className="flex flex-col gap-6">
                 <RoomAccordion 
