@@ -28,26 +28,22 @@ export class RoleController {
 
   @Post()
   @CacheKey('roles:invalidate')
-  @Permissions('roles:create')
   create(@Body() createRoleDto: CreateRoleDto) {
     return this.roleService.create(createRoleDto);
   }
 
   @Get()
   @Permissions('roles:read')
-  @CacheKey('roles:read')
   findAll() {
     return this.roleService.findAll();
   }
 
   @Get(':id')
-  @Permissions('roles:read:id')
   findOne(@Param('id') id: string) {
     return this.roleService.findOne(id);
   }
 
   @Put(':id/metadata-schema')
-  @Permissions('roles:update:metadata-schema')
   @CacheKey('roles:invalidate')
   updateMetadataSchema(
     @Param('id') id: string,
@@ -57,7 +53,6 @@ export class RoleController {
   }
 
   @Patch(':id')
-  @Permissions('roles:update')
   @CacheKey('roles:invalidate')
   update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.update(id, updateRoleDto);
@@ -73,7 +68,6 @@ export class RoleController {
   }
 
   @Patch(':id/checkin-scope')
-  @Permissions('roles:update:checkin-scope')
   updateCheckinScope(
     @Param('id') id: string,
     @Body()
@@ -85,7 +79,6 @@ export class RoleController {
   }
 
   @Delete(':id')
-  @Permissions('roles:delete')
   @CacheKey('roles:invalidate')
   remove(@Param('id') id: string) {
     return this.roleService.remove(id);
