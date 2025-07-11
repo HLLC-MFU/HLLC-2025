@@ -72,4 +72,5 @@ export type UserActivity = {
   updatedAt: string
   checkinStatus: number
   checkinMessage: string
+  hasAnsweredAssessment: boolean
 }
