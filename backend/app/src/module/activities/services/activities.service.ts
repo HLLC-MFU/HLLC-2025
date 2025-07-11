@@ -21,6 +21,7 @@ import { Checkin } from 'src/module/checkin/schema/checkin.schema';
 import { RoleDocument } from 'src/module/role/schemas/role.schema';
 import { AssessmentsService } from 'src/module/assessments/service/assessments.service';
 import { Assessment, AssessmentDocument } from 'src/module/assessments/schema/assessment.schema';
+import { AssessmentAnswer, AssessmentAnswerDocument } from 'src/module/assessments/schema/assessment-answer.schema';
 
 @Injectable()
 export class ActivitiesService {
@@ -31,7 +32,7 @@ export class ActivitiesService {
     @InjectModel(Checkin.name)
     private readonly checkinsModel: Model<Checkin>,
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
-    @InjectModel(Assessment.name) private assessmentAnswersModel: Model<AssessmentDocument>,
+    @InjectModel(AssessmentAnswer.name) private assessmentAnswersModel: Model<AssessmentAnswerDocument>,
     private readonly assessmentsService: AssessmentsService,
   ) { }
 
