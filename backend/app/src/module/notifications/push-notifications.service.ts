@@ -6,6 +6,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { Model, Types } from 'mongoose';
 import { Device, DeviceDocument } from '../devices/schemas/device.schema';
+import { Major, MajorDocument } from '../majors/schemas/major.schema';
+import { getUsersByMajors, getUsersByRoles, getUsersBySchools } from './utils/notification.util';
 
 @Injectable()
 export class PushNotificationService {
@@ -17,6 +19,8 @@ export class PushNotificationService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel(Device.name)
     private readonly deviceModel: Model<DeviceDocument>,
+    @InjectModel(Major.name)
+    private readonly majorModel: Model<MajorDocument>,
   ) {}
 
   registerKafka() {
@@ -36,74 +40,43 @@ export class PushNotificationService {
       throw new InternalServerErrorException('Firebase Admin is not initialized');
     }
 
-    const tokens = new Set<string>();
-    const userIds = new Set<string>();
+    let devices: DeviceDocument[] = [];
 
-    dto.receivers?.tokens?.forEach((token) => token && tokens.add(token));
+    if (dto.receivers === 'global') {
 
-    if (dto.receivers?.devices?.length) {
-      const devices = await this.deviceModel.find({
-        deviceId: { $in: dto.receivers.devices },
-      });
-      devices.forEach((device) => device.fcmToken && tokens.add(device.fcmToken));
+      devices = await this.deviceModel.find({
+        fcmToken: { $ne: null },
+      }).lean();
+
+    } else {
+
+      const tokensFromDto = dto.receivers?.tokens || [];
+      const devicesFromDto = dto.receivers?.devices || [];
+      const userIds = new Set<string>();
+
+      dto.receivers?.users?.forEach(id => userIds.add(id));
+
+      const roleUsers = await getUsersByRoles(this.userModel, dto.receivers?.roles || []);
+      roleUsers.forEach(id => userIds.add(id));
+
+      const majorUsers = await getUsersByMajors(this.userModel, dto.receivers?.majors || []);
+      majorUsers.forEach(id => userIds.add(id));
+
+      const schoolUsers = await getUsersBySchools(this.majorModel, this.userModel, dto.receivers?.schools || []);
+      schoolUsers.forEach(id => userIds.add(id));
+
+      devices = await this.deviceModel.find({
+        $or: [
+          { deviceId: { $in: devicesFromDto } },
+          { userId: { $in: Array.from(userIds) } },
+          { fcmToken: { $in: tokensFromDto } },
+        ],
+        fcmToken: { $ne: null },
+      }).lean();
+      
     }
 
-    dto.receivers?.users?.forEach((id) => userIds.add(id));
-
-    if (dto.receivers?.schools?.length) {
-      const users = await this.userModel
-        .find({})
-        .populate({
-          path: 'metadata.major',
-          model: 'Major',
-          select: 'school',
-        })
-        .lean<Array<{
-          _id: Types.ObjectId;
-          metadata: {
-            major?: {
-              _id: Types.ObjectId;
-              school?: string;
-            };
-          };
-        }>>();
-
-      users.forEach((user) => {
-        const schoolId = user.metadata?.major?.school;
-        if (schoolId && dto.receivers.schools?.includes(schoolId.toString())) {
-          userIds.add(user._id.toString());
-        }
-      });
-    }
-
-    if (dto.receivers?.majors?.length) {
-      const users = await this.userModel.find({
-        'metadata.major': { $in: dto.receivers.majors },
-      });
-      users.forEach((user) => user._id && userIds.add(user._id.toString()));
-    }
-
-    if (dto.receivers?.roles?.length) {
-      const users = await this.userModel.find({
-        role: { $in: dto.receivers.roles.map((id) => new Types.ObjectId(id)) },
-      });
-      users.forEach((user) => user._id && userIds.add(user._id.toString()));
-    }
-
-    // TODO: Need to refactor ↓
-    if (userIds.size > 0) {
-      const userDevices = await this.deviceModel.find({
-        userId: { $in: Array.from(userIds) },
-      });
-      userDevices.forEach((device) => device.fcmToken && tokens.add(device.fcmToken));
-    }
-
-     // TODO: Need to refactor ↓
-    const allDevices = await this.deviceModel.find({
-      fcmToken: { $in: Array.from(tokens) },
-    }).lean();
-
-    if (!allDevices.length) {
+    if (!devices.length) {
       return {
         successCount: 0,
         failureCount: 0,
@@ -111,16 +84,12 @@ export class PushNotificationService {
       };
     }
 
-    const titleMap = dto.title;
-    const bodyMap = dto.body;
-    const badge = dto.badge ?? 1;
-
-    const grouped = allDevices.reduce((acc, device) => {
+    const grouped = devices.reduce((acc, device) => {
       const lang = device.language || 'en';
       if (!acc[lang]) acc[lang] = [];
       acc[lang].push(device);
       return acc;
-    }, {} as Record<string, typeof allDevices>);
+    }, {} as Record<string, typeof devices>);
 
     const messaging = this.firebaseApp.messaging();
     let successCount = 0;
@@ -129,12 +98,11 @@ export class PushNotificationService {
     const MAX_TOKENS = 500;
 
     for (const [lang, deviceList] of Object.entries(grouped)) {
-      const title = titleMap[lang] || titleMap['en'];
-      const body = bodyMap[lang] || bodyMap['en'];
+      const title = dto.title[lang] || dto.title['en'];
+      const body = dto.body[lang] || dto.body['en'];
 
       for (let i = 0; i < deviceList.length; i += MAX_TOKENS) {
-        const batch = deviceList.slice(i, i + MAX_TOKENS);
-        const tokenBatch = batch.map((device) => device.fcmToken);
+        const tokenBatch = devices.slice(i, i + MAX_TOKENS).map(device => device.fcmToken);
         
         const response = await messaging.sendEachForMulticast(
           {
@@ -148,15 +116,13 @@ export class PushNotificationService {
               priority: dto.priority ?? 'normal',
               notification: {
                 sound: 'default',
-                // clickAction: 'OPEN_APP',
-                // color: '#1976D2',
               },
             },
             apns: {
               payload: {
                 aps: {
                   alert: { title, body },
-                  badge,
+                  badge: dto.badge ?? 1,
                   sound: 'default',
                 },
               },

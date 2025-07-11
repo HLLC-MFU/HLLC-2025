@@ -37,7 +37,7 @@ export class ReceiversDto {
 export class PushNotificationDto {
   @ValidateNested()
   @Type(() => ReceiversDto)
-  receivers: ReceiversDto;
+  receivers: ReceiversDto | 'global';
 
   @IsObject()
   @IsNotEmpty()
