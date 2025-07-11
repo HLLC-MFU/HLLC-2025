@@ -31,7 +31,7 @@ async function syncSteps() {
       deviceId,
       date: date.toISOString(),
     });
-    console.log('[StepSync] Response:', res);
+    // console.log('[StepSync] Response:', res);
 
         // If 404, register device and retry
     if (res.statusCode === 404 && res.message?.includes('Step counter not found')) {
