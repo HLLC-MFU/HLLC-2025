@@ -15,6 +15,7 @@ export function useNotification() {
 
 		try {
 			const res = await apiRequest<{ data: Notification[] }>("/notifications", "GET");
+
 			setNotifications(Array.isArray(res.data?.data) ? res.data.data : []);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to fetch notifications.');

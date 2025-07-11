@@ -1,9 +1,10 @@
 import { Input, Textarea } from '@heroui/input';
 import { Accordion, AccordionItem, Autocomplete, AutocompleteItem, Form } from '@heroui/react';
 import * as LucideIcons from 'lucide-react';
+import { ComponentType } from 'react';
+
 import { Notification } from '@/types/notification';
 import ImageInput from '@/components/ui/imageInput';
-import { ComponentType } from 'react';
 
 type NotificationFormProps = {
   notification: Notification;
@@ -43,8 +44,8 @@ export function NotificationForm({ notification, onChange, onSubmit }: Notificat
 
   return (
     <Form 
-      id='notification-form' 
       className="flex flex-col gap-4" 
+      id='notification-form' 
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit();
@@ -58,17 +59,19 @@ export function NotificationForm({ notification, onChange, onSubmit }: Notificat
 
           <Autocomplete
             isRequired
+            defaultItems={allLucideIcons}
             label="Notification Icon"
             placeholder="Select Icon"
             size='sm'
-            defaultItems={allLucideIcons}
             onSelectionChange={keys => {
               const iconItem = allLucideIcons.find(icon => icon.value === keys);
+
               onChange({ ...notification, icon: iconItem ? iconItem.value : '' });
             }}
           >
             {(icon) => {
               const Icon = icon.icon;
+
               return (
                 <AutocompleteItem key={icon.value} startContent={<Icon className="w-5 h-5" />}>
                   {icon.label}
@@ -121,9 +124,9 @@ export function NotificationForm({ notification, onChange, onSubmit }: Notificat
           <Textarea
             isRequired
             label="Description (English)"
+            minRows={6}
             placeholder="Enter description in English"
             value={notification.body.en}
-            minRows={6}
             onChange={e => onChange({ ...notification, body: { ...notification.body, en: e.target.value } })}
           />
         </div>
@@ -131,22 +134,22 @@ export function NotificationForm({ notification, onChange, onSubmit }: Notificat
           <Textarea
             isRequired
             label="Description (Thai)"
+            minRows={6}
             placeholder="Enter description in Thai"
             value={notification.body.th}
-            minRows={6}
             onChange={e => onChange({ ...notification, body: { ...notification.body, th: e.target.value } })}
           />
         </div>
       </div>
 
-      <Accordion variant="shadow" selectionMode="multiple">
+      <Accordion selectionMode="multiple" variant="shadow">
         <AccordionItem 
           key="1"
-          title="Redirect Button (Optional)"
           startContent={
-            <LucideIcons.Link width={20} height={20} />
+            <LucideIcons.Link height={20} width={20} />
           }
           subtitle="Button to redirect users to a specific link."
+          title="Redirect Button (Optional)"
         >
           <div className="flex flex-col gap-4 pb-3">
             <div className='flex flex-row gap-4'>
@@ -203,17 +206,17 @@ export function NotificationForm({ notification, onChange, onSubmit }: Notificat
         </AccordionItem>
         <AccordionItem
           key="2"
-          title="Image (Optional)"
           startContent={
-            <LucideIcons.Image width={20} height={20} />
+            <LucideIcons.Image height={20} width={20} />
           }
           subtitle="Image to display in notification."
+          title="Image (Optional)"
         >
           <div className='pb-3 sm:w-full md:w-80'>
             <ImageInput
               title={'Notification Image'}
-              onChange={handleImageChange}
               onCancel={handleImageCancel}
+              onChange={handleImageChange}
             />
           </div>
         </AccordionItem>

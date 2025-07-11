@@ -117,13 +117,15 @@ func EmitAndNotifyRestriction(
 			continue // skip target user, will handle below
 		}
 		if !onlineMap[memberHex] {
-			notificationService.SendOfflineRestrictionNotification(ctx, memberHex, msg, record)
+			// **FIXED: Use restriction type instead of message type**
+			notificationService.SendOfflineNotification(ctx, memberHex, msg, "restriction")
 		}
 	}
 
 	// 7. Notify target user if offline
 	if !onlineMap[targetUserHex] {
-		notificationService.SendOfflineRestrictionNotification(ctx, targetUserHex, msg, record)
+		// **FIXED: Use restriction type instead of message type**
+		notificationService.SendOfflineNotification(ctx, targetUserHex, msg, "restriction")
 	}
 
 	return nil

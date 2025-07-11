@@ -1,6 +1,7 @@
-import { School } from '@/types/school';
 import { SchoolCard } from './SchoolCard';
 import { SchoolSkeleton } from './SchoolSkeleton';
+
+import { School } from '@/types/school';
 import { Appearance } from '@/types/appearance';
 
 interface SchoolListProps {
@@ -25,9 +26,9 @@ export function SchoolList({
       {schools?.map((school, index) => (
         <SchoolCard
           key={school._id ?? `school-${index}`}
-          school={school}
-          fetchAppearancesById={fetchAppearancesById}
           createAppearance={createAppearance}
+          fetchAppearancesById={fetchAppearancesById}
+          school={school}
         />
       ))}
     </div>

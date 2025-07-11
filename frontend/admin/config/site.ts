@@ -1,3 +1,5 @@
+import type { NavSection } from "@/types/nav";
+
 import {
   HomeIcon,
   SchoolIcon,
@@ -13,10 +15,9 @@ import {
   Flower,
   CircleDollarSign,
   Footprints,
-  MessageCircle,
+  MessagesSquare,
 } from "lucide-react";
 
-import type { NavSection } from "@/types/nav";
 
 export const siteConfig: {
   name: string;
@@ -42,7 +43,7 @@ export const siteConfig: {
         { label: "Activities", href: "/activities", icon: University, permission: "activities:read" },
         { label: "Checkin", href: "/checkin", icon: CircleCheckBig, permission: "checkin:read" },
         { label: "Reports", href: "/reports", icon: ShieldAlert, permission: "reports:read" },
-        { label: "Stepconters", href: "/step-conters", icon: Footprints , permission: "Stepconters:read"}, // ไม่มีขื่อแบบทางการ
+        { label: "Step Counters", href: "/step-counters", icon: Footprints , permission: "Stepcounters:read"}, 
       ],
     },
     {
@@ -61,7 +62,7 @@ export const siteConfig: {
     {
       section: "Chat System",
       items: [
-        { label: "Chat", href: "/chat", icon: MessageCircle, permission: "chat:read" },
+        { label: "Chat", href: "/chat", icon: MessagesSquare, permission: "chat:read" },
       ],
     },
     {

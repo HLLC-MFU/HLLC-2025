@@ -1,9 +1,11 @@
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import React, { ChangeEvent, FormEvent, Key, useCallback, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+
+import { columns } from "../page";
+
 import { User } from "@/types/user";
 import { Major } from "@/types/major";
-import { columns } from "../page";
 import { School } from "@/types/school";
 
 type ImportModalProps = {

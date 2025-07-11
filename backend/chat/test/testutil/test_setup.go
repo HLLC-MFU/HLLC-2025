@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	chatUtils "chat/module/chat/utils"
 	"chat/pkg/config"
+	asycnUtils "chat/pkg/utils/chat"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
@@ -130,7 +130,7 @@ func StartTestServer(t testing.TB) (func(), int) {
 		},
 	}
 
-	asyncHelper := chatUtils.NewAsyncHelper(db, cfg)
+	asyncHelper := asycnUtils.NewAsyncHelper(db, cfg)
 	log.Printf("[AsyncHelper] Initialized %d database workers and %d notification workers", 
 		cfg.AsyncFlow.DatabaseWorkers.WorkerCount, 
 		cfg.AsyncFlow.NotificationWorkers.WorkerCount)

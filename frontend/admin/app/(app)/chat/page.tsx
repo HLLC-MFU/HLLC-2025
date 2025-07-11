@@ -1,22 +1,19 @@
 "use client";
 
-import { PageHeader } from "@/components/ui/page-header";
-import { useChat } from "@/hooks/useChat";
-import { Room, RoomType } from "@/types/chat";
 import { addToast } from "@heroui/react";
-import { MessageSquare } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
+import { MessagesSquare, SmilePlus } from "lucide-react";
+
 import RoomAccordion from "./_components/RoomAccordion";
 import { RoomModal } from "./_components/RoomModal";
-import Link from "next/link";
-import { Smile } from "lucide-react";
+
+import { Room, RoomType } from "@/types/chat";
+import { useChat } from "@/hooks/useChat";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function ChatPage() {
     const { 
-        room: rooms, 
-        loading, 
-        error, 
-        fetchRoom, 
         createRoom, 
         updateRoom, 
         deleteRoom 
@@ -30,7 +27,6 @@ export default function ChatPage() {
     const handleEditRoom = (room: Room) => {
         setModalMode('edit');
         setSelectedRoom(room);
-        // Determine room type from room metadata
         if (room.metadata?.groupType === "school") {
             setSelectedRoomType("school");
         } else if (room.metadata?.groupType === "major") {
@@ -44,7 +40,6 @@ export default function ChatPage() {
     const handleDeleteRoom = async (room: Room) => {
         try {
             await deleteRoom(room._id);
-            await fetchRoom();
             addToast({ 
                 title: "Room deleted successfully!", 
                 color: "success" 
@@ -61,11 +56,8 @@ export default function ChatPage() {
     const handleToggleStatus = async (room: Room) => {
         try {
             const newStatus = room.status === "active" ? "inactive" : "active";
-            
-            // Create form data with only status field
             const formData = new FormData();
             formData.append("status", newStatus);
-            // Keep other fields unchanged
             formData.append("name.th", room.name.th);
             formData.append("name.en", room.name.en);
             formData.append("type", room.type);
@@ -75,7 +67,6 @@ export default function ChatPage() {
             }
             
             await updateRoom(room._id, formData);
-            await fetchRoom();
             addToast({ 
                 title: `Room ${newStatus === "active" ? "activated" : "deactivated"} successfully!`, 
                 color: "success" 
@@ -104,7 +95,6 @@ export default function ChatPage() {
                 await createRoom(formData);
             }
             
-            await fetchRoom();
             addToast({ 
                 title: `Room ${mode === "add" ? "added" : "updated"} successfully!`, 
                 color: "success" 
@@ -126,26 +116,28 @@ export default function ChatPage() {
 
     return (
         <>
+        <div className="relative mb-4">
             <PageHeader 
                 description="Chat room management"
-                icon={<Smile />}
+                icon={<MessagesSquare/>}
                 title="Chat Management"
             />
-            <div className="flex justify-end mb-4">
+            
+            <div className="absolute top-0 right-0 mt-2 mr-4">
                 <Link href="/chat/sticker">
-                    <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-semibold shadow hover:bg-primary/90 transition">
-                        <Smile className="w-5 h-5" />
+                    <button className="inline-flex gap-2 px-4 py-2 rounded-lg bg-primary text-white font-semibold shadow hover:bg-primary/90 transition">
+                        {<SmilePlus />}
                         Sticker Management
                     </button>
-                </Link>
+                </Link> 
             </div>
+        </div>
 
             <div className="flex flex-col gap-6">
                 <RoomAccordion 
-                    rooms={rooms}
                     onAdd={handleAddRoom}
-                    onEdit={handleEditRoom}
                     onDelete={handleDeleteRoom}
+                    onEdit={handleEditRoom}
                     onToggleStatus={handleToggleStatus}
                 />
             </div>
@@ -153,11 +145,11 @@ export default function ChatPage() {
             <RoomModal
                 key={selectedRoom?._id || 'new'}
                 isOpen={isModalOpen}
+                mode={modalMode}
+                room={selectedRoom}
+                roomType={selectedRoomType}
                 onClose={handleCloseModal}
                 onSuccess={handleSubmitRoom}
-                room={selectedRoom}
-                mode={modalMode}
-                roomType={selectedRoomType}
             />
         </>
     );

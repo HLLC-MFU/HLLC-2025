@@ -1,8 +1,12 @@
-import BottomContent from "./BottomContent"
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, SortDescriptor } from "@heroui/react"
-import { User } from "@/types/user"
-import TopContent from "./TopContent"
 import { Key, ReactNode, SetStateAction } from "react"
+
+import BottomContent from "./BottomContent"
+import TopContent from "./TopContent"
+
+import { User } from "@/types/user"
+
+
 
 type ModalState = {
     add: boolean;
@@ -65,13 +69,13 @@ export default function TableContent({
             isHeaderSticky
             aria-label="Table"
             bottomContent={<BottomContent
-                selectedKeys={selectedKeys}
                 filteredItems={filteredItems}
-                pages={pages}
                 page={page}
+                pages={pages}
+                selectedKeys={selectedKeys}
                 setPage={setPage}
-                onPreviousPage={onPreviousPage}
                 onNextPage={onNextPage}
+                onPreviousPage={onPreviousPage}
             />}
             bottomContentPlacement="outside"
             classNames={{
@@ -81,15 +85,15 @@ export default function TableContent({
             selectionMode="multiple"
             sortDescriptor={sortDescriptor}
             topContent={<TopContent
-                setModal={setModal}
-                setActionMode={setActionMode}
-                filterValue={filterValue}
-                visibleColumns={visibleColumns}
-                columns={columns}
-                onSearchChange={onSearchChange}
-                onClear={onClear}
-                setVisibleColumns={setVisibleColumns}
                 capitalize={capitalize}
+                columns={columns}
+                filterValue={filterValue}
+                setActionMode={setActionMode}
+                setModal={setModal}
+                setVisibleColumns={setVisibleColumns}
+                visibleColumns={visibleColumns}
+                onClear={onClear}
+                onSearchChange={onSearchChange}
             />}
             topContentPlacement="outside"
             onSelectionChange={setSelectedKeys}
@@ -109,6 +113,7 @@ export default function TableContent({
             <TableBody emptyContent={"No users found"} items={sortedItems}>
                 {(item: User) => {
                     const index = sortedItems.findIndex((i) => i._id === item._id)
+
                     return (
                         <TableRow key={item._id}>
                             {(columnKey) => <TableCell>{renderCell(item, columnKey, index)}</TableCell>}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { addToast } from "@heroui/react";
+
 import { ReportTypes } from "@/types/report";
 import { apiRequest } from "@/utils/api";
 
@@ -47,9 +48,11 @@ export function useReportTypes() {
     try {
       setLoading(true);
       const res = await apiRequest<{ data: { _id: string } }>("/report-types", "POST", payload);
+
       if (res.data) {
         await fetchReportTypes();
         addToast({ title: "Category added!", color: "success" });
+
         return res.data;
       }
     } catch (err: any) {
@@ -64,9 +67,11 @@ export function useReportTypes() {
     try {
       setLoading(true);
       const res = await apiRequest<{ data: { _id: string } }>(`/report-types/${id}`, "PATCH", payload);
+
       if (res.data) {
         await fetchReportTypes();
         addToast({ title: "Category updated!", color: "success" });
+
         return res.data;
       }
     } catch (err: any) {
@@ -81,6 +86,7 @@ export function useReportTypes() {
     try {
       setLoading(true);
       const res = await apiRequest(`/report-types/${id}`, "DELETE");
+
       if (res.statusCode === 200) {
         setReportTypes(prev => prev.filter(r => r.id !== id));
         addToast({ title: "Category deleted!", color: "success" });

@@ -50,8 +50,10 @@ export class NotificationsService {
     const receivers = mapScopeToReceivers(createNotificationDto.scope);
 
     let pushNotificationResult: PushNotificationResult | null = null;
+    const mode = createNotificationDto.mode ?? 'both';
+    const isDryRun = createNotificationDto.isDryRun ?? false;
 
-    if (createNotificationDto.mode === 'both' || createNotificationDto.mode === 'push') {
+    if (mode === 'both' || mode === 'push') {
       
       pushNotificationResult = await this.pushNotificationService.sendPushNotification({
         receivers,
@@ -62,10 +64,10 @@ export class NotificationsService {
           redirectUrl: createNotificationDto.redirectButton?.url ?? null,
         },
         priority: 'high',
-      }, createNotificationDto.isDryRun);
+      }, isDryRun);
     }
 
-    if (!createNotificationDto.isDryRun && (createNotificationDto.mode === 'both' || createNotificationDto.mode === 'in_app')) {
+    if (!isDryRun && (mode === 'both' || mode === 'in_app')) {
       await this.notificationModel.create({
         ...createNotificationDto,
         scope,

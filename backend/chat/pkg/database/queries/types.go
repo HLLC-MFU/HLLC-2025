@@ -8,7 +8,7 @@ import (
 type (
 	QueryOptions struct {
 		Page     int                    `json:"page" query:"page"`
-		Limit    int                    `json:"limit" query:"limit"`
+		Limit    int                    `json:"limit" query:"limit"` // If 0, means unlimited (no pagination)
 		Sort     string                 `json:"sort" query:"sort"`
 		Excluded string                 `json:"excluded" query:"excluded"`
 		Filter   map[string]interface{} `json:"filter" query:"filter"`
@@ -17,7 +17,7 @@ type (
 	Meta struct {
 		Total         int64     `json:"total"`
 		Page          int       `json:"page"`
-		Limit         int       `json:"limit"`
+		Limit         int       `json:"limit"` // If 0, means unlimited (no pagination)
 		TotalPages    int       `json:"totalPages"`
 		LastUpdatedAt time.Time `json:"lastUpdatedAt"`
 	}
