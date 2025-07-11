@@ -14,11 +14,11 @@ export function RestrictionHistorySkeleton() {
         <div className="h-10 w-64 bg-default-200 rounded animate-pulse" />
       </div>
       {/* Table skeleton */}
-      <div className="p-6">
-        {[...Array(5)].map((_, i) => (
+      <div className="p-2">
+        {[...Array(2)].map((_, i) => (
           <div key={i} className="flex gap-4 items-center mb-2">
             <div className="w-8 h-8 rounded-full bg-default-200 animate-pulse" />
-            <div className="h-4 w-16 bg-default-200 rounded animate-pulse" />
+            <div className="h-10 w-16 bg-default-200 rounded animate-pulse" />
           </div>
         ))}
       </div>

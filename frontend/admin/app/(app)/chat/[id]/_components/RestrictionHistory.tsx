@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Pagination, Modal, ModalContent, ModalHeader, ModalBody, Input, Select, SelectItem } from "@heroui/react";
-import { X, Search, Filter, Calendar, User, Shield } from "lucide-react";
+import { Search, Filter, Calendar, User, Shield } from "lucide-react";
 import { addToast } from "@heroui/toast";
 import { useRestriction } from "@/hooks/useRestriction";
 import { RestrictionHistoryItem } from "@/types/room";
-import { GenericSkeleton } from "../../_components/RoomSkeleton";
 import { RestrictionHistorySkeleton } from "./RestrictionHistorySkeleton";
 
 type RestrictionHistoryProps = {

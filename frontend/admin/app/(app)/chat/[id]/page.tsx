@@ -32,9 +32,7 @@ export default function RoomDetailPage() {
     const router = useRouter();
     const params = useParams();
     const roomId = params.id as string;
-    
     const { getRoomMembers, getRoomById } = useChat();
-
     const [members, setMembers] = useState<RoomMember[]>([]);
     const [room, setRoom] = useState<RoomByIdResponse | null>(null);
     const [isLoadingMembers, setIsLoadingMembers] = useState(false);
@@ -127,7 +125,7 @@ export default function RoomDetailPage() {
 
     if (isLoadingRoom) {
         return (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
                 <PageHeader 
                     description="Manage room members and actions"
                     icon={<Users />}
@@ -142,7 +140,7 @@ export default function RoomDetailPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
             <PageHeader 
                 description="Manage room members and actions"
                 icon={<Users />}

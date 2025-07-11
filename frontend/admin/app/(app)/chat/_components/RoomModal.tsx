@@ -8,6 +8,7 @@ import { RoomMembersSelector } from "./RoomMembersSelector";
 import { Room, RoomType } from "@/types/chat";
 import { useSchools } from "@/hooks/useSchool";
 import { useMajors } from "@/hooks/useMajor";
+import { User } from "@/types/user";
 
 type RoomModalProps = {
     isOpen: boolean;
@@ -17,6 +18,10 @@ type RoomModalProps = {
     mode: "add" | "edit";
     roomType: RoomType | "school" | "major";
 };
+
+function isUserArray(arr: any[]): arr is User[] {
+    return arr.length > 0 && typeof arr[0] === "object" && "_id" in arr[0] && "username" in arr[0];
+}
 
 export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: RoomModalProps) {
     const { schools, loading: schoolsLoading } = useSchools();
@@ -28,7 +33,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
     const [capacity, setCapacity] = useState("");
     const [selectedSchool, setSelectedSchool] = useState<string>("");
     const [selectedMajor, setSelectedMajor] = useState<string>("");
-    const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+    const [selectedMembers, setSelectedMembers] = useState<User[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [image, setImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -43,7 +48,12 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
             setCapacity(capacity.toString());
             setSelectedSchool(metadata?.groupType === "school" ? metadata.groupValue : "");
             setSelectedMajor(metadata?.groupType === "major" ? metadata.groupValue : "");
-            setSelectedMembers(members || []);
+            // Only set selectedMembers if members is array of user objects
+            if (Array.isArray(members) && isUserArray(members)) {
+                setSelectedMembers(members);
+            } else {
+                setSelectedMembers([]);
+            }
         } else {
             resetFields();
         }
@@ -85,8 +95,8 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
         }
 
         if (selectedMembers.length > 0) {
-            if (selectedMembers.includes("SELECT_ALL")) formData.append("selectAllUsers", "true");
-            else selectedMembers.forEach((id, idx) => formData.append(`members[${idx}]`, id));
+            if (selectedMembers.some(u => u._id === "__SELECT_ALL__")) formData.append("selectAllUsers", "true");
+            else selectedMembers.forEach((user, idx) => formData.append(`members[${idx}]`, user._id));
         }
 
         if (image) formData.append("image", image);
@@ -149,7 +159,11 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                             </Select>
                         )}
 
-                        <RoomMembersSelector selectedMembers={selectedMembers} setSelectedMembers={setSelectedMembers} />
+                        <RoomMembersSelector 
+                            selectedMembers={selectedMembers} 
+                            setSelectedMembers={setSelectedMembers} 
+                            allowSelectAll={roomType !== 'school' && roomType !== 'major'}
+                        />
                         <Input accept="image/*" label="Room Image (Optional)" type="file" onChange={handleImageChange} />
                         <ImagePreview imagePreview={imagePreview} onRemove={() => { setImage(null); setImagePreview(null); }} />
                     </ModalBody>

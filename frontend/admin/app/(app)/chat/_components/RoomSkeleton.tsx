@@ -33,7 +33,7 @@ export function RoomSkeleton() {
 export function GenericSkeleton({ 
     type = "card", 
     rows = 1, 
-    className = "" 
+    className = "bg-default-50 rounded-xl shadow-sm border border-default-200 overflow-hidden"
 }: { 
     type?: "card" | "list" | "table";
     rows?: number;
