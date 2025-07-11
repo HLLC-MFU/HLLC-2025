@@ -43,7 +43,7 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
             <View style={{ position: "relative", alignItems: "center", justifyContent: "center" }}>
               <Image
                 source={{
-                  uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.banner}`,
+                  uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`,
                 }}
                 contentFit="cover"
                 style={{
@@ -76,7 +76,7 @@ export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
               >
                 <Image
                   source={{
-                    uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.thumbnail}`,
+                    uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.logoPhoto}`,
                   }}
                   style={{
                     width: 60,
