@@ -257,33 +257,7 @@ export function useChat(): UseChatReturn {
         }
     };
 
-    /**
-     * Fetch rooms by type (normal, readonly, school, major) with pagination
-     */
-    const fetchRoomByType = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const res = await apiGolangRequest<{ data: RoomByIdResponse[] }>(
-                `/rooms`,
-                "GET",
-            );
 
-            setRoom(Array.isArray(res.data?.data) ? res.data?.data : [])
-        } catch (err) {
-            addToast({
-                title: 'Failed to fetch rooms. Please try again.',
-                color: 'danger',
-            });
-            setError(
-                err && typeof err === 'object' && 'message' in err
-                    ? (err as { message?: string }).message || 'Failed to fetch rooms.'
-                    : 'Failed to fetch rooms.',
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
 
     useEffect(() => {
         fetchRoom();
@@ -300,6 +274,5 @@ export function useChat(): UseChatReturn {
         getRoomById,
         getRoomMembers,
         getRestrictionStatus,
-        fetchRoomByType,
     };
 }

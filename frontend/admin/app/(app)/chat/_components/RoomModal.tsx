@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from "@heroui/react";
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent, useRef } from "react";
 import { InfinityIcon } from "lucide-react";
 import { ImagePreview } from "./ImagePreview";
 import { RoomMembersSelector } from "./RoomMembersSelector";
@@ -37,6 +37,13 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
     const [searchQuery, setSearchQuery] = useState("");
     const [image, setImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [nameEnError, setNameEnError] = useState("");
+    const [nameThError, setNameThError] = useState("");
+    const [capacityError, setCapacityError] = useState("");
+    const [schoolError, setSchoolError] = useState("");
+    const [majorError, setMajorError] = useState("");
+    const [shake, setShake] = useState(false);
+    const nameEnRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (isOpen && room) {
@@ -58,6 +65,21 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
             resetFields();
         }
     }, [isOpen, room, roomType]);
+
+    // Autofocus first field
+    useEffect(() => {
+        if (isOpen && nameEnRef.current) {
+            nameEnRef.current.focus();
+        }
+    }, [isOpen]);
+
+    // Reset error on change
+    useEffect(() => { if (nameEn) setNameEnError(""); }, [nameEn]);
+    useEffect(() => { if (nameTh) setNameThError(""); }, [nameTh]);
+    useEffect(() => { if (capacity) setCapacityError(""); }, [capacity]);
+    useEffect(() => { if (selectedSchool) setSchoolError(""); }, [selectedSchool]);
+    useEffect(() => { if (selectedMajor) setMajorError(""); }, [selectedMajor]);
+
     const resetFields = () => {
         setNameEn("");
         setNameTh("");
@@ -70,22 +92,50 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
         setSearchQuery("");
         setImage(null);
         setImagePreview(null);
+        setNameEnError("");
+        setNameThError("");
+        setCapacityError("");
+        setSchoolError("");
+        setMajorError("");
+        setShake(false);
     };
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!nameEn.trim() || !nameTh.trim() || !capacity.trim()) return;
-
-        if (roomType === "school" && !selectedSchool) return alert("Please select a school");
-        if (roomType === "major" && !selectedMajor) return alert("Please select a major");
-
+        let hasError = false;
+        if (!nameEn.trim()) {
+            setNameEnError("กรุณากรอกชื่อห้อง (อังกฤษ)");
+            hasError = true;
+        }
+        if (!nameTh.trim()) {
+            setNameThError("กรุณากรอกชื่อห้อง (ไทย)");
+            hasError = true;
+        }
+        if (!capacity.trim()) {
+            setCapacityError("กรุณากรอกความจุ");
+            hasError = true;
+        }
+        if (roomType === "school" && !selectedSchool) {
+            setSchoolError("กรุณาเลือกโรงเรียน");
+            hasError = true;
+        }
+        if (roomType === "major" && !selectedMajor) {
+            setMajorError("กรุณาเลือกสาขา");
+            hasError = true;
+        }
+        if (hasError) {
+            setShake(true);
+            setTimeout(() => setShake(false), 500);
+            // focus first error
+            if (!nameEn.trim() && nameEnRef.current) nameEnRef.current.focus();
+            return;
+        }
         const formData = new FormData();
         formData.append("name.en", nameEn.trim());
         formData.append("name.th", nameTh.trim());
         formData.append("type", type);
         formData.append("status", status);
         formData.append("capacity", capacity);
-        
         if (roomType === "school") {
             formData.append("groupType", "school");
             formData.append("groupValue", selectedSchool);
@@ -93,12 +143,10 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
             formData.append("groupType", "major");
             formData.append("groupValue", selectedMajor);
         }
-
         if (selectedMembers.length > 0) {
             if (selectedMembers.some(u => u._id === "__SELECT_ALL__")) formData.append("selectAllUsers", "true");
             else selectedMembers.forEach((user, idx) => formData.append(`members[${idx}]`, user._id));
         }
-
         if (image) formData.append("image", image);
         onSuccess(formData, mode);
         resetFields();
@@ -116,6 +164,12 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
         }
     };
 
+    // Check if form is valid
+    const isFormValid = nameEn.trim() && nameTh.trim() && capacity.trim() &&
+        ((roomType !== "school" && roomType !== "major") ||
+         (roomType === "school" && selectedSchool) ||
+         (roomType === "major" && selectedMajor));
+
     return (
         <Modal isOpen={isOpen} size="2xl" onClose={() => { onClose(); resetFields(); }}>
             <Form className="w-full" onSubmit={handleSubmit}>
@@ -123,8 +177,33 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                     <ModalHeader>{`${mode === "add" ? "Add" : "Edit"} ${roomType === "school" ? "School" : roomType === "major" ? "Major" : "Room"}`}</ModalHeader>
                     <ModalBody>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Input label="Room Name (English)" value={nameEn} onValueChange={setNameEn} />
-                            <Input label="Room Name (Thai)" value={nameTh} onValueChange={setNameTh} />
+                            <div className="flex flex-col gap-1">
+                                <Input
+                                    ref={nameEnRef}
+                                    label={<span>Room Name (English)<span className="text-red-500">*</span></span>}
+                                    value={nameEn}
+                                    onValueChange={setNameEn}
+                                    isInvalid={!!nameEnError}
+                                    className={shake && nameEnError ? "animate-shake border-red-500" : nameEnError ? "border-red-500" : ""}
+                                    aria-invalid={!!nameEnError}
+                                    aria-describedby="nameEnError"
+                                    placeholder="Enter room name in English"
+                                />
+                                {nameEnError && <span id="nameEnError" className="text-xs text-red-500 ml-1">{nameEnError}</span>}
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <Input
+                                    label={<span>Room Name (Thai)<span className="text-red-500">*</span></span>}
+                                    value={nameTh}
+                                    onValueChange={setNameTh}
+                                    isInvalid={!!nameThError}
+                                    className={shake && nameThError ? "animate-shake border-red-500" : nameThError ? "border-red-500" : ""}
+                                    aria-invalid={!!nameThError}
+                                    aria-describedby="nameThError"
+                                    placeholder="กรอกชื่อห้องเป็นภาษาไทย"
+                                />
+                                {nameThError && <span id="nameThError" className="text-xs text-red-500 ml-1">{nameThError}</span>}
+                            </div>
                         </div>
 
                         <Select label="Status*" selectedKeys={new Set([status])} onSelectionChange={(keys) => setStatus(Array.from(keys)[0] as "active" | "inactive")}>
@@ -133,7 +212,21 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                         </Select>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Input label="Capacity*" min={0} type="number" value={capacity} onValueChange={setCapacity} />
+                            <div className="flex flex-col gap-1">
+                                <Input
+                                    label={<span>Capacity<span className="text-red-500">*</span></span>}
+                                    min={0}
+                                    type="number"
+                                    value={capacity}
+                                    onValueChange={setCapacity}
+                                    isInvalid={!!capacityError}
+                                    className={shake && capacityError ? "animate-shake border-red-500" : capacityError ? "border-red-500" : ""}
+                                    aria-invalid={!!capacityError}
+                                    aria-describedby="capacityError"
+                                    placeholder="0 = unlimited"
+                                />
+                                {capacityError && <span id="capacityError" className="text-xs text-red-500 ml-1">{capacityError}</span>}
+                            </div>
                             <div className="flex items-center gap-2 text-sm font-bold text-primary-600 mt-1">
                                 <InfinityIcon className="w-5 h-5 text-blue-500" />
                                 <span className="text-blue-600">Set to 0 for unlimited capacity</span>
@@ -148,15 +241,21 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                         )}
 
                         {roomType === "school" && (
-                            <Select isLoading={schoolsLoading} label="Select School" selectedKeys={selectedSchool ? [selectedSchool] : []} onSelectionChange={(keys) => setSelectedSchool(Array.from(keys)[0] as string)}>
-                                {schools.map(school => <SelectItem key={school._id}>{school.name.en}</SelectItem>)}
-                            </Select>
+                            <div className="flex flex-col gap-1">
+                                <Select isLoading={schoolsLoading} label={<span>Select School<span className="text-red-500">*</span></span>} selectedKeys={selectedSchool ? [selectedSchool] : []} onSelectionChange={(keys) => setSelectedSchool(Array.from(keys)[0] as string)}>
+                                    {schools.map(school => <SelectItem key={school._id}>{school.name.en}</SelectItem>)}
+                                </Select>
+                                {schoolError && <span className="text-xs text-red-500 ml-1">{schoolError}</span>}
+                            </div>
                         )}
 
                         {roomType === "major" && (
-                            <Select isLoading={majorsLoading} label="Select Major" selectedKeys={selectedMajor ? [selectedMajor] : []} onSelectionChange={(keys) => setSelectedMajor(Array.from(keys)[0] as string)}>
-                                {majors.map(major => <SelectItem key={major._id}>{major.name.en}</SelectItem>)}
-                            </Select>
+                            <div className="flex flex-col gap-1">
+                                <Select isLoading={majorsLoading} label={<span>Select Major<span className="text-red-500">*</span></span>} selectedKeys={selectedMajor ? [selectedMajor] : []} onSelectionChange={(keys) => setSelectedMajor(Array.from(keys)[0] as string)}>
+                                    {majors.map(major => <SelectItem key={major._id}>{major.name.en}</SelectItem>)}
+                                </Select>
+                                {majorError && <span className="text-xs text-red-500 ml-1">{majorError}</span>}
+                            </div>
                         )}
 
                         <RoomMembersSelector 
@@ -170,7 +269,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
 
                     <ModalFooter>
                         <Button color="danger" variant="light" onPress={() => { onClose(); resetFields(); }}>Cancel</Button>
-                        <Button color="primary" type="submit">{mode === "add" ? "Add" : "Save"}</Button>
+                        <Button color="primary" type="submit" isDisabled={!isFormValid}>{mode === "add" ? "Add" : "Save"}</Button>
                     </ModalFooter>
                 </ModalContent>
             </Form>

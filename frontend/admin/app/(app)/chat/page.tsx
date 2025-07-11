@@ -1,13 +1,12 @@
 "use client";
 
 import { addToast } from "@heroui/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { Smile, SmilePlus } from "lucide-react";
+import { MessagesSquare, SmilePlus } from "lucide-react";
 
 import RoomAccordion from "./_components/RoomAccordion";
 import { RoomModal } from "./_components/RoomModal";
-import { GenericSkeleton } from "./_components/RoomSkeleton";
 
 import { Room, RoomType } from "@/types/chat";
 import { useChat } from "@/hooks/useChat";
@@ -15,9 +14,6 @@ import { PageHeader } from "@/components/ui/page-header";
 
 export default function ChatPage() {
     const { 
-        room: rooms, 
-        loading,
-        fetchRoom, 
         createRoom, 
         updateRoom, 
         deleteRoom 
@@ -27,10 +23,6 @@ export default function ChatPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<Room | undefined>();
     const [selectedRoomType, setSelectedRoomType] = useState<RoomType | "school" | "major">(RoomType.NORMAL);
-
-    useEffect(() => {
-        fetchRoom();
-    }, []);
 
     const handleEditRoom = (room: Room) => {
         setModalMode('edit');
@@ -48,7 +40,6 @@ export default function ChatPage() {
     const handleDeleteRoom = async (room: Room) => {
         try {
             await deleteRoom(room._id);
-            await fetchRoom();
             addToast({ 
                 title: "Room deleted successfully!", 
                 color: "success" 
@@ -76,7 +67,6 @@ export default function ChatPage() {
             }
             
             await updateRoom(room._id, formData);
-            await fetchRoom();
             addToast({ 
                 title: `Room ${newStatus === "active" ? "activated" : "deactivated"} successfully!`, 
                 color: "success" 
@@ -105,7 +95,6 @@ export default function ChatPage() {
                 await createRoom(formData);
             }
             
-            await fetchRoom();
             addToast({ 
                 title: `Room ${mode === "add" ? "added" : "updated"} successfully!`, 
                 color: "success" 
@@ -129,7 +118,7 @@ export default function ChatPage() {
         <>
             <PageHeader 
                 description="Chat room management"
-                icon={<Smile />}
+                icon={<MessagesSquare/>}
                 title="Chat Management"
             />
             <div className="flex justify-end mb-4">
@@ -142,21 +131,12 @@ export default function ChatPage() {
             </div>
 
             <div className="flex flex-col gap-6">
-                {loading ? (
-                    <div className="space-y-6">
-                        <GenericSkeleton type="list" rows={3} />
-                        <GenericSkeleton type="list" rows={2} />
-                        <GenericSkeleton type="list" rows={1} />
-                    </div>
-                ) : (
-                    <RoomAccordion 
-                        rooms={rooms as Room[]}
-                        onAdd={handleAddRoom}
-                        onDelete={handleDeleteRoom}
-                        onEdit={handleEditRoom}
-                        onToggleStatus={handleToggleStatus}
-                    />
-                )}
+                <RoomAccordion 
+                    onAdd={handleAddRoom}
+                    onDelete={handleDeleteRoom}
+                    onEdit={handleEditRoom}
+                    onToggleStatus={handleToggleStatus}
+                />
             </div>
 
             <RoomModal

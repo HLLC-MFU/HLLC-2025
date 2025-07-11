@@ -57,10 +57,10 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                 <span className="text-sm font-medium">Members (Optional)</span>
                 <div className="flex items-center gap-2">
                     {selectedMembers.length > 0 && (
-                        <Button color="danger" size="sm" variant="light" onPress={handleClearAll}>Clear All</Button>
+                        <Button color="default" size="sm" variant="light" onPress={handleClearAll}>Clear All</Button>
                     )}
                     {allowSelectAll && (
-                        <Button className="font-bold shadow-md" color="danger" isDisabled={isSelectAllActive} size="md"
+                        <Button className="font-bold shadow-md" color="primary" isDisabled={isSelectAllActive} size="md"
                             startContent={<Users size={18} />} variant={isSelectAllActive ? "solid" : "flat"} onPress={handleSelectAll}>
                             Select All Users
                         </Button>
@@ -90,8 +90,8 @@ export function RoomMembersSelector({ selectedMembers, setSelectedMembers, allow
                     </div>
                     {isSelectAllActive && (
                         <div className="flex items-center gap-2 mt-2">
-                            <Badge className="text-base font-bold" color="danger" variant="solid">ALL USERS SELECTED</Badge>
-                            <span className="text-danger-600 font-semibold">All users in the system will be added to this room</span>
+                            <Badge className="text-base font-bold" color="primary" variant="solid">ALL USERS SELECTED</Badge>
+                            <span className="text-primary-600 font-semibold">All users in the system will be added to this room</span>
                         </div>
                     )}
                 </div>

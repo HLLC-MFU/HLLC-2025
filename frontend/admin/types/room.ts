@@ -25,6 +25,27 @@ export type RoomByIdResponse = {
     isMember?: boolean;
 };
 
+// New type for rooms by type API response
+export type RoomsByTypeResponse = {
+    data: RoomByIdResponse[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+};
+
+// Hook return type for rooms by type
+export type UseRoomsByTypeReturn = {
+    roomsByType: Record<string, RoomsByTypeResponse>;
+    loading: Record<string, boolean>;
+    error: Record<string, string | null>;
+    fetchRoomsByType: (roomType: string, page?: number, limit?: number) => Promise<void>;
+    loadMoreRooms: (roomType: string) => Promise<void>;
+    refreshRooms: (roomType: string) => Promise<void>;
+};
+
 export type RoomMembersResponse = {
     _id: string;
     name: Name;
@@ -139,5 +160,4 @@ export type UseChatReturn = {
         };
     }>;
     getRestrictionStatus: (roomId: string, userId: string) => Promise<RestrictionStatus | null>;
-    fetchRoomByType: () => Promise<void>;
 }; 
