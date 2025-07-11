@@ -1,6 +1,7 @@
 import { Input, Select, SelectItem } from "@heroui/react";
-import { ActivityType } from "@/types/activities";
 import { Dispatch, SetStateAction } from "react";
+
+import { ActivityType } from "@/types/activities";
 
 interface BasicInformationProps {
   nameEn: string;
@@ -36,18 +37,18 @@ export function BasicInformation({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             autoFocus
+            isRequired
             label="Name (English)"
             placeholder="Enter activity name in English"
             value={nameEn}
             onValueChange={setNameEn}
-            isRequired
           />
           <Input
+            isRequired
             label="Name (Thai)"
             placeholder="Enter activity name in Thai"
             value={nameTh}
             onValueChange={setNameTh}
-            isRequired
           />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -58,13 +59,13 @@ export function BasicInformation({
             onValueChange={setAcronym}
           />
           <Select
+            isRequired
+            isDisabled={disableTypeSelection}
+            isLoading={typesLoading}
             label="Activity Type"
             placeholder="Select an activity type"
             selectedKeys={type ? [type] : []}
             onChange={(e) => setType(e.target.value)}
-            isLoading={typesLoading}
-            isRequired
-            isDisabled
           >
             {activityTypes.map((type) => (
               <SelectItem key={type._id}>

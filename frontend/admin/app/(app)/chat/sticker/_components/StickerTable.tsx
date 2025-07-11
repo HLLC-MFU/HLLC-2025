@@ -1,10 +1,10 @@
+import type { Selection } from "@react-types/shared";
 import React, { useCallback, useMemo, useState } from "react";
-import { Sticker } from "@/types/sticker";
-import StickerCellRenderer, { StickerColumnKey } from "./StickerCellRenderer";
 import { SortDescriptor, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import StickerCellRenderer, { StickerColumnKey } from "./StickerCellRenderer";
 import StickerTopContent from "./StickerTopContent";
 import StickerBottomContent from "./StickerBottomContent";
-import type { Selection } from "@react-types/shared";
+import { Sticker } from "@/types/sticker";
 
 export const STICKER_COLUMNS = [
     { name: "IMAGE", uid: "image" },
@@ -36,6 +36,7 @@ export default function StickerTable({
     const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
     const [page, setPage] = useState(1);
     const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({ column: "nameEn", direction: "ascending" });
+    
     const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 
     const handleSearch = (value: string) => {
@@ -53,9 +54,10 @@ export default function StickerTable({
 
     const filteredItems = useMemo(() => {
         const query = filterValue.toLowerCase();
+
         return stickers.filter((sticker) =>
-            sticker.name.en.toLowerCase().includes(query) ||
-            sticker.name.th.toLowerCase().includes(query)
+            sticker.name?.en?.toLowerCase().includes(query) ||
+            sticker.name?.th?.toLowerCase().includes(query)
         );
     }, [stickers, filterValue]);
 
@@ -64,6 +66,7 @@ export default function StickerTable({
             const first = a[sortDescriptor.column as keyof Sticker] as any;
             const second = b[sortDescriptor.column as keyof Sticker] as any;
             const cmp = first < second ? -1 : first > second ? 1 : 0;
+
             return sortDescriptor.direction === "descending" ? -cmp : cmp;
         });
     }, [filteredItems, sortDescriptor]);
@@ -80,10 +83,10 @@ export default function StickerTable({
         (sticker: Sticker, columnKey: StickerColumnKey) => {
             return (
                 <StickerCellRenderer
-                    sticker={sticker}
                     columnKey={columnKey}
-                    onEdit={() => onEdit(sticker)}
+                    sticker={sticker}
                     onDelete={() => onDelete(sticker)}
+                    onEdit={() => onEdit(sticker)}
                 />
             );
         },
@@ -95,47 +98,47 @@ export default function StickerTable({
             <Table
                 isHeaderSticky
                 aria-label="Sticker table"
-                topContent={
-                    <StickerTopContent
-                        setActionText={onAdd}
-                        filterValue={filterValue}
-                        capitalize={capitalize}
-                        onClear={handleClear}
-                        onSearchChange={handleSearch}
-                        filteredItems={filteredItems}
-                        page={page}
-                        pages={pages}
-                        setPage={setPage}
-                        onPreviousPage={handlePreviousPage}
-                        onNextPage={handleNextPage}
-                    />
-                }
-                topContentPlacement="outside"
-                selectedKeys={selectedKeys}
-                selectionMode="multiple"
-                onSelectionChange={setSelectedKeys}
-                sortDescriptor={sortDescriptor}
-                onSortChange={setSortDescriptor}
                 bottomContent={
                     <StickerBottomContent
-                        selectedKeys={selectedKeys}
                         filteredItems={filteredItems}
                         page={page}
                         pages={pages}
+                        selectedKeys={selectedKeys}
                         setPage={setPage}
-                        onPreviousPage={handlePreviousPage}
                         onNextPage={handleNextPage}
+                        onPreviousPage={handlePreviousPage}
                     />
                 }
                 bottomContentPlacement="outside"
+                selectedKeys={selectedKeys}
+                selectionMode="multiple"
+                sortDescriptor={sortDescriptor}
+                topContent={
+                    <StickerTopContent
+                        capitalize={capitalize}
+                        filterValue={filterValue}
+                        filteredItems={filteredItems}
+                        page={page}
+                        pages={pages}
+                        setActionText={onAdd}
+                        setPage={setPage}
+                        onClear={handleClear}
+                        onNextPage={handleNextPage}
+                        onPreviousPage={handlePreviousPage}
+                        onSearchChange={handleSearch}
+                    />
+                }
+                topContentPlacement="outside"
+                onSelectionChange={setSelectedKeys}
+                onSortChange={setSortDescriptor}
             >
                 <TableHeader columns={STICKER_COLUMNS}>
                     {(column) => (
                         <TableColumn
                             key={column.uid}
                             align={column.uid === "actions" ? "center" : "start"}
-                            className={`${column.uid} py-4 bg-default-50`}
                             allowsSorting={column.sortable}
+                            className={`${column.uid} py-4 bg-default-50`}
                         >
                             <span className="text-bold text-small uppercase tracking-wider">{column.name}</span>
                         </TableColumn>

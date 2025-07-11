@@ -1,15 +1,17 @@
 'use client';
 import { Button } from "@heroui/react";
 import { LayoutDashboard } from 'lucide-react';
+
+import { ReportCharts } from "./_components/DashboardReportCharts";
+import Overview from "./_components/DashboardOverview";
+import Charts from "./_components/DashboardTimeLineCharts";
+
 import { useCheckin } from "@/hooks/useCheckin";
 import { useSponsors } from "@/hooks/useSponsors";
 import { PageHeader } from "@/components/ui/page-header";
 import { useEvoucher } from "@/hooks/useEvoucher";
 import { useReports } from "@/hooks/useReports";
 import { useReportTypes } from "@/hooks/useReportTypes";
-import { ReportCharts } from "./_components/DashboardReportCharts";
-import Overview from "./_components/DashboardOverview";
-import Charts from "./_components/DashboardTimeLineCharts";
 import { useUserStatistics } from "@/hooks/useUsersytem";
 import { useActivities } from "@/hooks/useActivities";
 import { UseruseSystem } from "@/types/user-stats"
@@ -30,16 +32,16 @@ export default function Dashboard() {
       <PageHeader description='System overview — quickly access key modules, recent activity, and system statistics.' icon={<LayoutDashboard />} />
       <div className=" h-fit w-full flex flex-row justify-between items-center">
         <h1 className=" text-3xl font-semibold "> Overview </h1>
-        <Button color="primary" variant="shadow" size="lg">
+        <Button color="primary" size="lg" variant="shadow">
           Export XLS
         </Button>
       </div>
       <Overview
-        checkin={checkin}
-        Userstats={Userstats ?? {} as UseruseSystem}
         Activities={activities}
         Evouchers={evouchers}
         Sponsors={sponsors}
+        Userstats={Userstats ?? {} as UseruseSystem}
+        checkin={checkin}
         isLoading={loading}
       />
 

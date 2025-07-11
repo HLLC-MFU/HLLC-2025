@@ -7,6 +7,7 @@ import {
     Switch,
 } from "@heroui/react";
 import { Building2, LockKeyhole, LockKeyholeOpen } from "lucide-react";
+
 import { System } from "@/types/system";
 
 interface SystemCardProps {
@@ -17,7 +18,7 @@ interface SystemCardProps {
 
 export function SystemCard({ system, onClick }: SystemCardProps) {
     return (
-        <Card isHoverable className="h-full" key={system._id + system.status}>
+        <Card key={system._id + system.status} isHoverable className="h-full">
             <CardHeader className="flex gap-3 p-4">
                 <div className="flex flex-col items-start min-w-0 text-start">
                     <p className="text-lg font-semibold truncate w-full">
@@ -37,9 +38,9 @@ export function SystemCard({ system, onClick }: SystemCardProps) {
             <Divider />
             <CardFooter className="flex justify-between p-4">
                 <Switch
-                    isSelected={system.status}
                     color="success"
                     endContent={<LockKeyholeOpen/>}
+                    isSelected={system.status}
                     size="lg"
                     startContent={<LockKeyhole/>}
                     onValueChange={() => onClick(system)}

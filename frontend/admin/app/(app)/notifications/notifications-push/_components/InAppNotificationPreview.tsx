@@ -7,9 +7,11 @@ import {
   Button,
 } from '@heroui/react';
 import { useEffect, useState } from 'react';
-import { NotificationFormData } from "../page";
-import { Lang } from '@/types/lang';
 import * as LucideIcons from 'lucide-react';
+
+import { NotificationFormData } from "../page";
+
+import { Lang } from '@/types/lang';
 
 type InAppNotificationProps = {
   notification: NotificationFormData
@@ -17,29 +19,10 @@ type InAppNotificationProps = {
 }
 
 export function InAppNotificationPreview({ notification, language }: InAppNotificationProps) {
-  const [now, setNow] = useState(new Date());
-
   const iconName = notification.icon;
   const SelectedIconComponent = iconName && iconName in LucideIcons
     ? LucideIcons[iconName as keyof typeof LucideIcons] as React.ComponentType<LucideIcons.LucideProps>
     : null;
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const dateString = now.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-
-  const timeString = now.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
 
   return (
     <div className="w-full flex bg-cover bg-center bg-[url('/Bg_test1.png')] justify-center items-center rounded-2xl">
@@ -56,7 +39,7 @@ export function InAppNotificationPreview({ notification, language }: InAppNotifi
                 </div>
               </div>
               <p className="absolute top-4 right-5 text-sm text-gray-500 whitespace-nowrap">
-                {dateString} | {timeString}
+                Now
               </p>
             </div>
             <div className="pr-36">
@@ -77,9 +60,9 @@ export function InAppNotificationPreview({ notification, language }: InAppNotifi
           {notification?.imageURL && (
             <div className="absolute top-3 right-5">
               <Image
-                src={notification?.imageURL}
                 alt="Logo"
                 className="w-20 h-20 rounded-xl object-cover"
+                src={notification?.imageURL}
               />
             </div>
           )}
@@ -87,8 +70,8 @@ export function InAppNotificationPreview({ notification, language }: InAppNotifi
           {(notification.redirectButton?.label.en || notification.redirectButton?.label.th) && (
             <div className="self-end items-end">
               <Button
-                color="primary"
                 className="rounded-2xl"
+                color="primary"
                 onPress={() => notification.redirectButton?.url ? window.location.href = notification.redirectButton?.url || '#' : null}
               >
                 {notification.redirectButton?.label[language]}

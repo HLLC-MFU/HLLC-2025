@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, ChangeEvent, useMemo, RefObject } from "re
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
+
 import { useLamduanSetting } from "@/hooks/useLamduanSetting";
 import { LamduanSetting } from "@/types/lamduan-flowers";
 
@@ -40,6 +41,7 @@ export function SettingLamduanFlowers({
     if (!iso) return "";
     const date = new Date(iso);
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+
     return local.toISOString().slice(0, 16);
   };
 
@@ -51,6 +53,7 @@ export function SettingLamduanFlowers({
       setStartDate("");
       setEndDate("");
       originalRef.current = null;
+
       return;
     }
 
@@ -68,6 +71,7 @@ export function SettingLamduanFlowers({
 
   useEffect(() => {
     const latestData = lamduanSetting.at(-1) ?? null;
+
     populateForm(latestData);
   }, [lamduanSetting]);
 
@@ -79,6 +83,7 @@ export function SettingLamduanFlowers({
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
+
     if (selectedFile) {
       setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
@@ -93,6 +98,7 @@ export function SettingLamduanFlowers({
 
   const handleDiscard = () => {
     const latestData = lamduanSetting.at(-1) ?? null;
+
     populateForm(latestData);
     setErrors({
       file: "",
@@ -104,6 +110,7 @@ export function SettingLamduanFlowers({
 
   const isChanged = useMemo(() => {
     const original = originalRef.current;
+
     if (!original) return true;
 
     const originalStart = toLocalDatetime(original.startAt);
@@ -153,6 +160,7 @@ export function SettingLamduanFlowers({
     setErrors(newErrors);
 
     const hasError = Object.values(newErrors).some((v) => v !== "");
+
     if (hasError) return;
 
     handleSave(isChanged, file, videoLink, startDate, endDate);
@@ -164,16 +172,16 @@ export function SettingLamduanFlowers({
         <h4 className="text-sm font-medium text-default-700">Lamduan Flower Setting</h4>
         <div className="flex gap-2">
           <Button
-            size="sm"
-            variant="flat"
             color="primary"
+            size="sm"
             startContent={<Upload size={14} />}
+            variant="flat"
             onPress={() => inputRef.current?.click()}
           >
             Upload
           </Button>
           {preview && (
-            <Button size="sm" variant="flat" color="danger" isIconOnly onPress={handleClearImage}>
+            <Button isIconOnly color="danger" size="sm" variant="flat" onPress={handleClearImage}>
               <X size={14} />
             </Button>
           )}
@@ -182,7 +190,7 @@ export function SettingLamduanFlowers({
 
       <div className="relative aspect-video rounded-xl overflow-hidden border border-default-200 bg-default-50">
         {preview ? (
-          <img src={preview} alt="Preview" className="w-full h-full object-contain bg-white" />
+          <img alt="Preview" className="w-full h-full object-contain bg-white" src={preview} />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-default-400">
             <ImageIcon size={24} />
@@ -202,23 +210,27 @@ export function SettingLamduanFlowers({
       <div className="flex w-full flex-wrap md:flex-nowrap mb-2 gap-4 py-2">
         <Input
           isRequired
+          errorMessage={errors.videoLink}
+          isInvalid={!!errors.videoLink}
           label="Link Youtube"
           labelPlacement="outside"
           placeholder="https://youtube.com/watch?v=..."
           type="url"
+
           value={videoLink}
           onChange={(e) => {
             setVideoLink(e.target.value);
             clearError('videoLink');
           }}
-          isInvalid={!!errors.videoLink}
-          errorMessage={errors.videoLink}
         />
       </div>
 
       <div className="flex flex-col md:flex-row gap-2">
         <Input
           isRequired
+          className="w-full"
+          errorMessage={errors.startDate}
+          isInvalid={!!errors.startDate}
           label="Event start"
           labelPlacement="inside"
           placeholder=" "
@@ -228,12 +240,12 @@ export function SettingLamduanFlowers({
             setStartDate(e.target.value);
             clearError('startDate');
           }}
-          isInvalid={!!errors.startDate}
-          errorMessage={errors.startDate}
-          className="w-full"
         />
         <Input
           isRequired
+          className="w-full"
+          errorMessage={errors.endDate}
+          isInvalid={!!errors.endDate}
           label="Event end"
           labelPlacement="inside"
           placeholder=" "
@@ -243,17 +255,14 @@ export function SettingLamduanFlowers({
             setEndDate(e.target.value);
             clearError('endDate');
           }}
-          isInvalid={!!errors.endDate}
-          errorMessage={errors.endDate}
-          className="w-full"
         />
       </div>
 
       <div className="flex justify-end gap-4 pt-4">
-        <Button variant="light" color="danger" size="md" onPress={handleDiscard}>
+        <Button color="danger" size="md" variant="light" onPress={handleDiscard}>
           Discard Changes
         </Button>
-        <Button variant="solid" color="primary" size="md" onPress={handleValidateAndSave}>
+        <Button color="primary" size="md" variant="solid" onPress={handleValidateAndSave}>
           Save
         </Button>
       </div>

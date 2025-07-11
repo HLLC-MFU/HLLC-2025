@@ -1,6 +1,7 @@
+import type { Problem, ReportTypes } from "@/types/report";
+
 import { Card, CardBody } from "@heroui/react";
 import { Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import type { Problem, ReportTypes } from "@/types/report";
 
 interface ProblemChartsProps {
     problems: Problem[];
@@ -52,6 +53,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             </div>
         );
     }
+
     return null;
 };
 
@@ -78,18 +80,18 @@ export function ReportCharts({ problems, reporttypes }: ProblemChartsProps) {
                 <CardBody>
                     <h3 className="text-lg font-semibold ">Problems by Category</h3>
                     <div className=" h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer height="100%" width="100%">
                             <PieChart>
                                 <Pie
-                                    data={reporttypeData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={50}
-                                    outerRadius={80}
+                                    data={reporttypeData}
                                     dataKey="count"
-                                    nameKey="name"
-                                    labelLine={false}
+                                    innerRadius={50}
                                     label={({ name, percent }) => ` ${(percent * 100).toFixed(0)}%`}
+                                    labelLine={false}
+                                    nameKey="name"
+                                    outerRadius={80}
                                 >
                                     {reporttypeData.map((entry, index) => (
                                         <Cell
@@ -110,19 +112,19 @@ export function ReportCharts({ problems, reporttypes }: ProblemChartsProps) {
                 <CardBody>
                     <h3 className="text-lg font-semibold ">Problems by Status</h3>
                     <div className=" h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer height="100%" width="100%">
                             <PieChart>
                                 <Pie
-                                    data={statusData}
                                     cx="50%"
                                     cy="50%"
-                                    labelLine={false}
-                                    innerRadius={50}
-                                    outerRadius={80}
-                                    fill={COLORS.primary}
+                                    data={statusData}
                                     dataKey="value"
-                                    strokeWidth={2}
+                                    fill={COLORS.primary}
+                                    innerRadius={50}
                                     label={({ name, percent }) => ` ${(percent * 100).toFixed(0)}%`}
+                                    labelLine={false}
+                                    outerRadius={80}
+                                    strokeWidth={2}
                                 >
                                     {statusData.map((entry, index) => (
                                         <Cell

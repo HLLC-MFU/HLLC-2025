@@ -24,6 +24,8 @@ type AppConfig struct {
 	Port       string
 	BaseURL    string
 	APIBaseURL string
+	APIBasePath string
+	WS_BASE_PATH string
 }
 
 type MongoConfig struct {
@@ -49,7 +51,6 @@ type KafkaConfig struct {
 
 type UploadConfig struct {
 	BaseURL string
-	Path    string
 }
 
 // **NEW: Async-first Flow Configuration**
@@ -121,8 +122,9 @@ type ReliabilityThresholds struct {
 	CacheTimeout        time.Duration `env:"CACHE_TIMEOUT" envDefault:"1s"`
 }
 
+// Default เผื่ออ่าน env ไม่ได้จะกลับมาอ่าน default ที่ set ไว้
 var defaults = map[string]string{
-	"APP_PORT":                "8081",
+	"APP_BASE_URL":           "http://localhost:1334",
 	"REDIS_HOST":             "localhost",
 	"REDIS_PORT":             "6379",
 	"REDIS_DB":               "0",
@@ -142,9 +144,36 @@ func getEnv(key string) string {
 func LoadConfig() (*Config, error) {
 	_ = godotenv.Load() // Ignore error if .env doesn't exist
 
-	appPort := getEnv("APP_PORT")
+	// Check if there're env.production existing go use that one instead.
+	if _, err := os.Stat(".env.production"); err == nil {
+		_ = godotenv.Load(".env.production") // Load .env.production
+	} else {
+		_ = godotenv.Load() // If .env.production doesn't exist, use .env
+	}
+
+	// Get base URL first
+	baseURL := getEnv("APP_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:1334"
+	}
+
+	// Extract port from base URL if available, otherwise use APP_PORT
+	var appPort string
+	if strings.Contains(baseURL, ":") {
+		// Extract port from URL like "http://localhost:1334"
+		parts := strings.Split(baseURL, ":")
+		if len(parts) >= 2 {
+			// Get the last part and remove any path
+			portPart := parts[len(parts)-1]
+			if strings.Contains(portPart, "/") {
+				portPart = strings.Split(portPart, "/")[0]
+			}
+			appPort = portPart
+		}
+	}
+
 	if err := validatePort(appPort); err != nil {
-		return nil, fmt.Errorf("invalid APP_PORT: %v", err)
+		return nil, fmt.Errorf("invalid port from APP_BASE_URL or APP_PORT: %v", err)
 	}
 
 	redisPort := getEnv("REDIS_PORT")
@@ -162,16 +191,13 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("invalid REDIS_DB: must be a non-negative number")
 	}
 
-	baseURL := getEnv("APP_BASE_URL")
-	if baseURL == "" {
-		baseURL = fmt.Sprintf("http://localhost:%s", appPort)
-	}
-
 	cfg := &Config{
 		App: AppConfig{
 			Port:       appPort,
 			BaseURL:    baseURL,
 			APIBaseURL: getEnv("API_BASE_URL"),
+			APIBasePath: getEnv("API_BASE_PATH"), // Dynamic API base path
+			WS_BASE_PATH: getEnv("WS_BASE_PATH"), // Dynamic WS base path
 		},
 		Mongo: MongoConfig{
 			URI:      getEnv("MONGO_URI"),
@@ -196,7 +222,6 @@ func LoadConfig() (*Config, error) {
 		},
 		Upload: UploadConfig{
 			BaseURL: fmt.Sprintf("%s/uploads", baseURL),
-			Path:    getEnv("UPLOAD_PATH"),
 		},
 	}
 

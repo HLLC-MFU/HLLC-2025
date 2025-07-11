@@ -248,11 +248,11 @@ export class UsersService {
             last: userDto.name.last || '',
           },
           username: userDto.username,
-          password: '', // password is intentionally blank
+          password: undefined,
           role: new Types.ObjectId(userDto.role),
           metadata: {
             major: userMajor, // ✅ only setting major
-            secret: null, // ✅ explicitly set to null
+            secret: undefined, // ✅ explicitly set to null
           },
         };
       }),

@@ -17,8 +17,10 @@ import (
 	"chat/module/chat/utils"
 	restrictionController "chat/module/restriction/controller"
 	restrictionService "chat/module/restriction/service"
-	roomController "chat/module/room/controller"
-	roomService "chat/module/room/service"
+	groupController "chat/module/room/group/controller"
+	groupService "chat/module/room/group/service"
+	roomController "chat/module/room/room/controller"
+	roomService "chat/module/room/room/service"
 	evoucherController "chat/module/sendEvoucher/controller"
 	evoucherService "chat/module/sendEvoucher/service"
 	stickerController "chat/module/sticker/controller"
@@ -88,6 +90,10 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
+	uploadBasedPath :=cfg.Upload.BaseURL
+
+	fmt.Println("Upload Based Path:", uploadBasedPath)
+
 	// Setup logging
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 	log.SetPrefix("[SERVER] ")
@@ -120,8 +126,8 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	})
-	apiGroup := app.Group("/api")
-	wsChatGroup := app.Group("/chat")
+	apiGroup := app.Group(cfg.App.APIBasePath)
+	wsChatGroup := app.Group(cfg.App.WS_BASE_PATH)
 
 	usersGroup := apiGroup.Group("/users")
 	rolesGroup := apiGroup.Group("/roles")
@@ -143,19 +149,19 @@ func main() {
 	// Setup cookie middleware
 	cookieConfig := middleware.DefaultCookieConfig()
 	app.Use(middleware.SetCookieMiddleware(cookieConfig))
+	
 
 	// Setup static file serving for uploads
-	app.Static("/uploads", "./uploads", fiber.Static{
-		Browse:        false,  // Disable directory browsing for security
-		MaxAge:       86400,  // Cache for 24 hours
-		Compress:     true,   // Enable compression
-		ByteRange:    true,   // Enable byte range requests
-		CacheDuration: 24 * 60 * 60 * time.Second, // 24 hours cache
-		Next: func(c *fiber.Ctx) bool { // Skip processing for non-existent files
+	app.Static(uploadBasedPath, "./uploads", fiber.Static{
+		Browse:        false,  
+		MaxAge:       86400,  
+		Compress:     true,   
+		ByteRange:    true,   
+		CacheDuration: 24 * 60 * 60 * time.Second, 
+		Next: func(c *fiber.Ctx) bool { 
 			return c.Method() != fiber.MethodGet
 		},
 	})
-
 	// Initialize services
 	chatSvc := chatService.NewChatService(db, redis, kafkaBus, cfg)
 	chatHub := chatSvc.GetHub()
@@ -165,7 +171,7 @@ func main() {
 	roleSvc := userService.NewRoleService(db)
 	userSvc := userService.NewUserService(db)
 	roomSvc := roomService.NewRoomService(db, redis, cfg, chatHub)
-	groupRoomSvc := roomService.NewGroupRoomService(db, redis, cfg, chatHub, roomSvc, kafkaBus)
+	groupRoomSvc := groupService.NewGroupRoomService(db, redis, cfg, chatHub, roomSvc, kafkaBus)
 	stickerSvc := stickerService.NewStickerService(db)
 	chatEmitter := utils.NewChatEventEmitter(chatHub, kafkaBus, redis, db)
 	restrictionSvc := restrictionService.NewRestrictionService(db, chatHub, chatEmitter, chatSvc.GetNotificationService(), kafkaBus)
@@ -179,7 +185,7 @@ func main() {
 	userController.NewSchoolController(schoolsGroup, schoolSvc)
 	userController.NewMajorController(majorsGroup, majorSvc)
 	roomController.NewRoomController(roomsGroup, roomSvc, rbacMiddleware, db)
-	roomController.NewGroupRoomController(roomsGroup, groupRoomSvc, roomSvc, rbacMiddleware)
+	groupController.NewGroupRoomController(roomsGroup, groupRoomSvc, roomSvc, rbacMiddleware)
 	stickerController.NewStickerController(stickersGroup, stickerSvc, rbacMiddleware)
 	chatController.NewChatController(chatGroup, chatSvc, roomSvc, stickerSvc, restrictionSvc, rbacMiddleware, connManager, roleSvc, db)
 	uploadController.NewUploadController(uploadsGroup, rbacMiddleware, chatSvc, userSvc)

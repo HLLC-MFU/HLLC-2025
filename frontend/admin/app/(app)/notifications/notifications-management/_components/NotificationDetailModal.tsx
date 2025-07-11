@@ -6,6 +6,7 @@ import {
   ModalFooter,
   Button,
 } from '@heroui/react';
+
 import { Notification } from '@/types/notification';
 
 interface NotificationProp {
@@ -23,10 +24,10 @@ export default function NotificationModal({
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      placement="center"
       backdrop="opaque"
+      isOpen={isOpen}
+      placement="center"
+      onClose={onClose}
     >
       <ModalContent className="max-w-xl w-full">
         <>
@@ -122,10 +123,10 @@ export default function NotificationModal({
                         URL
                       </h1>
                       <a
-                        href={notification.redirectButton.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="text-sm text-blue-700 break-words underline"
+                        href={notification.redirectButton.url}
+                        rel="noopener noreferrer"
+                        target="_blank"
                       >
                         {notification.redirectButton.url}
                       </a>
@@ -136,9 +137,9 @@ export default function NotificationModal({
 
               {notification.image && (
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${notification.image}`}
                   alt="Notification"
                   className="w-full h-48 object-cover rounded-lg mt-4"
+                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${notification.image}`}
                 />
               )}
             </div>

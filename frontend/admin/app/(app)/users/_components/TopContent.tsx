@@ -1,4 +1,4 @@
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Select, SelectItem } from "@heroui/react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from "@heroui/react";
 import { ChevronDownIcon, FileInput, FileOutput, Plus, SearchIcon, UserRound } from "lucide-react";
 import React, { SetStateAction } from "react";
 
@@ -71,11 +71,11 @@ export default function TopContent({
                             <Button color="primary" endContent={<Plus size={20} />}>Add new</Button>
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Static Actions">
-                            <DropdownItem onPress={() => { setActionMode("Add"); setModal(prev => ({...prev, add: true})); }} key="new" startContent={<UserRound size={16} />}>New user</DropdownItem>
-                            <DropdownItem onPress={() => setModal(prev => ({...prev, import: true}))} key="import" startContent={<FileInput size={16} />}>Import .xlsx file</DropdownItem>
+                            <DropdownItem key="new" startContent={<UserRound size={16} />} onPress={() => { setActionMode("Add"); setModal(prev => ({...prev, add: true})); }}>New user</DropdownItem>
+                            <DropdownItem key="import" startContent={<FileInput size={16} />} onPress={() => setModal(prev => ({...prev, import: true}))}>Import .xlsx file</DropdownItem>
                         </DropdownMenu>
                     </Dropdown >
-                    <Button color="success" className="text-white" endContent={<FileOutput size={20} />} onPress={() => setModal(prev => ({...prev, export: true}))}>Export</Button>
+                    <Button className="text-white" color="success" endContent={<FileOutput size={20} />} onPress={() => setModal(prev => ({...prev, export: true}))}>Export</Button>
                 </div>
             </div>
         </div >
