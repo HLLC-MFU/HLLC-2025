@@ -333,6 +333,11 @@ export class AuthService {
       );
     }
 
+    const isSamePassword = await bcrypt.compare(password, user.password);
+    if (isSamePassword) {
+      throw new BadRequestException('New password cannot be the same as previous password');
+    }
+
     // Set new password (will be hashed by pre-save hook)
     user.password = password;
     user.refreshToken = null;
