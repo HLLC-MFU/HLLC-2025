@@ -21,7 +21,6 @@ export class MajorsController {
   constructor(private readonly majorsService: MajorsService) {}
 
   @Post()
-  @Permissions('majors:create')
   create(@Body() createMajorDto: CreateMajorDto) {
     createMajorDto.createdAt = new Date();
     return this.majorsService.create(createMajorDto);
@@ -38,13 +37,11 @@ export class MajorsController {
   }
 
   @Patch(':id')
-  @Permissions('majors:update')
   update(@Param('id') id: string, @Body() updateMajorDto: UpdateMajorDto) {
     return this.majorsService.update(id, updateMajorDto);
   }
 
   @Delete(':id')
-  @Permissions('majors:delete')
   remove(@Param('id') id: string) {
     return this.majorsService.remove(id);
   }

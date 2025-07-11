@@ -25,7 +25,6 @@ export class AppearancesController {
 
   @UseInterceptors(new AppearanceMultipartInterceptor(500))
   @Post()
-  @Permissions('appearance:create')
   async create(@Req() req: FastifyRequest) {
     const dto = req.body as CreateAppearanceDto;
     return this.appearancesService.create(dto);
@@ -43,7 +42,6 @@ export class AppearancesController {
   }
 
   @Patch(':id')
-  @Permissions('appearance:update')
   @UseInterceptors(new AppearanceMultipartInterceptor(500))
   async update(@Param('id') id: string, @Req() req: FastifyRequest) {
     const dto = req.body as UpdateAppearanceDto;
@@ -51,7 +49,6 @@ export class AppearancesController {
   }
 
   @Delete(':id')
-  @Permissions('appearance:delete')
   remove(@Param('id') id: string) {
     return this.appearancesService.remove(id);
   }
