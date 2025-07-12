@@ -90,6 +90,11 @@ export default function CoinHuntingScreen() {
         stamps={stampCount}
         onGetReward={() => {}}
         coinImages={collectedCoinImages}
+        coinRotations={[
+          90, 140, 190, 240, 295, 345, 40, // รอบนอก
+          120, 165, 220, 270, 325, 15, 65 // รอบใน
+        ]}
+        coinSizes={[ 85, 85, 85 , 90, 90, 85, 85, 85, 85, 90, 85, 90, 80, 85]}
       />
     </GestureHandlerRootView>
   );
