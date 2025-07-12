@@ -191,6 +191,61 @@ export default function StampModal({
     [...Array(14)].map(() => new Animated.Value(0)),
   ).current;
 
+  // === NEW: Animation for new coin effect ===
+  const [newCoinIndex, setNewCoinIndex] = useState<number | null>(null);
+  const [showNewCoinEffect, setShowNewCoinEffect] = useState(false);
+  const newCoinAnim = useRef(new Animated.Value(0)).current;
+  const newCoinScale = useRef(new Animated.Value(0.3)).current;
+  const newCoinPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+
+  // Track previous coinImages to detect new coins
+  const prevCoinImages = useRef<(string | undefined)[]>([]);
+
+  // Detect new coins and trigger animation
+  useEffect(() => {
+    if (visible && coinImages.length > 0) {
+      const newCoins = coinImages.map((img, index) => {
+        const hadCoin = prevCoinImages.current[index];
+        const hasCoin = !!img;
+        return hasCoin && !hadCoin ? index : null;
+      }).filter((index): index is number => index !== null);
+
+      if (newCoins.length > 0) {
+        const latestNewCoin = newCoins[newCoins.length - 1];
+        setNewCoinIndex(latestNewCoin);
+        setShowNewCoinEffect(true);
+        
+        // Reset animation values
+        newCoinAnim.setValue(0);
+        newCoinScale.setValue(0.3);
+        newCoinPosition.setValue({ x: 0, y: 0 });
+
+        // Animate new coin effect
+        Animated.parallel([
+          Animated.timing(newCoinAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(newCoinScale, {
+            toValue: 1.5,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          // After animation, reset for next time
+          setTimeout(() => {
+            setShowNewCoinEffect(false);
+            setNewCoinIndex(null);
+          }, 500);
+        });
+      }
+    }
+    
+    // Update previous coin images
+    prevCoinImages.current = [...coinImages];
+  }, [visible, coinImages]);
+
   // === Glow effect for complete collection ===
   const isComplete = coinImages.filter(Boolean).length === 14;
   const glowAnim = useRef(new Animated.Value(0.7)).current;
@@ -237,6 +292,71 @@ export default function StampModal({
     }
   }, [visible, coinImages, coinRotations, coinSizes]);
 
+  // Handle tap to place coin in slot
+  const handleTapToPlace = () => {
+    if (showNewCoinEffect && newCoinIndex !== null) {
+      // Animate coin to its final position
+      let targetX = 0;
+      let targetY = 0;
+
+      if (newCoinIndex < NUM_SQUARES) {
+        // Outer ring position
+        const angle = (2 * Math.PI * newCoinIndex) / NUM_SQUARES;
+        targetX = RADIUS * Math.cos(angle);
+        targetY = RADIUS * Math.sin(angle);
+      } else {
+        // Inner ring position (centroid calculation)
+        const index = newCoinIndex - NUM_SQUARES;
+        const angleMid = (2 * Math.PI * (index + 1)) / NUM_SQUARES;
+        const innerRadius = 12;
+        const p1 = {
+          x: innerRadius * Math.cos(angleMid),
+          y: innerRadius * Math.sin(angleMid),
+        };
+        const angleIn1 = (2 * Math.PI * index) / NUM_SQUARES + Math.PI / 3.5;
+        const inRadius = KITE_INNER_RADIUS;
+        const p2 = {
+          x: inRadius * Math.cos(angleIn1),
+          y: inRadius * Math.sin(angleIn1),
+        };
+        const angleOut = (2 * Math.PI * (index + 1)) / NUM_SQUARES - Math.PI / NUM_SQUARES;
+        const outRadius = KITE_OUTER_RADIUS;
+        const p3 = {
+          x: outRadius * Math.cos(angleOut),
+          y: outRadius * Math.sin(angleOut),
+        };
+        const angleIn2 = (2 * Math.PI * (index + 0.9)) / NUM_SQUARES - Math.PI / 4;
+        const p4 = {
+          x: inRadius * Math.cos(angleIn2),
+          y: inRadius * Math.sin(angleIn2),
+        };
+        const angleMid1 = (2 * Math.PI * index) / NUM_SQUARES;
+        const p6 = {
+          x: innerRadius * Math.cos(angleMid1),
+          y: innerRadius * Math.sin(angleMid1),
+        };
+        targetX = (p1.x + p2.x + p3.x + p4.x + p6.x) / 5;
+        targetY = (p1.y + p2.y + p3.y + p4.y + p6.y) / 5;
+      }
+
+      Animated.parallel([
+        Animated.timing(newCoinPosition, {
+          toValue: { x: targetX, y: targetY },
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(newCoinScale, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setShowNewCoinEffect(false);
+        setNewCoinIndex(null);
+      });
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -244,7 +364,11 @@ export default function StampModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <TouchableOpacity 
+        style={styles.overlay} 
+        activeOpacity={1}
+        onPress={showNewCoinEffect ? handleTapToPlace : undefined}
+      >
         <View style={styles.modalContent}>
           <Text style={styles.title}>Collection</Text>
           <View style={styles.stampHexGridContainer}>
@@ -494,6 +618,40 @@ export default function StampModal({
                 </Animated.View>
               );
             })}
+
+            {/* New coin effect overlay */}
+            {showNewCoinEffect && newCoinIndex !== null && (
+              <Animated.View
+                style={{
+                  position: 'absolute',
+                  left: 0, top: 0, right: 0, bottom: 0,
+                  alignItems: 'center', justifyContent: 'center',
+                  zIndex: 25, // Ensure it's above other content
+                }}
+                onTouchEnd={handleTapToPlace} // Allow tapping to place
+              >
+                <Animated.View
+                  style={{
+                    transform: [
+                      { translateX: newCoinPosition.x },
+                      { translateY: newCoinPosition.y },
+                      { scale: newCoinScale },
+                      { rotate: newCoinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
+                    ],
+                    opacity: newCoinAnim,
+                  }}
+                >
+                  <Image
+                    source={{ uri: coinImages[newCoinIndex] }}
+                    style={{
+                      width: 50,
+                      height: 50,
+                      resizeMode: 'contain',
+                    }}
+                  />
+                </Animated.View>
+              </Animated.View>
+            )}
           </View>
 
           <TouchableOpacity
@@ -504,7 +662,7 @@ export default function StampModal({
             <Text style={styles.rewardBtnText}>Close</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 }
