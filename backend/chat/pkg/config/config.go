@@ -144,11 +144,9 @@ func getEnv(key string) string {
 func LoadConfig() (*Config, error) {
 	_ = godotenv.Load() // Ignore error if .env doesn't exist
 
-	// Check if there're env.production existing go use that one instead.
+	// If .env.production exists, override values
 	if _, err := os.Stat(".env.production"); err == nil {
-		_ = godotenv.Load(".env.production") // Load .env.production
-	} else {
-		_ = godotenv.Load() // If .env.production doesn't exist, use .env
+		_ = godotenv.Overload(".env.production")
 	}
 
 	// Get base URL first
