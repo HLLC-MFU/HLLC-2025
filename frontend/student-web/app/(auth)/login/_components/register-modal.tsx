@@ -16,6 +16,7 @@ import { useState, useEffect } from 'react';
 
 import { usePopupDialog } from '@/components/ui/dialog';
 import { CheckedUser, Province } from '@/types/user';
+import useAuth from '@/hooks/useAuth';
 
 interface RegisterModalProps {
   isOpen: boolean;
@@ -37,7 +38,9 @@ export default function RegisterModal({
   const [isPasswordVisible, setPasswordIsVisible] = useState(false);
   const [isConfirmPasswordVisible, setConfirmPasswordIsVisible] =
     useState(false);
+  const register = useAuth((state) => state.register)
   const [provinces, setProvinces] = useState<Province[]>([]);
+  const [selectedProvince, setSelectedProvince] = useState("");
   const { openDialog } = usePopupDialog();
 
   const togglePasswordVisibility = () => setPasswordIsVisible(prev => !prev);
@@ -89,6 +92,40 @@ export default function RegisterModal({
       );
     }
   };
+
+  const handleRegister = async () => {
+    if (!studentId || !selectedProvince || !password || !confirmPassword) {
+      openDialog("Incomplete", "Please complete all fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      openDialog("Password Mismatch", "Passwords do not match");
+      return;
+    }
+
+    const success = await register({
+      username: studentId,
+      password,
+      confirmPassword,
+      metadata: { secret: selectedProvince },
+    });
+
+    if (success) {
+      openDialog("Success", "You have successfully registered.", () => {
+        clearForm();
+        onOpenChange();
+      });
+    } else {
+      openDialog("Error", "Registration failed. Please try again.");
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      clearForm();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const loadProvinces = async () => {
@@ -181,17 +218,22 @@ export default function RegisterModal({
             label="Province"
             labelPlacement="inside"
             placeholder="Select province"
+            selectedKeys={selectedProvince ? [selectedProvince] : []}
+            onChange={(e) => setSelectedProvince(e.target.value)}
           >
             {provinces.map(province => (
               <SelectItem key={province.name_th}>{province.name_th}</SelectItem>
             ))}
           </Select>
+
         </ModalBody>
         <ModalFooter>
           <Button variant="light" onPress={onOpenChange}>
             Cancel
           </Button>
-          <Button color="primary">Submit</Button>
+          <Button color="primary" onPress={handleRegister}>
+            Submit
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

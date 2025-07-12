@@ -1,9 +1,10 @@
-import { Major } from "@/types/major";
-import { School } from "@/types/school";
-import { User } from "@/types/user";
 import { Button, Checkbox, Chip, Input, Pagination, Selection, Tab, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tabs, Tooltip } from "@heroui/react";
 import { ChevronsRight, GraduationCap, RotateCcw, SchoolIcon, SearchIcon, ShieldUser, UserRound } from "lucide-react";
 import { useMemo, useState } from "react";
+
+import { Major } from "@/types/major";
+import { School } from "@/types/school";
+import { User } from "@/types/user";
 import { Notification, Target } from "@/types/notification";
 
 type NotificationScopeSelectorProps = {
@@ -38,6 +39,7 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 		const majorIds = selected.filter(id => majors.some(m => m._id === id));
 
 		const result: Target[] = [];
+
 		if (userIds.length) result.push({ type: "user", id: userIds });
 		if (schoolIds.length) result.push({ type: "school", id: schoolIds });
 		if (majorIds.length) result.push({ type: "major", id: majorIds });
@@ -92,6 +94,7 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 			if (selectedScopeGroup === "user") {
 				return col.key !== "actions";
 			}
+
 			return true;
 		});
 	}, [selectedScopeGroup]);
@@ -103,7 +106,7 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 					return (
 						<div className="flex flex-row items-center gap-2">
 							<div className="border rounded-full p-1.5 bg-gray-200 shadow-lg">
-								<SchoolIcon width={24} height={24}/>
+								<SchoolIcon height={24} width={24}/>
 							</div>
 							<div className="flex flex-col">
 								<p>{item.name.en}</p>
@@ -138,7 +141,7 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 					return (
 						<div className="flex flex-row items-center gap-2">
 							<div className="border rounded-full p-1.5 bg-gray-200 shadow-lg">
-								<GraduationCap width={24} height={24}/>
+								<GraduationCap height={24} width={24}/>
 							</div>
 							<div className="flex flex-col">
 								<p>{item.name.en}</p>
@@ -163,7 +166,7 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 										setSelectedScopeGroup("user")
 									}}
 								>
-									<ChevronsRight color="#006FEE" className="text-default-300" />
+									<ChevronsRight className="text-default-300" color="#006FEE" />
 								</Button>
 							</Tooltip>
 						</div>
@@ -177,7 +180,7 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 					return (
 						<div className="flex flex-row items-center gap-2">
 							<div className="border rounded-full p-1.5 bg-gray-200 shadow-lg">
-								{item.role.name === 'Administrator' ? <ShieldUser width={24} height={24}/> : <UserRound width={24} height={24}/>}
+								{item.role.name === 'Administrator' ? <ShieldUser height={24} width={24}/> : <UserRound height={24} width={24}/>}
 							</div>
 							<div className="flex flex-col">
 								<p>{`${item.name.first} ${!!item.name.middle || ''} ${item.name.last}`}</p>
@@ -229,6 +232,7 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 					item.metadata?.major.school.name.en.toLowerCase().includes(lowerQuery)
 				);
 			}
+
 			return false;
 		});
 	}, [schools, majors, users, selectedScopeGroup, searchQuery]);
@@ -237,17 +241,21 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 
 	const paginatedItems = useMemo(() => {
 		const start = (page - 1) * pageSize;
+
 		return filteredItems.slice(start, start + pageSize);
 	}, [filteredItems, page]);
 
 	const getItemById = (id: string): { name: string; type: 'school' | 'major' | 'user'; icon: React.ReactNode } | null => {
 		const school = schools.find(s => s._id === id);
+
 		if (school) return { name: school.name.en, type: 'school', icon: <SchoolIcon size={16} /> };
 
 		const major = majors.find(m => m._id === id);
+
 		if (major) return { name: major.name.en, type: 'major', icon: <GraduationCap size={16} /> };
 
 		const user = users.find(u => u._id === id);
+
 		if (user) return { name: `${user.name.first} ${user.name.last}`, type: 'user', icon: <UserRound size={16} /> };
 
 		return null;
@@ -278,15 +286,15 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 								<Tab
 									key={scope.key}
 									title={scope.title}
-								></Tab>
+								 />
 							)}
 						</Tabs>
 						<Tooltip content="Reset scope">
 							<Button
-								color="danger"
-								variant="flat"
 								isIconOnly
+								color="danger"
 								startContent={<RotateCcw size={20}/>}
+								variant="flat"
 								onPress={() => {
 									setSearchQuery("");
 									setSelectedScopeGroup("school");
@@ -327,8 +335,8 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 		<>
 			<Checkbox 
 				defaultSelected
-				size="lg"
 				isSelected={isGlobal}
+				size="lg"
 				onValueChange={handleGlobalChange}
 			>
         All Student
@@ -337,13 +345,13 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 			{!isGlobal && (
 				<>
 					<Table
-						aria-label="Scope Table"
 						isCompact
 						removeWrapper
-						selectionMode="multiple"
-						topContent={NotificationTableTopContent}
+						aria-label="Scope Table"
 						bottomContent={NotificationTableBottomContent}
 						selectedKeys={selectedScopeKeys}
+						selectionMode="multiple"
+						topContent={NotificationTableTopContent}
 						onSelectionChange={handleSelectionChange}
 					>
 						<TableHeader columns={columns}>
@@ -371,14 +379,17 @@ export function NotificationScopeSelector({ notification, onChange, schools, maj
 						<div className="flex flex-wrap gap-2">
 							{Array.from(selectedScopeKeys).map((id) => {
 								const item = getItemById(id.toString());
+
 								if (!item) return null;
+
 								return (
 									<Chip
 										key={id}
-										variant="flat"
 										startContent={item.icon}
+										variant="flat"
 										onClose={() => {
 											const newKeys = new Set(selectedScopeKeys);
+
 											newKeys.delete(id);
 											setSelectedScopeKeys(newKeys);
 											onChange({ ...notification, scope: getMappedScopes(newKeys) });

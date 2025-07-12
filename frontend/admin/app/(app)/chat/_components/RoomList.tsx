@@ -1,13 +1,14 @@
-import { Room } from "@/types/chat";
 import { RoomSkeleton } from "./RoomSkeleton";
 import { RoomCard } from "./RoomCard";
 
-interface RoomListProps {
+import { Room } from "@/types/chat";
+
+type RoomListProps = {
     rooms?: Room[];
     isLoading: boolean;
     onEditRoom: (room: Room) => void;
     onDeleteRoom: (room: Room) => void;
-}
+};
 
 export function RoomList({ 
     rooms, 
@@ -39,8 +40,8 @@ export function RoomList({
                 <RoomCard 
                     key={room._id} 
                     room={room} 
-                    onEdit={onEditRoom} 
                     onDelete={onDeleteRoom} 
+                    onEdit={onEditRoom} 
                 />
             ))}
         </div>

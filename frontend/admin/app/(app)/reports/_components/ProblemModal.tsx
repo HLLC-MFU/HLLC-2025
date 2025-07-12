@@ -1,3 +1,5 @@
+import type { Problem, ReportTypes } from "@/types/report";
+
 import {
   Modal,
   ModalContent,
@@ -11,7 +13,6 @@ import {
   SelectItem,
 } from "@heroui/react";
 import { useState, useEffect } from "react";
-import type { Problem, ReportTypes } from "@/types/report";
 
 interface ProblemModalProps {
   isOpen: boolean;
@@ -79,7 +80,7 @@ export function ProblemModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+    <Modal isOpen={isOpen} size="2xl" onClose={onClose}>
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           {mode === "add" ? "Add New Problem" : "Edit Problem"}
@@ -103,17 +104,17 @@ export function ProblemModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Textarea
                 label="Description (English)"
+                minRows={3}
                 placeholder="Enter description in English"
                 value={descriptionEn}
                 onValueChange={setDescriptionEn}
-                minRows={3}
               />
               <Textarea
                 label="Description (Thai)"
+                minRows={3}
                 placeholder="Enter description in Thai"
                 value={descriptionTh}
                 onValueChange={setDescriptionTh}
-                minRows={3}
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

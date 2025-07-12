@@ -4,49 +4,69 @@ import { apiRequest } from '@/utils/api';
 import { StepCounter } from '@/types/step-counters';
 
 export function useStepCounters() {
-  const [all, setAll] = useState<StepCounter[]>([]);
+  const [stepByAll, setStepByAll] = useState<StepCounter[]>([]);
+  const [stepBySchool, setStepBySchool] = useState<StepCounter[]>([]);
+  const [stepByDate, setStepByDate] = useState<StepCounter[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleError = (error: { message?: string }) => {
+    addToast({
+      title: 'Failed to fetch leaderboard.',
+      color: 'danger',
+    });
+    setError(
+      error && typeof error === 'object' && 'message' in error
+        ? (error as { message?: string }).message || 'Failed to fetch leaderboard.'
+        : 'Failed to fetch leaderboard.'
+    );
+  };
 
   const fetchAllLeaderboard = async () => {
     setLoading(true);
     setError(null);
     try {
-      let page = 1;
-      const pageSize = 20;
-      let combined: StepCounter[] = [];
-      let hasMore = true;
+      const resAll = await apiRequest<{ data: StepCounter[] }>("/step-counters/leaderboard?scope=all", "GET");
+      if (!resAll.data) return;
+      setStepByAll(Array.isArray(resAll.data.data) ? resAll.data.data : []);
 
-      while (hasMore) {
-        const query = new URLSearchParams({
-          scope: 'all',
-          page: page.toString(),
-          pageSize: pageSize.toString(),
-        }).toString();
-
-        const res = await apiRequest<{ data: StepCounter[] }>(
-          `/step-counters/leaderboard?${query}`,
-          'GET'
-        );
-
-        const data = Array.isArray(res.data?.data) ? res.data.data : [];
-
-        combined = [...combined, ...data];
-        hasMore = data.length === pageSize; 
-        page++;
-      }
-
-      setAll(combined);
+      return resAll;
     } catch (err) {
-      addToast({
-        title: 'Failed to fetch full leaderboard.',
-        color: 'danger',
-      });
-      setError(
-        err && typeof err === 'object' && 'message' in err
-          ? (err as { message?: string }).message || 'Failed to fetch leaderboard.'
-          : 'Failed to fetch leaderboard.'
-      );
+      handleError(err as { message?: string });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSchoolLeaderboard = async (schoolId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resSchool = await apiRequest<{ data: StepCounter }>(`/step-counters/leaderboard?scope=school&schoolId=${schoolId}`, "GET");
+      if (!resSchool.data) return;
+
+      setStepBySchool(Array.isArray(resSchool.data.data) ? resSchool.data.data : []);
+
+      return resSchool.data.data;
+    } catch (err) {
+      handleError(err as { message?: string });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDateLeaderboard = async (date: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resDate = await apiRequest<{ data: StepCounter[] }>(`/step-counters/leaderboard?scope=date&date=${date}`, "GET");
+      if (!resDate.data) return;
+
+      setStepByDate(Array.isArray(resDate.data.data) ? resDate.data.data : []);
+
+      return resDate;
+    } catch (err) {
+      handleError(err as { message?: string });
     } finally {
       setLoading(false);
     }
@@ -57,9 +77,13 @@ export function useStepCounters() {
   }, []);
 
   return {
-    all,
+    stepByAll,
+    stepBySchool,
+    stepByDate,
     loading,
     error,
-    refetch: fetchAllLeaderboard,
+    fetchAllLeaderboard,
+    fetchSchoolLeaderboard,
+    fetchDateLeaderboard,
   };
 }

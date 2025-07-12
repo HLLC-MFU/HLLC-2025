@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
+import { addToast } from "@heroui/react";
+
 import { apiRequest, ApiResponse } from "@/utils/api";
 import { EvoucherCode } from "@/types/evoucher-code";
-import { addToast } from "@heroui/react";
 
 export function useEvoucherCode() {
     const [evoucherCodes, setEvoucherCodes] = useState<EvoucherCode[]>([]);
@@ -16,9 +17,11 @@ export function useEvoucherCode() {
             const res = await apiRequest<EvoucherCode[]>("/evoucher-codes?limit=0", "GET");
             const evoucherCodeData = res.data ?? [];
             setEvoucherCodes(evoucherCodeData);
+
             return res;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to fetch evoucher codes.';
+
             setError(errorMessage);
             addToast({
                 title: "Error",
@@ -38,12 +41,14 @@ export function useEvoucherCode() {
             return res.data?.data || null;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to fetch evoucher code.';
+
             setError(errorMessage);
             addToast({
                 title: "Error",
                 description: errorMessage,
                 color: "danger"
             });
+
             return null;
         } finally {
             setLoading(false);
@@ -71,6 +76,7 @@ export function useEvoucherCode() {
             }
         } catch (err) {
             const msg = err instanceof Error ? err.message : "Failed to create evoucher code.";
+
             setError(msg);
             addToast({
                 title: "Error",
@@ -106,6 +112,7 @@ export function useEvoucherCode() {
 
             if (res?.data?.data) {
                 const updatedEvoucherCode = res.data.data;
+
                 setEvoucherCodes(prev =>
                     prev.map(code =>
                         code._id === evoucherCodeId ? updatedEvoucherCode : code
@@ -118,9 +125,11 @@ export function useEvoucherCode() {
                     color: "success"
                 });
             }
+
             return res;
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to update evoucher code.';
+
             setError(errorMessage);
             addToast({
                 title: "Error",
@@ -147,9 +156,11 @@ export function useEvoucherCode() {
                     color: "success"
                 });
             }
+
             return res;
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to delete evoucher code.';
+
             setError(errorMessage);
             addToast({
                 title: "Error",

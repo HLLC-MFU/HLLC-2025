@@ -7,7 +7,7 @@ export type Room = {
     memberCount: number;
     createdBy: string;
     image: string;
-    members?: string[]; // Array of user IDs
+    members?: string[];
     createdAt: string;
     updatedAt: string;
     metadata: RoomMetadata;
@@ -21,26 +21,10 @@ export type Members = {
         middle?: string;
         last: string;
     };
-    role: string;
-    joinedAt: string;
-};
-
-// **NEW: Room Member with additional fields**
-export type RoomMember = {
-    _id: string;
-    username: string;
-    name: {
-        first: string;
-        middle?: string;
-        last: string;
-    };
     role: {
         _id: string;
         name: string;
     };
-    joinedAt: string;
-    isOnline?: boolean;
-    lastSeen?: string;
 };
 
 // **NEW: Evoucher types**
@@ -96,46 +80,6 @@ export type RestrictionResponse = {
         status: string;
         restrictor: string;
     };
-};
-
-// **NEW: Room members response**
-export type RoomMembersResponse = {
-    success: boolean;
-    message: string;
-    data: {
-        _id: string;
-        members: Array<{
-            user: {
-                _id: string;
-                username: string;
-                name?: {
-                    first: string;
-                    middle?: string;
-                    last: string;
-                };
-                role?: {
-                    _id: string;
-                    name: string;
-                };
-            };
-        }>;
-    };
-    // Also support direct members array for backward compatibility
-    members?: Array<{
-        user: {
-            _id: string;
-            username: string;
-            name?: {
-                first: string;
-                middle?: string;
-                last: string;
-            };
-            role?: {
-                _id: string;
-                name: string;
-            };
-        };
-    }>;
 };
 
 export enum RoomType {

@@ -1,8 +1,9 @@
 "use client";
 
-import { Card, CardBody, CardHeader, CardFooter } from "@heroui/react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Label } from 'recharts';
 import type { Problem, ReportTypes } from "@/types/report";
+
+import { Card, CardBody, CardFooter } from "@heroui/react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Label } from 'recharts';
 import { TrendingUp } from "lucide-react";
 
 interface ProblemChartsProps {
@@ -48,6 +49,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             </div>
         );
     }
+
     return null;
 };
 
@@ -77,9 +79,9 @@ export function ProblemCharts({ problems, reporttypes }: ProblemChartsProps) {
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Problems by Category</h3>
                         <div className="h-[250px]">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer height="100%" width="100%">
                                 <BarChart data={reporttypeData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                                    <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
                                     <XAxis
                                         dataKey="name"
                                         stroke="#6B7280"
@@ -103,17 +105,17 @@ export function ProblemCharts({ problems, reporttypes }: ProblemChartsProps) {
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Problems by Status</h3>
                         <div className="h-[250px]">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer height="100%" width="100%">
                                 <PieChart>
                                     <Pie
-                                        data={statusData}
                                         cx="50%"
                                         cy="50%"
-                                        labelLine={false}
-                                        innerRadius={60}
-                                        outerRadius={80}
-                                        fill={COLORS.primary}
+                                        data={statusData}
                                         dataKey="value"
+                                        fill={COLORS.primary}
+                                        innerRadius={60}
+                                        labelLine={false}
+                                        outerRadius={80}
                                         strokeWidth={2}
                                     >
                                         {statusData.map((entry, index) => (
@@ -128,23 +130,22 @@ export function ProblemCharts({ problems, reporttypes }: ProblemChartsProps) {
                                                 if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                                                     return (
                                                         <text
+                                                            dominantBaseline="middle"
+                                                            textAnchor="middle"
                                                             x={viewBox.cx}
                                                             y={viewBox.cy}
-                                                            textAnchor="middle"
-                                                            dominantBaseline="middle"
                                                         >
                                                             <tspan
+                                                                className="fill-foreground text-2xl font-bold"
                                                                 x={viewBox.cx}
                                                                 y={viewBox.cy}
-                                                                className="fill-foreground text-2xl font-bold"
                                                             >
                                                                 {resolutionRate}%
                                                             </tspan>
                                                             <tspan
+                                                                className="fill-muted-foreground text-sm"
                                                                 x={viewBox.cx}
                                                                 y={(viewBox.cy || 0) + 24}
-                                                                fill="#A1A1AA" 
-                                                                fontSize="12"
                                                             >
                                                                 Resolution Rate
                                                             </tspan>

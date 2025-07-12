@@ -57,24 +57,24 @@ export function ScopeSelector<T>({
       </div>
 
       <Input
-        value={searchQuery}
-        onValueChange={setSearchQuery}
-        placeholder={placeholder}
-        size="sm"
-        isDisabled={isDisabled}
-        startContent={<Search size={16} className="text-default-400" />}
         endContent={
           searchQuery ? (
             <Button
               isIconOnly
-              variant="light"
               size="sm"
+              variant="light"
               onPress={() => setSearchQuery("")}
             >
               <X size={14} />
             </Button>
           ) : null
         }
+        isDisabled={isDisabled}
+        placeholder={placeholder}
+        size="sm"
+        startContent={<Search className="text-default-400" size={16} />}
+        value={searchQuery}
+        onValueChange={setSearchQuery}
       />
 
       <ScrollShadow className="max-h-[250px] px-2 py-1">
@@ -86,6 +86,7 @@ export function ScopeSelector<T>({
           filteredItems.map((item) => {
             const id = getId(item);
             const isSelected = selectedItems.includes(id);
+
             return (
               <Button
                 key={id}

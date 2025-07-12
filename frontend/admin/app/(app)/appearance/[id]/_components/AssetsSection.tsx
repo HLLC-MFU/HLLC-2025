@@ -1,7 +1,8 @@
-import { Dispatch, SetStateAction, useEffect, useState } from 'react';
-import { Appearance } from '@/types/appearance';
+import { Dispatch, SetStateAction } from 'react';
 import { Button, Card, CardBody, CardHeader, Divider } from '@heroui/react';
 import { Ban, Image } from 'lucide-react';
+
+import { Appearance } from '@/types/appearance';
 import ImageInput from '@/components/ui/imageInput';
 
 export default function AssetsSection({
@@ -44,7 +45,7 @@ export default function AssetsSection({
               <div key={group}>
                 <p className="text-xl font-semibold capitalize">{group}</p>
                 <Divider className="my-4" />
-                <div className="grid grid-cols-3 gap-4" key={group}>
+                <div key={group} className="grid grid-cols-3 gap-4">
                   {groupAssets.map((asset) => {
                     const key = asset.title.toLowerCase();
                     const image = appearance.assets[key];
@@ -58,21 +59,10 @@ export default function AssetsSection({
 
                     return (
                       <div
-                        className={`${asset.title === 'Background' && 'col-span-full'}`}
                         key={key}
+                        className={`${asset.title === 'Background' && 'col-span-full'}`}
                       >
                         <ImageInput
-                          title={asset.title}
-                          onChange={handleChange}
-                          onCancel={() => {
-                            onSetAssets((prev) => {
-                              const updated = { ...prev };
-                              delete updated[asset.title];
-                              return updated;
-                            });
-                          }}
-                          image={image}
-                          onDiscard={Object.keys(assets).length === 0}
                           aspectRatio={
                             asset.title === 'Background'
                               ? 'aspect-[16/9]'
@@ -83,11 +73,24 @@ export default function AssetsSection({
                               ? 'video/mp4, image/*'
                               : 'image/*'
                           }
+                          image={image}
                           sizeLimit={
                             asset.title === 'Background'
                               ? 5 * 1024 * 1024
                               : 500 * 1024
                           }
+                          title={asset.title}
+                          onCancel={() => {
+                            onSetAssets((prev) => {
+                              const updated = { ...prev };
+
+                              delete updated[asset.title];
+
+                              return updated;
+                            });
+                          }}
+                          onChange={handleChange}
+                          onDiscard={Object.keys(assets).length === 0}
                         />
                       </div>
                     );
@@ -99,21 +102,21 @@ export default function AssetsSection({
             <div className="flex justify-end">
               <div className="flex justify-between gap-4">
                 <Button
-                  isDisabled={Object.keys(assets).length > 0 ? false : true}
-                  color="danger"
-                  size="lg"
-                  variant="light"
                   className="px-8 font-semibold"
+                  color="danger"
+                  isDisabled={Object.keys(assets).length > 0 ? false : true}
+                  size="lg"
                   startContent={<Ban className="w-5 h-5" />}
+                  variant="light"
                   onPress={() => onSetAssets({})}
                 >
                   Discard All
                 </Button>
                 <Button
-                  isDisabled={Object.keys(assets).length > 0 ? false : true}
-                  color="primary"
-                  size="lg"
                   className="px-8 font-semibold"
+                  color="primary"
+                  isDisabled={Object.keys(assets).length > 0 ? false : true}
+                  size="lg"
                   startContent={<Image className="w-5 h-5" />}
                   onPress={onSave}
                 >

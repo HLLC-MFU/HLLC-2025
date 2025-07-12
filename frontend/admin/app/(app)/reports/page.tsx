@@ -1,5 +1,7 @@
 'use client';
 
+import type { ReportTypes, Problem } from '@/types/report';
+
 import { useState } from 'react';
 import {
   Button,
@@ -8,11 +10,11 @@ import {
   CardHeader,
   Divider,
 } from '@heroui/react';
-import { CategoryModal } from './_components/CategoryModal';
-import { ProblemCharts } from './_components/ProblemCharts';
-import type { ReportTypes, Problem } from '@/types/report';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+import { CategoryModal } from './_components/CategoryModal';
+import { ProblemCharts } from './_components/ProblemCharts';
 import StatusDropdown from './_components/Statusdropdown';
 import SendNotiButton from './_components/SendNotiButton';
 import { useReportTypes } from '@/hooks/useReportTypes';

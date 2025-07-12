@@ -8,80 +8,64 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Input,
+  NumberInput,
 } from '@heroui/react';
-import { Footprints } from 'lucide-react';
-import { useStepAchievement } from '@/hooks/useStepAchiever';
+import { StepAchievement } from '@/types/step-counters';
 
 type SettingModalProps = {
   isOpen: boolean;
-  onSettingStepTarget: () => void;
+  onClose: () => void;
+  achievement: StepAchievement | null;
+  onUpdate: (steps: number) => void;
 };
 
 export default function StepContersModal({
   isOpen,
-  onSettingStepTarget,
+  onClose,
+  achievement,
+  onUpdate,
 }: SettingModalProps) {
-  const { achievement, updateAchievement, loading } = useStepAchievement();
+  const [stepsValue, setStepsValue] = useState<number>(0);
 
-  const [inputValue, setInputValue] = useState<string>('');
-
-  // เมื่อ modal เปิด ให้โหลดค่าเริ่มต้นเข้า input
   useEffect(() => {
     if (achievement) {
-      setInputValue(achievement.achievement.toString());
+      setStepsValue(achievement.achievement);
     }
   }, [achievement]);
-
-  const handleUpdate = async () => {
-    const parsedValue = parseInt(inputValue);
-    if (isNaN(parsedValue)) return;
-
-    await updateAchievement(parsedValue);
-    onSettingStepTarget(); // ปิด modal
-  };
 
   return (
     <>
       <Modal
-        backdrop="opaque"
+        isDismissable={false}
         isOpen={isOpen}
-        onOpenChange={onSettingStepTarget}
+        onClose={onClose}
       >
         <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                Add Steps Goal
-              </ModalHeader>
-              <ModalBody>
-                <Input
-                  type="number"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  endContent={
-                    <Footprints className="text-2xl text-default-400 pointer-events-none flex-shrink-0" />
-                  }
-                  label="Steps Target"
-                  placeholder="Enter Target Steps"
-                  variant="bordered"
-                  isDisabled={loading}
-                />
-              </ModalBody>
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button
-                  color="primary"
-                  onPress={handleUpdate}
-                  isDisabled={loading}
-                >
-                  Update
-                </Button>
-              </ModalFooter>
-            </>
-          )}
+          <ModalHeader className="flex flex-col gap-1">
+            Update Goal
+          </ModalHeader>
+          <ModalBody>
+            <NumberInput
+              value={stepsValue}
+              onValueChange={(value) => setStepsValue(value)}
+              label="Goal"
+              placeholder="Enter Target Steps"
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button color="danger" variant="light" onPress={onClose}>
+              Cancel
+            </Button>
+            <Button
+              color="primary"
+              onPress={() => {
+                onUpdate(stepsValue);
+                onClose();
+              }}
+            >
+              Update
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
     </>

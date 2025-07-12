@@ -7,7 +7,7 @@ import (
 	chatService "chat/module/chat/service"
 	"chat/module/chat/utils"
 	restrictionService "chat/module/restriction/service"
-	roomModel "chat/module/room/model"
+	roomModel "chat/module/room/room/model"
 	stickerModel "chat/module/sticker/model"
 	userModel "chat/module/user/model"
 	"chat/pkg/core/connection"

@@ -1,6 +1,5 @@
 "use client";
 
-import { Campaign } from "@/types/campaign";
 import {
   Modal,
   ModalContent,
@@ -104,7 +103,7 @@ export const CampaignCreateDialog = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+    <Modal isOpen={isOpen} size="2xl" onClose={onClose}>
       <ModalContent>
         <form onSubmit={handleSubmit}>
           <ModalHeader>Create New Campaign</ModalHeader>
@@ -127,20 +126,20 @@ export const CampaignCreateDialog = ({
             <div className="flex flex-col gap-4">
               <div className="flex gap-4">
                 <Input
+                  isRequired
                   label="Campaign Name (TH)"
                   value={formData.nameTh}
                   onChange={(e) =>
                     setFormData({ ...formData, nameTh: e.target.value })
                   }
-                  isRequired
                 />
                 <Input
+                  isRequired
                   label="Campaign Name (EN)"
                   value={formData.nameEn}
                   onChange={(e) =>
                     setFormData({ ...formData, nameEn: e.target.value })
                   }
-                  isRequired
                 />
               </div>
               <div className="flex gap-4">
@@ -161,10 +160,10 @@ export const CampaignCreateDialog = ({
               </div>
               <div className="flex gap-4">
                 <DateRangePicker
-                  label="Campaign Duration"
+                  className="w-full"
                   description="Please select campaign start and end dates"
                   firstDayOfWeek="mon"
-                  className="w-full"
+                  label="Campaign Duration"
                   onChange={(range) => {
                     if (range) {
                       setFormData({
@@ -177,24 +176,25 @@ export const CampaignCreateDialog = ({
                 />
               </div>
               <Input
-                type="number"
+                isRequired
                 label="Budget (THB)"
+                type="number"
                 value={formData.budget}
                 onChange={(e) =>
                   setFormData({ ...formData, budget: e.target.value })
                 }
-                isRequired
               />
               <Input
-                type="file"
+                accept="image/*"
                 label="Campaign Image"
+                type="file"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
+
                   if (file) {
                     setFormData({ ...formData, image: file });
                   }
                 }}
-                accept="image/*"
               />
               <Select
                 label="Status"
@@ -218,9 +218,9 @@ export const CampaignCreateDialog = ({
             </Button>
             <Button 
               color="primary" 
-              type="submit"
-              isLoading={isSubmitting}
               isDisabled={isSubmitting}
+              isLoading={isSubmitting}
+              type="submit"
             >
               {isSubmitting ? "Creating..." : "Create Campaign"}
             </Button>

@@ -7,9 +7,11 @@ import {
   TableRow,
   TableCell,
 } from '@heroui/react';
-import { Activities } from '@/types/activities';
+
 import { columns } from './TableColumns';
 import { TableCell as TableCellComponent } from './TableCell';
+
+import { Activities } from '@/types/activities';
 
 interface ActivitiesTableProps {
   activities: Activities[];
@@ -26,6 +28,7 @@ export default function ActivitiesTable({
 
   const handleToggleExpand = (id: string) => {
     const newExpandedKeys = new Set(expandedKeys);
+
     if (newExpandedKeys.has(id)) {
       newExpandedKeys.delete(id);
     } else {
@@ -36,8 +39,8 @@ export default function ActivitiesTable({
 
   return (
     <Table
-      aria-label="Activities table"
       removeWrapper
+      aria-label="Activities table"
       classNames={{
         table: "w-full bg-white rounded-lg shadow-sm",
         th: "bg-default-100 text-default-400 font-semibold text-sm py-3 first:rounded-tl-lg last:rounded-tr-lg border-b border-default-200",
@@ -75,9 +78,9 @@ export default function ActivitiesTable({
                   activity={activity}
                   columnKey={columnKey}
                   expandedKeys={expandedKeys}
-                  onToggleExpand={handleToggleExpand}
-                  onEdit={onEdit}
                   onDelete={onDelete}
+                  onEdit={onEdit}
+                  onToggleExpand={handleToggleExpand}
                 />
               </TableCell>
             )}

@@ -1,16 +1,18 @@
 'use client';
-import { PageHeader } from '@/components/ui/page-header';
-import { useNotification } from '@/hooks/useNotification';
-import { Notification } from '@/types/notification';
 import { addToast, Button, Card, CardBody, Checkbox, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from '@heroui/react';
 import { BellPlus, FlaskConical, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
+
 import { NotificationForm } from './_components/NotificationForm';
 import { InAppNotificationPreview } from './_components/InAppNotificationPreview';
 import { PushNotificationPreview } from './_components/PushNotificationPreview';
-import { Lang } from '@/types/lang';
 import LanguageTabs from './_components/LanguageTabs';
 import { NotificationScopeSelector } from './_components/NotificationScopeSelector';
+
+import { Lang } from '@/types/lang';
+import { Notification } from '@/types/notification';
+import { useNotification } from '@/hooks/useNotification';
+import { PageHeader } from '@/components/ui/page-header';
 import { useUsers } from '@/hooks/useUsers';
 import { useSchools } from '@/hooks/useSchool';
 import { useMajors } from '@/hooks/useMajor';
@@ -65,6 +67,7 @@ export default function NotificationPush() {
         description: 'Target group is empty',
         color: 'danger',
       });
+
       return;
     }
     formData.append('scope', JSON.stringify(notificationFormData.scope));
@@ -84,15 +87,15 @@ export default function NotificationPush() {
     }
 
     createNotification(formData);
-    if(pushNotificationResult) setIsResultModal(true);
+    if(notificationMode !== 'in_app') setIsResultModal(true);
   };
 
   return (
     <>
       <PageHeader
-        title="Notifications Push"
         description="Create notifications"
         icon={<BellPlus />}
+        title="Notifications Push"
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-">
         <div className="flex row-span-2 w-full">
@@ -100,11 +103,11 @@ export default function NotificationPush() {
               <div className="flex flex-col w-full px-5 py-6 gap-6 rounded-2xl border border-gray-300 shadow-md">
                 <h1 className="text-xl font-bold">Target Group</h1>
                 <NotificationScopeSelector
-                  notification={notificationFormData} 
-                  onChange={setNotificationFormData}
+                  majors={majors} 
+                  notification={notificationFormData}
                   schools={schools}
-                  majors={majors}
                   users={users}
+                  onChange={setNotificationFormData}
                 />
                 
               </div>
@@ -131,8 +134,8 @@ export default function NotificationPush() {
             </div>
 
             <InAppNotificationPreview 
-              notification={notificationFormData}
-              language={previewLanguage}  
+              language={previewLanguage}
+              notification={notificationFormData}  
             />
           </div>
 
@@ -142,8 +145,8 @@ export default function NotificationPush() {
             </div>
 
             <PushNotificationPreview
-              notification={notificationFormData}
               language={previewLanguage}
+              notification={notificationFormData}
             />
           </div>
 
@@ -164,7 +167,10 @@ export default function NotificationPush() {
                 isRequired 
                 label="Notification Mode" 
                 placeholder="Select mode"
-                onSelectionChange={(keys) => setNotificationMode(Array.from(keys)[0] as 'push' | 'in_app' | 'both')}
+                onSelectionChange={(keys) => {
+                  setNotificationMode(Array.from(keys)[0] as 'push' | 'in_app' | 'both');
+                  setDryRunMode(false)
+                }}
                 defaultSelectedKeys={["both"]}
                 className="max-w-56" 
                 size='sm' 
@@ -213,10 +219,10 @@ export default function NotificationPush() {
 
       </div>
 			<ConfirmationModal
-        title='Send Notification'
         body='Are you sure to send notification'
         cancelColor='danger'
-        isOpen={isConfirmModal} 
+        isOpen={isConfirmModal}
+        title='Send Notification' 
         onClose={() => setIsConfirmModal(false)}
         onConfirm={submitNotification}
       />

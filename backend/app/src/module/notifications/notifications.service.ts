@@ -49,9 +49,9 @@ export class NotificationsService {
 
     const receivers = mapScopeToReceivers(createNotificationDto.scope);
 
-    const mode = createNotificationDto.mode ?? 'both';
-    const isDryRun = Boolean(createNotificationDto.isDryRun) ?? false;
     let pushNotificationResult: PushNotificationResult | null = null;
+    const mode = createNotificationDto.mode ?? 'both';
+    const isDryRun = createNotificationDto.isDryRun ?? false;
 
     if (mode === 'both' || mode === 'push') {
       

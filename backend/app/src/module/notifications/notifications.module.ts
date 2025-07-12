@@ -17,6 +17,7 @@ import { PushNotificationService } from './push-notifications.service';
 import { UsersModule } from '../users/users.module';
 import { DevicesModule } from '../devices/devices.module';
 import { Device, DeviceSchema } from '../devices/schemas/device.schema';
+import { Major, MajorSchema } from '../majors/schemas/major.schema';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { Device, DeviceSchema } from '../devices/schemas/device.schema';
       { name: NotificationRead.name, schema: NotificationReadSchema },
       { name: User.name, schema: UserSchema },
       { name: Device.name, schema: DeviceSchema },
+      { name: Major.name, schema: MajorSchema },
     ]),
     SseModule,
     KafkaModule,
