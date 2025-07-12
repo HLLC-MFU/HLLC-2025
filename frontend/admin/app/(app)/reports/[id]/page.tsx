@@ -38,7 +38,7 @@ export default function CategoryReportsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white">
+      <Card>
         <CardHeader className="flex justify-between items-center">
           <div className="text-start flex gap-4 items-center">
             <Button
@@ -62,7 +62,7 @@ export default function CategoryReportsPage() {
         </CardBody>
       </Card>
 
-      <Card className="bg-white">
+      <Card>
         <CardHeader>
           <h3 className="text-lg font-semibold">Problem List</h3>
         </CardHeader>

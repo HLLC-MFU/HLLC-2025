@@ -70,7 +70,7 @@ export function ProblemCharts({ problems, reporttypes }: ProblemChartsProps) {
     const resolutionRate = totalProblems > 0 ? (doneProblems / totalProblems * 100).toFixed(1) : 0;
 
     return (
-        <Card className="bg-white mb-6">
+        <Card className="mb-6">
             <CardBody>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -143,7 +143,8 @@ export function ProblemCharts({ problems, reporttypes }: ProblemChartsProps) {
                                                             <tspan
                                                                 x={viewBox.cx}
                                                                 y={(viewBox.cy || 0) + 24}
-                                                                className="fill-muted-foreground text-sm"
+                                                                fill="#A1A1AA" 
+                                                                fontSize="12"
                                                             >
                                                                 Resolution Rate
                                                             </tspan>
