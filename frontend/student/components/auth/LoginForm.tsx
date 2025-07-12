@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Input, Text, View, XStack, YStack } from 'tamagui';
-import { Linking, Image, Pressable, StyleSheet } from 'react-native';
+import { Linking, Image, Pressable } from 'react-native';
 import { t } from 'i18next';
 import { Globe } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
@@ -47,10 +47,12 @@ export const LoginForm = ({
           resizeMode="contain"
         />
 
-        <Text fontSize={24} fontWeight="bold" textAlign="center">{t("login.title")}</Text>
-        <Text fontSize={18} fontWeight="bold" textAlign="center">{t("login.subtitle")}</Text>
+        <YStack gap="$0" width={'100%'} paddingHorizontal="$4">
+          <Text fontSize={32} fontWeight={"600"} textAlign="center">{t("login.title")}</Text>
+          <Text fontSize={18} fontWeight={"600"} textAlign="center">{t("login.subtitle")}</Text>
+        </YStack>
 
-        <YStack gap="$4" width={'100%'}>
+        <YStack gap="$4" width={'100%'} marginTop={16}>
           <XStack {...inputContainerStyle}>
             <User />
             <Input
@@ -93,7 +95,7 @@ export const LoginForm = ({
         </View>
 
         <View style={{ backgroundColor: '#00000025', height: 1, width: '100%' }} />
-        <Button width={'100%'} onPress={() => Linking.openURL('https://www.facebook.com/mfuactivities/')}>
+        <Button  width={'100%'} onPress={() => Linking.openURL('https://www.facebook.com/mfuactivities/')}>
           {t("login.contactUs")}
         </Button>
 

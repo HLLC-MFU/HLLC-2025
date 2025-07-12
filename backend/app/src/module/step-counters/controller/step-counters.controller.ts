@@ -78,12 +78,6 @@ export class StepCountersController {
     const user = req.user as { _id?: string; id?: string };
     const userId: string = user?._id ?? user?.id ?? '';
     const { deviceId, stepCount, date } = body;
-    console.log('Collecting step:', {
-      userId,
-      deviceId,
-      stepCount,
-      date,
-    });
     if (!userId || !deviceId || stepCount == null || !date) {
       throw new BadRequestException(
         'Missing userId, deviceId, stepCount, or date',

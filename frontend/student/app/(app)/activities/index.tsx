@@ -1,18 +1,15 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "expo-router"
 import { ScrollView, SafeAreaView, RefreshControl } from "react-native"  // <-- added RefreshControl
-import { Search } from "lucide-react-native"
 import {
   Text,
   H4,
-  Input,
   Paragraph,
   Separator,
   Spinner,
   XStack,
   YStack,
-  Card,
-} from "tamagui"
+} from "tamagui" 
 
 import { apiRequest } from "@/utils/api"
 import { useActivityStore } from "@/stores/activityStore"
@@ -22,13 +19,14 @@ import FadeView from "@/components/ui/FadeView"
 import UpcomingActivityCard from "./_components/upcoming-activity-card"
 import ActivityCard from "./_components/activity-card"
 import { useTranslation } from "react-i18next"
+import { SearchInput } from "@/components/global/SearchInput"
 
 export default function ActivitiesPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const [activities, setActivities] = useState<UserActivity[]>([])
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false) // <-- new refreshing state
+  const [refreshing, setRefreshing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
@@ -36,16 +34,23 @@ export default function ActivitiesPage() {
   }, [])
 
   const fetchActivities = async () => {
-    if (!refreshing) setLoading(true)  // only show loading spinner on first load, not on refresh
+    if (!refreshing) setLoading(true)
     try {
-      const response = await apiRequest("/activities/user", "GET") as { data?: UserActivity[] }
-      const apiData = response.data || []
+      interface ApiResponse {
+        data: {
+          data?: UserActivity[]
+        } | null
+      }
+
+      const response: ApiResponse = await apiRequest("/activities/user", "GET")
+      console.log("Fetched activities response:", response)
+      const apiData = response.data && Array.isArray(response.data.data) ? response.data.data : []
       setActivities(apiData)
     } catch (error) {
       console.error("Failed to fetch activities:", error)
     } finally {
       setLoading(false)
-      setRefreshing(false)  // stop refresh control spinner
+      setRefreshing(false)
     }
   }
 
@@ -83,25 +88,11 @@ export default function ActivitiesPage() {
             {t("activity.title")}
           </Text>
 
-          <XStack
-            alignItems="center"
-            paddingHorizontal="$3"
-            borderRadius="$6"
-            height="$5"
-            borderWidth={2}
-            borderColor={"#ffffff20"}
-          >
-            <Search size={18} color={"#ffffff80"} />
-            <Input
-              flex={1}
-              size="$4"
-              borderWidth={0}
-              placeholder="Search activities..."
-              onChangeText={setSearchQuery}
-              value={searchQuery}
-              style={{ backgroundColor: "transparent" }}
-            />
-          </XStack>
+          <SearchInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t('activity.searchPlaceholder')}
+          />
 
           {loading && !refreshing ? (
             <YStack flex={1} justifyContent="center" alignItems="center">
@@ -120,7 +111,7 @@ export default function ActivitiesPage() {
                 <>
                   <YStack gap="$3" marginBottom="$5">
                     <H4 fontWeight="bold" color={"white"}>
-                      Upcoming Activity
+                      {t("activity.upcoming")}
                     </H4>
                     <UpcomingActivityCard
                       activity={upcomingActivity}
