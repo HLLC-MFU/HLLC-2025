@@ -37,8 +37,8 @@ export class PushNotificationService {
         users: [payload.receiver],
       },
       title: {
-        th: `${payload.sender.name.first} ${payload.sender.name.first}`,
-        en: `${payload.sender.name.first} ${payload.sender.name.first}`,
+        th: `${payload.sender.name.first} ${payload.sender.name.middle} ${payload.sender.name.last}`,
+        en: `${payload.sender.name.first} ${payload.sender.name.middle} ${payload.sender.name.last}`,
       },
       subtitle: {
         th: `${payload.room.name.th}`,
