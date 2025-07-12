@@ -26,7 +26,7 @@ export class StepCountersService {
     private userModel: Model<UserDocument>,
     @InjectModel(StepAchievement.name)
     private stepAchievementModel: Model<StepAchievementDocument>,
-  ) { }
+  ) {}
 
   async getRegisteredDevices(userId: string) {
     const user = await findOrThrow(this.userModel, userId, 'User not found');
@@ -246,7 +246,7 @@ export class StepCountersService {
           populate: {
             path: 'school',
             model: 'School',
-          }
+          },
         },
       })
       .lean();
@@ -326,6 +326,7 @@ export class StepCountersService {
     const { schoolId, date, page = 1, pageSize = 20, userId } = options;
     const skip = (page - 1) * pageSize;
 
+    // Step 1: Fetch all data (filtering comes later)
     let stepCounters = await this.stepCounterModel
       .find({})
       .populate({
@@ -338,6 +339,7 @@ export class StepCountersService {
       })
       .lean();
 
+    // Step 2: Apply filtering logic by scope
     if (scope === 'school') {
       if (!schoolId) throw new BadRequestException('Missing schoolId');
       stepCounters = stepCounters.filter((sc) => {
@@ -349,64 +351,61 @@ export class StepCountersService {
       });
     }
 
-    if (scope === 'date') {
-      if (!date) throw new BadRequestException('Missing date');
-      const target = new Date(date);
-      const targetDateStr = target.toISOString().split('T')[0];
+    // Step 3: Compute totalStep per record
+    const targetDateStr =
+      scope === 'date' && date
+        ? new Date(date).toISOString().split('T')[0]
+        : null;
 
-      stepCounters = stepCounters.map((sc) => {
-        const stepsOnDate = (sc.steps || []).filter((s) => {
-          const stepDate = new Date(s.date).toISOString().split('T')[0];
-          return stepDate === targetDateStr;
-        });
+    // Map stepCounters to include totalStep property
+    const stepCountersWithTotal = stepCounters.map((sc) => {
+      let totalStep = 0;
 
-        const totalStep = stepsOnDate.reduce(
-          (sum, s) => sum + (s.step || 0),
-          0,
-        );
+      if (scope === 'date' && targetDateStr) {
+        totalStep = (sc.steps || [])
+          .filter(
+            (s) =>
+              new Date(s.date).toISOString().split('T')[0] === targetDateStr,
+          )
+          .reduce((sum, s) => sum + (s.step || 0), 0);
+      } else {
+        totalStep = (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0);
+      }
 
-        return { ...sc, totalStep };
-      });
-    } else {
-      stepCounters = stepCounters.map((sc) => ({
+      return { ...sc, totalStep };
+    });
+
+    // Step 4: Sort and assign ranks
+    const ranked = stepCountersWithTotal
+      .sort((a, b) => b.totalStep - a.totalStep)
+      .map((sc, idx) => ({
         ...sc,
-        totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
+        computedRank: idx + 1,
       }));
-    }
 
-    const completed = stepCounters
-      .map((sc) => ({
-        ...sc,
-        totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
-      }))
-      .sort((a, b) => b.totalStep - a.totalStep);
+    // Step 5: Extract current page slice
+    const pageData = ranked.slice(skip, skip + pageSize);
 
-    // Assign computed rank
-    const combinedWithRank = completed.map((sc, idx) => ({
-      ...sc,
-      computedRank: idx + 1,
-    }));
-
-    // Find current user's rank if userId provided
+    // Step 6: Extract current user’s rank (even if not in this page)
     const myRank = userId
-      ? combinedWithRank.find((sc) => sc.user?._id?.toString() === userId)
+      ? ranked.find((sc) => sc.user?._id?.toString() === userId)
       : null;
 
     return {
-      data: combinedWithRank.slice(skip, skip + pageSize),
+      data: pageData,
       metadata: {
-        total: combinedWithRank.length,
+        total: ranked.length,
         page,
         pageSize,
         scope,
         schoolId,
-        date: date ? new Date(date).toISOString().split('T')[0] : null,
+        date: targetDateStr,
       },
       myRank: myRank
         ? {
-          rank: myRank.computedRank,
-          data: myRank,
-        }
+            rank: myRank.computedRank,
+            data: myRank,
+          }
         : null,
     };
   }

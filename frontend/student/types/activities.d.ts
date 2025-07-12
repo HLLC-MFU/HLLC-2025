@@ -61,6 +61,9 @@ export type UserActivity = {
   location: {
     th: string
     en: string
+    latitude: number
+    longitude: number
+    mapUrl: string
   }
   metadata: {
     isOpen: boolean
