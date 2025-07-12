@@ -43,6 +43,10 @@ export class PushNotificationDto {
   @IsNotEmpty()
   title: Localization;
 
+  @IsOptional()
+  @IsObject()
+  subtitle?: Localization;
+
   @IsObject()
   @IsNotEmpty()
   body: Localization;

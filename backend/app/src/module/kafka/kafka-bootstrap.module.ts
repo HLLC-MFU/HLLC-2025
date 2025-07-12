@@ -15,8 +15,7 @@ export class KafkaBootstrapModule implements OnModuleInit {
 
   async onModuleInit() {
     await this.pushNotification.registerKafka();
-    // await this.kafka.start();
-    //! ↑ Don't uncomment this, Kafka pipe is too long to connect (30s ++)
-    //! Wait for fix kafka connection
+    
+    await this.kafka.start();
   }
 }
