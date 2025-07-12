@@ -60,11 +60,7 @@ export class ActivitiesController {
     const activities = await this.activitiesService.findActivitiesByUserId(
       user._id.toString(),
     );
-    return apiResponse(
-      activities,
-      'Activities retrieved successfully',
-      HttpStatus.OK,
-    );
+    return activities;
   }
 
   @Get(':id')
