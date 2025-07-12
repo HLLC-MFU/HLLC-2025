@@ -1,4 +1,4 @@
-import { LogOutIcon, BookIcon, QrCode, CircleUserRound } from 'lucide-react';
+import { LogOutIcon, BookIcon, QrCode, CircleUserRound, ShieldAlert } from 'lucide-react';
 
 import { NavSection } from '@/types/nav';
 
@@ -22,6 +22,7 @@ export const siteConfig: {
       section: 'Account',
       items: [
         { label: 'Profile', href: '/profile', icon: CircleUserRound },
+        { label: 'Reprot' , href: '/report' , icon: ShieldAlert},
         { label: 'Logout', href: '/logout', icon: LogOutIcon },
       ],
     },
