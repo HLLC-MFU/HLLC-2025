@@ -8,6 +8,7 @@ import { Model, Types } from 'mongoose';
 import { Device, DeviceDocument } from '../devices/schemas/device.schema';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
 import { getUsersByMajors, getUsersByRoles, getUsersBySchools } from './utils/notification.util';
+import { ChatNotificationPayload } from 'src/pkg/types/kafka';
 
 @Injectable()
 export class PushNotificationService {
@@ -30,9 +31,34 @@ export class PushNotificationService {
     );
   }
 
-  private handleChatNotification(payload: ChatNotificationPayload) {
-    console.log('[Notification]', payload);
-    // TODO: implement push-notification
+  private async handleChatNotification(payload: ChatNotificationPayload) {
+    const dto: PushNotificationDto = {
+      receivers: {
+        users: [payload.receiver],
+      },
+      title: {
+        th: `${payload.sender.name.first} ${payload.sender.name.first}`,
+        en: `${payload.sender.name.first} ${payload.sender.name.first}`,
+      },
+      subtitle: {
+        th: `${payload.room.name.th}`,
+        en: `${payload.room.name.en}`,
+      },
+      body: {
+        th: payload.message.message,
+        en: payload.message.message,
+      },
+      data: {
+        type: 'chat',
+        roomId: payload.room._id,
+        messageId: payload.message._id,
+        senderId: payload.sender._id,
+      },
+      priority: 'high',
+      badge: 1,
+    };
+
+    await this.sendPushNotification(dto);
   }
 
   async sendPushNotification(dto: PushNotificationDto, isDryRun?: boolean) {
@@ -100,6 +126,7 @@ export class PushNotificationService {
     for (const [lang, deviceList] of Object.entries(grouped)) {
       const title = dto.title[lang] || dto.title['en'];
       const body = dto.body[lang] || dto.body['en'];
+      const subtitle = dto.subtitle?.[lang] || dto.subtitle?.['en'];
 
       for (let i = 0; i < deviceList.length; i += MAX_TOKENS) {
         const tokenBatch = devices.slice(i, i + MAX_TOKENS).map(device => device.fcmToken);
@@ -121,7 +148,11 @@ export class PushNotificationService {
             apns: {
               payload: {
                 aps: {
-                  alert: { title, body },
+                  alert: { 
+                    title,
+                    body ,
+                    ...(subtitle && { subtitle }), 
+                  },
                   badge: dto.badge ?? 1,
                   sound: 'default',
                 },
