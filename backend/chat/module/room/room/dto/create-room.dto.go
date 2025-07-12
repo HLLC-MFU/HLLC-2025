@@ -4,8 +4,6 @@ import (
 	"chat/pkg/common"
 	"time"
 
-	"chat/module/room/room/model"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -59,15 +57,6 @@ func (dto *AddRoomMembersDto) ToObjectIDs() []primitive.ObjectID {
 		objectIDs[i] = objID
 	}
 	return objectIDs
-}
-
-func (dto *UpdateRoomDto) ToRoom() *model.Room {
-	return &model.Room{
-		Name:     dto.Name,
-		Type:     dto.Type,
-		Status:   dto.Status,
-		Capacity: dto.Capacity,
-	}
 }
 
 // Helper: Convert Members to []primitive.ObjectID

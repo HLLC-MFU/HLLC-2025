@@ -54,12 +54,22 @@ func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService
 // NotifyUsersInRoom sends notifications to offline users in a room only (not online users)
 func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *model.ChatMessage, onlineUsers []string) {
 	log.Printf("[NotificationService] Starting offline notification process for room %s", message.RoomID.Hex())
+	
+	// **NEW: Check if this is an evoucher message**
+	if message.EvoucherInfo != nil {
+		log.Printf("[NotificationService] ✅ EVOUCHER MESSAGE DETECTED: ID=%s, ClaimURL=%s, Message=%s", 
+			message.ID.Hex(), message.EvoucherInfo.ClaimURL, message.EvoucherInfo.Message.Th)
+	} else {
+		log.Printf("[NotificationService] Regular message detected: ID=%s, Type=%s", 
+			message.ID.Hex(), ns.determineMessageType(message))
+	}
 
 	// Create online user lookup map
 	onlineUserMap := make(map[string]bool)
 	for _, userID := range onlineUsers {
 		onlineUserMap[userID] = true
 	}
+	log.Printf("[NotificationService] Online users in room: %v (%d users)", onlineUsers, len(onlineUsers))
 
 	// Get room members
 	roomMembers, err := ns.getRoomMembers(ctx, message.RoomID)
@@ -67,6 +77,8 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 		log.Printf("[NotificationService] Failed to get room members: %v", err)
 		return
 	}
+	log.Printf("[NotificationService] Total room members: %d", len(roomMembers))
+	log.Printf("[NotificationService] Room members: %v", roomMembers)
 
 	// Get common data for all notifications
 	sender, err := ns.getUserById(ctx, message.UserID.Hex())
@@ -74,6 +86,7 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 		log.Printf("[NotificationService] Failed to get sender info: %v", err)
 		return
 	}
+	log.Printf("[NotificationService] Sender info: %+v", sender)
 
 	// Get sender user model for role
 	var senderUser *userModel.User
@@ -83,6 +96,7 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 		senderUser = &result.Data[0]
 	}
 	role := ns.getNotificationUserRole(ctx, senderUser)
+	log.Printf("[NotificationService] Sender role: %+v", role)
 
 	// Get room info
 	room, err := ns.getRoomById(ctx, message.RoomID.Hex())
@@ -90,34 +104,47 @@ func (ns *NotificationService) NotifyUsersInRoom(ctx context.Context, message *m
 		log.Printf("[NotificationService] Failed to get room info: %v", err)
 		return
 	}
+	log.Printf("[NotificationService] Room info: %+v", room)
 	
 	offlineCount := 0
-	totalMembers := 0
+	senderID := message.UserID.Hex()
 
-	// Send notification to offline members only (except sender)
-	for _, memberID := range roomMembers {
+	// **NEW: Detailed member analysis**
+	log.Printf("[NotificationService] ==================== MEMBER ANALYSIS ====================")
+	for i, memberID := range roomMembers {
 		memberIDStr := memberID.Hex()
-
-		// Skip the sender
-		if memberIDStr == message.UserID.Hex() {
+		isOnline := onlineUserMap[memberIDStr]
+		isSender := memberIDStr == senderID
+		
+		log.Printf("[NotificationService] Member %d: %s", i+1, memberIDStr)
+		log.Printf("[NotificationService]   - Is Sender: %v", isSender)
+		log.Printf("[NotificationService]   - Is Online: %v", isOnline)
+		
+		if isSender {
+			log.Printf("[NotificationService]   - ⏭️  SKIPPING (is sender)")
 			continue
 		}
 		
-		totalMembers++
-
-		// Send notification to offline users only
-		if !onlineUserMap[memberIDStr] {
-			log.Printf("[NotificationService] User %s is OFFLINE, sending notification", memberIDStr)
+		if isOnline {
+			log.Printf("[NotificationService]   - ⏭️  SKIPPING (is online - will receive via WebSocket)")
+		} else {
+			log.Printf("[NotificationService]   - 🎯 SENDING NOTIFICATION (offline user)")
+			
+			// **NEW: Extra debug for evoucher messages**
+			if message.EvoucherInfo != nil {
+				log.Printf("[NotificationService]   - 🎟️ EVOUCHER NOTIFICATION for user %s", memberIDStr)
+				log.Printf("[NotificationService]   - 🎟️ Evoucher data: %+v", message.EvoucherInfo)
+			}
 			
 			// Create notification based on message type
 			ns.createAndSendNotification(ctx, memberIDStr, message, room, sender, role)
 			offlineCount++
-		} else {
-			log.Printf("[NotificationService] User %s is ONLINE, skipping notification (will receive via WebSocket)", memberIDStr)
 		}
 	}
+	log.Printf("[NotificationService] ========================================================")
 	
-	log.Printf("[NotificationService] Notification summary: %d offline users notified out of %d total members", offlineCount, totalMembers)
+	log.Printf("[NotificationService] SUMMARY: Notified %d offline users (total members: %d, eligible: %d)", 
+		offlineCount, len(roomMembers), len(roomMembers)-1)
 }
 
 // ==================== CONDITIONAL NOTIFICATION CREATION ====================

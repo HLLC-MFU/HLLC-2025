@@ -642,9 +642,9 @@ func (e *ChatEventEmitter) EmitEvoucherClaimed(ctx context.Context, msg *model.C
 	return nil
 }
 
-func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, restriction *restrictionModel.UserRestriction) error {
-	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s", 
-		restriction.ID.Hex(), restriction.RoomID.Hex())
+func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *model.ChatMessage, sender *userModel.User, restriction *restrictionModel.UserRestriction, action string) error {
+	log.Printf("[TRACE] EmitRestrictionMessage called for message ID=%s Room=%s Action=%s", 
+		restriction.ID.Hex(), restriction.RoomID.Hex(), action)
 
 	//Create sender info
 	senderInfo := model.UserInfo{
@@ -668,7 +668,7 @@ func (e *ChatEventEmitter) EmitRestrictionMessage(ctx context.Context, msg *mode
 	//Create message info (use msg.ID, msg.Timestamp, msg.Message)
 	messageInfo := model.MessageInfo{
 		ID: msg.ID.Hex(),
-		Type: model.MessageTypeRestriction,
+		Type: action, // Use the specific action type directly
 		Message: msg.Message,
 		Timestamp: msg.Timestamp,
 	}

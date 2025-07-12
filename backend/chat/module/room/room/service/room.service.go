@@ -91,20 +91,11 @@ func NewRoomService(db *mongo.Database, redis *redis.Client, cfg *config.Config,
 
 // GetRooms retrieves list of rooms from cache
 func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOptions, userId string) (*queries.Response[dto.ResponseRoomDto], error) {
-	if opts.Filter == nil {
-		opts.Filter = make(map[string]interface{})
-	}
-
-	// Debug log to see what filter is being passed
-	log.Printf("[GetRooms] Filter: %+v", opts.Filter)
-	log.Printf("[GetRooms] UserID: %s", userId)
 
 	resp, err := s.FindAll(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
-
-	log.Printf("[GetRooms] Found %d rooms", len(resp.Data))
 
 	result := &queries.Response[dto.ResponseRoomDto]{
 		Data: make([]dto.ResponseRoomDto, len(resp.Data)),
@@ -123,13 +114,6 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 			Metadata:    room.Metadata,
 			MemberCount: len(room.Members),
 			Status:      room.Status,
-		}
-
-		// Debug log to see if group rooms are included
-		if room.Metadata != nil {
-			if isGroup, ok := room.Metadata["isGroupRoom"]; ok && isGroup == true {
-				log.Printf("[GetRooms] Found group room: %s (ID: %s)", room.Name.Th, room.ID.Hex())
-			}
 		}
 	}
 
@@ -229,7 +213,6 @@ func (s *RoomServiceImpl) GetRoomsByType(ctx context.Context, roomType string, p
 func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitive.ObjectID, page int64, limit int64) (*dto.ResponseRoomMemberDto, error) {
 	// ดึงข้อมูลจาก database โดยตรงเพื่อให้ได้ข้อมูลล่าสุด
 	room, err := s.FindOneById(ctx, roomId.Hex())
-	log.Printf("log roomData: %+v", room.Data)
 	if err != nil || len(room.Data) == 0 {
 		return nil, errors.New("room not found")
 	}
@@ -250,7 +233,6 @@ func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitiv
 	}
 	if limit <= 0 {
 		limit = 10 // Default limit
-		log.Printf("[GetRoomMemberById] Limit was 0, using default limit: %d", limit)
 	}
 	
 	start := (page - 1) * limit
@@ -259,7 +241,6 @@ func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitiv
 	// Validate pagination bounds
 	if start >= total {
 		// No members to return for this page
-		log.Printf("[GetRoomMemberById] Start index %d >= total %d, returning empty result", start, total)
 		return &dto.ResponseRoomMemberDto{
 			ID:      currentRoom.ID,
 			Name:    currentRoom.Name,
@@ -318,7 +299,6 @@ func (s *RoomServiceImpl) GetRoomMemberById(ctx context.Context, roomId primitiv
 				ID   primitive.ObjectID `json:"_id"`
 				Name string `json:"name"`
 			}{}
-			log.Printf("[GetRoomMemberById] User not found or error fetching user: %v", err)
 		}
 
 		// Append member to the list

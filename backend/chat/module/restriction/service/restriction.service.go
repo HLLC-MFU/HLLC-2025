@@ -756,7 +756,14 @@ func (s *RestrictionService) broadcastToTarget(userID, roomID primitive.ObjectID
 
 // broadcastToRoomMembers ส่งข้อความแจ้งเตือนไปยังคนอื่นในห้อง
 func (s *RestrictionService) broadcastToRoomMembers(roomID primitive.ObjectID, action string, userID, restrictorID primitive.ObjectID, reason string, endTime *time.Time, restriction string) {
-	announcement := "User has been " + action + ". Reason: " + reason
+	// Get target user info for announcement
+	targetUser, err := s.getUserById(context.Background(), userID.Hex())
+	username := "User" // fallback
+	if err == nil && targetUser != nil {
+		username = targetUser.Username
+	}
+	
+	announcement := username + " has been " + action + ". Reason: " + reason
 	payload := map[string]interface{}{
 		"type":      "moderation_announcement",
 		"action":    action,
