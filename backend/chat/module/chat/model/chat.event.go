@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"chat/pkg/common"
+	"time"
+)
 
 // Event Types - Global constants
 const (
@@ -50,8 +53,9 @@ type (
 
 	// Core Information Structures
 	RoomInfo struct {
-		ID   string `json:"_id"`
-		Name string `json:"name,omitempty"`
+		ID    string               `json:"_id"`
+		Name  common.LocalizedName `json:"name,omitempty"`
+		Image string               `json:"image,omitempty"`
 	}
 
 	UserInfo struct {

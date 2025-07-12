@@ -208,13 +208,14 @@ func NewUnsendNotification(room NotificationRoom, sender NotificationSender, mes
 }
 
 // Helper function to create base notification components
-func CreateNotificationRoom(id, nameTh, nameEn string) NotificationRoom {
+func CreateNotificationRoom(id, nameTh, nameEn, image string) NotificationRoom {
 	return NotificationRoom{
 		ID: id,
 		Name: common.LocalizedName{
 			Th: nameTh,
 			En: nameEn,
 		},
+		Image: image,
 	}
 }
 

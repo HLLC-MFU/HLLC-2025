@@ -36,6 +36,7 @@ type SimpleRoom struct {
 	ID     string
 	NameTh string
 	NameEn string
+	Image  string
 }
 
 func NewNotificationService(db *mongo.Database, kafkaBus *kafka.Bus, roleService *userService.RoleService) *NotificationService {
@@ -156,7 +157,7 @@ func (ns *NotificationService) createAndSendNotification(ctx context.Context, re
 	log.Printf("[NotificationService] Creating %s notification for receiver %s", messageType, receiverID)
 	
 	// Create base notification components
-	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn)
+	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn, room.Image)
 	notificationSender := chatModel.CreateNotificationSender(sender.ID, sender.Username, sender.FirstName, sender.LastName, role)
 	notificationMessage := chatModel.CreateNotificationMessage(message.ID.Hex(), message.Message, messageType, message.Timestamp)
 	
@@ -502,8 +503,9 @@ func (ns *NotificationService) getRoomById(ctx context.Context, roomID string) (
 
 	roomCollection := ns.collection.Database().Collection("rooms")
 	var room struct {
-		ID   primitive.ObjectID    `bson:"_id"`
-		Name map[string]string     `bson:"name"`
+		ID    primitive.ObjectID    `bson:"_id"`
+		Name  map[string]string     `bson:"name"`
+		Image string                `bson:"image"`
 	}
 
 	err = roomCollection.FindOne(ctx, bson.M{"_id": roomObjID}).Decode(&room)
@@ -515,6 +517,7 @@ func (ns *NotificationService) getRoomById(ctx context.Context, roomID string) (
 		ID:     room.ID.Hex(),
 		NameTh: room.Name["th"],
 		NameEn: room.Name["en"],
+		Image:  room.Image,
 	}, nil
 }
 
@@ -569,7 +572,7 @@ func (ns *NotificationService) SendOfflineMentionNotification(ctx context.Contex
 	}
 
 	// Create notification components
-	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn)
+	notificationRoom := chatModel.CreateNotificationRoom(room.ID, room.NameTh, room.NameEn, room.Image)
 	notificationSender := chatModel.CreateNotificationSender(sender.ID, sender.Username, sender.FirstName, sender.LastName, nil)
 	notificationMessage := chatModel.CreateNotificationMessage(message.ID.Hex(), message.Message, chatModel.MessageTypeMention, message.Timestamp)
 	
