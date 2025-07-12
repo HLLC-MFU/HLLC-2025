@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { apiRequest } from '@/utils/api';
 import { addToast } from "@heroui/react";
 import { SponsorType } from "@/types/sponsors";
+
+import { apiRequest } from '@/utils/api';
+
 
 export function useSponsorsType() {
     const [sponsorsType, setSponsorsType] = useState<SponsorType[]>([]);

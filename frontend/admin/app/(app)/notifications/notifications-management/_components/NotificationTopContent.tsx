@@ -46,14 +46,15 @@ export default function TopContent({search,setSearch,types,setTypes,uniqueScopes
             </DropdownTrigger>
             <DropdownMenu
               aria-label="Select Types"
+              className="max-h-48 overflow-y-auto"
               closeOnSelect={false}
               selectedKeys={new Set(types)}
               selectionMode="multiple"
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys) as string[];
+
                 setTypes(selected);
               }}
-              className="max-h-48 overflow-y-auto"
             >
               {uniqueScopes.map((scope) => (
                 <DropdownItem key={scope} className="capitalize">

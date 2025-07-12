@@ -1,10 +1,10 @@
-import { Accordion, AccordionItem, addToast, Card, CardBody, CardHeader, Button } from "@heroui/react";
-import { SystemCard } from "../systems/_components/SystemCard";
-import { useSystem } from "@/hooks/useSystem";
+import { Accordion, AccordionItem, addToast, Button } from "@heroui/react";
 import { useState } from "react";
-import { System } from "@/types/system";
-import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
 import { useRouter } from "next/navigation";
+
+import { useSystem } from "@/hooks/useSystem";
+import { System } from "@/types/system";
+
 
 export default function SettingAccoardion() {
     const { systems, updateSystem } = useSystem();
@@ -36,6 +36,7 @@ export default function SettingAccoardion() {
     };
 
     const defaultContent = ['1', '2', '3']
+
     return (
         <Accordion variant="shadow">
             <AccordionItem key="1" aria-label="Accordion 1" title="Accordion 1">

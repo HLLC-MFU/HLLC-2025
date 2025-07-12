@@ -431,6 +431,47 @@ func (h *Hub) ForceDisconnectAllUsersFromRoom(roomID string) int {
 	return disconnectedCount
 }
 
+// ForceDisconnectUserFromRoom forcefully disconnects a specific user from a specific room
+func (h *Hub) ForceDisconnectUserFromRoom(roomID string, userID string) int {
+	disconnectedCount := 0
+	
+	if roomMap, ok := h.clients.Load(roomID); ok {
+		if userConns, ok := roomMap.(*sync.Map).Load(userID); ok {
+			log.Printf("[WS] Force disconnecting user %s from room %s", userID, roomID)
+			
+			// Close all connections for this user in this room
+			userConns.(*sync.Map).Range(func(connID, conn interface{}) bool {
+				ws := conn.(*websocket.Conn)
+				log.Printf("[WS] Closing WebSocket connection %s for user %s in room %s", connID, userID, roomID)
+				
+				// Send a close message before closing
+				closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "You have been kicked from this room")
+				_ = ws.WriteMessage(websocket.CloseMessage, closeMsg)
+				
+				// Close the connection
+				_ = ws.Close()
+				
+				// Remove from the map
+				userConns.(*sync.Map).Delete(connID)
+				disconnectedCount++
+				
+				return true
+			})
+			
+			// Remove the user from the room map since all connections are closed
+			roomMap.(*sync.Map).Delete(userID)
+			
+			log.Printf("[WS] Force disconnected %d connections for user %s from room %s", disconnectedCount, userID, roomID)
+		} else {
+			log.Printf("[WS] User %s not found in room %s", userID, roomID)
+		}
+	} else {
+		log.Printf("[WS] Room %s not found", roomID)
+	}
+	
+	return disconnectedCount
+}
+
 func (h *Hub) HandleKafkaMessage(topic string, payload []byte) error {
 	roomID := topic[len(RoomTopicPrefix):]
 	if roomID == "" {

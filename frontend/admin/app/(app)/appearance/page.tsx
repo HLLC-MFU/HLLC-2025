@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { Palette } from 'lucide-react';
+
 import { SchoolFilters } from './_components/SchoolFilters';
 import { SchoolList } from './_components/SchoolsList';
+
 import { PageHeader } from '@/components/ui/page-header';
 import { useSchools } from '@/hooks/useSchool';
 import useAppearance from '@/hooks/useAppearance';
@@ -22,8 +24,10 @@ export default function AppearancesPage() {
     if (!schools) return [];
 
     let filtered = schools;
+
     if (searchQuery.trim() !== '') {
       const lower = searchQuery.toLowerCase();
+
       filtered = schools.filter(
         (s) =>
           s?.name?.en?.toLowerCase().includes(lower) ||
@@ -34,20 +38,24 @@ export default function AppearancesPage() {
 
     return filtered.sort((a, b) => {
       let comparison = 0;
+
       switch (sortBy) {
         case 'name': {
           const nameA = a?.name?.en;
           const nameB = b?.name?.en;
+
           comparison = nameA.localeCompare(nameB);
           break;
         }
         case 'acronym': {
           const acronymA = a?.acronym;
           const acronymB = b?.acronym;
+
           comparison = acronymA.localeCompare(acronymB);
           break;
         }
       }
+
       return sortDirection === 'asc' ? comparison : -comparison;
     });
   }, [schools, searchQuery, sortBy, sortDirection]);
@@ -55,6 +63,7 @@ export default function AppearancesPage() {
   const toggleSortDirection = () => {
     setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   };
+
   return (
     <div className="flex flex-col min-h-screen">
       <PageHeader
@@ -65,9 +74,9 @@ export default function AppearancesPage() {
         <div className="flex flex-col gap-6">
           <SchoolFilters
             searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
             sortBy={sortBy}
             sortDirection={sortDirection}
+            onSearchQueryChange={setSearchQuery}
             onSortByChange={setSortBy}
             onSortDirectionToggle={toggleSortDirection}
           />
@@ -77,12 +86,12 @@ export default function AppearancesPage() {
             </p>
           )}
           <SchoolList
-            schools={filteredAndSortedSchools}
-            isLoading={loading}
+            createAppearance={createAppearance}
             fetchAppearancesById={
               fetchAppearancesById as ( id: string, ) => Promise<{ data: Appearance[] } | null>
             }
-            createAppearance={createAppearance}
+            isLoading={loading}
+            schools={filteredAndSortedSchools}
           />
         </div>
       </div>

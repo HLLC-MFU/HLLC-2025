@@ -32,6 +32,34 @@ export function useSponsors() {
     }
   };
 
+  // FetchEvoucherCodeBySponsorId - เปลี่ยนเป็นดึง sponsor info โดยตรง
+  const fetchSponsorById = async (sponsorId: string) => {
+    if (!sponsorId) {
+      console.error("Invalid sponsor ID");
+      return [];
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      // ดึง sponsor info โดยตรงจาก sponsors API
+      const res = await apiRequest<{ data: Sponsors }>(
+        `/sponsors/${sponsorId}`,
+         "GET"
+        );
+
+      if (res.data) {
+        return [res.data];
+      }
+      return [];
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch sponsor info.');
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Create sponsor
   const createSponsors = async (sponsorData: FormData) => {
     setLoading(true);
@@ -112,6 +140,7 @@ export function useSponsors() {
     loading,
     error,
     fetchSponsors,
+    fetchSponsorById,
     createSponsors,
     updateSponsors,
     deleteSponsors,

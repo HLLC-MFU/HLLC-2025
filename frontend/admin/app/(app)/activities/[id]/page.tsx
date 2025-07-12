@@ -11,11 +11,12 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
+import { useState } from 'react';
+
+import { ActivityModal } from '../_components/ActivityModal';
 
 import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
-import { ActivityModal } from '../_components/ActivityModal';
 import { useActivities } from '@/hooks/useActivities';
-import { useState } from 'react';
 import { Activities } from '@/types/activities';
 
 export default function ActivityDetailPage() {
@@ -151,16 +152,16 @@ export default function ActivityDetailPage() {
             <CardBody className="flex justify-end p-4">
               <div className="flex gap-2">
                 <Button
-                  startContent={<Pencil size={16} />}
                   color="primary"
+                  startContent={<Pencil size={16} />}
                   variant="flat"
                   onPress={handleEditActivity}
                 >
                   Edit Activity
                 </Button>
                 <Button
-                  startContent={<Trash2 size={16} />}
                   color="danger"
+                  startContent={<Trash2 size={16} />}
                   variant="flat"
                   onPress={handleDeleteActivity}
                 >
@@ -173,13 +174,13 @@ export default function ActivityDetailPage() {
       </div>
 
       <ActivityModal
-        isOpen={isModalOpen}
-        mode={modalMode}
         activity={
           selectedActivity && '_id' in selectedActivity
             ? (selectedActivity as Activities)
             : undefined
         }
+        isOpen={isModalOpen}
+        mode={modalMode}
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleSaveActivity as (formData: FormData, mode: 'add' | 'edit') => Promise<void>}
       />

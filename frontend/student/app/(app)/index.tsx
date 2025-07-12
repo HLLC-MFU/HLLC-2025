@@ -22,6 +22,8 @@ export default function HomeScreen() {
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   
   const handleSignOut = async () => {
+    const deviceId = await getStoredDeviceId()
+    await revokeDevice(deviceId)
     useAuth.getState().signOut();
     router.replace('/(auth)/login');
   };

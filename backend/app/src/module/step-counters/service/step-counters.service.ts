@@ -26,7 +26,7 @@ export class StepCountersService {
     private userModel: Model<UserDocument>,
     @InjectModel(StepAchievement.name)
     private stepAchievementModel: Model<StepAchievementDocument>,
-  ) {}
+  ) { }
 
   async getRegisteredDevices(userId: string) {
     const user = await findOrThrow(this.userModel, userId, 'User not found');
@@ -239,14 +239,18 @@ export class StepCountersService {
       .find({})
       .populate({
         path: 'user',
+        select: 'name metadata.major username',
         populate: {
-          path: 'metadata.major.school',
-          model: 'School',
+          path: 'metadata.major',
+          model: 'Major',
+          populate: {
+            path: 'school',
+            model: 'School',
+          }
         },
       })
       .lean();
 
-    // 🔍 Filter by School
     if (scope === 'school') {
       if (!schoolId) throw new BadRequestException('Missing schoolId');
       stepCounters = stepCounters.filter((sc) => {
@@ -258,7 +262,6 @@ export class StepCountersService {
       });
     }
 
-    // 🔍 Filter by Date (same day)
     if (scope === 'date') {
       if (!date) throw new BadRequestException('Missing date');
       const target = new Date(date);
@@ -278,32 +281,29 @@ export class StepCountersService {
         return { ...sc, totalStep };
       });
     } else {
-      // ⬅️ Default: all step
       stepCounters = stepCounters.map((sc) => ({
         ...sc,
         totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
       }));
     }
 
-    // 🏁 Separate complete & in-progress
     const completed = stepCounters
-      .filter((sc) => sc.completeStatus && typeof sc.rank === 'number')
-      .sort((a, b) => a.rank - b.rank);
-
-    const inProgress = stepCounters
-      .filter((sc) => !sc.completeStatus)
       .map((sc) => ({
         ...sc,
         totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
       }))
       .sort((a, b) => b.totalStep - a.totalStep);
 
-    const combined = [...completed, ...inProgress];
+    // Assign computed rank
+    const combinedWithRank = completed.map((sc, idx) => ({
+      ...sc,
+      computedRank: idx + 1,
+    }));
 
     return {
-      data: combined.slice(skip, skip + pageSize),
+      data: combinedWithRank.slice(skip, skip + pageSize),
       metadata: {
-        total: combined.length,
+        total: combinedWithRank.length,
         page,
         pageSize,
         scope,
@@ -375,21 +375,14 @@ export class StepCountersService {
     }
 
     const completed = stepCounters
-      .filter((sc) => sc.completeStatus && typeof sc.rank === 'number')
-      .sort((a, b) => a.rank - b.rank);
-
-    const inProgress = stepCounters
-      .filter((sc) => !sc.completeStatus)
       .map((sc) => ({
         ...sc,
         totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
       }))
       .sort((a, b) => b.totalStep - a.totalStep);
 
-    const combined = [...completed, ...inProgress];
-
     // Assign computed rank
-    const combinedWithRank = combined.map((sc, idx) => ({
+    const combinedWithRank = completed.map((sc, idx) => ({
       ...sc,
       computedRank: idx + 1,
     }));
@@ -411,9 +404,9 @@ export class StepCountersService {
       },
       myRank: myRank
         ? {
-            rank: myRank.computedRank,
-            data: myRank,
-          }
+          rank: myRank.computedRank,
+          data: myRank,
+        }
         : null,
     };
   }

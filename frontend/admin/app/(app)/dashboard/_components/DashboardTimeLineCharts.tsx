@@ -1,5 +1,4 @@
-import { Activities } from "@/types/activities";
-import { Checkin } from "@/types/checkin"
+
 import React from 'react';
 import {
     BarChart,
@@ -75,16 +74,16 @@ const Data = [
 export default function Charts() {
     return (
         <>
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={Data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barGap={5}>
+            <ResponsiveContainer height="100%" width="100%">
+                <BarChart barGap={5} data={Data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid stroke="#f0f0f0" strokeDasharray="3 3" />
                     <XAxis dataKey="activty" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="PreTest" fill="#4C72B0" radius={[4, 4, 0, 0]} barSize={20} />
-                    <Bar dataKey="CheckIn" fill="#55A868" radius={[4, 4, 0, 0]} barSize={20} />
-                    <Bar dataKey="PostTest" fill="#EFC94C" radius={[4, 4, 0, 0]} barSize={20} />
+                    <Bar barSize={20} dataKey="PreTest" fill="#4C72B0" radius={[4, 4, 0, 0]} />
+                    <Bar barSize={20} dataKey="CheckIn" fill="#55A868" radius={[4, 4, 0, 0]} />
+                    <Bar barSize={20} dataKey="PostTest" fill="#EFC94C" radius={[4, 4, 0, 0]} />
                 </BarChart>
             </ResponsiveContainer>
         </>

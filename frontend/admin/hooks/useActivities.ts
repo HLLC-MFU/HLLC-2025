@@ -4,7 +4,7 @@ import { addToast } from '@heroui/react';
 import { Activities, ActivityType } from '@/types/activities';
 import { apiRequest } from '@/utils/api';
 
-export function useActivities() {
+export function useActivities(options?: { autoFetch?: boolean; useCanCheckin?: boolean }) {
     const [activities, setActivities] = useState<Activities[]>([]);
     const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
     const [loading, setLoading] = useState(false);
@@ -45,7 +45,7 @@ export function useActivities() {
             const errorMessage = err && typeof err === 'object' && 'message' in err
                 ? (err as { message?: string }).message || 'Failed to fetch data.'
                 : 'Failed to fetch data.';
-            
+
             if (err && typeof err === 'object' && 'statusCode' in err && (err as any).statusCode === 401) {
                 localStorage.removeItem('token');
                 window.location.href = '/login';
@@ -82,7 +82,7 @@ export function useActivities() {
             const errorMessage = err && typeof err === 'object' && 'message' in err
                 ? (err as { message?: string }).message || 'Failed to fetch data.'
                 : 'Failed to fetch data.';
-            
+
             if (err && typeof err === 'object' && 'statusCode' in err && (err as any).statusCode === 401) {
                 localStorage.removeItem('token');
                 window.location.href = '/login';
@@ -202,7 +202,7 @@ export function useActivities() {
             const res = await apiRequest<Activities>(
                 `/activities/${id}`,
                 'PATCH',
-                    formData,
+                formData,
                 {
                     credentials: 'include',
                 }
@@ -394,7 +394,13 @@ export function useActivities() {
     };
 
     useEffect(() => {
-        fetchActivities();
+        if (options?.autoFetch) {
+            if (options?.useCanCheckin) {
+                fetchCanCheckin();
+            } else {
+                fetchActivities();
+            }
+        }
     }, []);
 
     return {

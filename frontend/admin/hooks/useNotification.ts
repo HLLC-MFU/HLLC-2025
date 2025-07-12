@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Notification } from "@/types/notification"
+import { Notification, PushNotificationResult } from "@/types/notification"
 import { apiRequest } from "@/utils/api"
 import { addToast } from "@heroui/react";
 
@@ -7,6 +7,7 @@ export function useNotification() {
 	const [notifications, setNotifications] = useState<Notification[]>([])
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [pushNotificationResult, setPushNotificationResult] = useState<PushNotificationResult | null>(null);
 
 	const fetchNotification = async () => {
 		setLoading(true);
@@ -14,6 +15,7 @@ export function useNotification() {
 
 		try {
 			const res = await apiRequest<{ data: Notification[] }>("/notifications", "GET");
+
 			setNotifications(Array.isArray(res.data?.data) ? res.data.data : []);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to fetch notifications.');
@@ -30,10 +32,14 @@ export function useNotification() {
 	const createNotification = async (NotificationData: FormData) => {
 		try {
 			setLoading(true);
-			const res = await apiRequest<{ data: Notification }>(`/notifications`, 'POST', NotificationData );
+			const res = await apiRequest<{ data: Notification & { pushNotificationResult?: PushNotificationResult } }>(`/notifications`, 'POST', NotificationData );
 			
 			if(res.statusCode !== 201) {
 				throw new Error(res.message || 'Failed to create notification.');
+			}
+
+			if (res.data?.pushNotificationResult) {
+				setPushNotificationResult(res.data.pushNotificationResult);
 			}
 
 			addToast({
@@ -90,6 +96,8 @@ export function useNotification() {
 		notifications,
 		loading,
 		error,
+		pushNotificationResult,
+		setPushNotificationResult,
 		deleteNotification,
 		fetchNotification,
 		createNotification,

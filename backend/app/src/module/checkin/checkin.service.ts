@@ -1,15 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-
 import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { User, UserDocument } from 'src/module/users/schemas/user.schema';
 import { Checkin, CheckinDocument } from './schema/checkin.schema';
 import { Role, RoleDocument } from '../role/schemas/role.schema';
 import { Activities, ActivityDocument } from 'src/module/activities/schemas/activities.schema';
 import { isCheckinAllowed, validateCheckinTime } from './utils/checkin.util';
-import { queryAll } from 'src/pkg/helper/query.util';
 import { Major, MajorDocument } from '../majors/schemas/major.schema';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class CheckinService {
@@ -19,6 +18,7 @@ export class CheckinService {
     @InjectModel(Role.name) private roleModel: Model<RoleDocument>,
     @InjectModel(Activities.name) private activityModel: Model<ActivityDocument>,
     @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
+    private readonly notificationsService: NotificationsService,
   ) { }
 
   async create(createCheckinDto: CreateCheckinDto): Promise<Checkin[]> {
@@ -90,7 +90,46 @@ export class CheckinService {
       ...(staffObjectId && { staff: staffObjectId }),
     }));
 
-    return this.checkinModel.insertMany(docs) as unknown as Checkin[];
+    const checkIn = await this.checkinModel.insertMany(docs) as unknown as Checkin[];
+    if (!checkIn) {
+      throw new BadRequestException('Not found User to Notification');
+    }
+
+    const activityDocs = await this.activityModel.find({
+      _id: { $in: activityObjectIds },
+    }).select('name photo').lean();
+
+    const activityNamesEn = activityDocs.map(activity => activity.name?.en).filter(Boolean).join(', ');
+    const activityNamesTh = activityDocs.map(activity => activity.name?.th).filter(Boolean).join(', ');
+
+    const activitiesImage = activityDocs.find(a => a.photo?.bannerPhoto)?.photo?.bannerPhoto;
+
+    console.log(activitiesImage);
+
+    await this.notificationsService.create({
+      title: {
+        en: 'Checked in',
+        th: 'เช็คอิน',
+      },
+      subtitle: {
+        en: '',
+        th: '',
+      },
+      body: {
+        en: `You have been checked in to ${activityNamesEn} successfully.`,
+        th: `เช็คอินกิจกรรม ${activityNamesTh} สำเร็จแล้ว`,
+      },
+      icon: 'check-circle',
+      image: activitiesImage,
+      scope: [
+        {
+          type: 'user',
+          id: [userObjectId.toString()],
+        },
+      ],
+    });
+
+    return checkIn;
   }
 
   async findCheckedInUser(activityId: string) {

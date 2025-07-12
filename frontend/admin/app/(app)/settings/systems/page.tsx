@@ -1,12 +1,16 @@
 'use client'
 
-import { useSystem } from "@/hooks/useSystem";
 import { useState, useEffect } from "react";
-import { System } from "@/types/system";
 import { addToast, Button } from "@heroui/react";
-import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
-import { SystemCard } from "./_components/SystemCard";
 import { useRouter } from "next/navigation";
+
+import { SystemCard } from "./_components/SystemCard";
+
+import { useSystem } from "@/hooks/useSystem";
+import { System } from "@/types/system";
+import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
+
+
 
 export default function SystemPage() {
     const router = useRouter();
@@ -37,8 +41,10 @@ export default function SystemPage() {
                 if (prev === null) return null;
                 if (prev <= 1) {
                     setShowConfirmButtons(true);
+
                     return 0;
                 }
+
                 return prev - 1;
             });
         }, 1000);
@@ -101,13 +107,13 @@ export default function SystemPage() {
                 <div className="flex items-center gap-4 mb-8">
                     <Button
                         color="primary"
-                        variant="light"
-                        onPress={() => router.back()}
                         startContent={
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg fill="none" height="24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M19 12H5M12 19l-7-7 7-7"/>
                             </svg>
                         }
+                        variant="light"
+                        onPress={() => router.back()}
                     >
                         Back
                     </Button>

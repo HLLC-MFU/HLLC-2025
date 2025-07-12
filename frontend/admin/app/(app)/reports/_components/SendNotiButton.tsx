@@ -6,11 +6,11 @@ export default function SendNotiButton() {
         <>
             <Button
                 isIconOnly
+                aria-label="Send Notification"
+                className="bg-default-200 text-default-800"
+                radius="md"
                 size="sm"
                 variant="flat"
-                radius="md"
-                className="bg-default-200 text-default-800"
-                aria-label="Send Notification"
                 onPress={() => {
                     addToast({
                         hideIcon: true,

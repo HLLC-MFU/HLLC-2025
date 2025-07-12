@@ -13,8 +13,9 @@ interface Props {
 }
 export default function SettingsList({ title, description, icon, href }: Props) {
     const router = useRouter();
+
     return (
-        <Card isHoverable isPressable shadow="none" className="border" onPress={() => router.push(href)}>
+        <Card isHoverable isPressable className="border" shadow="none" onPress={() => router.push(href)}>
             <CardBody className="justify-between">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">

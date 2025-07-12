@@ -20,8 +20,11 @@ export class Major {
 }
 
 export const MajorSchema = SchemaFactory.createForClass(Major);
-MajorSchema.set('toObject', { virtuals: true });
+
+MajorSchema.index({ school: 1 });
 MajorSchema.index({ updatedAt: 1 });
+
+MajorSchema.set('toObject', { virtuals: true });
 MajorSchema.set('toJSON', {
   virtuals: true,
   transform: (_doc, ret) => {
