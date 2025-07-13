@@ -4,7 +4,6 @@ import (
 	"chat/module/room/room/model"
 	"chat/pkg/common"
 	"errors"
-	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -13,10 +12,8 @@ import (
 type (
 	// ScheduleDto สำหรับการตั้งเวลาเปิดปิดห้อง
 	ScheduleDto struct {
-		Type    string `form:"scheduleType" validate:"optional"`      // "one-time" หรือ "loop"
 		StartAt string `form:"scheduleStartAt" validate:"optional"`   // เวลาเริ่มเปิดห้อง (RFC3339 format)
 		EndAt   string `form:"scheduleEndAt" validate:"optional"`     // เวลาปิดห้อง (RFC3339 format)
-		Enabled bool   `form:"scheduleEnabled" validate:"optional"`   // เปิดใช้งาน schedule หรือไม่
 	}
 
 	CreateRoomDto struct {
@@ -107,10 +104,7 @@ func (dto *ScheduleDto) ToRoomSchedule() (*model.RoomSchedule, error) {
 		return nil, nil
 	}
 
-	schedule := &model.RoomSchedule{
-		Type:    dto.Type,
-		Enabled: dto.Enabled,
-	}
+	schedule := &model.RoomSchedule{}
 
 	// แปลง StartAt
 	if dto.StartAt != "" {
@@ -139,9 +133,6 @@ func (dto *ScheduleDto) FromRoomSchedule(schedule *model.RoomSchedule) {
 		return
 	}
 
-	dto.Type = schedule.Type
-	dto.Enabled = schedule.Enabled
-
 	if schedule.StartAt != nil {
 		dto.StartAt = schedule.StartAt.Format(time.RFC3339)
 	}
@@ -153,13 +144,8 @@ func (dto *ScheduleDto) FromRoomSchedule(schedule *model.RoomSchedule) {
 
 // ValidateSchedule ตรวจสอบความถูกต้องของ schedule
 func (dto *ScheduleDto) ValidateSchedule() error {
-	if dto == nil || !dto.Enabled {
+	if dto == nil {
 		return nil
-	}
-
-	// ตรวจสอบ schedule type
-	if dto.Type != "" && !model.ValidateScheduleType(dto.Type) {
-		return errors.New("invalid schedule type")
 	}
 
 	// ตรวจสอบรูปแบบเวลา
@@ -175,12 +161,8 @@ func (dto *ScheduleDto) ValidateSchedule() error {
 		}
 	}
 
-	// สำหรับ one-time ต้องมีทั้ง start และ end
-	if dto.Type == model.ScheduleTypeOneTime {
-		if dto.StartAt == "" || dto.EndAt == "" {
-			return errors.New("one-time schedule requires both start and end time")
-		}
-
+	// ถ้ามีทั้ง start และ end ให้ตรวจสอบว่า start มาก่อน end
+	if dto.StartAt != "" && dto.EndAt != "" {
 		startAt, _ := time.Parse(time.RFC3339, dto.StartAt)
 		endAt, _ := time.Parse(time.RFC3339, dto.EndAt)
 
@@ -201,15 +183,16 @@ func ParseScheduleFromForm(values map[string][]string) *ScheduleDto {
 		return ""
 	}
 
-	scheduleType := getValue("scheduleType")
-	if scheduleType == "" {
+	startAt := getValue("scheduleStartAt")
+	endAt := getValue("scheduleEndAt")
+
+	// ถ้าไม่มีค่าใดๆ ให้ return nil
+	if startAt == "" && endAt == "" {
 		return nil
 	}
 
 	return &ScheduleDto{
-		Type:    scheduleType,
-		StartAt: getValue("scheduleStartAt"),
-		EndAt:   getValue("scheduleEndAt"),
-		Enabled: strings.ToLower(getValue("scheduleEnabled")) == "true",
+		StartAt: startAt,
+		EndAt:   endAt,
 	}
 }

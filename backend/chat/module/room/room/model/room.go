@@ -20,19 +20,11 @@ const (
 	RoomStatusInactive = "inactive" // ห้องปิดใช้งาน - user ไม่สามารถเชื่อมต่อได้
 )
 
-// Schedule Type Constants
-const (
-	ScheduleTypeOneTime = "one-time" // ใช้ครั้งเดียว
-	ScheduleTypeLoop    = "loop"     // วนลูปทุกวัน
-)
-
 type (
 	// RoomSchedule สำหรับการตั้งเวลาเปิดปิดห้อง
 	RoomSchedule struct {
-		Type    string     `bson:"type" json:"type"`                       // "one-time" หรือ "loop"
 		StartAt *time.Time `bson:"startAt,omitempty" json:"startAt,omitempty"` // เวลาเริ่มเปิดห้อง
 		EndAt   *time.Time `bson:"endAt,omitempty" json:"endAt,omitempty"`     // เวลาปิดห้อง
-		Enabled bool       `bson:"enabled" json:"enabled"`                 // เปิดใช้งาน schedule หรือไม่
 	}
 
 	Room struct {
@@ -85,11 +77,6 @@ func ValidateRoomType(roomType string) bool {
 // ValidateRoomStatus ตรวจสอบความถูกต้องของ room status
 func ValidateRoomStatus(status string) bool {
 	return status == RoomStatusActive || status == RoomStatusInactive
-}
-
-// ValidateScheduleType ตรวจสอบความถูกต้องของ schedule type
-func ValidateScheduleType(scheduleType string) bool {
-	return scheduleType == ScheduleTypeOneTime || scheduleType == ScheduleTypeLoop
 }
 
 // IsUnlimitedCapacity ตรวจสอบว่าห้องมี capacity ไม่จำกัดหรือไม่
@@ -169,121 +156,22 @@ func (r *Room) ShouldAutoAddNewUsers() bool {
 
 // IsScheduleEnabled ตรวจสอบว่าห้องเปิดใช้งาน schedule หรือไม่
 func (r *Room) IsScheduleEnabled() bool {
-	return r.Schedule != nil && r.Schedule.Enabled
+	return r.Schedule != nil && (r.Schedule.StartAt != nil || r.Schedule.EndAt != nil)
 }
 
 // IsRoomAccessible ตรวจสอบว่าห้องสามารถเข้าได้ตามเวลาที่กำหนดหรือไม่
 func (r *Room) IsRoomAccessible(now time.Time) bool {
-	// ถ้าไม่เปิดใช้งาน schedule ให้เข้าได้ตามปกติ
+	// ถ้าห้องไม่ active ให้ return false
+	if !r.IsActive() {
+		return false
+	}
+
+	// ถ้าไม่มี schedule ให้เข้าได้ตามปกติ
 	if !r.IsScheduleEnabled() {
-		return r.IsActive()
-	}
-
-	// ถ้าเปิดใช้งาน schedule ให้ตรวจสอบเวลา
-	schedule := r.Schedule
-	if schedule.Type == ScheduleTypeOneTime {
-		return r.IsOneTimeAccessible(now)
-	} else if schedule.Type == ScheduleTypeLoop {
-		return r.IsLoopAccessible(now)
-	}
-
-	return r.IsActive()
-}
-
-// IsRoomAccessibleForWebSocket ตรวจสอบการเข้าถึงสำหรับ WebSocket (ผ่อนปรนกว่า)
-func (r *Room) IsRoomAccessibleForWebSocket(now time.Time) bool {
-	// ถ้าไม่เปิดใช้งาน schedule ให้เข้าได้ตามปกติ
-	if !r.IsScheduleEnabled() {
-		return r.IsActive()
-	}
-
-	// ถ้าเปิดใช้งาน schedule ให้ตรวจสอบเวลาแบบผ่อนปรน
-	schedule := r.Schedule
-	if schedule.Type == ScheduleTypeOneTime {
-		return r.IsOneTimeAccessibleForWebSocket(now)
-	} else if schedule.Type == ScheduleTypeLoop {
-		return r.IsLoopAccessibleForWebSocket(now)
-	}
-
-	return r.IsActive()
-}
-
-// IsOneTimeAccessibleForWebSocket ตรวจสอบการเข้าถึงแบบ one-time สำหรับ WebSocket
-func (r *Room) IsOneTimeAccessibleForWebSocket(now time.Time) bool {
-	if !r.IsActive() {
-		return false
-	}
-
-	schedule := r.Schedule
-	if schedule == nil {
 		return true
 	}
 
-	// ตรวจสอบเวลาเริ่มต้น (ให้ margin 2 นาที)
-	if schedule.StartAt != nil && now.Before(schedule.StartAt.Add(-2*time.Minute)) {
-		return false
-	}
-
-	// ตรวจสอบเวลาสิ้นสุด (ให้ margin 2 นาที)
-	if schedule.EndAt != nil && now.After(schedule.EndAt.Add(2*time.Minute)) {
-		return false
-	}
-
-	return true
-}
-
-// IsLoopAccessibleForWebSocket ตรวจสอบการเข้าถึงแบบ loop สำหรับ WebSocket
-func (r *Room) IsLoopAccessibleForWebSocket(now time.Time) bool {
-	if !r.IsActive() {
-		return false
-	}
-
 	schedule := r.Schedule
-	if schedule == nil {
-		return true
-	}
-
-	// สำหรับ loop ให้ใช้เฉพาะเวลาในวัน ไม่สนใจวันที่
-	currentTime := time.Date(1, 1, 1, now.Hour(), now.Minute(), now.Second(), 0, now.Location())
-
-	var startTime, endTime time.Time
-	if schedule.StartAt != nil {
-		startTime = time.Date(1, 1, 1, schedule.StartAt.Hour(), schedule.StartAt.Minute(), schedule.StartAt.Second(), 0, now.Location())
-	}
-	if schedule.EndAt != nil {
-		endTime = time.Date(1, 1, 1, schedule.EndAt.Hour(), schedule.EndAt.Minute(), schedule.EndAt.Second(), 0, now.Location())
-	}
-
-	// ถ้าไม่มีเวลาเริ่มต้น ให้ถือว่าเริ่มตั้งแต่ 00:00
-	if schedule.StartAt == nil {
-		startTime = time.Date(1, 1, 1, 0, 0, 0, 0, now.Location())
-	}
-
-	// ถ้าไม่มีเวลาสิ้นสุด ให้ถือว่าสิ้นสุดที่ 23:59
-	if schedule.EndAt == nil {
-		endTime = time.Date(1, 1, 1, 23, 59, 59, 0, now.Location())
-	}
-
-	// กรณีที่เวลาเริ่มต้นมากกว่าเวลาสิ้นสุด (ข้ามวัน)
-	if !startTime.Before(endTime) {
-		// เช่น 22:00 - 06:00 (ข้ามคืน) (ให้ margin 2 นาที)
-		return currentTime.After(startTime.Add(-2*time.Minute)) || currentTime.Before(endTime.Add(2*time.Minute))
-	}
-
-	// กรณีปกติ (ให้ margin 2 นาที)
-	return currentTime.After(startTime.Add(-2*time.Minute)) && currentTime.Before(endTime.Add(2*time.Minute))
-}
-
-// IsOneTimeAccessible ตรวจสอบการเข้าถึงแบบ one-time
-func (r *Room) IsOneTimeAccessible(now time.Time) bool {
-	if !r.IsActive() {
-		return false
-	}
-
-	schedule := r.Schedule
-	if schedule == nil {
-		return true
-	}
 
 	// ตรวจสอบเวลาเริ่มต้น (ให้ margin 1 นาที)
 	if schedule.StartAt != nil && now.Before(schedule.StartAt.Add(-time.Minute)) {
@@ -298,52 +186,37 @@ func (r *Room) IsOneTimeAccessible(now time.Time) bool {
 	return true
 }
 
-// IsLoopAccessible ตรวจสอบการเข้าถึงแบบ loop (ทุกวัน)
-func (r *Room) IsLoopAccessible(now time.Time) bool {
+// IsRoomAccessibleForWebSocket ตรวจสอบการเข้าถึงสำหรับ WebSocket (ผ่อนปรนกว่า)
+func (r *Room) IsRoomAccessibleForWebSocket(now time.Time) bool {
+	// ถ้าห้องไม่ active ให้ return false
 	if !r.IsActive() {
 		return false
 	}
 
-	schedule := r.Schedule
-	if schedule == nil {
+	// ถ้าไม่มี schedule ให้เข้าได้ตามปกติ
+	if !r.IsScheduleEnabled() {
 		return true
 	}
 
-	// สำหรับ loop ให้ใช้เฉพาะเวลาในวัน ไม่สนใจวันที่
-	currentTime := time.Date(1, 1, 1, now.Hour(), now.Minute(), now.Second(), 0, now.Location())
+	schedule := r.Schedule
 
-	var startTime, endTime time.Time
-	if schedule.StartAt != nil {
-		startTime = time.Date(1, 1, 1, schedule.StartAt.Hour(), schedule.StartAt.Minute(), schedule.StartAt.Second(), 0, now.Location())
-	}
-	if schedule.EndAt != nil {
-		endTime = time.Date(1, 1, 1, schedule.EndAt.Hour(), schedule.EndAt.Minute(), schedule.EndAt.Second(), 0, now.Location())
+	// ตรวจสอบเวลาเริ่มต้น (ให้ margin 2 นาที)
+	if schedule.StartAt != nil && now.Before(schedule.StartAt.Add(-2*time.Minute)) {
+		return false
 	}
 
-	// ถ้าไม่มีเวลาเริ่มต้น ให้ถือว่าเริ่มตั้งแต่ 00:00
-	if schedule.StartAt == nil {
-		startTime = time.Date(1, 1, 1, 0, 0, 0, 0, now.Location())
+	// ตรวจสอบเวลาสิ้นสุด (ให้ margin 2 นาที)
+	if schedule.EndAt != nil && now.After(schedule.EndAt.Add(2*time.Minute)) {
+		return false
 	}
 
-	// ถ้าไม่มีเวลาสิ้นสุด ให้ถือว่าสิ้นสุดที่ 23:59
-	if schedule.EndAt == nil {
-		endTime = time.Date(1, 1, 1, 23, 59, 59, 0, now.Location())
-	}
-
-	// กรณีที่เวลาเริ่มต้นมากกว่าเวลาสิ้นสุด (ข้ามวัน)
-	if !startTime.Before(endTime) {
-		// เช่น 22:00 - 06:00 (ข้ามคืน) (ให้ margin 1 นาที)
-		return currentTime.After(startTime.Add(-time.Minute)) || currentTime.Before(endTime.Add(time.Minute))
-	}
-
-	// กรณีปกติ (ให้ margin 1 นาที)
-	return currentTime.After(startTime.Add(-time.Minute)) && currentTime.Before(endTime.Add(time.Minute))
+	return true
 }
 
 // GetScheduleStatus ดึงสถานะของ schedule
 func (r *Room) GetScheduleStatus(now time.Time) string {
 	if !r.IsScheduleEnabled() {
-		return "disabled"
+		return "no_schedule"
 	}
 
 	if r.IsRoomAccessible(now) {

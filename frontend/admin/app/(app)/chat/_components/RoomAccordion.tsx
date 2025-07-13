@@ -56,7 +56,7 @@ export default function RoomAccordion({ onAdd, onEdit, onDelete, onToggleStatus 
     };
 
     return (
-        <Accordion variant="splitted">
+        <Accordion className="p-0" variant="splitted">
             {roomCategories.map(({ label, type, icon }) => {
                 const rooms = getRoomsForType(type as string);
                 const isLoading = loading[type as string] || false;
@@ -68,18 +68,21 @@ export default function RoomAccordion({ onAdd, onEdit, onDelete, onToggleStatus 
                 return (
                     <AccordionItem
                         key={label}
-                        className="mb-2"
+                        aria-label={label}
+                        title={<span className="capitalize">{label} Rooms</span>}
+                        subtitle={
+                            <p className="flex">
+                                Total {label.toLowerCase()} rooms:{' '}
+                                <span className="text-primary ml-1">
+                                    {isLoading ? "Loading..." : `${totalCount}`}
+                                </span>
+                            </p>
+                        }
                         startContent={
-                            <div className="p-3 rounded-xl bg-gray-200">
+                            <div className="p-3 rounded-xl bg-gradient-to-r bg-gray-200 border">
                                 <span className="text-gray-500">{icon}</span>
                             </div>
                         }
-                        subtitle={
-                            <p className="text-primary ml-1">
-                                {isLoading ? "Loading..." : `${totalCount} rooms`}
-                            </p>
-                        }
-                        title={`${label} Rooms`}
                     >
                         <RoomSection
                             rooms={rooms}

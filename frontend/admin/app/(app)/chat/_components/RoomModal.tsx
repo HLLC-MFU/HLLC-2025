@@ -105,13 +105,9 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
             formData.append("image", image);
         }
         
-        if (schedule && schedule.enabled) {
-            formData.append("scheduleType", schedule.type);
-            formData.append("scheduleEnabled", "true");
+        if (schedule && (schedule.startAt || schedule.endAt)) {
             if (schedule.startAt) formData.append("scheduleStartAt", schedule.startAt);
             if (schedule.endAt) formData.append("scheduleEndAt", schedule.endAt);
-        } else {
-            formData.append("scheduleEnabled", "false");
         }
         
         onSuccess(formData, mode);

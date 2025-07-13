@@ -19,11 +19,6 @@ type EvoucherSelectionProps = {
     loading: boolean;
     error: string | null;
     onEvoucherSelect: (evoucherId: string) => void;
-    onEvoucherDataChange: (data: { 
-        message: { th: string; en: string }; 
-        claimUrl: string; 
-        sponsorImage: string; 
-    }) => void;
     onRefresh: () => void;
 };
 
@@ -34,7 +29,6 @@ export function EvoucherSelection({
     loading,
     error,
     onEvoucherSelect,
-    onEvoucherDataChange,
     onRefresh,
 }: EvoucherSelectionProps) {
     const isEvoucherExpired = (evoucher: Evoucher): boolean => {
@@ -89,7 +83,7 @@ export function EvoucherSelection({
                             <Button
                                 isLoading={loading}
                                 size="sm"
-                                startContent={<RefreshCw size={16} />}
+                                endContent={<RefreshCw size={16} />}
                                 variant="light"
                                 onPress={onRefresh}
                             >
@@ -120,13 +114,6 @@ export function EvoucherSelection({
                                         <div className="flex flex-col gap-1">
                                             <div className="flex items-center gap-2">
                                                 <span className="font-semibold">{evoucher.acronym}</span>
-                                                <Badge 
-                                                    color={status.color}
-                                                    size="sm"
-                                                    variant="flat"
-                                                >
-                                                    {status.text}
-                                                </Badge>
                                             </div>
                                             <div className="flex items-center gap-4 text-sm text-default-500">
                                                 <span className="flex items-center gap-1">
@@ -164,7 +151,12 @@ export function EvoucherSelection({
                         <>
                             <Divider />
                             <div className="bg-default-50 dark:bg-default-100/20 rounded-lg p-4">
-                                <h4 className="font-semibold mb-3">Evoucher Details</h4>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h4 className="font-semibold">Evoucher Details</h4>
+                                    <div className="text-xs text-default-500 bg-default-100 px-2 py-1 rounded">
+                                        Read-only preview
+                                    </div>
+                                </div>
                                 
                                 {!isEvoucherValid(selectedEvoucher) && (
                                     <div className="mb-4 p-3 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg">
@@ -180,10 +172,13 @@ export function EvoucherSelection({
                                     </div>
                                 )}
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="text-sm font-medium text-default-600">Message (Thai)</label>
+                                            <label className="text-sm font-medium text-default-600 mb-2 block">
+                                                Message (Thai)
+                                                <span className="text-xs text-default-400 ml-2">• Auto-generated</span>
+                                            </label>
                                             <Input
                                                 className="mt-1"
                                                 placeholder="Message in Thai"
@@ -191,11 +186,18 @@ export function EvoucherSelection({
                                                 isReadOnly
                                                 isDisabled
                                                 variant="bordered"
+                                                classNames={{
+                                                    input: "bg-default-50",
+                                                    inputWrapper: "border-default-200"
+                                                }}
                                             />
                                         </div>
                                         
                                         <div>
-                                            <label className="text-sm font-medium text-default-600">Message (English)</label>
+                                            <label className="text-sm font-medium text-default-600 mb-2 block">
+                                                Message (English)
+                                                <span className="text-xs text-default-400 ml-2">• Auto-generated</span>
+                                            </label>
                                             <Input
                                                 className="mt-1"
                                                 placeholder="Message in English"
@@ -203,23 +205,55 @@ export function EvoucherSelection({
                                                 isReadOnly
                                                 isDisabled
                                                 variant="bordered"
+                                                classNames={{
+                                                    input: "bg-default-50",
+                                                    inputWrapper: "border-default-200"
+                                                }}
                                             />
                                         </div>
 
-                                        {evoucherData.sponsorImage && (
-                                            <div>
-                                                <label className="text-sm font-medium text-default-600">Sponsor Image</label>
-                                                <div className="mt-1 flex items-center gap-2">
-                                                    <div className="w-8 h-8 bg-default-100 rounded flex items-center justify-center">
-                                                        <span className="text-xs text-default-500">IMG</span>
+                                        <div>
+                                            <label className="text-sm font-medium text-default-600 mb-2 block">
+                                                Sponsor Image
+                                                <span className="text-xs text-default-400 ml-2">• From sponsor data</span>
+                                            </label>
+                                            <div className="mt-1 flex items-center gap-3 p-3 bg-default-50 rounded-lg border border-default-200">
+                                                {evoucherData.sponsorImage ? (
+                                                    <>
+                                                        <div className="w-12 h-12 bg-default-100 rounded flex items-center justify-center overflow-hidden">
+                                                            <img 
+                                                                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucherData.sponsorImage}`}
+                                                                alt="Sponsor" 
+                                                                className="w-full h-full object-cover rounded"
+                                                                onError={(e) => {
+                                                                    e.currentTarget.style.display = 'none';
+                                                                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                                                    if (fallback) fallback.classList.remove('hidden');
+                                                                }}
+                                                            />
+                                                            <span className="text-xs text-default-500 hidden">IMG</span>
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm text-default-700 font-medium">Sponsor Logo</span>
+                                                            <span className="text-xs text-default-400 break-all">{evoucherData.sponsorImage}</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-12 h-12 bg-default-100 rounded flex items-center justify-center">
+                                                            <span className="text-xs text-default-500">IMG</span>
+                                                        </div>
+                                                        <span className="text-sm text-default-400">No sponsor image available</span>
                                                     </div>
-                                                    <span className="text-sm text-default-500">{evoucherData.sponsorImage}</span>
-                                                </div>
+                                                )}
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
                                     <div>
-                                        <label className="text-sm font-medium text-default-600">Claim URL</label>
+                                        <label className="text-sm font-medium text-default-600 mb-2 block">
+                                            Claim URL
+                                            <span className="text-xs text-default-400 ml-2">• From Evoucher</span>
+                                        </label>
                                         <div className="flex gap-2 mt-1">
                                             <Input
                                                 className="flex-1"
@@ -228,15 +262,21 @@ export function EvoucherSelection({
                                                 isReadOnly
                                                 isDisabled
                                                 variant="bordered"
+                                                classNames={{
+                                                    input: "bg-default-50 text-xs",
+                                                    inputWrapper: "border-default-200"
+                                                }}
                                             />
-                                            <Button
-                                                isIconOnly
-                                                isDisabled={!evoucherData.claimUrl}
-                                                variant="light"
-                                                onPress={() => window.open(evoucherData.claimUrl, '_blank')}
-                                            >
-                                                <ExternalLink size={16} />
-                                            </Button>
+                                        </div>
+                                        <div className="mt-2 p-3 bg-default-50 rounded-lg border border-default-200">
+                                            <p className="text-xs text-default-500 mb-2">
+                                                <strong>Note:</strong> This URL will be used by students to claim the evoucher.
+                                            </p>
+                                            <p className="text-xs text-default-400">
+                                                • The URL is automatically generated based on the selected evoucher<br/>
+                                                • Students can click this URL to claim their evoucher code<br/>
+                                                • Each student can only claim once per evoucher
+                                            </p>
                                         </div>
                                     </div>
                                 </div>

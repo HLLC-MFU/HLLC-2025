@@ -125,12 +125,14 @@ export default function ChatPage() {
                 </div>
             </div>
 
-            <RoomAccordion 
-                onAdd={handleAddRoom}
-                onEdit={handleEditRoom}
-                onDelete={handleDeleteRoom}
-                onToggleStatus={handleToggleStatus}
-            />
+            <div className="flex flex-col gap-6">
+                <RoomAccordion 
+                    onAdd={handleAddRoom}
+                    onEdit={handleEditRoom}
+                    onDelete={handleDeleteRoom}
+                    onToggleStatus={handleToggleStatus}
+                />
+            </div>
 
             <RoomModal
                 key={selectedRoom?._id || 'new'}

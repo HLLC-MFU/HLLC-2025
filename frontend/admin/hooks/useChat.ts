@@ -66,7 +66,13 @@ export function useChat(): UseChatReturn {
             const res = await apiGolangRequest<RoomByIdResponse>(endpoint, "POST", roomData);
 
             if (res.data) {
-                setRoom(prev => [...prev, res.data as unknown as RoomByIdResponse]);
+                // Refresh the room list to get the latest data
+                await fetchRoom();
+                
+                addToast({
+                    title: 'Room created successfully!',
+                    color: 'success',
+                });
             }
         } catch (err) {
             addToast({

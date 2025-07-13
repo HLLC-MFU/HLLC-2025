@@ -1,7 +1,12 @@
-import { RoomSchedule } from "./chat";
-
+// Types
 export type Name = { en: string; th: string; };
 export type RoomType = "normal" | "readonly";
+
+// RoomSchedule สำหรับการตั้งเวลาเปิดปิดห้อง
+export type RoomSchedule = {
+    startAt?: string; // ISO string
+    endAt?: string;   // ISO string
+};
 
 export type ApiResponse<T> = {
     success: boolean;

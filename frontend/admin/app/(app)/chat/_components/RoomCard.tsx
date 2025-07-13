@@ -24,14 +24,12 @@ import {
     XCircle,
     Clock,
     CalendarClock,
-    RotateCcw,
-    Calendar,
     Timer
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { Room, ScheduleType } from "@/types/chat";
+import { Room } from "@/types/chat";
 
 type RoomCardProps = {
     room: Room;
@@ -60,41 +58,18 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
         ? `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${room.image}` 
         : `https://ui-avatars.com/api/?name=${room.name.en.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=56`;
 
-    const formatDateTime = (dateString: string) => {
-        const date = new Date(dateString);
-        return {
-            date: date.toLocaleDateString('en-US', { 
-                day: 'numeric', 
-                month: 'short', 
-                year: 'numeric' 
-            }),
-            time: date.toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: false 
-            })
-        };
-    };
+    const dateOptions = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    } as const;
+    const timeOptions = {
+        hour: "2-digit",
+        minute: "2-digit"
+    } as const;
 
-        const getScheduleChip = () => {
-        if (!room.schedule?.enabled) return null;
-        
-        if (room.schedule.type === ScheduleType.ONE_TIME) {
-            return { 
-                color: 'primary' as const, 
-                icon: Calendar, 
-                text: 'One-time' 
-            };
-        } else {
-            return { 
-                color: 'secondary' as const, 
-                icon: RotateCcw, 
-                text: 'Daily' 
-            };
-        }
-    };
-
-    const scheduleChip = getScheduleChip();
+    const hasSchedule = room.schedule && (room.schedule.startAt || room.schedule.endAt);
 
     return (
         <Card className="h-full min-h-[200px]">
@@ -114,18 +89,18 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                             </div>
                             <p className="text-sm text-gray-500 truncate mb-2">{room.name.th}</p>
                             
-                            {scheduleChip && (
+                            {hasSchedule && (
                                 <Chip 
-                                    color={scheduleChip.color} 
+                                    color="primary" 
                                     size="sm" 
-                                    startContent={<scheduleChip.icon className="w-3 h-3" />}
+                                    startContent={<CalendarClock className="w-3 h-3" />}
                                     variant="flat"
                                     className="font-medium px-3 py-1"
                                     classNames={{
                                         content: "text-center px-1"
                                     }}
                                 >
-                                    {scheduleChip.text}
+                                    Scheduled
                                 </Chip>
                             )}
                         </div>
@@ -164,46 +139,45 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
                 </div>
 
                 {/* Schedule Information */}
-                {room.schedule?.enabled && (
+                {hasSchedule && (
                     <>
                         <Divider className="my-4" />
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <Calendar size={14} />
-                                <span className="font-medium">Schedule</span>
+                                <Clock size={14} />
+                                <span className="font-medium">Schedule Details</span>
                             </div>
                             
-                            {room.schedule.type === ScheduleType.ONE_TIME ? (
-                                <div className="space-y-1">
-                                    {room.schedule.startAt && (
-                                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                                            <Timer size={12} />
-                                            <span>Start: {formatDateTime(room.schedule.startAt).date} - {formatDateTime(room.schedule.startAt).time}</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {room.schedule?.startAt && (
+                                    <div className="bg-success-50 p-3 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Timer size={12} className="text-success-600" />
+                                            <span className="text-xs font-medium text-success-600">Start</span>
                                         </div>
-                                    )}
-                                    {room.schedule.endAt && (
-                                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                                            <Timer size={12} />
-                                            <span>End: {formatDateTime(room.schedule.endAt).date} - {formatDateTime(room.schedule.endAt).time}</span>
+                                        <p className="text-sm text-success-900 font-medium">
+                                            {new Date(room.schedule.startAt).toLocaleDateString('en-US', dateOptions)}
+                                        </p>
+                                        <p className="text-sm text-success-700">
+                                            {new Date(room.schedule.startAt).toLocaleTimeString('en-US', timeOptions)}
+                                        </p>
+                                    </div>
+                                )}
+                                {room.schedule?.endAt && (
+                                    <div className="bg-danger-50 p-3 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Timer size={12} className="text-danger-600" />
+                                            <span className="text-xs font-medium text-danger-600">End</span>
                                         </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="space-y-1">
-                                    {room.schedule.startAt && (
-                                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                                            <Timer size={12} />
-                                            <span>Start time: {formatDateTime(room.schedule.startAt).time} daily</span>
-                                        </div>
-                                    )}
-                                    {room.schedule.endAt && (
-                                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                                            <Timer size={12} />
-                                            <span>End time: {formatDateTime(room.schedule.endAt).time} daily</span>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                                        <p className="text-sm text-danger-900 font-medium">
+                                            {new Date(room.schedule.endAt).toLocaleDateString('en-US', dateOptions)}
+                                        </p>
+                                        <p className="text-sm text-danger-700">
+                                            {new Date(room.schedule.endAt).toLocaleTimeString('en-US', timeOptions)}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </>
                 )}

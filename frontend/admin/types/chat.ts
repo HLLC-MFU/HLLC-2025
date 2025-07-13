@@ -14,18 +14,11 @@ export type Room = {
     schedule?: RoomSchedule; // เพิ่มฟิลด์ schedule
 };
 
-// เพิ่ม schedule types
+// RoomSchedule สำหรับการตั้งเวลาเปิดปิดห้อง
 export type RoomSchedule = {
-    type: ScheduleType;
     startAt?: string; // ISO string
     endAt?: string;   // ISO string
-    enabled: boolean;
 };
-
-export enum ScheduleType {
-    ONE_TIME = "one-time",
-    LOOP = "loop"
-}
 
 export type Members = {
     _id: string;

@@ -99,7 +99,7 @@ func ValidateAndTrackConnection(ctx context.Context, room *model.Room, userID st
 
 	// **NEW: ตรวจสอบ schedule ของห้อง**
 	currentTime := time.Now()
-	if room.Schedule != nil && room.Schedule.Enabled {
+	if room.Schedule != nil && (room.Schedule.StartAt != nil || room.Schedule.EndAt != nil) {
 		log.Printf("[ConnectionHelper] Checking schedule for room %s at time %s", room.ID.Hex(), currentTime.Format(time.RFC3339))
 		if room.Schedule.StartAt != nil {
 			log.Printf("[ConnectionHelper] Schedule start time: %s", room.Schedule.StartAt.Format(time.RFC3339))
@@ -107,7 +107,6 @@ func ValidateAndTrackConnection(ctx context.Context, room *model.Room, userID st
 		if room.Schedule.EndAt != nil {
 			log.Printf("[ConnectionHelper] Schedule end time: %s", room.Schedule.EndAt.Format(time.RFC3339))
 		}
-		log.Printf("[ConnectionHelper] Schedule type: %s", room.Schedule.Type)
 		
 		if !room.IsRoomAccessibleForWebSocket(currentTime) {
 			scheduleStatus := room.GetScheduleStatus(currentTime)

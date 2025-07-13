@@ -147,6 +147,7 @@ func (dto *JoinRoomByGroupDto) ValidateGroupType() error {
 	return nil
 }
 
+// ValidateSchedule ตรวจสอบความถูกต้องของ schedule
 func (dto *CreateRoomByGroupDto) ValidateGroupType() error {
 	if dto.GroupType != "major" && dto.GroupType != "school" {
 		return fmt.Errorf("invalid group type: %s (must be 'major' or 'school')", dto.GroupType)

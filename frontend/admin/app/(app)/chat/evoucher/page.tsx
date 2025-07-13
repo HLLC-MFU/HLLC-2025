@@ -92,7 +92,6 @@ export default function EvoucherPage() {
                 evouchers={evouchers}
                 loading={loading}
                 selectedEvoucher={selectedEvoucher}
-                onEvoucherDataChange={handleEvoucherDataChange}
                 onEvoucherSelect={handleEvoucherSelect}
                 onRefresh={handleRefresh}
             />
@@ -106,6 +105,7 @@ export default function EvoucherPage() {
                     size="lg"
                     startContent={<Send size={20} />}
                     onPress={handleSendEvoucher}
+                    className="font-semibold"
                 >
                     Send Evoucher to Room
                 </Button>
