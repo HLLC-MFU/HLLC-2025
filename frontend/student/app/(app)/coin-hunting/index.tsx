@@ -17,7 +17,7 @@ export default function CoinHuntingScreen() {
     selectedMarker,
     evoucher,
     alertType,
-    stampCount,
+    stampCount,           
     handleMarkerPress,
     handleCheckIn,
     handleGoToStamp,
@@ -94,7 +94,7 @@ export default function CoinHuntingScreen() {
           90, 140, 190, 240, 295, 345, 40, // รอบนอก
           120, 165, 220, 270, 325, 15, 65 // รอบใน
         ]}
-        coinSizes={[ 85, 85, 85 , 90, 90, 85, 85, 85, 85, 90, 85, 90, 80, 85]}
+        coinSizes={[ 85, 85, 85 , 90, 90, 85, 85, 85, 85, 90, 85, 90, 88, 85]}
       />
     </GestureHandlerRootView>
   );

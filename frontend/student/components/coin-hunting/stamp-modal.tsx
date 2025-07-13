@@ -16,6 +16,7 @@ import Svg, {
   Text as SvgText,
   Line, // Added Line import
 } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 
 // Props for controlling modal visibility, closing, and coin display
 interface StampModalProps {
@@ -186,6 +187,7 @@ export default function StampModal({
   coinRotations = [],
   coinSizes = [], // (NEW) per-coin image sizes
 }: StampModalProps) {
+  const { t } = useTranslation();
   // Animated opacity for each coin image (for fade-in effect)
   const fadeAnims = useRef<Animated.Value[]>(
     [...Array(14)].map(() => new Animated.Value(0)),
@@ -370,7 +372,7 @@ export default function StampModal({
         onPress={showNewCoinEffect ? handleTapToPlace : undefined}
       >
         <View style={styles.modalContent}>
-          <Text style={styles.title}>Collection</Text>
+          <Text style={styles.title}>{t('coinHunting.collection')}</Text>
           <View style={styles.stampHexGridContainer}>
             {/* Firework effect when complete */}
             {showFirework && (
@@ -416,8 +418,6 @@ export default function StampModal({
                 cy={CENTER_Y}
                 r={12}
                 fill="transparent"
-                stroke="#fff"
-                strokeWidth={1}
               />
 
               {/* Outer ring: 7 squares */}
@@ -436,9 +436,7 @@ export default function StampModal({
                       y={cy - RECT_SIZE / 2}
                       width={RECT_SIZE}
                       height={RECT_SIZE}
-                      fill={coinImages[i] ? 'transparent' : 'gray'}
-                      stroke={coinImages[i] ? 'transparent' : '#fff'}
-                      strokeWidth={2}
+                      fill={'transparent'}
                     />
                     {/* Slot number label */}
                     <SvgText
@@ -446,11 +444,8 @@ export default function StampModal({
                       y={cy - RECT_SIZE / 2 + 20}
                       fontSize={18}
                       fontWeight="bold"
-                      fill="#fff"
                       textAnchor="end"
                       alignmentBaseline="hanging"
-                      stroke="#222"
-                      strokeWidth={0.5}
                     >
                       {/* {i + 1} */}
                     </SvgText>
@@ -506,11 +501,7 @@ export default function StampModal({
                     {/* Kite polygon (gray if empty, transparent if has coin) */}
                     <Polygon
                       points={`${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y} ${p4.x},${p4.y} ${p6.x},${p6.y}`}
-                      fill={
-                        coinImages[i + NUM_SQUARES] ? 'transparent' : 'gray'
-                      }
-                      stroke={coinImages[i + NUM_SQUARES] ? 'transparent' : '#fff'}
-                      strokeWidth={1}
+                      fill={  'transparent'}
                     />
 
                     {/* Slot number label */}
@@ -519,11 +510,8 @@ export default function StampModal({
                       y={centroidY + 6}
                       fontSize={18}
                       fontWeight="bold"
-                      fill="#fff"
                       textAnchor="middle"
                       alignmentBaseline="middle"
-                      stroke="#222"
-                      strokeWidth={0.5}
                     >
                       {/* {i + 8} */}
                     </SvgText>

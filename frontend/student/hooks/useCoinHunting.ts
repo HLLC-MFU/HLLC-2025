@@ -6,19 +6,18 @@ import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import useProfile from '@/hooks/useProfile';
 import { Dimensions } from 'react-native';
+import { Lang } from '@/types/lang';
+import type {
+  Marker,
+  MapApiResponse,
+  LandmarkApiItem,
+  LandmarkApiResponse,
+  CoinCollectionLandmark,
+  CoinCollectionApiItem,
+  CoinCollectionApiResponse,
+} from '@/types/coin-hunting';
 
 const screen = Dimensions.get('window');
-
-// เพิ่ม Marker type
-interface Marker {
-  x: number;
-  y: number;
-  image: string;
-  description: string;
-  mapsUrl: string;
-  _id: string;
-  coinImage?: string;
-}
 
 type ModalType = null | 'scanner' | 'success' | 'alert' | 'stamp' | 'marker-detail';
 
@@ -64,8 +63,8 @@ export default function useCoinHunting() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await apiRequest<any>('/maps');
-        const maps = res.data?.data || [];
+        const res = await apiRequest<MapApiResponse>('/maps');
+        const maps = Array.isArray(res.data?.data) ? res.data.data : [];
         if (maps.length > 0) {
           const url = `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${maps[0].map}`;
           Image.getSize(
@@ -103,17 +102,20 @@ export default function useCoinHunting() {
       setErrorMarkers(null);
       try {
         const [landmarksRes, collectionsRes] = await Promise.all([
-          apiRequest<any>('/landmarks'),
-          apiRequest<any>('/coin-collections'),
+          apiRequest<LandmarkApiResponse>('/landmarks'),
+          apiRequest<CoinCollectionApiResponse>('/coin-collections'),
         ]);
         if (landmarksRes.data && Array.isArray(landmarksRes.data.data)) {
-          const mapped = landmarksRes.data.data.map((item: any) => ({
+          const mapped = landmarksRes.data.data.map((item: LandmarkApiItem) => ({
             x: item.mapCoordinates?.x ?? 0,
             y: item.mapCoordinates?.y ?? 0,
             image: item.hintImage
               ? `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${item.hintImage}`
               : '',
-            description: item.hint?.th || item.hint?.en || '',
+            description: {
+              th: item.hint?.th || '',
+              en: item.hint?.en || '',
+            },
             mapsUrl: item.location?.mapUrl || '',
             _id: item._id,
             coinImage: item.coinImage,
@@ -126,8 +128,8 @@ export default function useCoinHunting() {
         }
         // Extract collected landmark ids
         if (collectionsRes.data && Array.isArray(collectionsRes.data.data)) {
-          const allLandmarks = collectionsRes.data.data.flatMap((c: any) => c.landmarks || []);
-          const ids = allLandmarks.map((l: any) => l.landmark?._id).filter(Boolean);
+          const allLandmarks = collectionsRes.data.data.flatMap((c: CoinCollectionApiItem) => c.landmarks || []);
+          const ids = allLandmarks.map((l: CoinCollectionLandmark) => l.landmark?._id).filter(Boolean) as string[];
           if (mounted) setCollectedIds(ids);
         }
       } catch (e: any) {
@@ -144,11 +146,12 @@ export default function useCoinHunting() {
     if (state.modal === 'stamp') {
       const fetchStamps = async () => {
         try {
-          const res = await apiRequest('/coin-collections') as { data?: { data?: { landmarks?: any[] }[] } };
-          const landmarks = res?.data?.data?.[0]?.landmarks || [];
+          const res = await apiRequest<CoinCollectionApiResponse>('/coin-collections');
+          const dataArr = Array.isArray(res?.data?.data) ? res.data.data : [];
+          const landmarks = dataArr[0]?.landmarks || [];
           const NUM_SLOTS = 14;
           const imagesByOrder: (string | undefined)[] = Array(NUM_SLOTS).fill(undefined);
-          landmarks.forEach((l: any) => {
+          landmarks.forEach((l: CoinCollectionLandmark) => {
             const order = l.landmark?.order;
             if (order && order >= 1 && order <= NUM_SLOTS && l.landmark?.coinImage) {
               imagesByOrder[order - 1] = `${process.env.EXPO_PUBLIC_API_URL?.trim()}/uploads/${l.landmark.coinImage}`;

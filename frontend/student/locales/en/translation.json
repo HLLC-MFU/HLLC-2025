@@ -135,5 +135,8 @@
         "noUsersOnline": "No users online",
         "waitingForFriends": "Waiting for friends to join the chat room",
         "online": "Online"
+    },
+    "coinHunting": {
+        "collection": "Collection"
     }
 }

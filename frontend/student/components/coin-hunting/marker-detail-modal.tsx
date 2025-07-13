@@ -3,12 +3,14 @@ import { Modal, View, Text, TouchableOpacity, Image, Linking, StyleSheet } from 
 import { BlurView } from 'expo-blur';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
+import { useLanguage } from '@/context/LanguageContext';
+import { Lang } from '@/types/lang';
 
 interface Marker {
   x: number;
   y: number;
   image: string;
-  description: string;
+  description: Lang;
   mapsUrl: string;
 }
 
@@ -26,6 +28,7 @@ export default function MarkerDetailModal({
   onCheckIn 
 }: MarkerDetailModalProps) {
   const router = useRouter();
+  const { language } = useLanguage();
 
   return (
     <Modal
@@ -50,7 +53,7 @@ export default function MarkerDetailModal({
                   style={styles.modalImage}
                 />
                 <Text style={styles.modalText}>
-                  {marker.description}
+                  {marker.description?.[language] || marker.description?.th || marker.description?.en || ''}
                 </Text>
                 <View style={styles.modalButtonRow}>
                   <TouchableOpacity

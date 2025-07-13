@@ -134,5 +134,8 @@
         "noUsersOnline": "ไม่มีผู้ใช้ออนไลน์",
         "waitingForFriends": "รอให้เพื่อนเข้าร่วมห้องแชท",
         "online": "ออนไลน์"
+    },
+    "coinHunting": {
+        "collection": "คอลเลกชัน"
     }
 }
