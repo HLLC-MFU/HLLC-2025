@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { StepCountersService } from '../service/step-counters.service';
 import { FastifyRequest } from 'fastify';
+import { apiResponse } from 'src/pkg/helper/api-response.helper';
 
 class RegisterDeviceDto {
   deviceId: string;
@@ -112,12 +113,20 @@ export class StepCountersController {
     });
   }
 
-  @Get('rank-summary')
+  @Get('leaderboard/user')
   async getUserRankSummary(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
     const user = req.user as { _id?: string; id?: string };
     const userId: string = user?._id ?? user?.id ?? '';
-    return this.stepCountersService.getUserRankSummary(userId);
+    try {
+      return apiResponse(
+        await this.stepCountersService.getUserRankSummary(userId),
+        "Successfully retrieved user's rank summary",
+        200,
+      )
+    }catch (error) {
+      throw new BadRequestException('Failed to retrieve user rank summary');
+    }
   }
 }
