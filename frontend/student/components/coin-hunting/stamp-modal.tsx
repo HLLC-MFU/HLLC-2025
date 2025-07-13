@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, Fragment } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -14,215 +14,66 @@ import Svg, {
   G,
   Polygon,
   Text as SvgText,
-  Line, // Added Line import
 } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
+import {
+  FireworkSVG,
+  getCoinPosition,
+  getKiteCentroid,
+} from './coin-hunting-helpers';
 
-// Props for controlling modal visibility, closing, and coin display
 interface StampModalProps {
-  visible: boolean; // Show/hide modal
-  onClose: () => void; // Close modal callback
+  visible: boolean;
+  onClose: () => void;
   stamps?: number;
   onGetReward?: () => void;
-  coinImages?: (string | undefined)[]; // Array of coin image URIs (index 0-6: outer, 7-13: inner)
-  coinRotations?: number[]; // Array of rotation angles for each coin image
-  coinSizes?: number[]; // (NEW) Array of per-coin image sizes (optional)
+  coinImages?: (string | undefined)[];
+  coinRotations?: number[];
+  coinSizes?: number[];
 }
 
-// === GRID & IMAGE SIZE CONTROLS ===
-const NUM_SQUARES = 7; // Number of slots per ring (outer and inner)
-const RADIUS = 80; // Radius from center to outer ring (distance from center to outer slot)
-const RECT_SIZE = 0; // Size of the square frame (Rect) only
-const SQUARE_SIZE = 85; // Size of each coin image (and overlay)
-const KITE_INNER_RADIUS = RADIUS - 8; // Inner radius for kite polygon (smaller frame)
-const KITE_OUTER_RADIUS = RADIUS + 0; // Outer radius for kite polygon (smaller frame)
-const CENTER_X = 150; // X coordinate of grid center (SVG)
-const CENTER_Y = 170; // Y coordinate of grid center (SVG)
-
-// Firework SVG component (animated)
-const FIREWORK_COLORS = [
-  '#FFD700', // gold
-  '#FF69B4', // pink
-  '#00FFFF', // cyan
-  '#FF4500', // orange
-  '#7CFC00', // green
-  '#1E90FF', // blue
-  '#FFFFFF', // white
-];
-
-function FireworkSVG({
-  centerX,
-  centerY,
-  radius = 90,
-  numRays = 12,
-  duration = 1200,
-  delay = 0,
-}: {
-  centerX: number;
-  centerY: number;
-  radius?: number;
-  numRays?: number;
-  duration?: number;
-  delay?: number;
-}) {
-  const [anim] = useState(() => new Animated.Value(0));
-
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: 1,
-      duration,
-      delay,
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
-  return (
-    <Animated.View
-      style={{
-        position: 'absolute',
-        left: 0, top: 0, right: 0, bottom: 0,
-        alignItems: 'center', justifyContent: 'center',
-        pointerEvents: 'none',
-        zIndex: 20,
-        opacity: anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 1, 0] }),
-        transform: [
-          {
-            scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1.2] }),
-          },
-        ],
-      }}
-      pointerEvents="none"
-    >
-      <Svg width={centerX * 2} height={centerY * 2}>
-        {[...Array(numRays)].map((_, i) => {
-          const angle = (2 * Math.PI * i) / numRays;
-          const x2 = centerX + radius * Math.cos(angle);
-          const y2 = centerY + radius * Math.sin(angle);
-          const color = FIREWORK_COLORS[i % FIREWORK_COLORS.length];
-          return (
-            <Fragment key={i}>
-              <AnimatedLine
-                x1={centerX}
-                y1={centerY}
-                x2={x2}
-                y2={y2}
-                stroke={color}
-                strokeWidth={4}
-                strokeLinecap="round"
-                anim={anim}
-              />
-              {/* จุดปลายพลุ */}
-              <AnimatedCircle
-                cx={x2}
-                cy={y2}
-                r={anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 7, 0] })}
-                fill={color}
-                opacity={0.8}
-                anim={anim}
-              />
-            </Fragment>
-          );
-        })}
-      </Svg>
-    </Animated.View>
-  );
-}
-
-// Animated SVG helpers
-function AnimatedLine({ x1, y1, x2, y2, stroke, strokeWidth, strokeLinecap, anim }: {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  stroke: string;
-  strokeWidth: number;
-  strokeLinecap: 'round' | 'butt' | 'square' | undefined;
-  anim: Animated.Value;
-}) {
-  // Animate length of line (from center to end)
-  const x2Anim = anim.interpolate({ inputRange: [0, 1], outputRange: [x1, x2] });
-  const y2Anim = anim.interpolate({ inputRange: [0, 1], outputRange: [y1, y2] });
-  return (
-    <AnimatedSvgLine
-      x1={x1}
-      y1={y1}
-      x2={x2Anim}
-      y2={y2Anim}
-      stroke={stroke}
-      strokeWidth={strokeWidth}
-      strokeLinecap={strokeLinecap}
-    />
-  );
-}
-
-function AnimatedCircle({ cx, cy, r, fill, opacity, anim }: {
-  cx: number;
-  cy: number;
-  r: any; // Animated.Value or number
-  fill: string;
-  opacity: number;
-  anim: Animated.Value;
-}) {
-  return (
-    <AnimatedSvgCircle
-      cx={cx}
-      cy={cy}
-      r={r}
-      fill={fill}
-      opacity={opacity}
-    />
-  );
-}
-
-// Animated SVG wrappers
-import { Animated as RNAnimated } from 'react-native';
-const AnimatedSvgLine = RNAnimated.createAnimatedComponent(Line);
-const AnimatedSvgCircle = RNAnimated.createAnimatedComponent(Circle);
-
+const NUM_SQUARES = 7;
+const RADIUS = 80;
+const SQUARE_SIZE = 85;
+const KITE_INNER_RADIUS = RADIUS - 8;
+const KITE_OUTER_RADIUS = RADIUS + 0;
+const CENTER_X = 150;
+const CENTER_Y = 170;
 
 export default function StampModal({
   visible,
   onClose,
   coinImages = [],
   coinRotations = [],
-  coinSizes = [], // (NEW) per-coin image sizes
+  coinSizes = [],
 }: StampModalProps) {
   const { t } = useTranslation();
-  // Animated opacity for each coin image (for fade-in effect)
-  const fadeAnims = useRef<Animated.Value[]>(
-    [...Array(14)].map(() => new Animated.Value(0)),
+  const NUM_SLOTS = 21;
+  const fadeAnims = useRef(
+    [...Array(NUM_SLOTS)].map(() => new Animated.Value(0)),
   ).current;
-
-  // === NEW: Animation for new coin effect ===
   const [newCoinIndex, setNewCoinIndex] = useState<number | null>(null);
   const [showNewCoinEffect, setShowNewCoinEffect] = useState(false);
   const newCoinAnim = useRef(new Animated.Value(0)).current;
   const newCoinScale = useRef(new Animated.Value(0.3)).current;
   const newCoinPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-
-  // Track previous coinImages to detect new coins
   const prevCoinImages = useRef<(string | undefined)[]>([]);
-
-  // Detect new coins and trigger animation
   useEffect(() => {
     if (visible && coinImages.length > 0) {
-      const newCoins = coinImages.map((img, index) => {
-        const hadCoin = prevCoinImages.current[index];
-        const hasCoin = !!img;
-        return hasCoin && !hadCoin ? index : null;
-      }).filter((index): index is number => index !== null);
-
+      const newCoins = coinImages
+        .map((img, index) => {
+          const hadCoin = prevCoinImages.current[index];
+          const hasCoin = !!img;
+          return hasCoin && !hadCoin ? index : null;
+        })
+        .filter((index): index is number => index !== null);
       if (newCoins.length > 0) {
         const latestNewCoin = newCoins[newCoins.length - 1];
         setNewCoinIndex(latestNewCoin);
         setShowNewCoinEffect(true);
-        
-        // Reset animation values
         newCoinAnim.setValue(0);
         newCoinScale.setValue(0.3);
         newCoinPosition.setValue({ x: 0, y: 0 });
-
-        // Animate new coin effect
         Animated.parallel([
           Animated.timing(newCoinAnim, {
             toValue: 1,
@@ -235,7 +86,6 @@ export default function StampModal({
             useNativeDriver: true,
           }),
         ]).start(() => {
-          // After animation, reset for next time
           setTimeout(() => {
             setShowNewCoinEffect(false);
             setNewCoinIndex(null);
@@ -243,104 +93,67 @@ export default function StampModal({
         });
       }
     }
-    
-    // Update previous coin images
     prevCoinImages.current = [...coinImages];
   }, [visible, coinImages]);
-
-  // === Glow effect for complete collection ===
-  const isComplete = coinImages.filter(Boolean).length === 14;
+  const isComplete = coinImages.slice(0, 14).every(Boolean);
   const glowAnim = useRef(new Animated.Value(0.7)).current;
   useEffect(() => {
     if (isComplete && visible) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(glowAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
-          Animated.timing(glowAnim, { toValue: 0.7, duration: 900, useNativeDriver: true }),
-        ])
+          Animated.timing(glowAnim, {
+            toValue: 1,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0.7,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+        ]),
       ).start();
     } else {
       glowAnim.setValue(0.7);
     }
   }, [isComplete, visible]);
-
-  // Firework trigger state (show only once per complete)
   const [showFirework, setShowFirework] = useState(false);
   useEffect(() => {
     if (isComplete && visible) {
       setShowFirework(true);
-      // Hide firework after 1.5s
       const t = setTimeout(() => setShowFirework(false), 1500);
       return () => clearTimeout(t);
     } else {
       setShowFirework(false);
     }
   }, [isComplete, visible]);
-
   useEffect(() => {
     if (visible) {
-      // Animate all coins with staggered delay
       coinImages.forEach((_, index) => {
         Animated.timing(fadeAnims[index], {
           toValue: 1,
           duration: 400,
-          delay: index * 100, // Staggered delay
+          delay: index * 100,
           useNativeDriver: true,
         }).start();
       });
     } else {
-      // Reset all for next open
       fadeAnims.forEach(anim => anim.setValue(0));
     }
   }, [visible, coinImages, coinRotations, coinSizes]);
-
-  // Handle tap to place coin in slot
+  const [currentPage, setCurrentPage] = useState(0);
+  useEffect(() => {
+    if (visible) setCurrentPage(0);
+  }, [visible]);
   const handleTapToPlace = () => {
     if (showNewCoinEffect && newCoinIndex !== null) {
-      // Animate coin to its final position
-      let targetX = 0;
-      let targetY = 0;
-
-      if (newCoinIndex < NUM_SQUARES) {
-        // Outer ring position
-        const angle = (2 * Math.PI * newCoinIndex) / NUM_SQUARES;
-        targetX = RADIUS * Math.cos(angle);
-        targetY = RADIUS * Math.sin(angle);
-      } else {
-        // Inner ring position (centroid calculation)
-        const index = newCoinIndex - NUM_SQUARES;
-        const angleMid = (2 * Math.PI * (index + 1)) / NUM_SQUARES;
-        const innerRadius = 12;
-        const p1 = {
-          x: innerRadius * Math.cos(angleMid),
-          y: innerRadius * Math.sin(angleMid),
-        };
-        const angleIn1 = (2 * Math.PI * index) / NUM_SQUARES + Math.PI / 3.5;
-        const inRadius = KITE_INNER_RADIUS;
-        const p2 = {
-          x: inRadius * Math.cos(angleIn1),
-          y: inRadius * Math.sin(angleIn1),
-        };
-        const angleOut = (2 * Math.PI * (index + 1)) / NUM_SQUARES - Math.PI / NUM_SQUARES;
-        const outRadius = KITE_OUTER_RADIUS;
-        const p3 = {
-          x: outRadius * Math.cos(angleOut),
-          y: outRadius * Math.sin(angleOut),
-        };
-        const angleIn2 = (2 * Math.PI * (index + 0.9)) / NUM_SQUARES - Math.PI / 4;
-        const p4 = {
-          x: inRadius * Math.cos(angleIn2),
-          y: inRadius * Math.sin(angleIn2),
-        };
-        const angleMid1 = (2 * Math.PI * index) / NUM_SQUARES;
-        const p6 = {
-          x: innerRadius * Math.cos(angleMid1),
-          y: innerRadius * Math.sin(angleMid1),
-        };
-        targetX = (p1.x + p2.x + p3.x + p4.x + p6.x) / 5;
-        targetY = (p1.y + p2.y + p3.y + p4.y + p6.y) / 5;
-      }
-
+      const { x: targetX, y: targetY } = getCoinPosition(
+        newCoinIndex,
+        NUM_SQUARES,
+        RADIUS,
+        KITE_INNER_RADIUS,
+        KITE_OUTER_RADIUS,
+      );
       Animated.parallel([
         Animated.timing(newCoinPosition, {
           toValue: { x: targetX, y: targetY },
@@ -358,7 +171,6 @@ export default function StampModal({
       });
     }
   };
-
   return (
     <Modal
       visible={visible}
@@ -366,29 +178,43 @@ export default function StampModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableOpacity 
-        style={styles.overlay} 
+      <TouchableOpacity
+        style={styles.overlay}
         activeOpacity={1}
         onPress={showNewCoinEffect ? handleTapToPlace : undefined}
       >
         <View style={styles.modalContent}>
           <Text style={styles.title}>{t('coinHunting.collection')}</Text>
           <View style={styles.stampHexGridContainer}>
-            {/* Firework effect when complete */}
-            {showFirework && (
+            {currentPage === 0 && showFirework && (
               <>
-                <FireworkSVG centerX={CENTER_X} centerY={CENTER_Y} radius={110} numRays={14} duration={1200} />
-                {/* เพิ่มพลุซ้อนอีกชุดให้ดูอลังการ */}
-                <FireworkSVG centerX={CENTER_X} centerY={CENTER_Y} radius={70} numRays={7} duration={900} delay={200} />
+                <FireworkSVG
+                  centerX={CENTER_X}
+                  centerY={CENTER_Y}
+                  radius={110}
+                  numRays={14}
+                  duration={1200}
+                />
+                <FireworkSVG
+                  centerX={CENTER_X}
+                  centerY={CENTER_Y}
+                  radius={70}
+                  numRays={7}
+                  duration={900}
+                  delay={200}
+                />
               </>
             )}
-            {/* Glow effect when complete */}
-            {isComplete && (
+            {currentPage === 0 && isComplete && (
               <Animated.View
                 style={{
                   position: 'absolute',
-                  left: 0, top: 0, right: 0, bottom: 0,
-                  alignItems: 'center', justifyContent: 'center',
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   opacity: glowAnim,
                   zIndex: 1,
                 }}
@@ -410,238 +236,226 @@ export default function StampModal({
                 </Svg>
               </Animated.View>
             )}
-            {/* SVG grid for slots (outer ring: squares, inner ring: kites) */}
-            <Svg width={CENTER_X * 2} height={CENTER_Y * 2}>
-              {/* Center circle (visual reference) */}
-              <Circle
-                cx={CENTER_X}
-                cy={CENTER_Y}
-                r={12}
-                fill="transparent"
-              />
-
-              {/* Outer ring: 7 squares */}
-              {[...Array(NUM_SQUARES)].map((_, i) => {
-                // Calculate position and rotation for each square slot
-                const angle = (2 * Math.PI * i) / NUM_SQUARES;
-                const cx = CENTER_X + RADIUS * Math.cos(angle); // X position
-                const cy = CENTER_Y + RADIUS * Math.sin(angle); // Y position
-                const rotate = (angle * 180) / Math.PI + 45; // Rotation for square
-
-                return (
-                  <G key={i} origin={`${cx},${cy}`} rotation={rotate}>
-                    {/* Slot rectangle (gray if empty, transparent if has coin) */}
-                    <Rect
-                      x={cx - RECT_SIZE / 2}
-                      y={cy - RECT_SIZE / 2}
-                      width={RECT_SIZE}
-                      height={RECT_SIZE}
-                      fill={'transparent'}
-                    />
-                    {/* Slot number label */}
-                    <SvgText
-                      x={cx + RECT_SIZE / 2 - 14}
-                      y={cy - RECT_SIZE / 2 + 20}
-                      fontSize={18}
-                      fontWeight="bold"
-                      textAnchor="end"
-                      alignmentBaseline="hanging"
-                    >
-                      {/* {i + 1} */}
-                    </SvgText>
-                  </G>
-                );
-              })}
-
-              {/* Inner ring: 7 kite-shaped slots */}
-              {[...Array(NUM_SQUARES)].map((_, i) => {
-                // Calculate kite points for each inner slot
-                const angleMid = (2 * Math.PI * (i + 1)) / NUM_SQUARES;
-                const innerRadius = 12;
-                const p1 = {
-                  x: CENTER_X + innerRadius * Math.cos(angleMid),
-                  y: CENTER_Y + innerRadius * Math.sin(angleMid),
-                };
-
-                const angleIn1 =
-                  (2 * Math.PI * i) / NUM_SQUARES + Math.PI / 3.5;
-                const inRadius = KITE_INNER_RADIUS; // Use custom inner radius for smaller polygon
-                const p2 = {
-                  x: CENTER_X + inRadius * Math.cos(angleIn1),
-                  y: CENTER_Y + inRadius * Math.sin(angleIn1),
-                };
-
-                const angleOut =
-                  (2 * Math.PI * (i + 1)) / NUM_SQUARES - Math.PI / NUM_SQUARES;
-                const outRadius = KITE_OUTER_RADIUS; // Use custom outer radius for smaller polygon
-                const p3 = {
-                  x: CENTER_X + outRadius * Math.cos(angleOut),
-                  y: CENTER_Y + outRadius * Math.sin(angleOut),
-                };
-
-                const angleIn2 =
-                  (2 * Math.PI * (i + 0.9)) / NUM_SQUARES - Math.PI / 4;
-                const p4 = {
-                  x: CENTER_X + inRadius * Math.cos(angleIn2),
-                  y: CENTER_Y + inRadius * Math.sin(angleIn2),
-                };
-
-                const angleMid1 = (2 * Math.PI * i) / NUM_SQUARES;
-                const p6 = {
-                  x: CENTER_X + innerRadius * Math.cos(angleMid1),
-                  y: CENTER_Y + innerRadius * Math.sin(angleMid1),
-                };
-
-                // Centroid for label and coin image
-                const centroidX = (p1.x + p2.x + p3.x + p4.x + p6.x) / 5;
-                const centroidY = (p1.y + p2.y + p3.y + p4.y + p6.y) / 5;
-
-                return (
-                  <G key={`kite-${i}`}>
-                    {/* Kite polygon (gray if empty, transparent if has coin) */}
-                    <Polygon
-                      points={`${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y} ${p4.x},${p4.y} ${p6.x},${p6.y}`}
-                      fill={  'transparent'}
-                    />
-
-                    {/* Slot number label */}
-                    <SvgText
-                      x={centroidX}
-                      y={centroidY + 6}
-                      fontSize={18}
-                      fontWeight="bold"
-                      textAnchor="middle"
-                      alignmentBaseline="middle"
-                    >
-                      {/* {i + 8} */}
-                    </SvgText>
-                  </G>
-                );
-              })}
-            </Svg>
-
-            {/* Coin image overlay with animation */}
-            {[...Array(14)].map((_, i) => {
-              if (!coinImages[i]) return null; // No image, skip
-
-              let cx = CENTER_X;
-              let cy = CENTER_Y;
-
-              if (i < NUM_SQUARES) {
-                // Outer ring: calculate position using RADIUS
-                const angle = (2 * Math.PI * i) / NUM_SQUARES;
-                cx += RADIUS * Math.cos(angle);
-                cy += RADIUS * Math.sin(angle);
-              } else {
-                // Inner ring: use centroid of kite slot
-                const index = i - NUM_SQUARES;
-
-                const angleMid = (2 * Math.PI * (index + 1)) / NUM_SQUARES;
-                const innerRadius = 12;
-                const p1 = {
-                  x: CENTER_X + innerRadius * Math.cos(angleMid),
-                  y: CENTER_Y + innerRadius * Math.sin(angleMid),
-                };
-
-                const angleIn1 =
-                  (2 * Math.PI * index) / NUM_SQUARES + Math.PI / 3.5;
-                const inRadius = KITE_INNER_RADIUS; // Use custom inner radius for smaller polygon
-                const p2 = {
-                  x: CENTER_X + inRadius * Math.cos(angleIn1),
-                  y: CENTER_Y + inRadius * Math.sin(angleIn1),
-                };
-
-                const angleOut =
-                  (2 * Math.PI * (index + 1)) / NUM_SQUARES -
-                  Math.PI / NUM_SQUARES;
-                const outRadius = KITE_OUTER_RADIUS; // Use custom outer radius for smaller polygon
-                const p3 = {
-                  x: CENTER_X + outRadius * Math.cos(angleOut),
-                  y: CENTER_Y + outRadius * Math.sin(angleOut),
-                };
-
-                const angleIn2 =
-                  (2 * Math.PI * (index + 0.9)) / NUM_SQUARES - Math.PI / 4;
-                const p4 = {
-                  x: CENTER_X + inRadius * Math.cos(angleIn2),
-                  y: CENTER_Y + inRadius * Math.sin(angleIn2),
-                };
-
-                const angleMid1 = (2 * Math.PI * index) / NUM_SQUARES;
-                const p6 = {
-                  x: CENTER_X + innerRadius * Math.cos(angleMid1),
-                  y: CENTER_Y + innerRadius * Math.sin(angleMid1),
-                };
-
-                cx = (p1.x + p2.x + p3.x + p4.x + p6.x) / 5;
-                cy = (p1.y + p2.y + p3.y + p4.y + p6.y) / 5;
-              }
-
-              const rotate = coinRotations[i] ?? 0; // Rotation for this coin
-              const size = coinSizes[i] ?? SQUARE_SIZE; // (NEW) Per-coin size if provided, fallback to SQUARE_SIZE
-
-              return (
-                <Animated.View
-                  key={`img-${i}`}
-                  style={{
-                    position: 'absolute',
-                    left: cx - size / 2, // Center image on slot using per-coin size
-                    top: cy - size / 2,
-                    width: size, // (NEW) Per-coin image size
-                    height: size,
-                    transform: [{ rotate: `${rotate}deg` }],
-                    opacity: fadeAnims[i],
-                    // zIndex: 10 ensures coin is above slot
-                    zIndex: 10,
-                  }}
-                >
-                  <Image
-                    source={{ uri: coinImages[i] }}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      resizeMode: 'contain',
-                    }}
+            {currentPage === 0 && (
+              <>
+                <Svg width={CENTER_X * 2} height={CENTER_Y * 2}>
+                  <Circle
+                    cx={CENTER_X}
+                    cy={CENTER_Y}
+                    r={12}
+                    fill="transparent"
                   />
-                </Animated.View>
-              );
-            })}
-
-            {/* New coin effect overlay */}
-            {showNewCoinEffect && newCoinIndex !== null && (
-              <Animated.View
-                style={{
-                  position: 'absolute',
-                  left: 0, top: 0, right: 0, bottom: 0,
-                  alignItems: 'center', justifyContent: 'center',
-                  zIndex: 25, // Ensure it's above other content
-                }}
-                onTouchEnd={handleTapToPlace} // Allow tapping to place
-              >
-                <Animated.View
-                  style={{
-                    transform: [
-                      { translateX: newCoinPosition.x },
-                      { translateY: newCoinPosition.y },
-                      { scale: newCoinScale },
-                      { rotate: newCoinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
-                    ],
-                    opacity: newCoinAnim,
-                  }}
+                  {[...Array(NUM_SQUARES)].map((_, i) => {
+                    const { cx, cy, rotate } = getCoinPosition(
+                      i,
+                      NUM_SQUARES,
+                      RADIUS,
+                    );
+                    return (
+                      <G key={i} origin={`${cx},${cy}`} rotation={rotate}>
+                        <Rect
+                          x={cx}
+                          y={cy}
+                          width={0}
+                          height={0}
+                          fill={'transparent'}
+                        />
+                      </G>
+                    );
+                  })}
+                  {[...Array(NUM_SQUARES)].map((_, i) => {
+                    const { centroidX, centroidY } = getKiteCentroid(
+                      i,
+                      NUM_SQUARES,
+                      CENTER_X,
+                      CENTER_Y,
+                      KITE_INNER_RADIUS,
+                      KITE_OUTER_RADIUS,
+                    );
+                    return (
+                      <G key={`kite-${i}`}>
+                        <Polygon points="" fill={'transparent'} />
+                        <SvgText
+                          x={centroidX}
+                          y={centroidY + 6}
+                          fontSize={18}
+                          fontWeight="bold"
+                          textAnchor="middle"
+                          alignmentBaseline="middle"
+                        />
+                      </G>
+                    );
+                  })}
+                </Svg>
+                {[...Array(14)].map((_, i) => {
+                  if (!coinImages[i]) return null;
+                  let { cx, cy } = getCoinPosition(
+                    i,
+                    NUM_SQUARES,
+                    RADIUS,
+                    KITE_INNER_RADIUS,
+                    KITE_OUTER_RADIUS,
+                    CENTER_X,
+                    CENTER_Y,
+                  );
+                  const rotate = coinRotations[i] ?? 0;
+                  const size = coinSizes[i] ?? SQUARE_SIZE;
+                  return (
+                    <Animated.View
+                      key={`img-${i}`}
+                      style={{
+                        position: 'absolute',
+                        left: cx - size / 2,
+                        top: cy - size / 2,
+                        width: size,
+                        height: size,
+                        transform: [{ rotate: `${rotate}deg` }],
+                        opacity: fadeAnims[i],
+                        zIndex: 10,
+                      }}
+                    >
+                      <Image
+                        source={{ uri: coinImages[i] }}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          resizeMode: 'contain',
+                        }}
+                      />
+                    </Animated.View>
+                  );
+                })}
+                {showNewCoinEffect &&
+                  newCoinIndex !== null &&
+                  newCoinIndex < 14 && (
+                    <Animated.View
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 25,
+                      }}
+                      onTouchEnd={handleTapToPlace}
+                    >
+                      <Animated.View
+                        style={{
+                          transform: [
+                            { translateX: newCoinPosition.x },
+                            { translateY: newCoinPosition.y },
+                            { scale: newCoinScale },
+                            {
+                              rotate: newCoinAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0deg', '360deg'],
+                              }),
+                            },
+                          ],
+                          opacity: newCoinAnim,
+                        }}
+                      >
+                        <Image
+                          source={{ uri: coinImages[newCoinIndex] }}
+                          style={{
+                            width: 50,
+                            height: 50,
+                            resizeMode: 'contain',
+                          }}
+                        />
+                      </Animated.View>
+                    </Animated.View>
+                  )}
+              </>
+            )}
+            {currentPage === 1 && (
+              <View style={styles.sponsor2RowsContainer}>
+                <View style={styles.sponsorRow2Row}>
+                  {[0, 1, 2].map(i => {
+                    const idx = 15 + i;
+                    return (
+                      <View key={idx} style={styles.sponsorStampSlot}>
+                        {coinImages[idx] && (
+                          <Image
+                            source={{ uri: coinImages[idx] }}
+                            style={styles.sponsorStampImg}
+                          />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+                <View
+                  style={[
+                    styles.sponsorRow2Row,
+                    styles.sponsorRow2RowBottomHex,
+                  ]}
                 >
-                  <Image
-                    source={{ uri: coinImages[newCoinIndex] }}
-                    style={{
-                      width: 50,
-                      height: 50,
-                      resizeMode: 'contain',
-                    }}
-                  />
-                </Animated.View>
-              </Animated.View>
+                  {[3, 4, 5, 6].map(i => {
+                    const idx = 15 + i;
+                    return (
+                      <View key={idx} style={styles.sponsorStampSlot}>
+                        {coinImages[idx] && (
+                          <Image
+                            source={{ uri: coinImages[idx] }}
+                            style={styles.sponsorStampImg}
+                          />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
             )}
           </View>
-
+          <View style={styles.dotIndicatorContainer}>
+            {[0, 1].map(idx => (
+              <View
+                key={idx}
+                style={[styles.dot, currentPage === idx && styles.dotActive]}
+              />
+            ))}
+          </View>
+          <View style={styles.pageNavBtnContainer}>
+            <TouchableOpacity
+              style={[
+                styles.pageNavBtn,
+                currentPage === 0 && styles.pageNavBtnDisabled,
+              ]}
+              onPress={() => currentPage > 0 && setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 0}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.pageNavBtnText,
+                  currentPage === 0 && styles.pageNavBtnTextDisabled,
+                ]}
+              >
+                {'←'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.pageNavBtn,
+                currentPage === 1 && styles.pageNavBtnDisabled,
+              ]}
+              onPress={() => currentPage < 1 && setCurrentPage(currentPage + 1)}
+              disabled={currentPage === 1}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.pageNavBtnText,
+                  currentPage === 1 && styles.pageNavBtnTextDisabled,
+                ]}
+              >
+                {'→'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
             style={styles.rewardBtn}
             onPress={onClose}
@@ -679,8 +493,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   stampHexGridContainer: {
-    width: 300, // Container width for grid (increase if grid is too big)
-    height: 340, // Container height for grid
+    width: 300,
+    height: 340,
     position: 'relative',
     marginVertical: 24,
   },
@@ -697,4 +511,67 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
+  sponsor2RowsContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+    marginBottom: 40,
+  },
+  sponsorRow2Row: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 18,
+  },
+  sponsorRow2RowBottomHex: { marginTop: 22, alignSelf: 'center' },
+  sponsorStampSlot: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    marginHorizontal: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  sponsorStampImg: { width: 48, height: 48, resizeMode: 'contain' },
+  dotIndicatorContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    marginTop: -10,
+    gap: 8,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#bbb',
+    marginHorizontal: 4,
+    opacity: 0.5,
+  },
+  dotActive: { backgroundColor: '#fff', opacity: 1 },
+  pageNavBtnContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 16,
+  },
+  pageNavBtn: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 8,
+    opacity: 1,
+    borderWidth: 0,
+  },
+  pageNavBtnDisabled: { backgroundColor: '#bbb', opacity: 0.5 },
+  pageNavBtnText: { fontSize: 22, color: '#222', fontWeight: 'bold' },
+  pageNavBtnTextDisabled: { color: '#888' },
 });

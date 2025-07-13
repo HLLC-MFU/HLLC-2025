@@ -269,6 +269,7 @@ export default function InteractiveMap({
                       fadeDuration={300}
                       progressiveRenderingEnabled={true}
                     />
+                    <View style={styles.overlay} pointerEvents="none" />
                     {/* Render children (markers) on top of the image, sharing the same transform */}
                     {isImageLoaded && children}
                   </Animated.View>
@@ -314,5 +315,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000',
+    opacity: 0.35, 
+    zIndex: 2,
   },
 });
