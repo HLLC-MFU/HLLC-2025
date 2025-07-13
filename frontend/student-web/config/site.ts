@@ -22,7 +22,7 @@ export const siteConfig: {
       section: 'Account',
       items: [
         { label: 'Profile', href: '/profile', icon: CircleUserRound },
-        { label: 'Reprot' , href: '/report' , icon: ShieldAlert},
+        { label: 'Report' , href: '/report' , icon: ShieldAlert},
         { label: 'Logout', href: '/logout', icon: LogOutIcon },
       ],
     },

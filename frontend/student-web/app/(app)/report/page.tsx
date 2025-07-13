@@ -1,109 +1,139 @@
-"use client"
-import { useEffect, useState } from "react";
-import { useReport } from "@/hooks/useReport";
+'use client';
+
+import { useState } from 'react';
 import {
-    Button,
-    Input,
-    Select,
-    SelectItem,
-    Textarea,
-    Spinner,
-    addToast,
-} from "@heroui/react";
-import { AlertTriangle } from "lucide-react";
+  Card,
+  CardBody,
+  Button,
+  Select,
+  SelectItem,
+  Textarea,
+  Spinner,
+  addToast,
+} from '@heroui/react';
+import { AlertTriangle } from 'lucide-react';
+import { useReport } from '@/hooks/useReport';
+import { ReportSkeleton } from './_components/ReportSkeleton';
+import { ConfirmModal } from './_components/ModalComfirm';
 
 export default function ReportPage() {
-    const [selectedTopic, setSelectedTopic] = useState("");
-    const [description, setDescription] = useState("");
-    const {
-        topics,
-        fetchReportTypes,
-        submitReport,
-        fetching,
-        loading,
-        error,
-    } = useReport();
+  const [selectedTopic, setSelectedTopic] = useState('');
+  const [description, setDescription] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const DESCRIPTION_LIMIT = 300;
 
-    const DESCRIPTION_LIMIT = 300;
+  const {
+    reporttypes,
+    loading,
+    error,
+    submitReport,
+  } = useReport();
 
-    useEffect(() => {
-        fetchReportTypes();
-    }, []);
+  const handleSubmit = () => {
+    if (!selectedTopic || !description.trim()) return;
+    setIsModalOpen(true);
+  };
 
-    const handleSubmit = async () => {
-        if (!selectedTopic || !description.trim()) return;
+  const handleConfirmSubmit = async () => {
+    setIsModalOpen(false);
+    const success = await submitReport({
+      category: selectedTopic,
+      message: description.trim(),
+    });
 
-        const success = await submitReport(selectedTopic, description);
+    if (success) {
+      addToast({ title: 'Report submitted successfully', color: 'success' });
+      setSelectedTopic('');
+      setDescription('');
+    } else {
+      addToast({
+        title: 'Error',
+        description: error || 'Cannot send the report',
+        color: 'danger',
+      });
+    }
+  };
 
-        if (success) {
-            addToast({
-                title: "Success",
-                description: "ส่งรายงานสำเร็จ",
-                color: "success",
-            })
-            setDescription("");
-            setSelectedTopic("");
-        } else {
-            addToast({
-                title: "Fail",
-                description: "ส่งรายงานไม่สำเร็จ",
-                color: "danger",
-            })
-        }
-    };
+  if (loading && reporttypes.length === 0) {
+    return <ReportSkeleton />;
+  }
 
-    return (
-        <div className="max-w-xl mx-auto p-6 space-y-4">
-            <div className="flex items-center gap-2 text-red-600">
-                <AlertTriangle className="w-6 h-6" />
-                <h2 className="text-xl font-bold">รายงานปัญหา</h2>
-            </div>
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-transparent px-4">
+      <Card className="w-full max-w-xl py-6 px-6 bg-black/20 backdrop-blur-md border border-white rounded-2xl shadow-lg">
+        <CardBody className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center gap-3 text-red-500">
+            <AlertTriangle className="w-6 h-6" />
+            <h2 className="text-xl font-bold text-white">Report</h2>
+          </div>
 
-            <div className="space-y-2">
-                <label className="text-sm font-medium">หัวข้อ</label>
-                <Select
-                    selectedKeys={selectedTopic ? [selectedTopic] : []}
-                    placeholder={fetching ? "กำลังโหลด..." : "เลือกหัวข้อ"}
-                    onChange={(e) => setSelectedTopic(e.target.value)}
-                    isDisabled={fetching || loading}
+          {/* Select Topic */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-white">Topics</label>
+            <Select
+              selectedKeys={selectedTopic ? [selectedTopic] : []}
+              placeholder="Choose Topic"
+              isDisabled={loading}
+              onChange={(e) => setSelectedTopic(e.target.value)}
+            >
+              {reporttypes.map((t) => (
+                <SelectItem
+                  key={t.id}
+                  textValue={`${t.name.en} (${t.name.th})`}
                 >
-                    {topics.map((t) => (
-                        <SelectItem key={t._id}>{t.name.th}</SelectItem>
-                    ))}
-                </Select>
-            </div>
+                  {t.name.en} ({t.name.th})
+                </SelectItem>
+              ))}
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-                <label className="text-sm font-medium">รายละเอียด</label>
-                <Textarea
-                    placeholder="อธิบายปัญหาที่คุณพบ"
-                    value={description}
-                    maxLength={DESCRIPTION_LIMIT}
-                    onChange={(e) => setDescription(e.target.value)}
-                />
-                <p className="text-sm text-right text-gray-400">
-                    {description.length}/{DESCRIPTION_LIMIT}
-                </p>
-            </div>
+          {/* Description */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-white">Description</label>
+            <Textarea
+              placeholder="Write a message..."
+              value={description}
+              maxLength={DESCRIPTION_LIMIT}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            <p className="text-sm text-right text-white/60">
+              {description.length}/{DESCRIPTION_LIMIT}
+            </p>
+          </div>
 
-            <div className="flex justify-end gap-2">
-                <Button
-                    variant="ghost"
-                    onClick={() => {
-                        setDescription("");
-                        setSelectedTopic("");
-                    }}
-                >
-                    ล้างข้อมูล
-                </Button>
-                <Button
-                    onClick={handleSubmit}
-                    disabled={!selectedTopic || !description.trim() || loading}
-                    color="primary"
-                >
-                    {loading ? <Spinner size="sm" /> : "ส่งรายงาน"}
-                </Button>
-            </div>
-        </div>
-    );
+          {/* Buttons */}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="ghost"
+              onPress={() => {
+                setSelectedTopic('');
+                setDescription('');
+              }}
+              className="text-white"
+            >
+              Clear
+            </Button>
+            <Button
+              onPress={handleSubmit}
+              disabled={!selectedTopic || !description.trim() || loading}
+              color="primary"
+              className={`transition-opacity duration-300 ${!selectedTopic || !description.trim() || loading
+                ? 'opacity-50 pointer-events-none'
+                : 'opacity-100'
+                }`}
+            >
+              {loading ? <Spinner size="sm" /> : 'Submit'}
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
+
+      <ConfirmModal
+        isOpen={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        onConfirm={handleConfirmSubmit}
+      />
+    </div>
+  );
 }

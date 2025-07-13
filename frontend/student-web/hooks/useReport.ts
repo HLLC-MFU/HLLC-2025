@@ -1,123 +1,98 @@
-import { useState } from "react";
-import { getToken } from "@/utils/storage";
+'use client';
 
-interface ReportType {
-  _id: string;
-  name: {
-    th: string;
-    en: string;
-  };
+import { useState, useEffect } from "react";
+import { addToast } from "@heroui/react";
+import { apiRequest } from "@/utils/api";
+import { ReportTypes } from "@/types/report";
+import { useProfile } from "./useProfile";
+
+interface SubmitReportPayload {
+  category: string;
+  message: string;
 }
 
-interface UseReportReturn {
-  topics: ReportType[];
-  loading: boolean;
-  error: string | null;
-  fetching: boolean;
-  fetchReportTypes: () => Promise<void>;
-  submitReport: (category: string, message: string) => Promise<boolean>;
-}
+export function useReport() {
+  const { user } = useProfile();
 
-export function useReport(): UseReportReturn {
-  const [topics, setTopics] = useState<ReportType[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [reporttypes, setReportTypes] = useState<ReportTypes[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fetching, setFetching] = useState<boolean>(false);
 
-  const fetchReportTypes = async (): Promise<void> => {
-    setFetching(true);
+  const fetchReportTypes = async () => {
+    setLoading(true);
     setError(null);
-
     try {
-      const token = await getToken("accessToken");
-      
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/report-types`, {
-        method: 'GET',
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
+      const res = await apiRequest<{
+        data: {
+          _id: string;
+          name: { en: string; th: string };
+          createdAt?: string;
+          updatedAt?: string;
+          description?: { en: string; th: string };
+          color?: string;
+        }[];
+      }>("/report-types", "GET");
 
-      if (res.ok) {
-        const data = await res.json();
-        setTopics(data || []);
-      } else {
-        setError('ไม่สามารถดึงข้อมูลหัวข้อรายงานได้');
-      }
-    } catch (error) {
-      setError((error as Error).message);
+      const processed: ReportTypes[] = res.data?.data.map(cat => ({
+        id: cat._id,
+        name: cat.name,
+        createdAt: new Date(cat.createdAt ?? Date.now()),
+        updatedAt: new Date(cat.updatedAt ?? Date.now()),
+        description: cat.description ?? { en: "", th: "" },
+        color: cat.color ?? "",
+      })) ?? [];
+
+      setReportTypes(processed);
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch report types.");
+      addToast({ title: "Topic loading failed.", color: "danger" });
     } finally {
-      setFetching(false);
+      setLoading(false);
     }
   };
 
-  const submitReport = async (category: string, message: string): Promise<boolean> => {
+  const submitReport = async (payload: SubmitReportPayload): Promise<boolean> => {
     setLoading(true);
     setError(null);
 
     try {
-      const token = await getToken("accessToken");
-      
-      // Get user profile to get user ID
-      const profileRes = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/profile`, {
-        method: 'GET',
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      
-      if (!profileRes.ok) {
-        setError('ไม่สามารถดึงข้อมูลผู้ใช้ได้');
-        return false;
+      if (!user?._id) {
+        throw new Error("User information not found");
       }
-      
-      const profileData = await profileRes.json();
-      
-      if (!profileData.data?.[0]?._id) {
-        setError('ไม่พบข้อมูลผู้ใช้');
-        return false;
-      }
-      
-      // Submit report
-      const reportData = {
-        reporter: profileData.data[0]._id,
-        category,
-        message,
-        status: 'pending'
-      };
-      
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/reports`, {
-        method: 'POST',
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(reportData),
-      });
 
-      if (res.ok) {
-        setError(null);
+      const reportData = {
+        reporter: user._id,
+        category: payload.category,
+        message: payload.message,
+        status: "pending",
+      };
+
+      const res = await apiRequest("/reports", "POST", reportData);
+
+      if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+        addToast({ title: "Report submitted successfully", color: "success" });
         return true;
       } else {
-        const errorData = await res.json();
-        setError(errorData?.message || 'ส่งรายงานไม่สำเร็จ');
-        return false;
+        throw new Error(res.message || "Failed to submit report");
       }
-    } catch (error) {
-      setError((error as Error).message);
+    } catch (err: any) {
+      const msg = err.message || "Failed to submit report";
+      setError(msg);
+      addToast({ title: msg, color: "danger" });
       return false;
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchReportTypes();
+  }, []);
+
   return {
-    topics,
+    reporttypes,
     loading,
     error,
-    fetching,
     fetchReportTypes,
     submitReport,
   };
