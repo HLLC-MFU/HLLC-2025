@@ -1,6 +1,6 @@
-import { Localization } from "./common";
+import { Localization } from './common';
 
-type MessageType =
+export type MessageType =
   | 'message'
   | 'reply'
   | 'sticker'
@@ -11,7 +11,7 @@ type MessageType =
   | 'upload'
   | 'reaction';
 
-type ChatNotificationPayload = {
+export type ChatNotificationPayload = {
   type: MessageType;
   room: {
     _id: string;
@@ -24,7 +24,6 @@ type ChatNotificationPayload = {
       first: string;
       middle: string;
       last: string;
-
     };
     role: {
       _id: string;
@@ -39,4 +38,4 @@ type ChatNotificationPayload = {
   };
   receiver: string;
   timestamp: string;
-}
+};

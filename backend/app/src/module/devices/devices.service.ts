@@ -10,13 +10,19 @@ export class DevicesService {
     @InjectModel(Device.name) private deviceModel: Model<DeviceDocument>,
   ) {}
 
-  registerOrUpdate(userId: string, dto: RegisterDeviceDto) {
-    return this.deviceModel.findOneAndUpdate(
+  async registerOrUpdate(userId: string, dto: RegisterDeviceDto) {
+    // Remove same fcm Token (1 fcm to 1 device) 
+    await this.deviceModel.deleteMany({ fcmToken: dto.fcmToken });
+
+    //Remove same device Id (1 device to 1 user)
+    await this.deviceModel.deleteMany({
+      deviceId: dto.deviceId,
+      userId: { $ne: userId },
+    });
+
+    return await this.deviceModel.findOneAndUpdate(
       { userId, deviceId: dto.deviceId },
-      {
-        ...dto,
-        userId,
-      },
+      { ...dto, userId },
       { upsert: true, new: true },
     );
   }
