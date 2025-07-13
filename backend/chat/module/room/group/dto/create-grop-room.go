@@ -2,6 +2,8 @@
 package dto
 
 import (
+	roomDto "chat/module/room/room/dto"
+	"chat/module/room/room/model"
 	"chat/pkg/common"
 	"fmt"
 	"time"
@@ -24,6 +26,7 @@ type (
 		Status     string               `form:"status" validate:"roomStatus"`          // สถานะห้อง (active, inactive)
 		CreatedBy  string               `form:"createdBy" validate:"mongoId,optional"` // Optional - will extract from JWT if not provided
 		Image      string               `form:"image" validate:"optional"`
+		Schedule   *roomDto.ScheduleDto `form:"schedule" validate:"optional"`          // เพิ่มฟิลด์ schedule
 		// หมายเหตุ: ไม่ต้องระบุ capacity เพราะห้องกลุ่มจะเป็น unlimited (capacity = 0)
 	}
 
@@ -37,6 +40,7 @@ type (
 		UpdatedAt      time.Time            `form:"updatedAt" validate:"optional"`
 		CreatedBy      string               `form:"createdBy" validate:"mongoId,optional"`
 		SelectAllUsers bool                 `form:"selectAllUsers" json:"selectAllUsers"`
+		Schedule       *roomDto.ScheduleDto `form:"schedule" validate:"optional"` // เพิ่มฟิลด์ schedule
 	}
 
 	ResponseRoomDto struct {
@@ -52,6 +56,7 @@ type (
 		Metadata    map[string]interface{} `bson:"metadata,omitempty" json:"metadata,omitempty"`
 		MemberCount int                    `bson:"memberCount" json:"memberCount"` // เพิ่ม field นี้
 		CanJoin     bool                   `json:"canJoin,omitempty"`              // เพิ่ม field นี้
+		Schedule    *model.RoomSchedule    `bson:"schedule,omitempty" json:"schedule,omitempty"` // เพิ่มฟิลด์ schedule
 	}
 
 	ResponseAllRoomForUserDto struct {
@@ -68,6 +73,7 @@ type (
 		IsMember    bool                   `json:"isMember"`
 		CanJoin     bool                   `json:"canJoin"`     // remove omitempty to always show
 		MemberCount int                    `json:"memberCount"` // เพิ่ม field นี้
+		Schedule    *model.RoomSchedule    `bson:"schedule,omitempty" json:"schedule,omitempty"` // เพิ่มฟิลด์ schedule
 	}
 
 	ResponseRoomMemberDto struct {

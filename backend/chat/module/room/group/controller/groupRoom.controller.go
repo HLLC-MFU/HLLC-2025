@@ -73,6 +73,13 @@ func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 		groupDto.CreatedBy = userID
 	}
 
+	// Parse schedule from form if available
+	if form, err := ctx.MultipartForm(); err == nil && form.Value != nil {
+		if scheduleDto := roomDto.ParseScheduleFromForm(form.Value); scheduleDto != nil {
+			groupDto.Schedule = scheduleDto
+		}
+	}
+
 	filename, err := c.handleImageUpload(ctx)
 	if err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
@@ -95,6 +102,12 @@ func (c *GroupRoomController) CreateRoomByGroup(ctx *fiber.Ctx) error {
 			Capacity: room.Capacity,
 			Members:  stringMembers,
 			Image:    filename,
+		}
+		// Preserve schedule when updating with image
+		if room.Schedule != nil {
+			scheduleDto := &roomDto.ScheduleDto{}
+			scheduleDto.FromRoomSchedule(room.Schedule)
+			updateRoomDto.Schedule = scheduleDto
 		}
 		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), updateRoomDto)
 		if err != nil {

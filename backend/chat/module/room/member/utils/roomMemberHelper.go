@@ -160,6 +160,14 @@ func (h *RoomMemberHelper) JoinRoom(ctx context.Context, roomID primitive.Object
 		return fmt.Errorf("room is inactive and not accepting new members")
 	}
 
+	// **NEW: ตรวจสอบ schedule ของห้อง**
+	if !room.IsRoomAccessible(time.Now()) {
+		scheduleStatus := room.GetScheduleStatus(time.Now())
+		if scheduleStatus == "closed" {
+			return fmt.Errorf("room is currently closed according to its schedule")
+		}
+	}
+
 	// ตรวจสอบ capacity
 	if !room.IsUnlimitedCapacity() && len(room.Members) >= room.Capacity {
 		return fmt.Errorf("room is at full capacity")

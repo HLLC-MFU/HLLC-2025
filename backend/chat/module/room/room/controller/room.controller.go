@@ -231,6 +231,9 @@ func (c *RoomController) GetRoomById(ctx *fiber.Ctx) error {
 	if room.Metadata != nil {
 		data["metadata"] = room.Metadata
 	}
+	if room.Schedule != nil {
+		data["schedule"] = room.Schedule
+	}
 
 	return ctx.JSON(fiber.Map{
 		"success": true,
@@ -243,6 +246,13 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 	var createDto dto.CreateRoomDto
 	if err := ctx.BodyParser(&createDto); err != nil {
 		return c.validationHelper.BuildValidationErrorResponse(ctx, err)
+	}
+
+	// Parse schedule from form if available
+	if form, err := ctx.MultipartForm(); err == nil && form.Value != nil {
+		if scheduleDto := dto.ParseScheduleFromForm(form.Value); scheduleDto != nil {
+			createDto.Schedule = scheduleDto
+		}
 	}
 
 	if err := c.validationHelper.ValidateCreateRoomDto(&createDto); err != nil {
@@ -307,6 +317,12 @@ func (c *RoomController) CreateRoom(ctx *fiber.Ctx) error {
 			Members:  stringMembers,
 			Image:    createDto.Image,
 		}
+		// Preserve schedule when updating with image
+		if room.Schedule != nil {
+			scheduleDto := &dto.ScheduleDto{}
+			scheduleDto.FromRoomSchedule(room.Schedule)
+			updateDto.Schedule = scheduleDto
+		}
 		room, err = c.roomService.UpdateRoom(ctx.Context(), room.ID.Hex(), updateDto)
 		if err != nil {
 			c.controllerHelper.CleanupUploadedFile(createDto.Image, c.uploadHandler)
@@ -342,6 +358,13 @@ func (c *RoomController) UpdateRoom(ctx *fiber.Ctx) error {
 	updateDto, err := c.controllerHelper.ParseAndUpdateRoom(ctx, room, c.validationHelper, c.uploadHandler)
 	if err != nil {
 		return c.validationHelper.BuildInternalErrorResponse(ctx, err)
+	}
+
+	// Parse schedule from form if available
+	if form, err := ctx.MultipartForm(); err == nil && form.Value != nil {
+		if scheduleDto := dto.ParseScheduleFromForm(form.Value); scheduleDto != nil {
+			updateDto.Schedule = scheduleDto
+		}
 	}
 
 	updatedRoom, err := c.roomService.UpdateRoom(ctx.Context(), roomObjID.Hex(), updateDto)

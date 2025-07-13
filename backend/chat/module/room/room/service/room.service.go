@@ -114,6 +114,7 @@ func (s *RoomServiceImpl) GetRooms(ctx context.Context, opts queries.QueryOption
 			Metadata:    room.Metadata,
 			MemberCount: len(room.Members),
 			Status:      room.Status,
+			Schedule:    room.Schedule, // เพิ่มฟิลด์ schedule
 		}
 	}
 
@@ -181,6 +182,7 @@ func (s *RoomServiceImpl) GetRoomsByType(ctx context.Context, roomType string, p
 			Metadata:    room.Metadata,
 			MemberCount: len(room.Members),
 			Status:      room.Status,
+			Schedule:    room.Schedule, // เพิ่มฟิลด์ schedule
 		}
 	}
 
@@ -343,6 +345,13 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 		return nil, fmt.Errorf("validation error: %w", err)
 	}
 
+	// Validate schedule if provided
+	if createDto.Schedule != nil {
+		if err := createDto.Schedule.ValidateSchedule(); err != nil {
+			return nil, fmt.Errorf("schedule validation error: %w", err)
+		}
+	}
+
 	members := createDto.MembersToObjectIDs()
 	createdBy := createDto.CreatedByToObjectID()
 
@@ -373,6 +382,16 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 		roomStatus = model.RoomStatusActive
 	}
 
+	// Convert schedule DTO to model
+	var schedule *model.RoomSchedule
+	if createDto.Schedule != nil {
+		var err error
+		schedule, err = createDto.Schedule.ToRoomSchedule()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse schedule: %w", err)
+		}
+	}
+
 	r := &model.Room{
 		Name:      createDto.Name,
 		Type:      roomType,
@@ -383,6 +402,7 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 		UpdatedAt: time.Now(),
 		Members:   members,
 		Image:     createDto.Image,
+		Schedule:  schedule, // เพิ่มฟิลด์ schedule
 	}
 
 	resp, err := s.Create(ctx, *r)
@@ -406,6 +426,13 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 		return nil, err
 	}
 
+	// Validate schedule if provided
+	if updateDto.Schedule != nil {
+		if err := updateDto.Schedule.ValidateSchedule(); err != nil {
+			return nil, fmt.Errorf("schedule validation error: %w", err)
+		}
+	}
+
 	// Merge fields
 	updatedRoom := &model.Room{
 		ID:        oldRoom.ID,
@@ -419,6 +446,7 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 		CreatedAt: oldRoom.CreatedAt,
 		UpdatedAt: oldRoom.UpdatedAt,
 		Metadata:  oldRoom.Metadata,
+		Schedule:  oldRoom.Schedule, // preserve existing schedule
 	}
 	updatedRoom.Name = updateDto.Name
 	updatedRoom.Type = updateDto.Type
@@ -431,6 +459,16 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 		updatedRoom.Image = updateDto.Image
 	}
 	updatedRoom.UpdatedAt = time.Now()
+
+	// Update schedule if provided
+	if updateDto.Schedule != nil {
+		schedule, err := updateDto.Schedule.ToRoomSchedule()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse schedule: %w", err)
+		}
+		updatedRoom.Schedule = schedule
+	}
+
 	// createdBy: use from updateDto if present, else preserve
 	if updateDto.CreatedBy != "" {
 		updatedRoom.CreatedBy = updateDto.CreatedByToObjectID()
@@ -459,6 +497,13 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 	}
 	if updateDto.Image != "" {
 		setFields["image"] = updatedRoom.Image
+	}
+	// Add schedule to update fields
+	if updatedRoom.Schedule != nil {
+		setFields["schedule"] = updatedRoom.Schedule
+	} else if updateDto.Schedule != nil {
+		// If updateDto.Schedule is provided but results in nil (e.g., disabled), clear the field
+		setFields["schedule"] = nil
 	}
 
 	filter := bson.M{"_id": roomObjID}
@@ -624,6 +669,7 @@ func (s *RoomServiceImpl) GetAllRoomForUser(ctx context.Context, userID string) 
 			IsMember:    false,
 			CanJoin:     canJoin,
 			MemberCount: memberCount,
+			Schedule:    room.Schedule, // เพิ่มฟิลด์ schedule
 		})
 	}
 	return result, nil
@@ -662,15 +708,21 @@ func (s *RoomServiceImpl) GetRoomsForMe(ctx context.Context, userID string) ([]d
 			Metadata:    room.Metadata,
 			MemberCount: len(room.Members),
 			Status:      room.Status,
+			Schedule:    room.Schedule, // เพิ่มฟิลด์ schedule
 		})
 	}
 	return result, nil
 }
 
-// calculateCanJoin determines if a user can join a room based on status, capacity, and membership
+// calculateCanJoin determines if a user can join a room based on status, capacity, schedule, and membership
 func (s *RoomServiceImpl) calculateCanJoin(room model.Room, userID string) bool {
 	// If room is inactive, user cannot join
 	if room.IsInactive() {
+		return false
+	}
+
+	// ตรวจสอบ schedule ของห้อง
+	if !room.IsRoomAccessible(time.Now()) {
 		return false
 	}
 
