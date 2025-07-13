@@ -7,18 +7,12 @@ import { MessagesSquare, SmilePlus } from "lucide-react";
 
 import RoomAccordion from "./_components/RoomAccordion";
 import { RoomModal } from "./_components/RoomModal";
-
 import { Room, RoomType } from "@/types/chat";
 import { useChat } from "@/hooks/useChat";
 import { PageHeader } from "@/components/ui/page-header";
 
 export default function ChatPage() {
-    const { 
-        createRoom, 
-        updateRoom, 
-        deleteRoom 
-    } = useChat();
-    
+    const { createRoom, updateRoom, deleteRoom } = useChat();
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<Room | undefined>();
@@ -27,6 +21,7 @@ export default function ChatPage() {
     const handleEditRoom = (room: Room) => {
         setModalMode('edit');
         setSelectedRoom(room);
+        
         if (room.metadata?.groupType === "school") {
             setSelectedRoomType("school");
         } else if (room.metadata?.groupType === "major") {
@@ -34,6 +29,7 @@ export default function ChatPage() {
         } else {
             setSelectedRoomType(room.type);
         }
+        
         setIsModalOpen(true);
     };
 
@@ -62,6 +58,7 @@ export default function ChatPage() {
             formData.append("name.en", room.name.en);
             formData.append("type", room.type);
             formData.append("capacity", room.capacity.toString());
+            
             if (room.image) {
                 formData.append("image", room.image);
             }
@@ -109,38 +106,31 @@ export default function ChatPage() {
         }
     };
 
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setSelectedRoom(undefined);
-    };
-
     return (
         <>
-        <div className="relative mb-4">
-            <PageHeader 
-                description="Chat room management"
-                icon={<MessagesSquare/>}
-                title="Chat Management"
-            />
-            
-            <div className="absolute top-0 right-0 mt-2 mr-4">
-                <Link href="/chat/sticker">
-                    <button className="inline-flex gap-2 px-4 py-2 rounded-lg bg-primary text-white font-semibold shadow hover:bg-primary/90 transition">
-                        {<SmilePlus />}
-                        Sticker Management
-                    </button>
-                </Link> 
-            </div>
-        </div>
-
-            <div className="flex flex-col gap-6">
-                <RoomAccordion 
-                    onAdd={handleAddRoom}
-                    onDelete={handleDeleteRoom}
-                    onEdit={handleEditRoom}
-                    onToggleStatus={handleToggleStatus}
+            <div className="relative mb-4">
+                <PageHeader 
+                    description="Chat room management"
+                    icon={<MessagesSquare/>}
+                    title="Chat Management"
                 />
+                
+                <div className="absolute top-0 right-0 mt-2 mr-4">
+                    <Link href="/chat/sticker">
+                        <button className="inline-flex gap-2 px-4 py-2 rounded-lg bg-primary text-white font-semibold shadow hover:bg-primary/90 transition">
+                            <SmilePlus />
+                            Sticker Management
+                        </button>
+                    </Link> 
+                </div>
             </div>
+
+            <RoomAccordion 
+                onAdd={handleAddRoom}
+                onEdit={handleEditRoom}
+                onDelete={handleDeleteRoom}
+                onToggleStatus={handleToggleStatus}
+            />
 
             <RoomModal
                 key={selectedRoom?._id || 'new'}
@@ -148,7 +138,7 @@ export default function ChatPage() {
                 mode={modalMode}
                 room={selectedRoom}
                 roomType={selectedRoomType}
-                onClose={handleCloseModal}
+                onClose={() => setIsModalOpen(false)}
                 onSuccess={handleSubmitRoom}
             />
         </>

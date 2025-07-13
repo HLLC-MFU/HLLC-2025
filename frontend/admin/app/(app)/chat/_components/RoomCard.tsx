@@ -10,7 +10,8 @@ import {
     DropdownItem, 
     Image,
     Switch,
-    Tooltip
+    Chip,
+    Divider
 } from "@heroui/react";
 import { 
     Building2, 
@@ -20,12 +21,17 @@ import {
     Trash2, 
     Users, 
     CheckCircle, 
-    XCircle 
+    XCircle,
+    Clock,
+    CalendarClock,
+    RotateCcw,
+    Calendar,
+    Timer
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { Room } from "@/types/chat";
+import { Room, ScheduleType } from "@/types/chat";
 
 type RoomCardProps = {
     room: Room;
@@ -38,13 +44,6 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
     const router = useRouter();
     const [imageError, setImageError] = useState(false);
     const [isToggling, setIsToggling] = useState(false);
-
-    const handleAction = (action: string) => {
-        if (action === "view") router.push(`/chat/${room._id}`);
-        if (action === "edit") onEdit(room);
-        if (action === "delete") onDelete(room);
-        if (action === "toggle") handleToggleStatus();
-    };
 
     const handleToggleStatus = async () => {
         if (!onToggleStatus || isToggling) return;
@@ -59,117 +58,185 @@ export function RoomCard({ room, onEdit, onDelete, onToggleStatus }: RoomCardPro
 
     const roomImage = room.image && !imageError 
         ? `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${room.image}` 
-        : `https://ui-avatars.com/api/?name=${room.name.en.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=48&font-size=0.4`;
+        : `https://ui-avatars.com/api/?name=${room.name.en.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=56`;
+
+    const formatDateTime = (dateString: string) => {
+        const date = new Date(dateString);
+        return {
+            date: date.toLocaleDateString('en-US', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+            }),
+            time: date.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            })
+        };
+    };
+
+        const getScheduleChip = () => {
+        if (!room.schedule?.enabled) return null;
+        
+        if (room.schedule.type === ScheduleType.ONE_TIME) {
+            return { 
+                color: 'primary' as const, 
+                icon: Calendar, 
+                text: 'One-time' 
+            };
+        } else {
+            return { 
+                color: 'secondary' as const, 
+                icon: RotateCcw, 
+                text: 'Daily' 
+            };
+        }
+    };
+
+    const scheduleChip = getScheduleChip();
 
     return (
-        <Card 
-            isHoverable 
-            className="h-full cursor-pointer group" 
-            onPress={() => router.push(`/chat/${room._id}`)}
-        >
-            <CardBody className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="relative w-12 h-12 flex-shrink-0">
-                            <Image
-                                alt={room.name.en}
-                                className="w-full h-full object-cover rounded-lg"
-                                src={roomImage}
-                                onError={() => setImageError(true)}
-                            />
-                        </div>
-                        <div className="flex flex-col min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold truncate text-foreground">{room.name.en}</p>
-                                <span 
-                                    className={`w-2 h-2 rounded-full ${room.status === "active" ? "bg-green-500" : "bg-red-500"} inline-block`} 
-                                    title={room.status === "active" ? "Active" : "Inactive"}
-                                 />
+        <Card className="h-full min-h-[200px]">
+            <CardBody className="p-6">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-4 flex-1">
+                        <Image
+                            alt={room.name.en}
+                            className="w-14 h-14 object-cover rounded-xl"
+                            src={roomImage}
+                            onError={() => setImageError(true)}
+                        />
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-base truncate">{room.name.en}</h3>
+                                <div className={`w-2.5 h-2.5 rounded-full ${room.status === "active" ? "bg-green-500" : "bg-red-500"}`} />
                             </div>
-                            <p className="text-xs text-default-500 truncate">{room.name.th}</p>
+                            <p className="text-sm text-gray-500 truncate mb-2">{room.name.th}</p>
+                            
+                            {scheduleChip && (
+                                <Chip 
+                                    color={scheduleChip.color} 
+                                    size="sm" 
+                                    startContent={<scheduleChip.icon className="w-3 h-3" />}
+                                    variant="flat"
+                                    className="font-medium px-3 py-1"
+                                    classNames={{
+                                        content: "text-center px-1"
+                                    }}
+                                >
+                                    {scheduleChip.text}
+                                </Chip>
+                            )}
                         </div>
                     </div>
 
-                    <Dropdown placement="bottom-end">
+                    <Dropdown>
                         <DropdownTrigger>
-                            <Button 
-                                isIconOnly 
-                                className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200" 
-                                color="default" 
-                                size="sm" 
-                                variant="light"
-                            >
+                            <Button isIconOnly size="sm" variant="light">
                                 <EllipsisVertical size={16} />
                             </Button>
                         </DropdownTrigger>
-                        <DropdownMenu aria-label="Room Actions" className="w-48">
-                            {["view", "edit", "toggle", "delete"].map(action => (
-                                <DropdownItem 
-                                    key={action} 
-                                    className={action === "toggle" 
-                                        ? (room.status === "active" ? "text-warning" : "text-success") 
-                                        : action === "delete" 
-                                        ? "text-danger" 
-                                        : "text-default-500"
-                                    }
-                                    startContent={
-                                        action === "view" 
-                                            ? <Eye size={16} /> 
-                                            : action === "edit" 
-                                            ? <Pencil size={16} /> 
-                                            : action === "toggle" 
-                                            ? (room.status === "active" ? <XCircle size={16} /> : <CheckCircle size={16} />) 
-                                            : <Trash2 size={16} />
-                                    }
-                                    onPress={() => handleAction(action)}
-                                >
-                                    {action === "view" 
-                                        ? "View Members" 
-                                        : action === "edit" 
-                                        ? "Edit Room" 
-                                        : action === "toggle" 
-                                        ? (room.status === "active" ? "Deactivate" : "Activate") 
-                                        : "Delete Room"
-                                    }
-                                </DropdownItem>
-                            ))}
+                        <DropdownMenu>
+                            <DropdownItem key="view" startContent={<Eye size={16} />} onPress={() => router.push(`/chat/${room._id}`)}>
+                                View
+                            </DropdownItem>
+                            <DropdownItem key="edit" startContent={<Pencil size={16} />} onPress={() => onEdit(room)}>
+                                Edit
+                            </DropdownItem>
+                            <DropdownItem 
+                                key="toggle"
+                                startContent={room.status === "active" ? <XCircle size={16} /> : <CheckCircle size={16} />}
+                                onPress={handleToggleStatus}
+                            >
+                                {room.status === "active" ? "Deactivate" : "Activate"}
+                            </DropdownItem>
+                            <DropdownItem 
+                                key="delete"
+                                startContent={<Trash2 size={16} />} 
+                                className="text-danger"
+                                onPress={() => onDelete(room)}
+                            >
+                                Delete
+                            </DropdownItem>
                         </DropdownMenu>
                     </Dropdown>
                 </div>
 
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-default-100">
-                    <div className="flex items-center gap-3 text-xs text-default-500">
+                {/* Schedule Information */}
+                {room.schedule?.enabled && (
+                    <>
+                        <Divider className="my-4" />
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Calendar size={14} />
+                                <span className="font-medium">Schedule</span>
+                            </div>
+                            
+                            {room.schedule.type === ScheduleType.ONE_TIME ? (
+                                <div className="space-y-1">
+                                    {room.schedule.startAt && (
+                                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                                            <Timer size={12} />
+                                            <span>Start: {formatDateTime(room.schedule.startAt).date} - {formatDateTime(room.schedule.startAt).time}</span>
+                                        </div>
+                                    )}
+                                    {room.schedule.endAt && (
+                                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                                            <Timer size={12} />
+                                            <span>End: {formatDateTime(room.schedule.endAt).date} - {formatDateTime(room.schedule.endAt).time}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    {room.schedule.startAt && (
+                                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                                            <Timer size={12} />
+                                            <span>Start time: {formatDateTime(room.schedule.startAt).time} daily</span>
+                                        </div>
+                                    )}
+                                    {room.schedule.endAt && (
+                                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                                            <Timer size={12} />
+                                            <span>End time: {formatDateTime(room.schedule.endAt).time} daily</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+
+                <Divider className="my-4" />
+                
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
                         <div className="flex items-center gap-1">
-                            <Building2 size={12} />
-                            <span className="font-medium">{room.capacity === 0 ? "\u221e" : room.capacity}</span>
+                            <Building2 size={14} />
+                            <span>Capacity: {room.capacity === 0 ? "Unlimited" : room.capacity}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                            <Users size={12} />
-                            <span className="font-medium">{room.memberCount || 0}</span>
+                            <Users size={14} />
+                            <span>Members: {room.memberCount || 0}</span>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                         {onToggleStatus && (
-                            <Tooltip content={room.status === "active" ? "Deactivate Room" : "Activate Room"}>
-                                <Switch
-                                    color={room.status === "active" ? "success" : "danger"}
-                                    endContent={room.status === "active" && <CheckCircle className="w-3 h-3 text-green-500" />}
-                                    isDisabled={isToggling}
-                                    isSelected={room.status === "active"}
-                                    size="sm"
-                                    startContent={room.status !== "active" && <XCircle className="w-3 h-3 text-red-500" />}
-                                    onValueChange={handleToggleStatus}
-                                />
-                            </Tooltip>
+                            <Switch
+                                size="sm"
+                                isSelected={room.status === "active"}
+                                isDisabled={isToggling}
+                                onValueChange={handleToggleStatus}
+                            />
                         )}
                         <Button 
-                            className="text-xs px-3 h-6" 
-                            color="primary" 
                             size="sm" 
-                            startContent={<Eye size={12} />} 
-                            variant="flat" 
-                            onPress={() => handleAction("view")}
+                            color="primary"
+                            variant="flat"
+                            startContent={<Eye size={14} />}
+                            onPress={() => router.push(`/chat/${room._id}`)}
                         >
                             View
                         </Button>

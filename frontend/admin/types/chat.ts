@@ -11,7 +11,21 @@ export type Room = {
     createdAt: string;
     updatedAt: string;
     metadata: RoomMetadata;
+    schedule?: RoomSchedule; // เพิ่มฟิลด์ schedule
 };
+
+// เพิ่ม schedule types
+export type RoomSchedule = {
+    type: ScheduleType;
+    startAt?: string; // ISO string
+    endAt?: string;   // ISO string
+    enabled: boolean;
+};
+
+export enum ScheduleType {
+    ONE_TIME = "one-time",
+    LOOP = "loop"
+}
 
 export type Members = {
     _id: string;

@@ -1,6 +1,8 @@
-import { Name, RoomType } from "./chat";
+import { RoomSchedule } from "./chat";
 
-// API Response Types
+export type Name = { en: string; th: string; };
+export type RoomType = "normal" | "readonly";
+
 export type ApiResponse<T> = {
     success: boolean;
     message: string;
@@ -8,7 +10,6 @@ export type ApiResponse<T> = {
     statusCode?: number;
 };
 
-// Room API Response Types
 export type RoomByIdResponse = {
     _id: string;
     name: Name;
@@ -23,9 +24,9 @@ export type RoomByIdResponse = {
     metadata?: Record<string, any>;
     canJoin?: boolean;
     isMember?: boolean;
+    schedule?: RoomSchedule; // เพิ่มฟิลด์ schedule
 };
 
-// New type for rooms by type API response
 export type RoomsByTypeResponse = {
     data: RoomByIdResponse[];
     meta: {
@@ -36,7 +37,6 @@ export type RoomsByTypeResponse = {
     };
 };
 
-// Hook return type for rooms by type
 export type UseRoomsByTypeReturn = {
     roomsByType: Record<string, RoomsByTypeResponse>;
     loading: Record<string, boolean>;
@@ -87,7 +87,6 @@ export type RestrictionStatus = {
     muteReason?: string;
 };
 
-// Room List Response Types
 export type RoomListResponse = {
     data: RoomByIdResponse[];
     meta?: {
@@ -98,7 +97,6 @@ export type RoomListResponse = {
     };
 };
 
-// Restriction API Response Types
 export type RestrictionHistoryResponse = {
     data: RestrictionHistoryItem[];
     meta: {
@@ -138,7 +136,6 @@ export type RoomRestrictionsResponse = {
     [userId: string]: RestrictionStatus;
 };
 
-// Hook Return Types
 export type UseChatReturn = {
     room: RoomByIdResponse[];
     loading: boolean;
