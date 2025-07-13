@@ -434,7 +434,7 @@ export class StepCountersService {
         individualRank: computedRank,
         schoolRank: schoolRank,
         archeivementRank: myStepCounter.rank || null,
-        totalSteps: myTotalSteps,
+        totalStep: myTotalSteps,
       },
     };
   }
