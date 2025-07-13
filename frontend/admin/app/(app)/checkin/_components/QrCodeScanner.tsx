@@ -1,143 +1,60 @@
-import { useEffect, useRef } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
-import { addToast } from '@heroui/react';
+import { useRef } from 'react';
+import { Scanner } from '@yudiel/react-qr-scanner';
 
 type QrCodeScannerProps = {
   selectedActivityId: string[];
   onCheckin: (studentId: string) => Promise<void>;
 };
 
-export function QrCodeScanner({
-  selectedActivityId,
-  onCheckin,
-}: QrCodeScannerProps) {
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const isRunningRef = useRef(false);
+export function QrCodeScanner({ selectedActivityId, onCheckin }: QrCodeScannerProps) {
   const scannedSetRef = useRef<Set<string>>(new Set());
+  const isProcessingRef = useRef(false);
 
-  useEffect(() => {
-    const qrRegionId = 'qr-reader';
-    let isMounted = true;
+  const handleScan = async (detectedCodes: any[]) => {
+    if (!detectedCodes || detectedCodes.length === 0) return;
+    
+    const result = detectedCodes[0]?.rawValue;
+    if (!result) return;
 
-    const stopScanner = async () => {
-      if (scannerRef.current && isRunningRef.current) {
-        try {
-          await scannerRef.current.stop();
-        } catch (err) {
-          console.warn('Scanner stop error:', err);
-        }
+    let studentId = result;
+    try {
+      const parsed = JSON.parse(result);
+      studentId = parsed.username || parsed.studentId || parsed.id || result;
+    } catch { }
 
-        try {
-          const region = document.getElementById(qrRegionId);
+    if (!/^\d{10}$/.test(studentId)) {
+      console.error('Invalid studentId:', studentId);
+      return;
+    }
 
-          if (region) {
-            await scannerRef.current.clear();
-          }
-        } catch (err) {
-          console.warn('Scanner clear error:', err);
-        }
+    if (isProcessingRef.current) return;
+    if (scannedSetRef.current.has(studentId)) return;
 
-        isRunningRef.current = false;
-      }
-    };
+    isProcessingRef.current = true;
 
-    const startScanner = async () => {
-      if (selectedActivityId.length === 0) return;
+    try {
+      await onCheckin(studentId);
+      scannedSetRef.current.add(studentId);
+    } catch {
+      return;
+    } finally {
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 2000);
+    }
+  };
 
-      if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode(qrRegionId);
-      }
-
-      let devices = [];
-      try {
-        devices = await Html5Qrcode.getCameras();
-      } catch (err: any) {
-        console.error('Get cameras error:', err);
-        addToast({
-          title: 'No camera found',
-          description: err instanceof Error ? err.message : 'Could not access camera. Please check permission.',
-          color: 'warning',
-        });
-        return;
-      }
-
-      if (!isMounted || devices.length === 0) {
-        addToast({
-          title: 'No camera found',
-          description: 'No available camera devices were detected.',
-          color: 'warning',
-        });
-        return;
-      }
-
-      const cameraId = devices[0].id;
-
-      try {
-        await scannerRef.current.start(
-          cameraId,
-          { fps: 10, qrbox: 250 },
-          async (decodedText) => {
-            if (!decodedText || scannedSetRef.current.has(decodedText)) return;
-
-            try {
-              let studentId = decodedText;
-              try {
-                const parsed = JSON.parse(decodedText);
-                studentId =
-                  parsed.username ||
-                  parsed.studentId ||
-                  parsed.id ||
-                  decodedText;
-              } catch { }
-
-              if (!/^\d{10}$/.test(studentId)) {
-                throw new Error('Invalid studentId');
-              }
-
-              scannedSetRef.current.add(studentId);
-              await onCheckin(studentId);
-            } catch (err: any) {
-              console.error('Checkin error:', err);
-            }
-          },
-          () => { }
-        );
-
-        isRunningRef.current = true;
-      } catch (err: any) {
-        console.error('Camera start error:', err);
-        addToast({
-          title: 'Camera start error',
-          description:
-            err instanceof Error
-              ? err.message
-              : 'Could not start camera. Please check your permissions.',
-          color: 'danger',
-        });
-      }
-    };
-
-
-    (async () => {
-      await stopScanner();
-      if (selectedActivityId.length > 0) {
-        await startScanner();
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-      stopScanner();
-    };
-  }, [selectedActivityId, onCheckin]);
+  if (selectedActivityId.length === 0) {
+    return (
+      <div className="w-full max-w-sm mx-auto mb-4">
+        <p className="text-center p-2">Please select activities before checkin.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full max-w-sm mx-auto mb-4">
-      {selectedActivityId.length === 0 ? (
-        <p className="text-center p-2">Please select activities before checkin.</p>
-      ) : (
-        <div id="qr-reader" className="w-full rounded-xl overflow-hidden" />
-      )}
+    <div className="w-full max-w-sm mx-auto mb-4 rounded-xl overflow-hidden">
+      <Scanner onScan={handleScan} constraints={{ facingMode: 'environment' }} />
     </div>
   );
 }
