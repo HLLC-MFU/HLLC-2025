@@ -10,7 +10,7 @@ const config = getDefaultConfig(__dirname);
   }
 });
 
-["glb", "gltf", "png", "jpg"].forEach((ext) => {
+["glb", "gltf", "png", "jpg", "fbx", "obj", "mtl"].forEach((ext) => {
   if (config.resolver.assetExts.indexOf(ext) === -1) {
     config.resolver.assetExts.push(ext);
   }

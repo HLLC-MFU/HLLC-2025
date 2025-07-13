@@ -11,15 +11,23 @@ import ForgetPasswordModal from './_components/forgetPassword-modal';
 import useAuth from '@/hooks/useAuth';
 
 export default function LoginPage() {
-  const { isOpen : isRegisterOpen, onOpen : onRegisterOpen, onOpenChange : onRegisterOpenChange} = useDisclosure();
-  const { isOpen : isForgetOpen, onOpen : onForgetOpen, onOpenChange : onForgetOpenChange} = useDisclosure();
+  const {
+    isOpen: isRegisterOpen,
+    onOpen: onRegisterOpen,
+    onOpenChange: onRegisterOpenChange,
+  } = useDisclosure();
+  const {
+    isOpen: isForgetOpen,
+    onOpen: onForgetOpen,
+    onOpenChange: onForgetOpenChange,
+  } = useDisclosure();
   const router = useRouter();
   const [isPasswordVisible, setPasswordIsVisible] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
- 
+
   const togglePasswordVisibility = () => setPasswordIsVisible(prev => !prev);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,7 +52,10 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <Form className="w-full flex flex-col gap-4" onSubmit={handleSubmit}>
+      <Form
+        className="w-full max-w-sm  flex flex-col gap-4"
+        onSubmit={handleSubmit}
+      >
         <Input
           label="Username"
           size="lg"
@@ -75,20 +86,16 @@ export default function LoginPage() {
           onValueChange={setPassword}
         />
         <div className="w-full flex flex-col items-end">
-          <Button 
-          variant="light"
-          onPress={onForgetOpen}
-          type="button"
-          >
+          <Button type="button" variant="light" onPress={onForgetOpen}>
             Forgot Password?
-            </Button>
+          </Button>
         </div>
         <div className="w-full flex gap-4">
           <Button
             className="w-full flex-1"
             size="lg"
             type="button"
-            onPress={onRegisterOpen}
+            onPress={() => router.push('/register')}
           >
             Register
           </Button>
@@ -104,8 +111,14 @@ export default function LoginPage() {
         </div>
       </Form>
 
-      <RegisterModal isOpen={isRegisterOpen} onOpenChange={onRegisterOpenChange} />
-      <ForgetPasswordModal isOpen={isForgetOpen} onOpenChange={onForgetOpenChange}/>
+      <RegisterModal
+        isOpen={isRegisterOpen}
+        onOpenChange={onRegisterOpenChange}
+      />
+      <ForgetPasswordModal
+        isOpen={isForgetOpen}
+        onOpenChange={onForgetOpenChange}
+      />
     </section>
   );
 }

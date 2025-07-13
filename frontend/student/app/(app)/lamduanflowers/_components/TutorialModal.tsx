@@ -7,7 +7,7 @@ interface TutorialModalProps {
   photoUrl: string | null;
 }
 
-export function TutorialModal({ isVisible, onClose, photoUrl }: TutorialModalProps) {
+export default function TutorialModal({ isVisible, onClose, photoUrl }: TutorialModalProps) {
   return (
     <Modal transparent visible={isVisible} animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.modalBackground} onPress={onClose}>
