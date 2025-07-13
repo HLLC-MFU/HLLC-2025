@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Modal, View, StyleSheet, Image, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
 import { X } from 'lucide-react-native';
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import { PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   useAnimatedGestureHandler,
   withSpring,
+  withTiming,
   runOnJS,
 } from 'react-native-reanimated';
 
@@ -20,8 +21,38 @@ const { width, height } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 100;
 
 export const ImagePreviewModal = ({ visible, imageUrl, onClose }: ImagePreviewModalProps) => {
+  const [internalVisible, setInternalVisible] = useState(visible);
   const translateY = useSharedValue(0);
   const opacity = useSharedValue(1);
+
+  // Show modal immediately when visible=true
+  useEffect(() => {
+    if (visible) {
+      setInternalVisible(true);
+      translateY.value = 0;
+      opacity.value = 1;
+    } else {
+      // Animate out, then hide modal
+      opacity.value = withTiming(0, { duration: 220 }, (finished) => {
+        if (finished) {
+          runOnJS(setInternalVisible)(false);
+        }
+      });
+      translateY.value = withTiming(height, { duration: 220 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  // Smooth close handler (for button and gesture)
+  const handleSmoothClose = useCallback(() => {
+    opacity.value = withTiming(0, { duration: 220 }, (finished) => {
+      if (finished) {
+        runOnJS(setInternalVisible)(false);
+        runOnJS(onClose)();
+      }
+    });
+    translateY.value = withTiming(height, { duration: 220 });
+  }, [onClose, opacity, translateY]);
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, context: any) => {
@@ -35,9 +66,14 @@ export const ImagePreviewModal = ({ visible, imageUrl, onClose }: ImagePreviewMo
     },
     onEnd: (event) => {
       if (event.translationY > SWIPE_THRESHOLD) {
-        translateY.value = withSpring(height);
-        opacity.value = withSpring(0);
-        runOnJS(onClose)();
+        // Animate out, then call onClose
+        opacity.value = withTiming(0, { duration: 220 }, (finished) => {
+          if (finished) {
+            runOnJS(setInternalVisible)(false);
+            runOnJS(onClose)();
+          }
+        });
+        translateY.value = withTiming(height, { duration: 220 });
       } else {
         translateY.value = withSpring(0);
         opacity.value = withSpring(1);
@@ -60,24 +96,24 @@ export const ImagePreviewModal = ({ visible, imageUrl, onClose }: ImagePreviewMo
 
   return (
     <Modal
-      visible={visible}
+      visible={internalVisible}
       transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      animationType="none"
+      onRequestClose={handleSmoothClose}
     >
       <StatusBar hidden />
       <Animated.View style={[styles.container, containerAnimatedStyle]}>
         <TouchableOpacity 
           style={styles.closeButton} 
-          onPress={onClose}
+          onPress={handleSmoothClose}
           activeOpacity={0.7}
         >
           <X size={24} color="#fff" />
         </TouchableOpacity>
-        
         <PanGestureHandler onGestureEvent={gestureHandler}>
           <Animated.View style={animatedStyle}>
             <Image
+              key={imageUrl} // Force re-render when imageUrl changes
               source={{ uri: imageUrl }}
               style={styles.image}
               resizeMode="contain"

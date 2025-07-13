@@ -321,6 +321,7 @@ export default function ChatRoomPage() {
                 showStickerPicker={showStickerPicker}
                 replyTo={replyTo}
                 setReplyTo={setReplyTo}
+                canSendImage={isAdminOrAE}
               />
             )}
 

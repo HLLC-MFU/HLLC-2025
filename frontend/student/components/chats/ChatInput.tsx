@@ -14,6 +14,7 @@ import {
 import { Send, Plus, Smile, Reply } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Message } from '@/types/chatTypes';
+import { useTranslation } from 'react-i18next';
 
 interface ChatInputProps {
   messageText: string;
@@ -28,6 +29,7 @@ interface ChatInputProps {
   showStickerPicker: boolean;
   replyTo?: Message;
   setReplyTo?: (msg?: Message) => void;
+  canSendImage?: boolean;
 }
 
 const ChatInput = ({
@@ -43,7 +45,9 @@ const ChatInput = ({
   showStickerPicker,
   replyTo,
   setReplyTo,
+  canSendImage = true,
 }: ChatInputProps) => {
+  const { t } = useTranslation();
   const [isFocused, setIsFocused] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const anim = useRef(new Animated.Value(0)).current;
@@ -130,16 +134,18 @@ const ChatInput = ({
           end={{ x: 1, y: 1 }}
         />
 
-        <TouchableOpacity
-          style={[styles.button, isDisabled && styles.disabled]}
-          onPress={handleImageUpload}
-          disabled={isDisabled}
-          activeOpacity={0.7}
-        >
-          <View style={styles.buttonInner}>
-            <Plus size={20} color={isDisabled ? 'rgba(255, 255, 255, 0.3)' : '#fff'} strokeWidth={2.5} />
-          </View>
-        </TouchableOpacity>
+        {canSendImage && (
+          <TouchableOpacity
+            style={[styles.button, isDisabled && styles.disabled]}
+            onPress={handleImageUpload}
+            disabled={isDisabled}
+            activeOpacity={0.7}
+          >
+            <View style={styles.buttonInner}>
+              <Plus size={20} color={isDisabled ? 'rgba(255, 255, 255, 0.3)' : '#fff'} strokeWidth={2.5} />
+            </View>
+          </TouchableOpacity>
+        )}
 
         <TextInput
           ref={inputRef}
@@ -148,7 +154,7 @@ const ChatInput = ({
           onChangeText={(text) => {
             handleTextInput(text);
           }}
-          placeholder={isDisabled ? "กำลังเชื่อมต่อ..." : "พิมพ์ข้อความที่นี่..."}
+          placeholder={isDisabled ? t('chat.connecting') : t('chat.typeMessage')}
           placeholderTextColor={isDisabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.6)'}
           multiline
           maxLength={1000}

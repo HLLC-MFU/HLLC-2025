@@ -123,7 +123,9 @@
         "readonlyMessage": "This room is for reading messages only. You cannot send messages.",
         "scrollToBottom": "↓",
         "you": "You",
-        "unknownUser": "Unknown User"
+        "unknownUser": "Unknown User",
+        "connecting": "Connecting...",
+        "typeMessage": "Type your message here..."
     },
     "roomInfo": {
         "roomDetails": "Room Details",
