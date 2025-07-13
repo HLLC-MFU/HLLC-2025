@@ -1,7 +1,8 @@
 import { Prop, raw, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument } from "mongoose";
-import { Localization, Location, mapCoordinate } from "src/pkg/types/common";
+import { Localization } from "src/pkg/types/common";
 import { LandmarkType } from "../enum/landmark-types.enum";
+import { Location, mapCoordinate } from "src/pkg/types/activity";
 
 export type LandmarkDocument = HydratedDocument<Landmark>;
 

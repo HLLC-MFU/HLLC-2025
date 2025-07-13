@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import { CustomFinderTracker } from './CustomOutline';
 
 type QrCodeScannerProps = {
   selectedActivityId: string[];
@@ -7,12 +8,11 @@ type QrCodeScannerProps = {
 };
 
 export function QrCodeScanner({ selectedActivityId, onCheckin }: QrCodeScannerProps) {
-  const scannedSetRef = useRef<Set<string>>(new Set());
   const isProcessingRef = useRef(false);
 
   const handleScan = async (detectedCodes: any[]) => {
     if (!detectedCodes || detectedCodes.length === 0) return;
-    
+
     const result = detectedCodes[0]?.rawValue;
     if (!result) return;
 
@@ -28,13 +28,11 @@ export function QrCodeScanner({ selectedActivityId, onCheckin }: QrCodeScannerPr
     }
 
     if (isProcessingRef.current) return;
-    if (scannedSetRef.current.has(studentId)) return;
 
     isProcessingRef.current = true;
 
     try {
       await onCheckin(studentId);
-      scannedSetRef.current.add(studentId);
     } catch {
       return;
     } finally {
@@ -54,7 +52,19 @@ export function QrCodeScanner({ selectedActivityId, onCheckin }: QrCodeScannerPr
 
   return (
     <div className="w-full max-w-sm mx-auto mb-4 rounded-xl overflow-hidden">
-      <Scanner onScan={handleScan} constraints={{ facingMode: 'environment' }} />
+      <Scanner onScan={handleScan}
+        constraints={{ facingMode: 'environment' }}
+        components={{
+          finder: false,
+          zoom: true,
+          tracker: CustomFinderTracker,
+        }}
+        styles={{
+          container: { width: '400px', height: '400px' },
+        }}
+        allowMultiple={true}
+        sound={false}
+      />
     </div>
   );
 }
