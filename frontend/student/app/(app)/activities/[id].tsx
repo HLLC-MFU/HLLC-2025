@@ -11,125 +11,14 @@ import CheckinStatusChip from "./_components/checkin-status-chip"
 import DateBadge from "./_components/date-badge"
 import type React from "react"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import StepperItem from "@/components/activities/stepper-item"
 
-function StepperItem({
-  index,
-  label,
-  active,
-  completed,
-  error,
-  isLast,
-  disabled,
-  description,
-  children,
-  icon: IconComponent,
-}: {
-  index: number
-  label: string
-  active: boolean
-  completed?: boolean
-  error?: boolean
-  isLast?: boolean
-  disabled?: boolean
-  description?: string | React.ReactNode
-  children?: React.ReactNode
-  icon?: any
-}) {
-  const getColors = () => {
-    if (disabled) return { bg: "#f8f9fa", border: "#e9ecef", text: "#6c757d", line: "#e9ecef" }
-    if (error) return { bg: "#fee2e2", border: "#fca5a5", text: "#dc2626", line: "#fca5a5" }
-    if (active) return { bg: "#dbeafe", border: "#3b82f6", text: "#1d4ed8", line: "#3b82f6" }
-    if (completed) return { bg: "#d1fae5", border: "#10b981", text: "#059669", line: "#10b981" }
-    return { bg: "#f8f9fa", border: "#d1d5db", text: "#6b7280", line: "#d1d5db" }
-  }
-
-  const colors = getColors()
-
-  return (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: isLast ? 0 : 24 }}>
-      {/* Icon + Line Container */}
-      <View style={{ flexDirection: "column", alignItems: "center", marginRight: 16 }}>
-        {/* Icon Circle */}
-        <View
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: colors.bg,
-            borderWidth: 2,
-            borderColor: colors.border,
-            justifyContent: "center",
-            alignItems: "center",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          {IconComponent ? (
-            <IconComponent size={20} color={colors.text} />
-          ) : (
-            <Text style={{ color: colors.text, fontSize: 16, fontWeight: "600" }}>{index}</Text>
-          )}
-        </View>
-
-        {/* Vertical line */}
-        {!isLast && (
-          <View
-            style={{
-              width: 2,
-              height: 32,
-              backgroundColor: colors.line,
-              marginTop: 8,
-            }}
-          />
-        )}
-      </View>
-
-      {/* Content */}
-      <View style={{ flex: 1, paddingTop: 4 }}>
-        <Text
-          style={{
-            color: colors.text,
-            fontWeight: "600",
-            fontSize: 16,
-            lineHeight: 24,
-            marginBottom: 4,
-          }}
-        >
-          {label}
-        </Text>
-
-        {(active || completed) && description && (
-          <View
-            style={{
-              backgroundColor: active ? "#f0f9ff" : completed ? "#f0fdf4" : "#f9fafb",
-              padding: 12,
-              borderRadius: 8,
-              borderLeftWidth: 3,
-              borderLeftColor: colors.border,
-              marginTop: 8,
-            }}
-          >
-            {typeof description === "string" ? (
-              <Text style={{ color: "#374151", fontSize: 14, lineHeight: 20 }}>{description}</Text>
-            ) : (
-              description
-            )}
-          </View>
-        )}
-
-        {active && children && <View style={{ marginTop: 12 }}>{children}</View>}
-      </View>
-    </View>
-  )
-}
 
 export default function ActivityDetailPage() {
   const activity = useActivityStore((s) => s.selectedActivity)
   const [selectedTab, setSelectedTab] = useState<"details" | "timeline">("details")
-
+  const { t } = useTranslation()
   if (!activity) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -191,7 +80,7 @@ export default function ActivityDetailPage() {
               paddingBottom: 4,
             }}
           >
-            Details
+            {t("activity.detailTab")}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setSelectedTab("timeline")}>
@@ -205,7 +94,7 @@ export default function ActivityDetailPage() {
               paddingBottom: 4,
             }}
           >
-            Timeline
+            {t("activity.TimelineTab")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -243,7 +132,7 @@ export default function ActivityDetailPage() {
           <Separator />
           {/* Action Button */}
           <Button
-            onPress={() => Linking.openURL("https://maps.app.goo.gl/CWfVTpiP9Xu9BZx4A")}
+            onPress={() => Linking.openURL(activity.location.mapUrl)}
             icon={Compass}
             style={{
               borderRadius: 12,
@@ -281,14 +170,14 @@ export default function ActivityDetailPage() {
               disabled={activity.checkinStatus === 0}
               description={
                 activity.checkinStatus < 0
-                  ? "This activity has not opened yet. Please wait until the scheduled start time."
+                  ? "This activity has been ended. And you cannot check in."
                   : `Activity begins at ${new Date(activity.metadata.startAt).toLocaleString([], {
-                      day: "2-digit",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    })}. Please be ready to participate.`
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}. Please be ready to participate.`
               }
             >
               {activity.checkinStatus === 0 && (

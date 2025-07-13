@@ -35,7 +35,6 @@ const useHealthData = (
   useEffect(() => {
     const fetchAndValidateDevice = async () => {
       const response = await apiRequest<StepCounter[]>('/step-counters', 'GET');
-
       if (
         response.statusCode === 404 &&
         response.message === 'No step counters registered for this user'
@@ -62,17 +61,15 @@ const useHealthData = (
 
 // Hook to update device ID
 export const useUpdateDevice = () => {
+  const { refreshDevice } = useDeviceStore();
   const { uniqueId } = useDeviceInfo();
-  const { refreshDevice } = useDeviceStore(); 
   const updateDevice = async () => {
     const response = await apiRequest('/step-counters/device', 'PATCH', {
       deviceId: uniqueId,
     });
-
     if (response.statusCode !== 200) {
       throw new Error('Failed to update device');
     }
-
     refreshDevice();
   };
 

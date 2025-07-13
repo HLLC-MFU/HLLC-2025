@@ -95,6 +95,17 @@ export class CheckinService {
       throw new BadRequestException('Not found User to Notification');
     }
 
+    const activityDocs = await this.activityModel.find({
+      _id: { $in: activityObjectIds },
+    }).select('name photo').lean();
+
+    const activityNamesEn = activityDocs.map(activity => activity.name?.en).filter(Boolean).join(', ');
+    const activityNamesTh = activityDocs.map(activity => activity.name?.th).filter(Boolean).join(', ');
+
+    const activitiesImage = activityDocs.find(a => a.photo?.bannerPhoto)?.photo?.bannerPhoto;
+
+    console.log(activitiesImage);
+
     await this.notificationsService.create({
       title: {
         en: 'Checked in',
@@ -105,10 +116,11 @@ export class CheckinService {
         th: '',
       },
       body: {
-        en: `You have been checked in successfully.`,
-        th: `เช็คอินสำเร็จแล้ว`,
+        en: `You have been checked in to ${activityNamesEn} successfully.`,
+        th: `เช็คอินกิจกรรม ${activityNamesTh} สำเร็จแล้ว`,
       },
       icon: 'check-circle',
+      image: activitiesImage,
       scope: [
         {
           type: 'user',
