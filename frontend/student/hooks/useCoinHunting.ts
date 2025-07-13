@@ -102,7 +102,7 @@ export default function useCoinHunting() {
       setErrorMarkers(null);
       try {
         const [landmarksRes, collectionsRes] = await Promise.all([
-          apiRequest<LandmarkApiResponse>('/landmarks'),
+          apiRequest<LandmarkApiResponse>('/landmarks?page=1&limit=30'),
           apiRequest<CoinCollectionApiResponse>('/coin-collections'),
         ]);
         if (landmarksRes.data && Array.isArray(landmarksRes.data.data)) {
@@ -149,7 +149,7 @@ export default function useCoinHunting() {
           const res = await apiRequest<CoinCollectionApiResponse>('/coin-collections');
           const dataArr = Array.isArray(res?.data?.data) ? res.data.data : [];
           const landmarks = dataArr[0]?.landmarks || [];
-          const NUM_SLOTS = 14;
+          const NUM_SLOTS = 21;
           const imagesByOrder: (string | undefined)[] = Array(NUM_SLOTS).fill(undefined);
           landmarks.forEach((l: CoinCollectionLandmark) => {
             const order = l.landmark?.order;
