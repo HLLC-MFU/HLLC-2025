@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react';
 import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 import NotificationModal from '@/components/global/NotificationModal';
 import useDevice from '@/hooks/useDevice';
+import { useProgress } from '@/hooks/useProgress';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -38,6 +39,7 @@ export default function HomeScreen() {
     lamduan: assets?.lamduan ?? null,
   };
   const { steps, deviceMismatch } = useHealthData(new Date());
+  const { progress, loading: progressLoading } = useProgress();
   useEffect(() => {
     async function setupBackgroundTask() {
       try {
@@ -65,6 +67,8 @@ export default function HomeScreen() {
       <ProgressSummaryCard
         healthData={{ steps, deviceMismatch }}
         progressImage={assetsImage.progress}
+        progressPercentage={progress?.progressPercentage ?? 0}
+        progressLoading={progressLoading}
         onPress={() => {
           router.push('/profile')
         }}
