@@ -42,8 +42,8 @@ export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
             fill
             alt={activity.name.en}
             className="object-cover"
-            // src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`
-            src={`https://hllc.mfu.ac.th/api/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`}
+            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`}
+            // src={`https://hllc.mfu.ac.th/api/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`}
           />
 
           {/* Gradient Overlay */}
