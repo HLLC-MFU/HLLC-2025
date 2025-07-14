@@ -72,7 +72,8 @@
         "delete": "Delete account",
         "back": "Back to profile",
         "delete_confirm_title": "Confirm Account Delete",
-        "delete_confirm_message": "Are you sure you want to delete your account? This action cannot be undone."
+        "delete_confirm_message": "Are you sure you want to delete your account? This action cannot be undone.",
+        "logout": "Logout"
     },
     "nav": {
         "welcome": "Welcome Back",
@@ -89,19 +90,26 @@
     },
     "activity": {
         "title": "Activities",
+        "upcoming": "Upcoming Activities",
+        "searchPlaceholder": "Search for activities...",
         "allActivities": "All Activities",
         "subtitle": "Coming soon...",
-        "backward": "Go Back"
+        "backward": "Go Back",
+        "detailTab": "Details",
+        "TimelineTab": "Timeline"
     },
     "evoucher": {
         "title": "E-Voucher",
         "subtitle": "Coming soon...",
         "backward": "Go Back",
+        "searchPlaceholder": "Search for E-Vouchers...",
         "confirmTitle": "Confirm E-Voucher Usage",
         "confirmMessage": "Are you sure you want to use this E-Voucher?",
         "claim": "Claim E-Voucher",
         "claiming": "Claiming...",
-        "claimed": "You have received the E-Voucher!"
+        "claimed": "You have received the E-Voucher!",
+        "NoEvoucherFromSponsor": "No E-Vouchers available from this sponsor",
+        "NoEvoucherFound": "No E-Vouchers found matching your search."
     },
     "bottomNav": {
         "home": "Home",
@@ -123,7 +131,9 @@
         "readonlyMessage": "This room is for reading messages only. You cannot send messages.",
         "scrollToBottom": "↓",
         "you": "You",
-        "unknownUser": "Unknown User"
+        "unknownUser": "Unknown User",
+        "connecting": "Connecting...",
+        "typeMessage": "Type your message here..."
     },
     "roomInfo": {
         "roomDetails": "Room Details",
@@ -135,5 +145,8 @@
         "noUsersOnline": "No users online",
         "waitingForFriends": "Waiting for friends to join the chat room",
         "online": "Online"
+    },
+    "coinHunting": {
+        "collection": "Collection"
     }
 }

@@ -1,78 +1,60 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, Dimensions, Text } from 'react-native';
 import TopUser from './TopUser';
+import { Name } from '@/types/user';
+import { Ranking } from '@/hooks/useStepLeaderboard';
 import LeaderboardList from './LeaderboardList';
 import { BlurView } from 'expo-blur';
-import { Name } from '@/types/user';
-
+import useProfile from '@/hooks/useProfile';
 
 const { width, height } = Dimensions.get('window');
-
-const DynamicLeaderboard = ({
-  users,
-  currentUserData,
-  valueLabel = 'steps',
-}) => {
-
-
+type Props = {
+  data: (Ranking & { rank?: number; completeStatus?: boolean })[] | Ranking[],
+  currentUserData: {
+    rank?: number;
+    totalStep?: number;
+  }
+  valueLabel?: string,
+}
+export default function DynamicLeaderboard({ data, currentUserData }: Props) {
+  const valueLabel = 'steps'; // or any other label you want to use
+  const { user} = useProfile();
   const getShortName = (name: Name) => {
     const first = name?.first || '';
     const lastInitial = name?.last ? name.last.charAt(0) + '.' : '';
     return `${first} ${lastInitial}`.trim();
   };
-  console.log('DynamicLeaderboard users:', users.users[1]);
-  
 
   return (
-    users && currentUserData && (
-      <View style={{ width, flex: 1 }}>
-        <View style={styles.top3Container}>
-          {users.users[1] && (
+    <View style={{ width, flex: 1 }}>
+      <View style={styles.top3Container}>
+        {[1, 0, 2].map((index, i) => {
+          const userData = data[index] ?? null;
+          return (
             <TopUser
-              rank={2}
+              key={index}
+              rank={((index + 1) as 1 | 2 | 3)}
               user={{
                 name: {
-                  first: getShortName(users.users[1].user?.name || { first: 'Unknown', last: '' }),
+                  first: userData
+                    ? getShortName(userData.user?.name || { first: 'Unknown', last: '' })
+                    : '—',
                   last: '',
-                }, stepCount: users.users[1].totalStep
+                },
+                stepCount: userData?.totalStep || 0,
               }}
               valueLabel={valueLabel}
+              isMain={index === 0}
+              crownImageSource={index === 0 ? require('@/assets/images/crown3d.png') : undefined}
             />
-          )}
-          {users.users[0] && (
-            <TopUser
-              rank={1}
-              user={{
-                name: {
-                  first: getShortName(users.users[0].user?.name || { first: 'Unknown', last: '' }),
-                  last: '',
-                }, stepCount: users.users[0].totalStep
-              }}
-              isMain
-              crownImageSource={require('@/assets/images/crown3d.png')}
-              valueLabel={valueLabel}
-            />
-          )}
-          {users.users[2] && (
-            <TopUser
-              rank={3}
-              user={{
-                name: {
-                  first: getShortName(users.users[2].user?.name || { first: 'Unknown', last: '' }),
-                  last: '',
-                }, stepCount: users.users[2].totalStep
-              }}
-              valueLabel={valueLabel}
-            />
-          )}
+          );
+        })}
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={{ marginVertical: height * 0.02 }}>
+          <LeaderboardList data={data} valueLabel={valueLabel} />
         </View>
-        <View style={{ flex: 1, }} >
-          <View style={{ marginVertical: height * 0.02 }}>
-            {/* <LeaderboardList usersData={usersData.slice(0, 20)} valueLabel={valueLabel} /> */}
-          </View>
-
-          {/* Current User Card */}
-          <View
+        <View
             style={{
               position: 'absolute',
               left: 0,
@@ -120,21 +102,18 @@ const DynamicLeaderboard = ({
                   }}>Me</Text>
                 </View>
                 <Text style={styles.cardMyName}>
-                  {currentUserData ? getShortName(currentUserData.data.user?.name) : "Loading..."}
+                  {currentUserData ? getShortName(user?.data[0]?.name || { first: 'Unknown', last: '' }) : "Loading..."}
                 </Text>
                 <Text style={styles.cardSteps}>
-                  {currentUserData ? `${currentUserData.data.totalStep} ${valueLabel}` : "Loading..."}
+                  {currentUserData ? `${currentUserData.totalStep} ${valueLabel}` : "Loading..."}
                 </Text>
               </View>
             </BlurView>
           </View>
-        </View>
       </View>
-    )
-  );
+    </View>
+  )
 };
-
-export default DynamicLeaderboard;
 
 const styles = StyleSheet.create({
   top3Container: {

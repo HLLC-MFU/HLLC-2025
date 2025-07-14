@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, FlatList, Dimensions } from 'react-native';
 import styles from './styles';
+import { Ranking } from '@/hooks/useStepLeaderboard';
 
 interface Name {
   first: string;
@@ -16,42 +17,33 @@ interface UserData {
 }
 
 interface LeaderboardListProps {
-  usersData: UserData[];
+  data: (Ranking & { rank?: number; completeStatus?: boolean })[] | Ranking[],
   valueLabel?: string;
 }
 
-const LeaderboardList = ({ usersData, valueLabel = 'steps' }:LeaderboardListProps) => (
+const LeaderboardList = ({ data, valueLabel = 'steps' }: LeaderboardListProps) => (
   <FlatList
-    data={usersData}
-    keyExtractor={(_, idx) => idx.toString()}
+    data={data.slice(3)} // <-- only show users after top 3
+    keyExtractor={(_, idx) => (idx + 4).toString()} // adjust key for correct rank
     contentContainerStyle={[styles.listContainer, { paddingBottom: 0 }]}
-    renderItem={({ item }) => (
-      <View
-        style={[
-          styles.cardItem,
-          item.isTeam && {
-            backgroundColor: 'rgba(255,255,255,0.13)',
-            borderWidth: 2,
-            borderColor: '#FFD700',
-          },
-        ]}
-      >
+    renderItem={({ item, index }) => (
+      <View style={[styles.cardItem]}>
         <View style={styles.cardRankCircle}>
-          <Text style={styles.cardRankText}>{item.rank}</Text>
+          <Text style={styles.cardRankText}>{index + 4}</Text> {/* Start from rank 4 */}
         </View>
         <View style={styles.cardAvatar}>
-
+          {/* You can put Avatar/Image here */}
         </View>
-        <Text style={[styles.cardName, item.isTeam && { fontWeight: 'bold' }]}> 
-          {item.isTeam
-            ? item.name.first + ' ' + item.name.last
-            : item.name.first + (item.name.middle ? ' ' + item.name.middle : '')}
+        <Text style={[styles.cardName, { fontWeight: 'bold' }]}>
+          {item.user.name.first} {item.user.name.last ? item.user.name.last.charAt(0) + '.' : ''}
         </Text>
-        <Text style={styles.cardSteps}>{item.stepCount} {valueLabel}</Text>
+        <Text style={styles.cardSteps}>{item.totalStep} {valueLabel}</Text>
       </View>
     )}
     showsVerticalScrollIndicator={false}
   />
+
+
 );
 
 export default LeaderboardList; 

@@ -16,12 +16,13 @@ import { useEffect, useState } from 'react';
 import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 import NotificationModal from '@/components/global/NotificationModal';
 import useDevice from '@/hooks/useDevice';
+import { useProgress } from '@/hooks/useProgress';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
-  const {getStoredDeviceId, revokeDevice} = useDevice();
+  const { getStoredDeviceId, revokeDevice } = useDevice();
   const handleSignOut = async () => {
     const deviceId = await getStoredDeviceId()
     await revokeDevice(deviceId)
@@ -38,6 +39,7 @@ export default function HomeScreen() {
     lamduan: assets?.lamduan ?? null,
   };
   const { steps, deviceMismatch } = useHealthData(new Date());
+  const { progress, loading: progressLoading } = useProgress();
   useEffect(() => {
     async function setupBackgroundTask() {
       try {
@@ -65,6 +67,8 @@ export default function HomeScreen() {
       <ProgressSummaryCard
         healthData={{ steps, deviceMismatch }}
         progressImage={assetsImage.progress}
+        progressPercentage={progress?.progressPercentage ?? 0}
+        progressLoading={progressLoading}
         onPress={() => {
           router.push('/profile')
         }}
@@ -104,16 +108,6 @@ export default function HomeScreen() {
             <Bell fill={'white'} color="white" size={20} />
           )}
         </GlassButton>
-        <GlassButton onPress={handleSignOut} iconOnly>
-          {assetsImage.signOut ? (
-            <AssetImage
-              uri={`${baseImageUrl}/uploads/${assetsImage.signOut}`}
-              style={{ width: 20, height: 20 }}
-            />
-          ) : (
-            <DoorClosedLocked color="white" size={20} />
-          )}
-        </GlassButton>
       </View>
     </SafeAreaView>
   );
@@ -124,7 +118,7 @@ export default function HomeScreen() {
         background={assetsImage.background ?? null}
         children={content}
       />
-      <NotificationModal 
+      <NotificationModal
         visible={notificationModalVisible}
         onClose={() => setNotificationModalVisible(false)}
       />

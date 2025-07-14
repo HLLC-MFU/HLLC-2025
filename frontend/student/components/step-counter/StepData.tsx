@@ -1,43 +1,56 @@
 import useHealthData from "@/hooks/health/useHealthData";
 import { View, Text, StyleSheet } from "react-native";
-import Svg, { Circle } from "react-native-svg";
-
-export default function StepData() {
+import Svg, { Circle, G } from "react-native-svg";
+import { AchievementData, LeaderboardData } from "@/hooks/useStepLeaderboard";
+type Props = {
+    leaderboardData: LeaderboardData | null;
+    achievementData: AchievementData[] | null;
+    loading?: boolean;
+}
+export default function StepData({ leaderboardData, achievementData }: Props) {
     const { steps, deviceMismatch } = useHealthData(new Date());
-    const circleRadius = 70;
+
+    const circleRadius = 100;
     const circleCircumference = 2 * Math.PI * circleRadius;
-    const goal = 50000;
-    const stepPercent = Math.min(steps / goal, 1);
+    const goal = achievementData?.[0]?.archievement || 50000;
+    const stepPercent = Math.min((leaderboardData?.myRank?.totalStep ?? 0) / goal, 1);
     return (
         <>
             <View style={styles.progressContainer}>
-                <Svg width={160} height={160}>
+                <Svg width={300} height={300}>
                     <Circle
-                        cx={80}
-                        cy={80}
+                        cx={150}
+                        cy={150}
                         r={circleRadius}
                         stroke="#222"
                         strokeWidth={18}
                         fill="none"
                         opacity={0.2}
                     />
-                    <Circle
-                        cx={80}
-                        cy={80}
-                        r={circleRadius}
-                        stroke="#FF7A00"
-                        strokeWidth={18}
-                        fill="none"
-                        strokeDasharray={circleCircumference}
-                        strokeDashoffset={circleCircumference * (1 - stepPercent)}
-                        strokeLinecap="round"
-                    />
+                    <G transform={`rotate(-90 150 150)`}>
+                        <Circle
+                            cx={150}
+                            cy={150}
+                            r={circleRadius}
+                            stroke="#FF7A00"
+                            strokeWidth={18}
+                            fill="none"
+                            strokeDasharray={circleCircumference}
+                            strokeDashoffset={circleCircumference * (1 - stepPercent)}
+                            strokeLinecap="round"
+
+                        />
+                    </G>
                 </Svg>
-                <View style={styles.stepTextBox}>
-                    <Text style={styles.stepLabel}>Total</Text>
-                    <Text style={styles.stepNumber}>{steps.toLocaleString()}</Text>
-                    <Text style={styles.stepLabel}>Step</Text>
-                </View>
+                {
+                    leaderboardData && leaderboardData.myRank && (
+                        <View style={styles.stepTextBox}>
+                            <Text style={styles.stepLabel}>Total</Text>
+                            <Text style={styles.stepNumber}>{leaderboardData.myRank.totalStep.toLocaleString()}</Text>
+                            <Text style={styles.stepLabel}>Today: {steps.toLocaleString()}</Text>
+                        </View>
+                    )
+                }
             </View>
             <View style={styles.totalStepsBox}>
                 <Text style={styles.totalStepsDesc}>
@@ -51,14 +64,12 @@ export default function StepData() {
                     Your goal is {goal.toLocaleString()} steps.
                 </Text>
             </View>
-            
         </>
     )
 }
 
 const styles = StyleSheet.create({
     progressContainer: {
-        marginBottom: 16,
         alignItems: "center",
         justifyContent: "center",
     },
@@ -66,8 +77,8 @@ const styles = StyleSheet.create({
         position: "absolute",
         top: 0,
         left: 0,
-        width: 160,
-        height: 160,
+        width: 300,
+        height: 300,
         alignItems: "center",
         justifyContent: "center",
     },
