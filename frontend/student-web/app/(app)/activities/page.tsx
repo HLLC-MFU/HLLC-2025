@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import ActivityCard from './_components/ActivitiesCard';
 
@@ -11,6 +12,7 @@ export default function ActivitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const router = useRouter();
 
   const filteredAndSortedActivities = useMemo(() => {
     if (!activities) return [];
@@ -82,18 +84,12 @@ export default function ActivitiesPage() {
 
         {upcomingActivity && (
           <div>
-            <ActivityCard activity={upcomingActivity} />
+            <ActivityCard
+              activity={upcomingActivity}
+              onClick={() => router.push(`/activities/${upcomingActivity._id}`)}
+            />
           </div>
         )}
-
-        <h2 className="ml-2">
-          <span className="text-xl font-semibold">All Activities</span>
-          {filteredAndSortedActivities.length > 0 && (
-            <span className="text-sm text-default-500 ml-2">
-              ({filteredAndSortedActivities.length} found)
-            </span>
-          )}
-        </h2>
       </div>
 
       {/* Cards grid */}
@@ -102,9 +98,7 @@ export default function ActivitiesPage() {
           <ActivityCard
             key={activity._id}
             activity={activity}
-            onPress={() =>
-              window.location.assign(`/activities/${activity._id}`)
-            }
+            onClick={() => router.push(`/activities/${activity._id}`)}
           />
         ))}
       </div>
