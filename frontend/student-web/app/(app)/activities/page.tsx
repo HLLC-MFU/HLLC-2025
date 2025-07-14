@@ -1,13 +1,18 @@
 'use client';
+
 import { useEffect, useMemo, useState } from 'react';
-import ActivitiesList from './_components/ActivitiesList';
-import { ActivitiesFilters } from './_components/ActivitiesFilters';
-import UpcomingCard from './_components/UpcomingCard';
+import { Input } from '@heroui/react';
+import { Search } from 'lucide-react';
+import { addToast } from '@heroui/react';
+import { useRouter } from 'next/navigation';
+
+import ActivityCard from './_components/ActivitiesCard';
+import ActivityCardSkeleton from './_components/ActivityCardSkeleton';
+
 import { useActivities } from '@/hooks/useActivities';
 import { PrepostQuestions } from '@/types/prepostQuestion';
-import { addToast } from '@heroui/react';
 import { usePrepostQuestion } from '@/hooks/usePrePostQuestion';
-import { useProgress } from '@/hooks/useProgress';
+import useProgress from '@/hooks/useProgress';
 import PretestQuestionModal from '@/components/PretestPosttest/PretestQuestionModal';
 import { ConfirmationModal } from '@/components/PretestPosttest/ConfirmModal';
 
@@ -16,6 +21,7 @@ export default function ActivitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const router = useRouter();
   const {
     answers,
     createPretestAnswers,
@@ -25,7 +31,7 @@ export default function ActivitiesPage() {
     pretestAnswers,
     hasPretestAnswers,
   } = usePrepostQuestion();
-  const { progress, progressLoading } = useProgress();
+  const { progress } = useProgress();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPrepostQuestion, setSelectedPrepostQuestion] = useState<
     PrepostQuestions[]
@@ -43,6 +49,7 @@ export default function ActivitiesPage() {
     const initialAnswers = filteredQuestions.map(q => {
       // หาใน answers ที่มีคำตอบเดิม (ถ้ามี)
       const existingAnswer = answers.find(ans => ans.pretest === q._id);
+
       return existingAnswer || { pretest: q._id, answer: '' };
     });
 
@@ -59,17 +66,6 @@ export default function ActivitiesPage() {
     }
   }, [hasPretestAnswers]);
 
-  const handleCloseModal = () => {
-    if (progress?.progressPercentage) {
-      setIsModalOpen(false);
-      setSelectedPrepostQuestion([]);
-    } else {
-      addToast({
-        title: 'You must complete the assessment first.',
-        color: 'warning',
-      });
-    }
-  };
 
   const handleSubmit = async () => {
     if (!answers || answers.length === 0) {
@@ -154,7 +150,23 @@ export default function ActivitiesPage() {
     if (!activities || activities.length === 0) return null;
 
     const now = new Date();
-    const futureActivities = activities
+
+    // Filter by search query first, same as filteredAndSortedActivities logic
+    let filtered = activities;
+
+    if (searchQuery.trim() !== '') {
+      const lower = searchQuery.toLowerCase();
+
+      filtered = activities.filter(
+        a =>
+          a.name?.en?.toLowerCase().includes(lower) ||
+          a.name?.th?.toLowerCase().includes(lower) ||
+          a.acronym?.toLowerCase().includes(lower),
+      );
+    }
+
+    // Then filter to future activities only
+    const futureActivities = filtered
       .filter(a => new Date(a.metadata?.startAt) > now)
       .sort(
         (a, b) =>
@@ -163,44 +175,56 @@ export default function ActivitiesPage() {
       );
 
     return futureActivities[0] ?? null;
-  }, [activities]);
-
-  const toggleSortDirection = () => {
-    setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
-  };
+  }, [activities, searchQuery]);
 
   return (
-    <div className="flex flex-col min-h-screen justify-beetween gap-5">
-      <div className="flex flex-col mt-5 gap-5 justify-between">
-        <h1 className="text-3xl font-bold">Activities</h1>
-        <ActivitiesFilters
-          searchQuery={searchQuery}
-          sortBy={sortBy}
-          sortDirection={sortDirection}
-          onSearchQueryChange={setSearchQuery}
-          onSortByChange={setSortBy}
-          onSortDirectionToggle={toggleSortDirection}
+    <div
+      className="flex flex-col min-h-screen w-full overflow-y-auto pb-16 gap-6 bg-transparent px-8"
+      style={{ WebkitOverflowScrolling: 'touch' }}
+    >
+      {/* Search Input */}
+      <div className="mb-6">
+        <Input
+          aria-label="Search activities"
+          className="w-full max-w-md "
+          placeholder="Search activities..."
+          radius="full"
+          size="lg"
+          startContent={<Search className="text-default-500" size={20} />}
+          type="search"
+          value={searchQuery}
+          variant="faded"
+          onChange={e => setSearchQuery(e.target.value)}
         />
-        {/* Upcoming Activities */}
-        <div>
-          {upcomingActivity && <UpcomingCard activity={upcomingActivity} />}
-        </div>
-        <h1 className="p-1 ml-2">
-          <span className="text-xl font-semibold">All Activities</span>
-          {filteredAndSortedActivities.length > 0 && (
-            <span className="text-sm text-default-500 ml-2">
-              ({filteredAndSortedActivities.length} found)
-            </span>
-          )}
-        </h1>
       </div>
-      <ActivitiesList
-        key={filteredAndSortedActivities.length}
-        activities={filteredAndSortedActivities}
-        isLoading={loading}
-      />
 
-      {filteredAndSortedActivities?.length === 0 && !loading && (
+      <div className="flex flex-col gap-5">
+        {upcomingActivity && !loading && (
+          <div>
+            <ActivityCard
+              activity={upcomingActivity}
+              onClick={() => router.push(`/activities/${upcomingActivity._id}`)}
+            />
+          </div>
+        )}
+        {loading && <ActivityCardSkeleton />}
+      </div>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-auto">
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <ActivityCardSkeleton key={i} />
+            ))
+          : filteredAndSortedActivities.map(activity => (
+              <ActivityCard
+                key={activity._id}
+                activity={activity}
+                onClick={() => router.push(`/activities/${activity._id}`)}
+              />
+            ))}
+      </div>
+
+      {!loading && filteredAndSortedActivities?.length === 0 && (
         <p className="text-center text-sm text-default-500">
           No activities found.
         </p>
@@ -208,8 +232,8 @@ export default function ActivitiesPage() {
 
       <PretestQuestionModal
         answers={answers}
-        prePostQuestions={selectedPrepostQuestion}
         isOpen={isModalOpen}
+        prePostQuestions={selectedPrepostQuestion}
         setAnswers={setAnswers}
         onClose={() => {
           if (progress?.progressPercentage) {

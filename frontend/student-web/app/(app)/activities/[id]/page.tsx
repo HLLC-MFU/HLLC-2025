@@ -218,7 +218,7 @@ export default function ActivitiesDetailPage() {
               alt="Banner"
               className="w-full h-full object-cover"
               src={
-                `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity?.photo?.bannerPhoto}` ||
+                // `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity?.photo?.bannerPhoto}` ||
                 `https://hllc.mfu.ac.th/api/uploads/${activity?.photo?.bannerPhoto || 'default-banner.jpg'}`
               }
             />
