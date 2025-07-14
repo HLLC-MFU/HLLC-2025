@@ -16,9 +16,10 @@ import { Href } from '@react-types/shared';
 import { Tooltip } from '@heroui/react';
 
 import { siteConfig } from '@/config/site';
-import { ThemeSwitch } from '@/components/theme-switch';
 import { SearchIcon, Logo } from '@/components/icons';
 import { useProfile } from '@/hooks/useProfile';
+import { ProgressBar } from './ui/progressBar';
+import { useProgress } from '@/hooks/useProgress';
 import { useState } from 'react';
 
 export const Navbar = () => {
@@ -26,6 +27,7 @@ export const Navbar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const user = useProfile(state => state.user);
+  const { progress, progressLoading } = useProgress();
 
   const handleClick = (href: Href) => {
     setIsMenuOpen(false);
@@ -105,7 +107,7 @@ export const Navbar = () => {
 
       {/*Mobile Right Content */}
       <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
-        <ThemeSwitch />
+        <ProgressBar progressBarActivities={progress} loading={progressLoading} />
         <NavbarMenuToggle onChange={() => setIsMenuOpen(prev => !prev)}/>
       </NavbarContent>
 
