@@ -13,6 +13,7 @@ export type Activities = {
   createdAt?: string;
   updatedAt?: string;
   checkinStatus: number;
+  checkinMessage: string;
   hasAnsweredAssessment: boolean;
 };
 
@@ -52,4 +53,47 @@ export type Location = {
   mapUrl: string;
   latitude: number;
   longitude: number;
+};
+
+export type UserActivity = {
+  _id: string;
+  name: {
+    th: string;
+    en: string;
+  };
+  acronym: string;
+  fullDetails: {
+    th: string;
+    en: string;
+  };
+  shortDetails: {
+    th: string;
+    en: string;
+  };
+  type: {
+    _id: string;
+    name: string;
+  };
+  photo: {
+    logoPhoto: string;
+    bannerPhoto: string;
+  };
+  location: {
+    th: string;
+    en: string;
+    latitude: number;
+    longitude: number;
+    mapUrl: string;
+  };
+  metadata: {
+    isOpen: boolean;
+    checkinStartAt: string;
+    endAt: string;
+    startAt: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  checkinStatus: number;
+  checkinMessage: string;
+  hasAnsweredAssessment: boolean;
 };

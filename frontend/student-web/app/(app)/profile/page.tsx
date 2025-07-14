@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas } from '@react-three/fiber';
-import { useFBX } from '@react-three/drei';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useEffect, useRef } from 'react';
 
@@ -9,11 +9,11 @@ import ProfileCard from './_components/ProfileCard';
 
 function Scene() {
   const group = useRef<THREE.Group>(null);
-  const fbx = useFBX('/models/test500.fbx');
-  const scale = 0.01;
+  const glb = useGLTF('models/sino3.glb');
+  const scale = 1;
 
   useEffect(() => {
-    fbx.traverse((child: THREE.Object3D) => {
+    glb.scene.traverse((child: THREE.Object3D) => {
       if ((child as THREE.Mesh).isMesh || (child as any).isSkinnedMesh) {
         const mesh = child as THREE.Mesh;
 
@@ -35,7 +35,7 @@ function Scene() {
         }
       }
     });
-  }, [fbx]);
+  }, [glb]);
 
   useEffect(() => {
     if (!group.current) return;
@@ -67,11 +67,11 @@ function Scene() {
       -yMin * scale - 3,
       -center.z * scale,
     );
-  }, [fbx]);
+  }, [glb]);
 
   return (
     <group ref={group} scale={scale}>
-      <primitive object={fbx} />
+      <primitive object={glb.scene} />
       <primitive object={new THREE.AxesHelper(1)} />
     </group>
   );
