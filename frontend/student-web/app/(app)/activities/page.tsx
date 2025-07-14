@@ -65,9 +65,9 @@ export default function ActivitiesPage() {
   };
 
   return (
-    <div className="flex-col min-h-screen">
-      <div className="sticky top-0 z-20 mb-5 bg-white/5 backdrop-blur dark:bg-black/30 rounded-lg flex flex-col gap-5">
-        <h1 className="text-2xl font-bold">Activities</h1>
+    <div className="flex flex-col min-h-screen justify-beetween gap-5">
+      <div className="flex flex-col mt-5 gap-5 justify-between">
+        <h1 className="text-3xl font-bold">Activities</h1>
         <ActivitiesFilters
           searchQuery={searchQuery}
           sortBy={sortBy}
@@ -90,6 +90,7 @@ export default function ActivitiesPage() {
         </h1>
       </div>
       <ActivitiesList
+        key={filteredAndSortedActivities.length}
         activities={filteredAndSortedActivities}
         isLoading={loading}
       />
