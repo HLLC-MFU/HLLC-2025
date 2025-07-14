@@ -9,7 +9,7 @@ import {
 } from '@heroui/navbar';
 import { Button } from '@heroui/button';
 import { Kbd } from '@heroui/kbd';
-import { Link } from '@heroui/link';
+
 import { Input } from '@heroui/input';
 import NextLink from 'next/link';
 import clsx from 'clsx';
@@ -18,14 +18,16 @@ import { Href } from '@react-types/shared';
 import { Tooltip } from '@heroui/react';
 
 import { siteConfig } from '@/config/site';
-import { ThemeSwitch } from '@/components/theme-switch';
-import { GithubIcon, SearchIcon, Logo } from '@/components/icons';
+import { SearchIcon, Logo } from '@/components/icons';
 import { useProfile } from '@/hooks/useProfile';
+import { ProgressBar } from './ui/progressBar';
+import { useProgress } from '@/hooks/useProgress';
 
 export const Navbar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const user = useProfile(state => state.user);
+  const { progress, progressLoading } = useProgress();
 
   const handleClick = (href: Href) => {
     router.push(href);
@@ -109,10 +111,7 @@ export const Navbar = () => {
 
       {/*Mobile Right Content */}
       <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
-        <Link isExternal aria-label="Github" href={siteConfig.links.github}>
-          <GithubIcon className="text-default-500" />
-        </Link>
-        <ThemeSwitch />
+        <ProgressBar progressBarActivities={progress} loading={progressLoading} />
         <NavbarMenuToggle />
       </NavbarContent>
 
