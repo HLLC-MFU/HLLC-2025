@@ -3,28 +3,33 @@ import {
   Text,
   SafeAreaView,
   StyleSheet,
-  Dimensions,
 } from 'react-native';
 import SegmentedToggle from '@/components/step-counter/SegmentedToggle';
 import { useState } from 'react';
+import { Spinner } from 'tamagui';
+import { LeaderboardData } from '@/hooks/useStepLeaderboard';
 import DynamicLeaderboard from './DynamicLeaderboard';
 
 type Props = {
-  individualStepCounter: IndividualStepCounterResponse,
+  data:LeaderboardData | null;
   loading: boolean,
 }
 
-export default function LeaderBoard({ individualStepCounter, loading }: Props) {
+export default function LeaderBoard({ data, loading }: Props) {
   const [selectedTab, setSelectedTab] = useState(0);
 
-  const getFullName = (name: { first: string; middle?: string; last?: string }) => {
-    return [name.first, name.middle, name.last].filter(Boolean).join(' ');
-  };
 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.text}>Loading...</Text>
+        <Text style={styles.text}><Spinner/></Text>
+      </View>
+    );
+  }
+  if (!data) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.text}>No data available</Text>
       </View>
     );
   }
@@ -36,19 +41,40 @@ export default function LeaderBoard({ individualStepCounter, loading }: Props) {
         {selectedTab === 0 && (
           <View style={styles.page}>
             <DynamicLeaderboard
-              users={individualStepCounter}
-              currentUserData={individualStepCounter?.myRank || undefined}
+              data={data.individualRank}
+              currentUserData={
+                data.myRank ? {
+                  rank: data.myRank.individualRank,
+                  totalStep: data.myRank.totalStep,
+                } : {}
+              }
             />
           </View>
         )}
         {selectedTab === 1 && (
           <View style={styles.page}>
-            <Text style={styles.text}>School/Group Leaderboard</Text>
+            <DynamicLeaderboard
+              data={data.schoolRank || []}
+              currentUserData={
+                data.myRank ? {
+                  rank: data.myRank.schoolRank,
+                  totalStep: data.myRank.totalStep,
+                } : {}
+              }
+            />
           </View>
         )}
         {selectedTab === 2 && (
           <View style={styles.page}>
-            <Text style={styles.text}>Achievement Leaderboard</Text>
+            <DynamicLeaderboard
+              data={data.archeivementRank || []}
+              currentUserData={
+                data.myRank ? {
+                  rank: data.myRank.archeivementRank,
+                  totalStep: data.myRank.totalStep,
+                } : {}
+              }
+            />
           </View>
         )}
       </View>

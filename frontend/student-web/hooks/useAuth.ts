@@ -34,7 +34,7 @@ interface AuthStore {
     };
   }) => Promise<true | string>;
 }
-
+let isSigningOut = false;
 const useAuth = create<AuthStore>()(
   persist(
     (set, get) => ({
@@ -93,36 +93,52 @@ const useAuth = create<AuthStore>()(
       },
 
       signOut: async () => {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
-          {
-            method: 'POST',
-            credentials: 'include',
-          },
-        );
+        // Prevent double execution
+        if (isSigningOut) return;
+        isSigningOut = true;
 
-        if (res.status !== 201) {
+        try {
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
+            {
+              method: 'POST',
+              credentials: 'include',
+            },
+          );
+
+          if (res.status !== 201) {
+            addToast({
+              title: 'Logout failed',
+              color: 'danger',
+              description: 'Failed to log out. Please try again.',
+              variant: 'solid',
+            });
+
+            return;
+          }
+
           addToast({
-            title: 'Logout failed',
-            color: 'danger',
-            description: 'Failed to log out. Please try again.',
+            title: 'Logged out',
+            color: 'success',
+            description: 'You have successfully logged out.',
             variant: 'solid',
           });
 
-          return;
+          // Clear user and tokens
+          useProfile.getState().clearUser();
+          removeToken('accessToken');
+          removeToken('refreshToken');
+        } catch (err) {
+          addToast({
+            title: 'Logout error',
+            color: 'danger',
+            description:
+              err instanceof Error ? err.message : 'Something went wrong',
+            variant: 'solid',
+          });
+        } finally {
+          isSigningOut = false; // reset flag so logout can happen again later
         }
-
-        addToast({
-          title: 'Logged out',
-          color: 'success',
-          description: 'You have successfully logged out.',
-          variant: 'solid',
-        });
-
-        useProfile.getState().clearUser();
-
-        removeToken('accessToken');
-        removeToken('refreshToken');
       },
 
       refreshSession: async () => {
@@ -155,20 +171,17 @@ const useAuth = create<AuthStore>()(
         }
       },
 
-      register: async (data) => {
+      register: async data => {
         try {
           set({ loading: true, error: null });
 
           const res = await apiRequest<{ message: string; user?: any }>(
             '/auth/register',
             'POST',
-            data
+            data,
           );
 
-          if (
-            (res.statusCode === 200 || res.statusCode === 201) &&
-            res.data?.message === 'Registration successful'
-          ) {
+          if (res.statusCode === 200 || res.statusCode === 201) {
             addToast({
               title: 'Registration complete',
               color: 'success',
@@ -177,9 +190,17 @@ const useAuth = create<AuthStore>()(
             });
 
             return true;
-          }
+          } else {
+            set({ error: res.message || 'Registration failed' });
+            addToast({
+              title: 'Registration failed',
+              color: 'danger',
+              description: res.message || 'Please try again.',
+              variant: 'solid',
+            });
 
-          return res.message || 'Register failed';
+            return res.message || 'Registration failed';
+          }
         } catch (err) {
           return (err as Error).message || 'Network error';
         } finally {
@@ -199,7 +220,7 @@ const useAuth = create<AuthStore>()(
           const res = await apiRequest<{ message: string }>(
             '/auth/reset-password',
             'POST',
-            resetData
+            resetData,
           );
 
           if (

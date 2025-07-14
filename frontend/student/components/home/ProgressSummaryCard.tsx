@@ -14,6 +14,8 @@ type ProgressSummaryCardProps = {
     };
     progressImage: string | null; // Relative path like "image.jpg"
     onPress?: () => void;
+    progressPercentage?: number;
+    progressLoading?: boolean;
 };
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -22,6 +24,8 @@ export function ProgressSummaryCard({
     healthData,
     progressImage,
     onPress,
+    progressPercentage = 0,
+    progressLoading = false,
 }: ProgressSummaryCardProps) {
     const router = useRouter();
 
@@ -54,7 +58,7 @@ export function ProgressSummaryCard({
                         {t('nav.progress')}
                     </Text>
                     <XStack alignItems="center" gap={4}>
-                        <Progress value={60} size="$1" width={120} height={12} marginLeft={8}>
+                        <Progress value={progressPercentage} size="$1" width={120} height={12} marginLeft={8}>
                             <Progress.Indicator />
                         </Progress>
                         <Text
@@ -66,7 +70,7 @@ export function ProgressSummaryCard({
                                 marginBottom: 2,
                             }}
                         >
-                            60%
+                            {progressLoading ? '...' : `${progressPercentage}%`}
                         </Text>
                     </XStack>
                 </YStack>

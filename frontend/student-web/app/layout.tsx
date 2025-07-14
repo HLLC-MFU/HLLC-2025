@@ -47,16 +47,13 @@ export default function RootLayout({
       <body
         className={clsx(
           'text-foreground bg-background font-sans antialiased m-0 p-0',
+          'text-foreground bg-background font-sans antialiased m-0 p-0',
           fontSans.variable,
         )}
       >
         <Providers themeProps={{ attribute: 'class', defaultTheme: 'light' }}>
           <PopupDialog />
-          <div className="flex flex-col h-dvh max-h-dvh justify-center">
-            <main className="grow">
-              {children}
-            </main>
-          </div>
+          <main className="grow h-screen w-screen">{children}</main>
         </Providers>
       </body>
     </html>
