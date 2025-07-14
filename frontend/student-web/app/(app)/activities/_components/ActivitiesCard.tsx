@@ -28,9 +28,11 @@ export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
       className="w-full mb-5 cursor-pointer"
       role="button"
       tabIndex={0}
-      onClick={onClick}
+      onClick={() => {
+        if (onClick) onClick();
+      }}
       onKeyDown={e => {
-        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+        if ((e.key === 'Enter' || e.key === ' ') && onClick) {
           e.preventDefault();
           onClick();
         }
@@ -42,8 +44,11 @@ export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
             fill
             alt={activity.name.en}
             className="object-cover"
-            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`}
-            // src={`https://hllc.mfu.ac.th/api/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`}
+            // src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`}
+            src={
+              `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}` ||
+              `https://hllc.mfu.ac.th/api/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`
+            }
           />
 
           {/* Gradient Overlay */}
