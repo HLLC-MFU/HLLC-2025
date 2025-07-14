@@ -20,7 +20,7 @@ export default function ReportPage() {
   const [selectedTopic, setSelectedTopic] = useState('');
   const [description, setDescription] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const DESCRIPTION_LIMIT = 300;
+  const DESCRIPTION_LIMIT = 144;
 
   const {
     reporttypes,
