@@ -46,15 +46,21 @@ export default function EvoucherPage() {
             {/* Sponsors Group */}
             <ScrollShadow className="h-[550px] overflow-y-auto pb-10" size={40} hideScrollBar>
                 <div className="grid grid-cols-2 gap-6">
-                    {filteredSponsors.map((sponsor, index) => (
-                        <Image
-                            key={index}
-                            alt={sponsor.name.en}
-                            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.logo.logoPhoto ?? ''}`}
-                            className="border-2 border-[#b1b1b1ff] rounded-3xl"
-                            onClick={() => handleSponsorCardClick(sponsor._id)}
-                        />
-                    ))}
+                    {filteredSponsors.map((sponsor, index) => {
+                        const logoSrc = sponsor?.logo?.logoPhoto
+                            ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${sponsor.logo.logoPhoto}`
+                            : ''; //← Fix this make it better @wrtn
+
+                        return (
+                            <Image
+                                key={index}
+                                alt={sponsor.name.en}
+                                src={logoSrc}
+                                className="border-2 border-[#b1b1b1ff] rounded-3xl"
+                                onClick={() => handleSponsorCardClick(sponsor._id)}
+                            />
+                        )
+                    })}
                 </div>
             </ScrollShadow>
         </div>
