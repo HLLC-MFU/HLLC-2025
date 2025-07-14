@@ -25,7 +25,7 @@ import { apiResponse } from 'src/pkg/helper/api-response.helper';
 @UseGuards(PermissionsGuard)
 @Controller('activities')
 export class ActivitiesController {
-  constructor(private readonly activitiesService: ActivitiesService) {}
+  constructor(private readonly activitiesService: ActivitiesService) { }
 
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))
@@ -83,5 +83,10 @@ export class ActivitiesController {
   @Get(':activityId/assessment')
   async findActivitiesWithAssessment(@Param('activityId') activityId: string) {
     return this.activitiesService.findActivitiesWithAssessment(activityId);
+  }
+
+  @Get('/progress')
+  async findUserProgress(@Req() req: UserRequest) {
+    return this.activitiesService.findProgressByUser(req.user._id);
   }
 }
