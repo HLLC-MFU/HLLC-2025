@@ -1,207 +1,287 @@
 'use client';
 
-import { Input, Button, Select, SelectItem } from '@heroui/react';
-import { Eye, EyeClosed, User2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import {
+  addToast,
+  Button,
+  Form,
+  Input,
+  Select,
+  SelectItem,
+} from '@heroui/react';
+import { Eye, EyeClosed, LockIcon, MapPin, UserIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
-import { usePopupDialog } from '@/components/ui/dialog';
-import { CheckedUser, Province } from '@/types/user';
+import lobby from '@/public/lobby.png';
 import useAuth from '@/hooks/useAuth';
+import { apiRequest } from '@/utils/api';
+import { Province } from '@/types/user';
 
 export default function RegisterPage() {
-  const [studentId, setStudentId] = useState('');
-  const [fetchedUser, setFetchedUser] = useState<CheckedUser | null>(null);
+  const router = useRouter();
+  const { register } = useAuth();
+  const [disabled, setDisabled] = useState(true);
+
+  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
+  const [province, setProvince] = useState('');
+  const [provinces, setProvinces] = useState<Province[]>([]);
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isPasswordVisible, setPasswordIsVisible] = useState(false);
-  const [isConfirmPasswordVisible, setConfirmPasswordIsVisible] =
-    useState(false);
-  const register = useAuth(state => state.register);
-  const [provinces, setProvinces] = useState<Province[]>([]);
-  const [selectedProvince, setSelectedProvince] = useState('');
-  const { openDialog } = usePopupDialog();
+  const [isPasswordVisible, setPasswordVisible] = useState(false);
+  const [isConfirmVisible, setConfirmVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
 
-  const togglePasswordVisibility = () => setPasswordIsVisible(prev => !prev);
-  const toggleConfirmPasswordVisibility = () =>
-    setConfirmPasswordIsVisible(prev => !prev);
-
-  const clearForm = () => {
-    setFetchedUser(null);
-    setStudentId('');
-    setPassword('');
-    setConfirmPassword('');
-  };
-
-  const handleBlurStudentId = async () => {
-    if (studentId.length !== 10) {
-      openDialog(
-        'Invalid Student ID',
-        'Please enter a valid 10-digit student ID.',
-        clearForm,
-      );
-
-      return;
-    }
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/student/status/${studentId}`,
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-
-        setFetchedUser(data.user);
-      } else {
-        const errorData = await res.json();
-        const errorText = errorData.message;
-
-        openDialog(
-          '',
-          errorText || 'No student found with this ID.',
-          clearForm,
-        );
-      }
-    } catch {
-      openDialog(
-        'Fetch Error',
-        'Unable to verify student ID. Please try again later.',
-        clearForm,
-      );
-    }
-  };
-
-  const handleRegister = async () => {
-    if (!studentId || !selectedProvince || !password || !confirmPassword) {
-      openDialog('Incomplete', 'Please complete all fields');
-
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      openDialog('Password Mismatch', 'Passwords do not match');
-
-      return;
-    }
-
-    const success = await register({
-      username: studentId,
-      password,
-      confirmPassword,
-      metadata: { secret: selectedProvince },
-    });
-
-    if (success) {
-      openDialog('Success', 'You have successfully registered.', () => {
-        clearForm();
-        // Optionally redirect or reset page here
-      });
-    } else {
-      openDialog('Error', 'Registration failed. Please try again.');
-    }
-  };
+  const togglePasswordVisibility = () => setPasswordVisible(prev => !prev);
+  const toggleConfirmVisibility = () => setConfirmVisible(prev => !prev);
 
   useEffect(() => {
-    const loadProvinces = async () => {
-      try {
-        const res = await fetch('/data/province.json');
-        const data = await res.json();
+    fetch('/data/province.json')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load province list');
 
-        setProvinces(data);
-      } catch (err) {
-        console.error('Failed to load province list', err);
+        return res.json();
+      })
+      .then(data => setProvinces(data));
+  }, []);
+
+  useEffect(() => {
+    const fetchInfo = async () => {
+      if (username.length === 10 && /^\d+$/.test(username)) {
+        setIsFetching(true);
+        try {
+          const res = await apiRequest<{
+            user?: {
+              name: { first: string; middle?: string; last: string };
+              province: string;
+            };
+          }>(`/auth/student/status/${username}`, 'GET');
+
+          if (res.statusCode === 200 && res.data?.user) {
+            const u = res.data.user;
+            const fullName =
+              `${u.name.first} ${u.name.middle || ''} ${u.name.last}`.trim();
+
+            setName(fullName);
+            setProvince(u.province);
+            setDisabled(false);
+          } else {
+            alert(res.message || 'Invalid student ID');
+            setName('');
+            setProvince('');
+            setDisabled(true);
+          }
+        } finally {
+          setIsFetching(false);
+        }
+      } else {
+        // If username invalid or cleared, clear all dependent fields here
+        setName('');
+        setProvince('');
+        setDisabled(true);
       }
     };
 
-    loadProvinces();
-  }, []);
+    fetchInfo();
+  }, [username]);
+
+  const validatePassword = (pwd: string) => {
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(pwd);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (password !== confirmPassword) {
+      alert('Passwords do not match.');
+
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      alert(
+        'Password must be at least 8 characters long and include uppercase, lowercase, and number.',
+      );
+
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = await register({
+        username,
+        password,
+        confirmPassword,
+        metadata: {
+          secret: province, // Replace with your actual logic
+        },
+      });
+
+      if (result === true) {
+        router.push('/');
+      } else {
+        alert(result); // result is an error string
+      }
+    } catch (err) {
+      addToast({
+        title: 'Registration Error',
+        color: 'danger',
+        description: (err as Error).message || 'An unexpected error occurred.',
+        variant: 'solid',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <main className="max-w-md mx-auto p-4">
-      <h1 className="text-center text-2xl font-bold mb-4">Register</h1>
-
-      <Input
-        label="Student ID"
-        labelPlacement="inside"
-        placeholder="e.g. 6531503201"
-        size="lg"
-        startContent={<User2 className="text-default-400" />}
-        value={studentId}
-        onBlur={handleBlurStudentId}
-        onValueChange={setStudentId}
-      />
-      <Input
-        isDisabled
-        label="Name"
-        labelPlacement="inside"
-        size="lg"
-        startContent={<User2 className="text-default-400" />}
-        value={
-          fetchedUser
-            ? `${fetchedUser.name.first} ${fetchedUser.name.middle ?? ''} ${fetchedUser.name.last}`.trim()
-            : ''
-        }
-      />
-      <Input
-        endContent={
-          <button
-            aria-label="Toggle password visibility"
-            className="focus:outline-none"
-            type="button"
-            onClick={togglePasswordVisibility}
-          >
-            {isPasswordVisible ? (
-              <Eye className="text-2xl text-default-400 pointer-events-none" />
-            ) : (
-              <EyeClosed className="text-2xl text-default-400 pointer-events-none" />
-            )}
-          </button>
-        }
-        label="Password"
-        type={isPasswordVisible ? 'text' : 'password'}
-        value={password}
-        onValueChange={setPassword}
-      />
-      <Input
-        endContent={
-          <button
-            aria-label="Toggle password visibility"
-            className="focus:outline-none"
-            type="button"
-            onClick={toggleConfirmPasswordVisibility}
-          >
-            {isConfirmPasswordVisible ? (
-              <Eye className="text-2xl text-default-400 pointer-events-none" />
-            ) : (
-              <EyeClosed className="text-2xl text-default-400 pointer-events-none" />
-            )}
-          </button>
-        }
-        label="Confirm Password"
-        type={isConfirmPasswordVisible ? 'text' : 'password'}
-        value={confirmPassword}
-        onValueChange={setConfirmPassword}
-      />
-      <Select
-        label="Province"
-        labelPlacement="inside"
-        placeholder="Select province"
-        selectedKeys={selectedProvince ? [selectedProvince] : []}
-        onChange={e => setSelectedProvince(e.target.value)}
-      >
-        {provinces.map(province => (
-          <SelectItem key={province.name_th}>{province.name_th}</SelectItem>
-        ))}
-      </Select>
-
-      <div className="flex justify-end gap-2 mt-4">
-        <Button variant="light" onPress={clearForm}>
-          Clear
-        </Button>
-        <Button color="primary" onPress={handleRegister}>
-          Submit
-        </Button>
+    <div className="min-h-screen flex">
+      {/* Left Image for md+ */}
+      <div className="hidden md:flex w-1/2 items-center justify-center bg-[#f5f5f5]">
+        <div className="relative w-full h-full">
+          <Image
+            fill
+            priority
+            alt="Register Illustration"
+            className="object-cover"
+            src={lobby}
+          />
+        </div>
       </div>
-    </main>
+
+      {/* Right Form */}
+      <div className="relative flex w-full md:w-1/2 items-center justify-center px-6 h-dvh md:h-auto">
+        <div className="absolute inset-0 md:hidden z-0">
+          <Image
+            fill
+            priority
+            alt="Background"
+            className="object-cover"
+            src={lobby}
+          />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        </div>
+
+        <div className="relative z-10 max-w-md w-full space-y-6">
+          <div>
+            <h2 className="text-4xl font-bold text-white md:text-gray-900 text-center">
+              REGISTER
+            </h2>
+            <p className="mt-1 text-md text-gray-50 md:text-gray-500 text-center">
+              Create your account
+            </p>
+          </div>
+
+          <Form className="space-y-4" onSubmit={handleSubmit}>
+            <Input
+              required
+              label="Student ID"
+              maxLength={10}
+              placeholder="10-digit Student ID"
+              radius="full"
+              startContent={<UserIcon />}
+              value={username}
+              onValueChange={setUsername}
+            />
+
+            <Input
+              disabled={true}
+              label="Name"
+              placeholder="Full Name"
+              radius="full"
+              startContent={<UserIcon />}
+              value={name}
+            />
+
+            <Input
+              required
+              endContent={
+                <button type="button" onClick={togglePasswordVisibility}>
+                  {isPasswordVisible ? <Eye /> : <EyeClosed />}
+                </button>
+              }
+              isDisabled={disabled}
+              label="Password"
+              placeholder="Password"
+              radius="full"
+              startContent={<LockIcon />}
+              type={isPasswordVisible ? 'text' : 'password'}
+              value={password}
+              onValueChange={setPassword}
+            />
+
+            <Input
+              required
+              endContent={
+                <button type="button" onClick={toggleConfirmVisibility}>
+                  {isConfirmVisible ? <Eye /> : <EyeClosed />}
+                </button>
+              }
+              isDisabled={disabled}
+              label="Confirm Password"
+              placeholder="Confirm Password"
+              radius="full"
+              startContent={<LockIcon />}
+              type={isConfirmVisible ? 'text' : 'password'}
+              value={confirmPassword}
+              onValueChange={setConfirmPassword}
+            />
+
+            <Select
+              isDisabled={disabled}
+              label="Province"
+              radius="full"
+              selectedKeys={[province]}
+              startContent={<MapPin />}
+              onSelectionChange={keys =>
+                setProvince(String(Array.from(keys)[0]))
+              }
+            >
+              {provinces.map(p => {
+                return <SelectItem key={p.name_en}>{p.name_en}</SelectItem>;
+              })}
+            </Select>
+
+            <Button
+              fullWidth
+              color="primary"
+              isLoading={isLoading}
+              radius="full"
+              size="lg"
+              type="submit"
+            >
+              CREATE ACCOUNT
+            </Button>
+            <div className="relative my-6 text-center w-full">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300/50" />
+              </div>
+            </div>
+
+            <p className="text-sm text-white md:text-gray-500 text-center w-full">
+              Already have an account?{' '}
+              <button
+                aria-label="Login here"
+                className="text-blue-400 underline cursor-pointer bg-transparent border-none p-0 font-inherit"
+                tabIndex={0}
+                type="button"
+                onClick={() => router.push('/login')}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    router.push('/login');
+                  }
+                }}
+              >
+                Login
+              </button>
+            </p>
+          </Form>
+        </div>
+      </div>
+    </div>
   );
 }
