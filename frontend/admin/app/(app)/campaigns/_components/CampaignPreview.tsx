@@ -1,8 +1,9 @@
 'use client';
 
-import { Campaign } from '@/types/campaign';
 import { addToast } from '@heroui/react';
 import { useState } from 'react';
+
+import { Campaign } from '@/types/campaign';
 
 interface CampaignPreviewProps {
   campaign: Campaign;
@@ -25,6 +26,7 @@ export const CampaignPreview = ({
     const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     // Remove /api from the base URL if it exists
     const apiBaseUrl = cleanBaseUrl.replace(/\/api$/, '');
+
     return `${apiBaseUrl}/uploads/${image}`;
   };
 
@@ -39,6 +41,7 @@ export const CampaignPreview = ({
       description: 'ไม่สามารถแสดงข้อมูลแคมเปญได้',
       variant: 'solid',
     });
+
     return (
       <div className="w-full h-full p-6 flex items-center justify-center bg-gray-50 rounded-lg border">
         <div className="text-center">
@@ -50,10 +53,10 @@ export const CampaignPreview = ({
               viewBox="0 0 24 24"
             >
               <path
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
           </div>
@@ -126,19 +129,19 @@ export const CampaignPreview = ({
             <>
               {imageLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-400"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-400" />
                 </div>
               )}
               {!imageError ? (
                 <img
-                  src={getImageUrl(campaign.image)}
                   alt={campaign.name?.th || campaign.name?.en || 'Campaign'}
                   className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
-                  onLoad={() => setImageLoading(false)}
+                  src={getImageUrl(campaign.image)}
                   onError={() => {
                     setImageError(true);
                     setImageLoading(false);
                   }}
+                  onLoad={() => setImageLoading(false)}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -150,10 +153,10 @@ export const CampaignPreview = ({
                       viewBox="0 0 24 24"
                     >
                       <path
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={1.5}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                       />
                     </svg>
                     <p className="text-sm">Image not available</p>
@@ -201,10 +204,10 @@ export const CampaignPreview = ({
                   viewBox="0 0 24 24"
                 >
                   <path
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -237,10 +240,10 @@ export const CampaignPreview = ({
                   viewBox="0 0 24 24"
                 >
                   <path
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
                   />
                 </svg>
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -268,7 +271,7 @@ export const CampaignPreview = ({
                 <div
                   className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 h-2.5 rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${progress}%` }}
-                ></div>
+                 />
               </div>
             </div>
           )}
@@ -284,10 +287,10 @@ export const CampaignPreview = ({
                   viewBox="0 0 24 24"
                 >
                   <path
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                   />
                 </svg>
                 <span>
@@ -306,10 +309,10 @@ export const CampaignPreview = ({
                     viewBox="0 0 24 24"
                   >
                     <path
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                     />
                   </svg>
                   <span>
@@ -331,6 +334,7 @@ export const CampaignPreview = ({
       description: 'ไม่สามารถแสดงข้อมูลแคมเปญได้ กรุณาลองใหม่อีกครั้ง',
       variant: 'solid',
     });
+
     return (
       <div className="w-full h-full p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
         <div className="text-center">
@@ -342,10 +346,10 @@ export const CampaignPreview = ({
               viewBox="0 0 24 24"
             >
               <path
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
           </div>

@@ -28,7 +28,7 @@ export class RoleService {
     @InjectModel(Role.name) private readonly roleModel: Model<RoleDocument>,
     @InjectModel(Checkin.name)
     private readonly checkinModel: Model<CheckinDocument>,
-  ) {}
+  ) { }
 
   /**
    * Creates a new role.
@@ -38,6 +38,7 @@ export class RoleService {
     const role = new this.roleModel({
       name: createRoleDto.name,
       metadataSchema: createRoleDto.metadataSchema,
+      metadata: createRoleDto.metadata,
       permissions: createRoleDto.permissions?.map(encryptItem) || [],
     });
     return await role.save();
@@ -87,6 +88,10 @@ export class RoleService {
 
     if (updateRoleDto.metadataSchema) {
       role.metadataSchema = updateRoleDto.metadataSchema;
+    }
+
+    if (updateRoleDto.metadata) {
+      role.metadata = updateRoleDto.metadata;
     }
 
     return await role.save();

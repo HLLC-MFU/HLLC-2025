@@ -1,13 +1,11 @@
 export interface Message {
-  username: string;
-  isTemp: any;
   id?: string;
   text?: string;
-  senderId: string;
-  senderName: string;
-  type: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention';
+  user?: User;
+  type: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention' | 'evoucher';
   timestamp: string;
   isRead: boolean;
+  isTemp?: boolean;
   reactions?: Array<{
     userId: string;
     reaction: string;
@@ -15,8 +13,13 @@ export interface Message {
   replyTo?: {
     id: string;
     text: string;
-    senderId: string;
-    senderName: string;
+    user?: User;
+    type?: 'message' | 'join' | 'leave' | 'file' | 'sticker' | 'mention';
+    image?: string;
+    fileName?: string;
+    fileType?: string;
+    stickerId?: string;
+    notFound?: boolean;
   };
   fileUrl?: string;
   fileName?: string;
@@ -24,6 +27,16 @@ export interface Message {
   stickerId?: string;
   image?: string;
   mentioned?: string;
+  mentions?: string[];
+  username?: string;
+  evoucherInfo?: {
+    message: {
+      th: string;
+      en: string;
+    };
+    claimUrl: string;
+    sponsorImage?: string;
+  };
 }
 
 export interface ConnectedUser {
@@ -65,12 +78,16 @@ export interface ChatRoom {
   image?: string;
   created_at: string;
   updated_at: string;
-  is_member?: boolean;
+  is_member: boolean;
+  members_count: number;
   category?: string;
-  members_count?: number;
   last_message?: string;
   last_message_time?: string;
   image_url?: string;
+  type?: string; // normal, readonly, etc.
+  status?: string; 
+  canJoin?: boolean;
+  metadata?: any;
 }
 
 export interface RoomsResponse {
@@ -80,10 +97,22 @@ export interface RoomsResponse {
   total: number;
 }
 
+interface UserName {
+  first: string;
+  middle: string;
+  last: string;
+}
+
 export interface User {
-  id: string;
+  _id: string;
+  name: UserName;
   username: string;
-  token: string;
+  profile_image_url?: string;
+}
+
+export interface RoomMember {
+  user_id: string;
+  user: User;
 }
 
 export interface AvatarProps {
@@ -126,4 +155,13 @@ export interface RoomInfoModalProps {
   isVisible: boolean;
   onClose: () => void;
   connectedUsers: ConnectedUser[];
-} 
+}
+
+export interface MembersResponse {
+  members: RoomMember[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export default {}; 

@@ -1,12 +1,11 @@
-import { Globe, Zap, Heart, Music, TrendingUp, Star, Coffee, Crown } from 'lucide-react-native';
+import { Globe, School, Heart, Music, TrendingUp, Star, Coffee, Crown } from 'lucide-react-native';
 
 export const Categories = [
-  { name: 'All', icon: Globe, color: '#6366f1' },
-  { name: 'Tech', icon: Zap, color: '#3b82f6' },
-  { name: 'Art', icon: Heart, color: '#ec4899' },
-  { name: 'Music', icon: Music, color: '#8b5cf6' },
-  { name: 'Sports', icon: TrendingUp, color: '#10b981' },
-  { name: 'Movies', icon: Star, color: '#f59e0b' },
-  { name: 'Coffee', icon: Coffee, color: '#92400e' },
-  { name: 'Crypto', icon: Crown, color: '#dc2626' },
-]; 
+  { name: 'All',  color: '#6366f1' },
+  { name: 'School',  color: '#3b82f6' },
+  { name: 'Major',  color: '#ec4899' },
+  { name: 'Normal',  color: '#8b5cf6' },
+  { name: 'Readonly',  color: '#10b981' },
+];
+
+export default Categories; 

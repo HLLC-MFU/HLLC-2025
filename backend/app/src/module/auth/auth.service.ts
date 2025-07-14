@@ -20,6 +20,7 @@ import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RoleDocument } from '../role/schemas/role.schema';
 import { decryptItem } from './utils/crypto';
+import { RemovePasswordDto } from './dto/remove-password.dto';
 
 type Permission = string;
 
@@ -155,6 +156,21 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
+    const payload = {
+      sub: user._id.toString(),
+      username: user.username,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('JWT_EXPIRATION'),
+      }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      }),
+    ]);
+
     // Set password (will be hashed by pre-save hook)
     user.password = password;
 
@@ -167,7 +183,13 @@ export class AuthService {
 
     await user.save();
 
-    return { message: 'User registered successfully' };
+    return {
+      message: 'User registered successfully',
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
+    };
   }
 
   async refreshToken(oldRefreshToken: string) {
@@ -240,8 +262,12 @@ export class AuthService {
     };
   }
 
-  async removePassword(username: string) {
-    const user = await this.userModel.findOne({ username }).select('+password');
+  async removePassword(removePasswordDto: RemovePasswordDto) {
+    const { username } = removePasswordDto;
+
+    const user = await this.userModel
+      .findOne({ username })
+      .select('+password +refreshToken +metadata.secret');
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -251,6 +277,31 @@ export class AuthService {
     user.password = '';
     user.refreshToken = null;
     user.metadata.secret = '';
+    user.markModified('metadata');
+    await user.save();
+  }
+
+  async checkResetPasswordEligibility(username: string, secret: string) {
+    const user = await this.userModel
+      .findOne({ username })
+      .select('name metadata.secret username');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (!user.metadata?.secret) {
+      throw new BadRequestException(
+        'User has no secret set. Please register first.',
+      );
+    }
+    const isSecretValid = await bcrypt.compare(secret, user.metadata.secret);
+    if (!isSecretValid) {
+      throw new UnauthorizedException('Invalid secret');
+    }
+    delete user.metadata.secret; // Remove secret from response for security
+    return {
+      message: 'User is eligible for password reset',
+      user: user,
+    };
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
@@ -280,6 +331,11 @@ export class AuthService {
       throw new BadRequestException(
         'Password and confirm password do not match',
       );
+    }
+
+    const isSamePassword = await bcrypt.compare(password, user.password);
+    if (isSamePassword) {
+      throw new BadRequestException('New password cannot be the same as previous password');
     }
 
     // Set new password (will be hashed by pre-save hook)

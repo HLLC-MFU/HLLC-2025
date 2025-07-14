@@ -1,222 +1,231 @@
 'use client';
-import { SendHorizontal, BellPlus } from 'lucide-react';
-import { Button, Select, SelectItem, addToast } from '@heroui/react';
-import { PushNotificationApplication, PushNotification } from './_components/NotificationPushNotification';
+import { addToast, Button, Card, CardBody, Checkbox, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from '@heroui/react';
+import { BellPlus, FlaskConical, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
+
+import { NotificationForm } from './_components/NotificationForm';
+import { InAppNotificationPreview } from './_components/InAppNotificationPreview';
+import { PushNotificationPreview } from './_components/PushNotificationPreview';
+import LanguageTabs from './_components/LanguageTabs';
+import { NotificationScopeSelector } from './_components/NotificationScopeSelector';
+
+import { Lang } from '@/types/lang';
+import { Notification } from '@/types/notification';
 import { useNotification } from '@/hooks/useNotification';
-import { NotificationFormSection } from './_components/NotificationFormSection';
+import { PageHeader } from '@/components/ui/page-header';
+import { useUsers } from '@/hooks/useUsers';
+import { useSchools } from '@/hooks/useSchool';
+import { useMajors } from '@/hooks/useMajor';
+import { ConfirmationModal } from '@/components/modal/ConfirmationModal';
+import THIcon from '@/public/icons/th.svg'
+import ENIcon from '@/public/icons/gb.svg'
 
-const language = [
-  { key: 'en', label: 'EN' },
-  { key: 'th', label: 'TH' },
-];
-
-type InformationInfoData = {
-  icon?: React.ElementType;
-  title: { en: string; th: string };
-  subtitle: { en: string; th: string };
-  body: { en: string; th: string };
-  redirect: { en: string; th: string; link: string };
-  imageUrl?: string;
-  imageFile?: File;
+export type NotificationFormData = Notification & {
+  imageURL?: string;
 };
 
-type SelectionScope =
-  | 'global'
-  | { type: 'individual' | 'school' | 'major'; id: string[] }[];
-
-function isValidUrl(url?: string): boolean {
-  if (!url) return true;
-  try {
-    new URL(url);
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-function isFormComplete(data?: InformationInfoData): boolean {
-  if (!data) return false;
-
-  const { title, subtitle, body } = data;
-
-  return Boolean(
-    title?.th?.trim() &&
-      title?.en?.trim() &&
-      subtitle?.th?.trim() &&
-      subtitle?.en?.trim() &&
-      body?.th?.trim() &&
-      body?.en?.trim(),
-  );
-}
-
 export default function NotificationPush() {
-  const [LanguagePreview, setLanguagePreview] = useState<'en' | 'th' >('en');
-  const [LanguageNotification, setLanguageNotification] = useState< 'en' | 'th' >('en');
-  const [infoData, setInfoData] = useState<InformationInfoData | undefined>( undefined );
-  const [scope, setScope] = useState<SelectionScope>('global');
-  const [resetFormCounter, setResetFormCounter] = useState(0);
-  const { createNotification } = useNotification();
+  const { createNotification, pushNotificationResult } = useNotification();
+  const { schools } = useSchools();
+  const { majors } = useMajors();
+  const { users } = useUsers();
+  const [isConfirmModal, setIsConfirmModal] = useState<boolean>(false);
+  const [notificationMode, setNotificationMode] = useState<'both' | 'in_app' | 'push'>('both');
+  const [dryRunMode, setDryRunMode] = useState<boolean>(false);
+  const [isResultModal, setIsResultModal] = useState(false);
+
+  const [notificationFormData, setNotificationFormData] = useState<NotificationFormData>({
+    title: { en: '', th: '' },
+    subtitle: { en: '', th: '' },
+    body: { en: '', th: '' },
+    icon: '',
+    scope: 'global',
+  });
+
+  const previewLanguageOptions: { key: keyof Lang; label: string; icon: string }[] = [
+    { key: 'en', label: 'EN' , icon: THIcon },
+    { key: 'th', label: 'TH' , icon: ENIcon },
+  ];
+
+  const [previewLanguage, setPreviewLanguage] = useState<keyof Lang>('en');
 
   const submitNotification = () => {
-    if (!infoData) return;
-
+    setIsConfirmModal(false)
     const formData = new FormData();
-    formData.append('title', JSON.stringify(infoData.title));
-    formData.append('subtitle', JSON.stringify(infoData.subtitle));
-    formData.append('body', JSON.stringify(infoData.body));
-    formData.append('scope', JSON.stringify(scope));
-    formData.append(
-      'icon',
-      (infoData.icon && typeof infoData.icon === 'object'
-        ? (infoData.icon as any)?.render?.displayName
-        : undefined) || 'UnknownIcon',
-    );
-    if (infoData.imageFile) {
-      formData.append('image', infoData.imageFile);
+
+    formData.append('title', JSON.stringify(notificationFormData.title));
+    formData.append('subtitle', JSON.stringify(notificationFormData.subtitle));
+    formData.append('body', JSON.stringify(notificationFormData.body));
+    formData.append('icon', notificationFormData.icon );
+
+    formData.append('mode', notificationMode);
+    formData.append('isDryRun', JSON.stringify(dryRunMode));
+
+    if (notificationFormData.scope.length === 0) {
+      addToast({
+        title: 'Please select at least one target',
+        description: 'Target group is empty',
+        color: 'danger',
+      });
+
+      return;
     }
-    if (infoData.redirect?.link?.trim()) {
+    formData.append('scope', JSON.stringify(notificationFormData.scope));
+
+    if (notificationFormData.image) {
+      formData.append('image', notificationFormData.image);
+    }
+
+    if (notificationFormData.redirectButton?.url?.trim()) {
       formData.append(
         'redirectButton',
         JSON.stringify({
-          label: {
-            th: infoData.redirect.th,
-            en: infoData.redirect.en,
-          },
-          url: infoData.redirect.link,
+          label: notificationFormData.redirectButton.label,
+          url: notificationFormData.redirectButton.url,
         }),
       );
     }
+
     createNotification(formData);
-
-    addToast({
-      title: `Post Notification ${infoData.title.en} Complete`,
-      color: 'success',
-    });
-
-    setInfoData(undefined);
-    setResetFormCounter((prev) => prev + 1);
+    if(notificationMode !== 'in_app') setIsResultModal(true);
   };
-
-  // กัน user error
-
-  const isSubmitDisabled =
-    !infoData ||
-    !isFormComplete(infoData) ||
-    !isValidUrl(infoData.redirect?.link) ||
-    (infoData.imageFile && infoData.imageFile.size > 500 * 1024);
 
   return (
     <>
       <PageHeader
-        title="Notifications Push"
-        description="Create, manage, and view system notifications for specific users or roles."
+        description="Create notifications"
         icon={<BellPlus />}
+        title="Notifications Push"
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div id="Notification Info" className="flex row-span-2 w-full">
-            <NotificationFormSection
-              setScope={setScope}
-              setInfoData={setInfoData}
-              resetFormCounter={resetFormCounter}
-            />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-">
+        <div className="flex row-span-2 w-full">
+            <div className="flex flex-col w-full gap-3">
+              <div className="flex flex-col w-full px-5 py-6 gap-6 rounded-2xl border border-gray-300 shadow-md">
+                <h1 className="text-xl font-bold">Target Group</h1>
+                <NotificationScopeSelector
+                  majors={majors} 
+                  notification={notificationFormData}
+                  schools={schools}
+                  users={users}
+                  onChange={setNotificationFormData}
+                />
+                
+              </div>
+              <div className="px-5 py-6 rounded-2xl border border-gray-300 shadow-md">
+                <NotificationForm 
+                  notification={notificationFormData} 
+                  onChange={setNotificationFormData}
+                  onSubmit={() => setIsConfirmModal(true)}
+                />
+              </div>
+            </div>
         </div>
 
-        <div className="flex flex-col px-4 gap-6 w-full">
-          <div
-            id="Preview (Application)"
-            className="flex flex-col rounded-2xl border border-gray-300 p-6 gap-6 shadow-md items-end"
-          >
+        <div className="flex flex-col px-4 gap-3 w-full sticky top-0">
+
+          <div className="flex flex-col rounded-2xl border border-gray-300 p-6 gap-3 shadow-md">
             <div className="flex flex-row justify-between w-full">
-              <h1 className="text-xl font-bold ">Preview In Application</h1>
-              <Select
-                className="max-w-[9rem]"
-                value={LanguagePreview}
-                items={language}
-                label="Language"
-                placeholder="Select a Language"
-                selectedKeys={[LanguagePreview]}
-                onSelectionChange={(key) => {
-                  const lang = Array.from(key)[0];
-                  if (lang === 'en' || lang === 'th')
-                    setLanguagePreview(lang);
-                }}
-              >
-                {(lang) => <SelectItem key={lang.key}>{lang.label}</SelectItem>}
-              </Select>
-            </div>
-
-            {infoData && (
-              <PushNotificationApplication Information={infoData} Language={LanguagePreview} />
-            )}
-
-            <div className="flex items-center gap-5">
-              {!isValidUrl(infoData?.redirect?.link) && (
-                <p className="text-red-500 font-medium">
-                  ⚠ Invalid redirect link
-                </p>
-              )}
-
-              {!isFormComplete(infoData) && (
-                <p className="text-red-500 font-medium">
-                  ⚠ Data is not complete
-                </p>
-              )}
-
-              {infoData &&
-                infoData.imageFile &&
-                infoData.imageFile.size > 500 * 1024 && (
-                  <p className="text-red-500 font-medium">
-                    ⚠ Please upload an image smaller than 500KB
-                  </p>
-                )}
-
-              <Button
-                color="primary"
-                endContent={<SendHorizontal />}
-                className="p-5"
-                size="md"
-                isDisabled={isSubmitDisabled}
-                onPress={submitNotification}
-              >
-                <p className=" text-lg font-medium">Post</p>
-              </Button>
-            </div>
-          </div>
-
-          <div
-            id="Preview (Application)"
-            className="flex flex-col rounded-2xl border border-gray-300 h-96 p-6 gap-6 shadow-md items-end"
-          >
-            <div className="flex flex-row justify-between w-full">
-              <h1 className="text-xl font-bold ">Preview Notification</h1>
-              <Select
-                className="max-w-[9rem]"
-                value={LanguageNotification}
-                items={language}
-                label="Language"
-                placeholder="Select a Language"
-                selectedKeys={[LanguageNotification]}
-                onSelectionChange={(key) => {
-                  const lang = Array.from(key)[0];
-                  if (lang === 'en' || lang === 'th')
-                    setLanguageNotification(lang);
-                }}
-              >
-                {(lang) => <SelectItem key={lang.key}>{lang.label}</SelectItem>}
-              </Select>
-            </div>
-
-            {infoData && (
-              <PushNotification
-                Information={infoData}
-                Language={LanguageNotification}
+              <h1 className="text-xl font-bold ">In-App Notification Preview</h1>
+              <LanguageTabs
+                languageOptions={previewLanguageOptions}
+                previewLanguage={previewLanguage}
+                setPreviewLanguage={setPreviewLanguage}
               />
-            )}
+            </div>
+
+            <InAppNotificationPreview 
+              language={previewLanguage}
+              notification={notificationFormData}  
+            />
           </div>
+
+          <div className="flex flex-col rounded-2xl border border-gray-300 h-fit p-6 gap-3 shadow-md">
+            <div className="flex flex-row justify-between w-full">
+              <h1 className="text-xl font-bold ">Push Notification Preview</h1>
+            </div>
+
+            <PushNotificationPreview
+              language={previewLanguage}
+              notification={notificationFormData}
+            />
+          </div>
+
+          <Card className='border border-gray-300'>
+            <CardBody className='flex-row gap-2 overflow-x-hidden'>
+              <Button 
+                type="submit"
+                form='notification-form'
+                className='w-full'
+                size='lg'
+                color={`${dryRunMode ? 'warning' : 'primary'}`}
+                endContent={dryRunMode ? <FlaskConical/> : <SendHorizontal />}
+              >
+                <p className="text-medium">{dryRunMode ? 'Test Notification' : 'Send Notification'}</p>
+              </Button>
+
+              <Select 
+                isRequired 
+                label="Notification Mode" 
+                placeholder="Select mode"
+                onSelectionChange={(keys) => {
+                  setNotificationMode(Array.from(keys)[0] as 'push' | 'in_app' | 'both');
+                  setDryRunMode(false)
+                }}
+                defaultSelectedKeys={["both"]}
+                className="max-w-56" 
+                size='sm' 
+              >
+                <SelectItem key="both">Normal (Both)</SelectItem>
+                <SelectItem key="in_app">In-app Notification Only</SelectItem>
+                <SelectItem key="push">Push Notification Only</SelectItem>
+              </Select>
+
+              {notificationMode && notificationMode !== 'in_app' && 
+                <Checkbox 
+                  color="warning"
+                  size='lg'
+                  checked={dryRunMode} 
+                  onChange={(e) => setDryRunMode(e.target.checked)}
+                >
+                  Test
+                </Checkbox>
+              }
+            </CardBody>
+          </Card>
+
+          <Modal isOpen={isResultModal} size='2xl'>
+            <ModalContent>
+              <ModalHeader className="flex flex-col gap-1">Push Notification Result</ModalHeader>
+              <ModalBody>
+                <p>✅ Success: {pushNotificationResult?.successCount}</p>
+                <p>❌ Failed: {pushNotificationResult?.failureCount}</p>
+                 {pushNotificationResult && (
+                    <div className="mt-4 rounded-lg bg-gray-100 p-4 max-h-[400px] overflow-y-scroll">
+                      <pre className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+                        {JSON.stringify(pushNotificationResult.responses, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+            </ModalBody>
+            <ModalFooter>
+              <Button color="danger" variant="flat" onPress={() => setIsResultModal(false)}>
+                Close
+              </Button>
+            </ModalFooter>
+            </ModalContent>
+          </Modal>
+
         </div>
+
       </div>
+			<ConfirmationModal
+        body='Are you sure to send notification'
+        cancelColor='danger'
+        isOpen={isConfirmModal}
+        title='Send Notification' 
+        onClose={() => setIsConfirmModal(false)}
+        onConfirm={submitNotification}
+      />
     </>
   );
 }

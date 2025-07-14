@@ -5,7 +5,6 @@ export interface School {
     name: Lang;
     acronym: string;
     detail: Lang;
-    photos: Photo;
 };
 
 export interface Photo {

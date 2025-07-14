@@ -18,6 +18,8 @@ import { FastifyReply } from 'fastify';
 import { Permissions } from './decorators/permissions.decorator';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RemovePasswordDto } from './dto/remove-password.dto';
+import { CheckResetPasswordEligibilityDto } from './dto/check-reset-password-eligibility.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -69,16 +71,30 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  @Permissions('auth:update')
+  @Post('remove-password')
+  async removePassword(@Body() removePasswordDto: RemovePasswordDto) {
+    return this.authService.removePassword(removePasswordDto);
+  }
+
+  @Post('delete-account')
+  async removeAccount(@Body() removePasswordDto: RemovePasswordDto) {
+    return this.authService.removePassword(removePasswordDto);
+  }
+
+  @Public()
+  @Post('check-reset-password-eligibility')
+  checkResetPasswordEligibility(
+    @Body() body: CheckResetPasswordEligibilityDto,
+  ) {
+    const { username, secret } = body;
+    return this.authService.checkResetPasswordEligibility(username, secret);
+  }
+
   @Public()
   @Post('reset-password')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
-  }
-
-  @Permissions('auth:update')
-  @Post('remove-password')
-  async removePassword(@Req() req: UserRequest) {
-    return this.authService.removePassword(req.user._id);
   }
 
   @Post('logout')

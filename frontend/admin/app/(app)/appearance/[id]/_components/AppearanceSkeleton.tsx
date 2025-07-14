@@ -1,5 +1,6 @@
-import HeaderSkeleton from '@/components/ui/breadcrumbSkeleton';
 import { Card, Divider, Skeleton } from '@heroui/react';
+
+import HeaderSkeleton from '@/components/ui/breadcrumbSkeleton';
 
 export function AppearanceSkeleton() {
   return (

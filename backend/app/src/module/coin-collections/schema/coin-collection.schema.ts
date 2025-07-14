@@ -3,7 +3,7 @@ import { SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument, SchemaTypes, Types } from "mongoose";
 
 export type CoinCollectionDocument = HydratedDocument<CoinCollection>
-@Schema({ timestamps: true })
+@Schema({ timestamps: true , collection:'coin-collections'})
 export class CoinCollection {
 
     @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })

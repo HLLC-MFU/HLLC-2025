@@ -1,4 +1,5 @@
 import type { School } from "@/types/school";
+
 import { SchoolCard } from "./SchoolCard";
 import { SchoolSkeleton } from "./SchoolSkeleton";
 
@@ -26,8 +27,8 @@ export function SchoolList({ schools, isLoading, onEditSchool, onDeleteSchool }:
   <SchoolCard
     key={school._id ?? `school-${index}`}
     school={school}
-    onEdit={onEditSchool}
     onDelete={onDeleteSchool}
+    onEdit={onEditSchool}
   />
 ))}
 

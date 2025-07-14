@@ -39,12 +39,16 @@ async function bootstrap() {
   });
 
   app.setGlobalPrefix('api');
+  const corsWhitelist =
+    (process.env.CORS_ORIGIN ?? 'http://localhost:3000,http://localhost:3001')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    origin: corsWhitelist,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
-  
 
   await app.register(cookie);
   const config = new DocumentBuilder()

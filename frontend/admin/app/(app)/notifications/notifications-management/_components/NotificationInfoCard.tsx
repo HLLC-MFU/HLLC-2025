@@ -1,13 +1,15 @@
 'use client';
 import { Card, CardFooter, CardHeader, CardBody, Button } from '@heroui/react';
-import { Notification } from '@/types/notification';
 import { useState } from 'react';
-import NotificationModal from './NotificationDetailModal';
 import { Link, Eye, Trash2 } from 'lucide-react';
+
+import NotificationModal from './NotificationDetailModal';
+
+import { Notification } from '@/types/notification';
 import { useNotification } from '@/hooks/useNotification';
 
 interface NotificationCardprop {
-  notification: Notification[];
+  notifications: Notification[];
 }
 
 const statusColorMap: Record<string, { bg: string; text: string }> = {
@@ -17,25 +19,25 @@ const statusColorMap: Record<string, { bg: string; text: string }> = {
   individual: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
 };
 
-export default function InformationCard({ notification }: NotificationCardprop) {
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+export default function InformationCard({ notifications }: NotificationCardprop) {
+  const [notification, setNotification] = useState<Notification | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { deleteNotification } = useNotification();
   
   const handleOpenModal = (notification: Notification) => {
-    setSelectedNotification(notification);
+    setNotification(notification);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setSelectedNotification(null);
+    setNotification(null);
   };
 
   return (
     <div className="w-full mt-7 justify-center items-center ">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-8 w-full ">
-        {(Array.isArray(notification) ? notification : []).map((item, id) => (
+        {(Array.isArray(notifications) ? notifications : []).map((item, id) => (
           <Card
             key={item._id}
             className=" rounded-2xl overflow-hidden shadow-md"
@@ -85,21 +87,21 @@ export default function InformationCard({ notification }: NotificationCardprop) 
             <CardFooter>
               <div className="w-full flex justify-end">
                 <Button
-                  onPress={() => deleteNotification(item._id)}
                   isIconOnly
-                  size="sm"
                   color="danger"
+                  size="sm"
                   variant="light"
+                  onPress={() => deleteNotification(item._id)}
                 >
                   <Trash2 className="w-5 h-auto" />
                 </Button>
                 <Button
                   isIconOnly
-                  onPress={() => handleOpenModal(item)}
-                  size="sm"
-                  color="primary"
                   className="mx-2"
+                  color="primary"
+                  size="sm"
                   variant="light"
+                  onPress={() => handleOpenModal(item)}
                 >
                   <Eye className="w-5 h-auto" />
                 </Button>
@@ -110,8 +112,8 @@ export default function InformationCard({ notification }: NotificationCardprop) 
 
         <NotificationModal
           isOpen={isModalOpen}
+          notification={notification}
           onClose={handleCloseModal}
-          notification={selectedNotification}
         />
       </div>
     </div>

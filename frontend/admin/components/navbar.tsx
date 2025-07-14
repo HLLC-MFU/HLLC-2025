@@ -3,20 +3,17 @@ import {
   NavbarContent,
   NavbarMenu,
   NavbarMenuToggle,
-  NavbarBrand,
   NavbarItem,
   NavbarMenuItem,
 } from "@heroui/navbar";
-
 import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
 import { Input } from "@heroui/input";
-import NextLink from "next/link";
+
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
 import {
   SearchIcon,
-  Logo,
 } from "@/components/icons";
 
 export const Navbar = () => {
@@ -72,10 +69,10 @@ export const Navbar = () => {
               {section.items.map((item, index) => (
                 <NavbarMenuItem key={`${item.href}-${index}`}>
                   <Link
+                    className="w-full"
                     color="foreground"
                     href={item.href}
                     size="lg"
-                    className="w-full"
                   >
                     <div className="flex items-center gap-2">
                       <item.icon className="w-5 h-5" />

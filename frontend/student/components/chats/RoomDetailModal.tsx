@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { ChatRoom } from '@/types/chatTypes';
-import { chatService } from '@/services/chats/chatService';
-import { API_BASE_URL } from '@/configs/chats/chatConfig';
+import { CHAT_BASE_URL } from '@/configs/chats/chatConfig';
 import { GlassButton } from '../ui/GlassButton';
+import chatService from '@/services/chats/chatService';
 
 interface RoomDetailModalProps {
   visible: boolean;
@@ -15,13 +15,7 @@ interface RoomDetailModalProps {
 
 interface Member {
   user_id: string;
-  user: {
-    name: {
-      first: string;
-      middle: string;
-      last: string;
-    };
-  };
+  username: string;
 }
 
 export const RoomDetailModal = ({ visible, room, language, onClose }: RoomDetailModalProps) => {
@@ -32,7 +26,14 @@ export const RoomDetailModal = ({ visible, room, language, onClose }: RoomDetail
     if (visible && room?.id) {
       setLoading(true);
       chatService.getRoomMembers(room.id)
-        .then(res => setMembers(res?.members || []))
+        .then((res: any) => {
+          const rawMembers = res?.data?.members || [];
+          const safeMembers = rawMembers.map((m: any) => ({
+            user_id: m.user_id || m.user?._id || '',
+            username: m.user?.username || '',
+          }));
+          setMembers(safeMembers);
+        })
         .finally(() => setLoading(false));
     } else {
       setMembers([]);
@@ -40,7 +41,7 @@ export const RoomDetailModal = ({ visible, room, language, onClose }: RoomDetail
   }, [visible, room?.id]);
 
   if (!room) return null;
-  const imageUrl = room.image_url || room.image ? `${API_BASE_URL}/uploads/rooms/${room.image_url || room.image}` : null;
+  const imageUrl = room.image_url || room.image ? `${CHAT_BASE_URL}/uploads/${room.image_url || room.image}` : null;
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -64,15 +65,20 @@ export const RoomDetailModal = ({ visible, room, language, onClose }: RoomDetail
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <ScrollView style={{ maxHeight: 120 }}>
+                <ScrollView style={{ maxHeight: 120 }} contentContainerStyle={{ alignItems: 'center', justifyContent: 'center' }}>
                   {members.length === 0 ? (
                     <Text style={{ color: '#fff', textAlign: 'center', marginTop: 8 }}>ไม่มีสมาชิก</Text>
                   ) : (
-                    members.map((m) => (
-                      <Text key={m.user_id} style={{ color: '#fff', fontSize: 14, marginBottom: 2 }}>
-                        {m.user.name.first} {m.user.name.middle} {m.user.name.last}
-                      </Text>
-                    ))
+                    <View style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                      {members.slice(0, 5).map((m) => (
+                        <Text key={m.user_id} style={{ color: '#fff', fontSize: 14, marginBottom: 2, textAlign: 'center' }}>
+                          {m.username || m.user_id}
+                        </Text>
+                      ))}
+                      {members.length > 5 && (
+                        <Text style={{ color: '#fff', fontSize: 14, marginBottom: 2, textAlign: 'center' }}>...</Text>
+                      )}
+                    </View>
                   )}
                 </ScrollView>
               )}

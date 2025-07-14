@@ -6,10 +6,13 @@ import {
   IsBoolean,
   IsArray,
   IsISO8601,
+  IsMongoId,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 import { Localization, Photo } from 'src/pkg/types/common';
+import { Types } from 'mongoose';
+import { Location } from 'src/pkg/types/activity';
 
 export class ActivityScopeDto {
   @IsArray()
@@ -78,9 +81,9 @@ export class CreateActivitiesDto {
   @IsNotEmpty()
   shortDetails: Localization;
 
-  @IsString()
+  @IsMongoId()
   @IsNotEmpty()
-  type: string;
+  type: Types.ObjectId;
 
   @IsObject()
   @IsNotEmpty()
@@ -88,7 +91,8 @@ export class CreateActivitiesDto {
 
   @IsObject()
   @IsNotEmpty()
-  location: Localization;
+  @Type(() => Location)
+  location: Location;
 
   @IsOptional()
   @Type(() => ActivityMetadataDto)

@@ -1,11 +1,10 @@
-'use client'
 import { BellPlus, BellRing } from "lucide-react";
 
 import NotificationList from "./_components/notificationList";
 
 import { PageHeader } from "@/components/ui/page-header";
 
-export default function SettingsPage() {
+export default function NotificationsPage() {
     const elements = [{
         title: "Notification Push",
         description: "Create Notification",

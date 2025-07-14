@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Users, Clock } from 'lucide-react-native';
 import { ChatRoom } from '@/types/chatTypes';
-import { API_BASE_URL } from '@/configs/chats/chatConfig';
+import { CHAT_BASE_URL } from '@/configs/chats/chatConfig';
 
 
 interface RoomListItemProps {
@@ -17,10 +17,10 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
   const avatarChar = (language === 'th' ? room.name?.th : room.name?.en)?.charAt(0)?.toUpperCase() || '?';
   let imageUrl = room.image_url || room.image ;
   if (imageUrl && typeof imageUrl === 'string' && !imageUrl.startsWith('http')) {
-    imageUrl = `${API_BASE_URL}/uploads/rooms/${imageUrl}`;
+    imageUrl = `${CHAT_BASE_URL}/uploads/${imageUrl}`;
   }
   return (
-    <TouchableOpacity style={[styles.item, { width: (width - 52) / 2 }]} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={[styles.item, { width: (width - 52) / 2 }]} onPress={() => { console.log('RoomListItem pressed', room.id); onPress(); }} activeOpacity={0.85}>
       <View style={styles.avatarContainer}>
         <View style={styles.avatarCircle}>
           {imageUrl ? (
@@ -41,7 +41,13 @@ const RoomListItem = ({ room, language, onPress, width }: RoomListItemProps) => 
           </View>
           <View style={styles.metaItem}>
             <Clock size={12} color="#ffffff70" />
-            <Text style={styles.metaText}>1h ago</Text>
+            <Text style={styles.metaText}>
+              {room.type === 'readonly'
+                ? (language === 'th' ? 'อ่านอย่างเดียว' : 'Read-only')
+                : room.type === 'normal'
+                  ? (language === 'th' ? 'ปกติ' : 'Normal')
+                  : '-' }
+            </Text>
           </View>
         </View>
       </View>

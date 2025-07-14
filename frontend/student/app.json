@@ -1,22 +1,59 @@
 {
   "expo": {
-    "name": "student",
+    "name": "HLLC",
     "slug": "student",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "jsEngine": "hermes",
+    "owner": "hllc",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mfuactivity.hllc",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "processing",
+          "fetch",
+          "remote-notification"
+        ],
+        "BGTaskSchedulerPermittedIdentifiers": [
+          "background-step-sync"
+        ],
+        "NSUserNotificationAlertUsageDescription": "Allow $(PRODUCT_NAME) to send you important updates about your campaigns, check-in reminders, and event alerts. (อนุญาตให้ $(PRODUCT_NAME) ส่งการแจ้งเตือนเกี่ยวกับแคมเปญ การเตือนเช็คอิน และกิจกรรมต่างๆ)",
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSHealthShareUsageDescription": "Allow $(PRODUCT_NAME) to read health data to display the user's step count for the MilesDream campaign only. (อนุญาตให้ $(PRODUCT_NAME) อ่านข้อมูลสุขภาพเพื่อแสดงจำนวนก้าวของผู้ใช้สำหรับแคมเปญ MilesDream เท่านั้น)",
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to use the camera to scan QR codes during event or campaign check-ins, such as check in campaign. (อนุญาตให้ $(PRODUCT_NAME) ใช้กล้องเพื่อสแกน QR Code ขณะเช็คอินในกิจกรรมหรือแคมเปญ เช่น ยืนยันการเข้าร่วมกิจกรรม)",
+        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to access your location for campaign and activity check-ins. (อนุญาตให้ $(PRODUCT_NAME) เข้าถึงตำแหน่งของคุณเพื่อใช้ในการเช็คอินกิจกรรมและแคมเปญ)",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to access your location for campaign and activity check-ins. (อนุญาตให้ $(PRODUCT_NAME) เข้าถึงตำแหน่งของคุณตลอดเวลาเพื่อใช้ในการเช็คอินกิจกรรมและแคมเปญ)",
+        "NSHealthUpdateUsageDescription": "This app may request to write health data to improve tracking and personalization. (แอปนี้อาจขออนุญาตเขียนข้อมูลสุขภาพเพื่อปรับปรุงการติดตามและการใช้งานที่เหมาะสมกับผู้ใช้)"
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "aps-environment": "production"
+      },
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.BODY_SENSORS",
+        "android.permission.health.READ_STEPS",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ],
+      "package": "com.mfuactivity.hllc",
+      "googleServicesFile": "./google-services.json",
+      "edgeToEdge": true
     },
     "web": {
       "bundler": "metro",
@@ -24,6 +61,8 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "expo-localization",
+      "expo-health-connect",
       "expo-router",
       [
         "expo-splash-screen",
@@ -34,10 +73,49 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-font"
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow this app to access your camera.",
+          "microphonePermission": "Allow this app to access your microphone.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0",
+            "minSdkVersion": 29
+          },
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      "expo-background-task",
+      "expo-video",
+      "@react-native-firebase/app",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "280d56a7-4983-4741-9561-8bf4552036e0"
+      }
     }
   }
 }
