@@ -19,7 +19,6 @@ import {
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { SseService } from '../sse/sse.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
-import { ReadNotificationDto } from './dto/read-notification.dto';
 import { UserRequest } from 'src/pkg/types/users';
 import { PushNotificationService } from './push-notifications.service';
 import { mapScopeToReceivers } from './utils/notification.util';

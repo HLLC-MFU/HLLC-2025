@@ -13,7 +13,6 @@ import {
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { Notification } from './schemas/notification.schema';
-import { ReadNotificationDto } from './dto/read-notification.dto';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { UserRequest } from 'src/pkg/types/users';
