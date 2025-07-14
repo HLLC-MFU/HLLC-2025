@@ -65,8 +65,6 @@ export default function ActivitiesDetailPage() {
         })),
       };
 
-      console.log('Submitting answers:', payload);
-
       const res = await createAssessmentAnswers(payload);
 
       if (res) {
