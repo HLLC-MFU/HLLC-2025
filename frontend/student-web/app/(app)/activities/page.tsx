@@ -86,19 +86,10 @@ export default function ActivitiesPage() {
           <div>
             <ActivityCard
               activity={upcomingActivity}
-              nClick={() => router.push(`/activities/${upcomingActivity._id}`)}
+              onClick={() => router.push(`/activities/${upcomingActivity._id}`)}
             />
           </div>
         )}
-
-        <h2 className="ml-2">
-          <span className="text-xl font-semibold">All Activities</span>
-          {filteredAndSortedActivities.length > 0 && (
-            <span className="text-sm text-default-500 ml-2">
-              ({filteredAndSortedActivities.length} found)
-            </span>
-          )}
-        </h2>
       </div>
 
       {/* Cards grid */}
