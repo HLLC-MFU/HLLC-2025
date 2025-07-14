@@ -18,6 +18,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     : 0;
   const shouldBlur = pathname !== '/';
 
+  const hideProgressSummary = pathname === '/community' || pathname.startsWith('/community/coin-hunting');
+
   return (
     <div className="relative h-dvh w-full overflow-hidden">
       {/* Background image */}
@@ -37,7 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Foreground content */}
       <div className="relative z-20 flex h-full flex-col text-foreground">
         <main className="flex-1 overflow-y-auto md:px-8 pb-20">
-          <ProgressBar progress={progressPercentage} />
+          {!hideProgressSummary && <ProgressBar progress={progressPercentage} />}
           <div className="pt-8">{children}</div>
         </main>
 
