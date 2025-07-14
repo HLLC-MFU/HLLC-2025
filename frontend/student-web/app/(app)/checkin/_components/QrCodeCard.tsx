@@ -20,7 +20,7 @@ export default function QrCodeCard({ user }: QrCodeCardProps) {
       width: 300,
       height: 300,
       data: user.username,
-      image: '/pictures/logo-qr.png',
+      image: `pictures/logo-qr.png`,
       dotsOptions: {
         color: '#fff',
         type: 'square',

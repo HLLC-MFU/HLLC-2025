@@ -1,8 +1,10 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
-import ActivitiesList from './_components/ActivitiesList';
-import { ActivitiesFilters } from './_components/ActivitiesFilters';
-import UpcomingCard from './_components/UpcomingCard';
+
+import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+import ActivityCard from './_components/ActivitiesCard';
+
 import { useActivities } from '@/hooks/useActivities';
 import { PrepostQuestions } from '@/types/prepostQuestion';
 import { addToast } from '@heroui/react';
@@ -16,100 +18,7 @@ export default function ActivitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const { answers, createPretestAnswers, fetchPrepostQuestion, setAnswers, prepostQuestion, pretestAnswers, hasPretestAnswers } = usePrepostQuestion();
-  const { progress, progressLoading } = useProgress();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPrepostQuestion, setSelectedPrepostQuestion] = useState<PrepostQuestions[]>(
-    [],
-  );
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-
-  const openPretestModal = () => {
-    const filteredQuestions = prepostQuestion.filter(
-      q => q.displayType === 'pretest' || q.displayType === 'both'
-    );
-
-    setSelectedPrepostQuestion(filteredQuestions);
-
-    // กำหนด answers เริ่มต้นให้ตรงกับคำถามทุกข้อ
-    const initialAnswers = filteredQuestions.map(q => {
-      // หาใน answers ที่มีคำตอบเดิม (ถ้ามี)
-      const existingAnswer = answers.find(ans => ans.pretest === q._id);
-      return existingAnswer || { pretest: q._id, answer: '' };
-    });
-
-    setAnswers(initialAnswers);
-
-    setIsModalOpen(true);
-  };
-
-  useEffect(() => {
-    if (hasPretestAnswers === null) return;
-
-    if (!hasPretestAnswers) {
-      openPretestModal();
-    }
-  }, [hasPretestAnswers]);
-
-
-  const handleCloseModal = () => {
-    if (progress?.progressPercentage) {
-      setIsModalOpen(false);
-      setSelectedPrepostQuestion([]);
-    } else {
-      addToast({
-        title: 'You must complete the assessment first.',
-        color: 'warning',
-      });
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!answers || answers.length === 0) {
-      addToast({
-        title: 'No Answer to Submit.',
-        color: 'danger',
-      });
-
-      return;
-    }
-
-    try {
-      const payload = {
-        answers: answers.map(ans => ({
-          pretest: ans.pretest,
-          answer: ans.answer,
-        })),
-      };
-
-      const res = await createPretestAnswers(payload);
-
-      if (res) {
-        addToast({
-          title: 'Submit Successfully.',
-          color: 'success',
-        });
-        setIsModalOpen(false);
-        setSelectedPrepostQuestion([]);
-        await fetchPrepostQuestion();
-      } else {
-        addToast({
-          title: 'Failed to Submit Answer.',
-          color: 'danger',
-        });
-      }
-    } catch (err) {
-      addToast({
-        title: 'Error Submit Answer.',
-        color: 'danger',
-      });
-    }
-  };
-
-  const handleConfirmModal = async () => {
-    await handleSubmit();
-    setIsConfirmOpen(false);
-  };
+  const router = useRouter();
 
   const filteredAndSortedActivities = useMemo(() => {
     if (!activities) return [];
@@ -163,9 +72,13 @@ export default function ActivitiesPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen justify-beetween gap-5">
-      <div className="flex flex-col mt-5 gap-5 justify-between">
-        <h1 className="text-3xl font-bold">Activities</h1>
+    <div
+      className="flex flex-col min-h-screen w-full overflow-y-auto pb-16 gap-6 bg-transparent px-8"
+      style={{ WebkitOverflowScrolling: 'touch' }} // enables smooth momentum scrolling on iOS Safari
+    >
+      <div className="flex flex-col mt-36 gap-5">
+        {/* <h1 className="text-3xl font-bold">Activities</h1> */}
+        {/* 
         <ActivitiesFilters
           searchQuery={searchQuery}
           sortBy={sortBy}
@@ -173,26 +86,30 @@ export default function ActivitiesPage() {
           onSearchQueryChange={setSearchQuery}
           onSortByChange={setSortBy}
           onSortDirectionToggle={toggleSortDirection}
-        />
-        {/* Upcoming Activities */}
-        <div>
-          {upcomingActivity && <UpcomingCard activity={upcomingActivity} />}
-        </div>
-        <h1 className="p-1 ml-2">
-          <span className="text-xl font-semibold">All Activities</span>
-          {filteredAndSortedActivities.length > 0 && (
-            <span className="text-sm text-default-500 ml-2">
-              ({filteredAndSortedActivities.length} found)
-            </span>
-          )}
-        </h1>
-      </div>
-      <ActivitiesList
-        key={filteredAndSortedActivities.length}
-        activities={filteredAndSortedActivities}
-        isLoading={loading}
-      />
+        /> */}
 
+        {upcomingActivity && (
+          <div>
+            <ActivityCard
+              activity={upcomingActivity}
+              onClick={() => router.push(`/activities/${upcomingActivity._id}`)}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Cards grid */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-auto">
+        {filteredAndSortedActivities.map(activity => (
+          <ActivityCard
+            key={activity._id}
+            activity={activity}
+            onClick={() => router.push(`/activities/${activity._id}`)}
+          />
+        ))}
+      </div>
+
+      {/* Empty State */}
       {filteredAndSortedActivities?.length === 0 && !loading && (
         <p className="text-center text-sm text-default-500">
           No activities found.

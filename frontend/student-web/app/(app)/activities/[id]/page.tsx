@@ -1,11 +1,21 @@
 'use client';
-import { addToast, Button, Card, Chip, ScrollShadow, Spinner, } from '@heroui/react';
+import {
+  addToast,
+  Button,
+  Card,
+  Chip,
+  ScrollShadow,
+  Spinner,
+} from '@heroui/react';
 import { ArrowLeft, MapPin, CircleCheck } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
+
 import Stepper, { Step } from './_components/Stepper';
 import AssessmentModal from './_components/AssessementModal';
 import { ConfirmationModal } from './_components/ConfirmModal';
+
 import { Assessment } from '@/types/assessment';
 import { formatDateTime } from '@/utils/dateFormat';
 import { useActivities } from '@/hooks/useActivities';
@@ -137,32 +147,32 @@ export default function ActivitiesDetailPage() {
 
   const steps: Step[] = activity
     ? [
-      { title: "Start", value: formatDateTime(activity.metadata.startAt) },
-      {
-        title: "Check-in Status",
-        value: (() => {
-          switch (checkinStatusNumber) {
-            case 0:
-              return "Not yet open for check-in";
-            case -1:
-              return "You missed the check-in time";
-            case 1:
-              return "Check-in available now";
-            case 2:
-              return "You have already checked in";
-            case 3:
-              return "Activity ended (checked in)";
-            default:
-              return "Unknown status";
-          }
-        })(),
-      },
-      { title: "End", value: formatDateTime(activity.metadata.endAt) },
-      {
-        title: "Assessment",
-        value: activity.hasAnsweredAssessment ? "Completed" : "Not Completed",
-      },
-    ]
+        { title: 'Start', value: formatDateTime(activity.metadata.startAt) },
+        {
+          title: 'Check-in Status',
+          value: (() => {
+            switch (checkinStatusNumber) {
+              case 0:
+                return 'Not yet open for check-in';
+              case -1:
+                return 'You missed the check-in time';
+              case 1:
+                return 'Check-in available now';
+              case 2:
+                return 'You have already checked in';
+              case 3:
+                return 'Activity ended (checked in)';
+              default:
+                return 'Unknown status';
+            }
+          })(),
+        },
+        { title: 'End', value: formatDateTime(activity.metadata.endAt) },
+        {
+          title: 'Assessment',
+          value: activity.hasAnsweredAssessment ? 'Completed' : 'Not Completed',
+        },
+      ]
     : [];
 
   useEffect(() => {
@@ -203,10 +213,14 @@ export default function ActivitiesDetailPage() {
           </div>
 
           <div className="w-full max-h-screen overflow-hidden relative">
-            <img
+            <Image
+              fill
               alt="Banner"
               className="w-full h-full object-cover"
-              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity?.photo?.bannerPhoto}`}
+              src={
+                `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity?.photo?.bannerPhoto}` ||
+                `https://hllc.mfu.ac.th/api/uploads/${activity?.photo?.bannerPhoto || 'default-banner.jpg'}`
+              }
             />
           </div>
 
@@ -256,14 +270,14 @@ export default function ActivitiesDetailPage() {
                 color={
                   (activity?.checkinStatus === 2 ||
                     activity?.checkinStatus === 3) &&
-                    activity?.hasAnsweredAssessment
+                  activity?.hasAnsweredAssessment
                     ? 'success'
                     : 'danger'
                 }
               >
                 {(activity?.checkinStatus === 2 ||
                   activity?.checkinStatus === 3) &&
-                  activity?.hasAnsweredAssessment ? (
+                activity?.hasAnsweredAssessment ? (
                   <p className="flex items-center gap-1 text-white">
                     <CircleCheck color="white" size={16} /> Done
                   </p>
