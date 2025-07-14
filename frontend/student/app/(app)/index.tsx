@@ -22,7 +22,7 @@ const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
-  const {getStoredDeviceId, revokeDevice} = useDevice();
+  const { getStoredDeviceId, revokeDevice } = useDevice();
   const handleSignOut = async () => {
     const deviceId = await getStoredDeviceId()
     await revokeDevice(deviceId)
@@ -108,16 +108,6 @@ export default function HomeScreen() {
             <Bell fill={'white'} color="white" size={20} />
           )}
         </GlassButton>
-        <GlassButton onPress={handleSignOut} iconOnly>
-          {assetsImage.signOut ? (
-            <AssetImage
-              uri={`${baseImageUrl}/uploads/${assetsImage.signOut}`}
-              style={{ width: 20, height: 20 }}
-            />
-          ) : (
-            <DoorClosedLocked color="white" size={20} />
-          )}
-        </GlassButton>
       </View>
     </SafeAreaView>
   );
@@ -128,7 +118,7 @@ export default function HomeScreen() {
         background={assetsImage.background ?? null}
         children={content}
       />
-      <NotificationModal 
+      <NotificationModal
         visible={notificationModalVisible}
         onClose={() => setNotificationModalVisible(false)}
       />

@@ -10,6 +10,9 @@ export async function middleware(req: NextRequest) {
   if (pathname === '/login') {
     return NextResponse.next();
   }
+    if (pathname === '/register') {
+    return NextResponse.next();
+  }
 
   const accessToken = req.cookies.get('accessToken')?.value;
   const refreshToken = req.cookies.get('refreshToken')?.value;
