@@ -11,6 +11,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  if (pathname === '/register') {
+    return NextResponse.next();
+  }
+
   const accessToken = req.cookies.get('accessToken')?.value;
   const refreshToken = req.cookies.get('refreshToken')?.value;
 
@@ -69,5 +73,5 @@ function isTokenExpired(token: string): boolean {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|images|favicon.ico|signin).*)'],
+  matcher: ['/((?!_next/static|_next/image|images|favicon.ico|signin|data).*)'],
 };
