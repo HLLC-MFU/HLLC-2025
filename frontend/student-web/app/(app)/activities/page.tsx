@@ -1,9 +1,8 @@
 'use client';
+
 import { useMemo, useState } from 'react';
 
-import ActivitiesList from './_components/ActivitiesList';
-import { ActivitiesFilters } from './_components/ActivitiesFilters';
-import UpcomingCard from './_components/UpcomingCard';
+import ActivityCard from './_components/ActivitiesCard';
 
 import { useActivities } from '@/hooks/useActivities';
 
@@ -65,9 +64,13 @@ export default function ActivitiesPage() {
   };
 
   return (
-    <div className="flex-col min-h-screen">
-      <div className="sticky top-0 z-20 mb-5 bg-white/5 backdrop-blur dark:bg-black/30 rounded-lg flex flex-col gap-5">
-        <h1 className="text-2xl font-bold">Activities</h1>
+    <div
+      className="flex flex-col min-h-screen w-full overflow-y-auto pb-16 gap-6 bg-transparent px-8"
+      style={{ WebkitOverflowScrolling: 'touch' }} // enables smooth momentum scrolling on iOS Safari
+    >
+      <div className="flex flex-col mt-36 gap-5">
+        {/* <h1 className="text-3xl font-bold">Activities</h1> */}
+        {/* 
         <ActivitiesFilters
           searchQuery={searchQuery}
           sortBy={sortBy}
@@ -75,25 +78,38 @@ export default function ActivitiesPage() {
           onSearchQueryChange={setSearchQuery}
           onSortByChange={setSortBy}
           onSortDirectionToggle={toggleSortDirection}
-        />
-        {/* Upcoming Activities */}
-        <div>
-          {upcomingActivity && <UpcomingCard activity={upcomingActivity} />}
-        </div>
-        <h1 className="p-1 ml-2">
+        /> */}
+
+        {upcomingActivity && (
+          <div>
+            <ActivityCard activity={upcomingActivity} />
+          </div>
+        )}
+
+        <h2 className="ml-2">
           <span className="text-xl font-semibold">All Activities</span>
           {filteredAndSortedActivities.length > 0 && (
             <span className="text-sm text-default-500 ml-2">
               ({filteredAndSortedActivities.length} found)
             </span>
           )}
-        </h1>
+        </h2>
       </div>
-      <ActivitiesList
-        activities={filteredAndSortedActivities}
-        isLoading={loading}
-      />
 
+      {/* Cards grid */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-auto">
+        {filteredAndSortedActivities.map(activity => (
+          <ActivityCard
+            key={activity._id}
+            activity={activity}
+            onPress={() =>
+              window.location.assign(`/activities/${activity._id}`)
+            }
+          />
+        ))}
+      </div>
+
+      {/* Empty State */}
       {filteredAndSortedActivities?.length === 0 && !loading && (
         <p className="text-center text-sm text-default-500">
           No activities found.

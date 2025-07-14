@@ -13,7 +13,6 @@ import { useState, useEffect } from "react";
 
 import { apiRequest } from "@/utils/api";
 import { Major } from "@/types/major";
-import { School } from "@/types/school";
 
 interface MajorModalProps {
   isOpen: boolean;

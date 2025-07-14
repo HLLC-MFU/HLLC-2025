@@ -4,7 +4,7 @@ export function SchoolSkeleton() {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 9 }).map((_, index) => (
-                <Card className="p-4" key={index}>
+                <Card key={index} className="p-4">
                     <div className="flex items-center space-x-4">
                         <Skeleton className="w-12 h-12 rounded-lg" />
                         <div className="flex-1">

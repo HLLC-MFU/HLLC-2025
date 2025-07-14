@@ -52,7 +52,7 @@ const useAuth = create<AuthStore>()(
             });
 
             redirect("/");
-            return true;
+
           } else {
             set({ error: res.statusText });
             addToast({
@@ -120,6 +120,7 @@ const useAuth = create<AuthStore>()(
               description: `Reset password successfully`,
               color: "success",
             });
+
             return true;
           } else {
             addToast({
@@ -128,11 +129,13 @@ const useAuth = create<AuthStore>()(
                 color: "danger",
                 variant: "solid",
               });
+
             return false;
           }
 
         } catch (err) {
           set({ error: (err as Error).message });
+
           return false;
         } finally {
           set({ loading: false });

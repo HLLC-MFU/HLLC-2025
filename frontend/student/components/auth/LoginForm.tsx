@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Button, Input, Text, View, XStack, YStack } from 'tamagui';
-import { Linking, Image, Pressable, StyleSheet } from 'react-native';
+import { Linking, Image, Pressable } from 'react-native';
 import { t } from 'i18next';
 import { Globe } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trans } from 'react-i18next';
 import { User, Lock, EyeClosed, Eye } from '@tamagui/lucide-icons';
+import RegisterButton from './RegisterButton';
+import ForgotPasswordPressable from './ForgotPasswordPressable';
 
 interface LoginFormProps {
   username: string;
@@ -47,10 +49,12 @@ export const LoginForm = ({
           resizeMode="contain"
         />
 
-        <Text fontSize={24} fontWeight="bold" textAlign="center">{t("login.title")}</Text>
-        <Text fontSize={18} fontWeight="bold" textAlign="center">{t("login.subtitle")}</Text>
+        <YStack gap="$0" width={'100%'} paddingHorizontal="$4">
+          <Text fontSize={32} fontWeight={"600"} textAlign="center">{t("login.title")}</Text>
+          <Text fontSize={18} fontWeight={"600"} textAlign="center">{t("login.subtitle")}</Text>
+        </YStack>
 
-        <YStack gap="$4" width={'100%'}>
+        <YStack gap="$4" width={'100%'} marginTop={16}>
           <XStack {...inputContainerStyle}>
             <User />
             <Input
@@ -82,17 +86,21 @@ export const LoginForm = ({
           </XStack>
 
         </YStack>
-
         <Text width={'100%'} textAlign="right" onPress={onForgotPassword}>
           {t("login.forgotPassword")}
         </Text>
 
+        {/* <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end' }}>
+          <ForgotPasswordPressable />
+        </View> */}
+
         <View style={{ width: '100%', flexDirection: 'row', gap: 10 }}>
           <Button flex={1} onPress={onRegister}>{t("login.register")}</Button>
+          {/* <RegisterButton /> */}
           <Button flex={1} onPress={onLogin}>{t("login.loginButton")}</Button>
         </View>
 
-        <View style={{ backgroundColor: '#00000025', height: 1, width: '100%' }} />
+        <View style={{ backgroundColor: '#00000025', height: 1, width: '100%', marginTop: 24 }} />
         <Button width={'100%'} onPress={() => Linking.openURL('https://www.facebook.com/mfuactivities/')}>
           {t("login.contactUs")}
         </Button>

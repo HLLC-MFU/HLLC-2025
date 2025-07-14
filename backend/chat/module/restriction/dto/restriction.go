@@ -222,6 +222,14 @@ func (dto *MuteUserDto) Validate() error {
 	return nil
 }
 
+// Validate ตรวจสอบความถูกต้องของ KickUserDto
+func (dto *KickUserDto) Validate() error {
+	if dto.Reason == "" {
+		return fmt.Errorf("reason is required for kick action")
+	}
+	return nil
+}
+
 // GetTimeDescription สร้างคำอธิบายเวลาที่เป็นมิตรต่อผู้ใช้
 func (dto *BanUserDto) GetTimeDescription() string {
 	if dto.Duration == "permanent" {

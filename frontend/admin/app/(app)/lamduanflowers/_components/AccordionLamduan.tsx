@@ -4,12 +4,14 @@ import {
     ModalContent, ModalFooter, ModalHeader, Pagination
 } from "@heroui/react";
 import { Flower2, Settings } from "lucide-react";
+
 import CardLamduanFlowers from "./CardLamduanFlowers";
-import { useLamduanFlowers } from "@/hooks/useLamduanFlowers";
 import { FiltersLamduanFlowers } from "./FiltersLamduanFlowers";
-import { LamduanFlowers } from "@/types/lamduan-flowers";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { SettingLamduanFlowers } from "./SettingLamduanFlowers";
+
+import { LamduanFlowers } from "@/types/lamduan-flowers";
+import { useLamduanFlowers } from "@/hooks/useLamduanFlowers";
 import { LamduanSetting } from "@/types/lamduan-flowers";
 
 type LamduanFlowersSettingProps = {
@@ -40,6 +42,7 @@ export default function AccordionLamduan({
     useEffect(() => {
         if (!lamduanFlowers || lamduanFlowers.length === 0) return;
         const flowersWithoutUser = lamduanFlowers.filter(item => !item.user);
+
         flowersWithoutUser.forEach(flower => {
             deleteLamduanFlowers(flower._id);
         });
@@ -51,6 +54,7 @@ export default function AccordionLamduan({
         const filtered = searchQuery.trim()
             ? flowersWithUser.filter(({ user, comment }) => {
                 const q = searchQuery.toLowerCase();
+
                 return user.username.toLowerCase().includes(q) || comment.toLowerCase().includes(q);
             })
             : flowersWithUser;
@@ -58,6 +62,7 @@ export default function AccordionLamduan({
         return [...filtered].sort((a, b) => {
             const timeA = new Date(a.createdAt).getTime();
             const timeB = new Date(b.createdAt).getTime();
+
             return sortDirection === "asc" ? timeA - timeB : timeB - timeA;
         });
     }, [lamduanFlowers, searchQuery, sortDirection]);
@@ -65,6 +70,7 @@ export default function AccordionLamduan({
     const paginatedFlowers = useMemo(() => {
         if (rowsPerPage === "All") return filteredAndSortedFlowers;
         const start = (currentPage - 1) * rowsPerPage;
+
         return filteredAndSortedFlowers.slice(start, start + rowsPerPage);
     }, [filteredAndSortedFlowers, currentPage, rowsPerPage]);
 
@@ -123,6 +129,7 @@ export default function AccordionLamduan({
                                     value={rowsPerPage}
                                     onChange={(e) => {
                                         const value = e.target.value === "All" ? "All" : Number(e.target.value);
+
                                         setRowsPerPage(value);
                                         resetToFirstPage();
                                     }}
@@ -140,8 +147,8 @@ export default function AccordionLamduan({
                                 <div className="inline-block min-w-max ml-auto sm:ml-0">
                                     <Pagination
                                         showControls
-                                        total={totalPages}
                                         page={currentPage}
+                                        total={totalPages}
                                         onChange={setCurrentPage}
                                     />
                                 </div>
@@ -163,12 +170,12 @@ export default function AccordionLamduan({
 
             <DeleteConfirmationModal
                 isOpen={isModalOpen}
+                lamduanflower={selectedFlower || undefined}
                 onClose={() => setIsModalOpen(false)}
                 onConfirm={handleDelete}
-                lamduanflower={selectedFlower || undefined}
             />
 
-            <Modal backdrop="blur" isOpen={!!viewModalFlower} onClose={() => setViewModalFlower(null)} placement="center">
+            <Modal backdrop="blur" isOpen={!!viewModalFlower} placement="center" onClose={() => setViewModalFlower(null)}>
                 <ModalContent className="max-w-md w-full">
                     <ModalHeader className="break-words">
                         {viewModalFlower?.user.username}
@@ -177,9 +184,9 @@ export default function AccordionLamduan({
                     <ModalBody className="flex flex-col items-center gap-4">
                         {viewModalFlower?.photo && (
                             <img
-                                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${viewModalFlower.photo}`}
                                 alt="User Photo"
                                 className="rounded-xl object-contain max-h-80 w-full bg-white"
+                                src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${viewModalFlower.photo}`}
                             />
                         )}
                         <div className="w-full max-w-full overflow-auto">

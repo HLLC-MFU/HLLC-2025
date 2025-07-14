@@ -1,5 +1,6 @@
 import { Card, CardBody, CardHeader } from '@heroui/react';
 import { Eye } from 'lucide-react';
+
 import { Appearance } from '@/types/appearance';
 
 interface PreviewSectionProps {

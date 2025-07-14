@@ -1,21 +1,11 @@
 'use client';
-import {
-  addToast,
-  Button,
-  Card,
-  Chip,
-  ScrollShadow,
-  Spinner,
-} from '@heroui/react';
+import { addToast, Button, Card, Chip, ScrollShadow, Spinner, } from '@heroui/react';
 import { ArrowLeft, MapPin, CircleCheck } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-
-import EmbedMap from './_components/EmbedMap';
 import Stepper, { Step } from './_components/Stepper';
 import AssessmentModal from './_components/AssessementModal';
 import { ConfirmationModal } from './_components/ConfirmModal';
-
 import { Assessment } from '@/types/assessment';
 import { formatDateTime } from '@/utils/dateFormat';
 import { useActivities } from '@/hooks/useActivities';
@@ -149,24 +139,32 @@ export default function ActivitiesDetailPage() {
 
   const steps: Step[] = activity
     ? [
-        { title: 'Start', value: formatDateTime(activity.metadata.startAt) },
-        {
-          title: 'Check-in Status',
-          value:
-            checkinStatusNumber === 1
-              ? 'Check-in available now'
-              : checkinStatusNumber === 2
-                ? 'You have already checked in'
-                : checkinStatusNumber === 3
-                  ? 'Check-in ended'
-                  : 'Unknown status',
-        },
-        { title: 'End', value: formatDateTime(activity.metadata.endAt) },
-        {
-          title: 'Assessment',
-          value: activity.hasAnsweredAssessment ? 'Completed' : 'Not Completed',
-        },
-      ]
+      { title: "Start", value: formatDateTime(activity.metadata.startAt) },
+      {
+        title: "Check-in Status",
+        value: (() => {
+          switch (checkinStatusNumber) {
+            case 0:
+              return "Not yet open for check-in";
+            case -1:
+              return "You missed the check-in time";
+            case 1:
+              return "Check-in available now";
+            case 2:
+              return "You have already checked in";
+            case 3:
+              return "Activity ended (checked in)";
+            default:
+              return "Unknown status";
+          }
+        })(),
+      },
+      { title: "End", value: formatDateTime(activity.metadata.endAt) },
+      {
+        title: "Assessment",
+        value: activity.hasAnsweredAssessment ? "Completed" : "Not Completed",
+      },
+    ]
     : [];
 
   useEffect(() => {
@@ -193,7 +191,7 @@ export default function ActivitiesDetailPage() {
           <Spinner label="Loading..." variant="wave" />
         </div>
       ) : (
-        <div className="min-h-screen flex flex-col gap-4">
+        <div className="flex flex-col max-h-screen justify-beetween gap-5 mt-5">
           <div className="flex items-center gap-4 p-4 absolute z-10">
             <Button
               isIconOnly
@@ -260,14 +258,14 @@ export default function ActivitiesDetailPage() {
                 color={
                   (activity?.checkinStatus === 2 ||
                     activity?.checkinStatus === 3) &&
-                  activity?.hasAnsweredAssessment
+                    activity?.hasAnsweredAssessment
                     ? 'success'
                     : 'danger'
                 }
               >
                 {(activity?.checkinStatus === 2 ||
                   activity?.checkinStatus === 3) &&
-                activity?.hasAnsweredAssessment ? (
+                  activity?.hasAnsweredAssessment ? (
                   <p className="flex items-center gap-1 text-white">
                     <CircleCheck color="white" size={16} /> Done
                   </p>
@@ -280,7 +278,7 @@ export default function ActivitiesDetailPage() {
 
           <div>
             {activeTab === 'about' ? (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-20 justify-between">
                 <div className="flex items-center justify-center">
                   <ScrollShadow className="w-full h-[200px] flex flex-col break-all">
                     {activity?.fullDetails?.en || 'No details available.'}
@@ -298,10 +296,6 @@ export default function ActivitiesDetailPage() {
                     Open in Google Maps
                   </Button>
                 </div>
-                <EmbedMap
-                  lat={activity?.location.latitude}
-                  lng={activity?.location.longitude}
-                />
               </div>
             ) : (
               <div>

@@ -1,7 +1,8 @@
-import { Appearance } from '@/types/appearance';
-import { apiRequest } from '@/utils/api';
 import { addToast } from '@heroui/react';
 import { useEffect, useState } from 'react';
+
+import { Appearance } from '@/types/appearance';
+import { apiRequest } from '@/utils/api';
 
 export default function useAppearance({
   appearance,
@@ -16,6 +17,7 @@ export default function useAppearance({
 
   const handleSaveColor = async () => {
     const formData = new FormData();
+
     if (appearance && appearance.school && appearance.school._id) {
       formData.append('school', appearance.school._id);
     }
@@ -28,6 +30,7 @@ export default function useAppearance({
 
   const handleSaveAsset = async () => {
     const formData = new FormData();
+
     if (appearance && appearance.school && appearance.school._id) {
       formData.append('school', appearance.school._id);
     }
@@ -47,6 +50,7 @@ export default function useAppearance({
         '/appearances',
         'GET',
       );
+
       setAppearances(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (err) {
       setError(
@@ -68,6 +72,7 @@ export default function useAppearance({
         `/appearances/${id}`,
         'GET',
       );
+
       setAppearances(Array.isArray(res.data?.data) ? res.data.data : []);
 
       return res.data;
@@ -95,7 +100,9 @@ export default function useAppearance({
         await new Promise((resolve) => {
           setAppearances((prev) => {
             const update = [...prev, res.data as Appearance];
+
             resolve(update);
+
             return update;
           });
         });
@@ -120,6 +127,7 @@ export default function useAppearance({
         'PATCH',
         appearanceFormData,
       );
+
       if (res.data) {
         setAppearances((prev) =>
           prev.map((s) => (s._id === appearance?._id ? res.data! : s)),

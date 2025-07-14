@@ -1,5 +1,6 @@
-import { User } from "@/types/user";
 import { Button, Pagination } from "@heroui/react";
+
+import { User } from "@/types/user";
 
 type BottomContentProps = {
     selectedKeys: "all" | Set<unknown>;

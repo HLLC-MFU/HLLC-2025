@@ -17,6 +17,7 @@ import {
   StepAchievement,
   StepAchievementDocument,
 } from '../schema/step-achievement.schema';
+import { Major, MajorDocument } from 'src/module/majors/schemas/major.schema';
 @Injectable()
 export class StepCountersService {
   constructor(
@@ -26,6 +27,7 @@ export class StepCountersService {
     private userModel: Model<UserDocument>,
     @InjectModel(StepAchievement.name)
     private stepAchievementModel: Model<StepAchievementDocument>,
+    @InjectModel(Major.name) private majorModel: Model<MajorDocument>,
   ) {}
 
   async getRegisteredDevices(userId: string) {
@@ -49,9 +51,41 @@ export class StepCountersService {
   }
 
   async registerDevice(userId: string, deviceId: string) {
-    const user = await findOrThrow(this.userModel, userId, 'User not found');
+    type PopulatedUser = {
+      _id: Types.ObjectId;
+      metadata: {
+        major: {
+          _id: Types.ObjectId;
+          school: {
+            _id: Types.ObjectId;
+          };
+        };
+      };
+    };
 
-    // ❌ If user already has *any* step counter — block new registration
+    const user = await this.userModel
+      .findById(userId)
+      .select('_id major')
+      .populate({
+        path: 'metadata.major',
+        select: '_id school',
+        model: 'Major',
+        populate: {
+          path: 'school',
+          select: '_id',
+          model: 'School',
+        },
+      })
+      .lean<PopulatedUser>();
+
+    if (
+      !user ||
+      !user.metadata.major ||
+      typeof user.metadata.major !== 'object' ||
+      !user.metadata.major.school
+    ) {
+      throw new NotFoundException('User not found');
+    }
     const existingCounters = await this.stepCounterModel.find({
       user: user._id,
     });
@@ -80,6 +114,8 @@ export class StepCountersService {
 
     const newStepCounter = new this.stepCounterModel({
       user: user._id,
+      school: user.metadata.major.school._id,
+      major: user.metadata.major._id,
       deviceId,
       achievement: achievementId,
       completeStatus: false,
@@ -239,101 +275,14 @@ export class StepCountersService {
       .find({})
       .populate({
         path: 'user',
-        populate: {
-          path: 'metadata.major.school',
-          model: 'School',
-        },
-      })
-      .lean();
-
-    // 🔍 Filter by School
-    if (scope === 'school') {
-      if (!schoolId) throw new BadRequestException('Missing schoolId');
-      stepCounters = stepCounters.filter((sc) => {
-        const user = sc.user as {
-          metadata?: { major?: { school?: { _id?: unknown } } };
-        };
-        const school = user?.metadata?.major?.school;
-        return school && school._id?.toString() === schoolId;
-      });
-    }
-
-    // 🔍 Filter by Date (same day)
-    if (scope === 'date') {
-      if (!date) throw new BadRequestException('Missing date');
-      const target = new Date(date);
-      const targetDateStr = target.toISOString().split('T')[0];
-
-      stepCounters = stepCounters.map((sc) => {
-        const stepsOnDate = (sc.steps || []).filter((s) => {
-          const stepDate = new Date(s.date).toISOString().split('T')[0];
-          return stepDate === targetDateStr;
-        });
-
-        const totalStep = stepsOnDate.reduce(
-          (sum, s) => sum + (s.step || 0),
-          0,
-        );
-
-        return { ...sc, totalStep };
-      });
-    } else {
-      // ⬅️ Default: all step
-      stepCounters = stepCounters.map((sc) => ({
-        ...sc,
-        totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
-      }));
-    }
-
-    // 🏁 Separate complete & in-progress
-    const completed = stepCounters
-      .filter((sc) => sc.completeStatus && typeof sc.rank === 'number')
-      .sort((a, b) => a.rank - b.rank);
-
-    const inProgress = stepCounters
-      .filter((sc) => !sc.completeStatus)
-      .map((sc) => ({
-        ...sc,
-        totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
-      }))
-      .sort((a, b) => b.totalStep - a.totalStep);
-
-    const combined = [...completed, ...inProgress];
-
-    return {
-      data: combined.slice(skip, skip + pageSize),
-      metadata: {
-        total: combined.length,
-        page,
-        pageSize,
-        scope,
-        schoolId,
-        date: date ? new Date(date).toISOString().split('T')[0] : null,
-      },
-    };
-  }
-
-  async myleaderboard(
-    scope: 'all' | 'school' | 'date',
-    options: {
-      schoolId?: string;
-      date?: string | Date;
-      page?: number;
-      pageSize?: number;
-      userId?: string;
-    } = {},
-  ) {
-    const { schoolId, date, page = 1, pageSize = 20, userId } = options;
-    const skip = (page - 1) * pageSize;
-
-    let stepCounters = await this.stepCounterModel
-      .find({})
-      .populate({
-        path: 'user',
         select: 'name metadata.major username',
         populate: {
-          path: 'metadata.major.school',
-          model: 'School',
+          path: 'metadata.major',
+          model: 'Major',
+          populate: {
+            path: 'school',
+            model: 'School',
+          },
         },
       })
       .lean();
@@ -375,29 +324,17 @@ export class StepCountersService {
     }
 
     const completed = stepCounters
-      .filter((sc) => sc.completeStatus && typeof sc.rank === 'number')
-      .sort((a, b) => a.rank - b.rank);
-
-    const inProgress = stepCounters
-      .filter((sc) => !sc.completeStatus)
       .map((sc) => ({
         ...sc,
         totalStep: (sc.steps || []).reduce((sum, s) => sum + (s.step || 0), 0),
       }))
       .sort((a, b) => b.totalStep - a.totalStep);
 
-    const combined = [...completed, ...inProgress];
-
     // Assign computed rank
-    const combinedWithRank = combined.map((sc, idx) => ({
+    const combinedWithRank = completed.map((sc, idx) => ({
       ...sc,
       computedRank: idx + 1,
     }));
-
-    // Find current user's rank if userId provided
-    const myRank = userId
-      ? combinedWithRank.find((sc) => sc.user?._id?.toString() === userId)
-      : null;
 
     return {
       data: combinedWithRank.slice(skip, skip + pageSize),
@@ -409,12 +346,96 @@ export class StepCountersService {
         schoolId,
         date: date ? new Date(date).toISOString().split('T')[0] : null,
       },
-      myRank: myRank
-        ? {
-            rank: myRank.computedRank,
-            data: myRank,
-          }
-        : null,
+    };
+  }
+
+  async getUserRankSummary(userId: string) {
+    const user = await this.userModel
+      .findById(userId)
+      .select('_id metadata.major')
+      .lean()
+      .then((u) => {
+        if (!u) throw new NotFoundException('User not found');
+        return u;
+      });
+
+    const allStepCounters = await this.stepCounterModel
+      .find()
+      .populate({
+        path: 'user',
+        select: 'name username _id',
+      })
+      .lean();
+
+    /* Find User's Total Step */
+    const myStepCounter = allStepCounters.find(
+      (sc) => sc.user._id.toString() === user._id.toString(),
+    );
+    if (!myStepCounter) throw new NotFoundException('Step counter not found');
+
+    const myTotalSteps = myStepCounter.steps?.at(-1)?.totalStep || 0;
+
+    /* For Individual Rank */
+    const globalRanked = allStepCounters
+      .map((sc) => ({
+        user: sc.user,
+        totalStep: sc.steps?.at(-1)?.totalStep || 0,
+      }))
+      .sort((a, b) => b.totalStep - a.totalStep);
+    const computedRank =
+      globalRanked.findIndex(
+        (r) => r.user._id.toString() === user._id.toString(),
+      ) + 1;
+    const archeivementRank = allStepCounters.filter(
+      (sc) =>
+        sc.achievement &&
+        sc.completeStatus &&
+        sc.rank &&
+        sc.rank > 0 &&
+        sc.achievement.toString() === myStepCounter.achievement?.toString(),
+    );
+    let schoolRank: number | null = null;
+    let schoolId: string | null = null;
+    let schoolSorted: { user: Types.ObjectId; totalStep: number }[] = [];
+
+    if (user.metadata && user.metadata.major) {
+      const major = await this.majorModel
+        .findById(user.metadata.major)
+        .select('_id school')
+        .lean();
+
+      if (major && major.school) {
+        schoolId = major.school.toString();
+
+        /*
+        Find Matched School Rank From User
+        */
+        const schoolRanked = globalRanked.filter((sc) => {
+          const match = allStepCounters.find(
+            (full) => full.user._id.toString() === sc.user._id.toString(),
+          );
+          return match?.school?.toString() === schoolId;
+        });
+
+        schoolSorted = schoolRanked.sort((a, b) => b.totalStep - a.totalStep);
+
+        schoolRank =
+          schoolSorted.findIndex(
+            (r) => r.user._id.toString() === user._id.toString(),
+          ) + 1;
+      }
+    }
+    return {
+      individualRank: globalRanked.slice(0, 20),
+      schoolRank: schoolSorted.slice(0, 20),
+      archeivementRank: archeivementRank.slice(0, 20),
+      myRank: {
+        steps: myStepCounter.steps,
+        individualRank: computedRank,
+        schoolRank: schoolRank,
+        archeivementRank: myStepCounter.rank || null,
+        totalStep: myTotalSteps,
+      },
     };
   }
 }

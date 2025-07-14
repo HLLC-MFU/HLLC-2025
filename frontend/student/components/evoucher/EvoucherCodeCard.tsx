@@ -5,14 +5,12 @@ interface EvoucherCodeCardProps {
     imageSource: ImageSourcePropType;
     onPress?: () => void;
     isUsed?: boolean;
-    code?: string;
 }
 
 export const EvoucherCodeCard = ({
     imageSource,
     onPress,
     isUsed = false,
-    code,
 }: EvoucherCodeCardProps) => {
     return (
         <TouchableOpacity style={[styles.card, isUsed && styles.usedCard]} onPress={onPress}>
@@ -28,7 +26,6 @@ const styles = StyleSheet.create({
         borderRadius: 15,
 
         overflow: 'hidden',
-        marginBottom: 15,
         shadowColor: '#000',
         shadowOffset: {
             width: 0,

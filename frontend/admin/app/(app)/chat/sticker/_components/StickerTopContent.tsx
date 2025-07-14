@@ -1,7 +1,8 @@
-import { Sticker } from "@/types/sticker";
 import { Button, Input } from "@heroui/react";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import React from "react";
+
+import { Sticker } from "@/types/sticker";
 
 type StickerTopContentProps = {
     setActionText: () => void;
@@ -15,6 +16,8 @@ type StickerTopContentProps = {
     onNextPage: () => void;
     onClear: () => void;
     onSearchChange: (value: string) => void;
+    placeholder?: string;
+    showAddButton?: boolean;
 }
 
 export default function StickerTopContent({
@@ -22,6 +25,8 @@ export default function StickerTopContent({
     filterValue,
     onClear,
     onSearchChange,
+    placeholder = "Search stickers",
+    showAddButton = true,
 }: StickerTopContentProps) {
     return (
         <div className="flex flex-col gap-4">
@@ -29,18 +34,24 @@ export default function StickerTopContent({
                 <Input
                     isClearable
                     className="w-full sm:max-w-[44%]"
-                    placeholder="Search stickers"
+                    placeholder={placeholder}
                     startContent={<SearchIcon />}
                     value={filterValue}
-                    onClear={() => onClear()}
+                    onClear={onClear}
                     onValueChange={onSearchChange}
                 />
-                <div className="flex gap-3">
-                    <Button onPress={() => { setActionText(); }} color="primary" endContent={<PlusIcon size={20} />}>
-                        Add Sticker
-                    </Button>
-                </div>
+                {showAddButton && (
+                    <div className="flex gap-3">
+                        <Button 
+                            color="primary" 
+                            endContent={<PlusIcon size={20} />} 
+                            onPress={setActionText}
+                        >
+                            Add Sticker
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
-    )
-}; 
+    );
+} 

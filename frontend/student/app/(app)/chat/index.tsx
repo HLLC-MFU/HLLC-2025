@@ -25,7 +25,6 @@ import ChatHeader from '@/components/chats/ChatHeader';
 import { ChatTabBar } from '@/components/chats/ChatTabBar';
 import { ConfirmJoinModal } from '@/components/chats/ConfirmJoinModal';
 import CreateRoomModal from '@/components/chats/CreateRoomModal';
-import LoadingSpinner from '@/components/chats/LoadingSpinner';
 import RoomCard from '@/components/chats/RoomCard';
 import { RoomDetailModal } from '@/components/chats/RoomDetailModal';
 import RoomListItem from '@/components/chats/RoomListItem';
@@ -123,10 +122,7 @@ export default function ChatPage() {
     scrollY,
     headerScale,
     tabBarAnimation,
-    fabScale,
-    shimmerAnim,
     pulseAnim,
-    animateFab,
     animateTabBar,
   } = useChatAnimations();
 
@@ -138,7 +134,6 @@ export default function ChatPage() {
     if (!roomId) {
       return;
     }
-    // หา room จาก id หรือ _id
     const room = (rooms as ChatRoomWithId[]).find(r => r.id === roomId || r._id === roomId);
     setPendingJoinRoom(room || null);
     setConfirmJoinVisible(true);
@@ -198,8 +193,14 @@ export default function ChatPage() {
     setActiveTab(tab);
   };
 
-  const handleRefresh = () => {
-    loadRooms();
+  // ปรับปรุง handleRefresh ให้เหมาะสมกับ refreshControl
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadRooms(); 
+    } finally {
+      setRefreshing(false); 
+    }
   };
 
   const renderRoomItem = ({ item, index }: { item: ChatRoomWithId; index: number }) => {
@@ -281,7 +282,7 @@ export default function ChatPage() {
       icon: null,
       label: 'Step',
       anim: stepAnim,
-      onPress: () => { closeMenu(); router.replace('/step-counter'); },
+      onPress: () => { closeMenu(); router.replace('/community/step-counter'); },
     },
     {
       key: 'coin',
@@ -353,7 +354,7 @@ export default function ChatPage() {
       </SafeAreaView>
 
         {/* Gooey FAB Menu */}
-        <View style={{ position: 'absolute', bottom: 50, right: 0, alignItems: 'flex-end', justifyContent: 'flex-end', width: 80, height: 300 }} pointerEvents="box-none">
+        <View style={{ position: 'absolute', bottom: 10, right: 0, alignItems: 'flex-end', justifyContent: 'flex-end', width: 80, height: 300 }} pointerEvents="box-none">
           {/* BlurView background overlay */}
           {isMenuOpen && (
             <BlurView
@@ -385,8 +386,8 @@ export default function ChatPage() {
                 styles.fabSubButton,
                 {
                   position: 'absolute',
-                  right: 100 ,
-                  bottom: 70 * (subFabs.length - idx), // 70, 140, 210 ...
+                  right: 24 ,
+                  bottom: 70 * (4.75 - idx), // 70, 140, 210 ...
                   zIndex: 2,
                   opacity: fab.anim,
                   transform: [

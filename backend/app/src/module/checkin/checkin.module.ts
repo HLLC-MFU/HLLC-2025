@@ -13,6 +13,9 @@ import { Major, MajorSchema } from '../majors/schemas/major.schema';
 import { UsersService } from '../users/users.service';
 import { RoleService } from '../role/role.service';
 import { ActivitiesModule } from '../activities/activities.module';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PushNotificationService } from '../notifications/push-notifications.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -39,9 +42,10 @@ import { ActivitiesModule } from '../activities/activities.module';
       },
     ]),
     forwardRef(() => ActivitiesModule),
+    NotificationsModule
   ],
   exports: [MongooseModule],
   controllers: [CheckinController],
   providers: [CheckinService, UsersService, RoleService],
 })
-export class CheckinModule {}
+export class CheckinModule { }

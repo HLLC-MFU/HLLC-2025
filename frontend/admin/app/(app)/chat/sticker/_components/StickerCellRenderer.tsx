@@ -1,6 +1,7 @@
-import React, { Key } from "react";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
-import { EllipsisVertical, Image, Pen, Trash } from "lucide-react";
+import React, { useState } from "react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Image } from "@heroui/react";
+import { EllipsisVertical, Image as ImageIcon, Pen, Trash } from "lucide-react";
+
 import { Sticker } from "@/types/sticker";
 
 export type StickerColumnKey =
@@ -22,24 +23,36 @@ export default function StickerCellRenderer({
     onEdit,
     onDelete
 }: StickerCellRendererProps) {
+    const [imageError, setImageError] = useState(false);
+
+    const getImageUrl = () => {
+        if (sticker.image && !imageError) {
+            return `${process.env.NEXT_PUBLIC_GO_IMAGE_URL}/uploads/${sticker.image}`;
+        }
+        
+        const fallbackName = sticker.name?.en || sticker.name?.th || 'S';
+        return `https://ui-avatars.com/api/?name=${fallbackName.charAt(0).toUpperCase()}&background=6366f1&color=fff&size=48&font-size=0.4`;
+    };
+
+    const getDisplayName = (lang: 'en' | 'th') => {
+        return sticker.name?.[lang] || 'N/A';
+    };
+
     switch (columnKey) {
         case "image":
-            const imageUrl = sticker.image
-                ? `${process.env.GO_PUBLIC_API_URL || 'http://localhost:1334/api'}/uploads/${sticker.image}`
-                : '';
             return (
                 <div className="flex items-center justify-center w-full">
                     <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-default-200 bg-default-100 flex items-center justify-center">
-                        {sticker.image ? (
-                            <img
-                                src={imageUrl}
-                                alt={sticker.name.en}
+                        {sticker.image && !imageError ? (
+                            <Image
+                                alt={getDisplayName('en')}
                                 className="h-full w-full object-contain transition-transform duration-200 hover:scale-105"
-                                onError={(e) => { e.currentTarget.src = "/placeholder.png"; }}
+                                src={getImageUrl()}
+                                onError={() => setImageError(true)}
                             />
                         ) : (
                             <div className="flex flex-col items-center justify-center w-full h-full">
-                                <Image className="text-default-300" size={28} />
+                                <ImageIcon className="text-default-300" size={28} />
                                 <span className="text-xs text-default-400">No image</span>
                             </div>
                         )}
@@ -51,7 +64,7 @@ export default function StickerCellRenderer({
             return (
                 <div className="flex items-center min-w-[120px]">
                     <p className="text-sm font-medium capitalize truncate">
-                        {sticker.name.en}
+                        {getDisplayName('en')}
                     </p>
                 </div>
             );
@@ -60,7 +73,7 @@ export default function StickerCellRenderer({
             return (
                 <div className="flex items-center min-w-[120px]">
                     <p className="text-sm font-medium capitalize truncate">
-                        {sticker.name.th}
+                        {getDisplayName('th')}
                     </p>
                 </div>
             );

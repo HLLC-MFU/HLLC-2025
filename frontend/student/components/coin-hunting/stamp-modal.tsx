@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -6,28 +6,171 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  Animated,
 } from 'react-native';
-import Svg, { Rect, Circle, G, Polygon, Text as SvgText } from 'react-native-svg';
+import Svg, {
+  Rect,
+  Circle,
+  G,
+  Polygon,
+  Text as SvgText,
+} from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
+import {
+  FireworkSVG,
+  getCoinPosition,
+  getKiteCentroid,
+} from './coin-hunting-helpers';
 
 interface StampModalProps {
   visible: boolean;
   onClose: () => void;
-  stamps?: number; // จำนวน stamp ที่ได้
+  stamps?: number;
   onGetReward?: () => void;
-  coinImages?: (string | undefined)[]; 
+  coinImages?: (string | undefined)[];
+  coinRotations?: number[];
+  coinSizes?: number[];
 }
 
 const NUM_SQUARES = 7;
-const RADIUS = 90;
-const SQUARE_SIZE = 60;
-const CENTER_X = 140;
-const CENTER_Y = 160;
+const RADIUS = 80;
+const SQUARE_SIZE = 85;
+const KITE_INNER_RADIUS = RADIUS - 8;
+const KITE_OUTER_RADIUS = RADIUS + 0;
+const CENTER_X = 150;
+const CENTER_Y = 170;
 
 export default function StampModal({
   visible,
   onClose,
-  coinImages = [], // <-- default empty array
+  coinImages = [],
+  coinRotations = [],
+  coinSizes = [],
 }: StampModalProps) {
+  const { t } = useTranslation();
+  const NUM_SLOTS = 21;
+  const fadeAnims = useRef(
+    [...Array(NUM_SLOTS)].map(() => new Animated.Value(0)),
+  ).current;
+  const [newCoinIndex, setNewCoinIndex] = useState<number | null>(null);
+  const [showNewCoinEffect, setShowNewCoinEffect] = useState(false);
+  const newCoinAnim = useRef(new Animated.Value(0)).current;
+  const newCoinScale = useRef(new Animated.Value(0.3)).current;
+  const newCoinPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const prevCoinImages = useRef<(string | undefined)[]>([]);
+  useEffect(() => {
+    if (visible && coinImages.length > 0) {
+      const newCoins = coinImages
+        .map((img, index) => {
+          const hadCoin = prevCoinImages.current[index];
+          const hasCoin = !!img;
+          return hasCoin && !hadCoin ? index : null;
+        })
+        .filter((index): index is number => index !== null);
+      if (newCoins.length > 0) {
+        const latestNewCoin = newCoins[newCoins.length - 1];
+        setNewCoinIndex(latestNewCoin);
+        setShowNewCoinEffect(true);
+        newCoinAnim.setValue(0);
+        newCoinScale.setValue(0.3);
+        newCoinPosition.setValue({ x: 0, y: 0 });
+        Animated.parallel([
+          Animated.timing(newCoinAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(newCoinScale, {
+            toValue: 1.5,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          setTimeout(() => {
+            setShowNewCoinEffect(false);
+            setNewCoinIndex(null);
+          }, 500);
+        });
+      }
+    }
+    prevCoinImages.current = [...coinImages];
+  }, [visible, coinImages]);
+  const isComplete = coinImages.slice(0, 14).every(Boolean);
+  const glowAnim = useRef(new Animated.Value(0.7)).current;
+  useEffect(() => {
+    if (isComplete && visible) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, {
+            toValue: 1,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0.7,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+    } else {
+      glowAnim.setValue(0.7);
+    }
+  }, [isComplete, visible]);
+  const [showFirework, setShowFirework] = useState(false);
+  useEffect(() => {
+    if (isComplete && visible) {
+      setShowFirework(true);
+      const t = setTimeout(() => setShowFirework(false), 1500);
+      return () => clearTimeout(t);
+    } else {
+      setShowFirework(false);
+    }
+  }, [isComplete, visible]);
+  useEffect(() => {
+    if (visible) {
+      coinImages.forEach((_, index) => {
+        Animated.timing(fadeAnims[index], {
+          toValue: 1,
+          duration: 400,
+          delay: index * 100,
+          useNativeDriver: true,
+        }).start();
+      });
+    } else {
+      fadeAnims.forEach(anim => anim.setValue(0));
+    }
+  }, [visible, coinImages, coinRotations, coinSizes]);
+  const [currentPage, setCurrentPage] = useState(0);
+  useEffect(() => {
+    if (visible) setCurrentPage(0);
+  }, [visible]);
+  const handleTapToPlace = () => {
+    if (showNewCoinEffect && newCoinIndex !== null) {
+      const { x: targetX, y: targetY } = getCoinPosition(
+        newCoinIndex,
+        NUM_SQUARES,
+        RADIUS,
+        KITE_INNER_RADIUS,
+        KITE_OUTER_RADIUS,
+      );
+      Animated.parallel([
+        Animated.timing(newCoinPosition, {
+          toValue: { x: targetX, y: targetY },
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(newCoinScale, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setShowNewCoinEffect(false);
+        setNewCoinIndex(null);
+      });
+    }
+  };
   return (
     <Modal
       visible={visible}
@@ -35,160 +178,283 @@ export default function StampModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={showNewCoinEffect ? handleTapToPlace : undefined}
+      >
         <View style={styles.modalContent}>
-          <Text style={styles.title}>Collection</Text>
+          <Text style={styles.title}>{t('coinHunting.collection')}</Text>
           <View style={styles.stampHexGridContainer}>
-            <Svg width={CENTER_X * 2} height={CENTER_Y * 2}>
-              {/* วงกลมตรงกลาง */}
-              <Circle
-                cx={CENTER_X}
-                cy={CENTER_Y}
-                r={12}
-                fill="transparent"
-                stroke="#fff"
-                strokeWidth={2}
-              />
-              {/* สี่เหลี่ยมรอบนอก */}
-              {[...Array(NUM_SQUARES)].map((_, i) => {
-                const angle = (2 * Math.PI * i) / NUM_SQUARES;
-                const cx = CENTER_X + RADIUS * Math.cos(angle);
-                const cy = CENTER_Y + RADIUS * Math.sin(angle);
-                const rotate = (angle * 180) / Math.PI + 45;
-                return (
-                  <G key={i} origin={`${cx},${cy}`} rotation={rotate}>
-                    <Rect
-                      x={cx - SQUARE_SIZE / 2}
-                      y={cy - SQUARE_SIZE / 2}
-                      width={SQUARE_SIZE}
-                      height={SQUARE_SIZE}
-                      fill={coinImages[i] ? 'transparent' : 'gray'}
-                      stroke="#fff"
-                      strokeWidth={2}
-                    />
-                    {/* Order number label */}
-                    <SvgText
-                      x={cx + SQUARE_SIZE / 2 - 14}
-                      y={cy - SQUARE_SIZE / 2 + 20}
-                      fontSize={18}
-                      fontWeight="bold"
-                      fill="#fff"
-                      textAnchor="end"
-                      alignmentBaseline="hanging"
-                      stroke="#222"
-                      strokeWidth={0.5}
+            {currentPage === 0 && showFirework && (
+              <>
+                <FireworkSVG
+                  centerX={CENTER_X}
+                  centerY={CENTER_Y}
+                  radius={110}
+                  numRays={14}
+                  duration={1200}
+                />
+                <FireworkSVG
+                  centerX={CENTER_X}
+                  centerY={CENTER_Y}
+                  radius={70}
+                  numRays={7}
+                  duration={900}
+                  delay={200}
+                />
+              </>
+            )}
+            {currentPage === 0 && isComplete && (
+              <Animated.View
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: glowAnim,
+                  zIndex: 1,
+                }}
+                pointerEvents="none"
+              >
+                <Svg width={CENTER_X * 2} height={CENTER_Y * 2}>
+                  <Circle
+                    cx={CENTER_X}
+                    cy={CENTER_Y}
+                    r={RADIUS + 40}
+                    fill="rgba(255,255,120,0.25)"
+                  />
+                  <Circle
+                    cx={CENTER_X}
+                    cy={CENTER_Y}
+                    r={RADIUS + 20}
+                    fill="rgba(255,255,200,0.18)"
+                  />
+                </Svg>
+              </Animated.View>
+            )}
+            {currentPage === 0 && (
+              <>
+                <Svg width={CENTER_X * 2} height={CENTER_Y * 2}>
+                  <Circle
+                    cx={CENTER_X}
+                    cy={CENTER_Y}
+                    r={12}
+                    fill="transparent"
+                  />
+                  {[...Array(NUM_SQUARES)].map((_, i) => {
+                    const { cx, cy, rotate } = getCoinPosition(
+                      i,
+                      NUM_SQUARES,
+                      RADIUS,
+                    );
+                    return (
+                      <G key={i} origin={`${cx},${cy}`} rotation={rotate}>
+                        <Rect
+                          x={cx}
+                          y={cy}
+                          width={0}
+                          height={0}
+                          fill={'transparent'}
+                        />
+                      </G>
+                    );
+                  })}
+                  {[...Array(NUM_SQUARES)].map((_, i) => {
+                    const { centroidX, centroidY } = getKiteCentroid(
+                      i,
+                      NUM_SQUARES,
+                      CENTER_X,
+                      CENTER_Y,
+                      KITE_INNER_RADIUS,
+                      KITE_OUTER_RADIUS,
+                    );
+                    return (
+                      <G key={`kite-${i}`}>
+                        <Polygon points="" fill={'transparent'} />
+                        <SvgText
+                          x={centroidX}
+                          y={centroidY + 6}
+                          fontSize={18}
+                          fontWeight="bold"
+                          textAnchor="middle"
+                          alignmentBaseline="middle"
+                        />
+                      </G>
+                    );
+                  })}
+                </Svg>
+                {[...Array(14)].map((_, i) => {
+                  if (!coinImages[i]) return null;
+                  let { cx, cy } = getCoinPosition(
+                    i,
+                    NUM_SQUARES,
+                    RADIUS,
+                    KITE_INNER_RADIUS,
+                    KITE_OUTER_RADIUS,
+                    CENTER_X,
+                    CENTER_Y,
+                  );
+                  const rotate = coinRotations[i] ?? 0;
+                  const size = coinSizes[i] ?? SQUARE_SIZE;
+                  return (
+                    <Animated.View
+                      key={`img-${i}`}
+                      style={{
+                        position: 'absolute',
+                        left: cx - size / 2,
+                        top: cy - size / 2,
+                        width: size,
+                        height: size,
+                        transform: [{ rotate: `${rotate}deg` }],
+                        opacity: fadeAnims[i],
+                        zIndex: 10,
+                      }}
                     >
-                      {i + 1}
-                    </SvgText>
-                    {coinImages[i] && (
                       <Image
                         source={{ uri: coinImages[i] }}
                         style={{
-                          position: 'absolute',
-                          left: cx - SQUARE_SIZE / 2 + 2,
-                          top: cy - SQUARE_SIZE / 2 + 2,
-                          width: SQUARE_SIZE - 4,
-                          height: SQUARE_SIZE - 4,
-                          borderRadius: 8,
+                          width: '100%',
+                          height: '100%',
                           resizeMode: 'contain',
                         }}
                       />
-                    )}
-                  </G>
-                );
-              })}
-              {/* diamond/kite 7 อันแทรกในช่องว่างระหว่างสี่เหลี่ยม (polygon 4 จุด) */}
-              {[...Array(NUM_SQUARES)].map((_, i) => {
-                // 1. จุดที่ขอบวงกลมตรงกลาง (ปลายแหลมใน)
-                const angleMid = (2 * Math.PI * (i + 1)) / NUM_SQUARES;
-                const innerRadius = 12; // << ปรับรัศมีวงกลมตรงกลาง
-                const p1 = {
-                  x: CENTER_X + innerRadius * Math.cos(angleMid),
-                  y: CENTER_Y + innerRadius * Math.sin(angleMid),
-                };
-
-                // 2. จุดขอบด้านในของสี่เหลี่ยม i (ปลายด้านใน)
-                const angleIn1 = (2 * Math.PI * i) / NUM_SQUARES + Math.PI / 3.5;
-                const inRadius = RADIUS - (SQUARE_SIZE / 2) * Math.SQRT2; // << ปรับความยาวขา diamond
-                const p2 = {
-                  x: CENTER_X + inRadius * Math.cos(angleIn1),
-                  y: CENTER_Y + inRadius * Math.sin(angleIn1),
-                };
-
-                // 3. จุดที่มุมของสี่เหลี่ยมสองอันด้านนอกมาชนกัน (ปลายด้านนอก)
-                const angleOut =
-                  (2 * Math.PI * (i + 1)) / NUM_SQUARES - Math.PI / NUM_SQUARES;
-                const outRadius = RADIUS + SQUARE_SIZE / 7; // << ปรับรัศมีจุดปลายด้านนอก
-                const p3 = {
-                  x: CENTER_X + outRadius * Math.cos(angleOut),
-                  y: CENTER_Y + outRadius * Math.sin(angleOut),
-                };
-
-                // 4. จุดขอบด้านในของสี่เหลี่ยม i+1 (ปลายด้านใน)
-                const angleIn2 =
-                  (2 * Math.PI * (i + 0.9)) / NUM_SQUARES - Math.PI / 4;
-                const p4 = {
-                  x: CENTER_X + inRadius * Math.cos(angleIn2),
-                  y: CENTER_Y + inRadius * Math.sin(angleIn2),
-                };
-
-                // 4. จุดขอบด้านในของสี่เหลี่ยม i+1 (ปลายด้านใน)
-                const angleOut1 = (2 * Math.PI * (i + 1)) / NUM_SQUARES - Math.PI / NUM_SQUARES;
-                const p5 = {
-                  x: CENTER_X + outRadius * Math.cos(angleOut1),
-                  y: CENTER_Y + outRadius * Math.sin(angleOut1),
-                };
-
-                const angleMid1 = (2 * Math.PI * (i + 0)) / NUM_SQUARES;
-                const p6 = {
-                  x: CENTER_X + innerRadius * Math.cos(angleMid1),
-                  y: CENTER_Y + innerRadius * Math.sin(angleMid1),
-                };
-
-                // Calculate centroid for label
-                const centroidX = (p1.x + p2.x + p3.x + p4.x + p6.x) / 5;
-                const centroidY = (p1.y + p2.y + p3.y + p4.y + p6.y) / 5;
-
-                return (
-                  <G key={`kite-group-${i}`}>
-                    <Polygon
-                      points={`${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y} ${p4.x},${p4.y} ${p6.x},${p6.y}`}
-                      fill="gray"
-                      stroke="#fff"
-                      strokeWidth={2}
-                    />
-                    {/* Order number for inner diamond: 8-14 */}
-                    <SvgText
-                      x={centroidX}
-                      y={centroidY + 6}
-                      fontSize={18}
-                      fontWeight="bold"
-                      fill="#fff"
-                      textAnchor="middle"
-                      alignmentBaseline="middle"
-                      stroke="#222"
-                      strokeWidth={0.5}
+                    </Animated.View>
+                  );
+                })}
+                {showNewCoinEffect &&
+                  newCoinIndex !== null &&
+                  newCoinIndex < 14 && (
+                    <Animated.View
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 25,
+                      }}
+                      onTouchEnd={handleTapToPlace}
                     >
-                      {i + 8}
-                    </SvgText>
-                    {coinImages[i + 7] && (
-                      <Image
-                        source={{ uri: coinImages[i + 7] }}
+                      <Animated.View
                         style={{
-                          position: 'absolute',
-                          left: centroidX - (SQUARE_SIZE - 4) / 2,
-                          top: centroidY - (SQUARE_SIZE - 4) / 2,
-                          width: SQUARE_SIZE - 4,
-                          height: SQUARE_SIZE - 4,
-                          borderRadius: 8,
-                          resizeMode: 'contain',
+                          transform: [
+                            { translateX: newCoinPosition.x },
+                            { translateY: newCoinPosition.y },
+                            { scale: newCoinScale },
+                            {
+                              rotate: newCoinAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0deg', '360deg'],
+                              }),
+                            },
+                          ],
+                          opacity: newCoinAnim,
                         }}
-                      />
-                    )}
-                  </G>
-                );
-              })}
-            </Svg>
+                      >
+                        <Image
+                          source={{ uri: coinImages[newCoinIndex] }}
+                          style={{
+                            width: 50,
+                            height: 50,
+                            resizeMode: 'contain',
+                          }}
+                        />
+                      </Animated.View>
+                    </Animated.View>
+                  )}
+              </>
+            )}
+            {currentPage === 1 && (
+              <View style={styles.sponsor2RowsContainer}>
+                <View style={styles.sponsorRow2Row}>
+                  {[0, 1, 2].map(i => {
+                    const idx = 15 + i;
+                    return (
+                      <View key={idx} style={styles.sponsorStampSlot}>
+                        {coinImages[idx] && (
+                          <Image
+                            source={{ uri: coinImages[idx] }}
+                            style={styles.sponsorStampImg}
+                          />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+                <View
+                  style={[
+                    styles.sponsorRow2Row,
+                    styles.sponsorRow2RowBottomHex,
+                  ]}
+                >
+                  {[3, 4, 5, 6].map(i => {
+                    const idx = 15 + i;
+                    return (
+                      <View key={idx} style={styles.sponsorStampSlot}>
+                        {coinImages[idx] && (
+                          <Image
+                            source={{ uri: coinImages[idx] }}
+                            style={styles.sponsorStampImg}
+                          />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          </View>
+          <View style={styles.dotIndicatorContainer}>
+            {[0, 1].map(idx => (
+              <View
+                key={idx}
+                style={[styles.dot, currentPage === idx && styles.dotActive]}
+              />
+            ))}
+          </View>
+          <View style={styles.pageNavBtnContainer}>
+            <TouchableOpacity
+              style={[
+                styles.pageNavBtn,
+                currentPage === 0 && styles.pageNavBtnDisabled,
+              ]}
+              onPress={() => currentPage > 0 && setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 0}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.pageNavBtnText,
+                  currentPage === 0 && styles.pageNavBtnTextDisabled,
+                ]}
+              >
+                {'←'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.pageNavBtn,
+                currentPage === 1 && styles.pageNavBtnDisabled,
+              ]}
+              onPress={() => currentPage < 1 && setCurrentPage(currentPage + 1)}
+              disabled={currentPage === 1}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.pageNavBtnText,
+                  currentPage === 1 && styles.pageNavBtnTextDisabled,
+                ]}
+              >
+                {'→'}
+              </Text>
+            </TouchableOpacity>
           </View>
           <TouchableOpacity
             style={styles.rewardBtn}
@@ -198,7 +464,7 @@ export default function StampModal({
             <Text style={styles.rewardBtnText}>Close</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -218,13 +484,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  closeBtn: {
-    position: 'absolute',
-    top: 10,
-    right: 16,
-    zIndex: 10,
-    padding: 8,
-  },
   title: {
     color: '#fff',
     fontSize: 22,
@@ -234,8 +493,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   stampHexGridContainer: {
-    width: 280,
-    height: 320,
+    width: 300,
+    height: 340,
     position: 'relative',
     marginVertical: 24,
   },
@@ -252,4 +511,67 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
+  sponsor2RowsContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+    marginBottom: 40,
+  },
+  sponsorRow2Row: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 18,
+  },
+  sponsorRow2RowBottomHex: { marginTop: 22, alignSelf: 'center' },
+  sponsorStampSlot: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    marginHorizontal: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  sponsorStampImg: { width: 48, height: 48, resizeMode: 'contain' },
+  dotIndicatorContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    marginTop: -10,
+    gap: 8,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#bbb',
+    marginHorizontal: 4,
+    opacity: 0.5,
+  },
+  dotActive: { backgroundColor: '#fff', opacity: 1 },
+  pageNavBtnContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 16,
+  },
+  pageNavBtn: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 8,
+    opacity: 1,
+    borderWidth: 0,
+  },
+  pageNavBtnDisabled: { backgroundColor: '#bbb', opacity: 0.5 },
+  pageNavBtnText: { fontSize: 22, color: '#222', fontWeight: 'bold' },
+  pageNavBtnTextDisabled: { color: '#888' },
 });

@@ -11,7 +11,11 @@ import {
   Query,
 } from '@nestjs/common';
 import { EvouchersService } from '../services/evouchers.service';
-import { AddEvoucherCodeByRoleDto, AddEvoucherCodeDto, CreateEvoucherDto } from '../dto/create-evoucher.dto';
+import {
+  AddEvoucherCodeByRoleDto,
+  AddEvoucherCodeDto,
+  CreateEvoucherDto,
+} from '../dto/create-evoucher.dto';
 import { UpdateEvoucherDto } from '../dto/update-evoucher.dto';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
@@ -23,7 +27,7 @@ export class EvouchersController {
   constructor(
     private readonly evouchersService: EvouchersService,
     private readonly evoucherCodesService: EvoucherCodesService,
-  ) { }
+  ) {}
 
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))
@@ -60,14 +64,17 @@ export class EvouchersController {
   @Post(':id/claim')
   claim(
     @Param('id') id: string,
-    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
   ) {
     const userId = req.user._id.toString();
     return this.evoucherCodesService.claimEvoucherCode(id, userId);
   }
 
   @Post(':id/add')
-  addEvoucherCode(@Param('id') evoucherId: string, @Body() addEvoucherCodeDto: AddEvoucherCodeDto) {
+  addEvoucherCode(
+    @Param('id') evoucherId: string,
+    @Body() addEvoucherCodeDto: AddEvoucherCodeDto,
+  ) {
     const { userId } = addEvoucherCodeDto;
     return this.evoucherCodesService.addEvoucherCode(userId, evoucherId);
   }
@@ -77,7 +84,7 @@ export class EvouchersController {
     @Param('id') evoucherId: string,
     @Body() addEvoucherCodeByRoleDto: AddEvoucherCodeByRoleDto,
   ) {
-    const { roleId } = addEvoucherCodeByRoleDto
+    const { roleId } = addEvoucherCodeByRoleDto;
     return this.evoucherCodesService.addEvoucherCodeByRole(roleId, evoucherId);
   }
 }

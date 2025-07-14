@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+
 import { apiRequest, ApiResponse } from "@/utils/api";
 import { Evoucher } from "@/types/evoucher";
 import { addToast } from "@heroui/react";
@@ -61,6 +62,7 @@ export function useEvoucher() {
             return res;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to create evoucher.';
+
             setError(errorMessage);
             throw new Error(errorMessage);
         } finally {
@@ -86,9 +88,11 @@ export function useEvoucher() {
                     color: 'success',
                 })
             }
+
             return res;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to update evoucher.';
+
             setError(errorMessage);
             throw new Error(errorMessage);
         } finally {
@@ -105,9 +109,11 @@ export function useEvoucher() {
             if (deletedEvoucher) {
                 setEvouchers(prev => prev.filter(evoucher => evoucher._id !== evoucherId));
             }
+
             return res;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to delete evoucher.';
+
             setError(errorMessage);
             throw new Error(errorMessage);
         } finally {

@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, isValidObjectId, Model, now, Types } from 'mongoose';
+import { FilterQuery, isValidObjectId, Model, Types } from 'mongoose';
 
 import { queryAll } from 'src/pkg/helper/query.util';
 import { UsersService } from '../../users/users.service';
@@ -12,28 +12,37 @@ import { UserDocument } from '../../users/schemas/user.schema';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
 import { UpdateActivityDto } from '../dto/activities/update-activities.dto';
 import { Activities, ActivityDocument } from '../schemas/activities.schema';
-import {
-  isUserInScope,
-  parseScope,
-  parseStringArray,
-} from '../utils/scope.util';
+import { isUserInScope, parseScope, parseStringArray } from '../utils/scope.util';
 import { Checkin } from 'src/module/checkin/schema/checkin.schema';
 import { RoleDocument } from 'src/module/role/schemas/role.schema';
 import { AssessmentsService } from 'src/module/assessments/service/assessments.service';
-import { Assessment, AssessmentDocument } from 'src/module/assessments/schema/assessment.schema';
+import {
+  Assessment,
+  AssessmentDocument,
+} from 'src/module/assessments/schema/assessment.schema';
+import { ActivitiesType } from '../schemas/activitiesType.schema';
+import {
+  AssessmentAnswer,
+  AssessmentAnswerDocument,
+} from 'src/module/assessments/schema/assessment-answer.schema';
 
 @Injectable()
 export class ActivitiesService {
   constructor(
     @InjectModel(Activities.name)
     private activitiesModel: Model<ActivityDocument>,
+    @InjectModel('ActivitiesType')
+    private activitiesTypeModel: Model<ActivitiesType>,
     private usersService: UsersService,
     @InjectModel(Checkin.name)
     private readonly checkinsModel: Model<Checkin>,
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
-    @InjectModel(Assessment.name) private assessmentAnswersModel: Model<AssessmentDocument>,
+    @InjectModel(Assessment.name)
+    private readonly assessmentModel: Model<AssessmentDocument>,
+    @InjectModel(AssessmentAnswer.name)
+    private assessmentAnswersModel: Model<AssessmentAnswerDocument>,
     private readonly assessmentsService: AssessmentsService,
-  ) { }
+  ) {}
 
   async create(createActivitiesDto: CreateActivitiesDto) {
     const metadata = createActivitiesDto.metadata || {};
@@ -83,8 +92,25 @@ export class ActivitiesService {
   }
 
   async findAll() {
-    const activity = this.activitiesModel.find().populate('type');
-    return activity;
+    try {
+      const [activities, types] = await Promise.all([
+        this.activitiesModel.find().lean(),
+        this.activitiesTypeModel.find().lean(),
+      ]);
+
+      const typeMap = new Map(
+        types.map((type) => [type._id.toString(), type.name]),
+      );
+
+      const mappedActivities = activities.map((activity) => ({
+        ...activity,
+        type: typeMap.get(activity.type?.toString()) || null,
+      }));
+
+      return mappedActivities;
+    } catch (error) {
+      throw new Error(`Failed to fetch activities , ${error}`);
+    }
   }
 
   async findCanCheckinActivities(userId: Types.ObjectId | string) {
@@ -96,16 +122,16 @@ export class ActivitiesService {
       .findById(userId)
       .populate('role')
       .exec()) as unknown as Omit<UserDocument, 'role'> & {
-        role: Omit<RoleDocument, 'metadata'> & {
-          metadata: {
-            canCheckin: {
-              user: string[];
-              major: string[];
-              school: string[];
-            };
+      role: Omit<RoleDocument, 'metadata'> & {
+        metadata: {
+          canCheckin: {
+            user: string[];
+            major: string[];
+            school: string[];
           };
         };
       };
+    };
     if (!userDoc) {
       throw new NotFoundException('User not found');
     }
@@ -341,7 +367,74 @@ export class ActivitiesService {
 
   // หากิจกรรมที่มี Assessment
   async findActivitiesWithAssessment(activityId: string) {
-    const activities = await this.assessmentsService.findAllByActivity(activityId);
+    const activities =
+      await this.assessmentsService.findAllByActivity(activityId);
     return activities;
+  }
+
+  async findAllIsProgressCountActivities() {
+    return this.activitiesModel.find({ 'metadata.isProgressCount': true }).lean();
+  }
+
+  // progress activities by user
+  // คำนวณ (จำนวน activitiese Isprogress ของ user % จำนวน activitiese Isprogress ทั้งหมด) * 100 = %
+  async findProgressByUser(userId: string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid user ID');
+    }
+
+    const user = await this.usersService.findOneByQuery({ _id: userId });
+    if (!user?.data?.[0]) {
+      throw new NotFoundException('User not found');
+    }
+
+    // ดึงทั้งหมดที่ isProgressCount
+    const allActivities = await this.activitiesModel.find({
+      'metadata.isProgressCount': true,
+      'metadata.isOpen': true,
+      'metadata.isVisible': true,
+    }).lean();
+
+    // กรองตาม scope
+    const scopedActivities = allActivities.filter(activity =>
+      isUserInScope(user.data[0] as UserDocument, activity as ActivityDocument)
+    );
+
+    // นับว่าทำ Assessment แล้วกี่อัน
+    let answeredCount = 0;
+
+    for (const activity of scopedActivities) {
+      const assessments = await this.assessmentsService.findAllByActivity(
+        String(activity._id)
+      );
+
+      let hasAnswered = false;
+
+      if (assessments.data?.length) {
+        for (const assessment of assessments.data as AssessmentDocument[]) {
+          const answered = await this.assessmentAnswersModel.findOne({
+            user: (user.data[0] as UserDocument)._id,
+            'answers.assessment': assessment._id,
+          });
+
+          if (answered) {
+            hasAnswered = true;
+            break;
+          }
+        }
+      }
+
+      if (hasAnswered) answeredCount++;
+    }
+
+    const percentage = scopedActivities.length > 0
+      ? (answeredCount / scopedActivities.length) * 100
+      : 0;
+
+    return {
+      userProgressCount: answeredCount,
+      progressPercentage: percentage,
+      scopedActivitiesCount: scopedActivities.length,
+    };
   }
 }

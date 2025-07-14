@@ -34,28 +34,24 @@ export class UsersController {
   ) {}
 
   @Post()
-  @Public()
   @CacheKey('users:invalidate')
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Post('upload')
-  @Public()
   @CacheKey('users:invalidate')
   upload(@Body() uploadUserDtos: UserUploadDirectDto[]) {
     return this.usersService.upload(uploadUserDtos);
   }
 
   @Get()
-  @Permissions('users:read')
   @CacheKey('users')
   async findAll(@Query() query: Record<string, string>) {
     return this.usersService.findAll(query);
   }
 
   @Get('statistics')
-  @Permissions('users:read')
   @CacheKey('users:statistics')
   async getUserCountByRoles(): Promise<
     Record<string, { registered: number; notRegistered: number }>
@@ -64,7 +60,6 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Permissions('users:read:id')
   @CacheKey('users:$params.id')
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -86,20 +81,18 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @CacheKey('users:invalidate')
+  @Permissions('users:update')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
-  @CacheKey('users:invalidate')
-  @Public()
+  @Permissions('users:delete:id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
 
   @Delete('multiple')
-  @Permissions('users:delete')
   @CacheKey('users:invalidate')
   removeMultiple(@Body() ids: string[]) {
     return this.usersService.removeMultiple(ids);

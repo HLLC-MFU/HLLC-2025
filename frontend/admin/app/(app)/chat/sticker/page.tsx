@@ -1,22 +1,23 @@
 "use client";
 
 import React, { useState } from "react";
-import { PageHeader } from "@/components/ui/page-header";
 import { Smile } from "lucide-react";
-import StickerAccordion from "./_components/StickerAccordion";
-import { useSticker } from "@/hooks/useSticker";
-import { Sticker } from "@/types/sticker";
 import { addToast } from "@heroui/react";
-import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
+
+import StickerTable from "./_components/StickerTable";
 import { StickerModal } from "./_components/StickerModal";
 
+import { PageHeader } from "@/components/ui/page-header";
+import { useSticker } from "@/hooks/useSticker";
+import { Sticker } from "@/types/sticker";
+import { ConfirmationModal } from "@/components/modal/ConfirmationModal";
+import { GenericSkeleton } from "../_components/RoomSkeleton";
+
 export default function StickerPage() {
-    const { stickers, loading, createSticker, deleteSticker, updateSticker, fetchStickers } = useSticker();
+    const { stickers, loading, error, createSticker, deleteSticker, updateSticker, fetchStickers } = useSticker();
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [confirmationModalType, setConfirmationModalType] = useState<
-        'delete' | 'edit' | null
-    >(null);
+    const [confirmationModalType, setConfirmationModalType] = useState<'delete' | 'edit' | null>(null);
     const [selectedSticker, setSelectedSticker] = useState<Sticker | undefined>();
 
     const handleAddSticker = () => {
@@ -39,27 +40,25 @@ export default function StickerPage() {
     const handleSubmitSticker = async (formData: FormData, mode: "add" | "edit") => {
         try {
             const stickerId = selectedSticker?.id || selectedSticker?._id;
+
             if (mode === "edit" && stickerId && typeof stickerId === 'string') {
                 const res = await updateSticker(stickerId, formData);
-                if (res.statusCode === 200 || res.statusCode === 201) {
+                if (res && (res.statusCode === 200 || res.statusCode === 201)) {
                     addToast({ title: "Sticker updated successfully!", color: "success" });
                 } else {
-                    addToast({ title: res.message || "Failed to update sticker", color: "danger" });
-                    console.error("[Sticker] Update error:", res);
+                    addToast({ title: res?.message || "Failed to update sticker", color: "danger" });
                 }
             } else if (mode === "add") {
                 const res = await createSticker(formData);
-                if (res.statusCode === 200 || res.statusCode === 201) {
+                if (res && (res.statusCode === 200 || res.statusCode === 201)) {
                     addToast({ title: "Sticker added successfully!", color: "success" });
                 } else {
-                    addToast({ title: res.message || "Failed to add sticker", color: "danger" });
-                    console.error("[Sticker] Add error:", res);
+                    addToast({ title: res?.message || "Failed to add sticker", color: "danger" });
                 }
             }
             await fetchStickers();
         } catch (err) {
             addToast({ title: "Error while saving sticker", color: "danger" });
-            console.error("[Sticker] Save error:", err);
         } finally {
             setIsModalOpen(false);
         }
@@ -70,22 +69,48 @@ export default function StickerPage() {
             const stickerId = selectedSticker?.id || selectedSticker?._id;
             if (confirmationModalType === 'delete' && stickerId && typeof stickerId === 'string') {
                 const res = await deleteSticker(stickerId);
-                if (res.statusCode === 200 || res.statusCode === 201) {
+                if (res && (res.statusCode === 200 || res.statusCode === 201)) {
                     addToast({ title: 'Sticker deleted successfully!', color: 'success' });
                 } else {
-                    addToast({ title: res.message || 'Failed to delete sticker', color: 'danger' });
-                    console.error("[Sticker] Delete error:", res);
+                    addToast({ title: res?.message || 'Failed to delete sticker', color: 'danger' });
                 }
                 await fetchStickers();
             }
         } catch (err) {
             addToast({ title: "Error while deleting sticker", color: "danger" });
-            console.error("[Sticker] Delete error:", err);
         } finally {
             setConfirmationModalType(null);
             setSelectedSticker(undefined);
         }
     };
+
+    if (loading) {
+        return (
+            <div className="flex flex-col gap-6">
+                <PageHeader 
+                    description="Manage chat stickers"
+                    icon={<Smile />}
+                    title="Sticker Management"
+                />
+                <GenericSkeleton />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex flex-col gap-6">
+                <PageHeader 
+                    description="Manage chat stickers"
+                    icon={<Smile />}
+                    title="Sticker Management"
+                />
+                <div className="flex items-center justify-center p-8">
+                    <div className="text-danger-500">Error: {error}</div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -96,36 +121,32 @@ export default function StickerPage() {
             />
 
             <div className="flex flex-col gap-6">
-                {loading ? (
-                    <p>Loading...</p>
-                ) : (
-                    <StickerAccordion
-                        stickers={stickers}
-                        onAdd={handleAddSticker}
-                        onEdit={handleEditSticker}
-                        onDelete={handleDeleteSticker}
-                    />
-                )}
+                <StickerTable
+                    stickers={stickers}
+                    onAdd={handleAddSticker}
+                    onDelete={handleDeleteSticker}
+                    onEdit={handleEditSticker}
+                />
             </div>
 
             {/* Modals */}
             <StickerModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSuccess={handleSubmitSticker}
                 mode={modalMode}
                 sticker={selectedSticker}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={handleSubmitSticker}
             />
 
             <ConfirmationModal
-                isOpen={confirmationModalType === "delete"}
-                onClose={() => setConfirmationModalType(null)}
-                onConfirm={handleConfirm}
-                title="Delete sticker"
                 body="Are you sure you want to delete this sticker?"
                 confirmColor="danger"
+                isOpen={confirmationModalType === "delete"}
                 selectedKeys={new Set()}
+                title="Delete sticker"
                 userAction={{ _id: "system", username: "admin", name: { first: "System", last: "Admin" }, role: { _id: "admin", name: "Admin" } }}
+                onClose={() => setConfirmationModalType(null)}
+                onConfirm={handleConfirm}
             />
         </>
     );

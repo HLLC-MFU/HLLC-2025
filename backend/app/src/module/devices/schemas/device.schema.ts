@@ -41,6 +41,7 @@ export class Device extends Document {
 
 export const DeviceSchema = SchemaFactory.createForClass(Device);
 
-DeviceSchema.index({ userId: 1 });
+DeviceSchema.index({ fcmToken: 1 }, { unique: true, sparse: true });
 DeviceSchema.index({ deviceId: 1 });
-DeviceSchema.index({ fcmToken: 1 });
+DeviceSchema.index({ userId: 1 });
+DeviceSchema.index({ deviceId: 1, userId: 1 }, { unique: true });

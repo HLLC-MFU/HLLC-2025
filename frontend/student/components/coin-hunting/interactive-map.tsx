@@ -6,6 +6,7 @@ import {
   View,
   TouchableWithoutFeedback,
   ViewStyle,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -240,6 +241,11 @@ export default function InteractiveMap({
 
   return (
     <View style={styles.container}>
+      {!isImageLoaded && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#aaa" />
+        </View>
+      )}
       <PanGestureHandler 
         onGestureEvent={panHandler}
         minPointers={1}
@@ -257,12 +263,13 @@ export default function InteractiveMap({
                   <Animated.View style={[{ width: imageSize.width, height: imageSize.height }, imageAnimatedStyle]}>
                     <Animated.Image
                       source={mapsImage}
-                      style={[styles.image]}
+                      style={[styles.image, !isImageLoaded && { opacity: 0 }]}
                       resizeMode="contain"
                       onLoad={() => setIsImageLoaded(true)}
                       fadeDuration={300}
                       progressiveRenderingEnabled={true}
                     />
+                    <View style={styles.overlay} pointerEvents="none" />
                     {/* Render children (markers) on top of the image, sharing the same transform */}
                     {isImageLoaded && children}
                   </Animated.View>
@@ -301,5 +308,18 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     pointerEvents: 'box-none', // Allow touches to pass through to children
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000',
+    opacity: 0.35, 
+    zIndex: 2,
   },
 });
