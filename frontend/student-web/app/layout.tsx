@@ -53,7 +53,7 @@ export default function RootLayout({
       >
         <Providers themeProps={{ attribute: 'class', defaultTheme: 'light' }}>
           <PopupDialog />
-          <main className="grow h-screen w-screen">{children}</main>
+          <main className="grow h-dvh w-screen">{children}</main>
         </Providers>
       </body>
     </html>
