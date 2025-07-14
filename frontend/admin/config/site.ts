@@ -16,6 +16,7 @@ import {
   CircleDollarSign,
   Footprints,
   MessagesSquare,
+  BookCheck,
 } from "lucide-react";
 
 
@@ -42,6 +43,7 @@ export const siteConfig: {
         { label: "Notifications", href: "/notifications", icon: BellRing , permission: "notification:read"},
         { label: "Activities", href: "/activities", icon: University, permission: "activities:read" },
         { label: "Checkin", href: "/checkin", icon: CircleCheckBig, permission: "checkin:read" },
+        { label: "Assessment ", href: "/assessments", icon: BookCheck, permission: "assessment:read" },
         { label: "Reports", href: "/reports", icon: ShieldAlert, permission: "reports:read" },
         { label: "Step Counters", href: "/step-counters", icon: Footprints , permission: "Stepcounters:read"}, 
       ],
