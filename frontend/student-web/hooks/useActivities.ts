@@ -22,7 +22,7 @@ export function useActivities(activityId: string | null) {
     setError(null);
     try {
       const res = await apiRequest<{ data: Activities[] }>(
-        '/activities/users',
+        '/activities/user',
         'GET',
       );
 
@@ -31,7 +31,7 @@ export function useActivities(activityId: string | null) {
       setError(
         err && typeof err === 'object' && 'message' in err
           ? (err as { message?: string }).message ||
-              'Failed to fetch activities by user.'
+          'Failed to fetch activities by user.'
           : 'Failed to fetch activities by user.',
       );
     } finally {
@@ -60,7 +60,7 @@ export function useActivities(activityId: string | null) {
       setError(
         err && typeof err === 'object' && 'message' in err
           ? (err as { message?: string }).message ||
-              'Failed to fetch assessments by activity.'
+          'Failed to fetch assessments by activity.'
           : 'Failed to fetch assessments by activity.',
       );
     } finally {

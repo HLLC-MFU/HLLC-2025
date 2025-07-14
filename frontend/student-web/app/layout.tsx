@@ -50,9 +50,13 @@ export default function RootLayout({
           fontSans.variable,
         )}
       >
-        <Providers themeProps={{ attribute: 'class', defaultTheme: 'dark' }}>
+        <Providers themeProps={{ attribute: 'class', defaultTheme: 'light' }}>
           <PopupDialog />
-          <main className="grow h-screen w-screen">{children}</main>
+          <div className="flex flex-col h-dvh max-h-dvh justify-center">
+            <main className="grow">
+              {children}
+            </main>
+          </div>
         </Providers>
       </body>
     </html>
