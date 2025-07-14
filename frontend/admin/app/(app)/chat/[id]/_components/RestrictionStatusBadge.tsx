@@ -14,28 +14,28 @@ export function RestrictionStatusBadge({ restrictionStatus, showExpiry = false }
     if (!isBanned && !isMuted) return null;
 
     return (
-        <div className="flex flex-wrap gap-1 mt-1">
+        <div className="flex gap-2 mt-1 justify-start text-center">
             {isBanned && (
-                <span className="inline-flex items-start gap-1 px-2 py-1 rounded text-gray-700 text-xs">
+                <div className="inline-flex items-center gap-1 px-2 py-1 rounded text-red-700 text-xs">
                     <Ban size={10}/>
                     Banned
                     {showExpiry && banExpiry && (
-                        <span>
+                        <div className="text-center">
                             ({new Date(banExpiry).toLocaleDateString()})
-                        </span>
+                        </div>
                     )}
-                </span>
+                </div>
             )}
             {isMuted && (
-                <span className="inline-flex items-start gap-1 px-2 py-1 rounded text-gray-700 text-xs">
+                <div className="inline-flex items-center gap-1 px-2 py-1 rounded text-yellow-700 text-xs">
                     <MicOff size={10} />
                     Muted
                     {showExpiry && muteExpiry && (
-                        <span>
+                        <div className="text-center">
                             ({new Date(muteExpiry).toLocaleDateString()})
-                        </span>
+                        </div>
                     )}
-                </span>
+                </div>
             )}
         </div>
     );
