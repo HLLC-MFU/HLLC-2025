@@ -1,60 +1,44 @@
-import { apiRequest } from "@/utils/api"
-import { addToast } from "@heroui/react"
-import { useEffect, useState } from "react"
+"use client"
+import { useEffect, useState } from "react";
+import { useProfile } from "./useProfile";
+import { apiRequest } from "@/utils/api";
+import { addToast } from "@heroui/react";
+import { NotificationItem } from "@/types/notification";
 
 export function useNotification() {
-    const [notifications, setNotifications] = useState<Notification[]>([])
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchNotification = async () => {
-        setLoading(true)
-        setError(null)
+        setLoading(true);
+        setError(null);
 
         try {
-            const res = await apiRequest<{ data: Notification[] }>("/notifications/me", "GET")
-            setNotifications(Array.isArray(res.data?.data) ? res.data.data : [])
+            const res = await apiRequest<NotificationItem[]>("/notifications/me", "GET");
+            setNotifications(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch notifications.')
-            addToast({
-                title: 'Failed to fetch notifications',
-                description: error,
-                color: 'danger',
-            })
+            setError(err instanceof Error ? err.message : "Failed to fetch notifications.");
+            addToast({ title: "Failed to fetch notifications", description: error, color: "danger" });
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
-    const readNotifications = async () => {
-        setLoading(true)
-        setError(null)
-
+    const readNotification = async (id: string) => {
         try {
-            const res = await apiRequest<{ success: boolean }>("/notifications/read", "POST")
+            const res = await apiRequest<{ success: boolean }>(`/notifications/${id}/read`, "POST" );
 
             if (res.data?.success) {
-                setNotifications(prev =>
-                    prev.map(noti => ({ ...noti, isRead: true }))
-                )
-
-                addToast({
-                    title: 'Marked all as read',
-                    description: 'All your notifications are now marked as read.',
-                    color: 'success',
-                })
+                await fetchNotification();
+            } else {
+                throw new Error("Mark as read failed");
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to mark as read.')
-            addToast({
-                title: 'Error',
-                description: error,
-                color: 'danger',
-            })
-        } finally {
-            setLoading(false)
+            const message = err instanceof Error ? err.message : "Failed to mark as read.";
+            setError(message);
         }
-    }
+    };
 
     useEffect(() => {
         fetchNotification();
@@ -65,6 +49,7 @@ export function useNotification() {
         loading,
         error,
         fetchNotification,
-        readNotifications,
+        readNotification,
+        setNotifications, 
     };
 }
