@@ -22,11 +22,6 @@ export function QrCodeScanner({ selectedActivityId, onCheckin }: QrCodeScannerPr
       studentId = parsed.username || parsed.studentId || parsed.id || result;
     } catch { }
 
-    if (!/^\d{10}$/.test(studentId)) {
-      console.error('Invalid studentId:', studentId);
-      return;
-    }
-
     if (isProcessingRef.current) return;
 
     isProcessingRef.current = true;
