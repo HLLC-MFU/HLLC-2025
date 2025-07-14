@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useEffect, useMemo } from "react";
+import { useReducer, useEffect, useMemo, useState, useRef } from "react";
 import { Accordion, AccordionItem, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 import { BookOpenCheck, ClipboardList, Eye } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
@@ -16,6 +16,7 @@ import { initialState, reducer } from "./_types/modal";
 import { createModalActions } from "./_actions/modal-actions";
 import { createQuestionHandlers } from "./_actions/question-handlers";
 import { AssessmentType } from "@/types/assessment";
+import Papa from "papaparse";
 
 export default function AssessmentsPage() {
     const [state, dispatch] = useReducer(reducer, initialState);
@@ -43,6 +44,92 @@ export default function AssessmentsPage() {
         loading: activitiesLoading,
         fetchActivities,
     } = useAssessment();
+
+    // เพิ่ม ref สำหรับ file input
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [importType, setImportType] = useState<'test' | 'activity' | null>(null);
+    const [isImporting, setIsImporting] = useState(false);
+
+    // ฟังก์ชัน handleImport
+    const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const fileType = file.name.endsWith('.json') ? 'json' : 'csv';
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            setIsImporting(true);
+            let questions: any[] = [];
+            try {
+                if (fileType === 'json') {
+                    const json = JSON.parse(e.target?.result as string);
+                    questions = Array.isArray(json) ? json : [json];
+                } else {
+                    const csv = Papa.parse(e.target?.result as string, { skipEmptyLines: true });
+                    questions = parseQuestionsFromCSV(csv.data as string[][], importType);
+                }
+                if (importType === 'test') {
+                    for (const q of questions) {
+                        await createTestQuestion(q);
+                    }
+                    fetchTestQuestions();
+                } else if (importType === 'activity') {
+                    if (!selectedActivityId) throw new Error('Please select an activity before importing.');
+                    for (const q of questions) {
+                        await createActivityQuestion(selectedActivityId, q);
+                    }
+                    fetchActivityQuestions(selectedActivityId || "activity");
+                }
+                alert('Import successful!');
+            } catch (err) {
+                alert('Import failed: ' + (err as Error).message);
+            } finally {
+                setIsImporting(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    // ฟังก์ชันแปลงข้อมูลจาก CSV เป็น question objects
+    function parseQuestionsFromCSV(data: string[][], type: 'test' | 'activity' | null) {
+        const questions: any[] = [];
+        if (type === 'test') {
+            // หา index ของหัวตาราง
+            const headerIdx = data.findIndex(row => row.includes('Question Thai'));
+            if (headerIdx === -1) return questions;
+            for (let i = headerIdx + 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row[1] || !row[2]) continue;
+                questions.push({
+                    question: { th: row[1], en: row[2] },
+                    status: row[3],
+                    assessmentType: row[4],
+                    required: row[5]?.toLowerCase() === 'true',
+                });
+            }
+        } else if (type === 'activity') {
+            // หา activity name
+            let activityName = '';
+            for (let i = 0; i < data.length; i++) {
+                if (data[i][0]?.toLowerCase().includes('question activity')) {
+                    activityName = data[i + 1]?.[0] || '';
+                    // หา header
+                    const headerIdx = i + 2;
+                    for (let j = headerIdx + 1; j < data.length; j++) {
+                        const row = data[j];
+                        if (!row[1] || !row[2]) break;
+                        questions.push({
+                            activityName,
+                            question: { th: row[1], en: row[2] },
+                            status: row[3],
+                            required: row[4]?.toLowerCase() === 'true',
+                        });
+                    }
+                }
+            }
+        }
+        return questions;
+    }
 
     // Create actions and handlers
     const actions = createModalActions(dispatch);
@@ -105,6 +192,16 @@ export default function AssessmentsPage() {
                                 >
                                     Preview Test Questions
                                 </Button>
+                                <Button
+                                    color="secondary"
+                                    variant="bordered"
+                                    className="ml-2"
+                                    isLoading={isImporting}
+                                    disabled={isImporting}
+                                    onPress={() => { setImportType('test'); fileInputRef.current?.click(); }}
+                                >
+                                    Import Questions
+                                </Button>
                             </div>
                             <QuestionTable
                                 questions={testQuestions}
@@ -155,14 +252,26 @@ export default function AssessmentsPage() {
                                         )}
                                     </DropdownMenu>
                                 </Dropdown>
-                                <Button
-                                    color="primary"
-                                    variant="flat"
-                                    startContent={<Eye size={20} />}
-                                    onPress={() => actions.openPreviewAllModal('activity')}
-                                >
-                                    Preview Activity Questions
-                                </Button>
+                                <div className="flex items-center">
+                                    <Button
+                                        color="primary"
+                                        variant="flat"
+                                        startContent={<Eye size={20} />}
+                                        onPress={() => actions.openPreviewAllModal('activity')}
+                                    >
+                                        Preview Activity Questions
+                                    </Button>
+                                    <Button
+                                        color="secondary"
+                                        variant="bordered"
+                                        className="ml-2"
+                                        isLoading={isImporting}
+                                        disabled={isImporting}
+                                        onPress={() => { setImportType('activity'); fileInputRef.current?.click(); }}
+                                    >
+                                        Import Questions
+                                    </Button>
+                                </div>
                             </div>
                             <ActivityQuestionTable
                                 questions={filteredActivityQuestions}
@@ -216,6 +325,14 @@ export default function AssessmentsPage() {
                     type="activity"
                 />
             </div>
+            {/* File input ซ่อน */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.json"
+                style={{ display: 'none' }}
+                onChange={handleImport}
+            />
         </>
     );
 }
