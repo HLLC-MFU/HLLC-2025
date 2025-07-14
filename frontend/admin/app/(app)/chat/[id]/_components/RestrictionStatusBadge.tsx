@@ -16,7 +16,7 @@ export function RestrictionStatusBadge({ restrictionStatus, showExpiry = false }
     return (
         <div className="flex flex-wrap gap-1 mt-1">
             {isBanned && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-700 text-xs font-medium">
+                <span className="inline-flex items-start gap-1 px-2 py-1 rounded text-gray-700 text-xs">
                     <Ban size={10}/>
                     Banned
                     {showExpiry && banExpiry && (
@@ -27,7 +27,7 @@ export function RestrictionStatusBadge({ restrictionStatus, showExpiry = false }
                 </span>
             )}
             {isMuted && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-700 text-xs font-medium">
+                <span className="inline-flex items-start gap-1 px-2 py-1 rounded text-gray-700 text-xs">
                     <MicOff size={10} />
                     Muted
                     {showExpiry && muteExpiry && (
