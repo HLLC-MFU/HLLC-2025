@@ -2,8 +2,8 @@ import { getToken, saveToken } from '@/utils/storage';
 import { getMessaging, AuthorizationStatus } from '@react-native-firebase/messaging';
 import { useCallback, useEffect, useState } from 'react';
 import useDevice from '@/hooks/useDevice';
+import { Alert, Linking } from 'react-native';
 
-const PERMISSION_KEY = 'hasRequestedNotificationPermission';
 const TOKEN_KEY = 'fcmToken';
 
 type PermissionStatus = {
@@ -20,27 +20,41 @@ export default function usePushNotification() {
 
   const getPermission = useCallback(async () => {
     const status = await messaging.hasPermission();
-    setPermission({ granted: status === 1, status });
-    return status === 1;
+    const granted = status === AuthorizationStatus.AUTHORIZED || status === AuthorizationStatus.PROVISIONAL;
+    setPermission({ granted, status });
+    return granted;
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     try {
       setLoading(true);
-      const alreadyRequested = await getToken(PERMISSION_KEY);
 
-      if (!alreadyRequested) {
+      const currentStatus = await messaging.hasPermission();
+
+      if (currentStatus === AuthorizationStatus.AUTHORIZED || currentStatus === AuthorizationStatus.PROVISIONAL) {
+        return getPermission();
+      }
+
+      if (currentStatus === AuthorizationStatus.DENIED) {
+        Alert.alert(
+          'Notification Permission Required',
+          'You have disabled notifications. If you want to receive alerts, please enable Allow Notifications in the Settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Go to settings', onPress: () => Linking.openSettings()},
+          ]
+        );
+        
+        return false;
+      }
+
+      if (currentStatus === AuthorizationStatus.NOT_DETERMINED) {
         const authStatus = await messaging.requestPermission();
         
         const granted =
           authStatus === AuthorizationStatus.AUTHORIZED ||
           authStatus === AuthorizationStatus.PROVISIONAL;
-
         setPermission({ granted, status: authStatus });
-
-        if (granted) {
-          await saveToken(PERMISSION_KEY, 'true');
-        }
 
         return granted;
       } else {
@@ -60,8 +74,8 @@ export default function usePushNotification() {
     
     if (newToken && newToken !== oldToken) {
       await saveToken(TOKEN_KEY, newToken);
-      await registerDevice()
-		}
+      await registerDevice();
+    }
   }, []);
 
   const listenForegroundNotifications = useCallback(() => {
@@ -71,7 +85,7 @@ export default function usePushNotification() {
   }, []);
 
   const initializePushNotification = useCallback(async () => {
-    const granted = await requestPermission();    
+    const granted = await requestPermission();
     if (granted) {
       await registerToken();
     }
