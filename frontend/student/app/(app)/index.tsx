@@ -2,7 +2,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { View } from 'react-native';
 import { router, useRouter } from 'expo-router';
 
-import { Bell, Flower } from 'lucide-react-native';
+import { Bell, Coins, Flower, Footprints } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
@@ -16,6 +16,8 @@ import { useEffect, useState } from 'react';
 import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 import NotificationModal from '@/components/global/NotificationModal';
 import useDevice from '@/hooks/useDevice';
+import { useProgress } from '@/hooks/useProgress';
+import GooeyFabMenu from '@/components/GooeyFabMenu';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
@@ -38,6 +40,7 @@ export default function HomeScreen() {
     lamduan: assets?.lamduan ?? null,
   };
   const { steps, deviceMismatch } = useHealthData(new Date());
+  const { progress, loading: progressLoading } = useProgress();
   useEffect(() => {
     async function setupBackgroundTask() {
       try {
@@ -49,6 +52,27 @@ export default function HomeScreen() {
 
     setupBackgroundTask();
   }, []);
+
+  const subFabs = [
+  {
+    key: 'step',
+    icon: <Footprints color={"white"} />,
+    label: 'Step',
+    onPress: () => router.replace('/community/step-counter'),
+  },
+  {
+    key: 'coin',
+    icon: <Coins color={"white"} />,
+    label: 'Coin',
+    onPress: () => router.replace('/coin-hunting'),
+  },
+    {
+    key: 'lamduanflowers',
+    icon: <Flower color={"white"} />,
+    label: 'lamduanflowers',
+    onPress: () => router.replace('/coin-hunting'),
+  },
+];
 
 
 
@@ -62,12 +86,20 @@ export default function HomeScreen() {
         justifyContent: 'space-between',
       }}
     >
+
       <ProgressSummaryCard
         healthData={{ steps, deviceMismatch }}
         progressImage={assetsImage.progress}
+        progressPercentage={progress?.progressPercentage ?? 0}
+        progressLoading={progressLoading}
         onPress={() => {
           router.push('/profile')
         }}
+      />
+
+      <GooeyFabMenu
+        subFabs={subFabs}
+        style={{ top: 24, left: 16 }}
       />
 
       <View style={{ flexDirection: 'row', gap: 8 }}>

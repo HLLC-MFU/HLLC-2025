@@ -81,7 +81,7 @@ export default function SettingsScreen() {
           <LogOut color="white" size={20} style={styles.icon} />
           <Text style={{ color: 'white' }}>{t('settings.logout')}</Text>
         </GlassButton>
-        <GlassButton onPress={signOut}>
+        <GlassButton onPress={() => router.back()}>
           <Text style={{ color: 'white' }}>{t('settings.back')}</Text>
         </GlassButton>
       </View>

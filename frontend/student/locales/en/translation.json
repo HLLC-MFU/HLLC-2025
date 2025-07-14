@@ -131,7 +131,9 @@
         "readonlyMessage": "This room is for reading messages only. You cannot send messages.",
         "scrollToBottom": "↓",
         "you": "You",
-        "unknownUser": "Unknown User"
+        "unknownUser": "Unknown User",
+        "connecting": "Connecting...",
+        "typeMessage": "Type your message here..."
     },
     "roomInfo": {
         "roomDetails": "Room Details",
@@ -143,5 +145,8 @@
         "noUsersOnline": "No users online",
         "waitingForFriends": "Waiting for friends to join the chat room",
         "online": "Online"
+    },
+    "coinHunting": {
+        "collection": "Collection"
     }
 }

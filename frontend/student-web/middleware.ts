@@ -10,7 +10,8 @@ export async function middleware(req: NextRequest) {
   if (pathname === '/login') {
     return NextResponse.next();
   }
-    if (pathname === '/register') {
+
+  if (pathname === '/register') {
     return NextResponse.next();
   }
 
@@ -72,5 +73,5 @@ function isTokenExpired(token: string): boolean {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|images|favicon.ico|signin).*)'],
+  matcher: ['/((?!_next/static|_next/image|images|favicon.ico|signin|data).*)'],
 };
