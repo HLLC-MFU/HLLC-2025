@@ -17,7 +17,7 @@ interface ConfirmModalProps {
   mode?: 'submit' | 'save';
 }
 
-export function ConfirmModal({
+export default function ConfirmModal({
   isVisible,
   onCancel,
   onConfirm,

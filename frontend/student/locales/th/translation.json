@@ -71,7 +71,8 @@
         "delete": "ปิดการใช้งานบัญชี",
         "back":"ย้อนกลับ",
         "delete_confirm_title": "ยืนยันการลบบัญชี",
-        "delete_confirm_message": "คุณแน่ใจหรือไม่ว่าต้องการปิดการใช้งานบัญชีนี้? การกระทำนี้ไม่สามารถย้อนกลับได้"
+        "delete_confirm_message": "คุณแน่ใจหรือไม่ว่าต้องการปิดการใช้งานบัญชีนี้? การกระทำนี้ไม่สามารถย้อนกลับได้",
+        "logout": "ออกจากระบบ"
     },
     "nav": {
         "welcome": "ยินดีต้อนรับกลับมา",
@@ -81,26 +82,34 @@
         "qrCode": "คิวอาร์โคด",
         "evoucher": "คูปอง",
         "community": "ชุมชน"
+
     },
     "home": {
         "activities": "กิจกรรม",
         "seeAll": "ดูทั้งหมด"
     },
-    "activty": {
+    "activity": {
         "title": "กิจกรรม",
+        "upcoming": "กิจกรรมที่กำลังจะมา",
+        "searchPlaceholder": "ค้นหากิจกรรม...",
         "allActivities": "กิจกรรมทั้งหมด",
         "subtitle": "กำลังมา เร็วๆนี้...",
-        "backward": "ย้อนกลับ"
+        "backward": "ย้อนกลับ",
+        "detailTab": "รายละเอียด",
+        "TimelineTab": "ไทม์ไลน์"
     },
     "evoucher": {
         "title": "คูปอง",
         "subtitle": "กำลังมา เร็วๆนี้...",
         "backward": "ย้อนกลับ",
+        "searchPlaceholder": "ค้นหาคูปอง...",
         "confirmTitle": "ยืนยันการใช้ E-Voucher",
         "confirmMessage": "คุณแน่ใจหรือไม่ว่าต้องการใช้ E-Voucher นี้?",
         "claim": "กดเพื่อรับ E-Voucher",
         "claiming": "กำลังเคลม...",
-        "claimed": "คุณได้รับ E-Voucher แล้ว!"
+        "claimed": "คุณได้รับ E-Voucher แล้ว!",
+        "NoEvoucherFromSponsor": "ไม่มี E-Voucher จากผู้สนับสนุนนี้",
+        "NoEvoucherFound": "ไม่พบ E-Voucher ที่ตรงกับการค้นหาของคุณ."
     },
     "bottomNav": {
         "home": "หน้าแรก",
@@ -122,7 +131,9 @@
         "readonlyMessage": "ห้องนี้เป็นห้องสำหรับอ่านข้อความเท่านั้น ไม่สามารถส่งข้อความได้",
         "scrollToBottom": "↓",
         "you": "คุณ",
-        "unknownUser": "ผู้ใช้ไม่ทราบ"
+        "unknownUser": "ผู้ใช้ไม่ทราบ",
+        "connecting": "กำลังเชื่อมต่อ...",
+        "typeMessage": "พิมพ์ข้อความที่นี่..."
     },
     "roomInfo": {
         "roomDetails": "รายละเอียดห้องแชท",
@@ -134,5 +145,8 @@
         "noUsersOnline": "ไม่มีผู้ใช้ออนไลน์",
         "waitingForFriends": "รอให้เพื่อนเข้าร่วมห้องแชท",
         "online": "ออนไลน์"
+    },
+    "coinHunting": {
+        "collection": "คอลเลกชัน"
     }
 }
