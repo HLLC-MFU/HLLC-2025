@@ -315,27 +315,26 @@ func (h *Hub) GetOnlineUsersInRoom(roomID string) []string {
 func (h *Hub) GetConnectedRooms() map[string]bool {
 	connectedRooms := make(map[string]bool)
 	
-	// Iterate through all rooms in the hub
 	h.clients.Range(func(roomID, roomMap interface{}) bool {
-		if roomIDStr, ok := roomID.(string); ok {
-			// Check if the room has any active users
-			if roomMapSync, ok := roomMap.(*sync.Map); ok {
-				hasActiveUsers := false
-				roomMapSync.Range(func(userID, userConns interface{}) bool {
-					if userConnsSync, ok := userConns.(*sync.Map); ok {
-						userConnsSync.Range(func(connID, conn interface{}) bool {
-							hasActiveUsers = true
-							return false // Stop after finding one active connection
+		roomIDStr, ok := roomID.(string)
+		if !ok {
+			return true
+		}
+		
+		// Check if room has any active connections
+		hasConnections := false
+		roomMap.(*sync.Map).Range(func(_, userConns interface{}) bool {
+			userConns.(*sync.Map).Range(func(_, _ interface{}) bool {
+				hasConnections = true
+				return false // Stop iteration - we found at least one connection
 						})
-					}
-					return !hasActiveUsers // Stop if we found active users
+			return !hasConnections // Continue only if no connections found yet
 				})
 				
-				if hasActiveUsers {
+		if hasConnections {
 					connectedRooms[roomIDStr] = true
-				}
-			}
 		}
+		
 		return true
 	})
 	

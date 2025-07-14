@@ -354,6 +354,9 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 
 	members := createDto.MembersToObjectIDs()
 	createdBy := createDto.CreatedByToObjectID()
+	
+	log.Printf("[CreateRoom Service] Members from DTO: %v, CreatedBy: %v", createDto.Members, createDto.CreatedBy)
+	log.Printf("[CreateRoom Service] Converted Members: %v, CreatedBy ObjectID: %v", members, createdBy)
 
 	// Ensure createdBy is in members
 	alreadyMember := false
@@ -366,6 +369,8 @@ func (s *RoomServiceImpl) CreateRoom(ctx context.Context, createDto *dto.CreateR
 	if !alreadyMember && !createdBy.IsZero() {
 		members = append(members, createdBy)
 	}
+	
+	log.Printf("[CreateRoom Service] Final members count: %d", len(members))
 
 	if err := s.validateMembers(ctx, createDto); err != nil {
 		return nil, err
@@ -452,9 +457,15 @@ func (s *RoomServiceImpl) UpdateRoom(ctx context.Context, id string, updateDto *
 	updatedRoom.Type = updateDto.Type
 	updatedRoom.Status = updateDto.Status
 	updatedRoom.Capacity = updateDto.Capacity
+	
+	log.Printf("[UpdateRoom Service] Members from DTO: %v", updateDto.Members)
 	if updateDto.Members != nil && len(updateDto.Members) > 0 {
 		updatedRoom.Members = updateDto.MembersToObjectIDs()
+		log.Printf("[UpdateRoom Service] Updated members count: %d", len(updatedRoom.Members))
+	} else {
+		log.Printf("[UpdateRoom Service] No members to update, keeping existing: %d", len(updatedRoom.Members))
 	}
+	
 	if updateDto.Image != "" {
 		updatedRoom.Image = updateDto.Image
 	}
@@ -741,13 +752,17 @@ func (s *RoomServiceImpl) calculateCanJoin(room model.Room, userID string) bool 
 
 // Helper methods
 func (s *RoomServiceImpl) validateMembers(ctx context.Context, createDto *dto.CreateRoomDto) error {
+	if createDto.CreatedBy != "" {
 	if err := s.fkValidator.ValidateForeignKey(ctx, "users", createDto.CreatedBy); err != nil {
 		return fmt.Errorf("foreign key validation error: %w", err)
+		}
 	}
 
 	for _, memberID := range createDto.Members {
+		if memberID != "" {
 		if err := s.fkValidator.ValidateForeignKey(ctx, "users", memberID); err != nil {
 			return fmt.Errorf("member validation error: %w", err)
+			}
 		}
 	}
 	return nil

@@ -7,16 +7,16 @@ import { MessagesSquare, SmilePlus } from "lucide-react";
 
 import RoomAccordion from "./_components/RoomAccordion";
 import { RoomModal } from "./_components/RoomModal";
-import { Room, RoomType } from "@/types/chat";
+import type { Room, RoomType } from "@/types/room";
 import { useChat } from "@/hooks/useChat";
 import { PageHeader } from "@/components/ui/page-header";
 
 export default function ChatPage() {
-    const { createRoom, updateRoom, deleteRoom } = useChat();
+    const { rooms, loading, error, createRoom, updateRoom, deleteRoom } = useChat();
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<Room | undefined>();
-    const [selectedRoomType, setSelectedRoomType] = useState<RoomType | "school" | "major">(RoomType.NORMAL);
+    const [selectedRoomType, setSelectedRoomType] = useState<RoomType | "school" | "major">("normal");
 
     const handleEditRoom = (room: Room) => {
         setModalMode('edit');
@@ -127,6 +127,9 @@ export default function ChatPage() {
 
             <div className="flex flex-col gap-6">
                 <RoomAccordion 
+                    rooms={rooms}
+                    loading={loading}
+                    error={error}
                     onAdd={handleAddRoom}
                     onEdit={handleEditRoom}
                     onDelete={handleDeleteRoom}

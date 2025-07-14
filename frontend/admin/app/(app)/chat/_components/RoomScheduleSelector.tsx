@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardBody, CardHeader, Button, DatePicker, Divider } from "@heroui/react";
+import { Card, CardBody, CardHeader, Button, DatePicker } from "@heroui/react";
 import { Calendar, Clock, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { fromDate } from '@internationalized/date';
@@ -76,23 +76,28 @@ export function RoomScheduleSelector({ schedule, onChange, disabled = false }: R
         onChange(null);
     };
 
-    const dateOptions = {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    } as const;
-    const timeOptions = {
-        hour: "2-digit",
-        minute: "2-digit"
-    } as const;
+    const formatDateTime = (date: Date) => {
+        return {
+            date: date.toLocaleDateString('en-US', { 
+                weekday: 'short',
+                month: 'short', 
+                day: 'numeric',
+                year: 'numeric'
+            }),
+            time: date.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false 
+            })
+        };
+    };
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+        <Card className="border border-slate-200">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div className="flex items-center gap-2">
-                    <Calendar size={20} />
-                    <h3 className="text-lg font-semibold">Schedule (Optional)</h3>
+                    <Calendar size={18} className="text-slate-600" />
+                    <h3 className="text-base font-medium text-slate-800">Schedule (Optional)</h3>
                 </div>
                 {(startAt || endAt) && (
                     <Button
@@ -101,12 +106,13 @@ export function RoomScheduleSelector({ schedule, onChange, disabled = false }: R
                         variant="light"
                         onPress={handleClear}
                         disabled={disabled}
+                        className="text-slate-500 hover:text-slate-700"
                     >
                         <X size={16} />
                     </Button>
                 )}
             </CardHeader>
-            <CardBody className="space-y-4">
+            <CardBody className="space-y-4 pt-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <DatePicker
                         label="Start Date & Time"
@@ -114,6 +120,10 @@ export function RoomScheduleSelector({ schedule, onChange, disabled = false }: R
                         onChange={handleStartAtChange}
                         isDisabled={disabled}
                         granularity="minute"
+                        classNames={{
+                            label: "text-slate-600",
+                            inputWrapper: "border-slate-200 hover:border-slate-300"
+                        }}
                     />
                     <DatePicker
                         label="End Date & Time"
@@ -121,6 +131,10 @@ export function RoomScheduleSelector({ schedule, onChange, disabled = false }: R
                         onChange={handleEndAtChange}
                         isDisabled={disabled}
                         granularity="minute"
+                        classNames={{
+                            label: "text-slate-600",
+                            inputWrapper: "border-slate-200 hover:border-slate-300"
+                        }}
                     />
                 </div>
 
@@ -131,6 +145,7 @@ export function RoomScheduleSelector({ schedule, onChange, disabled = false }: R
                         startContent={<Clock size={14} />}
                         onPress={() => handleQuickSet(1)}
                         disabled={disabled}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
                     >
                         1 Hour
                     </Button>
@@ -140,6 +155,7 @@ export function RoomScheduleSelector({ schedule, onChange, disabled = false }: R
                         startContent={<Clock size={14} />}
                         onPress={() => handleQuickSet(2)}
                         disabled={disabled}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
                     >
                         2 Hours
                     </Button>
@@ -149,34 +165,39 @@ export function RoomScheduleSelector({ schedule, onChange, disabled = false }: R
                         startContent={<Clock size={14} />}
                         onPress={() => handleQuickSet(4)}
                         disabled={disabled}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
                     >
                         4 Hours
                     </Button>
                 </div>
 
                 {(startAt || endAt) && (
-                    <>
-                        <Divider />
-                        <div className="p-3 bg-default-50 rounded-lg">
-                            <p className="text-sm font-medium text-default-900 mb-2">Schedule Preview:</p>
-                            <div className="space-y-2">
-                                {startAt && (
-                                    <div>
-                                        <p className="text-sm font-medium text-success-600">Start:</p>
-                                        <p className="text-sm text-default-600">{new Date(startAt).toLocaleDateString('en-US', dateOptions)}</p>
-                                        <p className="text-sm text-default-600">{new Date(startAt).toLocaleTimeString('en-US', timeOptions)}</p>
+                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <p className="text-sm font-medium text-slate-800 mb-3 flex items-center gap-2">
+                            <Calendar size={14} />
+                            Schedule Preview
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {startAt && (
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-xs font-medium text-slate-600">START</span>
+                                    <div className="text-sm text-slate-800">
+                                        <div className="font-medium">{formatDateTime(startAt).date}</div>
+                                        <div className="text-slate-600">{formatDateTime(startAt).time}</div>
                                     </div>
-                                )}
-                                {endAt && (
-                                    <div>
-                                        <p className="text-sm font-medium text-danger-600">End:</p>
-                                        <p className="text-sm text-default-600">{new Date(endAt).toLocaleDateString('en-US', dateOptions)}</p>
-                                        <p className="text-sm text-default-600">{new Date(endAt).toLocaleTimeString('en-US', timeOptions)}</p>
+                                </div>
+                            )}
+                            {endAt && (
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-xs font-medium text-slate-600">END</span>
+                                    <div className="text-sm text-slate-800">
+                                        <div className="font-medium">{formatDateTime(endAt).date}</div>
+                                        <div className="text-slate-600">{formatDateTime(endAt).time}</div>
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </div>
-                    </>
+                    </div>
                 )}
             </CardBody>
         </Card>

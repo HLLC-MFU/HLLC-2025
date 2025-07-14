@@ -6,10 +6,10 @@ import { InfinityIcon } from "lucide-react";
 import { ImagePreview } from "./ImagePreview";
 import { RoomMembersSelector } from "./RoomMembersSelector";
 import { RoomScheduleSelector } from "./RoomScheduleSelector";
-import { Room, RoomType, RoomSchedule } from "@/types/chat";
+import type { Room, RoomType, RoomSchedule } from "@/types/room";
 import { useSchools } from "@/hooks/useSchool";
 import { useMajors } from "@/hooks/useMajor";
-import { User } from "@/types/user";
+import type { User } from "@/types/user";
 
 type RoomModalProps = {
     isOpen: boolean;
@@ -25,7 +25,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
     const { majors, loading: majorsLoading } = useMajors();
     const [nameEn, setNameEn] = useState("");
     const [nameTh, setNameTh] = useState("");
-    const [type, setType] = useState<RoomType>(RoomType.NORMAL);
+    const [type, setType] = useState<RoomType>("normal");
     const [status, setStatus] = useState<"active" | "inactive">("active");
     const [capacity, setCapacity] = useState("");
     const [selectedSchool, setSelectedSchool] = useState<string>("");
@@ -42,14 +42,14 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
             setType(room.type);
             setStatus(room.status || "active");
             setCapacity(room.capacity.toString());
-            setSelectedSchool(room.metadata?.groupType === "school" ? room.metadata.groupValue : "");
-            setSelectedMajor(room.metadata?.groupType === "major" ? room.metadata.groupValue : "");
+            setSelectedSchool(room.metadata?.groupType === "school" ? room.metadata.groupValue || "" : "");
+            setSelectedMajor(room.metadata?.groupType === "major" ? room.metadata.groupValue || "" : "");
             setSchedule(room.schedule || null);
             setSelectedMembers([]);
         } else {
             setNameEn("");
             setNameTh("");
-            setType(RoomType.NORMAL);
+            setType("normal");
             setStatus("active");
             setCapacity("");
             setSelectedSchool("");
@@ -184,8 +184,8 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                                     selectedKeys={[type]} 
                                     onSelectionChange={(keys) => setType(Array.from(keys)[0] as RoomType)}
                                 >
-                                    <SelectItem key={RoomType.NORMAL}>Normal</SelectItem>
-                                    <SelectItem key={RoomType.READONLY}>Read Only</SelectItem>
+                                    <SelectItem key="normal">Normal</SelectItem>
+                                    <SelectItem key="readonly">Read Only</SelectItem>
                                 </Select>
                             )}
 
@@ -248,7 +248,7 @@ export function RoomModal({ isOpen, onClose, onSuccess, room, mode, roomType }: 
                         <Button color="danger" variant="light" onPress={onClose}>
                             Cancel
                         </Button>
-                        <Button color="primary" type="submit" isDisabled={!isFormValid}>
+                        <Button color="primary" type="submit" isDisabled={!isFormValid} className="bg-blue-600 hover:bg-blue-700">
                             {mode === "add" ? "Add" : "Save"}
                         </Button>
                     </ModalFooter>

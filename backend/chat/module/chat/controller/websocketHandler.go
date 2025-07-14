@@ -447,6 +447,37 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 
 		messageText := strings.TrimSpace(string(msg))
 
+		// **NEW: Check schedule before processing any message**
+		room, err := h.roomService.GetRoomById(ctx, roomObjID)
+		if err != nil {
+			log.Printf("[WS] Failed to get room %s: %v", roomObjID.Hex(), err)
+			continue
+		}
+
+		// Check if room schedule has expired
+		if room.IsScheduleEnabled() && !room.IsRoomAccessibleForWebSocket(time.Now()) {
+			log.Printf("[WS] Room %s schedule has expired, disconnecting user %s", roomObjID.Hex(), userID)
+			
+			// Send schedule expiration message
+			expirationMsg := map[string]interface{}{
+				"type": "room_schedule_expired",
+				"data": map[string]interface{}{
+					"roomId":    roomObjID.Hex(),
+					"message":   "ห้องนี้หมดเวลาแล้ว คุณจะถูกตัดการเชื่อมต่อ",
+					"timestamp": time.Now(),
+				},
+			}
+			
+			if msgBytes, err := json.Marshal(expirationMsg); err == nil {
+				conn.WriteMessage(websocket.TextMessage, msgBytes)
+			}
+			
+			// Close connection after a short delay
+			time.Sleep(1 * time.Second)
+			conn.Close()
+			return
+		}
+
 		// **IMPROVED: Enhanced WebSocket command handling**
 
 		// ให้มัน support action ต่างๆใน socket message เช่น /reply /react /unsend
@@ -463,12 +494,6 @@ func (h *WebSocketHandler) HandleWebSocket(conn *websocket.Conn) {
 				conn.WriteMessage(websocket.TextMessage, []byte("You have been kicked from this room"))
 				conn.Close()
 				return
-			}
-			// Check if room is still active (prevent messages in inactive rooms)
-			room, err := h.roomService.GetRoomById(ctx, roomObjID)
-			if err != nil {
-				log.Printf("[WS] Failed to get room %s: %v", roomObjID.Hex(), err)
-				continue
 			}
 			
 			if room.IsInactive() {

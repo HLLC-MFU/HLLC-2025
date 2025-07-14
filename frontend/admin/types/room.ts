@@ -8,14 +8,21 @@ export type RoomSchedule = {
     endAt?: string;   // ISO string
 };
 
-export type ApiResponse<T> = {
-    success: boolean;
-    message: string;
-    data: T;
-    statusCode?: number;
+export type RoomMetadata = {
+    groupType?: "school" | "major" | "global";
+    groupValue?: string;
+    description?: string;
+    tags?: string[];
+    settings?: {
+        allowFileUpload?: boolean;
+        maxFileSize?: number;
+        allowedFileTypes?: string[];
+        moderationEnabled?: boolean;
+    };
+    [key: string]: any;
 };
 
-export type RoomByIdResponse = {
+export type Room = {
     _id: string;
     name: Name;
     type: RoomType;
@@ -26,14 +33,17 @@ export type RoomByIdResponse = {
     image?: string;
     createdAt?: string;
     updatedAt?: string;
-    metadata?: Record<string, any>;
+    metadata?: RoomMetadata;
+    schedule?: RoomSchedule;
     canJoin?: boolean;
     isMember?: boolean;
-    schedule?: RoomSchedule; // เพิ่มฟิลด์ schedule
 };
 
+// API Response types
+export type RoomByIdResponse = Room;
+
 export type RoomsByTypeResponse = {
-    data: RoomByIdResponse[];
+    data: Room[];
     meta: {
         total: number;
         page: number;
@@ -42,13 +52,14 @@ export type RoomsByTypeResponse = {
     };
 };
 
-export type UseRoomsByTypeReturn = {
-    roomsByType: Record<string, RoomsByTypeResponse>;
-    loading: Record<string, boolean>;
-    error: Record<string, string | null>;
-    fetchRoomsByType: (roomType: string, page?: number, limit?: number) => Promise<void>;
-    loadMoreRooms: (roomType: string) => Promise<void>;
-    refreshRooms: (roomType: string) => Promise<void>;
+export type RoomListResponse = {
+    data: Room[];
+    meta?: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
 };
 
 export type RoomMembersResponse = {
@@ -92,16 +103,6 @@ export type RestrictionStatus = {
     muteReason?: string;
 };
 
-export type RoomListResponse = {
-    data: RoomByIdResponse[];
-    meta?: {
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-    };
-};
-
 export type RestrictionHistoryResponse = {
     data: RestrictionHistoryItem[];
     meta: {
@@ -141,15 +142,26 @@ export type RoomRestrictionsResponse = {
     [userId: string]: RestrictionStatus;
 };
 
+// Hook return types
+export type UseRoomsByTypeReturn = {
+    roomsByType: Record<string, RoomsByTypeResponse>;
+    loading: Record<string, boolean>;
+    error: Record<string, string | null>;
+    fetchRoomsByType: (roomType: string, page?: number, limit?: number) => Promise<void>;
+    loadMoreRooms: (roomType: string) => Promise<void>;
+    refreshRooms: (roomType: string) => Promise<void>;
+};
+
 export type UseChatReturn = {
-    room: RoomByIdResponse[];
+    rooms: Room[];
     loading: boolean;
     error: string | null;
-    fetchRoom: () => Promise<void>;
+    fetchRooms: () => Promise<void>;
     createRoom: (roomData: FormData) => Promise<void>;
     updateRoom: (id: string, roomData: FormData) => Promise<void>;
     deleteRoom: (id: string) => Promise<void>;
-    getRoomById: (roomId: string) => Promise<RoomByIdResponse | undefined>;
+    toggleRoomStatus: (id: string) => Promise<void>;
+    getRoomById: (roomId: string) => Promise<Room | undefined>;
     getRoomMembers: (roomId: string) => Promise<{
         data: {
             members: RoomMember[];

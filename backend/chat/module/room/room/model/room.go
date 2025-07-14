@@ -186,7 +186,7 @@ func (r *Room) IsRoomAccessible(now time.Time) bool {
 	return true
 }
 
-// IsRoomAccessibleForWebSocket ตรวจสอบการเข้าถึงสำหรับ WebSocket (ผ่อนปรนกว่า)
+// IsRoomAccessibleForWebSocket ตรวจสอบการเข้าถึงสำหรับ WebSocket (เข้มงวดกว่าเดิม)
 func (r *Room) IsRoomAccessibleForWebSocket(now time.Time) bool {
 	// ถ้าห้องไม่ active ให้ return false
 	if !r.IsActive() {
@@ -200,13 +200,13 @@ func (r *Room) IsRoomAccessibleForWebSocket(now time.Time) bool {
 
 	schedule := r.Schedule
 
-	// ตรวจสอบเวลาเริ่มต้น (ให้ margin 2 นาที)
-	if schedule.StartAt != nil && now.Before(schedule.StartAt.Add(-2*time.Minute)) {
+	// ตรวจสอบเวลาเริ่มต้น (ให้ margin 1 นาที)
+	if schedule.StartAt != nil && now.Before(schedule.StartAt.Add(-time.Minute)) {
 		return false
 	}
 
-	// ตรวจสอบเวลาสิ้นสุด (ให้ margin 2 นาที)
-	if schedule.EndAt != nil && now.After(schedule.EndAt.Add(2*time.Minute)) {
+	// ตรวจสอบเวลาสิ้นสุด (ให้ margin 30 วินาที)
+	if schedule.EndAt != nil && now.After(schedule.EndAt.Add(30*time.Second)) {
 		return false
 	}
 
