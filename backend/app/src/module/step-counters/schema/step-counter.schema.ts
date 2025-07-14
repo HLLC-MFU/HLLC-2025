@@ -24,6 +24,12 @@ export class StepCounter {
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
   user: Types.ObjectId;
 
+  @Prop({ required: true, type: Types.ObjectId, ref: 'School' })
+  school: Types.ObjectId;
+
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Major' })
+  major: Types.ObjectId;
+
   @Prop({ required: true, type: Types.ObjectId, ref: 'StepAchievement' })
   achievement: Types.ObjectId;
 

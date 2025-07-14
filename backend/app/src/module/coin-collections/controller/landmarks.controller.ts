@@ -26,7 +26,6 @@ export class LandmarksController {
   constructor(private readonly landmarksService: LandmarksService) {}
 
   @Post()
-  @Permissions('landmarks:create')
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Req() req: FastifyRequest) {
     const dto = req.body as CreateLandmarkDto;
@@ -34,19 +33,16 @@ export class LandmarksController {
   }
 
   @Get()
-  @Permissions('landmarks:read')
   findAll(@Query() query: Record<string, string>) {
     return this.landmarksService.findAll(query);
   }
 
   @Get(':id')
-  @Permissions('landmarks:read')
   findOne(@Param('id') id: string) {
     return this.landmarksService.findOne(id);
   }
 
   @Patch(':id')
-  @Permissions('landmarks:update')
   @UseInterceptors(new MultipartInterceptor(500))
   update(@Param('id') id: string, @Req() req: FastifyRequest) {
     const dto = req.body as UpdateLandmarkDto;
@@ -54,7 +50,6 @@ export class LandmarksController {
   }
 
   @Delete(':id')
-  @Permissions('landmarks:delete')
   remove(@Param('id') id: string) {
     return this.landmarksService.remove(id);
   }

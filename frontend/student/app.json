@@ -31,7 +31,8 @@
         "NSHealthUpdateUsageDescription": "This app may request to write health data to improve tracking and personalization. (แอปนี้อาจขออนุญาตเขียนข้อมูลสุขภาพเพื่อปรับปรุงการติดตามและการใช้งานที่เหมาะสมกับผู้ใช้)"
       },
       "entitlements": {
-        "com.apple.developer.healthkit": true
+        "com.apple.developer.healthkit": true,
+        "aps-environment": "production"
       },
       "googleServicesFile": "./GoogleService-Info.plist"
     },

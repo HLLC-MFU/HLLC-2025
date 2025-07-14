@@ -10,6 +10,7 @@ import {
   StepAchievementSchema,
 } from './schema/step-achievement.schema';
 import { StepWatchService } from './service/step-watch.service';
+import { Major, MajorSchema } from '../majors/schemas/major.schema';
 
 @Module({
   imports: [
@@ -30,10 +31,14 @@ import { StepWatchService } from './service/step-watch.service';
         name: StepAchievement.name,
         schema: StepAchievementSchema,
       },
+      {
+        name: Major.name,
+        schema: MajorSchema,
+      },
     ]),
   ],
   controllers: [StepCountersController],
   providers: [StepCountersService, StepWatchService],
   exports: [StepCountersService, StepWatchService],
 })
-export class StepCountersModule {}
+export class StepCountersModule { }
