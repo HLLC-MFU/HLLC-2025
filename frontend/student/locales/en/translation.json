@@ -148,5 +148,17 @@
     },
     "coinHunting": {
         "collection": "Collection"
-    }
+    },
+    "assessment": {
+        "title": "Assessment Activity",
+        "questionCount": "Questions: {{count}}",
+        "notFound": "No questions found for this assessment",
+        "loading": "Loading...",
+        "low": "Low",
+        "high": "High",
+        "cancel": "CANCEL",
+        "submit": "SUBMIT",
+        "submitting": "SUBMITTING...",
+        "yourComments": "Your comments"
+      }
 }

@@ -102,7 +102,6 @@ export default function SponsorVoucherScreen() {
                             key={item._id}
                             imageSource={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${item.evoucher.photo.home || ''}` }}
                             onPress={() => handleEvoucherPress(item.evoucher, item)}
-                            code={item.code}
                             isUsed={item.isUsed}
                         />
                     )}
