@@ -1,9 +1,9 @@
 import { getToken, saveToken } from '@/utils/storage';
 import { getMessaging, AuthorizationStatus } from '@react-native-firebase/messaging';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import useDevice from '@/hooks/useDevice';
+import { Alert, Linking } from 'react-native';
 
-const PERMISSION_KEY = 'hasRequestedNotificationPermission';
 const TOKEN_KEY = 'fcmToken';
 
 type PermissionStatus = {
@@ -15,32 +15,46 @@ export default function usePushNotification() {
   const [permission, setPermission] = useState<PermissionStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const messaging = getMessaging();
+  const { registerDevice } = useDevice()
 
   const getPermission = useCallback(async () => {
     const status = await messaging.hasPermission();
-    setPermission({ granted: status === 1, status });
-    return status === 1;
+    const granted = status === AuthorizationStatus.AUTHORIZED || status === AuthorizationStatus.PROVISIONAL;
+    setPermission({ granted, status });
+    return granted;
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     try {
       setLoading(true);
-      const alreadyRequested = await getToken(PERMISSION_KEY);
 
-      if (!alreadyRequested) {
+      const currentStatus = await messaging.hasPermission();
+
+      if (currentStatus === AuthorizationStatus.AUTHORIZED || currentStatus === AuthorizationStatus.PROVISIONAL) {
+        return getPermission();
+      }
+
+      if (currentStatus === AuthorizationStatus.DENIED) {
+        Alert.alert(
+          'Notification Permission Required',
+          'You have disabled notifications. If you want to receive alerts, please enable Allow Notifications in the Settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Go to settings', onPress: () => Linking.openSettings()},
+          ]
+        );
+        
+        return false;
+      }
+
+      if (currentStatus === AuthorizationStatus.NOT_DETERMINED) {
         const authStatus = await messaging.requestPermission();
         
         const granted =
           authStatus === AuthorizationStatus.AUTHORIZED ||
           authStatus === AuthorizationStatus.PROVISIONAL;
-
         setPermission({ granted, status: authStatus });
-
-        if (granted) {
-          await saveToken(PERMISSION_KEY, 'true');
-        }
 
         return granted;
       } else {
@@ -57,28 +71,16 @@ export default function usePushNotification() {
   const registerToken = useCallback(async () => {
     const newToken = await messaging.getToken();
     const oldToken = await getToken(TOKEN_KEY);
-
+    
     if (newToken && newToken !== oldToken) {
-      console.log('[FCM] Registering token:', newToken);
       await saveToken(TOKEN_KEY, newToken);
-
-			//TODO: use Device hook for update fcm
-      // if (userId) {
-      //   await fetch('https://your.api/device/register', {
-      //     method: 'POST',
-      //     headers: { 'Content-Type': 'application/json' },
-      //     body: JSON.stringify({ token: newToken, userId }),
-      //   });
-      // }
-  //   }
-  // }, [userId]);
-		}
+      await registerDevice();
+    }
   }, []);
 
   const listenForegroundNotifications = useCallback(() => {
     return messaging.onMessage(async remoteMessage => {
-      console.log('[FCM] Foreground:', remoteMessage);
-      Alert.alert('Notification', JSON.stringify(remoteMessage?.notification) ?? 'New message');
+      // Alert.alert('Notification', JSON.stringify(remoteMessage?.notification) ?? 'New message');
     });
   }, []);
 
@@ -87,6 +89,7 @@ export default function usePushNotification() {
     if (granted) {
       await registerToken();
     }
+    
     return granted;
   }, [requestPermission, registerToken]);
 

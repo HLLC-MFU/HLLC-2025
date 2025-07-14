@@ -25,6 +25,7 @@
     "@react-aria/ssr": "3.9.8",
     "@react-aria/visually-hidden": "3.8.23",
     "@react-stately/data": "^3.13.1",
+    "@yudiel/react-qr-scanner": "^2.3.1",
     "clsx": "2.1.1",
     "file-saver": "^2.0.5",
     "framer-motion": "12.12.1",

@@ -12,7 +12,13 @@ export default function Inputs({
   setStudentId,
 }: InputProp) {
   return (
-    <Form onSubmit={onSubmit} className="flex w-full gap-2">
+    <Form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+      className="flex w-full gap-5 justify-center flex-col items-center"
+    >
       <TextInput
         isRequired
         value={studentId}
@@ -23,7 +29,8 @@ export default function Inputs({
         type="text"
         maxLength={10}
       />
-      <Button type="submit">Submit</Button>
+      <Button type="submit" className='flex w-full' color='primary'>Submit</Button>
     </Form>
   );
 }
+

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { StepCountersService } from '../service/step-counters.service';
 import { FastifyRequest } from 'fastify';
-import { Types } from 'mongoose';
+import { apiResponse } from 'src/pkg/helper/api-response.helper';
 
 class RegisterDeviceDto {
   deviceId: string;
@@ -78,12 +78,6 @@ export class StepCountersController {
     const user = req.user as { _id?: string; id?: string };
     const userId: string = user?._id ?? user?.id ?? '';
     const { deviceId, stepCount, date } = body;
-    console.log('Collecting step:', {
-      userId,
-      deviceId,
-      stepCount,
-      date,
-    });
     if (!userId || !deviceId || stepCount == null || !date) {
       throw new BadRequestException(
         'Missing userId, deviceId, stepCount, or date',
@@ -119,25 +113,20 @@ export class StepCountersController {
     });
   }
 
-  @Get('leaderboard/me')
-  async myLeaderboard(
-    @Req() req: FastifyRequest & { user?: { _id?: Types.ObjectId } },
-    @Query('scope') scope: 'all' | 'school' | 'date' = 'all',
-    @Query('schoolId') schoolId?: string,
-    @Query('date') date?: string,
-    @Query('page') page = '1',
-    @Query('pageSize') pageSize = '20',
+  @Get('leaderboard/user')
+  async getUserRankSummary(
+    @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
-    const pageNum = parseInt(page, 10);
-    const pageSizeNum = parseInt(pageSize, 10);
-    const user = req.user as { _id?: Types.ObjectId } | undefined;
-    const userId = user && user._id ? user._id.toString() : undefined; // ⬅️ Type-safe userId extraction
-    return this.stepCountersService.myleaderboard(scope, {
-      schoolId,
-      date,
-      page: pageNum,
-      pageSize: pageSizeNum,
-      userId, // ⬅️ Pass to service
-    });
+    const user = req.user as { _id?: string; id?: string };
+    const userId: string = user?._id ?? user?.id ?? '';
+    try {
+      return apiResponse(
+        await this.stepCountersService.getUserRankSummary(userId),
+        "Successfully retrieved user's rank summary",
+        200,
+      )
+    }catch (error) {
+      throw new BadRequestException('Failed to retrieve user rank summary');
+    }
   }
 }

@@ -7,16 +7,12 @@ import {
 	Button,
 } from '@heroui/react';
 
-import { User } from '@/types/user';
-
 interface ConfirmationModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	onConfirm: () => void;
 	title: string;
 	body?: string;
-	userAction: User;
-	selectedKeys: Set<string | number> | "all";
 	confirmText?: string;
 	confirmColor?: 'primary' | 'danger' | 'success' | 'warning' | 'secondary';
 	cancelText?: string;

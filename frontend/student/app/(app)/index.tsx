@@ -15,13 +15,16 @@ import BackgroundScreen from '@/components/global/BackgroundScreen';
 import { useEffect, useState } from 'react';
 import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
 import NotificationModal from '@/components/global/NotificationModal';
+import useDevice from '@/hooks/useDevice';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
-  
+  const {getStoredDeviceId, revokeDevice} = useDevice();
   const handleSignOut = async () => {
+    const deviceId = await getStoredDeviceId()
+    await revokeDevice(deviceId)
     useAuth.getState().signOut();
     router.replace('/(auth)/login');
   };

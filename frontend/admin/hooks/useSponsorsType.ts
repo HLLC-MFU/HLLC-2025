@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { addToast } from "@heroui/react";
 import { SponsorType } from "@/types/sponsors";
 
-import { SponsorType } from "@/types/sponsors-type";
 import { apiRequest } from '@/utils/api';
 
 

@@ -66,9 +66,6 @@ export function BasicInformation({
             placeholder="Select an activity type"
             selectedKeys={type ? [type] : []}
             onChange={(e) => setType(e.target.value)}
-            isLoading={typesLoading}
-            isRequired
-            isDisabled
           >
             {activityTypes.map((type) => (
               <SelectItem key={type._id}>

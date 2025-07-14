@@ -38,8 +38,6 @@ const useAuth = create<AuthStore>()(
             credentials: 'include',
           });
 
-          console.log("gg", res)
-
           if (res.status === 201) {
             const data = await res.json();
 

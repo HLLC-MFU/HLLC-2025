@@ -1,8 +1,6 @@
 import { Button, Input } from "@heroui/react";
 import { Plus, SearchIcon } from "lucide-react";
-import React from "react";
 
-import { EvoucherCode } from "@/types/evoucher-code";
 interface TopContentProps {
     filterValue: string;
     onClear: () => void;

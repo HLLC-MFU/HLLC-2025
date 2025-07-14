@@ -40,6 +40,8 @@ export class User {
 export const UserSchema = SchemaFactory.createForClass(User);
 
 UserSchema.index({ updatedAt: -1 });
+UserSchema.index({ role: 1 });
+UserSchema.index({ 'metadata.major': 1 });
 
 UserSchema.pre('save', async function (next) {
   

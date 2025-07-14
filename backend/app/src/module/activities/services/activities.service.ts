@@ -12,7 +12,7 @@ import { UserDocument } from '../../users/schemas/user.schema';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
 import { UpdateActivityDto } from '../dto/activities/update-activities.dto';
 import { Activities, ActivityDocument } from '../schemas/activities.schema';
-import { parseScope, parseStringArray } from '../utils/scope.util';
+import { isUserInScope, parseScope, parseStringArray } from '../utils/scope.util';
 import { Checkin } from 'src/module/checkin/schema/checkin.schema';
 import { RoleDocument } from 'src/module/role/schemas/role.schema';
 import { AssessmentsService } from 'src/module/assessments/service/assessments.service';
@@ -193,91 +193,126 @@ export class ActivitiesService {
     return this.activitiesModel.findById(id).lean();
   }
 
-  async findActivitiesByUserId(userId: string) {
+  async findActivitiesByUserId(
+    userId: string,
+    query: Record<string, string> = {},
+  ) {
     if (!Types.ObjectId.isValid(userId)) {
       throw new NotFoundException('Invalid user ID');
     }
 
-    // 1. Get user
-    const user = await this.userModel.findById(userId).lean();
+    const userResult = await this.usersService.findOneByQuery({ _id: userId });
+    const user = userResult?.data?.[0] as UserDocument;
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     const now = new Date();
 
-    // 2. Get check-ins for this user
-    const userCheckins = await this.checkinsModel
+    const userCheckins = (await this.checkinsModel
       .find({ user: user._id })
-      .lean();
+      .lean()
+      .exec()) as Array<{ activity?: Types.ObjectId | string }>;
+
     const checkinMap = new Set(
-      userCheckins.map((c) => c.activity?.toString()).filter(Boolean),
+      userCheckins
+        .map((c) => c.activity)
+        .filter((activity): activity is Types.ObjectId | string => !!activity)
+        .map((activity) => activity.toString()),
     );
 
-    // 3. Get all visible & open activities
-    const activities = await this.activitiesModel
-      .find({
-        'metadata.isVisible': true,
-        'metadata.isOpen': true,
-      })
-      .populate('type')
-      .lean();
+    const result = await queryAll<Activities>({
+      model: this.activitiesModel,
+      query: {
+        ...query,
+        excluded:
+          'user.password,user.refreshToken,user.metadata.secret,activities.metadata.scope',
+      },
+      filterSchema: {
+        'metadata.isVisible': 'boolean',
+        'metadata.isOpen': 'boolean',
+      },
+      populateFields: () => Promise.resolve([{ path: 'type' }]),
+    });
 
-    // 4. Map with check-in status and assessment
     const mapped = await Promise.all(
-      activities.map(async (activity) => {
-        const meta = activity.metadata;
-        const activityId = activity._id.toString();
-        const checkinStart = new Date(meta.checkinStartAt);
-        const end = new Date(meta.endAt);
-        const hasCheckedIn = checkinMap.has(activityId);
+      result.data
+        .filter((activity) => isUserInScope(user, activity as ActivityDocument))
+        .map(async (activity) => {
+          const meta = activity.metadata;
+          const activityDoc = activity as ActivityDocument;
+          const activityId =
+            activityDoc._id instanceof Types.ObjectId
+              ? activityDoc._id.toString()
+              : String(activityDoc._id);
+          const hasCheckedIn = checkinMap.has(activityId);
 
-        let checkinStatus = 0;
-        let checkinMessage = 'Not yet open for check-in';
+          let status = 0;
+          let message = 'Not yet open for check-in';
 
-        if (!meta.isOpen || now < checkinStart) {
-          checkinStatus = 0;
-          checkinMessage = 'Not yet open for check-in';
-        } else if (now > end && !hasCheckedIn) {
-          checkinStatus = -1;
-          checkinMessage = 'You missed the check-in time';
-        } else if (now > end && hasCheckedIn) {
-          checkinStatus = 3;
-          checkinMessage = 'Activity has ended';
-        } else if (hasCheckedIn) {
-          checkinStatus = 2;
-          checkinMessage = 'You have already checked in';
-        } else if (now >= checkinStart && now <= end) {
-          checkinStatus = 1;
-          checkinMessage = 'Check-in available now';
-        }
+          const checkinStart = new Date(meta.checkinStartAt);
+          const end = new Date(meta.endAt);
 
-        // 5. Check assessment
-        const assessments = await this.assessmentModel
-          .find({ activity: activity._id })
-          .lean();
+          if (!meta.isOpen || now < checkinStart) {
+            status = 0;
+            message = 'Not yet open for check-in';
+          } else if (now > end && !hasCheckedIn) {
+            status = -1;
+            message = 'You missed the check-in time';
+          } else if (now > end && hasCheckedIn) {
+            status = 3;
+            message = 'Activity has ended';
+          } else if (hasCheckedIn) {
+            status = 2;
+            message = 'You have already checked in';
+          } else if (now >= checkinStart && now <= end) {
+            status = 1;
+            message = 'Check-in available now';
+          }
 
-        let hasAnsweredAssessment = false;
+          const assessmentsResult =
+            await this.assessmentsService.findAllByActivity(activityId);
+          const assessments = (assessmentsResult.data ||
+            []) as AssessmentDocument[];
 
-        if (assessments.length > 0) {
-          const answer = await this.assessmentAnswersModel.findOne({
-            user: user._id,
-            'answers.assessment': { $in: assessments.map((a) => a._id) },
-          });
+          let hasAnswered = false;
 
-          hasAnsweredAssessment = !!answer;
-        }
+          if (assessments.length > 0) {
+            for (const assessment of assessments) {
+              const answered = await this.assessmentAnswersModel.findOne({
+                user: user._id,
+                'answers.assessment': assessment._id,
+              });
+              if (answered) {
+                hasAnswered = true;
+                break;
+              }
+            }
+          }
 
-        return {
-          ...activity,
-          checkinStatus,
-          checkinMessage,
-          hasAnsweredAssessment,
-        };
-      }),
+          const activityObj =
+            typeof (activity as ActivityDocument).toObject === 'function'
+              ? (activity as ActivityDocument).toObject()
+              : activity;
+          return {
+            ...activityObj,
+            checkinStatus: status,
+            checkinMessage: message,
+            hasAnsweredAssessment: hasAnswered,
+          };
+        }),
     );
 
-    return mapped;
+    return {
+      ...result,
+      data: mapped,
+      meta: {
+        ...result.meta,
+        total: mapped.length,
+        totalPages: Math.ceil(mapped.length / Number(query.limit || 20)),
+      },
+    };
   }
 
   async update(id: string, updateActivityDto: UpdateActivityDto) {
@@ -335,5 +370,71 @@ export class ActivitiesService {
     const activities =
       await this.assessmentsService.findAllByActivity(activityId);
     return activities;
+  }
+
+  async findAllIsProgressCountActivities() {
+    return this.activitiesModel.find({ 'metadata.isProgressCount': true }).lean();
+  }
+
+  // progress activities by user
+  // คำนวณ (จำนวน activitiese Isprogress ของ user % จำนวน activitiese Isprogress ทั้งหมด) * 100 = %
+  async findProgressByUser(userId: string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid user ID');
+    }
+
+    const user = await this.usersService.findOneByQuery({ _id: userId });
+    if (!user?.data?.[0]) {
+      throw new NotFoundException('User not found');
+    }
+
+    // ดึงทั้งหมดที่ isProgressCount
+    const allActivities = await this.activitiesModel.find({
+      'metadata.isProgressCount': true,
+      'metadata.isOpen': true,
+      'metadata.isVisible': true,
+    }).lean();
+
+    // กรองตาม scope
+    const scopedActivities = allActivities.filter(activity =>
+      isUserInScope(user.data[0] as UserDocument, activity as ActivityDocument)
+    );
+
+    // นับว่าทำ Assessment แล้วกี่อัน
+    let answeredCount = 0;
+
+    for (const activity of scopedActivities) {
+      const assessments = await this.assessmentsService.findAllByActivity(
+        String(activity._id)
+      );
+
+      let hasAnswered = false;
+
+      if (assessments.data?.length) {
+        for (const assessment of assessments.data as AssessmentDocument[]) {
+          const answered = await this.assessmentAnswersModel.findOne({
+            user: (user.data[0] as UserDocument)._id,
+            'answers.assessment': assessment._id,
+          });
+
+          if (answered) {
+            hasAnswered = true;
+            break;
+          }
+        }
+      }
+
+      if (hasAnswered) answeredCount++;
+    }
+
+    const percentage = scopedActivities.length > 0
+      ? (answeredCount / scopedActivities.length) * 100
+      : 0;
+
+    return {
+      userProgressCount: answeredCount,
+      progressPercentage: percentage,
+      scopedActivitiesCount: scopedActivities.length,
+    };
   }
 }

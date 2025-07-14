@@ -1,6 +1,6 @@
 'use client';
-import { addToast, Button, Card, CardBody } from '@heroui/react';
-import { BellPlus, SendHorizontal } from 'lucide-react';
+import { addToast, Button, Card, CardBody, Checkbox, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from '@heroui/react';
+import { BellPlus, FlaskConical, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
 
 import { NotificationForm } from './_components/NotificationForm';
@@ -25,11 +25,14 @@ export type NotificationFormData = Notification & {
 };
 
 export default function NotificationPush() {
-  const { createNotification } = useNotification();
+  const { createNotification, pushNotificationResult } = useNotification();
   const { schools } = useSchools();
-  const { majors } = useMajors()
+  const { majors } = useMajors();
   const { users } = useUsers();
-  const [isConfirmModal, setIsConfirmModal] = useState<boolean>(false)
+  const [isConfirmModal, setIsConfirmModal] = useState<boolean>(false);
+  const [notificationMode, setNotificationMode] = useState<'both' | 'in_app' | 'push'>('both');
+  const [dryRunMode, setDryRunMode] = useState<boolean>(false);
+  const [isResultModal, setIsResultModal] = useState(false);
 
   const [notificationFormData, setNotificationFormData] = useState<NotificationFormData>({
     title: { en: '', th: '' },
@@ -54,6 +57,9 @@ export default function NotificationPush() {
     formData.append('subtitle', JSON.stringify(notificationFormData.subtitle));
     formData.append('body', JSON.stringify(notificationFormData.body));
     formData.append('icon', notificationFormData.icon );
+
+    formData.append('mode', notificationMode);
+    formData.append('isDryRun', JSON.stringify(dryRunMode));
 
     if (notificationFormData.scope.length === 0) {
       addToast({
@@ -81,6 +87,7 @@ export default function NotificationPush() {
     }
 
     createNotification(formData);
+    if(notificationMode !== 'in_app') setIsResultModal(true);
   };
 
   return (
@@ -144,17 +151,69 @@ export default function NotificationPush() {
           </div>
 
           <Card className='border border-gray-300'>
-            <CardBody>
+            <CardBody className='flex-row gap-2 overflow-x-hidden'>
               <Button 
-                color='primary'
-                endContent={<SendHorizontal />}
-                form='notification-form'
                 type="submit"
+                form='notification-form'
+                className='w-full'
+                size='lg'
+                color={`${dryRunMode ? 'warning' : 'primary'}`}
+                endContent={dryRunMode ? <FlaskConical/> : <SendHorizontal />}
               >
-                <p className="text-medium">Send Notification</p>
+                <p className="text-medium">{dryRunMode ? 'Test Notification' : 'Send Notification'}</p>
               </Button>
+
+              <Select 
+                isRequired 
+                label="Notification Mode" 
+                placeholder="Select mode"
+                onSelectionChange={(keys) => {
+                  setNotificationMode(Array.from(keys)[0] as 'push' | 'in_app' | 'both');
+                  setDryRunMode(false)
+                }}
+                defaultSelectedKeys={["both"]}
+                className="max-w-56" 
+                size='sm' 
+              >
+                <SelectItem key="both">Normal (Both)</SelectItem>
+                <SelectItem key="in_app">In-app Notification Only</SelectItem>
+                <SelectItem key="push">Push Notification Only</SelectItem>
+              </Select>
+
+              {notificationMode && notificationMode !== 'in_app' && 
+                <Checkbox 
+                  color="warning"
+                  size='lg'
+                  checked={dryRunMode} 
+                  onChange={(e) => setDryRunMode(e.target.checked)}
+                >
+                  Test
+                </Checkbox>
+              }
             </CardBody>
           </Card>
+
+          <Modal isOpen={isResultModal} size='2xl'>
+            <ModalContent>
+              <ModalHeader className="flex flex-col gap-1">Push Notification Result</ModalHeader>
+              <ModalBody>
+                <p>✅ Success: {pushNotificationResult?.successCount}</p>
+                <p>❌ Failed: {pushNotificationResult?.failureCount}</p>
+                 {pushNotificationResult && (
+                    <div className="mt-4 rounded-lg bg-gray-100 p-4 max-h-[400px] overflow-y-scroll">
+                      <pre className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+                        {JSON.stringify(pushNotificationResult.responses, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+            </ModalBody>
+            <ModalFooter>
+              <Button color="danger" variant="flat" onPress={() => setIsResultModal(false)}>
+                Close
+              </Button>
+            </ModalFooter>
+            </ModalContent>
+          </Modal>
 
         </div>
 

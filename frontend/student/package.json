@@ -79,6 +79,7 @@
     "react-i18next": "^15.5.1",
     "react-native": "0.79.5",
     "react-native-device-info": "^14.0.4",
+    "react-native-dropdown-picker": "^5.4.6",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-health": "^1.19.0",
     "react-native-health-connect": "^3.3.3",
@@ -88,6 +89,7 @@
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
+    "react-native-sse": "^1.2.1",
     "react-native-svg": "15.11.2",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
@@ -99,6 +101,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@expo/config-plugins": "^10.1.2",
     "@types/jest": "^29.5.12",
     "@types/react": "~19.0.14",
     "@types/react-test-renderer": "^18.3.0",

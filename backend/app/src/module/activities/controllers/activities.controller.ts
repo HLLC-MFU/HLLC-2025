@@ -17,7 +17,6 @@ import { FastifyRequest } from 'fastify';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { UserRequest } from 'src/pkg/types/users';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { Activities } from '../schemas/activities.schema';
 import { PaginatedResponse } from 'src/pkg/interceptors/response.interceptor';
 import { Types } from 'mongoose';
@@ -26,7 +25,7 @@ import { apiResponse } from 'src/pkg/helper/api-response.helper';
 @UseGuards(PermissionsGuard)
 @Controller('activities')
 export class ActivitiesController {
-  constructor(private readonly activitiesService: ActivitiesService) {}
+  constructor(private readonly activitiesService: ActivitiesService) { }
 
   @Post()
   @UseInterceptors(new MultipartInterceptor(500))
@@ -61,11 +60,7 @@ export class ActivitiesController {
     const activities = await this.activitiesService.findActivitiesByUserId(
       user._id.toString(),
     );
-    return apiResponse(
-      activities,
-      'Activities retrieved successfully',
-      HttpStatus.OK,
-    );
+    return activities;
   }
 
   @Get(':id')
@@ -88,5 +83,10 @@ export class ActivitiesController {
   @Get(':activityId/assessment')
   async findActivitiesWithAssessment(@Param('activityId') activityId: string) {
     return this.activitiesService.findActivitiesWithAssessment(activityId);
+  }
+
+  @Get('/progress')
+  async findUserProgress(@Req() req: UserRequest) {
+    return this.activitiesService.findProgressByUser(req.user._id);
   }
 }

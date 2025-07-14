@@ -1,7 +1,6 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { env } from "process";
 
 export interface ApiResponse<T> {
   statusCode: number;

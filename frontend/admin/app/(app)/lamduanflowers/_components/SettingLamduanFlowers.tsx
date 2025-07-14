@@ -222,8 +222,6 @@ export function SettingLamduanFlowers({
             setVideoLink(e.target.value);
             clearError('videoLink');
           }}
-          isInvalid={!!errors.videoLink}
-          errorMessage={errors.videoLink}
         />
       </div>
 
