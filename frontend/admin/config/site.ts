@@ -16,6 +16,7 @@ import {
   CircleDollarSign,
   Footprints,
   MessagesSquare,
+  Landmark,
 } from "lucide-react";
 
 
@@ -57,6 +58,12 @@ export const siteConfig: {
       section: "Lamduan",
       items: [
         { label: "Lamduan Flowers" , href: "/lamduanflowers" , icon: Flower , permission:"lamduanflowers:read"},
+      ],
+    },
+    {
+      section: "Coin Hunting",
+      items: [
+        { label: "Coin-hunting", href: "/coin-hunting", icon: Landmark, permission: "landmarks:read" },
       ],
     },
     {
