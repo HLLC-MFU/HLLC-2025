@@ -40,8 +40,9 @@ export function useReport(): UseReportReturn {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        setTopics(data || []);
+        const response = await res.json();
+        const data = response.data || [];
+        setTopics(data);
       } else {
         setError('ไม่สามารถดึงข้อมูลหัวข้อรายงานได้');
       }

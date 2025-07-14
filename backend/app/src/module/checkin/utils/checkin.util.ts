@@ -8,7 +8,11 @@ import { MajorDocument } from 'src/module/majors/schemas/major.schema';
 export async function validateCheckinTime(
   activityIds: string[],
   activityModel: Model<ActivityDocument>,
+  isAdmin: boolean,
 ): Promise<void> {
+  if (isAdmin) {
+    return;
+  }
   const now = new Date();
 
   const activities = await activityModel
@@ -57,12 +61,13 @@ export async function isCheckinAllowed(
         major?: string[];
       };
     };
+    permissions?: string[];
   };
 
   const [staff, user] = await Promise.all([
     userModel
       .findById(staffId)
-      .populate({ path: 'role', select: 'metadata.canCheckin', model: roleModel })
+      .populate({ path: 'role', select: 'metadata.canCheckin permissions', model: roleModel })
       .lean<{ role?: RoleWithMetadata }>(),
 
     userModel
@@ -70,6 +75,11 @@ export async function isCheckinAllowed(
       .populate({ path: 'role', select: '_id', model: roleModel })
       .lean<{ role?: Role & { _id: Types.ObjectId }; metadata?: any }>(),
   ]);
+
+  // ถ้า role มี permissions = * ให้ผ่านเลย
+  if (Array.isArray(staff?.role?.permissions) && staff.role.permissions.includes('*')) {
+    return true;
+  }
 
   const canCheckin = staff?.role?.metadata?.canCheckin;
 

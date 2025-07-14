@@ -50,7 +50,7 @@ export default function ActivityDetailPage() {
           pointerEvents="none"
         />
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.push("/activities")}
           style={{
             position: "absolute",
             top: 60,
@@ -163,21 +163,32 @@ export default function ActivityDetailPage() {
             <StepperItem
               index={1}
               icon={Clock}
-              label={activity.checkinStatus === 0 ? "Waiting to Start" : "Activity Started"}
+              label={
+                activity.checkinStatus < 0
+                  ? "Activity Missed"
+                  :
+                  activity.checkinStatus === 0
+                    ? "Waiting to Start"
+                    : activity.checkinStatus > 0
+                      ? "Activity Started"
+                      : "Activity Ended"
+              }
               active={activity.checkinStatus === 0}
               completed={activity.checkinStatus > 0}
               error={activity.checkinStatus < 0}
               disabled={activity.checkinStatus === 0}
               description={
-                activity.checkinStatus < 0
-                  ? "This activity has been ended. And you cannot check in."
-                  : `Activity begins at ${new Date(activity.metadata.startAt).toLocaleString([], {
-                    day: "2-digit",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  })}. Please be ready to participate.`
+                activity.checkinStatus !== 0
+                  ? activity.checkinStatus < 0
+                    ? 'You missed the activity. If you were unable to check in due to a technical problem or other reason, please reach out to MFU Activity.'
+                    : `Activity begins at ${new Date(activity.metadata.startAt).toLocaleString([], {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    })}. Please be ready to participate.`
+                  : undefined
               }
             >
               {activity.checkinStatus === 0 && (
@@ -197,53 +208,64 @@ export default function ActivityDetailPage() {
               )}
             </StepperItem>
 
+
+
             {/* Step 2: Check-in */}
-            <StepperItem
-              index={2}
-              icon={QrCode}
-              label="Check-In Required"
-              active={activity.checkinStatus === 1}
-              completed={activity.checkinStatus >= 2}
-              error={activity.checkinStatus < 0}
-              disabled={activity.checkinStatus === 0}
-              description="Scan the QR code at the event location or visit the designated check-in point to confirm your attendance."
-            >
-              {activity.checkinStatus === 1 && (
-                <Button
-                  size="$3"
-                  backgroundColor="#3b82f6"
-                  color="white"
-                  borderRadius={8}
-                  marginTop={4}
-                  onPress={() => router.replace(`/qrcode`)}
+            {
+              activity.checkinStatus !== -1 && (
+                <StepperItem
+                  index={2}
                   icon={QrCode}
+                  label={activity.checkinStatus < 0 ? "Cannot Check-In" : "Check-In Required"}
+                  active={activity.checkinStatus === 1}
+                  completed={activity.checkinStatus >= 2}
+                  error={activity.checkinStatus < 0}
+                  disabled={activity.checkinStatus === 0}
+                  description={activity.checkinStatus < 0 ? undefined : "Scan the QR code at the event location or visit the designated check-in point to confirm your attendance."}
                 >
-                  Open QR Scanner
-                </Button>
-              )}
-            </StepperItem>
+                  {activity.checkinStatus === 1 && (
+                    <Button
+                      size="$3"
+                      backgroundColor="#3b82f6"
+                      color="white"
+                      borderRadius={8}
+                      marginTop={4}
+                      onPress={() => router.replace(`/qrcode`)}
+                      icon={QrCode}
+                    >
+                      Open QR Scanner
+                    </Button>
+                  )}
+                </StepperItem>
+              )
+            }
 
             {/* Step 3: Checked In */}
-            <StepperItem
-              index={3}
-              icon={CheckCircle}
-              label={activity.checkinStatus === 3 ? "Activity Completed" : "Successfully Checked In"}
-              active={activity.checkinStatus === 2}
-              completed={activity.checkinStatus === 3}
-              error={activity.checkinStatus < 0}
-              disabled={activity.checkinStatus === 0}
-              description={
-                activity.checkinStatus === 3
-                  ? "Congratulations! You've completed the activity. Please take a moment to share your feedback through the assessment."
-                  : "Great! You're all set. Enjoy the activity and stay engaged throughout the session."
-              }
-            />
+            {
+              activity.checkinStatus !== -1 && (
+                <StepperItem
+                  index={3}
+                  icon={CheckCircle}
+                  label={activity.checkinStatus === 3 ? "Activity Completed" : "Successfully Checked In"}
+                  active={activity.checkinStatus === 2}
+                  completed={activity.checkinStatus === 3}
+                  error={activity.checkinStatus < 0}
+                  disabled={activity.checkinStatus === 0}
+                  description={
+                    activity.checkinStatus < 0 ? undefined :
+                      activity.checkinStatus === 3
+                        ? "Congratulations! You've completed the activity. Please take a moment to share your feedback through the assessment."
+                        : "Great! You're all set. Enjoy the activity and stay engaged throughout the session."
+                  }
+                />
+              )
+            }
 
             {/* Step 4: Assessment */}
             <StepperItem
               index={4}
               icon={FileText}
-              label="Post-Activity Assessment"
+              label="Evaluation & Feedback"
               active={!activity.hasAnsweredAssessment && activity.checkinStatus === 3}
               completed={activity.hasAnsweredAssessment}
               error={!activity.hasAnsweredAssessment && activity.checkinStatus === 3}

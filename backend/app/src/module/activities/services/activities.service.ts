@@ -371,4 +371,70 @@ export class ActivitiesService {
       await this.assessmentsService.findAllByActivity(activityId);
     return activities;
   }
+
+  async findAllIsProgressCountActivities() {
+    return this.activitiesModel.find({ 'metadata.isProgressCount': true }).lean();
+  }
+
+  // progress activities by user
+  // คำนวณ (จำนวน activitiese Isprogress ของ user % จำนวน activitiese Isprogress ทั้งหมด) * 100 = %
+  async findProgressByUser(userId: string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid user ID');
+    }
+
+    const user = await this.usersService.findOneByQuery({ _id: userId });
+    if (!user?.data?.[0]) {
+      throw new NotFoundException('User not found');
+    }
+
+    // ดึงทั้งหมดที่ isProgressCount
+    const allActivities = await this.activitiesModel.find({
+      'metadata.isProgressCount': true,
+      'metadata.isOpen': true,
+      'metadata.isVisible': true,
+    }).lean();
+
+    // กรองตาม scope
+    const scopedActivities = allActivities.filter(activity =>
+      isUserInScope(user.data[0] as UserDocument, activity as ActivityDocument)
+    );
+
+    // นับว่าทำ Assessment แล้วกี่อัน
+    let answeredCount = 0;
+
+    for (const activity of scopedActivities) {
+      const assessments = await this.assessmentsService.findAllByActivity(
+        String(activity._id)
+      );
+
+      let hasAnswered = false;
+
+      if (assessments.data?.length) {
+        for (const assessment of assessments.data as AssessmentDocument[]) {
+          const answered = await this.assessmentAnswersModel.findOne({
+            user: (user.data[0] as UserDocument)._id,
+            'answers.assessment': assessment._id,
+          });
+
+          if (answered) {
+            hasAnswered = true;
+            break;
+          }
+        }
+      }
+
+      if (hasAnswered) answeredCount++;
+    }
+
+    const percentage = scopedActivities.length > 0
+      ? (answeredCount / scopedActivities.length) * 100
+      : 0;
+
+    return {
+      userProgressCount: answeredCount,
+      progressPercentage: percentage,
+      scopedActivitiesCount: scopedActivities.length,
+    };
+  }
 }
