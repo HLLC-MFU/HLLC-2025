@@ -1,7 +1,7 @@
 "use client";
 
 import { addToast } from "@heroui/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { MessagesSquare, SmilePlus } from "lucide-react";
 
@@ -17,6 +17,21 @@ export default function ChatPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<Room | undefined>();
     const [selectedRoomType, setSelectedRoomType] = useState<RoomType | "school" | "major">("normal");
+    const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+    const [lastCreatedRoomType, setLastCreatedRoomType] = useState<RoomType | "school" | "major" | null>(null);
+
+    // Helper to get accordion key from room type
+    function getAccordionKeyForRoomType(type: RoomType | "school" | "major") {
+        return type;
+    }
+
+    useEffect(() => {
+        // After creating a room, open the corresponding accordion
+        if (lastCreatedRoomType) {
+            setOpenAccordion(getAccordionKeyForRoomType(lastCreatedRoomType));
+            setLastCreatedRoomType(null);
+        }
+    }, [rooms, lastCreatedRoomType]);
 
     const handleEditRoom = (room: Room) => {
         setModalMode('edit');
@@ -36,10 +51,6 @@ export default function ChatPage() {
     const handleDeleteRoom = async (room: Room) => {
         try {
             await deleteRoom(room._id);
-            addToast({ 
-                title: "Room deleted successfully!", 
-                color: "success" 
-            });
         } catch (err) {
             addToast({
                 title: "Error deleting room",
@@ -64,10 +75,6 @@ export default function ChatPage() {
             }
             
             await updateRoom(room._id, formData);
-            addToast({ 
-                title: `Room ${newStatus === "active" ? "activated" : "deactivated"} successfully!`, 
-                color: "success" 
-            });
         } catch (err) {
             addToast({
                 title: "Error updating room status",
@@ -90,12 +97,16 @@ export default function ChatPage() {
                 await updateRoom(selectedRoom._id, formData);
             } else if (mode === "add") {
                 await createRoom(formData);
+                // Set last created room type for opening accordion
+                const groupType = formData.get('groupType');
+                if (groupType === 'school' || groupType === 'major') {
+                    setLastCreatedRoomType(groupType as "school" | "major");
+                } else {
+                    const type = formData.get('type') as RoomType;
+                    setLastCreatedRoomType(type);
+                }
             }
             
-            addToast({ 
-                title: `Room ${mode === "add" ? "added" : "updated"} successfully!`, 
-                color: "success" 
-            });
             setIsModalOpen(false);
         } catch (err) {
             addToast({
@@ -134,6 +145,8 @@ export default function ChatPage() {
                     onEdit={handleEditRoom}
                     onDelete={handleDeleteRoom}
                     onToggleStatus={handleToggleStatus}
+                    openAccordion={openAccordion}
+                    setOpenAccordion={setOpenAccordion}
                 />
             </div>
 

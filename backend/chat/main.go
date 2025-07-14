@@ -146,6 +146,17 @@ func main() {
 	cookieConfig := middleware.DefaultCookieConfig()
 	app.Use(middleware.SetCookieMiddleware(cookieConfig))
 
+	app.Static(os.Getenv("UPLOAD_BASE_PATH"), "./uploads", fiber.Static{
+		Browse:        false,  
+		MaxAge:       86400,  
+		Compress:     true,   
+		ByteRange:    true,   
+		CacheDuration: 24 * 60 * 60 * time.Second, 
+		Next: func(c *fiber.Ctx) bool { 
+			return c.Method() != fiber.MethodGet
+		},
+	})
+
 	// Initialize services
 	chatSvc := chatService.NewChatService(db, redis, kafkaBus, cfg)
 	chatHub := chatSvc.GetHub()

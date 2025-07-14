@@ -14,6 +14,8 @@ type RoomAccordionProps = {
     onEdit: (room: Room) => void;
     onDelete: (room: Room) => void;
     onToggleStatus?: (room: Room) => void;
+    openAccordion?: string | null;
+    setOpenAccordion?: (key: string | null) => void;
 };
 
 export default function RoomAccordion({ 
@@ -23,7 +25,9 @@ export default function RoomAccordion({
     onAdd, 
     onEdit, 
     onDelete, 
-    onToggleStatus 
+    onToggleStatus,
+    openAccordion,
+    setOpenAccordion
 }: RoomAccordionProps) {
     
     const roomCategories = [
@@ -80,14 +84,24 @@ export default function RoomAccordion({
     }
 
     return (
-        <Accordion className="p-0" variant="splitted">
+        <Accordion 
+            className="p-0" 
+            variant="splitted"
+            selectedKeys={openAccordion ? [openAccordion] : []}
+            onSelectionChange={(keys) => {
+                if (setOpenAccordion) {
+                    const arr = Array.from(keys as Set<string>);
+                    setOpenAccordion(arr[0] || null);
+                }
+            }}
+        >
             {roomCategories.map(({ label, type, icon }) => {
                 const rooms = getRoomsForType(type as string);
                 const totalCount = rooms.length;
 
                 return (
                     <AccordionItem
-                        key={label}
+                        key={type}
                         aria-label={label}
                         title={<span className="text-gray-800 font-medium">{label} Rooms</span>}
                         subtitle={
