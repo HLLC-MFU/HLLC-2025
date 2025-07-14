@@ -1,81 +1,99 @@
-import { Card, CardBody, Chip } from '@heroui/react';
-import { MapPin, Clock } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+'use client';
 
-import { formatDateTime } from '@/utils/dateFormat';
-import { Activities } from '@/types/activities';
+import type { UserActivity } from '@/types/activities';
 
-type ActivitiesCardProps = {
-  activity: Activities;
-};
+import { Card } from '@heroui/react';
+import Image from 'next/image';
 
-export default function ActivitiesCard({ activity }: ActivitiesCardProps) {
-  const router = useRouter();
+import { getStatusBadge } from '../_utils/getStatusBadge';
 
-  const handleViewDetails = () => {
-    router.push(`/activities/${activity._id}`);
-  };
+interface ActivityCardProps {
+  activity: UserActivity;
+  onClick?: () => void;
+}
+
+export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
+  if (!activity) return null;
+  const {
+    label,
+    color,
+    icon: Icon,
+  } = getStatusBadge({
+    checkinStatus: activity.checkinStatus,
+    hasAnsweredAssessment: activity.hasAnsweredAssessment,
+  });
 
   return (
     <div
-      className="hover:cursor-pointer"
+      className="w-full mb-5 cursor-pointer"
       role="button"
       tabIndex={0}
-      onClick={handleViewDetails}
+      onClick={() => {
+        if (onClick) onClick();
+      }}
       onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if ((e.key === 'Enter' || e.key === ' ') && onClick) {
           e.preventDefault();
-          handleViewDetails();
+          onClick();
         }
       }}
     >
-      <Card
-        isHoverable
-        className="min-h-full relative overflow-hidden border-white/20 border-2"
-      >
-        <img
-          alt="Banner"
-          className="absolute inset-0 w-full h-full object-cover"
-          src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity?.photo?.bannerPhoto}`}
-        />
-        <div className="relative z-10">
-          <CardBody className="gap-2 rounded-md bg-white/5 backdrop-blur flex">
-            <div className="flex justify-between items-center w-full">
-              <Card
-                className="w-12 h-12 text-large items-center justify-center flex-shrink-0 mr-2"
-                radius="md"
-              >
-                <img
-                  alt="Banner"
-                  className="absolute inset-0 w-full h-full object-cover"
-                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity?.photo?.bannerPhoto}`}
-                />
-              </Card>
-              <div className="flex flex-col items-start min-w-0 text-start ml-1 w-full">
-                <div className="flex justify-between items-center w-full itme-center">
-                  <p className="flex text-md font-semibold truncate w-full items-center">
-                    {activity.location.en}
-                  </p>
-                  <Chip color="default" variant="flat">
-                    <div className="flex items-center">
-                      <span className="text-xs truncate">
-                        {activity.metadata.isOpen
-                          ? 'Ready for Checkin'
-                          : 'Not Yet Open'}
-                      </span>
-                    </div>
-                  </Chip>
-                </div>
-                <p className="flex text-md font-semibold truncate w-full items-center">
-                  <MapPin size={16} /> {activity.name.en}
-                </p>
-                <p className="flex text-small truncate w-full items-center">
-                  <Clock size={15} />{' '}
-                  {formatDateTime(activity.metadata.startAt)}
-                </p>
-              </div>
+      <Card className="rounded-[32px] overflow-hidden shadow-xl bg-white">
+        <div className="relative h-[400px]">
+          <Image
+            fill
+            alt={activity.name.en}
+            className="object-cover"
+            // src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`}
+            src={
+              `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}` ||
+              `https://hllc.mfu.ac.th/api/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`
+            }
+          />
+
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black/80" />
+
+          {/* Top-right status badge */}
+          <div className="absolute top-0 left-0 right-0 p-6 flex justify-end">
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
+              style={{ backgroundColor: color }}
+            >
+              <Icon color="white" size={14} />
+              <span className="text-white text-xs font-semibold">{label}</span>
             </div>
-          </CardBody>
+          </div>
+
+          {/* Content Overlay */}
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <div className="mb-3">
+              <h2 className="text-white text-2xl font-bold drop-shadow-sm">
+                {activity.name.en}
+              </h2>
+            </div>
+            <p className="text-white/90 text-sm leading-5 mb-4 drop-shadow-sm">
+              {activity.location.en} • Experience an amazing adventure with
+              stunning views and unforgettable memories.
+            </p>
+            {activity.metadata?.startAt && (
+              <div className="inline-block px-3 py-1.5 rounded-xl border border-white/30 bg-white/20">
+                <span className="text-white text-xs font-semibold">
+                  {new Date(activity.metadata.startAt).toLocaleString(
+                    undefined,
+                    {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false,
+                    },
+                  )}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </Card>
     </div>
