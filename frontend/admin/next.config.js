@@ -1,19 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    eslint: {
-        ignoreDuringBuilds: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '5mb',
     },
-    typescript: {
-        ignoreBuildErrors: true,
-    },
-    // basePath: '/ihX0S043',
-    // assetPrefix: '/ihX0S043',
-    // images: {
-    //     unoptimized: true,
-    // },
-    // publicRuntimeConfig: {
-    //     basePath: '/ihX0S043',
-    // },
+  },
+  basePath: process.env.NEXT_BASE_PATH || '',
+  assetPrefix: process.env.NEXT_BASE_PATH || '',
 };
 
 module.exports = nextConfig;

@@ -18,6 +18,8 @@ import { FastifyReply } from 'fastify';
 import { Permissions } from './decorators/permissions.decorator';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RemovePasswordDto } from './dto/remove-password.dto';
+import { CheckResetPasswordEligibilityDto } from './dto/check-reset-password-eligibility.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -56,7 +58,9 @@ export class AuthController {
   async check(@Param('id') id: string, @Res() res: FastifyReply) {
     const user = await this.authService.getRegisteredUser(id);
     if (!user) {
-      return res.status(404).send({ message: 'User not found' });
+      return res.status(404).send({
+        message: 'User not found. Please check your username and try again.',
+      });
     }
     return res.send({ user });
   }
@@ -65,6 +69,26 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  @Permissions('auth:update')
+  @Post('remove-password')
+  async removePassword(@Body() removePasswordDto: RemovePasswordDto) {
+    return this.authService.removePassword(removePasswordDto);
+  }
+
+  @Post('delete-account')
+  async removeAccount(@Body() removePasswordDto: RemovePasswordDto) {
+    return this.authService.removePassword(removePasswordDto);
+  }
+
+  @Public()
+  @Post('check-reset-password-eligibility')
+  checkResetPasswordEligibility(
+    @Body() body: CheckResetPasswordEligibilityDto,
+  ) {
+    const { username, secret } = body;
+    return this.authService.checkResetPasswordEligibility(username, secret);
   }
 
   @Public()

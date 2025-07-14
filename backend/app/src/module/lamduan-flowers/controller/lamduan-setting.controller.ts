@@ -31,19 +31,16 @@ export class LamduanSettingController {
   }
 
   @Get()
-  @Permissions('lamduan-setting:read')
   findAll(@Query() query: Record<string, string>) {
     return this.lamduanSettingService.findAll(query);
   }
 
   @Get(':id')
-  @Permissions('lamduan-setting:read:id')
   findOne(@Param('id') id: string) {
     return this.lamduanSettingService.findOne(id);
   }
 
   @Patch(':id')
-  @Permissions('lamduan-setting:update')
   @UseInterceptors(new MultipartInterceptor(500))
   update(@Param('id') id: string, @Req() req: FastifyRequest) {
     const dto = req.body as UpdateLamduanSettingDto;
@@ -51,7 +48,6 @@ export class LamduanSettingController {
   }
 
   @Delete(':id')
-  @Permissions('lamduan-setting:delete')
   remove(@Param('id') id: string) {
     return this.lamduanSettingService.remove(id);
   }

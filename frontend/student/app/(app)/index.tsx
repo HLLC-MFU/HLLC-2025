@@ -1,89 +1,155 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  View,
-  Text,
-  Image,
-} from "react-native";
-import { ImageBackground } from 'expo-image';
+import { View } from 'react-native';
 import { router, useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Bell, User, Users } from 'lucide-react-native';
+
+import { Bell, Coins, Flower, Footprints } from 'lucide-react-native';
 import { GlassButton } from '@/components/ui/GlassButton';
 import FadeView from '@/components/ui/FadeView';
 import useAuth from '@/hooks/useAuth';
-import { useInterfaces } from '@/hooks/useInterfaces';
+import { useAppearance } from '@/hooks/useAppearance';
 import AssetImage from '@/components/global/AssetImage';
 import { DoorClosedLocked } from '@tamagui/lucide-icons';
+import useHealthData from '@/hooks/health/useHealthData';
+import { ProgressSummaryCard } from '@/components/home/ProgressSummaryCard';
+import BackgroundScreen from '@/components/global/BackgroundScreen';
+import { useEffect, useState } from 'react';
+import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
+import NotificationModal from '@/components/global/NotificationModal';
+import useDevice from '@/hooks/useDevice';
+import { useProgress } from '@/hooks/useProgress';
+import GooeyFabMenu from '@/components/GooeyFabMenu';
 
 const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
-  const { t } = useTranslation();
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const { getStoredDeviceId, revokeDevice } = useDevice();
   const handleSignOut = async () => {
-    await useAuth.getState().signOut();
-    router.replace('/(auth)/login'); // ✅ redirect กลับหน้า login (หรือหน้าอื่น)
+    const deviceId = await getStoredDeviceId()
+    await revokeDevice(deviceId)
+    useAuth.getState().signOut();
+    router.replace('/(auth)/login');
   };
-  const { assets } = useInterfaces();
-  const icons = {
+  const { assets } = useAppearance();
+  const assetsImage = {
+    background: assets?.background ?? null,
     profile: assets?.profile ?? null,
     notification: assets?.notification ?? null,
     progress: assets?.progress ?? null,
+    signOut: assets?.signOut ?? null,
+    lamduan: assets?.lamduan ?? null,
   };
+  const { steps, deviceMismatch } = useHealthData(new Date());
+  const { progress, loading: progressLoading } = useProgress();
+  useEffect(() => {
+    async function setupBackgroundTask() {
+      try {
+        await registerBackgroundTaskAsync();
+        await syncStepsOnStartup();
+      } catch (e) {
+      }
+    }
+
+    setupBackgroundTask();
+  }, []);
+
+  const subFabs = [
+  {
+    key: 'step',
+    icon: <Footprints color={"white"} />,
+    label: 'Step',
+    onPress: () => router.replace('/community/step-counter'),
+  },
+  {
+    key: 'coin',
+    icon: <Coins color={"white"} />,
+    label: 'Coin',
+    onPress: () => router.replace('/coin-hunting'),
+  },
+    {
+    key: 'lamduanflowers',
+    icon: <Flower color={"white"} />,
+    label: 'lamduanflowers',
+    onPress: () => router.replace('/coin-hunting'),
+  },
+];
+
+
+
+  const content = (
+    <SafeAreaView
+      style={{
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        paddingTop: 0,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
+    >
+
+      <ProgressSummaryCard
+        healthData={{ steps, deviceMismatch }}
+        progressImage={assetsImage.progress}
+        progressPercentage={progress?.progressPercentage ?? 0}
+        progressLoading={progressLoading}
+        onPress={() => {
+          router.push('/profile')
+        }}
+      />
+
+      <GooeyFabMenu
+        subFabs={subFabs}
+        style={{ top: 24, left: 16 }}
+      />
+
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <GlassButton iconOnly>
+          {assetsImage.lamduan ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.lamduan}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <Flower color="white" size={20}
+              onPress={() => {
+                useRouter().push('/(app)/lamduanflowers');
+              }} />
+          )}
+        </GlassButton>
+        {/* <GlassButton iconOnly>
+          {assetsImage.profile ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.profile}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <Users color="white" size={20} />
+          )}
+        </GlassButton> */}
+        <GlassButton iconOnly onPress={() => setNotificationModalVisible(true)}>
+          {assetsImage.notification ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.notification}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <Bell fill={'white'} color="white" size={20} />
+          )}
+        </GlassButton>
+      </View>
+    </SafeAreaView>
+  );
 
   return (
     <FadeView>
-      <ImageBackground
-        source={require('@/assets/images/lobby.png')}
-        contentFit="cover"
-        style={{ flex: 1 }}>
-        <SafeAreaView style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 0, alignItems: 'center', justifyContent: 'space-between' }}>
-          <GlassButton>
-            {icons.progress ? (
-              <AssetImage uri={`${baseImageUrl}/uploads/${icons.progress}`} style={{ width: 20, height: 20 }}/>
-            ) : (
-              <User
-                color="white"
-                size={20}
-                onPress={() => {
-                  useRouter().push('/(auth)/login');
-                }}
-              />
-            )}
-            <Text
-              style={{
-                color: 'white',
-                fontWeight: '600',
-                fontSize: 20,
-                marginLeft: 8,
-              }}
-            >
-              {t('nav.progress')}
-            </Text>
-          </GlassButton>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <GlassButton iconOnly>
-              {icons.profile ? (
-                <AssetImage uri={`${baseImageUrl}/uploads/${icons.profile}`} style={{ width: 20, height: 20 }}/>
-              ) : (
-                <Users color="white" size={20} />
-              )}
-            </GlassButton>
-            <GlassButton iconOnly>
-              {icons.notification ? (
-                <AssetImage uri={`${baseImageUrl}/uploads/${icons.notification}`} style={{ width: 20, height: 20 }}/>
-              ) : (
-                <Bell fill={"white"} color="white" size={20} />
-              )}
-            </GlassButton>
-            <GlassButton
-              onPress={handleSignOut}
-              iconOnly
-            >
-              <DoorClosedLocked color="white" size={20} />
-            </GlassButton>
-          </View>
-        </SafeAreaView>
-      </ImageBackground>
+      <BackgroundScreen
+        background={assetsImage.background ?? null}
+        children={content}
+      />
+      <NotificationModal
+        visible={notificationModalVisible}
+        onClose={() => setNotificationModalVisible(false)}
+      />
     </FadeView>
   );
 }

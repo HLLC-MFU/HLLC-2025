@@ -18,7 +18,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { X, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
-import { chatService } from '@/services/chats/chatService';
+import chatService from '@/services/chats/chatService';
 import { GlassButton } from '../ui/GlassButton';
 
 
@@ -56,14 +56,31 @@ const CreateRoomModal = ({
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
       });
 
       if (!result.canceled) {
-        setSelectedImage(result.assets[0].uri);
+        const asset = result.assets[0];
+        const fileSize = asset.fileSize;
+        if (typeof fileSize !== 'number') {
+          Alert.alert(
+            language === 'th' ? 'ไม่สามารถตรวจสอบขนาดไฟล์ได้' : 'Cannot check file size',
+            language === 'th' ? 'กรุณาเลือกรูปภาพอื่น หรือถ่ายใหม่' : 'Please select another image or take a new one.'
+          );
+          return;
+        }
+        // ตรวจสอบขนาดไฟล์ (5MB = 5242880 bytes)
+        if (fileSize > 5242880) {
+          Alert.alert(
+            language === 'th' ? 'ขนาดไฟล์ใหญ่เกินไป' : 'File too large',
+            language === 'th' ? 'กรุณาเลือกรูปภาพที่มีขนาดไม่เกิน 5MB' : 'Please select an image smaller than 5MB'
+          );
+          return;
+        }
+        setSelectedImage(asset.uri);
       }
     } catch (err) {
       console.error('Error picking image:', err);
@@ -101,6 +118,8 @@ const CreateRoomModal = ({
         image: selectedImage || undefined,
         creatorId: ''
       });
+
+      console.log(result)
 
       if (!result) {
         throw new Error('Failed to create room');

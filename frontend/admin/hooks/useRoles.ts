@@ -1,6 +1,7 @@
-import { Role } from "@/types/user";
-import { apiRequest } from "@/utils/api";
 import { useState, useEffect } from "react";
+
+import { apiRequest } from "@/utils/api";
+import { Role } from "@/types/role";
 
 export function useRoles() {
     const [roles, setRoles] = useState<Role[]>([]);

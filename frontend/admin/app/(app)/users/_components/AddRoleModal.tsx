@@ -1,29 +1,50 @@
-import React from "react";
-import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@heroui/react";
+"use client";
+import React, { FormEvent, useState } from "react";
+import {
+    Button,
+    Form,
+    Input,
+    Select,
+    SelectItem,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
+    Checkbox,
+    Card,
+    CardHeader,
+} from "@heroui/react";
+import { Trash2 } from "lucide-react";
+
 import { Role } from "@/types/role";
 
-export type AddRoleProps = {
+type AddRoleProps = {
     isOpen: boolean;
     onClose: () => void;
     onAddRole: (role: Partial<Role>) => void;
 }
 
 export default function AddRoleModal({ isOpen, onClose, onAddRole }: AddRoleProps) {
-    const roleNameRef = React.useRef<HTMLInputElement>(null);
+    const [fields, setFields] = useState<Field[]>([]);
+    const [roleName, setRoleName] = useState<string>("");
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
+        const metadataSchema: Role["metadataSchema"] = fields.reduce((acc, field) => {
+            acc[field.label] = {
+                type: field.type,
+                label: field.label,
+                required: field.required,
+            };
+
+            return acc;
+        }, {} as NonNullable<Role["metadataSchema"]>);
+
         const formData: Partial<Role> = {
-            name: roleNameRef.current?.value!,
-            permissions: ["*"],
-            metadataSchema: {
-                major: {
-                    type: "string",
-                    label: "major",
-                    required: true,
-                }
-            }
+            name: roleName,
+            metadataSchema,
         };
 
         onAddRole(formData);

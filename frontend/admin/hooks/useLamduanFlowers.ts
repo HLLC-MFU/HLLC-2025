@@ -1,7 +1,8 @@
+import { useEffect, useState } from "react";
+
 import { LamduanFlowers } from "@/types/lamduan-flowers";
 import { apiRequest } from "@/utils/api";
-import { addToast } from "@heroui/react";
-import { useEffect, useState } from "react";
+
 
 export function useLamduanFlowers() {
     const [lamduanFlowers, setLamduanFlowers] = useState<LamduanFlowers[]>([]);
@@ -15,6 +16,7 @@ export function useLamduanFlowers() {
             const res = await apiRequest<{ data: LamduanFlowers[] }>("/lamduan-flowers?limit=0", "GET");
 
             setLamduanFlowers(Array.isArray(res.data?.data) ? res.data.data : []);
+
             return res;
         } catch (err) {
             setError(
@@ -34,10 +36,6 @@ export function useLamduanFlowers() {
 
             if (res.statusCode === 200) {
                 setLamduanFlowers((prev) => prev.filter((s) => s._id !== id));
-                addToast({
-                    title: 'Lamduan Flowers deleted successfully!',
-                    color: 'success',
-                });
             } else {
               throw new Error(res.message || 'Failed to delete lamduan flowers.');
             }

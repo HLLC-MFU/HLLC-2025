@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { addToast } from '@heroui/react';
 
-import { School, Major } from '@/types/school';
+import { School } from '@/types/school';
 import { apiRequest } from '@/utils/api';
+import { Major } from '@/types/major';
+import { Appearance } from '@/types/appearance';
 
-export function useSchools() {
+export function useSchools(id?: string) {
 	const [schools, setSchools] = useState<School[]>([]);
+	const [appearance, setAppearance] = useState<Appearance | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -127,8 +130,12 @@ export function useSchools() {
 					color: 'success',
 				});
 			}
-		} catch (err: any) {
-			setError(err.message || 'Failed to update school.');
+		} catch (err) {
+			setError(
+				err && typeof err === 'object' && 'message' in err
+					? (err as { message?: string }).message || 'Failed to delete major.'
+					: 'Failed to delete major.',
+			);
 		} finally {
 			setLoading(false);
 		}
@@ -156,8 +163,12 @@ export function useSchools() {
 			} else {
 				throw new Error(res.message || 'Failed to delete school.');
 			}
-		} catch (err: any) {
-			setError(err.message || 'Failed to delete school.');
+		} catch (err) {
+			setError(
+				err && typeof err === 'object' && 'message' in err
+					? (err as { message?: string }).message || 'Failed to delete major.'
+					: 'Failed to delete major.',
+			);
 		} finally {
 			setLoading(false);
 		}
@@ -182,15 +193,15 @@ export function useSchools() {
 				school: schoolId,
 			});
 
-			if (res.statusCode === 200) {
+			if (res.statusCode === 200 || res.statusCode === 201) {
 				addToast({
 					title: 'Major added successfully!',
 					color: 'success',
 				});
-				window.location.reload();
+				await fetchSchools();
 			}
-			
-		} catch (err: any) {
+
+		} catch (err) {
 			addToast({
 				title: 'Failed to add major. Please try again.',
 				color: 'danger',
@@ -228,7 +239,7 @@ export function useSchools() {
 				});
 				await fetchSchools();
 			}
-		} catch (err: any) {
+		} catch (err) {
 			addToast({
 				title: 'Failed to update major. Please try again.',
 				color: 'danger',
@@ -273,7 +284,7 @@ export function useSchools() {
 				title: 'Major deleted successfully!',
 				color: 'success',
 			});
-		} catch (err: any) {
+		} catch (err) {
 			addToast({
 				title: 'Failed to delete major. Please try again.',
 				color: 'danger',
@@ -288,9 +299,53 @@ export function useSchools() {
 		}
 	};
 
+	/**
+	 * Fetch an appearance from a school.
+	 * This function sends a GET request to the API to get the appearance
+	 * @param {string} schoolId - The ID of the school to find the appearance.
+	 * @throws {Error} If the API request fails, an error is thrown and the error state is updated.
+	 * */
+	const fetchAppearance = async (
+		schoolId: string,
+	) => {
+		setLoading(true);
+		setError(null);
+		try {
+			const res = await apiRequest<{ data: Appearance[] }>(
+				`/schools/${schoolId}/appearances`,
+				"GET"
+			);
+
+			if (res.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+				const appearanceData = res.data.data[0];
+
+				setAppearance(prev => ({
+					...prev,
+					...appearanceData,
+					assets: {
+						...(prev?.assets || {}),
+						...appearanceData.assets
+					}
+				}));
+
+			} else {
+				setAppearance(null);
+			}
+		} catch (err) {
+			setError(
+				err && typeof err === 'object' && 'message' in err
+					? (err as { message?: string }).message || 'Failed to delete major.'
+					: 'Failed to delete major.',
+			);
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	useEffect(() => {
 		fetchSchools();
-	}, []);
+		if (id) fetchAppearance(id);
+	}, [id]);
 
 	return {
 		schools,
@@ -303,5 +358,8 @@ export function useSchools() {
 		addMajor,
 		editMajor,
 		deleteMajor,
+		appearance,
+		setAppearance,
+		fetchAppearance,
 	};
 }

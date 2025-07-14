@@ -31,19 +31,16 @@ export class LamduanFlowersController {
   }
 
   @Get()
-  @Permissions('lamduan-flow:read')
   findAll(@Query() query: Record<string, string>) {
     return this.lamduanFlowersService.findAll(query);
   }
 
   @Get(':id')
-  @Permissions('lamduan-flow:read:id')
   findOne(@Param('id') id: string) {
     return this.lamduanFlowersService.findOne(id);
   }
 
   @Patch(':id')
-  @Permissions('lamduan-flow:update')
   @UseInterceptors(new MultipartInterceptor(500))
   update(@Param('id') id: string, @Req() req: FastifyRequest) {
     const dto = req.body as UpdateLamduanFlowerDto;
@@ -51,7 +48,6 @@ export class LamduanFlowersController {
   }
 
   @Delete(':id')
-  @Permissions('lamduan-flow:delete')
   remove(@Param('id') id: string) {
     return this.lamduanFlowersService.remove(id);
   }

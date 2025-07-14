@@ -4,13 +4,14 @@
   "private": true,
   "description": "A CLI tool for HLLC 2025",
   "type": "module",
+  "scripts": {
+    "build": "./build.sh"
+  },
   "bin": {
     "hllc": "./scripts/hllc.js"
   },
   "dependencies": {
-    "@fastify/multipart": "^9.0.3",
-    "dotenv": "^16.5.0",
-    "hllc-2025": "file:"
+    "dotenv": "^16.5.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

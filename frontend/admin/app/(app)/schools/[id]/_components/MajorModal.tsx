@@ -1,5 +1,3 @@
-import type { Major } from "@/types/school";
-
 import {
   Modal,
   ModalContent,
@@ -14,6 +12,7 @@ import {
 import { useState, useEffect } from "react";
 
 import { apiRequest } from "@/utils/api";
+import { Major } from "@/types/major";
 
 interface MajorModalProps {
   isOpen: boolean;
@@ -36,7 +35,7 @@ export function MajorModal({
     name: { en: "", th: "" },
     detail: { en: "", th: "" },
     acronym: "",
-    school,
+    school: school,
   });
 
   const [loading, setLoading] = useState(false);

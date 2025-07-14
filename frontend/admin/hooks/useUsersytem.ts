@@ -1,5 +1,6 @@
-import { apiRequest } from "@/utils/api";
 import { useEffect, useState } from "react";
+
+import { apiRequest } from "@/utils/api";
 import {UseruseSystem} from '@/types/user-stats'
 
 export const useUserStatistics = () => {
@@ -11,10 +12,12 @@ export const useUserStatistics = () => {
     const fetchStatistics = async () => {
       try {
         const response = await apiRequest<UseruseSystem>("/users/statistics");
+
         if (response.data == null) {
           throw new Error("No statistics data received");
         }
         const Userstats: UseruseSystem = response.data;
+
         setUserStats(Userstats);
       } catch (err: any) {
         setError(err.message || "Something went wrong");

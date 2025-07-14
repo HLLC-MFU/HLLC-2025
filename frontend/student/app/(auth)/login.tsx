@@ -1,17 +1,12 @@
 import useAuth from '@/hooks/useAuth';
-import { usePasswordValidation } from '@/hooks/usePasswordValidation';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { RegisterForm } from '@/components/auth/RegisterForm';
-import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
 import { Province } from '@/types/auth';
-import React, { useRef, useState } from 'react';
-import { Sheet, View } from 'tamagui';
-import { Animated, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { useToastController } from '@tamagui/toast';
 import provincesData from '@/data/provinces.json';
-import { apiRequest } from '@/utils/api';
-import { RegisterSheet } from '@/components/auth/register-modal';
-
+import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
 export default function LoginScreen() {
   // State
   const [username, setUsername] = useState('');
@@ -29,14 +24,13 @@ export default function LoginScreen() {
   // Sheet states
   const [isRegisterSheetOpen, setIsRegisterSheetOpen] = useState(false);
   const [isForgotPasswordSheetOpen, setIsForgotPasswordSheetOpen] = useState(false);
-  const [isProvinceSheetOpen, setIsProvinceSheetOpen] = useState(false);
-  const [isResetProvinceSheetOpen, setIsResetProvinceSheetOpen] = useState(false);
+  const [isRegisterProvinceSheetOpen, setIsRegisterProvinceSheetOpen] = useState(false);
+const [isResetProvinceSheetOpen, setIsResetProvinceSheetOpen] = useState(false);
+
 
   // Hooks
   const { signIn, signUp, resetPassword } = useAuth();
-  const { validateStudentId, validatePassword } = usePasswordValidation();
   const toast = useToastController();
-  const shiftAnim = useRef(new Animated.Value(0)).current;
   const [provinces] = useState<Province[]>(provincesData);
 
   const handleLogin = async () => {
@@ -59,6 +53,18 @@ export default function LoginScreen() {
     }
   };
 
+  const handleLoginAfterRegister = async (username: string, password: string) => {
+    const loginSuccess = await signIn(username, password);
+    if (loginSuccess) {
+      toast.show('Login Success', { message: 'Welcome back!', type: 'success' });
+    } else {
+      toast.show('Login failed.', {
+        message: 'Please check your username and password.',
+        type: 'error',
+      });
+    }
+  };
+
   const handleRegister = async () => {
     if (!regUsername || !regPassword || !regConfirmPassword || !regSecret) {
       toast.show('Missing fields', { message: 'Please fill all fields.', type: 'error' });
@@ -70,18 +76,20 @@ export default function LoginScreen() {
       return;
     }
 
-    const success = await signUp({
+    const registerData = {
       username: regUsername,
       password: regPassword,
       confirmPassword: regConfirmPassword,
       metadata: {
         secret: regSecret
       }
-    });
+    };
+    const success = await signUp(registerData);
 
     if (success) {
       toast.show('Registration successful!', { message: 'Welcome to the platform!', type: 'success' });
       setIsRegisterSheetOpen(false);
+      await handleLoginAfterRegister(regUsername, regPassword);
     } else {
       toast.show('Registration failed', { message: 'Please try again later.', type: 'error' });
     }
@@ -155,63 +163,39 @@ export default function LoginScreen() {
         onForgotPassword={() => setIsForgotPasswordSheetOpen(true)}
       />
 
-      <Sheet
+      <RegisterForm
         open={isRegisterSheetOpen}
         onOpenChange={setIsRegisterSheetOpen}
-        zIndex={100_000}
-        snapPoints={[90, 10]}
-        animation="spring"
-        dismissOnSnapToBottom
-      >
-        <Sheet.Overlay
-          animation="lazy"
-          backgroundColor="$shadow6"
-          enterStyle={{ opacity: 0 }}
-          exitStyle={{ opacity: 0 }}
-        />
-        <Sheet.Handle />
-        <RegisterForm
-          username={regUsername}
-          setUsername={setRegUsername}
-          password={regPassword}
-          setPassword={setRegPassword}
-          confirmPassword={regConfirmPassword}
-          setConfirmPassword={setRegConfirmPassword}
-          secret={regSecret}
-          setSecret={setRegSecret}
-          provinces={provinces}
-          isProvinceSheetOpen={isProvinceSheetOpen}
-          setIsProvinceSheetOpen={setIsProvinceSheetOpen}
-          onRegister={handleRegister}
-          onCancel={() => setIsRegisterSheetOpen(false)}
-        />
-      </Sheet>
-      <Sheet
-        open={isForgotPasswordSheetOpen}
-        onOpenChange={setIsForgotPasswordSheetOpen}
-        snapPoints={[100]}
-        position={0}
-        dismissOnSnapToBottom
-        modal
-      >
-        <Sheet.Overlay />
-        <ResetPasswordForm
-          username={resetUsername}
-          setUsername={setResetUsername}
-          password={resetPasswordValue}
-          setPassword={setResetPasswordValue}
-          confirmPassword={resetConfirmPassword}
-          setConfirmPassword={setResetConfirmPassword}
-          secret={resetSecret}
-          setSecret={setResetSecret}
-          provinces={provinces}
-          isProvinceSheetOpen={isResetProvinceSheetOpen}
-          setIsProvinceSheetOpen={setIsResetProvinceSheetOpen}
-          isLoading={isLoading}
-          onReset={handleResetPassword}
-          onClose={() => setIsForgotPasswordSheetOpen(false)}
-        />
-      </Sheet>
+        username={regUsername}
+        setUsername={setRegUsername}
+        password={regPassword}
+        setPassword={setRegPassword}
+        confirmPassword={regConfirmPassword}
+        setConfirmPassword={setRegConfirmPassword}
+        secret={regSecret}
+        setSecret={setRegSecret}
+        provinces={provinces}
+        isProvinceSheetOpen={isRegisterProvinceSheetOpen}
+        setIsProvinceSheetOpen={setIsRegisterProvinceSheetOpen}
+        onRegister={handleRegister}
+      />
+
+      <ResetPasswordForm 
+      open={isForgotPasswordSheetOpen}
+      onOpenChange={setIsForgotPasswordSheetOpen}
+      username={resetUsername}
+      setUsername={setResetUsername}
+      password={resetPasswordValue}
+      setPassword={setResetPasswordValue}
+      confirmPassword={resetConfirmPassword}
+      setConfirmPassword={setResetConfirmPassword}
+      secret={resetSecret}
+      setSecret={setResetSecret}
+      provinces={provinces}
+      isProvinceSheetOpen={isResetProvinceSheetOpen}
+      setIsProvinceSheetOpen={setIsResetProvinceSheetOpen}
+      onResetPassword={handleResetPassword}
+      />
     </KeyboardAvoidingView>
   );
 }

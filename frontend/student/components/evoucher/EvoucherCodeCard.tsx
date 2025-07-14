@@ -1,18 +1,16 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ImageSourcePropType } from 'react-native';
 
 interface EvoucherCodeCardProps {
-    imageSource: any;
+    imageSource: ImageSourcePropType;
     onPress?: () => void;
     isUsed?: boolean;
-    code?: string;
 }
 
 export const EvoucherCodeCard = ({
     imageSource,
     onPress,
     isUsed = false,
-    code,
 }: EvoucherCodeCardProps) => {
     return (
         <TouchableOpacity style={[styles.card, isUsed && styles.usedCard]} onPress={onPress}>
@@ -25,12 +23,9 @@ const styles = StyleSheet.create({
     card: {
         width: '100%',
         height: 150,
-        backgroundColor: '#282860',
         borderRadius: 15,
-        borderWidth: 2,
-        borderColor: '#818181',
+
         overflow: 'hidden',
-        marginBottom: 15,
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
@@ -42,13 +37,14 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     usedCard: {
-        opacity: 0.7,
+        opacity: 0.5,
         borderColor: '#666',
     },
     cardImage: {
         width: '100%',
         height: '100%',
         resizeMode: 'cover',
+        paddingHorizontal: 12
     },
     codeOverlay: {
         position: 'absolute',
@@ -71,4 +67,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginTop: 2,
     },
-}); 
+});
+
+export default EvoucherCodeCard; 

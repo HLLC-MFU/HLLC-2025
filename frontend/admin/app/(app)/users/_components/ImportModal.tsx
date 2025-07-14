@@ -1,11 +1,14 @@
 import { Button, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
-import React from "react";
+import React, { ChangeEvent, FormEvent, Key, useCallback, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
-import { columns } from "./user-table";
+
+import { columns } from "../page";
+
 import { User } from "@/types/user";
 import { Major } from "@/types/major";
+import { School } from "@/types/school";
 
-export interface ImportModalProps {
+type ImportModalProps = {
     isOpen: boolean;
     onClose: () => void;
     onImport: (userData: Partial<User>[]) => void;
@@ -14,10 +17,9 @@ export interface ImportModalProps {
     majors: Major[];
 }
 
-interface JsonData {
+type JsonData = {
     role: string;
     major: string;
-    type: string;
     username: string;
     first: string;
     middle?: string;
@@ -25,22 +27,23 @@ interface JsonData {
 }
 
 export default function ImportModal({ isOpen, onClose, onImport, onExportTemplate, roleId, majors }: ImportModalProps) {
-    const [fileData, setFileData] = React.useState<User[]>([]);
-    const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
-    const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
+    const [field, setField] = useState<Partial<User>[]>([]);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
-    const [page, setPage] = React.useState(1);
+    const [page, setPage] = useState(1);
     const rowsPerPage = 6;
 
-    const pages = Math.ceil(fileData.length / rowsPerPage);
+    const pages = Math.ceil(field.length / rowsPerPage);
 
-    const items = React.useMemo(() => {
+    const items = useMemo(() => {
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
-        return fileData.slice(start, end);
-    }, [page, fileData]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        return field.slice(start, end);
+    }, [page, field]);
+
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
 
         if (!file) return;
@@ -55,44 +58,31 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
             const worksheet = workbook.Sheets[worksheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet) as JsonData[];
 
-            const dataForm = jsonData.map((item: JsonData) => {
-                const data: JsonData = {};
-                for (const key in item) {
-                    try {
-                        data[key] = JSON.parse(item[key]);
-                    } catch (error) {
-                        data[key] = item[key];
-                    };
-                };
-
-                let majorId = "";
-                majors.find((m) => {
-                    if (m.name.en === data.major_en && m._id) majorId = m._id;
-                })
-
+            const formData = jsonData.map((item: JsonData) => {
+                const major = majors.find(m => m.name.en === item.major);
                 const mapData: Partial<User> = {
                     name: {
                         first: item["first"],
-                        middle: item["middle"],
+                        middle: item["middle"] ?? "",
                         last: item["last"],
                     },
                     username: item["username"],
                     role: roleId,
                     metadata: {
-                        major: majorId
+                        major: major?._id ?? ""
                     }
                 };
 
                 return mapData;
             });
 
-            setFileData(dataForm);
+            setField(formData);
         };
 
         reader.readAsArrayBuffer(file);
     }
 
-    const handleNext = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleNext = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         setIsPreviewModalOpen(true);
@@ -106,29 +96,32 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
     };
 
     const handleImport = () => {
-        onImport(fileData);
+        onImport(field);
         setIsPreviewModalOpen(false);
     };
 
-    const renderCell = React.useCallback((item: User, columnKey: React.Key) => {
+    const renderCell = useCallback((item: User, columnKey: Key) => {
         const cellValue = item[columnKey as keyof typeof item];
-
-        const major = majors.find((m) => m._id === item.metadata.major);
+        const major = majors.find((m) => m._id === String(item.metadata?.major));
 
         switch (columnKey) {
+            case "username":
+                if (typeof cellValue === "string") {
+                    return cellValue;
+                }
             case "name":
-                return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last}`;
+                if (typeof cellValue === "object" && cellValue !== null && 'first' in cellValue) {
+                    return `${cellValue.first} ${cellValue.middle ?? ""} ${cellValue.last ?? ""}`;
+                }
             case "school":
-                return major.school.name.en ?? null;
+                return (major?.school as School).name.en ?? "-";
             case "major":
-                return major.name.en ?? null;
+                return major?.name.en ?? "-";
             case "actions":
                 return null;
-            default:
-                return cellValue;
         }
-
-    }, [fileData]);
+    }, [field]
+    );
 
     return (
         <>
@@ -195,7 +188,7 @@ export default function ImportModal({ isOpen, onClose, onImport, onExportTemplat
                             <TableBody items={items}>
                                 {(item) => (
                                     <TableRow key={item.username}>
-                                        {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                                        {(columnKey) => <TableCell>{renderCell(item as User, columnKey)}</TableCell>}
                                     </TableRow>
                                 )}
                             </TableBody>

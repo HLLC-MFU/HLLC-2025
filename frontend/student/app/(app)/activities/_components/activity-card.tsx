@@ -1,151 +1,170 @@
-import { Card, Text, XStack, YStack } from "tamagui";
-import { Image } from "expo-image";
-import { Calendar, Clock, MapPin } from "@tamagui/lucide-icons";
-import { TouchableOpacity, View } from "react-native";
-import { BlurView } from "expo-blur";
-import { UserActivity } from "@/types/activities";
-import { SharedElement } from "react-navigation-shared-element";
+import { Card, Text, XStack, YStack } from "tamagui"
+import { Image } from "expo-image"
+import { TouchableOpacity, View } from "react-native"
+import { LinearGradient } from "expo-linear-gradient"
+import type { UserActivity } from "@/types/activities"
+import { getStatusBadge } from "@/utils/activityStatus"
 
 interface ActivityCardProps {
-  activity: UserActivity;
-  onPress?: () => void;
+  activity: UserActivity
+  onPress?: () => void
 }
 
 export default function ActivityCard({ activity, onPress }: ActivityCardProps) {
-  if (!activity) return null;
-
-  const imageId = `activity-image-${activity._id}`;
+  if (!activity) return null
+  const { label, color, icon: Icon } = getStatusBadge({
+    checkinStatus: activity.checkinStatus,
+    hasAnsweredAssessment: activity.hasAnsweredAssessment,
+  })
 
   return (
     <TouchableOpacity
-      activeOpacity={0.9}
+      activeOpacity={0.95}
       onPress={onPress}
       style={{
         width: "100%",
         marginBottom: 20,
-        borderRadius: 20,
-        overflow: "hidden",
       }}
     >
-      <BlurView
-        intensity={40}
-        tint="light"
+      <Card
+        borderRadius={32}
+        overflow="hidden"
+        backgroundColor="white"
+        elevate
         style={{
-          borderRadius: 20,
-          overflow: "hidden",
-          backgroundColor: "rgba(255,255,255,0.1)",
-          borderWidth: 1,
-          borderColor: "rgba(255,255,255,0.2)",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.12,
+          shadowRadius: 24,
+          elevation: 12,
         }}
       >
-        <YStack>
-          <SharedElement id={imageId}>
-            <View style={{ position: "relative", alignItems: "center", justifyContent: "center" }}>
-              <Image
-                source={{
-                  uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.banner}`,
-                }}
-                contentFit="cover"
-                style={{
-                  width: "100%",
-                  height: 120,
-                }}
-              />
+        {/* Main Image */}
+        <View style={{ position: "relative", height: 400 }}>
+          <Image
+            source={{
+              uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`,
+            }}
+            contentFit="cover"
+            style={{
+              width: "100%",
+              height: "100%",
+            }}
+          />
 
-              {/* Bottom gradient overlay */}
-              <View
-                style={{
-                  position: "absolute",
-                  width: "100%",
-                  height: "100%",
-                  backgroundColor: "rgba(0, 0, 0, 0.75)",
-                }}
-              />
-
-              {/* Overlay text content */}
+          {/* Gradient Overlay */}
+          <LinearGradient
+            colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.8)"]}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+          <YStack style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            padding: 24,
+          }}>
+            <YStack justifyContent="space-between" alignItems="flex-end" >
               <View
                 style={{
                   flexDirection: "row",
-                  position: "absolute",
                   alignItems: "center",
-                  gap: 12,
-                  width: "100%",
-                  height: "100%",
-                  padding: 16,
+                  backgroundColor: color,
+                  borderRadius: 16,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  gap: 6,
                 }}
               >
-                <Image
-                  source={{
-                    uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${activity.photo.thumbnail}`,
-                  }}
+                <Icon color="white" size={14} />
+                <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>{label}</Text>
+              </View>
+            </YStack>
+          </YStack>
+
+
+          {/* Content Overlay */}
+          <YStack
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              padding: 24,
+            }}
+          >
+
+            <YStack justifyContent="space-between" alignItems="flex-start" marginBottom={12}>
+              <Text
+                fontSize="$8"
+                fontWeight="700"
+                color="white"
+                numberOfLines={2}
+                flex={1}
+                marginRight={16}
+                style={{
+                  textShadowColor: "rgba(0,0,0,0.3)",
+                  textShadowOffset: { width: 0, height: 2 },
+                  textShadowRadius: 4,
+                }}
+              >
+                {activity.name.en}
+              </Text>
+            </YStack>
+
+            {/* Description */}
+            <Text
+              fontSize="$3"
+              color="rgba(255,255,255,0.9)"
+              numberOfLines={3}
+              marginBottom={16}
+              lineHeight={20}
+              style={{
+                textShadowColor: "rgba(0,0,0,0.3)",
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 2,
+              }}
+            >
+              {activity.location.en} • Experience an amazing adventure with stunning views and unforgettable memories.
+            </Text>
+
+            {/* Status Badges */}
+            <XStack gap={12} marginBottom={20}>
+
+
+              {activity.metadata?.startAt && (
+                <View
                   style={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: 12,
-                    marginBottom: 8,
-                  }}
-                  contentFit="cover"
-                />
-                <YStack>
-                <Text
-                  fontSize="$4"
-                  fontWeight="700"
-                  color="#fff"
-                  numberOfLines={1}
-                  style={{
-                    textShadowColor: 'rgba(0,0,0,0.6)',
-                    textShadowOffset: { width: 0, height: 1 },
-                    textShadowRadius: 4,
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                    borderRadius: 16,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.3)",
                   }}
                 >
-                  {activity.name.en}
-                </Text>
-
-                <XStack alignItems="center" gap={6} marginTop={4}>
-                  <MapPin size={14} color="white" />
-                  <Text
-                    fontSize="$2"
-                    color="#fff"
-                    numberOfLines={1}
-                    style={{
-                      flex: 1,
-                      textShadowColor: 'rgba(0,0,0,0.4)',
-                      textShadowOffset: { width: 0, height: 1 },
-                      textShadowRadius: 2,
-                    }}
-                  >
-                    {activity.location.en}
+                  <Text fontSize="$2" fontWeight="600" color="white">
+                    {new Date(activity.metadata.startAt).toLocaleTimeString([], {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour12: false,
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </Text>
-                </XStack>
-                <XStack alignItems="center" gap={16} marginTop={4}>
-                  <XStack alignItems="center" gap={4}>
-                    <Clock size={14} color="#fff" />
-                    <Text fontSize="$2" color="#fff">
-                      {activity.metadata?.startAt
-                        ? new Date(activity.metadata.startAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                        : "N/A"}
-                    </Text>
-                  </XStack>
-
-                  <XStack alignItems="center" gap={4}>
-                    <Calendar size={14} color="#fff" />
-                    <Text fontSize="$2" color="#fff">
-                      {activity.metadata?.startAt
-                        ? new Date(activity.metadata.startAt).toLocaleDateString()
-                        : "N/A"}
-                    </Text>
-                  </XStack>
-                </XStack>
-                </YStack>
-
-              </View>
-            </View>
-          </SharedElement>
-        </YStack>
-      </BlurView>
+                </View>
+              )}
+            </XStack>
+          </YStack>
+        </View>
+      </Card>
     </TouchableOpacity>
-  );
+  )
 }

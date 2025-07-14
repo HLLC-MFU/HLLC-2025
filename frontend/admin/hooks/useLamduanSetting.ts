@@ -1,7 +1,8 @@
-import { LamduanSetting } from "@/types/lamduan-setting";
-import { apiRequest } from "@/utils/api";
 import { addToast } from "@heroui/react";
 import { useEffect, useState } from "react";
+
+import { LamduanSetting } from "@/types/lamduan-flowers";
+import { apiRequest } from "@/utils/api";
 
 export function useLamduanSetting() {
     const [lamduanSetting, setLamduanSetting] = useState<LamduanSetting[]>([]);
@@ -15,6 +16,7 @@ export function useLamduanSetting() {
             const res = await apiRequest<{ data: LamduanSetting[] }>("/lamduan-setting?limit=0", "GET");
 
             setLamduanSetting(Array.isArray(res.data?.data) ? res.data.data : []);
+
             return res;
         } catch (err) {
             setError(
@@ -27,12 +29,34 @@ export function useLamduanSetting() {
         }
     };
 
+    const createLamduanSetting = async (settingData: FormData) => {
+        try {
+            setLoading(true);
+
+            const res = await apiRequest<LamduanSetting>('/lamduan-setting', 'POST' , settingData);
+
+            if(res.data) {
+                setLamduanSetting((prev) => [...prev, res.data as LamduanSetting]);
+                addToast({ 
+                    title: "Setting created successfully", 
+                    color: "success" });
+            }
+
+            return res;
+        } catch (err : any) {
+            setError(err.message || 'Failed to update lamduan setting.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const updateLamduanSetting = async (
         id: string,
         lamduanSettingData: FormData,
     ): Promise<void> => {
         if (!id) {
             console.error("Invalid setting ID");
+
             return;
         }
 
@@ -89,6 +113,7 @@ export function useLamduanSetting() {
         lamduanSetting,
         loading,
         error,
+        createLamduanSetting,
         updateLamduanSetting,
         fetchLamduanSetting,
         deleteLamduanSetting,

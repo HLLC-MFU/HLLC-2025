@@ -1,6 +1,5 @@
 "use client";
 
-import { Campaign } from "@/types/campaign";
 import {
   Modal,
   ModalContent,
@@ -10,6 +9,8 @@ import {
   Button,
 } from "@heroui/react";
 import { addToast } from "@heroui/react";
+
+import { Campaign } from "@/types/campaign";
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;

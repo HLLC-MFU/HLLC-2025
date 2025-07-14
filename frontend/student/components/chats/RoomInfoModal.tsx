@@ -6,11 +6,12 @@ import {
   TouchableWithoutFeedback, 
   StyleSheet, 
   Animated,
-  ScrollView,
+  FlatList,
   Dimensions
 } from 'react-native';
 import { X, Users, Clock, Shield, Star } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { useTranslation } from 'react-i18next';
 
 import Avatar from './Avatar';
 import { RoomInfoModalProps } from '@/types/chatTypes';
@@ -20,9 +21,24 @@ import { formatTime } from '@/utils/chats/timeUtils';
 const { width, height } = Dimensions.get('window');
 
 const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoModalProps) => {
-  const slideAnim = useRef(new Animated.Value(height)).current;
+  const { t, i18n } = useTranslation();
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const contentScale = useRef(new Animated.Value(0.9)).current;
+
+  // Function to get room name based on current language
+  const getRoomName = (room: any) => {
+    if (!room?.name) return t('roomInfo.unnamedRoom');
+    
+    const currentLang = i18n.language;
+    if (currentLang === 'th' && room.name.th) {
+      return room.name.th;
+    } else if (currentLang === 'en' && room.name.en) {
+      return room.name.en;
+    }
+    
+    // Fallback: try th first, then en, then default
+    return room.name.th || room.name.en || t('roomInfo.unnamedRoom');
+  };
 
   useEffect(() => {
     if (isVisible) {
@@ -31,12 +47,6 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
         Animated.timing(overlayOpacity, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          tension: 100,
-          friction: 8,
           useNativeDriver: true,
         }),
         Animated.spring(contentScale, {
@@ -54,11 +64,6 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
           duration: 250,
           useNativeDriver: true,
         }),
-        Animated.timing(slideAnim, {
-          toValue: height,
-          duration: 250,
-          useNativeDriver: true,
-        }),
         Animated.timing(contentScale, {
           toValue: 0.9,
           duration: 250,
@@ -72,8 +77,82 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
 
   const occupancyPercentage = (connectedUsers.length / room.capacity) * 100;
 
+  // Header component
+  const renderHeader = () => (
+    <View style={styles.headerSection}>
+      {/* Room Title */}
+      <View style={styles.roomTitleContainer}>
+        <Text style={styles.roomInfoTitle}>
+          {getRoomName(room)}
+        </Text>
+
+      </View>
+      
+      {room.description && (
+        <Text style={styles.roomDescription}>{room.description}</Text>
+      )}
+      
+      {/* Room Stats Cards */}
+      <View style={styles.statsContainer}>
+        {/* Occupancy Card */}
+        <View style={styles.statCard}>
+          <Users size={20} color="#fff" />
+          <View style={styles.statContent}>
+            <Text style={styles.statValue}>
+              {connectedUsers.length}/{room.capacity || 0}
+            </Text>
+            <Text style={styles.statLabel}>{t('roomInfo.users')}</Text>
+            <View style={styles.occupancyBar}>
+              <View 
+                style={[
+                  styles.occupancyFill, 
+                  { width: `${Math.min(occupancyPercentage, 100)}%` }
+                ]} 
+              />
+            </View>
+          </View>
+        </View>
+        
+        {/* Created Date Card */}
+        <View style={styles.statCard}>
+          <Clock size={20} color="#fff" />
+          <View style={styles.statContent}>
+            <Text style={styles.statValue}>
+              {room.created_at ? formatTime(room.created_at) : t('roomInfo.createdAt')}
+            </Text>
+            <Text style={styles.statLabel}>{t('roomInfo.createdAt')}</Text>
+          </View>
+        </View>
+      </View>
+      
+      {/* Security Badge */}
+      <View style={styles.securityBadge}>
+        <Shield size={16} color="#fff" />
+        <Text style={styles.securityText}>{t('roomInfo.secureRoom')}</Text>
+      </View>
+      
+      {/* Users Section Title */}
+      <View style={styles.usersSectionHeader}>
+        <Text style={styles.connectedUsersTitle}>
+          {t('roomInfo.onlineUsers')} ({connectedUsers.length})
+        </Text>
+      </View>
+    </View>
+  );
+
+  // Empty state component
+  const renderEmptyState = () => (
+    <View style={styles.noUsersContainer}>
+      <Users size={48} color="#fff" />
+      <Text style={styles.noUsersText}>{t('roomInfo.noUsersOnline')}</Text>
+      <Text style={styles.noUsersSubtext}>
+        {t('roomInfo.waitingForFriends')}
+      </Text>
+    </View>
+  );
+
   return (
-    <TouchableWithoutFeedback onPress={onClose}>
+    <TouchableWithoutFeedback onPress={onClose} delayPressIn={0} delayPressOut={0}>
       <Animated.View 
         style={[
           styles.modalOverlay,
@@ -82,37 +161,34 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
           }
         ]}
       >
-        <TouchableWithoutFeedback>
+        {/* Blur background */}
+        <BlurView
+          intensity={40}
+          tint="dark"
+          style={StyleSheet.absoluteFill}
+        />
+        <TouchableWithoutFeedback onPress={() => {}} delayPressIn={0} delayPressOut={0}>
           <Animated.View 
             style={[
               styles.modalContent,
               {
                 transform: [
-                  { translateY: slideAnim },
                   { scale: contentScale }
                 ]
               }
             ]}
           >
-            {/* Background Gradient */}
-            <LinearGradient
-              colors={['#1a1a2e', '#16213e', '#0f3460']}
-              style={styles.modalGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            />
+            {/* Glass background */}
+            <View style={styles.modalBackground} />
             
             {/* Header */}
             <View style={styles.modalHeader}>
-              <LinearGradient
-                colors={['rgba(10, 132, 255, 0.2)', 'rgba(10, 132, 255, 0.1)']}
-                style={styles.headerGradient}
-              />
-              <Text style={styles.modalTitle}>รายละเอียดห้องแชท</Text>
+              <Text style={styles.modalTitle}>{t('roomInfo.roomDetails')}</Text>
               <TouchableOpacity 
                 onPress={onClose}
                 style={styles.closeButton}
                 activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <View style={styles.closeButtonInner}>
                   <X color="#fff" size={20} />
@@ -120,140 +196,49 @@ const RoomInfoModal = ({ room, isVisible, onClose, connectedUsers }: RoomInfoMod
               </TouchableOpacity>
             </View>
             
-            <ScrollView 
+            <FlatList 
               style={styles.scrollContainer}
-              showsVerticalScrollIndicator={false}
-              bounces={true}
-            >
-              {/* Room Info */}
-              <View style={styles.roomInfoContainer}>
-                {/* Room Title */}
-                <View style={styles.roomTitleContainer}>
-                  <Text style={styles.roomInfoTitle}>{room.name?.th || room.name?.en || 'Unnamed'}</Text>
-                  <View style={styles.roomBadge}>
-                    <Star size={14} color="#FFD700" />
-                  </View>
-                </View>
-                
-                {room.description && (
-                  <Text style={styles.roomDescription}>{room.description}</Text>
-                )}
-                
-                {/* Room Stats Cards */}
-                <View style={styles.statsContainer}>
-                  {/* Occupancy Card */}
-                  <View style={styles.statCard}>
-                    <LinearGradient
-                      colors={['rgba(10, 132, 255, 0.1)', 'rgba(10, 132, 255, 0.05)']}
-                      style={styles.statCardGradient}
-                    />
-                    <Users size={20} color="#0A84FF" />
-                    <View style={styles.statContent}>
-                      <Text style={styles.statValue}>
-                        {connectedUsers.length}/{room.capacity}
-                      </Text>
-                      <Text style={styles.statLabel}>ผู้ใช้งาน</Text>
-                      <View style={styles.occupancyBar}>
-                        <View 
-                          style={[
-                            styles.occupancyFill, 
-                            { width: `${Math.min(occupancyPercentage, 100)}%` }
-                          ]} 
-                        />
-                      </View>
+              data={connectedUsers}
+              keyExtractor={(item) => item.id.toString()}
+              ListHeaderComponent={renderHeader}
+              ListEmptyComponent={renderEmptyState}
+              renderItem={({ item: user }) => (
+                <View style={styles.connectedUser}>
+                  <Avatar 
+                    name={user.name || user.id || 'Unknown User'} 
+                    online={true} 
+                    size={42} 
+                  />
+                  <View style={styles.userInfo}>
+                    <Text style={styles.connectedUserName}>
+                      {user.name || user.id || t('chat.unknownUser')}
+                    </Text>
+                    <View style={styles.onlineIndicator}>
+                      <View style={styles.onlineDot} />
+                      <Text style={styles.onlineText}>{t('roomInfo.online')}</Text>
                     </View>
                   </View>
-                  
-                  {/* Created Date Card */}
-                  <View style={styles.statCard}>
-                    <LinearGradient
-                      colors={['rgba(0, 212, 170, 0.1)', 'rgba(0, 212, 170, 0.05)']}
-                      style={styles.statCardGradient}
-                    />
-                    <Clock size={20} color="#00D4AA" />
-                    <View style={styles.statContent}>
-                      <Text style={styles.statValue}>
-                        {formatTime(room.created_at)}
-                      </Text>
-                      <Text style={styles.statLabel}>สร้างเมื่อ</Text>
-                    </View>
-                  </View>
-                </View>
-                
-                {/* Security Badge */}
-                <View style={styles.securityBadge}>
-                  <Shield size={16} color="#00D4AA" />
-                  <Text style={styles.securityText}>ห้องแชทปลอดภัย</Text>
-                </View>
-              </View>
-              
-              {/* Connected Users Section */}
-              <View style={styles.usersSection}>
-                <Text style={styles.connectedUsersTitle}>
-                  ผู้ใช้ที่กำลังออนไลน์ ({connectedUsers.length})
-                </Text>
-                
-                <View style={styles.connectedUsersList}>
-                  {connectedUsers.map((user, index) => (
-                    <Animated.View 
-                      key={user.id || index} 
-                      style={[
-                        styles.connectedUser,
-                        {
-                          opacity: new Animated.Value(0),
-                          transform: [{
-                            translateX: new Animated.Value(50)
-                          }]
-                        }
-                      ]}
-                      onLayout={() => {
-                        // Stagger user animations
-                        Animated.timing(new Animated.Value(0), {
-                          toValue: 1,
-                          duration: 300,
-                          delay: index * 100,
-                          useNativeDriver: true,
-                        }).start();
-                      }}
+                  <View style={styles.userActions}>
+                    <TouchableOpacity 
+                      style={styles.userActionButton}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      activeOpacity={0.7}
                     >
-                      <LinearGradient
-                        colors={['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.02)']}
-                        style={styles.userCardGradient}
-                      />
-                      <Avatar 
-                        name={user.name || user.id} 
-                        online={true} 
-                        size={42} 
-                      />
-                      <View style={styles.userInfo}>
-                        <Text style={styles.connectedUserName}>
-                          {user.name || user.id}
-                        </Text>
-                        <View style={styles.onlineIndicator}>
-                          <View style={styles.onlineDot} />
-                          <Text style={styles.onlineText}>ออนไลน์</Text>
-                        </View>
-                      </View>
-                      <View style={styles.userActions}>
-                        <TouchableOpacity style={styles.userActionButton}>
-                          <Text style={styles.userActionText}>@</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </Animated.View>
-                  ))}
-                  
-                  {connectedUsers.length === 0 && (
-                    <View style={styles.noUsersContainer}>
-                      <Users size={48} color="#666" />
-                      <Text style={styles.noUsersText}>ไม่มีผู้ใช้ออนไลน์</Text>
-                      <Text style={styles.noUsersSubtext}>
-                        รอให้เพื่อนเข้าร่วมห้องแชท
-                      </Text>
-                    </View>
-                  )}
+                      <Text style={styles.userActionText}>@</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            </ScrollView>
+              )}
+              showsVerticalScrollIndicator={true}
+              bounces={true}
+              nestedScrollEnabled={true}
+              keyboardShouldPersistTaps="always"
+              scrollEventThrottle={16}
+              removeClippedSubviews={false}
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={10}
+            />
           </Animated.View>
         </TouchableWithoutFeedback>
       </Animated.View>
@@ -269,25 +254,38 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 1000,
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+    pointerEvents: 'auto',
   },
   
   modalContent: {
-    backgroundColor: '#1A1A1A',
-    maxHeight: height * 0.9,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    maxHeight: height * 0.7,
+    width: width * 0.9,
+    borderRadius: 24,
     overflow: 'hidden',
     position: 'relative',
+    minHeight: 500,
+    maxWidth: width * 0.95,
+    pointerEvents: 'auto',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backdropFilter: 'blur(20px)',
   },
   
-  modalGradient: {
+  modalBackground: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    zIndex: -1,
+    pointerEvents: 'none',
   },
   
   modalHeader: {
@@ -297,14 +295,11 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 16,
     position: 'relative',
-  },
-  
-  headerGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+    height: 70,
+    pointerEvents: 'auto',
   },
   
   modalTitle: {
@@ -312,10 +307,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: 0.5,
+    pointerEvents: 'none',
   },
   
   closeButton: {
     padding: 4,
+    pointerEvents: 'auto',
   },
   
   closeButtonInner: {
@@ -326,22 +323,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    pointerEvents: 'none',
   },
   
   scrollContainer: {
     flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    height: height * 0.5,
+    pointerEvents: 'auto',
   },
   
-  roomInfoContainer: {
+  headerSection: {
     padding: 20,
-    paddingTop: 0,
+    paddingTop: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    pointerEvents: 'none',
   },
   
   roomTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    pointerEvents: 'none',
   },
   
   roomInfoTitle: {
@@ -350,13 +354,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     flex: 1,
     letterSpacing: 0.5,
+    pointerEvents: 'none',
   },
   
   roomBadge: {
-    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     padding: 6,
     marginLeft: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   
   roomDescription: {
@@ -364,12 +371,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     marginBottom: 24,
+    pointerEvents: 'none',
   },
   
   statsContainer: {
     flexDirection: 'row',
     marginBottom: 20,
-    gap: 12,
+    pointerEvents: 'none',
   },
   
   statCard: {
@@ -378,20 +386,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     position: 'relative',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  
-  statCardGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 16,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(10px)',
+    pointerEvents: 'none',
   },
   
   statContent: {
     marginTop: 8,
+    pointerEvents: 'none',
   },
   
   statValue: {
@@ -399,12 +403,14 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 4,
+    pointerEvents: 'none',
   },
   
   statLabel: {
-    color: '#999',
+    color: '#ccc',
     fontSize: 13,
     fontWeight: '500',
+    pointerEvents: 'none',
   },
   
   occupancyBar: {
@@ -413,36 +419,41 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginTop: 8,
     overflow: 'hidden',
+    pointerEvents: 'none',
   },
   
   occupancyFill: {
     height: '100%',
-    backgroundColor: '#0A84FF',
+    backgroundColor: '#fff',
     borderRadius: 2,
+    pointerEvents: 'none',
   },
   
   securityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 212, 170, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: 'rgba(0, 212, 170, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    pointerEvents: 'none',
   },
   
   securityText: {
-    color: '#00D4AA',
+    color: '#fff',
     fontSize: 13,
     fontWeight: '600',
     marginLeft: 6,
+    pointerEvents: 'none',
   },
   
-  usersSection: {
-    padding: 20,
-    paddingTop: 0,
+  usersSectionHeader: {
+    padding: 0,
+    paddingTop: 20,
+    pointerEvents: 'none',
   },
   
   connectedUsersTitle: {
@@ -450,10 +461,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 16,
-  },
-  
-  connectedUsersList: {
-    gap: 8,
+    pointerEvents: 'none',
   },
   
   connectedUser: {
@@ -463,21 +471,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     position: 'relative',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  
-  userCardGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 16,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginHorizontal: 20,
+    backdropFilter: 'blur(10px)',
+    pointerEvents: 'auto',
   },
   
   userInfo: {
     flex: 1,
     marginLeft: 12,
+    pointerEvents: 'none',
   },
   
   connectedUserName: {
@@ -485,11 +490,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+    pointerEvents: 'none',
   },
   
   onlineIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   
   onlineDot: {
@@ -508,19 +515,22 @@ const styles = StyleSheet.create({
   
   userActions: {
     marginLeft: 8,
+    pointerEvents: 'auto',
   },
   
   userActionButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(10, 132, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   
   userActionText: {
-    color: '#0A84FF',
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -528,6 +538,7 @@ const styles = StyleSheet.create({
   noUsersContainer: {
     alignItems: 'center',
     padding: 32,
+    pointerEvents: 'none',
   },
   
   noUsersText: {

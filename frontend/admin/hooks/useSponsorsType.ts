@@ -1,7 +1,9 @@
-import { SponsorType } from "@/types/sponsors-type";
 import { useEffect, useState } from "react";
-import { apiRequest } from '@/utils/api';
 import { addToast } from "@heroui/react";
+import { SponsorType } from "@/types/sponsors";
+
+import { apiRequest } from '@/utils/api';
+
 
 export function useSponsorsType() {
     const [sponsorsType, setSponsorsType] = useState<SponsorType[]>([]);
@@ -13,11 +15,11 @@ export function useSponsorsType() {
         setError(null);
         try {
             const res = await apiRequest<{ data: SponsorType[] }>(
-                '/sponsors-type?limit=0',
+                '/sponsors/types?limit=0',
                 'GET',
             );
 
-            setSponsorsType(Array.isArray(res.data?.data) ? res.data.data : []);
+            setSponsorsType(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             addToast({
                 title: 'Failed to fetch sponsors type. Please try again.',
@@ -36,7 +38,7 @@ export function useSponsorsType() {
     const createSponsorsType = async (sponsorsTypeData: Partial<SponsorType>) => {
         try {
             setLoading(true);
-            const res = await apiRequest<SponsorType>('/sponsors-type', 'POST', sponsorsTypeData);
+            const res = await apiRequest<SponsorType>('/sponsors/types', 'POST', sponsorsTypeData);
 
             if (res.data) {
                 setSponsorsType((prev) => [...prev, res.data as SponsorType]);
@@ -59,7 +61,7 @@ export function useSponsorsType() {
         try {
             setLoading(true);
             const res = await apiRequest<SponsorType>(
-                `/sponsors-type/${id}`,
+                `/sponsors/types/${id}`,
                 'PATCH',
                 sponsorsData,
             );
@@ -81,7 +83,7 @@ export function useSponsorsType() {
     const deleteSponsorsType = async (id: string): Promise<void> => {
         try {
             setLoading(true);
-            const res = await apiRequest(`/sponsors-type/${id}`, 'DELETE');
+            const res = await apiRequest(`/sponsors/types/${id}`, 'DELETE');
 
             if (res.statusCode === 200) {
                 setSponsorsType((prev) => prev.filter((s) => s._id !== id));

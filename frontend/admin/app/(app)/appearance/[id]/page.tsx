@@ -1,192 +1,142 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { SchoolDetailSkeleton } from '../../schools/[id]/_components/SchoolDetailSkeleton';
-import { useSchoolByAppearance } from '@/hooks/useSchoolByAppearance';
-import { addToast, Card, CardBody } from '@heroui/react';
-import { AlertCircle, Image } from 'lucide-react';
+import { ArrowLeft, Palette } from 'lucide-react';
 import { Button } from '@heroui/button';
-import { AppearanceHeader } from './_components/AppearanceHeader';
-import { AssetsSection } from './_components/AssetsSection';
+import { useState } from 'react';
+
 import { ColorsSection } from './_components/ColorsSection';
 import { PreviewSection } from './_components/PreviewSection';
-import { useAppearanceAssets } from '@/hooks/useAppearanceAssets';
-import { useAppearanceColors } from '@/hooks/useAppearanceColors';
-import { useState } from 'react';
-import { ColorConfirmationModal } from './_components/ColorConfirmationModal';
-import { AssetsConfirmationModal } from './_components/AssetsConfirmationModal';
+import { ConfirmationModal } from './_components/ConfirmationModal';
 import { AppearanceSkeleton } from './_components/AppearanceSkeleton';
+import AssetsSection from './_components/AssetsSection';
+
+import { PageHeader } from '@/components/ui/page-header';
+import { useSchools } from '@/hooks/useSchool';
+import useAppearance from '@/hooks/useAppearance';
+
+const uiSection = {
+  background: [{ title: 'Background' }],
+  header: [
+    { title: 'Progress' },
+    { title: 'Notification' },
+    { title: 'Profile' },
+  ],
+  navigation: [
+    { title: 'Home' },
+    { title: 'Activities' },
+    { title: 'QRCode' },
+    { title: 'EVoucher' },
+    { title: 'Community' },
+  ],
+};
 
 export default function AppearanceDetailsPage() {
-    const router = useRouter();
-    const { id } = useParams<{ id: string }>();
-    const { appearance, loading, error, setAppearance } = useSchoolByAppearance(id);
-    const [isConfirmColorModalOpen, setIsConfirmColorModalOpen] = useState(false);
-    const [isAssetSaveModalOpen, setIsAssetSaveModalOpen] = useState(false);
-    const [pendingAssetKey, setPendingAssetKey] = useState<string | null>(null);
-    const [isAssetSaveAllModalOpen, setIsAssetSaveAllModalOpen] = useState(false);
+  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const [isColorSaveModalOpen, setIsColorSaveModalOpen] = useState<boolean>(false);
+  const [isAssetSaveModalOpen, setIsAssetSaveModalOpen] = useState<boolean>(false);
 
-    const {
-        assetDrafts,
-        uploadingAssets,
-        savedAssets,
-        previewUrls,
-        handleFileChange,
-        handleSaveAsset,
-        handleCancelAsset,
-    } = useAppearanceAssets({
-        appearance,
-        onAppearanceUpdate: (updatedAppearance) => {
-            setAppearance(updatedAppearance);
-        }
-    });
+  const { appearance, loading, error, fetchAppearance } = useSchools(id);
 
-    const {
-        colorDrafts,
-        handleColorChange,
-        handleSaveColors,
-    } = useAppearanceColors({ appearance });
+  const {
+    colors,
+    assets,
+    setError,
+    setAssets,
+    handleSaveColor,
+    handleSaveAsset,
+  } = useAppearance({ appearance });
 
-
-    const handleConfirmUpdate = async () => {
-        if (!appearance) return;
-        try {
-            const updatedAppearance = await handleSaveColors();
-            if (updatedAppearance) {
-                setAppearance(updatedAppearance);
-            }
-            setIsConfirmColorModalOpen(false);
-            addToast({
-                title: "Appearance updated successfully",
-                color: "success",
-            });
-        } catch (error) {
-            console.error("Update failed", error);
-        }
-    };
-
-    const handleRequestSaveAll = () => {
-        setIsAssetSaveAllModalOpen(true);
-    };
-
-    const handleConfirmAssetSave = async () => {
-        if (pendingAssetKey) {
-            const updatedAppearance = await handleSaveAsset(pendingAssetKey);
-            if (updatedAppearance) {
-                setAppearance(updatedAppearance);
-            } else {
-                addToast({
-                    title: "Failed to update appearance. Please try again.",
-                    color: "danger",
-                });
-            }
-            setIsAssetSaveModalOpen(false);
-            setPendingAssetKey(null);
-        }
-    };
-
-    const handleConfirmAssetSaveAll = async () => {
-        let anyFailed = false;
-        for (const key of Object.keys(assetDrafts)) {
-            if (assetDrafts[key]) {
-                const updatedAppearance = await handleSaveAsset(key);
-                if (!updatedAppearance) {
-                    anyFailed = true;
-                } else {
-                    setAppearance(updatedAppearance);
-                }
-            }
-        }
-        setIsAssetSaveAllModalOpen(false);
-        if (anyFailed) {
-            addToast({
-                title: "Some assets failed to save. Please try again.",
-                color: "danger",
-            });
-        }
-    };
-
-    if (loading) return <SchoolDetailSkeleton />;
-
-    if (error) {
-        return (
-            <AppearanceSkeleton/>
-        );
+  const handleConfirmColor = async () => {
+    if (!appearance) return;
+    try {
+      await handleSaveColor();
+      setIsColorSaveModalOpen(false);
+    } catch (err) {
+      setError(
+        err && typeof err === 'object' && 'message' in err
+          ? (err as { message?: string }).message || 'Failed to save color.'
+          : 'Failed to save color.',
+      );
     }
+  };
 
-    if (!appearance && !loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-                <Card className="p-8 max-w-md shadow-xl">
-                    <CardBody className="text-center">
-                        <Image className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                        <h2 className="text-xl font-semibold mb-2 text-gray-700">School not found</h2>
-                        <p className="text-gray-600 mb-4">The appearance you're looking for doesn't exist.</p>
-                        <Button
-                            className="mt-4"
-                            color="primary"
-                            onPress={() => router.back()}
-                        >
-                            Go Back
-                        </Button>
-                    </CardBody>
-                </Card>
-            </div>
-        );
+  const handleConfirmAsset = async () => {
+    if (!appearance) return;
+    try {
+      const res = await handleSaveAsset();
+
+      setIsAssetSaveModalOpen(false);
+      if (res) await fetchAppearance(id);
+    } catch (err) {
+      setError(
+        err && typeof err === 'object' && 'message' in err
+          ? (err as { message?: string }).message || 'Failed to save asset.'
+          : 'Failed to save asset.',
+      );
     }
+  };
 
-    return (
-        <div className="h-screen">
-            {appearance && <AppearanceHeader appearance={appearance} />}
+  if (loading || error || !appearance) return <AppearanceSkeleton />;
 
-            <div className="container mx-auto px-6 py-8">
-                <div className="grid gap-8 w-full mx-auto">
-                    {appearance && (
-                        <>
-                            <AssetsSection
-                                appearance={appearance}
-                                previewUrls={previewUrls}
-                                assetDrafts={assetDrafts}
-                                uploadingAssets={uploadingAssets}
-                                savedAssets={savedAssets}
-                                onFileChange={handleFileChange}
-                                onSaveAsset={handleSaveAsset}
-                                onCancel={handleCancelAsset}
-                                onRequestSaveAll={handleRequestSaveAll}
-                            />
+  return (
+    <div className="flex flex-col min-h-screen">
+      <PageHeader
+        description={`Manage user appearance for ${appearance?.school.name.en}.`}
+        icon={<Palette />}
+        title={appearance.school.name.en}
+      />
+      <div className="flex items-center gap-4 w-full mx-auto mb-4">
+        <Button
+          className="hover:bg-gray-100 transition-colors mb-2"
+          size="lg"
+          startContent={<ArrowLeft className="w-4 h-4" />}
+          variant="flat"
+          onPress={() => router.back()}
+        >
+          Back
+        </Button>
+      </div>
 
-                            <ColorsSection
-                                colorDrafts={colorDrafts}
-                                onColorChange={handleColorChange}
-                                onSaveColors={() => setIsConfirmColorModalOpen(true)}
-                            />
+      <div className="w-full mx-auto">
+        <div className="grid gap-8 w-full mx-auto">
+          {appearance && (
+            <>
+              <AssetsSection
+                appearance={appearance}
+                assets={assets}
+                uiSection={uiSection}
+                onSave={() => setIsAssetSaveModalOpen(true)}
+                onSetAssets={setAssets}
+              />
 
-                            <PreviewSection
-                                appearance={appearance}
-                                colorDrafts={colorDrafts}
-                            />
-                        </>
-                    )}
-                </div>
-            </div>
+              <ColorsSection
+                colors={colors}
+                onSave={() => setIsColorSaveModalOpen(true)}
+              />
 
-            <ColorConfirmationModal
-                isOpen={isConfirmColorModalOpen}
-                onClose={() => setIsConfirmColorModalOpen(false)}
-                onConfirm={handleConfirmUpdate}
-            />
-
-            <AssetsConfirmationModal
-                isOpen={isAssetSaveModalOpen}
-                onClose={() => setIsAssetSaveModalOpen(false)}
-                onConfirm={handleConfirmAssetSave}
-            />
-
-            <AssetsConfirmationModal
-                isOpen={isAssetSaveAllModalOpen}
-                onClose={() => setIsAssetSaveAllModalOpen(false)}
-                onConfirm={handleConfirmAssetSaveAll}
-            />
+              <PreviewSection appearance={appearance} colors={colors} />
+            </>
+          )}
         </div>
-    );
+      </div>
+
+      <ConfirmationModal
+        isOpen={isColorSaveModalOpen}
+        subtitle="Are you sure you want to save the changes to the colors?"
+        title="Confirm Change Colors"
+        onClose={() => setIsColorSaveModalOpen(false)}
+        onConfirm={handleConfirmColor}
+      />
+
+      <ConfirmationModal
+        isOpen={isAssetSaveModalOpen}
+        subtitle="Are you sure you want to save the changes to the assets?"
+        title="Confirm Change Assets"
+        onClose={() => setIsAssetSaveModalOpen(false)}
+        onConfirm={handleConfirmAsset}
+      />
+    </div>
+  );
 }

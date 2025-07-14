@@ -1,15 +1,16 @@
 // src/contexts/LanguageContext.tsx
 import i18n from '@/locales/i18n';
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useLanguageStore } from '@/stores/language';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 
 type LanguageContextType = {
-  language: "en" | "th";
-  changeLanguage: (lang: "en" | "th") => void;
+  language: 'en' | 'th';
+  changeLanguage: (lang: 'en' | 'th') => void;
 };
 
 const LanguageContext = createContext<LanguageContextType>({
-  language: 'en' as const,
+  language: 'en',
   changeLanguage: () => {},
 });
 
@@ -18,16 +19,23 @@ type LanguageProviderProps = {
 };
 
 export const LanguageProvider = ({ children }: LanguageProviderProps) => {
-  const [language, setLanguage] = useState<"en" | "th">(i18n.language as "en" | "th");
-
-  const changeLanguage = (lang: string) => {
-    i18n.changeLanguage(lang);
-    setLanguage(lang as "en" | "th");
-  };
+  const { language, setLanguage } = useLanguageStore();
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    setLanguage(i18n.language as "en" | "th");
-  }, []);
+    const init = async () => {
+      await i18n.changeLanguage(language);
+      setInitialized(true);
+    };
+    init();
+  }, [language]);
+
+  const changeLanguage = (lang: 'en' | 'th') => {
+    i18n.changeLanguage(lang);
+    setLanguage(lang); // อัปเดต store + AsyncStorage
+  };
+
+  if (!initialized) return null; // หรือ splash screen
 
   return (
     <LanguageContext.Provider value={{ language, changeLanguage }}>

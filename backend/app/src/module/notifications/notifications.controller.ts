@@ -76,9 +76,14 @@ export class NotificationsController {
   }
 
   @Post('push')
-  sendPushNotification(@Body() pushNotificationDto: PushNotificationDto) {
+  sendPushNotification(
+    @Body() pushNotificationDto: PushNotificationDto,
+    @Query('dryRun') dryRun?: string,
+  ) {
+    const isDryRun = dryRun === 'true';
     return this.pushNotificationService.sendPushNotification(
       pushNotificationDto,
+      isDryRun,
     );
   }
 }
