@@ -13,7 +13,6 @@ import {
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { Notification } from './schemas/notification.schema';
-import { ReadNotificationDto } from './dto/read-notification.dto';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { UserRequest } from 'src/pkg/types/users';
@@ -59,14 +58,16 @@ export class NotificationsController {
     return this.notificationsService.remove(id);
   }
 
-  @Post('read')
-  markAsRead(@Body() markAsReadDto: ReadNotificationDto) {
-    return this.notificationsService.markNotification(markAsReadDto, true);
+  @Post(':id/read')
+  markAsRead(@Param('id') notificationId: string, @Req() req: UserRequest) {
+    const user = req.user;
+    return this.notificationsService.markNotification(user, notificationId, true);
   }
 
-  @Post('unread')
-  markAsUnread(@Body() markAsUnreadDto: ReadNotificationDto) {
-    return this.notificationsService.markNotification(markAsUnreadDto, false);
+  @Post(':id/unread')
+  markAsUnread(@Param('id') notificationId: string, @Req() req: UserRequest) {
+    const user = req.user;
+    return this.notificationsService.markNotification(user, notificationId, false);
   }
 
   @Get('me')
