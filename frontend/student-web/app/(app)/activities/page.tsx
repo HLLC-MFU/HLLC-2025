@@ -6,6 +6,12 @@ import { useRouter } from 'next/navigation';
 import ActivityCard from './_components/ActivitiesCard';
 
 import { useActivities } from '@/hooks/useActivities';
+import { PrepostQuestions } from '@/types/prepostQuestion';
+import { addToast } from '@heroui/react';
+import { usePrepostQuestion } from '@/hooks/usePrePostQuestion';
+import { useProgress } from '@/hooks/useProgress';
+import PretestQuestionModal from '@/components/PretestPosttest/PretestQuestionModal';
+import { ConfirmationModal } from '@/components/PretestPosttest/ConfirmModal';
 
 export default function ActivitiesPage() {
   const { activities, loading } = useActivities(null);
@@ -109,6 +115,33 @@ export default function ActivitiesPage() {
           No activities found.
         </p>
       )}
+
+      <PretestQuestionModal
+        answers={answers}
+        prePostQuestions={selectedPrepostQuestion}
+        isOpen={isModalOpen}
+        setAnswers={setAnswers}
+        onClose={() => {
+          if (progress?.progressPercentage) {
+            setIsModalOpen(false);
+            setSelectedPrepostQuestion([]);
+          } else {
+            addToast({
+              title: 'You must complete the assessment first.',
+              color: 'warning',
+            });
+          }
+        }}
+        onSubmit={() => setIsConfirmOpen(true)}
+      />
+
+      <ConfirmationModal
+        isOpen={isConfirmOpen}
+        subtitle="Are you sure you want to submit your answers? You won't be able to change them after submission."
+        title="Do you want to submit your answers?"
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirmModal}
+      />
     </div>
   );
 }

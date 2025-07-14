@@ -13,8 +13,6 @@ export function useProgress() {
         try {
             const res = await apiRequest<any>('/activities/progress', 'GET');
 
-            console.log('API raw response:', res);
-
             if (res && 'data' in res) {
                 setProgress(res.data ?? null);
             } else {
@@ -36,7 +34,6 @@ export function useProgress() {
     }, []);
 
     useEffect(() => {
-        console.log('progress updated', progress);
     }, [progress]);
 
     return {
