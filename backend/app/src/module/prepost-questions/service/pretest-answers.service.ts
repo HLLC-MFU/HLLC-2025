@@ -34,7 +34,7 @@ export class PretestAnswersService {
 
     @InjectModel(PrepostQuestion.name)
     private prepostQuestionModel: Model<PrepostQuestionDocument>,
-  ) {}
+  ) { }
 
   async create(createPretestAnswerDto: CreatePretestAnswerDto) {
     const { user, answers } = createPretestAnswerDto;
@@ -159,5 +159,20 @@ export class PretestAnswersService {
       average: sum / count,
       count,
     }));
+  }
+
+  async findByUserId(userId: string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid user ID');
+    }
+
+    const userObjectId = new Types.ObjectId(userId);
+
+    const exists = await this.pretestAnswerModel.exists({ user: userObjectId });
+
+    return {
+      data: !!exists,
+      message: 'Pretest answer existence checked',
+    };
   }
 }

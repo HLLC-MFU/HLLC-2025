@@ -20,14 +20,6 @@ export default function CheckinPage() {
 const handleSubmit = async (id?: string) => {
   const sid = id ?? studentId;
 
-  if (!/^\d{10}$/.test(sid)) {
-    return addToast({
-      title: 'Invalid studentId',
-      description: 'Please enter your 10-digit student ID number.',
-      color: 'danger',
-    });
-  }
-
   if (selectedActivityId.length === 0) {
     return addToast({
       title: 'No select Activities',
