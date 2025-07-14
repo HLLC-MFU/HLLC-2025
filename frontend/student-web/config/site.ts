@@ -1,4 +1,4 @@
-import { LogOutIcon, BookIcon, QrCode, CircleUserRound } from 'lucide-react';
+import { LogOutIcon, BookIcon, QrCode, CircleUserRound, Ticket } from 'lucide-react';
 
 import { NavSection } from '@/types/nav';
 
@@ -16,6 +16,7 @@ export const siteConfig: {
       items: [
         { label: 'Activities', href: '/activities', icon: BookIcon },
         { label: 'CheckIn', href: '/checkin', icon: QrCode },
+        { label: 'E-vouchers', href: '/evouchers', icon: Ticket },
       ],
     },
     {
