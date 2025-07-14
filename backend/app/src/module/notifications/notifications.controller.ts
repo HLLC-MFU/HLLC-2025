@@ -59,14 +59,16 @@ export class NotificationsController {
     return this.notificationsService.remove(id);
   }
 
-  @Post('read')
-  markAsRead(@Body() markAsReadDto: ReadNotificationDto) {
-    return this.notificationsService.markNotification(markAsReadDto, true);
+  @Post(':id/read')
+  markAsRead(@Param('id') notificationId: string, @Req() req: UserRequest) {
+    const user = req.user;
+    return this.notificationsService.markNotification(user, notificationId, true);
   }
 
-  @Post('unread')
-  markAsUnread(@Body() markAsUnreadDto: ReadNotificationDto) {
-    return this.notificationsService.markNotification(markAsUnreadDto, false);
+  @Post(':id/unread')
+  markAsUnread(@Param('id') notificationId: string, @Req() req: UserRequest) {
+    const user = req.user;
+    return this.notificationsService.markNotification(user, notificationId, false);
   }
 
   @Get('me')
