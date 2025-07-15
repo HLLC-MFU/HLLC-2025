@@ -104,20 +104,20 @@ export default function ReportPage() {
           </div>
 
           {/* Buttons */}
-          <div className="flex justify-between gap-3 pt-2">
+          <div className="grid grid-cols-2 gap-10 pt-2">
             <Button
               onPress={() => {
                 setSelectedTopic('');
                 setDescription('');
               }}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold rounded-full px-6"
+              className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-full"
             >
               CLEAR
             </Button>
             <Button
               onPress={handleSubmit}
               disabled={!selectedTopic || !description.trim() || loading}
-              className="bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-full px-6 transition-opacity duration-300 disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-full transition-opacity duration-300 disabled:opacity-50 disabled:pointer-events-none"
             >
               {loading ? <Spinner size="sm" /> : 'CONFIRM'}
             </Button>

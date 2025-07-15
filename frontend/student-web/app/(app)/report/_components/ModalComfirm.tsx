@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import { Button } from '@heroui/react';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -25,18 +25,18 @@ export function ConfirmModal({
         <h2 className="text-xl font-semibold text-black/80">{title}</h2>
         <p className="text-sm text-black/60">{description}</p>
         <div className="flex justify-between gap-4 pt-2">
-          <button
-            onClick={onCancel}
+          <Button
+            onPress={onCancel}
             className="w-full py-2 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold transition"
           >
             CANCEL
-          </button>
-          <button
-            onClick={onConfirm}
+          </Button>
+          <Button
+            onPress={onConfirm}
             className="w-full py-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold transition"
           >
             CONFIRM
-          </button>
+          </Button>
         </div>
       </div>
     </div>
