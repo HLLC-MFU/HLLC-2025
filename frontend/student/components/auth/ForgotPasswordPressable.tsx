@@ -8,15 +8,15 @@ export default function ForgotPasswordPressable() {
 
   const handleForgotPassword = () => {
     Alert.alert(
-      t('confirm.title') || 'Confirm',
-      t('confirm.forgotPassword') || 'Do you want to open the password recovery page?',
+      t('resetPassword.permission.title') || 'Confirm',
+      t('resetPassword.permission.message') || 'Do you want to open the password recovery page?',
       [
         {
-          text: t('common.cancel') || 'Cancel',
+          text: t('resetPassword.permission.Cancle') || 'Cancel',
           style: 'cancel',
         },
         {
-          text: t('common.confirm') || 'Yes',
+          text: t('resetPassword.permission.confirm') || 'Yes',
           onPress: async () => {
             await WebBrowser.openBrowserAsync('https://hllc.mfu.ac.th/forgot-password');
           },

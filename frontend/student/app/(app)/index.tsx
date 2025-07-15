@@ -70,7 +70,7 @@ export default function HomeScreen() {
     key: 'lamduanflowers',
     icon: <Flower color={"white"} />,
     label: 'lamduanflowers',
-    onPress: () => router.replace('/coin-hunting'),
+    onPress: () => router.replace('/lamduanflowers'),
   },
 ];
 
@@ -103,7 +103,7 @@ export default function HomeScreen() {
       />
 
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <GlassButton iconOnly>
+        {/* <GlassButton iconOnly>
           {assetsImage.lamduan ? (
             <AssetImage
               uri={`${baseImageUrl}/uploads/${assetsImage.lamduan}`}
@@ -115,7 +115,7 @@ export default function HomeScreen() {
                 useRouter().push('/(app)/lamduanflowers');
               }} />
           )}
-        </GlassButton>
+        </GlassButton> */}
         {/* <GlassButton iconOnly>
           {assetsImage.profile ? (
             <AssetImage

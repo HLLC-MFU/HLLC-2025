@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 
 import { getStatusBadge } from '../_utils/getStatusBadge';
+
 import CheckinStatusChip from './CheckinStatusChip';
 
 interface ActivityCardProps {
@@ -47,8 +48,9 @@ export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
           <Image
             fill
             alt={activity.name.en}
-            className={`object-cover transition-opacity duration-700 ${loaded ? 'opacity-100' : 'opacity-0'
-              }`}
+            className={`object-cover transition-opacity duration-700 ${
+              loaded ? 'opacity-100' : 'opacity-0'
+            }`}
             src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`}
             onLoadingComplete={() => setLoaded(true)}
           />

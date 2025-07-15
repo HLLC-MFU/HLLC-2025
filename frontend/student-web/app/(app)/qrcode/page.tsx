@@ -3,14 +3,18 @@
 import { QRCodeCanvas } from 'qrcode.react';
 import { Button } from '@heroui/react';
 import { Save } from 'lucide-react';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import QRCodeSkeleton from './_components/QRCodeSkeleton';
 
 import { useProfile } from '@/hooks/useProfile';
 
 export default function QRCodePage() {
-  const { user, loading } = useProfile();
+  const { user, loading, fetchUser } = useProfile();
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleDownload = () => {
