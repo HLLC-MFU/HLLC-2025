@@ -166,4 +166,19 @@ export class PosttestAnswersService {
 
     return output;
   }
+
+  async findByUserId(userId: string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid user ID');
+    }
+
+    const userObjectId = new Types.ObjectId(userId);
+
+    const exists = await this.posttestAnswerModel.exists({ user: userObjectId });
+
+    return {
+      data: !!exists,
+      message: 'Posttest answer existence checked',
+    };
+  }
 }

@@ -3,6 +3,8 @@ import {
   addToast,
   Button,
   Card,
+  CardBody,
+  CardHeader,
   Chip,
   ScrollShadow,
   Spinner,
@@ -199,145 +201,142 @@ export default function ActivitiesDetailPage() {
           <Spinner label="Loading..." variant="wave" />
         </div>
       ) : (
-        <div className="flex flex-col max-h-screen justify-beetween gap-5 mt-5">
-          <div className="flex items-center gap-4 p-4 absolute z-10">
-            <Button
-              isIconOnly
-              radius="full"
-              size="md"
-              variant="shadow"
-              onPress={() => router.back()}
-            >
-              <ArrowLeft color="black" size={16} />
-            </Button>
-          </div>
-
-          <div className="w-full max-h-screen overflow-hidden relative">
+        <div>
+          <Card className="w-full aspect-video relative mb-4">
             <Image
               fill
               alt="Banner"
               className="w-full h-full object-cover"
-              src={
-                // `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity?.photo?.bannerPhoto}` ||
-                `https://hllc.mfu.ac.th/api/uploads/${activity?.photo?.bannerPhoto || 'default-banner.jpg'}`
-              }
+              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity?.photo?.bannerPhoto}`}
             />
-          </div>
-
-          <div className="flex-col flex items-star mt-5 p-2">
-            <div className="flex justify-between w-full">
-              <div className="flex flex-col gap-2">
-                <p className="text-xs">ACTIVITY</p>
-                <p className="flex items-center font-bold text-xl">
-                  {activity?.name.en}
-                </p>
-                <h1 className="flex items-center gap-2">
-                  <MapPin size={18} />
-                  <p>{activity?.location.en}</p>
-                </h1>
-              </div>
-              <Card
-                className="w-[60px] h-[80px] items-center justify-center flex text-center"
-                radius="md"
-              >
-                <p className="text-sm p-2">
-                  {formatDateTime(activity?.metadata?.startAt)}
-                </p>
-              </Card>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center">
-            <div className="flex justify-between items-center w-full gap-2">
+            <div className="flex items-center gap-4 p-4 absolute z-10">
               <Button
-                className="text-center font-bold text-xs"
-                radius="md"
-                variant={activeTab === 'about' ? 'solid' : 'flat'}
-                onPress={() => setActiveTab('about')}
+                isIconOnly
+                radius="full"
+                size="md"
+                variant="shadow"
+                onPress={() => router.back()}
               >
-                ABOUT
+                <ArrowLeft color="black" size={16} />
               </Button>
-              <Button
-                className="text-center font-bold text-xs"
-                radius="md"
-                variant={activeTab === 'status' ? 'solid' : 'flat'}
-                onPress={() => setActiveTab('status')}
-              >
-                ACTIVITY STATUS
-              </Button>
-              <Chip
-                className="text-xs font-bold flex items-center gap-1"
-                color={
-                  (activity?.checkinStatus === 2 ||
-                    activity?.checkinStatus === 3) &&
-                  activity?.hasAnsweredAssessment
-                    ? 'success'
-                    : 'danger'
-                }
-              >
-                {(activity?.checkinStatus === 2 ||
-                  activity?.checkinStatus === 3) &&
-                activity?.hasAnsweredAssessment ? (
-                  <p className="flex items-center gap-1 text-white">
-                    <CircleCheck color="white" size={16} /> Done
-                  </p>
-                ) : (
-                  'Not Done'
-                )}
-              </Chip>
             </div>
-          </div>
-
-          <div>
-            {activeTab === 'about' ? (
-              <div className="flex flex-col gap-20 justify-between">
-                <div className="flex items-center justify-center">
-                  <ScrollShadow className="w-full h-[200px] flex flex-col break-all">
-                    {activity?.fullDetails?.en || 'No details available.'}
-                  </ScrollShadow>
-                </div>
-                <div className="flex justify-between w-full items-center">
-                  <h1 className="text-md text-center font-bold">Locations</h1>
-                  <Button
-                    className="text-center font-bold text-xs"
+          </Card>
+          <Card>
+            <CardHeader>
+              <div className="flex-col flex items-star mt-5 p-2">
+                <div className="flex justify-between w-full">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs">ACTIVITY</p>
+                    <p className="flex items-center font-bold text-xl">
+                      {activity?.name.en}
+                    </p>
+                    <h1 className="flex items-center gap-2">
+                      <MapPin size={18} />
+                      <p>{activity?.location.en}</p>
+                    </h1>
+                  </div>
+                  <Card
+                    className="w-[60px] h-[80px] items-center justify-center flex text-center"
                     radius="md"
-                    startContent={<MapPin size={15} />}
-                    variant="flat"
-                    onPress={HandleViewMap}
                   >
-                    Open in Google Maps
-                  </Button>
+                    <p className="text-sm p-2">
+                      {formatDateTime(activity?.metadata?.startAt)}
+                    </p>
+                  </Card>
                 </div>
+                <Chip
+                  className="text-xs font-bold flex items-center gap-1"
+                  color={
+                    (activity?.checkinStatus === 2 ||
+                      activity?.checkinStatus === 3) &&
+                    activity?.hasAnsweredAssessment
+                      ? 'success'
+                      : 'danger'
+                  }
+                >
+                  {(activity?.checkinStatus === 2 ||
+                    activity?.checkinStatus === 3) &&
+                  activity?.hasAnsweredAssessment ? (
+                    <p className="flex items-center gap-1 text-white">
+                      <CircleCheck color="white" size={16} /> Done
+                    </p>
+                  ) : (
+                    'Not Done'
+                  )}
+                </Chip>
               </div>
-            ) : (
-              <div>
-                <Stepper
-                  completedSteps={completedSteps}
-                  direction="vertical"
-                  steps={steps}
-                />
+            </CardHeader>
+            <CardBody className="overflow-y-hidden">
+              <div className="flex justify-center items-center w-full gap-6 border-b border-white/20">
+                {[
+                  { key: 'about', label: 'ABOUT' },
+                  { key: 'status', label: 'ACTIVITY STATUS' },
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    className={`relative  py-2 text-xs font-bold transition-colors duration-300 border-b-2 ${
+                      activeTab === tab.key
+                        ? 'border-black text-black'
+                        : 'border-transparent text-gray-400 hover:text-black'
+                    }`}
+                    onClick={() => setActiveTab(tab.key as 'about' | 'status')}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
-          {/* Assessment Modal */}
-          <AssessmentModal
-            answers={answers}
-            assessment={selectedAssessments}
-            isOpen={isModalOpen}
-            setAnswers={setAnswers}
-            onClose={handleCloseModal}
-            onSubmit={() => setIsConfirmOpen(true)}
-          />
-          {/*Confirm modal */}
-          <ConfirmationModal
-            isOpen={isConfirmOpen}
-            subtitle="Are you sure you want to submit your answers? You won't be able to change them after submission."
-            title="Do you want to submit your answers?"
-            onClose={() => setIsConfirmOpen(false)}
-            onConfirm={handleConfirmModal}
-          />
+
+              <div className="mt-4 px-4">
+                {activeTab === 'about' ? (
+                  <div className="flex flex-col gap-8 justify-between">
+                    <div className="flex items-center justify-center">
+                      <ScrollShadow className="w-full flex flex-col break-all">
+                        {activity?.fullDetails?.en || 'No details available.'}
+                      </ScrollShadow>
+                    </div>
+
+                    <Button
+                      className="text-center font-bold text-xs w-full"
+                      radius="md"
+                      startContent={<MapPin size={15} />}
+                      variant="flat"
+                      onPress={HandleViewMap}
+                    >
+                      Open in Google Maps
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <Stepper
+                      completedSteps={completedSteps}
+                      direction="vertical"
+                      steps={steps}
+                    />
+                  </div>
+                )}
+              </div>
+            </CardBody>
+          </Card>
         </div>
       )}
+
+      {/* Assessment Modal */}
+      <AssessmentModal
+        answers={answers}
+        assessment={selectedAssessments}
+        isOpen={isModalOpen}
+        setAnswers={setAnswers}
+        onClose={handleCloseModal}
+        onSubmit={() => setIsConfirmOpen(true)}
+      />
+      {/*Confirm modal */}
+      <ConfirmationModal
+        isOpen={isConfirmOpen}
+        subtitle="Are you sure you want to submit your answers? You won't be able to change them after submission."
+        title="Do you want to submit your answers?"
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirmModal}
+      />
     </>
   );
 }

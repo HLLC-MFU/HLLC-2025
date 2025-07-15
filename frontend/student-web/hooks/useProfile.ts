@@ -54,11 +54,11 @@ export const useProfile = create<ProfileStore>()(
         set({ loading: true, error: null });
 
         try {
-          const res = await apiRequest('/users/profile', 'GET');
+          const res = await apiRequest<{ data: User[]; message: string }>('/users/profile', 'GET');
 
           if (res.statusCode !== 200) throw new Error('Failed to fetch profile');
 
-          const data: User = res?.data?.data?.[0];
+          const data = res?.data?.data?.[0];
           if (!data) throw new Error('User not found');
 
           const majorName = data.metadata?.major?.name?.en ?? null;

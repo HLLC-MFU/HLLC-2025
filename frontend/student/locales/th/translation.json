@@ -148,5 +148,17 @@
     },
     "coinHunting": {
         "collection": "คอลเลกชัน"
-    }
+    },
+    "assessment": {
+        "title": "แบบประเมินกิจกรรม",
+        "questionCount": "จำนวนคำถาม: {{count}}",
+        "notFound": "ไม่พบคำถามสำหรับแบบประเมินนี้",
+        "loading": "กำลังโหลด...",
+        "low": "น้อย",
+        "high": "มาก",
+        "cancel": "ยกเลิก",
+        "submit": "ส่ง",
+        "submitting": "กำลังส่ง...",
+        "yourComments": "กรอกความคิดเห็นของคุณ"
+      }
 }
