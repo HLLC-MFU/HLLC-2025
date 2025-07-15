@@ -33,6 +33,7 @@ export default function CoinHuntingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [handledQuery, setHandledQuery] = useState(false);
 
   const handleScannerSuccessWithRefresh = useCallback((data?: any) => {
     handleScannerSuccess(data);
@@ -40,29 +41,44 @@ export default function CoinHuntingPage() {
   }, [handleScannerSuccess]);
 
   useEffect(() => {
+    if (handledQuery) return;
     const modalParam = searchParams.get('modal');
     const code = searchParams.get('code');
     const type = searchParams.get('type');
 
-    const allowedTypes = ['already-collected', 'no-evoucher', 'too-far'] as const;
+    const allowedTypes = ['already-collected', 'no-evoucher', 'too-far', 'cooldown'] as const;
     if (modalParam === 'success') {
       handleScannerSuccessWithRefresh(code ? { code } : undefined);
-      router.replace('/coin-hunting');
+      setHandledQuery(true);
+      router.replace('/community/coin-hunting');
     } else if (
       modalParam === 'alert' &&
       type &&
       allowedTypes.includes(type as typeof allowedTypes[number])
     ) {
       handleAlert(type as typeof allowedTypes[number]);
-      router.replace('/coin-hunting');
+      setHandledQuery(true);
+      router.replace('/community/coin-hunting');
     }
-  }, [searchParams, handleScannerSuccessWithRefresh]);
+  }, [searchParams, handleScannerSuccessWithRefresh, handleAlert, router, handledQuery]);
+
+  // Helper for modal close to clear modal state and query
+  const handleCloseModal = () => {
+    closeModal();
+    router.replace('/community/coin-hunting');
+  };
+
+  // Helper for Go to Stamp Page
+  const handleGoToStampModal = () => {
+    handleGoToStamp();
+    router.replace('/community/coin-hunting');
+  };
 
   return (
     <div style={{ flex: 1, height: '100vh', backgroundColor: 'transparent' }}>
       <TopBar
         onScan={handleCheckIn}
-        onStamp={handleGoToStamp}
+        onStamp={handleGoToStampModal}
         centerText="Bloom possible"
       />
       <InteractiveMap>
@@ -83,19 +99,19 @@ export default function CoinHuntingPage() {
       <CombinedModal
         visible={modal === 'success'}
         type="success"
-        onClose={closeModal}
-        onGoToStamp={handleGoToStamp}
+        onClose={handleCloseModal}
+        onGoToStamp={handleGoToStampModal}
         evoucher={evoucher}
       />
       <CombinedModal
         visible={modal === 'alert'}
         type="alert"
-        onClose={closeModal}
-        alertType={alertType ?? undefined}
+        onClose={handleCloseModal}
+        alertType={alertType as any}
       />
       <StampModal
         visible={modal === 'stamp'}
-        onClose={closeModal}
+        onClose={handleCloseModal}
         coinImages={collectedCoinImages}
         coinRotations={[
           90, 140, 190, 240, 295, 345, 40,

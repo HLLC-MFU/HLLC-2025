@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 
 import {
@@ -6,6 +6,9 @@ import {
   getCoinPosition,
   getKiteCentroid,
 } from './CoinHuntingHelpers'; 
+
+import { useLanguage } from '@/context/LanguageContext';
+import i18n from '@/locales/i18n';
 
 interface StampModalProps {
   visible: boolean;
@@ -34,33 +37,57 @@ export default function StampModal({
   const [showNewCoinEffect, setShowNewCoinEffect] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [showFirework, setShowFirework] = useState(false);
+  const [hasModalOpened, setHasModalOpened] = useState(false);
 
   // Detect new coins
   const [prevCoinImages, setPrevCoinImages] = useState<(string | undefined)[]>([]);
+  const prevCoinImagesRef = useRef<(string | undefined)[]>([]);
+  const hasHadCoinsRef = useRef(false);
 
   useEffect(() => {
-    if (visible && coinImages.length > 0) {
-      const newCoins = coinImages
-        .map((img, index) => {
-          const hadCoin = prevCoinImages[index];
-          const hasCoin = !!img;
-          return hasCoin && !hadCoin ? index : null;
-        })
-        .filter((index): index is number => index !== null);
-
-      if (newCoins.length > 0) {
-        const latestNewCoin = newCoins[newCoins.length - 1];
-        setNewCoinIndex(latestNewCoin);
-        setShowNewCoinEffect(true);
+    if (visible) {
+      // ถ้า modal เพิ่งเปิด ให้ sync ref และ reset flag
+      if (!hasHadCoinsRef.current) {
+        prevCoinImagesRef.current = [...coinImages];
+        hasHadCoinsRef.current = coinImages.some(Boolean);
+        setNewCoinIndex(null);
+        setShowNewCoinEffect(false);
+        return;
       }
+      // detect new coin เฉพาะกรณีเคยมี coinImages ที่ไม่ว่างแล้ว
+      if (hasHadCoinsRef.current && coinImages.length > 0) {
+        const newCoins = coinImages
+          .map((img, index) => {
+            const hadCoin = prevCoinImagesRef.current[index];
+            const hasCoin = !!img;
+            return hasCoin && !hadCoin ? index : null;
+          })
+          .filter((index): index is number => index !== null);
+        if (newCoins.length > 0) {
+          const latestNewCoin = newCoins[newCoins.length - 1];
+          setNewCoinIndex(latestNewCoin);
+          setShowNewCoinEffect(true);
+        }
+      }
+      prevCoinImagesRef.current = [...coinImages];
+      hasHadCoinsRef.current = coinImages.some(Boolean);
     }
-    setPrevCoinImages([...coinImages]);
   }, [coinImages, visible]);
 
-  const isComplete = coinImages.slice(0, 14).every(Boolean);
+  useEffect(() => {
+    if (!visible) {
+      prevCoinImagesRef.current = [];
+      hasHadCoinsRef.current = false;
+      setNewCoinIndex(null);
+      setShowNewCoinEffect(false);
+    }
+  }, [visible]);
 
   // Glow animation control (framer-motion)
   const glowControls = useAnimation();
+
+  const first14 = coinImages.slice(0, 14);
+  const isComplete = first14.length === 14 && first14.every(Boolean);
 
   useEffect(() => {
     if (isComplete && visible) {
@@ -120,6 +147,15 @@ export default function StampModal({
     }
   };
 
+  const { language } = useLanguage();
+
+  // Helper to get translated title
+  const getTitle = () => {
+    if (currentPage === 0) return i18n.t('guardianCrystals', { lng: language });
+    if (currentPage === 1) return i18n.t('specialRewards', { lng: language });
+    return '';
+  };
+
   if (!visible) return null;
 
   return (
@@ -131,7 +167,7 @@ export default function StampModal({
         style={styles.modalContent}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 style={styles.title}>Collection</h2>
+        <h2 style={styles.title}>{getTitle()}</h2>
 
         <div style={styles.stampHexGridContainer}>
           {currentPage === 0 && showFirework && (
@@ -247,59 +283,55 @@ export default function StampModal({
                 );
                 const rotate = coinRotations[i] ?? 0;
                 const size = coinSizes[i] ?? 85;
-
+                const isNew = showNewCoinEffect && newCoinIndex === i;
+                // ลบ border และ label debug
                 return (
-                  <motion.img
-                    key={`img-${i}`}
-                    src={coinImages[i]}
-                    alt={`coin-${i}`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1, rotate: `${rotate}deg` }}
-                    transition={{ delay: i * 0.1, duration: 0.4 }}
+                  <div key={`img-wrap-${i}-${hasModalOpened ? 'open' : 'closed'}`}
                     style={{
                       position: 'absolute',
                       left: cx - size / 2,
                       top: cy - size / 2,
                       width: size,
                       height: size,
-                      transformOrigin: 'center center',
-                      zIndex: 10,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
                       pointerEvents: 'none',
+                      zIndex: 10,
                     }}
-                  />
+                  >
+                    <motion.img
+                      key={`img-${i}-${hasModalOpened ? 'open' : 'closed'}`}
+                      src={coinImages[i]}
+                      alt={`coin-${i}`}
+                      initial={isNew ? { scale: 0.3, opacity: 0, rotate: 0 } : { scale: 1, opacity: 0, rotate: `${rotate}deg` }}
+                      animate={
+                        isNew
+                          ? { scale: [0.3, 1.5, 1], opacity: [0, 1, 1], rotate: [0, 360, rotate] }
+                          : { scale: 1, opacity: 1, rotate: `${rotate}deg` }
+                      }
+                      transition={
+                        isNew
+                          ? { duration: 0.8 }
+                          : { delay: i * 0.1, duration: 0.4 }
+                      }
+                      onAnimationComplete={() => {
+                        if (isNew) {
+                          setShowNewCoinEffect(false);
+                          setNewCoinIndex(null);
+                        }
+                      }}
+                      style={{
+                        width: size,
+                        height: size,
+                        transformOrigin: 'center center',
+                        borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.08)',
+                      }}
+                    />
+                  </div>
                 );
               })}
-              {showNewCoinEffect && newCoinIndex !== null && newCoinIndex < 14 && (
-                <motion.div
-                  key="new-coin"
-                  initial={{ opacity: 0, scale: 0.3, x: 0, y: 0 }}
-                  animate={{
-                    opacity: 1,
-                    scale: [0.3, 1.5],
-                    rotate: 360,
-                    x: newCoinPosition.current.x,
-                    y: newCoinPosition.current.y,
-                  }}
-                  transition={{ duration: 0.8 }}
-                  style={{
-                    position: 'absolute',
-                    left: CENTER_X,
-                    top: CENTER_Y,
-                    width: 50,
-                    height: 50,
-                    zIndex: 25,
-                    pointerEvents: 'auto',
-                    cursor: 'pointer',
-                  }}
-                  onClick={handleTapToPlace}
-                >
-                  <img
-                    src={coinImages[newCoinIndex]}
-                    alt={`new-coin-${newCoinIndex}`}
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  />
-                </motion.div>
-              )}
             </>
           )}
 

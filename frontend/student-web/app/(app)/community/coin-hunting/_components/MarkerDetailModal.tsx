@@ -62,12 +62,15 @@ export default function MarkerDetailModal({
         </div>
 
         {/* Description */}
-        <p className="text-center text-sm mb-4">{description}</p>
+        <p
+          className="text-center text-sm mb-4 max-h-24 overflow-y-auto"
+          style={{ wordBreak: 'break-word' }}
+        >{description}</p>
 
         {/* Buttons */}
-        <div className="flex flex-row justify-center gap-4">
+        <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4">
           <button
-            className="flex items-center gap-2 bg-gray-100 text-gray-800 px-3 py-2 rounded-md text-sm font-semibold"
+            className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-800 px-3 py-2 rounded-md text-sm font-semibold min-w-[120px]"
             onClick={() => window.open(marker.mapsUrl, '_blank')}
           >
             <Image
@@ -81,7 +84,7 @@ export default function MarkerDetailModal({
           </button>
 
           <button
-            className="flex items-center gap-2 bg-gray-100 text-gray-900 px-3 py-2 rounded-md text-sm font-semibold"
+            className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-900 px-3 py-2 rounded-md text-sm font-semibold min-w-[120px]"
             onClick={() => {
               onClose();
               setTimeout(() => {
