@@ -2,23 +2,26 @@
 
 import { router } from "expo-router"
 import { useActivityStore } from "@/stores/activityStore"
-import { Linking, ScrollView, Text, TouchableOpacity, View } from "react-native"
+import { Linking, ScrollView, Text, TouchableOpacity, View, Modal } from "react-native"
 import { Image } from "expo-image"
 import { LinearGradient } from "expo-linear-gradient"
-import { Button, Separator } from "tamagui"
+import { Button, Separator, Input } from "tamagui"
 import { ArrowLeft, Compass, Clock, QrCode, CheckCircle, FileText } from "@tamagui/lucide-icons"
 import CheckinStatusChip from "./_components/checkin-status-chip"
 import DateBadge from "./_components/date-badge"
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import StepperItem from "@/components/activities/stepper-item"
+import AssessmentModal from "./_components/AssessmentModal"
 
 
 export default function ActivityDetailPage() {
   const activity = useActivityStore((s) => s.selectedActivity)
   const [selectedTab, setSelectedTab] = useState<"details" | "timeline">("details")
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const [showAssessmentModal, setShowAssessmentModal] = useState(false)
+
   if (!activity) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -291,7 +294,7 @@ export default function ActivityDetailPage() {
                     backgroundColor="#10b981"
                     color="white"
                     borderRadius={8}
-                    onPress={() => console.log("Go to assessment")}
+                    onPress={() => setShowAssessmentModal(true)}
                     icon={FileText}
                   >
                     Complete Assessment
@@ -302,6 +305,11 @@ export default function ActivityDetailPage() {
           </View>
         </ScrollView>
       )}
+      <AssessmentModal
+        visible={showAssessmentModal}
+        onClose={() => setShowAssessmentModal(false)}
+        activity={activity}
+      />
     </View>
   )
 }

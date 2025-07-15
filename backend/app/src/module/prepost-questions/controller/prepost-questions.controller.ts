@@ -19,22 +19,22 @@ import { Permissions } from '../../auth/decorators/permissions.decorator';
 @Controller('prepost-questions')
 export class PrepostQuestionsController {
   constructor(
-    private readonly PrepostQuestionsService: PrepostQuestionsService,
+    private readonly prepostQuestionsService: PrepostQuestionsService,
   ) {}
 
   @Post()
-  create(@Body() createPrepostQuestionDto: CreatePrepostQuestiontDto) {
-    return this.PrepostQuestionsService.create(createPrepostQuestionDto);
+  async create(@Body() body: CreatePrepostQuestiontDto | CreatePrepostQuestiontDto[]) {
+    return this.prepostQuestionsService.create(body);
   }
 
   @Get()
   findAll(@Query() query: Record<string, string>) {
-    return this.PrepostQuestionsService.findAll(query);
+    return this.prepostQuestionsService.findAll(query);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.PrepostQuestionsService.findOne(id);
+    return this.prepostQuestionsService.findOne(id);
   }
 
   @Patch(':id')
@@ -42,11 +42,11 @@ export class PrepostQuestionsController {
     @Param('id') id: string,
     @Body() updatePrepostDto: UpdatePrepostQuestiontDto,
   ) {
-    return this.PrepostQuestionsService.update(id, updatePrepostDto);
+    return this.prepostQuestionsService.update(id, updatePrepostDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.PrepostQuestionsService.remove(id);
+    return this.prepostQuestionsService.remove(id);
   }
 }
