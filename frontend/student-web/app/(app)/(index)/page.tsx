@@ -200,7 +200,7 @@ export default function HomePage() {
             <Flower
               className="text-white"
               size={20}
-              onClick={() => (window.location.href = '/lamduanflowers')}
+              onClick={() => (window.location.href = '/lamduan-flowers')}
             />
           </GlassButton>
           <GlassButton

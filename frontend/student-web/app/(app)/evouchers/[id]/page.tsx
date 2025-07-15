@@ -74,7 +74,7 @@ export default function EvoucherDetailPage() {
     )
 
     return (
-        <div className="flex flex-col gap-6 px-6">
+        <div className="flex flex-col h-full gap-6 px-6">
             {/* Header */}
             <div className="flex items-center gap-4">
                 <ArrowLeft size={28} color="white" onClick={router.back} />
@@ -102,7 +102,7 @@ export default function EvoucherDetailPage() {
             />
 
             {/* User Evoucher */}
-            <ScrollShadow className="h-[600px] overflow-y-auto pb-10" size={40} hideScrollBar>
+            <ScrollShadow className="h-[90%] overflow-y-auto" size={40} hideScrollBar>
                 <div className="flex flex-col items-center gap-8">
                     {filteredEvoucherCode.map((code, index) => {
                         const evoucherCode = code.evoucher?.sponsor === id ? code : null;
@@ -113,7 +113,7 @@ export default function EvoucherDetailPage() {
                                     alt={evoucherCode.code}
                                     src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${evoucherCode.evoucher.photo.home}`}
                                     width={320}
-                                    className={`-my-10 ${code.isUsed ? "brightness-50" : ""}`}
+                                    className={`-my-10 active:brightness-50 ${code.isUsed ? "brightness-50" : ""}`}
                                     onClick={() => {
                                         setIsVoucherOpen(true);
                                         setSelectedCode(evoucherCode);
@@ -124,7 +124,7 @@ export default function EvoucherDetailPage() {
                             return (
                                 <div
                                     key={index}
-                                    className="flex justify-center items-center w-[320px] h-[110px] rounded-2xl shadow-xl bg-white/40 backdrop-blur-md border border-white"
+                                    className="flex justify-center items-center w-[320px] h-[110px] rounded-2xl shadow-xl bg-white/40 backdrop-blur-md border border-white active:brightness-50"
                                     onClick={() => {
                                         setIsVoucherOpen(true);
                                         setSelectedCode(evoucherCode);
