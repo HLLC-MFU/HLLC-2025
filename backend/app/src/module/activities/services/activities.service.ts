@@ -25,6 +25,7 @@ import {
   AssessmentAnswer,
   AssessmentAnswerDocument,
 } from 'src/module/assessments/schema/assessment-answer.schema';
+import { Major, MajorDocument } from 'src/module/majors/schemas/major.schema';
 
 @Injectable()
 export class ActivitiesService {
@@ -41,6 +42,8 @@ export class ActivitiesService {
     private readonly assessmentModel: Model<AssessmentDocument>,
     @InjectModel(AssessmentAnswer.name)
     private assessmentAnswersModel: Model<AssessmentAnswerDocument>,
+    @InjectModel(Major.name)
+    private majorsModel: Model<MajorDocument>,
     private readonly assessmentsService: AssessmentsService,
   ) {}
 
@@ -137,11 +140,36 @@ export class ActivitiesService {
     }
 
     const currentDate = new Date();
-    const major = userDoc.role?.metadata?.canCheckin?.major ?? [];
-    const school = userDoc.role?.metadata?.canCheckin?.school ?? [];
-    const user = userDoc.role?.metadata?.canCheckin?.user ?? [];
+    const roleMajor = userDoc.role?.metadata?.canCheckin?.major ?? [];
+    const roleSchool = userDoc.role?.metadata?.canCheckin?.school ?? [];
+    const roleUser = userDoc.role?.metadata?.canCheckin?.user ?? [];
 
-    if (user.includes('*')) {
+    const userMajorId = userDoc.metadata?.major;
+
+    let userMajorSchoolId: string | undefined;
+
+    if (userMajorId) {
+      const majorDoc = await this.majorsModel
+        .findById(userMajorId)
+        .populate('school')
+        .lean();
+
+      if (majorDoc && majorDoc.school && majorDoc.school._id) {
+        userMajorSchoolId = majorDoc.school._id.toString();
+      }
+    }
+
+    const effectiveSchools = [
+      ...roleSchool,
+      ...(userMajorSchoolId ? [userMajorSchoolId] : []),
+    ];
+
+    const effectiveMajors = [
+      ...roleMajor,
+      ...(userMajorId ? [userMajorId] : []),
+    ];
+
+    if (roleUser.includes('*')) {
       const activities = await this.activitiesModel
         .find({ 'metadata.isOpen': true, 'metadata.isVisible': true })
         .populate('type')
@@ -166,9 +194,9 @@ export class ActivitiesService {
       'metadata.checkinStartAt': { $lte: currentDate },
       'metadata.endAt': { $gte: currentDate },
       $or: [
-        { 'metadata.scope.user': { $in: user.length ? user : [] } },
-        { 'metadata.scope.major': { $in: major.length ? major : [] } },
-        { 'metadata.scope.school': { $in: school.length ? school : [] } },
+        { 'metadata.scope.user': { $in: roleUser.length ? roleUser : [] } },
+        { 'metadata.scope.major': { $in: effectiveMajors.length ? effectiveMajors : [] } },
+        { 'metadata.scope.school': { $in: effectiveSchools.length ? effectiveSchools : [] } },
       ],
     };
 
@@ -183,7 +211,7 @@ export class ActivitiesService {
       ...result,
       meta: {
         ...result.meta,
-        lastUpdatedAt: new Date().toISOString(), // <-- add this line
+        lastUpdatedAt: new Date().toISOString(),
       },
       message: 'Fetched activities successfully',
     };
