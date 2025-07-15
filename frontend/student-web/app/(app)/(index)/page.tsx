@@ -198,11 +198,10 @@ export default function HomePage() {
     >
       <div className="flex justify-between items-start mb-6">
         <div className="flex gap-2">
-          <GlassButton iconOnly>
+          <GlassButton iconOnly onClick={() => router.push('/lamduan-flowers')}>
             <Flower
               className="text-white"
               size={20}
-              onClick={() => router.push('/lamduan-flowers')}
             />
           </GlassButton>
           <GlassButton

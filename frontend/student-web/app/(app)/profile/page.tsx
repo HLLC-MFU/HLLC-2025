@@ -8,9 +8,13 @@ import { Scene } from './_components/Scene';
 import { SceneLights } from './_components/SceneLights';
 import { useProfile } from '@/hooks/useProfile';
 import { useEffect } from 'react';
+import { ShieldAlert } from 'lucide-react';
+import GlassButton from '@/components/ui/glass-button';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
   const { user, loading, error, fetchUser, schoolAcronym } = useProfile();
+  const router = useRouter();
 
   useEffect(() => {
     fetchUser();
@@ -22,6 +26,12 @@ export default function ProfilePage() {
 
   return (
     <div className="fixed inset-0">
+      <div className="absolute top-8 right-6 z-20 flex gap-2">
+        <GlassButton iconOnly onClick={() => router.push('/report')}>
+          <ShieldAlert className="text-white" size={20} />
+        </GlassButton>
+      </div>
+
       <Canvas
         camera={{ position: [0, 0, 10], fov: 30 }}
         style={{
