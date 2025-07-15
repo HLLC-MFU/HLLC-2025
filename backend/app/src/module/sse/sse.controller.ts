@@ -19,11 +19,14 @@ export class SseController {
   sse(@Req() req: UserRequest, @Res() reply: FastifyReply) {
     const res = reply.raw as ServerResponse;
 
-    res.writeHead(200, {
+    const headers = {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
-    });
+      'Cache-Control': 'no-cache',
+      'Access-Control-Allow-Origin': req.headers.origin,
+      'Access-Control-Allow-Credentials': 'true',
+    }
+    res.writeHead(200, headers)
 
     this.sseService.register(req.user._id, res);
 
@@ -31,7 +34,7 @@ export class SseController {
       if (!res.writableEnded) {
         res.write(': keep-alive\n\n');
       }
-    }, 30_000);
+    }, 25_000);
 
     req.raw.on('close', () => {
       clearInterval(keepAlive);

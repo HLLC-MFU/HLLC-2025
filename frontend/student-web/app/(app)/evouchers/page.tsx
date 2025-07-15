@@ -48,7 +48,7 @@ export default function EvoucherPage() {
     )
 
     return (
-        <div className="flex flex-col gap-6 px-6">
+        <div className="flex flex-col h-full gap-6 px-6">
             {/* Search Bar */}
             <Input
                 aria-label="Search"
@@ -70,7 +70,7 @@ export default function EvoucherPage() {
             />
 
             {/* Sponsors Group */}
-            <ScrollShadow className="h-[600px] overflow-y-auto pb-10" size={40} hideScrollBar>
+            <ScrollShadow className="h-[90%] overflow-y-auto" size={40} hideScrollBar>
                 <div className="grid grid-cols-2 gap-8">
                     {filteredSponsors.map((sponsor, index) => {
                         if (sponsor?.logo?.logoPhoto) {
@@ -87,7 +87,7 @@ export default function EvoucherPage() {
                             return (
                                 <div
                                     key={index}
-                                    className="flex justify-center items-center rounded-3xl shadow-xl bg-white/40 backdrop-blur-md border border-white"
+                                    className="flex aspect-square justify-center items-center rounded-3xl shadow-xl bg-white/40 backdrop-blur-md border border-white"
                                     onClick={() => handleSponsorCardClick(sponsor._id)}
                                 >
                                     <p className="font-semibold">{sponsor?.name?.en ?? ""}</p>

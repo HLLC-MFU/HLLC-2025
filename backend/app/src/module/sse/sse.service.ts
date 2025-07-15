@@ -15,14 +15,14 @@ export class SseService {
    * Register new SSE connection for a user.
    */
   register(userId: string, res: ServerResponse): void {
-    this.connections.set(userId, res);
+    this.connections.set(userId.toString(), res);
   }
 
   /**
    * Remove user connection when disconnected.
    */
   unregister(userId: string): void {
-    this.connections.delete(userId);
+    this.connections.delete(userId.toString());
   }
 
   /**

@@ -6,9 +6,37 @@ import BottomNav from '@/components/bottom-nav';
 import lobby from '@/public/lobby.png';
 import ProgressBar from '@/components/ui/progressBar';
 import useProgress from '@/hooks/useProgress';
+import { useSSE } from '@/hooks/useSSE';
+import { addToast } from '@heroui/react';
+import { BellRing } from 'lucide-react';
+import { useActivities } from '@/hooks/useActivities';
+import { useNotification } from '@/hooks/useNotification';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { fetchActivitiesByUser } = useActivities(null);
+  const { fetchNotification } = useNotification();
+
+  useSSE(payload => {
+    if (payload.type === 'REFETCH_NOTIFICATIONS') {
+      fetchNotification();
+      // addToast({
+      //   title: "Recieved New Notification!",
+      //   icon: <BellRing/>,
+      //   color: 'warning',
+      //   variant: 'bordered',
+      // });
+    }
+    else if (payload.type === 'CHECKED_IN') {
+      fetchActivitiesByUser();
+      addToast({
+        title: `Checked in`,
+        description: `You have been checked in to ${payload.data.activityNames} successfully`,
+        color: 'success',
+        variant: 'bordered',
+      });
+    }
+  });
 
   const { progress } = useProgress();
   const progressPercentage = progress

@@ -161,7 +161,13 @@ export class CheckinService {
     });
 
     this.sseService.sendToUser(userDoc._id.toString() ,{
-      type: 'REFETCH_ACTIVITIES',
+      type: 'CHECKED_IN',
+      data: {
+        userId: userDoc._id,
+        staffId: staffId,
+        activityIds: activities,
+        activityNames: activityNamesEn,
+      }
     });
 
     return checkIn;
