@@ -19,7 +19,7 @@ import AssessmentModal from "./_components/AssessmentModal"
 export default function ActivityDetailPage() {
   const activity = useActivityStore((s) => s.selectedActivity)
   const [selectedTab, setSelectedTab] = useState<"details" | "timeline">("details")
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [showAssessmentModal, setShowAssessmentModal] = useState(false)
 
   if (!activity) {
