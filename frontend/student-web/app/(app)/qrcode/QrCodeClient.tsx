@@ -12,6 +12,8 @@ import dynamic from 'next/dynamic';
 import { apiRequest } from '@/utils/api';
 import { useRouter } from 'next/navigation';
 import { CustomFinderTracker } from './_components/CustomFinderTracker';
+import { useTranslation } from 'react-i18next';
+import '@/locales/i18n';
 
 const QrScanner = dynamic(
   () => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner),
@@ -27,6 +29,7 @@ export default function QrCodeClient() {
   const scanningRef = useRef(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
@@ -40,7 +43,7 @@ export default function QrCodeClient() {
   function showErrorAlert(message: string) {
     const displayMessage =
       message && message.toLowerCase().includes('internal server')
-        ? 'เกิดข้อผิดพลาดระหว่างการแสกน'
+        ? t('qrcode.scanError')
         : message;
     addToast({
       title: displayMessage,
@@ -76,25 +79,25 @@ export default function QrCodeClient() {
 
     const parsed = validateAndParseHLLCQR(data);
     if (!parsed) {
-      showErrorAlert('QR นี้ไม่ใช่ของ HLLC หรือรูปแบบไม่ถูกต้อง');
+      showErrorAlert(t('qrcode.invalidQR'));
       return;
     }
     const { qrPath, qrPayload } = parsed;
 
     try {
       if (!user?._id && !user?.username) {
-        showErrorAlert('ไม่พบข้อมูลผู้ใช้');
+        showErrorAlert(t('qrcode.noUser'));
         return;
       }
       const getLocation = (): Promise<{ latitude: number; longitude: number }> => {
         return new Promise((resolve, reject) => {
           if (!navigator.geolocation) {
-            reject(new Error('เบราว์เซอร์ไม่รองรับการขอตำแหน่งที่ตั้ง'));
+            reject(new Error(t('qrcode.noGeolocation')));
             return;
           }
           navigator.geolocation.getCurrentPosition(
             pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-            err => reject(new Error('กรุณาอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็คอิน')),
+            err => reject(new Error(t('qrcode.allowLocation'))),
             { enableHighAccuracy: true, timeout: 10000 }
           );
         });
@@ -105,7 +108,7 @@ export default function QrCodeClient() {
         userLat = loc.latitude;
         userLong = loc.longitude;
       } catch (e: any) {
-        showErrorAlert(e.message || 'ไม่สามารถดึงตำแหน่งที่ตั้งได้');
+        showErrorAlert(e.message || t('qrcode.locationError'));
         return;
       }
       const userId = user._id || user.username;
@@ -117,7 +120,7 @@ export default function QrCodeClient() {
           const parsedPayload = JSON.parse(payloadTrimmed);
           body = { ...body, ...parsedPayload };
         } catch (e) {
-          showErrorAlert('QR code payload ไม่ถูกต้อง');
+          showErrorAlert(t('qrcode.invalidPayload'));
           return;
         }
       } else {
@@ -138,23 +141,23 @@ export default function QrCodeClient() {
         } else if (res.statusCode === 429 || (res.message && res.message.toLowerCase().includes('cooldown'))) {
           router.push('/community/coin-hunting?modal=alert&type=cooldown');
         } else {
-          showErrorAlert(res.message || 'Check in failed');
+          showErrorAlert(res.message || t('qrcode.checkinFailed'));
         }
         resetScanner();
         return;
       }
       if (res.statusCode !== 200 && res.statusCode !== 201) {
-        showErrorAlert(res.message || 'Check in failed');
+        showErrorAlert(res.message || t('qrcode.checkinFailed'));
         return;
       }
       addToast({
-        title: 'สำเร็จ',
+        title: t('qrcode.success'),
         color: 'success',
       });
     } catch (e: any) {
       const errMsg = e.message && e.message.toLowerCase().includes('internal server')
-        ? 'เกิดข้อผิดพลาดระหว่างการแสกน'
-        : 'Scan failed: ' + (e.message || 'Unknown error');
+        ? t('qrcode.scanError')
+        : t('qrcode.scanFailed', { error: e.message || 'Unknown error' });
       showErrorAlert(errMsg);
       return;
     }
@@ -193,7 +196,7 @@ export default function QrCodeClient() {
             onClick={() => { setTab('show'); resetScanner(); }}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <span className="drop-shadow-sm">แสดง QR Code</span>
+            <span className="drop-shadow-sm">{t('qrcode.showTab')}</span>
           </button>
           <button
             className={`relative flex-1 h-14 z-10 rounded-r-full font-bold transition-colors duration-200 text-lg
@@ -201,7 +204,7 @@ export default function QrCodeClient() {
             onClick={() => { setTab('scan'); resetScanner(); }}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <span className="drop-shadow-sm">สแกน QR Code</span>
+            <span className="drop-shadow-sm">{t('qrcode.scanTab')}</span>
           </button>
         </div>
 
@@ -213,10 +216,10 @@ export default function QrCodeClient() {
             >
               <div className="mb-4 gap-0">
                 <h1 className="text-2xl font-bold text-white">
-                  {user?.name.first + ' ' + user?.name.middle + user?.name.last || 'Your Name'}
+                  {user?.name.first + ' ' + user?.name.middle + user?.name.last || t('qrcode.yourName')}
                 </h1>
                 <p className="font-semibold text-white/80">
-                  Student ID: {user?.username || '680000000000'}
+                  {t('qrcode.studentId')}: {user?.username || '680000000000'}
                 </p>
               </div>
               <QRCodeCanvas
@@ -228,7 +231,7 @@ export default function QrCodeClient() {
               />
               <div className="mt-4 text-center px-4">
                 <p className="text-sm font-bold text-white">
-                  Please show your QR Code before joining the activity.
+                  {t('qrcode.showBeforeJoin')}
                 </p>
                 <Button
                   className="bg-white text-black font-bold px-4 py-2 mt-4"
@@ -246,26 +249,27 @@ export default function QrCodeClient() {
                 <QrScanner
                   onScan={(codes: any[]) => {
                     if (!codes || codes.length === 0) {
-                      setScanResult('ไม่พบ QR หรือกล้องมีปัญหา');
+                      setScanResult(t('qrcode.notFound'));
                       return;
                     }
                     const result = codes[0]?.rawValue || codes[0]?.value || '';
                     if (result) {
                       handleBarcodeScanned(result);
                     } else {
-                      setScanResult('ไม่พบ QR หรือกล้องมีปัญหา');
+                      setScanResult(t('qrcode.notFound'));
                     }
                   }}
                   constraints={{ facingMode: 'environment' }}
                   components={{ finder: false, tracker: CustomFinderTracker, zoom: true }}
                   styles={{ container: { width: '100%', height: '15rem', borderRadius: '0.75rem', overflow: 'hidden' } }}
+                  sound={false}
                 />
               </div>
               <div className="mt-2 text-center min-h-[2rem]">
                 {scanResult ? (
-                  <span className="text-white font-bold">ผลลัพธ์: {scanResult}</span>
+                  <span className="text-white font-bold">{t('qrcode.result')}: {scanResult}</span>
                 ) : (
-                  <span className="text-white/60">กรุณาสแกน QR Code</span>
+                  <span className="text-white/60">{t('qrcode.pleaseScan')}</span>
                 )}
               </div>
             </div>
