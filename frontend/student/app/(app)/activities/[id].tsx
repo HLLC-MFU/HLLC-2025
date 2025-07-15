@@ -2,7 +2,7 @@
 
 import { router } from "expo-router"
 import { useActivityStore } from "@/stores/activityStore"
-import { Linking, ScrollView, Text, TouchableOpacity, View, Modal } from "react-native"
+import { Linking, ScrollView, Text, TouchableOpacity, View, Modal, useWindowDimensions } from "react-native"
 import { Image } from "expo-image"
 import { LinearGradient } from "expo-linear-gradient"
 import { Button, Separator, Input } from "tamagui"
@@ -19,8 +19,9 @@ import AssessmentModal from "./_components/AssessmentModal"
 export default function ActivityDetailPage() {
   const activity = useActivityStore((s) => s.selectedActivity)
   const [selectedTab, setSelectedTab] = useState<"details" | "timeline">("details")
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [showAssessmentModal, setShowAssessmentModal] = useState(false)
+  const { width } = useWindowDimensions()
 
   if (!activity) {
     return (
@@ -106,10 +107,28 @@ export default function ActivityDetailPage() {
       {selectedTab === "details" && (
         <View style={{ padding: 20, gap: 20 }}>
           {/* Title & Info */}
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <View style={{ gap: 6 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 12,
+              width: "100%",
+            }}
+          >
+            {/* Top section: text info */}
+            <View style={{ gap: 6, flex: 1, flexShrink: 1 }}>
               <Text style={{ fontSize: 13, color: "#888", textTransform: "uppercase" }}>Activity</Text>
-              <Text style={{ fontSize: 24, fontWeight: "700", color: "#222" }}>{activity.name.en}</Text>
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontWeight: "700",
+                  color: "#222",
+                  flexShrink: 1,
+                }}
+              >
+                {activity.name.en}
+              </Text>
               <Text style={{ fontSize: 15, color: "#666" }}>
                 Start at{" "}
                 {new Date(activity.metadata.startAt).toLocaleTimeString([], {
@@ -121,10 +140,14 @@ export default function ActivityDetailPage() {
               <Text style={{ fontSize: 15, color: "#666" }}>{activity.location.en}</Text>
               <CheckinStatusChip status={activity.checkinStatus} />
             </View>
-            <View style={{ flexDirection: "column", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+
+            {/* Bottom section: DateBadge */}
+            <View>
               <DateBadge date={activity.metadata.startAt} />
             </View>
           </View>
+
+
           <Separator />
           {/* Description */}
           <View>

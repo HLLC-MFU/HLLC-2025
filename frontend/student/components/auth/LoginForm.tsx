@@ -86,17 +86,17 @@ export const LoginForm = ({
           </XStack>
 
         </YStack>
-        <Text width={'100%'} textAlign="right" onPress={onForgotPassword}>
+        {/* <Text width={'100%'} textAlign="right" onPress={onForgotPassword}>
           {t("login.forgotPassword")}
-        </Text>
+        </Text> */}
 
-        {/* <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end' }}>
+        <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end' }}>
           <ForgotPasswordPressable />
-        </View> */}
+        </View>
 
         <View style={{ width: '100%', flexDirection: 'row', gap: 10 }}>
-          <Button flex={1} onPress={onRegister}>{t("login.register")}</Button>
-          {/* <RegisterButton /> */}
+          {/* <Button flex={1} onPress={onRegister}>{t("login.register")}</Button> */}
+          <RegisterButton />
           <Button flex={1} onPress={onLogin}>{t("login.loginButton")}</Button>
         </View>
 
