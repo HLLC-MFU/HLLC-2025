@@ -23,6 +23,14 @@ import {
   validateLamduanTime,
   validateUserAlreadySentLamduan,
 } from '../utils/lamduan.utils';
+import {
+  Checkin,
+  CheckinDocument,
+} from 'src/module/checkin/schema/checkin.schema';
+import {
+  Activities,
+  ActivityDocument,
+} from 'src/module/activities/schemas/activities.schema';
 
 @Injectable()
 export class LamduanFlowersService {
@@ -35,6 +43,12 @@ export class LamduanFlowersService {
 
     @InjectModel(LamduanSetting.name)
     private lamduanSetting: Model<LamduanSettingDocument>,
+
+    @InjectModel(Checkin.name)
+    private checkinModel: Model<CheckinDocument>,
+
+    @InjectModel(Activities.name)
+    private activityModel: Model<ActivityDocument>,
   ) {}
 
   async create(createLamduanFlowerDto: CreateLamduanFlowerDto) {
@@ -64,7 +78,21 @@ export class LamduanFlowersService {
       user: new Types.ObjectId(createLamduanFlowerDto.user),
       setting: new Types.ObjectId(createLamduanFlowerDto.setting),
     });
+    const activity = await this.activityModel.findOne({
+      'name.en': { $regex: '^Lamduan Flowers$', $options: 'i' },
+    });
 
+    if (!activity) {
+      throw new Error('Activity "Lamduan Flowers" not found');
+    }
+
+    const checkin = new this.checkinModel({
+      user: new Types.ObjectId(createLamduanFlowerDto.user),
+      staff: new Types.ObjectId(createLamduanFlowerDto.user),
+      activity: new Types.ObjectId(activity._id),
+    });
+
+    await checkin.save();
     return await lamduanFlowers.save();
   }
 
@@ -99,6 +127,20 @@ export class LamduanFlowersService {
   }
 
   async remove(id: string) {
+    const lamduan = await this.lamduanflowersModel.findById(id);
+    if (!lamduan) throw new Error('LamduanFlowers entry not found');
+
+    // Get the activity ID for "Lamduan Flowers"
+    const activity = await this.activityModel.findOne({
+      'name.en': { $regex: '^Lamduan Flowers$', $options: 'i' },
+    });
+
+    if (activity) {
+      await this.checkinModel.deleteOne({
+        user: lamduan.user,
+        activity: activity._id,
+      });
+    }
     return queryDeleteOne<LamduanFlowers>(this.lamduanflowersModel, id);
   }
 }

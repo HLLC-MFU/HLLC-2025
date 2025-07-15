@@ -12,7 +12,11 @@ import { UserDocument } from '../../users/schemas/user.schema';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
 import { UpdateActivityDto } from '../dto/activities/update-activities.dto';
 import { Activities, ActivityDocument } from '../schemas/activities.schema';
-import { isUserInScope, parseScope, parseStringArray } from '../utils/scope.util';
+import {
+  isUserInScope,
+  parseScope,
+  parseStringArray,
+} from '../utils/scope.util';
 import { Checkin } from 'src/module/checkin/schema/checkin.schema';
 import { RoleDocument } from 'src/module/role/schemas/role.schema';
 import { AssessmentsService } from 'src/module/assessments/service/assessments.service';
@@ -195,8 +199,16 @@ export class ActivitiesService {
       'metadata.endAt': { $gte: currentDate },
       $or: [
         { 'metadata.scope.user': { $in: roleUser.length ? roleUser : [] } },
-        { 'metadata.scope.major': { $in: effectiveMajors.length ? effectiveMajors : [] } },
-        { 'metadata.scope.school': { $in: effectiveSchools.length ? effectiveSchools : [] } },
+        {
+          'metadata.scope.major': {
+            $in: effectiveMajors.length ? effectiveMajors : [],
+          },
+        },
+        {
+          'metadata.scope.school': {
+            $in: effectiveSchools.length ? effectiveSchools : [],
+          },
+        },
       ],
     };
 
@@ -267,6 +279,10 @@ export class ActivitiesService {
     const mapped = await Promise.all(
       result.data
         .filter((activity) => isUserInScope(user, activity as ActivityDocument))
+        .filter((activity) => {
+          const meta = activity.metadata;
+          return meta.isVisible !== false;
+        })
         .map(async (activity) => {
           const meta = activity.metadata;
           const activityDoc = activity as ActivityDocument;
@@ -401,7 +417,9 @@ export class ActivitiesService {
   }
 
   async findAllIsProgressCountActivities() {
-    return this.activitiesModel.find({ 'metadata.isProgressCount': true }).lean();
+    return this.activitiesModel
+      .find({ 'metadata.isProgressCount': true })
+      .lean();
   }
 
   // progress activities by user
@@ -417,15 +435,16 @@ export class ActivitiesService {
     }
 
     // ดึงทั้งหมดที่ isProgressCount
-    const allActivities = await this.activitiesModel.find({
-      'metadata.isProgressCount': true,
-      'metadata.isOpen': true,
-      'metadata.isVisible': true,
-    }).lean();
+    const allActivities = await this.activitiesModel
+      .find({
+        'metadata.isProgressCount': true,
+        'metadata.isOpen': true,
+      })
+      .lean();
 
     // กรองตาม scope
-    const scopedActivities = allActivities.filter(activity =>
-      isUserInScope(user.data[0] as UserDocument, activity as ActivityDocument)
+    const scopedActivities = allActivities.filter((activity) =>
+      isUserInScope(user.data[0] as UserDocument, activity as ActivityDocument),
     );
 
     // นับว่าทำ Assessment แล้วกี่อัน
@@ -433,7 +452,7 @@ export class ActivitiesService {
 
     for (const activity of scopedActivities) {
       const assessments = await this.assessmentsService.findAllByActivity(
-        String(activity._id)
+        String(activity._id),
       );
 
       let hasAnswered = false;
@@ -455,9 +474,10 @@ export class ActivitiesService {
       if (hasAnswered) answeredCount++;
     }
 
-    const percentage = scopedActivities.length > 0
-      ? (answeredCount / scopedActivities.length) * 100
-      : 0;
+    const percentage =
+      scopedActivities.length > 0
+        ? (answeredCount / scopedActivities.length) * 100
+        : 0;
 
     return {
       userProgressCount: answeredCount,
