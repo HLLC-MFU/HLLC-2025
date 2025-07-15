@@ -88,7 +88,7 @@ export default function LamduanOrigamiPage() {
             <BannerImage />
 
             <div className="grid grid-row-2 gap-4">
-                <Card className="bg-black/20 border border-white/20 backdrop-blur-lg rounded-2xl shadow-xl">
+                <Card className="bg-black/40 border border-white/20 backdrop-blur-lg rounded-2xl shadow-xl">
                     <CardBody className="space-y-4">
                         <h1 className="text-xl font-semibold text-white">Lamduan Origami</h1>
                         <p className="text-white/80 text-sm">
@@ -99,7 +99,7 @@ export default function LamduanOrigamiPage() {
                     </CardBody>
                 </Card>
 
-                <Card className="bg-black/20 border border-white/20 backdrop-blur-lg rounded-2xl shadow-xl">
+                <Card className="bg-black/40 border border-white/20 backdrop-blur-lg rounded-2xl shadow-xl">
                     <CardBody className="space-y-4">
                         <h2 className="text-lg font-semibold text-white">Upload Lamduan</h2>
                         <div>
