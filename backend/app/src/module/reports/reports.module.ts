@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { Report, ReportSchema } from './schemas/reports.schema';
-import { ReportsService } from './reports.service';
-import { ReportsController } from './reports.controller';
+import { ReportsService } from './service/reports.service';
+import { ReportsController } from './controller/reports.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import {
   ReportType,
   ReportTypeSchema,
-} from '../report-type/schemas/report-type.schema';
+} from './schemas/report-type.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 
 @Module({
