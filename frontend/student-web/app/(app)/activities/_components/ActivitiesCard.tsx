@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserActivity } from '@/types/activities';
+import type { Activities } from '@/types/activities';
 
 import { Card } from '@heroui/react';
 import Image from 'next/image';
@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { getStatusBadge } from '../_utils/getStatusBadge';
 
 interface ActivityCardProps {
-  activity: UserActivity;
+  activity: Activities;
   onClick?: () => void;
 }
 
@@ -49,7 +49,7 @@ export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
             className={`object-cover transition-opacity duration-700 ${
               loaded ? 'opacity-100' : 'opacity-0'
             }`}
-            src={`https://hllc.mfu.ac.th/api/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`}
+            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`}
             onLoadingComplete={() => setLoaded(true)}
           />
 

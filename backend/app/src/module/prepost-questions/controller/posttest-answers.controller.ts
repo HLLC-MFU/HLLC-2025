@@ -2,26 +2,29 @@ import {
   Controller,
   Get,
   Post,
-  Body,
   Param,
   Delete,
   UseGuards,
   Query,
+  Req,
 } from '@nestjs/common';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { CreatePosttestAnswerDto } from '../dto/posttest-answer/create-posttest-answer.dto';
 import { PosttestAnswersService } from '../service/posttest-answers.service';
+import { UserRequest } from 'src/pkg/types/users';
 
 @UseGuards(PermissionsGuard)
 @Controller('posttest-answers')
 export class PosttestAnswersController {
   constructor(
     private readonly posttestAnswersService: PosttestAnswersService,
-  ) {}
+  ) { }
 
   @Post()
-  create(@Body() createPosttestAnswerDto: CreatePosttestAnswerDto) {
-    return this.posttestAnswersService.create(createPosttestAnswerDto);
+  create(@Req() req: UserRequest) {
+    const dto = req.body as CreatePosttestAnswerDto
+    dto.user = req.user._id.toString()
+    return this.posttestAnswersService.create(dto);
   }
 
   @Get()
@@ -42,5 +45,11 @@ export class PosttestAnswersController {
   @Get('/all/average')
   getAverageAll() {
     return this.posttestAnswersService.averageAllPosttests();
+  }
+
+  @Get('user')
+  async findByUser(@Req() req: UserRequest) {
+    const userId = req.user._id.toString();
+    return this.posttestAnswersService.findByUserId(userId);
   }
 }

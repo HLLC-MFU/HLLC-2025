@@ -1,18 +1,26 @@
 import { PretestAnswer } from "@/types/pretestAnswer";
 import { PrepostQuestions } from "@/types/prepostQuestion";
-
 import { apiRequest } from "@/utils/api";
 import { useState, useEffect } from "react";
+import { PosttestAnswer } from "@/types/posttestAnswer";
 
 export function usePrepostQuestion() {
     const [prepostQuestion, setPrepostQuestion] = useState<PrepostQuestions[]>([]);
     const [pretestAnswers, setPretestAnswers] = useState<
         PretestAnswer[]
     >([]);
-    const [answers, setAnswers] = useState<
+    const [posttestAnswers, setPosttestAnswers] = useState<
+        PosttestAnswer[]
+    >([]);
+    const [pretestAnswersInput, setPretestAnswersInput] = useState<
         { pretest: string; answer: string }[]
     >([]);
+
+    const [posttestAnswersInput, setPosttestAnswersInput] = useState<
+        { posttest: string; answer: string }[]
+    >([]);
     const [hasPretestAnswers, setHasPretestAnswers] = useState<boolean | null>(null);
+    const [hasPosttestAnswers, setHasPosttestAnswers] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +59,21 @@ export function usePrepostQuestion() {
         }
     };
 
+    const fetchPosttestAnswers = async () => {
+        setLoading(true);
+        try {
+            const res = await apiRequest<{ data: boolean }>('/posttest-answers/user', 'GET');
+            setHasPosttestAnswers(res.data?.data ?? false);
+            console.log('posttest fetch data =>', res);
+
+        } catch (err) {
+            console.error(err);
+            setHasPosttestAnswers(false);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const createPretestAnswers = async (
         answerData: Partial<PretestAnswer>,
     ) => {
@@ -82,21 +105,59 @@ export function usePrepostQuestion() {
         }
     };
 
+    const createPosttestAnswers = async (
+        answerData: Partial<PosttestAnswer>,
+    ) => {
+        try {
+            setLoading(true);
+            const res = await apiRequest<PosttestAnswer>(
+                '/posttest-answers',
+                'POST',
+                answerData,
+            );
+
+            if (res.data) {
+                await new Promise(resolve => {
+                    setPosttestAnswers(prev => {
+                        const updated = [...prev, res.data as PosttestAnswer];
+
+                        resolve(updated);
+
+                        return updated;
+                    });
+                });
+            }
+
+            return res;
+        } catch (err: any) {
+            setError(err.message || 'Failed to create answers.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchPrepostQuestion();
         fetchPretestAnswers();
+        fetchPosttestAnswers();
     }, []);
 
     return {
         prepostQuestion,
         pretestAnswers,
+        posttestAnswers,
         hasPretestAnswers,
-        answers,
-        setAnswers,
+        hasPosttestAnswers,
+        pretestAnswersInput,
+        setPretestAnswersInput,
+        posttestAnswersInput,
+        setPosttestAnswersInput,
         loading,
         error,
         fetchPrepostQuestion,
         fetchPretestAnswers,
+        fetchPosttestAnswers,
         createPretestAnswers,
+        createPosttestAnswers,
     };
 }
