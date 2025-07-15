@@ -1,3 +1,4 @@
+'use client';
 import { useState, useEffect } from 'react';
 
 import { apiRequest } from '@/utils/api';
@@ -8,11 +9,11 @@ export default function useProgress() {
   const [progressLoading, setProgressLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-    const fetchProgressByUser = async () => {
-        setProgressLoading(true);
-        setError(null);
-        try {
-            const res = await apiRequest<any>('/activities/progress', 'GET');
+  const fetchProgressByUser = async () => {
+    setProgressLoading(true);
+    setError(null);
+    try {
+      const res = await apiRequest<any>('/activities/progress', 'GET');
 
       if (res && 'data' in res) {
         setProgress(res.data ?? null);
@@ -35,8 +36,7 @@ export default function useProgress() {
     fetchProgressByUser();
   }, []);
 
-    useEffect(() => {
-    }, [progress]);
+  useEffect(() => {}, [progress]);
 
   return {
     progress,

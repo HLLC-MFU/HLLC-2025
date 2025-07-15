@@ -1,26 +1,27 @@
-'use client'
+'use client';
 
-import useSponsors from "@/hooks/useSponsors";
-import { Input, Image, ScrollShadow } from "@heroui/react";
-import { SearchIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Input, Image, ScrollShadow } from '@heroui/react';
+import { SearchIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+import useSponsors from '@/hooks/useSponsors';
 import EvouchersSkeleton from "./_components/EvouchersSkeleton";
 
 export default function EvoucherPage() {
-    const router = useRouter();
-    const [searchText, setSearchText] = useState('')
-    const { sponsors, loading } = useSponsors();
+  const router = useRouter();
+  const [searchText, setSearchText] = useState('');
+  const { sponsors, loading } = useSponsors();
 
-    const filteredSponsors = sponsors.filter(
-        sponsor =>
-            sponsor.name.en.toLowerCase().includes(searchText.toLowerCase()) ||
-            sponsor.name.th.toLowerCase().includes(searchText.toLowerCase())
-    )
+  const filteredSponsors = sponsors.filter(
+    sponsor =>
+      sponsor.name.en.toLowerCase().includes(searchText.toLowerCase()) ||
+      sponsor.name.th.toLowerCase().includes(searchText.toLowerCase()),
+  );
 
-    const handleSponsorCardClick = (sponsorId: string) => {
-        router.push(`/evouchers/${sponsorId}`)
-    }
+  const handleSponsorCardClick = (sponsorId: string) => {
+    router.push(`/evouchers/${sponsorId}`);
+  };
 
     if (loading) return (
         <div className="flex flex-col gap-6 px-6">
