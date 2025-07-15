@@ -10,6 +10,7 @@ import { PrepostQuestions } from '@/types/prepostQuestion';
 import { addToast } from '@heroui/react';
 import PosttestQuestionModal from '@/components/PretestPosttest/PosttestQuestionModal';
 import useProgress from '@/hooks/useProgress';
+import { useRouter } from 'next/navigation';
 
 
 const baseImageUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -36,6 +37,7 @@ export default function HomePage() {
   const [selectedPosttestQuestions, setSelectedPosttestQuestions] = useState<PrepostQuestions[]>([]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isPosttestConfirmOpen, setIsPosttestConfirmOpen] = useState(false);
+  const router = useRouter();
 
   const openPretestModal = () => {
     const filteredQuestions = prepostQuestion.filter(
@@ -200,7 +202,7 @@ export default function HomePage() {
             <Flower
               className="text-white"
               size={20}
-              onClick={() => (window.location.href = '/lamduanflowers')}
+              onClick={() => router.push('/lamduan-flowers')}
             />
           </GlassButton>
           <GlassButton

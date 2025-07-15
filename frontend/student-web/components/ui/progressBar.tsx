@@ -19,7 +19,7 @@ export default function ProgressBar({
     <div className="relative w-48 md:w-[16rem] lg:w-[24rem] max-w-full mx-4 mt-6 flex items-center gap-2">
       {/* Avatar Circle */}
       <button
-        className="z-10 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-2 border-white/50 bg-gray-300/30 backdrop-blur-md overflow-hidden shadow-md flex items-center justify-center"
+        className="z-10 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full border-2 border-gray-500/50 bg-gray-300/30 backdrop-blur-md overflow-hidden shadow-md flex items-center justify-center"
         onClick={onClickAvatar}
       >
         {imageError ? (
@@ -38,7 +38,7 @@ export default function ProgressBar({
       </button>
 
       {/* Progress Bar Container */}
-      <div className="relative flex-1 h-7 sm:h-7 md:h-10 rounded-full -ml-6 bg-white/10 backdrop-blur-md border border-white/20 shadow-inner overflow-hidden">
+      <div className="relative flex-1 h-7 sm:h-7 md:h-10 rounded-full -ml-6 bg-black/10 backdrop-blur-md border border-black/20 shadow-inner overflow-hidden">
         {/* Progress Fill */}
         <div
           className="h-full bg-gradient-to-r from-pink-400 to-pink-500 rounded-full transition-all duration-300 ease-in-out"
