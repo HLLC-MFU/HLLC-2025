@@ -3,7 +3,7 @@ import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 
 import BottomNav from '@/components/bottom-nav';
-import lobby from '@/public/lobby_3.jpeg';
+import lobby from '@/public/lobby_6.jpeg';
 import ProgressBar from '@/components/ui/progressBar';
 import useProgress from '@/hooks/useProgress';
 

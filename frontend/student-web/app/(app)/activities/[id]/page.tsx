@@ -4,22 +4,23 @@ import {
   Button,
   Card,
   CardBody,
-  CardHeader,
   Chip,
   ScrollShadow,
   Spinner,
 } from '@heroui/react';
-import { ArrowLeft, MapPin, CircleCheck } from 'lucide-react';
+import { ArrowLeft, MapPin } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 
-import Stepper, { Step } from './_components/Stepper';
+import DateBadge from '../_components/DateBadge';
+import CheckinStatusChip from '../_components/CheckinStatusChip';
+
+import Stepper from './_components/Stepper';
 import AssessmentModal from './_components/AssessementModal';
 import { ConfirmationModal } from './_components/ConfirmModal';
 
 import { Assessment } from '@/types/assessment';
-import { formatDateTime } from '@/utils/dateFormat';
 import { useActivities } from '@/hooks/useActivities';
 
 export default function ActivitiesDetailPage() {
@@ -117,8 +118,6 @@ export default function ActivitiesDetailPage() {
     }
   };
 
-  const checkinStatusNumber = Number(activity?.checkinStatus);
-
   const completedSteps: number[] = [];
 
   if (activity) {
@@ -147,41 +146,10 @@ export default function ActivitiesDetailPage() {
     }
   }
 
-  const steps: Step[] = activity
-    ? [
-        { title: 'Start', value: formatDateTime(activity.metadata.startAt) },
-        {
-          title: 'Check-in Status',
-          value: (() => {
-            switch (checkinStatusNumber) {
-              case 0:
-                return 'Not yet open for check-in';
-              case -1:
-                return 'You missed the check-in time';
-              case 1:
-                return 'Check-in available now';
-              case 2:
-                return 'You have already checked in';
-              case 3:
-                return 'Activity ended (checked in)';
-              default:
-                return 'Unknown status';
-            }
-          })(),
-        },
-        { title: 'End', value: formatDateTime(activity.metadata.endAt) },
-        {
-          title: 'Assessment',
-          value: activity.hasAnsweredAssessment ? 'Completed' : 'Not Completed',
-        },
-      ]
-    : [];
-
   useEffect(() => {
     if (!activity) return;
 
     const now = new Date();
-    const startAt = new Date(activity.metadata.startAt);
     const endAt = new Date(activity.metadata.endAt);
 
     const isEnded = now >= endAt;
@@ -201,7 +169,7 @@ export default function ActivitiesDetailPage() {
           <Spinner label="Loading..." variant="wave" />
         </div>
       ) : (
-        <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
           <Card className="w-full aspect-video relative mb-4">
             <Image
               fill
@@ -222,50 +190,49 @@ export default function ActivitiesDetailPage() {
             </div>
           </Card>
           <Card>
-            <CardHeader>
+            <div className="justify-between items-center p-4">
               <div className="flex-col flex items-star mt-5 p-2">
-                <div className="flex justify-between w-full">
-                  <div className="flex flex-col gap-2">
+                <div className="flex justify-between w-full items-center">
+                  <div className="flex flex-col gap-2 flex-1">
                     <p className="text-xs">ACTIVITY</p>
                     <p className="flex items-center font-bold text-xl">
                       {activity?.name.en}
                     </p>
-                    <h1 className="flex items-center gap-2">
-                      <MapPin size={18} />
-                      <p>{activity?.location.en}</p>
-                    </h1>
+                    <div className="flex items-center gap-2">
+                      <Chip variant="flat">
+                        <div className="flex gap-1 items-center font-bold">
+                          <MapPin size={16} />
+                          <p>{activity?.location.en}</p>
+                        </div>
+                      </Chip>
+
+                      {/* Status Chip */}
+                      <CheckinStatusChip
+                        assessmentStatus={activity.hasAnsweredAssessment}
+                        status={activity.checkinStatus}
+                        onClick={() => {
+                          if (activity.checkinStatus === 0) {
+                            addToast({
+                              title: 'You have not checked in yet.',
+                              color: 'warning',
+                            });
+                          } else {
+                            setIsModalOpen(true);
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
-                  <Card
-                    className="w-[60px] h-[80px] items-center justify-center flex text-center"
-                    radius="md"
-                  >
-                    <p className="text-sm p-2">
-                      {formatDateTime(activity?.metadata?.startAt)}
-                    </p>
-                  </Card>
+
+                  {/* Date Badge */}
+                  <div>
+                    {activity?.metadata?.startAt && (
+                      <DateBadge date={activity.metadata.startAt} />
+                    )}
+                  </div>
                 </div>
-                <Chip
-                  className="text-xs font-bold flex items-center gap-1"
-                  color={
-                    (activity?.checkinStatus === 2 ||
-                      activity?.checkinStatus === 3) &&
-                    activity?.hasAnsweredAssessment
-                      ? 'success'
-                      : 'danger'
-                  }
-                >
-                  {(activity?.checkinStatus === 2 ||
-                    activity?.checkinStatus === 3) &&
-                  activity?.hasAnsweredAssessment ? (
-                    <p className="flex items-center gap-1 text-white">
-                      <CircleCheck color="white" size={16} /> Done
-                    </p>
-                  ) : (
-                    'Not Done'
-                  )}
-                </Chip>
               </div>
-            </CardHeader>
+            </div>
             <CardBody className="overflow-y-hidden">
               <div className="flex justify-center items-center w-full gap-6 border-b border-white/20">
                 {[
@@ -307,11 +274,7 @@ export default function ActivitiesDetailPage() {
                   </div>
                 ) : (
                   <div>
-                    <Stepper
-                      completedSteps={completedSteps}
-                      direction="vertical"
-                      steps={steps}
-                    />
+                    <Stepper activity={activity} />
                   </div>
                 )}
               </div>
