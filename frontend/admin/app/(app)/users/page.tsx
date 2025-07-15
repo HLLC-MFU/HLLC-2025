@@ -3,11 +3,9 @@
 import React, { useState } from "react";
 import { Accordion, AccordionItem, addToast, Button } from "@heroui/react";
 import { Plus, UserRound, UserRoundCog, UserRoundSearch } from "lucide-react";
-
-import UsersTable from "./_components/UserTable";
-import AddRoleModal from "./_components/AddRoleModal";
-
 import { useUsers } from "@/hooks/useUsers";
+import UsersTable from "./_components/user-table";
+import AddRoleModal from "./_components/AddRoleModal";
 import { useRoles } from "@/hooks/useRoles";
 import { User } from "@/types/user";
 import { Role } from "@/types/role";
@@ -53,10 +51,8 @@ export default function ManagementPage() {
   const [confirmMode, setConfirmMode] = useState<"Delete" | "Reset">("Delete")
   
 
-  const isLoading = usersLoading || rolesLoading || schoolsLoading || majorsLoading;
-
-  const groupedByRoleId: Record<string, User[]> = {};
-
+  // 🟢 Group users by their role name
+  const groupedUsers: Record<string, { roleName: string, roleId: string; users: User[] }> = {};
   users.forEach((user) => {
     const roleId = typeof user.role === "object" && user.role?._id;
 
@@ -65,6 +61,7 @@ export default function ManagementPage() {
     groupedByRoleId[roleId].push(user);
   });
 
+  // Icon mapping based on role
   const roleIcons: Record<string, React.ReactNode> = {
     Administrator: <UserRoundCog />,
     User: <UserRound />,
@@ -216,6 +213,7 @@ export default function ManagementPage() {
           onClose={() => setIsRoleOpen(false)}
         />
       </div>
+
     </>
   );
 }

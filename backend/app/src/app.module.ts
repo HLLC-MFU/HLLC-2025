@@ -12,7 +12,7 @@ import { GlobalCacheModule } from './pkg/cache/cache.module';
 import * as redisStore from 'cache-manager-ioredis';
 import { SseModule } from './module/sse/sse.module';
 import { SystemStatusGuard } from './module/system-status/guards/system-status.guard';
-import { ReportTypeModule } from './module/report-type/report-type.module';
+import { ReportTypeModule } from './module/reports/report-type.module';
 import { ReportsModule } from './module/reports/reports.module';
 import { AppearancesModule } from './module/appearances/appearances.module';
 import { SystemStatusModule } from './module/system-status/system-status.module';

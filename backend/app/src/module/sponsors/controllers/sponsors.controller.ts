@@ -16,10 +16,11 @@ import {
 import { CreateSponsorTypeDto } from '../dto/create-sponsor-type.dto';
 import { SponsorsService } from '../services/sponsors.service';
 import { UpdateSponsorTypeDto } from '../dto/update-sponsor-type.dto';
-import { CreateSponsorDto } from '../dto/create-sponsor.dto';
-import { UpdateSponsorDto } from '../dto/update-sponsor.dto';
+
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { FastifyRequest } from 'fastify';
+import { CreateSponsorDto } from '../dto/create-sponsor.dto';
+import { UpdateSponsorDto } from '../dto/update-sponsor.dto';
 
 @Controller('sponsors')
 export class SponsorsController {

@@ -14,6 +14,8 @@ import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateMetadataSchemaDto } from './dto/update-metadata-schema.dto';
+import { Public } from '../auth/decorators/public.decorator';
+
 import { CacheKey } from '@nestjs/cache-manager';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { AutoCacheInterceptor } from 'src/pkg/cache/auto-cache.interceptor';

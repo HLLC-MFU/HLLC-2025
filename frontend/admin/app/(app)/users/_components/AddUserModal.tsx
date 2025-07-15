@@ -109,6 +109,9 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                         <ModalBody className="w-full">
                             <Input
                                 isRequired
+                                label="Student ID"
+                                type="string"
+                                placeholder="Enter Student ID"
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter your student ID" }
                                 }
@@ -120,6 +123,9 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                             />
                             <Input
                                 isRequired
+                                label="First Name"
+                                type="string"
+                                placeholder="Enter First Name"
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please enter your first name" }
                                 }
@@ -131,6 +137,7 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                             />
                             <Input
                                 label="Middle Name"
+                                type="string"
                                 placeholder="Enter Middle Name"
                                 type="string"
                                 value={field.name.middle}
@@ -145,11 +152,11 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                             />
                             <Select
                                 isRequired
+                                label="School"
+                                placeholder="Select School"
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please select your school" }
                                 }
-                                label="School"
-                                placeholder="Select School"
                                 selectedKeys={school}
                                 onSelectionChange={(keys) => setSchool(keys as Set<string>)}
                             >
@@ -159,11 +166,11 @@ export default function AddModal({ isOpen, onClose, onAdd, action, user, roleId,
                             </Select>
                             <Select
                                 isRequired
+                                label="Major"
+                                placeholder="Select Major"
                                 errorMessage={
                                     ({ validationDetails }) => { if (validationDetails.valueMissing) return "Please select your major" }
                                 }
-                                label="Major"
-                                placeholder="Select Major"
                                 selectedKeys={major}
                                 onSelectionChange={(keys) => setMajor(keys as Set<string>)}
                             >

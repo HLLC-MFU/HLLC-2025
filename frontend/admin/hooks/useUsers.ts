@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
-
 import { User } from "@/types/user";
 import { apiRequest } from "@/utils/api";
+import { useState, useEffect } from "react";
 
 export function useUsers() {
     const [users, setUsers] = useState<User[]>([]);
@@ -14,7 +13,6 @@ export function useUsers() {
         setError(null);
         try {
             const res = await apiRequest<{ data: User[] }>("/users?limit=0", "GET");
-
             setUsers(Array.isArray(res.data?.data) ? res.data.data : []);
         } catch (err: any) {
             setError(err.message || "Failed to fetch users.");
@@ -46,14 +44,13 @@ export function useUsers() {
         try {
             setLoading(true);
             const res = await apiRequest<User>("/users", "POST", userData);
+            console.log("Create response: ", res);
 
             if (res.data) {
                 await new Promise((resolve) => {
                     setUsers((prev) => {
                         const updated = [...prev, res.data as User];
-
                         resolve(updated);
-
                         return updated;
                     });
                 });
@@ -72,14 +69,13 @@ export function useUsers() {
         try {
             setLoading(true);
             const res = await apiRequest<User>("/users/upload", "POST", userData);
+            console.log("Upload response: ", res);
 
             if (res.data) {
                 await new Promise((resolve) => {
                     setUsers((prev) => {
                         const updated = [...prev, res.data as User];
-
                         resolve(updated);
-
                         return updated;
                     });
                 });
@@ -98,6 +94,7 @@ export function useUsers() {
         try {
             setLoading(true);
             const res = await apiRequest<User>(`/users/${id}`, "PATCH", userData);
+            console.log("Update response: ", res);
 
             if (res.data) {
                 setUsers((prev) => prev.map((u) => (u._id === id ? res.data! : u)));
@@ -116,6 +113,7 @@ export function useUsers() {
         try {
             setLoading(true);
             const res = await apiRequest(`/users/${id}`, "DELETE");
+            console.log("Delete response: ", res);
 
             if (res.statusCode !== 200) {
                 throw new Error(res.message || "Failed to delete user.");
@@ -137,6 +135,7 @@ export function useUsers() {
             setLoading(true);
 
             const res = await apiRequest("/users/multiple", "DELETE", ids);
+            console.log("Delete response: ", res);
 
             if (res.statusCode !== 200) {
                 throw new Error(res.message || "Failed to delete user.");
