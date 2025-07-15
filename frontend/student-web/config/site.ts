@@ -1,4 +1,4 @@
-import { LogOutIcon, BookIcon, QrCode, CircleUserRound, ShieldAlert, BellRing, Ticket } from 'lucide-react';
+import { QrCode, Book, Globe, Home, Ticket } from 'lucide-react';
 
 import { NavSection } from '@/types/nav';
 
@@ -12,20 +12,12 @@ export const siteConfig: {
   description: '',
   navMenuItems: [
     {
-      section: 'Activity',
       items: [
-        { label: 'Activities', href: '/activities', icon: BookIcon },
-        { label: 'CheckIn', href: '/checkin', icon: QrCode },
-        { label: 'Notifications' , href: '/notifications' , icon: BellRing},
-        { label: 'E-vouchers', href: '/evouchers', icon: Ticket },
-      ],
-    },
-    {
-      section: 'Account',
-      items: [
-        { label: 'Profile', href: '/profile', icon: CircleUserRound },
-        { label: 'Report' , href: '/report' , icon: ShieldAlert},
-        { label: 'Logout', href: '/logout', icon: LogOutIcon },
+        { label: 'Home', href: '/', icon: Home },
+        { label: 'Activity', href: '/activities', icon: Book },
+        { label: 'QRCode', href: '/qrcode', icon: QrCode },
+        { label: 'Evoucher', href: '/evoucher', icon: Ticket },
+        { label: 'Community', href: '/community', icon: Globe },
       ],
     },
   ],
@@ -37,3 +29,7 @@ export const siteConfig: {
     sponsor: 'https://patreon.com/jrgarciadev',
   },
 };
+
+export const pageOrder = siteConfig.navMenuItems.flatMap(group =>
+  group.items.map(item => item.href),
+);

@@ -78,10 +78,7 @@ export default function ActivitiesPage() {
   }, [activities, searchQuery]);
 
   return (
-    <div
-      className="flex flex-col min-h-screen w-full overflow-y-auto pb-16 gap-6 bg-transparent px-8"
-      style={{ WebkitOverflowScrolling: 'touch' }}
-    >
+    <div className="w-full gap-6 bg-transparent">
       {/* Search Input */}
       <div className="mb-6">
         <Input

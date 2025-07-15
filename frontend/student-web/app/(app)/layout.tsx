@@ -1,9 +1,6 @@
 'use client';
-
-import type React from 'react';
-
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 import BottomNav from '@/components/bottom-nav';
 import lobby from '@/public/lobby.png';
@@ -12,6 +9,7 @@ import useProgress from '@/hooks/useProgress';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
   const { progress } = useProgress();
   const progressPercentage = progress
     ? Math.round(progress.progressPercentage)
@@ -19,8 +17,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const shouldBlur = pathname !== '/';
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden">
-      {/* Background image */}
+    <div className="relative h-dvh w-full overflow-hidden pb-24">
       <Image
         fill
         priority
@@ -29,19 +26,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         src={lobby}
       />
 
-      {/* Conditional blur overlay */}
-      {shouldBlur && (
-        <div className="absolute inset-0 z-10 bg-black/10 backdrop-blur-sm" />
-      )}
+      <div
+        className="absolute inset-0 z-10 pointer-events-none transition-all duration-500"
+        style={{
+          backdropFilter: `blur(${shouldBlur ? 8 : 0}px)`,
+          WebkitBackdropFilter: `blur(${shouldBlur ? 8 : 0}px)`,
+          backgroundColor: shouldBlur ? 'rgba(0,0,0,0.1)' : 'transparent',
+          opacity: shouldBlur ? 1 : 0,
+        }}
+      />
 
-      {/* Foreground content */}
       <div className="relative z-20 flex h-full flex-col text-foreground">
-        <main className="flex-1 overflow-y-auto md:px-8 pb-20">
+        <div className="fixed top-0 left-0 right-0 z-50 mx-4">
           <ProgressBar progress={progressPercentage} />
-          <div className="pt-8">{children}</div>
+        </div>
+
+        <main className="relative flex-1 overflow-y-auto mt-24 md:mt-32 px-4 md:px-8">
+          {children}
         </main>
 
-        <div className="fixed bottom-0 left-0 right-0 z-50 mx-4 pb-4">
+        <div className="fixed bottom-0 left-0 right-0 z-50 mx-4 pb-4 h-20">
           <BottomNav />
         </div>
       </div>

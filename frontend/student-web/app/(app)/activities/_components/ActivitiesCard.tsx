@@ -49,7 +49,7 @@ export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
             className={`object-cover transition-opacity duration-700 ${
               loaded ? 'opacity-100' : 'opacity-0'
             }`}
-            src={`https://hllc.mfu.ac.th/api/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`}
+            src={`http://localhost:8080/api/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`}
             onLoadingComplete={() => setLoaded(true)}
           />
 
