@@ -1,4 +1,4 @@
-'use client';
+"use client"
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
@@ -31,7 +31,7 @@ export default function TopBar({ onStamp }: TopBarProps) {
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
     position: 'absolute',
-    top: 60,
+    top: 0,
     left: 0,
     right: 0,
     zIndex: 100,
@@ -47,9 +47,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     paddingRight: 20,
   },
   iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 46,
+    height: 46,
+    borderRadius: 24,
     backgroundColor: 'rgba(0,0,0,0.15)',
     display: 'flex',
     justifyContent: 'center',
@@ -59,8 +59,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer',
   },
   stampIcon: {
-    width: 24,
-    height: 24,
+    width: 36,
+    height: 36,
     objectFit: 'contain',
   },
 };

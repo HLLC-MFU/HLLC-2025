@@ -103,7 +103,7 @@ export default function useCoinHunting() {
       try {
         const [landmarksRes, collectionsRes] = await Promise.all([
           apiRequest<LandmarkApiResponse>('/landmarks?page=1&limit=30'),
-          apiRequest<CoinCollectionApiResponse>('/coin-collections/my-coin'), 
+          apiRequest<CoinCollectionApiResponse>('/coin-collections/my-coin'),
         ]);
         if (landmarksRes.data && Array.isArray(landmarksRes.data.data)) {
           const mapped = landmarksRes.data.data.map((item: LandmarkApiItem) => ({

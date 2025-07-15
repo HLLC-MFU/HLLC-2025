@@ -54,9 +54,9 @@ const getCheckinStatusMeta = (
         ? {
             label: 'Success',
             message: 'You have successfully completed the activity',
-            color: '#dcfce7',
+            color: '#008000',
             backgroundColor: '#dcfce7',
-            icon: <CheckCheck size={16} stroke="#fbbd24" />,
+            icon: <CheckCheck size={16} stroke="#008000" />,
           }
         : {
             label: 'Waiting for Assessment',
