@@ -18,7 +18,7 @@ export default function useCoinHunting() {
     modal: null as ModalType,
     selectedMarker: null as Marker | null,
     evoucher: null as { code: string } | null,
-    alertType: null as 'already-collected' | 'no-evoucher' | 'too-far' | null,
+    alertType: null as 'already-collected' | 'no-evoucher' | 'too-far' | 'cooldown' | null,
   });
 
   const [uiState, setUiState] = useState({
@@ -82,10 +82,10 @@ export default function useCoinHunting() {
       try {
         const [landmarksRes, collectionsRes] = await Promise.all([
           apiRequest<LandmarkApiResponse>('/landmarks?page=1&limit=30'),
-          apiRequest<CoinCollectionApiResponse>('/coin-collections'),
+          apiRequest<CoinCollectionApiResponse>('/coin-collections/my-coin'),
         ]);
 
-        if (landmarksRes.data?.data) {
+        if (Array.isArray(landmarksRes.data?.data)) {
           const mapped = landmarksRes.data.data.map((item: LandmarkApiItem) => ({
             x: item.mapCoordinates?.x ?? 0,
             y: item.mapCoordinates?.y ?? 0,
@@ -103,7 +103,7 @@ export default function useCoinHunting() {
           if (mounted) setMarkers(mapped);
         } else if (mounted) setErrorMarkers('No data');
 
-        if (collectionsRes.data?.data) {
+        if (Array.isArray(collectionsRes.data?.data)) {
           const allLandmarks = collectionsRes.data.data.flatMap((c: CoinCollectionApiItem) => c.landmarks || []);
           const ids = allLandmarks.map((l: CoinCollectionLandmark) => l.landmark?._id).filter(Boolean) as string[];
           if (mounted) setCollectedIds(ids);
@@ -123,7 +123,7 @@ export default function useCoinHunting() {
     if (state.modal === 'stamp') {
       const fetchStamps = async () => {
         try {
-          const res = await apiRequest<CoinCollectionApiResponse>('/coin-collections');
+          const res = await apiRequest<CoinCollectionApiResponse>('/coin-collections/my-coin');
           const dataArr = Array.isArray(res?.data?.data) ? res.data.data : [];
           const landmarks = dataArr[0]?.landmarks || [];
           const NUM_SLOTS = 21;
@@ -141,7 +141,7 @@ export default function useCoinHunting() {
       };
       fetchStamps();
     }
-  }, [state.modal]);
+  }, [state.modal, collectedIds]);
 
   const handleMarkerPress = (marker: Marker) => {
     setState(s => ({ ...s, selectedMarker: marker, modal: 'marker-detail' }));
@@ -160,7 +160,7 @@ export default function useCoinHunting() {
     setState(s => ({ ...s, evoucher: null, modal: 'stamp' }));
   };
 
-  const handleAlert = (type: 'already-collected' | 'no-evoucher' | 'too-far') => {
+  const handleAlert = (type: 'already-collected' | 'no-evoucher' | 'too-far' | 'cooldown') => {
     setState(s => ({ ...s, alertType: type, modal: 'alert' }));
   };
 
