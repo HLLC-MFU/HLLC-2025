@@ -15,8 +15,10 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
   const [imageSize, setImageSize] = useState({ width: 6000, height: 2469 });
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
-  // --- REMOVE gesture pan, keep only zoom ---
-  const [{ scale }, api] = useSpring(() => ({
+  // เพิ่ม pan (x, y) และ scale
+  const [{ x, y, scale }, api] = useSpring(() => ({
+    x: 0,
+    y: 0,
     scale: 1,
     config: { tension: 300, friction: 30 },
   }));
@@ -44,19 +46,19 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  // Scroll to center of image when loaded
+  // Detect mobile device
+  const isMobile = typeof window !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+  // Center map on load (reset x, y)
   useEffect(() => {
     if (!containerRef.current || !imageSize.width || !imageSize.height) return;
     const cW = window.innerWidth;
     const cH = window.innerHeight;
     const iW = imageSize.width;
     const iH = imageSize.height;
-    if (iW > cW || iH > cH) {
-      const left = Math.max(0, (iW - cW) / 2);
-      const top = Math.max(0, (iH - cH) / 2);
-      containerRef.current.scrollTo({ left, top, behavior: 'auto' });
-    }
-  }, [imageSize.width, imageSize.height]);
+    // Center to (0,0) for now, or calculate initial x, y if needed
+    api.start({ x: 0, y: 0 });
+  }, [imageSize.width, imageSize.height, api]);
 
   // Helper: clamp value
   const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
@@ -69,30 +71,54 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
     const scaledHeight = imageSize.height * scaleValue;
     let minX = 0, maxX = 0, minY = 0, maxY = 0;
     if (scaledWidth > cW) {
-      minX = (cW - scaledWidth) / 2;
-      maxX = (scaledWidth - cW) / 2;
+      minX = cW - scaledWidth;
+      maxX = 0;
     }
     if (scaledHeight > cH) {
-      minY = (cH - scaledHeight) / 2;
-      maxY = (scaledHeight - cH) / 2;
+      minY = cH - scaledHeight;
+      maxY = 0;
     }
     return {
-      minX: -maxX,
-      maxX: -minX,
-      minY: -maxY,
-      maxY: -minY,
+      minX,
+      maxX,
+      minY,
+      maxY,
     };
   };
 
   const bind = useGesture(
     {
-      onPinch: ({ offset: [d], memo }) => {
+      onDrag: ({ offset: [dx, dy], last, memo }) => {
+        const s = scale.get();
+        // ปรับ dx, dy ให้สัมพันธ์กับ scale
+        const adjDx = dx / s;
+        const adjDy = dy / s;
+        const bounds = getBounds(s);
+        const clampedX = clamp(adjDx, bounds.minX, bounds.maxX);
+        const clampedY = clamp(adjDy, bounds.minY, bounds.maxY);
+        api.start({ x: clampedX, y: clampedY });
+        return memo;
+      },
+      onPinch: ({ offset: [d], origin, memo, event }) => {
+        // d: scale value
         const scaleValue = Math.max(1, Math.min(d, 3));
-        api.start({ scale: scaleValue });
+        // Clamp x, y to new bounds after zoom
+        const bounds = getBounds(scaleValue);
+        // Get current x, y
+        const currentX = x.get();
+        const currentY = y.get();
+        const clampedX = clamp(currentX, bounds.minX, bounds.maxX);
+        const clampedY = clamp(currentY, bounds.minY, bounds.maxY);
+        api.start({ scale: scaleValue, x: clampedX, y: clampedY });
         return memo;
       },
     },
     {
+      drag: {
+        from: () => [x.get(), y.get()],
+        filterTaps: true,
+        ...(isMobile ? { pointer: { touch: true } } : {}),
+      },
       pinch: {
         from: () => [scale.get(), 0],
         scaleBounds: { min: 1, max: 3 },
@@ -116,22 +142,23 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
     <div
       ref={containerRef}
       {...bind()}
-      className="fixed top-0 left-0 w-screen h-screen bg-black overflow-auto touch-auto z-0"
+      className="fixed top-0 left-0 w-screen h-screen bg-black overflow-hidden touch-auto z-0"
       style={{}}
     >
       <animated.div
         style={{
-          scale,
           width: imageSize.width,
           height: imageSize.height,
           position: 'relative',
           left: 0,
           top: 0,
           transformOrigin: 'top left',
+          scale,
+          x,
+          y,
         }}
         className=""
       >
-
         <img
           ref={imageRef}
           src="/images/map.png"
@@ -139,7 +166,6 @@ export default function InteractiveMap({ onImageLoad, children }: InteractiveMap
           className="w-full h-full pointer-events-none select-none"
           style={{ position: 'relative', zIndex: 10 }}
         />
-
         <div className="absolute inset-0 pointer-events-none bg-black/30 z-10" />
         <div className="absolute inset-0 z-20">
           {children}
