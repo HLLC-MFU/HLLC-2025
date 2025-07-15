@@ -20,7 +20,12 @@ import { useLamduanFlowers } from '@/hooks/useLamduanFlowers';
 import { useProfile } from '@/hooks/useProfile';
 
 export default function LamduanOrigamiPage() {
-    const { user } = useProfile();
+    const { user, fetchUser } = useProfile();
+
+    useEffect(() => {
+      fetchUser()
+    }, [fetchUser])
+    
     const {
         flowers,
         lamduanSetting,
@@ -51,7 +56,8 @@ export default function LamduanOrigamiPage() {
     }, [flowers, user]);
 
     const handleSubmit = async () => {
-        if (!user?._id || !lamduanSetting?.[0]?._id) return;
+        if (!user?._id || !lamduanSetting?.[0]?._id) 
+            return addToast({ title: 'Server error, please contact admin.', color: 'danger' });
         if (!image && !imagePreview)
             return addToast({ title: 'Please select an image.', color: 'danger' });
 

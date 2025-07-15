@@ -19,12 +19,16 @@ export class SseController {
   sse(@Req() req: UserRequest, @Res() reply: FastifyReply) {
     const res = reply.raw as ServerResponse;
 
-    const headers = {
+    const headers: Record<string, string> = {
       'Content-Type': 'text/event-stream',
       Connection: 'keep-alive',
       'Cache-Control': 'no-cache',
-      'Access-Control-Allow-Origin': req.headers.origin,
-      'Access-Control-Allow-Credentials': 'true',
+    }
+
+    const origin = req.headers.origin;
+    if (origin) {
+      headers['Access-Control-Allow-Origin'] = origin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
     }
     res.writeHead(200, headers)
 
