@@ -9,24 +9,30 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { CacheKey } from '@nestjs/cache-manager';
 import { Notification } from './schemas/notification.schema';
-import { ReadNotificationDto } from './dto/notification-read.dto';
-import { CreateNotificationDto } from './dto/notification.dto';
+import { CreateNotificationDto } from './dto/create-notification.dto';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { UserRequest } from 'src/pkg/types/users';
+import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
+import { PushNotificationDto } from './dto/push-notification.dto';
+import { PushNotificationService } from './push-notifications.service';
+import { NotificationFormDataPipe } from './pipes/notification-formdata.pipe';
 
 @UseGuards(PermissionsGuard)
 @Controller('notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly pushNotificationService: PushNotificationService,
+  ) {}
 
   @Post()
-  @CacheKey('notifcations')
-  create(@Body() createNotificationDto: CreateNotificationDto) {
-    return this.notificationsService.create(createNotificationDto);
+  @UseInterceptors(new MultipartInterceptor(500))
+  create(@Body(new NotificationFormDataPipe()) dto: CreateNotificationDto) {
+    return this.notificationsService.create(dto);
   }
 
   @Get()
@@ -52,30 +58,33 @@ export class NotificationsController {
     return this.notificationsService.remove(id);
   }
 
-  @Post('read')
-  markAsRead(@Body() markAsReadDto: ReadNotificationDto) {
-    return this.notificationsService.markAsRead(
-      markAsReadDto.userId,
-      markAsReadDto.notificationId,
-    );
+  @Post(':id/read')
+  markAsRead(@Param('id') notificationId: string, @Req() req: UserRequest) {
+    const user = req.user;
+    return this.notificationsService.markNotification(user, notificationId, true);
   }
 
-  @Post('unread')
-  markAsUnread(@Body() markAsUnreadDto: ReadNotificationDto) {
-    return this.notificationsService.markAsUnread(
-      markAsUnreadDto.userId,
-      markAsUnreadDto.notificationId,
-    );
+  @Post(':id/unread')
+  markAsUnread(@Param('id') notificationId: string, @Req() req: UserRequest) {
+    const user = req.user;
+    return this.notificationsService.markNotification(user, notificationId, false);
   }
 
   @Get('me')
   getMyNotifications(@Req() req: UserRequest) {
     const user = req.user;
-    return this.notificationsService.getUserNotifications(
-      user._id,
-      user.metadata.major._id,
-      user.metadata.school._id,
-    );
+    return this.notificationsService.getUserNotifications(user);
   }
 
+  @Post('push')
+  sendPushNotification(
+    @Body() pushNotificationDto: PushNotificationDto,
+    @Query('dryRun') dryRun?: string,
+  ) {
+    const isDryRun = dryRun === 'true';
+    return this.pushNotificationService.sendPushNotification(
+      pushNotificationDto,
+      isDryRun,
+    );
+  }
 }

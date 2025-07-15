@@ -5,12 +5,10 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
   Req,
   UseGuards,
   UseInterceptors,
-  UnauthorizedException,
-  Body,
+  HttpStatus,
 } from '@nestjs/common';
 import { ActivitiesService } from '../services/activities.service';
 import { CreateActivitiesDto } from '../dto/activities/create-activities.dto';
@@ -19,13 +17,10 @@ import { FastifyRequest } from 'fastify';
 import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor';
 import { UserRequest } from 'src/pkg/types/users';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
-import { Permissions } from '../../auth/decorators/permissions.decorator';
-import { CacheKey } from '@nestjs/cache-manager';
 import { Activities } from '../schemas/activities.schema';
 import { PaginatedResponse } from 'src/pkg/interceptors/response.interceptor';
-import { Public } from 'src/module/auth/decorators/public.decorator';
-import { AuthGuard } from '@nestjs/passport';
 import { Types } from 'mongoose';
+import { apiResponse } from 'src/pkg/helper/api-response.helper';
 
 @UseGuards(PermissionsGuard)
 @Controller('activities')
@@ -33,7 +28,6 @@ export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) { }
 
   @Post()
-  @Permissions('activities:create')
   @UseInterceptors(new MultipartInterceptor(500))
   create(@Req() req: FastifyRequest) {
     const dto = req.body as CreateActivitiesDto;
@@ -41,31 +35,40 @@ export class ActivitiesController {
   }
 
   @Get('')
-  @Permissions('activities:read')
-  async findAll(@Query() query: Record<string, string>) {
-    return this.activitiesService.findAll(query);
+  async findAll() {
+    const activities = await this.activitiesService.findAll();
+    return apiResponse(
+      activities,
+      'Activities retrieved successfully',
+      HttpStatus.OK,
+    );
   }
 
   @Get('canCheckin')
-  @Permissions('activities:read')
-  async canCheckin(): Promise<PaginatedResponse<Activities> & { message: string }> {
-    return this.activitiesService.findCanCheckinActivities();
+  async canCheckin(
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
+  ): Promise<PaginatedResponse<Activities> & { message: string }> {
+    const user = req.user as { _id: Types.ObjectId };
+    return this.activitiesService.findCanCheckinActivities(user._id.toString());
   }
 
-  @Get('users')
-  @CacheKey('activities:$req.user.id')
-  getActivitiesByUser(@Req() req: FastifyRequest & { user: { _id: Types.ObjectId } }) {
-    return this.activitiesService.findActivitiesByUserId(req.user._id);
+  @Get('user')
+  async getActivitiesByUser(
+    @Req() req: FastifyRequest & { user: { _id: Types.ObjectId } },
+  ) {
+    const user = req.user as { _id: Types.ObjectId };
+    const activities = await this.activitiesService.findActivitiesByUserId(
+      user._id.toString(),
+    );
+    return activities;
   }
 
   @Get(':id')
-  @Permissions('activities:read')
   findOne(@Param('id') id: string) {
     return this.activitiesService.findOne(id);
   }
 
   @Patch(':id')
-  @Permissions('activities:update')
   @UseInterceptors(new MultipartInterceptor(500))
   update(@Param('id') id: string, @Req() req: UserRequest) {
     const dto = req.body as UpdateActivityDto;
@@ -73,8 +76,17 @@ export class ActivitiesController {
   }
 
   @Delete(':id')
-  @Permissions('activities:delete')
   remove(@Param('id') id: string) {
     return this.activitiesService.remove(id);
+  }
+
+  @Get(':activityId/assessment')
+  async findActivitiesWithAssessment(@Param('activityId') activityId: string) {
+    return this.activitiesService.findActivitiesWithAssessment(activityId);
+  }
+
+  @Get('/progress')
+  async findUserProgress(@Req() req: UserRequest) {
+    return this.activitiesService.findProgressByUser(req.user._id);
   }
 }

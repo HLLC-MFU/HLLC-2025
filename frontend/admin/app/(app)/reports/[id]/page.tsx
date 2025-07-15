@@ -9,9 +9,11 @@ import {
   Chip,
 } from "@heroui/react";
 import { ArrowLeft } from "lucide-react";
+
 import StatusDropdown from "../_components/Statusdropdown";
 import SendNotiButton from "../_components/SendNotiButton";
 import { ProblemCharts } from "../_components/ProblemCharts";
+
 import { useReportTypes } from "@/hooks/useReportTypes";
 import { useReports } from "@/hooks/useReports";
 
@@ -42,8 +44,8 @@ export default function CategoryReportsPage() {
         <CardHeader className="flex justify-between items-center">
           <div className="text-start flex gap-4 items-center">
             <Button
-              variant="flat"
               startContent={<ArrowLeft />}
+              variant="flat"
               onPress={() => router.back()}
             >
               Back

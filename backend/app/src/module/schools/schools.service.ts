@@ -5,20 +5,23 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { School, SchoolDocument } from './schemas/school.schema';
 import { throwIfExists } from 'src/pkg/validator/model.validator';
-import { handleMongoDuplicateError } from 'src/pkg/helper/helpers';
 import {
   queryAll,
   queryFindOne,
   queryUpdateOne,
   queryDeleteOne,
 } from 'src/pkg/helper/query.util';
-import { Appearance, AppearanceDocument } from '../appearances/schemas/apprearance.schema';
-
+import {
+  Appearance,
+  AppearanceDocument,
+} from '../appearances/schemas/apprearance.schema';
 @Injectable()
 export class SchoolsService {
   constructor(
-    @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
-    @InjectModel(Appearance.name) private AppearanceModel: Model<AppearanceDocument>,
+    @InjectModel(School.name)
+    private schoolModel: Model<SchoolDocument>,
+    @InjectModel(Appearance.name)
+    private AppearanceModel: Model<AppearanceDocument>,
   ) {}
 
   async create(createSchoolDto: CreateSchoolDto) {
@@ -31,12 +34,7 @@ export class SchoolsService {
     const school = new this.schoolModel({
       ...createSchoolDto,
     });
-
-    try {
-      return await school.save();
-    } catch (error) {
-      handleMongoDuplicateError(error, 'name');
-    }
+    return await school.save();
   }
 
   async findAll(query: Record<string, string>) {
@@ -56,7 +54,6 @@ export class SchoolsService {
   }
 
   async update(id: string, updateSchoolDto: UpdateSchoolDto) {
-    updateSchoolDto.updatedAt = new Date();
     return queryUpdateOne<School>(this.schoolModel, id, updateSchoolDto);
   }
 
@@ -68,11 +65,11 @@ export class SchoolsService {
     };
   }
 
-  async findColor(schoolId: string, query: Record<string, string>) {
+  async findAppearance(schoolId: string, query: Record<string, string>) {
     return queryFindOne<Appearance>(
       this.AppearanceModel,
       { school: schoolId },
-      [{ path: 'school' }]
+      [{ path: 'school' }],
     );
   }
 }

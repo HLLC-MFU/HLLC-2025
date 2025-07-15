@@ -15,7 +15,6 @@ import {
 import { UsersService } from './users.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Public } from '../auth/decorators/public.decorator';
 import { CacheKey } from '@nestjs/cache-manager';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -34,28 +33,24 @@ export class UsersController {
   ) {}
 
   @Post()
-  @Permissions('users:create')
   @CacheKey('users:invalidate')
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Post('upload')
-  @Permissions('users:upload')
   @CacheKey('users:invalidate')
   upload(@Body() uploadUserDtos: UserUploadDirectDto[]) {
     return this.usersService.upload(uploadUserDtos);
   }
 
   @Get()
-  @Permissions('users:read')
   @CacheKey('users')
   async findAll(@Query() query: Record<string, string>) {
     return this.usersService.findAll(query);
   }
 
   @Get('statistics')
-  @Permissions('users:read')
   @CacheKey('users:statistics')
   async getUserCountByRoles(): Promise<
     Record<string, { registered: number; notRegistered: number }>
@@ -64,7 +59,6 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Permissions('users:read:id')
   @CacheKey('users:$params.id')
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -72,7 +66,6 @@ export class UsersController {
   }
 
   @Get('profile')
-  @CacheKey('users:$req.user')
   getProfile(
     @Req() req: FastifyRequest & { user?: { _id?: string; id?: string } },
   ) {
@@ -87,42 +80,20 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @CacheKey('users:invalidate')
   @Permissions('users:update')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
-  @CacheKey('users:invalidate')
   @Permissions('users:delete:id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
 
   @Delete('multiple')
-  @Permissions('users:delete')
   @CacheKey('users:invalidate')
   removeMultiple(@Body() ids: string[]) {
     return this.usersService.removeMultiple(ids);
-  }
-
-  @Post(':id/device-token')
-  // @CacheKey('users:read:id')
-  @Public()
-  registerDeviceToken(
-    @Param('id') id: string,
-    @Body() registerTokenDto: Record<string, string>,
-  ) {
-    return this.usersService.registerDeviceToken(id, registerTokenDto);
-  }
-
-  @Delete(':id/device-token/:deviceToken')
-  @Public()
-  removeDeviceToken(
-    @Param('id') id: string,
-    @Param('deviceToken') deviceToken: string,
-  ) {
-    return this.usersService.removeDeviceToken(id, deviceToken);
   }
 }

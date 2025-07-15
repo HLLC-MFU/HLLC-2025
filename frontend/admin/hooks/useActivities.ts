@@ -4,7 +4,7 @@ import { addToast } from '@heroui/react';
 import { Activities, ActivityType } from '@/types/activities';
 import { apiRequest } from '@/utils/api';
 
-export function useActivities() {
+export function useActivities(options?: { autoFetch?: boolean; useCanCheckin?: boolean }) {
     const [activities, setActivities] = useState<Activities[]>([]);
     const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
     const [loading, setLoading] = useState(false);
@@ -21,44 +21,72 @@ export function useActivities() {
         setLoading(true);
         setError(null);
         try {
-            console.log('Fetching activities and types...');
             const [activitiesRes, typesRes] = await Promise.all([
                 apiRequest<{ data: Activities[] }>(
                     '/activities',
                     'GET',
                     undefined,
-                    {
-                        credentials: 'include',
-                    }
                 ),
                 apiRequest<{ data: ActivityType[] }>(
                     '/activities-type',
                     'GET',
                     undefined,
-                    {
-                        credentials: 'include',
-                    }
                 ),
             ]);
-            console.log('Activities response:', activitiesRes);
+
             if (activitiesRes.data?.data) {
                 setActivities(activitiesRes.data.data);
-                console.log('Activities set:', activitiesRes.data.data);
             }
 
             if (typesRes.data?.data) {
                 setActivityTypes(typesRes.data.data);
-                console.log('Activity types set:', typesRes.data.data);
             }
         } catch (err) {
-            console.error('Error fetching data:', err);
             const errorMessage = err && typeof err === 'object' && 'message' in err
                 ? (err as { message?: string }).message || 'Failed to fetch data.'
                 : 'Failed to fetch data.';
-            
+
             if (err && typeof err === 'object' && 'statusCode' in err && (err as any).statusCode === 401) {
                 localStorage.removeItem('token');
                 window.location.href = '/login';
+
+                return;
+            }
+
+            setError(errorMessage);
+            addToast({
+                title: 'Failed to fetch activities and types',
+                description: errorMessage,
+                color: 'danger',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchCanCheckin = async (): Promise<void> => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [activitiesRes] = await Promise.all([
+                apiRequest<{ data: Activities[] }>(
+                    '/activities/canCheckin',
+                    'GET',
+                ),
+            ]);
+
+            if (activitiesRes.data?.data) {
+                setActivities(activitiesRes.data.data);
+            }
+        } catch (err) {
+            const errorMessage = err && typeof err === 'object' && 'message' in err
+                ? (err as { message?: string }).message || 'Failed to fetch data.'
+                : 'Failed to fetch data.';
+
+            if (err && typeof err === 'object' && 'statusCode' in err && (err as any).statusCode === 401) {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+
                 return;
             }
 
@@ -83,13 +111,6 @@ export function useActivities() {
     const createActivity = async (formData: FormData): Promise<void> => {
         try {
             setLoading(true);
-            console.log('Creating activity with form data');
-
-            // Log FormData content
-            console.log('FormData entries:');
-            formData.forEach((value, key) => {
-                console.log(`${key}:`, value);
-            });
 
             const res = await apiRequest<Activities>(
                 '/activities',
@@ -100,22 +121,19 @@ export function useActivities() {
                 }
             );
 
-            console.log('Create activity response:', res);
-
             if (res.data) {
                 setActivities((prev) => [...prev, res.data as Activities]);
-                console.log('Activity created:', res.data);
                 addToast({
                     title: 'Activity created successfully!',
                     color: 'success',
                 });
             }
         } catch (err: any) {
-            console.error('Error creating activity:', err);
             const errorMessage = err.message || 'Failed to create activity.';
 
             if (err.statusCode === 401) {
                 window.location.href = '/login';
+
                 return;
             }
 
@@ -181,16 +199,10 @@ export function useActivities() {
                 formData.append('photo[logoPhoto]', logoPhoto);
             }
 
-            // Log FormData content
-            console.log('FormData entries for update:');
-            formData.forEach((value, key) => {
-                console.log(`${key}:`, value);
-            });
-
             const res = await apiRequest<Activities>(
                 `/activities/${id}`,
                 'PATCH',
-                    formData,
+                formData,
                 {
                     credentials: 'include',
                 }
@@ -204,8 +216,8 @@ export function useActivities() {
                 });
             }
         } catch (err: any) {
-            console.error('Error updating activity:', err);
             const errorMessage = err.message || 'Failed to update activity.';
+
             setError(errorMessage);
             addToast({
                 title: 'Failed to update activity',
@@ -227,7 +239,6 @@ export function useActivities() {
     const deleteActivity = async (id: string): Promise<void> => {
         try {
             setLoading(true);
-            console.log('Deleting activity:', id);
 
             const res = await apiRequest(
                 `/activities/${id}`,
@@ -237,8 +248,6 @@ export function useActivities() {
                     credentials: 'include',
                 }
             );
-
-            console.log('Delete response:', res);
 
             if (res.statusCode === 200 || res.statusCode === 204) {
                 setActivities((prev) => prev.filter((a) => a._id !== id));
@@ -250,8 +259,8 @@ export function useActivities() {
                 throw new Error(res.message || 'Failed to delete activity.');
             }
         } catch (err: any) {
-            console.error('Error deleting activity:', err);
             const errorMessage = err.message || 'Failed to delete activity.';
+
             setError(errorMessage);
             addToast({
                 title: 'Failed to delete activity',
@@ -291,6 +300,7 @@ export function useActivities() {
             }
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to create activity type.';
+
             setError(errorMessage);
             addToast({
                 title: 'Failed to create activity type',
@@ -334,6 +344,7 @@ export function useActivities() {
             }
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to update activity type.';
+
             setError(errorMessage);
             addToast({
                 title: 'Failed to update activity type',
@@ -370,6 +381,7 @@ export function useActivities() {
             }
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to delete activity type.';
+
             setError(errorMessage);
             addToast({
                 title: 'Failed to delete activity type',
@@ -382,7 +394,13 @@ export function useActivities() {
     };
 
     useEffect(() => {
-        fetchActivities();
+        if (options?.autoFetch) {
+            if (options?.useCanCheckin) {
+                fetchCanCheckin();
+            } else {
+                fetchActivities();
+            }
+        }
     }, []);
 
     return {
@@ -391,6 +409,7 @@ export function useActivities() {
         loading,
         error,
         fetchActivities,
+        fetchCanCheckin,
         createActivity,
         updateActivity,
         deleteActivity,

@@ -5,7 +5,6 @@ import {
   NotificationDocument,
 } from './schemas/notification.schema';
 import { Model, Types } from 'mongoose';
-import { Expo } from 'expo-server-sdk';
 import {
   queryAll,
   queryDeleteOne,
@@ -19,7 +18,10 @@ import {
 } from './schemas/notification-reads.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { SseService } from '../sse/sse.service';
-import { CreateNotificationDto } from './dto/notification.dto';
+import { CreateNotificationDto } from './dto/create-notification.dto';
+import { UserRequest } from 'src/pkg/types/users';
+import { PushNotificationService } from './push-notifications.service';
+import { mapScopeToReceivers } from './utils/notification.util';
 
 @Injectable()
 export class NotificationsService {
@@ -31,6 +33,7 @@ export class NotificationsService {
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
     private readonly sseService: SseService,
+    private readonly pushNotificationService: PushNotificationService,
   ) {}
 
   async create(createNotificationDto: CreateNotificationDto) {
@@ -43,16 +46,43 @@ export class NotificationsService {
       }));
     }
 
-    this.sseService.broadcast({
-      type: 'REFETCH_NOTIFICATIONS',
-    });
+    const receivers = mapScopeToReceivers(createNotificationDto.scope);
 
-    return (
+    let pushNotificationResult: PushNotificationResult | null = null;
+    const mode = createNotificationDto.mode ?? 'both';
+    const isDryRun = createNotificationDto.isDryRun ?? false;
+
+    if (mode === 'both' || mode === 'push') {
+      
+      pushNotificationResult = await this.pushNotificationService.sendPushNotification({
+        receivers,
+        title: createNotificationDto.title,
+        body: createNotificationDto.body,
+        image: createNotificationDto.image ?? undefined,
+        data: {
+          redirectUrl: createNotificationDto.redirectButton?.url ?? null,
+        },
+        priority: 'high',
+      }, isDryRun);
+    }
+
+    if (!isDryRun && (mode === 'both' || mode === 'in_app')) {
       await this.notificationModel.create({
         ...createNotificationDto,
         scope,
-      })
-    ).toObject();
+      });
+
+      //refator to specific notification scope
+      this.sseService.broadcast({
+        type: 'REFETCH_NOTIFICATIONS',
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Notification processed.',
+      pushNotificationResult,
+    };
   }
 
   async findAll(query: Record<string, string>) {
@@ -78,15 +108,36 @@ export class NotificationsService {
     return await queryDeleteOne<Notification>(this.notificationModel, id);
   }
 
-  async markAsRead(userId: string, notificationId: string) {
-    await this.checkUserExists(userId);
-    await this.checkNotiExists(notificationId);
+  /**
+   * Marks a notification as **read** or **unread** for a specific user.
+   *
+   * @param dto - DTO containing **userId** and **notificationId**.
+   * @param read - boolean flag to mark as **read** or **unread**.
+   * @returns Updated NotificationRead document.
+   * @throws NotFoundException if the user or notification **does not exist**.
+   */
+  async markNotification(userReq: UserRequest['user'], notificationId: string, read: boolean) {
+    const userExists = await this.userModel.exists({ _id: userReq._id });
+    if (!userExists) throw new NotFoundException('User not found');
 
-    const filter = { userId: new Types.ObjectId(userId) };
-    const update = {
-      $addToSet: { readNotifications: new Types.ObjectId(notificationId) },
-    };
-    const options = { upsert: true };
+    const notificationsExists = await this.notificationModel.exists({
+      _id: notificationId,
+    });
+    if (!notificationsExists)
+      throw new NotFoundException('Notification not found');
+
+    const filter = { userId: new Types.ObjectId(userReq._id) };
+    const update = read
+      ? {
+          $addToSet: {
+            readNotifications: new Types.ObjectId(notificationId),
+          },
+        }
+      : {
+          $pull: { readNotifications: new Types.ObjectId(notificationId) },
+        };
+
+    const options = read ? { upsert: true } : undefined;
 
     return await queryUpdateOneByFilter<NotificationRead>(
       this.notificationReadModel,
@@ -96,67 +147,58 @@ export class NotificationsService {
     );
   }
 
-  async markAsUnread(userId: string, notificationId: string) {
-    await this.checkUserExists(userId);
-    await this.checkNotiExists(notificationId);
-
-    const filter = { userId: new Types.ObjectId(userId) };
-    const update = {
-      $pull: { readNotifications: new Types.ObjectId(notificationId) },
-    };
-
-    await queryUpdateOneByFilter<NotificationRead>(
-      this.notificationReadModel,
-      filter,
-      update,
-    );
-  }
-
-  async sendNotification(sendNotificationDto: Notification) {
-    const expo = new Expo();
-
-    const messages = [
-      {
-        to: '',
-        sound: 'default',
-        title: sendNotificationDto.title.th,
-        body: typeof sendNotificationDto.body === 'string' ? sendNotificationDto.body : sendNotificationDto.body?.th ?? '',
-      },
-    ];
-
-    const ticketChunk = await expo.sendPushNotificationsAsync(messages);
-    console.log('Push ticket:', ticketChunk);
-  }
-
-  private async checkUserExists(userId: string): Promise<void> {
-    const exists = await this.userModel.exists({ _id: userId });
-    if (!exists) throw new NotFoundException('User not found');
-  }
-
-  private async checkNotiExists(notiId: string): Promise<void> {
-    const exists = await this.notificationModel.exists({ _id: notiId });
-    if (!exists) throw new NotFoundException('Notification not found');
-  }
-
-  async getUserNotifications(
-    userId: string,
-    majorId: string,
-    schoolId: string,
-  ) {
+  async getUserNotifications(userReq: UserRequest['user']) {
+    const user = await this.userModel.findById(userReq._id)
+    .populate({
+      path: 'metadata.major',
+      model: 'Major',
+      select: 'school',
+    })
+    .lean<{
+      _id: Types.ObjectId;
+      metadata: {
+        major?: {
+          _id: Types.ObjectId;
+          school?: string;
+        };
+      };
+    }>();
+    
     const userNotifications = await this.notificationModel
       .find({
         $or: [
           { scope: 'global' },
-          { scope: 'major', targetId: majorId },
-          { scope: 'school', targetId: schoolId },
-          { scope: 'individual', targetId: userId },
+          {
+            scope: {
+              $elemMatch: {
+                type: 'school',
+                id: { $in: [user?.metadata?.major?.school] },
+              },
+            },
+          },
+          {
+            scope: {
+              $elemMatch: {
+                type: 'major',
+                id: { $in: [user?.metadata?.major?._id] },
+              },
+            },
+          },
+          {
+            scope: {
+              $elemMatch: {
+                type: 'user',
+                id: { $in: [user?._id] },
+              },
+            },
+          },
         ],
       })
       .sort({ createdAt: -1 })
       .lean();
 
     const readDocument = await this.notificationReadModel
-      .findOne({ userId: userId })
+      .findOne({ userId: user?._id })
       .lean();
     const readNotificationIds = (readDocument?.readNotifications ?? []).map(
       (id) => id.toString(),

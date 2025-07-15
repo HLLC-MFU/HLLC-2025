@@ -172,8 +172,8 @@ export class UsersService {
     ]);
   }
 
-  async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.userModel.findById(userId).lean();
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.userModel.findById(id).lean();
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -187,8 +187,14 @@ export class UsersService {
       validateMetadataSchema(updateUserDto.metadata, role.metadataSchema);
     }
 
+    const updatePayload: Record<string, any> = { ...updateUserDto };
+
+    if (updatePayload.role) {
+      updatePayload.role = new Types.ObjectId(String(updatePayload.role));
+    }
+
     const updatedUser = await this.userModel
-      .findByIdAndUpdate(userId, { $set: updateUserDto }, { new: true })
+      .findByIdAndUpdate(id, { $set: updatePayload }, { new: true })
       .lean();
 
     return updatedUser as User;
@@ -242,11 +248,11 @@ export class UsersService {
             last: userDto.name.last || '',
           },
           username: userDto.username,
-          password: '', // password is intentionally blank
+          password: undefined,
           role: new Types.ObjectId(userDto.role),
           metadata: {
             major: userMajor, // ✅ only setting major
-            secret: null, // ✅ explicitly set to null
+            secret: undefined, // ✅ explicitly set to null
           },
         };
       }),
@@ -266,28 +272,4 @@ export class UsersService {
     }
   }
 
-  async registerDeviceToken(
-    id: string,
-    registerTokenDto: Record<string, string>,
-  ) {
-    await findOrThrow(this.userModel, id, 'User not found');
-
-    const token = registerTokenDto.deviceToken;
-
-    return await queryUpdateOne(this.userModel, id, {
-      $addToSet: { 'metadata.deviceTokens': token },
-    });
-  }
-
-  async removeDeviceToken(id: string, deviceToken: string) {
-    await findOrThrow(this.userModel, id, 'User not found');
-
-    if (!deviceToken) {
-      throw new BadRequestException('Token is required');
-    }
-
-    return await queryUpdateOne(this.userModel, id, {
-      $pull: { 'metadata.deviceTokens': deviceToken },
-    });
-  }
 }

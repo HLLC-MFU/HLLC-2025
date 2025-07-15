@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
 import { Noto_Sans_Thai } from "next/font/google";
+import Head from "next/head";
 
 import { Providers } from "./providers";
 
@@ -38,7 +39,13 @@ export default function RootLayout({
 }) {
   return (
     <html suppressHydrationWarning className={`${notosans_thai.className}`} lang="en">
-      <head />
+      <Head>
+        <title>HLLC 2025</title>
+        <meta charSet="utf-8" />
+        <meta content="width=device-width, initial-scale=1" name="viewport" />
+        <link href="/logo-sdad.png" rel="icon" type="image/png" />
+        <link href="/logo-sdad.png" rel="apple-touch-icon" type="image/png" />
+      </Head>
       <body
         className={clsx(
           "bg-background font-sans antialiased",

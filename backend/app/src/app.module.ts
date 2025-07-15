@@ -18,26 +18,39 @@ import { AppearancesModule } from './module/appearances/appearances.module';
 import { SystemStatusModule } from './module/system-status/system-status.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './module/auth/guards/jwt-auth.guard';
-import { SponsorsModule } from './module/sponsors/sponsors.module';
-import { SponsorsTypeModule } from './module/sponsors-type/sponsors-type.module';
 import { CheckinModule } from './module/checkin/checkin.module';
 import { ActivitiesModule } from './module/activities/activities.module';
-import { EvoucherModule } from './module/evoucher/evoucher.module';
-import { EvoucherTypeModule } from './module/evoucher/evoucher-type.module';
-import { EvoucherCodeModule } from './module/evoucher/evoucher-code.module';
 import { ActivitiesTypeModule } from './module/activities/activities-type.module';
 import { NotificationsModule } from './module/notifications/notifications.module';
+import { KafkaBootstrapModule } from './module/kafka/kafka-bootstrap.module';
+import { AssessmentsModule } from './module/assessments/assessments.module';
+import { AssessmentAnswersModule } from './module/assessments/assessment-answers.module';
+import { PrepostQuestionsModule } from './module/prepost-questions/prepost-question.module';
+import { PosttestAnswersModule } from './module/prepost-questions/posttest-answer.module';
+import { PretestAnswersModule } from './module/prepost-questions/pretest-answer.module';
+import { StepCountersModule } from './module/step-counters/step-counters.module';
+import { FirebaseAdminModule } from './module/firebase/firebase-admin.module';
+import { LandmarksModule } from './module/coin-collections/landmarks.module';
+import { CoinCollectionsModule } from './module/coin-collections/coin-collections.module';
+import { LamduanFlowersModule } from './module/lamduan-flowers/lamduan-flowers.module';
+import { LamduanSettingModule } from './module/lamduan-flowers/lamduan-setting.module';
+import { StepAchievementModule } from './module/step-counters/step-achievement.module';
+import { EvouchersModule } from './module/evouchers/evouchers.module';
+import { SponsorsModule } from './module/sponsors/sponsors.module';
+import { DevicesModule } from './module/devices/devices.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       load: [configuration],
+      envFilePath: '.env.production',
       isGlobal: true,
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         uri: configService.get<string>('MONGO_URI'),
+        autoIndex: true,
       }),
       inject: [ConfigService],
     }),
@@ -57,8 +70,6 @@ import { NotificationsModule } from './module/notifications/notifications.module
     RoleModule,
     UsersModule,
     SchoolsModule,
-    SponsorsModule,
-    SponsorsTypeModule,
     MajorsModule,
     ReportTypeModule,
     SystemStatusModule,
@@ -67,10 +78,24 @@ import { NotificationsModule } from './module/notifications/notifications.module
     SseModule,
     CheckinModule,
     ActivitiesModule,
-    EvoucherModule,
-    EvoucherCodeModule,
-    EvoucherTypeModule,
     NotificationsModule,
+    KafkaBootstrapModule,
+    AssessmentsModule,
+    AssessmentAnswersModule,
+    PrepostQuestionsModule,
+    PosttestAnswersModule,
+    PretestAnswersModule,
+    StepCountersModule,
+    FirebaseAdminModule,
+    StepCountersModule,
+    StepAchievementModule,
+    LandmarksModule,
+    CoinCollectionsModule,
+    LamduanFlowersModule,
+    LamduanSettingModule,
+    EvouchersModule,
+    SponsorsModule,
+    DevicesModule,
   ],
   providers: [
     {

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Campaign } from "@/types/campaign";
+
 import { useApi } from "./useApi";
+
+import { Campaign } from "@/types/campaign";
 
 interface CampaignResponse {
     data: Campaign[];
@@ -25,6 +27,7 @@ export const useCampaigns = () => {
         setError(null);
         try {
             const response = await api.request("/campaigns", "GET");
+
             console.log("Fetch response:", response);
             if (response && Array.isArray(response)) {
                 setCampaigns(response);
@@ -47,10 +50,12 @@ export const useCampaigns = () => {
         try {
             console.log("Creating campaign with data:", Object.fromEntries(formData));
             const response = await api.request("/campaigns", "POST", formData);
+
             console.log("Create campaign response:", response);
             if (response?.data && Array.isArray(response.data)) {
                 setCampaigns(prev => [...prev, response.data[0] as Campaign]);
             }
+
             return response;
         } catch (error) {
             console.error("Error in createCampaign:", error);
@@ -62,10 +67,12 @@ export const useCampaigns = () => {
         try {
             console.log("Updating campaign with data:", Object.fromEntries(formData));
             const response = await api.request(`/campaigns/${id}`, "PATCH", formData);
+
             console.log("Update campaign response:", response);
             if (response?.data && Array.isArray(response.data)) {
                 setCampaigns(prev => prev.map(c => c._id === id ? response.data[0] as Campaign : c));
             }
+
             return response;
         } catch (error) {
             console.error("Error in updateCampaign:", error);
@@ -77,8 +84,10 @@ export const useCampaigns = () => {
         try {
             console.log("Deleting campaign:", id);
             const response = await api.request(`/campaigns/${id}`, "DELETE");
+
             console.log("Delete campaign response:", response);
             setCampaigns(prev => prev.filter(c => c._id !== id));
+
             return response;
         } catch (error) {
             console.error("Error in deleteCampaign:", error);

@@ -1,14 +1,18 @@
-// src/common/checkin.util.ts
 import { BadRequestException } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
-import { Role } from 'src/module/role/schemas/role.schema';
-import { User } from 'src/module/users/schemas/user.schema';
-import { Activities } from 'src/module/activities/schemas/activities.schema';
+import { Role, RoleDocument } from 'src/module/role/schemas/role.schema';
+import { UserDocument } from 'src/module/users/schemas/user.schema';
+import { ActivityDocument } from 'src/module/activities/schemas/activities.schema';
+import { MajorDocument } from 'src/module/majors/schemas/major.schema';
 
 export async function validateCheckinTime(
   activityIds: string[],
-  activityModel: Model<Activities>,
+  activityModel: Model<ActivityDocument>,
+  isAdmin: boolean,
 ): Promise<void> {
+  if (isAdmin) {
+    return;
+  }
   const now = new Date();
 
   const activities = await activityModel
@@ -44,47 +48,80 @@ export async function validateCheckinTime(
 export async function isCheckinAllowed(
   staffId: string,
   userId: string,
-  userModel: Model<User>,
-  roleModel: Model<Role>,
+  userModel: Model<UserDocument>,
+  roleModel: Model<RoleDocument>,
+  majorModel: Model<MajorDocument>,
 ): Promise<boolean> {
   type RoleWithMetadata = Role & {
     _id: Types.ObjectId;
-    metadata?: { canCheckin?: { user?: string[] } };
+    metadata?: {
+      canCheckin?: {
+        user?: string[];
+        school?: string[];
+        major?: string[];
+      };
+    };
+    permissions?: string[];
   };
 
   const [staff, user] = await Promise.all([
     userModel
       .findById(staffId)
-      .populate({
-        path: 'role',
-        select: 'metadata.canCheckin',
-        model: roleModel,
-      })
+      .populate({ path: 'role', select: 'metadata.canCheckin permissions', model: roleModel })
       .lean<{ role?: RoleWithMetadata }>(),
 
     userModel
       .findById(userId)
-      .populate({
-        path: 'role',
-        select: '_id',
-        model: roleModel,
-      })
-      .lean<{ role?: Role & { _id: Types.ObjectId } }>(),
+      .populate({ path: 'role', select: '_id', model: roleModel })
+      .lean<{ role?: Role & { _id: Types.ObjectId }; metadata?: any }>(),
   ]);
 
-  const allowedRoles = (staff?.role as RoleWithMetadata)?.metadata?.canCheckin
-    ?.user;
+  // ถ้า role มี permissions = * ให้ผ่านเลย
+  if (Array.isArray(staff?.role?.permissions) && staff.role.permissions.includes('*')) {
+    return true;
+  }
 
-  if (!Array.isArray(allowedRoles)) {
+  const canCheckin = staff?.role?.metadata?.canCheckin;
+
+  if (!canCheckin) {
     throw new BadRequestException('Staff or staff role is invalid');
   }
 
-  if (allowedRoles.includes('*')) return true;
-
   const userRoleId = user?.role?._id?.toString();
-  if (!userRoleId) {
-    throw new BadRequestException('User role is invalid');
+  //By user role
+  if (Array.isArray(canCheckin.user)) {
+    if (!userRoleId) throw new BadRequestException('User role invalid');
+
+    if (canCheckin.user.includes('*') || canCheckin.user.includes(userRoleId)) {
+      return true;
+    } 
+  }
+  //By major
+  const userMajorId = user?.metadata?.major?._id ?? user?.metadata?.major;
+  if (Array.isArray(canCheckin.major)) {
+    if (canCheckin.major.includes('*')) {
+      return true;
+    }
+    if (userMajorId && canCheckin.major.includes(userMajorId.toString())) {
+      return true;
+    }
   }
 
-  return allowedRoles.map((id) => id.toString()).includes(userRoleId);
+  //By school
+  let userSchoolId: string | undefined = undefined;
+
+  if (userMajorId) {
+    const majorDoc = await majorModel.findById(userMajorId).populate('school').lean();
+    userSchoolId = majorDoc?.school?._id?.toString();
+  }
+
+  if (Array.isArray(canCheckin.school)) {
+    if (canCheckin.school.includes('*')) {
+      return true;
+    }
+    if (userSchoolId && canCheckin.school.includes(userSchoolId)) {
+      return true;
+    }
+  }
+  throw new BadRequestException('User scope is not allowed by staff role');
 }

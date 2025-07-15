@@ -1,119 +1,116 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Home, Activity, QrCode, Gift, MessageSquare } from 'lucide-react-native';
+import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
+import { Home, QrCode, Gift, MessageSquare, Book, Globe } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { BlurView } from 'expo-blur';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
-type TabPath = '/' | '/activities' | '/qrcode' | '/evoucher' | '/chat';
-
-export default function BottomNav() {
+export default function BottomNav({state, descriptors, navigation}: BottomTabBarProps) {
   const router = useRouter();
-  const pathname = usePathname(); // Get current route
+  const pathname = usePathname();
   const { t } = useTranslation();
-
-  useEffect(() => {
-  }, [pathname]);
 
   const tabs = [
     { name: t("bottomNav.home"), icon: Home, to: '/' },
-    { name: t("bottomNav.activity"), icon: Activity, to: '/activities' },
+    { name: t("bottomNav.activity"), icon: Book, to: '/activities' },
     { name: 'QRCode', icon: QrCode, to: '/qrcode' },
     { name: t("bottomNav.evoucher"), icon: Gift, to: '/evoucher' },
-    { name: t("bottomNav.community"), icon: MessageSquare, to: '/chat' },
+    { name: t("bottomNav.community"), icon: Globe, to: '/chat' },
   ] as const;
 
-
   return (
-    <View style={styles.container}>
-      {tabs.map((tab, idx) => {
-        const isActive = pathname === tab.to;
-        const Icon = tab.icon;
-        // QRCode button is the middle one (index 2)
-        if (tab.name === 'QRCode') {
-          return (
-            <View key={tab.name} style={{ flex: 1, alignItems: 'center' }}>
+    <View style={styles.wrapper}>
+
+      <BlurView intensity={30} tint="light" style={styles.container}>
+
+        {tabs.map((tab) => {
+          const isActive = pathname === tab.to;
+          const Icon = tab.icon;
+
+          if (tab.name === 'QRCode' && !isActive) {
+            return (
               <TouchableOpacity
-                style={styles.qrButton}
-                onPress={() => {
-                  router.replace(tab.to);
-                }}
-                activeOpacity={0.85}
+                key={tab.name}
+                style={[
+                  styles.tabButton,
+                  {
+                    backgroundColor: 'rgba(0, 122, 255, 0.4)', // Soft blue background
+                    borderRadius: 999,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 6,
+                  },
+                ]}
+                onPress={() => router.push(tab.to)}
+                activeOpacity={0.9}
               >
-                <Icon size={36} color={isActive ? '#fff' : '#fff'} />
+                <Icon size={30} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 10, marginTop: 4 }}>
+                  {tab.name}
+                </Text>
               </TouchableOpacity>
-            </View>
-          );
-        }
-        return (
-          <TouchableOpacity
-            key={tab.name}
-            style={styles.tabButton}
-            onPress={() => {
-              router.replace(tab.to);
-            }}
-          >
-            <Icon size={24} color={isActive ? '#3b82f6' : '#64748b'} />
-            <Text
-              style={[
-                styles.tabLabel,
-                { color: isActive ? '#3b82f6' : '#64748b' },
-              ]}
+            );
+          }
+
+          return (
+            <TouchableOpacity
+              key={tab.name}
+              style={styles.tabButton}
+              onPress={() => router.replace(tab.to)}
+              activeOpacity={1}
             >
-              {tab.name}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+              <Icon size={30} color={isActive ? '#fff' : '#ffffff80'} />
+              <Text style={[styles.tabLabel, { color: isActive ? '#fff' : '#ffffff80' }]}>
+                {tab.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </BlurView>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
+  wrapper: {
+    position: 'absolute',
+    bottom: 24,
+    width: '100%',
+    height: 70,
+    paddingHorizontal: 16,
+    zIndex: 100,
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   container: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'flex-start',
-    paddingTop: 8,
-    width: '100%',
-    height: 90,
-    backgroundColor: 'rgb(255, 255, 255)',
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    borderWidth: 0.5,
-    position: 'absolute',
-    borderRadius: 24,
-    bottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    alignItems: 'center',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 1,
+    overflow: 'hidden',
   },
   tabButton: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
-    flex: 1,
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 10,
     marginTop: 4,
     fontWeight: '500',
-  },
-  qrButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#3b82f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'absolute',
-    top: -32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 4,
-    borderColor: '#fff',
   },
 });

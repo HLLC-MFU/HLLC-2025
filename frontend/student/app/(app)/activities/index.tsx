@@ -1,159 +1,180 @@
-import { apiRequest } from '@/utils/api';
-import { useRouter } from 'expo-router';
-import { LocateFixedIcon, LocateIcon, MapPin, Search } from 'lucide-react-native';
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { Button, Card, Input, XStack } from 'tamagui';
-import { Image } from 'expo-image';
-import { Clock, Pin } from '@tamagui/lucide-icons';
-import { BlurView } from 'expo-blur';
+import { useEffect, useState } from "react"
+import { useRouter } from "expo-router"
+import {
+  ScrollView,
+  SafeAreaView,
+  RefreshControl,
+} from "react-native"
+import {
+  Text,
+  H4,
+  Paragraph,
+  Separator,
+  Spinner,
+  XStack,
+  YStack,
+} from "tamagui"
 
+import { apiRequest } from "@/utils/api"
+import { useActivityStore } from "@/stores/activityStore"
+import { UserActivity } from "@/types/activities"
+import { BlurView } from "expo-blur"
+import FadeView from "@/components/ui/FadeView"
+import ActivityCard from "./_components/activity-card"
+import { useTranslation } from "react-i18next"
+import { SearchInput } from "@/components/global/SearchInput"
 
 export default function ActivitiesPage() {
-  const router = useRouter();
-  const { t } = useTranslation();
+  const router = useRouter()
+  const { t } = useTranslation()
+
+  const [activities, setActivities] = useState<UserActivity[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Fetch activities on mount and refresh
+  useEffect(() => {
+    fetchActivities()
+  }, [])
 
   const fetchActivities = async () => {
+    if (!refreshing) setLoading(true)
     try {
-      const response = await apiRequest('/activities/users', "GET");
-      console.log('Activities fetched:', response.data.data);
+      interface ApiResponse {
+        data: {
+          data?: UserActivity[]
+        } | null
+      }
+      const response: ApiResponse = await apiRequest("/activities/user", "GET")
+      const apiData = response.data && Array.isArray(response.data.data) ? response.data.data : []
+      setActivities(apiData)
     } catch (error) {
-      console.error('Failed to fetch activities:', error);
-      return [];
+      console.error("Failed to fetch activities:", error)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
     }
   }
 
-  fetchActivities();
+  // Pull-to-refresh handler
+  const onRefresh = () => {
+    setRefreshing(true)
+    fetchActivities()
+  }
 
+  // Filter activities by search query
+  const filteredActivities = activities
+    .filter((activity) => {
+      const name = activity.name?.en ?? ""
+      const location = activity.location?.en ?? ""
+      const query = searchQuery.toLowerCase()
+      return (
+        name.toLowerCase().includes(query) ||
+        location.toLowerCase().includes(query)
+      )
+    })
+    .sort((a, b) => {
+      const aStart = new Date(a.metadata?.startAt).getTime()
+      const bStart = new Date(b.metadata?.startAt).getTime()
+      return aStart - bStart
+    })
+
+  // Find the nearest upcoming activity (end date in the future)
+  const now = Date.now()
+  const upcomingActivity =
+    activities
+      .filter((a) => {
+        const endAt = new Date(a.metadata?.endAt).getTime()
+        return !isNaN(endAt) && endAt > now
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.metadata.startAt).getTime() - new Date(b.metadata.startAt).getTime()
+      )[0] ?? null
+
+  // Navigate to activity details and store selected activity
+  const handleActivityPress = (activity: UserActivity) => {
+    useActivityStore.getState().setSelectedActivity(activity)
+    router.push(`/activities/${activity._id}`)
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t("activty.activities")}</Text>
-      </View>
-      <View style={styles.content}>
-        <XStack alignItems="center" paddingHorizontal={"$3"} borderRadius="$6" backgroundColor="#ebebf0">
-          <Search color={"#8e8e93"} />
-          <Input flex={1} size="$4" borderWidth={0} placeholder="Search..." backgroundColor={"transparent"} />
-        </XStack>
-      </View>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16 }}>
-        <View style={{ gap: 16 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Upcoming Activity</Text>
-          <Card
-            unstyled
-            style={{
-              aspectRatio: 4 / 3,
-              overflow: 'hidden',
-              borderRadius: 30,
-            }}
-          >
-            <Card.Header>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <BlurView
-                  style={{
-                    flexDirection: 'row',
-                    gap: 6,
-                    width: 'auto',
-                    paddingVertical: 6,
-                    paddingHorizontal: 8,
-                    borderRadius: 24,
-                    overflow: 'hidden',
-                  }}
-                  intensity={25}
-                  tint="systemThinMaterialLight"
-                >
-                  <Clock color="white" size={16} />
-                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: 'white' }}>
-                    {t("19.00")}
-                  </Text>
-                </BlurView>
-                <BlurView
-                  style={{
-                    flexDirection: 'row',
-                    gap: 6,
-                    width: 'auto',
-                    paddingVertical: 6,
-                    paddingHorizontal: 8,
-                    borderRadius: 24,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <MapPin color="white" size={16} />
-                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: 'white' }}>
-                    {t("Indoor Sports Complex")}
-                  </Text>
-                </BlurView>
-              </View>
-            </Card.Header>
+    <FadeView>
+      <SafeAreaView style={{ flex: 1 }}>
+        <YStack padding="$4" gap="$4" flex={1}>
+          {/* Page Title */}
+          <Text fontWeight="bold" fontSize={34} color="white">
+            {t("activity.title")}
+          </Text>
 
-            <Card.Footer padded>
-              <XStack flex={1} />
-              <BlurView
-                style={{
-                  flexDirection: 'row',
-                  gap: 6,
-                  width: 'auto',
-                  paddingVertical: 6,
-                  paddingHorizontal: 8,
-                  borderRadius: 24,
-                  overflow: 'hidden',
-                }}
-              >
-                <MapPin color="white" size={16} />
-                <Text style={{ fontSize: 12, fontWeight: 'bold', color: 'white' }}>
-                  {t("Indoor Sports Complex")}
+          {/* Search Bar */}
+          <SearchInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t("activity.searchPlaceholder")}
+          />
+
+          {/* Loading Spinner */}
+          {loading && !refreshing ? (
+            <YStack flex={1} justifyContent="center" alignItems="center">
+              <Spinner size="large" />
+              <Paragraph marginTop="$2">Loading activities...</Paragraph>
+            </YStack>
+          ) : (
+            // Activities List with Pull-to-Refresh
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            >
+              {/* Upcoming Activity Section */}
+              {upcomingActivity && (
+                <>
+                  <YStack gap="$3" marginBottom="$5">
+                    <H4 fontWeight="bold" color="white">
+                      {t("activity.upcoming")}
+                    </H4>
+                    <ActivityCard
+                      activity={upcomingActivity}
+                      onPress={() => handleActivityPress(upcomingActivity)}
+                    />
+                  </YStack>
+                  <Separator marginVertical="$2" />
+                </>
+              )}
+
+              {/* All Activities Section */}
+              <YStack gap="$3" marginBottom="$10">
+                <Text fontWeight="bold" fontSize={28} color="white">
+                  {t("activity.allActivities")}
                 </Text>
-              </BlurView>
-            </Card.Footer>
-
-            <Card.Background>
-              <Image
-                source={{
-                  uri: 'https://hllc.mfu.ac.th/v0/api/uploads/d2868e2241aee435aa19e0a7f863c2a9.jpg',
-                }}
-                contentFit="cover"
-                style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: '100%',
-                  borderRadius: 30,
-                }}
-              />
-            </Card.Background>
-          </Card>
-
-        </View>
-
-
-      </ScrollView>
-    </SafeAreaView>
-  );
+                <XStack flexWrap="wrap" justifyContent="space-between">
+                  {filteredActivities.length > 0 ? (
+                    filteredActivities.map((activity) => (
+                      <ActivityCard
+                        key={activity._id}
+                        activity={activity}
+                        onPress={() => handleActivityPress(activity)}
+                      />
+                    ))
+                  ) : (
+                    <BlurView
+                      style={{ width: "100%", padding: 20, borderRadius: 10 }}
+                      intensity={0}
+                      tint="dark"
+                    >
+                      <Paragraph textAlign="center" color="#ffffff80">
+                        {t("activity.noActivitiesFound") || "No activities found"}
+                      </Paragraph>
+                    </BlurView>
+                  )}
+                </XStack>
+              </YStack>
+            </ScrollView>
+          )}
+        </YStack>
+      </SafeAreaView>
+    </FadeView>
+  )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  content: {
-    padding: 16,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-});

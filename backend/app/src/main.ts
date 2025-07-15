@@ -12,8 +12,10 @@ import { fastifyStatic } from '@fastify/static';
 import path from 'path';
 import multipart from '@fastify/multipart';
 import { MongoExceptionFilter } from './pkg/filters/mongo.filter';
+import * as dotenv from 'dotenv';
 
 async function bootstrap() {
+  dotenv.config();
   Logger.log(`Server is running on port ${process.env.PORT ?? 3000}`);
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
@@ -28,17 +30,22 @@ async function bootstrap() {
 
   await app.register(multipart, {
     limits: {
-      fileSize: 500 * 1024,
+      fileSize: 5 * 1024 * 1024,
     },
   });
   await app.register(fastifyStatic, {
     root: path.join(__dirname, '..', 'uploads'),
-    prefix: '/uploads/',
+    prefix: '/api/uploads/',
   });
 
   app.setGlobalPrefix('api');
+  const corsWhitelist =
+    (process.env.CORS_ORIGIN ?? 'http://localhost:3000,http://localhost:3001')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    origin: corsWhitelist,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
@@ -53,6 +60,9 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
   app.useGlobalFilters(new MongoExceptionFilter());
-  void app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  Logger.log(`Server is running on port ${process.env.PORT}`);
 }
-void bootstrap();
+bootstrap().catch((err) => {
+  Logger.error('Error starting server', err);
+});

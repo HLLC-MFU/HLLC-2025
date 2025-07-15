@@ -21,26 +21,22 @@ export class SystemStatusController {
   constructor(private readonly systemStatusService: SystemStatusService) {}
 
   @Post()
-  @Permissions('system:create')
   create(@Body() createSystemStatusDto: CreateSystemStatusDto) {
     return this.systemStatusService.create(createSystemStatusDto);
   }
 
   @Get()
-  @Permissions('system:read')
   findAll(@Query() query: Record<string, string>) {
     return this.systemStatusService.findAll(query);
   }
 
   @Get(':id')
-  @Permissions('system:read')
   findOne(@Param('id') id: string) {
     console.log('findOne', id);
     return this.systemStatusService.findOne(id);
   }
 
   @Patch(':id')
-  @Permissions('system:update')
   update(
     @Param('id') id: string,
     @Body() updateSystemStatusDto: UpdateSystemStatusDto,
@@ -49,7 +45,6 @@ export class SystemStatusController {
   }
 
   @Delete(':id')
-  @Permissions('system:delete')
   remove(@Param('id') id: string) {
     return this.systemStatusService.remove(id);
   }

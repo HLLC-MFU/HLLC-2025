@@ -22,9 +22,7 @@ import { MultipartInterceptor } from 'src/pkg/interceptors/multipart.interceptor
 @ApiTags('schools')
 @Controller('schools')
 export class SchoolsController {
-  constructor(
-    private readonly schoolsService: SchoolsService,
-  ) {}
+  constructor(private readonly schoolsService: SchoolsService) {}
 
   @UseInterceptors(new MultipartInterceptor())
   @Post()
@@ -47,7 +45,6 @@ export class SchoolsController {
   @Patch(':id')
   @Permissions('schools:update')
   update(@Param('id') id: string, @Body() updateSchoolDto: UpdateSchoolDto) {
-    updateSchoolDto.updatedAt = new Date();
     return this.schoolsService.update(id, updateSchoolDto);
   }
 
@@ -57,13 +54,11 @@ export class SchoolsController {
     return this.schoolsService.remove(id);
   }
 
-
   @Get(':id/appearances')
   findAppearance(
     @Param('id') id: string,
-    @Query() query: Record<string, string>
+    @Query() query: Record<string, string>,
   ) {
-    console.log('findOne Appearance', id);
-    return this.schoolsService.findColor(id, query);
+    return this.schoolsService.findAppearance(id, query);
   }
 }

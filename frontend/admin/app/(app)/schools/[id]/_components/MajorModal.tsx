@@ -1,7 +1,18 @@
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Textarea } from "@heroui/react";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Input,
+  Textarea,
+  addToast,
+} from "@heroui/react";
 import { useState, useEffect } from "react";
-import type { Major } from "@/types/school";
+
 import { apiRequest } from "@/utils/api";
+import { Major } from "@/types/major";
 
 interface MajorModalProps {
   isOpen: boolean;
@@ -18,64 +29,84 @@ export function MajorModal({
   onSuccess,
   major,
   mode,
-  school
+  school,
 }: MajorModalProps) {
-  const [nameEn, setNameEn] = useState("");
-  const [nameTh, setNameTh] = useState("");
-  const [detailEn, setDetailEn] = useState("");
-  const [detailTh, setDetailTh] = useState("");
-  const [acronym, setAcronym] = useState("");
+  const [majorState, setMajorState] = useState<Partial<Major>>({
+    name: { en: "", th: "" },
+    detail: { en: "", th: "" },
+    acronym: "",
+    school: school,
+  });
+
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (major) {
-      setNameEn(major.name.en);
-      setNameTh(major.name.th);
-      setDetailEn(major.detail.en);
-      setDetailTh(major.detail.th);
-      setAcronym(major.acronym);
+      setMajorState({
+        name: { ...major.name },
+        detail: { ...major.detail },
+        acronym: major.acronym,
+        school: major.school,
+      });
     } else {
-      setNameEn("");
-      setNameTh("");
-      setDetailEn("");
-      setDetailTh("");
-      setAcronym("");
+      setMajorState({
+        name: { en: "", th: "" },
+        detail: { en: "", th: "" },
+        acronym: "",
+        school,
+      });
     }
-  }, [major]);
+  }, [major, school]);
+
+  const handleChange = (field: string, value: string, subfield?: string) => {
+    if (subfield) {
+      setMajorState((prev) => ({
+        ...prev,
+        [field]: {
+          ...(prev[field as keyof Major] as any),
+          [subfield]: value,
+        },
+      }));
+    } else {
+      setMajorState((prev) => ({ ...prev, [field]: value }));
+    }
+  };
 
   const handleSubmit = async () => {
-    if (!nameEn.trim() || !nameTh.trim()) return;
+    if (!majorState.name?.en?.trim() || !majorState.name?.th?.trim()) return;
 
     const majorData: Partial<Major> = {
-      name: { en: nameEn.trim(), th: nameTh.trim() },
-      detail: { en: detailEn.trim(), th: detailTh.trim() },
-      acronym: acronym.trim() || nameEn.substring(0, 3).toUpperCase(),
-      school: school
+      ...majorState,
+      acronym:
+        majorState.acronym?.trim() ||
+        majorState.name.en.substring(0, 3).toUpperCase(),
+      school,
     };
 
     try {
       setLoading(true);
-      let res;
-      if (mode === "add") {
-        res = await apiRequest(`/majors`, "POST", majorData);
-      } else if (mode === "edit" && major?._id) {
-        res = await apiRequest(`/majors/${major._id}`, "PATCH", majorData);
-      }
+      const res =
+        mode === "add"
+          ? await apiRequest(`/majors`, "POST", majorData)
+          : await apiRequest(`/majors/${major?._id}`, "PATCH", majorData);
 
       if (res?.data) {
         onSuccess(res.data as Major, mode);
         onClose();
       }
     } catch (err) {
-      console.error("API error:", err);
-      // Optional: toast or UI feedback
+      addToast({
+        title: "Error",
+        description: (err instanceof Error ? err.message : typeof err === "string" ? err : "Failed to save major. Please try again."),
+        color: "danger",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+    <Modal isOpen={isOpen} size="2xl" onClose={onClose}>
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           {mode === "add" ? "Add New Major" : "Edit Major"}
@@ -86,45 +117,50 @@ export function MajorModal({
               <Input
                 label="Major Name (English)"
                 placeholder="Enter major name in English"
-                value={nameEn}
-                onValueChange={setNameEn}
+                value={majorState.name?.en || ""}
+                onValueChange={(val) => handleChange("name", val, "en")}
               />
               <Input
                 label="Major Name (Thai)"
                 placeholder="Enter major name in Thai"
-                value={nameTh}
-                onValueChange={setNameTh}
+                value={majorState.name?.th || ""}
+                onValueChange={(val) => handleChange("name", val, "th")}
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Textarea
                 label="Description (English)"
-                placeholder="Enter description in English"
-                value={detailEn}
-                onValueChange={setDetailEn}
                 minRows={3}
+                placeholder="Enter description in English"
+                value={majorState.detail?.en || ""}
+                onValueChange={(val) => handleChange("detail", val, "en")}
               />
               <Textarea
                 label="Description (Thai)"
-                placeholder="Enter description in Thai"
-                value={detailTh}
-                onValueChange={setDetailTh}
                 minRows={3}
+                placeholder="Enter description in Thai"
+                value={majorState.detail?.th || ""}
+                onValueChange={(val) => handleChange("detail", val, "th")}
               />
             </div>
             <Input
               label="Acronym"
               placeholder="Enter major acronym"
-              value={acronym}
-              onValueChange={setAcronym}
+              value={majorState.acronym || ""}
+              onValueChange={(val) => handleChange("acronym", val)}
             />
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button color="danger" variant="light" onPress={onClose} disabled={loading}>
+          <Button
+            color="danger"
+            disabled={loading}
+            variant="light"
+            onPress={onClose}
+          >
             Cancel
           </Button>
-          <Button color="primary" onPress={handleSubmit} isLoading={loading}>
+          <Button color="primary" isLoading={loading} onPress={handleSubmit}>
             {mode === "add" ? "Add" : "Save"}
           </Button>
         </ModalFooter>

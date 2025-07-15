@@ -1,81 +1,155 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  Dimensions,
-  ScrollView,
-  View,
-  Text,
-  ActivityIndicator,
-} from "react-native";
-import HomeHero from "@/components/home/Hero";
-import FAB from "@/components/FAB";
-import { QrCode, MessageSquare } from "lucide-react-native";
+import { View } from 'react-native';
+import { router, useRouter } from 'expo-router';
 
-import { useRouter } from 'expo-router';
-import TopNav from '@/components/global/TopNav';
-import HomeActivityCard from '@/components/home/ActivityCard';
-import { useActivities } from '@/hooks/useActivities';
-import SectionHeader from '@/components/home/SectionHeader';
-import useProfile from '@/hooks/useProfile';
-import { useLanguage } from '@/context/LanguageContext';
-import { useTranslation } from 'react-i18next';
+import { Bell, Coins, Flower, Footprints } from 'lucide-react-native';
+import { GlassButton } from '@/components/ui/GlassButton';
+import FadeView from '@/components/ui/FadeView';
+import useAuth from '@/hooks/useAuth';
+import { useAppearance } from '@/hooks/useAppearance';
+import AssetImage from '@/components/global/AssetImage';
+import { DoorClosedLocked } from '@tamagui/lucide-icons';
+import useHealthData from '@/hooks/health/useHealthData';
+import { ProgressSummaryCard } from '@/components/home/ProgressSummaryCard';
+import BackgroundScreen from '@/components/global/BackgroundScreen';
+import { useEffect, useState } from 'react';
+import { registerBackgroundTaskAsync, syncStepsOnStartup } from '@/hooks/health/useStepCollect';
+import NotificationModal from '@/components/global/NotificationModal';
+import useDevice from '@/hooks/useDevice';
+import { useProgress } from '@/hooks/useProgress';
+import GooeyFabMenu from '@/components/GooeyFabMenu';
+
+const baseImageUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
-  const { user } = useProfile();
-  const router = useRouter();
-  const { width } = Dimensions.get('window');
-  const { t } = useTranslation();
-  const { language } = useLanguage();
-  const { activities, loading, error } = useActivities();
-  if (loading) {
-    return (
-      <SafeAreaView
-        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-      >
-        <ActivityIndicator size="large" color="#888" />
-      </SafeAreaView>
-    );
-  }
-  return (
-    <View style={{ flex: 1 }}>
-      <TopNav />
-      <SafeAreaView style={{ flex: 1, top: -36 }}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <HomeHero style={{ paddingHorizontal: 16 }} />
-          <View style={{ top: -60, width: '100%', gap: 16 }}>
-            <SectionHeader
-              title={t('home.activities')}
-              rightText={t('home.seeAll')}
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const { getStoredDeviceId, revokeDevice } = useDevice();
+  const handleSignOut = async () => {
+    const deviceId = await getStoredDeviceId()
+    await revokeDevice(deviceId)
+    useAuth.getState().signOut();
+    router.replace('/(auth)/login');
+  };
+  const { assets } = useAppearance();
+  const assetsImage = {
+    background: assets?.background ?? null,
+    profile: assets?.profile ?? null,
+    notification: assets?.notification ?? null,
+    progress: assets?.progress ?? null,
+    signOut: assets?.signOut ?? null,
+    lamduan: assets?.lamduan ?? null,
+  };
+  const { steps, deviceMismatch } = useHealthData(new Date());
+  const { progress, loading: progressLoading } = useProgress();
+  useEffect(() => {
+    async function setupBackgroundTask() {
+      try {
+        await registerBackgroundTaskAsync();
+        await syncStepsOnStartup();
+      } catch (e) {
+      }
+    }
+
+    setupBackgroundTask();
+  }, []);
+
+  const subFabs = [
+  {
+    key: 'step',
+    icon: <Footprints color={"white"} />,
+    label: 'Step',
+    onPress: () => router.replace('/community/step-counter'),
+  },
+  {
+    key: 'coin',
+    icon: <Coins color={"white"} />,
+    label: 'Coin',
+    onPress: () => router.replace('/coin-hunting'),
+  },
+    {
+    key: 'lamduanflowers',
+    icon: <Flower color={"white"} />,
+    label: 'lamduanflowers',
+    onPress: () => router.replace('/coin-hunting'),
+  },
+];
+
+
+
+  const content = (
+    <SafeAreaView
+      style={{
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        paddingTop: 0,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
+    >
+
+      <ProgressSummaryCard
+        healthData={{ steps, deviceMismatch }}
+        progressImage={assetsImage.progress}
+        progressPercentage={progress?.progressPercentage ?? 0}
+        progressLoading={progressLoading}
+        onPress={() => {
+          router.push('/profile')
+        }}
+      />
+
+      <GooeyFabMenu
+        subFabs={subFabs}
+        style={{ top: 24, left: 16 }}
+      />
+
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <GlassButton iconOnly>
+          {assetsImage.lamduan ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.lamduan}`}
+              style={{ width: 20, height: 20 }}
             />
-            <ScrollView
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingRight: 16 }}
-              style={{ gap: 12, flexGrow: 1, height: 200 }}
-            >
-              <View style={{ width: 16 }}></View>
-              {activities
-                .filter(
-                  activity =>
-                    activity.code !== 'LAMDUAN' && activity.code !== 'KHANTOKE',
-                )
-                .map(activity => (
-                  <HomeActivityCard
-                    key={activity.id}
-                    activity={activity}
-                    lang={language}
-                    onPress={() =>
-                      router.push({
-                        pathname: `/activities/[id]`,
-                        params: { id: activity.id },
-                      })
-                    }
-                    style={{ width: width * 0.85, marginRight: 16 }}
-                  />
-                ))}
-            </ScrollView>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+          ) : (
+            <Flower color="white" size={20}
+              onPress={() => {
+                useRouter().push('/(app)/lamduanflowers');
+              }} />
+          )}
+        </GlassButton>
+        {/* <GlassButton iconOnly>
+          {assetsImage.profile ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.profile}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <Users color="white" size={20} />
+          )}
+        </GlassButton> */}
+        <GlassButton iconOnly onPress={() => setNotificationModalVisible(true)}>
+          {assetsImage.notification ? (
+            <AssetImage
+              uri={`${baseImageUrl}/uploads/${assetsImage.notification}`}
+              style={{ width: 20, height: 20 }}
+            />
+          ) : (
+            <Bell fill={'white'} color="white" size={20} />
+          )}
+        </GlassButton>
+      </View>
+    </SafeAreaView>
+  );
+
+  return (
+    <FadeView>
+      <BackgroundScreen
+        background={assetsImage.background ?? null}
+        children={content}
+      />
+      <NotificationModal
+        visible={notificationModalVisible}
+        onClose={() => setNotificationModalVisible(false)}
+      />
+    </FadeView>
   );
 }

@@ -7,18 +7,31 @@ import { router } from 'expo-router';
 import useProfile from './useProfile';
 
 interface TokenResponse {
-  tokens: {
+  tokens?: {
     accessToken: string;
     refreshToken: string;
   };
-  user: {
-    id: string;
+  user?: {
+    _id: string;
     username: string;
-    email: string;
-    role: string;
+    name: {
+      first: string;
+      middle?: string;
+      last: string;
+    };
+    role: {
+      _id: string;
+      name: string;
+      permissions: string[];
+      metadataSchema: any[];
+    };
+    metadata?: {
+      major: string;
+    };
     createdAt: string;
     updatedAt: string;
   };
+  message?: string;
 }
 
 interface AuthStore {
@@ -60,9 +73,13 @@ const useAuth = create<AuthStore>()(
             password,
           });
 
-          if (res.statusCode === 201 && res.data) {
+          if (res.statusCode === 201 && res.data?.tokens) {
             await saveToken('accessToken', res.data.tokens.accessToken);
             await saveToken('refreshToken', res.data.tokens.refreshToken);
+            // Wait longer for tokens to be saved and sync
+            await new Promise(resolve => setTimeout(resolve, 500));
+            // Verify token was saved correctly
+            const savedToken = await getToken('accessToken');
             const { getProfile } = useProfile.getState();
             const user = await getProfile();
             if (user) {
@@ -87,9 +104,12 @@ const useAuth = create<AuthStore>()(
 
           const res = await apiRequest<TokenResponse>('/auth/register', 'POST', userData);
 
-          if (res.statusCode === 201 && res.data?.tokens) {
-            await saveToken('accessToken', res.data.tokens.accessToken);
-            await saveToken('refreshToken', res.data.tokens.refreshToken);
+          // รองรับเฉพาะ tokens ใน res.data.tokens ตาม backend
+          const tokens = res.data?.tokens;
+
+          if (res.statusCode === 201 && tokens) {
+            await saveToken('accessToken', tokens.accessToken);
+            await saveToken('refreshToken', tokens.refreshToken);
             const { getProfile } = useProfile.getState();
             const user = await getProfile();
             if (user) {
@@ -131,7 +151,7 @@ const useAuth = create<AuthStore>()(
       signOut: () => {
         removeToken('accessToken');
         removeToken('refreshToken');
-        useProfile.getState().setUser(null);
+        useProfile.getState().clearProfile();
       },
 
       refreshSession: async () => {
@@ -143,7 +163,7 @@ const useAuth = create<AuthStore>()(
             refreshToken,
           });
 
-          if (res.statusCode === 201 && res.data) {
+          if (res.statusCode === 201 && res.data?.tokens) {
             await saveToken('accessToken', res.data.tokens.accessToken);
             await saveToken('refreshToken', res.data.tokens.refreshToken);
             await useProfile.getState().getProfile();

@@ -20,6 +20,7 @@ import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RoleDocument } from '../role/schemas/role.schema';
 import { decryptItem } from './utils/crypto';
+import { RemovePasswordDto } from './dto/remove-password.dto';
 
 type Permission = string;
 
@@ -30,13 +31,17 @@ interface LoginOptions {
 
 @Injectable()
 export class AuthService {
+  private readonly isProduction: boolean;
   constructor(
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly discoveryService: DiscoveryService,
     private readonly reflector: Reflector,
-  ) { }
+  ) {
+    this.isProduction =
+      this.configService.get<boolean>('isProduction') ?? false;
+  }
 
   async validateUser(username: string, pass: string) {
     const userDoc = await this.userModel
@@ -48,14 +53,14 @@ export class AuthService {
       .select('username name password metadata.major')
       .lean();
 
-
     if (!userDoc) throw new UnauthorizedException('User not found');
-    if (!userDoc.password) throw new UnauthorizedException('User not registered');
+    if (!userDoc.password)
+      throw new UnauthorizedException('User not registered');
 
     const isMatch = await bcrypt.compare(pass, userDoc.password);
     if (!isMatch) throw new UnauthorizedException('Invalid password');
 
-    const { password, ...user } = userDoc;
+    const { ...user } = userDoc;
     let role: RoleDocument | null = null;
     if (
       user.role &&
@@ -100,23 +105,23 @@ export class AuthService {
     );
 
     if (options?.useCookie && options.response) {
-      const reply = options.response as FastifyReply;
-      reply.setCookie('accessToken', accessToken, {
+      const reply = options.response;
+      const cookieOptions = {
         httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
+        secure: this.isProduction,
+        sameSite: this.isProduction ? ('strict' as const) : ('lax' as const),
         path: '/',
+        domain: this.configService.get<string>('COOKIE_DOMAIN') ?? 'localhost',
+      };
+
+      reply.setCookie('accessToken', accessToken, {
+        ...cookieOptions,
         maxAge: 60 * 60,
-        domain: 'localhost',
       });
 
       reply.setCookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
-        path: '/',
+        ...cookieOptions,
         maxAge: 60 * 60 * 24 * 7,
-        domain: 'localhost',
       });
     }
 
@@ -125,7 +130,7 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     const { username, password, confirmPassword, metadata } = registerDto;
-    
+
     const existingUser = await this.userModel
       .findOne({ username })
       .select('+password')
@@ -151,6 +156,21 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
+    const payload = {
+      sub: user._id.toString(),
+      username: user.username,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('JWT_EXPIRATION'),
+      }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      }),
+    ]);
+
     // Set password (will be hashed by pre-save hook)
     user.password = password;
 
@@ -163,7 +183,13 @@ export class AuthService {
 
     await user.save();
 
-    return { message: 'User registered successfully' };
+    return {
+      message: 'User registered successfully',
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
+    };
   }
 
   async refreshToken(oldRefreshToken: string) {
@@ -217,8 +243,31 @@ export class AuthService {
     }
   }
 
-  async removePassword(username: string) {
-    const user = await this.userModel.findOne({ username }).select('+password');
+  async getRegisteredUser(username: string) {
+    const user = await this.userModel.findOne({ username }, '+password');
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.password) {
+      throw new BadRequestException(
+        'This User already has a password set, Please signin.',
+      );
+    }
+
+    return {
+      username: user.username,
+      name: user.name,
+    };
+  }
+
+  async removePassword(removePasswordDto: RemovePasswordDto) {
+    const { username } = removePasswordDto;
+
+    const user = await this.userModel
+      .findOne({ username })
+      .select('+password +refreshToken +metadata.secret');
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -228,6 +277,31 @@ export class AuthService {
     user.password = '';
     user.refreshToken = null;
     user.metadata.secret = '';
+    user.markModified('metadata');
+    await user.save();
+  }
+
+  async checkResetPasswordEligibility(username: string, secret: string) {
+    const user = await this.userModel
+      .findOne({ username })
+      .select('name metadata.secret username');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (!user.metadata?.secret) {
+      throw new BadRequestException(
+        'User has no secret set. Please register first.',
+      );
+    }
+    const isSecretValid = await bcrypt.compare(secret, user.metadata.secret);
+    if (!isSecretValid) {
+      throw new UnauthorizedException('Invalid secret');
+    }
+    delete user.metadata.secret; // Remove secret from response for security
+    return {
+      message: 'User is eligible for password reset',
+      user: user,
+    };
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
@@ -257,6 +331,11 @@ export class AuthService {
       throw new BadRequestException(
         'Password and confirm password do not match',
       );
+    }
+
+    const isSamePassword = await bcrypt.compare(password, user.password);
+    if (isSamePassword) {
+      throw new BadRequestException('New password cannot be the same as previous password');
     }
 
     // Set new password (will be hashed by pre-save hook)

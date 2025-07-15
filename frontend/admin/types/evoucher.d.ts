@@ -1,34 +1,24 @@
-import { Lang } from "./lang";
+import { EvoucherType } from './evoucher-type';
+import { Lang } from './lang';
+import { Photo } from './photo';
+import { Sponsors } from './sponsors';
+
+type EvoucherPhoto = {
+  front: string | File;
+  back: string | File;
+  home: string | File;
+};
 
 export type Evoucher = {
-    _id: string;
-    discount: number;
-    acronym: string;
-    type: Type;
-    sponsors: Sponsor;
-    detail: Lang;
-    expiration: Date;
-    photo: Photo;
-};
-
-export type Type = {
-    _id: string;
-    name: string;
-};
-
-export type Sponsor = {
-    _id: string;
-    name: Lang;
-    photo: {
-        logoPhoto: string;
-    };
-    type: string;
-    isShow: boolean;
-};
-
-export type Photo = {
-    coverPhoto?: string;
-    bannerPhoto?: string;
-    thumbnail?: string;
-    logoPhoto?: string;
+  _id?: string;
+  name: Lang;
+  acronym: string;
+  order: number;
+  startAt: Date;
+  endAt: Date;
+  detail: Lang;
+  photo: EvoucherPhoto;
+  amount: number;
+  sponsor: Sponsors | string;
+  metadata?: Record<string, string>;
 };

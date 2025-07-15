@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { FormEvent, useState } from "react";
 import {
     Button,
     Form,
@@ -19,7 +19,7 @@ import { Trash2 } from "lucide-react";
 
 import { Role } from "@/types/role";
 
-export type AddRoleProps = {
+type AddRoleProps = {
     isOpen: boolean;
     onClose: () => void;
     onAddRole: (role: Partial<Role>) => void;
@@ -35,10 +35,10 @@ type Field = {
 const typeOptions = ["string", "number", "boolean", "date"];
 
 export default function AddRoleModal({ isOpen, onClose, onAddRole }: AddRoleProps) {
-    const [fields, setFields] = React.useState<Field[]>([]);
-    const [roleName, setRoleName] = React.useState<string>("");
+    const [fields, setFields] = useState<Field[]>([]);
+    const [roleName, setRoleName] = useState<string>("");
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         const metadataSchema: Role["metadataSchema"] = fields.reduce((acc, field) => {
@@ -49,11 +49,10 @@ export default function AddRoleModal({ isOpen, onClose, onAddRole }: AddRoleProp
             };
 
             return acc;
-        }, {} as Role["metadataSchema"]);
+        }, {} as NonNullable<Role["metadataSchema"]>);
 
         const formData: Partial<Role> = {
             name: roleName,
-            permissions: [],
             metadataSchema,
         };
 
@@ -153,7 +152,7 @@ export default function AddRoleModal({ isOpen, onClose, onAddRole }: AddRoleProp
                         </Card>
 
                     </ModalBody>
-                    <ModalFooter>
+                    <ModalFooter className="w-full">
                         <Button color="danger" variant="light" onPress={onClose}>
                             Cancel
                         </Button>
