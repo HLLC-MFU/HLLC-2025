@@ -1,5 +1,5 @@
 'use client';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 import BottomNav from '@/components/bottom-nav';
@@ -14,6 +14,7 @@ import { useNotification } from '@/hooks/useNotification';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+    const router = useRouter();
   const { fetchActivitiesByUser } = useActivities(null);
   const { fetchNotification } = useNotification();
 
@@ -70,7 +71,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="relative z-20 flex h-full flex-col text-foreground">
         <div className="fixed top-0 left-0 right-0 z-50 mx-4">
           {!hideProgressSummary && (
-            <ProgressBar progress={progressPercentage} />
+            <ProgressBar progress={progressPercentage} onClickAvatar={() => router.push('/profile')}/>
           )}
         </div>
 
