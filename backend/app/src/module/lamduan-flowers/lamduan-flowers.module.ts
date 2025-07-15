@@ -8,6 +8,11 @@ import {
 } from './schema/lamduan-flowers.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { LamduanSetting, LamduanSettingSchema } from './schema/lamduan.setting';
+import { Checkin, CheckinSchema } from '../checkin/schema/checkin.schema';
+import {
+  Activities,
+  ActivitiesSchema,
+} from '../activities/schemas/activities.schema';
 
 @Module({
   imports: [
@@ -23,6 +28,14 @@ import { LamduanSetting, LamduanSettingSchema } from './schema/lamduan.setting';
       {
         name: User.name,
         schema: UserSchema,
+      },
+      {
+        name: Checkin.name,
+        schema: CheckinSchema,
+      },
+      {
+        name: Activities.name,
+        schema: ActivitiesSchema, // Assuming Activities has a static schema property
       },
     ]),
   ],
