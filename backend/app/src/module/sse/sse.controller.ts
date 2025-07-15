@@ -1,11 +1,11 @@
-import { Controller, Sse } from '@nestjs/common';
+import { Controller, Get, Req, Res } from '@nestjs/common';
 import { SseService } from './sse.service';
-import { map, Observable } from 'rxjs';
-import { SsePayload } from 'src/pkg/types/sse.type';
+import { FastifyReply } from 'fastify';
+import { ServerResponse } from 'http';
+import { UserRequest } from 'src/pkg/types/users';
 
 /**
  * SseController
- * - Exposes an SSE endpoint for clients to subscribe to.
  * - This endpoint can send events from any module via SseService.
  */
 @Controller('sse')
@@ -13,15 +13,32 @@ export class SseController {
   constructor(private readonly sseService: SseService) {}
 
   /**
-   * SSE endpoint that clients connect to.
-   * Streams events pushed by other modules.
+   * SSE connection endpoint — one per user.
    */
-  @Sse()
-  sse(): Observable<{ data: string }> {
-    return this.sseService.eventStream.pipe(
-      map((payload: SsePayload) => ({
-        data: JSON.stringify(payload),
-      })),
-    );
+  @Get()
+  sse(@Req() req: UserRequest, @Res() reply: FastifyReply) {
+    const res = reply.raw as ServerResponse;
+
+    const headers = {
+      'Content-Type': 'text/event-stream',
+      Connection: 'keep-alive',
+      'Cache-Control': 'no-cache',
+      'Access-Control-Allow-Origin': req.headers.origin,
+      'Access-Control-Allow-Credentials': 'true',
+    }
+    res.writeHead(200, headers)
+
+    this.sseService.register(req.user._id, res);
+
+    const keepAlive = setInterval(() => {
+      if (!res.writableEnded) {
+        res.write(': keep-alive\n\n');
+      }
+    }, 25_000);
+
+    req.raw.on('close', () => {
+      clearInterval(keepAlive);
+      this.sseService.unregister(req.user._id);
+    });
   }
 }

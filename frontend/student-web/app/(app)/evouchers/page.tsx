@@ -87,7 +87,7 @@ export default function EvoucherPage() {
                             return (
                                 <div
                                     key={index}
-                                    className="flex justify-center items-center rounded-3xl shadow-xl bg-white/40 backdrop-blur-md border border-white active:brightness-50"
+                                    className="flex aspect-square justify-center items-center rounded-3xl shadow-xl bg-white/40 backdrop-blur-md border border-white active:brightness-50"
                                     onClick={() => handleSponsorCardClick(sponsor._id)}
                                 >
                                     <p className="font-semibold">{sponsor?.name?.en ?? ""}</p>

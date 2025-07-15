@@ -72,7 +72,8 @@ export class NotificationsService {
         scope,
       });
 
-      this.sseService.notify({
+      //refator to specific notification scope
+      this.sseService.broadcast({
         type: 'REFETCH_NOTIFICATIONS',
       });
     }
