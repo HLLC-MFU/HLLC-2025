@@ -3,7 +3,7 @@ import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 
 import BottomNav from '@/components/bottom-nav';
-import lobby from '@/public/lobby.png';
+import lobby from '@/public/lobby_3.jpeg';
 import ProgressBar from '@/components/ui/progressBar';
 import useProgress from '@/hooks/useProgress';
 
@@ -16,7 +16,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     : 0;
   const shouldBlur = pathname !== '/';
 
-  const hideProgressSummary = pathname === '/community' || pathname.startsWith('/community/coin-hunting');
+  const hideProgressSummary =
+    pathname === '/community' || pathname.startsWith('/community/coin-hunting');
 
   return (
     <div className="relative h-dvh w-full overflow-hidden pb-24">
@@ -40,10 +41,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <div className="relative z-20 flex h-full flex-col text-foreground">
         <div className="fixed top-0 left-0 right-0 z-50 mx-4">
-        {!hideProgressSummary && <ProgressBar progress={progressPercentage} />}
+          {!hideProgressSummary && (
+            <ProgressBar progress={progressPercentage} />
+          )}
         </div>
 
-        <main className="relative flex-1 overflow-y-auto mt-24 md:mt-32 px-4 md:px-8">
+        <main
+          className={`relative flex-1 overflow-y-auto mt-24 md:mt-32 px-4 md:px-8 transition-opacity duration-500`}
+        >
           {children}
         </main>
 
