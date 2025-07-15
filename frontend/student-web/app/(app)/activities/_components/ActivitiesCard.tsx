@@ -1,18 +1,21 @@
 'use client';
 
-import type { UserActivity } from '@/types/activities';
+import type { Activities } from '@/types/activities';
 
 import { Card } from '@heroui/react';
 import Image from 'next/image';
+import { useState } from 'react';
 
 import { getStatusBadge } from '../_utils/getStatusBadge';
 
 interface ActivityCardProps {
-  activity: UserActivity;
+  activity: Activities;
   onClick?: () => void;
 }
 
 export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
+  const [loaded, setLoaded] = useState(false);
+
   if (!activity) return null;
   const {
     label,
@@ -43,16 +46,15 @@ export default function ActivityCard({ activity, onClick }: ActivityCardProps) {
           <Image
             fill
             alt={activity.name.en}
-            className="object-cover"
-            // src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}`}
-            src={
-              `${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo.bannerPhoto}` ||
-              `https://hllc.mfu.ac.th/api/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`
-            }
+            className={`object-cover transition-opacity duration-700 ${
+              loaded ? 'opacity-100' : 'opacity-0'
+            }`}
+            src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${activity.photo?.bannerPhoto || 'default-banner.jpg'}`}
+            onLoadingComplete={() => setLoaded(true)}
           />
 
           {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black/80" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/0 to-black/80" />
 
           {/* Top-right status badge */}
           <div className="absolute top-0 left-0 right-0 p-6 flex justify-end">

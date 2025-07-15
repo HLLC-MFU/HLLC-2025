@@ -1,11 +1,11 @@
 'use client';
-
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-
-import ActivityCard from './_components/ActivitiesCard';
-
 import { useActivities } from '@/hooks/useActivities';
+import { Input } from '@heroui/react';
+import { Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import ActivityCard from './_components/ActivitiesCard';
+import ActivityCardSkeleton from './_components/ActivityCardSkeleton';
 
 export default function ActivitiesPage() {
   const { activities, loading } = useActivities(null);
@@ -50,7 +50,23 @@ export default function ActivitiesPage() {
     if (!activities || activities.length === 0) return null;
 
     const now = new Date();
-    const futureActivities = activities
+
+    // Filter by search query first, same as filteredAndSortedActivities logic
+    let filtered = activities;
+
+    if (searchQuery.trim() !== '') {
+      const lower = searchQuery.toLowerCase();
+
+      filtered = activities.filter(
+        a =>
+          a.name?.en?.toLowerCase().includes(lower) ||
+          a.name?.th?.toLowerCase().includes(lower) ||
+          a.acronym?.toLowerCase().includes(lower),
+      );
+    }
+
+    // Then filter to future activities only
+    const futureActivities = filtered
       .filter(a => new Date(a.metadata?.startAt) > now)
       .sort(
         (a, b) =>
@@ -59,30 +75,28 @@ export default function ActivitiesPage() {
       );
 
     return futureActivities[0] ?? null;
-  }, [activities]);
-
-  const toggleSortDirection = () => {
-    setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
-  };
+  }, [activities, searchQuery]);
 
   return (
-    <div
-      className="flex flex-col min-h-screen w-full overflow-y-auto pb-16 gap-6 bg-transparent px-8"
-      style={{ WebkitOverflowScrolling: 'touch' }} // enables smooth momentum scrolling on iOS Safari
-    >
-      <div className="flex flex-col mt-36 gap-5">
-        {/* <h1 className="text-3xl font-bold">Activities</h1> */}
-        {/* 
-        <ActivitiesFilters
-          searchQuery={searchQuery}
-          sortBy={sortBy}
-          sortDirection={sortDirection}
-          onSearchQueryChange={setSearchQuery}
-          onSortByChange={setSortBy}
-          onSortDirectionToggle={toggleSortDirection}
-        /> */}
+    <div className="w-full gap-6 bg-transparent">
+      {/* Search Input */}
+      <div className="mb-6">
+        <Input
+          aria-label="Search activities"
+          className="w-full max-w-md "
+          placeholder="Search activities..."
+          radius="full"
+          size="lg"
+          startContent={<Search className="text-default-500" size={20} />}
+          type="search"
+          value={searchQuery}
+          variant="faded"
+          onChange={e => setSearchQuery(e.target.value)}
+        />
+      </div>
 
-        {upcomingActivity && (
+      <div className="flex flex-col gap-5">
+        {upcomingActivity && !loading && (
           <div>
             <ActivityCard
               activity={upcomingActivity}
@@ -90,25 +104,29 @@ export default function ActivitiesPage() {
             />
           </div>
         )}
+        {loading && <ActivityCardSkeleton />}
       </div>
 
-      {/* Cards grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-auto">
-        {filteredAndSortedActivities.map(activity => (
-          <ActivityCard
-            key={activity._id}
-            activity={activity}
-            onClick={() => router.push(`/activities/${activity._id}`)}
-          />
-        ))}
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => (
+            <ActivityCardSkeleton key={i} />
+          ))
+          : filteredAndSortedActivities.map(activity => (
+            <ActivityCard
+              key={activity._id}
+              activity={activity}
+              onClick={() => router.push(`/activities/${activity._id}`)}
+            />
+          ))}
       </div>
 
-      {/* Empty State */}
-      {filteredAndSortedActivities?.length === 0 && !loading && (
+      {!loading && filteredAndSortedActivities?.length === 0 && (
         <p className="text-center text-sm text-default-500">
           No activities found.
         </p>
       )}
+
     </div>
   );
 }

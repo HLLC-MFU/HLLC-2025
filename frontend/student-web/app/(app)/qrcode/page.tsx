@@ -5,17 +5,18 @@ import { Button } from '@heroui/react';
 import { Save } from 'lucide-react';
 import { useRef } from 'react';
 
+import QRCodeSkeleton from './_components/QRCodeSkeleton';
+
 import { useProfile } from '@/hooks/useProfile';
 
 export default function QRCodePage() {
-  const { user } = useProfile();
+  const { user, loading } = useProfile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleDownload = () => {
     const canvas = canvasRef.current;
 
     if (!canvas) return;
-
     const url = canvas.toDataURL('image/png');
     const link = document.createElement('a');
 
@@ -24,10 +25,11 @@ export default function QRCodePage() {
     link.click();
   };
 
+  if (loading || !user) return <QRCodeSkeleton />;
+
   return (
     <div className="flex h-full w-full items-center justify-center">
       <div className="flex flex-col items-center justify-center gap-6 mx-4">
-        {/* Glass container */}
         <div
           className="
             py-8 px-4 rounded-2xl shadow-lg
@@ -54,7 +56,8 @@ export default function QRCodePage() {
             size={200}
             value={user?.username ?? ''}
           />
-          <div className='mt-4 text-center px-4'>
+
+          <div className="mt-4 text-center px-4">
             <p className="text-sm font-bold text-white">
               Please show your QR Code before joining the activity.
             </p>
@@ -68,8 +71,6 @@ export default function QRCodePage() {
             </Button>
           </div>
         </div>
-
-        {/* Optional: Add a download button */}
       </div>
     </div>
   );
