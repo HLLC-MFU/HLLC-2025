@@ -75,7 +75,6 @@ export default function ReportPage() {
               placeholder="Choose Topic"
               isDisabled={loading}
               onChange={(e) => setSelectedTopic(e.target.value)}
-              className="bg-white/10 backdrop-blur-md border border-white/30 text-white placeholder-white/50 rounded-xl"
             >
               {reporttypes.map((t) => (
                 <SelectItem
@@ -96,7 +95,6 @@ export default function ReportPage() {
               value={description}
               maxLength={DESCRIPTION_LIMIT}
               onChange={(e) => setDescription(e.target.value)}
-              className="bg-white/10 backdrop-blur-md border border-white/30 text-white placeholder-white/50 rounded-xl"
             />
             <p className="text-sm text-right text-white/60">
               {description.length}/{DESCRIPTION_LIMIT}
