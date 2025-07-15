@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserActivity } from '@/types/activities';
+import type { Activities } from '@/types/activities';
 
 import { Card } from '@heroui/react';
 import Image from 'next/image';
@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { getStatusBadge } from '../_utils/getStatusBadge';
 
 interface ActivityCardProps {
-  activity: UserActivity;
+  activity: Activities;
   onClick?: () => void;
 }
 
