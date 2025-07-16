@@ -10,7 +10,7 @@ import ActivityCardSkeleton from './_components/ActivityCardSkeleton';
 import { useActivities } from '@/hooks/useActivities';
 
 export default function ActivitiesPage() {
-  const { activities, loading } = useActivities(null);
+  const { activities, loading, fetchActivitiesByUser } = useActivities(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
